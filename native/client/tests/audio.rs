@@ -6,7 +6,7 @@
 use std::path::Path;
 
 use native_client::audio::{self, Audio, OutputSettings};
-use native_client::bundle::RUNTIME;
+use presentation::assets::RUNTIME;
 use presentation::effects::launches::Launch;
 use presentation::effects::publication::EffectPublication;
 use presentation::sound::frame::{Heard, Listener, Motion, Shout};

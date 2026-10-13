@@ -5,7 +5,7 @@
 //! `vec4`, f32 unless named.
 use super::biome::{linear, Road, AREA_KINDS};
 use super::field::{Field, FOOTPRINT_M};
-use super::{is_road, js, Ground, RIVER};
+use super::{is_road, Ground, RIVER};
 use std::f64::consts::SQRT_2;
 
 /// The most levels the material's surface field may build: the widest is
@@ -32,7 +32,7 @@ fn luminance(c: [f64; 3]) -> f64 {
 }
 
 fn tan_deg(deg: f64) -> f64 {
-    js::tan(deg * std::f64::consts::PI / 180.0)
+    libm::tan(deg * std::f64::consts::PI / 180.0)
 }
 
 /// The surface field's grid as the material's parameters carry it.
@@ -63,28 +63,19 @@ impl Ground {
         let floor = &b.forest_floor;
         let grass = b.grass.clear_m.area + self.tuning.grass.edge_m;
         let most =
-            |f: &dyn Fn(&Road) -> f64| b.roads.values().map(f).fold(f64::NEG_INFINITY, js::max);
+            |f: &dyn Fn(&Road) -> f64| b.roads.values().map(f).fold(f64::NEG_INFINITY, f64::max);
         let marks = most(&|r| {
             r.markings.as_ref().map_or(0.0, |m| {
                 m.crossing.gap_m + m.crossing.length_m + t.marks.clear_m + m.dash_m[0]
             })
         });
         let walk = most(&|r| r.walk.as_ref().map_or(0.0, |w| w.width_m));
-        let paved = js::max(
-            most(&|r| r.shoulder.width_m),
-            js::max(
-                marks,
-                walk + js::max(most(&|r| r.feather_m), footprint) / 2.0,
-            ),
-        );
+        let paved = most(&|r| r.shoulder.width_m)
+            .max(marks.max(walk + most(&|r| r.feather_m).max(footprint) / 2.0));
         let forest_m = floor.verge_m * t.forest_verge.feather;
-        let forest =
-            floor.verge_m + floor.verge_warp_m + js::max(js::max(footprint, forest_m), grass);
-        let bank = bank_m + 2.0 * js::max(footprint, t.bank.ease_m);
-        let water = js::max(
-            js::max(b.shore.mud_m, footprint / 2.0),
-            js::max(bank, grass),
-        );
+        let forest = floor.verge_m + floor.verge_warp_m + footprint.max(forest_m).max(grass);
+        let bank = bank_m + 2.0 * footprint.max(t.bank.ease_m);
+        let water = b.shore.mud_m.max(footprint / 2.0).max(bank.max(grass));
         [paved, forest, water]
     }
 
@@ -92,12 +83,12 @@ impl Ground {
     /// out to its reach at every level.
     pub fn terrain_field(&self) -> Result<Field, String> {
         let s = &self.source;
-        let longest = chunks_of(&s.rivers).fold(0.0, |run, r| {
-            js::max(js::max(run, (r[8] / r[6]) as f64), (r[9] / r[7]) as f64)
+        let longest = chunks_of(&s.rivers).fold(0.0f64, |run, r| {
+            run.max((r[8] / r[6]) as f64).max((r[9] / r[7]) as f64)
         });
         let bank_m = longest + s.grid.spacing * SQRT_2;
         let reach: Vec<[f64; 3]> = (0..LEVELS)
-            .map(|level| self.reach(FOOTPRINT_M * js::pow(2.0, level as f64), bank_m))
+            .map(|level| self.reach(FOOTPRINT_M * libm::pow(2.0, level as f64), bank_m))
             .collect();
         self.field(true, &reach)
     }
@@ -422,10 +413,10 @@ impl Grid {
     /// simulation's south-west to north-east triangle rule.
     pub fn height(&self, x: f64, y: f64) -> f64 {
         let (nx, ny) = ((self.nx - 1) as f64, (self.ny - 1) as f64);
-        let fx = js::min(js::max(x / self.spacing, 0.0), nx);
-        let fy = js::min(js::max(y / self.spacing, 0.0), ny);
-        let i = js::min(fx.floor(), nx - 1.0) as usize;
-        let j = js::min(fy.floor(), ny - 1.0) as usize;
+        let fx = (x / self.spacing).max(0.0).min(nx);
+        let fy = (y / self.spacing).max(0.0).min(ny);
+        let i = fx.floor().min(nx - 1.0) as usize;
+        let j = fy.floor().min(ny - 1.0) as usize;
         let (u, v) = (fx - i as f64, fy - j as f64);
         let (h00, h11) = (self.sample(i, j), self.sample(i + 1, j + 1));
         if u >= v {

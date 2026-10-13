@@ -4,8 +4,9 @@
 //! run's world and the scenery bundles (Git LFS).
 use std::path::Path;
 
-use native_client::bundle::{Library, RUNTIME};
+use native_client::bundle::Library;
 use native_client::capture::Replay;
+use presentation::assets::RUNTIME;
 use presentation::static_world::ground::mesh::VERTEX_FLOATS;
 use presentation::static_world::ground::walk::Draws;
 

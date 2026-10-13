@@ -12,10 +12,9 @@ import { Link } from "react-router";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
-  type CSSProperties,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
@@ -33,6 +32,8 @@ import { LoadingScreen } from "./LoadingScreen";
 import { Wordmark } from "./Wordmark";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
+import { graphicsDetectionState, subscribeGraphicsDetection } from "./graphicsDetection";
+import { GRAPHICS_TIERS, graphicsSettings } from "./graphicsSettings";
 
 interface Entry {
   label: string;
@@ -44,29 +45,29 @@ const DEVELOPER: Entry[] = [
     ? [
         {
           label: "Mechanics editor",
-          href: "/mechanics",
+          href: "/labs/mechanics",
         },
         {
           label: "Map workbench",
-          href: "/map-workbench",
+          href: "/labs/map-workbench",
         },
         {
           label: "Scenario builder",
-          href: "/scenario-builder",
+          href: "/labs/scenario-builder",
         },
         {
           label: "Scenario play",
-          href: "/scenario-play",
+          href: "/labs/scenario-play",
         },
         {
           label: "Sound workbench",
-          href: "/sound-workbench",
+          href: "/labs/sound-workbench",
         },
       ]
     : []),
   {
     label: "Benchmark",
-    href: "/benchmark",
+    href: "/labs/benchmark",
   },
   { label: "Labs", href: "/labs" },
 ];
@@ -250,10 +251,38 @@ export function MainMenu() {
   );
   const plate = useRef<HTMLDivElement>(null);
   const { report, progress } = useLoadingTasks();
+  const detection = useSyncExternalStore(subscribeGraphicsDetection, graphicsDetectionState);
+  const settings = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
   // Covered only until the backdrop is first ready: its restarts happen
   // behind its own veil. One that cannot be made leaves the plain ground.
   const [revealed, setRevealed] = useState(false);
   const loading = !revealed && !progress.done && !progress.error;
+  const detectionNeeded = settings.mode === "auto" && !settings.detectedMode;
+  const [showDetection, setShowDetection] = useState(false);
+  useEffect(() => {
+    if (!loading && detectionNeeded) setShowDetection(true);
+  }, [loading, detectionNeeded]);
+  const detectionStageVisible = detectionNeeded || showDetection;
+  const displayLoading = loading || detectionNeeded || showDetection;
+  const stages = detectionStageVisible
+    ? [...LOADING_STAGES, { id: "graphics", label: "Detecting Graphics" }]
+    : LOADING_STAGES;
+  const detectionCurrent = !loading && detectionStageVisible ? "graphics" : progress.current;
+  const detectionDetail =
+    detection.status === "running" && detection.currentTier
+      ? `Testing ${detection.currentTier.toUpperCase()} graphics · ${Math.min(
+          detection.completed + 1,
+          GRAPHICS_TIERS.length,
+        )} of ${GRAPHICS_TIERS.length} presets`
+      : detection.status === "complete" && detection.tier
+        ? `Graphics set to ${detection.tier.toUpperCase()}`
+        : detection.status === "idle" && detectionStageVisible
+          ? "Preparing graphics test…"
+          : undefined;
+  const detectionFailure =
+    detection.status === "failed" && showDetection
+      ? { message: "Graphics detection failed.", details: [detection.error ?? "Unknown error"] }
+      : null;
   const [shown] = useState(() => {
     let resolve = () => {};
     const promise = new Promise<void>((r) => (resolve = r));
@@ -274,18 +303,6 @@ export function MainMenu() {
     if (page !== null || left.current === null) return;
     plate.current?.querySelector<HTMLElement>(`[data-page="${left.current}"]`)?.focus();
     left.current = null;
-  }, [page]);
-  // The main page's height, kept while another page is open, for the slot
-  // that keeps a page's top edge where the main page's was (`menu.css`).
-  const [homeHeight, setHomeHeight] = useState<number | null>(null);
-  useLayoutEffect(() => {
-    const el = plate.current;
-    if (page !== null || !el || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) =>
-      setHomeHeight(entry.borderBoxSize[0].blockSize),
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
   }, [page]);
   useEffect(() => {
     if (page === null) return;
@@ -325,15 +342,6 @@ export function MainMenu() {
             <GraphicsSettingsControls />
             <SoundControls />
             <DiagnosticsControls />
-            <nav aria-label="Graphics">
-              <ul>
-                <li>
-                  <Link className="menu-card" to="/graphics-test" target="_self">
-                    <span className="menu-card-label">Graphics test</span>
-                  </Link>
-                </li>
-              </ul>
-            </nav>
           </>
         )}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
@@ -341,18 +349,15 @@ export function MainMenu() {
     );
   return (
     <>
-      <main className="menu" data-open={page ?? undefined} inert={loading}>
+      <main className="menu" data-open={page ?? undefined} inert={displayLoading}>
         <LoadingTasks report={report}>
-          <MenuBackdrop plate={plate} shown={shown.promise} />
+          <MenuBackdrop
+            plate={plate}
+            shown={shown.promise}
+            onDetectionSceneReady={() => setShowDetection(false)}
+          />
         </LoadingTasks>
-        <div
-          className="menu-slot"
-          style={
-            homeHeight === null
-              ? undefined
-              : ({ "--menu-home-height": `${homeHeight}px` } as CSSProperties)
-          }
-        >
+        <div className="menu-slot">
           <GraphicsDetectionHost runner={null} enabled={!loading}>
             <div className="hud-panel menu-body" ref={plate}>
               {content}
@@ -360,11 +365,24 @@ export function MainMenu() {
           </GraphicsDetectionHost>
         </div>
       </main>
-      {loading && (
+      {displayLoading && (
         <LoadingScreen
           title={<Wordmark />}
-          stages={LOADING_STAGES}
-          current={progress.current}
+          stages={stages}
+          current={detectionCurrent}
+          stageDetail={detectionDetail}
+          failure={detectionFailure}
+          recovery={
+            detectionFailure ? (
+              <button
+                type="button"
+                className="hud-menu-item"
+                onClick={() => window.location.reload()}
+              >
+                Reload
+              </button>
+            ) : undefined
+          }
           back={null}
         />
       )}

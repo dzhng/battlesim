@@ -26,7 +26,7 @@
 //   impostor cards (`models/impostorCards.ts`). Its static props are what
 //   the side knows stands of the map's props (walls, their rubble, wrecks),
 //   fitted to their boxes by the presentation and handed over as its static
-//   batches. Each draw binds the fog group its class names (`modelFog`). A
+//   batches. Each draw binds the fog group its class names (`view::model_fog`). A
 //   model's surfaces are drawn by kind (`models/surfaceParts.ts`): opaque as
 //   the rest of the world; a cutout cut in the prepass and the cascades; a
 //   room behind a window as solid as a wall and shown unlit; glass last,
@@ -47,16 +47,12 @@
 // and the painted ground layers (terrain, grass, backdrop: fog's
 // `paintedGround`) take it as their own surface.
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
-import {
-  createProjectedPoint,
-  projectPoint,
-  type Camera3DParams,
-} from "@packages/renderer-core/src/camera3d";
+import { createProjectedPoint, projectPoint } from "@packages/renderer-core/src/camera3d";
 import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
-import type { SkyRays } from "../shaders/physicalSky";
+import { CameraAt } from "../records.gen";
 import type { EnvironmentFrame } from "./environmentFrame";
 import { backdrop_mesh, map_box } from "@wasm/presentation/presentation_wasm.js";
 import {
@@ -154,8 +150,6 @@ const srgbToLinear = tgpu.fn(
   return std.pow(std.max(c, d.vec3f(0)), d.vec3f(2.2));
 });
 
-/** No map: the cascades fit just past the near plane. */
-const NO_BOX = new Float64Array(0);
 /** Selection glow added to a highlighted proxy. */
 const HIGHLIGHT = [0.95, 0.8, 0.2] as const;
 /** A rough dielectric: the flat box world has no material maps yet. */
@@ -497,13 +491,11 @@ export async function createWorldPass(
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     }),
   );
+  // The configured fraction is checked once; 0 turns the coverage test off.
+  const xrayFraction = validateXrayFraction(xrayMinHiddenFragmentFraction);
   const writeXrayMinimum = (value: number) =>
-    registry.device.queue.writeBuffer(
-      xrayMinimum,
-      0,
-      new Float32Array([validateXrayFraction(value)]),
-    );
-  writeXrayMinimum(xrayMinHiddenFragmentFraction);
+    registry.device.queue.writeBuffer(xrayMinimum, 0, new Float32Array([value]));
+  writeXrayMinimum(xrayFraction);
   const xrayCounts = registry.slot<GPUBuffer>();
   let xrayCapacity = 0;
   let xrayCoverageEnabled = true;
@@ -601,8 +593,7 @@ export async function createWorldPass(
   };
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
-  /** The map's box (`map_box`): what the cascades fit over, and what a
-   *  scar's scissor projects. */
+  /** The map's box (`map_box`): what a scar's scissor projects. */
   let box: Float64Array | null = null;
   let frameProjection: Mat4 | null = null;
   const corner = vec3.create(),
@@ -660,7 +651,7 @@ export async function createWorldPass(
   return {
     setXrayCoverageEnabled(on: boolean) {
       xrayCoverageEnabled = on;
-      writeXrayMinimum(on ? xrayMinHiddenFragmentFraction : 0);
+      writeXrayMinimum(on ? xrayFraction : 0);
     },
     setWorld(next: WorldLayers) {
       world.ground.set(next.terrain.mesh);
@@ -739,20 +730,23 @@ export async function createWorldPass(
     grassProbes: grass.probes,
     /** The scenery instances the last view drew (`sceneryLayer.ts`). */
     drawnScenery: () => scenery.drawn(),
-    /** Pose the environment and the cascades for this frame's camera, choose
-     *  the trees' detail and fit the grass for a viewport `width` by
-     *  `height` pixels. */
+    /** Pose the environment for the presentation frame's camera (its
+     *  `Camera` uniform and `View` record), upload the sun's cascades it
+     *  fitted (its `SunShadow` and `count` caster cameras) and fit the
+     *  grass. */
     prepare(
-      camera: Camera3DParams,
-      view: ArrayLike<number>,
-      viewProj: Mat4,
-      rays: SkyRays,
-      width: number,
-      height: number,
+      camera: Float32Array,
+      view: Float32Array,
+      sunShadow: Float32Array,
+      casters: Float32Array,
+      count: number,
     ) {
-      frameProjection = viewProj;
-      environment.prepare(camera, width, height, view, rays, box ?? NO_BOX);
-      grass.prepare(camera, viewProj, height);
+      frameProjection = camera.subarray(
+        CameraAt.view_proj,
+        CameraAt.view_proj + 16,
+      ) as unknown as Mat4;
+      environment.prepare(view, sunShadow, casters, count);
+      grass.prepare(frameProjection);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
       scenery.beginFrame();
@@ -1004,7 +998,7 @@ export async function createWorldPass(
       proxies.draw(
         opaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.units),
       );
-      // Each model draws through the fog group its class names (`modelFog`):
+      // Each model draws through the fog group its class names (`view::model_fog`):
       // posed units never fogged, props face by face (an occluding
       // structure whole, in FogTerm), corpses as the
       // ground under them.

@@ -7,7 +7,6 @@
 //! (`fog.rs`).
 use presentation::effects::lights::CAST_LIGHTS_MAX;
 use presentation::records::{Aerial, Camera as CameraRecord, CastLight, Sun, View};
-use presentation::shadow::camera_record;
 use wgpu::*;
 
 use crate::frame::HDR_FORMAT;
@@ -36,27 +35,6 @@ pub struct Environment {
     pub cast_lights: Buffer,
     /// The environment uniform's light part, set once.
     image: Vec<f32>,
-}
-
-/// Column-major `a · b`.
-fn mul(a: &[f64; 16], b: &[f64; 16]) -> [f64; 16] {
-    std::array::from_fn(|i| {
-        let (c, r) = (i / 4, i % 4);
-        (0..4).map(|k| a[k * 4 + r] * b[c * 4 + k]).sum()
-    })
-}
-
-/// The view-projection of `view`, as the GPU holds it.
-pub fn view_proj(view: &View) -> [f32; 16] {
-    mul(&view.projection.map(f64::from), &view.view.map(f64::from)).map(|v| v as f32)
-}
-
-/// The camera uniform for `view` at `clock` seconds (`cameraUniform.ts`).
-pub fn camera(view: &View, clock: f32) -> CameraRecord {
-    let eye = [view.eye[0], view.eye[1], view.eye[2]];
-    // The near plane is the reverse-Z projection's `near` term.
-    let size = [view.size[0], view.size[1]];
-    camera_record(&view_proj(view), eye, view.projection[14], size, clock)
 }
 
 fn texture(
@@ -357,18 +335,12 @@ impl Environment {
         ]
     }
 
-    /// The camera and the environment's view for `view`, the haze's
-    /// distances measured from `observer` (the camera's target).
-    pub fn prepare(&mut self, queue: &Queue, view: &View, observer: [f64; 3], clock: f32) {
-        queue.write_buffer(
-            &self.camera_buffer,
-            0,
-            bytemuck::bytes_of(&camera(view, clock)),
-        );
+    /// The frame's camera, and the environment's view for its `view`, the
+    /// haze's distances measured from what the camera looks at.
+    pub fn prepare(&mut self, queue: &Queue, view: &View, camera: &CameraRecord) {
+        queue.write_buffer(&self.camera_buffer, 0, bytemuck::bytes_of(camera));
         self.image[..16].copy_from_slice(&view.view);
-        for (i, v) in observer.iter().enumerate() {
-            self.image[16 + i] = *v as f32;
-        }
+        self.image[16..19].copy_from_slice(&view.target[..3]);
         queue.write_buffer(&self.data, 0, bytemuck::cast_slice(&self.image));
     }
 

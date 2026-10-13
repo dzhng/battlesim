@@ -1,18 +1,13 @@
 //! The template art library (`packages/scene-assets/src/templateLibrary.ts`):
 //! per building template and state, a range of rows that place kit modules
-//! on it. Rows are columns over the whole library. It and the kit bundles are
-//! scene-assets containers (`codec.ts`): a 16-byte header (magic, version,
-//! header and body lengths), canonical JSON whose typed arrays are
-//! `{"$view": i}`, then the arrays.
+//! on it. Rows are columns over the whole library. It and the kit bundles
+//! travel as scene-assets containers ([`crate::assets`]).
+use crate::assets::{self, Container, View, BUNDLE, LIBRARY};
 use crate::world::Corners;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::Read;
 use std::ops::Range;
-
-const LIBRARY: (u32, u32) = (0x4c544742, 3); // "BGTL"
-const BUNDLE: (u32, u32) = (0x54414742, 4); // "BGAT": a bundle without its textures' pixels
 
 /// What a side can know a building as, in the order of every state table.
 pub const STATES: [&str; 3] = ["intact", "ruin", "gutted"];
@@ -22,62 +17,6 @@ pub const ROW_FLOATS: usize = 7;
 
 /// A module's mesh bounds in its own frame: min x, y, z, then max.
 pub type Bounds = [f32; 6];
-
-/// A container's header: its content, and per typed array its type, byte
-/// offset into the body and length.
-#[derive(Deserialize)]
-struct Header<T> {
-    content: T,
-    views: Vec<(String, usize, usize)>,
-}
-
-#[derive(Deserialize)]
-struct View {
-    #[serde(rename = "$view")]
-    at: usize,
-}
-
-/// A container's content and body, refused unless it is `kind` (magic, version).
-fn container<'a, T: DeserializeOwned>(
-    bytes: &'a [u8],
-    kind: (u32, u32),
-    what: &str,
-) -> Result<(Header<T>, &'a [u8]), String> {
-    let word = |at: usize| {
-        bytes
-            .get(at..at + 4)
-            .map(|w| u32::from_le_bytes(w.try_into().unwrap()))
-    };
-    match (word(0), word(4), word(8), word(12)) {
-        (Some(m), Some(v), Some(h), Some(b))
-            if (m, v) == kind && 16 + (h + b) as usize == bytes.len() =>
-        {
-            let header = serde_json::from_slice(&bytes[16..16 + h as usize])
-                .map_err(|e| format!("{what}: {e}"))?;
-            Ok((header, &bytes[16 + h as usize..]))
-        }
-        _ => Err(format!(
-            "{what}: not a container of format {kind:x?}, or truncated; re-bake"
-        )),
-    }
-}
-
-impl<T> Header<T> {
-    /// The bytes of `view`, of type `ty` (`size` bytes an element).
-    fn view<'a>(
-        &self,
-        body: &'a [u8],
-        view: &View,
-        ty: &str,
-        size: usize,
-    ) -> Result<&'a [u8], String> {
-        match self.views.get(view.at) {
-            Some((t, offset, len)) if t == ty => body.get(*offset..offset + len * size),
-            _ => None,
-        }
-        .ok_or(format!("view {} is not {ty} within the body", view.at))
-    }
-}
 
 #[derive(Deserialize)]
 struct Content {
@@ -139,27 +78,13 @@ pub struct Library {
 impl Library {
     /// A library file's bytes, inflated.
     pub fn decode(bytes: &[u8]) -> Result<Self, String> {
-        let (header, body) = container::<Content>(bytes, LIBRARY, "template library")?;
-        let rows = &header.content.rows;
-        let words = |view, ty, size| header.view(body, view, ty, size);
-        let f32s = words(&rows.transform, "f32", 4)?
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .map(|c| f32::from_le_bytes(*c));
-        let u16s = words(&rows.module, "u16", 2)?
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|c| u16::from_le_bytes(*c));
-        let (tiers, tint) = (
-            words(&rows.tiers, "u8", 1)?.to_vec(),
-            words(&rows.tint, "u8", 1)?.to_vec(),
-        );
-        let (module, transform): (Vec<u16>, Vec<f32>) = (u16s.collect(), f32s.collect());
+        let library = Container::<Content>::parse(bytes, LIBRARY, "template library")?;
+        let rows = &library.content.rows;
+        let (module, transform) = (library.u16s(rows.module)?, library.f32s(rows.transform)?);
+        let (tiers, tint) = (library.u8s(rows.tiers)?, library.u8s(rows.tint)?);
         let count = module.len();
-        let kits = &header.content.kits;
-        let modules = header.content.modules.iter().map(|m| {
+        let kits = &library.content.kits;
+        let modules = library.content.modules.iter().map(|m| {
             let kit = kits
                 .get(m.kit)
                 .ok_or("template library: a module names no kit")?;
@@ -177,7 +102,7 @@ impl Library {
             return Err("template library: a row names no module".into());
         }
         let mut templates = HashMap::new();
-        for t in &header.content.templates {
+        for t in &library.content.templates {
             let states = STATES.map(|s| t.states.get(s).map(|r| r.first..r.first + r.count));
             if states.iter().flatten().any(|r| r.end > count) {
                 return Err(format!(
@@ -236,22 +161,9 @@ struct CorneredState {
 /// A static bundle's states, each with its bounds, from the head of the
 /// bundle as it travels, inflating as it is read (`read`): the header alone
 /// is read, never the meshes.
-pub fn state_corners(mut read: impl Read, what: &str) -> Result<Vec<(String, Corners)>, String> {
-    let fail = |e: std::io::Error| format!("{what}: {e}; is it a Git LFS pointer?");
-    let mut head = [0u8; 16];
-    read.read_exact(&mut head).map_err(fail)?;
-    let word = |at: usize| u32::from_le_bytes(head[at..at + 4].try_into().unwrap());
-    if (word(0), word(4)) != BUNDLE {
-        return Err(format!(
-            "{what}: not a container of format {BUNDLE:x?}; re-bake"
-        ));
-    }
-    let mut json = vec![0u8; word(8) as usize];
-    read.read_exact(&mut json).map_err(fail)?;
-    let header: Header<Cornered> =
-        serde_json::from_slice(&json).map_err(|e| format!("{what}: {e}"))?;
-    Ok(header
-        .content
+pub fn state_corners(read: impl Read, what: &str) -> Result<Vec<(String, Corners)>, String> {
+    let content: Cornered = assets::content(read, BUNDLE, what)?;
+    Ok(content
         .states
         .into_iter()
         .map(|s| (s.name, s.bounds))
@@ -261,9 +173,9 @@ pub fn state_corners(mut read: impl Read, what: &str) -> Result<Vec<(String, Cor
 /// A kit bundle's module bounds by name, from the bundle's content as it
 /// travels (`splitTextures`), inflated. The mesh views are not read.
 pub fn kit_bounds(bytes: &[u8]) -> Result<HashMap<String, Bounds>, String> {
-    let (header, _) = container::<Bundle>(bytes, BUNDLE, "bundle")?;
+    let bundle = Container::<Bundle>::parse(bytes, BUNDLE, "bundle")?;
     let bounds = |b: &StateBounds| [b.min[0], b.min[1], b.min[2], b.max[0], b.max[1], b.max[2]];
-    Ok(header
+    Ok(bundle
         .content
         .states
         .iter()

@@ -34,13 +34,15 @@ test("active catalogue maps are inspectable in labs by name", () => {
   window.history.replaceState(null, "", "/labs");
   const labs = render(createElement(LabRouter));
   expect(labs.getByRole("link", { name: "Battlefield draft-field" }).getAttribute("href")).toBe(
-    "/lab/geometry?map=draft-field",
+    "/labs/geometry?map=draft-field",
   );
   expect(labs.getByRole("link", { name: "Battlefield released-field" }).getAttribute("href")).toBe(
-    "/lab/geometry?map=released-field",
+    "/labs/geometry?map=released-field",
   );
   expect(labs.queryByRole("link", { name: "Battlefield retired-field" })).toBeNull();
-  expect(labs.getByRole("link", { name: "workbench" }).getAttribute("href")).toBe("/workbench");
+  expect(labs.getByRole("link", { name: "workbench" }).getAttribute("href")).toBe(
+    "/labs/workbench",
+  );
   labs.unmount();
 });
 
@@ -57,7 +59,7 @@ test("every saved route names an existing catalogue map and every active map has
   const labs = render(createElement(LabRouter));
   for (const map of maps.filter((map) => map.status !== "retired"))
     expect(labs.getByRole("link", { name: map.label }).getAttribute("href")).toBe(
-      `/lab/geometry?map=${map.id}`,
+      `/labs/geometry?map=${map.id}`,
     );
   labs.unmount();
 });

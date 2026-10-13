@@ -6,7 +6,6 @@
 //! per pixel: the nearest cut on the way down is the distance to the plot's
 //! edge, where the verge grows, as sharp up close as from afar.
 use super::biome::{Biome, FieldRules, PLOT_HUE_JITTER};
-use super::js;
 use super::shapes::{centroid, segments_cross, signed_area};
 use super::{chunks, is_road, Source, RUN, SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
 use crate::seed::Mulberry32;
@@ -79,7 +78,7 @@ fn span(poly: &[f64], ax: f64, ay: f64) -> (f64, f64) {
     let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
     for p in poly.as_chunks::<2>().0 {
         let d = p[0] * ax + p[1] * ay;
-        (lo, hi) = (js::min(lo, d), js::max(hi, d));
+        (lo, hi) = (lo.min(d), hi.max(d));
     }
     (lo, hi)
 }
@@ -105,7 +104,7 @@ fn chord(
         let (ex, ey) = (poly[j * 2] - px, poly[j * 2 + 1] - py);
         i += 1;
         // The side's inward normal.
-        let edge = js::hypot(ex, ey);
+        let edge = libm::hypot(ex, ey);
         let (nx, ny) = match () {
             _ if !unit && turn > 0.0 => (-ey, ex),
             _ if !unit => (ey, -ex),
@@ -119,9 +118,9 @@ fn chord(
                 return None;
             }
         } else if slope > 0.0 {
-            t0 = js::max(t0, -fa / slope);
+            t0 = t0.max(-fa / slope);
         } else {
-            t1 = js::min(t1, -fa / slope);
+            t1 = t1.min(-fa / slope);
         }
     }
     Some((t0, t1))
@@ -129,7 +128,7 @@ fn chord(
 
 /// The cut line along road `a`→`b`: its unit normal and offset.
 fn line(a: [f64; 2], b: [f64; 2]) -> ([f64; 3], f64) {
-    let len = js::hypot(b[0] - a[0], b[1] - a[1]);
+    let len = libm::hypot(b[0] - a[0], b[1] - a[1]);
     let (nx, ny) = (-(b[1] - a[1]) / len, (b[0] - a[0]) / len);
     ([nx, ny, nx * a[0] + ny * a[1]], len)
 }
@@ -150,7 +149,7 @@ fn road_cuts(poly: &[f64], a: [f64; 2], b: [f64; 2], short_chord: f64, share: f6
     if t1.partial_cmp(&t0) != Some(std::cmp::Ordering::Greater) {
         return false;
     }
-    let along = js::min(t1, 1.0) - js::max(t0, 0.0);
+    let along = t1.min(1.0) - t0.max(0.0);
     if along * len < 1.0 || (along < share * (t1 - t0) && (t1 - t0) * len > short_chord) {
         return false;
     }
@@ -195,14 +194,8 @@ impl Split<'_> {
     /// Whether no carriageway (stroke centreline or road triangle edge)
     /// crosses from a yard's centre to its building.
     fn same_road_side(&self, centre: [f64; 2], building: [f64; 2]) -> bool {
-        let (x0, x1) = (
-            js::min(centre[0], building[0]),
-            js::max(centre[0], building[0]),
-        );
-        let (y0, y1) = (
-            js::min(centre[1], building[1]),
-            js::max(centre[1], building[1]),
-        );
+        let (x0, x1) = (centre[0].min(building[0]), centre[0].max(building[0]));
+        let (y0, y1) = (centre[1].min(building[1]), centre[1].max(building[1]));
         let s = self.source;
         let strokes = chunks::<SURFACE_STROKE>(&s.surface_strokes)
             .iter()
@@ -212,8 +205,8 @@ impl Split<'_> {
             for edge in (0..edges).filter(|_| is_road(r[kind])) {
                 let (a, b) = (edge * 2, if edges == 1 { 2 } else { (edge + 1) % 3 * 2 });
                 let [ax, ay, bx, by] = [r[a], r[a + 1], r[b], r[b + 1]].map(f64::from);
-                let apart = js::max(ax, bx) < x0 || js::min(ax, bx) > x1;
-                if apart || js::max(ay, by) < y0 || js::min(ay, by) > y1 {
+                let apart = ax.max(bx) < x0 || ax.min(bx) > x1;
+                if apart || ay.max(by) < y0 || ay.min(by) > y1 {
                     continue;
                 }
                 if segments_cross(centre, building, [ax, ay], [bx, by]) {
@@ -250,10 +243,10 @@ impl Split<'_> {
     /// The ground round a building is the settlement's own, and the land
     /// round that its surround, where no crop is drilled.
     fn pick_kind(&mut self, centre: [f64; 2]) -> usize {
-        if self.near_building(centre, js::pow(self.rules.yard_m, 2.0), true) {
+        if self.near_building(centre, libm::pow(self.rules.yard_m, 2.0), true) {
             return self.out.settlement;
         }
-        if self.near_building(centre, js::pow(self.rules.settlement_m, 2.0), false) {
+        if self.near_building(centre, libm::pow(self.rules.settlement_m, 2.0), false) {
             return self.surround;
         }
         let total = self.biome.plots.iter().fold(0.0, |a, p| a + p.weight);
@@ -275,10 +268,10 @@ impl Split<'_> {
         let value = 1.0 + (self.rng.sample() * 2.0 - 1.0) * jitter;
         let colour = [0, 1, 2].map(|c| {
             let hue = 1.0 + (self.rng.sample() * 2.0 - 1.0) * jitter * PLOT_HUE_JITTER;
-            js::min(1.0, js::max(0.0, base[c] * value * hue))
+            (base[c] * value * hue).clamp(0.0, 1.0)
         });
         // Rows run along the plot's longer side.
-        let (ux, uy) = (js::cos(heading), js::sin(heading));
+        let (ux, uy) = (libm::cos(heading), libm::sin(heading));
         let ((u0, u1), (v0, v1)) = (span(&poly, ux, uy), span(&poly, -uy, ux));
         let across = if u1 - u0 >= v1 - v0 {
             [-uy, ux]
@@ -301,10 +294,10 @@ impl Split<'_> {
         let pad = ROAD_BOX_PAD_M;
         let near = |&r: &usize| {
             let (a, b) = self.road(r);
-            js::max(a[0], b[0]) >= x0 - pad
-                && js::min(a[0], b[0]) <= x1 + pad
-                && js::max(a[1], b[1]) >= y0 - pad
-                && js::min(a[1], b[1]) <= y1 + pad
+            a[0].max(b[0]) >= x0 - pad
+                && a[0].min(b[0]) <= x1 + pad
+                && a[1].max(b[1]) >= y0 - pad
+                && a[1].min(b[1]) <= y1 + pad
         };
         within.iter().copied().filter(near).collect()
     }
@@ -335,11 +328,11 @@ impl Split<'_> {
             let (a, b) = self.road(r);
             let pad = self.rules.min_width_m;
             let within = match chord(poly, a, b, pad, true, (0.0, 1.0)) {
-                Some((t0, t1)) => js::max(0.0, t1 - t0) * js::hypot(b[0] - a[0], b[1] - a[1]),
+                Some((t0, t1)) => (t1 - t0).max(0.0) * libm::hypot(b[0] - a[0], b[1] - a[1]),
                 None => 0.0,
             };
             if within > longest {
-                (longest, heading) = (within, Some(js::atan2(b[1] - a[1], b[0] - a[0])));
+                (longest, heading) = (within, Some(libm::atan2(b[1] - a[1], b[0] - a[0])));
             }
         }
         heading
@@ -364,9 +357,9 @@ impl Split<'_> {
         // along its longest; the rest keeps the grain it was cut from.
         let (mut heading, mut tract) = (land, tract);
         if !tract {
-            let (a0, a1) = span(&poly, js::cos(land), js::sin(land));
-            let (b0, b1) = span(&poly, -js::sin(land), js::cos(land));
-            if js::max(a1 - a0, b1 - b0) <= rules.tract_m {
+            let (a0, a1) = span(&poly, libm::cos(land), libm::sin(land));
+            let (b0, b1) = span(&poly, -libm::sin(land), libm::cos(land));
+            if (a1 - a0).max(b1 - b0) <= rules.tract_m {
                 heading = land + self.rng.float(-1.0, 1.0) * rules.orientation_jitter_deg * DEG;
                 tract = true;
             }
@@ -388,7 +381,7 @@ impl Split<'_> {
                 return self.cut(&poly, line(a, b).0, (heading, level, true), &roads);
             }
         }
-        let (ux, uy) = (js::cos(heading), js::sin(heading));
+        let (ux, uy) = (libm::cos(heading), libm::sin(heading));
         let ((u0, u1), (v0, v1)) = (span(&poly, ux, uy), span(&poly, -uy, ux));
         let (lu, lv) = (u1 - u0, v1 - v0);
         let (long, short) = if lu >= lv { (lu, lv) } else { (lv, lu) };
@@ -411,12 +404,12 @@ impl Split<'_> {
         }
         let lean = self.rng.float(-1.0, 1.0) * rules.cut_jitter_deg * DEG;
         let theta = (heading + if across_u { 0.0 } else { PI / 2.0 }) + lean;
-        let (nx, ny) = (js::cos(theta), js::sin(theta));
+        let (nx, ny) = (libm::cos(theta), libm::sin(theta));
         let (s0, s1) = span(&poly, nx, ny);
         let extent = s1 - s0;
         // Keep both pieces at least the minimum width.
-        let lo = js::max(rules.cut_range[0], rules.min_width_m / extent);
-        let hi = js::min(rules.cut_range[1], 1.0 - rules.min_width_m / extent);
+        let lo = rules.cut_range[0].max(rules.min_width_m / extent);
+        let hi = rules.cut_range[1].min(1.0 - rules.min_width_m / extent);
         if lo > hi {
             return Ok(self.leaf(poly, heading));
         }
@@ -456,7 +449,7 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
         depth: 0,
         settlement: kind(&rules.settlement_kind)?,
     };
-    let reach = js::max(rules.settlement_m, 1.0);
+    let reach = rules.settlement_m.max(1.0);
     let rng = Mulberry32::new(biome.seed);
     let surround = kind(&rules.surround_kind)?;
     let buildings = HashMap::new();

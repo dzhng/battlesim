@@ -74,18 +74,13 @@
     padding-left: max(48px, 7vw);
   }
 }
-/* What the menu centres: the plate at the slot's top. An open page's slot is
-   as tall as the main page (`--menu-home-height`, measured while it shows),
-   so a shorter page keeps the main page's top edge. The tutorial, as tall as
-   the screen, centres by its own height. */
+/* The menu centres each plate by its own height. The tutorial, as tall as the
+   screen, uses its own bounded scroll region. */
 .menu-slot {
   display: grid;
   width: 100%;
   justify-items: inherit;
-  align-content: start;
-}
-.menu[data-open]:not([data-open="tutorial"]) .menu-slot {
-  height: var(--menu-home-height, 0px);
+  align-content: center;
 }
 .menu-body {
   width: min(560px, 100%);
@@ -524,6 +519,26 @@
   text-transform: uppercase;
   color: rgb(var(--hud-text));
 }
+.loading-stage-detail {
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: transparent;
+  background: linear-gradient(
+      105deg,
+      rgb(var(--hud-dim)) 28%,
+      rgb(var(--hud-accent)) 45%,
+      #fff 50%,
+      rgb(var(--hud-accent)) 55%,
+      rgb(var(--hud-dim)) 72%
+    )
+    120% 0 / 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: graphics-detection-shine 1.8s linear infinite;
+}
 .hud-panel :is(.loading-cancel, .loading-failure a).hud-menu-item {
   justify-self: start;
   width: auto;
@@ -613,6 +628,18 @@
   background: rgba(10, 14, 20, 0.82);
   border: 1px solid rgba(143, 180, 224, 0.45);
   border-radius: 4px;
+}
+
+@keyframes graphics-detection-shine {
+  to {
+    background-position: -120% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-stage-detail {
+    animation: none;
+    background-position: 50% 0;
+  }
 }
 
 .bench-progress {

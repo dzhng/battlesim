@@ -11,12 +11,15 @@ use presentation::presentation::{Frame, Presentation};
 use presentation::records::{Instance, NONE};
 use wgpu::*;
 
-/// One held batch: a run of records over one row's tier, in one pass.
+/// One held batch: a run of records over one row's tier, in one pass, with
+/// the tier it casts with and how fog takes it (`Batch`).
 pub struct Held {
     pub key: u32,
     pub row: u32,
     pub tier: u32,
     pub pass: u32,
+    pub caster: u32,
+    pub fog: u32,
     pub count: u32,
     pub buffer: Buffer,
 }
@@ -71,6 +74,8 @@ impl Statics {
                             row: b.appearance,
                             tier: b.tier,
                             pass: b.pass,
+                            caster: b.caster,
+                            fog: b.fog,
                             count: b.count,
                             buffer,
                         },
@@ -85,7 +90,8 @@ impl Statics {
                     b.key, b.appearance
                 ));
             };
-            (h.row, h.tier, h.pass, h.count) = (b.appearance, b.tier, b.pass, b.count);
+            (h.row, h.tier, h.pass, h.caster, h.fog, h.count) =
+                (b.appearance, b.tier, b.pass, b.caster, b.fog, b.count);
             self.listed.push(b.key);
         }
         let listed: HashSet<u32> = self.listed.iter().copied().collect();

@@ -24,16 +24,18 @@
 use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
-use crate::seed::js_hypot;
-use crate::static_world::batches::{print, List, Population, CAST_PASS, VIEW_PASS};
+use crate::records::{CAST_PASS, FOG_FACES, NONE, VIEW_PASS};
+use crate::static_world::batches::{print, List, Population, PRINT_BASIS};
 use crate::static_world::walk::{casts_into, Record, Shadow};
-use crate::view::View;
+use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::FRAC_PI_2;
 
-pub const TIERS: usize = 4;
 const LAST: usize = TIERS - 1;
 const CHUNK_M: f64 = 128.0;
+/// Marks a whole chunk in a list's print apart from any one instance's
+/// (`chunk << 32 | index`).
+const WHOLE: u64 = 1 << 63;
 /// A crown's heart, where a whole tree probes fog, as a share of its height.
 const HEART: f64 = 0.62;
 /// The most cells of dressing drawn at once, and laid a walk.
@@ -191,14 +193,14 @@ impl Pop {
             .iter_mut()
             .chain(&mut self.cast)
             .for_each(Vec::clear);
-        self.prints.fill(self.generation);
+        self.prints.fill(print(PRINT_BASIS, self.generation));
         let shadow = shadow.filter(|_| self.casts);
         for (c, chunk) in self.chunks.iter().enumerate() {
             let whole = |out: &mut Vec<Vec<Record>>, prints: &mut [u64], at: usize| {
                 for k in 0..self.kinds {
                     let list = k * TIERS + LAST;
                     out[list].extend_from_slice(&self.sorted[k][chunk.start[k]..chunk.end[k]]);
-                    prints[at + list] = print(prints[at + list], c as u64);
+                    prints[at + list] = print(prints[at + list], WHOLE | c as u64);
                 }
             };
             if !view.sees_box(&chunk.bounds) {
@@ -229,7 +231,7 @@ impl Pop {
                     self.view[k * TIERS + t].push(*r);
                     self.prints[k * TIERS + t] = print(self.prints[k * TIERS + t], mark);
                     if self.casts {
-                        let m = k * TIERS + (t + 1).min(LAST);
+                        let m = k * TIERS + caster_tier(t);
                         self.cast[m].push(*r);
                         self.prints[n + m] = print(self.prints[n + m], mark);
                     }
@@ -247,6 +249,8 @@ impl Pop {
                     row,
                     tier,
                     pass,
+                    caster: List::own_caster(pass, tier),
+                    fog: FOG_FACES,
                     records,
                     print: self.prints[at + key],
                 });
@@ -529,7 +533,8 @@ impl SceneryWalk {
 
     fn select_dressing(&mut self, ground: &Ground, view: &View) {
         self.dressing.iter_mut().for_each(Vec::clear);
-        self.dressing_prints.fill(self.dressing_generation);
+        self.dressing_prints
+            .fill(print(PRINT_BASIS, self.dressing_generation));
         self.pending = false;
         self.drawn.clear();
         if !self.quality.dressing || self.cells.is_empty() {
@@ -654,7 +659,7 @@ impl SceneryWalk {
             for (r, v) in rest.iter_mut().zip(&pose[2..]) {
                 *r = *v as f32;
             }
-            let d = js_hypot(&[0, 1, 2].map(|a| tree[a] as f64 - view.eye[a]));
+            let d = crate::world::length([0, 1, 2].map(|a| tree[a] as f64 - view.eye[a]));
             let list = &mut self.felled_lists[kind * TIERS + tier_for(h as f64, d, view, lod)];
             list.extend([fall, rest]);
             let mut stump = tree;
@@ -667,7 +672,7 @@ impl SceneryWalk {
         for k in 0..kinds {
             for t in 0..TIERS {
                 let view_list = self.felled_lists[k * TIERS + t].clone();
-                self.felled_lists[kinds * TIERS + k * TIERS + (t + 1).min(LAST)].extend(view_list);
+                self.felled_lists[kinds * TIERS + k * TIERS + caster_tier(t)].extend(view_list);
             }
         }
         if self.felled_lists != before {
@@ -687,10 +692,13 @@ impl SceneryWalk {
         let kinds = self.scenery.kinds.len();
         for (key, records) in self.dressing.iter().enumerate() {
             let print = self.dressing_prints[key];
+            // The forest floor's dressing casts nothing.
             visit(List {
                 row: row(Draws::Dressing)[key / TIERS],
                 tier: (key % TIERS) as u32,
                 pass: VIEW_PASS,
+                caster: NONE,
+                fog: FOG_FACES,
                 records,
                 print,
             });
@@ -701,10 +709,13 @@ impl SceneryWalk {
             } else {
                 (CAST_PASS, key - kinds * TIERS)
             };
+            let tier = (key % TIERS) as u32;
             visit(List {
                 row: row(Draws::Felled)[key / TIERS],
-                tier: (key % TIERS) as u32,
+                tier,
                 pass,
+                caster: List::own_caster(pass, tier),
+                fog: FOG_FACES,
                 records,
                 print: self.felled_print,
             });
@@ -715,6 +726,8 @@ impl SceneryWalk {
                     row: row(Draws::Stump)[kind],
                     tier: 0,
                     pass,
+                    caster: List::own_caster(pass, 0),
+                    fog: FOG_FACES,
                     records,
                     print: self.felled_print,
                 });
@@ -802,7 +815,58 @@ impl Population for SceneryPopulation<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::{fell_pose, FelledRules};
+    use super::{fell_pose, FelledRules, Pop, Record, Size, FLOATS};
+    use crate::view::{Camera, View};
+    use std::collections::HashMap;
+
+    /// A row of trees along +x, twelve in the first chunk and one in each
+    /// chunk past it, and every list's records by print over cameras that
+    /// walk along it: one print must always mean one list.
+    #[test]
+    fn a_list_named_by_the_same_print_holds_the_same_records() {
+        let mut placed = Vec::new();
+        let mut tree = |x: f32| {
+            let mut p = [0.0f32; FLOATS];
+            (p[0], p[3], p[4], p[5]) = (x, 1.0, 1.0, 1.0);
+            placed.extend_from_slice(&p);
+        };
+        for i in 0..12 {
+            tree(4.0 + 10.0 * i as f32);
+        }
+        for c in 1..12 {
+            tree(128.0 * c as f32 + 64.0);
+        }
+        let sizes = [Size {
+            height: 10.0,
+            radius: 2.0,
+        }];
+        let mut pop = Pop::new(&placed, &sizes, 1, false, 0);
+        let mut seen: HashMap<(u32, u32, u64), Vec<Record>> = HashMap::new();
+        for step in 0..400 {
+            let x = -200.0 + step as f64 * 4.0;
+            let view = View::new(&Camera {
+                eye: [x, -30.0, 6.0],
+                target: [x + 100.0, 0.0, 0.0],
+                up: [0.0, 0.0, 1.0],
+                fov_y: 0.8,
+                near: 0.5,
+                size: [1280, 720],
+            });
+            pop.select(&view, None, &[150.0, 60.0, 24.0]);
+            pop.each_list(&[0], &mut |l| {
+                if l.records.is_empty() {
+                    return; // an empty list is never sent
+                }
+                let key = (l.tier, l.pass, l.print);
+                let earlier = seen.entry(key).or_insert(l.records.to_vec());
+                assert_eq!(
+                    earlier, l.records,
+                    "tier {} at eye x {x}: one print, two lists",
+                    l.tier
+                );
+            });
+        }
+    }
 
     fn rules() -> FelledRules {
         serde_json::from_value(serde_json::json!({

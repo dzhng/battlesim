@@ -90,7 +90,11 @@ function appCommit(): string {
 }
 
 export default defineConfig({
-  define: { __APP_COMMIT__: JSON.stringify(appCommit()) },
+  define: {
+    __APP_COMMIT__: JSON.stringify(appCommit()),
+    // Vercel sets VERCEL on its builds; only its edge serves the analytics script.
+    __ON_VERCEL__: JSON.stringify(Boolean(process.env.VERCEL)),
+  },
   // Worktrees share dependencies; compiled caches stay local.
   cacheDir: fileURLToPath(new URL("../throwaway/vite-cache/", import.meta.url)),
   plugins: [

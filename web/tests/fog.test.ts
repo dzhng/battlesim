@@ -17,7 +17,7 @@ import {
 import type { ObservationLayout } from "../src/battle/sim/observationView";
 import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
-import { FogParams } from "@packages/battle-renderer/src/records.gen";
+import { FogParamsAt } from "@packages/battle-renderer/src/records.gen";
 import {
   readWorldExports,
   type WorldExports,
@@ -95,16 +95,16 @@ test("fog reads the simulation's terrain grid and the foliage its trees give", (
   try {
     const words = upload.params();
     const floats = new Float32Array(words.buffer);
-    expect(floats[FogParams.height_spacing]).toBe(sensors.height_grid_m);
-    expect((words[FogParams.height_nx] - 1) * sensors.height_grid_m).toBe(sensors.size[0]);
-    expect((words[FogParams.height_ny] - 1) * sensors.height_grid_m).toBe(sensors.size[1]);
-    expect([words[FogParams.height_nx], words[FogParams.height_ny]]).toEqual([
+    expect(floats[FogParamsAt.height_spacing]).toBe(sensors.height_grid_m);
+    expect((words[FogParamsAt.height_nx] - 1) * sensors.height_grid_m).toBe(sensors.size[0]);
+    expect((words[FogParamsAt.height_ny] - 1) * sensors.height_grid_m).toBe(sensors.size[1]);
+    expect([words[FogParamsAt.height_nx], words[FogParamsAt.height_ny]]).toEqual([
       exports.terrain.nx,
       exports.terrain.ny,
     ]);
     // The foliage grid: a canopy and a depth per 8 m cell, some of them
     // under the lab's trees.
-    expect(floats[FogParams.foliage_cell_m]).toBe(8);
+    expect(floats[FogParamsAt.foliage_cell_m]).toBe(8);
     const cells = upload.foliage()!;
     expect(cells).toEqual(exports.foliage.subarray(3));
     let canopied = 0;

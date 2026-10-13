@@ -33,6 +33,7 @@ vi.mock("@web/battle/sim/presentation", async (importOriginal) => ({
   resolveFogLook: () => new Float32Array(0),
 }));
 vi.mock("@packages/battle-renderer/src/frame/battleFrame", () => ({
+  cascadeLight: (light: unknown) => light,
   createBattleFrame: () =>
     new Promise<BattleFrame>((resolve) => {
       gpu.resolve = resolve;
@@ -99,7 +100,7 @@ test("a viewport disposed during its build releases the late frame and never bec
       setFog() {
         throw new Error("late frame used after unmount");
       },
-      setClock() {},
+      setCamera() {},
       setPresentationWorld() {},
       setPresentedGround() {},
       setGround() {},
@@ -116,12 +117,12 @@ test("a viewport disposed during its build releases the late frame and never bec
 
 test("failed frame initialization releases the frame and reports its error to the loading boundary", async () => {
   const reported: (string | null | undefined)[] = [];
-  const { view, props, Viewport } = await mount({}, (id, task) => reported.push(task?.error));
+  const { view, props, Viewport } = await mount({}, (...args) => reported.push(args[1]?.error));
   await building();
   let disposed = false;
   await act(async () =>
     gpu.resolve!({
-      setClock() {
+      setPresentationWorld() {
         throw new Error("frame setup failed");
       },
       setModels() {
@@ -161,7 +162,7 @@ test("appearance updates reach the installing frame and unmount releases it imme
   const frame = {
     setFog() {},
     setModels() {},
-    setClock() {},
+    setCamera() {},
     setPresentationWorld() {},
     setPresentedGround() {},
     setGround() {},
@@ -205,7 +206,7 @@ test("a covered viewport ignores camera keys and resumes steering when uncovered
   await act(async () =>
     gpu.resolve!({
       setFog() {},
-      setClock() {},
+      setCamera() {},
       setPresentationWorld() {},
       setPresentedGround() {},
       setGround: () => false,
@@ -241,7 +242,7 @@ test("N steps the camera through the side's contacts and Shift+N steps back", as
   await act(async () =>
     gpu.resolve!({
       setFog() {},
-      setClock() {},
+      setCamera() {},
       setPresentationWorld() {},
       setPresentedGround() {},
       setGround: () => false,
@@ -276,7 +277,7 @@ test("a reused contact id starts a new cycle after the old contact leaves", asyn
   await act(async () =>
     gpu.resolve!({
       setFog() {},
-      setClock() {},
+      setCamera() {},
       setPresentationWorld() {},
       setPresentedGround() {},
       setGround: () => false,
@@ -313,7 +314,7 @@ test("a covered viewport ignores N like every other camera key", async () => {
   await act(async () =>
     gpu.resolve!({
       setFog() {},
-      setClock() {},
+      setCamera() {},
       setPresentationWorld() {},
       setPresentedGround() {},
       setGround: () => false,

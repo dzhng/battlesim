@@ -7,7 +7,9 @@
 
 import type { Clip, Joint, SkeletonClips } from "@packages/scene-assets/src/schema";
 import { CHANNEL_ABSENT, CHANNEL_ANIMATED } from "@packages/scene-assets/src/schema";
-import { SAMPLE_FLOATS } from "@web/battle/benchmark/unitManifest";
+
+/** Floats per joint sample: rotation vec4, translation vec3 + scale. */
+export const SAMPLE_FLOATS = 8;
 
 export interface TableClip {
   name: string;

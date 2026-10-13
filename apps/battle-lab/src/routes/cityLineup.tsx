@@ -1,4 +1,4 @@
-// /lab/city-lineup: every building template of the installed art library on
+// /labs/city-lineup: every building template of the installed art library on
 // flat ground, in rows by category at its real size, each labelled with its
 // id and with no battle on it. The picture every art and damage pass on the
 // templates is judged by.

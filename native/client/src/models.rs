@@ -13,9 +13,8 @@
 //! tier.
 use std::collections::{BTreeMap, HashMap};
 
-use presentation::presentation::{Presentation, GHOST_PASS};
-use presentation::records::{Joint, NONE};
-use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
+use presentation::presentation::Presentation;
+use presentation::records::{Joint, CAST_PASS, GHOST_PASS, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use presentation::view::IMPOSTOR;
 use wgpu::*;
@@ -30,9 +29,6 @@ use crate::statics::Statics;
 pub const VERTEX_BYTES: usize = 48;
 /// Material rows a material takes in the materials buffer (`MATERIAL_ROWS`).
 const MATERIAL_ROWS: usize = 5;
-/// Shadow casters draw this many tiers coarser than the view: a cascade
-/// texel is larger than the detail between tiers (`CASTER_COARSER`).
-const CASTER_COARSER: usize = 1;
 
 /// How a material's surface is drawn, in the order a mesh's indices take
 /// (`SURFACE_CLASSES`).
@@ -109,13 +105,8 @@ struct Row {
     /// Its appearance, by which the props are counted.
     name: String,
     kind: Kind,
-    /// How fog takes it (`modelFog.ts`): units never, a corpse as the
-    /// ground under it, the static world face by face, a surface movers
-    /// stand on with the ground's paint.
-    fog: Layer,
-    /// A building's module: it casts only in its caster batches. A prop
-    /// is listed in view only, and casts as a unit does.
-    casts_own: bool,
+    /// A building's module, counted as the browser counts them.
+    building: bool,
     tiers: Vec<Drawable>,
     /// A body's coarsest mesh posed in its far pose: what its impostor card
     /// shows, drawn in the card's place.
@@ -141,9 +132,10 @@ struct Run {
     /// Drawn in view, cast into the sun's cascades, or a placement ghost
     /// (`Batch.pass`).
     pass: u32,
-    /// The tier it casts with, if it casts: a unit or a prop in view casts
-    /// one tier coarser and never as a card; a building in its caster batches.
+    /// The tier it casts with, if it casts (`Batch.caster`).
     caster: Option<usize>,
+    /// The fog group it binds (`Batch.fog`).
+    fog: Layer,
     /// Its instances: the frame's from `first`, or a held static batch's.
     held: Option<u32>,
     first: u32,
@@ -193,7 +185,7 @@ pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track
                 o[32..36].copy_from_slice(&joints[v * 4..v * 4 + 4]);
                 // Narrowed to unorm8, still summing to exactly one.
                 let w: [u16; 4] = std::array::from_fn(|c| weights[v * 4 + c]);
-                let mut narrow = w.map(|x| js_round(f64::from(x) / 65535.0 * 255.0) as i32);
+                let mut narrow = w.map(|x| f64::round(f64::from(x) / 65535.0 * 255.0) as i32);
                 let heaviest = (0..4).fold(0, |h, c| if w[c] > w[h] { c } else { h });
                 narrow[heaviest] += 255 - narrow.iter().sum::<i32>();
                 narrow.map(|x| x as u8)
@@ -206,18 +198,13 @@ pub fn pack_vertices(mesh: &Mesh, material_base: usize, rigid: Option<u8>, track
         o[36..40].copy_from_slice(&weights);
         if let Some(t) = &mesh.tangents {
             for c in 0..4 {
-                o[40 + c] = js_round(f64::from(t[v * 4 + c]) / 258.0) as i8 as u8;
+                o[40 + c] = f64::round(f64::from(t[v * 4 + c]) / 258.0) as i8 as u8;
             }
         }
         o[44..46].copy_from_slice(&material[v].to_le_bytes());
         o[46..48].copy_from_slice(&track.to_le_bytes());
     }
     out
-}
-
-/// JavaScript's `Math.round`: halves round up.
-fn js_round(x: f64) -> f64 {
-    (x + 0.5).floor()
 }
 
 /// `mesh` skinned once by `palette` (bind to model) into a rigid mesh
@@ -259,7 +246,7 @@ pub fn posed_mesh(mesh: &Mesh, palette: &[Joint]) -> Mesh {
         }
         posed.positions[v * 3..v * 3 + 3].copy_from_slice(&sp);
         let len = |a: [f32; 3]| (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]).sqrt();
-        let snorm = |a: [f32; 3], l: f32| a.map(|c| js_round(f64::from(c / l * 32767.0)) as i16);
+        let snorm = |a: [f32; 3], l: f32| a.map(|c| f64::round(f64::from(c / l * 32767.0)) as i16);
         let ln = len(sn);
         if ln > 0.0 {
             posed.normals[v * 4..v * 4 + 3].copy_from_slice(&snorm(sn, ln));
@@ -553,8 +540,7 @@ impl Models {
                     Row {
                         name: name.to_owned(),
                         kind: Kind::Corpse,
-                        fog: Layer::Ground,
-                        casts_own: false,
+                        building: false,
                         tiers,
                         card: None,
                     }
@@ -562,8 +548,7 @@ impl Models {
                 Shape::Skinned(tiers) => Row {
                     name: name.to_owned(),
                     kind: Kind::Soldier,
-                    fog: Layer::Units,
-                    casts_own: false,
+                    building: false,
                     card: match tiers.last() {
                         Some(m) => Some(single(&posed_mesh(m, &rest()?), Some(0))),
                         None => None,
@@ -595,8 +580,7 @@ impl Models {
                     Row {
                         name: name.to_owned(),
                         kind: Kind::Vehicle,
-                        fog: Layer::Units,
-                        casts_own: false,
+                        building: false,
                         tiers,
                         card: None,
                     }
@@ -615,15 +599,7 @@ impl Models {
                     Row {
                         name: name.to_owned(),
                         kind: if prop { Kind::Prop } else { Kind::Piece },
-                        // A row with no state is posed, as a unit is.
-                        fog: if a.draws == DRAWS_PROP_GROUND {
-                            Layer::PaintedFaces
-                        } else if a.placed == 0 && state.is_empty() {
-                            Layer::Units
-                        } else {
-                            Layer::Faces
-                        },
-                        casts_own: a.placed != 0 && !prop,
+                        building: a.placed != 0 && !prop,
                         tiers: s.tiers.iter().map(|m| single(m, Some(0))).collect(),
                         card: None,
                     }
@@ -759,13 +735,16 @@ impl Models {
             .batches
             .iter()
             .filter(|b| !self.statics.holds(b.appearance))
-            .map(|b| (b.appearance, b.tier, b.pass, None, b.first, b.count));
-        let statics = self
-            .statics
-            .listed()
-            .map(|h| (h.row, h.tier, h.pass, Some(h.key), 0, h.count));
+            .map(|b| {
+                let run = (b.tier, b.pass, b.caster, b.fog);
+                (b.appearance, run, None, b.first, b.count)
+            });
+        let statics = self.statics.listed().map(|h| {
+            let run = (h.tier, h.pass, h.caster, h.fog);
+            (h.row, run, Some(h.key), 0, h.count)
+        });
         let batches: Vec<_> = units.chain(statics).collect();
-        for (appearance, tier, pass, held, first, count) in batches {
+        for (appearance, (tier, pass, caster, fog), held, first, count) in batches {
             let Some(Some(row)) = self.rows.get(appearance as usize) else {
                 continue;
             };
@@ -773,7 +752,7 @@ impl Models {
                 let levels = self.props.entry(row.name.clone()).or_default();
                 levels[(tier as usize).min(3)] += count;
             }
-            if row.casts_own && pass == VIEW_PASS {
+            if row.building && pass == VIEW_PASS {
                 let at = appearance as usize * 4 + (tier as usize).min(3);
                 if self.buildings.len() <= at {
                     self.buildings.resize(at + 1, 0);
@@ -789,18 +768,12 @@ impl Models {
                 continue;
             };
             let ghost = pass == GHOST_PASS;
-            let caster = match pass {
-                CAST_PASS => Some(tier),
-                VIEW_PASS if !impostor && !row.casts_own => {
-                    Some((tier + CASTER_COARSER).min(row.tiers.len().saturating_sub(1)))
-                }
-                _ => None,
-            };
             self.runs.push(Run {
                 row: appearance as usize,
                 tier,
                 pass,
-                caster,
+                caster: (caster != NONE).then_some(caster as usize),
+                fog: Layer::of(fog),
                 held,
                 first,
                 count,
@@ -892,13 +865,9 @@ impl Models {
         self.each_run(pass, view, |d| d.part(surface));
     }
 
-    /// As `draw`, the runs of rows fog takes as `layer` only.
+    /// As `draw`, the runs fog takes as `layer` only.
     pub fn draw_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
-        let rows = &self.rows;
-        let view = |r: &Run| {
-            let fogged = rows[r.row].as_ref().is_some_and(|row| row.fog == layer);
-            (r.pass == VIEW_PASS && fogged).then_some(r.tier)
-        };
+        let view = |r: &Run| (r.pass == VIEW_PASS && r.fog == layer).then_some(r.tier);
         self.each_run(pass, view, |d| d.part(surface));
     }
 

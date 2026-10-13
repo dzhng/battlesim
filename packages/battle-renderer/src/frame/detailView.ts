@@ -1,15 +1,11 @@
-// What a frame's camera means for level of detail: where the eye is, how many
-// pixels a metre covers at a metre's distance, and the view's side planes.
-// The scenery layer and the models layer choose their tiers from it.
-import { vec3, type Vec3 } from "math";
+// What a frame's camera means for a lab's own models' detail: where the eye
+// is, how many pixels a metre covers at a metre's distance, and the view's
+// side planes, read off the presentation frame's `View` record. The
+// presentation's batches carry their tiers already (`crates/presentation`'s
+// `view.rs`); the models layer chooses a lab's models' tiers from this.
+import { vec3, type Mat4, type Vec3 } from "math";
 import { frustum, type Frustum } from "math/shapes";
-import {
-  createGpuMat4,
-  eyePosition,
-  projMatrix,
-  viewMatrix,
-  type Camera3DParams,
-} from "@packages/renderer-core/src/camera3d";
+import { View } from "../records.gen";
 
 export interface DetailView {
   eye: Vec3;
@@ -23,22 +19,14 @@ export function createDetailView(): DetailView {
   return { eye: vec3.create(), pixelsPerMetre: 1, sides: frustum.create() };
 }
 
-const _detail_view = createGpuMat4();
-const _detail_proj = createGpuMat4();
-
-/** Pose `out` for `camera` drawing into a viewport `height` pixels tall. */
-export function setDetailView(out: DetailView, camera: Camera3DParams, height: number): DetailView {
-  eyePosition(out.eye, camera);
-  out.pixelsPerMetre = height / (2 * Math.tan(camera.fovY / 2));
+/** Pose `out` for a frame's `View` record (`View`'s words). */
+export function setDetailView(out: DetailView, view: Float32Array): DetailView {
+  vec3.set(out.eye, view[View.eye], view[View.eye + 1], view[View.eye + 2]);
+  out.pixelsPerMetre = view[View.size + 3];
   frustum.setFromViewProjectionMatrixSides(
     out.sides,
-    projMatrix(_detail_proj, camera),
-    viewMatrix(_detail_view, camera),
+    view.subarray(View.projection, View.projection + 16) as unknown as Mat4,
+    view.subarray(View.view, View.view + 16) as unknown as Mat4,
   );
   return out;
-}
-
-/** A camera's identity for "has the view changed": every field that moves a pixel. */
-export function detailKey(camera: Camera3DParams, height: number): string {
-  return `${camera.target}|${camera.distance}|${camera.yaw}|${camera.pitch}|${camera.fovY}|${camera.aspect}|${height}`;
 }

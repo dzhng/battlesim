@@ -7,7 +7,6 @@ use std::collections::HashMap;
 
 use super::synth::{self, seamless, Synth};
 use super::tables::{Cadence, Recipe, SoundTables};
-use crate::seed::js_round;
 
 /// Library reference, before recipe, weapon, distance and bus gains (LUFS).
 pub const SOURCE_LOUDNESS_DB: f64 = -23.0;
@@ -32,10 +31,10 @@ type Biquad = [f64; 5];
 /// BS.1770 K-weighting, as libebur128 parameterizes it by sample rate.
 fn weighting(sample_rate: f64) -> [Biquad; 2] {
     use std::f64::consts::PI;
-    let mut k = (PI * 1681.974450955533 / sample_rate).tan();
+    let mut k = libm::tan(PI * 1681.974450955533 / sample_rate);
     let mut q = 0.7071752369554196;
-    let high = 10f64.powf(3.999843853973347 / 20.0);
-    let middle = high.powf(0.4996667741545416);
+    let high = libm::pow(10f64, 3.999843853973347 / 20.0);
+    let middle = libm::pow(high, 0.4996667741545416);
     let mut d = 1.0 + k / q + k * k;
     let shelf = [
         (high + middle * k / q + k * k) / d,
@@ -44,7 +43,7 @@ fn weighting(sample_rate: f64) -> [Biquad; 2] {
         2.0 * (k * k - 1.0) / d,
         (1.0 - k / q + k * k) / d,
     ];
-    k = (PI * 38.13547087602444 / sample_rate).tan();
+    k = libm::tan(PI * 38.13547087602444 / sample_rate);
     q = 0.5003270373238773;
     d = 1.0 + k / q + k * k;
     [
@@ -63,8 +62,8 @@ fn weighting(sample_rate: f64) -> [Biquad; 2] {
 /// zero-padded, so silence or a long quiet tail cannot dilute them. A
 /// short-effect reference, not an integrated programme loudness.
 pub fn max_momentary_loudness(channels: &[Vec<f32>], sample_rate: f64) -> f64 {
-    let window = (js_round(sample_rate * 0.1) as usize).max(1);
-    let hop = (js_round(window as f64 / 4.0) as usize).max(1);
+    let window = (f64::round(sample_rate * 0.1) as usize).max(1);
+    let hop = (f64::round(window as f64 / 4.0) as usize).max(1);
     let frames = channels[0].len() + window;
     let mut energy = vec![0.0f64; frames];
     let [shelf, high] = weighting(sample_rate);
@@ -105,7 +104,7 @@ pub fn source_normalization(channels: &[Vec<f32>], sample_rate: f64, authored_ga
     if loudness < -90.0 || authored_gain == 0.0 {
         1.0
     } else {
-        10f64.powf((SOURCE_LOUDNESS_DB - loudness) / 20.0) * authored_gain
+        libm::pow(10f64, (SOURCE_LOUDNESS_DB - loudness) / 20.0) * authored_gain
     }
 }
 
@@ -236,7 +235,7 @@ fn mix(
         |c| c.1,
     );
     let shots: Vec<usize> = (0..cadence.shots)
-        .map(|k| js_round(k as f64 * cadence.interval_s * sample_rate) as usize)
+        .map(|k| f64::round(k as f64 * cadence.interval_s * sample_rate) as usize)
         .collect();
     let core = core.map(|c| c.0);
     let width = core
@@ -253,7 +252,7 @@ fn mix(
             match (recorded, synth) {
                 (Some(r), Some(s)) if recipe.looping && r.len() != s.len() => {
                     // Repeat each layer at its own period, then soften the seam.
-                    let fade = frames.min(js_round(0.05 * sample_rate) as usize);
+                    let fade = frames.min(f64::round(0.05 * sample_rate) as usize);
                     seamless(frames, fade, |n| {
                         (0..n)
                             .map(|f| {

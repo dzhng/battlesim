@@ -35,11 +35,12 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
-use crate::seed::{js_round, to_uint32, Mulberry32};
-use crate::static_world::batches::{List, Population, VIEW_PASS};
+use crate::records::VIEW_PASS;
+use crate::seed::Key;
+use crate::static_world::batches::{List, Population};
 use crate::static_world::fallen::Known;
 use crate::static_world::walk::{Record, Shadow};
-use crate::view::{model_detail, View, CULLED, SHADOW_MARGIN_M};
+use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MARGIN_M, TIERS};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use sim::publication::reader::KnownProp;
@@ -62,7 +63,6 @@ const STATE: &str = "default";
 const WRECK: &str = "wreck";
 /// Square chunks the map's props are bucketed in, metres.
 const CHUNK_M: f64 = 64.0;
-const TIERS: usize = 4;
 
 /// A prop kind's binding in the world layout (`propAppearance`).
 #[derive(Clone, Debug, Deserialize)]
@@ -299,7 +299,7 @@ impl PropArt {
         let mut least = f64::INFINITY;
         for &c in self.by_kind.get(&b.kind).into_iter().flatten() {
             let f = self.candidates[c].footprint;
-            let misfit: f64 = (0..3).map(|a| (b.half[a] / f[a]).ln().abs()).sum();
+            let misfit: f64 = (0..3).map(|a| libm::log(b.half[a] / f[a]).abs()).sum();
             if misfit < least {
                 (least, best) = (misfit, Some(c));
             }
@@ -412,7 +412,7 @@ impl PropArt {
             FRAC_PI_2
         };
         let (long, across) = if turn == 0.0 { (hx, hy) } else { (hy, hx) };
-        let count = js_round(long / fx).max(1.0);
+        let count = (long / fx).round().max(1.0);
         let step = 2.0 * long / count;
         let scale = [long / (count * fx), across / fy, hz / fz];
         for k in 0..count as usize {
@@ -426,10 +426,13 @@ impl PropArt {
 /// else from where it stands, so the same car is the same colour in every
 /// battle.
 fn paint_of(paints: &[[f32; 3]], b: &PropBox, authored: Option<f64>) -> [f32; 3] {
-    let seed = authored.unwrap_or_else(|| {
-        js_round(b.center[0] * 10.0) * 73_856_093.0 + js_round(b.center[1] * 10.0)
-    });
-    let sample = Mulberry32::new(to_uint32(seed)).sample();
+    let key = match authored {
+        Some(id) => Key::new().num(id),
+        None => Key::new()
+            .num((b.center[0] * 10.0).round())
+            .num((b.center[1] * 10.0).round()),
+    };
+    let sample = key.unit();
     paints[(sample * paints.len() as f64).floor() as usize]
 }
 
@@ -784,10 +787,18 @@ impl Population for PropPopulation {
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
         for (k, list) in self.lists.iter().enumerate() {
+            let tier = k % TIERS;
             visit(List {
                 row: self.rows[k / TIERS],
-                tier: (k % TIERS) as u32,
+                tier: tier as u32,
                 pass: VIEW_PASS,
+                // A prop casts as a unit does: no caster lists of its own.
+                caster: caster_tier(tier) as u32,
+                fog: model_fog(
+                    false,
+                    true,
+                    self.looks.list[k / TIERS].2 == DRAWS_PROP_GROUND,
+                ),
                 records: list,
                 print: self.prints[k],
             });

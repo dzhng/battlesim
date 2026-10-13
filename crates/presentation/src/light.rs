@@ -189,13 +189,13 @@ fn transmittance_to_sun(direction: [f64; 3], turbidity: f64) -> [f64; 3] {
     for i in 0..STEPS {
         let t = (i as f64 + 0.5) * dt;
         let h = (r0 * r0 + t * t + 2.0 * r0 * t * mu).sqrt() - PLANET_RADIUS_KM;
-        let rayleigh = (-h / RAYLEIGH_SCALE_KM).exp();
-        let mie_density = (-h / MIE_SCALE_KM).exp();
+        let rayleigh = libm::exp(-h / RAYLEIGH_SCALE_KM);
+        let mie_density = libm::exp(-h / MIE_SCALE_KM);
         for (d, beta) in depth.iter_mut().zip(BETA_RAYLEIGH) {
             *d += (beta * rayleigh + mie * mie_density) * dt;
         }
     }
-    let t = depth.map(|d| (-d).exp());
+    let t = depth.map(|d| libm::exp(-d));
     let peak = t[0].max(t[1]).max(t[2]).max(1e-6);
     t.map(|v| v / peak)
 }
@@ -295,7 +295,7 @@ impl LightSettings {
         let overcast = smoothstep(4.0, 7.0, turbidity);
         let transmittance = transmittance_to_sun(sun, turbidity);
         let c = &self.sky.clouds;
-        let across = sun[0].hypot(sun[1]);
+        let across = libm::hypot(sun[0], sun[1]);
         let to_sun = if across > 1e-6 {
             [sun[0] / across, sun[1] / across]
         } else {

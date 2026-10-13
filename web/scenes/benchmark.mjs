@@ -23,7 +23,7 @@ export async function run(ctx, named = false) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const origin = new URL(ctx.url).origin;
   if (named) {
-    await page.goto(`${origin}/benchmark?preset=city-contact`);
+    await page.goto(`${origin}/labs/benchmark?preset=city-contact`);
     await page.waitForFunction(() => window.__benchmark?.preset === "city-contact");
     const selected = await page.evaluate(() => window.__benchmark?.preset);
     ctx.check(
@@ -58,10 +58,10 @@ export async function run(ctx, named = false) {
     await card.hover();
     await shot(ctx, page, "menu.png");
     await card.click();
-    await page.waitForURL("**/benchmark", { timeout: 10_000 });
+    await page.waitForURL("**/labs/benchmark", { timeout: 10_000 });
     ctx.check(
       "clicking a menu card's description navigates",
-      page.url().endsWith("/benchmark"),
+      page.url().endsWith("/labs/benchmark"),
       page.url(),
     );
   }

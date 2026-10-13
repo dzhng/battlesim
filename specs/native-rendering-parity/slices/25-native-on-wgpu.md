@@ -789,36 +789,45 @@ The gate is "native at or below the browser on every measure, both scenes, relea
 - The first 60 frames are left out, as `graphics-fps` leaves out its first 60.
 - The report is `native-<scene>-<time>.json` in the browser file's shape. It has `client: "native"`, the conditions (power, build, adapter, pace, the pass list and the mean drawn per frame), and per scene the `intervalsMs`, `cpuMs`, `gpu {frames, meanMs, p95Ms}` and `phasesMs`.
 - `fps-compare.mjs` reads `native-*.json` beside `browser-*.json`. Its table gains the CPU ms p95.
-- **Every bench frame lists every static batch** (`Replay::frame(.., drawn = true)`), because the models and scenery hold no batch from the frame before. Native therefore copies and uploads every static instance each frame: 120 KB a frame on paris-corner and 259 KB on market-town. The browser keeps them.
+- **Every bench frame lists every static batch** (`Replay::frame(.., drawn = true)`), because the models and scenery hold no batch from the frame before. Native therefore copies and uploads every static instance each frame: 120 KB a frame on paris-corner and 259 KB on market-town. The browser keeps them. (Step 5c since holds them, and a bench frame writes only what changed.)
 
-**What each side drew.**
-- **Both** drew the ground, the grass, the buildings, the scenery, the models, the effects, fog's mask (with no fog of war, as the reel has none) and post. The browser is `graphics-fps` at `c34a9f1df`, with its trees back.
-- **Neither** drew props: they are `props20b`'s. Fog of war's sight is not built natively, and neither reel draws it.
-- **Only the browser** also runs the live simulation worker, the HUD and the sound frame. It draws its own frames from the live simulation.
-- **Native** replays the capture's records: market-town 5,981 timed frames and paris-corner 1,846 (captures `2026-10-12T17-20-59-057Z` and `17-14-02-526Z`). The camera path and publications are the reel's, but the frames are not the browser run's frames. The captures came from `native5i` before the browser's trees were back, but a capture carries no scenery: native places its own from the map.
+**The final reading** (2026-10-13, branch `finalbench`, at `ef8f2d2fe`). Both sides draw everything: the ground, the grass, the buildings, the scenery, the props, the models, the effects, fog's mask (no fog of war: the reel has none) and post.
+- **Method:** a fresh control (`throwaway/native-parity/2026-10-13T15-35-25-248Z`, both scenes, passes `native-parity-capture`), which native replays. Native is `--bench` on a release build; the browser is `graphics-fps` on a production build. Runs were interleaved native and browser, plugged in, Apple M5 Pro, 1280×720. Each timed run held the GPU lock and started at a 1-minute load under 4: native 2.4–3.8, the browser 2.3–3.9. A duplicate runner made it four runs a side, not three; every run met the same conditions, so all four count. The rows are `fps-compare.mjs`'s medians (`throwaway/perf/finalbench/summary.md`).
+- **Only the browser** also runs the live simulation worker, the HUD and the sound frame, and draws its own frames from the live simulation. **Native** replays the capture's 8,461 and 4,001 records (8,400 and 3,940 timed).
 - **Native's mean per frame:**
-  - market-town: 43,721 scenery instances, 5,616 building pieces, and models with 660k triangles (10 soldiers, 3 vehicles, 11 corpses), plus 486 effects;
-  - paris-corner: 545 scenery instances, 14,800 building pieces, and models with 3.0M triangles, plus 60 effects.
+  - market-town: 42,879 scenery instances, 4,802 building pieces, 17,094 props, and models with 2.85M triangles (12 soldiers, 4 vehicles, 10 corpses), plus 509 effects;
+  - paris-corner: 556 scenery instances, 15,038 building pieces, 21 props, and models with 3.1M triangles (16 soldiers, 1 corpse), plus 60 effects.
 
-**The reading** (one run a side, plugged in, Apple M5 Pro, 1280×720, `throwaway/perf/nativebench-2/summary.md`). The GPU lock was held for each timed run.
-
-| client | scene | load (1 min) | avg FPS | 1% low | frame ms p50 / p95 / p99 | CPU ms p50 / p95 | GPU ms mean |
+| client | scene | avg FPS (min–max of runs) | 1% low | min FPS | frame ms p50 / p95 / p99 / max | CPU ms p50 / p95 | GPU ms mean |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| browser | market-town | 17 → falling | 30.7 | 9.0 | 33.33 / 49.99 / 75.00 | 7.26 / 44.33 | 21.32 |
-| native | market-town | 3.0 → 2.3 | 56.3 | 25.0 | 17.33 / 21.54 / 24.10 | 1.94 / 2.56 | 17.45 |
-| browser | paris-corner | falling → 3.0 | 46.1 | 10.9 | 16.70 / 41.57 / 75.02 | 1.50 / 2.36 | 13.37 |
-| native | paris-corner | 2.3 → 40 | 123.9 | 86.6 | 7.85 / 10.92 / 11.21 | 1.69 / 2.03 | 7.71 |
+| browser | market-town | 77.9 (77.7–78.0) | 39.6 | 37.1 | 15.01 / **17.74** / 25.00 / 26.97 | 2.32 / **3.37** | **8.60** |
+| native | market-town | 78.3 (67.7–78.3) | 51.7 | 42.4 | 13.00 / 18.05 / 18.95 / 23.59 | 2.30 / 4.27 | 12.15 |
+| browser | paris-corner | 105.7 (105.5–105.7) | 56.6 | 40.0 | 8.34 / 16.67 / 16.85 / 24.98 | **1.20** / 1.54 | **5.35** |
+| native | paris-corner | 112.8 (112.7–112.8) | 73.2 | 68.4 | 8.35 / 12.75 / 13.34 / 14.61 | 1.30 / 1.44 | 8.46 |
 
-- **Native is at or below the browser on every measure but one.** That one is paris-corner's CPU p50: 1.69 ms against the browser's 1.50. Native's CPU p95 is lower there.
-- The browser's market-town run started at load 17, so its row is provisional. Its paris-corner row and native's market-town row ran on a quiet machine. Native's paris-corner run ended with the load rising to 40.
-- The browser is paced to 120 Hz (8.3 ms) and native is unpaced. The browser's frames are longer than 8.3 ms, so the cap doesn't bind.
-- **Native is GPU-bound on both scenes.** Its frame-interval p50 equals its GPU mean: 17.3 against 17.5 ms on market-town, and 7.9 against 7.7 ms on paris-corner.
-  - Its CPU frame is 1.7–1.9 ms: framing 0.5–0.65, preparing 0.3–0.55, encoding under 0.1, and submit with present 0.65–0.75.
-  - Presenting costs nothing, because the off-screen window is occluded and nothing is shown.
-  - The GPU is not split by pass. Apple's tile-based GPU overlaps passes, so the browser's timer doesn't split it either.
-- **The first reading is discarded** (`nativebench-1`, load 30–60, before the trees fix). It had native paris-corner at 37, 18 and 11 FPS on three runs. A Metal System Trace of the third showed other processes doing 70% of the GPU's work: the lock serialises our runs, not other users of the GPU.
+Bold marks where the browser is lower.
 
-**Next for the gate:** once props land and native draws everything, rerun three runs a side on a quiet machine. Native should then hold its static batches across frames rather than resend them, as the browser does.
+**Verdict: the gate fails.** Native leads on average FPS, 1% low, minimum FPS, and frame p99 and max on both scenes. It misses on five measures:
+- **GPU mean, both scenes:** 12.15 against 8.60 ms on market-town and 8.46 against 5.35 on paris-corner, about 40–60% more GPU time per frame. The runs agree closely: native 12.09–14.24 and 8.46–8.49, the browser 8.56–8.60 and 5.27–5.38.
+- **Market-town's CPU p95:** 4.27 against 3.37 ms.
+- **Paris-corner's CPU p50:** 1.30 against 1.20 ms.
+- **Market-town's frame p95:** 18.05 against 17.74 ms, within the spread of runs.
+- Paris-corner's frame p50 ties (8.35 against 8.34): the browser is held at the display's 120 Hz there, and native is GPU-bound at its own 8.4 ms.
+
+**Where native's time goes:**
+- **The GPU bounds every native frame.** The frame interval p50 matches the GPU mean: 13.0 against 12.15 ms on market-town and 8.35 against 8.46 on paris-corner. With frames serialised (none in flight while the next is built), paris-corner still takes 7.7 ms of GPU, so the gap is work and not two frames overlapping in the marker span.
+- **Its CPU frame** (medians, p95 in brackets):
+  - market-town: framing 0.95, preparing 0.62 (1.87), encoding 0.12, submit with present 0.73. Preparing's tail is the static batches rewritten as the camera walks; the frame lists about 2 MB of instances.
+  - paris-corner: framing 0.44, preparing 0.10, encoding 0.09, submit with present 0.66.
+- **Presenting costs nothing,** because the off-screen window is occluded.
+- **The measures are not quite alike.** The browser's CPU time is its main thread only; Dawn's command encoding runs in Chrome's GPU process and is not counted. Native's submit is its whole `wgpu` submission. The browser's GPU mean is taken over its rolling 240-frame windows (57 and 20 readings). Native's is per frame, read back for 81–84% of them.
+- **The GPU is not split by pass.** A pass ablation (each pass skipped beside a baseline, twice) was swamped: other lanes were using the GPU while the load stayed under 4, so the same baseline read 7.7–14 ms. A Metal System Trace of native assigns no frames, because the occluded window never presents.
+
+**No fix was made.** The one cheap lead was naga's bounds checks: shaders built unchecked (`create_shader_module_trusted`) took 0.5–1.5 ms less on paris-corner in 5 of 6 paired runs, on the same contended GPU. That is unsafe, and it does not close a 3 ms gap.
+
+**Next for the gate:** find where native's extra GPU time goes. Split the GPU on a quiet GPU, not just a quiet CPU: per-pass ablation, or a trace from a run that presents to a visible window so that frames are assigned. Compare each pass's pipeline state and attachment load and store operations against Dawn's.
+
+The `graphics-fps` runs above completed their timing, but each failed the scene on a page error: a local production build loaded Vercel Analytics' script, which only Vercel serves (a 404). Analytics now mounts only on a Vercel build (`__ON_VERCEL__`, from Vercel's `VERCEL` build variable).
 
 ## Step 5b: the scenery, and the ground on `Presentation` (2026-10-12, branch `native5i`)
 
@@ -1134,6 +1143,22 @@ The capture scene, the frame records and native's replay are unchanged: every ot
 - **Fresh controls, both scenes:** fog off `throwaway/native-parity/2026-10-12T21-04-36-341Z`, fog on `21-07-59-103Z`. All four pass `native-parity-capture`. Native's report says "model, building, prop, scenery and effect counts: equal to the browser's on every plate" for all 48 plates. Thirteen of them are on a tick boundary (paris-corner 3 and 1, market-town 5 and 4).
 - **Plates** (grayscale MAE, control against native): market-town 0.016–0.096 (fog on 0.015–0.107) and paris-corner 0–0.049 (fog on 0–0.061). That is the same as step 5c. Native draws the same pictures, and the browser's change is a few ULPs of time.
 - **Gates:** `cargo test` for `presentation` and `native-client`; clippy `-D warnings` on those and `presentation-wasm`; `cargo fmt --check`; the web typecheck; oxlint (no errors); `authority.test.ts` and `simSession.test.tsx`.
+
+### Follow-up: native reads the page's numbers exactly (2026-10-13, branch `effectflake`)
+
+After the rate fix, about one fresh capture in four still had a market-town plate whose effect counts differed (plate 4815, 38 running tracers against 58; in this lane's third capture, plate 6485, 108 streaks against 103). The next capture matched.
+
+**The cause was native's JSON reader.** The page writes each frame's `simTime` as JavaScript does: the shortest text that reads back to its double. serde_json's default float reader is not correctly rounded and lands one ULP off on about 12% of frame times, and on about 7% of tick boundaries (`k / 30`). Plate 6485 was drawn at 3419/30, written `113.96666666666667`, which native read as `113.96666666666668`. One ULP past a boundary, that tick's effects end or start. Whether a plate fell on a misread boundary depended on the frame times, so it varied run to run. The page, its WASM and the capture were exact. The control's unfixed native differed on plate 6485; the fixed native, on the same capture, equals the browser on every plate.
+
+**The contract:**
+- **Native reads the numbers the page wrote with std's correctly rounded parse** (`capture.rs`'s `exact`): each frame's `simTime`, `reelMs`, `eye`, `target` and `up`, and the manifest's lens. The capture and manifest formats are unchanged.
+- **Not serde_json's `float_roundtrip`.** Cargo enables a feature for every crate in a build, so it would also change how native's simulation reads the maps (market-town's has 9,164 numbers of 16 or more digits), while the page's WebAssembly simulation still reads them the default way. Both clients read the maps alike today.
+- **Held by** `a_frame_reads_back_the_numbers_the_page_wrote` (red before the fix: one ULP at 109/30). If a reader drifts again, the count check on each plate is what fails, as it did here.
+
+**Evidence:**
+- Four fresh captures of both scenes before the fix: the third (`throwaway/native-parity/2026-10-13T20-22-01-640Z`) differed on market-town plate 6485 only. Fixed native equals the browser on it.
+- Five consecutive fresh captures of both scenes after the fix (`20-29-10-910Z` to `20-41-59-679Z`): native's counts equal the browser's on all 120 plates. The fourth capture's plate 4693 also fell on a misread boundary (113.96666666666667); the unfixed native gives 108 streaks there against the browser's 103.
+- **Gates:** `cargo test` for `presentation` and `native-client`, clippy `-D warnings` on both, `cargo fmt --check`, the web typecheck, oxlint (no errors).
 
 ### Step 6b follow-up: fog's CPU cost on the city map (2026-10-12, branch `fogperf`)
 

@@ -13,6 +13,7 @@
 // is the one WGSL function unseen pixels go through, applied by the fog mask
 // pass (`fogMaskPass.ts`) from the per-pixel mask the world's materials write.
 import { tgpu, d } from "typegpu";
+import { FogLook } from "../records.gen";
 
 /** One unseen look, as the fixture writes it. */
 export interface FogStyle {
@@ -69,37 +70,11 @@ export interface FogPresentation {
   styles: Record<string, FogStyle>;
 }
 
-/** The style as the GPU reads it: the presentation crate's `FogLook` record
- *  (`fog.rs` resolves a style into it; the page through `resolveFogLook`). */
-export const FogStyleUniform = d
-  .struct({
-    /** The night tint at unit luminance. */
-    tint: d.vec3f,
-    dim: d.f32,
-    cool: d.f32,
-    saturation: d.f32,
-    veil: d.f32,
-    lineStrength: d.f32,
-    lineSpacingPx: d.f32,
-    lineWidthPx: d.f32,
-    /** Radians. */
-    lineAngle: d.f32,
-    lineFloor: d.f32,
-    edgeSoftnessPx: d.f32,
-    /** Display sRGB. */
-    rimColor: d.vec3f,
-    rimAlpha: d.f32,
-    rimWidthPx: d.f32,
-    /** How far the mask pass searches for the other side, pixels. */
-    reachPx: d.f32,
-  })
-  .$name("FogStyleUniform");
-
 /** An unseen pixel's colour: `lit` (HDR, linear) at framebuffer `pixel`. */
 export const fogLook = tgpu.fn(
-  [d.vec3f, d.vec2f, FogStyleUniform],
+  [d.vec3f, d.vec2f, FogLook],
   d.vec3f,
-)(/* wgsl */ `(lit: vec3f, pixel: vec2f, s: FogStyleUniform) -> vec3f {
+)(/* wgsl */ `(lit: vec3f, pixel: vec2f, s: FogLook) -> vec3f {
   let lum = dot(lit, vec3f(0.2126, 0.7152, 0.0722));
   let kept = mix(vec3f(lum), lit, s.saturation);
   let c = mix(kept, lum * s.tint, s.cool) * s.dim;

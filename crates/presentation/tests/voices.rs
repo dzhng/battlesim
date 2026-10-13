@@ -1,10 +1,9 @@
 //! Which voice lines play, held to recorded vectors.
 //!
-//! `fixtures/chatter-vectors.json` was recorded from the TypeScript
-//! arbitration this module replaced: each case its set table, its loaded
-//! takes and a script of requests, take loads, resets and arbitrations, with
-//! every line each arbitration started (voice, take, moment, length) and
-//! dropped (why). The cases cover the four-line cap, tier then distance
+//! `fixtures/chatter-vectors.json` holds, for each case, its set table, its
+//! loaded takes and a script of requests, take loads, resets and
+//! arbitrations, with every line each arbitration started (voice, take,
+//! moment, length) and dropped (why). The cases cover the four-line cap, tier then distance
 //! priority (a request without a position nearest), the late drop, a missing
 //! take, self-overlap, group collapse, seeded takes, and the workbench's
 //! chatter preview.

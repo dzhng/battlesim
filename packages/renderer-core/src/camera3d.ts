@@ -1,14 +1,15 @@
-// The real 3D perspective camera — the ONE projection owner engine-wide: the
-// single source of truth for view/projection matrices and screen↔world mapping,
-// shared by the GPU uniform packer (cameraUniform.ts), the orbit rig and CPU
-// picking. Pure and GPU-free: everything here is unit-tested with no device.
+// The real 3D perspective camera on the page: the orbit rig's view and
+// projection matrices and screen↔world mapping for CPU picking. The matrices
+// a frame draws with are the presentation crate's (`view.rs`), made from the
+// same camera to the same bits. Pure and GPU-free: everything here is
+// unit-tested with no device.
 //
 // World convention: XY is the ground plane, +Z is up (matches the sim's world
 // convention). Matrix and vector math is the `math` package's: column-major,
 // out-first calls, module scratch named `_owner_purpose`. Camera matrices live
 // in float32 storage (`createGpuMat4`), the precision the GPU uniforms hold,
-// so CPU picking, projection and cascade fits compute with exactly the
-// matrices the shaders read. Depth is reverse-Z in WebGPU clip space (near → 1,
+// so CPU picking and projection compute with exactly the matrices the shaders
+// read. Depth is reverse-Z in WebGPU clip space (near → 1,
 // far → 0); `math` builds only forward-Z projections, so the two reverse-Z
 // builders below are the only matrix code kept here.
 import { mat4, vec3, vec4, type Mat4, type Vec3 } from "math";
@@ -39,14 +40,7 @@ export function metresPerPxAt(distance: number, fovY: number, heightPx: number):
   return (2 * distance * Math.tan(fovY / 2)) / Math.max(1, heightPx);
 }
 
-// Far plane for a consumer that cannot take an infinite far plane (the
-// cascade fit's frustum corners); the canonical projection above still omits
-// `far` for the infinite limit. Under reverse-Z the depth terms converge to the
-// infinite limit at about near/far relative error. Merged from ~/dev/game
-// renderer-core.
-export const FINITE_CAMERA_FAR_FALLBACK = 1e7;
-
-/** A `Mat4` (identity) in float32 storage: every camera and cascade matrix.
+/** A `Mat4` (identity) in float32 storage: every camera matrix.
  *  `math` computes in double precision and each matrix rounds once as it is
  *  stored, exactly as the GPU uniform will hold it. */
 export function createGpuMat4(): Mat4 {
@@ -139,9 +133,8 @@ export function perspectiveReverseZ(
   return out;
 }
 
-/** Orthographic WebGPU projection, right-handed view space, near→1 and far→0.
- *  Merged from ~/dev/game renderer-core: the sun's cascade
- *  cameras. */
+/** Orthographic WebGPU projection, right-handed view space, near→1 and far→0:
+ *  an impostor bake's view. Merged from ~/dev/game renderer-core. */
 export function orthographicReverseZ(
   out: Mat4,
   left: number,

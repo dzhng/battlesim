@@ -1,7 +1,8 @@
 import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { BrowserRouter, Link, useLocation, useNavigate } from "react-router";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
 import { usePublishBattleAddress } from "@apps/battle-lab/src/navigation";
 import { LabRouter, screenForPath } from "@apps/battle-lab/src/router";
 import { GAME_NAME } from "@apps/battle-lab/src/gameName";
@@ -48,8 +49,16 @@ vi.mock("@apps/battle-lab/src/routes/battle", () => ({
   },
 }));
 
+// A returning player, whose graphics were detected on an earlier visit. A first
+// visit keeps the loading screen over the (inert) menu until detection ends,
+// which jsdom never does; that screen is graphics detection's to test.
+beforeEach(() => {
+  graphicsSettings.set({ detectedMode: "medium" }, { persist: false });
+});
+
 afterEach(() => {
   cleanup();
+  graphicsSettings.set({ detectedMode: null }, { persist: false });
   window.history.replaceState(null, "", "/");
 });
 
@@ -130,7 +139,13 @@ test("menu sound policy follows real page resolution, including fallback and pla
   for (const path of ["/", "/unknown", "/battle/unknown"])
     expect(screenForPath(path), path).toBe("menu");
   for (const path of ["/battle", "/battle/"]) expect(screenForPath(path), path).toBe("loading");
-  for (const path of ["/labs", "/lab/panels", "/lab/street", "/benchmark", "/workbench"])
+  for (const path of [
+    "/labs",
+    "/labs/panels",
+    "/labs/street",
+    "/labs/benchmark",
+    "/labs/workbench",
+  ])
     expect(screenForPath(path), path).toBe("other");
 });
 

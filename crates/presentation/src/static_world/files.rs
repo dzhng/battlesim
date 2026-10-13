@@ -1,7 +1,7 @@
 //! The static world from the repository's own files, as a client with no
 //! page reads it: the saved map, the fixture's presentation numbers, and the
-//! runtime catalog's template library and kit bundles, each stored gzipped
-//! under its transport hash (`packages/scene-assets/src/gzip.ts`).
+//! runtime catalog's template library and kit bundles ([`Runtime`]).
+use crate::assets::Runtime;
 use crate::static_world::buildings::{Placed, PlacedBuildings};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::{self, Source, Tuning};
@@ -10,36 +10,11 @@ use crate::static_world::props::{Art, PropInput, STAND_IN_KIT, STAND_IN_MODULE};
 use crate::world::BuildingStyle;
 use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap};
-use std::io::Read;
 use std::path::Path;
 
 fn json(path: &Path) -> Result<Value, String> {
     let text = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
     serde_json::from_slice(&text).map_err(|e| format!("{}: {e}", path.display()))
-}
-
-/// The path of the runtime file the content `hash` travels in, gzipped.
-fn runtime_path(
-    root: &Path,
-    catalog: &Value,
-    hash: &str,
-    file: &str,
-) -> Result<std::path::PathBuf, String> {
-    let transport = catalog["gzip"][hash]["hash"]
-        .as_str()
-        .ok_or_else(|| format!("the runtime catalog has no transport for {hash}"))?;
-    Ok(root.join("assets/runtime").join(transport).join(file))
-}
-
-/// The runtime file the content `hash` travels in, inflated.
-fn runtime_file(root: &Path, catalog: &Value, hash: &str, file: &str) -> Result<Vec<u8>, String> {
-    let path = runtime_path(root, catalog, hash, file)?;
-    let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let mut out = vec![];
-    flate2::read::GzDecoder::new(&bytes[..])
-        .read_to_end(&mut out)
-        .map_err(|e| format!("{}: {e}; is it a Git LFS pointer?", path.display()))?;
-    Ok(out)
 }
 
 /// A saved map's ground as a client with no page reads it: what
@@ -76,15 +51,7 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let resolved = sim::maps::load_folder(&folder).map_err(|e| e.to_string())?;
     let game = json(&root.join("fixtures/game.json"))?;
     let meta = json(&folder.join("meta.json"))?;
-    let set = match meta["category"].as_str() {
-        Some("menu") => sim::fixtures::CatalogSet::Menu,
-        Some("test") => sim::fixtures::CatalogSet::Test,
-        _ => sim::fixtures::CatalogSet::Game,
-    };
-    let mut fixture = sim::fixtures::game();
-    fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
-    let rules: contract::scenario::Rules =
-        serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))?;
+    let rules = rules(root, map)?;
     let map_def = &resolved.definition;
     let world = sim::world::WorldGeometry::new(map_def, &rules);
     let layout = sim::world::export::layout_json(&rules.catalog);
@@ -113,6 +80,21 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     })
 }
 
+/// The rules of a battle fought on saved map `map`: the game's, with the
+/// units of the map's own category (a menu map's the menu's, a test map's
+/// the tests').
+pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String> {
+    let meta = json(&root.join("fixtures/maps").join(map).join("meta.json"))?;
+    let set = match meta["category"].as_str() {
+        Some("menu") => sim::fixtures::CatalogSet::Menu,
+        Some("test") => sim::fixtures::CatalogSet::Test,
+        _ => sim::fixtures::CatalogSet::Game,
+    };
+    let mut fixture = sim::fixtures::game();
+    fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
+    serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))
+}
+
 /// The simulation's world a saved map's ground was built by.
 pub use sim::world::WorldGeometry as World;
 
@@ -139,10 +121,10 @@ pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec
 /// vehicle's wreck; the stand-in kit's box where the catalog has its module;
 /// and the fixture's stand-in tints and model tiers.
 pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
-    let catalog = json(&root.join("assets/runtime/catalog.json"))?;
+    let runtime = Runtime::open(&root.join("assets/runtime"))?;
     let game = json(&root.join("fixtures/game.json"))?;
     let none = serde_json::Map::new();
-    let entries = catalog["appearances"].as_object().unwrap_or(&none);
+    let entries = runtime.catalog["appearances"].as_object().unwrap_or(&none);
     let worn = |name: &str| wearing.contains(&name);
     let wreck_of = |name: &str| entries.get(name).and_then(|e| e["wreck"].as_str());
     let wrecked: BTreeSet<&str> = entries.keys().filter_map(|n| wreck_of(n)).collect();
@@ -154,10 +136,8 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         let hash = entry["bundle"]
             .as_str()
             .ok_or(format!("{name}: no bundle"))?;
-        let path = runtime_path(root, &catalog, hash, "bundle.bin")?;
-        let file = std::fs::File::open(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         state_corners(
-            flate2::read::GzDecoder::new(file),
+            runtime.reader(hash, "bundle.bin")?,
             &format!("bundle {name}"),
         )
     };
@@ -211,42 +191,52 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
     })
 }
 
-/// The buildings of saved map `map` as `Presentation::load_world` takes
-/// them, each building's part props `parts` (in the map's building order)
-/// and the prop kinds a gutted building's parts become (`shells`), and the
-/// style that places them.
+/// The buildings of saved map `map`, built by the simulation's `world`, as
+/// `Presentation::load_world` takes them: each placed from its template, its
+/// part props (`export_buildings`, what the page reads), the prop kinds a
+/// gutted building's parts become under the map's catalog, and the style
+/// that places them.
 pub fn placed_buildings(
     root: &Path,
     map: &str,
-    parts: Vec<Vec<u32>>,
-    shells: Vec<String>,
+    world: &World,
 ) -> Result<(PlacedBuildings, BuildingStyle), String> {
-    let saved = json(&root.join("fixtures/maps").join(map).join("map.json"))?;
-    let placed: Vec<Placed> = saved["buildings"]
-        .as_array()
-        .map(|all| {
-            all.iter()
-                .map(|b| {
-                    let t = &b["frame"]["translation"];
-                    let n = |v: &Value| v.as_f64().unwrap_or(0.0);
-                    Placed {
-                        owner: b["owner"].as_u64().unwrap_or(0) as u32,
-                        template: b["template_id"].as_str().unwrap_or("").to_string(),
-                        frame: [n(&t[0]), n(&t[1]), n(&t[2]), n(&b["frame"]["yaw"])],
-                    }
-                })
-                .collect()
+    let exported: Value =
+        serde_json::from_str(&world.export_buildings()).map_err(|e| format!("buildings: {e}"))?;
+    let all: &[Value] = exported["buildings"].as_array().map_or(&[], Vec::as_slice);
+    let n = |v: &Value| v.as_f64().unwrap_or(0.0);
+    let placed: Vec<Placed> = all
+        .iter()
+        .map(|b| {
+            let t = &b["frame"]["translation"];
+            Placed {
+                owner: b["owner"].as_u64().unwrap_or(0) as u32,
+                template: b["templateId"].as_str().unwrap_or("").to_string(),
+                frame: [n(&t[0]), n(&t[1]), n(&t[2]), n(&b["frame"]["yaw"])],
+            }
         })
-        .unwrap_or_default();
+        .collect();
+    let parts: Vec<(u32, usize)> = all
+        .iter()
+        .enumerate()
+        .flat_map(|(i, b)| {
+            let props = b["parts"].as_array().map_or(&[][..], Vec::as_slice);
+            props
+                .iter()
+                .filter_map(move |p| Some((p["prop"].as_u64()? as u32, i)))
+        })
+        .collect();
+    let (_, shells) = crate::fielded::building_remains(&rules(root, map)?.catalog.view());
+    let shells: Vec<String> = shells.into_iter().collect();
     let style: BuildingStyle = serde_json::from_value(
         json(&root.join("fixtures/game.json"))?["presentation"]["buildings"].clone(),
     )
     .map_err(|e| format!("presentation.buildings: {e}"))?;
-    let catalog = json(&root.join("assets/runtime/catalog.json"))?;
-    let hash = catalog["templates"]["library"]
+    let runtime = Runtime::open(&root.join("assets/runtime"))?;
+    let hash = runtime.catalog["templates"]["library"]
         .as_str()
         .ok_or("the runtime catalog has no template library")?;
-    let library = Library::decode(&runtime_file(root, &catalog, hash, "templates.bin")?)?;
+    let library = Library::decode(&runtime.read(hash, "templates.bin")?)?;
     // The kits the placed templates' rows place, in any state.
     let mut kits = BTreeSet::new();
     for p in &placed {
@@ -261,25 +251,17 @@ pub fn placed_buildings(
     }
     let mut installed: HashMap<String, HashMap<String, Bounds>> = HashMap::new();
     for kit in kits {
-        let bundle = catalog["appearances"][&kit]["bundle"]
+        let bundle = runtime.catalog["appearances"][&kit]["bundle"]
             .as_str()
             .ok_or_else(|| {
                 format!("kit.missing: kit \"{kit}\" is not in the appearance catalog")
             })?;
-        installed.insert(
-            kit,
-            kit_bounds(&runtime_file(root, &catalog, bundle, "bundle.bin")?)?,
-        );
+        installed.insert(kit, kit_bounds(&runtime.read(bundle, "bundle.bin")?)?);
     }
     let bounds: Vec<Option<Bounds>> = library
         .modules
         .iter()
         .map(|m| installed.get(&m.kit).and_then(|k| k.get(&m.name).copied()))
-        .collect();
-    let parts = parts
-        .into_iter()
-        .enumerate()
-        .flat_map(|(b, props)| props.into_iter().map(move |p| (p, b)))
         .collect();
     let placed = PlacedBuildings {
         library,

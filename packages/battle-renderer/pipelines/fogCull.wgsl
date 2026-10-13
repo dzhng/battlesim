@@ -50,7 +50,7 @@ var<workgroup> cullHit: atomic<u32>;
 
 @group(0) @binding(2) var depth: texture_depth_multisampled_2d;
 
-struct FogEyeRecord {
+struct FogEye {
   position: vec3f,
   reach: f32,
   forward: f32,
@@ -59,11 +59,9 @@ struct FogEyeRecord {
   rear: f32,
   range: f32,
   slot: u32,
-  pad0: u32,
-  pad1: u32,
 }
 
-@group(0) @binding(1) var<storage, read> eyes: array<FogEyeRecord>;
+@group(0) @binding(1) var<storage, read> eyes: array<FogEye>;
 
 @group(0) @binding(4) var<storage, read_write> counts: array<atomic<u32>>;
 

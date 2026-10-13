@@ -10,7 +10,7 @@ import {
   viewProjMatrix,
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
-import { liveCamera } from "@packages/renderer-core/src/cameraUniform";
+import { liveCamera } from "@packages/renderer-core/src/viewportCamera";
 import { plateShot, sampleReel, type BackdropScene } from "../menuReel";
 import type { ScriptedSim } from "../useSimSession";
 import type { FramePlate, ViewportPilot } from "../LabViewport";
@@ -20,10 +20,6 @@ import {
   type PresentationSample,
 } from "@web/battle/benchmark/presentationCapture";
 import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation";
-import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
-import type { PropsManifest } from "@web/battle/benchmark/propManifest";
-import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
 
 /** A control plate: the frame it names read back (`FramePlate`) with what it
  *  drew of the buildings and scenery, and the grass clumps it grew counted
@@ -76,18 +72,7 @@ export interface ReelResult {
   frames: readonly PresentationFrame[];
   /** The lens the frames drew through; null before the first frame. */
   lens: Lens | null;
-  /** The light the battle was built with; null before it was up. */
-  light: LightPresentation | null;
   plates: readonly ReelPlate[];
-  /** What poses and draws the battle's units, as the first plate drew
-   *  them (`describeUnits`); null without plates. */
-  units: DrawnUnits | null;
-  /** What stands the side's fallen buildings, as the first plate drew them
-   *  (`describeBuildings`); null without plates. */
-  props: PropsManifest | null;
-  /** What turns the side's publications into effects, as the first plate
-   *  drew them (`describeEffects`); null without plates. */
-  effects: EffectsManifest | null;
 }
 
 /** One complete scene; preparation and inter-scene loading have no frame
@@ -112,22 +97,12 @@ export function createReelRun(
   let stats: Parameters<NonNullable<ViewportPilot["attach"]>>[0]["stats"] | null = null;
   let lastStats = 0;
   const subject = { unitAt: (_id: number): ArrayLike<number> | null => null };
-  /** The battle's units described for a second client; the page sets it. */
-  const fielded = { describe: (): DrawnUnits | null => null };
-  /** The side's buildings described for a second client; the page sets it. */
-  const propped = { describe: (): PropsManifest | null => null };
-  /** The battle's effects described for a second client; the page sets it. */
-  const effected = { describe: (): EffectsManifest | null => null };
   let lastSubject: readonly number[] = [0, 0];
   let tracked: { follow: number; at: [number, number]; now: number } | null = null;
   const capture: PresentationSample[] = [];
   const frames: PresentationFrame[] = [];
   const plated: ReelPlate[] = [];
   let lens: Lens | null = null;
-  let light: LightPresentation | null = null;
-  let units: DrawnUnits | null = null;
-  let props: PropsManifest | null = null;
-  let effects: EffectsManifest | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
     if (tracked?.follow !== follow) tracked = live && { follow, at: [live[0], live[1]], now };
@@ -155,11 +130,7 @@ export function createReelRun(
       capture,
       frames,
       lens,
-      light,
       plates: plated,
-      units,
-      props,
-      effects,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -169,7 +140,6 @@ export function createReelRun(
     attach(frame) {
       stats = frame.stats;
       adapter = frame.adapter;
-      light = frame.light;
     },
     pose(now) {
       const s = sample(now);
@@ -202,9 +172,6 @@ export function createReelRun(
       if (readPlate && plateShot(scene.reel, previousMs / 1000, reelMs / 1000) !== null) {
         plate = plateFile(index);
         const { clumps, ...pictures } = readPlate();
-        units ??= fielded.describe();
-        props ??= propped.describe();
-        effects ??= effected.describe();
         plated.push({
           file: plate,
           ...pictures,
@@ -265,9 +232,6 @@ export function createReelRun(
     pilot,
     scripted,
     subject,
-    fielded,
-    propped,
-    effected,
     recording,
     durationMs,
     captureSamples: () => capture,

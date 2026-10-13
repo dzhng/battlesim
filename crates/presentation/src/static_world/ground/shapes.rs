@@ -1,7 +1,7 @@
 //! The `math` package's 2D shape tests (`math/shapes`) the ground was
 //! resolved with, in their own operation order. Polygons are flat
 //! `[x0, y0, x1, y1, …]`.
-use super::{js, CUT_A, CUT_B};
+use super::{CUT_A, CUT_B};
 
 /// `vec2.distance`.
 pub fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
@@ -124,7 +124,7 @@ pub fn stroke_inside(r: &[f32], [x, y]: [f64; 2]) -> f64 {
         return inside;
     }
     let (dx, dy) = (bx - ax, by - ay);
-    let length = js::hypot(dx, dy);
+    let length = libm::hypot(dx, dy);
     let along = ((x - ax) * dx + (y - ay) * dy) / length;
     let cut = |bit: u32, v: f64| {
         if cuts & bit != 0 {
@@ -133,12 +133,12 @@ pub fn stroke_inside(r: &[f32], [x, y]: [f64; 2]) -> f64 {
             f64::NEG_INFINITY
         }
     };
-    let past = js::max(cut(CUT_A, -along), cut(CUT_B, along - length));
+    let past = cut(CUT_A, -along).max(cut(CUT_B, along - length));
     if past <= 0.0 {
-        return js::min(inside, -past);
+        return inside.min(-past);
     }
-    let aside = js::max(((x - ax) * dy - (y - ay) * dx).abs() / length - half, 0.0);
-    -js::hypot(aside, past)
+    let aside = (((x - ax) * dy - (y - ay) * dx).abs() / length - half).max(0.0);
+    -libm::hypot(aside, past)
 }
 
 /// `polygon2.containsPoint`: edges and vertices count as inside.

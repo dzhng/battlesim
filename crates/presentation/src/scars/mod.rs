@@ -54,10 +54,9 @@ pub fn hash(key: u32, mask: u32) -> u32 {
     (key.wrapping_mul(crate::seed::GOLDEN) ^ (key >> 16)) & mask
 }
 
-/// A map iterated in insertion order, as JavaScript's `Map` is: setting a
-/// key keeps its place, and a key removed and set again goes last. The
-/// cache's directory and pool follow this order, so it is part of what they
-/// hold.
+/// A map iterated in insertion order: setting a key keeps its place, and a
+/// key removed and set again goes last. The cache's directory and pool
+/// follow this order, so it is part of what they hold.
 pub(crate) struct Ordered<K, V> {
     at: HashMap<K, (u64, V)>,
     order: BTreeMap<u64, K>,

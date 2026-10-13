@@ -1,6 +1,7 @@
 import { beginGpuAdmission } from "../gpuAdmission";
 import { tgpu, d, std, common, type TgpuFn, type TgpuBindGroup } from "typegpu";
 import type { ResolvedLight } from "../light/sceneLight";
+import { Bloom, Grade } from "../records.gen";
 import {
   GRADE_LUMA,
   BLOOM_KERNEL_RADII,
@@ -13,30 +14,6 @@ import {
   postFinalWgsl,
   postDirectWgsl,
 } from "../shaders/post";
-
-/** The grade uniform (`presentation::records::Grade`). */
-const Grade = d.struct({
-  saturation: d.f32,
-  contrast: d.f32,
-  splitTone: d.f32,
-  shadowLift: d.f32,
-  exposure: d.f32,
-  shadowTint: d.vec4f,
-  highlightTint: d.vec4f,
-  lift: d.vec4f,
-});
-
-/** The bloom uniform (`presentation::records::Bloom`), as the highpass and
- *  the composite read it. */
-const Bloom = d.struct({
-  /** Each blurred level's share of the composite. */
-  weights: d.vec4f,
-  weight4: d.f32,
-  strength: d.f32,
-  /** Where the highpass starts and where it is full (linear HDR luminance). */
-  threshold: d.f32,
-  knee: d.f32,
-});
 
 const highpassLayout = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },

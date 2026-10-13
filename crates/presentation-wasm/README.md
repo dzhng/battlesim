@@ -28,9 +28,12 @@ tables (`ground_terrain`; `grass_params` over the grass kinds' shapes, which
 once, and each frame's grass window (`grass_window`). Its scenery
 (`place_scenery`, given each kind's finest mesh, off which Rust reads its size,
 a tree's trunk and crown, and its stump, `stump_mesh`) the frames' static
-batches carry, with the buildings'. The player's scenery settings
-(`set_scenery_quality`) and the ground the side has seen cleared (`set_cleared`)
-are its inputs. Its `ground_` probes (`ground_distances` and the like) serve the
-ground scenes; no frame reads them. The ground's other meshes (terrain, skirt,
-backdrop) and the map's box are free functions, and `SunShadowFit` fits the sun's
-cascades each frame.
+batches carry, with the buildings'; the scenery follows the ground the side
+has learned cleared by itself. The player's scenery settings
+(`set_scenery_quality`) are its input. Its `ground_` probes (`ground_distances`
+and the like) serve the ground scenes; no frame reads them. The ground's other
+meshes (terrain, skirt, backdrop) and the map's box are free functions, as are
+the caster tier and fog group a lab's own models take (`batch_caster`,
+`model_fog`), which have no frame to carry them. Given
+the light and the ground's mesh (`set_shadow`), every frame carries the camera's
+view and uniform and the sun's cascades fitted to it.

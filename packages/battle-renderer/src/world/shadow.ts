@@ -1,30 +1,13 @@
 // Adapted from ~/dev/game battle-renderer/src/world/shadow.ts.
 // Local changes: cascade mode only, the map size from `presentation.light.cascades`, and the
-// cascades fitted each frame by the presentation crate (`shadow.rs`) over the map's box.
-import { vec3 } from "math";
-import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
+// cascades fitted each frame by the presentation crate (`shadow.rs`), uploaded as each frame
+// carries them.
 import { tgpu, d, type TgpuCommandEncoder, type TgpuRenderPass } from "typegpu";
 import { shadowPcfWgsl, shadowVisibilityWgsl, sunShadowSampleWgsl } from "../shaders/shadow";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
-import { Camera, typegpuCameraLayout } from "./camera";
-import { CAMERA_WORDS, SUN_CASCADES } from "../records.gen";
+import { typegpuCameraLayout } from "./camera";
+import { Camera, CAMERA_WORDS, SUN_CASCADES, SUN_SHADOW_WORDS, SunShadow } from "../records.gen";
 import type { LightPresentation } from "../light/sceneLight";
-
-/** One cascade's receiver record, as a typed schema: the shared 96-byte layout
- * of `SunCascade` expressed once for TypeGPU instead of a WGSL struct string. */
-export const SunCascade = d.struct({
-  matrix: d.mat4x4f,
-  bias: d.vec4f,
-  interval: d.vec4f,
-});
-/** The world's fixed receiver block — every shadow receiver's only uniform.
- * The record count is the cascade policy's, so the typed schema and the
- * shared WGSL block describe the same bytes. */
-export const SunShadow = d.struct({
-  cascades: d.arrayOf(SunCascade, SUN_CASCADES),
-  control: d.vec4f,
-});
 
 /** The receiver binding shape, owned once: the world environment group
  * spreads these entries. */
@@ -84,13 +67,11 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
   const root = tgpu.initFromDevice({ device });
   const owned: { destroy(): void }[] = [];
   let disposed = false;
-  const fit = new SunShadowFit(JSON.stringify(light));
   const dispose = () => {
     if (disposed) return;
     disposed = true;
     for (const r of owned.reverse()) r.destroy();
     root.destroy();
-    fit.free();
   };
   const own = <T extends { destroy(): void }>(r: T) => {
     owned.push(r);
@@ -129,36 +110,24 @@ export function createTypegpuSunShadow(device: GPUDevice, light: LightPresentati
       addressModeU: "clamp-to-edge",
       addressModeV: "clamp-to-edge",
     });
-    // A cold frame publishes a legal empty block, so the receiver never
-    // samples uninitialized uniform memory.
-    let receiver = fit.receiver();
-    state.write(receiver.buffer as ArrayBuffer);
+    /** The receiver block last uploaded; none fitted before the first frame. */
+    const receiver = new Float32Array(SUN_SHADOW_WORDS);
     let active = 0;
-    const words = new Float64Array(13);
-    const eye = vec3.create();
     return {
       receiverView,
       cameraGroups,
       state,
       comparison,
-      /** Fit the cascades for `camera` drawn `width` by `height` pixels,
-       *  over the map's `box` (none: empty). */
-      update(camera: Camera3DParams, width: number, height: number, box: Float64Array) {
+      /** The frame's fit (`Frame.sun_shadow` and its `casters`), uploaded as
+       *  it is; a frame without one keeps the last. */
+      update(fit: Float32Array, casters: Float32Array, count: number) {
         live();
-        const s = Math.sin(camera.pitch);
-        words.set(eyePosition(eye, camera));
-        words.set(camera.target, 3);
-        words.set(
-          [-s * Math.cos(camera.yaw), -s * Math.sin(camera.yaw), Math.cos(camera.pitch)],
-          6,
-        );
-        words.set([camera.fovY, camera.near, width, height], 9);
-        active = fit.fit(words, box);
-        const casters = fit.casters();
+        if (fit.length !== SUN_SHADOW_WORDS) return;
+        active = Math.min(count, layers);
         for (let i = 0; i < active; i++)
           cameras[i].write(casters.slice(i * CAMERA_WORDS, (i + 1) * CAMERA_WORDS).buffer);
-        receiver = fit.receiver();
-        state.write(receiver.buffer as ArrayBuffer);
+        receiver.set(fit);
+        state.write(receiver.buffer);
       },
       /** The fitted cascades, and the receiver range they split: its near
        *  and capped far (m). */

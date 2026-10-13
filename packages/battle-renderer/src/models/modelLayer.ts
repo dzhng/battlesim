@@ -25,10 +25,9 @@
 // in a buffer of its own until the frame writes it again. A lab's models are
 // chosen here each frame from the camera (`modelDetail.ts`): models off
 // screen are skipped, the rest take a mesh tier by projected height or,
-// below `impostor_px`, their impostor card (`impostorCards.ts`). Draws carry
-// a fog class: units (posed soldiers and vehicles) are drawn by
-// identification and never fogged; the world's models (props, buildings,
-// corpses) take fog like any face.
+// below `impostor_px`, their impostor card (`impostorCards.ts`). Each draw's
+// fog group and the tier it casts with are Rust's, a lab's as a batch's
+// (`view::model_fog`, `view::batch_caster`).
 //
 // A mesh's surfaces are not all drawn alike: a material may be a cutout,
 // glass or a room behind a window. Its indices are ordered by kind at install
@@ -76,20 +75,24 @@ import {
   type SurfaceParts,
 } from "./surfaceParts";
 import type { DetailView } from "../frame/detailView";
-import { FOG_CLASSES, FOG_INDEX, UNITS, modelFog, modelSeen, type ModelFog } from "./modelFog";
+import { FOG_CLASSES, FOG_INDEX, modelSeen, type ModelFog } from "./modelFog";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import { restingModelPose, type ModelInstance, type ModelPose } from "./modelInstances";
 import {
   BATCH_WORDS,
   Batch,
   Counts,
+  FOG_UNITS,
+  GHOST_PASS,
   INSTANCE_WORDS,
   Instance,
   JOINT_WORDS,
   Joint,
   NONE,
+  VIEW_PASS,
   type frameViews,
 } from "../records.gen";
+import { batch_caster, model_fog } from "@wasm/presentation/presentation_wasm.js";
 import { CULLED, IMPOSTOR, modelDetail, type ModelDetailPresentation } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
@@ -202,8 +205,6 @@ const PROP_GROUND = 8;
 const isProp = (row: WorldAppearance | undefined) =>
   !!row?.placed && (row.draws === PROP || row.draws === PROP_GROUND);
 
-/** A batch's pass for a placement preview (`Batch.pass`). */
-const GHOST_PASS = 2;
 /** A posed body's or vehicle's drawable and fog class. */
 const POSED: ModelPose = { kind: "posed", palette: new Float32Array(0) };
 
@@ -222,13 +223,16 @@ export function packXray(c: readonly number[]): number {
 /** A model drawn without a side keeps its authored colours. */
 const NO_TINT = [1, 1, 1] as const;
 const UNIT_SCALE = [1, 1, 1] as const;
-/** Shadow casters draw this many tiers coarser than the view: a cascade texel
- *  is larger than the detail between tiers (as the forest's casters). */
-const CASTER_COARSER = 1;
 /** Track links: the dark half of each link's pitch. */
 const TRACK_LINK_SHADE = 0.55;
 
-const fogClassOf = (pose: ModelPose) => FOG_INDEX[modelFog(pose)];
+/** The fog group a lab's model binds, as Rust decides it (`view::model_fog`). */
+const fogOf = (pose: ModelPose) =>
+  model_fog(
+    pose.kind === "corpse",
+    pose.kind === "static",
+    pose.kind === "static" && !!pose.ground,
+  );
 
 /** `p` (w 1 a point, 0 a direction) moved by a palette joint's 3×4 rows. */
 const moved = tgpu.fn(
@@ -535,8 +539,8 @@ interface Drawable {
   parts: SurfaceParts;
   /** All of its indices. */
   count: number;
-  /** What the sun's cascades draw in its place (`CASTER_COARSER` tiers coarser). */
-  caster: Drawable;
+  /** Its pose's tiers, finest first: a batch's `caster` names one. */
+  tiers: Drawable[];
   /** A posed body's (a soldier's) mesh, counted apart in the stats. */
   body: boolean;
 }
@@ -641,19 +645,23 @@ function tierCount(bundle: Exclude<Bundle, SkeletonClips>): number {
 interface DrawRun {
   ghost: boolean;
   drawable: Drawable;
+  /** What it casts into the sun's cascades in its place, if anything. */
+  caster: Drawable | null;
   fog: number;
   firstInstance: number;
   instances: number;
 }
 
 /** One of the props' static batches as last written: its records' buffer
- *  (a power of two of records, in a scope of its own), its row and tier,
- *  and how many it holds. */
+ *  (a power of two of records, in a scope of its own), its row, tier,
+ *  caster tier and fog class (`Batch`), and how many it holds. */
 interface HeldProps {
   scope: GpuRegistry | null;
   buffer: GPUBuffer | null;
   row: number;
   tier: number;
+  caster: number;
+  fog: number;
   count: number;
 }
 
@@ -967,7 +975,6 @@ export async function createModelLayer(
             parts: r.parts,
             count: r.count,
           } as Drawable;
-          drawable.caster = drawable;
           drawable.body = false;
           nextDrawables.push(drawable);
           out.set(r.key, drawable);
@@ -1032,10 +1039,8 @@ export async function createModelLayer(
         }
       }
       if (bundle.kind === "skinned") for (const d of gpu.body) d.body = true;
-      // Each tier casts with the next coarser one.
       for (const list of [gpu.body, ...gpu.corpses.map((c) => c.tiers), ...gpu.states.values()])
-        for (let t = 0; t < list.length; t++)
-          list[t].caster = list[Math.min(t + CASTER_COARSER, list.length - 1)];
+        for (const drawable of list) drawable.tiers = list;
       built.set(name, gpu);
     }
     const nextRows = Float32Array.from(rows.length ? rows : materialRow(BLANK_MATERIAL, () => -1));
@@ -1133,6 +1138,10 @@ export async function createModelLayer(
     return gpu.body[tier] ?? null;
   }
 
+  /** The drawable a batch's `caster` tier names, or null for none. */
+  const casterOf = (drawable: Drawable, casts: number) =>
+    casts === NONE ? null : (drawable.tiers[casts] ?? null);
+
   /** The props' runs: each listed batch's drawable at its tier, against
    *  the meshes installed now. */
   function relistProps() {
@@ -1140,13 +1149,15 @@ export async function createModelLayer(
     for (const h of listedProps) {
       const row = worldRows[h.row];
       const gpu = row && appearances.get(row.name);
-      const drawable = gpu?.states.get(row.state)?.[h.tier];
+      const tiers = gpu?.states.get(row.state);
+      const drawable = tiers?.[h.tier];
       if (!drawable || !h.buffer || !h.count) continue;
       propRuns.push({
         run: {
           drawable,
           ghost: false,
-          fog: FOG_INDEX[row.draws === PROP_GROUND ? "paintedFaces" : "faces"],
+          caster: casterOf(drawable, h.caster),
+          fog: h.fog,
           firstInstance: 0,
           instances: h.count,
         },
@@ -1173,9 +1184,19 @@ export async function createModelLayer(
       if (!isProp(worldRows[row])) continue;
       const key = words![o + Batch.key];
       let h = heldProps.get(key);
-      if (!h) heldProps.set(key, (h = { scope: null, buffer: null, row, tier: 0, count: 0 }));
+      if (!h)
+        heldProps.set(
+          key,
+          (h = { scope: null, buffer: null, row, tier: 0, caster: NONE, fog: 0, count: 0 }),
+        );
       const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
-      [h.row, h.tier, h.count] = [row, words![o + Batch.tier], count];
+      [h.row, h.tier, h.caster, h.fog, h.count] = [
+        row,
+        words![o + Batch.tier],
+        words![o + Batch.caster],
+        words![o + Batch.fog],
+        count,
+      ];
       if (first !== NONE) {
         const size = 2 ** Math.ceil(Math.log2(Math.max(1, count))) * RECORD_FLOATS * 4;
         if (h.buffer?.size !== size) {
@@ -1264,8 +1285,7 @@ export async function createModelLayer(
       }
       const drawable = drawableOf(gpu, inst.pose, tier);
       if (!drawable) continue;
-      const bucket =
-        drawable.id * DRAW_CLASSES + fogClassOf(inst.pose) + (inst.ghost ? FOG_CLASSES : 0);
+      const bucket = drawable.id * DRAW_CLASSES + fogOf(inst.pose) + (inst.ghost ? FOG_CLASSES : 0);
       unitChoice[i] = bucket;
       bucketCount[bucket]++;
     }
@@ -1319,7 +1339,7 @@ export async function createModelLayer(
         base = cursor++;
         writeJoint(paletteStaging, base, pose.motion);
       }
-      if (choice % DRAW_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
+      if (choice % DRAW_CLASSES === FOG_UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
     }
 
@@ -1335,10 +1355,21 @@ export async function createModelLayer(
       const drawable = drawables[Math.floor(b / DRAW_CLASSES)];
       let run = runs[runCount];
       if (!run)
-        runs[runCount] = run = { drawable, ghost: false, fog: 0, firstInstance: 0, instances: 0 };
+        runs[runCount] = run = {
+          drawable,
+          ghost: false,
+          caster: null,
+          fog: 0,
+          firstInstance: 0,
+          instances: 0,
+        };
       run.drawable = drawable;
       run.fog = b % FOG_CLASSES;
       run.ghost = b % DRAW_CLASSES >= FOG_CLASSES;
+      run.caster = casterOf(
+        drawable,
+        batch_caster(drawable.tier, run.ghost ? GHOST_PASS : VIEW_PASS),
+      );
       run.firstInstance = first;
       run.instances = n;
       runCount++;
@@ -1349,7 +1380,7 @@ export async function createModelLayer(
     }
     cardRunCount = 0;
     // Only skinned bodies carry atlases, so a lab's card is a standing soldier.
-    if (unitCards) pushCardRun(false, UNITS, 0, unitCards);
+    if (unitCards) pushCardRun(false, FOG_UNITS, 0, unitCards);
     cardStaging.set(frameCards.subarray(0, frameCardCount * RECORD_FLOATS), card * RECORD_FLOATS);
     for (const r of frameCardRuns) pushCardRun(false, r.fog, card + r.first, r.count);
     card += frameCardCount;
@@ -1428,13 +1459,19 @@ export async function createModelLayer(
     const words = batches.u32;
     // The posed records follow the static world's: only theirs are uploaded.
     let base = instances.count;
+    let end = base;
     for (let b = 0; b < batches.count; b++) {
       const o = b * BATCH_WORDS;
       const first = words[o + Batch.first];
-      if (first !== NONE && !worldRows[words[o + Batch.appearance]]?.placed)
+      if (first !== NONE && !worldRows[words[o + Batch.appearance]]?.placed) {
         base = Math.min(base, first);
+        end = Math.max(end, first + words[o + Batch.count]);
+      }
     }
-    const posed = instances.count - base;
+    // Draw ranges are the contract the GPU validates. Size from their actual
+    // end as well as the mixed frame's record count; a batch may outlive the
+    // dynamic tail after static records were split out of the upload.
+    const posed = Math.max(instances.count, end) - base;
     if (posed > frameCapacity) {
       frameCapacity = Math.max(64, posed * 2);
       frameRecords.set(
@@ -1461,7 +1498,8 @@ export async function createModelLayer(
         : row.state
           ? { kind: "static", state: row.state }
           : POSED;
-      const fog = fogClassOf(pose);
+      const fog = words[o + Batch.fog];
+      const casts = words[o + Batch.caster];
       let tier = words[o + Batch.tier];
       if (tier === IMPOSTOR) {
         const layer = lying ? lying.card : gpu.farCard;
@@ -1483,17 +1521,20 @@ export async function createModelLayer(
       const drawable = drawableOf(gpu, pose, tier);
       if (!drawable) continue;
       const ghost = words[o + Batch.pass] === GHOST_PASS;
+      const caster = casterOf(drawable, casts);
       let run = frameRuns[frameRunCount];
       if (!run)
         frameRuns[frameRunCount] = run = {
           drawable,
           ghost,
+          caster,
           fog,
           firstInstance: 0,
           instances: 0,
         };
       run.drawable = drawable;
       run.ghost = ghost;
+      run.caster = caster;
       run.fog = fog;
       run.firstInstance = first - base;
       run.instances = count;
@@ -1505,7 +1546,7 @@ export async function createModelLayer(
         frameStats.bodyTiers[drawable.tier] += count;
         frameStats.skinned += count;
       }
-      if (fog === UNITS && !ghost)
+      if (fog === FOG_UNITS && !ghost)
         for (let i = first; i < first + count; i++)
           if (instances.f32[i * RECORD_FLOATS + 15] > 0) frameXray = true;
     }
@@ -1692,13 +1733,13 @@ export async function createModelLayer(
     },
     setCards,
     /** One surface class of every mesh run into one of the sun's cascades,
-     *  each a tier coarser. */
+     *  each at the tier its batch casts with. */
     drawCasters(bound: Drawable3, surface: SurfacePart) {
       if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       eachRun((run, source) => {
-        if (run.ghost) return;
-        const caster = run.drawable.caster;
+        const caster = run.caster;
+        if (!caster) return;
         const part = partRange(caster.parts, surface, hiddenSurfaces);
         if (!part.count) return;
         b.with(modelVertexLayout, caster.mesh.vertices)

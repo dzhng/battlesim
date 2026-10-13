@@ -10,14 +10,12 @@ import {
   validateVisualPresentation,
   writeVisualPresentation,
   type DrawnPresentation,
+  type EffectCount,
   type GrassCount,
   type InstanceCount,
+  type ModelCount,
   type VisualPresentation,
 } from "@web/battle/benchmark/visualPresentation";
-import { gameLight } from "@apps/battle-lab/src/gameLight";
-import type { DrawnUnits, ModelCount } from "@web/battle/benchmark/unitManifest";
-import type { PropsManifest } from "@web/battle/benchmark/propManifest";
-import type { EffectCount, EffectsManifest } from "@web/battle/benchmark/effectManifest";
 
 const frame = (
   index: number,
@@ -53,122 +51,9 @@ const capture = (frames: PresentationFrame[]): PresentationCapture => ({
   frames,
 });
 
-/** Two joint samples of one clip, as a page's clip table holds them. */
-const CLIP_FLOATS = Float32Array.from([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0.6, 0.8, 0.2, 0, 0, 1]);
-const REST = { t: [0, 0, 0], r: [0, 0, 0, 1], s: [1, 1, 1] } as const;
-const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-/** A squad of one soldier on a one-clip table and a tank on a two-node rig. */
-function units(): DrawnUnits {
-  const soldier = (look: string) => ({ hull: [], slots: [[look]], operated: [null] });
-  return {
-    pose: { gait: { walk_mps: 0.25 } },
-    leanHold: 1.5,
-    detail: { lod_px: [150, 60, 24], impostor_px: 10 },
-    tints: { blue: [1, 1, 1], red: [1.18, 1, 0.78] },
-    types: {
-      rifle: {
-        hull: null,
-        vehicleClass: null,
-        airborne: false,
-        roles: ["hand"],
-        mounts: [{ weapon: "rifle", on: null, activePose: null }],
-        draws: { blue: soldier("rifleman"), red: soldier("rifleman") },
-      },
-      tank: {
-        hull: { halfTrack: 1.4 },
-        vehicleClass: "tracked_heavy",
-        airborne: false,
-        roles: ["gun"],
-        mounts: [{ weapon: "cannon", on: null, activePose: null }],
-        draws: {
-          blue: { hull: ["tank"], slots: [], operated: [null] },
-          red: { hull: ["tank"], slots: [], operated: [null] },
-        },
-      },
-    },
-    appearances: {
-      rifleman: {
-        kind: "skinned",
-        joints: [
-          { name: "root", parent: -1, bind: structuredClone(REST) as never },
-          { name: "spine", parent: 0, bind: structuredClone(REST) as never },
-        ],
-        table: "clips-0",
-        clips: { idle: { offset: 0, frames: 1, duration: 1, rate: 30, loop: true, stride: null } },
-        farPose: { clip: "idle", phase: 0 },
-        corpsePoses: [{ clip: "idle", phase: 1 }],
-        muzzle: { joint: 1, offset: structuredClone(REST) as never },
-        inverseBinds: [IDENTITY, IDENTITY],
-        tiers: 1,
-        bounds: [
-          { size: 1.8, radius: 1 },
-          { size: 1.8, radius: 1.9 },
-        ],
-      },
-      tank: {
-        kind: "articulated",
-        nodes: [
-          { name: "hull", parent: -1, bind: structuredClone(REST) as never },
-          { name: "turret", parent: 0, bind: structuredClone(REST) as never },
-        ],
-        rig: {
-          turret: 1,
-          gun: -1,
-          hmg: -1,
-          hmgGun: -1,
-          pitch: { gun: [-0.17, 0.35], hmg: [-0.17, 0.79] },
-          stroke: null,
-          wheels: [],
-          tracks: [],
-          rotors: [],
-          deploy: [],
-          muzzles: { gun: 1 },
-        },
-        tiers: 1,
-        bounds: [{ size: 3.6, radius: 4 }],
-      },
-    },
-    tables: [{ name: "clips-0", base64: Buffer.from(CLIP_FLOATS.buffer).toString("base64") }],
-  };
-}
-
-/** Each building's parts, and what a gutted one's become. */
-const props = (): PropsManifest => ({
-  buildings: { parts: [[0, 1], [2]], shells: ["gutted_shell"] },
-});
-
-/** The tank's hull and gun muzzle, a wreck that smokes, and its wreck's pieces. */
-const effects = (): EffectsManifest => ({
-  presentation: { capacity: 16, smoke: { wreck: { burn_s: 60 } } },
-  types: {
-    rifle: { half: null, muzzles: [null] },
-    tank: {
-      half: [3.2, 1.8, 1.2],
-      muzzles: [{ on: null, pivot: [0, 0, 2], ring: [0, 0, 0], muzzle: [5, 0, 0] }],
-    },
-  },
-  smokes: { heavy_wreck: "wreck" },
-  wrecks: { abrams_wreck: { lies: [0.1, 0, 2.1], underside: 1.6, debrisTop: 0.5 } },
-  wreckLooks: {
-    tank: {
-      appearance: "abrams_wreck",
-      footprint: [4, 1.8, 1.2],
-      bounds: [
-        [-4, -1.8, 0],
-        [4, 1.8, 2.4],
-      ],
-      braking: 4,
-    },
-  },
-});
-
 const drawn: DrawnPresentation = {
   lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
-  light: gameLight,
   layers: ["sky", "terrain", "grass"],
-  units: units(),
-  props: props(),
-  effects: effects(),
 };
 const mapBytes = new TextEncoder().encode('{"map":"bytes"}');
 
@@ -206,14 +91,14 @@ const effectCounts: EffectCount[] = [
 ];
 const platedCapture = () =>
   encodePresentationCapture(capture([frame(0), frame(1, [1280, 720], "plate-1.png")]));
-/** The manifest and its artifacts for `captureJson`, drawn with the counts above. */
+/** The manifest for `captureJson`, drawn with the counts above. */
 async function written(
   captureJson: string,
   counts: GrassCount[] = [],
   instances: InstanceCount[] = counts.length ? instanceCounts : [],
   effected: EffectCount[] = counts.length ? effectCounts : [],
 ) {
-  const { manifest, artifacts } = await writeVisualPresentation({
+  const manifest = await writeVisualPresentation({
     captureJson,
     mapBytes,
     drawn,
@@ -222,7 +107,7 @@ async function written(
     modelCounts: counts.length ? modelCounts : [],
     effectCounts: effected,
   });
-  return { manifest: JSON.parse(manifest) as VisualPresentation, artifacts };
+  return { manifest: JSON.parse(manifest) as VisualPresentation };
 }
 const sha256 = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
 
@@ -242,63 +127,18 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     },
     viewport: { width: 1280, height: 720, scale: 1 },
     lens: drawn.lens,
-    light: drawn.light,
     layers: drawn.layers,
     grassCounts: [],
     instanceCounts: [],
-    units: expect.any(Object),
     modelCounts: [],
-    props: expect.any(Object),
-    effects: drawn.effects,
     effectCounts: [],
   });
 });
 
-test("the units' clip tables are artifacts, and each plate's model counts ride along", async () => {
-  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  const bytes = new Uint8Array(CLIP_FLOATS.buffer);
-  const { tables: clipTables, ...described } = manifest.units;
-  const { tables: _, ...page } = drawn.units;
-  expect(described).toEqual(page);
-  expect(clipTables).toEqual([
-    {
-      name: "clips-0",
-      sha256: sha256(bytes),
-      words: CLIP_FLOATS.length,
-      layout: {
-        kind: "records",
-        stride: 8,
-        count: 2,
-        fields: [
-          { name: "rotation", word: 0, type: "f32", count: 4 },
-          { name: "translation", word: 4, type: "f32", count: 3 },
-          { name: "scale", word: 7, type: "f32", count: 1 },
-        ],
-      },
-    },
-  ]);
-  expect(artifacts.at(-1)).toEqual({ file: "units-clips-0.u32", bytes });
+test("each plate's model counts ride along, one per plate", async () => {
+  const { manifest } = await written(platedCapture(), grassCounts);
   expect(manifest.modelCounts).toEqual(modelCounts);
-
   const reject = (change: object) => () => validateVisualPresentation({ ...manifest, ...change });
-  const [rifleman] = Object.values(manifest.units.appearances);
-  expect(reject({ units: { ...manifest.units, tables: [] } })).toThrow(/units/);
-  expect(
-    reject({
-      units: {
-        ...manifest.units,
-        appearances: { ...manifest.units.appearances, rifleman: { ...rifleman, joints: [] } },
-      },
-    }),
-  ).toThrow(/units/);
-  const { rifle, ...rest } = manifest.units.types;
-  const stray = {
-    ...rifle,
-    draws: { ...rifle.draws, red: { hull: [], slots: [["ghost"]], operated: [null] } },
-  };
-  expect(reject({ units: { ...manifest.units, types: { ...rest, rifle: stray } } })).toThrow(
-    /types/,
-  );
   expect(reject({ modelCounts: [{ ...modelCounts[0], corpses: -1 }] })).toThrow(/model counts/);
   await expect(
     writeVisualPresentation({
@@ -311,17 +151,6 @@ test("the units' clip tables are artifacts, and each plate's model counts ride a
       effectCounts,
     }),
   ).rejects.toThrow(/model counts must be one per plate/);
-});
-
-test("each building's parts ride along as the page described them, and only the units' tables are artifacts", async () => {
-  const { manifest, artifacts } = await written(platedCapture(), grassCounts);
-  expect(manifest.props).toEqual(drawn.props);
-  expect(artifacts).toHaveLength(manifest.units.tables.length);
-  const reject = (change: object) => () =>
-    validateVisualPresentation({ ...manifest, props: { ...manifest.props, ...change } });
-  const { buildings: parts } = manifest.props;
-  expect(reject({ buildings: { ...parts, parts: [[0, 1], [1]] } })).toThrow(/part props/);
-  expect(reject({ buildings: { parts: parts.parts } })).toThrow(/props/);
 });
 
 test("a run whose canvas changed size, or drew nothing, has no one viewport and is refused", async () => {
@@ -340,14 +169,6 @@ test("the validator refuses a versioned id, the hashless identity and an unknown
   expect(reject({ identity: hashless })).toThrow(/identity/);
   expect(reject({ layers: ["terrain", "water-boxes"] })).toThrow(/layer/);
   expect(reject({ layers: ["terrain", "terrain"] })).toThrow(/layer/);
-});
-
-test("the manifest carries the light the frames were drawn under", async () => {
-  const captureJson = encodePresentationCapture(capture([frame(0)]));
-  const { manifest } = await written(captureJson);
-  const { light: _, ...unlit } = manifest;
-  expect(() => validateVisualPresentation(unlit)).toThrow(/malformed/);
-  expect(manifest.light).toEqual(gameLight);
 });
 
 test("grass counts hold one row of twelve cells for each plate the capture drew, and only those", async () => {
@@ -391,19 +212,10 @@ test("instance counts hold one row per plate, a count per module and tier and th
   );
 });
 
-test("the effects ride along as the page described them, and each plate's effect counts beside them", async () => {
+test("each plate's effect counts ride along, one per plate", async () => {
   const { manifest } = await written(platedCapture(), grassCounts);
-  expect(manifest.effects).toEqual(drawn.effects);
   expect(manifest.effectCounts).toEqual(effectCounts);
   const reject = (change: object) => () => validateVisualPresentation({ ...manifest, ...change });
-  const { effects: section } = manifest;
-  expect(reject({ effects: { ...section, smokes: { heavy_wreck: "inferno" } } })).toThrow(
-    /smoke looks/,
-  );
-  const tank = { ...section.types.tank, half: [3.2, 1.8] };
-  expect(reject({ effects: { ...section, types: { ...section.types, tank } } })).toThrow(/types/);
-  const { wrecks: _, ...wreckless } = section;
-  expect(reject({ effects: wreckless })).toThrow(/effects/);
   const [row] = effectCounts;
   expect(reject({ effectCounts: [{ ...row, lights: -1 }] })).toThrow(/effect counts/);
   expect(reject({ effectCounts: [row, row] })).toThrow(/effect counts/);

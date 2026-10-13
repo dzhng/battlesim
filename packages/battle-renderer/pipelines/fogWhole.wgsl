@@ -10,12 +10,11 @@ struct FogBox {
   yaw: f32,
   top: f32,
   base: f32,
-  pad1: f32,
 }
 
 @group(0) @binding(0) var<storage, read> boxes: array<FogBox>;
 
-struct FogEyeRecord {
+struct FogEye {
   position: vec3f,
   reach: f32,
   forward: f32,
@@ -24,11 +23,9 @@ struct FogEyeRecord {
   rear: f32,
   range: f32,
   slot: u32,
-  pad0: u32,
-  pad1: u32,
 }
 
-@group(1) @binding(2) var<storage, read> eyes: array<FogEyeRecord>;
+@group(1) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 struct FogParams {
   invViewProj: mat4x4f,

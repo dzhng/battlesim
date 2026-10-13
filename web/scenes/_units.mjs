@@ -13,9 +13,9 @@ export const game = JSON.parse(
 );
 
 /** The street test map (`fixtures/maps/street`), resolved: the ground of
- *  the battle scenes (`/lab/street`). */
+ *  the battle scenes (`/labs/street`). */
 export const streetMap = loadMap("street").definition;
-/** The street's battle (`/lab/street`): its saved encounter `attack`. */
+/** The street's battle (`/labs/street`): its saved encounter `attack`. */
 export const streetAttack = loadEncounter("street", "attack");
 
 /** The camera curve's pitch at `distance` (the controller's own rule). */

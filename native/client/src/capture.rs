@@ -1,22 +1,25 @@
-//! A browser parity run's scene, replayed through the presentation crate: the map's ground set and its scenery and props placed,
-//! the battle's world loaded once, then for each frame record in order,
+//! A browser parity run's scene, replayed through the presentation crate:
+//! the world read from the repository (the saved map the run's manifest
+//! names, its ground, scenery, props and buildings, and the units its
+//! encounter fields), loaded once, then for each frame record in order,
 //! every publication up to its tick pushed and `frame()` asked at its sim
 //! time and camera. Every record is framed, since poses, effects and the
 //! scenery's walk carry state from frame to frame.
 use std::fs;
 use std::path::Path;
 
+use presentation::fielded;
 use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
 use presentation::presentation::{FogSetup, Frame, Presentation, Ui};
 use presentation::records::FogLook;
 use presentation::static_world::files;
-use presentation::static_world::ground::walk::Cleared;
-use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
-use presentation::world::{Appearance, WorldInput};
-use serde::Deserialize;
-use serde_json::{json, Value};
+use presentation::world::{BattleInput, SoldierBody, WorldInput, Xray};
+use serde::{de, Deserialize, Deserializer};
+use serde_json::value::RawValue;
+use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 use crate::bundle::Library;
 use crate::scenery::tier_mesh;
@@ -25,18 +28,13 @@ use crate::scenery::tier_mesh;
 #[serde(rename_all = "camelCase")]
 struct CaptureFile {
     schema: String,
+    /// What was filmed: scene, map, encounter and seed.
+    workload: Value,
     tick_hz: f64,
     side: String,
     layout: String,
     samples: Vec<Sample>,
     frames: Vec<Record>,
-}
-
-/// The manifest's `props.buildings`.
-#[derive(Deserialize)]
-struct Staged {
-    parts: Vec<Vec<u32>>,
-    shells: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -45,16 +43,21 @@ struct Sample {
     publication: Vec<u32>,
 }
 
-/// One drawn browser frame.
+/// One drawn browser frame. Its numbers are read exactly (`exact`).
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Record {
     pub tick: u64,
+    #[serde(deserialize_with = "exact")]
     pub sim_time: f64,
     /// The reel's wall time when the browser drew it, milliseconds.
+    #[serde(deserialize_with = "exact")]
     pub reel_ms: f64,
+    #[serde(deserialize_with = "exact3")]
     pub eye: [f64; 3],
+    #[serde(deserialize_with = "exact3")]
     pub target: [f64; 3],
+    #[serde(deserialize_with = "exact3")]
     pub up: [f64; 3],
     pub canvas: [u32; 2],
     /// The control plate written of this frame, if any.
@@ -64,8 +67,32 @@ pub struct Record {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Lens {
+    #[serde(deserialize_with = "exact")]
     fov_y: f64,
+    #[serde(deserialize_with = "exact")]
     near: f64,
+}
+
+/// A number the page wrote, read back to the double it drew with. The page
+/// writes JavaScript's shortest round-trip text; serde_json's default reader
+/// lands one ULP off on some of it (about one tick boundary in fourteen),
+/// and a frame drawn one ULP past a boundary starts or ends that tick's
+/// effects. Its `float_roundtrip` would fix every reader in the build, the
+/// simulation's included, which must keep reading its maps as the page's
+/// WebAssembly does; so the page's numbers go through std's correctly
+/// rounded parse instead.
+fn exact<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+    let raw = <Box<RawValue>>::deserialize(d)?;
+    raw.get().parse().map_err(de::Error::custom)
+}
+
+fn exact3<'de, D: Deserializer<'de>>(d: D) -> Result<[f64; 3], D::Error> {
+    let raw = <[Box<RawValue>; 3]>::deserialize(d)?;
+    let mut out = [0.0; 3];
+    for (o, r) in out.iter_mut().zip(&raw) {
+        *o = r.get().parse().map_err(de::Error::custom)?;
+    }
+    Ok(out)
 }
 
 pub struct Replay {
@@ -88,7 +115,7 @@ pub struct Replay {
     /// The simulation's world, kept while fog is drawn: the side's foliage
     /// follows the ground it sees cleared.
     world: Option<files::World>,
-    /// The cleared cells the scenery last followed.
+    /// The cleared cells fog's foliage last followed.
     cleared: usize,
     samples: Vec<Sample>,
     pushed: usize,
@@ -103,10 +130,16 @@ fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
 
 impl Replay {
     /// Loads scene `dir` of a parity run; `game` is the rules fixture, for
-    /// the soldier's body and the aircraft's cruise height. The scenery is
-    /// placed from `library`'s bundles.
+    /// the soldier's body, the aircraft's cruise height and the light. The
+    /// world is the repository's: the saved map the manifest names, the
+    /// units its encounter fields and their art, the scenery placed from
+    /// `library`'s bundles.
     pub fn open(dir: &Path, game_path: &Path, library: &Library) -> Result<Self, String> {
-        let capture: CaptureFile = read_json(&dir.join("capture.json"))?;
+        let capture_path = dir.join("capture.json");
+        let capture_bytes =
+            fs::read(&capture_path).map_err(|e| format!("{}: {e}", capture_path.display()))?;
+        let capture: CaptureFile = serde_json::from_slice(&capture_bytes)
+            .map_err(|e| format!("{}: {e}", capture_path.display()))?;
         if capture.schema != "battle-presentation-capture" {
             return Err(format!("capture schema {}", capture.schema));
         }
@@ -114,66 +147,86 @@ impl Replay {
         if manifest["schema"] != "native-visual-presentation" {
             return Err(format!("manifest schema {}", manifest["schema"]));
         }
-        let game: Value = read_json(game_path)?;
-        let light: LightSettings =
-            serde_json::from_value(manifest["light"].clone()).map_err(|e| format!("light: {e}"))?;
-        let lens: Lens =
-            serde_json::from_value(manifest["lens"].clone()).map_err(|e| format!("lens: {e}"))?;
-        let physics = &game["physics"];
-        let input: WorldInput = serde_json::from_value(json!({
-            "battle": {
-                "units": manifest["units"],
-                "effects": manifest["effects"],
-                "side": capture.side,
-                "tick_hz": capture.tick_hz,
-                "soldier": {
-                    "radius_m": physics["soldier_radius_m"],
-                    "height_m": physics["soldier_height_m"],
-                },
-                // The UI's colours: a replay selects nothing and shows no
-                // x-ray or ghost, so no frame reads them.
-                "xray": { "own": [0, 0, 0, 0], "selected": [0, 0, 0, 0] },
-                "blocked": [0, 0, 0, 0],
-                "cruise_agl_m": game["air"]["cruise_agl_m"],
-            },
-            "sun_azimuth": light.sun_azimuth,
-            "sun_elevation": light.sun_elevation,
-            "cascade_far_m": light.cascades.max_far_m,
-            "buildings": game["presentation"]["buildings"],
-        }))
-        .map_err(|e| format!("world: {e}"))?;
-        let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
-            .map_err(|e| format!("presentation.fog: {e}"))?;
-        let fog_look = fog.selected()?.look()?;
-        let mut tables = ClipTables::new();
-        let units = &input.battle.as_ref().ok_or("world: no battle")?.units;
-        for a in units.appearances.values() {
-            if let Appearance::Skinned { table, .. } = a {
-                let path = dir.join(format!("units-{table}.u32"));
-                let bytes = fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-                let floats = bytes.as_chunks::<4>().0.iter();
-                tables.insert(
-                    table.clone(),
-                    floats.map(|b| f32::from_le_bytes(*b)).collect(),
-                );
-            }
-        }
-        let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
-        // The buildings, each one's part props and the kinds a gutted
-        // building's parts become, as the page staged them.
-        let map = manifest["identity"]["map"]
-            .as_str()
-            .ok_or("manifest: no identity.map")?
-            .to_owned();
-        let staged: Staged = serde_json::from_value(manifest["props"]["buildings"].clone())
-            .map_err(|e| format!("props.buildings: {e}"))?;
         let root = game_path
             .parent()
             .and_then(Path::parent)
             .ok_or("no repository root")?;
-        let (buildings, _) = files::placed_buildings(root, &map, staged.parts, staged.shells)?;
+        // The battle the manifest names, and nothing else: the capture's
+        // workload, and both files byte for byte.
+        let identity = &manifest["identity"];
+        let workload = &capture.workload;
+        for key in ["scene", "map", "encounter", "seed"] {
+            if identity[key] != workload[key] {
+                return Err(format!(
+                    "{}: the capture's workload {key} is {}, the manifest's identity names {}",
+                    capture_path.display(),
+                    workload[key],
+                    identity[key]
+                ));
+            }
+        }
+        let map = workload["map"]
+            .as_str()
+            .ok_or("capture: the workload names no map")?
+            .to_owned();
+        let encounter = workload["encounter"]
+            .as_str()
+            .ok_or("capture: the workload names no encounter")?;
+        let map_path = root.join("fixtures/maps").join(&map).join("map.json");
+        let map_bytes = fs::read(&map_path).map_err(|e| format!("{}: {e}", map_path.display()))?;
+        for (path, bytes, key) in [
+            (&capture_path, &capture_bytes, "captureHash"),
+            (&map_path, &map_bytes, "mapHash"),
+        ] {
+            let hash = format!("{:x}", Sha256::digest(bytes));
+            if identity[key] != hash.as_str() {
+                return Err(format!(
+                    "{} is not the file the control ran on: sha256 {hash}, the manifest's identity.{key} is {}",
+                    path.display(),
+                    identity[key]
+                ));
+            }
+        }
+        let game: Value = read_json(game_path)?;
+        let light: LightSettings = serde_json::from_value(game["presentation"]["light"].clone())
+            .map_err(|e| format!("presentation.light: {e}"))?;
+        // Read from the file, not the `Value`, to be read exactly.
+        #[derive(Deserialize)]
+        struct Lensed {
+            lens: Lens,
+        }
+        let Lensed { lens } = read_json(&dir.join("manifest.json"))?;
+        // The battle's units, effects and clip tables, as a page fielding
+        // the encounter's units installs them.
+        let kinds = fielded::encounter_kinds(root, &map, encounter)?;
+        let fielded = fielded::fielded(root, &map, &kinds, None)?;
+        let physics = &game["physics"];
+        let number = |v: &Value, what: &str| v.as_f64().ok_or(format!("game.json: no {what}"));
+        let battle = BattleInput {
+            units: fielded.units,
+            effects: fielded.effects,
+            side: capture.side.clone(),
+            tick_hz: capture.tick_hz,
+            soldier: SoldierBody {
+                radius_m: number(&physics["soldier_radius_m"], "physics.soldier_radius_m")?,
+                height_m: number(&physics["soldier_height_m"], "physics.soldier_height_m")?,
+            },
+            // The UI's colours: a replay selects nothing and shows no x-ray
+            // or ghost, so no frame reads them.
+            xray: Xray {
+                own: [0.0; 4],
+                selected: [0.0; 4],
+            },
+            blocked: [0.0; 4],
+            cruise_agl_m: number(&game["air"]["cruise_agl_m"], "air.cruise_agl_m")?,
+        };
+        let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
+            .map_err(|e| format!("presentation.fog: {e}"))?;
+        let fog_look = fog.selected()?.look()?;
+        let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
         // The ground, and its scenery placed from each kind's finest mesh.
         let ground = files::ground(root, &map)?;
+        let (buildings, style) = files::placed_buildings(root, &map, &ground.world)?;
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
         // Fog of war, where the browser drew it: the side's sight under the
         // game's sensor rules.
@@ -195,13 +248,25 @@ impl Replay {
         let finest: Vec<&[f32]> = finest.iter().map(Vec::as_slice).collect();
         presentation.place_scenery(&finest)?;
         // The props, from the art a page running these units installs.
-        let wearing: Vec<&str> = units.appearances.keys().map(String::as_str).collect();
+        let wearing: Vec<&str> = battle
+            .units
+            .appearances
+            .keys()
+            .map(String::as_str)
+            .collect();
         let art = files::prop_art(root, ground.family.as_deref(), &wearing)?;
         let records = presentation
             .ground()
             .map_or_else(Vec::new, |g| g.source.props.clone());
         presentation.place_props(&records, &ground.layout, art)?;
-        presentation.load_world(input, tables, Some(buildings))?;
+        let input = WorldInput {
+            battle: Some(battle),
+            sun_azimuth: light.sun_azimuth,
+            sun_elevation: light.sun_elevation,
+            cascade_far_m: Some(light.cascades.max_far_m),
+            buildings: Some(style),
+        };
+        presentation.load_world(input, fielded.tables, Some(buildings))?;
         Ok(Self {
             map,
             records: capture.frames,
@@ -239,7 +304,7 @@ impl Replay {
     }
 
     /// The camera `record` was drawn from, under the manifest's lens.
-    pub fn camera(&self, record: &Record) -> Camera {
+    fn camera(&self, record: &Record) -> Camera {
         Camera {
             eye: record.eye,
             target: record.target,
@@ -258,8 +323,8 @@ impl Replay {
     /// Frames `record`: pushes the publications up to its tick, `heard`
     /// after each, then asks for its frame for a renderer at `generation`
     /// (`Presentation::frame`): a new one is written every static batch, the
-    /// same one only what changed. Then, as the page
-    /// does, the scenery follows the ground the side has seen cleared, from
+    /// same one only what changed. Then, as the page's simulation exports
+    /// it, fog's foliage follows the ground the side has seen cleared, from
     /// the next frame on.
     pub fn frame(
         &mut self,
@@ -279,26 +344,42 @@ impl Replay {
         let camera = self.camera(record);
         self.presentation
             .frame(record.sim_time, &camera, &Ui::default(), generation)?;
-        if let Some(learned) = self.presentation.learned() {
+        // Fog's foliage is the side's: less the trees on ground it has seen
+        // cleared, as the page re-exports it.
+        if let (Some(world), Some(learned)) = (&self.world, self.presentation.learned()) {
             if learned.cleared_count() != self.cleared {
                 self.cleared = learned.cleared_count();
-                let runs = learned.cleared_runs();
-                let cleared = Cleared::from_runs(&runs, learned.cols, learned.rows, learned.cell_m);
-                // Fog's foliage is the side's: less the trees on ground it
-                // has seen cleared, as the page re-exports it.
-                let foliage = self
-                    .world
-                    .as_ref()
-                    .map(|world| files::side_foliage(world, learned));
-                self.presentation.set_cleared(cleared);
-                if let Some(foliage) = foliage {
-                    self.presentation.set_fog(Some(FogSetup {
-                        foliage: Some(foliage),
-                        ..FogSetup::default()
-                    }))?;
-                }
+                let foliage = files::side_foliage(world, learned);
+                self.presentation.set_fog(Some(FogSetup {
+                    foliage: Some(foliage),
+                    ..FogSetup::default()
+                }))?;
             }
         }
         Ok(self.presentation.last_frame())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The page writes each number as JavaScript does, the shortest text
+    /// that reads back to its double; a frame is drawn at exactly that
+    /// time. 109/30 is a tick boundary serde_json's default reader lands one
+    /// ULP past, where a whole tick's effects start or end.
+    #[test]
+    fn a_frame_reads_back_the_numbers_the_page_wrote() {
+        let boundary: f64 = 109.0 / 30.0;
+        let eye: [f64; 3] = [0.1 + 0.2, 1.0 / 3.0, 3.6042550000053653];
+        let text = format!(
+            r#"{{"index":0,"reelMs":{boundary:?},"tick":109,"simTime":{boundary:?},"eye":[{:?},{:?},{:?}],"target":[{boundary:?},0,1e-7],"up":[0,0,1],"canvas":[1280,720],"plate":null}}"#,
+            eye[0], eye[1], eye[2]
+        );
+        let record: Record = serde_json::from_str(&text).unwrap();
+        assert_eq!(record.sim_time.to_bits(), boundary.to_bits());
+        assert_eq!(record.reel_ms.to_bits(), boundary.to_bits());
+        assert_eq!(record.eye.map(f64::to_bits), eye.map(f64::to_bits));
+        assert_eq!(record.target, [boundary, 0.0, 1e-7]);
     }
 }

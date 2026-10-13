@@ -19,16 +19,19 @@ use crate::effects::MuzzleSource;
 use crate::fog::sight::{
     Eye, FogSight, FogStats, FogUpload, KnownBox, Occluder, Sensors, SightWorld,
 };
+use crate::light::LightSettings;
 use crate::records::{
-    Appearance as Row, Batch, CastLight, Counts, Effect, Emitter, Instance, Joint, Pick,
-    View as ViewRecord, NONE,
+    Appearance as Row, Batch, Camera as CameraRecord, CastLight, Counts, Effect, Emitter, Instance,
+    Joint, Pick, View as ViewRecord, GHOST_PASS, NONE,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
+use crate::shadow::{sun_shadow, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches, Sun};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
+use crate::static_world::ground::grass::{frame_params, metres_per_pixel, Window};
 use crate::static_world::ground::kinds;
 use crate::static_world::ground::walk::{
     Cleared, Draws, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, DRAWS,
@@ -44,16 +47,13 @@ use crate::units::feed::ObservationFeed;
 use crate::units::interpolate::{FrameSample, TickInterpolator};
 use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
 use crate::units::skin::{self, Mat4};
-use crate::view::{model_detail, Camera, View, CULLED, IMPOSTOR};
+use crate::view::{batch_caster, model_detail, model_fog, Camera, View, CULLED, IMPOSTOR};
 use crate::world::{
     bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
 
 /// Publications kept for the effects while the world loads: two minutes at 30 Hz.
 const PENDING_MAX: usize = 3600;
-
-/// A batch's pass for a placement preview (the others are 0 view, 1 caster).
-pub const GHOST_PASS: u32 = 2;
 
 /// What the UI decides of a frame.
 #[derive(Default)]
@@ -93,6 +93,11 @@ pub struct Frame {
     pub index: u32,
     pub light_wrap: f32,
     pub view: ViewRecord,
+    /// The camera uniform, at the frame's clock.
+    pub camera: CameraRecord,
+    /// The sun's cascades fitted to the camera; none without a light
+    /// ([`Presentation::set_shadow`]).
+    pub shadow: Option<SunShadowFrame>,
     pub batches: Vec<Batch>,
     pub instances: Vec<Instance>,
     pub palettes: Vec<Joint>,
@@ -163,6 +168,8 @@ struct Model {
     /// First palette joint, or 0 (identity).
     palette: u32,
     scroll: [f64; 2],
+    /// How fog takes it (`Batch.fog`).
+    fog: u32,
 }
 
 /// What the buildings' known states were last derived from.
@@ -218,6 +225,10 @@ pub struct Presentation {
     ground: Option<Ground>,
     scenery: Option<SceneryWalk>,
     scenery_quality: SceneryQuality,
+    /// The learned ground's epoch and cleared cells the scenery last
+    /// followed: within an epoch cells are only ever cleared, so the count
+    /// names the set; a new epoch is a new ground.
+    cleared_from: (u64, usize),
     /// The map's props and what the side knows of them (`place_props`).
     props: Option<PropPopulation>,
     /// The fallen bodies the scenery last read.
@@ -229,6 +240,9 @@ pub struct Presentation {
     frame: Frame,
     /// The camera the last frame was asked for.
     camera: Option<Camera>,
+    /// The light the sun's cascades are fitted under, and the map's box
+    /// they fit over (`set_shadow`).
+    shadow: Option<(LightSettings, Option<[f64; 6]>)>,
     /// The side's learned ground (none without a layout), and its scars as
     /// the renderer holds them.
     learned: Option<LearnedGround>,
@@ -326,12 +340,14 @@ impl Presentation {
             ground: None,
             scenery: None,
             scenery_quality: SceneryQuality::default(),
+            cleared_from: (0, 0),
             props: None,
             felled_from: None,
             detail_scale: [1.0, 1.0],
             world: World::default(),
             frame: Frame::default(),
             camera: None,
+            shadow: None,
             fog: None,
         })
     }
@@ -537,7 +553,7 @@ impl Presentation {
                 self.world.row(&look.appearance, state, NONE, 0, false);
             }
         }
-        let throw = 1.0 / elevation.tan();
+        let throw = 1.0 / libm::tan(elevation);
         let mut loaded = Loaded {
             feed: ObservationFeed::new(&side),
             driver: PoseDriver::new(&units)?,
@@ -549,7 +565,7 @@ impl Presentation {
             cook_offs: CookOffs::new(self.tick_hz),
             pieces: Vec::new(),
             sound: None,
-            shadow_fall: [-azimuth.cos() * throw, -azimuth.sin() * throw],
+            shadow_fall: [-libm::cos(azimuth) * throw, -libm::sin(azimuth) * throw],
             locals: Vec::new(),
             worlds: Vec::new(),
             models: Vec::new(),
@@ -806,6 +822,7 @@ impl Presentation {
         };
         let poses = l.driver.poses();
         let units = &l.units;
+        let (mut locals, mut worlds) = (Vec::new(), Vec::new());
         let name = |kind: &str,
                     side: &str,
                     id: f64,
@@ -871,6 +888,10 @@ impl Presentation {
                 "yaw": s.facing,
                 "clip": &*s.clip,
                 "phase": s.phase,
+                // His weapon's muzzle where his body draws it, crossfaded and kicked.
+                "muzzle": s.active_mount.and_then(|m| {
+                    crate::units::drawn::soldier_muzzle(units, &l.tables, s, m, &mut worlds)
+                }),
             })).collect::<Vec<_>>(),
             "vehicles": poses.vehicles.iter().map(|v| {
                 let a = v.articulation;
@@ -885,6 +906,15 @@ impl Presentation {
                         "travel_r": a.travel_r, "deploy": a.deploy, "rotor": a.rotor,
                         "rotor_blur": a.rotor_blur,
                     },
+                    // Each mount's muzzle where the hull draws it, rocked and articulated.
+                    "muzzles": (0..units.types.get(&*v.kind).map_or(0, |t| t.roles.len()))
+                        .filter_map(|m| {
+                            let (name, at) = crate::units::drawn::vehicle_muzzle(
+                                units, v, m, &mut locals, &mut worlds,
+                            )?;
+                            Some(serde_json::json!({ "name": name, "at": at }))
+                        })
+                        .collect::<Vec<_>>(),
                 })
             }).collect::<Vec<_>>(),
         })
@@ -964,6 +994,7 @@ impl Presentation {
         walk.set_quality(self.scenery_quality);
         self.scenery = Some(walk);
         self.felled_from = None;
+        self.cleared_from = (0, 0);
         Ok(())
     }
 
@@ -1011,12 +1042,50 @@ impl Presentation {
         }
     }
 
-    /// The ground the side has seen cleared.
-    pub fn set_cleared(&mut self, cleared: Cleared) {
-        if let Some(walk) = &mut self.scenery {
-            walk.set_cleared(cleared);
-            self.statics.rewalk();
+    /// The scenery follows the ground the side has learned cleared: its
+    /// shrubs and dressing there leave.
+    fn follow_cleared(&mut self) {
+        let (Some(walk), Some(learned)) = (&mut self.scenery, &self.learned) else {
+            return;
+        };
+        let from = (learned.epoch.to_bits(), learned.cleared_count());
+        if from == self.cleared_from {
+            return;
         }
+        self.cleared_from = from;
+        let runs = learned.cleared_runs();
+        walk.set_cleared(Cleared::from_runs(
+            &runs,
+            learned.cols,
+            learned.rows,
+            learned.cell_m,
+        ));
+        self.statics.rewalk();
+    }
+
+    /// The window of tiles the grass grows over for the last frame's camera,
+    /// and the metres a pixel spans per metre of distance there; none before
+    /// a frame or without a ground.
+    pub fn grass_window(&self) -> Option<(Window, f64)> {
+        let (ground, c) = (self.ground.as_ref()?, self.camera.as_ref()?);
+        let metres_per_px = metres_per_pixel(c.fov_y, f64::from(c.size[1].max(1)));
+        Some((ground.grass_window(c.eye, metres_per_px), metres_per_px))
+    }
+
+    /// Writes the last frame's fields into `GrassParams`' `words` for
+    /// `window` (`grass_window`'s): its view's side planes, its eye and
+    /// pixel span, and the window.
+    pub fn grass_frame_params(&self, words: &mut [u32], window: &Window) {
+        let Some(c) = &self.camera else { return };
+        let metres_per_px = metres_per_pixel(c.fov_y, f64::from(c.size[1].max(1)));
+        let view_proj: &[f32; 16] = self.frame.camera.view_proj.first_chunk().unwrap();
+        frame_params(words, view_proj, c.eye, metres_per_px, window);
+    }
+
+    /// Fits the sun's cascades under `light` over the map's box (none: just
+    /// past the near plane) from the next frame on; none fits none.
+    pub fn set_shadow(&mut self, shadow: Option<(LightSettings, Option<[f64; 6]>)>) {
+        self.shadow = shadow;
     }
 
     /// Wanted dressing cells are still to be laid: frame again before
@@ -1214,8 +1283,10 @@ impl Presentation {
     /// What to draw at presentation time `time` for `camera`, for a renderer
     /// at `generation`: a number it bumps whenever it holds no static batches
     /// (a new GPU frame, a new world, a jump), so a new one is written every
-    /// static batch. Errs when the side knows a building in a state its
-    /// template lacks.
+    /// static batch. The camera's view, its uniform and the sun's cascades
+    /// come with it, and the scenery has followed the ground the side has
+    /// learned cleared by the publications pushed so far. Errs when the side
+    /// knows a building in a state its template lacks.
     pub fn frame(
         &mut self,
         time: f64,
@@ -1238,7 +1309,13 @@ impl Presentation {
         f.light_wrap = 0.0;
         let view = View::new(camera);
         f.view = view.record(camera);
+        f.camera = view.camera(camera, time);
+        f.shadow = self
+            .shadow
+            .as_ref()
+            .map(|(light, map_box)| sun_shadow(light, camera, map_box.as_ref()));
         self.follow_felled(time);
+        self.follow_cleared();
         // A wreck the cook-off draws moving is left out of the props until
         // it lies still.
         if let (Some(props), Some(loaded)) = (&mut self.props, &self.loaded) {
@@ -1384,6 +1461,7 @@ impl Loaded {
             colour,
             palette,
             scroll,
+            fog: model_fog(false, false, false),
         };
 
         // Soldiers, living and dying: a body's far bounds tier him.
@@ -1504,17 +1582,21 @@ impl Loaded {
             if tier == CULLED {
                 continue;
             }
-            models.push(model(
-                row(name, "", c.lies as u32),
-                tier,
-                0,
-                at,
-                c.yaw,
-                tint(&c.side),
-                [0.0; 4],
-                0,
-                [0.0; 2],
-            ));
+            // Remains are seen or unseen whole, as the ground under them.
+            models.push(Model {
+                fog: model_fog(true, false, false),
+                ..model(
+                    row(name, "", c.lies as u32),
+                    tier,
+                    0,
+                    at,
+                    c.yaw,
+                    tint(&c.side),
+                    [0.0; 4],
+                    0,
+                    [0.0; 2],
+                )
+            });
         }
         // A cook-off's moving wreck and its thrown debris; a piece in
         // motion is never a card, and reaches as far as it has moved.
@@ -1581,6 +1663,9 @@ impl Loaded {
                 scroll,
             );
             m.scale = piece.scale.map(|v| v as f32);
+            // A thrown piece is the world's; the whole wreck still moving is
+            // posed as a unit is.
+            m.fog = model_fog(false, piece.state.is_some(), false);
             models.push(m);
         }
         // Ghosts: where the UI's units will stand, at rest, in their colour.
@@ -1652,6 +1737,7 @@ impl Loaded {
 }
 
 /// The models as batches: one per drawable, tier and pass, in that order.
+/// A model in view casts a tier coarser; a card and a ghost cast nothing.
 fn batches(models: &mut [Model], f: &mut Frame) {
     models.sort_by_key(|m| (m.row, m.tier, m.pass));
     for run in models.chunk_by(|a, b| (a.row, a.tier, a.pass) == (b.row, b.tier, b.pass)) {
@@ -1661,10 +1747,12 @@ fn batches(models: &mut [Model], f: &mut Frame) {
             appearance: m.row,
             tier: m.tier,
             pass: m.pass,
-            cascades: 0,
+            caster: batch_caster(m.tier, m.pass),
+            fog: m.fog,
             version: f.index,
             first: f.instances.len() as u32,
             count: run.len() as u32,
+            pad: [0; 3],
         });
         let fract = |v: f64| (v - v.floor()) as f32;
         f.instances.extend(run.iter().map(|m| Instance {
@@ -1707,8 +1795,7 @@ fn pose_body(
     let Some(table) = tables.get(table) else {
         return 0;
     };
-    skin::joint_worlds(joints, clips, table, clip, phase, blend, worlds);
-    skin::kick_worlds(joints, kick, worlds);
+    skin::drawn_worlds(joints, clips, table, clip, phase, blend, kick, worlds);
     let first = palettes.len() as u32;
     let ibs = &inverse_binds[name];
     palettes.extend(

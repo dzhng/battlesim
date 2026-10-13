@@ -12,6 +12,11 @@ use serde_json::Value;
 pub type Vec3 = [f64; 3];
 pub type Quat = [f64; 4];
 
+/// `v`'s length.
+pub fn length(v: Vec3) -> f64 {
+    libm::hypot(libm::hypot(v[0], v[1]), v[2])
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct WorldInput {
     /// What a battle's units and effects draw from; none for a world of
@@ -200,7 +205,7 @@ pub fn bounds_size([min, max]: [Vec3; 2]) -> Bounds {
     let dz = max[2] - min[2];
     Bounds {
         size: dz.max(max[0] - min[0]).max(max[1] - min[1]),
-        radius: crate::seed::js_hypot(&[reach(min[0], max[0]), reach(min[1], max[1]), dz]),
+        radius: length([reach(min[0], max[0]), reach(min[1], max[1]), dz]),
     }
 }
 

@@ -2,17 +2,16 @@
 // the resolved light (`presentation.light` and its records) it builds the sky
 // (its LUT and background), the PMREM environment light, the sun and its
 // cascades, and hands every world material the same bind group, `shade` and
-// `sampleSunShadow`. Each frame, `prepare` poses the sky and fits the cascades
-// to the camera and the map, and `setCastLights` hands every material the
-// effects' lights (`light/castLights.ts`).
-import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+// `sampleSunShadow`. Each frame, `prepare` poses the sky and takes the
+// cascades the presentation fitted to the camera and the map, and
+// `setCastLights` hands every material the effects' lights
+// (`light/castLights.ts`).
 import type { TgpuCommandEncoder, TgpuRenderPass } from "typegpu";
 import { createTypegpuEnvironment } from "../world/environment";
 import { createTypegpuSunShadow } from "../world/shadow";
 import { validateLight, type ResolvedLight } from "../light/sceneLight";
-import type { SkyRays } from "../shaders/physicalSky";
 import { CAST_LIGHTS_BYTES } from "../light/castLights";
-import { CAST_LIGHT_WORDS, CAST_LIGHTS_MAX } from "../records.gen";
+import { CAST_LIGHT_WORDS, CAST_LIGHTS_MAX, View } from "../records.gen";
 import { FRAME_MSAA } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -38,20 +37,17 @@ export async function createEnvironmentFrame(
     shade: environment.shade,
     unlit: environment.unlit,
     sampleSunShadow: environment.sampleSunShadow,
-    /** Pose the sky and the environment for this camera, drawn `width` by
-     *  `height` pixels, and fit the cascades over the part of the map's
-     *  `box` it sees (`shadow.rs`; empty: no map). */
-    prepare(
-      camera: Camera3DParams,
-      width: number,
-      height: number,
-      view: ArrayLike<number>,
-      rays: SkyRays,
-      box: Float64Array,
-    ) {
-      environment.setView(view, camera.target);
-      environment.sky.setRays(rays);
-      shadow.update(camera, width, height, box);
+    /** Pose the sky and the environment for the frame's `View` record, and
+     *  take the cascades the presentation fitted to it (`shadow.rs`). */
+    prepare(view: Float32Array, sunShadow: Float32Array, casters: Float32Array, count: number) {
+      const at = (word: number) => [...view.subarray(word, word + 3)] as [number, number, number];
+      environment.setView(view.subarray(View.view, View.view + 16), at(View.target));
+      environment.sky.setRays({
+        origin: at(View.sky_origin),
+        dx: at(View.sky_dx),
+        dy: at(View.sky_dy),
+      });
+      shadow.update(sunShadow, casters, count);
     },
     /** This frame's cast lights as the presentation chose them (`CastLight`
      *  rows, at most `CAST_LIGHTS_MAX`) and their facing wrap. */

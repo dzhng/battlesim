@@ -148,7 +148,7 @@ export function PauseMenu({
       {settingsOpen && (
         <div className="hud-veil hud-tutorial-veil" data-occludes-readouts>
           <div
-            className="hud-panel hud-tutorial-modal"
+            className="hud-panel hud-tutorial-modal hud-settings-modal"
             role="dialog"
             aria-modal="true"
             aria-label="Settings"

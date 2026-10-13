@@ -42,7 +42,7 @@ struct FogParams {
 
 @group(0) @binding(0) var<uniform> params: FogParams;
 
-struct FogEyeRecord {
+struct FogEye {
   position: vec3f,
   reach: f32,
   forward: f32,
@@ -51,11 +51,9 @@ struct FogEyeRecord {
   rear: f32,
   range: f32,
   slot: u32,
-  pad0: u32,
-  pad1: u32,
 }
 
-@group(0) @binding(1) var<storage, read> eyes: array<FogEyeRecord>;
+@group(0) @binding(1) var<storage, read> eyes: array<FogEye>;
 
 @group(0) @binding(5) var<storage, read> rebuild: array<u32>;
 
@@ -65,7 +63,6 @@ struct FogBox {
   yaw: f32,
   top: f32,
   base: f32,
-  pad1: f32,
 }
 
 @group(0) @binding(4) var<storage, read> occluders: array<FogBox>;

@@ -12,7 +12,7 @@ import {
 import {
   FOG_EDGE_REACH_PX,
   FOG_LOOK_WORDS,
-  FogLook,
+  FogLookAt,
 } from "@packages/battle-renderer/src/records.gen";
 import { loadPresentation, resolveFogLook } from "@web/battle/sim/presentation";
 import game from "@fixtures/game.json";
@@ -26,7 +26,7 @@ test("every style the fixture names resolves into the look's record", () => {
   for (const style of Object.values(fixture.styles)) {
     const look = resolveFogLook(style);
     expect(look.length).toBe(FOG_LOOK_WORDS);
-    expect(look[FogLook.rim_width_px]).toBe(style.rim.width_px);
+    expect(look[FogLookAt.rim_width_px]).toBe(style.rim.width_px);
   }
 });
 

@@ -6,25 +6,39 @@
 //! renderer draws what it holds. A renderer that holds nothing says so with
 //! a new generation, and is written every list.
 use crate::presentation::Frame;
-use crate::records::{Batch, NONE};
-use crate::seed::js_hypot;
+use crate::records::{Batch, CAST_PASS, NONE};
 use crate::static_world::walk::{Record, Shadow};
 use crate::view::{Camera, View};
 use std::collections::HashMap;
 
-/// A batch's pass: drawn into the view, or cast into the sun's cascades.
-pub const VIEW_PASS: u32 = 0;
-pub const CAST_PASS: u32 = 1;
-
-/// One list a population draws: its appearance row, tier, pass and records,
-/// and a print that changes whenever the records do.
+/// One list a population draws: its appearance row, tier and pass, the tier
+/// it casts with and how fog takes it (`Batch.caster`, `Batch.fog`), its
+/// records, and a print that changes whenever the records do.
 pub struct List<'a> {
     pub row: u32,
     pub tier: u32,
     pub pass: u32,
+    pub caster: u32,
+    pub fog: u32,
     pub records: &'a [Record],
     pub print: u64,
 }
+
+impl List<'_> {
+    /// The tier a list of `pass` at `tier` casts with when its population
+    /// casts by caster lists of its own: a caster list its tier, a view
+    /// list none.
+    pub fn own_caster(pass: u32, tier: u32) -> u32 {
+        if pass == CAST_PASS {
+            tier
+        } else {
+            NONE
+        }
+    }
+}
+
+/// Where a print starts: never zero, so a first mark of 0 still moves it.
+pub const PRINT_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 
 /// Folds `value` into a list's print.
 pub fn print(hash: u64, value: u64) -> u64 {
@@ -63,7 +77,7 @@ impl Sun {
                 -libm::cos(self.azimuth) * throw,
                 -libm::sin(self.azimuth) * throw,
             ],
-            reach: self.far_m * js_hypot(&[1.0, tan_v, tan_v * w / h]),
+            reach: self.far_m * crate::world::length([1.0, tan_v, tan_v * w / h]),
         }
     }
 }
@@ -124,6 +138,8 @@ impl StaticBatches {
                     row,
                     tier,
                     pass,
+                    caster,
+                    fog,
                     records,
                     print,
                 } = list;
@@ -131,6 +147,11 @@ impl StaticBatches {
                     return;
                 }
                 let key = (row << 8) | (tier << 4) | pass;
+                // A list named unchanged is exactly what was last written:
+                // never one of another length under a colliding print. The
+                // population's print is mixed first, so a small counter and
+                // a length never cancel.
+                let print = self::print(self::print(PRINT_BASIS, print), records.len() as u64);
                 let held = self.sent.get(&key).filter(|(p, _)| *p == print);
                 let version = held.map_or(f.index, |&(_, v)| v);
                 f.batches.push(Batch {
@@ -138,7 +159,8 @@ impl StaticBatches {
                     appearance: row,
                     tier,
                     pass,
-                    cascades: 0,
+                    caster,
+                    fog,
                     version,
                     first: if held.is_some() {
                         NONE
@@ -146,6 +168,7 @@ impl StaticBatches {
                         f.instances.len() as u32
                     },
                     count: records.len() as u32,
+                    pad: [0; 3],
                 });
                 if held.is_none() {
                     f.instances.extend_from_slice(bytemuck::cast_slice(records));
@@ -162,9 +185,10 @@ impl StaticBatches {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::records::{FOG_FACES, VIEW_PASS};
 
-    /// One building's list that never changes.
-    struct Still([Record; 1]);
+    /// One building's list under a fixed print.
+    struct Still(Vec<Record>);
 
     impl Population for Still {
         fn select(&mut self, _: &View, _: Option<&Shadow>) -> bool {
@@ -175,6 +199,8 @@ mod tests {
                 row: 3,
                 tier: 0,
                 pass: VIEW_PASS,
+                caster: NONE,
+                fog: FOG_FACES,
                 records: &self.0,
                 print: 7,
             });
@@ -198,16 +224,89 @@ mod tests {
         let [batch] = f.batches[..] else {
             panic!("one batch, not {}", f.batches.len());
         };
-        batch.first != NONE && f.instances.len() == 1
+        batch.first != NONE && f.instances.len() == still.0.len()
     }
 
     #[test]
     fn a_renderer_holding_nothing_is_written_every_batch_again() {
         let mut statics = StaticBatches::default();
-        let mut still = Still([[1.0; 16]]);
+        let mut still = Still(vec![[1.0; 16]]);
         assert!(written(&mut statics, &mut still, 1), "first frame");
         assert!(!written(&mut statics, &mut still, 1), "held: unchanged");
         assert!(written(&mut statics, &mut still, 2), "new generation");
         assert!(!written(&mut statics, &mut still, 2), "held again");
+    }
+
+    #[test]
+    fn a_batch_named_unchanged_is_exactly_what_was_last_written() {
+        // A population whose print does not see its list grow: the batch is
+        // still written, never named unchanged with another count.
+        let mut statics = StaticBatches::default();
+        let mut still = Still(vec![[1.0; 16]]);
+        assert!(written(&mut statics, &mut still, 1), "first frame");
+        still.0.push([2.0; 16]);
+        assert!(written(&mut statics, &mut still, 1), "a longer list");
+        assert!(!written(&mut statics, &mut still, 1), "held");
+    }
+
+    /// Two lists sharing one counter as their print (as the buildings do).
+    struct Counted {
+        lists: [Vec<Record>; 2],
+        changes: u64,
+    }
+
+    impl Population for Counted {
+        fn select(&mut self, _: &View, _: Option<&Shadow>) -> bool {
+            false
+        }
+        fn each_list(&self, visit: &mut dyn FnMut(List)) {
+            for (tier, records) in self.lists.iter().enumerate() {
+                visit(List {
+                    row: 3,
+                    tier: tier as u32,
+                    pass: VIEW_PASS,
+                    caster: NONE,
+                    fog: FOG_FACES,
+                    records,
+                    print: self.changes,
+                });
+            }
+        }
+    }
+
+    #[test]
+    fn a_change_writes_every_list_of_a_population_that_prints_by_a_counter() {
+        // Counter and length must not cancel: 1 with 2 records, then 2
+        // with 1 record, is a change.
+        let camera = Camera {
+            eye: [0.0, -50.0, 30.0],
+            target: [0.0; 3],
+            up: [0.0, 0.0, 1.0],
+            fov_y: 0.8,
+            near: 0.5,
+            size: [640, 480],
+        };
+        let view = View::new(&camera);
+        let mut statics = StaticBatches::default();
+        let mut walk = |pop: &mut Counted| {
+            let mut f = Frame::default();
+            statics.write(&mut [pop], &camera, &view, None, 1, &mut f);
+            f.batches
+                .iter()
+                .map(|b| b.first != NONE)
+                .collect::<Vec<_>>()
+        };
+        let mut pop = Counted {
+            lists: [vec![[1.0; 16]; 2], vec![[1.0; 16]; 3]],
+            changes: 1,
+        };
+        assert_eq!(walk(&mut pop), [true, true]);
+        pop.lists[0].pop();
+        pop.changes = 2;
+        assert_eq!(
+            walk(&mut pop),
+            [true, true],
+            "every list of the change is written"
+        );
     }
 }

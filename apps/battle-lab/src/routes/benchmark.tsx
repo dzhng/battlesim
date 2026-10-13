@@ -1,7 +1,7 @@
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { Link } from "react-router";
 import { useLabLoading } from "../LabLoading";
-// /benchmark: choose a run length, run the scripted battle while the camera
+// /labs/benchmark: choose a run length, run the scripted battle while the camera
 // flies its tour, then read the results. The page publishes its state on
 // `window.__benchmark` for the scene harness.
 import { useEffect, useState } from "react";

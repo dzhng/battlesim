@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use super::articulation::articulate;
 use super::pose::{Articulation, PoseFrame, SoldierPose, VehiclePose};
-use super::skin::{joint_worlds, kick_worlds, mul, node_worlds, trs, Mat4};
+use super::skin::{drawn_worlds, mul, node_worlds, trs, Mat4};
 use crate::effects::{DrawnRotor, Mast, MuzzleSource};
 use crate::seed::side_key;
 use crate::world::{Appearance, Trs, UnitsSection, Vec3};
@@ -22,7 +22,7 @@ pub type ClipTables = HashMap<String, Vec<f32>>;
 
 /// A model-space point placed at `position`, turned by `yaw` about +Z.
 fn placed(position: Vec3, yaw: f64, x: f64, y: f64, z: f64) -> Vec3 {
-    let (s, c) = yaw.sin_cos();
+    let (s, c) = libm::sincos(yaw);
     [
         position[0] + x * c - y * s,
         position[1] + x * s + y * c,
@@ -42,6 +42,78 @@ fn normalized(v: Vec3) -> Vec3 {
 /// One key per (side, id): blue's ids even.
 fn key_of(side: &str, id: f64) -> u64 {
     side_key(id, side == "blue").to_bits()
+}
+
+/// Where soldier `s`'s body draws the `muzzle` socket of his weapon `mount`,
+/// while that weapon is in use: his clip crossfaded and kicked, posed as his
+/// palette is ([`drawn_worlds`]). `worlds` is scratch.
+pub fn soldier_muzzle(
+    units: &UnitsSection,
+    tables: &ClipTables,
+    s: &SoldierPose,
+    mount: usize,
+    worlds: &mut Vec<Mat4>,
+) -> Option<Vec3> {
+    if s.active_mount != Some(mount) {
+        return None;
+    }
+    let name = units.resolve(
+        &s.kind,
+        &s.side,
+        s.soldier,
+        s.slot,
+        s.operator_mount,
+        s.active_mount,
+    )?;
+    let Appearance::Skinned {
+        joints,
+        clips,
+        table,
+        muzzle: Some(muzzle),
+        ..
+    } = units.appearances.get(name)?
+    else {
+        return None;
+    };
+    drawn_worlds(
+        joints,
+        clips,
+        tables.get(table)?,
+        &s.clip,
+        s.phase,
+        s.blend.as_ref(),
+        s.kick,
+        worlds,
+    );
+    let o = &muzzle.offset;
+    let m = mul(worlds.get(muzzle.joint)?, &trs(o.t, o.r, o.s));
+    Some(placed(s.position, s.facing, m[12], m[13], m[14]))
+}
+
+/// Where vehicle `v` draws the muzzle of its mount `mount`, with that muzzle
+/// node's name: its rig's muzzle node for the mount's role, articulated and
+/// moved (a lean, a hull's kick) as drawn. `locals` and `worlds` are scratch.
+pub fn vehicle_muzzle<'a>(
+    units: &'a UnitsSection,
+    v: &VehiclePose,
+    mount: usize,
+    locals: &mut Vec<Trs>,
+    worlds: &mut Vec<Mat4>,
+) -> Option<(&'a str, Vec3)> {
+    let name = units.resolve(&v.kind, &v.side, v.unit, 0, None, None)?;
+    let Appearance::Articulated { nodes, rig, .. } = units.appearances.get(name)? else {
+        return None;
+    };
+    let role = units.types.get(&*v.kind)?.roles.get(mount)?;
+    let &node = rig.muzzles.get(role)?;
+    locals.resize(nodes.len(), nodes.first()?.bind);
+    articulate(locals, nodes, rig, &v.articulation);
+    node_worlds(nodes, locals, v.motion.as_ref(), worlds);
+    let m = worlds.get(node)?;
+    Some((
+        &nodes[node].name,
+        placed(v.position, v.yaw, m[12], m[13], m[14]),
+    ))
 }
 
 pub struct DrawnModels {
@@ -110,64 +182,16 @@ impl DrawnModels {
         }
     }
 
-    /// The drawn muzzle of the vehicle at side key `key`'s mount `mount`:
-    /// its rig's muzzle node for the mount's role, articulated and moved
-    /// (a lean, a hull's kick) as drawn.
+    /// The drawn muzzle of the vehicle at side key `key`'s mount `mount`.
     fn vehicle_muzzle(&mut self, key: u64, mount: usize) -> Option<Vec3> {
         let v = &self.vehicles[*self.vehicle_at.get(&key)?];
-        let name = self
-            .units
-            .resolve(&v.kind, &v.side, v.unit, 0, None, None)?;
-        let Appearance::Articulated { nodes, rig, .. } = self.units.appearances.get(name)? else {
-            return None;
-        };
-        let role = self.units.types.get(&*v.kind)?.roles.get(mount)?;
-        let &node = rig.muzzles.get(role)?;
-        self.locals.resize(nodes.len(), nodes.first()?.bind);
-        articulate(&mut self.locals, nodes, rig, &v.articulation);
-        node_worlds(nodes, &self.locals, v.motion.as_ref(), &mut self.worlds);
-        let m = self.worlds.get(node)?;
-        Some(placed(v.position, v.yaw, m[12], m[13], m[14]))
+        vehicle_muzzle(&self.units, v, mount, &mut self.locals, &mut self.worlds).map(|m| m.1)
     }
 
-    /// The drawn muzzle of the soldier at side key `key`'s weapon `mount`:
-    /// his body's `muzzle` socket in his clip, while that weapon is in use.
+    /// The drawn muzzle of the soldier at side key `key`'s weapon `mount`.
     fn soldier_muzzle(&mut self, key: u64, mount: usize) -> Option<Vec3> {
         let s = &self.soldiers[*self.soldier_at.get(&key)?];
-        if s.active_mount != Some(mount) {
-            return None;
-        }
-        let name = self.units.resolve(
-            &s.kind,
-            &s.side,
-            s.soldier,
-            s.slot,
-            s.operator_mount,
-            s.active_mount,
-        )?;
-        let Appearance::Skinned {
-            joints,
-            clips,
-            table,
-            muzzle: Some(muzzle),
-            ..
-        } = self.units.appearances.get(name)?
-        else {
-            return None;
-        };
-        joint_worlds(
-            joints,
-            clips,
-            self.tables.get(table)?,
-            &s.clip,
-            s.phase,
-            None,
-            &mut self.worlds,
-        );
-        kick_worlds(joints, s.kick, &mut self.worlds);
-        let o = &muzzle.offset;
-        let m = mul(self.worlds.get(muzzle.joint)?, &trs(o.t, o.r, o.s));
-        Some(placed(s.position, s.facing, m[12], m[13], m[14]))
+        soldier_muzzle(&self.units, &self.tables, s, mount, &mut self.worlds)
     }
 
     /// Each drawn rotor of this frame's aircraft, posed as the model is.
@@ -199,7 +223,7 @@ impl DrawnModels {
             let tip_travel = self.rotor_turned.get(&key).copied().unwrap_or(0.0);
             for rotor in &rig.rotors {
                 let m = self.worlds[rotor.node];
-                let (s, c) = rotor.rest.sin_cos();
+                let (s, c) = libm::sincos(rotor.rest);
                 let along = |d: f64| {
                     placed(
                         v.position,

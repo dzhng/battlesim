@@ -1,19 +1,16 @@
 //! The frame: one ordered list of passes, encoded in order each drawn frame
 //! (Bevy 0.19+'s fixed pass order without a render graph; `battleFrame.ts`
 //! is the browser's). Each presentation `Frame` first prepares the layers
-//! (the environment's view and cast lights, the sun's cascades fitted to the
-//! camera, the grass's window, the models' palettes and instances, the
-//! effects' instances); then each pass reads the frame's `View`, the sized
-//! targets and the layers, and encodes its work. The list is the whole frame.
-use presentation::light::LightSettings;
+//! (its camera and view, the sun's cascades it fitted, the cast lights, the
+//! grass's window, the models' palettes and instances, the effects'
+//! instances); then each pass reads the frame's `View`, the sized targets
+//! and the layers, and encodes its work. The list is the whole frame.
 use presentation::presentation::Presentation;
 use presentation::records::View;
-use presentation::shadow::sun_shadow;
-use presentation::view::Camera;
 use wgpu::*;
 
 use crate::effects::Effects;
-use crate::environment::{view_proj, Environment};
+use crate::environment::Environment;
 use crate::fog::Fog;
 use crate::grass::Grass;
 use crate::ground::Ground;
@@ -130,7 +127,6 @@ pub trait Pass {
 /// The layers and the passes in the order they draw.
 pub struct Passes {
     pub targets: Targets,
-    pub light: LightSettings,
     pub environment: Environment,
     pub shadow: SunShadow,
     pub ground: Ground,
@@ -143,31 +139,19 @@ pub struct Passes {
 }
 
 impl Passes {
-    /// Prepares the layers for `presentation`'s last frame, framed from
-    /// `camera`; the haze is measured from the camera's target.
+    /// Prepares the layers for `presentation`'s last frame.
     pub fn prepare(
         &mut self,
         device: &Device,
         queue: &Queue,
         presentation: &Presentation,
-        camera: &Camera,
     ) -> Result<(), String> {
         let frame = presentation.last_frame();
-        self.environment
-            .prepare(queue, &frame.view, camera.target, frame.clock as f32);
-        let fit = sun_shadow(&self.light, camera, self.ground.map_box.as_ref());
-        self.shadow.prepare(queue, &fit);
-        let height = f64::from(camera.size[1].max(1));
-        if let Some(ground) = presentation.ground() {
-            self.grass.prepare(
-                queue,
-                ground,
-                &view_proj(&frame.view),
-                camera.eye,
-                camera.fov_y,
-                height,
-            );
+        self.environment.prepare(queue, &frame.view, &frame.camera);
+        if let Some(fit) = &frame.shadow {
+            self.shadow.prepare(queue, fit);
         }
+        self.grass.prepare(queue, presentation);
         self.models.prepare(device, queue, frame)?;
         self.scenery.prepare(self.models.statics());
         Ok(())
@@ -188,8 +172,7 @@ impl Passes {
         queue: &Queue,
         presentation: &mut Presentation,
     ) -> Result<(), String> {
-        let frame = presentation.last_frame();
-        let camera = crate::environment::camera(&frame.view, frame.clock as f32);
+        let camera = presentation.last_frame().camera;
         self.fog.prepare(device, queue, presentation, &camera)
     }
 

@@ -16,7 +16,8 @@ The native client on `wgpu`. It runs the browser's own shaders and passes over t
   the struct its shader declares. A pass binds groups by the layout they fill,
   never by number.
 - **Models** are the browser's appearance bundles from `assets/runtime` (Git
-  LFS; pull the ones a scene needs), read as the browser reads them: the
+  LFS; pull the ones a scene needs), read through the presentation crate's
+  runtime reader (`presentation::assets`) as the browser reads them: the
   catalog, gzip transport, the bundle container and its texture files. Every
   `World.appearances` row is loaded once into the browser's vertex layout, and
   each `Frame` batch is one run of instances over one row's tier. A corpse is
@@ -37,13 +38,14 @@ The native client on `wgpu`. It runs the browser's own shaders and passes over t
   it and cuts each felled tree's stump (`stump_mesh`). Each row's batches
   draw through the browser's scenery pipelines, routed by
   `Appearance.draws`, into the depth prepass, the lit world and, for what the
-  walk lists as casters, the cascades. Like the page, the replay hands back
-  the ground the side has seen cleared (`set_cleared`).
-- **Sun shadows** are four cascades the presentation crate fits to each
-  frame's camera over the map's box (`presentation::shadow`): the receiver
-  block and each cascade's caster camera are records the client uploads. The
-  ground, the models and the buildings cast into them, a unit one tier
-  coarser than it draws and never as a card.
+  walk lists as casters, the cascades. The presentation clears shrubs and
+  dressing off the ground the side has learned cleared by itself.
+- **The camera and sun shadows** come with each frame: its `View`, its
+  camera uniform, and four cascades fitted over the map's box
+  (`presentation::shadow`, given the light and the box once, `set_shadow`),
+  the receiver block and each cascade's caster camera, all uploaded as they
+  are. Each batch names the tier it casts with and the fog group it binds
+  (`Batch.caster`, `Batch.fog`); the client routes by them.
 - **Buildings** are the frame's static batches too: the map's buildings
   placed from the template art, in the state the side knows.
 - **Props** (parked cars, lamps, walls, fences, hedges, benches, wrecks,
@@ -98,9 +100,13 @@ The native client on `wgpu`. It runs the browser's own shaders and passes over t
 ## Running a parity scene
 
 The binary replays one scene of a browser parity run (the control the
-[spec](../../specs/native-rendering-parity/README.md) names): it loads the
-world, frames every record through the presentation crate, and writes each
-plate the browser wrote, under the same name. Its usage text lists the flags.
+[spec](../../specs/native-rendering-parity/README.md) names). It refuses a
+capture or a saved map that is not the one the manifest's identity hashes,
+naming the file. It reads the world from the repository, not from the run:
+the map, its ground, buildings and props, and the units its encounter fields
+with their effects (`presentation::fielded`). Then it frames every record
+through the presentation crate and writes each plate the browser wrote,
+under the same name. Its usage text lists the flags.
 Run it under the GPU lock.
 
 The window opens borderless and off-screen by default, so nothing appears on

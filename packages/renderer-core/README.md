@@ -4,12 +4,13 @@ This package holds the drawing primitives shared by the battle renderer and
 CPU-side view queries. It has no battle rules or knowledge of unit identities.
 Dependencies remain owned by [the web application](../../web/README.md#build-and-serving).
 
-[Camera projection](src/camera3d.ts) and [uniform packing](src/cameraUniform.ts)
-define one live camera. Resize changes its aspect through the live viewport;
-picking and drawing must use that same projection. Every camera a shader binds
-(the eye's, a shadow cascade's light, an impostor bake's view) is packed by that
-one writer. CPU matrices stay in the GPU's precision so a clicked shape agrees
-with its drawn location.
+[Camera projection](src/camera3d.ts) defines one live camera, and [the
+viewport](src/viewportCamera.ts) pins its aspect to the pixels it is drawn
+into, so a resize moves picking and drawing together. The matrices a frame
+draws with (the view, its camera uniform, the sun's cascades) are the
+presentation crate's, made from that camera and uploaded as they are; the
+page's own math gives the same bits, so a clicked shape agrees with its drawn
+location.
 
 [Camera control](src/cameraController.ts) describes view movement. [Clearance](src/cameraClearance.ts)
 uses caller-supplied authoritative geometry; model silhouettes and depth pixels

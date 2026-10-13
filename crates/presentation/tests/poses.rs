@@ -4,9 +4,11 @@
 //! records (written by its TypeScript before that was deleted); the tank's
 //! articulation at fixed inputs; and a body's joint worlds sampled from its
 //! clip table. Values agree to the fixture's rounding (1e-6).
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use presentation::effects::MuzzleSource;
+use presentation::fielded;
 use presentation::seed::side_key;
 use presentation::units::articulation::{articulate, rest_locals};
 use presentation::units::drawn::{ClipTables, DrawnModels};
@@ -15,7 +17,7 @@ use presentation::units::feed::ObservationFeed;
 use presentation::units::interpolate::TickInterpolator;
 use presentation::units::pose::{Articulation, PoseFrame};
 use presentation::units::skin::joint_worlds;
-use presentation::world::{Appearance, EffectsSection, UnitsSection, Vec3};
+use presentation::world::{Appearance, UnitsSection, Vec3};
 use serde_json::Value;
 use sim::publication::reader::Reader;
 
@@ -140,9 +142,14 @@ fn articulation_fields(a: &Articulation) -> [(&'static str, f64); 10] {
 fn the_browser_s_poses_of_the_fixture_capture() {
     let expected = read("poses/paris-corner-poses.json");
     let units: UnitsSection = serde_json::from_value(kicked_units()).unwrap();
-    let manifest = read("run/paris-corner/manifest.json");
-    let effects: EffectsSection = serde_json::from_value(manifest["effects"].clone()).unwrap();
     let capture = read(expected["capture"].as_str().unwrap());
+    // The battle's effects, resolved from the repository as native resolves them.
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workload = &capture["workload"];
+    let map = workload["map"].as_str().unwrap();
+    let kinds =
+        fielded::encounter_kinds(&root, map, workload["encounter"].as_str().unwrap()).unwrap();
+    let effects = fielded::fielded(&root, map, &kinds, None).unwrap().effects;
     let tick_hz = capture["tickHz"].as_f64().unwrap();
     let mut reader = Reader::new(capture["layout"].as_str().unwrap()).unwrap();
     let observations: Vec<_> = capture["samples"]

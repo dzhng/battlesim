@@ -16,14 +16,12 @@
 // that frame had no structures layer, overlay stage, registry or
 // timing.
 import { tgpu } from "typegpu";
-import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { BattleFrame, FrameView, SceneInstance, WorldLayers } from "../scene";
-import { Camera, typegpuCameraLayout } from "../world/camera";
+import { typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
-import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
-import type { ResolvedLight } from "../light/sceneLight";
+import type { LightPresentation, ResolvedLight } from "../light/sceneLight";
 import type { FogShaders } from "./fogVisibility";
 import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
@@ -39,8 +37,8 @@ import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
-import { createDetailView, detailKey, setDetailView } from "./detailView";
-import { FrameHeader } from "../records.gen";
+import { createDetailView, setDetailView } from "./detailView";
+import { Camera, CAMERA_WORDS, CameraAt, FrameHeader, VIEW_WORDS } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
 const EMPTY = new Float32Array(0);
@@ -95,6 +93,24 @@ const MASK_OF_VIEW: Partial<Record<FrameView, FogMaskViewKind>> = {
 /** The last static generation any frame took: each frame's is new. */
 let generations = 0;
 
+/** A graphics quality's cascades: its shadow map size and reach over the
+ *  authored light's. The battle frame draws them, and the presentation
+ *  fits them (`ScenePresentation.setShadow`). */
+export function cascadeLight(
+  light: LightPresentation,
+  quality?: BattleFrameOptions["quality"],
+): LightPresentation {
+  if (!quality) return light;
+  return {
+    ...light,
+    cascades: {
+      ...light.cascades,
+      map_size: quality.shadowMapSize,
+      max_far_m: quality.shadowReach,
+    },
+  };
+}
+
 /** Caller owns the device and canvas; the frame owns every allocation it makes. */
 export async function createBattleFrame(
   device: GPUDevice,
@@ -108,19 +124,10 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const quality = options.quality;
-    const effectiveLight = quality
-      ? {
-          ...options.light,
-          settings: {
-            ...options.light.settings,
-            cascades: {
-              ...options.light.settings.cascades,
-              map_size: quality.shadowMapSize,
-              max_far_m: quality.shadowReach,
-            },
-          },
-        }
-      : options.light;
+    const effectiveLight = {
+      ...options.light,
+      settings: cascadeLight(options.light.settings, quality),
+    };
     const environment = await createEnvironmentFrame(device, registry, effectiveLight);
     const models = await createModelLayer(root, registry, options.models);
     registry.adopt(() => models.dispose());
@@ -171,8 +178,16 @@ export async function createBattleFrame(
     function frameOf(): BattleFrame {
       let view: FrameView = "final";
       let frames = 0;
-      let clock = 0;
       let disposed = false;
+      /** The presentation frame's camera, as `setCamera` copied it: its
+       *  view, its uniform and the sun's cascades fitted to it. None before
+       *  the first. */
+      const viewRecord = new Float32Array(VIEW_WORDS);
+      const cameraRecord = new Float32Array(CAMERA_WORDS);
+      let sunShadow = new Float32Array(0);
+      let casters = new Float32Array(0);
+      let casterCount = 0;
+      let framed = false;
       let appearanceUpdates = Promise.resolve();
       /** The cast lights, as the last presentation frame chose them. */
       let lights = new Float32Array(0);
@@ -195,29 +210,26 @@ export async function createBattleFrame(
         get staticGeneration() {
           return staticGeneration;
         },
-        render(output: GPUTextureView, viewport: ViewportCamera) {
-          if (disposed) return;
-          const width = size(viewport.width);
-          const height = size(viewport.height);
+        render(output: GPUTextureView) {
+          if (disposed || !framed) return;
+          const width = cameraRecord[CameraAt.width];
+          const height = cameraRecord[CameraAt.height];
           const t = targets.current;
           if (!t || t.width !== width || t.height !== height) {
             void rebuild(width, height);
             return;
           }
-          const camera3d = liveCamera(viewport);
-          const state = frameCamera({ camera3d, width, height, time: clock }, width, height);
-          camera.write(state.bytes.buffer);
-          const detail = setDetailView(detailView, camera3d, height);
+          camera.write(cameraRecord.buffer);
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
-          world.prepare(camera3d, state.view, state.viewProj, state.rays, width, height);
-          models.prepare(detail, detailKey(camera3d, height));
+          world.prepare(cameraRecord, viewRecord, sunShadow, casters, casterCount);
+          models.prepare(setDetailView(detailView, viewRecord), viewRecord.join());
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           let raw = root.unwrap(encoder);
           timer?.begin(raw);
           world.encodeShadows(encoder);
           world.encodeDepth(encoder, raw, t, cameraGroup);
-          world.encodeFog(raw, t.fog, state.bytes, width, height);
+          world.encodeFog(raw, t.fog, cameraRecord, width, height);
           ({ encoder, raw } = world.encode(encoder, raw, t, cameraGroup));
           const classes = view === "ground-classes";
           if (!classes) effects.encode(raw, t, t.effectGroup);
@@ -264,8 +276,17 @@ export async function createBattleFrame(
         setGround(next) {
           return !disposed && world.setGround(next);
         },
-        setClock(seconds) {
-          clock = seconds;
+        setCamera(frame) {
+          if (disposed) return;
+          // Copied: the views last only until the next call into the module.
+          viewRecord.set(frame.view.f32);
+          cameraRecord.set(frame.camera.f32);
+          if (frame.sun_shadow.count) {
+            sunShadow = Float32Array.from(frame.sun_shadow.f32);
+            casters = Float32Array.from(frame.casters.f32);
+            casterCount = frame.casters.count;
+          }
+          framed = true;
         },
         setOverlay(next) {
           if (!disposed) {
@@ -392,7 +413,7 @@ export async function createBattleFrame(
               compare: battleWorldDepth("read-write").depthCompare!,
             },
             view,
-            clock,
+            clock: cameraRecord[CameraAt.time],
             gpu: timer?.stats() ?? null,
             memory: registry.stats(),
             shadow: passes.shadow,

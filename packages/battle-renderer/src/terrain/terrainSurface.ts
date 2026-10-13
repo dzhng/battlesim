@@ -41,6 +41,7 @@ export type PresentedGround = Pick<
   | "grass_kinds"
   | "grass_params"
   | "grass_window"
+  | "grass_frame_params"
   | "grass_props"
   | "retune_grass"
 > &

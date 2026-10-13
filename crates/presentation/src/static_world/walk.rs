@@ -12,9 +12,10 @@
 //! - **Fallen.** A building the side knows destroyed leaves both and draws its
 //!   template's rows for that state, chunked by where it stands, at the tier
 //!   its chunk takes.
-use crate::static_world::batches::{List, Population, CAST_PASS, VIEW_PASS};
-use crate::static_world::buildings::{BuildingModule, Buildings, TIERS};
-use crate::view::{building_tier, View};
+use crate::records::{CAST_PASS, FOG_FACES, VIEW_PASS};
+use crate::static_world::batches::{List, Population};
+use crate::static_world::buildings::{BuildingModule, Buildings};
+use crate::view::{building_tier, caster_tier, View, TIERS};
 use std::collections::{BTreeMap, HashMap};
 
 const COARSEST: usize = TIERS - 1;
@@ -236,7 +237,7 @@ impl BuildingWalk {
             }
             used += rows.len();
             for r in &rows {
-                draw(&mut lists, &mut counts, r, t, Some((t + 1).min(COARSEST)));
+                draw(&mut lists, &mut counts, r, t, Some(caster_tier(t)));
             }
             kept.insert((c, t), rows);
         }
@@ -325,10 +326,13 @@ impl Population for BuildingPopulation {
         let lists = &self.walk.lists;
         for (pass, lists) in [(VIEW_PASS, &lists.view), (CAST_PASS, &lists.cast)] {
             for (key, list) in lists.iter().enumerate() {
+                let tier = (key % TIERS) as u32;
                 visit(List {
                     row: self.rows[key / TIERS],
-                    tier: (key % TIERS) as u32,
+                    tier,
                     pass,
+                    caster: List::own_caster(pass, tier),
+                    fog: FOG_FACES,
                     records: list,
                     print: self.changes,
                 });

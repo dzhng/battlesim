@@ -130,8 +130,8 @@ fn slerp(a: Quat, b: Quat, w: f64) -> Quat {
     let (ka, kb) = if cosine > 0.9995 {
         (1.0 - w, w)
     } else {
-        let theta = (1.0 - cosine * cosine).max(0.0).sqrt().atan2(cosine);
-        (((1.0 - w) * theta).sin(), (w * theta).sin())
+        let theta = libm::atan2((1.0 - cosine * cosine).max(0.0).sqrt(), cosine);
+        (libm::sin((1.0 - w) * theta), libm::sin(w * theta))
     };
     let q = [0, 1, 2, 3].map(|i| a[i] * ka + b[i] * kb);
     let length = q.iter().map(|v| v * v).sum::<f64>().sqrt();
@@ -211,6 +211,24 @@ pub fn joint_worlds(
     }
 }
 
+/// A body's joint worlds as it is drawn, into `out`: `clip` at `phase`,
+/// faded over by `blend`, then kicked by `kick`. Its palette, its muzzle's
+/// flash and the probe all pose a body this one way.
+#[allow(clippy::too_many_arguments)]
+pub fn drawn_worlds(
+    joints: &[Node],
+    clips: &BTreeMap<String, Clip>,
+    table: &[f32],
+    clip: &str,
+    phase: f64,
+    blend: Option<&ClipBlend>,
+    kick: Kick,
+    out: &mut Vec<Mat4>,
+) {
+    joint_worlds(joints, clips, table, clip, phase, blend, out);
+    kick_worlds(joints, kick, out);
+}
+
 /// The joint a shot's kick turns a soldier's upper body about (his waist),
 /// carrying everything it holds up: head, arms and weapon. A body without
 /// it is never kicked.
@@ -228,7 +246,7 @@ pub fn kick_worlds(joints: &[Node], kick: Kick, worlds: &mut [Mat4]) {
     };
     let (ox, oz) = (worlds[joint][12], worlds[joint][14]);
     // About +Y by −pitch, about the joint, then back.
-    let (s, c) = kick.pitch.sin_cos();
+    let (s, c) = libm::sincos(kick.pitch);
     #[rustfmt::skip]
     let turn = [
         c, 0.0, s, 0.0,

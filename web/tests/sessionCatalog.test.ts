@@ -108,7 +108,7 @@ test("a game page's catalog load leaves out the art only test units wear, and co
   expect(new Set(requests).size).toBe(requests.length);
 });
 
-test("a battle appearance load can be limited to its fielded unit kinds", async () => {
+test("a battle appearance load keeps the full unit art resident for later purchases", async () => {
   const sources = testSources();
   const result = await bakeCatalog(testCatalog(), async (path) => sources[path], {
     authority: AUTHORITY,
@@ -121,20 +121,21 @@ test("a battle appearance load can be limited to its fielded unit kinds", async 
   const units = AUTHORITY.units;
   const installed = await new AppearanceLibrary(memoryFetch(files, "/assets/")).load(
     "/assets/",
-    units.appearancesFor(["tank"]),
+    units.appearances,
   );
   expect(installed.appearances.has("tank")).toBe(true);
   expect(installed.appearances.has("tank_wreck")).toBe(true);
-  expect(installed.appearances.has("truck")).toBe(false);
-  expect(installed.appearances.has("rifleman")).toBe(false);
+  expect(installed.appearances.has("truck")).toBe(true);
+  expect(installed.appearances.has("rifleman")).toBe(true);
   expect(installed.appearances.has("crate")).toBe(true);
-  // A later spawn widens the same generation without refetching its first unit.
+  // A later spawn finds its art in the same generation, with no mid-battle
+  // generation install for the cursor preview to wait on.
   const library = new AppearanceLibrary(memoryFetch(files, "/assets/"));
-  const first = await library.load("/assets/", units.appearancesFor(["tank"]));
+  const first = await library.load("/assets/", units.appearances);
   const widened = await library.withUnits(units.appearancesFor(["tank", "supply"]));
   expect(widened.appearances.has("tank")).toBe(true);
   expect(widened.appearances.has("truck")).toBe(true);
-  expect(widened.generation).toBeGreaterThan(first.generation);
+  expect(widened).toBe(first);
 });
 
 test("a lab page after a game page adds its test units' art, fetching nothing twice", async () => {

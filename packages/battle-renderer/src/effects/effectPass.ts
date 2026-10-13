@@ -34,10 +34,9 @@
 // (the feed decides what is published there, not the fog).
 //
 // Raw WebGPU; the camera is the frame's one uniform (`world/camera.ts`).
-import { EFFECT_WORDS as EFFECT_FLOATS } from "../records.gen";
+import { Camera, EFFECT_WORDS as EFFECT_FLOATS } from "../records.gen";
 import { CAST_FALLOFF, CastLights } from "../light/castLights";
 import { tgpu } from "typegpu";
-import { Camera } from "../world/camera";
 import { Environment } from "../world/environment";
 import { cubeUvWGSL } from "../shaders/pmrem";
 import { FLIPBOOK_SIZE, FLIPBOOKS } from "./flipbooks";

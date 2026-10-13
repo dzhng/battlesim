@@ -206,7 +206,9 @@ test("a preparation worker becomes the battle authority and replays its commands
                 if (host.querySelector('input[type="file"]'))
                   throw new Error("pending replay looked absent");
                 await shot("prepared-pending");
-                const pulse = host.querySelector(".loading-stages li")!.getAnimations()[0];
+                const pulse = host
+                  .querySelector('.loading-stages li[data-state="active"] .loading-stage-bar')!
+                  .getAnimations()[0];
                 pulse.pause();
                 pulse.currentTime = 0;
                 await shot("prepared-pulse-high");

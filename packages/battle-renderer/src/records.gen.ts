@@ -3,6 +3,15 @@
 import { d } from "typegpu";
 
 export const NONE = 0xffffffff;
+/** What a batch draws for (`Batch.pass`). */
+export const VIEW_PASS = 0;
+export const CAST_PASS = 1;
+export const GHOST_PASS = 2;
+/** How fog of war takes a batch (`Batch.fog`). */
+export const FOG_UNITS = 0;
+export const FOG_FACES = 1;
+export const FOG_GROUND = 2;
+export const FOG_PAINTED_FACES = 3;
 /** The widest fog rim or soft edge a style may ask for, device pixels (`fog.rs`). */
 export const FOG_EDGE_REACH_PX = 8;
 /** Fog's foliage depth steps, the `wholes` texture's row and a structure box's words (`fog/sight.rs`). */
@@ -50,8 +59,16 @@ export const FrameHeader = {
   emitters: 16,
   /**  (u32 × 2) */
   counts: 18,
+  /** The frame's view: one `View`. (u32 × 2) */
+  view: 20,
+  /** The camera every world shader binds: one `Camera`. (u32 × 2) */
+  camera: 22,
+  /** The sun's cascades as every shadow receiver binds them: one `SunShadow`, or none before the presentation has a light. (u32 × 2) */
+  sun_shadow: 24,
+  /** Each fitted cascade's caster `Camera`. (u32 × 2) */
+  casters: 26,
 } as const;
-export const FRAME_HEADER_WORDS = 20;
+export const FRAME_HEADER_WORDS = 28;
 
 /** Where the world's sets lie (pointer, count), as `FrameHeader`. */
 export const WorldHeader = {
@@ -91,18 +108,22 @@ export const Batch = {
   appearance: 1,
   /** Detail tier, 0 finest; 4 is the impostor card. (u32) */
   tier: 2,
-  /** 0 drawn in view; 1 cast into the sun's cascades; 2 a translucent ghost (no shadow, no depth write). (u32) */
+  /** `VIEW_PASS`, `CAST_PASS` or `GHOST_PASS`. (u32) */
   pass: 3,
-  /** Casters: bit n set if it reaches cascade n. (u32) */
-  cascades: 4,
+  /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a static world's view batch, which casts by its own caster batch). (u32) */
+  caster: 4,
+  /** How fog of war takes it (`FOG_UNITS` and the rest). (u32) */
+  fog: 5,
   /** Changes when the contents change. (u32) */
-  version: 5,
+  version: 6,
   /** First `Instance`, or `NONE` when unchanged since `version`. (u32) */
-  first: 6,
+  first: 7,
   /**  (u32) */
-  count: 7,
+  count: 8,
+  /**  (u32 × 3) */
+  pad: 9,
 } as const;
-export const BATCH_WORDS = 8;
+export const BATCH_WORDS = 12;
 
 /** One drawn model. Palette indices and the card layer are integral floats. */
 export const Instance = d.unstruct({
@@ -118,14 +139,22 @@ export const Instance = d.unstruct({
 export const INSTANCE_WORDS = 16;
 
 /** One joint's or node's motion, bind to model space: a 3×4 row-major affine (rows of basis x, basis y, basis z and origin). */
-export const Joint = d.struct({
-  /**  */
-  x: d.vec4f,
-  /**  */
-  y: d.vec4f,
-  /**  */
-  z: d.vec4f,
-});
+export const Joint = d
+  .struct({
+    /**  */
+    x: d.vec4f,
+    /**  */
+    y: d.vec4f,
+    /**  */
+    z: d.vec4f,
+  })
+  .$name("Joint");
+/** Where `Joint`'s fields lie, in words. */
+export const JointAt = {
+  x: 0,
+  y: 4,
+  z: 8,
+} as const;
 export const JOINT_WORDS = 12;
 
 /** One effect instance: four vec4 whose meaning depends on `misc.x` (0 streak, 1 glow, 2 flipbook, 3 rotor), in draw order. */
@@ -142,12 +171,19 @@ export const Effect = d.unstruct({
 export const EFFECT_WORDS = 16;
 
 /** One chosen cast light (at most 24 a frame). */
-export const CastLight = d.struct({
-  /** xyz (m, sim), and 1/radius² (m⁻²). */
-  position: d.vec4f,
-  /** rgb irradiance at its centre; w unused. */
-  color: d.vec4f,
-});
+export const CastLight = d
+  .struct({
+    /** xyz (m, sim), and 1/radius² (m⁻²). */
+    position: d.vec4f,
+    /** rgb irradiance at its centre; w unused. */
+    color: d.vec4f,
+  })
+  .$name("CastLight");
+/** Where `CastLight`'s fields lie, in words. */
+export const CastLightAt = {
+  position: 0,
+  color: 4,
+} as const;
 export const CAST_LIGHT_WORDS = 8;
 
 /** A box of what this frame draws, for the UI's hit tests. */
@@ -192,105 +228,150 @@ export const View = {
   projection: 16,
   /** The eye (m); w unused. (f32 × 4) */
   eye: 32,
+  /** What it looks at (m), where the haze is measured from; w unused. (f32 × 4) */
+  target: 36,
   /** Width and height (px), 1/height, pixels per metre at 1 m. (f32 × 4) */
-  size: 36,
-  /** The unnormalised ray through the top-left corner, and its change across the width and down the height (the sky's `Rays`: w unused). (f32 × 4) */
-  sky_origin: 40,
+  size: 40,
+  /** The unit ray through the top-left corner, and its change across the width and down the height (the sky's `Rays`: w unused). (f32 × 4) */
+  sky_origin: 44,
   /**  (f32 × 4) */
-  sky_dx: 44,
+  sky_dx: 48,
   /**  (f32 × 4) */
-  sky_dy: 48,
+  sky_dy: 52,
 } as const;
-export const VIEW_WORDS = 52;
+export const VIEW_WORDS = 56;
 
-/** The sky's light for the battle (`SkyLight` in the sky's shaders): what the sky lookup bakes and the shown sky and its clouds read. */
-export const SkyLight = {
-  /** Unit vector toward the sun. (f32 × 3) */
+/** The sky's light for the battle: what the sky lookup bakes and the shown sky and its clouds read. */
+export const SkyLight = d
+  .struct({
+    /** Unit vector toward the sun. */
+    sunDirection: d.vec3f,
+    /** 0 clear to 1 overcast, from turbidity. */
+    overcast: d.f32,
+    /** Max-channel-normalised transmittance toward the sun. */
+    sunTransmittance: d.vec3f,
+    /** `sky.radiance`. */
+    radiance: d.f32,
+    /** The lower hemisphere's ground bounce, greyed by overcast. */
+    groundTint: d.vec3f,
+    /**  */
+    mieScatter: d.f32,
+    /**  */
+    mieExtinction: d.f32,
+    /** The multiple-scattering floor's share for this sun. */
+    multipleScatter: d.f32,
+    /** The low sun's aureole strength. */
+    aureole: d.f32,
+    /** The overcast dome's brightness for this sun. */
+    overcastScale: d.f32,
+    /** The sun disc's radiance through the overcast. */
+    discRadiance: d.f32,
+    /** The cloud layer's height over its mass size. */
+    cloudReach: d.f32,
+    /** Cloud density's smoothstep edges about the coverage threshold. */
+    cloudEdge: d.vec2f,
+    /** A step across the layer toward the sun. */
+    cloudToSun: d.vec2f,
+    /** The coverage threshold, and where the sunward shadow and the thick core saturate. */
+    cloudLow: d.f32,
+    /**  */
+    cloudShadowTop: d.f32,
+    /**  */
+    cloudCoreTop: d.f32,
+    /**  */
+    cloudOpacity: d.f32,
+    /** A sunlit top's radiance. */
+    cloudLit: d.vec3f,
+    /** The silver lining's radiance. */
+    cloudSilver: d.f32,
+    /** A shaded base's radiance, before the sky shows through it. */
+    cloudBase: d.vec3f,
+  })
+  .$name("SkyLight");
+/** Where `SkyLight`'s fields lie, in words. */
+export const SkyLightAt = {
   sun_direction: 0,
-  /** 0 clear to 1 overcast, from turbidity. (f32) */
   overcast: 3,
-  /** Max-channel-normalised transmittance toward the sun. (f32 × 3) */
   sun_transmittance: 4,
-  /** `sky.radiance`. (f32) */
   radiance: 7,
-  /** The lower hemisphere's ground bounce, greyed by overcast. (f32 × 3) */
   ground_tint: 8,
-  /**  (f32) */
   mie_scatter: 11,
-  /**  (f32) */
   mie_extinction: 12,
-  /** The multiple-scattering floor's share for this sun. (f32) */
   multiple_scatter: 13,
-  /** The low sun's aureole strength. (f32) */
   aureole: 14,
-  /** The overcast dome's brightness for this sun. (f32) */
   overcast_scale: 15,
-  /** The sun disc's radiance through the overcast. (f32) */
   disc_radiance: 16,
-  /** The cloud layer's height over its mass size. (f32) */
   cloud_reach: 17,
-  /** Cloud density's smoothstep edges about the coverage threshold. (f32 × 2) */
   cloud_edge: 18,
-  /** A step across the layer toward the sun. (f32 × 2) */
   cloud_to_sun: 20,
-  /** The coverage threshold, and where the sunward shadow and the thick core saturate. (f32) */
   cloud_low: 22,
-  /**  (f32) */
   cloud_shadow_top: 23,
-  /**  (f32) */
   cloud_core_top: 24,
-  /**  (f32) */
   cloud_opacity: 25,
-  /**  (f32 × 2) */
   pad0: 26,
-  /** A sunlit top's radiance. (f32 × 3) */
   cloud_lit: 28,
-  /** The silver lining's radiance. (f32) */
   cloud_silver: 31,
-  /** A shaded base's radiance, before the sky shows through it. (f32 × 3) */
   cloud_base: 32,
-  /**  (f32) */
   pad1: 35,
 } as const;
 export const SKY_LIGHT_WORDS = 36;
 
-/** The haze (`Aerial` in every lit shader's environment uniform): extinction over distance from the camera's ground focus, a range term, a sunward Mie tint and a low valley mist. */
-export const Aerial = {
-  /** Per-channel extinction σ (km⁻¹). (f32 × 3) */
+/** The haze, in every lit shader's environment uniform: extinction over distance from the camera's ground focus, a range term, a sunward Mie tint and a low valley mist. */
+export const Aerial = d
+  .struct({
+    /** Per-channel extinction σ (km⁻¹). */
+    extinction: d.vec3f,
+    /** No haze within this distance of the focus (km). */
+    clearRadiusKm: d.f32,
+    /** The sunward Mie tint (linear rgb) and its strength. */
+    sunTint: d.vec3f,
+    /**  */
+    sunStrength: d.f32,
+    /** The valley mist's colour (linear rgb) and how much of it the far air takes. */
+    mistColor: d.vec3f,
+    /**  */
+    mistColorStrength: d.f32,
+    /**  */
+    overviewFromM: d.f32,
+    /**  */
+    rangeNearM: d.f32,
+    /**  */
+    rangeFarM: d.f32,
+    /**  */
+    rangePower: d.f32,
+    /**  */
+    rangeStrength: d.f32,
+    /**  */
+    mistOpacity: d.f32,
+    /**  */
+    sunPower: d.f32,
+    /** The mist's height band and distance ramp (m). */
+    mistHeightM: d.vec2f,
+    /**  */
+    mistDistanceM: d.vec2f,
+    /** Where the horizon's sky takes over from the view's, below and above it. */
+    horizonFade: d.vec2f,
+  })
+  .$name("Aerial");
+/** Where `Aerial`'s fields lie, in words. */
+export const AerialAt = {
   extinction: 0,
-  /** No haze within this distance of the focus (km). (f32) */
   clear_radius_km: 3,
-  /** The sunward Mie tint (linear rgb) and its strength. (f32 × 3) */
   sun_tint: 4,
-  /**  (f32) */
   sun_strength: 7,
-  /** The valley mist's colour (linear rgb) and how much of it the far air takes. (f32 × 3) */
   mist_color: 8,
-  /**  (f32) */
   mist_color_strength: 11,
-  /**  (f32) */
   overview_from_m: 12,
-  /**  (f32) */
   range_near_m: 13,
-  /**  (f32) */
   range_far_m: 14,
-  /**  (f32) */
   range_power: 15,
-  /**  (f32) */
   range_strength: 16,
-  /**  (f32) */
   mist_opacity: 17,
-  /**  (f32) */
   sun_power: 18,
-  /**  (f32) */
   pad0: 19,
-  /** The mist's height band and distance ramp (m). (f32 × 2) */
   mist_height_m: 20,
-  /**  (f32 × 2) */
   mist_distance_m: 22,
-  /** Where the horizon's sky takes over from the view's, below and above it. (f32 × 2) */
   horizon_fade: 24,
-  /**  (f32 × 2) */
   pad1: 26,
 } as const;
 export const AERIAL_WORDS = 28;
@@ -308,238 +389,377 @@ export const Sun = {
 } as const;
 export const SUN_WORDS = 16;
 
-/** The bloom (`Bloom` in post's highpass and composite). */
-export const Bloom = {
-  /** The first four blurred levels' shares of the composite. (f32 × 4) */
+/** The bloom, as post's highpass and composite read it. */
+export const Bloom = d
+  .struct({
+    /** The first four blurred levels' shares of the composite. */
+    weights: d.vec4f,
+    /** The fifth level's share. */
+    weight4: d.f32,
+    /**  */
+    strength: d.f32,
+    /** Where the highpass starts and where it is full (linear HDR luminance). */
+    threshold: d.f32,
+    /**  */
+    knee: d.f32,
+  })
+  .$name("Bloom");
+/** Where `Bloom`'s fields lie, in words. */
+export const BloomAt = {
   weights: 0,
-  /** The fifth level's share. (f32) */
   weight4: 4,
-  /**  (f32) */
   strength: 5,
-  /** Where the highpass starts and where it is full (linear HDR luminance). (f32) */
   threshold: 6,
-  /**  (f32) */
   knee: 7,
 } as const;
 export const BLOOM_WORDS = 8;
 
-/** The grade and exposure (`Grade` in post's final pass). */
-export const Grade = {
-  /**  (f32) */
+/** The grade and exposure, as post's final pass reads it. */
+export const Grade = d
+  .struct({
+    /**  */
+    saturation: d.f32,
+    /**  */
+    contrast: d.f32,
+    /**  */
+    splitTone: d.f32,
+    /**  */
+    shadowLift: d.f32,
+    /**  */
+    exposure: d.f32,
+    /** rgb; w 1. */
+    shadowTint: d.vec4f,
+    /** rgb; w 1. */
+    highlightTint: d.vec4f,
+    /** rgb; w 0. */
+    lift: d.vec4f,
+  })
+  .$name("Grade");
+/** Where `Grade`'s fields lie, in words. */
+export const GradeAt = {
   saturation: 0,
-  /**  (f32) */
   contrast: 1,
-  /**  (f32) */
   split_tone: 2,
-  /**  (f32) */
   shadow_lift: 3,
-  /**  (f32) */
   exposure: 4,
-  /**  (f32 × 3) */
   pad: 5,
-  /** rgb; w 1. (f32 × 4) */
   shadow_tint: 8,
-  /** rgb; w 1. (f32 × 4) */
   highlight_tint: 12,
-  /** rgb; w 0. (f32 × 4) */
   lift: 16,
 } as const;
 export const GRADE_WORDS = 20;
 
-/** What unseen looks like (`FogStyleUniform` in the fog mask passes): a `presentation.fog` style resolved (`fog::FogStyle::look`). */
-export const FogLook = {
-  /** The night tint at unit luminance. (f32 × 3) */
+/** What unseen looks like to the fog mask passes: a `presentation.fog` style resolved (`fog::FogStyle::look`). */
+export const FogLook = d
+  .struct({
+    /** The night tint at unit luminance. */
+    tint: d.vec3f,
+    /**  */
+    dim: d.f32,
+    /**  */
+    cool: d.f32,
+    /**  */
+    saturation: d.f32,
+    /**  */
+    veil: d.f32,
+    /**  */
+    lineStrength: d.f32,
+    /**  */
+    lineSpacingPx: d.f32,
+    /**  */
+    lineWidthPx: d.f32,
+    /** Radians. */
+    lineAngle: d.f32,
+    /**  */
+    lineFloor: d.f32,
+    /**  */
+    edgeSoftnessPx: d.f32,
+    /** Display sRGB. */
+    rimColor: d.vec3f,
+    /**  */
+    rimAlpha: d.f32,
+    /**  */
+    rimWidthPx: d.f32,
+    /** How far the distance passes search for the other side, pixels. */
+    reachPx: d.f32,
+  })
+  .$name("FogLook");
+/** Where `FogLook`'s fields lie, in words. */
+export const FogLookAt = {
   tint: 0,
-  /**  (f32) */
   dim: 3,
-  /**  (f32) */
   cool: 4,
-  /**  (f32) */
   saturation: 5,
-  /**  (f32) */
   veil: 6,
-  /**  (f32) */
   line_strength: 7,
-  /**  (f32) */
   line_spacing_px: 8,
-  /**  (f32) */
   line_width_px: 9,
-  /** Radians. (f32) */
   line_angle: 10,
-  /**  (f32) */
   line_floor: 11,
-  /**  (f32) */
   edge_softness_px: 12,
-  /**  (f32 × 3) */
   pad0: 13,
-  /** Display sRGB. (f32 × 3) */
   rim_color: 16,
-  /**  (f32) */
   rim_alpha: 19,
-  /**  (f32) */
   rim_width_px: 20,
-  /** How far the distance passes search for the other side, pixels. (f32) */
   reach_px: 21,
-  /**  (f32 × 2) */
   pad1: 22,
 } as const;
 export const FOG_LOOK_WORDS = 24;
 
-/** A camera as every world, shadow and overlay shader binds it (`Camera`): the frame's eye, or a sun cascade posed as its light. */
-export const Camera = {
-  /**  (f32 × 16) */
+/** A camera as every world, shadow and overlay shader binds it: the frame's eye, or a sun cascade posed as its light. */
+export const Camera = d
+  .struct({
+    /**  */
+    viewProj: d.mat4x4f,
+    /**  */
+    invViewProj: d.mat4x4f,
+    /**  */
+    eye: d.vec3f,
+    /**  */
+    znear: d.f32,
+    /** The viewport (px). */
+    width: d.f32,
+    /**  */
+    height: d.f32,
+    /** The animation clock (s). */
+    time: d.f32,
+  })
+  .$name("Camera");
+/** Where `Camera`'s fields lie, in words. */
+export const CameraAt = {
   view_proj: 0,
-  /**  (f32 × 16) */
   inv_view_proj: 16,
-  /**  (f32 × 3) */
   eye: 32,
-  /**  (f32) */
   znear: 35,
-  /** The viewport (px). (f32) */
   width: 36,
-  /**  (f32) */
   height: 37,
-  /** The animation clock (s). (f32) */
   time: 38,
-  /**  (f32) */
   pad: 39,
 } as const;
 export const CAMERA_WORDS = 40;
 
-/** Every shadow receiver's sun cascades (`SunShadow`), from the frame's fit (`shadow::sun_shadow`). */
-export const SunShadow = {
-  /** Per cascade (`shadow::CASCADES`), 24 floats: its light's view-projection (16); depth bias, normal bias (m), PCF radius (texels), 0; the receiver-depth interval it shades, 0, 0. An unfitted cascade is the identity over [1, 1]. (f32 × 96) */
+/** One sun cascade as a shadow receiver reads it. An unfitted cascade is the identity over [1, 1]. */
+export const SunCascade = d
+  .struct({
+    /** Its light's view-projection, column-major. */
+    matrix: d.mat4x4f,
+    /** Depth bias, normal bias (m), PCF radius (texels), 0. */
+    bias: d.vec4f,
+    /** The receiver-depth interval it shades, 0, 0. */
+    interval: d.vec4f,
+  })
+  .$name("SunCascade");
+/** Where `SunCascade`'s fields lie, in words. */
+export const SunCascadeAt = {
+  matrix: 0,
+  bias: 16,
+  interval: 20,
+} as const;
+export const SUN_CASCADE_WORDS = 24;
+
+/** Every shadow receiver's sun cascades, from the frame's fit (`shadow::sun_shadow`). */
+export const SunShadow = d
+  .struct({
+    /** Per cascade slot (`shadow::CASCADES`). */
+    cascades: d.arrayOf(SunCascade, 4),
+    /** The receiver range's capped far, 0, its near, 0. */
+    control: d.vec4f,
+  })
+  .$name("SunShadow");
+/** Where `SunShadow`'s fields lie, in words. */
+export const SunShadowAt = {
   cascades: 0,
-  /** The receiver range's capped far, 0, its near, 0. (f32 × 4) */
   control: 96,
 } as const;
 export const SUN_SHADOW_WORDS = 100;
 
-/** Fog of war's sight for one frame (`FogParams`, bound by the fog compute and every fogged material): the frame's camera and size, the sight lights' geometry, the static world sight is cut by, and the structures that take fog whole (`fog::sight`). */
-export const FogParams = {
-  /**  (f32 × 16) */
+/** Fog of war's sight for one frame (bound by the fog compute and every fogged material): the frame's camera and size, the sight lights' geometry, the static world sight is cut by, and the structures that take fog whole (`fog::sight`). */
+export const FogParams = d
+  .struct({
+    /**  */
+    invViewProj: d.mat4x4f,
+    /**  */
+    cameraEye: d.vec3f,
+    /** The tallest canopy over the ground (m). */
+    translucentLiftM: d.f32,
+    /**  */
+    azimuthBins: d.u32,
+    /**  */
+    terrainAzimuthBins: d.u32,
+    /**  */
+    radialBins: d.u32,
+    /**  */
+    tilePx: d.u32,
+    /**  */
+    tilesX: d.u32,
+    /**  */
+    tileEyesMax: d.u32,
+    /**  */
+    eyeCount: d.u32,
+    /** The foliage grid's cells across and down (0: no foliage). */
+    foliageNx: d.u32,
+    /**  */
+    foliageNy: d.u32,
+    /**  */
+    heightNx: d.u32,
+    /**  */
+    heightNy: d.u32,
+    /** Eyes whose maps this frame rebuilds. */
+    rebuildCount: d.u32,
+    /** 0: no fog, everything seen. */
+    enabled: d.u32,
+    /**  */
+    probeCount: d.u32,
+    /**  */
+    firstBinM: d.f32,
+    /**  */
+    targetHeightM: d.f32,
+    /**  */
+    foliageCellM: d.f32,
+    /**  */
+    foliageFullBlock: d.f32,
+    /**  */
+    minSightGapM: d.f32,
+    /** The playable rectangle as the map's extents give it; outside it is fogged. */
+    playable: d.vec4f,
+    /**  */
+    heightSpacing: d.f32,
+    /**  */
+    faceProbeM: d.f32,
+    /**  */
+    width: d.f32,
+    /**  */
+    height: d.f32,
+    /**  */
+    stepMinM: d.f32,
+    /**  */
+    stepMaxM: d.f32,
+    /**  */
+    stepFraction: d.f32,
+    /**  */
+    roofReachM: d.f32,
+    /** The structures that take fog whole: how many, their lookup grid in the `wholes` texture (cells across and down, cell size, origin) and where its item lists, boxes and seen flags start. */
+    wholeCount: d.u32,
+    /**  */
+    wholeNx: d.u32,
+    /**  */
+    wholeNy: d.u32,
+    /**  */
+    wholeCellM: d.f32,
+    /**  */
+    wholeOrigin: d.vec2f,
+    /**  */
+    wholeItemsBase: d.u32,
+    /**  */
+    wholeBoxesBase: d.u32,
+    /**  */
+    wholeFlagsBase: d.u32,
+  })
+  .$name("FogParams");
+/** Where `FogParams`'s fields lie, in words. */
+export const FogParamsAt = {
   inv_view_proj: 0,
-  /**  (f32 × 3) */
   camera_eye: 16,
-  /** The tallest canopy over the ground (m). (f32) */
   translucent_lift_m: 19,
-  /**  (u32) */
   azimuth_bins: 20,
-  /**  (u32) */
   terrain_azimuth_bins: 21,
-  /**  (u32) */
   radial_bins: 22,
-  /**  (u32) */
   tile_px: 23,
-  /**  (u32) */
   tiles_x: 24,
-  /**  (u32) */
   tile_eyes_max: 25,
-  /**  (u32) */
   eye_count: 26,
-  /** The foliage grid's cells across and down (0: no foliage). (u32) */
   foliage_nx: 27,
-  /**  (u32) */
   foliage_ny: 28,
-  /**  (u32) */
   height_nx: 29,
-  /**  (u32) */
   height_ny: 30,
-  /** Eyes whose maps this frame rebuilds. (u32) */
   rebuild_count: 31,
-  /** 0: no fog, everything seen. (u32) */
   enabled: 32,
-  /**  (u32) */
   probe_count: 33,
-  /**  (f32) */
   first_bin_m: 34,
-  /**  (f32) */
   target_height_m: 35,
-  /**  (f32) */
   foliage_cell_m: 36,
-  /**  (f32) */
   foliage_full_block: 37,
-  /**  (f32) */
   min_sight_gap_m: 38,
-  /**  (f32) */
   pad0: 39,
-  /** The playable rectangle as the map's extents give it; outside it is fogged. (f32 × 4) */
   playable: 40,
-  /**  (f32) */
   height_spacing: 44,
-  /**  (f32) */
   face_probe_m: 45,
-  /**  (f32) */
   width: 46,
-  /**  (f32) */
   height: 47,
-  /**  (f32) */
   step_min_m: 48,
-  /**  (f32) */
   step_max_m: 49,
-  /**  (f32) */
   step_fraction: 50,
-  /**  (f32) */
   roof_reach_m: 51,
-  /** The structures that take fog whole: how many, their lookup grid in the `wholes` texture (cells across and down, cell size, origin) and where its item lists, boxes and seen flags start. (u32) */
   whole_count: 52,
-  /**  (u32) */
   whole_nx: 53,
-  /**  (u32) */
   whole_ny: 54,
-  /**  (f32) */
   whole_cell_m: 55,
-  /**  (f32 × 2) */
   whole_origin: 56,
-  /**  (u32) */
   whole_items_base: 58,
-  /**  (u32) */
   whole_boxes_base: 59,
-  /**  (u32) */
   whole_flags_base: 60,
-  /**  (f32 × 3) */
   pad1: 61,
 } as const;
 export const FOG_PARAMS_WORDS = 64;
 
-/** One eye as its map was built (`FogEyeRecord`): `position` the map's origin and `reach` its radius; forward, shape and range the latest publication's. */
-export const FogEye = {
-  /**  (f32 × 3) */
+/** One eye as its map was built: `position` the map's origin and `reach` its radius; forward, shape and range the latest publication's. */
+export const FogEye = d
+  .struct({
+    /**  */
+    position: d.vec3f,
+    /**  */
+    reach: d.f32,
+    /**  */
+    forward: d.f32,
+    /**  */
+    front: d.f32,
+    /**  */
+    side: d.f32,
+    /**  */
+    rear: d.f32,
+    /**  */
+    range: d.f32,
+    /** The map slot holding this eye's maps. */
+    slot: d.u32,
+  })
+  .$name("FogEye");
+/** Where `FogEye`'s fields lie, in words. */
+export const FogEyeAt = {
   position: 0,
-  /**  (f32) */
   reach: 3,
-  /**  (f32) */
   forward: 4,
-  /**  (f32) */
   front: 5,
-  /**  (f32) */
   side: 6,
-  /**  (f32) */
   rear: 7,
-  /**  (f32) */
   range: 8,
-  /** The map slot holding this eye's maps. (u32) */
   slot: 9,
-  /**  (u32) */
   pad0: 10,
-  /**  (u32) */
   pad1: 11,
 } as const;
 export const FOG_EYE_WORDS = 12;
 
-/** An oriented box that hides what lies behind it (`FogBox`). */
-export const FogBox = {
-  /**  (f32 × 2) */
+/** An oriented box that hides what lies behind it. */
+export const FogBox = d
+  .struct({
+    /**  */
+    center: d.vec2f,
+    /** Half extents along and across its heading. */
+    half: d.vec2f,
+    /**  */
+    yaw: d.f32,
+    /**  */
+    top: d.f32,
+    /**  */
+    base: d.f32,
+  })
+  .$name("FogBox");
+/** Where `FogBox`'s fields lie, in words. */
+export const FogBoxAt = {
   center: 0,
-  /** Half extents along and across its heading. (f32 × 2) */
   half: 2,
-  /**  (f32) */
   yaw: 4,
-  /**  (f32) */
   top: 5,
-  /**  (f32) */
   base: 6,
-  /**  (f32) */
   pad1: 7,
 } as const;
 export const FOG_BOX_WORDS = 8;
@@ -570,7 +790,7 @@ export const COUNTS_WORDS = 16;
 /** Views over module memory of the Frame whose header is at `ptr`;
  *  valid until the next call into the module. */
 export function frameViews(memory: ArrayBuffer, ptr: number) {
-  const header = new Uint32Array(memory, ptr, 20);
+  const header = new Uint32Array(memory, ptr, 28);
   const set = (word: number, words: number) => {
     const count = header[word + 1];
     return {
@@ -589,6 +809,10 @@ export function frameViews(memory: ArrayBuffer, ptr: number) {
     picks: set(14, PICK_WORDS),
     emitters: set(16, EMITTER_WORDS),
     counts: set(18, COUNTS_WORDS),
+    view: set(20, VIEW_WORDS),
+    camera: set(22, CAMERA_WORDS),
+    sun_shadow: set(24, SUN_SHADOW_WORDS),
+    casters: set(26, CAMERA_WORDS),
   };
 }
 

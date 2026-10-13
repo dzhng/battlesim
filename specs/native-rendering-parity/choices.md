@@ -1,711 +1,471 @@
-# Native rendering parity — phase 1 map
-
-The discovery walk for phase 1 produced this map. Slice numbers here follow the final cut in the README: 01 browser capture, 02 native runner, 03 camera, 04a–c light, 05a–b terrain, 06a–b grass, 07 models. Each decision is a given for the builder. It records who closed the decision: the user, the territory (the code answered it), or the agent on the user's behalf under the delegation below. Append decisions made during the build under "Build log" with the same attribution.
-
-## Known knowns: the settled ground
-
-**Capture and parser today**
-- `battle-presentation-capture` holds workload identity, `tickHz`, `layout`, `samples[]` and `frames[]` (`web/src/battle/benchmark/presentationCapture.ts:6-37`).
-- Each frame records only `camera {target:[x,y], distance, yaw, pitch}`. It drops target height, FOV, near plane, viewport and DPR.
-- The native parser checks exactly that shape (`native/godot-spike/presentation_capture.gd:127-140`).
-
-**Browser camera**
-- Z-up and right-handed (`packages/renderer-core/src/camera3d.ts:6`).
-- Vertical FOV of 0.8 rad (`fixtures/game.json:780`), near 1 m, reverse-Z with an infinite far plane (`camera3d.ts:120-140`, `depthContract.ts`).
-- The target follows the ground (`cameraController.ts:132-141`). A clearance spring moves the eye out of buildings and terrain (`cameraClearance.ts`). Follow shots lag 0.5 s on wall-clock time (`reelRun.ts:45-86`).
-
-**Native camera**
-- Godot's default 75° FOV.
-- A step function over captured frames, with no target height, clearance or lag (`reel.gd:225,1261-1286`).
-
-**The mirror**
-- Native maps sim `(x,y,z)` to Godot `(x,z,y)`, which is a reflection (`reel.gd:950,1168,1286`). In the archived plates, buildings and skyline swap sides.
-
-**Fog overlay**
-- The browser menu reel and graphics test draw no fog overlay: neither `MenuBackdrop.tsx` nor `graphicsTest.tsx` passes `fog` to `LabViewport`.
-- Native draws hidden fog cells as dark translucent boxes, capped at 4096 (`reel.gd:858-894`). That is the "water" in the archived native plate. `fixtures/maps/market-town/map.json` has no water.
-
-**Display density**
-- Since `ace81f81` the browser battle canvas draws one pixel per CSS pixel on every display. Building LOD tiers size to canvas pixels (`buildingTier.ts`).
-
-**The archived evidence**
-- The browser control plate has the graphics-test HUD burned in, and it was cropped and downscaled by hand from 1280×800 @2×.
-- The captures and reports under `throwaway/` are gone.
-
-**Running the browser control**
-- The full graphics-test run was manual: run, then download (`graphicsTest.tsx:215-224`).
-- `web/scene.mjs` can open any viewport but defaults to 1280×800.
-
-**Godot**
-- Godot 4.7.2 is on PATH.
-- An off-screen window run renders Forward+ on Metal and reads back an exact 1280×720 PNG in about 6 s. Movie Maker mode writes fixed-step frames. `--headless` cannot produce images.
-
-## Known unknowns: the decision ledger
-
-### Preferences and delegation
-
-The user confirmed these preferences and delegated matching questions for this walk:
-
-1. Add no machinery the user didn't ask for.
-2. Don't defer fidelity just to keep scope small.
-3. Single owner: the browser resolves and records, native draws.
-4. Automate the evidence loop.
-5. Order phases by visible payoff.
-
-Taste and intent questions stayed with the user.
-
-| # | Question | Decision | Why | Closed by |
-| --- | --- | --- | --- | --- |
-| Q0 | Scope | Phase 1 covers backend and capture, camera, lighting, terrain and grass (slices 01–06b). After phase 1 the user inserted native performance as phase 2 (07–12). Models, effects, composition and promotion became phase 3 (13–16). Slice numbers follow build order. | Same camera, light and ground first | User |
-| Q1 | Who produces the control and manifest | One automated headless-browser run of `/graphics-test` at 1280×720 writes the capture, manifest and plates per scene | Reproducible; no manual clicking | User |
-| Q2 | What a frame records | The resolved drawn view (`eye[3]`, `target[3]`, `up[3]` after clamping, clearance and lag), plus reel time, sim tick, interpolated sim time and canvas size. Wind reads the same interpolated sim time, so it has no separate field. The lens is recorded once per scene in the manifest. | Native ports no rig logic | User (base); agent added the clock and size fields from L2 under #3 |
-| Q3 | Schema versions | None. Ids are `battle-presentation-capture`, `native-visual-presentation` and `godot-render-report`, changed in place. | The user doesn't read these files; only two ids had suffixes | User |
-| Q4 | How the manifest grows | Per slice: each slice adds only what native reads | No unread fields | User |
-| Q5 | Lighting during phase 1 | Lighting (04a–c) comes before terrain and grass | Judge colour, don't defer it | User |
-| Q6 | Viewport and density | 1280×720 at 1× on both sides, always. This is what players see since `ace81f81`. | Simplest | User; confirmed by the territory |
-| Q7 | Backend | Forward+ (Metal). Delete `gl_compatibility` and keep no fallback path. The slice 02 probe (one building, a grass multimesh, a shadowed sun, the sky shader, captured unattended) must pass; failure is a named blocker. | #2: shadows, AO and fog need it. #1: one backend. The probe already rendered. | Agent on the user's behalf (#1, #2) |
-| Q8 | Phase 1 closeout | Run `review`, update the handoff, then plan phase 2 with a fresh walk. The full repo check runs once, at slice 18. | AGENTS.md: everything runs once at the end of the spec | Agent on the user's behalf (#1); territory |
-| Q9 | The mirror fix | One conversion function `(x,y,z) → (x,z,−y)`. Every placement, the sun and the camera go through it; one test pins asymmetric known points. Slice 03. | It's a reflection today | Territory |
-| Q10 | Same battle | The manifest carries the map, encounter, seed and capture hashes. Native refuses to render on any mismatch. | The user asked that the menu video use exactly the same map | Agent on the user's behalf (#3) |
-| Q11 | Same layers | The manifest lists the presentation layers the browser drew. For the menu reel the fog overlay is off: native decodes fog but doesn't paint it. | The native fog boxes read as water | Agent on the user's behalf (#3) |
-| L1 | Shader-only constants | Lift every tuning constant out of the terrain, grass and fog shader modules into one exported TS table per owner. The browser shader and the manifest both read it. Native hand-ports only the formulas. Grass sampling is ported bit-exact, and a test compares hashed sample positions for fixed tile coordinates against values exported from TS. | Drift is limited to formula changes; grass drift is tested | User |
-
-Nothing is OPEN.
-
-## Unknown knowns: what the user's taste set
-
-| Question | Answer | What it changed |
-| --- | --- | --- |
-| Camera match | The same shot by eye; no pixel budget | Slice 03 has no anchor tolerances. One conversion unit test remains as a regression test. |
-| Light match | The same time of day and weather, by eye | Slices 04a–c have no colour-difference masks |
-| Terrain match | The same features and the same field character | Slice 05b judges furrows, patches and wear at broad and close cuts |
-| Grass match | The same impression, plus blade counts within ~10% per region | The manifest exports per-region counts in slice 06a; native reports its own |
-| Endgame | A second client, both maintained | Native code is long-lived: rename to `native/godot`, split `reel.gd` by concern, write behaviour tests |
-| Platform | macOS only for now | Only Forward+ on Metal is verified |
-| Who accepts | The agent, non-blocking | As the verification contract says |
-| Performance | Record GPU frame time, don't gate | Every native report from slice 02 on. Godot 4.7.2 has no Metal GPU timestamps, so the field is null (build log). |
-
-## Unknown unknowns: landmines
-
-Each landmine is either decided (closed by the agent on the user's behalf unless marked otherwise) or a sharp edge.
-
-At the phase 1 closeout, every landmine except L13 is built as decided. L13 (building tiers) belongs to slice 15. One partial: the legacy buildings-and-props layer still measures its 1 km reach from frame targets rather than from the eye (L4), until slice 15 replaces it.
-
-| # | Landmine | Evidence | Status and decision |
-| --- | --- | --- | --- |
-| L1 | The browser's look lives in shader literals | `terrainMaterial.ts:267-326`, `grassPass.ts:228-237,583-597`, `fogTerm.ts` | Decided by the user; see the ledger |
-| L2 | The browser control isn't reproducible across runs | `reelRun.ts:45-55,73,132`, `useBattleSession.ts:685`, `grassPass.ts:584` | Decided (#3, #4). A plate and its frame record come from the same run and the same frame. The page reads back the canvas texture right after submitting the chosen frame, which excludes the HUD and fade veil (DOM). Native renders the record. The run waits on `scene.settled()`, never on timers. |
-| L3 | A new camera shape is rejected, and the reel silently falls back to the authored orbit | `presentation_capture.gd:127-140`, `reel.gd:1248-1259` | Decided (#1). In comparison mode an invalid capture is a named blocker; delete the fallback. |
-| L4 | Silent caps | `reel.gd:31` (256 buildings), `:66,392` (2048 props per kind across maps), `:836` (512 grass), `:544` (radius around targets), `:381` (`break` on a bad row) | Decided (#2). No default caps. Budgets report admitted, rendered and dropped counts. Cull by frustum and eye distance. Skip and report bad rows. |
-| L5 | The mirror flip touches about 17 sites | Road sign `-atan2` (`:333`); ring meshes with no normals and mixed winding (`:708-759`); shader `xz` (`:615,677`); sun in Godot space (`:200`) | Decided (#3). One conversion function, normalised winding, up normals, converted world coordinates for shaders. Slice 03. |
-| L6 | Hard-coded 30 Hz; a hitch skips cuts | `reel.gd:1121,1093` | Decided (#3). Native steps frame records by index; no wall clock in comparison mode. |
-| L7 | The import pipeline turns GLBs into primitives silently; caches aren't ignored; `user://` is shared across worktrees | `reel.gd:503,523-535,1430` | Decided (#4, AGENTS). An ignored staging folder of symlinks plus one import step. A missing import is a named blocker. Explicit report paths in scratch. A project `.gitignore`. |
-| L8 | Tests pin implementation details and inherit env | `reel_lifecycle_test.gd:17,30-35,61-99` | Decided (AGENTS). Rewrite against behaviour as slices land, and clear `GODOT_*` in tests. |
-| L9 | "Spike" naming and a monolith for a maintained client | `native/godot-spike/reel.gd` (1,460 lines) | Decided (#1, endgame). Rename in slice 02; split by concern as slices touch it. |
-| L10 | Grass reach is in metres per pixel | `grassField.ts:288-302`, `grassPass.ts:872,922` | Sharp edge, slice 06a. The canvas height must match; the frame record carries it. |
-| L11 | Flat-ground assumptions | Centimetre layer offsets at `reel.gd:291-404`; `max(0,z)` at `:1168` | Sharp edge, slice 05a. Seat everything on one height function; no stacking by offsets. |
-| L12 | Harness defaults | `web/scene.mjs:185-186`, `web/scenes/graphics-test.mjs:5` (800 high); a hidden tab fails (`graphicsTest.tsx:167`); preparation can saturate the GPU for minutes | Sharp edge, slice 01. Pass 720, keep the page visible, take the GPU lock, wait on readiness. |
-| L13 | Building tiers depend on canvas pixels | `buildingTier.ts` (`ace81f81`) | Sharp edge, slice 15. The manifest records the chosen tier. |
-| L14 | Slice 04a shadow cuts use unported buildings | Token-picked shells until slice 15 | Sharp edge, slice 04a. Judge shadow direction and softness, not shapes. |
-| L15 | Small leaks | A material per unit per frame (`reel.gd:1159`); units reused by index rather than id (`:1165`) | Sharp edge, slice 02. Fix in passing. |
-
-## Confirm before coding: resolved
-
-- **The Forward+ probe on real market-town content passed.** `tests/forward_plus_probe.gd` renders a real building, the grass field, a shadowed sun and the sky with no blocker.
-- **WebGPU canvas readback works without changing the shipped frame.** Only a plate-reading pilot configures the canvas with `COPY_SRC`; every other frame is configured as before, and a viewport test pins that.
-- **Godot imports symlinked models when each file is linked separately.** A symlinked directory makes Godot write `.import` files into the real `assets/`, so staging links one file at a time.
-
-## Phase 1 ledger
-
-This replaces the walk's plan synthesis and the per-slice build logs. Every entry was checked against the code at the phase 1 closeout. Slice evidence lives in each slice's commit messages and in `throwaway/native-parity/`.
-
-**Review these first:**
-1. **Hash equality for grass, not bit-exact positions** (needs-user).
-2. **Scar cells exempted by name from the grass count gate** (sound, medium confidence).
-3. **The light enters the manifest raw, and native ports the derivations** (sound, medium confidence).
-
-### Needs you
-
-**Grass placement is exact in its integers, and within 16 ulps in its float positions.** *Slice 06a, `68a07659`.*
-- **The plan said:** "grass sampling is ported bit-exact" (L1).
-- **What happens:** a clump's identity, whether it grows, and which tile it belongs to come from integer hashes, and those match the browser exactly on 108 test candidates. Where it stands, a float position, comes out of two different shader compilers: Chrome's WGSL→Metal and Godot's GLSL→SPIR-V→Metal. They round differently, by up to 8 ulps (about 0.1 mm at 250 m).
-- **The alternative:** force strict float maths in both clients, which neither compiler offers, or ship every clump position in the manifest, which is tens of megabytes per frame.
-- **Reach:** any later slice that compares grass compares identity exactly and position within a tolerance.
-- **Provisional call:** accept the ulp tolerance; it is invisible at any distance the camera reaches. To reverse it, change the test's 16-ulp bound to 0, and it will fail.
-- **Confidence that you'd agree:** medium.
-
-### Sound
-
-Within each group, least confident first.
-
-**Gates and evidence**
-
-- **A scar cell is exempt from the 10% grass count gate only when native's excess is covered by its clumps on bare scars.** *06 closeout, `58931e34`.*
-  - Picture a tank that crossed a wheat field earlier in the battle. The browser knows that side's learned scars (craters, scorch and tracks), so it leaves the grass out on them. Native has no scars layer until slice 16, so it grows grass there, and a screen cell over the track counts 13–16% more clumps than the browser.
-  - The run replays the learned ground (`capture/learned_ground.gd`, tested against the browser's own replay), counts native clumps standing on bare scars per cell, and names a cell `scar-omission` only if the excess is no larger than that.
-  - Every other cell must be within 10%. Five of 216 cells are named, and removing the allowance makes the run block.
-  - Reach: slice 16 deletes the allowance when scars arrive.
-  - Confidence: medium. The gate is unchanged, but it carries a named exception.
-
-- **The terrain feature gate is a measured class agreement, not a judgement by eye.** *05a, `48c3ab7a`.*
-  - Both clients drew the same frame as bytes: is this pixel paving, water, forest, or plot kind K? The two were compared over ground both drew, away from edges.
-  - It came out at 100.00% on both maps, against a 99.5% gate. A one-digit hash change drops plot agreement to 18%, so the measure can fail.
-  - The native class branch and the browser's parity class plates were removed at the closeout, as the plan said. A future terrain regression check would need them back.
-  - Confidence: medium. It's a strong check that now exists only in history.
-
-- **Godot's Metal GPU time is null rather than measured.** *Slice 02.*
-  - Godot 4.7.2 records no GPU timestamps on Metal, so the report writes null rather than a false 0.
-  - Performance was "record, don't gate", so nothing blocks. Phase 2 measures it with Metal System Trace (slice 07).
-  - Confidence: high.
-
-- **Native renders at the browser's 4× MSAA, and post reads the resolved image.** *`11404057`.*
-  - The browser shades, hazes and resolves 4 samples per pixel before post; native now does the same.
-  - Grass MAE against the browser fell from 7.04 to 0.76 on one plate.
-  - One difference remains: native hazes the resolved pixel, because Godot's compositor sees only resolved buffers. No halo shows.
-  - Confidence: high.
-
-**Contracts and formats**
-
-- **The manifest carries the raw `presentation.light` plus `sunDirection`; native ports every derivation.** *04a.*
-  - The derivations are the sun colour, overcast, extinction, cascade splits, sky radiance, haze and post. The alternative was for the browser to export resolved values (`light.sun`, `light.post` and so on).
-  - Native refuses a missing or extra field and a non-unit sun direction, and a headless test checks each ported derivation against values computed by the TS code.
-  - Reach: a browser change to the light formulas needs a native port; a change to the light data needs nothing.
-  - Confidence: medium. It duplicates formulas by design (L1), and the tests catch drift.
-
-- **The browser's packed terrain and grass buffers ship as hashed artifacts, and their layouts are generated from the GPU struct definitions.** *`5d6898ad`, `b726a9ca`.*
-  - Native reads exactly the words the browser uploaded, rather than porting about 2,300 lines of plot, biome and surface logic. A struct change regenerates the layout and can't drift.
-  - Reach: these binary layouts are now a contract between the clients.
-  - Confidence: high.
+# Native rendering parity: the choices ledger
 
-- **Tables reach the GPU as RGBA8 textures, one texel per word.** *05a.*
-  - Godot 4.7.2's `Texture2DRD` refuses `R32_UINT`, which the plan named.
-  - The shader reassembles each word exactly, and a probe confirmed every byte round-trips.
-  - Confidence: high.
-
-- **Terrain layout offsets and tuning reach the shader as generated defines, not uniforms.** *05a/05b.*
-  - The browser splices the same numbers into WGSL. A renamed field fails to compile, and that failure is a logged blocker.
-  - The plan said "uniforms".
-  - Confidence: high.
-
-- **The light and the tuning tables are passed in by the page, and the Node manifest writer checks only their shape.** *`449e9d8e`, `948dc7fd`.*
-  - The scene harness runs the writer under plain Node, which can't import the renderer.
-  - The page validates the light with the renderer's `validateLight` and derives `sunDirection` with `sunDirection()`. Native re-checks strictly.
-  - Confidence: high.
-
-- **No separate wind clock; `samples[].camera` dropped.** *Slice 01.*
-  - Grass wind reads the interpolated sim time, which the frame record already holds. The per-sample camera had no reader.
-  - Confidence: high.
-
-- **A `?scenes=` subset run reports its own workload.** *Browser review.*
-  - It used to embed the whole reel's workload, so a partial capture could pass for the complete one. Found by the Codex review.
-  - Confidence: high.
-
-**Rendering choices that make native match**
-
-- **Shadow softness is PCF matched in the second cascade, and Godot's shadow biases stay at default.** *04a.*
-  - Godot has one blur radius per light; the browser has a fixed penumbra in metres. So native's near shadows are slightly sharper and its far shadows softer.
-  - Confidence: medium.
-
-- **The sky's radiance was evaluated per pixel instead of baking the browser's 384×192 lookup texture.** *04b; reversed in slice 10.*
-  - Slice 10 measured it: the sky and the haze (which integrated it twice per pixel) cost 2 ms a frame where the browser's lookup costs almost nothing. Native now bakes the browser's lookup.
-
-- **The post chain is a formula port: bloom, grade and AgX as one CompositorEffect, with Godot's tonemap linear.** *04c.*
-  - Godot's built-in AgX can't express the grade's split tone and lift.
-  - Mean brightness is within 1–4 levels of the browser's.
-  - Confidence: high.
-
-- **Sun energy is `sun_intensity / π`, its colour is converted to sRGB, and shadow opacity is `1 − shadow_floor`.** *04a.*
-  - These are Godot's unit conventions mapped to the browser's.
-  - Confidence: high.
-
-- **The grass build is a compute shader writing the MultiMesh and its indirect draw count.** *06a.*
-  - The 4.4-era bug (godotengine/godot#105100) didn't reproduce on 4.7.2 once each MultiMesh had a custom bounding box. Godot leaks the indirect command buffer at exit (godotengine/godot#108148), which shows as a 2-RID warning.
-  - Confidence: high.
-
-- **WGSL-exact `smoothstep` and `roundEven` live in one shared include.** *05a, closeout.*
-  - GLSL leaves both undefined at their edges.
-  - Confidence: high.
-
-- **Units draw at their authored size; the legacy 1.8× scale is gone.** *03.*
-  - It doubled every vehicle and misframed subjects.
-  - Confidence: high.
-
-**Tooling and project shape**
-
-- **A logged GDScript error becomes a blocker, and tests fail on any logged error.** *03.*
-  - GDScript runtime errors return null and carry on, so a broken model load looked like success. This exposed two bugs.
-  - Confidence: high.
-
-- **Tests call `quit(code)` rather than `assert`, and `tests/run.sh` requires each test's result line.** *02.*
-  - A failing `assert` hangs script-mode Godot, and a parse error exits 0.
-  - Confidence: high.
-
-- **One owner per native concept in `core/`.** *Closeout, `bcaa8fff`.*
-  - Strict JSON checks, shader number text, compute-pass and word-table helpers, and the shader includes for word reading, coordinates and smoothstep. Parallel builders had copied each of these.
-  - Confidence: high.
-
-- **Plates come from the existing `/graphics-test` route in plate mode.** *01, browser review.*
-  - Only a plate-reading pilot makes the canvas copyable, so the shipped game is configured as before.
-  - The alternative was a separate route duplicating the reel page.
-  - Confidence: high.
-
-- **The test fixture is a trimmed real paris-corner capture (580 KB, artifacts included) with a frozen map copy.** *03.*
-  - Confidence: high.
-
-**Delegated discretion,** not audited: PNG encoding, plate-frame choice (each shot's middle), module layout below the named files, and contact-sheet layout.
-
-### Unsound
-
-None found at the closeout. Two earlier choices were corrected during the build and are already fixed:
-- the manifest writer importing the renderer under Node (`8209a90b`, fixed by `449e9d8e`);
-- the first light order, tone before sun and sky (fixed in the spec before any light code).
-
-### Known gaps carried into phase 2
-
-- **Infantry.** Only the own-side unit group is decoded, one model per unit, so squad members, enemies and corpses are missing, and one soldier is T-posed. Slice 14 (units) or 15 (models and scenery).
-- **Missing models.** Tree lines and forests are drawn as flat bands, there are no wrecks, Paris balcony railings are missing, and lamp posts are 15–20% short. Slice 14 (units) or 15 (models and scenery).
-- **Scars, decals, dust, smoke and fire.** Slices 16 (scars) and 17 (effects). The scars slice also removes the grass gate's scar allowance.
-- **Unexercised paths.** The water formulas are ported but unmeasured, because neither reel map has water. Relief is tested only against a synthetic grid.
-- **Run-to-run noise.** Native grass plates differ by one or two pixels between reruns, probably GPU append order. Byte comparisons need that floor.
-- **Git history.** The two closeout reviewers shared one git index, so their commits were rewritten into `ed268e8b`, `bcaa8fff` and `ef730416`, with a tree identical to the pre-rewrite HEAD. Nothing had been pushed.
-
-## Phase 2
-
-### Slice 07: profiling harness
-
-Commits `2fd549f2b`, `cfe6887ae`, `39850b7b7`. Closed by the coordinator on the user's behalf where marked; otherwise by the agent or the territory.
-
-- **One summariser, raw frames from both clients.** Native writes raw per-frame intervals and CPU times; `frameComparison.ts` (`web/fps-compare.mjs`) computes every number for both with the browser's `frameTimeSummary`. Only the interval clock differs: rAF timestamps against `Time.get_ticks_usec`.
-  - Confidence: high.
-- **The comparison pair is minimised native against the headless browser; neither presents to the display.** A minimised window skips presentation: the same 300 market-town records took 25–26 ms a frame minimised and 37–48 ms shown. Presenting is reported as its own cost, from a shown sample. *Coordinator, for the user.*
-  - Confidence: high.
-- **Both clients are compared without uncapping the browser.** Chromium's `--disable-frame-rate-limit` hangs the graphics test in battle preparation: the battle frame is built once, then the model layer's `install` never finishes (time-boxed, root cause not found). `--disable-gpu-vsync` alone leaves rAF at the display's 120 Hz. The browser stays paced and native runs uncapped. The cap doesn't bind while the browser's frames take over 8.3 ms. *Territory; pairing rule from the coordinator.*
-  - Confidence: medium. A browser that drops under 8.3 ms a frame would need CPU and GPU time per frame instead.
-- **Every comparison runs plugged in.** On battery the headless browser holds exactly 30.0 FPS (every interval 33.3 ms) on frames that cost 7 ms of CPU and 9 ms of GPU; on AC the same reel runs at 50–61 FPS on market-town. A trivial WebGPU page reaches 120 Hz on battery, so it isn't Chromium's battery saver. The cause is not found.
-  - Confidence: high that it's the power source; unknown why.
-- **Native draws every frame itself.** Godot's main loop skips drawing, and sleeps, while its window is minimised or covered (`can_any_window_draw`), so runs that awaited `frame_post_draw` stalled for as long as the window stayed hidden. One stall was reproduced for 18 minutes; `sample` showed the main thread in `nanosleep` in 98% of samples. The loops now `force_draw` with the render loop off, after one main-loop iteration per record, which pushes moved nodes' transforms. Force-drawn plates are byte-identical to the old loop's. A shipped client pausing while hidden is normal game behaviour, a phase 3 question.
-  - Confidence: high.
-- **The window starts minimised.** macOS clamps `--window-position 10000,10000` back on screen (to 872, 592), so every earlier "off-screen" run was visible.
-  - Confidence: high.
-- **GPU traces give proportions and gaps, never absolute ms.** Metal System Trace slows a native frame about 2.7× (a 69 ms span traced against 26 ms untraced). Untraced runs give the ms. *Coordinator, for the user.*
-  - Confidence: high.
-- **A trace is discarded above 10% foreign GPU work.** The T3 Code app the user watches does 3–6% of the GPU's work during traces; that is ambient and hits both clients alike. Every trace reports its share. *Coordinator, for the user.*
-  - Confidence: medium.
-- **Encoders are grouped by channel and command index, not by pass label.** Godot 4.7.2's `RenderingDevice` debug labels don't reach Metal's encoder labels; native's compute passes carry them anyway. Passes are attributed by ablation (slice 08).
-  - Confidence: high.
-- **The Metal HUD log is no source.** On this macOS its switch is `MTL_HUD_LOG_ENABLED` (the 2022 talk's `MTL_HUD_LOGGING_ENABLED` is stale), and its per-frame values are redacted as `<private>` without `sudo log config`.
-  - Confidence: high.
-- **The graphics test shows the in-game frame-rate counter** (a pilot's `frameRate`), so its readings can be checked against the recording. They agree within 2% on every run so far.
-  - Confidence: high.
-- **Both sides refuse to time while the other client draws,** matching the other client by its executable path or process name; a command line that merely mentions it doesn't count.
-  - Confidence: high.
-- **Not done: the CPU profile.** No Time Profiler capture was taken. Native CPU time per frame is 6–7 ms against 26 ms frames, so the CPU isn't the bottleneck.
-
-### Slice 09: native model drawing architecture
-
-Closed by the agent on the evidence; the user had not reviewed it at the time of writing.
-
-- **One MultiMesh per appearance and tier, its mesh one surface per material.** Each tier's parts are merged with their transforms baked in (`SurfaceTool`), so a 1,247-part Abrams draws one surface per material a pass (the reel's units average about 15), not one per part. The slice's "one MultiMesh per appearance part" became per appearance, because parts would have kept draw calls in the thousands.
-  - Confidence: high.
-- **The authored `_LOD<n>` names are the tiers, and Godot's automatic mesh LODs are off** (`rendering/mesh_lod/lod_change/threshold_pixels = 0`). The legacy layer drew all four authored tiers of every model on top of each other, the main source of 08's primitives and of z-fighting speckle. One level-of-detail owner, as in the browser; merged meshes have no Godot LODs anyway.
-  - Confidence: high.
-- **Tiers follow the browser's rules, at chunk granularity for statics.** Models by projected height (`presentation.models.lod_px`), buildings by a metre's pixels (`presentation.buildings.lod_px_per_m`), statics in 64 m chunks tiered at the chunk's nearest point, movers one by one. The browser tiers props per instance inside near chunks; the chunk rule is never coarser than that, and a chunk's batches are rewritten only when the chunk crosses a tier boundary or the view's edge.
-  - Confidence: high.
-- **The detail thresholds are read from `fixtures/game.json` by the legacy layer,** like the catalogs it already reads, not from the manifest. Slice 13 moves them into the manifest with the rest of placement.
-  - Confidence: medium. It is a second reader of `presentation`, with a named removal.
-- **Shadows mirror the browser, not the brief's wording.** A mesh-drawn model casts through a shadow-only batch one tier coarser (`CASTER_COARSER`), the coarsest tier casts as itself, and view batches cast nothing. A chunk out of view whose shadow can land in it casts at the coarsest tier. The brief said far tiers don't cast; the browser's far props do, out to the cascades' 2.6 km, and dropping them would move native away from it.
-  - Confidence: high.
-- **Kit shells draw every tier at once.** A shell's finer tiers have openings that facade modules fill, and the legacy layer places no modules, so a single tier showed hollow Paris blocks. Shells are about 1% of draws; slice 15 replaces them.
-  - Confidence: high.
-- **Skinned parts are posed on the CPU at build** (bind poses times the skeleton's pose), because a MultiMesh draws no skeleton. Without it the soldiers shifted by a few pixels.
-  - Confidence: high.
-- **No impostor cards yet.** The browser bakes cards only for skinned soldiers, from their far pose. Native has six unposed soldiers in the reel, whose coarsest tier is 755 triangles, and the window runs at 8.5 ms against a 16.7 ms budget. Cards baked from an unposed soldier would show the wrong pose, so they wait for slice 14's articulation. *Agent, against the slice's contract; spending margin on simplicity.*
-  - Confidence: medium.
-- **The runs use the assets imported on 2026-10-10.** A merge of main during the slice changed the Abrams and both soldier sources; the staging only imports new files, so native kept the earlier imports, which match the browser control. A fresh import (or a new control) brings in main's models.
-  - Confidence: high.
-
-### Slice 10: per-pass budgets and presentation
-
-Closed by the agent on the evidence; the user had not reviewed it at the time of writing.
-
-- **A new control, `throwaway/native-parity/2026-10-11T08-56-34-958Z`, with a fresh native import.** Main's merge changed the tank and soldier models; slices 10 and 12 compare against this run. The 10 October control and imports are retired.
-  - Confidence: high.
-- **A kit shell's open tier draws over every coarser tier; its closed tiers draw alone** (`closed_tier: 2` in the legacy layer's building detail, from `OPEN_TIERS = (0, 1)` in `kit.py`). Drawing the chosen tier plus tier 2 left Paris dormers hollow, and the chosen tier plus tiers 1–2 lost a balcony's front: the coarser tiers each fold in part of what the modules supply. Near buildings look as before, and a far one draws one tier instead of four. Slice 13 places the modules and replaces the rule.
-  - Confidence: medium. It is scaffolding read from the kit's build script, not from a manifest field.
-- **Far props keep their coarsest tier out to the horizon.** The browser does the same and has no prop impostors; once the shells were fixed, props were not in the tail.
-  - Confidence: high.
-- **Native bakes the browser's sky lookup once and samples it** in the shown sky, the sky's light and the haze (`environment/sky_lut.gd`). It replaces 04b's per-pixel sky: GPU busy fell from 6.31 to 4.43 ms a frame, and plates moved at most 4 levels, neither toward nor away from the browser.
-  - Confidence: high.
-- **Per-pass costs come from traces of both clients on the same stretch of reel.** The browser's are its labelled encoders, with Dawn's `use_user_defined_labels_in_backend` turned on in a scratch copy of the scene runner's flags for the trace only. Native's are busy time saved by ablation over 100 looped records. The flag isn't committed: traces are occasional evidence, and the scene runner's flags are the shipped browser's.
-  - Confidence: medium. Ablation rows overlap, and single traces carry about ±0.3 ms.
-- **No presentation setting changed.** On screen and off differ by about 0.1 ms now, and swapchain count and frame queue size moved nothing beyond the spread. 08's +17 ms came with a saturated GPU.
-  - Confidence: medium. Each run's on-screen state was read from the window server, because macOS restores the last window state whatever the project or `--windowed` asks.
-
-### Slice 11: release build
-
-- **The release export runs the parity run unchanged, through one script.** `native/godot/release.sh` exports the `macOS release` preset into `throwaway/native-release/` and passes every argument through, so plates and `--bench` both run from the exported app.
-  - It re-exports on every call (10–20 s) rather than tracking staleness.
-  - Confidence: high.
-- **An export packs `staging/` as it was at export time; an asset it lacks is a named blocker.** An export can neither link nor import, so `Staging.stage` only looks up packed resources there. An editor run of a scene stages its assets.
-  - The alternatives were runtime glTF loading (a second loading path whose import settings could differ from the editor's) or a headless staging pass that duplicates the run's admission. Both go away or change when slice 15 replaces the legacy map layer.
-  - Confidence: medium. A fresh checkout needs one editor run per scene before its first export.
-- **The exported app takes the repository root from `BATTLEGAME_REPO`.** The script sets it. The editor still derives the root from `res://`. Deriving it from the executable's path would break under a symlinked `throwaway/`.
-  - Confidence: high.
-- **The preset is universal, and the project imports ETC2/ASTC beside S3TC.** Godot's 4.7.2 templates ship only universal binaries, and an arm64 or universal export refuses to run without ETC2/ASTC imports. The editor's plates did not change with the setting (both scenes byte-identical but one market-town pixel, 3 levels).
-  - Confidence: high.
-- **Signing is Godot's built-in ad-hoc signature; there is no notarisation.** Apple Silicon needs some signature to run the binary.
-  - Confidence: high.
-- **The report says what ran it:** `renderer.build` is `editor`, `debug` or `release`.
-  - Confidence: high.
-- **Templates are installed by hand,** from the official `.tpz`, checked against the release's SHA512-SUMS, with only `macos.zip` and `version.txt` copied into the user's Godot data folder.
-  - Confidence: high.
-- **First debug against release reading, market-town, one run each.** 1,000 records (385–1384), 60 warm-up frames, uncapped, minimised window, plugged in, M5 Pro. This is a single sample, not a gate; slice 12 takes three runs with the spread shown.
-
-  | Build | Average FPS | Frame p50 | Frame p95 | Frame max | CPU p50 | CPU p95 |
-  | --- | --- | --- | --- | --- | --- | --- |
-  | Editor (debug) | 15.5 | 62.8 ms | 77.0 ms | 94.8 ms | 27.0 ms | 38.6 ms |
-  | Release export | 17.7 | 54.5 ms | 64.8 ms | 75.6 ms | 12.5 ms | 26.3 ms |
-
-  - Release halves the CPU time per frame, but frames stay around 55 ms. Both draw the same counts (about 25k draw calls and 24.5M primitives per frame). The bottleneck is not the debug build; it is what slice 08 is naming.
-
-### Slice 12: performance gate
-
-Closed by the agent on the evidence; the user had not reviewed it at the time of writing. Evidence is in `throwaway/perf/gate/`.
-
-- **The gate's figures come from native uncapped, minimised, against the headless browser,** the pairing slice 07 chose.
-  - A second set with native capped at the display (`--pace display`) gave the same picture: both clients are paced by the display either way. It is kept as evidence and is not the gate.
-  - Confidence: high.
-- **The bench minimises its window again just before timing** (`parity_run.gd`). The project starts minimised, but in 4 of 6 runs of each set macOS had the window back on screen. Every on-screen run read paris-corner p50 8.37 ms, against the browser's 8.34, and every minimised run 8.22–8.33.
-  - Re-minimising held 12 of 12 runs minimised (6 probes, 6 gate runs), and the measure passed.
-  - It enforces the stated condition (no presentation, as the headless browser) rather than changing the bar or the clock.
-  - The other fix considered was a vsync-aligned native clock, matching rAF's. Godot exposes no present timestamp, so it was not contained.
-  - Confidence: medium. Why macOS restores the window is not known; the report's `window` field is the check.
-- **GPU busy per frame is a proportion, calibrated.** Each trace gives the client's GPU busy share of wall time: the union of its top-level encoders over its first to last GPU work. That share times the untraced mean frame interval gives ms per frame; each figure is the median of three traces.
-  - Wall-time share sidesteps Metal frame grouping, which differs between the clients. The browser's headless frames don't map to Metal frames, and `gpu-trace.mjs` spans can be infinite there.
-  - The browser's timestamp queries show the calibration overstates the traced browser by 14–39%. Both figures are reported.
-  - Confidence: medium.
-- **The traces are separate runs from the timing runs,** at about a quarter, half and three quarters of each scene. Tracing slows frames, so a traced run is never a timing run.
-  - The native traces predate the window fix, and four of the six were on screen. Presenting adds native work, so the comparison errs against native; they were not re-taken.
-  - Confidence: high.
-- **CPU ms is reported, not gated.** On paris-corner native's CPU p50 is 1.54 ms against the browser's 0.88. The two clocks cover different work: the browser's simulation runs in a worker and its GPU submission in Chrome's GPU process. Slice 12's measures are frame time, FPS and GPU time.
-  - Confidence: medium.
-
-## Phase 3 plan (2026-10-11), by the orchestrator on the user's behalf
-
-The spec said phase 3 would be planned with the user. Under the implementation goal, the orchestrator planned it from the confirmed preferences (#1 no unasked machinery, #2 don't defer fidelity, #3 the browser resolves and native draws, #4 automate evidence). Each call is reversible.
-
-| Decision | Why | Preference |
-| --- | --- | --- |
-| No new simulation-to-capture data path. Effects read causes the capture already carries. | A source map showed every effect cause is in the publication: projectiles, blasts, shot counters, smoke, crashes, `knownProps`, `fallenBodies`, and the ground's scars and `cleared` byte. The only gap was native decoding one group. | #1 |
-| The browser exports static per-map placement (building modules and states, scenery); native ports per-frame derivations (poses, effects, fallen, felled and cleared state) | Placement is a pure function of map plus catalogs, as terrain tables were. A live native client must derive per-frame state itself, so porting it now isn't wasted. | #3, endgame b |
-| Each content slice gates on per-plate counts equal to the browser's, plus seeded or vector tests, then the visual gates | The same pattern as grass counts in 06a: load-free, exact, and able to fail | #4 |
-| Each content slice re-runs slice 12's performance bar | Content adds cost, and native must stay no slower than the browser | User (phase 2) |
-| Phase 3 is renumbered 13–18 | Units, buildings and scenery, water and scars, and effects are separate visual variables | — |
-
-## Phase 3 build log
-
-### Slice 13: full publication decode
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The decoder is its own module, `capture/observation.gd`, named for the browser's `observation.ts`; `presentation_capture.gd`'s `decode_samples` drives one stream through it | One owner for decoding a publication; the capture parser stays a parser | Agent (delegated: native's record shapes) |
-| A sample's record is the browser's `ObservationView` exactly: the same keys and nulls, `own[].kind` a name, the ground as the browser's `groundPatch` runs | The fixture compares by deep equality, and later slices port browser code that reads these names | Agent (#3) |
-| Numbers compare at float32 precision; the fixture writes each as its shortest float32 text, and its null stands for the browser's NaN | Both decoders read float32 carriers; JSON holds no NaN | Agent |
-| The fog words compare by SHA-256 digest | The market-town field is 17,579 words a sample | Agent |
-| The market-town fixture is the samples at ticks 1825–1831 of control `2026-10-11T08-56-34-958Z` (regenerated from `2026-10-11T18-47-00-317Z` when main added the match report groups; the paris-corner fixture took that control's samples and kept its frames), the first re-encoded as a fresh record (snapshot groups, its full fog, an empty learned ground) by a scratch script | A delta needs its baseline, so a window can't be cut out verbatim; the empty ground keeps it at 155 KB (262 KB with the full learned ground). Both decoders decode the same words, so the comparison is unaffected | Agent |
-| Not covered by either fixture: guided missiles, crashes, member leans, encounter, skirmish (objectives, pending purchases). They decode through the same row and section code, but no field is proven against the browser | No menu-reel capture publishes them. The slice that first draws one (17 for crashes and guided) adds a short stream from the WASM battle | Agent; open |
-| Stricter than the browser: a stale record, a word index outside its table, or a layout without a field or section native reads is a blocker, as is an unknown group | A capture is one ordered stream from a known layout; the browser skips stale records and reads missing fields as undefined | Agent (#2) |
-| The learned ground keeps the cleared byte (`cleared_at`), with no drawing consumer yet | Slice 15 (felled forest) and 16 (scars) read it | Agent |
-| Decoding every group costs startup: the full market-town capture decodes in 4.1 s, up from 1.2 s | Within the 30 s startup budget | Agent (user's startup budget) |
-| The paris-corner decode fixture is 888 KB (43 KB gzipped) | Every sample of the capture, as the gate asks | Agent |
-
-### Slice 15: buildings and scenery, browser half
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| Building and scenery placement rides `UploadedTables` as two more groups (`buildings`, `scenery`), written as `records` artifacts beside the terrain's and grass's; no new layout kind | One export path and one artifact contract; the record layouts come from `d.struct`s through `fillRecords`, so a field change regenerates the layout | Agent (#1) |
-| Buildings are expanded per building and state: tables `intact`, `ruin`, `gutted`, each building's rows in template order, plus a `buildings` table (frame, intact bounds, owner, chunk, row count per state, -1 where the template has none) | Native swaps a building's state by its index without placing anything; a missing state stays refusable by name | Agent (#3) |
-| A module instance names a compact module list (only the modules the map's templates place, in library order), not the library's thousands | Keeps the manifest and the per-plate counts small | Agent |
-| A building's chunk is the browser's coarse-chunk index; native forms chunk boxes as the union of its buildings' exported bounds (the fallen population too) | The browser's chunk box is exactly that union, and the bounds need the installed kits' mesh bounds, which only the browser holds | Agent |
-| Scenery exports the whole placement (forest with trunk ids, understorey, backdrop, and every dressing cell laid whole, with a cell table); felled, cleared and fallen state stay per frame | Placement is static; the dressing's cell order matters to its pool, so cells travel as cells | Agent (#3) |
-| The tier rules are numbers in the manifest (`buildings.tiers`, `scenery.tiers`, including pool and per-view budgets); the formulas are native's to port | Same split as the light: data exported, formulas ported | Agent (phase 1 L1 pattern) |
-| Per-plate counts (`instanceCounts`) count what each layer draws into view, not its draw ranges: hidden coarse records and ranges bridged across chunks out of view are left out; dressing on cleared ground (laid with no size) is left out | Native should match what is seen, not the browser's batching | Agent |
-| Counts are per kit module and tier, per scenery population, appearance and tier, stumps per appearance, and known props (wrecks, shoved bodies, rubble) per appearance at each tier then as a card | A tier mismatch shows as a count mismatch, not just a missing kind; known props are slice 15's (coordinator) | Agent; coordinator for known props |
-| Counts are taken before the plate's grass-less redraw | That redraw may lay more dressing or expand more buildings | Territory |
-| Not exported: a building's part props and the gutted-shell prop types, which native needs to derive fallen state from `knownProps` | They are per-frame derivation inputs, not placement; the native half decides whether they come from the map export or the manifest | Agent; open |
-| New control `throwaway/native-parity/2026-10-11T12-20-57-541Z` (`3f14bf2c9`). It ran with slice 16's uncommitted terrain edits in the shared tree, so its terrain group also lists `scars` and `water`; everything slice 15 reads came from `3f14bf2c9`. Market-town's placement artifacts total about 90 MB, the dressing 43 MB of it | Plate-mode scratch only; costs nothing outside plate mode | Agent (spend margin on simplicity) |
-
-### Slice 16: water surface and ground scars
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The scar look reaches native as the terrain table `scars`, the browser's `ScarParams` record as last written; native reads its grid and look, and ignores its page-cache fields (`pages.zw`, `clip`, `cacheBounds`, `defaultWord`) | One export path (terrain tables); the look is biome data the browser already packs, so native re-reads no fixture | Agent (#3) |
-| Native's scar upload is one word table: normalisation words, a directory word per 16-cell tile, a page per marked tile, rewritten per changed tile and uploaded whole; the browser's view-sized hashed page cache is not ported | A market-town battle marks about 450 tiles (16.5k cells), so the whole learned ground fits in about 1 MB; values are byte-identical, filtered with the browser's exact RGBA8 arithmetic | Agent (delegated: the upload path; spend margin on simplicity) |
-| The learned ground is replayed at every record, before the draw, not only at plates; `bare_at` is replaced by `marks` | The ground and grass now draw scars every frame, and the allowance that read `bare_at` is gone | Agent |
-| The water surface's cells travel as the terrain table `water` (corner, height, side per cell), the cells `waterSurfaceMesh` lays (`waterCells`) | The browser resolves, native draws; the surface height isn't in the surface records | Agent (#3) |
-| Water is judged by vectors only: `waterSurface` and `waterNormal`, resolved by TypeGPU and run on WebGPU, with `groundWater`'s depth fed in; 210 points equal | The capture scene films only the menu backdrop's `menu` maps; `river` is a `test` map with no shots, and filming it would need game data or a new workload nobody asked for | Agent (#1); the slice allowed it |
-| Native water in shadow keeps Godot's own light, not the browser's `water.shadow` share of it; reported as the budget row `water.shadow` | Scaling lit water in Godot needs a custom `light()`, which drops its ambient; no reel map has water to judge it on | Agent; open until a map with water is filmed |
-| Slice 16's evidence uses slice 15's control `2026-10-11T12-20-57-541Z` through a scratch copy of its manifests without `buildings`, `scenery` and `instanceCounts` | The control already carried `scars` and `water`; native's reader didn't admit slice 15's keys yet | Agent |
-| Scars cost about 1.4 ms at p95 (market-town release, 3 interleaved runs each); traced GPU busy doesn't resolve the difference | Within slice 12's bar by a wide margin (browser p95 23.9) | Agent |
-
-### Slice 14: units, poses, corpses and aircraft
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| Wrecks are known props, slice 15's; slice 14 draws soldiers, vehicles, corpses and aircraft, and counts those | A wreck is drawn by the browser's props path (`propAppearance.ts`), beside shoved cars and rubble, not by its pose feed | Orchestrator |
-| The browser resolves what is static and exports it in `units`: each fielded type's facts, the appearance sets `AppearanceCatalog.resolve` picks from per side (in the side's faction look), each appearance's joints and clips or nodes and its computed rig, the pose feel, the lean hold and the side tints. Native ports the id pick and every per-frame derivation | Same split as the light and the placement: data exported, formulas ported. A live native client needs the derivations anyway | Agent (#3) |
-| The dense clip tables (`buildClipTable`) are exported as artifacts, one per distinct table; market-town's 27 bodies share 2 of 1.44 MB | Native samples exactly the floats the browser's pose kernel reads, with no port of the clip quantisation or the bind fallback | Agent (#3) |
-| `modelCounts` count the browser's pose frame (resolved soldiers, ground vehicles, aircraft, lying and fading corpses), not what is drawn into view | Exact and load-free like the grass counts, and it checks the population logic (deaths, the dying clip's end, the corpse cap). What is in view depends on culling, which both sides port separately | Agent (#4) |
-| Native poses every frame record in order, including the records a plate run skips, from the capture's first frame record | Poses carry state from frame to frame (a walker's phase, an eased gun, a fall). The browser's frames before its recording starts are not recorded, so a pose that began during warm-up can differ slightly; counts equal on every plate regardless | Agent |
-| A record's publication is the sample at its tick, blended from the one before by the record's `simTime` (`simTime·tickHz − previous tick`) | A record's `simTime` always lies within its last tick (checked over 3,964 paris records), and it is the browser's presentation clock exactly | Territory |
-| Positions in the ported derivations are double-precision `[x, y, z]` arrays, not `Vector3` | Float32 positions moved a walker's stride-driven phase by up to 0.03 over a few hundred frames | Agent |
-| Soldiers keep the glTF's own vertices and skin; each skin bind moves with the bundle joint of its name (or its nearest named ancestor), and the kernel writes one palette matrix per bind: `C · world[joint] · bind` | Mesh building stays native speed (about 0.1 s a body, against several seconds for CPU-skinning each tier at rest), and a bind's matrix folds the glTF-to-bundle mapping once. The build refuses a glTF whose joints stand more than 2 cm from the bundle's | Agent (delegated: sampling on GPU or CPU) |
-| The browser's pose kernel is ported to a compute shader writing an RGBA32F palette image (`Texture2DRD`) that the model surface reads by instance (palette base in the tint's alpha) | GDScript would cost about 0.4 ms per soldier for 53 joints; spatial shaders cannot read storage buffers | Agent |
-| Vehicles are posed on the CPU into a second palette (`ImageTexture`), one matrix per articulated node; a part follows its nearest articulated ancestor. A track's texture scrolls by the palette's first texel | A handful of vehicles and nodes a frame; the browser poses articulated rigs on the CPU too | Agent |
-| Corpses are the living body's skinned mesh at its corpse pose, one palette per body and way of lying, not a baked static mesh | No second set of meshes or CPU skinning at build; it looks the same | Agent |
-| Detail sizes (tier, culling) come from the coarsest tier posed on the CPU, not the finest | Tier 3 is about 2,000 vertices against 46,000. Its box is the same to a few centimetres | Agent |
-| Model batches no longer pose skinned meshes; a skinned mesh outside the units layer is an error | The units layer is the one owner of skinning | Agent (refactor-clean) |
-| Not ported: impostor cards. A model under `impostor_px` draws its coarsest tier, counted per run (`units.impostors`, 279 over market-town's plates) | A card replaces a mesh under 10 px tall: the same few pixels and colours. The frame has margin, and the bake (a SubViewport atlas of 16 views per body, relit) is a subsystem of its own. Against the slice's contract | Agent; open |
-| Not ported: the side-tint mask (ORM alpha); a material's tint share applies uniformly | Slice 15's model surface does the same for every model; blue's tint is white and red's warm | Agent; open |
-| The fixture run's manifest carries `units` written by `nativePoseVectors.test.ts`, with its 1.44 MB clip table beside it | The fixture run draws its units, and the pose test reads the same section | Agent |
-
-### Slice 15: buildings and scenery, native half
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| Native ports only per-frame rules: building residency and fallen state (`building_layer.gd`), scenery tiers, dressing cells, felled and cleared state (`scenery_layer.gd`, `felled.gd`), the props' fit and tiers (`prop_layer.gd`). It places nothing | The browser exports placement; a live client must derive state anyway | Agent (#3) |
-| The browser exports a `props` section through the page (`describeProps`, beside slice 14's `describeUnits`): the map's props fitted once (`props-map.u32`), `PropAppearances.describe()` (candidates, modular, wreck, stand-in), part props per building and gutted shells' prop types. `scenery.felled` carries `biome.trees.felled` | Fallen buildings need the parts and shells; known props need the fit's tables; the map's fit is static | Agent (delegated: the export's home) |
-| `props.detail` repeats `presentation.models` beside `units.detail` | Each section stands alone; one source in the browser. Slice 18 may fold them | Agent; open |
-| Native settles each frame at once: residents nearest first by record count against the pool, dressing nearest-first within the slots. The browser expands over a few frames and packs its pool; a view past 75% of the pool is a blocker | Plates are mid-shot, where the browser has settled; counts equal on all 24 plates | Agent (spend margin on simplicity) |
-| Every material draws as the browser's model surface (`model_surface.gd`): base × vertex colour × colour scale × texture, tint by the material's share, scenery tinted whole; a cutout's coverage is its normal map's alpha, scaled and dithered by pixel | Godot's imported materials ignored vertex colour and tint, and dropped the railings | Agent |
-| Map props follow the browser's models layer: chunks in view, each prop culled and tiered alone, cast a tier coarser, nothing out of view casting; replaced props hidden by key | Slice 09's chunk-tier statics drew finer tiers and out-of-view casters | Agent (#3) |
-| `model_batches.gd` keeps appearances and chosen instances only; statics, movers and the kit shells' open-tier rule are deleted. Layers write batches only when what they chose changed | Every caller now chooses its own instances | Agent (refactor-clean) |
-| The static layers' walk (chunk cull, tiers, the buildings' pool, fallen chunks, caster regions) is the native core's first module, `StaticLayer` in `native/godot-binding/src/static_layers`. GDScript hands it the word tables once and the view each frame, and writes the batches it hands back; the units share `model_batches.gd`, so Rust does not write through `RenderingServer`. The dressing (a few dozen cells a frame) stays in GDScript. Every static batch's digest is identical to the GDScript walk's on 1,901 frames | GDScript's walk was the frame's serial CPU cost; one batch owner; less code where the walk is not hot | Coordinator (lever 4; native core) |
-| Casters batch per 512 m region, so each cascade draws only the regions it meets | Godot culls a batch by its bounds; one caster batch per kind and tier was drawn into every cascade | Agent (lever 3) |
-| Felled trees pose in the model surface's vertex stage (`POSED_FELLED`), as the browser's do, with the pose in instance uniforms; the CPU bake and its Rust port are deleted | The bake cost 10–15 ms a frame late in the reel; the shader is the browser's own approach and less code | Agent |
-| Three frames in flight (`frame_queue_size=3`); the run limit is a watchdog thread | The CPU step of a record overlaps the GPU's frames; a main thread stuck in the engine never ran the old timer | Agent |
-| The fixture run's manifest carries the world sections but not their tables, and does not list `buildings`, `scenery` or `structures` | Paris's building tables are 3.8 MB; its plate's counts are from another run | Agent |
-| The learned ground counts changes to what is cleared (`cleared_version`) | Shrubs and dressing re-stand only then | Agent |
-| Performance gate: fails on market-town (whole reel p50 18.1 ms against 15.9, p95 24.6 against 18.2, p99 25.6 against 25.2); paris-corner p50 8.6 against 8.6, p95 10.0 against 17.3, p99 18.4 against 18.2. The late reel is GPU-bound in Godot's frame itself (see the slice), not in what the layers choose | Not closed by loosening the bar | Agent; open, needs a decision |
-
-### Slice 17: effects
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The manifest's `effects` carries the tuning as `gameEffects` resolves it and the catalog rows the effects read (hulls, mount muzzles, smoking prop kinds, wreck pieces); units gain the muzzle socket, muzzle nodes and rotor blade facts | The browser resolves, native ports the per-frame derivations, as for the light and the units | Agent (#3) |
-| `effectCounts` counts what `EffectFrame` has running at the plate's clock by kind, the instances it built by shape and its lights; started effects only | Exact and load-free; a publication the browser decoded ahead of the drawn tick only adds unstarted effects, so started ones are the same on both sides | Agent (#4) |
-| Native reads a record's `simTime` to the nearest double (`core/js_text.gd`) rather than through Godot's JSON reader | Godot's reader is an ulp off on clocks the browser writes; plate 1335's clock sits exactly on a tick and lost 18 tracers. Other JSON numbers stay Godot's (no boundary depends on them) | Territory |
-| JavaScript's number text is ported exactly (float32 inputs, shortest round trip, ties to even, exact decimal arithmetic) | The browser seeds dust, smoke sources and tracer chance from keys with positions in them; any other text seeds other particles | Territory |
-| The launch tracker moves to `effects/launches.gd` as the one owner; the pose feed reads it over `effect_feed.gd`'s publication | The browser has one `LaunchTracker` for flashes and firing soldiers | Agent (refactor-clean) |
-| The effect pass is a compositor raster pass between the haze and the post chain, not Godot transparent geometry | The browser draws its effects after its world (hazed) and before post; a spatial material would be hazed by the depth behind it and blend through Godot's own state | Agent (delegated: drawing technique) |
-| Cast lights reach the world's materials through three shader globals (count, wrap, a 48×1 texture) declared in `project.godot`, added to emission with the browser's formula | Every lit material reads them, as the browser's `shade` does; Godot's omni lights have another falloff and BRDF | Agent (#3) |
-| Lit smoke's sky light is the baked sky averaged over each hemisphere, cosine-weighted, times the fill; reported as `effects.sky` | Native has no prefiltered environment to read at full roughness; the dust and smoke match the browser's brightness on the plates | Agent; open |
-| Sprites nearer than the near plane are clipped, as the browser's reverse-Z projection clips them | Found by the unprimed critique on paris plate 1206 | Agent |
-| Not ported: a cook-off's moving wreck and its thrown debris; reported per run as `effects.cookOffs` | They are models drawn through the props' and units' layers, not effects, and no count covers them; native shows the static wreck | Agent; open |
-| No `crashes`/`guided` fixture | Neither control publishes them; a WASM stream needs a helicopter shot down, which the time-boxed attempt did not produce. The fixed-cause vectors cover the smoking airframe and rotors | Agent; open |
-| Effects cost about 1.3 ms at p50 and 2.9 ms at p95 on market-town (about 1.4 ms CPU); judged relative, since slice 15's market-town cost is still open | The bar is re-checked when slice 15 lands | Agent |
-
-## Phase 4 (2026-10-11), by the user
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| Native's CPU side moves from GDScript to a Rust GDExtension (`native/godot-binding`, the native core). GDScript keeps only an entry scene; shaders stay. | GDScript's interpreter made a 6.5 ms per-frame walk the market-town bottleneck. The binding already runs the simulation in-process, so a live client needs Rust there anyway. | User |
-| The publication reader and per-frame presentation derivations (interpolation, poses, launches, effects, cook-offs) move into shared Rust, used by the browser through WASM and by native directly. The TS originals and native ports are deleted. | One owner instead of a TS original plus a native port kept in step by tests | User ("Rust core + shared crate") |
-| The shipped browser's frame must stay byte-identical and its frame time and main-thread CPU no worse. Each shared-code slice researches the WASM boundary cost before building. | The browser is the shipped client; moving its code into WASM can help or hurt depending on marshalling | Orchestrator, from AGENTS.md and the user's performance bar |
-| Phase 4's gates: each slice must reduce net code (Rust plus TS plus GDScript plus tests), and a small measured browser performance cost is acceptable for it; a meaningful regression still blocks | "The overall complexity reduction is the biggest positive trade-off… we should actually have less code" | User |
-| The Rust side is as smart as possible and each renderer as dumb as possible. Presentation logic sits in a shared crate beside the simulation, not in its authoritative state, and reads only a side's publication. Static placement moves into Rust too (slice 20b). | "Make the Rust sim as smart as possible and the renderer as dumb as possible." The boundary keeps replays and digests independent of presentation tuning, and keeps fog of war intact. | User (principle); orchestrator (the boundary and 20b) |
-| The boundary between Rust and renderers is one small, documented, data-oriented API (a few calls; static `World` and per-frame `Frame` as flat typed buffers; the game UI on a separate narrow surface), designed and reviewed before shared code exposes anything to a renderer | "The API in between the simulation and the renderer needs to be clean… an elegant API that's understandable" | User (requirement); orchestrator (proposed shape, for review) |
-| Order lines, contact glyphs, markers and the ruler stay UI-built overlay meshes, derived from `observation()`. Rust doesn't describe them. Ghosts (Space-held destinations, placements, facing previews) stay in Rust's `Frame`. | The UI already has unit positions and member destinations. Describing lines in Rust would be repetitive data. Ghosts need fielding and posing, which is Rust's job. | User (18b question 4) |
-| 18b approved. Questions 2, 3 and 5–8 as recommended; 4 decided separately (order lines stay UI). Question 1 (posing on the CPU in Rust or a GPU kernel) is decided by profiling: today's CPU- or GPU-bound state first, then a prototype of each. | "We should profile that… I'm not sure if we're CPU bottlenecked or GPU bottlenecked today" | User |
-| Web first: every Rust contract change lands in the browser first, with clean before/after FPS, before native switches to it | "Do it on the web first… very clean before vs after fps numbers on web, before porting that to native" | User |
-| 18b question 1: Rust builds joint palettes | The browser is GPU-bound. Posing costs ~0.06 ms per frame on the GPU and an estimated 0.05 ms in native Rust (WASM ~0.1 ms), so under 1% either way. Rust deletes both pose kernels. | Orchestrator, from the user's profiling rule |
-| Slice 15's Rust walk landed although it grew code (+932 Rust, −671 GDScript). The less-code gate is judged across phase 4: 20b deletes the TS resolvers, the placement artifacts and most of this GDScript. | It is a pure improvement (market-town p95 35.9 → 24.6 ms, identical choices), and other sessions were waiting on main | Orchestrator; the user may hold it |
-| Phase 5: native moves to Rust wgpu with the browser's own WGSL; Godot leaves native | Godot's per-primitive cost is the remaining GPU gap, and the ~2k lines of ported shaders go | User ("Plan wgpu phase") |
-| `observation()` returns JSON parsed in JS; the reader is 36 µs slower per publication than the old TS decoder (180 vs 144 µs, about 1 ms per second at 30 Hz) | A full object view costs JSON either way; frame rate is unchanged within noise. Zero-copy views are kept for `Frame` data and fog bits. | Slice 19 agent; accepted by the orchestrator |
-
-### Slice 19: one publication reader
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The reader is `crates/sim/src/publication/reader.rs`, a child of the writer. `layout_json` and the reader share one group table (`GROUP_LAYOUTS`); row widths derive from it. A layout whose header, groups, sections or delivery fields differ from the writer's is refused; only the name tables and the ground grid come from the layout | One owner for the layout's structure, and offsets checked at compile time instead of looked up by name each row | Agent |
-| The observation is typed: one struct per entity, declared by a `view!` macro, with fields named and shaped as `ObservationView` and serialized by serde. The fog bits, ground runs and static groups are left out of the serialized form and shared by pointer while unchanged | A first build as JSON values was about 170 lines shorter but cost 412 µs a publication in V8, against the TS decoder's 144. Typed costs 180. Slice 20's Rust consumers want structs anyway | Agent (delegated: the Rust shape) |
-| The page's module is `crates/presentation-wasm`, a crate of its own that depends on `sim` and uses only the reader. Dead-code elimination keeps it at about 260 KB, so the rules never reach the main thread (18b question 7). The reader didn't move into another crate | Moving the layout tables out of `sim` would have touched every writer constant for no runtime difference | Agent |
-| `push_publication` returns false for a stale record instead of throwing, and `invalidate(side)` stays | 18b says a stale record errors, but the lab's side switch has records in flight that must be dropped quietly, as the TS decoder did | Agent; a small deviation from 18b, open for review |
-| JSON carries a non-finite number as null, so a NaN in a number field reads as null where the TS decoder gave NaN. `groupDelivery`'s NaN-payload check now expects null; its baseline proof is unchanged | The writer publishes NaN only in fields the view turns into null (goal, area, garrison, leans); no real record differs, and both whole control streams compare deep-equal | Agent |
-| Stricter than the TS decoder: a table index outside its table is an error (TS read `undefined`) | A record is one known writer's | Agent |
-| Native's fixture captures and `observation.gd` took main's report groups on the parity branch (`f42b936fc`); this slice kept that version and dropped its own equivalent | One owner for the fixture update; the reader's equality holds on the branch's fixtures | Agent |
-| The committed `<scene>-observations.json` files, the TS decoder's last decode, stay as the reader's reference, checked by `crates/sim/tests/publication_reader.rs`. The browser's fixture check and native's compare test are deleted | With one reader there is nothing left to compare against the browser; the reader itself still answers to the old decoder's output | Agent |
-| Not covered by the fixtures, as in slice 13: guided missiles, crashes, member leans, encounter, skirmish. The TS tests that cover them (`skirmishObjectives`, `skirmishPurchases`, `groupDelivery`, `fogDelivery`) now run through the reader and pass | The same row code decodes them | Agent |
-| The battle measure is the benchmark scene (city contact, Metro Large), not an ad-hoc medium battle | It is the repo's one kept battle frame-cost measure, with a production build and main-thread CPU and GPU timestamps | Agent |
-| Native reaches the reader through an extension class, `PublicationReader`, called from `presentation_capture.gd`. The observation crosses as Godot dictionaries of floats, shaped as before, and static groups are cached by `Arc`, so an unchanged group is the same `Array` | The GDScript runner's consumers (`pose_feed`, `learned_ground`, the unit and effect feeds) keep working unchanged until slice 18 moves the runner into Rust, and `pose_feed`'s `is_same` still sees unchanged groups | Agent |
-| The ten web tests still failing on the rebased branch (`battleStart`, `navigation`, `navigationBrowser`, `mapWorkbenchNative`, `mathOwner`) fail identically on `origin/main` (`6efdd4c26`); they were left alone | Unrelated to the slice | Agent |
-| Windows is not a requirement, but the native stack must not rule it out. Phase 5's research confirms each dependency (`wgpu` via Direct3D 12 or Vulkan, `winit`, `gltf`, audio) supports Windows; there is no Windows gate. | "Don't add Windows as a requirement, it just can't be a future constraint, which simple research can answer" | User |
-| The fully shared renderer (the browser on Rust `wgpu` through WASM) is decided after native `wgpu` is measured against TypeGPU | "I like the fully shared version, but let's see how wgpu performs first" | User |
-| 18b amendment: `Instance` is the browser's existing 64 B model record (placement, data, tint, scale), not a 3×4 affine. Native's Godot adaptor converts it until phase 5. | The affine existed only for Godot's MultiMesh row, and phase 5 removes Godot. The existing record needs no shader or writer migration, so there's less churn and less code. | Orchestrator; confirmed by the user |
-| The Godot spike leaves no tech debt. Nothing Godot-shaped enters shared code; native's halves are thin GDExtension glue deleted with Godot; slice 21 is dropped; slice 22 is built on `wgpu` in phase 5 | "We don't want to have the Godot spike leave any tech debt in the codebase" | User (principle); orchestrator (re-plan) |
-| 20b's buildings pass doesn't land net-positive. It also moves the per-frame building walk into `crates/presentation`, so one Rust walk serves both clients, and deletes the TS walk (`buildingPlacements.ts` selection, `placementPool.ts`). Slice 15's earlier +270 counts against it. | The walk existed twice (TS and native Rust), the duplicate phase 4 removes; the user's priority is less code, and promises shouldn't stack | Orchestrator, from the user's priority |
-
-### Slice 20: shared presentation crate
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| 18b's `Instance` is the renderer's current 64 B model record (placement, data, tint, scale), not an affine | 18b chose the affine only for Godot's MultiMesh, which phase 5 removes; the record needs no shader or static-writer change and `wgpu` reads it as is | Orchestrator; user confirmed |
-| `frame()` takes 18b's camera; Rust builds the view, tiers units, corpses, ghosts and cook-off pieces by one rule (`view.rs`'s `model_detail`), and chooses and caps the cast lights at 24 | A renderer must not choose a tier or a light (18b); one tier function for 20b's statics too | Orchestrator |
-| `World.appearances` rows are 32 B: an appearance, the state drawn, and the way of lying | A batch names a drawable: a body's posed mesh, a corpse lying one way, a wreck's piece | Agent |
-| `Batch.pass` 2 is a ghost (translucent, no shadow, no depth write) | Ghosts draw in their own pass; 18b had 0 view and 1 caster | Agent |
-| `load_world`'s input is the existing `units` and `effects` sections, each skinned body's clip table, the tick rate, the sun, the soldier body, the overlay colours and the cruise height | Both clients already carry those sections; raw catalogs need the resolvers 20b moves into Rust | Agent; 20b may replace |
-| The `units` section gains each body's inverse binds, tier count and drawn sizes (far pose and each way of lying, `boundsSize`); `effects` gains `wreckLooks` (a hull's fitted wreck, its bounds and braking) | Rust poses and tiers from them; the browser computes them with the same scene-assets functions its models layer installs with (`boundsSize`, `lyingBounds`) | Agent |
-| Corpses are tiered one by one each frame in Rust; the renderer's corpse chunks and static card buffer are deleted | A thousand sphere tests cost microseconds; one path for every unit model | Agent |
-| Joint palettes are 3×4 rows (48 B); the model vertex stage dots the rows; the identity is joint 0 | 18b's `Joint`; a lab or a bake poses its own body with `posedPalette` (scene-assets' CPU pose) | Agent |
-| An airframe's shadow test lifts it by the cruise height | Rust has no terrain heights before 20b; the test only keeps an airframe drawn while its shadow is in view | Agent; open until 20b |
-| Ghost bodies cross as a short JSON list with their ground height; Rust adds an aircraft's cruise height, resolves, poses and colours them | The ground height is the UI's until 20b; ghosts show only while placing or holding Space | Agent; open until 20b |
-| Publications taken before the world loads are kept (two minutes at most) and noted when it loads | Effects started while the appearances install must still run | Agent |
-| Sound reads each publication as the presentation hears it (`sound_publication`: the effect publication, its launches, a turret's landing time); the sound lab's scripted publications get their launches from Rust (`launches`) | One launch derivation, the flashes' own | Agent |
-| `ballistics` loses its effect drawing; its rounds draw as overlay traces | 18b question 6 | User (18b) |
-| The workbench's feed replay and its GPU palette check are deleted | They drove the deleted TS pose driver and pose kernel; the Rust behaviour tests own the driver. A WASM pose bench could restore the replay | Agent; open |
-| The scenes' probes (`effects`, `effectInstances`, `castLights`, `lying`, `cookOffPieces`, `vehicles`, `muzzleSockets`, `drawnMuzzle`) read one on-demand JSON from Rust | Lab-only; no per-frame cost | Agent |
-| The browser keeps its TS tier rule (`modelDetail.ts`) for the statics until 20b moves them | 20b owns the static world's tiers and uses `view.rs` | Agent; 20b closes |
-| Native keeps its GDScript pose and effect ports and their compare tests, frozen (header comments), against pinned fixtures; it adopts the crate in phase 5, not here | Switching native needs a Godot-only fold of every palette into glTF skin binds and native's palette slots; phase 5 draws the bundles with `wgpu` and needs none of it | Orchestrator |
-| Pre-existing: a clock that does not move (a pause) gives a walking soldier zero speed, so he turns to idle; TS did the same | Found by the behaviour tests; not this slice's change | Agent; open |
-| Pre-existing bugs that slice work exposes are fixed within this spec, not logged as open. The first is: a paused clock flipped walking soldiers to idle (ported faithfully from TS into `crates/presentation`, fixed there) | "You should always leave the code in a better state than you found it" | User |
-| Godot is frozen: no Godot runs or glue until phase 5 replaces it, and native plate and count gates are dropped from phase 4's remaining slices | Godot windows kept appearing on the user's screen; verifying code about to be deleted costs time for nothing | User (prompted by the windows); orchestrator (the rule) |
-### Slice 25, steps 1 and 2: portable WGSL and the shader export
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| A battle's light (sky, clouds, haze, bloom) and the bloom's texel steps reach the shaders through uniforms (`SkyLight`, `Environment.aerial`, `Bloom`, a blur step), each field holding exactly the value once spliced in | One compiled set for every map and size; a new light cost about 6 s of pipeline compilation on the base. Plates stay within the run-to-run floor | Agent, under the research's build order |
-| The naga-rejected probe loops break or loop with `while` instead of ending in an unreachable `return` | The `return` made Tint warn "code is unreachable" on three modules | Agent |
-| The export is generated by a Vitest test on a recording WebGPU device, checked in at `packages/battle-renderer/pipelines/`, and validated by `crates/pipelines` with naga | A unit-speed drift check from the browser's own code; no GPU or browser needed | Agent (delegated: the export's layout) |
-| Every pipeline carries its own name, the key a native client looks it up by | 68 pipelines shared labels such as `prepass`, `rows` and the empty label | Agent |
-| The impostor bake and the pose kernel are not exported yet | Both are created only once appearances install; the pose kernel's text depends on the joint count and slice 20 decides its future | Agent; regenerate after slices 20 and 20b |
-| 20b steps 2 and 3 land together and must be net-negative as a pair; step 2 (+1,019 alone) doesn't land by itself, and its Rust is slimmed | The less-code gate isn't deferred piecemeal: this would be the third deferral after slice 15 and 20b step 1 | Orchestrator, from the user's priority |
-| Static-world trig uses Rust `libm` for both clients rather than porting V8's glibc `sin`/`cos`. GPU-read records stay bit-identical; CPU-side plot cuts move by at most 1.4e-12. | Porting glibc trig is ~300 lines for no visible difference | Orchestrator, on step 2's finding |
-### Slice 20b: the static world in Rust, step 1 (buildings and their walk)
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| 20b is three steps, not one pass: (1) buildings and their walk, (2) forest shapes and the terrain surface, (3) the biome and tunings, then the terrain and grass tables, then scenery. Step 1 is built; 2 and 3 stay open | With their dependencies the static world's TS resolvers are about 6,500 lines, each reproducing TS float order (research in the slice) | Agent; orchestrator agreed |
-| The resolvers live in a new crate, `crates/static-world`, as temporary scaffolding: it folds into `crates/presentation` as its `static_world` module when this branch rebases onto slice 20, and `StaticWorld`'s calls move behind 18b's `load_world` | Not `mapgen` or `contract`: the simulation never reads art. Not `crates/presentation` yet: slice 20 creates it in parallel | Agent; orchestrator (fold on rebase) |
-| The records are slice 15's exported layouts (`BuildingRecord`, `BuildingModule`) for the resolver, and the renderers' 64 B model record for what the walk draws (18b's `Instance`, as slice 20 defines it) | Native's walk and the browser's draw read them unchanged; no affine migration | Agent; orchestrator (Instance) |
-| The per-frame building walk moved into Rust too (`walk.rs`), and both clients run it: the page through `StaticWorld`, native through the extension's `BuildingWalk` (glue only: sim-space view in, MultiMesh rows and caster regions out). The TS walk (`buildingPlacements.ts`, `placementPool.ts`) and native's Buildings/Ruins rules are deleted | The pass had to land net-negative, and the walk existed twice; one walk is phase 4's point | Orchestrator (ruling (b)) |
-| The walk settles in one call: residents nearest first while the pool's rows last, no per-frame expansion budget (`expand_rows` deleted from `fixtures/game.json`) and no pool packing by kind; the 75% pool blocker in native goes | Placing rows in Rust costs no JS per row, so the budget's hitch protection is not needed; both clients now run the same rule, so there is nothing to diverge | Agent |
-| Rust reads the runtime catalog, the template library and kit bundles' bounds itself (`files.rs`, behind the `files` feature, with `flate2` for the gzip transport); the page hands it the library bytes it already inflated and the bounds of the kits it installed | Native needs no browser export; the page downloads nothing twice | Agent |
-| Native resolves the capture's saved map (`fixtures/maps/<identity.map>/map.json`), not a manifest section; the manifest's `buildings` section, its four artifacts, `buildingTables.ts` and the props-parts cross-check against it are deleted | Placement no longer travels through the manifest (slice contract) | Agent |
-| `cos`, `sin` and `pow` go through `libm` in `f64`, as the TS did. `libm` is not V8's math: V8's `cos`/`sin` are glibc's and its `atan2` fdlibm's, and `libm` differs from them in the last bit for about 1.5% of random inputs (4% inside [−1, 1]; step 2's row below). The building tables still equal the TS exports word for word on both reel maps, for the angles they use | One implementation for both clients (accepted by the coordinator, 2026-10-11); byte equality holds on the reel maps' tables, not for every angle | Agent; corrected in step 2 |
-| The walk's equality with the TS walk was proven on counts per module and tier over 400 views of each reel map (a camera tour, buildings falling), not on capture frame records | A capture's records need the rig's view build; the tour covers every tier, residency and fall the reel does | Agent |
-| The static world folds into `crates/presentation` (`static_world`), and buildings reach the page only through `Presentation`: `add_buildings` + `load_world`, then `frame()`'s batches; the page's `StaticWorld` and the renderer's `BuildingWalk` are deleted | One presentation crate and one WASM class; statics ride 18b's Frame, as units do | Orchestrator (ruling (a)) |
-| `Presentation`'s constructor arguments are optional; a scene has one Presentation: the battle's (its buildings loaded into it), else one with no layout for a lab without a battle. *Superseded the first fold's building-only Presentation beside the battle's.* | One owner per scene (orchestrator); the battle's Presentation stages its world before the first publication, so the buildings still draw behind the loading cover | Orchestrator; agent (staging) |
-| A scene's world is staged on its Presentation (`setBattle`, `setBuildings`) and loaded whole by the next frame; the viewport frames it for statics alone until the battle's first publication | `load_world` replaces everything, so the battle's and the buildings' halves must arrive in one call | Agent |
-| The static world's rows carry `Appearance.placed`; the renderer splits a frame's batches by it (buildings layer: placed rows, their leading records uploaded only when written; models layer: the rest, uploaded from the first posed record) | One frame carries both, and unchanged statics must not be re-uploaded with the units each frame | Agent |
-| Fallen buildings are derived in `frame()` from the side's known props (`fallen.rs`, the TS rule ported exactly), re-derived only when the publication's known-prop group changes; a missing template state fails the frame by name | Rust owns fallen state (18b); deriving per publication change costs nothing per frame | Orchestrator (rule); agent (when) |
-| Labs without a battle make buildings fall through `ui.known`, a stand-in for the publication's known props read by the same rule; the city line-up gives each building one synthetic part | One rule for battles and labs; no lab-only fallen list | Agent |
-| The viewport builds its renderer frame without waiting for the presentation module; its own Presentation is made once the module has loaded | The viewport tests (and a first frame) must not hang on the module | Agent |
-| Static batches are rewritten all together when the walk changes anything, otherwise all `first = NONE` | Rewriting single batches needs an arena in the renderer; whole rewrites cost no measured frame time | Agent |
-| The building record buffer is a power of two sized to the records, released on a new load | The city-block scene requires bytes to return to baseline when buildings are replaced | Agent |
-| Battle routes reach `LabViewport` through the session's `viewport`, `known` and `input` bundles, spread as props; the session's loose fields go | Every battle route repeated the same dozen props; one owner for what a battle hands its viewport | Agent |
-| A building row is its renderer record (with module, tier mask and building); the walk keeps no row type or copy of its own. Step 1 lands at −201 net lines against `6c6e40d30` | Less code (the user's priority); the walk only selects rows, it needn't own them | Agent |
-
-### Slice 20b: the static world in Rust, step 2 (the ground's shapes)
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The ground's resolvers live in `crates/presentation/src/static_world/ground`: forest shapes, the plot split, the paved strokes as drawn through towns, both surface fields (the material's and the scenery's) with their slab bearings, and the water surface's cells. The page gets them as `Ground` in `presentation-wasm`, built per map from `WorldView`'s export streams, the buildings' centres and the regional biome as JSON (Rust reads only `seed`, `field_rules`, `plots`, `palettes`, `roads`) | The biome, tunings and scenery placement are step 3; this keeps them TS until then without a second owner of any resolver | Agent |
-| TS keeps only readers: `surfaceCell` and the three distances, `strokeInside`, `stretchInside`, `forestInside`, and `plotAt` (the shader's walk, for tests and the ground scenes). The surface field's reach crosses as a 32-level table the material's and scenery's reach functions fill | Scenery placement (step 3) still reads distances per point; a WASM call per point was not worth it for one step | Agent |
-| `Ground` is its own binding for now, not `load_world`'s `World` | `WorldInput`/`World` take buildings in step 1's next pass; the ground's tables join them there | Agent; follows step 1 |
-| Trigonometry is `libm`'s, one implementation for both clients. V8's `Math.cos`/`sin` are glibc's (`use_libm_trig_functions`) and `atan2` fdlibm's: on 200,000 random inputs `libm` differs in the last bit for 1.4% (`cos`), 1.6% (`sin`) and 0.15% (`atan2`), 4% inside [−1, 1]. `hypot` is V8's own (scaled Kahan sum) and is ported exactly; `pow(x, 2)` matches | Step 1's ledger says `libm` is V8's; it is not, so step 1's equality held for its inputs, not in general | Agent; accepted by the coordinator (2026-10-11): the GPU-read records are identical |
-| Equality, six maps (market-town, paris-corner, river, street, geometry, ground), against the deleted TS: with V8's own trig routed in (a scratch build) every record is bit-identical, so the port's float order is exact. Shipped with `libm`, every record the GPU reads is bit-identical (f32 plot nodes, plot colour and rows, both fields' records and index, drawn strokes, water cells); the f64 plot cuts and outlines move by at most 1.4e-12 of their value, and scenery placed from them hashes the same on four maps | The plates and native's terrain tables cannot move; the scenery digest covers the only CPU consumer of the moved values | Agent |
-| Step 2 alone is +770 lines (Rust +2,252, 465 of them tests; TS −1,149; web tests −333). Slimmed from +1,019: one record-append and one chunking helper, tuples for the index's per-record facts, the biome's `Town` in place of a copied rule, a flat field grid. The port is about the size of the TS it replaces file for file (plots 522 lines against 509, the field 434 against 427); the rest is the math and WASM boundary both sides now carry, and the TS readers step 3 deletes | Steps 2 and 3 land together, and the pair must be net-negative | Coordinator (2026-10-11) |
-| Native: no change. It reads these tables through the manifest's terrain artifacts, which stay byte-identical, and `godot-binding` still compiles against the crate | Godot is frozen (user, 2026-10-11): phase 5 replaces it, so no Godot glue and no Godot runs | User (freeze); agent |
-| Measured on the pre-rebase base (`93f27e459` against the port), production build, AC power, under the GPU lock, three runs each. Graphics test, market-town: 77.3 FPS median average (76.2–79.1) against 78.0 (77.9–78.5); p95 17.36–17.79 ms against 17.26–17.83; GPU 8.67–8.99 ms against 8.72–8.77. Paris-corner: 110.4 (106.7–110.7) against 108.9 (103.7–110.2). Benchmark (city contact): 14.4 FPS median (14.3–15.2), CPU p95 76.8–80.2 ms, against 14.6 (14.4–15.0), 75.9–79.6. A Metal trace of each (Chrome headless, 20 s of market-town) gives GPU busy 4.25 against 3.44 ms a frame over different stretches of the reel; Dawn's encoder labels didn't reach Metal, so it splits only by channel. Market-town's ground resolves in 110 ms against the TS's 407 (Node, V8) | Frame cost can't move (the uploaded tables are the same bytes); the spreads overlap and load gets faster | Agent |
-
-### Slice 20b: the static world in Rust, step 3 (the biome, the tables, scenery)
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The biome is Rust's (`ground::biome`, serde). Its checks moved with it; serde refuses a missing or mistyped field, so only the ranges and cross-references are spelled out. A map's region is applied at the JSON level (`Biome::load`), and every family's finish of every row is checked, as the TS did | One owner of the schema; the page keeps reading the few numbers it still needs (scenery tiers, the felled rules, the grass window) from the same file, typed by the JSON itself (`typeof summer`) | Agent |
-| The terrain and grass tunings are data: `presentation.terrain` and `presentation.grass` in `fixtures/game.json`, keys snake-cased; `ground::tuning` documents every number and reads the four its tables use. The shaders import the fixture and splice the same values, so the WGSL is unchanged. `GRASS_EDGE_M` became `presentation.grass.edge_m` | "Defaults as data"; the shaders need the numbers at module load, which a JSON import gives without a second owner | Agent |
-| ~~The renderer packs each grass kind's blade meshes itself (`packGrassShapes`, per vertex) and reports their facts to Rust; the strip indices stay the renderer's~~ *Superseded (slice 25, native on wgpu): Rust packs the shapes from the bundles' tiers the page hands it (`ground::grass::pack_shapes`), gives the strip indices, and fits each frame's window and params, so native derives none of it* | Meshes and their topology are the renderer's (18b); the growth and the uniform are the biome's. Rust would otherwise need the decoded bundles | Agent |
-| Rust tables carry no per-frame fields: `TerrainParams` without `view`, the scars from `full` on, `GrassParams` with planes, eye, window and tiles zero. The page patches those words before each write | The frame owns them; the tables are the same bytes for every frame | Agent |
-| The height pages are packed by Rust for fog and grass alike (`terrain_heights`), the TS packer deleted | One packer; fog's grid is the same export | Agent |
-| Scenery placement and the dressing field are Rust's; the dressing's per-frame cache and the scenery layer's walk stay TS until the `World` fold | They are the walk the fold moves through `Frame`'s static batches with step 1's emitter; porting them now would be a second walk | Agent; follows step 1 |
-| The manifest loses `tuning`, `terrain`, `grass` and `scenery` (writer, validator, capture); native's GDScript is untouched and reads only captures that still carry them | Placement no longer travels through the manifest (slice contract); Godot is frozen until phase 5 replaces it | Agent, under the freeze |
-| The ground scenes read Rust through `Ground`'s probes (`distances`, `reach`, `plots_json`, `plot_kind_at`, `drawn_strokes`, `field_grid`) where they read the TS readers; the field's CPU lookup takes the pixel's footprint as the GPU's does | The scenes check the WGSL against the CPU's own lookup, now Rust's; probes cost nothing per frame | Agent |
-| The deleted TS tests' contracts live in `ground/tests.rs` on one synthetic world, through `Ground`'s calls; the grass tests run through the WASM `Ground` | Test the behaviour where it is owned, at its outermost entry | Agent |
-| The presentation module grows from 1.37 MB to 1.81 MB raw | The biome's and tables' serde and the scenery port; within the startup budget | Agent |
-
-### Slice 20b: the static world in Rust, step 4 (the `World` fold)
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The scenery walk (chunks, tiers, dressing cells, felled poses) is a `Population` beside the buildings', so `Frame.batches` carry it through `StaticBatches`. Each list has a print, and a batch is written only when its print changes | One walk and one emitter for everything static; the renderer uploads what changed and decides nothing | Agent |
-| `Appearance.pad` becomes `draws`, which says which scenery shader draws a row (0 a model or kit module). A felled tree is two `Instance` records | The scenery shaders read the 64-byte `Instance` with no second record type; a fall needs more than 16 floats | Agent |
-| The ground lives on `Presentation`; the `Ground` wasm class is deleted, and generic names take a `ground_` prefix | One owner per map (coordinator brief); the frame's scenery walk needs the ground the page's tables come from | Agent |
-| Felled trees come from the publication's fallen bodies inside Rust. The cleared ground is still handed in (`set_cleared`) | The lab can hide the learned ground (`scarsSuppressed`), and a scene with no battle has none; reading `learned()` directly would lose both | Agent |
-| `set_ground` sets the scars' reach itself, and the page's `set_scar_reach` is deleted. Rust keeps it for native's own ground | The reach is the ground's fact; native has not moved its ground onto `Presentation` yet | Agent; closed by slice 25 step 5b (native sets its ground on `Presentation`, and `set_scar_reach` is deleted) |
-| The felled angle is accepted at one ulp from the TS on 51 of 1,422 trees | The step 3 `libm` decision; it is invisible on screen | Agent |
-
-### Slice 20b: the static world in Rust, step 5 (the props)
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The props' fit, the side's knowledge of them and their walk are Rust's (`static_world::props`), a third `Population` through `StaticBatches`, view pass only. The page draws each batch as a run of the models layer, in the passes the props were drawn in before (units' prepass, fog class, cascades a tier coarser) | One writer for everything static; the props' depth stays out of the world prepass, so the ground paint and the units' x-ray see what they saw | Agent |
-| One rule for every scene: a side draws the map's props less those it knows replaced, plus what it knows. The "apart" split (movable and destroyable kinds drawn from knowledge, the rest as the world) and the sessions' `destroyable` option are gone | In a battle the two lists drew the same picture; the split only made the labs without a side (city block, line-up, camera) leave cars, fences and walls out, which they now draw | Agent |
-| A known body's paint is seeded by the authored prop it is, not its published id | The rule the TypeScript stated ("a shoved car keeps its colour") and its tests held; in a battle it seeded by the known prop's own id, so a shoved car changed colour | Agent |
-| The props take the units' tier thresholds as authored (`presentation.models`), not the player's unit detail scale | As the TypeScript drew them | Agent |
-| A wreck the cook-off draws moving is read from the cook-offs at each frame, not at each publication | The presentation owns both; the page's copy lagged a publication | Agent |
-| `ui.known`, a lab's stand-in for the publication's known props, carries a prop's id and box; a stand-in without a box stands buildings only | The props and the buildings read one knowledge, as in a battle | Agent |
-| The page reports the art (`propArt`: footprint, paints, region, size and reach per installed appearance; each vehicle's wreck; the stand-in) and Rust fits; `prop_appearances` names what the models layer installs | Rust holds no bundle; the page installs only what the frame can name | Agent |
-| The props are bucketed in 64 m chunks, each the box of its models' tested spheres, as the TypeScript did; a list is written when it changes | Market-town's 54,000 models walk every camera move; the chunks make a close view cost its neighbourhood | Agent |
-| The manifest's `props` keeps only `buildings`; the map's prop table and the fit's tables are deleted, and plates count props per tier | Native runs the presentation crate and reads nothing else of them | Agent |
-| The static chunk owner (`frame/staticChunks.ts`) is deleted with its last population, and the models layer's unused sun-shadow input with it | Nothing walks chunks in TypeScript any more | Agent |
-### Slice 25, step 5b: the scenery on native, the ground on `Presentation`
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| `place_scenery` takes each kind's finest mesh, and Rust reads the size, trunk and crown off it; the stump mesh is Rust's (`stump_mesh`) | Native needed the same facts and stump. One owner, in Rust, instead of a second port; equal to the deleted TS bit for bit | Agent |
-| A tree is a biome `trees.species` kind | Rust has no catalog; it agrees with the catalog's `tree` on every kind | Agent |
-| The page places scenery from the world layers' scenery art, passed with the ground | Since 20b step 4 the battle handed its presentation only the models' pruned art, and no battle drew scenery | Agent |
-| Native's scenery draws runs from the frame's instance buffer, not per-key buffers | The replay resends statics on each drawn frame; a live client needs per-key buffers, as for the buildings | Agent |
-| The replay forwards the learned ground's cleared cells to `set_cleared`, as the page does | 20b step 4 kept `set_cleared` as an input; folding it into `Presentation` is open | Agent |
-
-| A prop batch's buffer, and now a scenery batch's, is held only while the frame lists it, a power of two of records: a batch left out is dropped, and the frame writes it anew when it comes back | The `StaticBatches` contract already said so; held forever, the scenery's buffers grew with every view visited, so the same view held different GPU memory by its history (city-block's baseline check, once scenery drew again) | Agent |
-| The felled trees' lists print by what they hold, not by a counter bumped on a fall or a clock step | A camera move that changed a felled tree's tier named its lists unchanged, so a renderer drew the last view's records (out of bounds once buffers are tight: a WebGPU validation error on the graphics test's market-town) | Agent; a fix to step 4 |
-### Slice 25: the score's decisions in Rust; native plays voice lines and the score
-
-Resolves battle voices and music's [N2](../done/battle-voices-music/choices.md#n2-the-scores-mood-logic-stays-in-typescript) ("the score's mood logic stays in TypeScript"), whose provisional call held until a native client needed music. Native needs it now.
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| **N2 resolved: Rust decides the battle score** (`presentation::sound::music::Score`): the mood (`tension`, `combat`) with its enter and leave spans, from the side's own barks; the next track of a mood as a catalog id, by a shuffle bag (each track once a shuffle, never twice in a row) on the score's own seeded `Mulberry32`; and the dip under voice lines. `presentation.audio.music` and the catalog's `music.moods` are typed in `sound::tables` | The user's decision (2026-10-12): one owner for every battle sound decision, both clients alike | User |
-| **Music is three commands in the sound's command stream:** `music` (stream track `track` from `at`, looping, fading in over `fade`), `music_stop` (fade every sounding track out over `fade`, then free it) and `duck` (dip the bus by `depth`, gliding with time constant `glide`). A crossfade is `music_stop` then `music` over the same span; the first track only fades in, under the menu's own fade-out | Players stay as dumb as a mixer: no crossfade or duck state of their own. Two ops keep the first track's fade-in exactly as the TS played it | Agent, on the user's contract |
-| **Players resolve ids to files.** Rust never sees a file name, format or path: the browser's `MusicPlayer` builds `/audio/music/<id>.<sha8>.mp3`, native the same path under `assets/runtime` | The user's decision | User |
-| **Menu music stays the app's** (`AppAudio`): the menu bed, its fades, and ending the score on leaving a battle | Not a battle decision (user) | User |
-| The browser seeds each battle's score from `Math.random` at its first update; native's replay seeds it 0, as the browser's lines are seeded 0 | The page had no battle seed in its audio path, and the TS drew from `Math.random`: each battle still opens on a different track. A replay has no seed to take | Agent |
-| `speaking` is the line arbitration's (`Chatter::speaking`: a line started and not yet over, through a reset), deleting the TS `until` | The score's input should be Rust's too; a reset lets sounding lines play out, so it keeps `until` apart from the sounding list | Agent |
-| Native streams music through its own `kira` sound: MP3 bytes in memory decoded packet by packet (`symphonia` 0.6, the version `kira` uses), resampled linearly, with linear amplitude fades as the browser's ramps. Not `kira`'s streaming sound | `kira`'s streaming decodes on a thread; rendered to a buffer it gaps nondeterministically. Decoding in place is deterministic and still never holds a track decoded whole | Agent |
-| Native voice takes: a pack's `pack.json` tells the arbitration every voice and take length at once; a take is read and decoded when a line plays it, the last 32 kept (the browser's `DECODED_TAKES`), and calibrated by `bank::source_normalization` as the browser's sink calibrates a take | The browser holds every take's MP3 bytes in memory to dodge the network; native's disk is always there | Agent |
-| Native's duck glides linearly over `glide` (a `kira` tween) where the browser approaches with that time constant; named, as step 7's 60 ms glides were | `kira` has no exponential approach; the dip depth is exact | Agent |
-| Not ported: the unseen-enemy shout pool on native (`shoutPool.ts`'s selection stays the browser's), so an unseen shout is silent natively | Its take selection is a TS rule; moving it to Rust for both clients is its own step | Agent; reported |
-
-### Slice 25, step 6b: fog of war's sight in Rust
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| Rust decides every fog upload: eyes, known occluders, map slots, rebuild schedule, horizon and whole-fog records, `FogParams`. A renderer writes one `FogUpload` a frame and runs the passes it names | Rust as smart as it can be; native would otherwise port the same 900 lines | Agent |
-| The renderer calls `prepare_fog` at encode time, with its camera record, rather than `frame()` making it | The rebuild schedule assumes every prepared frame dispatches; the page frames its presentation on ticks it may not render | Agent |
-| Fog reads the latest publication's own units and known props itself, not `know()`'s lab stand-in (`Ui.known`). A lab stands in eyes (`FogSetup.eyes`) or looks through some units (`units`) | The side's sight is the publication's; the labs that stand in buildings have no battle fog | Agent |
-| The side's foliage is still handed in (`WorldView.foliage_cleared`; `files::side_foliage` natively) | Clearing foliage needs the simulation's world, which the page's presentation does not hold | Agent |
-| The geometry joins `Tuning` (`presentation.fog_geometry`, checked by Rust); the frame keeps `tile_px` and `radial_bins`, which the shader text splices | The pipelines are built before any presentation exists; the export holds the text | Agent |
-| `Source` gains `playable` and `PropKinds` (names, drawn-by, occludes); `ground::source(world, extents, layout)` builds it from the simulation's world for native and the tests | One builder of the ground's source | Agent |
-| Native binds each surface's fog group by what it is (`fog::Layer`, `modelFog.ts`'s rule); `Environment` no longer owns a fog group | Units must never be fogged, corpses as the ground; one all-purpose group could not say so | Agent |
-| The equality vectors hash each upload (FNV-1a) and commit the street's publications as words; the knowledge rules are held by Rust unit tests and `buildingKnowledge.test.ts` through Rust | The streams had no fallen or destroyed prop, so two falsifications passed the vectors | Agent |
-| A fog reel (`/graphics-test?fog=1`, `PARITY_FOG=1`) judges native's fog | Neither reel draws fog; the reel's own publications and cameras make the control | Agent |
-| `bareTerrain`'s playable rectangle is `[x, y, width, height]` | Fog reads the simulation's rectangle format; the facade's stations fell outside the old one | Agent |
-
-### Slice 25: effect counts
-
-| Decision | Why | Closed by |
-| --- | --- | --- |
-| The worker's `ready` reports the rules' `tick_hz` as given, and pacing derives `tickMs` from it | `1000 / (1000 / 30)` is 29.999999999999996, and the page's presentation times every effect from that rate. This is a fix in the browser's sim client, outside the capture lane, because the cause was there | Agent |
-| The capture's `tickHz` is the rate the page's presentation ran at (the worker's `ready`), not the rules' | Record the inputs the presentation framed from; the replay builds its `Presentation` from it | Agent |
-| Native checks building modules per module and tier against `instanceCounts[].buildings` | The plates' "statics" had no native check; models, props, scenery and effects did | Agent |
+These are the decisions this spec left in the code. Each was checked against the shipped code on `main` (2026-10-13), not against the pass where it landed. A decision a later pass reverted is not listed. That covers Godot and everything built on it, the JavaScript-arithmetic emulation, `resend_statics`, the exported placement tables and the per-pass scaffolding. Gate results and evidence live in the slice files.
+
+**Terms used throughout:**
+- **Presentation crate** (`crates/presentation`): the Rust code both clients share. It turns one side's publications into what to draw.
+- **Publication:** the words the simulation sends a side each tick, holding only what that side can see.
+- **`Frame`:** what the crate hands a renderer for one drawn frame, as flat records: batches of instances, palettes, effects, lights, the camera and the counts.
+- **`World`:** what the crate hands a renderer once per battle.
+- **Batch:** one run of instances of one model at one detail tier.
+- **Renderer:** the browser's TypeGPU code, or `native/client` on `wgpu`.
+- **Control:** a fresh browser run that native is compared against.
+- **Plate:** one frame of a control, saved as a PNG.
+
+**Decided by:** *User* means you decided it. *Agent* means an implementing agent, coordinator or orchestrator decided it on your behalf. **Confidence** is how sure the audit is that you would have made the same call.
+
+**Review these first:** none open. The three least-confident entries were closed on 2026-10-13 (`lastowners`); they are listed under Sound with their resolution.
+
+## Needs you
+
+### Native draws far soldiers as meshes, not impostor cards
+*Agent, slices 14 and 25 (step 5a). Confidence: medium.*
+
+An impostor card is a small picture of a model, baked once and drawn as a flat card when the model is under about 10 pixels tall.
+- **Browser:** bakes cards for skinned bodies and draws a distant soldier as one card (two triangles).
+- **Native:** bakes nothing. At the card tier it draws the body's coarsest mesh, posed once in the far pose the card would show (a few hundred triangles), and a corpse's coarsest lying mesh (`native/client/src/models.rs`).
+
+Counts are equal, and the picture is the same few pixels. The bake pipeline (`bake.wgsl`) is exported, but native does not run it.
+- **Reach:** a large battle with hundreds of far soldiers costs native more triangles than the browser. Slice 22 (completeness) owns closing it.
+- **Provisional call:** keep the mesh until a measure shows the triangles matter. To reverse it, run the exported bake at load and draw tier 4 as cards.
+
+## Sound
+
+Least confident first.
+
+### Native reads its world from the repository, not the browser's manifest
+*Agent, slices 14, 17 and 20; resolved `lastowners`. Confidence: medium.*
+
+Native used to take each unit type's facts, its appearances' joints, clips and rigs, the effects' tuning and wrecks, the light and each building's part props from the manifest the browser's capture run wrote. Now Rust resolves them from the repository's own files, through `presentation::fielded` (feature `files`, with `presentation::assets`):
+- **Units and effects:** the units the map's encounter fields, under the catalog of the map's category; their art from the runtime catalog's bundles and skeleton clips, as a page wearing those units installs it; the clip tables built from the skeletons.
+- **Buildings:** the parts from the simulation's own `export_buildings`, and the gutted shells from the catalog's props.
+- **The light:** `presentation.light` in `fixtures/game.json`.
+
+Proven before the manifest path was deleted, on fresh captures of both scenes: every field equal, the clip tables bit for bit, and the posed bounds within 3.4e-7 relative. The bounds are posed from the clip table's float32 rotations, the same table a renderer poses with. One difference was the browser's, not Rust's: a page that films several scenes keeps every scene's art installed, so a later scene's manifest listed wreck looks for units it never fielded. Filmed alone, it matched.
+
+The manifest keeps only the battle's identity, the lens, the drawn layers and the per-plate counts. Its `units`, `effects`, `props` and `light` sections, the clip-table files and the page's `describe*` hooks are deleted.
+- **Reach:** the browser still resolves its own world input in TypeScript (`unitPresentation.ts`, `effectPresentation.ts`). The two are held together by the fixture run's effect counts, which `tests/effects.rs` replays through the Rust-resolved input, not by sharing one resolver. Moving the browser onto `fielded` would mean handing Rust the bundle bytes the page already decodes.
+- **Factions:** a replay knows no skirmish factions, so it resolves one look per soldier. `fielded` takes the factions when a caller has them.
+
+### An aircraft's shadow-visibility test assumes it flies at cruise height
+*Agent, slice 20. Confidence: medium.*
+
+A helicopter can be out of view while its shadow is on screen, so it must stay drawn. The crate decides this by dropping the shadow point straight below the aircraft by a fixed `cruise_agl_m` from the rules, along the sun's direction. It does not use the terrain under the aircraft. This was provisional because Rust had no terrain heights before 20b. Rust has them now, and the rule stayed.
+- **Reach:** over a hill or a valley, the test is off by the height difference. It only decides whether an aircraft is drawn, never where.
+- **Verdict:** sound for now. Read the ground height if an aircraft ever pops in or out at a frame edge.
+
+### Ghosts arrive with the ground height the UI computed
+*Agent, slice 20. Confidence: medium.*
+
+A ghost is the translucent preview of a placement, a purchase or a destination while Space is held. The UI passes each ghost to `frame()` as a short JSON list with the ground height under it. Rust adds an aircraft's cruise height, then fields, poses and colours the ghost. Ghosts draw in their own pass, `GHOST_PASS`, with no shadow and no depth write. Rust now has the ground, but the UI still supplies the height.
+- **Verdict:** sound. It is one number per ghost, and only while placing.
+
+### The browser's battle score is seeded from `Math.random`, and native's replay from 0
+*Agent, slice 25 (step 7b). Confidence: medium.*
+
+The score picks its next track with a shuffle bag on its own seeded `Mulberry32`. The browser seeds it once per battle from `Math.random` (`appAudio.ts`), so each battle still opens on a different track, as the TypeScript did. Native's replay seeds it 0 (`SCORE_SEED`), because a replay has no seed to take. The seed is an input to the crate, so the crate itself stays deterministic. A saved replay in the browser, however, may play a different score each time.
+- **Verdict:** sound. Seed it from the battle's seed if you want replays to sound the same.
+
+### Native's music duck and reverb are close, not exact
+*Agent, slice 25 (steps 7 and 7b). Confidence: medium.*
+
+When a voice line plays, the music dips. That dip is the duck. The two players get there differently:
+- **Duck:** the browser glides toward the new level with a time constant. Native glides linearly over the same span, because `kira` has no exponential approach. The depth is exact.
+- **Reverb:** the browser convolves with an impulse it synthesizes in TypeScript (`reverbImpulse`). Native uses `kira`'s algorithmic reverb.
+
+Rust decides every sound command, so these are differences in the players only.
+- **Verdict:** sound; the differences are named. They matter only if native audio is ever compared by ear.
+
+### The unseen-enemy shout pool stays in TypeScript, so native is silent there
+*Agent, slice 25 (step 7b). Confidence: medium.*
+
+When an enemy the side cannot see shouts, the browser picks a take from a shared pool (`shoutPool.ts`). That selection rule was never moved to Rust, so in a native replay an unseen enemy's shout makes no sound.
+- **Reach:** slice 22 (completeness). Moving the selection into `presentation::sound` would serve both clients.
+- **Verdict:** sound as a named gap.
+
+### `observation()` returns JSON, about 36 µs slower per publication than the old decoder
+*Agent, slice 19. Confidence: medium.*
+
+The UI reads the side's observation (units, contacts, orders) once per new publication. Rust serializes the typed view with serde, and the page runs `JSON.parse`. That costs about 180 µs a publication, against the deleted TypeScript decoder's 144 µs: roughly 1 ms per second at 30 Hz. The fog bits and the ground runs skip JSON (`fog_bits`, `ground_runs`).
+- **The alternative:** hand-written zero-copy views for every entity, which is a lot more code.
+- **Verdict:** sound. Frame rate did not move. Every per-frame record in `Frame` is already zero-copy.
+
+### A stale publication is dropped quietly, not refused
+*Agent, slice 19. Confidence: medium.*
+
+18b said `push_publication` errors on a stale record. In a lab, switching sides leaves records for the old side in flight. `push_publication` returns `false` for those, and `invalidate(side)` resets the reader, as the TypeScript decoder did. A malformed record, or an index outside its table, is still an error.
+- **Verdict:** sound; a small, deliberate deviation from 18b.
+
+### Fog is prepared at encode time, by a second call
+*Agent, slice 25 (step 6b). Confidence: medium.*
+
+Fog of war's sight is decided in Rust: the eyes, the occluders the side knows, the map slots, the rebuild schedule and `FogParams`. The renderer receives it as one `FogUpload` per frame. It is not part of `frame()`, though. The renderer calls `prepare_fog(camera)` when it encodes, because the rebuild schedule assumes every prepared frame dispatches, and the page sometimes frames its presentation on ticks it does not draw.
+- **Reach:** a renderer makes two calls per drawn frame instead of 18b's one.
+- **Verdict:** sound. Merging them would need `frame()` to know whether the frame will be drawn.
+
+### Fog's foliage is still handed in from outside the crate
+*Agent, slice 25 (step 6b). Confidence: medium.*
+
+Foliage the side has seen cleared stops blocking its sight. Working out which foliage cells are cleared needs the simulation's world. The page's presentation does not hold that world, so the page passes the cells in (`WorldView.foliage_cleared`), and native computes them with `files::side_foliage`.
+- **Verdict:** sound. It is the one fog input not derived inside the crate.
+
+### The building walk places everything in one call, with no per-frame budget
+*Agent, slice 20b (step 1). Confidence: medium.*
+
+The walk decides which buildings are resident (expanded into their modules) for the current view, nearest first, while the pool has rows. The TypeScript spread expansion over several frames (`expand_rows`) to avoid a hitch. In Rust a row costs no JavaScript object, so the budget and its packing-by-kind were deleted, and both clients run the same rule.
+- **Reach:** a hard camera cut into a dense city expands everything in that frame. No hitch has been measured.
+- **Verdict:** sound. Reintroduce a budget in `walk.rs` if a cut ever hitches.
+
+### Counts gates count what each list holds, not what the GPU draws
+*Agent, slices 14, 15 and 17. Confidence: medium.*
+
+Each plate carries counts the browser took, and native must equal them:
+- **`modelCounts`:** the posed population (soldiers, vehicles, aircraft, corpses lying or fading), not what is in view.
+- **`effectCounts`:** the effects that have started, by kind, shape and light.
+- **`instanceCounts`:** what each static layer draws into view (building modules per module and tier, scenery per population, props per appearance and tier).
+
+These are exact and do not move with machine load. They prove the same lists were built. They do not prove the pixels: the plates are still judged by eye.
+- **Verdict:** sound. Since both clients run one crate, the counts mostly check that each renderer drew what its `Frame` listed.
+
+### The grass's window is read from the last frame's camera
+*Agent, `derive2rust`. Confidence: medium.*
+
+The grass is grown on the GPU over a window around the view. Rust works out that window and the grass pass's per-frame parameters from the camera the last `frame()` call received (`grass_window()`, `grass_frame_params`). Neither renderer passes a camera anywhere.
+- **Reach:** a renderer must call `frame()` before it asks for grass. Asking first gives the previous frame's window.
+- **Verdict:** sound. It is the cost of having one owner for the camera.
+
+### The "scars off" lab switch no longer brings cleared shrubs back
+*Agent, `derive2rust`. Confidence: medium.*
+
+The ground lab can hide the learned scars (`suppressScars`). It used to do that by handing the scenery an empty cleared ground, which also stood up every shrub on cleared ground. Now the scenery follows the learned ground inside the crate, and the switch hides only the scars.
+- **Verdict:** sound. Scars and scenery are separate things to compare.
+
+### Labs without a battle make buildings fall through a stand-in for known props
+*Agent, slice 20b. Confidence: medium.*
+
+In a battle, a building's state (intact, ruined, gutted) comes from the props the side has learned of. The city line-up has no battle. It passes `ui.known`, a stand-in list with each prop's id and box, and the crate reads it by the same rule. The line-up gives each building one synthetic part. A stand-in without a box affects buildings only.
+- **Verdict:** sound. There is one rule for battles and labs, and no lab-only fallen list.
+
+### A scene has one `Presentation`, and its world is loaded whole
+*Agent, slice 20b. Confidence: medium.*
+
+A `Presentation` is the crate's per-side object. Each scene owns exactly one: the battle's, with its buildings loaded into it, or an empty one for a lab with no battle. The page stages the battle's half and the buildings' half (`setBattle`, `setBuildings`), and the next frame loads them together, because `load_world` replaces everything. Until the first publication arrives, the viewport draws the static world alone, so buildings show behind the loading cover.
+- **Verdict:** sound.
+
+### Native reads two of its tables out of the browser's TypeScript source
+*Agent, slice 25 (steps 4 and 6). Confidence: medium.*
+
+Two small tables have their only copy in browser source files: the split-sum lighting table (`dfgLut.ts`) and the list of effect flipbooks (`flipbooks.ts`). Native includes those files' text at compile time and parses the numbers out (`environment.rs`, `effects.rs`), so each table keeps one owner. Native builds its flipbook mips as a simple box-filter chain. The browser's are resized by Chrome, which differs only for small, distant flipbooks.
+- **Reach:** reformatting either TypeScript file can break the native build. The break is loud, at compile or start time.
+- **Verdict:** sound. A JSON file both read would be cleaner if a third table joins them.
+
+### Water is judged by shader vectors, never on a plate
+*Agent, slice 16. Confidence: medium.*
+
+Neither reel map has water, and filming the `river` test map would need a new workload. Native draws water through the browser's own exported WGSL, so the water's look is the browser's by construction. No plate has ever shown it.
+- **Verdict:** sound. Film a map with water if water's look ever changes.
+
+### The comparison runs under fixed conditions
+*Agent (coordinator, on your behalf), slices 07, 12 and 25. Confidence: medium.*
+
+A performance comparison is run like this:
+- plugged in (the bench records the power source with `pmset`);
+- at 1280×720, three runs interleaved, under the shared GPU lock;
+- native unpaced, with its window borderless and off-screen;
+- the browser headless and paced by `requestAnimationFrame`.
+
+On macOS, an off-screen `wgpu` window presents nothing, so the bench keeps at most two frames on the GPU, as a swap chain would. Both clients write raw per-frame intervals, CPU time and GPU time, and one summariser (`frameComparison.ts`) computes every number for both.
+- **Why:** on battery the headless browser is held at 30 FPS for a reason never found. A shown window adds presenting cost that the headless browser never pays.
+- **Verdict:** sound. The browser's pacing does not bind while its frames take over 8.3 ms. A browser faster than that would need GPU time compared instead.
+
+### The decode reference is the deleted decoder's last output
+*Agent, slice 19. Confidence: medium.*
+
+The committed `<scene>-observations.json` files are what the TypeScript decoder produced on two capture fixtures. That decoder was deleted when the Rust reader replaced it. `crates/sim/tests/publication_reader.rs` still holds the reader to those files. No fixture carries guided missiles, crashes, member leans, the encounter or skirmish objectives. Those rows are proven only by the web tests that now run through the reader.
+- **Verdict:** sound. Re-record the reference from Rust when the layout changes, rather than keeping a shim.
+
+### Native refuses a capture that is not the battle its manifest names
+*Agent, slice 25; resolved `lastowners`. Confidence: high.*
+
+Native hashes `capture.json` and the saved map it loads (SHA-256) and checks both against `manifest.identity`. It also checks the capture's workload (scene, map, encounter, seed) against the identity, and reads the map and encounter from the hashed capture. On any difference it refuses to run and names the file (`native/client/tests/identity.rs`). This is the check Godot's runner did.
+
+### Native reads the page's numbers with std's parse, not serde_json's `float_roundtrip`
+*Agent, slice 25 (`effectflake`). Confidence: high.*
+
+serde_json's default float reader misreads about 12% of the frame times the page writes by one ULP, which flipped a tick's effects on boundary plates. Native's capture reader parses each frame's and the lens's numbers with `str::parse` (`capture.rs`'s `exact`). Turning on `float_roundtrip` would fix every reader in native's build, its simulation's included, and the page's WebAssembly simulation would still read the maps the default way.
+- **Verdict:** sound. A local reader for the one file the page's JavaScript writes. If the whole workspace ever reads JSON exactly, enable it in every crate at once, the WebAssembly ones included, and re-record whatever that moves.
+
+### Labs that hand the renderer their own models take Rust's caster and fog rules
+*Agent, `derive2rust`; resolved `lastowners`. Confidence: high.*
+
+The caster rule and the fog group each have one owner in Rust: `view::batch_caster`, over `caster_tier`, and `view::model_fog`. Battles write them into `Batch.caster` and `Batch.fog`. A lab that calls `setModels` gets the same answers through two presentation-wasm calls, `batch_caster(tier, pass)` and `model_fog(lies, state, ground)`. `CASTER_COARSER`, the TypeScript fog rule and its test are deleted.
+- **One behaviour change:** in a lab, a model with fewer than four tiers no longer casts from its own coarsest tier. A battle never did this. The only such model is the workbench's deliberately broken tank.
+- **Still a copy:** the lab path's tier choice itself (`modelDetail.ts`) mirrors Rust's `model_detail`.
+
+### `min`, `max`, `round` and `signum` are Rust's own
+*User, `jsretire`. Confidence: high.*
+
+JavaScript's versions differ only for NaN, −0 and negative halves. No battle draws on those on purpose.
+
+### Every transcendental function is `libm`'s
+*Agent, `jsretire` (after slice 20b). Confidence: high.*
+
+`hypot`, the trigonometry, `exp`, `log`, `pow` and `cbrt` all come from the `libm` crate (pinned `=0.2.16`), in both clients. Without that, Rust's `sin` is Apple's on native and `libm`'s in WebAssembly. A tree placed from a cosine could then land a hair apart on the two clients, and the counts gates would catch it as a difference. The simulation's `contract` crate uses `libm` for the same reason.
+
+### Records are defined once in Rust and generated for TypeScript
+*Agent (records); orchestrator with your confirmation (`Instance`), 18b and slice 20. Confidence: high.*
+
+`crates/presentation/src/records.rs` declares every record a renderer reads: `Batch`, `Instance`, `Joint`, `Effect`, `CastLight`, `View`, `Camera`, the light and fog uniforms, and more. Each is declared through one macro. A test (`records_are_current`) regenerates `packages/battle-renderer/src/records.gen.ts`, with TypeGPU schemas for each, and fails if the checked-in file differs. `Instance` is the browser's existing 64-byte model record (placement and yaw, data, tint, scale), not 18b's first 3×4 affine, which existed only for Godot.
+
+### Batches name their caster tier and fog group
+*Agent, `derive2rust`. Confidence: high.*
+
+`Batch` is 48 bytes and carries `caster` (the tier its shadow is drawn from, or none) and `fog` (`FOG_UNITS` never fogged, `FOG_GROUND` as the ground under it, face by face, or painted faces). Renderers only route by these fields. An impostor card casts nothing, as a card never did.
+
+### Joint palettes are built in Rust
+*Agent (orchestrator), under your "decide by profiling" rule, 18b question 1. Confidence: high.*
+
+A palette is the list of joint matrices that bend a soldier's mesh. The browser was GPU-bound, and posing cost under 1% either way, so Rust samples the clips and writes 48-byte joint rows. Both GPU pose kernels were deleted, and clip tables never reach a renderer.
+
+### Rust chooses the cast lights
+*Agent, slice 20. Confidence: high.*
+
+Muzzle flashes and fires light the scene. Rust culls them to the view, ranks them and caps them at 24 (`CAST_LIGHTS_MAX`). The renderer uploads the rows.
+
+### Static batches are rewritten only when their list changes
+*Agent, slices 20b and 25. Confidence: high.*
+
+Buildings, scenery and props are static batches.
+- **Prints:** each list has a print, a fingerprint of what it holds, and a batch is written only when its print changes. Otherwise its `first` is `NONE`, meaning "unchanged": exactly what was last written, count included. Felled trees print by what they hold, not by a counter. `StaticBatches` mixes each population's print with the list's length, so no population can name a list unchanged under another count (`lastowners`). The scenery walk's prints had collided: a whole chunk's mark equalled an instance's, and the first instance's mark of 0 left a print unmoved. Main's renderer guard against that (`a9bc388fd`) had made the browser's scenery counts stale on one plate per scene.
+- **Generation:** the renderer passes a generation number to `frame()` and bumps it whenever it holds no static batches: a new GPU frame, a new world, or a replay jumping between plates. A new generation rewrites every static batch. This replaced the old `resend_statics()` call.
+- **Buffers:** each renderer holds a batch's buffer, sized to a power of two of records, while the frame lists it, and drops it when the frame stops listing it. Native keeps them in `statics.rs`, with the models layer.
+
+### Publications that arrive before the world loads are kept
+*Agent, slice 20. Confidence: high.*
+
+Appearances take seconds to install, and shots fired meanwhile must still produce effects. The crate keeps up to two minutes of publications (`PENDING_MAX`, 3,600 at 30 Hz) and replays them into the effects when the world loads.
+
+### Corpses are tiered one by one each frame
+*Agent, slice 20. Confidence: high.*
+
+A thousand sphere tests cost microseconds, so corpses take the same per-model tier rule as the living. The renderer's corpse chunks were deleted.
+
+### Native poses every frame record, including the ones it does not draw
+*Agent, slice 14. Confidence: high.*
+
+Poses carry state from frame to frame: a walker's stride phase, an easing gun, a fall. The replay therefore frames every record in order, from the capture's first record, and draws only the plate frames. Each record's publication is the sample at its tick, blended by its `simTime`, exactly as the browser's presentation clock blends.
+
+### Fallen buildings are derived in Rust from the side's known props
+*Agent, slice 20b. Confidence: high.*
+
+When the side learns that a building's parts are rubble, the building switches to its ruined or gutted state. This is re-derived only when the publication's known-prop group changes. A state the building's template lacks fails the frame by name, rather than drawing nothing.
+
+### A side draws the map's props, less what it knows was replaced, plus what it knows
+*Agent, slice 20b (step 5). Confidence: high.*
+
+One rule serves every scene. It replaced a split where movable and destroyable props came from knowledge and the rest from the map, which left cars and fences out of labs that have no side. Replacement is atomic: the list that drops a wall carries its rubble.
+
+### A car keeps its paint wherever it is shoved
+*Agent, slice 20b (step 5). Confidence: high.*
+
+A car's paint is seeded by the authored prop it is. A body the map did not author is seeded by its position in decimetres. Seeding by the published id made a shoved car change colour.
+
+### Props are fitted in Rust from the art files
+*Agent, slice 25 (step 5c). Confidence: high.*
+
+Each prop has a box from the simulation. Rust picks the appearance with the nearest footprint, scales it per axis or repeats a wall module along the box, and keeps the wreck that belongs to its own unit. It reads the art (footprints, paints, wrecks, bounds) from the asset files itself (`files::prop_art`), as it does for buildings and scenery. Props take the units' tier thresholds as authored and are bucketed in 64 m chunks for the walk.
+
+### Native fights a map's battle under its category's catalog
+*Agent, slice 25 (step 5c). Confidence: high.*
+
+A menu map uses the menu's units, and so on: the content rule in the root README. Native has no session to ask, so it reads the category from the saved map's metadata.
+
+### The static world is resolved in Rust from the saved map
+*Agent (orchestrator for the fold), slice 20b. Confidence: high.*
+
+`static_world` resolves the following from the saved map, the biome and the template art, identically for both clients:
+- the buildings and their modules;
+- the ground's shapes, plots and surface fields, and its terrain and grass tables and meshes;
+- the height pages that fog and grass read;
+- the scenery placement and the props.
+
+Rust reads the runtime catalog, the template library and the kits' bounds itself (feature `files`, with `flate2` for the gzip transport). The page hands over bytes it already has. Nothing static travels through the manifest any more.
+
+### Terrain and grass tunings are data in `fixtures/game.json`
+*Agent, slice 20b (step 3). Confidence: high.*
+
+`presentation.terrain`, `presentation.grass` and `presentation.fog_geometry` hold the numbers that used to be shader literals. Rust reads and checks them (the biome through serde, which refuses a missing field). The browser's shaders splice the same values from the same file, so there is one owner and the WGSL did not change.
+
+### The scenery is placed from each kind's finest mesh, in Rust
+*Agent, slice 25 (step 5b). Confidence: high.*
+
+- **`place_scenery`:** reads a tree's size, trunk and crown off its finest mesh.
+- **What counts as a tree:** a biome `trees.species` kind, which agrees with the catalog on every kind.
+- **The felled stump:** cut in Rust (`stump_mesh`).
+- **Felled trees:** pose in the vertex shader, so a falling tree is two `Instance` records. `Appearance.draws` tells a renderer which scenery shader draws a row.
+- **Tiers:** native shares a kind's tiers across its rows, where the browser uploads a copy per row.
+
+### Grass blade shapes are packed in Rust
+*Agent, slice 25. Confidence: high.*
+
+Rust packs each grass kind's blade shapes from the bundle tiers the page hands it (`pack_shapes`), and gives the strip indices. Native derives none of the grass itself.
+
+### The learned ground and its scar cache are Rust's
+*Agent, slice 25 (step 4). Confidence: high.*
+
+Scars are the craters, scorch and tracks a side has seen. Rust keeps the learned ground and a bounded GPU cache of its pages. A renderer uploads the words it is handed, and draws region by region when the marks do not fit at once. Native draws every region rather than scissoring each one to the screen as the browser does. The picture is the same, and that path is cold in both reels.
+
+### The camera, the view and the sun's cascades come with each frame
+*Agent, `derive2rust`. Confidence: high.*
+
+The renderer passes the camera's eye, target and lens to `frame()` in `f64`. It gets back:
+- the `View` (with `target`, where the haze is measured from, and the sky's corner rays);
+- the camera uniform;
+- the four sun cascades, fitted after `set_shadow(light, terrain)` was given once.
+
+The browser's `frameCamera.ts` and `SunShadowFit` and native's camera code were deleted.
+
+### Clearing lands one frame earlier than before
+*User accepted (named decision), `derive2rust`. Confidence: high.*
+
+The scenery follows the ground the side has learned cleared inside `frame()`, from the publications already pushed. Both clients used to hand the cleared ground back after drawing, so a shrub on newly cleared ground left one frame later. `set_cleared` is deleted.
+
+### The light is resolved in Rust into uniform records
+*Agent, slice 25 (step 3). Confidence: high.*
+
+`presentation::light` resolves `presentation.light` into `SkyLight`, `Aerial` (the haze), `Sun`, `Bloom` and `Grade`, each laid out as its shader's struct. The browser reads them through `light_records(json)` (a frame can be built before any battle), and native through `LightSettings::records()`.
+
+### The browser's shaders are exported once and built natively
+*Agent, slice 25 (steps 1 and 2). Confidence: high.*
+
+A Vitest test runs the browser's real frame code on a recording WebGPU device and writes every pipeline's WGSL and settings to `packages/battle-renderer/pipelines/`. `crates/pipelines` validates them with naga, and a drift test fails when the export is stale. Each pipeline carries a unique name, which is the key native looks it up by. The battle's light reaches the shaders through uniforms rather than spliced literals, so one compiled set serves every map and size.
+
+### Native is one ordered pass list, with no render graph
+*Agent, slice 25 (step 3). Confidence: high.*
+
+`Vec<Box<dyn Pass>>` is encoded in order each drawn frame, mirroring the browser's `battleFrame`: sky, prepass, world, effects, fog mask, ghosts, post, fog rim. Native presents by copying its display target to the window, so plates and the window read the same texture.
+
+### Native's window is off-screen, and plates never depend on presenting
+*Agent, slice 25 (step 3). Confidence: high.*
+
+The window opens borderless and off-screen, so nothing appears on your screen. On macOS, a window that is not visible presents nothing, so plates are read from the display target, not from the swap chain.
+
+### Fog of war binds by what a surface is
+*Agent, slice 25 (step 6b). Confidence: high.*
+
+Units are never fogged. Corpses are fogged as the ground under them. The static world is fogged face by face. Native binds each surface's fog group by its layer (`fog::Layer`), following the browser's rule, and the fog's look is a Rust record (`FogLook`) both read. A fog reel (`?fog=1`, `PARITY_FOG=1`) is the control for fog, since the menu reel draws none.
+
+### Rust decides every sound, and players carry out commands
+*Agent, slice 25 (step 7). Confidence: high.*
+
+The crate emits commands: start, glide and stop a voice, and listen from here. A player never reads `Frame.emitters`. Both players are as dumb as a mixer: equal-power panning is the only geometry they do. The browser's bank synthesizes and calibrates through the same Rust (`synthesize`, `source_normalization`). Native renders only offline (`--sound <wav>`) and never plays aloud in a replay.
+
+### Music is three commands
+*Agent, on your contract, slice 25 (step 7b). Confidence: high.*
+
+The commands are:
+- `music`: stream a track from a time, looping, fading in;
+- `music_stop`: fade every sounding track out, then free it;
+- `duck`: dip the bus.
+
+A crossfade is `music_stop` followed by `music` over the same span. Players keep no crossfade or duck state of their own.
+
+### Native decodes its MP3s in place
+*Agent, slice 25 (step 7b). Confidence: high.*
+
+Native decodes music and voice takes packet by packet with `symphonia`, the decoder `kira` uses. `kira`'s own streaming decodes on a thread and gaps unpredictably when rendered to a buffer. Native reads and decodes a voice take when a line plays it, and keeps the last 32 decoded, as the browser's `DECODED_TAKES` does.
+
+### The worker reports the rules' tick rate as given
+*Agent, slice 25 (effect counts). Confidence: high.*
+
+The page used to derive its tick as `1000 / (1000 / 30)`, which is 29.999999999999996 Hz, and every effect it timed drifted from native's at tick boundaries. The worker's `ready` now reports `tick_hz`, and the capture records the rate the page's presentation ran at.
+
+### The publication reader lives beside its writer
+*Agent, slice 19. Confidence: high.*
+
+`crates/sim/src/publication/reader.rs` and the writer share one group table (`GROUP_LAYOUTS`), so offsets are checked at compile time. The observation is typed: one struct per entity, declared by `view!` and serialized by serde. The reader is stricter than the old TypeScript: an index outside its table is an error.
+
+### One runtime-bundle reader serves the crate and native
+*Agent, spec review. Confidence: high.*
+
+`presentation::assets` reads the scene-assets container, the catalog and the gzip transport. Native loads its models through it, so the bundle format has one reader in Rust.
+
+### Pre-existing bugs found on the way are fixed here
+*User, slice 20. Confidence: high.*
+
+Bugs found along the way are fixed in this spec, not logged as open. The first one: a paused clock turned walking soldiers to idle. It was ported faithfully from the TypeScript, then fixed in the crate.
+
+## Your decisions
+
+These are your calls, recorded so later work treats them as givens.
+
+### A Rust core with one shared presentation crate
+*User, 2026-10-11 (phase 4).*
+
+Per-frame presentation (decoding, interpolation, poses, effects, cook-offs, fog's sight, sound) lives in one Rust crate. The browser runs it through `crates/presentation-wasm` and native links it. The TypeScript originals and the native ports were deleted rather than kept in step by tests. The WASM module links the reader and the crate but not the rules, so the main thread never loads the simulation (18b question 7).
+
+### Rust as smart as possible, renderers as dumb as possible
+*User, 2026-10-11.*
+
+Rust decides everything per entity: what is drawn, at which tier, where, in which light, fogged how. A renderer draws the buffers it is given. Presentation reads only a side's publication, so it cannot see past fog of war. It never touches the simulation's state, so tuning it never changes a digest or a replay. `frame()` reads no wall clock and no unseeded randomness.
+
+### A small, data-oriented API between Rust and every renderer, reviewed by you
+*User, 2026-10-11 (18b).*
+
+You approved:
+- the shape: `World` once, `Frame` per drawn frame, flat typed records, no per-entity calls;
+- static placement through `Frame`'s batches rather than `World` lists (question 3);
+- fog's look in `Frame` (question 5);
+- audio reading the presentation's emitters (question 8, now reached through commands);
+- `ballistics` drawing its trajectories as overlay lines (question 6).
+
+You decided separately that order lines, contact glyphs, markers and the ruler stay UI-built overlays read from `observation()`, and that ghosts stay in Rust (question 4).
+
+### Native on `wgpu`, running the browser's own WGSL; Godot deleted
+*User, 2026-10-11 (phase 5).*
+
+Godot's per-primitive cost was the remaining GPU gap, and its roughly 2,000 lines of hand-ported shaders were a second copy of the browser's. Native is `native/client`, Rust on `wgpu` over the 18b API. Godot was frozen first (no Godot runs, no Godot glue), and it left no tech debt: nothing Godot-shaped entered shared code, and its project, binding and shaders are deleted. Bevy is consulted as a reference, not adopted. Whether the browser later moves to the same Rust `wgpu` renderer is decided after native is measured against TypeGPU.
+
+### Web first
+*User, 2026-10-11.*
+
+Every shared-code change lands in the browser first, with clean before-and-after frame rates, and only then does native switch to it. Each move into Rust deletes the TypeScript it replaces.
+
+### Less code over speed
+*User, 2026-10-11.*
+
+Each shared-code slice must reduce net code. A small measured browser cost is acceptable for that, and a meaningful regression still blocks. Promises do not stack: when one step grew code (20b step 2), it landed only together with the step that made the pair net-negative.
+
+### Recompute over compatibility layers
+*User, 2026-10-12 (`jsretire`).*
+
+Once the TypeScript the crate was proven against was deleted, the emulation of JavaScript's number text, string hashing, `hypot` and rounding went with it. Every seed is now `Mulberry32` over a `seed::Key`: an FNV-1a hash of the numbers and names of what it decides for. Labels that cross the boundary stay strings. The vectors that moved (sound, chatter, effects, grass) were re-recorded from Rust.
+
+### Music's mood is decided in Rust (battle voices and music's N2)
+*User, 2026-10-12.*
+
+This settles [N2](../done/battle-voices-music/choices.md#n2-the-scores-mood-logic-stays-in-typescript). Rust's `sound::music::Score` picks the mood (tension, combat) from the side's own barks, picks the next track as a catalog id, and dips the music under voice lines. Players resolve an id to a file, and Rust never sees a file name. Menu music stays the app's (`AppAudio`).
+
+### Restage street rather than change the HE rule
+*User, slice 23.*
+
+After the shared code landed, red's tank killed street's rifle fight and street-watch's observer from 620–650 m across the open west. The two journeys were rerouted round the south of the west wood. The high-explosive rule was left as it is.
+
+### What parity means
+*User, phase 1.*
+
+The authority is a fresh browser control from the same tree, never the archived plates. A plate is paired with frame records from its own run, because the browser frame is not reproducible across runs.
+- **Workload:** both clients render the same menu reel at 1280×720, one pixel per CSS pixel.
+- **Judging:** each visual variable is judged by eye (the same shot, light, ground and grass impression), with no pixel budget. The only numeric gate on looks is grass within about 10% per screen region.
+- **Acceptance:** the agent accepts a slice without blocking on you.
+- **Platform:** only macOS with Metal is verified. Windows is not a requirement, but no native dependency may rule it out.
+
+### One automated capture run, with the drawn view recorded
+*User (base), phase 1; agent added the clock and size fields.*
+
+A headless run of `/graphics-test` writes each scene's capture, manifest and plates. Each frame record holds the view as the camera rig actually drew it (`eye`, `target` and `up`, after clamping, clearance and lag), the reel time, the tick, the interpolated sim time and the canvas size. The lens is recorded once per scene. `?plates=1` reads the canvas back in the task that drew it, so the shipped game's canvas is configured as before.
+
+### No schema versions and no migrations
+*User, phase 1.*
+
+The ids are `battle-presentation-capture` and `native-visual-presentation`, with no version suffix. A format change updates its writer, reader and tests together, and the strict readers refuse a stale file rather than migrating it.

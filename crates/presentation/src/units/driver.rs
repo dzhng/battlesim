@@ -273,7 +273,6 @@ pub fn loop_start(soldier: f64) -> f64 {
 /// his gaze strays from the squad's aim, how fast his idle plays, and
 /// whether he stands watching, weapon up (one man in `watch_every`).
 fn rest_manner(soldier: f64, rest: &Rest) -> (f64, f64, bool) {
-    // `Math.imul(soldier + 1, 0x9e3779b1) >>> 0`.
     let mut state =
         Mulberry32::new(((soldier + 1.0) as i64 as u32).wrapping_mul(crate::seed::GOLDEN));
     let turn = (state.sample() * 2.0 - 1.0) * rest.turn_rad;
@@ -386,17 +385,17 @@ impl Springs {
         let ring = omega * (1.0 - kick.damping * kick.damping).sqrt();
         // Kicked from rest at speed v, it swings out to (v/ring)·e^(−decay·t)·sin(ring·t),
         // furthest where tan(ring·t) = ring/decay.
-        let peak = ring.atan2(decay) / ring;
-        let start = ring / ((-decay * peak).exp() * (ring * peak).sin());
+        let peak = libm::atan2(ring, decay) / ring;
+        let start = ring / (libm::exp(-decay * peak) * libm::sin(ring * peak));
         Self { decay, ring, start }
     }
 
     /// A damped spring's state (`x`, `v`) run on `dt` seconds, exactly: the
     /// same wherever the frames fall.
     fn ring_on(&self, x: f64, v: f64, dt: f64) -> (f64, f64) {
-        let e = (-self.decay * dt).exp();
-        let c = (self.ring * dt).cos();
-        let n = (self.ring * dt).sin() / self.ring;
+        let e = libm::exp(-self.decay * dt);
+        let c = libm::cos(self.ring * dt);
+        let n = libm::sin(self.ring * dt) / self.ring;
         (
             e * (x * c + (v + self.decay * x) * n),
             e * (v * c
@@ -435,18 +434,18 @@ fn kick_hull(
             continue;
         }
         let rel = m.bearing - unit.yaw;
-        *vx -= rel.cos() * kick * springs.start;
-        *vy -= rel.sin() * kick * springs.start;
+        *vx -= libm::cos(rel) * kick * springs.start;
+        *vy -= libm::sin(rel) * kick * springs.start;
     }
-    let swing = x.hypot(*y);
-    if swing < KICK_REST && vx.hypot(*vy) < KICK_REST * springs.ring {
+    let swing = libm::hypot(*x, *y);
+    if swing < KICK_REST && libm::hypot(*vx, *vy) < KICK_REST * springs.ring {
         *k = [0.0; 4];
         return None;
     }
     // About the level axis across its swing, the roof thrown along it (just
     // kicked, it has not swung yet: no turn about any axis).
     let across = if swing == 0.0 { 1.0 } else { swing };
-    let (s, c) = (feel.rock_deg * PI / 180.0 * swing / 2.0).sin_cos();
+    let (s, c) = libm::sincos(feel.rock_deg * PI / 180.0 * swing / 2.0);
     let q = [-*y / across * s, *x / across * s, 0.0, c];
     Some(super::skin::trs(
         [feel.slide_m * *x, feel.slide_m * *y, 0.0],
@@ -456,18 +455,18 @@ fn kick_hull(
 }
 
 fn sine_in(x: f64) -> f64 {
-    1.0 - (x * PI / 2.0).cos()
+    1.0 - libm::cos(x * PI / 2.0)
 }
 
 fn sine_in_out(x: f64) -> f64 {
-    -((PI * x).cos() - 1.0) / 2.0
+    -(libm::cos(PI * x) - 1.0) / 2.0
 }
 
 /// Nose up about +Y, then right side down about +X, column-major
 /// (`mat4.fromYRotation(-pitch)` then `rotateX(roll)`).
 fn tilt(pitch: f64, roll: f64) -> [f64; 16] {
-    let (s, c) = (-pitch).sin_cos();
-    let (sx, cx) = roll.sin_cos();
+    let (s, c) = libm::sincos(-pitch);
+    let (sx, cx) = libm::sincos(roll);
     let y = [0.0, 1.0, 0.0];
     let z = [s, 0.0, c];
     let mut m = [
@@ -816,12 +815,12 @@ impl PoseDriver {
                 .position(|m| m.operator == Some(soldier.id));
             let dx = soldier.position[0] - state.at[0];
             let dy = soldier.position[1] - state.at[1];
-            let moved = dx.hypot(dy);
+            let moved = libm::hypot(dx, dy);
             if dt > 0.0 {
                 state.velocity = [dx / dt, dy / dt];
             }
             let [vx, vy] = state.velocity;
-            let speed = vx.hypot(vy);
+            let speed = libm::hypot(vx, vy);
             let authored_hold = carried
                 .and_then(|c| {
                     units
@@ -905,7 +904,7 @@ impl PoseDriver {
             let rest = &feel.rest;
             let settled =
                 ((time - state.alert_at - rest.settle_s[0]) / rest.settle_s[1]).clamp(0.0, 1.0);
-            let travel = vy.atan2(vx);
+            let travel = libm::atan2(vy, vx);
             let target = if speed > gait.facing_mps && gait_of.is_none() {
                 travel
             } else {
@@ -1145,8 +1144,8 @@ impl PoseDriver {
             a.rotor += feel.rotor.tip_mps * dt;
         } else {
             // Ground covered along the hull, plus each side's share of the turn.
-            let forward = (unit.position[0] - pose.position[0]) * unit.yaw.cos()
-                + (unit.position[1] - pose.position[1]) * unit.yaw.sin();
+            let forward = (unit.position[0] - pose.position[0]) * libm::cos(unit.yaw)
+                + (unit.position[1] - pose.position[1]) * libm::sin(unit.yaw);
             let turned = delta_angle(pose.yaw, unit.yaw);
             let half = ty.hull.map_or(0.0, |h| h.half_track);
             a.travel_l += forward - turned * half;
@@ -1209,7 +1208,7 @@ fn aircraft_attitude(
     if dt == 0.0 {
         return f.attitude;
     }
-    let k = 1.0 - (-dt / feel.smoothing_s).exp();
+    let k = 1.0 - libm::exp(-dt / feel.smoothing_s);
     let v = [
         (unit.position[0] - was[0]) / dt,
         (unit.position[1] - was[1]) / dt,
@@ -1222,8 +1221,8 @@ fn aircraft_attitude(
         f.accel[1] + (a[1] - f.accel[1]) * k,
     ];
     let max = feel.max_deg * PI / 180.0;
-    let tilt_by = |a: f64| (feel.gain * (a / GRAVITY).atan()).clamp(-max, max);
-    let (s, c) = unit.yaw.sin_cos();
+    let tilt_by = |a: f64| (feel.gain * libm::atan(a / GRAVITY)).clamp(-max, max);
+    let (s, c) = libm::sincos(unit.yaw);
     let pitch = -tilt_by(f.accel[0] * c + f.accel[1] * s);
     let roll = -tilt_by(-f.accel[0] * s + f.accel[1] * c);
     f.attitude = (pitch.abs() + roll.abs() > 1e-9).then_some((pitch, roll));

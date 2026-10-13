@@ -4,7 +4,6 @@ import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
 import { emptyEffectCounts } from "@apps/battle-lab/src/presentedFrame";
 import type { FramePlate } from "@apps/battle-lab/src/LabViewport";
-import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };
 const scene: BackdropScene = {
@@ -152,20 +151,16 @@ test("grass is counted by the screen cell its roots project into, row-major from
   expect(cells).toEqual([1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]);
 });
 
-test("a plate frame counts the grass its own frame grew and keeps the units it drew with", async () => {
-  type Result = { plates: ReelPlate[]; units: unknown };
+test("a plate frame counts the grass its own frame grew", async () => {
+  type Result = { plates: ReelPlate[] };
   const results: Result[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r as unknown as Result), {
     plates: true,
   });
   run.pilot.attach!({
     adapter: "test",
-    light: {} as never,
     stats: () => ({}) as never,
   });
-  const units = { types: {} } as unknown as DrawnUnits;
-  let described = 0;
-  run.fielded.describe = () => (described++, units);
   run.scripted.onWarm();
   run.pilot.frame!(drawn(1000));
   run.pilot.frame!({ ...drawn(1500, 2, platesOf(1500, [[5, 60, 1]])), camera: level });
@@ -173,21 +168,17 @@ test("a plate frame counts the grass its own frame grew and keeps the units it d
   run.pilot.frame!(drawn(3000));
   const [result] = results;
   expect(await result.plates[0].grass).toEqual([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]);
-  expect(result.units).toBe(units);
-  expect(described).toBe(1);
 });
 
 test("without plates the run asks the viewport for no read-back and exports nothing", () => {
-  const results: { plates: readonly ReelPlate[]; units: DrawnUnits | null }[] = [];
+  const results: { plates: readonly ReelPlate[] }[] = [];
   const run = createReelRun(scene, 30, (r) => results.push(r));
   expect(run.pilot.plates).toBe(false);
   run.pilot.attach!({
     adapter: "test",
-    light: {} as never,
     stats: () => ({}) as never,
   });
   run.scripted.onWarm();
   for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
   expect(results[0].plates).toEqual([]);
-  expect(results[0].units).toBeNull();
 });
