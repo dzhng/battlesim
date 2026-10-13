@@ -118,6 +118,10 @@ struct Run {
     passes: Passes,
     replay: Replay,
     next: usize,
+    /// The static batches' generation: bumped whenever the passes stop
+    /// holding what the presentation last wrote (a record framed but not
+    /// drawn, so the next drawn one follows a jump).
+    generation: u32,
     view: View,
     plates: usize,
     count_mismatches: Vec<String>,
@@ -308,6 +312,7 @@ impl Run {
             },
             replay,
             next: 0,
+            generation: 0,
             view: View::default(),
             plates: 0,
             count_mismatches: Vec::new(),
@@ -396,9 +401,9 @@ impl Run {
         self.next += 1;
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.start();
-        // Every frame is drawn: the static batches it names unchanged are
-        // held from the frame before.
-        self.replay.frame(&record, true, |_| {})?;
+        // Every frame is drawn: one generation, the static batches it names
+        // unchanged held from the frame before.
+        self.replay.frame(&record, self.generation, |_| {})?;
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare(&record)?;
         let d = self.passes.models.drawn();
@@ -443,12 +448,15 @@ impl Run {
             // The reel's wall time is both the sound's wall and its mixer clock.
             let now = record.reel_ms / 1000.0;
             let mut sound = self.sound.as_mut();
-            let drawn = record.plate.is_some();
-            self.replay.frame(&record, drawn, |p| {
+            self.replay.frame(&record, self.generation, |p| {
                 if let Some(audio) = sound.as_mut() {
                     audio.note(p, now);
                 }
             })?;
+            if record.plate.is_none() {
+                // The passes took none of it: the next frame writes them all.
+                self.generation += 1;
+            }
             if let Some(audio) = self.sound.as_mut() {
                 audio.hear(self.replay.presentation(), now, now);
             }

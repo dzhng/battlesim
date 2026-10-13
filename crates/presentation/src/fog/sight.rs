@@ -26,6 +26,7 @@
 //! Every derivation is the browser's TypeScript (`fogInputs.ts` and
 //! `fogVisibility.ts`) word for word, held by `tests/fog_sight.rs`.
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use sim::publication::reader::{KnownProp, Sight};
@@ -458,6 +459,23 @@ pub fn whole_words(boxes: &[Occluder], margin: f64) -> Result<Wholes, String> {
     })
 }
 
+/// How far the broad phase grows past `reach`: eight f32 rounding units of
+/// the largest number it measures.
+fn broad_pad(grid: &Wholes, [x, y, _]: [f64; 3], reach: f64) -> f64 {
+    let [ox, oy] = grid.origin;
+    let (nx, ny, cell) = (grid.nx as f64, grid.ny as f64, grid.cell_m);
+    8.0 * 2f64.powi(-23)
+        * [
+            x.abs(),
+            y.abs(),
+            reach,
+            ox.abs() + nx * cell,
+            oy.abs() + ny * cell,
+        ]
+        .into_iter()
+        .fold(1.0, js::max)
+}
+
 /// The boxes of `grid` whose bounding circle comes within `reach` (and
 /// `query_margin` more, to find them) of `position`, in index order. The
 /// broad phase grows by eight f32 rounding units, as the GPU reads f32.
@@ -468,49 +486,70 @@ pub fn in_reach(grid: &Wholes, position: [f64; 3], reach: f64, query_margin: f64
     let [x, y, _] = position;
     let [ox, oy] = grid.origin;
     let (nx, ny, cell) = (grid.nx as f64, grid.ny as f64, grid.cell_m);
-    let pad = 8.0
-        * 2f64.powi(-23)
-        * [
-            x.abs(),
-            y.abs(),
-            reach,
-            ox.abs() + nx * cell,
-            oy.abs() + ny * cell,
-        ]
-        .into_iter()
-        .fold(1.0, js::max);
+    let pad = broad_pad(grid, position, reach);
     let query = reach + query_margin;
     let lo_x = js::max(0.0, ((x - query - pad - ox) / cell).floor());
     let hi_x = js::min(nx - 1.0, ((x + query + pad - ox) / cell).floor());
     let lo_y = js::max(0.0, ((y - query - pad - oy) / cell).floor());
     let hi_y = js::min(ny - 1.0, ((y + query + pad - oy) / cell).floor());
-    // A box spans several cells: each is judged once.
-    let mut seen: HashSet<u32> = HashSet::new();
-    let mut found: Vec<u32> = Vec::new();
+    // A box spans several cells: each is judged once (`seen`), and those in
+    // reach are marked (`marked`), read back in index order from the words
+    // touched: a bit per box, no sort of the boxes themselves.
+    let words = (grid.count as usize).div_ceil(64);
+    let (mut seen, mut marked) = (vec![0u64; words], vec![0u64; words]);
+    let mut touched: Vec<usize> = Vec::new();
     let mut j = lo_y;
     while j <= hi_y {
         let mut i = lo_x;
         while i <= hi_x {
             let cell_word = grid.words[j as usize * grid.nx as usize + i as usize];
             let start = grid.items_base as usize + (cell_word >> 8) as usize;
-            for at in start..start + (cell_word & 255) as usize {
-                let index = grid.words[at];
-                if !seen.insert(index) {
+            for &index in &grid.words[start..start + (cell_word & 255) as usize] {
+                let (word, bit) = ((index / 64) as usize, 1u64 << (index % 64));
+                if seen[word] & bit != 0 {
                     continue;
                 }
+                if seen[word] == 0 {
+                    touched.push(word);
+                }
+                seen[word] |= bit;
                 let (center, half) = grid.box_at(index);
                 let radius = length(half[0], half[1]);
                 let (dx, dy) = (x - center[0], y - center[1]);
                 if dx * dx + dy * dy <= (reach + radius + pad) * (reach + radius + pad) {
-                    found.push(index);
+                    marked[word] |= bit;
                 }
             }
             i += 1.0;
         }
         j += 1.0;
     }
-    found.sort_unstable();
+    touched.sort_unstable();
+    let mut found = Vec::new();
+    for word in touched {
+        let mut bits = marked[word];
+        while bits != 0 {
+            found.push(word as u32 * 64 + bits.trailing_zeros());
+            bits &= bits - 1;
+        }
+    }
     found
+}
+
+/// Of `wide`, an eye's boxes found with a query margin, those `in_reach`
+/// finds with none: the same circle test, over a larger square of cells.
+fn within(grid: &Wholes, wide: &[u32], position: [f64; 3], reach: f64) -> Vec<u32> {
+    let pad = broad_pad(grid, position, reach);
+    let [x, y, _] = position;
+    wide.iter()
+        .copied()
+        .filter(|&index| {
+            let (center, half) = grid.box_at(index);
+            let radius = length(half[0], half[1]);
+            let (dx, dy) = (x - center[0], y - center[1]);
+            dx * dx + dy * dy <= (reach + radius + pad) * (reach + radius + pad)
+        })
+        .collect()
 }
 
 /// The rebuilt eyes' occluder lists for the merge: per eye `[eye index,
@@ -526,12 +565,27 @@ pub fn horizon_records(
     indices: &[u32],
     margin: f64,
 ) -> Vec<u32> {
+    let found: Vec<Vec<u32>> = eyes
+        .iter()
+        .map(|&(p, reach)| in_reach(grid, p, reach, 0.0))
+        .collect();
+    horizon_records_of(grid, eyes, &found, indices, margin)
+}
+
+/// `horizon_records` over each eye's boxes in reach, `found`.
+fn horizon_records_of(
+    grid: &Wholes,
+    eyes: &[([f64; 3], f64)],
+    found: &[Vec<u32>],
+    indices: &[u32],
+    margin: f64,
+) -> Vec<u32> {
     let scale = HORIZON_SECTORS as f64 / (std::f64::consts::PI * 2.0);
     let sectors = HORIZON_SECTORS as i64;
-    let spans: Vec<(Vec<u32>, Vec<[i64; 2]>)> = eyes
+    let spans: Vec<(&Vec<u32>, Vec<[i64; 2]>)> = eyes
         .iter()
-        .map(|&(position, reach)| {
-            let found = in_reach(grid, position, reach, 0.0);
+        .zip(found)
+        .map(|(&(position, _), found)| {
             let (px, py) = (position[0] as f32 as f64, position[1] as f32 as f64);
             let range = found
                 .iter()
@@ -603,21 +657,43 @@ pub fn whole_records(
     eyes: &[([f64; 3], f64)],
     query_margin: f64,
 ) -> (u32, Vec<u32>) {
-    let mut cache: HashMap<[u64; 3], Vec<u32>> = HashMap::new();
-    let found: Vec<Vec<u32>> = eyes
+    whole_records_kept(grid, eyes, query_margin, &mut Kept::default())
+}
+
+/// Each eye's structures in reach on one grid, by where it stands and how
+/// far it sees, as the last whole-fog pass found them.
+type Kept = HashMap<[u64; 3], Arc<Vec<u32>>>;
+
+/// `whole_records`, an eye standing where it stood at the last call (on
+/// the same grid, `kept`) reusing its list rather than searching again:
+/// most have not moved. The records are the same either way.
+fn whole_records_kept(
+    grid: &Wholes,
+    eyes: &[([f64; 3], f64)],
+    query_margin: f64,
+    kept: &mut Kept,
+) -> (u32, Vec<u32>) {
+    let mut lists = Kept::new();
+    let found: Vec<Arc<Vec<u32>>> = eyes
         .iter()
         .map(|&(p, reach)| {
-            cache
-                .entry([p[0].to_bits(), p[1].to_bits(), reach.to_bits()])
-                .or_insert_with(|| in_reach(grid, p, reach, query_margin))
+            let key = [p[0].to_bits(), p[1].to_bits(), reach.to_bits()];
+            lists
+                .entry(key)
+                .or_insert_with(|| {
+                    kept.get(&key)
+                        .cloned()
+                        .unwrap_or_else(|| Arc::new(in_reach(grid, p, reach, query_margin)))
+                })
                 .clone()
         })
         .collect();
+    *kept = lists;
     let boxes = grid.count as usize;
     let mut eyes_of = vec![0u32; boxes];
     let mut pairs = 0usize;
     for list in &found {
-        for &index in list {
+        for &index in list.iter() {
             eyes_of[index as usize] += 1;
             pairs += 1;
         }
@@ -636,7 +712,7 @@ pub fn whole_records(
         row += 1;
     }
     for (e, list) in found.iter().enumerate() {
-        for &index in list {
+        for &index in list.iter() {
             words[cursor[index as usize]] = e as u32;
             cursor[index as usize] += 1;
         }
@@ -781,6 +857,8 @@ pub struct FogSight {
     occluders_sent: bool,
     wholes: Wholes,
     wholes_dirty: bool,
+    /// Each eye's structures in reach at the last whole-fog pass, on `wholes`.
+    kept: Kept,
     max_occluder_radius: f64,
     /// Whether the side's sight is set (fog is drawn).
     sighted: bool,
@@ -810,6 +888,7 @@ impl FogSight {
             occluders_sent: false,
             wholes: whole_words(&[], 0.0)?,
             wholes_dirty: false,
+            kept: Kept::new(),
             max_occluder_radius: 0.0,
             sighted: false,
             capacity: 0,
@@ -1004,6 +1083,7 @@ impl FogSight {
         self.occluders = Some(next);
         self.occluders_sent = false;
         self.wholes = next_wholes;
+        self.kept.clear();
         Ok(())
     }
 
@@ -1136,7 +1216,24 @@ impl FogSight {
                 let eyes: Vec<_> = picked.iter().map(|&i| rows[i]).collect();
                 let indices: Vec<u32> = picked.iter().map(|&i| i as u32).collect();
                 let margin = self.world.as_ref().unwrap().sensors.min_sight_gap_m / 2.0;
-                up.rebuild = horizon_records(&self.wholes, &eyes, &indices, margin);
+                // One search per rebuilt eye: its structures within the
+                // whole-fog margin (kept for that pass), of which those
+                // within its reach alone are the merge's candidates.
+                let found: Vec<Vec<u32>> = eyes
+                    .iter()
+                    .map(|&(p, reach)| {
+                        let key = [p[0].to_bits(), p[1].to_bits(), reach.to_bits()];
+                        let wide = self
+                            .kept
+                            .entry(key)
+                            .or_insert_with(|| {
+                                Arc::new(in_reach(&self.wholes, p, reach, self.max_occluder_radius))
+                            })
+                            .clone();
+                        within(&self.wholes, &wide, p, reach)
+                    })
+                    .collect();
+                up.rebuild = horizon_records_of(&self.wholes, &eyes, &found, &indices, margin);
                 let dispatch = |bins: u32| {
                     let n = (picked.len() * bins as usize).div_ceil(BUILD_WORKGROUP);
                     if n > MAX_WORKGROUPS {
@@ -1162,8 +1259,12 @@ impl FogSight {
         if camera.is_some() && active && self.wholes_dirty && has_occluders {
             // Flag each structure seen or not, against every eye in reach.
             self.wholes_dirty = false;
-            let (count, items) =
-                whole_records(&self.wholes, &self.eye_rows(), self.max_occluder_radius);
+            let (count, items) = whole_records_kept(
+                &self.wholes,
+                &self.eye_rows(),
+                self.max_occluder_radius,
+                &mut self.kept,
+            );
             let n = count as usize;
             up.whole = Some(WholePass {
                 count,

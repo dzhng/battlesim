@@ -92,6 +92,9 @@ const MASK_OF_VIEW: Partial<Record<FrameView, FogMaskViewKind>> = {
   "ground-classes": "classes",
 };
 
+/** The last static generation any frame took: each frame's is new. */
+let generations = 0;
+
 /** Caller owns the device and canvas; the frame owns every allocation it makes. */
 export async function createBattleFrame(
   device: GPUDevice,
@@ -176,6 +179,9 @@ export async function createBattleFrame(
       let lightCount = 0;
       let lightWrap = 0;
       let lightsShown = true;
+      /** What the static batches held were sent for: new now, and with each
+       *  new presentation world (which drops them). */
+      let staticGeneration = ++generations;
       const detailView = createDetailView();
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
@@ -186,6 +192,9 @@ export async function createBattleFrame(
         );
 
       return {
+        get staticGeneration() {
+          return staticGeneration;
+        },
         render(output: GPUTextureView, viewport: ViewportCamera) {
           if (disposed) return;
           const width = size(viewport.width);
@@ -282,6 +291,7 @@ export async function createBattleFrame(
         },
         setPresentationWorld(rows) {
           if (disposed) return;
+          staticGeneration = ++generations;
           models.setWorld(rows);
           world.setSceneryWorld(rows);
         },

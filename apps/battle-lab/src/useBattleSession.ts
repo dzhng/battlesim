@@ -559,7 +559,7 @@ export function useBattleSession({
     ),
   );
   const frame = useCallback(
-    (now: number, viewport: ViewportCamera): ViewportFrame | null => {
+    (now: number, viewport: ViewportCamera, generation: number): ViewportFrame | null => {
       // React's `observation` only says the session has a battle (it is reset
       // with the battle). Everything this frame draws or decides reads the
       // latest publication, the tick the presentation blends toward.
@@ -604,11 +604,16 @@ export function useBattleSession({
           yaw: placement.facing,
           look: placement.valid === false ? GHOST_BLOCKED : GHOST_SELECTED,
         });
-      const presented = presentation.frame(time, presentedCamera(viewport), {
-        selected: control.selected,
-        xray,
-        ghosts: ghostBodies(ghosts, (kind) => Boolean(units.hull(kind)), surfaceZ),
-      });
+      const presented = presentation.frame(
+        time,
+        presentedCamera(viewport),
+        {
+          selected: control.selected,
+          xray,
+          ghosts: ghostBodies(ghosts, (kind) => Boolean(units.hull(kind)), surfaceZ),
+        },
+        generation,
+      );
       const { own, enemies } = drawnUnits(presented);
       drawn.current = sideInstances(presented, own, enemies, published, units);
       drawnAt.current = new Map([...own].map(([id, u]) => [id, u.position]));
