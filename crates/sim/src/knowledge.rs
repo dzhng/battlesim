@@ -291,6 +291,12 @@ impl SideKnowledge {
                         .capabilities
                         .air
                         .as_ref()
+                        .is_some_and(|air| air.sead)
+                    && u
+                        .unit_type(rules)
+                        .capabilities
+                        .air
+                        .as_ref()
                         .and_then(|air| air.radar)
                         .is_some_and(|radar| radar.detection_m > 0.0)
             })

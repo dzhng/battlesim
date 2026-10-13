@@ -1,10 +1,11 @@
 # Persistent aircraft and layered air defence
 
-**Status:** slice 01 contract cutover is in progress. The `HighAir` layer and
-authored air mobility layer are landed and Rust workspace compilation is green;
-publication, sensor, weapon, and observation fields remain for this slice.
-**Next pickup:** finish slice 00's audio/source provenance pass and continue
-slice 01's contract/observation cutover.
+**Status:** contract, HighAir sensing, authored AA/interception, radar contacts,
+persistent ingress/fuel, owner publication fields, and the first roster
+promotion pass are landed. Dogfight state, aircraft ground missions, flares,
+and final HUD/audio integration remain.
+**Next pickup:** implement dogfight/ground mission policy and complete the
+survivability and presentation closeout slices.
 
 This plan replaces the old one-pass jet-sortie proposal in
 [`battle-foundation/slices/20-jet-sorties.md`](../battle-foundation/slices/20-jet-sorties.md).

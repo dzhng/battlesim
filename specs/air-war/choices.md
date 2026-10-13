@@ -26,6 +26,18 @@ implementation inherits them; it does not reopen them silently.
 
 ## Implementation-pass choices
 
+### Simulation contract
+
+- Runtime copies an aircraft's authored altitude layer into `Flight` at spawn;
+  `Unit::layer` reads that state so targeting and replay digests do not depend
+  on a fresh catalog lookup.
+- Radar detection is authored by the aircraft capability's `sead` flag and a
+  radar detection radius. Ground emitters always use their separate radar
+  capability; the contact carries quantized bearing/range and a displaced
+  area, never exact truth.
+- Fuel, ingress, afterburner, and traversal state live in `AirState`, while
+  the packed observation publishes fuel and traversal flags for owner cards.
+
 ### Sound
 
 - **When:** HighAir contract pass.

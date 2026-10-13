@@ -324,6 +324,8 @@ pub struct AirState {
     pub traversing: bool,
     /// Ticks until the aircraft physically enters the map.
     pub ingress_remaining: u64,
+    /// Close air engagement target while this aircraft is in a dogfight.
+    pub dogfight_target: Option<UnitId>,
 }
 
 /// How an aircraft arrives: it aims a little past its goal, then, stopped
@@ -456,6 +458,11 @@ pub fn validate_drive(rules: &Rules) {
 impl Unit {
     /// Admit an order with the same replacement and deployment semantics everywhere.
     pub(crate) fn enqueue(&mut self, order: UnitOrder, queued: bool) {
+        if !queued {
+            if let Some(air) = self.air.as_mut() {
+                air.dogfight_target = None;
+            }
+        }
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
         }
@@ -603,7 +610,8 @@ impl Unit {
             d.f64(a.fuel_s)
                 .u64(a.afterburner as u64)
                 .u64(a.traversing as u64)
-                .u64(a.ingress_remaining);
+                .u64(a.ingress_remaining)
+                .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)));
         }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),

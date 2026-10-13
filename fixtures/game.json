@@ -450,6 +450,211 @@
       "structural_damage": 20,
       "anti_armor": true
     },
+        "aa_ballistic": {
+            "extends": "hmg",
+            "name": "Short AA gun",
+            "description": "Ballistic short-range air defence.",
+            "icon": "autocannon",
+            "range_m": 650,
+            "targets": {
+                "ground": {},
+                "low_air": {
+                    "range_m": 350,
+                    "scatter_mrad": 28
+                },
+                "high_air": {
+                    "range_m": 500,
+                    "scatter_mrad": 42
+                }
+            },
+            "speed_mps": 600,
+            "gravity_scale": 0.5,
+            "damage": 100,
+            "penetration": 65,
+            "near_miss_suppression": 0.1,
+            "suppression_radius_m": 6,
+            "blast_radius_m": 2,
+            "structural_damage": 8,
+            "ammo": 300,
+            "reload_s": 6,
+            "magazine": {
+                "rounds": 30,
+                "shot_interval_s": 0.3,
+                "burst": {
+                    "rounds": 3,
+                    "aim_max_s": 1
+                }
+            },
+            "aa_tier": "short"
+        },
+        "aa_medium": {
+            "targets": {
+                "low_air": {},
+                "high_air": {}
+            },
+            "interceptable": false,
+            "name": "Medium SAM",
+            "description": "Medium-range surface-to-air missile.",
+            "icon": "aa_missile",
+            "stationary": true,
+            "range_m": 2600,
+            "min_range_m": 50,
+            "speed_mps": 100,
+            "accel_mps2": 400,
+            "top_speed_mps": 600,
+            "aim_s": 2,
+            "reload_s": 8,
+            "ammo": 8,
+            "penetration": 300,
+            "damage": 120,
+            "scatter_mrad": 0.5,
+            "turn_deg_s": 180,
+            "guidance": "on_the_move",
+            "lifetime_s": 6,
+            "near_miss_suppression": 0,
+            "suppression_radius_m": 0,
+            "blast_radius_m": 3,
+            "structural_damage": 20,
+            "anti_armor": true,
+            "seeker": "radar",
+            "seeker_fov_deg": 120,
+            "decoyable": true,
+            "aa_tier": "medium"
+        },
+        "aa_long": {
+            "targets": {
+                "high_air": {}
+            },
+            "interceptable": false,
+            "name": "Long SAM",
+            "description": "Long-range aircraft-only missile.",
+            "icon": "aa_missile",
+            "stationary": true,
+            "range_m": 5200,
+            "min_range_m": 50,
+            "speed_mps": 100,
+            "accel_mps2": 400,
+            "top_speed_mps": 600,
+            "aim_s": 2,
+            "reload_s": 20,
+            "ammo": 6,
+            "penetration": 300,
+            "damage": 260,
+            "scatter_mrad": 0.5,
+            "turn_deg_s": 180,
+            "guidance": "stationary",
+            "lifetime_s": 6,
+            "near_miss_suppression": 0,
+            "suppression_radius_m": 0,
+            "blast_radius_m": 3,
+            "structural_damage": 20,
+            "anti_armor": true,
+            "seeker": "radar",
+            "seeker_fov_deg": 100,
+            "decoyable": true,
+            "aa_tier": "long",
+            "interception": "missile"
+        },
+        "air_gun": {
+            "extends": "hmg",
+            "name": "Aircraft cannon",
+            "description": "Unlimited aircraft gun.",
+            "icon": "autocannon",
+            "range_m": 900,
+            "targets": {
+                "low_air": {
+                    "range_m": 700,
+                    "scatter_mrad": 24
+                },
+                "high_air": {
+                    "range_m": 900,
+                    "scatter_mrad": 20
+                }
+            },
+            "speed_mps": 600,
+            "gravity_scale": 0.5,
+            "damage": 100,
+            "penetration": 65,
+            "near_miss_suppression": 0.1,
+            "suppression_radius_m": 6,
+            "blast_radius_m": 2,
+            "structural_damage": 8,
+            "ammo": "unlimited",
+            "reload_s": 6,
+            "magazine": {
+                "rounds": 30,
+                "shot_interval_s": 0.3,
+                "burst": {
+                    "rounds": 3,
+                    "aim_max_s": 1
+                }
+            },
+            "default": true
+        },
+        "air_missile": {
+            "targets": {
+                "high_air": {}
+            },
+            "interceptable": false,
+            "name": "Air missile",
+            "description": "Fire-and-forget air-to-air missile.",
+            "icon": "aa_missile",
+            "stationary": true,
+            "range_m": 3000,
+            "min_range_m": 50,
+            "speed_mps": 100,
+            "accel_mps2": 400,
+            "top_speed_mps": 600,
+            "aim_s": 2,
+            "reload_s": 8,
+            "ammo": 4,
+            "penetration": 300,
+            "damage": 150,
+            "scatter_mrad": 0.5,
+            "turn_deg_s": 180,
+            "guidance": "stationary",
+            "lifetime_s": 6,
+            "near_miss_suppression": 0,
+            "suppression_radius_m": 0,
+            "blast_radius_m": 3,
+            "structural_damage": 20,
+            "anti_armor": true,
+            "seeker": "infrared",
+            "seeker_fov_deg": 70,
+            "decoyable": true
+        },
+        "sead_missile": {
+            "targets": {
+                "ground": {}
+            },
+            "interceptable": false,
+            "name": "SEAD missile",
+            "description": "Long-range anti-radiation missile.",
+            "icon": "aa_missile",
+            "stationary": true,
+            "range_m": 6500,
+            "min_range_m": 50,
+            "speed_mps": 100,
+            "accel_mps2": 400,
+            "top_speed_mps": 600,
+            "aim_s": 2,
+            "reload_s": 8,
+            "ammo": 4,
+            "penetration": 300,
+            "damage": 260,
+            "scatter_mrad": 0.5,
+            "turn_deg_s": 180,
+            "guidance": "stationary",
+            "lifetime_s": 6,
+            "near_miss_suppression": 0,
+            "suppression_radius_m": 0,
+            "blast_radius_m": 3,
+            "structural_damage": 20,
+            "anti_armor": true,
+            "seeker": "radar",
+            "seeker_fov_deg": 90,
+            "decoyable": false
+        },
     "igla_s": {
       "extends": "stinger",
       "name": "Igla-S"
@@ -749,6 +954,12 @@
       "igla_s": 30,
       "fn_6": 30,
       "autocannon": 1,
+      "aa_ballistic": 1,
+      "aa_medium": 30,
+      "aa_long": 45,
+      "air_gun": 1,
+      "air_missile": 25,
+      "sead_missile": 40,
       "ground_tank_ap": 5,
       "ground_tank_he": 5,
       "advanced_tank_ap": 5,

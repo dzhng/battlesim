@@ -495,6 +495,9 @@ pub struct OwnUnit {
     /// Paid aircraft still traversing to its map-edge ingress point.
     #[serde(default)]
     pub traversing: bool,
+    /// Own aircraft's current close air target, if in a dogfight.
+    #[serde(default)]
+    pub dogfight_target: Option<UnitId>,
     pub protection: Option<ProtectionReadiness>,
     pub id: UnitId,
     /// Its unit type: its rank in the catalog, the layout's `unitKinds`.

@@ -92,6 +92,7 @@ export interface OwnUnitView {
   fuelS: number | null;
   afterburner: boolean;
   traversing: boolean;
+  dogfightTarget: number | null;
   /** Defensive charges and running cooldown progress; private to the owning side. */
   protection: { charges: number; cooldown: number | null } | null;
   id: number;

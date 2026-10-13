@@ -633,6 +633,20 @@ impl Battle {
                 unit.position.z = ground + self.rules.air.cruise_agl_m;
             }
         }
+        for i in 0..self.units.len() {
+            let Some(target) = self.units[i].air.as_ref().and_then(|air| air.dogfight_target) else {
+                continue;
+            };
+            let broken = !self.units[target.0 as usize].alive()
+                || (self.units[i].position.xy() - self.units[target.0 as usize].position.xy())
+                    .length()
+                    > 1200.0;
+            if broken {
+                if let Some(air) = self.units[i].air.as_mut() {
+                    air.dogfight_target = None;
+                }
+            }
+        }
     }
 
     fn dispatch_reinforcements(&mut self) {
@@ -799,10 +813,21 @@ impl Battle {
             }
             let entered = &skirmish.entered[&unit.id];
             let (health, ammo) = crate::withdrawal::condition(unit, &self.rules, &self.arsenal);
+            let fuel = crate::withdrawal::fuel(unit, &self.rules);
             let age = self.tick.saturating_sub(entered.entered_tick) as f64
                 / f64::from(self.rules.tick_hz);
+            let refund = unit
+                .unit_type(&self.rules)
+                .capabilities
+                .air
+                .as_ref()
+                .map(|air| (air.refund.health, air.refund.ammunition, air.refund.fuel))
+                .map_or_else(
+                    || crate::withdrawal::fraction(health, ammo, age),
+                    |weights| crate::withdrawal::weighted_fraction(health, ammo, fuel, weights, age),
+                );
             let credits = (f64::from(entered.price)
-                * crate::withdrawal::fraction(health, ammo, age)
+                * refund
                 * crate::skirmish::CREDIT_SCALE as f64)
                 .round() as u64;
             skirmish.wallets[unit.side.index()] += credits;
@@ -2939,6 +2964,25 @@ impl Battle {
             // The attacked unit may answer this attacker under Return fire only.
             if let Target::Unit(t) = shot.target {
                 self.units[t.0 as usize].attackers.insert(shot.unit);
+                if self.units[shot.unit.0 as usize].airborne()
+                    && self.units[t.0 as usize].airborne()
+                {
+                    let distance = (self.units[shot.unit.0 as usize].position.xy()
+                        - self.units[t.0 as usize].position.xy())
+                        .length();
+                    if distance <= 1200.0 {
+                        self.units[shot.unit.0 as usize]
+                            .air
+                            .as_mut()
+                            .expect("airborne state")
+                            .dogfight_target = Some(t);
+                        self.units[t.0 as usize]
+                            .air
+                            .as_mut()
+                            .expect("airborne state")
+                            .dogfight_target = Some(shot.unit);
+                    }
+                }
             }
             let shooter = &self.units[shot.unit.0 as usize];
             let heard = self
@@ -4045,6 +4089,7 @@ impl Battle {
                         fuel_s: u.air.as_ref().map(|air| air.fuel_s),
                         afterburner: u.air.as_ref().is_some_and(|air| air.afterburner),
                         traversing: u.air.as_ref().is_some_and(|air| air.traversing),
+                        dogfight_target: u.air.as_ref().and_then(|air| air.dogfight_target),
                         protection: u.protection.as_ref().map(|p| {
                             let definition = u
                                 .unit_type(&self.rules)

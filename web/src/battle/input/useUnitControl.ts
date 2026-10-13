@@ -151,6 +151,8 @@ export function useUnitControl(
             .join(", ")})`;
         case "set_engagement":
           return `${order.policy === "fire_at_will" ? "fire at will" : "return fire only"}: ${order.units.map(unitName).join(", ")}`;
+        case "set_afterburner":
+          return `${order.enabled ? "afterburners on" : "afterburners off"}: ${order.units.map(unitName).join(", ")}`;
         case "set_deployment":
           return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
         case "garrison":

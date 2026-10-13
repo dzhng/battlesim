@@ -50,6 +50,19 @@ pub(super) fn step_aircraft(
     if units[i].air.is_some_and(|air| air.traversing) {
         return;
     }
+    if let Some(target) = units[i].air.as_ref().and_then(|air| air.dogfight_target) {
+        if let Some(target_unit) = units.get(target.0 as usize) {
+            if target_unit.alive()
+                && !units[i].orders.iter().any(|o| matches!(o, crate::units::UnitOrder::Move(_) | crate::units::UnitOrder::AttackMove(_) | crate::units::UnitOrder::Attack { .. }))
+            {
+                let goal = target_unit.position.xy();
+                units[i].route = Some(vec![goal]);
+                units[i].planned_goal = Some(goal);
+                units[i].route_from = units[i].position.xy();
+                units[i].state = MoveState::Moving;
+            }
+        }
+    }
     plan(ctx, &mut units[i], &mut sides[side]);
     let drift = separation(ctx, units, i);
     let afterburner = unit_afterburner(&units[i], ctx.rules);
@@ -197,6 +210,11 @@ pub(crate) fn low_hover(rules: &Rules) -> f64 {
 
 /// Plan a route when the goal is new or moved, or the side's knowledge changed.
 fn plan(ctx: &MovementContext, unit: &mut Unit, side: &mut SideGeometry) {
+    if unit.air.as_ref().is_some_and(|air| air.dogfight_target.is_some())
+        && unit.route.is_some()
+    {
+        return;
+    }
     let Some((goal, _)) = unit.movement_goal() else {
         unit.route = None;
         unit.planned_goal = None;

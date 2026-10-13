@@ -845,7 +845,20 @@ fn engage(
 /// Whether the unit's engagement policy allows firing at this target (W12–W13).
 fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
     match unit.engagement {
-        Engagement::FireAtWill => true,
+        Engagement::FireAtWill => match target {
+            Target::Contact(c) => ctx.knowledge[unit.side.index()]
+                .contact(c)
+                .is_none_or(|contact| {
+                    contact.source != contract::observation::ContactSource::Radar
+                        || unit
+                            .unit_type(ctx.rules)
+                            .capabilities
+                            .air
+                            .as_ref()
+                            .is_some_and(|air| air.sead)
+                }),
+            _ => true,
+        },
         Engagement::ReturnFireOnly => match target {
             Target::Unit(u) => unit.attackers.contains(&u),
             Target::Contact(c) => ctx.knowledge[unit.side.index()]
@@ -1139,6 +1152,15 @@ fn select(
     } else {
         knowledge
             .all_contacts()
+            .filter(|c| {
+                c.source != contract::observation::ContactSource::Radar
+                    || unit
+                        .unit_type(ctx.rules)
+                        .capabilities
+                        .air
+                        .as_ref()
+                        .is_some_and(|air| air.sead)
+            })
             .map(|c| ((c.center.xy() - here).length(), c.id))
             .collect()
     };

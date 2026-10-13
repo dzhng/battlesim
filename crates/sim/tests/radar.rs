@@ -15,6 +15,7 @@ fn battle() -> Battle {
             "mobility": { "air": { "layer": "high_air" } },
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
+                "sead": true,
                 "radar": { "emits": false, "detection_m": 1200.0 },
                 "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
             }}

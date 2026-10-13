@@ -52,7 +52,6 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     fog: Arc<Fog>, ground_patch: GroundPatch });
 view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
-    fuel_s: Option<f64>, afterburner: bool, traversing: bool,
     blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
@@ -848,9 +847,6 @@ impl Reader {
             direction: self.optional("directions", v!(f, "direction"))?,
             reversing: v!(f, "reversing") == 1.0,
             withdrawing: v!(f, "withdrawing") == 1.0,
-            fuel_s: present(v!(f, "fuelSeconds")),
-            afterburner: v!(f, "afterburner") == 1.0,
-            traversing: v!(f, "traversing") == 1.0,
             protection: (charges >= 0.0).then(|| Protection {
                 charges,
                 cooldown: present(v!(f, "protectionCooldownProgress")),

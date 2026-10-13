@@ -407,6 +407,9 @@ pub struct AirCapability {
     pub afterburner: Option<AfterburnerCapability>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub aa_tier: Option<AirDefenseTier>,
+    /// Anti-radiation mission capability; only these aircraft may engage radar contacts.
+    #[serde(default)]
+    pub sead: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radar: Option<RadarCapability>,
     pub refund: RefundWeights,
