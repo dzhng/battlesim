@@ -9,6 +9,7 @@ import { composeCatalog, type CatalogSetName, type GameView, type SessionCatalog
 
 export {
   admitScenario,
+  composeScenarioCatalog,
   presentationRules,
   type CatalogSetName,
   type SessionCatalog,

@@ -298,6 +298,7 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
     let send = |battle: &mut Battle, side, seq, order| {
         let ack = battle.accept(CommandEnvelope {
             side,
+            slot: None,
             seq,
             order,
             queued: false,

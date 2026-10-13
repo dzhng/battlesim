@@ -183,11 +183,15 @@ export function catalogLoadBytes(
   catalog: RuntimeCatalog,
   wearing?: ReadonlySet<string>,
   held = new Set<string>(),
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
 ): number {
   const eager = [
     ...(catalog.templates ? [catalog.templates.library] : []),
     ...Object.values(catalog.skeletons ?? {}),
-    ...catalogLoadNames(catalog, wearing).map((name) => catalog.appearances[name].bundle),
+    ...catalogLoadNames(catalog, wearing, factions, scenery).map(
+      (name) => catalog.appearances[name].bundle,
+    ),
   ];
   return wireBytes(catalog, eager, held);
 }
@@ -201,9 +205,11 @@ export function downloadBytes(
   catalog: RuntimeCatalog,
   names: Iterable<string>,
   wearing?: ReadonlySet<string>,
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
 ): number {
   const held = new Set<string>();
-  catalogLoadBytes(catalog, wearing, held);
+  catalogLoadBytes(catalog, wearing, held, factions, scenery);
   let bytes = 0;
   for (const name of names) {
     const entry = catalog.appearances[name];

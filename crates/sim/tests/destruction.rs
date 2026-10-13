@@ -108,6 +108,7 @@ fn a_direct_round_wears_the_struck_prop_by_its_armour() {
     );
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],

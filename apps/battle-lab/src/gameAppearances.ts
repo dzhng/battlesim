@@ -34,10 +34,18 @@ import { appResources } from "./appResources";
 
 const library = new AppearanceLibrary(countedFetch);
 let loading: Promise<InstalledAppearances> | null = null;
+let loadingFactions: string | null | undefined;
+let loadingScenery: string | null | undefined;
 let appearanceStatus: Record<string, unknown> = { state: "idle" };
 let prefetching: Promise<void> | null = null;
 let prefetchStatus: Record<string, unknown> = { state: "idle" };
 diagnosticsSource("appearance loading", () => ({ ...appearanceStatus, prefetch: prefetchStatus }));
+
+function selectionKey(
+  selection: ReadonlySet<string> | null | undefined,
+): string | null | undefined {
+  return selection === null ? null : selection && [...selection].sort().join("|");
+}
 
 /** Warm the browser's network/cache storage without decoding or uploading art.
  * GPU installation remains limited to the current battle's requested kinds. */
@@ -103,8 +111,15 @@ export function gameAppearances(
   units: UnitCatalog,
   asked: Iterable<string> = [],
   wearing: ReadonlySet<string> = units.appearances,
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
 ): Promise<InstalledAppearances> {
-  loading ??= library.load("/", wearing);
+  const factionsKey = selectionKey(factions);
+  const sceneryKey = selectionKey(scenery);
+  if (loading && (loadingFactions !== factionsKey || loadingScenery !== sceneryKey)) loading = null;
+  loadingFactions = factionsKey;
+  loadingScenery = sceneryKey;
+  loading ??= library.load("/", wearing, factions, scenery);
   return loading
     .then(() => library.withUnits(wearing))
     .then(() => library.withAppearances(asked))
@@ -119,6 +134,8 @@ export function gameAppearances(
  *  asked for again. */
 export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppearances> {
   loading = null;
+  loadingFactions = undefined;
+  loadingScenery = undefined;
   prefetching = null;
   prefetchStatus = { state: "idle" };
   return gameAppearances(units);
@@ -149,6 +166,8 @@ export function installedUnitNames(
 export function useGameAppearances(
   asked: ReadonlySet<string> | null = NOTHING,
   kinds: Iterable<string> | null = null,
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
   retainOnError = false,
 ): InstalledAppearances | null {
   const { units } = useSessionCatalog();
@@ -169,7 +188,7 @@ export function useGameAppearances(
         requestedKinds: kinds ? [...kinds] : null,
         requestedAppearances: [...asked],
       };
-      gameAppearances(units, asked, wearing).then(
+      gameAppearances(units, asked, wearing, factions, scenery).then(
         (next) => {
           if (!live) return;
           appearanceStatus = { state: "ready", generation: next.generation };
@@ -205,7 +224,7 @@ export function useGameAppearances(
       live = false;
       if (retry !== undefined) clearTimeout(retry);
     };
-  }, [asked, units, wearing, retainOnError]);
+  }, [asked, kinds, units, wearing, factions, scenery, retainOnError]);
   // What an earlier request installed answers this one only if it has what it asked.
   const held =
     installed &&
@@ -255,13 +274,15 @@ export function useMapAppearances(
   family: string | null,
   standIns = false,
   kinds: Iterable<string> | null = null,
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
 ): InstalledAppearances | null {
-  const catalog = useGameAppearances(NOTHING, kinds, true);
+  const catalog = useGameAppearances(NOTHING, kinds, factions, scenery, true);
   const asked = useMemo(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],
   );
-  return useGameAppearances(asked);
+  return useGameAppearances(asked, kinds, factions, scenery);
 }
 
 /**
@@ -280,8 +301,9 @@ export function mapAppearances(
   buildings: PlacedBuildings,
   units: boolean,
   unitNames: ReadonlySet<string> | null = null,
+  dynamicProps = true,
 ): InstalledAppearances {
-  const art = propArt(appearances, world.exports.buildings.regionalFamily);
+  const art = propArt(appearances, world.exports.buildings.regionalFamily, dynamicProps);
   const drawn = new Set(
     JSON.parse(
       prop_appearances(JSON.stringify(world.layout), world.exports.props, art),

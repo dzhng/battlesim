@@ -14,7 +14,7 @@ fn field() -> contract::map::MapDefinition {
 #[test]
 fn each_side_fields_100_units_half_of_them_rifle_squads() {
     let s = scenario(&field(), &common::game(), 1, false).unwrap();
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         let mine: Vec<_> = s.units.iter().filter(|u| u.side == side).collect();
         assert_eq!(mine.len(), 100);
         assert_eq!(mine.iter().filter(|u| u.kind == "test_rifle").count(), 50);
@@ -55,7 +55,7 @@ fn city_stress_brings_both_forces_and_remains_to_the_same_arena() {
         s.map.size, map.size,
         "the full physical world remains loaded"
     );
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         let fighters: Vec<_> = s
             .units
             .iter()

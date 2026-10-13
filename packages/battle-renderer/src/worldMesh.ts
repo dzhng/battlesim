@@ -229,6 +229,7 @@ export function buildWorldLayers(
   biome: Biome,
   overlay: WorldOverlay,
   appearances: InstalledAppearances | null = null,
+  drawScenery = true,
 ): WorldLayers {
   // The skirt: vertical faces down from the map's boundary, so the bounded
   // map reads as solid ground rather than a paper-thin sheet. They stand on
@@ -240,8 +241,10 @@ export function buildWorldLayers(
   return {
     terrain,
     props: concatMeshes([skirt_mesh(exports.positions) as Mesh, props.build()]),
-    scenery: overlay === "surface" && appearances ? worldScenery(biome, appearances) : null,
-    grass: overlay === "surface" && appearances ? grassAppearancesOf(appearances) : null,
+    scenery:
+      overlay === "surface" && appearances && drawScenery ? worldScenery(biome, appearances) : null,
+    grass:
+      overlay === "surface" && appearances && drawScenery ? grassAppearancesOf(appearances) : null,
   };
 }
 

@@ -74,6 +74,7 @@ fn tank() -> Value {
 fn shell_the_house(b: &mut Battle) {
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],
@@ -327,6 +328,7 @@ fn a_tank_never_fires_through_a_house_at_ground_beyond_it() {
     let mut b = battle(map(house(), json!([]), json!([])), tank());
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],
@@ -377,6 +379,7 @@ fn wears_down(kind: &str, props: Value, point: [f64; 2], limit_s: u64) -> Option
     let mut b = battle(map(json!([]), props, json!([])), shooter);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],

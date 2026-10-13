@@ -21,6 +21,7 @@ fn scenario() -> ScenarioDefinition {
 fn mv(side: Side, seq: u64, unit: u32, goal: [f64; 2], queued: bool) -> CommandEnvelope {
     CommandEnvelope {
         side,
+        slot: None,
         seq,
         order: Order::Move {
             units: vec![UnitId(unit)],
@@ -81,6 +82,28 @@ fn out_of_sequence_and_foreign_commands_are_rejected_without_effect() {
 }
 
 #[test]
+fn slot_owned_commands_require_the_matching_player_slot() {
+    let mut setup = scenario();
+    setup.units[0].owner = Some("blue-1".into());
+    let mut b = Battle::new(&setup, 7);
+
+    let mut command = mv(Side::Blue, 1, 0, [100.0, 150.0], false);
+    assert_eq!(
+        b.accept(command.clone()).error,
+        Some(OrderError::MissingSlot)
+    );
+
+    command.slot = Some("blue-2".into());
+    assert_eq!(
+        b.accept(command.clone()).error,
+        Some(OrderError::WrongSlot { unit: UnitId(0) })
+    );
+
+    command.slot = Some("blue-1".into());
+    assert_eq!(b.accept(command).error, None);
+}
+
+#[test]
 fn shift_queues_and_plain_orders_replace_and_stop_clears() {
     let mut b = Battle::new(&scenario(), 7);
     b.accept(mv(Side::Blue, 1, 0, [80.0, 150.0], false));
@@ -93,6 +116,7 @@ fn shift_queues_and_plain_orders_replace_and_stop_clears() {
     assert_eq!((own.goal, own.queue.len()), (Some([50.0, 100.0]), 0));
     b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 4,
         order: Order::Stop {
             units: vec![UnitId(0)],

@@ -49,6 +49,7 @@ const SEED_DEPENDENT: Record<RefusalStage, readonly string[]> = {
   request: [],
   map: ["generation_failed", "complexity_limit"],
   encounter: ["invalid_skirmish_sites"],
+  bundle: [],
 };
 
 function canRetry(error: unknown): boolean {

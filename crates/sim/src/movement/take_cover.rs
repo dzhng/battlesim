@@ -46,7 +46,7 @@ const FLUSH_M: f64 = 1e-6;
 /// every live hull as rounds meet it, and where tracked squads' soldiers are
 /// exposed (standing, or out on a lean), by unit and member.
 pub(super) struct Field {
-    hulls: [Vec<Body>; 2],
+    hulls: [Vec<Body>; 3],
     blockers: Vec<lean::Hull>,
     soldiers: Vec<Vec<V2>>,
 }

@@ -119,6 +119,7 @@ fn it_climbs_on_engagement() {
     sink(&mut b, low);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::SetEngagement {
             units: vec![HELI],

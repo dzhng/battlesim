@@ -126,6 +126,12 @@ pub struct PropInput {
     #[serde(default)]
     pub family: Option<String>,
     pub detail: Detail,
+    #[serde(default = "default_dynamic")]
+    pub dynamic: bool,
+}
+
+fn default_dynamic() -> bool {
+    true
 }
 
 /// A tint as the GPU reads it, linear.
@@ -153,6 +159,7 @@ pub struct PropArt {
     walked_on: HashSet<String>,
     stand_in: Option<(Bounds, HashMap<String, [f32; 3]>)>,
     detail: Detail,
+    dynamic: bool,
 }
 
 /// A prop's box: centred at `center` on ground level `base_z`, turned by
@@ -204,6 +211,7 @@ impl PropArt {
             stand_in_tints,
             family,
             detail,
+            dynamic,
         } = input;
         let blocking: HashSet<&String> = layout.blocking_prop_kinds.values().flatten().collect();
         let walked_on = layout
@@ -223,6 +231,7 @@ impl PropArt {
             walked_on,
             stand_in,
             detail,
+            dynamic,
             layout,
         };
         let index: HashMap<&str, usize> = appearances
@@ -329,6 +338,9 @@ impl PropArt {
         let mut models = Vec::new();
         for p in props.iter().filter(|p| !self.is_tree(&p.kind)) {
             self.fit(p, None, looks, &mut models);
+        }
+        if !self.dynamic {
+            return;
         }
         let mut kinds: Vec<&String> = self.layout.prop_appearance.keys().collect();
         kinds.sort();
@@ -879,6 +891,7 @@ mod tests {
                 lod_px: [200.0, 80.0, 30.0],
                 impostor_px: 10.0,
             },
+            dynamic: true,
         }
     }
 

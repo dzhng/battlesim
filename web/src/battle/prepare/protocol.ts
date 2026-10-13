@@ -49,7 +49,17 @@ export interface PrepareReplayMessage {
   type: "prepare-replay";
   battle: PreparedBattle;
 }
-export type PreparationMessage = PrepareMessage | PrepareReplayMessage;
+
+/** An explicit downloaded bundle; admission never resolves a map source. */
+export interface PrepareScenarioBundleMessage {
+  type: "prepare-bundle";
+  bundle: string;
+  active_human?: string | null;
+}
+export type PreparationMessage =
+  | PrepareMessage
+  | PrepareReplayMessage
+  | PrepareScenarioBundleMessage;
 
 export interface StressPreparation {
   kind: "city-arena-2";
@@ -63,8 +73,9 @@ export type PrepareDiagnostic = MapDiagnostic;
 /** What preparation is doing: resolving the map, then fielding the forces
  *  on it (`encounter`). */
 export type PrepareStage = "map" | "encounter";
+export type BundlePrepareStage = "bundle";
 /** Where a refusal came from: the request's own check, or a stage. */
-export type RefusalStage = "request" | PrepareStage;
+export type RefusalStage = "request" | PrepareStage | BundlePrepareStage;
 
 /** What preparation made: the scenario JSON a battle authority runs
  *  (`ScenarioDefinition`), and what it is. */
@@ -102,9 +113,16 @@ export interface PreparationReport {
 
 export type PrepareWorkerRequest = PreparationMessage | SimRequest;
 
+export interface PreparedScenarioBundle {
+  canonical: string;
+  scenario: string;
+  report: import("./scenarioBundle").ScenarioBundlePreparationReport;
+}
+
 export type PrepareReply =
   | { type: "stage"; stage: PrepareStage }
   | { type: "prepared"; battle: PreparedBattle }
+  | { type: "bundle-prepared"; battle: PreparedScenarioBundle }
   /** The request's check, the map owner or the skirmish sites refused (`stage`
    *  says which): never another seed, never another map. */
   | { type: "refused"; stage: RefusalStage; diagnostics: PrepareDiagnostic[] }
