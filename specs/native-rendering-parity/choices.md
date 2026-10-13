@@ -709,3 +709,16 @@ Resolves battle voices and music's [N2](../done/battle-voices-music/choices.md#n
 | The worker's `ready` reports the rules' `tick_hz` as given, and pacing derives `tickMs` from it | `1000 / (1000 / 30)` is 29.999999999999996, and the page's presentation times every effect from that rate. This is a fix in the browser's sim client, outside the capture lane, because the cause was there | Agent |
 | The capture's `tickHz` is the rate the page's presentation ran at (the worker's `ready`), not the rules' | Record the inputs the presentation framed from; the replay builds its `Presentation` from it | Agent |
 | Native checks building modules per module and tier against `instanceCounts[].buildings` | The plates' "statics" had no native check; models, props, scenery and effects did | Agent |
+
+### Slice 25: the last per-frame derivations in Rust (`derive2rust`)
+
+| Decision | Why | Closed by |
+| --- | --- | --- |
+| **Named decision: clearing lands one frame earlier.** The scenery follows the ground the side has learned cleared inside `frame()`, from the publications pushed before it; `set_cleared` is deleted. Both clients used to hand the cleared ground back after a frame, so a shrub on newly cleared ground left one frame later | The presentation already holds the learned ground; the round trip only delayed it and duplicated it in each client. A one-frame shift at 60 fps is invisible | User (accepted) |
+| A lab's "scars off" switch (`suppressScars`) no longer puts cleared shrubs and dressing back | It handed the scenery an empty cleared ground as a side effect; scars and scenery are separate things to compare | Agent |
+| `frame()` carries the camera uniform, the `View` (now with `target`) and the sun's cascades (`set_shadow(light, terrain)` once); the browser's `frameCamera.ts`, `SunShadowFit` and native's `environment::camera`/`view_proj` are deleted. The sky's rays use the browser's unprojection (`screenRay`) | Bit-equal to the deleted TypeScript on 144 recorded cameras; native's sky rays move by float rounding to the browser's | Agent |
+| The grass's window and frame parameters are read for the last frame's camera (`grass_window()`, `grass_frame_params`), so the renderers pass no camera | Its eye and lens otherwise had to reach the renderer in f64 beside the records | Agent |
+| `Batch.caster` and `Batch.fog` replace the unused `cascades`; `Batch` grows to 48 B. `view::caster_tier` and `view::TIERS` are the one owner of "one tier coarser", the static walks included | Renderers route; the same rule was in three Rust walks, the TS model layer and native's model layer | Agent |
+| An impostor batch casts nothing. The browser's stand-in mesh for a card not yet baked no longer casts | A card never cast; native's stand-in never did; it lasts until the atlases bake at load | Agent |
+| A lab's own models (`setModels`, no presentation) keep the TS caster and fog rule | They have no batches; 18b's labs build their own records | Agent |
+| A viewport whose battle presentation is not there yet frames its camera through a bare `ScenePresentation`, as does the workbench sheet | The renderer draws only a frame's camera | Agent |

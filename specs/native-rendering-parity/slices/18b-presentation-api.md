@@ -38,7 +38,7 @@ There are no per-entity calls, no callbacks and no renderer-to-Rust queries. A r
 
 **The renderer owns everything per vertex, texel, pixel and blade,** plus its own resources:
 - loading an appearance's meshes and textures by name;
-- materials and shaders: skinning by the given palette, wind, a felled tree's bend by its `param`, terrain and grass shading, grass clump generation from the World tables, fog horizon maps from the given eyes, the sky lookup bake, shadow cascade fitting to the given splits, post;
+- materials and shaders: skinning by the given palette, wind, a felled tree's bend by its `param`, terrain and grass shading, grass clump generation from the World tables, fog horizon maps from the given eyes, the sky lookup bake, post;
 - packing table writes into its own carrier (a WebGPU storage buffer, or a Godot word texture, since Godot can't wrap `R32_UINT`);
 - converting sim space to its engine's space, once at the root;
 - the overlay pass that draws the UI's meshes.
@@ -98,6 +98,8 @@ These hold for every record:
 
 The camera is an input because the camera controller is UI (input handling and clearance). Rust returns the matrices, so projection has one owner.
 
+*Amended 2026-10-12 (`derive2rust`).* The sun's cascades are fitted in `frame()` too. A client gives the light, with its graphics quality's map size and reach, and the map's ground mesh once, through `set_shadow(light, terrain)`; every later frame carries the fit. The ground the side has learned cleared is no longer an input (`set_cleared` is deleted): `frame()` lets the scenery follow the learned ground it already holds.
+
 ## `World`
 
 | Set | Record (bytes) | What |
@@ -137,7 +139,9 @@ Static placement is **not** in World. Market-town places well over a million ins
 | --- | --- | --- |
 | `header` | `FrameHeader` | every frame: offsets and lengths of every set, `clock: f64` (s, sim), `tick: u32` (the publication drawn), `index: u32`, `light_wrap: f32`, `occluders_version: u32` |
 | `view` | `View` (one) | every frame |
-| `batches` | `Batch` (32) | every frame: the list of what is drawn |
+| `camera` | `Camera` (one) | every frame: the uniform every world shader binds (view-projection, its inverse, eye, near, size, clock); *amended 2026-10-12* |
+| `sun_shadow`, `casters` | `SunShadow` (one), `Camera` (one per fitted cascade) | every frame once `set_shadow` was called, else none; *amended 2026-10-12* |
+| `batches` | `Batch` (48) | every frame: the list of what is drawn |
 | `instances` | `Instance` (64) | only for batches whose contents changed |
 | `palettes` | `Joint` (48) | every frame, whole |
 | `effects` | `Effect` (64) | every frame, in draw order |
@@ -162,18 +166,24 @@ Static placement is **not** in World. Market-town places well over a million ins
 
 *Amended 2026-10-11 (slice 25, step 3).* `View` also carries the sky's three corner rays (`sky_origin`, `sky_dx`, `sky_dy`): the ray through the top-left pixel, and its change across the width and down the height. They are the sky shader's `Rays`, so the projection keeps one owner. `cascades` and `sun_penumbra` are filled when native draws shadows.
 
-**`Batch`** (32 B):
+*Amended 2026-10-12 (`derive2rust`).* `View` carries `target` (where the haze is measured from) and no `cascades` or `sun_penumbra`: the fit is `Frame`'s `sun_shadow` and `casters`. The view, the camera uniform and the sky's rays equal the browser's former `frameCamera.ts` bit for bit (`tests/camera.rs`, 144 recorded cameras). The grass's window and per-frame parameters are read for the last frame's camera (`grass_window()`, `grass_frame_params(words, window)`), so a renderer passes no camera anywhere.
+
+**`Batch`** (48 B, *amended 2026-10-12*):
 
 | Field | Type | What |
 | --- | --- | --- |
 | `key` | `u32` | Stable id for this batch across frames; the renderer keys its GPU buffer by it |
 | `appearance` | `u32` | `World.appearances` row |
 | `tier` | `u32` | Detail tier |
-| `pass` | `u32` | 0 drawn in view, 1 shadow caster |
-| `cascades` | `u32` | Casters: bit *n* set if it reaches cascade *n* |
+| `pass` | `u32` | 0 drawn in view, 1 shadow caster, 2 placement ghost |
+| `caster` | `u32` | The tier its instances cast into the cascades with: a model in view one coarser (`view::caster_tier`), a caster batch its own, `NONE` for none (a card, a ghost, a static view batch that has caster batches of its own) |
+| `fog` | `u32` | The fog group it binds: `FOG_UNITS` (never fogged), `FOG_FACES`, `FOG_GROUND` (whole, as the ground under it), `FOG_PAINTED_FACES` |
 | `version` | `u32` | Changes when the contents change |
 | `first` | `u32` | First `Instance` of the new contents, or `NONE` when unchanged since the renderer last saw this `version` |
 | `count` | `u32` | Instances drawn |
+| `pad` | `[u32; 3]` | 0 |
+
+*Amended 2026-10-12 (`derive2rust`):* `Batch` is 48 B. `cascades` was never filled; `caster` and `fog` replace the renderers' own rules ("cast one tier coarser", the fog group by row kind), so a renderer only routes.
 
 A batch missing from the list is not drawn this frame; the renderer may keep its buffer for when it returns. Units, ghosts and corpses are batches like any other, and theirs change every frame. Buildings, scenery, dressing, props and stumps change when a chunk changes tier or residency, or the side learns a fall.
 
@@ -269,7 +279,7 @@ Considered and not used:
 | `setWorld` (`worldMesh.ts`; `scenery/placement.ts`, `dressing.ts`, `lod.ts`; `templateLibrary.ts`; the terrain and grass packers) | `World.tables`, scenery through `Frame.batches` | the resolvers and packers (20b) |
 | `setGround` (`ground.ts`, `groundPage.ts`) | `Frame.table_writes` | the client ground view and the scar page cache; `scarTexture.ts` keeps only the upload |
 | `setFog` (`fogEyes`, `knownOccluders`, foliage less cleared) | `Frame.fog_eyes`, `fog_occluders`, `table_writes` | `fogInputs.ts`' builders |
-| `render(view, camera)` | `frame`'s camera in, `Frame.view` out | `frameCamera.ts`' matrix build |
+| `render(view, camera)` | `frame`'s camera in; `Frame.view`, `camera`, `sun_shadow` and `casters` out (`setCamera(frame)`, then `render(target)`) | `frameCamera.ts`, `SunShadowFit`, the caster-tier and fog-class rules, `setCleared` (deleted 2026-10-12) |
 | `setAppearances` | `World.appearances` names; asset loading stays renderer-side | — |
 | `setFogStyle`, light | `World` records | — |
 | `setOverlay`, `setPointerMarks` | `draw`'s `overlay`, UI meshes, outside the API | — |

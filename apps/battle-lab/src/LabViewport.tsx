@@ -926,7 +926,7 @@ export function LabViewport({
           // The scene's presentation is staged with its buildings before the
           // battle frames it (or, without one, the viewport frames it).
           const decoder = scenePresentation();
-          const terrain = worldRef.current.current?.terrain.mesh ?? null;
+          const terrain = worldRef.current.current?.terrain?.mesh ?? null;
           let animated: ViewportFrame | null | undefined = null;
           try {
             if (decoder) {

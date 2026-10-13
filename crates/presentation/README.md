@@ -27,8 +27,10 @@ wherever it runs.
   the flashes, the firing soldiers and the gunfire sounds read), the effect frame,
   the cast lights it chooses for the view, and cook-offs.
 - [The view](src/view.rs): what the camera means for culling and detail, the one
-  tier rule every drawn model takes, and the frame's `View` record with the
-  sky's corner rays.
+  tier rule every drawn model takes and the tier it casts with, and the
+  frame's `View` record (with the sky's corner rays) and camera uniform,
+  the browser's camera math to the bit. Each batch also names the fog group
+  it binds (`Batch.fog`).
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
 - [Scars](src/scars/): the side's learned ground, from its publications'
@@ -44,15 +46,17 @@ wherever it runs.
   uploads as it is. A prop the side has not learned never reaches it. The
   unseen look is [`fog`](src/fog/mod.rs)'s `FogLook`.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
-  map is in view depth, as the receiver block and each cascade's caster camera.
+  map is in view depth, as the receiver block and each cascade's caster camera
+  (`Frame.shadow`, once `set_shadow` gives the light and the map's box).
 - [The static world](src/static_world/): the buildings resolved from their
   template art, and the ground from the map's exports under the biome: its
   tables, its meshes (terrain, skirt, water, backdrop), the grass field's
-  shapes, window and per-frame parameters, and the scenery; and the map's
-  props fitted to their boxes from the installed art, less those the side
-  knows replaced, with what it knows (rubble, wrecks, shoved bodies).
-  Buildings, scenery and props are walked per view into the frame's static
-  batches, written only when a list changes.
+  shapes, and its window and per-frame parameters for the last frame's
+  camera, and the scenery; and the map's props fitted to their boxes from the
+  installed art, less those the side knows replaced, with what it knows
+  (rubble, wrecks, shoved bodies). Buildings, scenery and props are walked
+  per view into the frame's static batches, written only when a list
+  changes; the scenery leaves the ground the side has learned cleared.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
@@ -102,7 +106,7 @@ roll to the resting wreck.
 
 `tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
 (native's fixture capture and fixed effect causes), `tests/light.rs`,
-`shadow.rs`, `ground_meshes.rs`, `grass_field.rs` and `fog_sight.rs` to recorded
+`shadow.rs`, `camera.rs`, `ground_meshes.rs`, `grass_field.rs` and `fog_sight.rs` to recorded
 browser vectors bit for bit, and `tests/scars.rs` holds every scar upload to
 recorded cache words; the behaviour tests beside them cover what those do not
 reach.

@@ -37,13 +37,14 @@ The native client on `wgpu`. It runs the browser's own shaders and passes over t
   it and cuts each felled tree's stump (`stump_mesh`). Each row's batches
   draw through the browser's scenery pipelines, routed by
   `Appearance.draws`, into the depth prepass, the lit world and, for what the
-  walk lists as casters, the cascades. Like the page, the replay hands back
-  the ground the side has seen cleared (`set_cleared`).
-- **Sun shadows** are four cascades the presentation crate fits to each
-  frame's camera over the map's box (`presentation::shadow`): the receiver
-  block and each cascade's caster camera are records the client uploads. The
-  ground, the models and the buildings cast into them, a unit one tier
-  coarser than it draws and never as a card.
+  walk lists as casters, the cascades. The presentation clears shrubs and
+  dressing off the ground the side has learned cleared by itself.
+- **The camera and sun shadows** come with each frame: its `View`, its
+  camera uniform, and four cascades fitted over the map's box
+  (`presentation::shadow`, given the light and the box once, `set_shadow`),
+  the receiver block and each cascade's caster camera, all uploaded as they
+  are. Each batch names the tier it casts with and the fog group it binds
+  (`Batch.caster`, `Batch.fog`); the client routes by them.
 - **Buildings** are the frame's static batches too: the map's buildings
   placed from the template art, in the state the side knows.
 - **Props** (parked cars, lamps, walls, fences, hedges, benches, wrecks,
