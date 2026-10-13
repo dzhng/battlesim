@@ -21,7 +21,8 @@ import {
 } from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { Bounds } from "@packages/scene-assets/src/schema";
-import { Camera, typegpuCameraLayout } from "../world/camera";
+import { typegpuCameraLayout } from "../world/camera";
+import { Camera } from "../records.gen";
 import { battleWorldDepth } from "../worldDepth";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
 import type { GpuRegistry } from "../frame/registry";

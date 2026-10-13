@@ -14,7 +14,7 @@ struct fullScreenTriangle_Output {
 
 @group(0) @binding(2) var rows: texture_2d<f32>;
 
-struct FogStyleUniform {
+struct FogLook {
   tint: vec3f,
   dim: f32,
   cool: f32,
@@ -32,7 +32,7 @@ struct FogStyleUniform {
   reachPx: f32,
 }
 
-@group(0) @binding(0) var<uniform> look: FogStyleUniform;
+@group(0) @binding(0) var<uniform> look: FogLook;
 
 fn distanceColumns(pixel: vec2f) -> vec4f {
   let p = vec2i(pixel);

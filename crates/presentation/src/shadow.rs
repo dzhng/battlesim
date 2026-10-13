@@ -9,15 +9,13 @@
 //! bit (`tests/shadow.rs`). The splits run over the receiver range, not from the camera's near
 //! plane, so a camera a kilometre up does not spend its cascades on air.
 use crate::light::{CascadeSettings, LightSettings};
-use crate::records::{Camera as CameraRecord, SunShadow};
+use crate::records::{Camera as CameraRecord, SunCascade, SunShadow};
 use crate::static_world::ground::js;
 use crate::view::{look_at, perspective_reverse_z, Camera};
 
 /// The receiver layout's cascade slots: `SunShadow` and the depth array
 /// hold this many, so `presentation.light.cascades.count` must equal it.
 pub const CASCADES: usize = 4;
-/// Floats per cascade in `SunShadow.cascades`.
-const RECORD: usize = 24;
 /// How far above its slice's highest corner each cascade's light sits, so
 /// casters just off screen still land in its depth range.
 const LIGHT_MARGIN: f64 = 300.0;
@@ -139,19 +137,17 @@ pub fn sun_shadow(
         let view_projection = multiply(&light_projection, &light_view);
         let radius = js::min(4.0, js::max(1.0, settings.softness_m / texel));
         let interval = [if i == 0 { 0.0 } else { breaks[i - 1] }, breaks[i]];
-        let at = i * RECORD;
-        let record = &mut receiver.cascades[at..at + RECORD];
-        record[..16].copy_from_slice(&view_projection);
-        record[16..20].copy_from_slice(
-            &[
+        receiver.cascades[i] = SunCascade {
+            matrix: view_projection,
+            bias: [
                 settings.depth_bias * (i + 1) as f64,
                 normal_bias(settings, texel, radius),
                 radius,
                 0.0,
             ]
             .map(|v| v as f32),
-        );
-        record[20..24].copy_from_slice(&[interval[0] as f32, interval[1] as f32, 0.0, 0.0]);
+            interval: [interval[0] as f32, interval[1] as f32, 0.0, 0.0],
+        };
         let size = map_size as f32;
         casters.push(camera_record_of(
             &view_projection,
@@ -327,12 +323,15 @@ fn normal_bias(settings: &CascadeSettings, texel: f64, radius: f64) -> f64 {
 
 /// An unfitted cascade's record: the identity over the interval [1, 1].
 fn inactive(receiver: &mut SunShadow, i: usize) {
-    let record = &mut receiver.cascades[i * RECORD..(i + 1) * RECORD];
-    record.fill(0.0);
+    let mut matrix = [0.0; 16];
     for d in [0, 5, 10, 15] {
-        record[d] = 1.0;
+        matrix[d] = 1.0;
     }
-    record[20..22].copy_from_slice(&[1.0, 1.0]);
+    receiver.cascades[i] = SunCascade {
+        matrix,
+        bias: [0.0; 4],
+        interval: [1.0, 1.0, 0.0, 0.0],
+    };
 }
 
 /// The light's orthonormal frame: `depth` points from the scene toward the

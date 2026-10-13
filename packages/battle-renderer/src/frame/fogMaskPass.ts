@@ -30,8 +30,8 @@
 // views show the resolved mask itself, white where seen, or its ground
 // coverage, white where ground.
 import { tgpu, d, common, type TgpuBuffer, type UniformFlag } from "typegpu";
-import { FOG_DISTANCE_CAP_PX, FogStyleUniform, fogLook } from "./fogStyle";
-import { FogLook } from "../records.gen";
+import { FOG_DISTANCE_CAP_PX, fogLook } from "./fogStyle";
+import { FogLook, FogLookAt } from "../records.gen";
 import { FOG_DISTANCE_FORMAT, FRAME_MSAA, HDR_FORMAT, type FrameTargets } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -50,18 +50,18 @@ const MASK_VIEWS = { none: 0, fog: 1, ground: 2, classes: 3 } as const;
 export type FogMaskViewKind = keyof typeof MASK_VIEWS;
 
 const rowsLayout = tgpu.bindGroupLayout({
-  look: { uniform: FogStyleUniform, visibility: ["fragment"] },
+  look: { uniform: FogLook, visibility: ["fragment"] },
   mask: { texture: d.texture2d(), visibility: ["fragment"] },
 });
 
 const columnsLayout = tgpu.bindGroupLayout({
-  look: { uniform: FogStyleUniform, visibility: ["fragment"] },
+  look: { uniform: FogLook, visibility: ["fragment"] },
   mask: { texture: d.texture2d(), visibility: ["fragment"] },
   rows: { texture: d.texture2d(), visibility: ["fragment"] },
 });
 
 const composeLayout = tgpu.bindGroupLayout({
-  look: { uniform: FogStyleUniform, visibility: ["fragment"] },
+  look: { uniform: FogLook, visibility: ["fragment"] },
   view: { uniform: FogMaskView, visibility: ["fragment"] },
   lit: { texture: d.texture2d(), visibility: ["fragment"] },
   mask: { texture: d.texture2d(), visibility: ["fragment"] },
@@ -202,7 +202,7 @@ const over = {
 } as const;
 
 interface FogMaskBuffers {
-  look: TgpuBuffer<typeof FogStyleUniform> & UniformFlag;
+  look: TgpuBuffer<typeof FogLook> & UniformFlag;
   view: TgpuBuffer<typeof FogMaskView> & UniformFlag;
 }
 
@@ -263,15 +263,15 @@ export async function createFogMaskPass(
     .$name("fogMaskRim");
   await Promise.all([rows, columns, compose, rim].map((p) => p.initAsync()));
 
-  const look = registry.own(root.createBuffer(FogStyleUniform).$usage("uniform"));
+  const look = registry.own(root.createBuffer(FogLook).$usage("uniform"));
   const view = registry.own(root.createBuffer(FogMaskView).$usage("uniform"));
   let words = initialLook;
   let maskView: FogMaskViewKind = "none";
   look.write(words.buffer as ArrayBuffer);
   view.write({ mask: 0 });
-  const rimDrawn = () => words[FogLook.rim_width_px] > 0 && words[FogLook.rim_alpha] > 0;
+  const rimDrawn = () => words[FogLookAt.rim_width_px] > 0 && words[FogLookAt.rim_alpha] > 0;
   /** Whether this look draws anything the distances are needed for. */
-  const edges = () => words[FogLook.edge_softness_px] > 0 || rimDrawn();
+  const edges = () => words[FogLookAt.edge_softness_px] > 0 || rimDrawn();
 
   return {
     /** How unseen looks, and its edge, from the next frame on: a `FogLook`. */
@@ -322,9 +322,9 @@ export async function createFogMaskPass(
     },
     stats() {
       return {
-        edgeSoftnessPx: words[FogLook.edge_softness_px],
-        rimWidthPx: words[FogLook.rim_width_px],
-        reachPx: edges() ? words[FogLook.reach_px] : 0,
+        edgeSoftnessPx: words[FogLookAt.edge_softness_px],
+        rimWidthPx: words[FogLookAt.rim_width_px],
+        reachPx: edges() ? words[FogLookAt.reach_px] : 0,
         maskView,
       };
     },

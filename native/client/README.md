@@ -16,7 +16,8 @@ The native client on `wgpu`. It runs the browser's own shaders and passes over t
   the struct its shader declares. A pass binds groups by the layout they fill,
   never by number.
 - **Models** are the browser's appearance bundles from `assets/runtime` (Git
-  LFS; pull the ones a scene needs), read as the browser reads them: the
+  LFS; pull the ones a scene needs), read through the presentation crate's
+  runtime reader (`presentation::assets`) as the browser reads them: the
   catalog, gzip transport, the bundle container and its texture files. Every
   `World.appearances` row is loaded once into the browser's vertex layout, and
   each `Frame` batch is one run of instances over one row's tier. A corpse is

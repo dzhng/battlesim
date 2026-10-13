@@ -10,7 +10,7 @@ struct fullScreenTriangle_Output {
   return fullScreenTriangle_Output(vec4f(pos[vertexIndex], 0, 1), uv[vertexIndex]);
 }
 
-struct FogStyleUniform {
+struct FogLook {
   tint: vec3f,
   dim: f32,
   cool: f32,
@@ -28,7 +28,7 @@ struct FogStyleUniform {
   reachPx: f32,
 }
 
-@group(0) @binding(0) var<uniform> look: FogStyleUniform;
+@group(0) @binding(0) var<uniform> look: FogLook;
 
 @group(0) @binding(3) var mask: texture_2d<f32>;
 

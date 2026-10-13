@@ -38,12 +38,13 @@ pub struct FieldLayout {
     pub doc: &'static str,
 }
 
-/// How a renderer binds a record: a vertex instance attribute, a storage
-/// buffer struct, or plain words it reads on the CPU.
+/// How a renderer binds a record: a vertex instance attribute, a WGSL
+/// struct (a uniform, or a storage buffer's element), or plain words it reads
+/// on the CPU.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Binding {
     Vertex,
-    Storage,
+    Struct,
     Plain,
 }
 
@@ -72,6 +73,10 @@ macro_rules! records {
                 fn default() -> Self {
                     bytemuck::Zeroable::zeroed()
                 }
+            }
+            impl<const N: usize> Field for [$name; N] {
+                const SCALAR: &'static str = stringify!($name);
+                const COUNT: usize = N;
             }
             const _: () = assert!(std::mem::size_of::<$name>() % 16 == 0);
             const _: () = assert!(
@@ -195,7 +200,7 @@ records! {
 
     /// One joint's or node's motion, bind to model space: a 3×4 row-major
     /// affine (rows of basis x, basis y, basis z and origin).
-    Storage Joint {
+    Struct Joint {
         x: [f32; 4],
         y: [f32; 4],
         z: [f32; 4],
@@ -211,7 +216,7 @@ records! {
     }
 
     /// One chosen cast light (at most 24 a frame).
-    Storage CastLight {
+    Struct CastLight {
         /// xyz (m, sim), and 1/radius² (m⁻²).
         position: [f32; 4],
         /// rgb irradiance at its centre; w unused.
@@ -264,9 +269,9 @@ records! {
         sky_dy: [f32; 4],
     }
 
-    /// The sky's light for the battle (`SkyLight` in the sky's shaders):
-    /// what the sky lookup bakes and the shown sky and its clouds read.
-    Plain SkyLight {
+    /// The sky's light for the battle: what the sky lookup bakes and the
+    /// shown sky and its clouds read.
+    Struct SkyLight {
         /// Unit vector toward the sun.
         sun_direction: [f32; 3],
         /// 0 clear to 1 overcast, from turbidity.
@@ -309,10 +314,10 @@ records! {
         pad1: f32,
     }
 
-    /// The haze (`Aerial` in every lit shader's environment uniform):
-    /// extinction over distance from the camera's ground focus, a range
-    /// term, a sunward Mie tint and a low valley mist.
-    Plain Aerial {
+    /// The haze, in every lit shader's environment uniform: extinction over
+    /// distance from the camera's ground focus, a range term, a sunward Mie
+    /// tint and a low valley mist.
+    Struct Aerial {
         /// Per-channel extinction σ (km⁻¹).
         extinction: [f32; 3],
         /// No haze within this distance of the focus (km).
@@ -354,8 +359,8 @@ records! {
         fill: [f32; 4],
     }
 
-    /// The bloom (`Bloom` in post's highpass and composite).
-    Plain Bloom {
+    /// The bloom, as post's highpass and composite read it.
+    Struct Bloom {
         /// The first four blurred levels' shares of the composite.
         weights: [f32; 4],
         /// The fifth level's share.
@@ -366,8 +371,8 @@ records! {
         knee: f32,
     }
 
-    /// The grade and exposure (`Grade` in post's final pass).
-    Plain Grade {
+    /// The grade and exposure, as post's final pass reads it.
+    Struct Grade {
         saturation: f32,
         contrast: f32,
         split_tone: f32,
@@ -382,9 +387,9 @@ records! {
         lift: [f32; 4],
     }
 
-    /// What unseen looks like (`FogStyleUniform` in the fog mask passes):
-    /// a `presentation.fog` style resolved (`fog::FogStyle::look`).
-    Plain FogLook {
+    /// What unseen looks like to the fog mask passes: a `presentation.fog`
+    /// style resolved (`fog::FogStyle::look`).
+    Struct FogLook {
         /// The night tint at unit luminance.
         tint: [f32; 3],
         dim: f32,
@@ -408,9 +413,9 @@ records! {
         pad1: [f32; 2],
     }
 
-    /// A camera as every world, shadow and overlay shader binds it
-    /// (`Camera`): the frame's eye, or a sun cascade posed as its light.
-    Plain Camera {
+    /// A camera as every world, shadow and overlay shader binds it: the
+    /// frame's eye, or a sun cascade posed as its light.
+    Struct Camera {
         view_proj: [f32; 16],
         inv_view_proj: [f32; 16],
         eye: [f32; 3],
@@ -423,23 +428,31 @@ records! {
         pad: f32,
     }
 
-    /// Every shadow receiver's sun cascades (`SunShadow`), from the frame's
-    /// fit (`shadow::sun_shadow`).
-    Plain SunShadow {
-        /// Per cascade (`shadow::CASCADES`), 24 floats: its light's
-        /// view-projection (16); depth bias, normal bias (m), PCF radius
-        /// (texels), 0; the receiver-depth interval it shades, 0, 0. An
-        /// unfitted cascade is the identity over [1, 1].
-        cascades: [f32; 96],
+    /// One sun cascade as a shadow receiver reads it. An unfitted cascade is
+    /// the identity over [1, 1].
+    Struct SunCascade {
+        /// Its light's view-projection, column-major.
+        matrix: [f32; 16],
+        /// Depth bias, normal bias (m), PCF radius (texels), 0.
+        bias: [f32; 4],
+        /// The receiver-depth interval it shades, 0, 0.
+        interval: [f32; 4],
+    }
+
+    /// Every shadow receiver's sun cascades, from the frame's fit
+    /// (`shadow::sun_shadow`).
+    Struct SunShadow {
+        /// Per cascade slot (`shadow::CASCADES`).
+        cascades: [SunCascade; 4],
         /// The receiver range's capped far, 0, its near, 0.
         control: [f32; 4],
     }
 
-    /// Fog of war's sight for one frame (`FogParams`, bound by the fog
-    /// compute and every fogged material): the frame's camera and size, the
+    /// Fog of war's sight for one frame (bound by the fog compute and every
+    /// fogged material): the frame's camera and size, the
     /// sight lights' geometry, the static world sight is cut by, and the
     /// structures that take fog whole (`fog::sight`).
-    Plain FogParams {
+    Struct FogParams {
         inv_view_proj: [f32; 16],
         camera_eye: [f32; 3],
         /// The tallest canopy over the ground (m).
@@ -492,10 +505,10 @@ records! {
         pad1: [f32; 3],
     }
 
-    /// One eye as its map was built (`FogEyeRecord`): `position` the map's
+    /// One eye as its map was built: `position` the map's
     /// origin and `reach` its radius; forward, shape and range the latest
     /// publication's.
-    Plain FogEye {
+    Struct FogEye {
         position: [f32; 3],
         reach: f32,
         forward: f32,
@@ -509,8 +522,8 @@ records! {
         pad1: u32,
     }
 
-    /// An oriented box that hides what lies behind it (`FogBox`).
-    Plain FogBox {
+    /// An oriented box that hides what lies behind it.
+    Struct FogBox {
         center: [f32; 2],
         /// Half extents along and across its heading.
         half: [f32; 2],
@@ -586,37 +599,50 @@ pub fn typescript() -> String {
     }
     for l in LAYOUTS {
         out.push_str(&format!("\n/** {} */\n", l.doc.trim()));
-        let word = |s: &str| if s == "f32" { "f32" } else { "u32" };
         match l.binding {
-            Binding::Vertex | Binding::Storage => {
-                let (kind, vec4) = if l.binding == Binding::Vertex {
-                    ("unstruct", "float32x4")
-                } else {
-                    ("struct", "vec4f")
-                };
-                out.push_str(&format!("export const {} = d.{kind}({{\n", l.name));
+            Binding::Vertex => {
+                out.push_str(&format!("export const {} = d.unstruct({{\n", l.name));
                 for f in l.fields {
                     assert!(f.count == 4 && f.scalar == "f32", "{}.{}", l.name, f.name);
                     out.push_str(&format!(
-                        "  /** {} */\n  {}: d.{vec4},\n",
+                        "  /** {} */\n  {}: d.float32x4,\n",
                         f.doc.trim(),
                         f.name
                     ));
                 }
                 out.push_str("});\n");
             }
+            Binding::Struct => {
+                out.push_str(&format!("export const {} = d\n  .struct({{\n", l.name));
+                for (f, schema) in wgsl_members(l) {
+                    out.push_str(&format!(
+                        "    /** {} */\n    {}: {schema},\n",
+                        f.doc.trim(),
+                        camel(f.name)
+                    ));
+                }
+                out.push_str(&format!("  }})\n  .$name(\"{}\");\n", l.name));
+                out.push_str(&format!(
+                    "/** Where `{}`'s fields lie, in words. */\nexport const {}At = {{\n",
+                    l.name, l.name
+                ));
+                for f in l.fields {
+                    out.push_str(&format!("  {}: {},\n", f.name, f.offset / 4));
+                }
+                out.push_str("} as const;\n");
+            }
             Binding::Plain => {
                 out.push_str(&format!("export const {} = {{\n", l.name));
                 for f in l.fields {
+                    let count = if f.count > 1 {
+                        format!(" × {}", f.count)
+                    } else {
+                        String::new()
+                    };
                     out.push_str(&format!(
-                        "  /** {} ({}{}) */\n  {}: {},\n",
+                        "  /** {} ({}{count}) */\n  {}: {},\n",
                         f.doc.trim(),
-                        word(f.scalar),
-                        if f.count > 1 {
-                            format!(" × {}", f.count)
-                        } else {
-                            String::new()
-                        },
+                        f.scalar,
                         f.name,
                         f.offset / 4
                     ));
@@ -661,6 +687,80 @@ pub fn typescript() -> String {
     };
     out.push_str(&views("Frame", &FrameHeader::LAYOUT));
     out.push_str(&views("World", &WorldHeader::LAYOUT));
+    out
+}
+
+/// A struct record's WGSL members as TypeGPU schemas, in order. Padding is
+/// never a member: WGSL's own alignment must put every other field at its
+/// offset and round the struct to the record's size (asserted).
+fn wgsl_members(l: &Layout) -> Vec<(&FieldLayout, String)> {
+    let mut at = 0usize;
+    let mut members = vec![];
+    for f in l.fields.iter().filter(|f| !f.name.starts_with("pad")) {
+        let (schema, align, size) = wgsl_type(f);
+        at = at.next_multiple_of(align);
+        assert_eq!(
+            at, f.offset,
+            "{}.{} is not where WGSL puts it",
+            l.name, f.name
+        );
+        at += size;
+        members.push((f, schema));
+    }
+    assert_eq!(
+        at.next_multiple_of(wgsl_align(l)),
+        l.size,
+        "{} is not the size WGSL gives it",
+        l.name
+    );
+    members
+}
+
+/// A field's WGSL type as a TypeGPU schema, its alignment and its size.
+fn wgsl_type(f: &FieldLayout) -> (String, usize, usize) {
+    let v = if f.scalar == "u32" { 'u' } else { 'f' };
+    match (f.scalar, f.count) {
+        ("f32" | "u32", 1) => (format!("d.{}", f.scalar), 4, 4),
+        ("f32" | "u32", 2) => (format!("d.vec2{v}"), 8, 8),
+        ("f32" | "u32", n @ (3 | 4)) => (format!("d.vec{n}{v}"), 16, 4 * n),
+        ("f32", 16) => ("d.mat4x4f".into(), 16, 64),
+        (record, n) => {
+            let l = LAYOUTS
+                .iter()
+                .find(|l| l.name == record && l.binding == Binding::Struct)
+                .unwrap_or_else(|| panic!("{}: no WGSL type for {record} × {n}", f.name));
+            (
+                format!("d.arrayOf({record}, {n})"),
+                wgsl_align(l),
+                n * l.size,
+            )
+        }
+    }
+}
+
+fn wgsl_align(l: &Layout) -> usize {
+    l.fields
+        .iter()
+        .filter(|f| !f.name.starts_with("pad"))
+        .map(|f| wgsl_type(f).1)
+        .max()
+        .unwrap_or(4)
+}
+
+/// A field's name in WGSL and TypeScript: `sun_direction` is `sunDirection`.
+pub fn camel(snake: &str) -> String {
+    let mut out = String::new();
+    let mut upper = false;
+    for c in snake.chars() {
+        match c {
+            '_' => upper = true,
+            c if upper => {
+                out.push(c.to_ascii_uppercase());
+                upper = false;
+            }
+            c => out.push(c),
+        }
+    }
     out
 }
 

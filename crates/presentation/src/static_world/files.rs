@@ -1,7 +1,7 @@
 //! The static world from the repository's own files, as a client with no
 //! page reads it: the saved map, the fixture's presentation numbers, and the
-//! runtime catalog's template library and kit bundles, each stored gzipped
-//! under its transport hash (`packages/scene-assets/src/gzip.ts`).
+//! runtime catalog's template library and kit bundles ([`Runtime`]).
+use crate::assets::Runtime;
 use crate::static_world::buildings::{Placed, PlacedBuildings};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::{self, Source, Tuning};
@@ -10,36 +10,11 @@ use crate::static_world::props::{Art, PropInput, STAND_IN_KIT, STAND_IN_MODULE};
 use crate::world::BuildingStyle;
 use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap};
-use std::io::Read;
 use std::path::Path;
 
 fn json(path: &Path) -> Result<Value, String> {
     let text = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
     serde_json::from_slice(&text).map_err(|e| format!("{}: {e}", path.display()))
-}
-
-/// The path of the runtime file the content `hash` travels in, gzipped.
-fn runtime_path(
-    root: &Path,
-    catalog: &Value,
-    hash: &str,
-    file: &str,
-) -> Result<std::path::PathBuf, String> {
-    let transport = catalog["gzip"][hash]["hash"]
-        .as_str()
-        .ok_or_else(|| format!("the runtime catalog has no transport for {hash}"))?;
-    Ok(root.join("assets/runtime").join(transport).join(file))
-}
-
-/// The runtime file the content `hash` travels in, inflated.
-fn runtime_file(root: &Path, catalog: &Value, hash: &str, file: &str) -> Result<Vec<u8>, String> {
-    let path = runtime_path(root, catalog, hash, file)?;
-    let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let mut out = vec![];
-    flate2::read::GzDecoder::new(&bytes[..])
-        .read_to_end(&mut out)
-        .map_err(|e| format!("{}: {e}; is it a Git LFS pointer?", path.display()))?;
-    Ok(out)
 }
 
 /// A saved map's ground as a client with no page reads it: what
@@ -139,10 +114,10 @@ pub fn side_foliage(world: &World, learned: &crate::scars::LearnedGround) -> Vec
 /// vehicle's wreck; the stand-in kit's box where the catalog has its module;
 /// and the fixture's stand-in tints and model tiers.
 pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<PropInput, String> {
-    let catalog = json(&root.join("assets/runtime/catalog.json"))?;
+    let runtime = Runtime::open(&root.join("assets/runtime"))?;
     let game = json(&root.join("fixtures/game.json"))?;
     let none = serde_json::Map::new();
-    let entries = catalog["appearances"].as_object().unwrap_or(&none);
+    let entries = runtime.catalog["appearances"].as_object().unwrap_or(&none);
     let worn = |name: &str| wearing.contains(&name);
     let wreck_of = |name: &str| entries.get(name).and_then(|e| e["wreck"].as_str());
     let wrecked: BTreeSet<&str> = entries.keys().filter_map(|n| wreck_of(n)).collect();
@@ -154,10 +129,8 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         let hash = entry["bundle"]
             .as_str()
             .ok_or(format!("{name}: no bundle"))?;
-        let path = runtime_path(root, &catalog, hash, "bundle.bin")?;
-        let file = std::fs::File::open(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         state_corners(
-            flate2::read::GzDecoder::new(file),
+            runtime.reader(hash, "bundle.bin")?,
             &format!("bundle {name}"),
         )
     };
@@ -242,11 +215,11 @@ pub fn placed_buildings(
         json(&root.join("fixtures/game.json"))?["presentation"]["buildings"].clone(),
     )
     .map_err(|e| format!("presentation.buildings: {e}"))?;
-    let catalog = json(&root.join("assets/runtime/catalog.json"))?;
-    let hash = catalog["templates"]["library"]
+    let runtime = Runtime::open(&root.join("assets/runtime"))?;
+    let hash = runtime.catalog["templates"]["library"]
         .as_str()
         .ok_or("the runtime catalog has no template library")?;
-    let library = Library::decode(&runtime_file(root, &catalog, hash, "templates.bin")?)?;
+    let library = Library::decode(&runtime.read(hash, "templates.bin")?)?;
     // The kits the placed templates' rows place, in any state.
     let mut kits = BTreeSet::new();
     for p in &placed {
@@ -261,15 +234,12 @@ pub fn placed_buildings(
     }
     let mut installed: HashMap<String, HashMap<String, Bounds>> = HashMap::new();
     for kit in kits {
-        let bundle = catalog["appearances"][&kit]["bundle"]
+        let bundle = runtime.catalog["appearances"][&kit]["bundle"]
             .as_str()
             .ok_or_else(|| {
                 format!("kit.missing: kit \"{kit}\" is not in the appearance catalog")
             })?;
-        installed.insert(
-            kit,
-            kit_bounds(&runtime_file(root, &catalog, bundle, "bundle.bin")?)?,
-        );
+        installed.insert(kit, kit_bounds(&runtime.read(bundle, "bundle.bin")?)?);
     }
     let bounds: Vec<Option<Bounds>> = library
         .modules

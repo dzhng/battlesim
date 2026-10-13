@@ -5,6 +5,7 @@
 //! what is drawn and at which tier. It reads only the side's publication, so
 //! it never sees past fog of war, and it never touches the simulation, so
 //! tuning it never moves a digest or a replay.
+pub mod assets;
 pub mod effects;
 pub mod fog;
 pub mod light;

@@ -1,5 +1,3 @@
-import { d } from "typegpu";
-
 // Adapted from ~/dev/game battle-renderer/src/shaders/aerial.ts (reuse
 // manifest). Local changes: reads `presentation.light`; a view looking down
 // takes its in-scattered light from the sky just above the horizon, not from
@@ -8,32 +6,6 @@ import { d } from "typegpu";
 
 /** How far above the horizon the haze looks for the horizon's sky. */
 const HORIZON_SKY_Z = 0.004;
-
-/** The haze's per-battle numbers (`presentation::records::Aerial`, which the
- *  presentation crate resolves), as the environment uniform carries them. */
-export const Aerial = d.struct({
-  /** Per-channel extinction σ (km⁻¹), and the clear radius around the focus (km). */
-  extinction: d.vec3f,
-  clearRadiusKm: d.f32,
-  /** The sunward Mie tint (linear rgb) and its strength. */
-  sunTint: d.vec3f,
-  sunStrength: d.f32,
-  /** The valley mist's colour (linear rgb) and how much of it the far air takes. */
-  mistColor: d.vec3f,
-  mistColorStrength: d.f32,
-  overviewFromM: d.f32,
-  rangeNearM: d.f32,
-  rangeFarM: d.f32,
-  rangePower: d.f32,
-  rangeStrength: d.f32,
-  mistOpacity: d.f32,
-  sunPower: d.f32,
-  /** The mist's height band and distance ramp (metres). */
-  mistHeightM: d.vec2f,
-  mistDistanceM: d.vec2f,
-  /** Where the horizon's sky takes over from the view's, below and above it. */
-  horizonFade: d.vec2f,
-});
 
 const f = (v: number) => `${v.toExponential(16)}f`;
 

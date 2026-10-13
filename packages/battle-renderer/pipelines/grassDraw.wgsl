@@ -237,7 +237,7 @@ fn fogProbePoint(world: vec3f, normal: vec3f, ground: bool) -> vec3f {
   return world + normal * params_1.faceProbeM;
 }
 
-struct FogEyeRecord {
+struct FogEye {
   position: vec3f,
   reach: f32,
   forward: f32,
@@ -246,11 +246,9 @@ struct FogEyeRecord {
   rear: f32,
   range: f32,
   slot: u32,
-  pad0: u32,
-  pad1: u32,
 }
 
-@group(2) @binding(2) var<storage, read> eyes: array<FogEyeRecord>;
+@group(2) @binding(2) var<storage, read> eyes: array<FogEye>;
 
 fn fogShape(front: f32, side: f32, rear: f32, off: f32) -> f32 {
   let c = cos(off);

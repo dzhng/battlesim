@@ -1074,7 +1074,6 @@ name = "native-client"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "flate2",
  "kira",
  "pipelines",
  "png",
