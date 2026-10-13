@@ -81,6 +81,30 @@ fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
 }
 
 #[test]
+fn air_mobility_defaults_to_low_air_and_can_author_high_air() {
+    let mut low = base_tank();
+    low["abstract"] = json!(false);
+    low["mobility"] = json!({
+        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8 }
+    });
+    let mut high = low.clone();
+    high["mobility"]["air"]["layer"] = json!("high_air");
+    let catalog = resolve(&units(json!({
+        "low": low,
+        "high": high
+    })))
+    .unwrap();
+    assert_eq!(
+        catalog.by_id("low").mobility.layer(),
+        contract::catalog::AltitudeLayer::LowAir
+    );
+    assert_eq!(
+        catalog.by_id("high").mobility.layer(),
+        contract::catalog::AltitudeLayer::HighAir
+    );
+}
+
+#[test]
 fn concealed_detection_bonus_cannot_reduce_ordinary_sight() {
     for multiplier in [0.5, 0.0, -1.0] {
         let mut base = base_tank();

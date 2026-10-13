@@ -184,6 +184,8 @@ pub enum AltitudeLayer {
     Ground,
     /// Helicopters: below every building's obstacle height plus clearance.
     LowAir,
+    /// Fixed-wing aircraft: the shared high-air combat layer.
+    HighAir,
 }
 
 /// How a unit moves (Q29, Q30). A ground mover has its own two top speeds,
@@ -214,19 +216,23 @@ pub enum Mobility {
         turning_radius_m: f64,
         reverse_fraction: f64,
     },
-    /// Flies in the low-air layer and turns on the spot when hovering.
+    /// Flies in an authored air layer and turns on the spot when hovering.
     Air {
         cruise_kmh: f64,
         turn_deg_s: f64,
         /// How fast it climbs or sinks toward its target height.
         climb_mps: f64,
+        /// The altitude layer this aircraft occupies. Existing helicopter
+        /// rows default to LowAir; fixed-wing rows opt into HighAir.
+        #[serde(default = "default_air_layer")]
+        layer: AltitudeLayer,
     },
 }
 
 impl Mobility {
     pub fn layer(&self) -> AltitudeLayer {
         match self {
-            Mobility::Air { .. } => AltitudeLayer::LowAir,
+            Mobility::Air { layer, .. } => *layer,
             _ => AltitudeLayer::Ground,
         }
     }
@@ -257,6 +263,10 @@ impl Mobility {
         let (offroad, road) = self.speeds_kmh();
         (offroad / 3.6, road / 3.6)
     }
+}
+
+fn default_air_layer() -> AltitudeLayer {
+    AltitudeLayer::LowAir
 }
 
 /// A unit's one sight.
@@ -1541,6 +1551,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         cruise_kmh,
         turn_deg_s,
         climb_mps,
+        ..
     } = t.mobility
     {
         if !(cruise_kmh > 0.0 && cruise_kmh <= MAX_AIR_SPEED_KMH) {

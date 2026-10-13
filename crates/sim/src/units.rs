@@ -349,6 +349,7 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
             cruise_kmh,
             turn_deg_s,
             climb_mps,
+            ..
         } => Motion::Air(Flight {
             cruise_mps: cruise_kmh / 3.6,
             turn_rad_s: turn_deg_s.to_radians(),
