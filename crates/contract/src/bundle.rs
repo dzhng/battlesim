@@ -360,14 +360,12 @@ impl ScenarioBundle {
                     "slot id is empty",
                 ));
             }
-            if slot.controller == ControllerKind::Human {
-                if !slot.human_capable {
-                    errors.push(diagnostic(
-                        "invalid_controller",
-                        format!("$.slots[{i}].human_capable"),
-                        "a human controller must be marked human_capable",
-                    ));
-                }
+            if slot.controller == ControllerKind::Human && !slot.human_capable {
+                errors.push(diagnostic(
+                    "invalid_controller",
+                    format!("$.slots[{i}].human_capable"),
+                    "a human controller must be marked human_capable",
+                ));
             }
             if slot.side == Side::Neutral && slot.controller != ControllerKind::PassiveAi {
                 errors.push(diagnostic(

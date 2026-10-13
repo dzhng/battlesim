@@ -1380,7 +1380,7 @@ impl Battle {
                 let Some(skirmish) = &self.skirmish else {
                     return Err(OrderError::NotSkirmish);
                 };
-                self.validate_command_units(&command, units)?;
+                self.validate_command_units(command, units)?;
                 if units.iter().any(|id| !skirmish.entered.contains_key(id)) {
                     return Err(OrderError::NotSkirmish);
                 }
@@ -1412,7 +1412,7 @@ impl Battle {
                 units
             }
             Order::Garrison { units, building } => {
-                self.validate_command_units(&command, units)?;
+                self.validate_command_units(command, units)?;
                 // A squad ordered in earlier this tick holds no order yet.
                 let claimed = self.pending.iter().any(|c| {
                     c.command.side == command.side
@@ -1443,7 +1443,7 @@ impl Battle {
             // Gesture tokens are scoped by side at application; nothing else to check.
             Order::UpgradeMove { .. } => return Ok(()),
         };
-        self.validate_command_units(&command, units)
+        self.validate_command_units(command, units)
     }
 
     fn validate_command_units(
@@ -4273,7 +4273,7 @@ impl Battle {
         // The defender's memory is a player's, not the battle's: its effect is
         // its accepted commands, and a replay runs without it.
 
-        d.u64(self.script_victory.map_or(0, |value| u64::from(value)));
+        d.u64(self.script_victory.map_or(0, u64::from));
         if let Some(error) = &self.script_error {
             d.bytes(error.as_bytes());
         }
