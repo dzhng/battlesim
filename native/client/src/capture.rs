@@ -16,7 +16,8 @@ use presentation::records::FogLook;
 use presentation::static_world::files;
 use presentation::view::Camera;
 use presentation::world::{BattleInput, SoldierBody, WorldInput, Xray};
-use serde::Deserialize;
+use serde::{de, Deserialize, Deserializer};
+use serde_json::value::RawValue;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
@@ -42,16 +43,21 @@ struct Sample {
     publication: Vec<u32>,
 }
 
-/// One drawn browser frame.
+/// One drawn browser frame. Its numbers are read exactly (`exact`).
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Record {
     pub tick: u64,
+    #[serde(deserialize_with = "exact")]
     pub sim_time: f64,
     /// The reel's wall time when the browser drew it, milliseconds.
+    #[serde(deserialize_with = "exact")]
     pub reel_ms: f64,
+    #[serde(deserialize_with = "exact3")]
     pub eye: [f64; 3],
+    #[serde(deserialize_with = "exact3")]
     pub target: [f64; 3],
+    #[serde(deserialize_with = "exact3")]
     pub up: [f64; 3],
     pub canvas: [u32; 2],
     /// The control plate written of this frame, if any.
@@ -61,8 +67,32 @@ pub struct Record {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Lens {
+    #[serde(deserialize_with = "exact")]
     fov_y: f64,
+    #[serde(deserialize_with = "exact")]
     near: f64,
+}
+
+/// A number the page wrote, read back to the double it drew with. The page
+/// writes JavaScript's shortest round-trip text; serde_json's default reader
+/// lands one ULP off on some of it (about one tick boundary in fourteen),
+/// and a frame drawn one ULP past a boundary starts or ends that tick's
+/// effects. Its `float_roundtrip` would fix every reader in the build, the
+/// simulation's included, which must keep reading its maps as the page's
+/// WebAssembly does; so the page's numbers go through std's correctly
+/// rounded parse instead.
+fn exact<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+    let raw = <Box<RawValue>>::deserialize(d)?;
+    raw.get().parse().map_err(de::Error::custom)
+}
+
+fn exact3<'de, D: Deserializer<'de>>(d: D) -> Result<[f64; 3], D::Error> {
+    let raw = <[Box<RawValue>; 3]>::deserialize(d)?;
+    let mut out = [0.0; 3];
+    for (o, r) in out.iter_mut().zip(&raw) {
+        *o = r.get().parse().map_err(de::Error::custom)?;
+    }
+    Ok(out)
 }
 
 pub struct Replay {
@@ -160,8 +190,12 @@ impl Replay {
         let game: Value = read_json(game_path)?;
         let light: LightSettings = serde_json::from_value(game["presentation"]["light"].clone())
             .map_err(|e| format!("presentation.light: {e}"))?;
-        let lens: Lens =
-            serde_json::from_value(manifest["lens"].clone()).map_err(|e| format!("lens: {e}"))?;
+        // Read from the file, not the `Value`, to be read exactly.
+        #[derive(Deserialize)]
+        struct Lensed {
+            lens: Lens,
+        }
+        let Lensed { lens } = read_json(&dir.join("manifest.json"))?;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
         let kinds = fielded::encounter_kinds(root, &map, encounter)?;
@@ -323,5 +357,29 @@ impl Replay {
             }
         }
         Ok(self.presentation.last_frame())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The page writes each number as JavaScript does, the shortest text
+    /// that reads back to its double; a frame is drawn at exactly that
+    /// time. 109/30 is a tick boundary serde_json's default reader lands one
+    /// ULP past, where a whole tick's effects start or end.
+    #[test]
+    fn a_frame_reads_back_the_numbers_the_page_wrote() {
+        let boundary: f64 = 109.0 / 30.0;
+        let eye: [f64; 3] = [0.1 + 0.2, 1.0 / 3.0, 3.6042550000053653];
+        let text = format!(
+            r#"{{"index":0,"reelMs":{boundary:?},"tick":109,"simTime":{boundary:?},"eye":[{:?},{:?},{:?}],"target":[{boundary:?},0,1e-7],"up":[0,0,1],"canvas":[1280,720],"plate":null}}"#,
+            eye[0], eye[1], eye[2]
+        );
+        let record: Record = serde_json::from_str(&text).unwrap();
+        assert_eq!(record.sim_time.to_bits(), boundary.to_bits());
+        assert_eq!(record.reel_ms.to_bits(), boundary.to_bits());
+        assert_eq!(record.eye.map(f64::to_bits), eye.map(f64::to_bits));
+        assert_eq!(record.target, [boundary, 0.0, 1e-7]);
     }
 }

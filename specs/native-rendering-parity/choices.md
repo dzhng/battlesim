@@ -189,6 +189,12 @@ The committed `<scene>-observations.json` files are what the TypeScript decoder 
 
 Native hashes `capture.json` and the saved map it loads (SHA-256) and checks both against `manifest.identity`. It also checks the capture's workload (scene, map, encounter, seed) against the identity, and reads the map and encounter from the hashed capture. On any difference it refuses to run and names the file (`native/client/tests/identity.rs`). This is the check Godot's runner did.
 
+### Native reads the page's numbers with std's parse, not serde_json's `float_roundtrip`
+*Agent, slice 25 (`effectflake`). Confidence: high.*
+
+serde_json's default float reader misreads about 12% of the frame times the page writes by one ULP, which flipped a tick's effects on boundary plates. Native's capture reader parses each frame's and the lens's numbers with `str::parse` (`capture.rs`'s `exact`). Turning on `float_roundtrip` would fix every reader in native's build, its simulation's included, and the page's WebAssembly simulation would still read the maps the default way.
+- **Verdict:** sound. A local reader for the one file the page's JavaScript writes. If the whole workspace ever reads JSON exactly, enable it in every crate at once, the WebAssembly ones included, and re-record whatever that moves.
+
 ### Labs that hand the renderer their own models take Rust's caster and fog rules
 *Agent, `derive2rust`; resolved `lastowners`. Confidence: high.*
 
