@@ -1,5 +1,3 @@
-import { d } from "typegpu";
-
 // Adapted from ~/dev/game battle-renderer/src/shaders/aerial.ts (reuse
 // manifest). Local changes: reads `presentation.light`; a view looking down
 // takes its in-scattered light from the sky just above the horizon, not from

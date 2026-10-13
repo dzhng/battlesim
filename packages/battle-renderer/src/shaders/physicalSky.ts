@@ -4,7 +4,6 @@
 // max(output, 0). The text is the same for every battle: the light's numbers
 // arrive in the `SkyLight` uniform, the record the presentation crate
 // resolves (`presentation::light`), bound to these bodies as `skyLight`.
-import { d } from "typegpu";
 import * as sky from "../light/skyParameters";
 import type { Vec3 } from "math";
 
