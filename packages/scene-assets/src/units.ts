@@ -49,12 +49,21 @@ export type Mobility =
     }
   | {
       /** Flies in the low-air layer at the heights the rules' `air` section sets. */
-      air: { cruise_kmh: number; turn_deg_s: number; climb_mps: number };
+      air: {
+        cruise_kmh: number;
+        turn_deg_s: number;
+        climb_mps: number;
+        layer?: "low_air" | "high_air";
+      };
     };
 
 /** Whether a type flies (`contract::catalog::Mobility::Air`): its hull is
  *  in the air, so it rolls on nothing and raises no dust. */
 export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in type.mobility;
+
+/** Fixed-wing/high-air units use cards instead of ground circles. */
+export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
+  "air" in type.mobility && type.mobility.air.layer === "high_air";
 
 /** A mover's top speed, km/h: its road speed, or an aircraft's cruise
  *  (`Mobility::speeds_kmh`). */
@@ -293,7 +302,13 @@ export function mountRoles(
  *  it, never by unit id. Null for a squad. */
 export function vehicleClass(type: Pick<UnitType, "body" | "mobility" | "roles">): string | null {
   if (!("hull" in type.body) || "foot" in type.mobility) return null;
-  const moves = airborne(type) ? "air" : "tracked" in type.mobility ? "tracked" : "wheeled";
+  const moves = airborne(type)
+    ? highAir(type)
+      ? "high_air"
+      : "air"
+    : "tracked" in type.mobility
+      ? "tracked"
+      : "wheeled";
   const hauls = type.roles.includes("logistics") ? "_logistics" : "";
   return `${moves}_${type.body.hull.weight_class}${hauls}`;
 }

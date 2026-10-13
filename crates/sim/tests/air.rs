@@ -91,7 +91,7 @@ fn authored_high_air_is_retained_in_runtime_layer() {
 }
 
 #[test]
-fn air_sensor_ranges_use_the_observer_layer() {
+fn air_sensor_ranges_use_the_target_layer_without_extending_ground_vision() {
     let mut fixture = fixture();
     let doc = fixture["catalog"]
         .as_array_mut()
@@ -99,19 +99,37 @@ fn air_sensor_ranges_use_the_observer_layer() {
         .iter_mut()
         .find(|doc| doc["units"].get("test_heli").is_some())
         .unwrap();
-    doc["units"]["test_heli"]["sensors"]["low_air_m"] = json!(123.0);
-    doc["units"]["test_heli"]["sensors"]["high_air_m"] = json!(456.0);
-    let setup = serde_json::from_value(json!({
-        "map": open_map(),
-        "rules": fixture,
-        "units": [{ "side": "blue", "kind": "test_heli", "position": [300, 200] }],
-        "events": [], "scripts": []
-    }))
-    .unwrap();
-    let battle = Battle::new(&setup, 1);
-    let unit = battle.unit(UnitId(0)).unwrap();
-    let sight = sim::sight::of(unit, battle.rules());
-    assert_eq!(sight.range, 123.0);
+    let mut high = doc["units"]["test_heli"].clone();
+    high["mobility"]["air"]["layer"] = json!("high_air");
+    doc["units"]["test_high_air"] = high;
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_jeep",
+        json!({
+            "sensors": { "ground_m": 300, "low_air_m": 1200, "high_air_m": 3000,
+                "sight_shape": { "front": 1, "side": 1, "rear": 1 } }
+        }),
+    );
+    let battle = battle_with(
+        &fixture,
+        json!({"size":[4000,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}),
+        json!([
+            {"side":"blue","kind":"test_jeep","position":[100,300]},
+            {"side":"red","kind":"test_high_air","position":[2500,300]},
+            {"side":"red","kind":"test_heli","position":[1000,300]},
+            {"side":"red","kind":"test_jeep","position":[1000,350]}
+        ]),
+    );
+    let blue = battle.observe(Side::Blue);
+    let mut kinds: Vec<_> = blue
+        .identified
+        .iter()
+        .map(|u| battle.rules().catalog.id(u.kind))
+        .collect();
+    kinds.sort();
+    assert_eq!(kinds, ["test_heli", "test_high_air"]);
+    assert!(!blue.ground_visibility.visible(1000.0, 350.0));
 }
 
 #[test]
@@ -184,6 +202,78 @@ fn authored_aircraft_fuel_starts_full_and_burns_on_map() {
     assert!(
         (fuel - 179.0).abs() < 1e-9,
         "one second of fuel burned: {fuel}"
+    );
+}
+
+#[test]
+fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
+    let mut fixture = fixture();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_heli",
+        json!({
+            "roster": { "factions": ["us"], "category": "air", "variant": "Fuel test", "family_name": "Fuel test" },
+            "capabilities": { "air": {
+                "fuel_capacity_s": 2.0,
+                "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
+            }}
+        }),
+    );
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": fixture,
+        "units": [], "events": [], "scripts": [],
+        "skirmish": {
+            "factions": ["us", "eastern"],
+            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "dispatch_interval_s": 1 },
+            "sites": { "entries": [
+                { "center": [400, 10], "side": "blue", "yaw": 1.5707963267948966 },
+                { "center": [400, 590], "side": "red", "yaw": -1.5707963267948966 }
+            ], "objectives": [
+                { "id": "center", "center": [400, 300], "radius_m": 50, "kind": "junction", "counterpart": null },
+                { "id": "south", "center": [200, 200], "radius_m": 50, "kind": "field", "counterpart": "north" },
+                { "id": "north", "center": [600, 400], "radius_m": 50, "kind": "field", "counterpart": "south" }
+            ] }
+        }
+    })).unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    let ready = |side, seq| contract::command::CommandEnvelope {
+        side,
+        slot: None,
+        seq,
+        queued: false,
+        order: Order::Ready,
+    };
+    assert_eq!(battle.accept(ready(Side::Blue, 1)).error, None);
+    assert_eq!(battle.accept(ready(Side::Red, 1)).error, None);
+    battle.step();
+    assert_eq!(
+        battle
+            .accept(contract::command::CommandEnvelope {
+                side: Side::Blue,
+                slot: None,
+                seq: 2,
+                queued: false,
+                order: Order::ConfirmPurchase {
+                    variant: "test_heli".into(),
+                    destination: [400.0, 300.0]
+                }
+            })
+            .error,
+        None
+    );
+    for _ in 0..1200 {
+        battle.step();
+    }
+    let frame = battle.observe(Side::Blue);
+    assert!(
+        frame.own.is_empty(),
+        "fuel-starved aircraft remained on map"
+    );
+    assert!(
+        frame.skirmish.as_ref().unwrap().credits > 1000.0,
+        "no fuel withdrawal refund"
     );
 }
 

@@ -2729,6 +2729,7 @@
           "reverse_fraction": 0.3
         }
       },
+      "sensors": { "low_air_m": 900, "high_air_m": 900 },
       "capabilities": {
         "air_defense": {
           "tier": "short"

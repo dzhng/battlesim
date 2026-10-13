@@ -34,9 +34,9 @@ export interface SoundSource {
   notes: string;
 }
 /**
- * A source candidate that has been selected for review but whose bytes are not
- * pinned yet. Keeping these receipts separate from `sources` means an
- * unreviewed YouTube download cannot become a playable clip by accident.
+ * A source candidate kept out of the playable source bank. A downloaded
+ * candidate records its pinned bytes and path, but remains unassigned until
+ * its rights and crop are accepted.
  */
 export interface SourceProvenance {
   label: string;
@@ -49,8 +49,10 @@ export interface SourceProvenance {
   download: {
     tool: string;
     version: string;
-    status: "candidate-not-downloaded";
+    status: "candidate-not-downloaded" | "downloaded-unassigned";
   };
+  /** Present only after the candidate bytes have been downloaded. */
+  path?: string;
   notes: string;
 }
 /** Source receipts stay explicit, including user-supplied reserved-rights media. */
@@ -205,7 +207,14 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
       !source.download ||
       typeof source.download.tool !== "string" ||
       typeof source.download.version !== "string" ||
-      source.download.status !== "candidate-not-downloaded" ||
+      !["candidate-not-downloaded", "downloaded-unassigned"].includes(source.download.status) ||
+      (source.download.status === "candidate-not-downloaded" &&
+        (source.sha256 !== null || source.path !== undefined)) ||
+      (source.download.status === "downloaded-unassigned" &&
+        (source.sha256 === null ||
+          !hash.test(source.sha256) ||
+          typeof source.path !== "string" ||
+          !/^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path))) ||
       typeof source.notes !== "string"
     )
       throw new Error(`provenance ${name}: invalid source receipt`);

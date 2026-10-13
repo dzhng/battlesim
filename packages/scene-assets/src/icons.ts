@@ -107,6 +107,7 @@ const STATE_ICONS = {
   traversing: '<path d="M4 12h14M13 7l5 5-5 5"/><path d="M4 5v14"/>',
   dogfight: '<path d="M4 7h9l-3-3M20 17h-9l3 3M13 7l-3 10"/>',
   radar: '<circle cx="12" cy="12" r="8"/><path d="M12 12l6-5M12 12V4"/>',
+  flares: '<path d="M7 20l5-16 5 16M9 14h6M8 18h8"/>',
 } as const;
 
 export type StateIcon = keyof typeof STATE_ICONS;

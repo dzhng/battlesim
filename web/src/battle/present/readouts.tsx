@@ -92,6 +92,11 @@ interface DrawnAnchors {
   ground?: (x: number, y: number) => number;
 }
 
+export interface GhostReadout {
+  unit: OwnUnitView;
+  position: Point3;
+}
+
 export interface ReadoutLayerHandle {
   pick(
     x: number,
@@ -124,6 +129,7 @@ interface Callout {
   content: ReactNode;
   opacity?: number;
   retiring?: boolean;
+  ghost?: boolean;
 }
 
 /** A unit panel's anchor: this high over its unit, about its head. */
@@ -142,6 +148,7 @@ export function ReadoutLayer({
   rules,
   selected,
   handle,
+  ghosts = [],
 }: {
   /** The observation's own units, identified enemies and contacts: all a
    *  panel reads. Only these are props, not the whole observation, whose
@@ -155,6 +162,7 @@ export function ReadoutLayer({
   rules: PanelRules;
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
+  ghosts?: readonly GhostReadout[];
 }) {
   const { units } = useSessionCatalog();
   const layer = useRef<HTMLDivElement>(null);
@@ -168,6 +176,17 @@ export function ReadoutLayer({
   const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
   const callouts: Callout[] = [
+    ...ghosts.map(
+      (g): Callout => ({
+        key: `ghost-${g.unit.id}`,
+        owner: "own",
+        ghost: true,
+        id: -g.unit.id - 1,
+        at: g.position,
+        selected: false,
+        content: <InfoPanel panel={ownPanel(units, g.unit, own, rules)} zoom="far" />,
+      }),
+    ),
     ...own.map((u): Callout => {
       const picked = selected.includes(u.id);
       return {
@@ -217,7 +236,7 @@ export function ReadoutLayer({
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
       for (const c of priority) {
-        if (c.retiring) continue;
+        if (c.retiring || c.ghost) continue;
         const r = visibleBox(c.key);
         if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
           return {
@@ -239,7 +258,7 @@ export function ReadoutLayer({
       const previous = hoveredCard.current;
       const held =
         previous &&
-        calloutsRef.current.some((c) => c.key === previous && !c.retiring) &&
+        calloutsRef.current.some((c) => c.key === previous && !c.retiring && !c.ghost) &&
         (contains(compactBoxes.current.get(previous)) || contains(visibleBox(previous)));
       const card =
         hover &&
@@ -247,7 +266,7 @@ export function ReadoutLayer({
           .sort(
             (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
           )
-          .find((c) => !c.retiring && contains(visibleBox(c.key)));
+          .find((c) => !c.retiring && !c.ghost && contains(visibleBox(c.key)));
       hoveredCard.current = hover
         ? held
           ? previous
@@ -274,8 +293,9 @@ export function ReadoutLayer({
         const node = nodes.current.get(c.key);
         if (!node) continue;
         const hovering = c.key === hoveredCard.current;
-        const p: Point3 =
-          c.owner === "own"
+        const p: Point3 = c.ghost
+          ? c.at
+          : c.owner === "own"
             ? (drawn.own?.get(c.id) ?? c.at)
             : c.owner === "enemy"
               ? (drawn.enemies?.get(c.id) ?? c.at)
@@ -541,13 +561,14 @@ export function ReadoutLayer({
           className={`ro-callout${c.selected ? " ro-selected" : ""}`}
           style={{ opacity: c.opacity }}
           data-retiring={c.retiring || undefined}
+          data-ghost={c.ghost || undefined}
         >
           <PanelCallout
             ref={bind(nodes.current, c.key)}
             owner={c.owner}
             selected={c.selected}
             data-zoom="compressed"
-            data-unit={c.owner === "own" ? c.id : undefined}
+            data-unit={c.owner === "own" && !c.ghost ? c.id : undefined}
             data-enemy={c.owner === "enemy" ? c.id : undefined}
             data-contact={c.owner === "contact" ? c.id : undefined}
           >
@@ -653,9 +674,8 @@ export function CommandBar({
     | "stop"
     | "togglePolicy"
     | "toggleDeployment"
-    | "toggleAfterburner"
     | "exitBuilding"
-  > & { refund?: () => void };
+  > & { refund?: () => void; toggleAfterburner?: () => void };
 }) {
   const { units, weapons } = useSessionCatalog();
   const selected = control.selectedUnits;
@@ -718,11 +738,13 @@ export function CommandBar({
         onClick: control.toggleDeployment,
       })}
       {command({
-        icon: stateIcon(aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "afterburner" : "fuel"),
+        icon: stateIcon(
+          aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "afterburner" : "fuel",
+        ),
         label: `${aircraft.length > 0 && aircraft.every((u) => u.afterburner) ? "Disable" : "Enable"} afterburners ${key("toggle_afterburner")}`,
         pressed: aircraft.length > 0 && aircraft.every((u) => u.afterburner),
         disabled: aircraft.length === 0,
-        onClick: control.toggleAfterburner,
+        onClick: control.toggleAfterburner ?? (() => {}),
       })}
       {control.refund &&
         command({

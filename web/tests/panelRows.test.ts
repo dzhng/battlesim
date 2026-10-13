@@ -79,15 +79,25 @@ test("only active resupply earns a service row", () => {
     expect(at(state), state).toEqual([]);
 });
 
-test("radar contacts say RADAR CONTACT and never borrow an identity", () => {
+test("radar contacts say RADAR CONTACT with approximate bearing and range", () => {
   const panel = contactPanel(
     UNITS,
-    { source: "radar", kind: "test_tank", heard: [], evidenceTick: 0 },
+    {
+      source: "radar",
+      kind: "test_tank",
+      heard: [],
+      evidenceTick: 0,
+      bearingDeg: 123,
+      rangeM: 2400,
+    },
     30,
     RULES,
   );
   expect(panel.name).toBe("UNKNOWN");
-  expect(panel.states.map((state) => state.word)).toEqual(["RADAR CONTACT"]);
+  expect(panel.states.map((state) => state.word)).toEqual([
+    "RADAR CONTACT",
+    "BEARING 123° · RANGE 2,400 m",
+  ]);
 });
 
 test("a truck shows its stock, and supplying while set up with a unit in reach being served", () => {

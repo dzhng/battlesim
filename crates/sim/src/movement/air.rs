@@ -50,7 +50,26 @@ pub(super) fn step_aircraft(
     if units[i].air.is_some_and(|air| air.traversing) {
         return;
     }
-    if let Some(target) = units[i].air.as_ref().and_then(|air| air.dogfight_target) {
+    let dogfight_target = units[i].air.as_ref().and_then(|air| air.dogfight_target);
+    let dogfight_explicit = units[i].orders.iter().any(|o| {
+        matches!(
+            o,
+            crate::units::UnitOrder::Move(_) | crate::units::UnitOrder::Attack { .. }
+        )
+    });
+    let dogfight_side = dogfight_target
+        .and_then(|target| units.get(target.0 as usize))
+        .map(|target| {
+            let relative = target.position.xy() - units[i].position.xy();
+            if relative.length() > 1e-6 {
+                let direction = relative.normalized();
+                Some(v2(-direction.y, direction.x))
+            } else {
+                None
+            }
+        })
+        .flatten();
+    if let Some(target) = dogfight_target {
         if let Some(target_unit) = units.get(target.0 as usize) {
             if target_unit.alive()
                 && !units[i].orders.iter().any(|o| {
@@ -76,7 +95,7 @@ pub(super) fn step_aircraft(
     let cruise_mps = flight.cruise_mps * afterburner.0;
     let accel = cruise_mps / ctx.rules.air.acceleration_s;
     let air_rules = &ctx.rules.air;
-    let wanted = if may_advance(ctx, unit) {
+    let mut wanted = if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
         let state = unit.air.as_mut().expect("an aircraft's flight state");
         // On the leg that ends at its goal it aims past the goal by its
@@ -124,6 +143,16 @@ pub(super) fn step_aircraft(
     } else {
         v2(0.0, 0.0)
     };
+    // An aircraft that is automatically closing another aircraft jinks across
+    // its nose. The weave is deterministic and disappears as soon as an
+    // explicit move or attack order takes over, so a player can always make a
+    // pilot hold a clean line when that is the intent.
+    if dogfight_target.is_some() && !dogfight_explicit {
+        if let Some(side) = dogfight_side {
+            let phase = ctx.tick as f64 * 0.17 + unit.id.0 as f64 * 0.31;
+            wanted = wanted + side * (cruise_mps * 0.22 * libm::sin(phase));
+        }
+    }
     let air = unit.air.as_mut().expect("an aircraft's flight state");
     let change = wanted - air.velocity;
     let most = accel * dt;

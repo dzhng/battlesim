@@ -39,6 +39,11 @@ test("an aircraft's class is air and its hull's weight; it has no running gear",
     roles: ["light_vehicle"],
   };
   expect(vehicleClass(heli)).toBe("air_light");
+  const fighter: Physics = {
+    ...heli,
+    mobility: { air: { cruise_kmh: 900, turn_deg_s: 45, climb_mps: 30, layer: "high_air" } },
+  };
+  expect(vehicleClass(fighter)).toBe("high_air_light");
 });
 
 test("a mover's top speed is its road speed, an aircraft's its cruise", () => {

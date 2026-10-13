@@ -175,9 +175,10 @@ export interface OrderView {
    *  footprint's centre and half extents; null otherwise. The squad's circle
    *  encloses it, `building_marker_margin_m` past its corners. */
   building: { center: readonly [number, number]; half: readonly [number, number] } | null;
-  /** An aircraft: its marker stays on the ground under it whatever it is
-   *  doing, joined to the airframe (its `position`) by a drop line. */
+  /** A fixed-wing/high-air aircraft: it has no ground marker. */
   aircraft?: boolean;
+  /** Any airborne unit, including helicopters that retain their marker. */
+  airborne?: boolean;
   /** How high its ghost stands over where its orders end while one shows
    *  (an aircraft's cruise height, Space held): a drop line joins the ghost
    *  to that end's marker, as one joins the airframe to its own. 0 or
@@ -603,6 +604,7 @@ export function unitCircle(
     | "selected"
     | "reveal"
     | "aircraft"
+    | "airborne"
   >,
   style: Pick<
     OrderStyle,
@@ -624,7 +626,7 @@ export function unitCircle(
   // movement area itself is the simulation's).
   const drawn = (radius: number) => radius * style.area_draw_scale;
   if (u.members.length === 0)
-    return moving || shown || u.selected || u.aircraft
+    return moving || shown || u.selected || u.airborne || u.aircraft
       ? { c: here, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.yaw }
       : null;
   if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
@@ -747,7 +749,7 @@ export function buildOrderOverlay(
     // selection's own markers either way.
     const reveal = u.reveal ?? 0;
     const shown = reveal > 0;
-    if (!shown && !u.selected && !u.aircraft) continue;
+    if (!shown && !u.selected && !u.airborne && !u.aircraft) continue;
     const fade = (c: Rgba): Rgba => fadeAlpha(c, reveal);
     const color = fade(order);
     const current = fade(fadeAlpha(order, style.current_alpha));
@@ -767,7 +769,7 @@ export function buildOrderOverlay(
     // A squad with no circle to draw (no area) still shows its soldiers'
     // markers when the unit's marker would.
     if (circle || shown || u.selected) {
-      if (circle && u.aircraft)
+      if (circle && u.airborne)
         // An aircraft's marker shows whatever the reveal: at the current
         // markers' alpha, brighter only while a shown order moves it.
         aircraftMarker(
@@ -869,6 +871,7 @@ export interface AircraftView {
   position: readonly [number, number, number];
   yaw: number;
   hullHalfLength: number;
+  highAir?: boolean;
 }
 
 /** An identified aircraft's marker circle, on the ground under it: its
@@ -893,12 +896,11 @@ export function buildAircraftMarks(
   style: OrderStyle,
   { stroke }: OrderOverlayOptions,
 ): WorldMeshes {
-  // Aircraft are represented by their floating info cards. Ground rings and
-  // drop lines make fixed-wing units read like ground movers.
-  void aircraft;
-  void color;
-  void z;
-  void style;
-  void stroke;
-  return { ...paintOnly(new Float32Array()), opaque: new Float32Array() };
+  const pen = orderPen(z, style, stroke);
+  const paint = new MeshBuilder();
+  const lines = new MeshBuilder();
+  const glow = glowing(color, style.glow.order);
+  for (const a of aircraft.filter((a) => !a.highAir))
+    aircraftMarker(paint, lines, pen, a.position, aircraftCircle(a, style), glow);
+  return { ...paintOnly(paint.build()), opaque: lines.build() };
 }

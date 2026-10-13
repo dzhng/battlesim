@@ -321,7 +321,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 48] = [
+const OWN_FIELDS: [&str; 54] = [
     "id",
     "kind",
     "x",
@@ -367,6 +367,12 @@ const OWN_FIELDS: [&str; 48] = [
     "areaY",
     "areaM",
     "withdrawing",
+    "fuelSeconds",
+    "afterburner",
+    "traversing",
+    "inDogfight",
+    "flareCharges",
+    "flareCooldown",
     "protectionCharges",
     "protectionCooldownProgress",
     "smoking",
@@ -1048,6 +1054,12 @@ fn pack_record(
             u.area.map_or(f32::NAN, |a| a.anchor[1] as f32),
             u.area.map_or(f32::NAN, |a| a.radius as f32),
             u.withdrawing as u8 as f32,
+            u.fuel_s.map_or(-1.0, |fuel| fuel as f32),
+            u.afterburner as u8 as f32,
+            u.traversing as u8 as f32,
+            u.in_dogfight as u8 as f32,
+            u.flares.map_or(-1.0, |f| f.charges as f32),
+            u.flares.and_then(|f| f.cooldown).map_or(-1.0, |p| p as f32),
             u.protection.map_or(-1.0, |p| p.charges as f32),
             u.protection
                 .and_then(|p| p.cooldown)

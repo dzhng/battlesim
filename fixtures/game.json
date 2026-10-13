@@ -455,7 +455,7 @@
             "name": "Short AA gun",
             "description": "Ballistic short-range air defence.",
             "icon": "autocannon",
-            "range_m": 650,
+            "range_m": 1500,
             "targets": {
                 "ground": {},
                 "low_air": {
@@ -463,7 +463,7 @@
                     "scatter_mrad": 28
                 },
                 "high_air": {
-                    "range_m": 500,
+                    "range_m": 1500,
                     "scatter_mrad": 42
                 }
             },
@@ -485,7 +485,8 @@
                     "aim_max_s": 1
                 }
             },
-            "aa_tier": "short"
+            "aa_tier": "short",
+            "interception": "missile"
         },
         "aa_medium": {
             "targets": {
@@ -543,7 +544,7 @@
             "scatter_mrad": 0.5,
             "turn_deg_s": 180,
             "guidance": "stationary",
-            "lifetime_s": 6,
+            "lifetime_s": 10,
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
@@ -562,6 +563,7 @@
             "icon": "autocannon",
             "range_m": 900,
             "targets": {
+                "ground": {},
                 "low_air": {
                     "range_m": 700,
                     "scatter_mrad": 24
@@ -589,7 +591,8 @@
                     "aim_max_s": 1
                 }
             },
-            "default": true
+            "default": true,
+            "ground_attack": "strafe"
         },
         "air_missile": {
             "targets": {
@@ -599,7 +602,7 @@
             "name": "Air missile",
             "description": "Fire-and-forget air-to-air missile.",
             "icon": "aa_missile",
-            "stationary": true,
+            "stationary": false,
             "range_m": 3000,
             "min_range_m": 50,
             "speed_mps": 100,
@@ -612,7 +615,7 @@
             "damage": 150,
             "scatter_mrad": 0.5,
             "turn_deg_s": 180,
-            "guidance": "stationary",
+            "guidance": "on_the_move",
             "lifetime_s": 6,
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
@@ -623,15 +626,60 @@
             "seeker_fov_deg": 70,
             "decoyable": true
         },
+        "air_bomb_guided": {
+            "targets": { "ground": {} },
+            "name": "Guided bomb",
+            "description": "Low-dispersion guided bomb for bombing runs.",
+            "icon": "bomb",
+            "stationary": false,
+            "range_m": 1800,
+            "min_range_m": 80,
+            "speed_mps": 240,
+            "gravity_scale": 1,
+            "aim_s": 1.2,
+            "reload_s": 10,
+            "ammo": 4,
+            "penetration": 40,
+            "damage": 140,
+            "scatter_mrad": 4,
+            "near_miss_suppression": 0.3,
+            "suppression_radius_m": 18,
+            "blast_radius_m": 11,
+            "structural_damage": 80,
+            "ground_attack": "bomb"
+        },
+        "air_bomb_cluster": {
+            "targets": { "ground": {} },
+            "name": "Cluster bombs",
+            "description": "Wide-spread cluster bomb salvo for area attacks.",
+            "icon": "bomb",
+            "stationary": false,
+            "range_m": 1500,
+            "min_range_m": 80,
+            "speed_mps": 220,
+            "gravity_scale": 1,
+            "aim_s": 1.2,
+            "reload_s": 12,
+            "ammo": 3,
+            "penetration": 20,
+            "damage": 70,
+            "scatter_mrad": 28,
+            "near_miss_suppression": 0.45,
+            "suppression_radius_m": 24,
+            "blast_radius_m": 9,
+            "structural_damage": 35,
+            "magazine": { "rounds": 4, "shot_interval_s": 0.08 },
+            "ground_attack": "bomb"
+        },
         "sead_missile": {
             "targets": {
                 "ground": {}
             },
-            "interceptable": false,
+            "interceptable": true,
             "name": "SEAD missile",
             "description": "Long-range anti-radiation missile.",
             "icon": "aa_missile",
-            "stationary": true,
+            "stationary": false,
             "range_m": 6500,
             "min_range_m": 50,
             "speed_mps": 100,
@@ -644,8 +692,8 @@
             "damage": 260,
             "scatter_mrad": 0.5,
             "turn_deg_s": 180,
-            "guidance": "stationary",
-            "lifetime_s": 6,
+            "guidance": "on_the_move",
+            "lifetime_s": 12,
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
@@ -653,7 +701,8 @@
             "anti_armor": true,
             "seeker": "radar",
             "seeker_fov_deg": 90,
-            "decoyable": false
+            "decoyable": false,
+            "anti_radiation": true
         },
     "igla_s": {
       "extends": "stinger",
@@ -959,6 +1008,8 @@
       "aa_long": 45,
       "air_gun": 1,
       "air_missile": 25,
+      "air_bomb_guided": 25,
+      "air_bomb_cluster": 25,
       "sead_missile": 40,
       "ground_tank_ap": 5,
       "ground_tank_he": 5,
@@ -1378,11 +1429,59 @@
           "full_traverse_rps": 0.5,
           "reverse": null,
           "reverse_gain": 0
+        },
+        "high_air_light": {
+          "engine": "airwar-jet-approach",
+          "idle_rate": 0.7,
+          "load_rate": 1.25,
+          "idle_gain": 0.34,
+          "load_gain": 0.7,
+          "running": null,
+          "running_gain": 0,
+          "full_speed_mps": 180,
+          "turret": null,
+          "turret_gain": 0,
+          "full_traverse_rps": 0.5,
+          "reverse": null,
+          "reverse_gain": 0
+        },
+        "high_air_medium": {
+          "engine": "airwar-jet-approach",
+          "idle_rate": 0.7,
+          "load_rate": 1.25,
+          "idle_gain": 0.4,
+          "load_gain": 0.8,
+          "running": null,
+          "running_gain": 0,
+          "full_speed_mps": 180,
+          "turret": null,
+          "turret_gain": 0,
+          "full_traverse_rps": 0.5,
+          "reverse": null,
+          "reverse_gain": 0
+        },
+        "high_air_heavy": {
+          "engine": "airwar-jet-approach",
+          "idle_rate": 0.7,
+          "load_rate": 1.25,
+          "idle_gain": 0.46,
+          "load_gain": 0.9,
+          "running": null,
+          "running_gain": 0,
+          "full_speed_mps": 180,
+          "turret": null,
+          "turret_gain": 0,
+          "full_traverse_rps": 0.5,
+          "reverse": null,
+          "reverse_gain": 0
         }
       },
       "footsteps": { "sound": "footstep", "gain": 0.07, "stride_m": 0.8, "max_step_m": 2 },
       "fires": { "default": { "sound": "fire", "gain": 0.4, "smoulder_gain": 0.1 } },
       "ambience": { "sound": "countryside", "gain": 0.2 },
+      "air_alarm": { "sound": "airwar-air-alarm", "gain": 0.8 },
+      "missile_warning": { "sound": "airwar-missile-warning", "gain": 0.9 },
+      "flare_deploy": { "sound": "airwar-flare-deploy", "gain": 0.75 },
       "music": {
         "duck": { "depth": 0.35, "attack_s": 0.05, "release_s": 0.8 },
         "combat_window_s": 20,

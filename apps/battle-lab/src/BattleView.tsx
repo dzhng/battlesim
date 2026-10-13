@@ -304,6 +304,7 @@ export function BattleView({
         rules={session.rules}
         selected={control.selected}
         handle={session.readouts}
+        ghosts={session.ghostReadouts}
       />
       <RangeRulerLabels handle={rulerLabels} />
       {/* The army roster and command row keep their place as selection changes. */}

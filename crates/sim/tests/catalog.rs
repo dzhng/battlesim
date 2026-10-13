@@ -131,11 +131,17 @@ fn every_faction_has_short_medium_and_long_air_defence() {
     ))
     .unwrap();
     for faction in [Faction::Us, Faction::Europe, Faction::Eastern] {
-        for tier in [AirDefenseTier::Short, AirDefenseTier::Medium, AirDefenseTier::Long] {
+        for tier in [
+            AirDefenseTier::Short,
+            AirDefenseTier::Medium,
+            AirDefenseTier::Long,
+        ] {
             assert!(
                 catalog.indices().any(|i| {
                     let t = catalog.get(i);
-                    t.roster.as_ref().is_some_and(|r| r.factions.contains(&faction))
+                    t.roster
+                        .as_ref()
+                        .is_some_and(|r| r.factions.contains(&faction))
                         && t.capabilities.air_defense.is_some_and(|aa| aa.tier == tier)
                 }),
                 "{faction:?} has no {tier:?} air defence"
@@ -151,11 +157,13 @@ fn every_faction_has_a_dedicated_sead_aircraft() {
     ))
     .unwrap();
     for faction in ["us", "europe", "eastern"] {
-        assert!(catalog.indices().any(|i| {
-            let t = catalog.get(i);
-            t.faction == faction
-                && t.capabilities.air.as_ref().is_some_and(|air| air.sead)
-        }), "{faction} has no SEAD aircraft");
+        assert!(
+            catalog.indices().any(|i| {
+                let t = catalog.get(i);
+                t.faction == faction && t.capabilities.air.as_ref().is_some_and(|air| air.sead)
+            }),
+            "{faction} has no SEAD aircraft"
+        );
     }
 }
 

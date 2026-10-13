@@ -92,7 +92,8 @@ export interface OwnUnitView {
   fuelS: number | null;
   afterburner: boolean;
   traversing: boolean;
-  dogfightTarget: number | null;
+  inDogfight: boolean;
+  flares: { charges: number; cooldown: number | null } | null;
   /** Defensive charges and running cooldown progress; private to the owning side. */
   protection: { charges: number; cooldown: number | null } | null;
   id: number;
@@ -406,9 +407,9 @@ export interface ContactView {
    *  every row: a report doesn't say which round); empty for a last sighting. */
   heard: string[];
   /** Quantized bearing from the detecting SEAD aircraft, present for radar. */
-  bearingDeg: number | null;
+  bearingDeg?: number | null;
   /** Quantized range from the detecting SEAD aircraft, present for radar. */
-  rangeM: number | null;
+  rangeM?: number | null;
 }
 
 /** A sound a friendly listener heard from an unseen enemy. */

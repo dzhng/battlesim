@@ -164,3 +164,27 @@ fn short_air_defence_missiles_cannot_be_interceptors() {
         "{error}"
     );
 }
+
+#[test]
+fn a_short_ballistic_air_defence_row_may_intercept_missiles() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["aa_ballistic"]["aa_tier"] = json!("short");
+    game["weapons"]["aa_ballistic"]["interception"] = json!("missile");
+    contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
+}
+
+#[test]
+fn anti_radiation_is_distinct_from_a_radar_seeker() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["sead_missile"]["anti_radiation"] = json!(true);
+    game["weapons"]["air_missile"]["anti_radiation"] = json!(false);
+    let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
+    assert!(rows["sead_missile"].anti_radiation);
+    assert!(!rows["air_missile"].anti_radiation);
+    assert_eq!(
+        rows["sead_missile"].seeker,
+        Some(contract::weapons::SeekerSupport::Radar)
+    );
+}

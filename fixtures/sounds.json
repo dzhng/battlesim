@@ -1,5 +1,50 @@
 {
   "sources": {
+    "airwar-jet-approach": {
+      "label": "Best Fighter Jet Flybys 2022",
+      "author": "AirshowStuffVideos",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=76JvYFbGF2I",
+      "path": "assets/third-party/audio/airwar-jet-approach.webm",
+      "sha256": "7c3528aab9a633f3829272b0fdc0beb4447bd9cb83b8e21b8765ec4025cafa8f",
+      "notes": "Personal-project air-war source admitted for workbench audition and battle playback."
+    },
+    "airwar-air-alarm": {
+      "label": "World War 2 Air Raid Siren Alarm Sound Effect",
+      "author": "SoundEffectsFactory",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=msX8iULEQgA",
+      "path": "assets/third-party/audio/airwar-air-alarm.webm",
+      "sha256": "51fcba82acfdabcc675e937e818f51d97f4e0f89e2396e68dc39e84706d7feeb",
+      "notes": "Personal-project air-war source admitted for workbench audition and battle playback."
+    },
+    "airwar-missile-warning": {
+      "label": "Missile Lock On sound effect",
+      "author": "ProSounds",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=hok2D_9Y6Ic",
+      "path": "assets/third-party/audio/airwar-missile-warning.webm",
+      "sha256": "a3dad5fe6ccf74f9e070d0745b97223acec36b0c26da1aac7d2ba76a814c3d43",
+      "notes": "Personal-project air-war source admitted for workbench audition and battle playback."
+    },
+    "airwar-flare-deploy": {
+      "label": "F-16 shooting flares",
+      "author": "kers.net",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=mxIf29VydHA",
+      "path": "assets/third-party/audio/airwar-flare-deploy.webm",
+      "sha256": "5f98325d1bac312a123abf5e1869fa6123a8c9759cf4a281d5738549a5246a9b",
+      "notes": "Personal-project air-war source admitted for workbench audition and battle playback."
+    },
+    "airwar-aa-launch": {
+      "label": "Missile launch sound effects",
+      "author": "Free Friendly Sounds",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=dw6AvjAyFKs",
+      "path": "assets/third-party/audio/airwar-aa-launch.webm",
+      "sha256": "57a0cf89b13095d185ee758ca8ffb9b5514199f1741aa67a68739e775f5c56d7",
+      "notes": "Personal-project air-war source admitted for workbench audition and battle playback."
+    },
     "battlefield2-menu": {
       "label": "Battlefield 2 menu \u00b7 user-supplied recording",
       "author": "EA / DICE \u00b7 uploaded by Leopard",
@@ -599,6 +644,81 @@
     }
   },
   "clips": {
+    "airwar-jet-approach-recording": {
+      "label": "Air war · airwar-jet-approach",
+      "category": "air-war",
+      "role": "loop",
+      "source": "airwar-jet-approach",
+      "source_rate": 48000,
+      "source_frames": [0, 479688],
+      "processing": "motor-loop",
+      "url": "/audio/clips/airwar-jet-approach-recording.wav",
+      "sha256": "e3da6ff12bdd4df4c0cd6d32ee4882bf57b8e5f9a546ca47f5958abf9ae347e9",
+      "sample_rate": 48000,
+      "frames": 479688,
+      "loop": true,
+      "notes": "Personal-project air-war recording admitted for workbench audition and battle playback."
+    },
+    "airwar-air-alarm-recording": {
+      "label": "Air war · airwar-air-alarm",
+      "category": "air-war",
+      "role": "other",
+      "source": "airwar-air-alarm",
+      "source_rate": 48000,
+      "source_frames": [0, 479688],
+      "processing": "air-alarm",
+      "url": "/audio/clips/airwar-air-alarm-recording.wav",
+      "sha256": "2eca68fca3733f9e96c8de657bab94d7b5e7e8676f5835bdb865f9e656065800",
+      "sample_rate": 48000,
+      "frames": 479688,
+      "loop": false,
+      "notes": "Personal-project air-war recording admitted for workbench audition and battle playback."
+    },
+    "airwar-missile-warning-recording": {
+      "label": "Air war · airwar-missile-warning",
+      "category": "air-war",
+      "role": "launch",
+      "source": "airwar-missile-warning",
+      "source_rate": 48000,
+      "source_frames": [0, 239688],
+      "processing": "launch",
+      "url": "/audio/clips/airwar-missile-warning-recording.wav",
+      "sha256": "e13351bef7153d6669dc9fa686d7130cf1f3ae9c9f88e84818ec874369f0247f",
+      "sample_rate": 48000,
+      "frames": 239688,
+      "loop": false,
+      "notes": "Personal-project air-war recording admitted for workbench audition and battle playback."
+    },
+    "airwar-flare-deploy-recording": {
+      "label": "Air war · airwar-flare-deploy",
+      "category": "air-war",
+      "role": "launch",
+      "source": "airwar-flare-deploy",
+      "source_rate": 48000,
+      "source_frames": [0, 239688],
+      "processing": "launch",
+      "url": "/audio/clips/airwar-flare-deploy-recording.wav",
+      "sha256": "4ef2afcc87c449e5f40b8ad2008cefe2997221a03e7b4ddec6887fb83e24d645",
+      "sample_rate": 48000,
+      "frames": 239688,
+      "loop": false,
+      "notes": "Personal-project air-war recording admitted for workbench audition and battle playback."
+    },
+    "airwar-aa-launch-recording": {
+      "label": "Air war · airwar-aa-launch",
+      "category": "air-war",
+      "role": "launch",
+      "source": "airwar-aa-launch",
+      "source_rate": 48000,
+      "source_frames": [0, 239688],
+      "processing": "launch",
+      "url": "/audio/clips/airwar-aa-launch-recording.wav",
+      "sha256": "f86e97b3f8030c46d0e4db1269d974e620c136a3cb5a66e825c75b2da2790ee3",
+      "sample_rate": 48000,
+      "frames": 239688,
+      "loop": false,
+      "notes": "Personal-project air-war recording admitted for workbench audition and battle playback."
+    },
     "auto-01-1": {
       "label": "Auto 01 \u00b7 report 1",
       "category": "machine-gun",
@@ -4372,6 +4492,46 @@
     }
   },
   "sounds": {
+    "airwar-jet-approach": {
+      "label": "Jet approach · personal source",
+      "clips": ["airwar-jet-approach-recording"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": true
+    },
+    "airwar-air-alarm": {
+      "label": "Air alarm · personal source",
+      "clips": ["airwar-air-alarm-recording"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "airwar-missile-warning": {
+      "label": "Missile warning · personal source",
+      "clips": ["airwar-missile-warning-recording"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "airwar-flare-deploy": {
+      "label": "Flare deployment · personal source",
+      "clips": ["airwar-flare-deploy-recording"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
+    "airwar-aa-launch": {
+      "label": "AA missile launch · personal source",
+      "clips": ["airwar-aa-launch-recording"],
+      "synth": null,
+      "synth_gain": 0,
+      "gain": 1,
+      "loop": false
+    },
     "rifle": {
       "label": "Synth \u00b7 rifle",
       "clips": [],
@@ -5715,6 +5875,41 @@
       "near": "grenade-combat",
       "far": "grenade-combat-distant",
       "gain": 1
+    },
+    "stinger": {
+      "near": "airwar-aa-launch",
+      "far": "airwar-aa-launch",
+      "gain": 1
+    },
+    "igla_s": {
+      "near": "airwar-aa-launch",
+      "far": "airwar-aa-launch",
+      "gain": 1
+    },
+    "fn_6": {
+      "near": "airwar-aa-launch",
+      "far": "airwar-aa-launch",
+      "gain": 1
+    },
+    "aa_medium": {
+      "near": "airwar-aa-launch",
+      "far": "airwar-aa-launch",
+      "gain": 1
+    },
+    "aa_long": {
+      "near": "airwar-aa-launch",
+      "far": "airwar-aa-launch",
+      "gain": 1
+    },
+    "air_missile": {
+      "near": "airwar-aa-launch",
+      "far": "airwar-aa-launch",
+      "gain": 1
+    },
+    "sead_missile": {
+      "near": "airwar-aa-launch",
+      "far": "airwar-aa-launch",
+      "gain": 1
     }
   },
   "impacts": {
@@ -5759,55 +5954,60 @@
       "author": "AirshowStuffVideos",
       "license": "All-Rights-Reserved",
       "url": "https://www.youtube.com/watch?v=76JvYFbGF2I",
-      "sha256": null,
+      "sha256": "7c3528aab9a633f3829272b0fdc0beb4447bd9cb83b8e21b8765ec4025cafa8f",
       "source_frames": [0, 480000],
       "processing": "motor-loop",
-      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
-      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "downloaded-unassigned" },
+      "notes": "Downloaded source is pinned for provenance and audition only. It remains unassigned because the source is All-Rights-Reserved; replace or license it before assigning the bytes to a shipped runtime clip.",
+      "path": "assets/third-party/audio/airwar-jet-approach.webm"
     },
     "airwar-air-alarm": {
       "label": "World War 2 Air Raid Siren Alarm Sound Effect",
       "author": "SoundEffectsFactory",
       "license": "All-Rights-Reserved",
       "url": "https://www.youtube.com/watch?v=msX8iULEQgA",
-      "sha256": null,
+      "sha256": "51fcba82acfdabcc675e937e818f51d97f4e0f89e2396e68dc39e84706d7feeb",
       "source_frames": [0, 480000],
       "processing": "air-alarm",
-      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
-      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "downloaded-unassigned" },
+      "notes": "Downloaded source is pinned for provenance and audition only. It remains unassigned because the source is All-Rights-Reserved; replace or license it before assigning the bytes to a shipped runtime clip.",
+      "path": "assets/third-party/audio/airwar-air-alarm.webm"
     },
     "airwar-missile-warning": {
       "label": "Missile Lock On sound effect",
       "author": "ProSounds",
       "license": "All-Rights-Reserved",
       "url": "https://www.youtube.com/watch?v=hok2D_9Y6Ic",
-      "sha256": null,
+      "sha256": "a3dad5fe6ccf74f9e070d0745b97223acec36b0c26da1aac7d2ba76a814c3d43",
       "source_frames": [0, 240000],
       "processing": "launch",
-      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
-      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "downloaded-unassigned" },
+      "notes": "Downloaded source is pinned for provenance and audition only. It remains unassigned because the source is All-Rights-Reserved; replace or license it before assigning the bytes to a shipped runtime clip.",
+      "path": "assets/third-party/audio/airwar-missile-warning.webm"
     },
     "airwar-flare-deploy": {
       "label": "F-16 shooting flares",
       "author": "kers.net",
       "license": "All-Rights-Reserved",
       "url": "https://www.youtube.com/watch?v=mxIf29VydHA",
-      "sha256": null,
+      "sha256": "5f98325d1bac312a123abf5e1869fa6123a8c9759cf4a281d5738549a5246a9b",
       "source_frames": [0, 240000],
       "processing": "launch",
-      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
-      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "downloaded-unassigned" },
+      "notes": "Downloaded source is pinned for provenance and audition only. It remains unassigned because the source is All-Rights-Reserved; replace or license it before assigning the bytes to a shipped runtime clip.",
+      "path": "assets/third-party/audio/airwar-flare-deploy.webm"
     },
     "airwar-aa-launch": {
       "label": "Missile launch sound effects",
       "author": "Free Friendly Sounds",
       "license": "All-Rights-Reserved",
       "url": "https://www.youtube.com/watch?v=dw6AvjAyFKs",
-      "sha256": null,
+      "sha256": "57a0cf89b13095d185ee758ca8ffb9b5514199f1741aa67a68739e775f5c56d7",
       "source_frames": [0, 240000],
       "processing": "launch",
-      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
-      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "downloaded-unassigned" },
+      "notes": "Downloaded source is pinned for provenance and audition only. It remains unassigned because the source is All-Rights-Reserved; replace or license it before assigning the bytes to a shipped runtime clip.",
+      "path": "assets/third-party/audio/airwar-aa-launch.webm"
     }
   },
   "music": {

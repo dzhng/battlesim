@@ -77,7 +77,7 @@ pub struct Ghost {
     pub id: f64,
     pub x: f64,
     pub y: f64,
-    /// The ground under it; an aircraft's ghost flies its cruise height above.
+    /// Final world altitude, shared with the ghost's floating card.
     pub z: f64,
     pub yaw: f64,
     /// 0 the side's own colour, 1 the selection's, 2 a refused purchase.
@@ -1670,17 +1670,13 @@ impl Loaded {
         }
         // Ghosts: where the UI's units will stand, at rest, in their colour.
         for g in ui.ghosts {
-            let Some(ty) = units.types.get(&g.kind) else {
+            let Some(_) = units.types.get(&g.kind) else {
                 continue;
             };
             let Some(name) = units.resolve(&g.kind, side, g.id, g.slot, None, None) else {
                 continue;
             };
-            let at = [
-                g.x,
-                g.y,
-                g.z + if ty.airborne { input.cruise_agl_m } else { 0.0 },
-            ];
+            let at = [g.x, g.y, g.z];
             let far = bounds(units, name, 0);
             let tier = model_detail(&detail, view, at, far.size, far.radius, false, None);
             if tier == CULLED {

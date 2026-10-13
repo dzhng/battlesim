@@ -512,6 +512,16 @@ pub struct Projectile {
     pub fall: Option<MissFall>,
     /// Ricochets so far; the resolver bounds them.
     pub bounces: u8,
+    /// The seeker was diverted to a flare; its point is a physical burst aim
+    /// point and no longer follows the aircraft target.
+    pub decoy: Option<Decoy>,
+}
+
+/// Physical flare tracked by a diverted seeker, independent of the aircraft.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Decoy {
+    pub position: V3,
+    pub velocity: V3,
 }
 
 /// What a round struck. The derived order is the tie-break order.
@@ -757,6 +767,7 @@ impl Projectiles {
             motor: launch.motor,
             fall: launch.fall,
             bounces: 0,
+            decoy: None,
         });
         id
     }
@@ -765,6 +776,26 @@ impl Projectiles {
     pub fn steer(&mut self, id: ProjectileId, point: V3) {
         if let Some(g) = self.guidance_mut(id).filter(|g| g.supported) {
             g.point = point;
+        }
+    }
+
+    /// Renew a seeker command after launch. Unlike launcher support, this
+    /// remains valid while the firing aircraft moves or loses optical LOS.
+    pub fn steer_seeker(&mut self, id: ProjectileId, point: V3) {
+        if let Some(g) = self.guidance_mut(id) {
+            g.point = point;
+        }
+    }
+
+    /// Divert this seeker to one physical flare. The flare keeps its release
+    /// velocity and falls under gravity; no unit pose is followed afterwards.
+    pub fn decoy_seeker(&mut self, id: ProjectileId, position: V3, velocity: V3) {
+        if let Some(p) = self.active.iter_mut().find(|p| p.id == id) {
+            p.decoy = Some(Decoy { position, velocity });
+            if let Some(g) = p.guidance.as_mut() {
+                g.point = position;
+                g.supported = false;
+            }
         }
     }
 
@@ -845,6 +876,15 @@ impl Projectiles {
                 if let Some(loft) = g.loft {
                     d.u64(0x4c4f4654).f64(loft.height_m).f64(loft.slope);
                 }
+            }
+            if let Some(decoy) = p.decoy {
+                d.u64(0x464c415245)
+                    .f64(decoy.position.x)
+                    .f64(decoy.position.y)
+                    .f64(decoy.position.z)
+                    .f64(decoy.velocity.x)
+                    .f64(decoy.velocity.y)
+                    .f64(decoy.velocity.z);
             }
             if let Some(fall) = p.fall {
                 d.u64(0x4c414e44).f64(fall.gravity_scale).f64(fall.after_s);
@@ -1097,6 +1137,9 @@ impl Flight<'_> {
     ) -> bool {
         let config = self.config;
         let span = config.tick_s.min(p.lifetime_s - p.age_s);
+        if let (Some(decoy), Some(g)) = (p.decoy, p.guidance.as_mut()) {
+            g.point = decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
+        }
         let gravity = self.acceleration(p, span);
         scratch.misses.clear();
         // Each leg flies from the round's state `flown` seconds into the tick;
@@ -1162,6 +1205,11 @@ impl Flight<'_> {
         p.position = end;
         p.velocity = v_end;
         p.age_s += span;
+        if let Some(decoy) = p.decoy.as_mut() {
+            decoy.position =
+                decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
+            decoy.velocity = decoy.velocity + config.gravity * span;
+        }
         let expire = |cause| {
             FlightEvent::Expired(Expired {
                 projectile: p.id,
@@ -1281,6 +1329,34 @@ impl Flight<'_> {
                         Collider::Prop(id) => Struck::Prop(id),
                     };
                     best = Some((hit.t / len, struck, hit.normal, None));
+                }
+            }
+            // A one-metre proximity fuse follows the flare's swept motion.
+            // Earlier terrain or body collisions still win, so a flare never
+            // grants immunity to an aircraft already in the missile's path.
+            if let Some(decoy) = p.decoy {
+                let t0 = scratch.path_times[k];
+                let t1 = scratch.path_times[k + 1];
+                let d0 = decoy.position + decoy.velocity * t0 + config.gravity * (0.5 * t0 * t0);
+                let d1 = decoy.position + decoy.velocity * t1 + config.gravity * (0.5 * t1 * t1);
+                let relative = a0 - d0;
+                let travel = chord - (d1 - d0);
+                let aa = travel.dot(travel);
+                let bb = relative.dot(travel);
+                let cc = relative.dot(relative) - 1.0;
+                let determinant = bb * bb - aa * cc;
+                let entry = if cc <= 0.0 {
+                    Some(0.0)
+                } else if aa > 0.0 && determinant >= 0.0 {
+                    let u = (-bb - determinant.sqrt()) / aa;
+                    (0.0..=1.0).contains(&u).then_some(u)
+                } else {
+                    None
+                };
+                if let Some(u) = entry {
+                    if best.is_none_or(|(earlier, ..)| u < earlier) {
+                        best = Some((u, Struck::Terrain, v3(0.0, 0.0, 1.0), None));
+                    }
                 }
             }
             scratch.motions.clear();

@@ -136,6 +136,78 @@
     "map": "air"
   },
   {
+    "id": "air-contracts",
+    "route": "/lab/air-contracts",
+    "describe": "Air-war contract seam: HighAir/LowAir cards, authored weapons, fuel and radar fields through the production battle view.",
+    "map": "air"
+  },
+  {
+    "id": "high-air",
+    "route": "/lab/high-air",
+    "describe": "Persistent fixed-wing layer seam with altitude, map bounds and no ground vision.",
+    "map": "air"
+  },
+  {
+    "id": "air-defense",
+    "route": "/lab/air-defense",
+    "describe": "Layered AA, seeker and projectile-interception seam through the production air battle.",
+    "map": "air"
+  },
+  {
+    "id": "air-radar",
+    "route": "/lab/air-radar",
+    "describe": "Radar-emitter contacts, bearing/range readouts and SEAD targeting seam.",
+    "map": "air"
+  },
+  {
+    "id": "dogfight",
+    "route": "/lab/dogfight",
+    "describe": "Automatic close-air lock, explicit-order break and retargeting seam.",
+    "map": "air"
+  },
+  {
+    "id": "air-ingress",
+    "route": "/lab/air-ingress",
+    "describe": "Off-map ingress, traversal card, persistent fuel, afterburner and withdrawal seam.",
+    "map": "air"
+  },
+  {
+    "id": "air-ground",
+    "route": "/lab/air-ground",
+    "describe": "Aircraft guns, bombs, strafing and radar-only SEAD ground mission seam.",
+    "map": "air"
+  },
+  {
+    "id": "air-survivability",
+    "route": "/lab/air-survivability",
+    "describe": "Aspect damage, finite flares, seeker lifetime and near-splash survivability seam.",
+    "map": "air"
+  },
+  {
+    "id": "air-roster",
+    "route": "/lab/air-roster",
+    "describe": "Faction short, medium, long AA and dedicated SEAD roster seam.",
+    "map": "air"
+  },
+  {
+    "id": "air-hud",
+    "route": "/lab/air-hud",
+    "describe": "Aircraft cards, compact ingress ghosts, radar glyphs and no-ground-circle presentation seam.",
+    "map": "air"
+  },
+  {
+    "id": "air-audio",
+    "route": "/lab/air-audio",
+    "describe": "Air alarm and jet approach audio causes through the production battle view.",
+    "map": "air"
+  },
+  {
+    "id": "air-combined",
+    "route": "/battle/air-combined",
+    "describe": "Combined air checkpoint on the same production battle surface.",
+    "map": "air"
+  },
+  {
     "id": "ambush",
     "route": "/labs/ambush",
     "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire.",

@@ -30,6 +30,7 @@
         "family_name": "Us Short AA"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 900, "high_air_m": 900 },
       "capabilities": {
         "air_defense": {
           "tier": "short"
@@ -114,6 +115,7 @@
         "family_name": "Us Medium SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
@@ -198,6 +200,7 @@
         "family_name": "Us Long SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -282,6 +285,7 @@
         "family_name": "Europe Short AA"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 900, "high_air_m": 900 },
       "capabilities": {
         "air_defense": {
           "tier": "short"
@@ -366,6 +370,7 @@
         "family_name": "Europe Medium SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
@@ -450,6 +455,7 @@
         "family_name": "Europe Long SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -534,6 +540,7 @@
         "family_name": "Eastern Short AA"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 900, "high_air_m": 900 },
       "capabilities": {
         "air_defense": {
           "tier": "short"
@@ -618,6 +625,7 @@
         "family_name": "Eastern Medium SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
@@ -702,6 +710,7 @@
         "family_name": "Eastern Long SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -786,6 +795,7 @@
         "family_name": "Patriot PAC-3"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -870,6 +880,7 @@
         "family_name": "NASAMS 3"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
@@ -884,7 +895,7 @@
           "id": "launcher",
           "name": "NASAMS 3",
           "weapons": [
-            "aa_long"
+            "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
@@ -954,6 +965,7 @@
         "family_name": "IRIS-T SLM"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
@@ -968,7 +980,7 @@
           "id": "launcher",
           "name": "IRIS-T SLM",
           "weapons": [
-            "aa_long"
+            "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
@@ -1038,6 +1050,7 @@
         "family_name": "NASAMS 3 Long"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -1122,6 +1135,7 @@
         "family_name": "S-300V4"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -1206,6 +1220,7 @@
         "family_name": "S-350"
       },
       "extends": "roster_profile_wheeled_ifv",
+      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
       "capabilities": {
         "air_defense": {
           "tier": "long"

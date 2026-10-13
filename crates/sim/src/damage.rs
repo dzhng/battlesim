@@ -291,7 +291,11 @@ impl ImpactResolver for HullResolver<'_> {
         // projectile.  `interceptable` remains the incoming missile flag.
         def.interception
             .is_some()
-            .then_some(def.ballistics.range_m)
+            // Range decides whether the mount may launch.  Once launched,
+            // projectile interception is a proximity fuse, so using the
+            // weapon's full engagement range would erase rounds at a visibly
+            // impossible distance.
+            .then_some(def.blast_radius_m.max(5.0))
             .unwrap_or(0.0)
     }
     fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
@@ -425,26 +429,6 @@ pub fn resolve(
                     Struck::Body(b) => locate(units, b).map(|at| (b, at)),
                     _ => None,
                 };
-                if def.decoyable {
-                    if let Some((_, (target_index, _))) = direct {
-                        let target = &mut units[target_index];
-                        let reload = target
-                            .unit_type(ctx.rules)
-                            .capabilities
-                            .air
-                            .as_ref()
-                            .and_then(|a| a.flares)
-                            .map_or(0.0, |f| f.reload_s);
-                        if let Some(air) = target.air.as_mut() {
-                            if air.flare_charges > 0 && air.flare_ready_tick <= ctx.tick {
-                                air.flare_charges -= 1;
-                                air.flare_ready_tick = ctx.tick
-                                    + (reload * ctx.rules.tick_hz as f64).round() as u64;
-                                continue;
-                            }
-                        }
-                    }
-                }
                 // Only weapons with structural damage wear props down (L10,
                 // Q17): the struck body by its kind's armour, and every other
                 // destroyable body the burst reaches by its distance.

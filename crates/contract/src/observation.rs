@@ -482,6 +482,12 @@ pub struct ProtectionReadiness {
     pub cooldown: Option<f64>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FlareReadiness {
+    pub charges: u32,
+    pub cooldown: Option<f64>,
+}
+
 /// A unit of the observing side: its own state is complete.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
@@ -495,9 +501,12 @@ pub struct OwnUnit {
     /// Paid aircraft still traversing to its map-edge ingress point.
     #[serde(default)]
     pub traversing: bool,
-    /// Own aircraft's current close air target, if in a dogfight.
+    /// Own aircraft is currently in a close air engagement. The opponent's
+    /// authority id never crosses the observation boundary.
     #[serde(default)]
-    pub dogfight_target: Option<UnitId>,
+    pub in_dogfight: bool,
+    #[serde(default)]
+    pub flares: Option<FlareReadiness>,
     pub protection: Option<ProtectionReadiness>,
     pub id: UnitId,
     /// Its unit type: its rank in the catalog, the layout's `unitKinds`.

@@ -133,6 +133,25 @@
             0,
             0
           ]
+        },
+        {
+          "id": "bombs",
+          "name": "Bombs",
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            2,
+            0,
+            0
+          ]
         }
       ],
       "appearance": "us_f_16c_block_50"
@@ -263,6 +282,25 @@
             0,
             0
           ]
+        },
+        {
+          "id": "bombs",
+          "name": "Bombs",
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            2,
+            0,
+            0
+          ]
         }
       ],
       "appearance": "europe_tornado_ids"
@@ -390,6 +428,25 @@
           ],
           "muzzle_m": [
             4,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "bombs",
+          "name": "Bombs",
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            2,
             0,
             0
           ]

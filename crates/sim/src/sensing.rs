@@ -217,12 +217,12 @@ pub fn evaluate(
         // HighAir targets, so air-to-air sensing remains authoritative here.
         let observer_layer = observer.layer();
         let from = eyes(observer, rules);
-        let sight = crate::sight::of(observer, rules);
         let concealed_range_multiplier =
             observer.unit_type(rules).sensors.concealed_range_multiplier;
         let observer_radius = observer.footprint_radius(body);
         for (target, target_radius, samples) in &targets {
             let (target, target_radius) = (*target, *target_radius);
+            let sight = crate::sight::of_layer(observer, rules, target.layer());
             if observer_layer == AltitudeLayer::HighAir && target.layer() == AltitudeLayer::Ground {
                 continue;
             }

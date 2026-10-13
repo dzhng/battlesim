@@ -64,6 +64,15 @@ pub struct WeaponDefinition {
     /// Dedicated anti-armour: fires only at identified vehicles (W10).
     #[serde(default)]
     pub anti_armor: bool,
+    /// Ground attack mode for air-launched rows. Bombs take precedence over
+    /// strafing guns while a bomb store has rounds remaining.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ground_attack: Option<GroundAttackKind>,
+    /// Anti-radiation seeker: may acquire only a radar contact or identified
+    /// emitting AA unit. This is distinct from a radar/IR seeker on an
+    /// ordinary air-to-air missile.
+    #[serde(default)]
+    pub anti_radiation: bool,
     /// A missile/rocket body vulnerable to active protection; shells and
     /// bullets do not inherit eligibility from penetration or guidance.
     #[serde(default)]
@@ -98,6 +107,13 @@ pub struct WeaponDefinition {
     /// wider spread than along the ground; a tank gun, a grenade or a ground
     /// missile cannot. A layer it does not list, it never engages.
     pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GroundAttackKind {
+    Bomb,
+    Strafe,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -334,6 +350,20 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "a seeker row must author seeker_fov_deg, and only a seeker row",
                         ));
                     }
+                    if def.anti_radiation
+                        && !matches!(def.seeker, Some(SeekerSupport::Radar))
+                    {
+                        return Err(serde::de::Error::custom(
+                            "an anti-radiation row needs a radar seeker",
+                        ));
+                    }
+                    if matches!(def.ground_attack, Some(GroundAttackKind::Bomb))
+                        && !def.targets.contains_key(&crate::catalog::AltitudeLayer::Ground)
+                    {
+                        return Err(serde::de::Error::custom(
+                            "a bomb row must target Ground",
+                        ));
+                    }
                     if def.seeker_fov_deg.is_some_and(|fov| {
                         !fov.is_finite() || !(fov > 0.0 && fov <= 360.0)
                     }) {
@@ -341,13 +371,17 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "seeker_fov_deg must be finite and in (0, 360]",
                         ));
                     }
-                    if def.interception.is_some() && def.ballistics.guidance.is_none() {
+                    if def.interception.is_some()
+                        && def.ballistics.guidance.is_none()
+                        && def.seeker.is_some()
+                    {
                         return Err(serde::de::Error::custom(
-                            "an interception row must be guided",
+                            "a seeker interception row must be guided",
                         ));
                     }
                     if matches!(def.aa_tier, Some(crate::catalog::AirDefenseTier::Short))
                         && def.interception.is_some()
+                        && def.ballistics.guidance.is_some()
                     {
                         return Err(serde::de::Error::custom(
                             "short air-defence missile rows cannot intercept missiles",

@@ -7,7 +7,9 @@ pub fn fraction(health: f64, ammo: f64, age_s: f64) -> f64 {
 
 /// Fuel remaining for a persistent aircraft, or full for non-air units.
 pub fn fuel(unit: &crate::units::Unit, rules: &contract::scenario::Rules) -> f64 {
-    let Some(air) = unit.air.as_ref() else { return 1.0 };
+    let Some(air) = unit.air.as_ref() else {
+        return 1.0;
+    };
     let capacity = unit
         .unit_type(rules)
         .capabilities

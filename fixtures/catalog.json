@@ -8073,8 +8073,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 3200.0,
+            "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8186,6 +8186,28 @@
               "turret": false,
               "weapons": [
                 "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                2.0,
+                0.0,
+                0.0
+              ],
+              "name": "Bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb_guided",
+                "air_bomb_cluster"
               ]
             }
           ],
@@ -8627,8 +8649,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8778,8 +8800,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 3200.0,
+            "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9307,8 +9329,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 3200.0,
+            "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9594,8 +9616,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9694,8 +9716,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -9865,8 +9887,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 900.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -12276,8 +12298,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 900.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13819,6 +13841,28 @@
               "weapons": [
                 "air_missile"
               ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                2.0,
+                0.0,
+                0.0
+              ],
+              "name": "Bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb_guided",
+                "air_bomb_cluster"
+              ]
             }
           ],
           "name": "European Fighter",
@@ -13943,7 +13987,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "aa_medium"
               ]
             }
           ],
@@ -13961,8 +14005,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 3200.0,
+            "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -14730,8 +14774,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15049,8 +15093,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 3200.0,
+            "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15183,8 +15227,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15283,8 +15327,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15833,8 +15877,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 900.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17877,6 +17921,28 @@
               "weapons": [
                 "air_missile"
               ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                2.0,
+                0.0,
+                0.0
+              ],
+              "name": "Bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb_guided",
+                "air_bomb_cluster"
+              ]
             }
           ],
           "name": "US Fighter",
@@ -18281,8 +18347,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20043,8 +20109,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 3200.0,
+            "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20151,7 +20217,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "aa_medium"
               ]
             }
           ],
@@ -20169,8 +20235,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 3200.0,
+            "low_air_m": 3200.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20269,8 +20335,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 7000.0,
+            "low_air_m": 1800.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20458,8 +20524,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 900.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20837,8 +20903,8 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "high_air_m": 0.0,
-            "low_air_m": 0.0,
+            "high_air_m": 900.0,
+            "low_air_m": 900.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -26392,8 +26458,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 3200.0,
+        "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -26508,6 +26574,29 @@
           "turret": false,
           "weapons": [
             "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            2.0,
+            0.0,
+            0.0
+          ],
+          "name": "Bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
           ]
         }
       ],
@@ -26875,8 +26964,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27172,8 +27261,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 3200.0,
+        "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27627,8 +27716,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 3200.0,
+        "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28040,8 +28129,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28142,8 +28231,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -28352,8 +28441,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 900.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30770,8 +30859,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 900.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -32351,6 +32440,29 @@
           "weapons": [
             "air_missile"
           ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            2.0,
+            0.0,
+            0.0
+          ],
+          "name": "Bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ]
         }
       ],
       "name": "European Fighter",
@@ -32451,7 +32563,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "aa_medium"
           ]
         }
       ],
@@ -32469,8 +32581,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 3200.0,
+        "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -33169,8 +33281,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -33638,8 +33750,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 3200.0,
+        "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -33740,8 +33852,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -33842,8 +33954,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34384,8 +34496,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 900.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36554,6 +36666,29 @@
           "weapons": [
             "air_missile"
           ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            2.0,
+            0.0,
+            0.0
+          ],
+          "name": "Bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ]
         }
       ],
       "name": "US Fighter",
@@ -36990,8 +37125,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39069,8 +39204,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 3200.0,
+        "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39153,7 +39288,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "aa_medium"
           ]
         }
       ],
@@ -39171,8 +39306,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 3200.0,
+        "low_air_m": 3200.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39273,8 +39408,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 7000.0,
+        "low_air_m": 1800.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39478,8 +39613,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 900.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39865,8 +40000,8 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "high_air_m": 0.0,
-        "low_air_m": 0.0,
+        "high_air_m": 900.0,
+        "low_air_m": 900.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -40132,6 +40267,7 @@
       "aim_s": 1.0,
       "ammo": 300,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -40141,6 +40277,7 @@
       "gravity_scale": 0.5,
       "icon": "autocannon",
       "interceptable": false,
+      "interception": "missile",
       "lifetime_s": null,
       "magazine": {
         "burst": {
@@ -40155,7 +40292,7 @@
       "near_miss_suppression": 0.1,
       "partial_from": null,
       "penetration": 65.0,
-      "range_m": 650.0,
+      "range_m": 1500.0,
       "reload_s": 6.0,
       "scatter_mrad": 6.0,
       "speed_mps": 600.0,
@@ -40165,7 +40302,7 @@
       "targets": {
         "ground": {},
         "high_air": {
-          "range_m": 500.0,
+          "range_m": 1500.0,
           "scatter_mrad": 42.0
         },
         "low_air": {
@@ -40183,6 +40320,7 @@
       "aim_s": 2.0,
       "ammo": 6,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -40194,7 +40332,7 @@
       "icon": "aa_missile",
       "interceptable": false,
       "interception": "missile",
-      "lifetime_s": 6.0,
+      "lifetime_s": 10.0,
       "magazine": null,
       "min_range_m": 50.0,
       "name": "Long SAM",
@@ -40223,6 +40361,7 @@
       "aim_s": 2.0,
       "ammo": 8,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 120.0,
@@ -40262,6 +40401,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 50.0,
@@ -40297,6 +40437,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -40327,11 +40468,90 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "air_bomb_cluster": {
+      "accel_mps2": null,
+      "aim_s": 1.2,
+      "ammo": 3,
+      "anti_armor": false,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 9.0,
+      "damage": 70.0,
+      "decoyable": false,
+      "default": false,
+      "description": "Wide-spread cluster bomb salvo for area attacks.",
+      "gravity_scale": 1.0,
+      "ground_attack": "bomb",
+      "icon": "bomb",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": {
+        "burst": null,
+        "rounds": 4,
+        "shot_interval_s": 0.08
+      },
+      "min_range_m": 80.0,
+      "name": "Cluster bombs",
+      "near_miss_suppression": 0.45,
+      "partial_from": null,
+      "penetration": 20.0,
+      "range_m": 1500.0,
+      "reload_s": 12.0,
+      "scatter_mrad": 28.0,
+      "speed_mps": 220.0,
+      "stationary": false,
+      "structural_damage": 35.0,
+      "suppression_radius_m": 24.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "air_bomb_guided": {
+      "accel_mps2": null,
+      "aim_s": 1.2,
+      "ammo": 4,
+      "anti_armor": false,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 11.0,
+      "damage": 140.0,
+      "decoyable": false,
+      "default": false,
+      "description": "Low-dispersion guided bomb for bombing runs.",
+      "gravity_scale": 1.0,
+      "ground_attack": "bomb",
+      "icon": "bomb",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": null,
+      "min_range_m": 80.0,
+      "name": "Guided bomb",
+      "near_miss_suppression": 0.3,
+      "partial_from": null,
+      "penetration": 40.0,
+      "range_m": 1800.0,
+      "reload_s": 10.0,
+      "scatter_mrad": 4.0,
+      "speed_mps": 240.0,
+      "stationary": false,
+      "structural_damage": 80.0,
+      "suppression_radius_m": 18.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
     "air_gun": {
       "accel_mps2": null,
       "aim_s": 1.0,
       "ammo": "unlimited",
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -40339,6 +40559,7 @@
       "default": true,
       "description": "Unlimited aircraft gun.",
       "gravity_scale": 0.5,
+      "ground_attack": "strafe",
       "icon": "autocannon",
       "interceptable": false,
       "lifetime_s": null,
@@ -40382,6 +40603,7 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 150.0,
@@ -40389,7 +40611,7 @@
       "default": false,
       "description": "Fire-and-forget air-to-air missile.",
       "gravity_scale": 1.0,
-      "guidance": "stationary",
+      "guidance": "on_the_move",
       "icon": "aa_missile",
       "interceptable": false,
       "lifetime_s": 6.0,
@@ -40405,7 +40627,7 @@
       "seeker": "infrared",
       "seeker_fov_deg": 70.0,
       "speed_mps": 100.0,
-      "stationary": true,
+      "stationary": false,
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
@@ -40420,6 +40642,7 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -40460,6 +40683,7 @@
       "aim_s": 4.0,
       "ammo": 24,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 18.0,
       "damage": 120.0,
@@ -40495,6 +40719,7 @@
       "aim_s": 3.0,
       "ammo": 36,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 15.0,
       "damage": 90.0,
@@ -40530,6 +40755,7 @@
       "aim_s": 5.0,
       "ammo": 12,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 24.0,
       "damage": 150.0,
@@ -40569,6 +40795,7 @@
       "aim_s": 4.0,
       "ammo": 18,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 20.0,
       "damage": 100.0,
@@ -40608,6 +40835,7 @@
       "aim_s": 5.0,
       "ammo": 6,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 28.0,
       "damage": 220.0,
@@ -40643,6 +40871,7 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
@@ -40679,6 +40908,7 @@
       "aim_s": 1.0,
       "ammo": 240,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
       "damage": 100.0,
@@ -40725,6 +40955,7 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -40761,6 +40992,7 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -40807,6 +41039,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -40843,6 +41076,7 @@
       "aim_s": 1.5,
       "ammo": 8,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 20.0,
@@ -40878,6 +41112,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -40913,6 +41148,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -40948,6 +41184,7 @@
       "aim_s": 2.0,
       "ammo": 30,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 100.0,
@@ -40987,6 +41224,7 @@
       "aim_s": 3.0,
       "ammo": 8,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,
@@ -41023,6 +41261,7 @@
       "aim_s": 2.0,
       "ammo": "unlimited",
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 9.0,
       "damage": 50.0,
@@ -41058,6 +41297,7 @@
       "aim_s": 1.0,
       "ammo": "unlimited",
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 20.0,
@@ -41104,6 +41344,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -41139,6 +41380,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -41175,6 +41417,7 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -41215,6 +41458,7 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -41251,6 +41495,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -41286,6 +41531,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 65.0,
@@ -41321,6 +41567,7 @@
       "aim_s": 1.0,
       "ammo": 600,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 30.0,
@@ -41367,6 +41614,7 @@
       "aim_s": 2.0,
       "ammo": 120,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 45.0,
@@ -41410,6 +41658,7 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 35.0,
@@ -41456,6 +41705,7 @@
       "aim_s": 1.5,
       "ammo": 38,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 7.0,
       "damage": 60.0,
@@ -41495,6 +41745,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 55.0,
@@ -41530,6 +41781,7 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
       "damage": 45.0,
@@ -41565,6 +41817,7 @@
       "aim_s": 2.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": true,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -41572,10 +41825,10 @@
       "default": false,
       "description": "Long-range anti-radiation missile.",
       "gravity_scale": 1.0,
-      "guidance": "stationary",
+      "guidance": "on_the_move",
       "icon": "aa_missile",
-      "interceptable": false,
-      "lifetime_s": 6.0,
+      "interceptable": true,
+      "lifetime_s": 12.0,
       "magazine": null,
       "min_range_m": 50.0,
       "name": "SEAD missile",
@@ -41588,7 +41841,7 @@
       "seeker": "radar",
       "seeker_fov_deg": 90.0,
       "speed_mps": 100.0,
-      "stationary": true,
+      "stationary": false,
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
@@ -41603,6 +41856,7 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 70.0,
@@ -41646,6 +41900,7 @@
       "aim_s": 0.8,
       "ammo": "unlimited",
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
       "damage": 25.0,
@@ -41692,6 +41947,7 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 55.0,
@@ -41728,6 +41984,7 @@
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
       "damage": 260.0,
@@ -41764,6 +42021,7 @@
       "aim_s": 2.0,
       "ammo": 20,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
       "damage": 40.0,
@@ -41799,6 +42057,7 @@
       "aim_s": 2.0,
       "ammo": 15,
       "anti_armor": false,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
       "damage": 80.0,
@@ -41834,6 +42093,7 @@
       "aim_s": 3.0,
       "ammo": 4,
       "anti_armor": true,
+      "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
       "damage": 45.0,

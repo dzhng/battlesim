@@ -5,6 +5,7 @@ use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
 use contract::scenario::{Armor, Rules};
+use contract::weapons::GroundAttackKind;
 use contract::weapons::{AmmoCapacity, WeaponDefinition};
 
 mod cycle;
@@ -381,6 +382,7 @@ struct Resolved {
     armor: Option<Option<Armor>>,
     /// The height band it is in; an area or a ground point is on the ground.
     layer: AltitudeLayer,
+    radar_contact: bool,
 }
 
 /// One weapon's shot this tick: its rounds and who it was aimed at.
@@ -490,6 +492,13 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 current: track.last_seen == ctx.tick,
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
+                radar_contact: unit.layer() == AltitudeLayer::Ground
+                    && unit.unit_type(ctx.rules).capabilities.air_defense.is_some()
+                    && unit
+                        .unit_type(ctx.rules)
+                        .capabilities
+                        .radar
+                        .is_some_and(|radar| radar.emits),
             })
         }
         Target::Contact(c) => {
@@ -504,6 +513,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 current: true,
                 armor: None,
                 layer: AltitudeLayer::Ground,
+                radar_contact: contact.source == contract::observation::ContactSource::Radar,
             })
         }
         Target::Ground(p) => Some(Resolved {
@@ -511,7 +521,18 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             velocity: v3(0.0, 0.0, 0.0),
             current: true,
             armor: None,
-            layer: AltitudeLayer::Ground,
+            // Ground orders normally carry a terrain-height point.  A
+            // synthetic anti-missile lock carries the physical round's
+            // altitude instead, so authored short/long interceptors can use
+            // their ordinary air target rows and seeker geometry.
+            layer: if p.z >= ctx.rules.air.cruise_agl_m * 0.5 {
+                AltitudeLayer::HighAir
+            } else if p.z > 2.0 {
+                AltitudeLayer::LowAir
+            } else {
+                AltitudeLayer::Ground
+            },
+            radar_contact: false,
         }),
     }
 }
@@ -529,9 +550,11 @@ fn preferred_kind(
     let usable = |k: usize, want_ap: Option<bool>| {
         let def = &weapons[spec.kinds[k]].def;
         mount.has_rounds(k)
+            && (!resolved.radar_contact || def.anti_radiation)
             && def.against(resolved.layer).is_some()
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
             && (effective(def, resolved.armor, ctx.rules)
+                || (resolved.radar_contact && def.anti_radiation)
                 || (resolved.armor.is_some() && fires_regardless(def)))
     };
     let n = spec.kinds.len();
@@ -936,6 +959,13 @@ fn assess(
         ActionReason::NoCompatibleTarget
     })?;
     let weapon = &ctx.arsenal.weapons[spec.kinds[k]].def;
+    if matches!(target, Target::Ground(_))
+        && unit.airborne()
+        && matches!(weapon.ground_attack, Some(GroundAttackKind::Strafe))
+        && aircraft_has_bomb(ctx, unit)
+    {
+        return Err(ActionReason::NoCompatibleTarget);
+    }
     // Air-defence crews need a physical view of an airborne target even for
     // ballistic mounts.  A forest can hide the launcher, but it cannot turn
     // foliage into a free firing lane.
@@ -960,14 +990,31 @@ fn assess(
         .profile
         .turn_rad_s
         .is_some();
+    let anti_radiation = weapon.anti_radiation;
+    let anti_radiation_target = anti_radiation && r.radar_contact;
     if guided
-        && (!matches!(target, Target::Unit(_))
+        && (!matches!(target, Target::Unit(_)) && !anti_radiation_target
             || !r.current
-            || !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point))
+            || (!anti_radiation_target
+                && !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point)))
     {
         return Err(ActionReason::NoOwnSight);
     }
     engage(ctx, unit, units, mount, spec, k, target, r).map(|_| k)
+}
+
+fn aircraft_has_bomb(ctx: &FireContext, unit: &Unit) -> bool {
+    let specs = ctx.arsenal.specs(unit.kind);
+    unit.mounts.iter().any(|mount| {
+        let spec = &specs[mount.spec];
+        spec.kinds.iter().enumerate().any(|(k, &weapon)| {
+            mount.has_rounds(k)
+                && matches!(
+                    ctx.arsenal.weapons[weapon].def.ground_attack,
+                    Some(GroundAttackKind::Bomb)
+                )
+        })
+    })
 }
 
 /// Whether a seeker can acquire a bearing inside its forward cone. This is
@@ -978,6 +1025,27 @@ pub fn seeker_in_fov(forward: f64, bearing: f64, fov_deg: f64) -> bool {
         && fov_deg > 0.0
         && fov_deg <= 360.0
         && wrap_angle(bearing - forward).abs() <= fov_deg.to_radians() * 0.5
+}
+
+/// Choose the ground mission for an aircraft mount: an available authored bomb
+/// row wins; once its finite store is empty, a strafe-capable gun remains the
+/// fallback. This keeps mission choice data-driven and independent of aircraft
+/// names.
+pub fn ground_attack_kind<'a>(
+    rows: impl IntoIterator<Item = (&'a WeaponDefinition, Option<u32>)>,
+) -> Option<GroundAttackKind> {
+    let mut fallback = None;
+    for (def, rounds) in rows {
+        if rounds == Some(0) {
+            continue;
+        }
+        match def.ground_attack {
+            Some(GroundAttackKind::Bomb) => return Some(GroundAttackKind::Bomb),
+            Some(GroundAttackKind::Strafe) => fallback = Some(GroundAttackKind::Strafe),
+            None => {}
+        }
+    }
+    fallback
 }
 
 /// Optical support is physical LOS from the operator, independent of spotting
@@ -1125,32 +1193,25 @@ fn select(
     let knowledge = &ctx.knowledge[unit.side.index()];
     let here = unit.position.xy();
     let weapons = &ctx.arsenal.weapons;
-    let mut ranked: Vec<(bool, f64, u32, f64, u32, UnitId)> = knowledge
-        .identified_now(ctx.tick)
-        .filter(|(u, _)| {
-            let target = &units[u.0 as usize];
-            let sead = unit
-                .unit_type(ctx.rules)
-                .capabilities
-                .air
-                .as_ref()
-                .is_some_and(|air| air.sead);
-            !sead
-                || target.layer() != AltitudeLayer::Ground
-                || (target
-                    .unit_type(ctx.rules)
-                    .capabilities
-                    .air_defense
+    let air_priority = unit.airborne()
+        && spec.kinds.iter().enumerate().any(|(slot, &kind)| {
+            mount.has_rounds(slot)
+                && ctx.arsenal.weapons[kind].def.seeker.is_some()
+                && (ctx.arsenal.weapons[kind]
+                    .def
+                    .against(AltitudeLayer::LowAir)
                     .is_some()
-                    && target
-                        .unit_type(ctx.rules)
-                        .capabilities
-                        .radar
-                        .is_some_and(|radar| radar.emits))
-        })
+                    || ctx.arsenal.weapons[kind]
+                        .def
+                        .against(AltitudeLayer::HighAir)
+                        .is_some())
+        });
+    let mut ranked: Vec<(bool, bool, f64, u32, f64, u32, UnitId)> = knowledge
+        .identified_now(ctx.tick)
         .map(|(u, t)| {
             let target = &units[u.0 as usize];
             (
+                air_priority && target.airborne(),
                 return_fire_threat(ctx, unit, target.kind, t),
                 share_through(ctx, unit, mount, spec, target),
                 target.unit_type(ctx.rules).cost,
@@ -1162,28 +1223,22 @@ fn select(
         .collect();
     ranked.sort_by(|a, b| {
         b.0.cmp(&a.0)
-            .then(b.1.total_cmp(&a.1))
-            .then(b.2.cmp(&a.2))
-            .then(a.3.total_cmp(&b.3))
-            .then(a.4.cmp(&b.4))
+            .then(b.1.cmp(&a.1))
+            .then(b.2.total_cmp(&a.2))
+            .then(b.3.cmp(&a.3))
+            .then(a.4.total_cmp(&b.4))
+            .then(a.5.cmp(&b.5))
     });
-    let mut by_distance: Vec<(f64, u32, UnitId)> =
-        ranked.iter().map(|&(.., d, id, u)| (d, id, u)).collect();
+    let mut by_distance: Vec<(f64, u32, UnitId)> = ranked
+        .iter()
+        .map(|&(_, _, _, _, d, id, u)| (d, id, u))
+        .collect();
     by_distance.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
     let mut areas: Vec<(f64, ContactId)> = if enemy_in_reach(ctx, unit, units, mount, spec) {
         Vec::new()
     } else {
         knowledge
             .all_contacts()
-            .filter(|c| {
-                c.source != contract::observation::ContactSource::Radar
-                    || unit
-                        .unit_type(ctx.rules)
-                        .capabilities
-                        .air
-                        .as_ref()
-                        .is_some_and(|air| air.sead)
-            })
             .map(|c| ((c.center.xy() - here).length(), c.id))
             .collect()
     };
@@ -1191,7 +1246,7 @@ fn select(
 
     let stages = ranked
         .iter()
-        .map(|&(.., u)| (Target::Unit(u), true))
+        .map(|&(_, _, _, _, _, _, u)| (Target::Unit(u), true))
         .chain(by_distance.iter().map(|&(.., u)| (Target::Unit(u), false)))
         .chain(areas.iter().map(|&(_, c)| (Target::Contact(c), true)));
     let mut reason = None;
@@ -1879,6 +1934,15 @@ fn fire(
             .map_or(1.0, |t| t.scatter_multiplier);
     if moving {
         scatter *= ctx.rules.physics.moving_scatter_multiplier;
+    }
+    // A fast pass is harder to stabilise for a ground attack.  Keep the
+    // penalty on the weapon's authored dispersion so guns, rockets and bombs
+    // all read the same physical rule.
+    if unit.airborne()
+        && r.layer == AltitudeLayer::Ground
+        && unit.air.as_ref().is_some_and(|air| air.afterburner)
+    {
+        scatter *= 1.8;
     }
     let knowledge = &ctx.knowledge[unit.side.index()];
     // Rounds and their muzzles: the hull's one weapon, or each soldier

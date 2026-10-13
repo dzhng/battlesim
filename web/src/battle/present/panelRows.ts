@@ -39,8 +39,13 @@ export const STATE_ROWS = {
   deployed: { icon: "deployed", word: () => "DEPLOYED", lasting: true },
   in_building: { icon: "building", word: () => "IN BUILDING", lasting: true },
   hidden: { icon: "hidden", word: () => "HIDDEN", lasting: true },
-  stock: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true },
-  stock_empty: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true, tone: "warn" },
+  stock: { icon: "stock", word: (n: number | string) => `SUPPLY ${n}`, lasting: true },
+  stock_empty: {
+    icon: "stock",
+    word: (n: number | string) => `SUPPLY ${n}`,
+    lasting: true,
+    tone: "warn",
+  },
   withdrawing: { icon: "withdrawing", word: () => "RETURNING TO BASE" },
   deploying: { icon: "deploy", word: () => "DEPLOYING" },
   packing: { icon: "pack", word: () => "PACKING" },
@@ -52,18 +57,20 @@ export const STATE_ROWS = {
   route_blocked: { icon: "route_blocked", word: () => "ROUTE BLOCKED", tone: "warn" },
   supplying: { icon: "resupply", word: () => "SUPPLYING" },
   resupplying: { icon: "resupply", word: () => "RESUPPLYING" },
-  last_seen: { icon: "last_seen", word: (n: number) => `LAST SEEN ${n} s AGO` },
-  heard: { icon: "heard", word: (n: number) => `HEARD ${n} s AGO` },
-  fuel: { icon: "fuel", word: (n: number) => `FUEL ${n} s`, lasting: true },
+  last_seen: { icon: "last_seen", word: (n: number | string) => `LAST SEEN ${n} s AGO` },
+  heard: { icon: "heard", word: (n: number | string) => `HEARD ${n} s AGO` },
+  fuel: { icon: "fuel", word: (n: number | string) => `FUEL ${n} s`, lasting: true },
   afterburner: { icon: "afterburner", word: () => "AFTERBURNERS ON", lasting: true },
   traversing: { icon: "traversing", word: () => "TRAVERSING" },
   dogfight: { icon: "dogfight", word: () => "DOGFIGHT", tone: "warn" },
   radar_contact: { icon: "radar", word: () => "RADAR CONTACT", tone: "warn" },
+  radar_details: { icon: "radar", word: (n: number | string) => String(n), tone: "warn" },
+  flares: { icon: "flares", word: (n: number | string) => `FLARES ${n}`, lasting: true },
 } satisfies Record<string, StateRowKind>;
 
 interface StateRowKind {
   icon: StateIcon;
-  word: (n: number) => string;
+  word: (n: number | string) => string;
   lasting?: boolean;
   tone?: StateTone;
 }
@@ -95,7 +102,7 @@ const row = (
     progress = null,
     fill = null,
     n = 0,
-  }: { progress?: number | null; fill?: number | null; n?: number } = {},
+  }: { progress?: number | null; fill?: number | null; n?: number | string } = {},
 ): StateRow => {
   const s: StateRowKind = STATE_ROWS[state];
   return {
@@ -164,7 +171,8 @@ export function ownStateRows(
   if (u.fuelS != null) rows.push(row("fuel", { n: Math.max(0, Math.ceil(u.fuelS)) }));
   if (u.afterburner) rows.push(row("afterburner"));
   if (u.traversing) rows.push(row("traversing"));
-  if (u.dogfightTarget != null) rows.push(row("dogfight"));
+  if (u.inDogfight) rows.push(row("dogfight"));
+  if (u.flares) rows.push(row("flares", { n: u.flares.charges, progress: u.flares.cooldown }));
   if (u.withdrawing) rows.push(row("withdrawing"));
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));
@@ -516,7 +524,7 @@ const since = (now: number, tick: number, rules: PanelRules) =>
 /** Remembered type or heard weapons, with the latest evidence's age. */
 export function contactPanel(
   units: UnitCatalog,
-  c: Pick<ContactView, "source" | "kind" | "heard" | "evidenceTick">,
+  c: Pick<ContactView, "source" | "kind" | "heard" | "evidenceTick" | "bearingDeg" | "rangeM">,
   now: number,
   rules: PanelRules,
 ): Panel {
@@ -527,7 +535,16 @@ export function contactPanel(
       strength: null,
       mark: stateIcon("radar"),
       weapons: heardWeapons(units, c.heard, rules),
-      states: [row("radar_contact")],
+      states: [
+        row("radar_contact"),
+        ...(c.bearingDeg != null && c.rangeM != null
+          ? [
+              row("radar_details", {
+                n: `BEARING ${Math.round(c.bearingDeg)}° · RANGE ${Math.round(c.rangeM).toLocaleString("en-US")} m`,
+              }),
+            ]
+          : []),
+      ],
     };
   if (c.kind)
     return {

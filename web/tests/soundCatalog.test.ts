@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import units from "@fixtures/catalog.json";
@@ -180,7 +182,7 @@ test("every shipped burst recording fires at its gun's cadence and divides its b
   expect(bursts).toBeGreaterThan(0);
 });
 
-test("air-war audio keeps unpinned source receipts beside auditionable placeholders", () => {
+test("air-war audio keeps downloaded rights-unassigned receipts beside placeholders", () => {
   const sounds = validateSoundCatalog(structuredClone(shipped));
   const receipts = sounds.provenance ?? {};
   expect(Object.keys(receipts)).toEqual([
@@ -192,8 +194,12 @@ test("air-war audio keeps unpinned source receipts beside auditionable placehold
   ]);
   for (const receipt of Object.values(receipts)) {
     expect(receipt.license).toBe("All-Rights-Reserved");
-    expect(receipt.sha256).toBeNull();
-    expect(receipt.download.status).toBe("candidate-not-downloaded");
+    expect(receipt.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(receipt.download.status).toBe("downloaded-unassigned");
+    expect(receipt.path).toMatch(/^assets\/third-party\/audio\//);
+    const path = fileURLToPath(new URL(`../../${receipt.path}`, import.meta.url));
+    expect(existsSync(path), path).toBe(true);
+    expect(createHash("sha256").update(readFileSync(path)).digest("hex")).toBe(receipt.sha256);
     expect(receipt.source_frames[1]).toBeGreaterThan(receipt.source_frames[0]);
   }
   expect(sounds.sounds["airwar-jet-approach-placeholder"]).toMatchObject({
@@ -204,12 +210,31 @@ test("air-war audio keeps unpinned source receipts beside auditionable placehold
     synth: "cue_engine",
     loop: false,
   });
-  expect(Object.values(sounds.defaults).flatMap((choice) => [choice.near, choice.far])).not.toContain(
-    "airwar-jet-approach-placeholder",
-  );
+  expect(
+    Object.values(sounds.defaults).flatMap((choice) => [choice.near, choice.far]),
+  ).not.toContain("airwar-jet-approach-placeholder");
   expect(battleSounds(sounds)).not.toEqual(
     expect.arrayContaining(["airwar-jet-approach-placeholder", "airwar-air-alarm-placeholder"]),
   );
+});
+
+test("air-war audio has workbench recipes for every authored air cue", () => {
+  const sounds = validateSoundCatalog(structuredClone(shipped));
+  for (const name of ["airwar-missile-warning", "airwar-flare-deploy", "airwar-aa-launch"]) {
+    expect(sounds.sounds[name], name).toBeDefined();
+    expect(sounds.sounds[name].clips.length, name).toBeGreaterThan(0);
+  }
+  for (const kind of [
+    "stinger",
+    "igla_s",
+    "fn_6",
+    "aa_medium",
+    "aa_long",
+    "air_missile",
+    "sead_missile",
+  ]) {
+    expect(sounds.defaults[kind]?.near, kind).toBe("airwar-aa-launch");
+  }
 });
 
 test("a designed clip layers crops of attributed sources; each layer names a real source", () => {

@@ -68,8 +68,16 @@ pub fn snapshot(units: &mut [Unit], arsenal: &Arsenal) {
 
 /// `unit`'s sight this tick, from its snapshot.
 pub fn of(unit: &Unit, rules: &Rules) -> Sight {
+    of_layer(unit, rules, AltitudeLayer::Ground)
+}
+
+/// The same eye and directional shape aimed at a target altitude band.
+/// Ground fog still uses [`of`]; optical identification chooses this target
+/// range so a ground AA unit can see aircraft without gaining extra ground
+/// vision.
+pub fn of_layer(unit: &Unit, rules: &Rules, layer: AltitudeLayer) -> Sight {
     let sensors = &unit.unit_type(rules).sensors;
-    let range = match unit.layer() {
+    let range = match layer {
         AltitudeLayer::Ground => sensors.ground_m,
         AltitudeLayer::LowAir => (sensors.low_air_m > 0.0)
             .then_some(sensors.low_air_m)

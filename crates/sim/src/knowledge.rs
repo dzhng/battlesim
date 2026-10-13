@@ -292,13 +292,12 @@ impl SideKnowledge {
                         .air
                         .as_ref()
                         .is_some_and(|air| air.sead)
-                    && u
-                        .unit_type(rules)
+                    && u.unit_type(rules)
                         .capabilities
                         .air
                         .as_ref()
-                        .and_then(|air| air.radar)
-                        .is_some_and(|radar| radar.detection_m > 0.0)
+                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
+                        .is_some_and(|(sead, radar)| sead && radar.detection_m > 0.0)
             })
             .collect();
         if detectors.is_empty() {
@@ -333,8 +332,8 @@ impl SideKnowledge {
                         .capabilities
                         .air
                         .as_ref()
-                        .and_then(|air| air.radar)
-                        .is_some_and(|radar| *distance <= radar.detection_m)
+                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
+                        .is_some_and(|(sead, radar)| sead && *distance <= radar.detection_m)
                 })
             else {
                 continue;
