@@ -2,8 +2,9 @@
 // what the bake wrote under `assets/runtime/` (Vite's publicDir, served at
 // the site root). The catalog loads once per page: the scenery and the art
 // its session's units wear (`UnitCatalog.appearances`), not every unit's, so
-// a game page never fetches the art only test units wear; a later session
-// with other units (a lab after the game) adds theirs. Kits and regional
+// its GPU generation never installs the art only test units wear; a later session
+// with other units (a lab after the game) adds theirs. The browser warms the
+// remaining files into network/cache storage without uploading them. Kits and regional
 // looks are fetched on request. One of those is fetched the
 // first time the page asks for it, and a page asks for what it will draw: a
 // map for the kits its buildings' templates place and its region's looks
@@ -47,11 +48,11 @@ async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
     const response = await fetch(`${baseUrl}catalog.json`, { cache: "force-cache" });
     if (!response.ok) throw new Error(`appearance prefetch catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
-    const files = new Map<string, string>();
+    const files = new Set<string>();
     const add = (hash: string | undefined, path: (hash: string) => string) => {
       if (!hash) return;
       const transport = catalog.gzip?.[hash];
-      if (transport) files.set(`${baseUrl}${path(transport.hash)}`, hash);
+      if (transport) files.add(`${baseUrl}${path(transport.hash)}`);
     };
     for (const entry of Object.values(catalog.appearances ?? {})) add(entry.bundle, bundlePath);
     for (const ids of Object.values(catalog.textures ?? {}))

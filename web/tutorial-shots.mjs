@@ -25,7 +25,8 @@
 // left as an unfetched LFS pointer.
 import { execFileSync } from "node:child_process";
 import { mkdir, rm } from "node:fs/promises";
-import { startServer, WEBGPU_FLAGS } from "./scene.mjs";
+import { startServer } from "./scene.mjs";
+import { launchBrowser } from "./browser.mjs";
 import { advance, lab, until } from "./scenes/_lab.mjs";
 
 const HERE = new URL(".", import.meta.url);
@@ -370,11 +371,7 @@ async function main() {
   await mkdir(WORK, { recursive: true });
   await mkdir(OUT, { recursive: true });
   const server = await startServer();
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch({
-    channel: "chromium",
-    args: [...WEBGPU_FLAGS, "--mute-audio"],
-  });
+  const browser = await launchBrowser({ args: ["--mute-audio"] });
   try {
     const url = `${server.url}${BATTLE}`;
     // Every shot but the right-drag is one battle's; that one plays its own.

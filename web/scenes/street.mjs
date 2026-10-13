@@ -52,6 +52,7 @@ import {
   unitType,
   vehicleAppearances,
   game,
+  streetAttack,
   streetMap,
 } from "./_units.mjs";
 
@@ -2362,13 +2363,14 @@ const TRACER_M = 1;
 
 /** A scene journey is ready only after every destination was admitted and
  *  the authority published through the acknowledged application tick. Its
- *  caller still observes the travel or sighting the picture requires. */
+ *  caller still observes the travel or sighting the picture requires. An
+ *  order given as `{ order, queued: true }` joins its units' queues. */
 async function stageStreetMoves(ctx, page, orders, name) {
   const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
   await lab(
     page,
     (orders) => {
-      for (const order of orders) window.__lab.route.command(order);
+      for (const o of orders) window.__lab.route.command(o.order ?? o, o.queued ?? false);
     },
     orders,
   );
@@ -2397,9 +2399,13 @@ async function stageStreetMoves(ctx, page, orders, name) {
 /** Every flash sits on the muzzle as the model draws
  *  it, not where the simulation starts the round: a tank's cannon (recoiling)
  *  driving and standing, its cupola HMG while driving, the jeep's HMG and a
- *  rifleman's rifle. The cannon, jeep and rifle share a road approach; a fresh southern
+ *  rifleman's rifle. The cannon and jeep share a road approach; a fresh southern
  *  approach supplies the moving tank HMG. One tank holds throughout; a jeep
- *  and rifle squad approach the street on separately admitted moves. At each
+ *  approaches the street on a separately admitted move. The rifle fights in
+ *  a third battle: the street's houses see the open west and the tank shells
+ *  what they see, so a squad crossing it dies short of rifle range. It rounds
+ *  the west wood's south holding fire, as the woods tour's walker does, and
+ *  goes into the trees at the red AT team on the wood's north edge. At each
  *  kind's first shot the default camera frames the shooter, and the flash's
  *  core and the drawn muzzle socket (posed from the model instance, apart
  *  from the flashes' own muzzles) must project within `MUZZLE_PX`, with the
@@ -2410,7 +2416,6 @@ async function muzzleTour(ctx) {
     const o = await obs(page);
     const driver = o.own.find((u) => u.kind === "test_tank");
     const jeep = o.own.find((u) => u.kind === "test_jeep");
-    const rifle = o.own.find((u) => u.kind === "test_rifle");
     await stageStreetMoves(
       ctx,
       page,
@@ -2422,36 +2427,94 @@ async function muzzleTour(ctx) {
           goal: southern ? [720, 910] : [driver.position[0] + 400, driver.position[1]],
           route: "shortest",
         },
-        ...[
-          [jeep, [690, 910], 2],
-          [rifle, [760, 850], 3],
-        ].map(([unit, goal, gesture]) => ({
-          kind: "attack_move",
-          units: [unit.id],
-          gesture,
-          goal,
-        })),
+        { kind: "attack_move", units: [jeep.id], gesture: 2, goal: [690, 910] },
       ],
       southern ? "muzzle southern approach" : "muzzle road approach",
     );
   };
+  const flank = async () => {
+    const rifle = (await obs(page)).own.find((u) => u.kind === "test_rifle");
+    const [[x0], , [, y1]] = streetMap.forests[0].shape.ring;
+    const corner = [x0 - 60, y1 + 40];
+    // A fire policy, acknowledged before the next staging counts its own.
+    const policy = async (p) => {
+      const before = await lab(page, () => window.__lab.route.acks()[0]?.seq ?? 0);
+      await lab(
+        page,
+        (c) => window.__lab.route.command({ kind: "set_engagement", units: [c.id], policy: c.p }),
+        { id: rifle.id, p },
+      );
+      await page.waitForFunction((n) => (window.__lab.route.acks()[0]?.seq ?? 0) > n, before);
+    };
+    await policy("return_fire_only");
+    await stageStreetMoves(
+      ctx,
+      page,
+      [
+        {
+          kind: "move",
+          units: [rifle.id],
+          gesture: 3,
+          goal: [x0 - 300, y1 + 40],
+          route: "fastest",
+        },
+        {
+          order: { kind: "move", units: [rifle.id], gesture: 4, goal: corner, route: "fastest" },
+          queued: true,
+        },
+      ],
+      "muzzle rifle round the wood",
+    );
+    const atCorner = await until(
+      page,
+      (o) => {
+        const u = o.own.find((q) => q.id === rifle.id);
+        return (
+          u &&
+          !u.goal &&
+          u.queue.length === 0 &&
+          Math.hypot(u.position[0] - corner[0], u.position[1] - corner[1]) < 1
+        );
+      },
+      15000,
+      30,
+    );
+    ctx.check(
+      "the rifle squad reaches the wood's south-west corner",
+      !!atCorner,
+      JSON.stringify(atCorner?.own.find((q) => q.id === rifle.id)?.position ?? null),
+    );
+    if (!atCorner) throw new Error("muzzle rifle never reached the wood");
+    const at = streetAttack.units.find((u) => u.side === "red" && u.kind === "test_at");
+    await policy("fire_at_will");
+    await stageStreetMoves(
+      ctx,
+      page,
+      [{ kind: "attack_move", units: [rifle.id], gesture: 5, goal: at.position }],
+      "muzzle rifle into the wood",
+    );
+  };
   const passes = [
-    {
-      name: "road",
-      subjects: ["tank cannon, driving", "tank cannon, standing", "jeep HMG", "rifle"],
-    },
+    { name: "road", subjects: ["tank cannon, driving", "tank cannon, standing", "jeep HMG"] },
     { name: "southern", subjects: ["tank HMG, driving"] },
+    { name: "wood", subjects: ["rifle"] },
   ];
   const wanted = new Set(passes.flatMap((p) => p.subjects));
   const found = {};
-  for (const pass of passes) {
-    // Separate controlled fights keep the rifle's road engagement intact
-    // while bringing the moving tank HMG into physical reach on the flank.
-    if (pass.name === "southern") {
+  for (const [k, pass] of passes.entries()) {
+    // Separate controlled fights: the moving tank HMG in physical reach on
+    // the flank, and the rifle's fight in the wood.
+    if (k > 0) {
       await page.close();
       page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
     }
-    await approach(pass.name === "southern");
+    if (pass.name === "wood") {
+      await flank();
+      // The wood's canopy roofs the rifle's fight from the capture camera:
+      // that battle is drawn with the trees lifted off, as the ground
+      // stations do, from before the fight so no capture rebuilds the scene.
+      await lab(page, () => window.__lab.suppressTrees(true));
+    } else await approach(pass.name === "southern");
     const pending = new Set(pass.subjects);
     let prev = await obs(page);
     for (let t = 0; t < 30 * 180 && pending.size > 0; t++) {
