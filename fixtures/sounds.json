@@ -5657,6 +5657,22 @@
       "synth_gain": 0,
       "gain": 1,
       "loop": true
+    },
+    "airwar-jet-approach-placeholder": {
+      "label": "Placeholder \u00b7 jet approach loop (source review pending)",
+      "clips": [],
+      "synth": "rotor",
+      "synth_gain": 0.55,
+      "gain": 1,
+      "loop": true
+    },
+    "airwar-air-alarm-placeholder": {
+      "label": "Placeholder \u00b7 air alarm cue (source review pending)",
+      "clips": [],
+      "synth": "cue_engine",
+      "synth_gain": 0.75,
+      "gain": 1,
+      "loop": false
     }
   },
   "defaults": {
@@ -5736,6 +5752,63 @@
     "footstep": "recorded-footstep-boots-gravel-fission9",
     "tracks": "recorded-tracks-craigsmith-tanks-close",
     "rotor": "recorded-rotor-uh60"
+  },
+  "provenance": {
+    "airwar-jet-approach": {
+      "label": "Best Fighter Jet Flybys 2022",
+      "author": "AirshowStuffVideos",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=76JvYFbGF2I",
+      "sha256": null,
+      "source_frames": [0, 480000],
+      "processing": "motor-loop",
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
+      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+    },
+    "airwar-air-alarm": {
+      "label": "World War 2 Air Raid Siren Alarm Sound Effect",
+      "author": "SoundEffectsFactory",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=msX8iULEQgA",
+      "sha256": null,
+      "source_frames": [0, 480000],
+      "processing": "air-alarm",
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
+      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+    },
+    "airwar-missile-warning": {
+      "label": "Missile Lock On sound effect",
+      "author": "ProSounds",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=hok2D_9Y6Ic",
+      "sha256": null,
+      "source_frames": [0, 240000],
+      "processing": "launch",
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
+      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+    },
+    "airwar-flare-deploy": {
+      "label": "F-16 shooting flares",
+      "author": "kers.net",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=mxIf29VydHA",
+      "sha256": null,
+      "source_frames": [0, 240000],
+      "processing": "launch",
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
+      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+    },
+    "airwar-aa-launch": {
+      "label": "Missile launch sound effects",
+      "author": "Free Friendly Sounds",
+      "license": "All-Rights-Reserved",
+      "url": "https://www.youtube.com/watch?v=dw6AvjAyFKs",
+      "sha256": null,
+      "source_frames": [0, 240000],
+      "processing": "launch",
+      "download": { "tool": "yt-dlp", "version": "2026.08.19", "status": "candidate-not-downloaded" },
+      "notes": "Candidate receipt only. No bytes are pinned or assigned; confirm the crop and rights before replacing the placeholder. The source is not claimed as licensed."
+    }
   },
   "music": {
     "moods": {

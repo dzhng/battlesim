@@ -180,6 +180,38 @@ test("every shipped burst recording fires at its gun's cadence and divides its b
   expect(bursts).toBeGreaterThan(0);
 });
 
+test("air-war audio keeps unpinned source receipts beside auditionable placeholders", () => {
+  const sounds = validateSoundCatalog(structuredClone(shipped));
+  const receipts = sounds.provenance ?? {};
+  expect(Object.keys(receipts)).toEqual([
+    "airwar-jet-approach",
+    "airwar-air-alarm",
+    "airwar-missile-warning",
+    "airwar-flare-deploy",
+    "airwar-aa-launch",
+  ]);
+  for (const receipt of Object.values(receipts)) {
+    expect(receipt.license).toBe("All-Rights-Reserved");
+    expect(receipt.sha256).toBeNull();
+    expect(receipt.download.status).toBe("candidate-not-downloaded");
+    expect(receipt.source_frames[1]).toBeGreaterThan(receipt.source_frames[0]);
+  }
+  expect(sounds.sounds["airwar-jet-approach-placeholder"]).toMatchObject({
+    synth: "rotor",
+    loop: true,
+  });
+  expect(sounds.sounds["airwar-air-alarm-placeholder"]).toMatchObject({
+    synth: "cue_engine",
+    loop: false,
+  });
+  expect(Object.values(sounds.defaults).flatMap((choice) => [choice.near, choice.far])).not.toContain(
+    "airwar-jet-approach-placeholder",
+  );
+  expect(battleSounds(sounds)).not.toEqual(
+    expect.arrayContaining(["airwar-jet-approach-placeholder", "airwar-air-alarm-placeholder"]),
+  );
+});
+
 test("a designed clip layers crops of attributed sources; each layer names a real source", () => {
   const c = catalog();
   const source = (license: string) => ({
