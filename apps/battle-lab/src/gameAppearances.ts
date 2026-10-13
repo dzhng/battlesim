@@ -48,12 +48,15 @@ function selectionKey(
 }
 
 /** Warm the browser's network/cache storage without decoding or uploading art.
- * GPU installation remains limited to the current battle's requested kinds. */
+ * GPU installation remains limited to the current battle's requested kinds.
+ * The page cancels it as it leaves (`appResources.signal`): that is no failure,
+ * where a fetch the network fails while the page stays is. */
 async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
   if (prefetching) return prefetching;
+  const { signal } = appResources;
   prefetching = (async () => {
     prefetchStatus = { state: "loading" };
-    const response = await fetch(`${baseUrl}catalog.json`, { cache: "force-cache" });
+    const response = await fetch(`${baseUrl}catalog.json`, { cache: "force-cache", signal });
     if (!response.ok) throw new Error(`appearance prefetch catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
     const files = new Set<string>();
@@ -80,20 +83,27 @@ async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
         if (!url) return;
         try {
           if (cache && (await cache.match(url))) continue;
-          const file = await fetch(url, { cache: "force-cache" });
+          const file = await fetch(url, { cache: "force-cache", signal });
           if (!file.ok) throw new Error(`HTTP ${file.status}`);
           if (cache) await cache.put(url, file.clone());
           await file.arrayBuffer();
         } catch (error) {
+          if (signal.aborted) return;
           failed++;
           console.error("Background appearance prefetch failed.", { url, error });
         }
       }
     };
     await Promise.all(Array.from({ length: Math.min(6, urls.length) }, () => worker()));
-    prefetchStatus = { state: failed ? "partial" : "ready", files: urls.length, failed };
+    prefetchStatus = signal.aborted
+      ? { state: "cancelled" }
+      : { state: failed ? "partial" : "ready", files: urls.length, failed };
   })()
     .catch((error) => {
+      if (signal.aborted) {
+        prefetchStatus = { state: "cancelled" };
+        return;
+      }
       prefetchStatus = {
         state: "failed",
         error: error instanceof Error ? error.message : String(error),
