@@ -106,6 +106,7 @@ const STATE_ICONS = {
   afterburner: '<path d="M12 3c3 4 4 6 4 9a4 4 0 1 1-8 0c0-2 1-4 4-9z"/>',
   traversing: '<path d="M4 12h14M13 7l5 5-5 5"/><path d="M4 5v14"/>',
   dogfight: '<path d="M4 7h9l-3-3M20 17h-9l3 3M13 7l-3 10"/>',
+  radar: '<circle cx="12" cy="12" r="8"/><path d="M12 12l6-5M12 12V4"/>',
 } as const;
 
 export type StateIcon = keyof typeof STATE_ICONS;

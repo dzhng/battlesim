@@ -58,6 +58,7 @@ export const STATE_ROWS = {
   afterburner: { icon: "afterburner", word: () => "AFTERBURNERS ON", lasting: true },
   traversing: { icon: "traversing", word: () => "TRAVERSING" },
   dogfight: { icon: "dogfight", word: () => "DOGFIGHT", tone: "warn" },
+  radar_contact: { icon: "radar", word: () => "RADAR CONTACT", tone: "warn" },
 } satisfies Record<string, StateRowKind>;
 
 interface StateRowKind {
@@ -520,6 +521,14 @@ export function contactPanel(
   rules: PanelRules,
 ): Panel {
   const ago = since(now, c.evidenceTick, rules);
+  if (c.source === "radar")
+    return {
+      name: "UNKNOWN",
+      strength: null,
+      mark: stateIcon("radar"),
+      weapons: heardWeapons(units, c.heard, rules),
+      states: [row("radar_contact")],
+    };
   if (c.kind)
     return {
       ...enemyPanel(units, c.kind, rules),
