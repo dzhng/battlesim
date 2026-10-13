@@ -59,7 +59,7 @@ pub(super) fn step_aircraft(
     });
     let dogfight_side = dogfight_target
         .and_then(|target| units.get(target.0 as usize))
-        .map(|target| {
+        .and_then(|target| {
             let relative = target.position.xy() - units[i].position.xy();
             if relative.length() > 1e-6 {
                 let direction = relative.normalized();
@@ -67,8 +67,7 @@ pub(super) fn step_aircraft(
             } else {
                 None
             }
-        })
-        .flatten();
+        });
     if let Some(target) = dogfight_target {
         if let Some(target_unit) = units.get(target.0 as usize) {
             if target_unit.alive()
