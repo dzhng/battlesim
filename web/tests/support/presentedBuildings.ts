@@ -87,12 +87,12 @@ export function presentBuildings(
      *  or cast changed. */
     look(camera: Camera3DParams, height: number): boolean {
       const width = Math.round(height * camera.aspect);
-      const f = presentation.frame(0, presentedCamera({ camera3d: camera, width, height }), {
-        selected: [],
-        xray: false,
-        ghosts: [],
-        known,
-      });
+      const f = presentation.frame(
+        0,
+        presentedCamera({ camera3d: camera, width, height }),
+        { selected: [], xray: false, ghosts: [], known },
+        0,
+      );
       const words = f.batches.u32;
       const records = f.instances.f32;
       let written = !f.batches.count && held.length > 0;

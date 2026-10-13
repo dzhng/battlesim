@@ -92,6 +92,7 @@ These hold for every record:
 | `ui.hovered` | `u32` | unit id or `NONE` | Hovered unit |
 | `ui.show_orders` | `bool` | — | Space held: ordered destinations draw as ghosts |
 | `ui.ghosts` | `&[Ghost]` | — | Ghosts the UI places (purchases, a right-drag's destinations) |
+| `generation` | `u32` | — | The renderer's static generation, bumped whenever it holds no static batches (a new GPU frame, a new world, a replay's jump). *Amended 2026-10-12:* a new generation is written every static batch, replacing `resend_statics()`. |
 
 `Ghost` (16 B): `kind: u32` (unit type row), `x, y: f32` (m, sim), `yaw: f32` (rad). Rust fields the ghost's soldiers, poses them and gives them the ghost look. A ghost's validity colour comes from `look`; a purchase the sim refused uses the blocked look.
 

@@ -2,8 +2,9 @@
 // what the bake wrote under `assets/runtime/` (Vite's publicDir, served at
 // the site root). The catalog loads once per page: the scenery and the art
 // its session's units wear (`UnitCatalog.appearances`), not every unit's, so
-// a game page never fetches the art only test units wear; a later session
-// with other units (a lab after the game) adds theirs. Kits and regional
+// its GPU generation never installs the art only test units wear; a later session
+// with other units (a lab after the game) adds theirs. The browser warms the
+// remaining files into network/cache storage without uploading them. Kits and regional
 // looks are fetched on request. One of those is fetched the
 // first time the page asks for it, and a page asks for what it will draw: a
 // map for the kits its buildings' templates place and its region's looks
@@ -11,9 +12,15 @@
 // the world waits for its appearances, so its trees and buildings are there
 // from the first frame. The workbench reloads the catalog after a re-bake.
 import { countedFetch } from "@web/downloads";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { familyLooks } from "@packages/scene-assets/src/schema";
+import {
+  bundlePath,
+  familyLooks,
+  templateLibraryPath,
+  texturePath,
+  type RuntimeCatalog,
+} from "@packages/scene-assets/src/schema";
 import { STAND_IN_KIT } from "@packages/scene-assets/src/standInKit";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "@web/battle/catalog/context";
@@ -22,10 +29,72 @@ import type { PlacedBuildings } from "@packages/battle-renderer/src/models/build
 import { propArt } from "@packages/battle-renderer/src/models/propAppearance";
 import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
 import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
+import { diagnosticsSource } from "@web/diagnostics";
 import { appResources } from "./appResources";
 
 const library = new AppearanceLibrary(countedFetch);
 let loading: Promise<InstalledAppearances> | null = null;
+let appearanceStatus: Record<string, unknown> = { state: "idle" };
+let prefetching: Promise<void> | null = null;
+let prefetchStatus: Record<string, unknown> = { state: "idle" };
+diagnosticsSource("appearance loading", () => ({ ...appearanceStatus, prefetch: prefetchStatus }));
+
+/** Warm the browser's network/cache storage without decoding or uploading art.
+ * GPU installation remains limited to the current battle's requested kinds. */
+async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
+  if (prefetching) return prefetching;
+  prefetching = (async () => {
+    prefetchStatus = { state: "loading" };
+    const response = await fetch(`${baseUrl}catalog.json`, { cache: "force-cache" });
+    if (!response.ok) throw new Error(`appearance prefetch catalog: HTTP ${response.status}`);
+    const catalog = (await response.json()) as RuntimeCatalog;
+    const files = new Set<string>();
+    const add = (hash: string | undefined, path: (hash: string) => string) => {
+      if (!hash) return;
+      const transport = catalog.gzip?.[hash];
+      if (transport) files.add(`${baseUrl}${path(transport.hash)}`);
+    };
+    for (const entry of Object.values(catalog.appearances ?? {})) add(entry.bundle, bundlePath);
+    for (const ids of Object.values(catalog.textures ?? {}))
+      for (const id of ids) add(id, texturePath);
+    for (const hash of Object.values(catalog.skeletons ?? {})) add(hash, bundlePath);
+    if (catalog.templates) add(catalog.templates.library, templateLibraryPath);
+    const urls = [...files.keys()];
+    const cache =
+      typeof caches === "undefined"
+        ? null
+        : await caches.open("battle-runtime-v1").catch(() => null);
+    let cursor = 0;
+    let failed = 0;
+    const worker = async () => {
+      for (;;) {
+        const url = urls[cursor++];
+        if (!url) return;
+        try {
+          if (cache && (await cache.match(url))) continue;
+          const file = await fetch(url, { cache: "force-cache" });
+          if (!file.ok) throw new Error(`HTTP ${file.status}`);
+          if (cache) await cache.put(url, file.clone());
+          await file.arrayBuffer();
+        } catch (error) {
+          failed++;
+          console.error("Background appearance prefetch failed.", { url, error });
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, urls.length) }, () => worker()));
+    prefetchStatus = { state: failed ? "partial" : "ready", files: urls.length, failed };
+  })()
+    .catch((error) => {
+      prefetchStatus = {
+        state: "failed",
+        error: error instanceof Error ? error.message : String(error),
+      };
+      console.error("Background appearance prefetch failed.", error);
+    })
+    .then(() => undefined);
+  return prefetching;
+}
 
 /** The page's appearances for a session running `units`, with `asked`
  *  among them: the catalog's one load, then whichever of their art and of
@@ -36,7 +105,13 @@ export function gameAppearances(
   wearing: ReadonlySet<string> = units.appearances,
 ): Promise<InstalledAppearances> {
   loading ??= library.load("/", wearing);
-  return loading.then(() => library.withUnits(wearing)).then(() => library.withAppearances(asked));
+  return loading
+    .then(() => library.withUnits(wearing))
+    .then(() => library.withAppearances(asked))
+    .then((next) => {
+      void prefetchRuntimeAssets("/");
+      return next;
+    });
 }
 
 /** Load the catalog afresh (it was re-baked) for a session running `units`:
@@ -44,6 +119,8 @@ export function gameAppearances(
  *  asked for again. */
 export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppearances> {
   loading = null;
+  prefetching = null;
+  prefetchStatus = { state: "idle" };
   return gameAppearances(units);
 }
 
@@ -72,6 +149,7 @@ export function installedUnitNames(
 export function useGameAppearances(
   asked: ReadonlySet<string> | null = NOTHING,
   kinds: Iterable<string> | null = null,
+  retainOnError = false,
 ): InstalledAppearances | null {
   const { units } = useSessionCatalog();
   const wearing = useMemo(
@@ -79,26 +157,62 @@ export function useGameAppearances(
     [kinds, units],
   );
   const [installed, setInstalled] = useState<InstalledAppearances | null>(null);
+  const installedRef = useRef(installed);
+  installedRef.current = installed;
   useEffect(() => {
     if (!asked) return;
     let live = true;
-    gameAppearances(units, asked, wearing).then(
-      (next) => live && setInstalled(next),
-      (error: unknown) => {
-        if (live) appResources.refuse(error);
-      },
-    );
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const request = () => {
+      appearanceStatus = {
+        state: "loading",
+        requestedKinds: kinds ? [...kinds] : null,
+        requestedAppearances: [...asked],
+      };
+      gameAppearances(units, asked, wearing).then(
+        (next) => {
+          if (!live) return;
+          appearanceStatus = { state: "ready", generation: next.generation };
+          setInstalled(next);
+        },
+        (error: unknown) => {
+          if (!live) return;
+          if (retainOnError && installedRef.current) {
+            // Keep the last complete generation drawing while a newly seen
+            // unit's art is unavailable. Retry without interrupting the sim.
+            appearanceStatus = {
+              state: "retrying",
+              requestedKinds: kinds ? [...kinds] : null,
+              requestedAppearances: [...asked],
+              error: error instanceof Error ? error.message : String(error),
+              retryMs: 1_000,
+            };
+            console.error("Unit appearance load failed; retrying in the background.", error);
+            retry = setTimeout(request, 1_000);
+          } else {
+            appearanceStatus = {
+              state: "failed",
+              error: error instanceof Error ? error.message : String(error),
+            };
+            console.error("Appearance load failed.", error);
+            appResources.refuse(error);
+          }
+        },
+      );
+    };
+    request();
     return () => {
       live = false;
+      if (retry !== undefined) clearTimeout(retry);
     };
-  }, [asked, units, wearing]);
+  }, [asked, units, wearing, retainOnError]);
   // What an earlier request installed answers this one only if it has what it asked.
   const held =
     installed &&
     asked &&
     [...asked].every((name) => installed.appearances.has(name)) &&
     [...wearing].every((name) => installed.appearances.has(name));
-  return held ? installed : null;
+  return retainOnError ? installed : held ? installed : null;
 }
 
 /** The kits a map of `placed` buildings draws from: those its templates'
@@ -142,7 +256,7 @@ export function useMapAppearances(
   standIns = false,
   kinds: Iterable<string> | null = null,
 ): InstalledAppearances | null {
-  const catalog = useGameAppearances(NOTHING, kinds);
+  const catalog = useGameAppearances(NOTHING, kinds, true);
   const asked = useMemo(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],

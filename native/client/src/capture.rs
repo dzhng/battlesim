@@ -92,9 +92,6 @@ pub struct Replay {
     world: Option<files::World>,
     /// The cleared cells the scenery last followed.
     cleared: usize,
-    /// Whether the last record framed was drawn: a renderer then holds its
-    /// static batches.
-    drew_last: bool,
     samples: Vec<Sample>,
     pushed: usize,
     lens: Lens,
@@ -228,7 +225,6 @@ impl Replay {
             terrain: (ground.positions, ground.indices),
             world: fog.then_some(ground.world),
             cleared: 0,
-            drew_last: false,
             samples: capture.samples,
             pushed: 0,
             lens,
@@ -263,22 +259,17 @@ impl Replay {
     }
 
     /// Frames `record`: pushes the publications up to its tick, `heard`
-    /// after each, then asks for its frame. A frame that is `drawn` after
-    /// one that was not (a jump between plates) writes every static batch
-    /// anew, since the renderer took none of the frames between; one drawn
-    /// after a drawn frame writes only what changed. Then, as the page
+    /// after each, then asks for its frame for a renderer at `generation`
+    /// (`Presentation::frame`): a new one is written every static batch, the
+    /// same one only what changed. Then, as the page
     /// does, the scenery follows the ground the side has seen cleared, from
     /// the next frame on.
     pub fn frame(
         &mut self,
         record: &Record,
-        drawn: bool,
+        generation: u32,
         mut heard: impl FnMut(&Presentation),
     ) -> Result<&Frame, String> {
-        if drawn && !self.drew_last {
-            self.presentation.resend_statics();
-        }
-        self.drew_last = drawn;
         while let Some(s) = self
             .samples
             .get(self.pushed)
@@ -290,7 +281,7 @@ impl Replay {
         }
         let camera = self.camera(record);
         self.presentation
-            .frame(record.sim_time, &camera, &Ui::default())?;
+            .frame(record.sim_time, &camera, &Ui::default(), generation)?;
         if let Some(learned) = self.presentation.learned() {
             if learned.cleared_count() != self.cleared {
                 self.cleared = learned.cleared_count();
