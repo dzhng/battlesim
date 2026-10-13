@@ -13,8 +13,10 @@
 // light) travels as the repository itself: Rust resolves it.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`); PARITY_FOG=1
 // films them with the side's fog of war (`?fog=1`, the manifest's `fog`
-// layer). Run it under the GPU lock; it waits on the route's stage, never on
-// a timer.
+// layer). PARITY_COUNTS=1 also counts what chosen frames drew, on tick
+// boundaries and between (`?counts=1`, the manifest's `frameCounts`): the
+// committed fixture `native-client`'s replay test counts against. Run it
+// under the GPU lock; it waits on the route's stage, never on a timer.
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { plainPlateFile } from "../src/battle/benchmark/presentationCapture.ts";
 import { writeVisualPresentation } from "../src/battle/benchmark/visualPresentation.ts";
@@ -53,7 +55,8 @@ export async function run(ctx) {
   page.on("pageerror", (error) => pageErrors.push(error.message));
   const scenes = process.env.PARITY_SCENES;
   const fog = process.env.PARITY_FOG === "1" ? "&fog=1" : "";
-  const url = `${scenes ? `${ctx.url}&scenes=${encodeURIComponent(scenes)}` : ctx.url}${fog}`;
+  const counts = process.env.PARITY_COUNTS === "1" ? "&counts=1" : "";
+  const url = `${scenes ? `${ctx.url}&scenes=${encodeURIComponent(scenes)}` : ctx.url}${fog}${counts}`;
   await page.goto(url);
   await page.waitForFunction(() => window.__graphicsTest?.stage, undefined, { timeout: 60_000 });
   const refusal = await page.evaluate(() =>
@@ -88,7 +91,7 @@ export async function run(ctx) {
   if (report.outcome.status !== "complete") return;
 
   // Plates cross from the page as base64 PNGs.
-  const { plates } = await page.evaluate(async () => {
+  const { plates, counted } = await page.evaluate(async () => {
     const base64 = async (blob) => {
       const data = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -100,6 +103,7 @@ export async function run(ctx) {
     };
     const state = window.__graphicsTest;
     return {
+      counted: state.counts,
       plates: await Promise.all(
         state.plates.map(async ({ scene, file, png, plain, grass, drawn, models, effects }) => ({
           scene,
@@ -131,6 +135,7 @@ export async function run(ctx) {
       instanceCounts: own.map(({ file, drawn }) => ({ plate: file, ...drawn })),
       modelCounts: own.map(({ file, models }) => ({ plate: file, ...models })),
       effectCounts: own.map(({ file, effects }) => ({ plate: file, ...effects })),
+      frameCounts: counted.find((c) => c.scene === map)?.frames ?? [],
     });
     await writeFile(new URL("manifest.json", dir), manifest);
     const sizes = [];
@@ -143,7 +148,7 @@ export async function run(ctx) {
         sizes.push(pngSize(bytes).join("×"));
         await writeFile(new URL(file, dir), bytes);
       }
-    const frames = JSON.parse(captureJson).frames;
+    const { frames, tickHz } = JSON.parse(captureJson);
     const named = frames.filter((f) => f.plate !== null).map((f) => f.plate);
     ctx.check(
       `${map}: one plate per shot, each named by its frame`,
@@ -188,6 +193,15 @@ export async function run(ctx) {
     console.log(
       `METRIC native-parity-capture ${map} effects: running/instances/lights per plate ${effected.join(", ")}`,
     );
+    if (counts) {
+      const boundaries = parsed.frameCounts.filter(({ frame }) => {
+        const t = frames[frame].simTime;
+        return Math.round(t * tickHz) / tickHz === t;
+      }).length;
+      console.log(
+        `METRIC native-parity-capture ${map} counted frames: ${parsed.frameCounts.length}, ${boundaries} on a tick boundary`,
+      );
+    }
   }
   console.log(
     `METRIC native-parity-capture: ${report.scenes.length} scene(s) in ${((performance.now() - started) / 1000).toFixed(0)} s → ${runDir.pathname}`,

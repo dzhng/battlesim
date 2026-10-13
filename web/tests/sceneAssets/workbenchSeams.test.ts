@@ -1,16 +1,12 @@
 // @vitest-environment node
 // The workbench's CPU seams: a dropped file judged as the CLI judges it and
-// installed through the one loader; the dense clip table read as
-// `sampleClip` reads a clip; the impostor atlas's framing and filter.
+// installed through the one loader; the impostor atlas's framing and filter.
 import { expect, test } from "vitest";
-import { quat, vec3 } from "math";
 import { previewRuntime } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import { validateLoose } from "@packages/scene-assets/src/loose.ts";
-import { farPoseBounds, sampleClip } from "@packages/scene-assets/src/pose.ts";
+import { farPoseBounds } from "@packages/scene-assets/src/pose.ts";
 import type { SkinnedBundle } from "@packages/scene-assets/src/schema.ts";
-import { buildClipTable } from "@apps/battle-lab/src/benchmark/clipTable.ts";
-import { SAMPLE_FLOATS } from "@apps/battle-lab/src/benchmark/clipTable";
 import {
   boxFilter,
   impostorViews,
@@ -67,43 +63,6 @@ test("a dropped skinned body brings its own clips, installed under their id", as
   );
   const installed = await new AppearanceLibrary(memoryFetch(files, "mem:/")).load("mem:/");
   expect(installed.skeletons.get("adhoc")!.clips.length).toBe(SOLDIER_CLIPS.length);
-});
-
-test("the clip table holds, frame for frame, what sampleClip reads", async () => {
-  const result = await validateLoose("man.glb", soldierGlb(), empty, context, { loops: ["walk"] });
-  const clips = result.clips!.preview!;
-  const body = result.appearance!.preview as SkinnedBundle;
-  const table = buildClipTable(clips, body.joints);
-  const n = body.joints.length;
-  for (const clip of clips.clips) {
-    const entry = table.clips.get(clip.name)!;
-    for (const phase of [0, 0.37, 0.5, 1]) {
-      // The frames either side of `phase`, as the presentation crate reads them.
-      const at = Math.min(entry.frames - 1, phase * entry.duration * entry.rate);
-      const frames = {
-        f0: Math.floor(at),
-        f1: Math.min(entry.frames - 1, Math.floor(at) + 1),
-        w: at - Math.floor(at),
-      };
-      const cpu = sampleClip(clips, clip, body.joints, phase);
-      for (let j = 0; j < n; j++) {
-        const of = (f: number) => entry.offset + (f * n + j) * SAMPLE_FLOATS;
-        const a = table.data.subarray(of(frames.f0), of(frames.f0) + 8);
-        const b = table.data.subarray(of(frames.f1), of(frames.f1) + 8);
-        const q = quat.slerp(
-          quat.create(),
-          [a[0], a[1], a[2], a[3]],
-          [b[0], b[1], b[2], b[3]],
-          frames.w,
-        );
-        // Both read the same snorm16 samples; they differ only in rounding.
-        expect(Math.abs(quat.dot(q, cpu[j].r))).toBeCloseTo(1, 4);
-        const t = vec3.lerp(vec3.create(), [a[4], a[5], a[6]], [b[4], b[5], b[6]], frames.w);
-        expect(vec3.distance(t, cpu[j].t)).toBeLessThan(1e-5);
-        expect(a[7]).toBeCloseTo(body.joints[j].bind.s[0], 6);
-      }
-    }
-  }
 });
 
 test("impostor cells frame the far pose's sphere the same from every side", async () => {

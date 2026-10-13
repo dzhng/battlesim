@@ -246,8 +246,9 @@ export interface PresentedBuildings {
   shells?: Iterable<string>;
 }
 
-/** What a battle loads into its presentation (`WorldInput`'s battle, as the
- *  native manifest carries it, with each clip table's floats). */
+/** What a battle loads into its presentation (`WorldInput`'s battle, as
+ *  Rust resolves it from the files the page reads: `fieldedBattle`), with
+ *  each clip table's floats. */
 export interface PresentedBattle {
   world: object;
   tables: ReadonlyMap<string, Float32Array>;
@@ -445,7 +446,7 @@ export class ScenePresentation {
   }
 
   /** Load what the world draws (`WorldInput`: a battle's `units` and
-   *  `effects`, as the native manifest carries them, with each clip table's
+   *  `effects`, as Rust resolved them, with each clip table's
    *  floats; the sun; the buildings' style, with the buildings); returns
    *  the drawables its frames' batches name (`World.appearances`), by row.
    *  A template the art lacks is refused by name. */

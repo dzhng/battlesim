@@ -1,6 +1,5 @@
 //! What a presentation is loaded from (`load_world`'s input): the light's sun, and a battle's `units` and
-//! `effects` sections both clients already carry
-//! (`web/src/battle/benchmark/unitManifest.ts`, `effectManifest.ts`), each
+//! `effects` sections (resolved for both clients by `fielded`), each
 //! skinned body's dense clip table, the overlay colours and the side
 //! presented, and the static world's style. The template library and the
 //! placed buildings come beside it as bytes. Static per battle.

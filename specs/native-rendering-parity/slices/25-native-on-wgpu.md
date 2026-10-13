@@ -1144,6 +1144,22 @@ The capture scene, the frame records and native's replay are unchanged: every ot
 - **Plates** (grayscale MAE, control against native): market-town 0.016–0.096 (fog on 0.015–0.107) and paris-corner 0–0.049 (fog on 0–0.061). That is the same as step 5c. Native draws the same pictures, and the browser's change is a few ULPs of time.
 - **Gates:** `cargo test` for `presentation` and `native-client`; clippy `-D warnings` on those and `presentation-wasm`; `cargo fmt --check`; the web typecheck; oxlint (no errors); `authority.test.ts` and `simSession.test.tsx`.
 
+### Follow-up: native reads the page's numbers exactly (2026-10-13, branch `effectflake`)
+
+After the rate fix, about one fresh capture in four still had a market-town plate whose effect counts differed (plate 4815, 38 running tracers against 58; in this lane's third capture, plate 6485, 108 streaks against 103). The next capture matched.
+
+**The cause was native's JSON reader.** The page writes each frame's `simTime` as JavaScript does: the shortest text that reads back to its double. serde_json's default float reader is not correctly rounded and lands one ULP off on about 12% of frame times, and on about 7% of tick boundaries (`k / 30`). Plate 6485 was drawn at 3419/30, written `113.96666666666667`, which native read as `113.96666666666668`. One ULP past a boundary, that tick's effects end or start. Whether a plate fell on a misread boundary depended on the frame times, so it varied run to run. The page, its WASM and the capture were exact. The control's unfixed native differed on plate 6485; the fixed native, on the same capture, equals the browser on every plate.
+
+**The contract:**
+- **Native reads the numbers the page wrote with std's correctly rounded parse** (`capture.rs`'s `exact`): each frame's `simTime`, `reelMs`, `eye`, `target` and `up`, and the manifest's lens. The capture and manifest formats are unchanged.
+- **Not serde_json's `float_roundtrip`.** Cargo enables a feature for every crate in a build, so it would also change how native's simulation reads the maps (market-town's has 9,164 numbers of 16 or more digits), while the page's WebAssembly simulation still reads them the default way. Both clients read the maps alike today.
+- **Held by** `native/client/tests/counts.rs` (branch `replaytest`, which replaced the reader's own `109/30` test): native's replay of a committed count-only browser run (`PARITY_COUNTS=1`, the manifest's `frameCounts`: 1,387 frames of paris-corner's reel, 582 on a tick boundary) gives the browser's model, effect, building, prop and scenery counts on every counted frame. With serde_json's default reader in place of `exact` it fails on 86 counts, all on boundary frames (the first at 11.966666666666669 s). It runs in `cargo test`, with no GPU.
+
+**Evidence:**
+- Four fresh captures of both scenes before the fix: the third (`throwaway/native-parity/2026-10-13T20-22-01-640Z`) differed on market-town plate 6485 only. Fixed native equals the browser on it.
+- Five consecutive fresh captures of both scenes after the fix (`20-29-10-910Z` to `20-41-59-679Z`): native's counts equal the browser's on all 120 plates. The fourth capture's plate 4693 also fell on a misread boundary (113.96666666666667); the unfixed native gives 108 streaks there against the browser's 103.
+- **Gates:** `cargo test` for `presentation` and `native-client`, clippy `-D warnings` on both, `cargo fmt --check`, the web typecheck, oxlint (no errors).
+
 ### Step 6b follow-up: fog's CPU cost on the city map (2026-10-12, branch `fogperf`)
 
 The slice 23 lane found `Presentation::prepare_fog` taking about 60 ms a frame on `city-contact`. There were three causes:

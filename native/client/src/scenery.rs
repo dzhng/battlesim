@@ -86,16 +86,6 @@ struct Run {
     count: u32,
 }
 
-/// The instances the last frame lists in view, per population, kind and
-/// tier (`kind · TIERS + tier`), and the stumps per kind: what the
-/// browser's capture counts (`SceneryCounts`).
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct Drawn {
-    /// Forest, understorey, backdrop, dressing and felled, in `DRAWS` order.
-    pub populations: [Vec<u32>; 5],
-    pub stumps: Vec<u32>,
-}
-
 pub struct Scenery {
     rows: Vec<Option<Row>>,
     /// Per kind, its tiers, shared by every row that draws the kind.
@@ -197,25 +187,6 @@ impl Scenery {
                 count: b.count,
             });
         }
-    }
-
-    /// What the last prepared frame lists in view.
-    pub fn drawn(&self) -> Drawn {
-        let kinds = self.tiers.len();
-        let mut out = Drawn {
-            populations: std::array::from_fn(|_| vec![0; kinds * TIERS]),
-            stumps: vec![0; kinds],
-        };
-        for run in self.runs.iter().filter(|r| r.pass == VIEW_PASS) {
-            let row = self.rows[run.row].as_ref().expect("a scenery row");
-            let count = self.instances(row, run.count);
-            if row.draws == Draws::Stump as u32 {
-                out.stumps[row.kind] += count;
-            } else {
-                out.populations[row.draws as usize - 1][row.kind * TIERS + run.tier] += count;
-            }
-        }
-        out
     }
 
     /// A felled tree is two records an instance.

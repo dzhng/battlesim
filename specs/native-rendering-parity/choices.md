@@ -33,18 +33,22 @@ Counts are equal, and the picture is the same few pixels. The bake pipeline (`ba
 
 Least confident first.
 
-### Native reads its world from the repository, not the browser's manifest
-*Agent, slices 14, 17 and 20; resolved `lastowners`. Confidence: medium.*
+### Both clients read a battle's world from the repository, through one resolver
+*Agent, slices 14, 17 and 20; resolved `lastowners`, the browser moved `browserworld`. Confidence: medium.*
 
-Native used to take each unit type's facts, its appearances' joints, clips and rigs, the effects' tuning and wrecks, the light and each building's part props from the manifest the browser's capture run wrote. Now Rust resolves them from the repository's own files, through `presentation::fielded` (feature `files`, with `presentation::assets`):
-- **Units and effects:** the units the map's encounter fields, under the catalog of the map's category; their art from the runtime catalog's bundles and skeleton clips, as a page wearing those units installs it; the clip tables built from the skeletons.
+Native used to take each unit type's facts, its appearances' joints, clips and rigs, the effects' tuning and wrecks, the light and each building's part props from the manifest the browser's capture run wrote, and the browser resolved the same world input in TypeScript. Now Rust resolves it for both, through `presentation::fielded` (with `presentation::assets`):
+- **Units and effects:** the units the battle fields, under its unit catalog; their art from the runtime catalog's bundles and skeleton clips, as a page wearing those units installs it; the clip tables built from the skeletons.
 - **Buildings:** the parts from the simulation's own `export_buildings`, and the gutted shells from the catalog's props.
 - **The light:** `presentation.light` in `fixtures/game.json`.
 
-Proven before the manifest path was deleted, on fresh captures of both scenes: every field equal, the clip tables bit for bit, and the posed bounds within 3.4e-7 relative. The bounds are posed from the clip table's float32 rotations, the same table a renderer poses with. One difference was the browser's, not Rust's: a page that films several scenes keeps every scene's art installed, so a later scene's manifest listed wreck looks for units it never fielded. Filmed alone, it matched.
+The caller reads files and Rust decides. `Fielding` takes `fixtures/game.json`, the battle's rules, the resolved unit catalog and the runtime catalog. `contents()` names the runtime contents it reads (each drawn appearance's bundle, each fielded hull's wreck, every skeleton), and `resolve()` takes their inflated bytes. Native reads them from the runtime directory (feature `files`). The page fetches them through `AppearanceLibrary.contents` and calls the WASM `Fielding` (`fieldedBattle`). `unitPresentation.ts`, `effectPresentation.ts`, `clipTable.ts` and `presentationWorld` are deleted.
 
-The manifest keeps only the battle's identity, the lens, the drawn layers and the per-plate counts. Its `units`, `effects`, `props` and `light` sections, the clip-table files and the page's `describe*` hooks are deleted.
-- **Reach:** the browser still resolves its own world input in TypeScript (`unitPresentation.ts`, `effectPresentation.ts`). The two are held together by the fixture run's effect counts, which `tests/effects.rs` replays through the Rust-resolved input, not by sharing one resolver. Moving the browser onto `fielded` would mean handing Rust the bundle bytes the page already decodes.
+**Proven before the TypeScript was deleted.** Both resolvers ran side by side in the live page. Market-town's and paris-corner's reel sessions held 42,673 and 12,206 fields; the unit-roster lab's faction skirmish held 1,655 and 2,242. Every field and every clip-table float was equal, with two named exceptions:
+- **Posed bounds:** these differ within 3.4e-7 relative. Rust poses them from the clip table's float32 rotations, the same table a renderer poses with.
+- **Unfielded wrecks:** the TypeScript listed a wreck look (160 to 171 entries) for every hull whose art the page had installed. The page installs the whole catalog's unit art. Rust lists the fielded kinds' hulls only, so what a battle loads depends on what it fields, not on the page's loading history. A kind the side meets later is fielded again: its wreck comes with it before it can die in view.
+
+Exact equality needed one fix. The crate's JSON parser was off by one float64 ULP in WebAssembly, so `serde_json`'s `float_roundtrip` is now on for the crate, as its tests already had it. The presentation module grew from 2.92 to 3.24 MB (0.99 to 1.09 MB gzipped).
+- **Reach:** a kind first requested mid-battle (a purchase, an identified enemy) loads after the page fetches its bundles, a few frames later than the synchronous TypeScript did. Until then the last battle's world stays drawn.
 - **Factions:** a replay knows no skirmish factions, so it resolves one look per soldier. `fielded` takes the factions when a caller has them.
 
 ### An aircraft's shadow-visibility test assumes it flies at cruise height
@@ -188,6 +192,12 @@ The committed `<scene>-observations.json` files are what the TypeScript decoder 
 *Agent, slice 25; resolved `lastowners`. Confidence: high.*
 
 Native hashes `capture.json` and the saved map it loads (SHA-256) and checks both against `manifest.identity`. It also checks the capture's workload (scene, map, encounter, seed) against the identity, and reads the map and encounter from the hashed capture. On any difference it refuses to run and names the file (`native/client/tests/identity.rs`). This is the check Godot's runner did.
+
+### Native reads the page's numbers with std's parse, not serde_json's `float_roundtrip`
+*Agent, slice 25 (`effectflake`). Confidence: high.*
+
+serde_json's default float reader misreads about 12% of the frame times the page writes by one ULP, which flipped a tick's effects on boundary plates. Native's capture reader parses each frame's and the lens's numbers with `str::parse` (`capture.rs`'s `exact`). Turning on `float_roundtrip` would fix every reader in native's build, its simulation's included, and the page's WebAssembly simulation would still read the maps the default way.
+- **Verdict:** sound. A local reader for the one file the page's JavaScript writes. If the whole workspace ever reads JSON exactly, enable it in every crate at once, the WebAssembly ones included, and re-record whatever that moves.
 
 ### Labs that hand the renderer their own models take Rust's caster and fog rules
 *Agent, `derive2rust`; resolved `lastowners`. Confidence: high.*

@@ -15,6 +15,12 @@ as JSON on demand. The side's learned ground stays in the module: the terrain as
 `scars_changed`, `scar_regions` and `prepare_scars` each frame and uploads the
 `ScarUpload` it gets, and the page reads the cleared runs and marked cells.
 
+What a battle's units and effects draw from is `Fielding`'s
+([`presentation::fielded`](../presentation/src/fielded.rs)): it names the
+runtime contents it reads (`contents`), the page fetches and inflates them as
+it does any bundle, and `resolve` returns `load_world`'s `units` and `effects`
+and the clip tables. The page decides nothing about them.
+
 It links the [publication reader](../sim/src/publication/reader.rs) and the
 presentation crate, and no rules, so the main thread never loads the simulation.
 The web manifest's `build:wasm` builds it after `game-wasm`, into
