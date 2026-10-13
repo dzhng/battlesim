@@ -4,9 +4,8 @@
 // vehicle sounds and articulates as its kind with no table edit.
 import { expect, test } from "vitest";
 import { gameAudio } from "@apps/battle-lab/src/soundFeed";
-import { gamePose } from "@apps/battle-lab/src/benchmark/unitPresentation";
+import game from "@fixtures/game.json";
 import {
-  topSpeedKmh,
   vehicleClass,
   type Hull,
   type UnitType,
@@ -46,14 +45,6 @@ test("an aircraft's class is air and its hull's weight; it has no running gear",
   expect(vehicleClass(fighter)).toBe("high_air_light");
 });
 
-test("a mover's top speed is its road speed, an aircraft's its cruise", () => {
-  const drive = { offroad_kmh: 30, road_kmh: 60, turn_deg_s: 30, reverse_fraction: 0.3 };
-  expect(topSpeedKmh({ foot: { offroad_kmh: 4, road_kmh: 6 } })).toBe(6);
-  expect(topSpeedKmh({ tracked: drive })).toBe(60);
-  expect(topSpeedKmh({ wheeled: { ...drive, turning_radius_m: 8 } })).toBe(60);
-  expect(topSpeedKmh({ air: { cruise_kmh: 220, turn_deg_s: 90, climb_mps: 6 } })).toBe(220);
-});
-
 test("a squad has no vehicle class", () => {
   const squad: Physics = {
     body: { squad: { slots: ["test_rifleman"] } },
@@ -74,7 +65,7 @@ test("each kind of hull the game fields has its own engine sound and track gauge
   for (const kind of kinds) {
     const cls = vehicleClass(kind)!;
     expect(gameAudio.vehicles[cls], cls).toBeDefined();
-    expect((gamePose.gauge as Record<string, number>)[cls], cls).toBeDefined();
+    expect((game.presentation.pose.gauge as Record<string, number>)[cls], cls).toBeDefined();
   }
 });
 

@@ -19,7 +19,7 @@ import {
   type PresentationFrame,
   type PresentationSample,
 } from "@web/battle/benchmark/presentationCapture";
-import { GRASS_CELLS, type Lens } from "@web/battle/benchmark/visualPresentation";
+import { GRASS_CELLS, type FrameCount, type Lens } from "@web/battle/benchmark/visualPresentation";
 
 /** A control plate: the frame it names read back (`FramePlate`) with what it
  *  drew of the buildings and scenery, and the grass clumps it grew counted
@@ -73,17 +73,25 @@ export interface ReelResult {
   /** The lens the frames drew through; null before the first frame. */
   lens: Lens | null;
   plates: readonly ReelPlate[];
+  /** What the counted frames drew (`counts`), in frame order. */
+  counts: readonly FrameCount[];
 }
+
+/** Of the frames between tick boundaries, a counting run counts one in this many. */
+const COUNT_BETWEEN = 4;
 
 /** One complete scene; preparation and inter-scene loading have no frame
  *  samples. With `plates`, each shot's middle frame is read back as a
  *  control plate with its grass and what the frame drew (which costs those
- *  frames their timing); without, nothing is read back. */
+ *  frames their timing); without, nothing is read back. With `counts`, every
+ *  frame drawn exactly on a tick boundary is counted, and one in
+ *  `COUNT_BETWEEN` of the rest: a second client's counts there catch a clock
+ *  read a hair off. */
 export function createReelRun(
   scene: BackdropScene,
   tickHz: number,
   onDone: (result: ReelResult) => void,
-  { plates = false }: { plates?: boolean } = {},
+  { plates = false, counts = false }: { plates?: boolean; counts?: boolean } = {},
 ) {
   const durationMs = scene.reel.shots.reduce((sum, shot) => sum + shot.seconds * 1000, 0);
   const recording = new BenchmarkRecording(durationMs);
@@ -102,6 +110,7 @@ export function createReelRun(
   const capture: PresentationSample[] = [];
   const frames: PresentationFrame[] = [];
   const plated: ReelPlate[] = [];
+  const counted: FrameCount[] = [];
   let lens: Lens | null = null;
   const track = (follow: number, now: number): readonly number[] => {
     const live = subject.unitAt(follow);
@@ -131,6 +140,7 @@ export function createReelRun(
       frames,
       lens,
       plates: plated,
+      counts: counted,
     });
   };
   const sample = (now: number) => sampleReel(scene.reel, recording.elapsed(now) / 1000);
@@ -150,7 +160,7 @@ export function createReelRun(
         target: [lastSubject[0] + s.pose.target[0], lastSubject[1] + s.pose.target[1]],
       };
     },
-    frame({ now, cpuMs, camera, simTime, canvas, plate: readPlate }) {
+    frame({ now, cpuMs, camera, simTime, canvas, counts: readCounts, plate: readPlate }) {
       if (!warm || finished) return;
       if (!recording.started) {
         recording.start(now);
@@ -183,6 +193,11 @@ export function createReelRun(
             ),
           ),
         });
+      }
+      const boundary = Math.round(simTime * presentedHz) / presentedHz === simTime;
+      if (counts && (boundary || index % COUNT_BETWEEN === 0)) {
+        const { drawn, models, effects } = readCounts();
+        counted.push({ frame: index, models, effects, drawn });
       }
       lens ??= { fovY: camera.fovY, near: camera.near, depth: "reverse-z", far: "infinite" };
       frames.push({

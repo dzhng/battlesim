@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { MENU_REEL_WORKLOAD } from "@web/battle/benchmark/menuReel";
-import type { PresentationLayer } from "@web/battle/benchmark/visualPresentation";
+import type { FrameCount, PresentationLayer } from "@web/battle/benchmark/visualPresentation";
 import { listMaps } from "@web/maps/catalogue";
 import game from "@fixtures/game.json";
 import { filmCamera, validateBackdrop, type BackdropScene } from "../menuReel";
@@ -58,6 +58,8 @@ interface GraphicsTestState {
   report: ReelReport | null;
   /** Each scene's control plates (`?plates=1`), in run order. */
   plates: readonly (ReelPlate & { scene: string })[];
+  /** Each scene's counted frames (`?counts=1`), in run order. */
+  counts: readonly { scene: string; frames: readonly FrameCount[] }[];
 }
 
 declare global {
@@ -70,6 +72,7 @@ export default function GraphicsTest() {
   const [params] = useSearchParams();
   const [chosen] = useState(() => chooseScenes(params.get("scenes")));
   const [plates] = useState(() => params.get("plates") === "1");
+  const [counts] = useState(() => params.get("counts") === "1");
   const [fog] = useState(() => params.get("fog") === "1");
   const [quality] = useState<GraphicsTier | undefined>(() => {
     const value = params.get("quality");
@@ -87,10 +90,14 @@ export default function GraphicsTest() {
       interruption: reason ? { status: "failed", reason } : undefined,
     });
   const report = stage === "results" ? reportOf(results, failure) : null;
-  const publish = (state: Omit<GraphicsTestState, "plates">, done: readonly ReelResult[]) => {
+  const publish = (
+    state: Omit<GraphicsTestState, "plates" | "counts">,
+    done: readonly ReelResult[],
+  ) => {
     window.__graphicsTest = {
       ...state,
       plates: done.flatMap((r) => r.plates.map((p) => ({ ...p, scene: r.scene.map }))),
+      counts: done.map((r) => ({ scene: r.scene.map, frames: r.counts })),
     };
   };
   useLabLoading("renderer", stage !== "running" ? true : null);
@@ -122,6 +129,7 @@ export default function GraphicsTest() {
         key={results.length}
         scene={run[results.length]}
         plates={plates}
+        counts={counts}
         fog={fog}
         quality={quality}
         onDone={done}
@@ -191,6 +199,7 @@ export default function GraphicsTest() {
 function ReelScene({
   scene,
   plates,
+  counts,
   fog,
   quality,
   onDone,
@@ -198,6 +207,7 @@ function ReelScene({
 }: {
   scene: BackdropScene;
   plates: boolean;
+  counts: boolean;
   fog: boolean;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
@@ -218,6 +228,7 @@ function ReelScene({
       scene={scene}
       scenario={built}
       plates={plates}
+      counts={counts}
       fog={fog}
       quality={quality}
       onDone={onDone}
@@ -229,6 +240,7 @@ function ReelBattle({
   scene,
   scenario,
   plates,
+  counts,
   fog,
   quality,
   onDone,
@@ -236,13 +248,15 @@ function ReelBattle({
   scene: BackdropScene;
   scenario: string;
   plates: boolean;
+  /** Count what chosen frames drew (`createReelRun`'s `counts`). */
+  counts: boolean;
   /** The side's fog of war (the reel films without it). */
   fog: boolean;
   quality?: GraphicsTier;
   onDone: (r: ReelResult) => void;
 }) {
   const veil = useRef<HTMLDivElement>(null);
-  const [run] = useState(() => createReelRun(scene, game.tick_hz, onDone, { plates }));
+  const [run] = useState(() => createReelRun(scene, game.tick_hz, onDone, { plates, counts }));
   const session = useBattleSession({
     scenario,
     seed: scene.seed,

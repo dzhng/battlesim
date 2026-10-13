@@ -3,7 +3,8 @@ import { expect, test } from "vitest";
 import { createReelRun, grassCells, type ReelPlate } from "@apps/battle-lab/src/benchmark/reelRun";
 import type { BackdropScene } from "@apps/battle-lab/src/menuReel";
 import { emptyEffectCounts } from "@apps/battle-lab/src/presentedFrame";
-import type { FramePlate } from "@apps/battle-lab/src/LabViewport";
+import type { FrameCounts, FramePlate } from "@apps/battle-lab/src/LabViewport";
+import type { FrameCount } from "@web/battle/benchmark/visualPresentation";
 
 const pose = { target: [0, 0] as [number, number], distance: 40, yaw: 0, pitch: 0.2 };
 const scene: BackdropScene = {
@@ -20,6 +21,16 @@ const camera = {
   aspect: 1,
   near: 0.1,
 };
+/** A frame's counts, each naming the frame it came from. */
+const countsOf = (now: number): FrameCounts => ({
+  drawn: {
+    buildings: [now],
+    scenery: { forest: [], understorey: [], backdrop: [], dressing: [], felled: [], stumps: [] },
+    props: [],
+  },
+  models: { soldiers: now, vehicles: 1, aircraft: 0, corpses: 2, fading: 0 },
+  effects: { ...emptyEffectCounts(), lights: now },
+});
 /** A drawn frame at `now`, sim time `simTime`, that can be read back with `plate`. */
 const drawn = (now: number, simTime = 2, plate?: () => FramePlate) => ({
   now,
@@ -27,6 +38,7 @@ const drawn = (now: number, simTime = 2, plate?: () => FramePlate) => ({
   camera,
   simTime,
   canvas: [1280, 720] as const,
+  counts: () => countsOf(now),
   plate,
 });
 /** A frame's read-back, each picture naming the frame it came from. */
@@ -35,13 +47,7 @@ const platesOf =
   (): FramePlate => ({
     png: Promise.resolve(new Blob([`lit at ${now}`])),
     clumps: Promise.resolve(roots.map((root) => ({ root }))),
-    drawn: {
-      buildings: [now],
-      scenery: { forest: [], understorey: [], backdrop: [], dressing: [], felled: [], stumps: [] },
-      props: [],
-    },
-    models: { soldiers: now, vehicles: 1, aircraft: 0, corpses: 2, fading: 0 },
-    effects: { ...emptyEffectCounts(), lights: now },
+    ...countsOf(now),
     plain: Promise.resolve(new Blob([`plain at ${now}`])),
   });
 /** A level camera 40 m east of (5, 6, 1), looking west: screen right is +y, up is +z. */
@@ -181,4 +187,19 @@ test("without plates the run asks the viewport for no read-back and exports noth
   run.scripted.onWarm();
   for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
   expect(results[0].plates).toEqual([]);
+});
+
+test("a counting run counts every frame drawn on a tick boundary and one in four between", () => {
+  const results: { counts: readonly FrameCount[] }[] = [];
+  const run = createReelRun(scene, 30, (r) => results.push(r), { counts: true });
+  run.scripted.onWarm();
+  run.pilot.frame!(drawn(1000));
+  // Frames 0 and 4 are one in four; 61/30 and 62/30 are tick boundaries,
+  // as the page's clock gives them; the rest are between.
+  const times = [2.01, 61 / 30, 2.04, 2.05, 2.06, 62 / 30];
+  times.forEach((t, i) => run.pilot.frame!(drawn(1100 + i * 100, t)));
+  run.pilot.frame!(drawn(3100, 2.91));
+  const [result] = results;
+  expect(result.counts.map((c) => c.frame)).toEqual([0, 1, 4, 5]);
+  expect(result.counts[1]).toEqual({ frame: 1, ...countsOf(1200) });
 });

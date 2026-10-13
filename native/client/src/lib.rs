@@ -4,6 +4,7 @@ pub mod audio;
 pub mod bench;
 pub mod bundle;
 pub mod capture;
+pub mod counts;
 pub mod effects;
 pub mod environment;
 pub mod fog;

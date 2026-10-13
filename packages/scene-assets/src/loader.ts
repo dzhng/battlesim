@@ -11,6 +11,7 @@
 
 import type { Vec3 } from "math";
 import {
+  bundlePath,
   templateLibraryPath,
   type Bundle,
   type RuntimeCatalog,
@@ -130,6 +131,22 @@ export class AppearanceLibrary {
 
   get installed(): InstalledAppearances | null {
     return this.current;
+  }
+
+  /** The runtime catalog the installed generation was loaded from. */
+  get catalog(): RuntimeCatalog | null {
+    return this.source?.catalog ?? null;
+  }
+
+  /** The bundle contents `hashes` (appearances' and skeletons') as their
+   *  files inflate, without their textures, verified: the bytes Rust
+   *  resolves a battle's units and effects from (`presentation::fielded`). */
+  contents(hashes: readonly string[]): Promise<Uint8Array[]> {
+    const source = this.source;
+    if (!source) throw new Error("runtime contents were asked for before a catalog was loaded");
+    return Promise.all(
+      hashes.map((hash) => readGzip(source.catalog, "bundle", hash, bundlePath, source.read)),
+    );
   }
 
   /** Load the catalog under `baseUrl` (ending in "/") for a page whose units

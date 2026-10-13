@@ -65,6 +65,17 @@ export interface EffectCount {
   lights: number;
 }
 
+/** What one frame drew, counted (`?counts=1`): the frame by its index in
+ *  the capture, its models and effects as a plate's are counted, and its
+ *  building modules, scenery and props, as a plate's are counted but with
+ *  no read-back: a counting run counts frames on a tick boundary and between. */
+export interface FrameCount {
+  frame: number;
+  models: Omit<ModelCount, "plate">;
+  effects: Omit<EffectCount, "plate">;
+  drawn: DrawnInstances;
+}
+
 export interface VisualPresentation extends DrawnPresentation {
   schema: "native-visual-presentation";
   identity: {
@@ -87,6 +98,8 @@ export interface VisualPresentation extends DrawnPresentation {
   modelCounts: ModelCount[];
   /** The combat effects each plate's frame drew. */
   effectCounts: EffectCount[];
+  /** What each counted frame drew, in frame order; none unless counted. */
+  frameCounts: FrameCount[];
 }
 
 /** The screen grid grass is counted over: columns, rows. */
@@ -126,6 +139,7 @@ const MANIFEST_KEYS = [
   "instanceCounts",
   "modelCounts",
   "effectCounts",
+  "frameCounts",
 ];
 const text = (value: unknown) => typeof value === "string" && value.length > 0;
 const isHash = (value: unknown) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
@@ -133,16 +147,13 @@ const isHash = (value: unknown) => typeof value === "string" && /^[0-9a-f]{64}$/
 const count = (value: unknown) => Number.isInteger(value) && (value as number) >= 0;
 const counts = (value: unknown) => isRecord(value) && Object.values(value).every(count);
 
-/** Whether `value` is one plate's model counts. */
-export const isModelCount = (value: unknown): boolean =>
-  hasKeys(value, ["plate", ...MODEL_COUNT_KINDS]) &&
-  text(value.plate) &&
-  MODEL_COUNT_KINDS.every((k) => Number.isInteger(value[k]) && (value[k] as number) >= 0);
+/** Whether `value` counts a frame's models by kind. */
+const isModels = (value: unknown): boolean =>
+  hasKeys(value, MODEL_COUNT_KINDS) && MODEL_COUNT_KINDS.every((k) => count(value[k]));
 
-/** Whether `value` is one plate's effect counts. */
-export const isEffectCount = (value: unknown): boolean =>
-  hasKeys(value, ["plate", "running", "instances", "lights"]) &&
-  text(value.plate) &&
+/** Whether `value` counts a frame's effects: by kind, by shape, and its lights. */
+const isEffects = (value: unknown): boolean =>
+  hasKeys(value, ["running", "instances", "lights"]) &&
   counts(value.running) &&
   counts(value.instances) &&
   count(value.lights);
@@ -153,11 +164,10 @@ const numbers = (value: unknown, n: number, valid: (v: unknown) => boolean) =>
 const distinct = (values: readonly unknown[]) =>
   new Set(values.map((v) => JSON.stringify(v))).size === values.length;
 
-/** Whether `value` counts what a plate drew of the kit modules and scenery
- *  appearances (a count per module or appearance and tier). */
-function isInstanceCount(value: unknown): boolean {
-  if (!hasKeys(value, ["plate", "buildings", "scenery", "props"]) || !text(value.plate))
-    return false;
+/** Whether `value` counts what a frame drew of the kit modules, scenery
+ *  appearances and props (a count per module or appearance and tier). */
+function isDrawn(value: unknown): boolean {
+  if (!hasKeys(value, ["buildings", "scenery", "props"])) return false;
   const { scenery, props } = value;
   return (
     Array.isArray(props) &&
@@ -179,6 +189,26 @@ function isInstanceCount(value: unknown): boolean {
     scenery.stumps.every(count)
   );
 }
+
+/** A plate's row of counts: its plate's file and the counts `valid` checks. */
+const plated =
+  (valid: (value: unknown) => boolean) =>
+  (value: unknown): boolean => {
+    if (!isRecord(value) || !text(value.plate)) return false;
+    const { plate: _, ...body } = value;
+    return valid(body);
+  };
+
+const isModelCount = plated(isModels);
+const isEffectCount = plated(isEffects);
+const isInstanceCount = plated(isDrawn);
+
+const isFrameCount = (value: unknown): boolean =>
+  hasKeys(value, ["frame", "models", "effects", "drawn"]) &&
+  count(value.frame) &&
+  isModels(value.models) &&
+  isEffects(value.effects) &&
+  isDrawn(value.drawn);
 
 /** `value` as a manifest, or a refusal naming the part at fault. */
 export function validateVisualPresentation(value: unknown): VisualPresentation {
@@ -263,6 +293,15 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       "visual presentation effect counts need one row per plate of whole effects by kind, instances by shape and lights",
     );
+  const frames = value.frameCounts;
+  if (
+    !Array.isArray(frames) ||
+    !frames.every(isFrameCount) ||
+    !frames.every((row, i) => i === 0 || row.frame > frames[i - 1].frame)
+  )
+    throw new Error(
+      "visual presentation frame counts need one row per counted frame, in frame order, of its models, effects and drawn instances",
+    );
   return value as unknown as VisualPresentation;
 }
 
@@ -284,6 +323,7 @@ export async function writeVisualPresentation({
   instanceCounts,
   modelCounts,
   effectCounts,
+  frameCounts = [],
 }: {
   captureJson: string;
   mapBytes: Uint8Array;
@@ -292,6 +332,7 @@ export async function writeVisualPresentation({
   instanceCounts: readonly InstanceCount[];
   modelCounts: readonly ModelCount[];
   effectCounts: readonly EffectCount[];
+  frameCounts?: readonly FrameCount[];
 }): Promise<string> {
   const capture = decodePresentationCapture(captureJson);
   const [first] = capture.frames;
@@ -317,6 +358,11 @@ export async function writeVisualPresentation({
         `${what} counts must be one per plate: none for ${uncounted.join(", ") || "-"}; no plate ${stray.join(", ") || "-"}`,
       );
   }
+  const stray = frameCounts.find((c) => c.frame >= capture.frames.length);
+  if (stray)
+    throw new Error(
+      `frame counts name frame ${stray.frame}; the capture has ${capture.frames.length}`,
+    );
   const { scene, map, encounter, seed } = capture.workload;
   const manifest: VisualPresentation = {
     schema: "native-visual-presentation",
@@ -335,6 +381,7 @@ export async function writeVisualPresentation({
     instanceCounts: plates.map((plate) => instanceCounts.find((g) => g.plate === plate)!),
     modelCounts: plates.map((plate) => modelCounts.find((g) => g.plate === plate)!),
     effectCounts: plates.map((plate) => effectCounts.find((g) => g.plate === plate)!),
+    frameCounts: [...frameCounts],
   };
   return JSON.stringify(validateVisualPresentation(manifest));
 }

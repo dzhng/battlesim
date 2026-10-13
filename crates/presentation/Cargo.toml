@@ -11,7 +11,9 @@ files = ["dep:flate2"]
 sim = { path = "../sim" }
 contract = { path = "../contract" }
 serde = { version = "1", features = ["derive", "rc"] }
-serde_json = "1"
+# Every number a file holds reads back to its own bits: a bundle's joints
+# and bounds, the fixtures' tunings and the recorded vectors alike.
+serde_json = { version = "1", features = ["float_roundtrip"] }
 bytemuck = "1.25"
 # One implementation of the transcendental functions for WebAssembly and
 # native, so both clients place, cull and synthesize alike.
@@ -23,5 +25,3 @@ flate2 = { version = "1", optional = true }
 presentation = { path = ".", features = ["files"] }
 # The ground's meshes are tested on saved maps as the simulation builds them.
 contract = { path = "../contract" }
-# The recorded vectors' numbers must read back to the same bits.
-serde_json = { version = "1", features = ["float_roundtrip"] }

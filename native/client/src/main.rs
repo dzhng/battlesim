@@ -16,7 +16,6 @@
 //! With `--bench`, no plate is written: every frame record is framed, drawn
 //! and presented back to back, timed (`bench`), and the report is written to
 //! that directory as `native-<scene>-<time>.json` for `web/fps-compare.mjs`.
-use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -25,6 +24,7 @@ use native_client::audio::{self, Audio, OutputSettings};
 use native_client::bench::{self, Bench};
 use native_client::bundle::Library;
 use native_client::capture::Replay;
+use native_client::counts::Counted;
 use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
 use native_client::fog::{Fog, FogSight};
@@ -36,7 +36,7 @@ use native_client::ground::Ground;
 use native_client::models::Models;
 use native_client::pipelines::Pipelines;
 use native_client::post::Post;
-use native_client::scenery::{Drawn, Scenery};
+use native_client::scenery::Scenery;
 use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
 use native_client::world::{DepthPrepass, Ghosts, WorldColour};
@@ -409,8 +409,8 @@ impl Run {
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare()?;
         let d = self.passes.models.drawn();
-        let scenery = self.passes.scenery.drawn();
-        let trees: u32 = scenery.populations.iter().flatten().sum();
+        let scenery = Counted::of(self.replay.presentation()).scenery;
+        let trees: u32 = scenery.iter().flatten().sum();
         let bytes = std::mem::size_of_val(&self.replay.last_frame().instances[..]);
         let frame = [
             f64::from(d.soldiers),
@@ -467,60 +467,42 @@ impl Run {
             };
             self.prepare()?;
             let counts = self.replay.last_frame().counts;
-            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             let presentation = self.replay.presentation();
-            self.count_mismatches.extend(effect_mismatches(
-                &plate,
-                &self.replay.effect_counts,
-                &counts,
-                presentation.effects(),
-                self.passes.effects.count(),
-            ));
+            let row = |rows: &[serde_json::Value]| {
+                rows.iter()
+                    .find(|c| c["plate"] == plate.as_str())
+                    .cloned()
+                    .unwrap_or_default()
+            };
+            self.count_mismatches
+                .extend(Counted::of(presentation).mismatches(
+                    &plate,
+                    &row(&self.replay.model_counts),
+                    &row(&self.replay.effect_counts),
+                    &row(&self.replay.instance_counts),
+                ));
+            // What the models and effects draw of what the frame lists: a
+            // soldier off screen is counted, not drawn.
             let drawn = self.passes.models.drawn();
-            let want = self
-                .replay
-                .model_counts
-                .iter()
-                .find(|c| c["plate"] == plate.as_str());
-            if let Some(want) = want {
-                let n = |k: &str| want[k].as_u64().unwrap_or(u64::MAX) as u32;
-                // What the frame poses, and what the models draw of it: a
-                // soldier off screen is counted, not drawn.
-                let d = drawn;
-                let checks = [
-                    ("soldiers", counts.soldiers, n("soldiers")),
-                    ("vehicles", counts.vehicles, n("vehicles")),
-                    ("aircraft", counts.aircraft, n("aircraft")),
-                    ("corpses", counts.corpses, n("corpses")),
-                    ("fading", counts.fading, n("fading")),
-                    (
-                        "instances drawn of those listed",
-                        d.soldiers + d.vehicles + d.corpses + d.pieces + d.props + d.ghosts,
-                        d.listed,
-                    ),
-                ];
-                for (what, got, wanted) in checks {
-                    if got != wanted {
-                        self.count_mismatches
-                            .push(format!("{plate} {what}: {got} against {wanted}"));
-                    }
+            let d = &drawn;
+            for (what, got, listed) in [
+                (
+                    "instances drawn of those listed",
+                    d.soldiers + d.vehicles + d.corpses + d.pieces + d.props + d.ghosts,
+                    d.listed,
+                ),
+                (
+                    "effect instances drawn of those listed",
+                    self.passes.effects.count(),
+                    presentation.effects().len() as u32,
+                ),
+            ] {
+                if got != listed {
+                    self.count_mismatches
+                        .push(format!("{plate} {what}: {got} against {listed}"));
                 }
             }
-            self.count_mismatches.extend(scenery_mismatches(
-                &plate,
-                &self.replay.instance_counts,
-                &self.passes.scenery.drawn(),
-            ));
-            self.count_mismatches.extend(prop_mismatches(
-                &plate,
-                &self.replay.instance_counts,
-                self.passes.models.drawn_props(),
-            ));
-            self.count_mismatches.extend(building_mismatches(
-                &plate,
-                &self.replay.instance_counts,
-                self.passes.models.drawn_buildings(),
-            ));
+            let (device, queue) = (&self.gpu.device, &self.gpu.queue);
             let scars = self.replay.presentation().scar_stats();
             println!(
                 "{plate}: drawn {drawn:?}, culled soldiers {}, effects {} and {} lights, scar pages {} ({})",
@@ -678,160 +660,6 @@ fn write_wav(path: &std::path::Path, samples: &[f32]) -> Result<(), String> {
         bytes.extend_from_slice(&s.to_le_bytes());
     }
     std::fs::write(path, bytes).map_err(|e| format!("{}: {e}", path.display()))
-}
-
-/// Where `plate`'s effects differ from the browser's (`effectCounts`): those
-/// running by kind, the cast lights offered, the instances by shape, and the
-/// instances drawn of those the frame lists.
-fn effect_mismatches(
-    plate: &str,
-    effect_counts: &[serde_json::Value],
-    counts: &presentation::records::Counts,
-    effects: &[presentation::records::Effect],
-    drawn: u32,
-) -> Vec<String> {
-    use presentation::effects::frame::{EFFECT_KINDS as KINDS, SHAPE_NAMES as SHAPES};
-    let Some(want) = effect_counts.iter().find(|c| c["plate"] == plate) else {
-        return vec![format!("{plate}: no effect counts in the manifest")];
-    };
-    let n = |v: &serde_json::Value| v.as_u64().unwrap_or(u64::MAX) as u32;
-    let mut checks: Vec<(String, u32, u32)> = KINDS
-        .iter()
-        .zip(counts.running)
-        .map(|(k, got)| (format!("running {k}"), got, n(&want["running"][k])))
-        .collect();
-    checks.push(("lights".into(), counts.lights, n(&want["lights"])));
-    for (shape, name) in SHAPES.iter().enumerate() {
-        let got = effects
-            .iter()
-            .filter(|e| e.misc[0] as usize == shape)
-            .count() as u32;
-        checks.push((
-            format!("{name} instances"),
-            got,
-            n(&want["instances"][name]),
-        ));
-    }
-    checks.push((
-        "effect instances drawn of those listed".into(),
-        drawn,
-        effects.len() as u32,
-    ));
-    checks
-        .into_iter()
-        .filter(|(_, got, wanted)| got != wanted)
-        .map(|(what, got, wanted)| format!("{plate} {what}: {got} against {wanted}"))
-        .collect()
-}
-
-/// Where `plate`'s scenery differs from the browser's (`instanceCounts`):
-/// the instances in view per population, kind and tier, and the stumps.
-fn scenery_mismatches(
-    plate: &str,
-    instance_counts: &[serde_json::Value],
-    drawn: &Drawn,
-) -> Vec<String> {
-    const POPULATIONS: [&str; 5] = ["forest", "understorey", "backdrop", "dressing", "felled"];
-    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
-        return vec![format!("{plate}: no instance counts in the manifest")];
-    };
-    let want = &want["scenery"];
-    let list = |v: &serde_json::Value| -> Vec<u32> {
-        v.as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|n| n.as_u64().unwrap_or(u64::MAX) as u32)
-                    .collect()
-            })
-            .unwrap_or_default()
-    };
-    let total = |v: &[u32]| v.iter().sum::<u32>();
-    POPULATIONS
-        .iter()
-        .zip(&drawn.populations)
-        .map(|(name, got)| (*name, got.clone(), list(&want[name])))
-        .chain([("stumps", drawn.stumps.clone(), list(&want["stumps"]))])
-        .filter(|(_, got, wanted)| got != wanted)
-        .map(|(name, got, wanted)| {
-            format!(
-                "{plate} scenery {name}: {} against {} ({got:?} against {wanted:?})",
-                total(&got),
-                total(&wanted)
-            )
-        })
-        .collect()
-}
-
-/// Where the props `drawn` (by appearance, per tier) differ from what the
-/// browser drew of `plate` (`instanceCounts[].props`).
-fn prop_mismatches(
-    plate: &str,
-    instance_counts: &[serde_json::Value],
-    drawn: &BTreeMap<String, [u32; 4]>,
-) -> Vec<String> {
-    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
-        return vec![];
-    };
-    let want: BTreeMap<String, [u32; 4]> = want["props"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .map(|p| {
-            let levels = &p["levels"];
-            let level = |t: usize| levels[t].as_u64().unwrap_or(u64::MAX) as u32;
-            let name = p["appearance"].as_str().unwrap_or("").to_owned();
-            (name, std::array::from_fn(level))
-        })
-        .collect();
-    let total = |m: &BTreeMap<String, [u32; 4]>| -> u32 { m.values().flatten().sum() };
-    let names: BTreeSet<&String> = want.keys().chain(drawn.keys()).collect();
-    names
-        .into_iter()
-        .filter(|n| want.get(*n) != drawn.get(*n))
-        .map(|n| {
-            format!(
-                "{plate} props {n}: {:?} against {:?} (all props {} against {})",
-                drawn.get(n),
-                want.get(n),
-                total(drawn),
-                total(&want)
-            )
-        })
-        .collect()
-}
-
-/// Where `plate`'s building modules differ from the browser's
-/// (`instanceCounts[].buildings`, `module · 4 + tier`).
-fn building_mismatches(
-    plate: &str,
-    instance_counts: &[serde_json::Value],
-    drawn: &[u32],
-) -> Vec<String> {
-    let Some(want) = instance_counts.iter().find(|c| c["plate"] == plate) else {
-        return vec![];
-    };
-    let want: Vec<u32> = want["buildings"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .map(|n| n.as_u64().unwrap_or(u64::MAX) as u32)
-        .collect();
-    let at = |list: &[u32], i: usize| list.get(i).copied().unwrap_or(0);
-    let total = |list: &[u32]| list.iter().sum::<u32>();
-    (0..want.len().max(drawn.len()))
-        .filter(|&i| at(drawn, i) != at(&want, i))
-        .map(|i| {
-            format!(
-                "{plate} building module {} tier {}: {} against {} (all modules {} against {})",
-                i / 4,
-                i % 4,
-                at(drawn, i),
-                at(&want, i),
-                total(drawn),
-                total(&want)
-            )
-        })
-        .collect()
 }
 
 fn write_png(path: &std::path::Path, size: [u32; 2], rgba: &[u8]) -> Result<(), String> {
