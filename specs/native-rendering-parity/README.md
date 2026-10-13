@@ -4,7 +4,7 @@
 
 **Status:** phase 5 (slice 25) is in progress. Native is `native/client`, a Rust `wgpu` client that draws the browser's exported shaders over the presentation crate's `World` and `Frame`. Steps 1–7 are built: the sky, the ground, the models, the scenery, the props, the effects, fog of war (its sight, in Rust for both clients, and its mask) and sound. Native holds the static world's batches between frames, as the browser does. **Godot is gone** (slice 25, step 8): `native/godot`, `native/godot-binding`, their GDScript, Godot shaders and glue are deleted. Phases 1–3 and slices 07–17 were built on Godot; their slice files and [`choices.md`](choices.md) record that history.
 
-**Next pickup:** slice 25 step 8's gates (plates, counts, and performance at or below the browser on both scenes, release build). Read slice 25 first; `choices.md`'s decisions are givens.
+**Next pickup:** slice 25 step 8's gates (plates, counts, and performance at or below the browser on both scenes, release build). The performance gate's final reading (2026-10-13) fails: native leads on FPS, 1% lows and tails, but its GPU frame is 40–60% longer than the browser's on both scenes, and two CPU percentiles are slightly higher. The first task is to find where native's extra GPU time goes. Read slice 25 first; `choices.md`'s decisions are givens.
 
 **Goal:** make the native client visually equivalent to the browser renderer for the authored menu reel, and at least as fast as it, as a maintained second client beside the browser. Rust stays the only gameplay, observation, visibility, replay and digest authority. The browser remains shipped.
 
