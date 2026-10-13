@@ -30,8 +30,12 @@ import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/wo
 import { prop_appearances } from "@wasm/presentation/presentation_wasm.js";
 import { diagnosticsSource } from "@web/diagnostics";
 import { appResources } from "./appResources";
+import type { RuntimeFiles } from "./presentedFrame";
 
 const library = new AppearanceLibrary(countedFetch);
+/** The runtime files the page's appearances were loaded from: what Rust
+ *  resolves a battle's units and effects from (`fieldedBattle`). */
+export const gameRuntime: RuntimeFiles = library;
 let loading: Promise<InstalledAppearances> | null = null;
 let loadingFactions: string | null | undefined;
 let loadingScenery: string | null | undefined;

@@ -1,5 +1,5 @@
 //! Joint and part transforms for drawing: a skinned body's joints sampled
-//! from its dense clip table (`clipTable.ts` builds it at install), and an
+//! from its dense clip table (`fielded` builds it as a battle loads), and an
 //! articulated model's node worlds
 //! from its posed locals. A renderer draws a body by its
 //! palette, each joint's `world · inverseBind`, and a vehicle by its node

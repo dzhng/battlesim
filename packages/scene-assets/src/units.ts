@@ -56,15 +56,6 @@ export type Mobility =
  *  in the air, so it rolls on nothing and raises no dust. */
 export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in type.mobility;
 
-/** A mover's top speed, km/h: its road speed, or an aircraft's cruise
- *  (`Mobility::speeds_kmh`). */
-export function topSpeedKmh(m: Mobility): number {
-  if ("air" in m) return m.air.cruise_kmh;
-  if ("tracked" in m) return m.tracked.road_kmh;
-  if ("wheeled" in m) return m.wheeled.road_kmh;
-  return m.foot.road_kmh;
-}
-
 /** A mount row, as a hull lists it or a soldier kind carries it. */
 export interface MountRow {
   /** What other fields name it by (`sensors.on`, `on`, a model's rig

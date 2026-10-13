@@ -28,7 +28,12 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { installedUnitNames, mapAppearances, useMapAppearances } from "./gameAppearances";
+import {
+  gameRuntime,
+  installedUnitNames,
+  mapAppearances,
+  useMapAppearances,
+} from "./gameAppearances";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -75,20 +80,18 @@ import {
   sideInstances,
   type DrawnInstances,
 } from "./sideInstances";
-import { describeUnits, gamePose, type PoseRules } from "./benchmark/unitPresentation";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
 import { UnitResponses } from "./unitResponses";
 import { assignments as voiceAssignments } from "@fixtures/voices.json";
 import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
-import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
+import { fieldedBattle, frameCounts, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
-import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
+import type { FogRequest, PresentedBattle, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
 import { useFeed, useLive } from "./feed";
-import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
 import {
   GHOST_BLOCKED,
@@ -155,9 +158,8 @@ export interface BattleSessionOptions {
 /** The rule values the scenario runs under (only what views read). Its
  *  units are its session catalog's: the scenario's rules carry that
  *  catalog's documents. */
-export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
+export interface ScenarioRules extends PanelRules, RulerRules {
   tick_hz: number;
-  movement: { drive: { wreck_stop_s: number } };
   weapons: PanelRules["weapons"] & RulerRules["weapons"];
   physics: SoldierBody & RulerRules["physics"];
   service: { radius_m: number };
@@ -186,7 +188,7 @@ export function useBattleSession({
   const catalog = useSessionCatalog();
   // The session draws, reads and loads its own catalog's units; a scenario
   // fielding a unit the catalog lacks is refused by name, not left undrawn.
-  const { map, rules, skirmish, units, fielded } = useMemo(() => {
+  const { map, rules, rulesText, skirmish, units, fielded } = useMemo(() => {
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
@@ -196,6 +198,7 @@ export function useBattleSession({
     return {
       ...parsed,
       rules: presentationRules(parsed.rules, catalog),
+      rulesText: JSON.stringify(parsed.rules),
       units: admitScenario(parsed, catalog),
       fielded: (parsed.units ?? []).map((u) => u.kind),
     };
@@ -509,29 +512,26 @@ export function useBattleSession({
   );
   const modelAppearancesFeed = useFeed(modelAppearances);
 
-  // What the battle draws, handed to the presentation once its appearances
-  // are installed and its wrecks can be fitted: the units and effects as
-  // the native manifest carries them. A new side or catalog loads again.
+  // What the battle draws, handed to the presentation once the runtime
+  // catalog is loaded: its units and effects, which Rust resolves from the
+  // files the page reads. Another fielded kind loads again, the last battle
+  // drawn meanwhile; another scenario or side draws none until its own.
   const factions = skirmish?.factions;
   const presentation = sim.client?.presentation ?? null;
-  const worldInput = useMemo(() => {
-    if (!appearances || !world) return null;
-    return presentationWorld({
-      units: describeUnits({
-        kinds: requestedKinds,
-        installed: appearances,
-        units,
-        factions: factions && { blue: factions[0], red: factions[1] },
-        pose: gamePose,
-        leanHold: rules.cover.lean_hold_s,
-      }),
-      effects: describeEffects({
-        kinds: requestedKinds,
-        units,
-        layout: world.layout,
-        installed: appearances,
-        wreckStopS: rules.movement.drive.wreck_stop_s,
-      }),
+  const artLoaded = appearances !== null;
+  const [fieldedFor, setFielded] = useState<{
+    scenario: string;
+    side: SideName;
+    battle: PresentedBattle;
+  } | null>(null);
+  const worldInput =
+    fieldedFor?.scenario === scenario && fieldedFor.side === side ? fieldedFor.battle : null;
+  const [fieldError, setFieldError] = useState<unknown>(null);
+  if (fieldError) throw fieldError;
+  useEffect(() => {
+    if (!artLoaded) return;
+    let live = true;
+    const facts = {
       side,
       tickHz: rules.tick_hz,
       sun: { azimuth: gameLight.sun_azimuth, elevation: gameLight.sun_elevation },
@@ -539,8 +539,25 @@ export function useBattleSession({
       xray: gameXray,
       blocked: PURCHASE_BLOCKED,
       cruiseAglM: rules.air.cruise_agl_m,
-    });
-  }, [appearances, world, requestedKinds, units, factions, rules, side]);
+    };
+    fieldedBattle({
+      rules: rulesText,
+      catalog: units.view,
+      kinds: requestedKinds,
+      factions,
+      runtime: gameRuntime,
+      ...facts,
+    }).then(
+      (battle) => {
+        if (!live) return;
+        setFielded({ scenario, side, battle });
+      },
+      (error: unknown) => live && setFieldError(error),
+    );
+    return () => {
+      live = false;
+    };
+  }, [artLoaded, scenario, rulesText, units, requestedKinds, factions, rules, side]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
   const [placedGhostList] = useState(() =>

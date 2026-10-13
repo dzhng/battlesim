@@ -1,13 +1,18 @@
 //! What a battle's units and effects draw from, resolved from the
-//! repository's own files: the rules fixture, the unit catalog of the map's
-//! category, and the runtime catalog's bundles and skeleton clips
-//! ([`Runtime`]). It is `load_world`'s `units` and `effects` and each skinned
-//! body's clip table, for a battle fielding a given set of unit types, as a
-//! page running those units installs them.
+//! repository's own files: the rules fixture, the battle's rules and unit
+//! catalog, and the runtime catalog's bundles and skeleton clips. It is
+//! `load_world`'s `units` and `effects` and each skinned body's clip table,
+//! for a battle fielding a given set of unit types, as a page running those
+//! units installs them.
+//!
+//! A caller reads the files; this decides. [`Fielding::contents`] names the
+//! runtime contents a battle reads, and [`Fielding::resolve`] takes their
+//! bytes: the native client reads them from the runtime directory (feature
+//! `files`), the page fetches them as it fetches any bundle.
 //!
 //! The records are built in the shape `load_world` reads (`world.rs`) and
 //! checked by it, so the one reader is also the one schema.
-use crate::assets::{Container, Runtime, View, BUNDLE};
+use crate::assets::{Container, View, BUNDLE};
 use crate::sound::tables::inherit;
 use crate::units::drawn::ClipTables;
 use crate::units::skin::{joint_worlds, mul, node_worlds, Mat4};
@@ -15,7 +20,6 @@ use crate::world::{bounds_size, Clip, EffectsSection, Node, Trs, UnitsSection, V
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::f64::consts::PI;
-use std::path::Path;
 
 /// Floats per joint sample in a clip table: rotation, translation, scale.
 const SAMPLE_FLOATS: usize = 8;
@@ -45,66 +49,145 @@ pub struct Fielded {
     pub tables: ClipTables,
 }
 
-fn read_json(path: &Path) -> Result<Value, String> {
-    let text = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    serde_json::from_slice(&text).map_err(|e| format!("{}: {e}", path.display()))
+/// [`Fielded`]'s sections as `load_world` reads them, before its reader
+/// checks them.
+pub struct Sections {
+    pub units: Value,
+    pub effects: Value,
+    pub tables: ClipTables,
 }
 
-/// The unit types encounter `encounter` of saved map `map` fields, sorted
-/// and distinct.
-pub fn encounter_kinds(root: &Path, map: &str, encounter: &str) -> Result<Vec<String>, String> {
-    let path = root
-        .join("fixtures/maps")
-        .join(map)
-        .join("encounters")
-        .join(format!("{encounter}.json"));
-    let units = read_json(&path)?["units"].clone();
-    let kinds: BTreeSet<String> = units
-        .as_array()
-        .ok_or(format!("{}: no units", path.display()))?
-        .iter()
-        .map(|u| u["kind"].as_str().map(str::to_owned))
-        .collect::<Option<_>>()
-        .ok_or(format!("{}: a unit has no kind", path.display()))?;
-    Ok(kinds.into_iter().collect())
+impl Sections {
+    /// The sections as `load_world` checks them.
+    pub fn typed(self) -> Result<Fielded, String> {
+        Ok(Fielded {
+            units: serde_json::from_value(self.units).map_err(|e| format!("units: {e}"))?,
+            effects: serde_json::from_value(self.effects).map_err(|e| format!("effects: {e}"))?,
+            tables: self.tables,
+        })
+    }
 }
 
-/// What a battle on saved map `map` fielding `kinds` draws its units and
-/// effects from, each side fighting for the faction `factions` names (blue,
-/// red; none: one look each): its catalog is the map's category's, its art
-/// what a page wearing those units installs from the runtime catalog.
-pub fn fielded(
-    root: &Path,
-    map: &str,
-    kinds: &[String],
-    factions: Option<[&str; 2]>,
-) -> Result<Fielded, String> {
-    let (units, effects, tables) = sections(root, map, kinds, factions)?;
-    Ok(Fielded {
-        units: serde_json::from_value(units).map_err(|e| format!("units: {e}"))?,
-        effects: serde_json::from_value(effects).map_err(|e| format!("effects: {e}"))?,
-        tables,
-    })
+/// A runtime content's bytes, inflated, by its hash.
+pub type Read<'a> = dyn Fn(&str) -> Result<Vec<u8>, String> + 'a;
+
+/// A battle fielding `kinds` of the resolved unit catalog `catalog`
+/// (`Catalog::view`) under `rules` (how long a soldier holds his firing
+/// pose, how a dead hull stops), each side fighting for the faction
+/// `factions` names (blue, red; none: one look each), with `game`'s
+/// presentation tunings (`fixtures/game.json`) and the art of the runtime
+/// catalog `runtime`.
+pub struct Fielding<'a> {
+    pub game: &'a Value,
+    pub rules: &'a Value,
+    pub catalog: &'a Value,
+    pub runtime: &'a Value,
+    pub kinds: &'a [String],
+    pub factions: Option<[&'a str; 2]>,
 }
 
-/// [`fielded`]'s sections as JSON, before `load_world`'s reader checks them.
-fn sections(
-    root: &Path,
-    map: &str,
-    kinds: &[String],
-    factions: Option<[&str; 2]>,
-) -> Result<(Value, Value, ClipTables), String> {
-    let game = read_json(&root.join("fixtures/game.json"))?;
-    let rules = crate::static_world::files::rules(root, map)?;
-    let view = rules.catalog.view();
-    let layout: Value = serde_json::from_str(&sim::world::export::layout_json(&rules.catalog))
-        .map_err(|e| format!("layout: {e}"))?;
-    let runtime = Runtime::open(&root.join("assets/runtime"))?;
-    let art = Art::new(&runtime, &view, kinds, factions)?;
-    let catalog = Catalog::new(&view)?;
-    let (units, tables) = units(&game, &catalog, &art, kinds, factions)?;
-    let effects = effects(&game, &catalog, &art, &layout, kinds)?;
-    Ok((units, effects, tables))
+impl Fielding<'_> {
+    /// The runtime contents [`Fielding::resolve`] reads, by hash, sorted:
+    /// each drawn appearance's bundle, each fielded hull's wreck and every
+    /// skeleton's clips.
+    pub fn contents(&self) -> Result<Vec<String>, String> {
+        let catalog = Catalog::new(self.catalog)?;
+        let art = Art::new(self.runtime, &catalog, self.kinds, self.factions)?;
+        let (_, drawn) = unit_types(self.game, &catalog, &art, self.kinds, self.factions)?;
+        let mut contents = BTreeSet::new();
+        for name in drawn.iter().chain(hull_wrecks(&catalog, &art).values()) {
+            contents.insert(art.bundle(name)?.to_owned());
+        }
+        for hash in self.runtime["skeletons"].as_object().into_iter().flatten() {
+            contents.extend(hash.1.as_str().map(str::to_owned));
+        }
+        Ok(contents.into_iter().collect())
+    }
+
+    /// The battle's sections, each content [`Fielding::contents`] names
+    /// read by `read`.
+    pub fn resolve(&self, read: &Read<'_>) -> Result<Sections, String> {
+        let catalog = Catalog::new(self.catalog)?;
+        let art = Art {
+            read,
+            ..Art::new(self.runtime, &catalog, self.kinds, self.factions)?
+        };
+        let (units, tables) = units(
+            self.game,
+            self.rules,
+            &catalog,
+            &art,
+            self.kinds,
+            self.factions,
+        )?;
+        let effects = effects(self.game, self.rules, &catalog, &art, self.kinds)?;
+        Ok(Sections {
+            units,
+            effects,
+            tables,
+        })
+    }
+}
+
+#[cfg(feature = "files")]
+pub use files::{encounter_kinds, fielded};
+
+#[cfg(feature = "files")]
+mod files {
+    use super::{Fielded, Fielding};
+    use crate::assets::Runtime;
+    use serde_json::Value;
+    use std::collections::BTreeSet;
+    use std::path::Path;
+
+    fn read_json(path: &Path) -> Result<Value, String> {
+        let text = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        serde_json::from_slice(&text).map_err(|e| format!("{}: {e}", path.display()))
+    }
+
+    /// The unit types encounter `encounter` of saved map `map` fields, sorted
+    /// and distinct.
+    pub fn encounter_kinds(root: &Path, map: &str, encounter: &str) -> Result<Vec<String>, String> {
+        let path = root
+            .join("fixtures/maps")
+            .join(map)
+            .join("encounters")
+            .join(format!("{encounter}.json"));
+        let units = read_json(&path)?["units"].clone();
+        let kinds: BTreeSet<String> = units
+            .as_array()
+            .ok_or(format!("{}: no units", path.display()))?
+            .iter()
+            .map(|u| u["kind"].as_str().map(str::to_owned))
+            .collect::<Option<_>>()
+            .ok_or(format!("{}: a unit has no kind", path.display()))?;
+        Ok(kinds.into_iter().collect())
+    }
+
+    /// What a battle on saved map `map` fielding `kinds` draws its units and
+    /// effects from, each side fighting for the faction `factions` names:
+    /// its rules the game's, its catalog the map's category's, its art read
+    /// from the runtime directory.
+    pub fn fielded(
+        root: &Path,
+        map: &str,
+        kinds: &[String],
+        factions: Option<[&str; 2]>,
+    ) -> Result<Fielded, String> {
+        let game = read_json(&root.join("fixtures/game.json"))?;
+        let catalog = crate::static_world::files::rules(root, map)?.catalog.view();
+        let runtime = Runtime::open(&root.join("assets/runtime"))?;
+        Fielding {
+            game: &game,
+            rules: &game,
+            catalog: &catalog,
+            runtime: &runtime.catalog,
+            kinds,
+            factions,
+        }
+        .resolve(&|hash| runtime.read(hash, "bundle.bin"))?
+        .typed()
+    }
 }
 
 /// The building parts' prop kinds a gutted building's become
@@ -252,21 +335,28 @@ fn vehicle_class(t: &Value) -> Option<String> {
 }
 
 /// The installed art: the runtime catalog's entries for what the battle
-/// wears, each worn vehicle's wreck and each side's faction look.
+/// wears, each worn vehicle's wreck and each side's faction look, and how
+/// their contents are read.
 struct Art<'a> {
-    runtime: &'a Runtime,
+    runtime: &'a Value,
+    read: &'a Read<'a>,
     installed: BTreeSet<String>,
+}
+
+/// A reader of no content: art whose bytes are not asked for.
+fn unread(hash: &str) -> Result<Vec<u8>, String> {
+    Err(format!("content {hash} was not read"))
 }
 
 impl<'a> Art<'a> {
     fn new(
-        runtime: &'a Runtime,
-        view: &Value,
+        runtime: &'a Value,
+        catalog: &Catalog,
         kinds: &[String],
         factions: Option<[&str; 2]>,
     ) -> Result<Self, String> {
-        let entries = &runtime.catalog["appearances"];
-        let worn = Catalog::new(view)?.worn(kinds)?;
+        let entries = &runtime["appearances"];
+        let worn = catalog.worn(kinds)?;
         let mut installed = worn.clone();
         for name in &worn {
             let e = &entries[name];
@@ -276,7 +366,11 @@ impl<'a> Art<'a> {
             }
         }
         installed.retain(|n| entries[n].is_object());
-        Ok(Self { runtime, installed })
+        Ok(Self {
+            runtime,
+            read: &unread,
+            installed,
+        })
     }
 
     fn has(&self, name: &str) -> bool {
@@ -284,12 +378,19 @@ impl<'a> Art<'a> {
     }
 
     fn entry(&self, name: &str) -> &Value {
-        &self.runtime.catalog["appearances"][name]
+        &self.runtime["appearances"][name]
     }
 
-    /// Content `hash`'s bundle file, inflated.
+    /// The content appearance `name`'s bundle is.
+    fn bundle(&self, name: &str) -> Result<&str, String> {
+        self.entry(name)["bundle"]
+            .as_str()
+            .ok_or(format!("appearance {name}: no bundle"))
+    }
+
+    /// Content `hash`, inflated.
     fn bytes(&self, hash: &str) -> Result<Vec<u8>, String> {
-        self.runtime.read(hash, "bundle.bin")
+        (self.read)(hash)
     }
 }
 
@@ -329,7 +430,7 @@ fn transform(m: &Mat4, p: [f64; 3]) -> [f64; 3] {
     [0, 1, 2].map(|r| m[r] * p[0] + m[4 + r] * p[1] + m[8 + r] * p[2] + m[12 + r])
 }
 
-/// A skeleton's clips laid out densely for one body (`buildClipTable`):
+/// A skeleton's clips laid out densely for one body:
 /// every clip's frames, joint-major within a frame, each joint a rotation,
 /// translation and uniform scale; a channel a clip leaves absent takes the
 /// body's bind. And each clip's record.
@@ -404,7 +505,7 @@ fn clip_table(
 fn skinned(art: &Art, bundle: &Container<Value>) -> Result<(Value, Vec<f32>), String> {
     let c = &bundle.content;
     let skeleton_id = c["skeleton"].as_str().ok_or("no skeleton")?;
-    let hash = art.runtime.catalog["skeletons"][skeleton_id]
+    let hash = art.runtime["skeletons"][skeleton_id]
         .as_str()
         .ok_or(format!("skeleton {skeleton_id} is not installed"))?;
     let skeleton_bytes = art.bytes(hash)?;
@@ -692,16 +793,15 @@ fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
     }))
 }
 
-/// The `units` section (`describeUnits`) and its clip tables: each fielded
-/// type's facts and the appearance sets it draws from per side, and every
-/// one of those appearances' joints and clips, or rig.
-fn units(
+/// Each fielded type's facts and the appearance sets it draws from per
+/// side, and every appearance those sets name.
+fn unit_types(
     game: &Value,
     catalog: &Catalog,
     art: &Art,
     kinds: &[String],
     factions: Option<[&str; 2]>,
-) -> Result<(Value, ClipTables), String> {
+) -> Result<(Map<String, Value>, BTreeSet<String>), String> {
     let pose = &game["presentation"]["pose"];
     let look = |side: usize, list: &mut dyn Iterator<Item = String>| -> Vec<String> {
         list.filter(|n| art.has(n))
@@ -805,14 +905,26 @@ fn units(
             }),
         );
     }
+    Ok((types, drawn))
+}
+
+/// The `units` section and its clip tables: each fielded type's facts and
+/// the appearance sets it draws from per side, and every one of those
+/// appearances' joints and clips, or rig.
+fn units(
+    game: &Value,
+    rules: &Value,
+    catalog: &Catalog,
+    art: &Art,
+    kinds: &[String],
+    factions: Option<[&str; 2]>,
+) -> Result<(Value, ClipTables), String> {
+    let (types, drawn) = unit_types(game, catalog, art, kinds, factions)?;
     let mut appearances = Map::new();
     let mut tables = ClipTables::new();
     let mut table_of: Vec<(Vec<f32>, String)> = Vec::new();
     for name in &drawn {
-        let hash = art.entry(name)["bundle"]
-            .as_str()
-            .ok_or(format!("appearance {name}: no bundle"))?;
-        let bytes = art.bytes(hash)?;
+        let bytes = art.bytes(art.bundle(name)?)?;
         let what = format!("bundle {name}");
         let bundle = Container::<Value>::parse(&bytes, BUNDLE, &what)?;
         let fail = |e: String| format!("appearance {name}: {e}");
@@ -836,10 +948,10 @@ fn units(
         };
         appearances.insert(name.clone(), record);
     }
-    let sides = &art.runtime.catalog["sides"];
+    let sides = &art.runtime["sides"];
     let units = json!({
-        "pose": pose,
-        "leanHold": game["cover"]["lean_hold_s"],
+        "pose": game["presentation"]["pose"],
+        "leanHold": number(rules, "cover", "lean_hold_s")?,
         "detail": game["presentation"]["models"],
         "tints": { "blue": sides["blue"], "red": sides["red"] },
         "types": types,
@@ -871,15 +983,15 @@ fn game_effects(game: &Value) -> Result<Value, String> {
     Ok(effects)
 }
 
-/// The `effects` section (`describeEffects`): the effects' tuning, each
+/// The `effects` section: the effects' tuning, each
 /// fielded type's hull and mount muzzles, the prop kinds that smoke once
 /// known, and each installed hull's wreck: what a cook-off throws, how it is
 /// fitted and how hard the dead hull stops.
 fn effects(
     game: &Value,
+    rules: &Value,
     catalog: &Catalog,
     art: &Art,
-    layout: &Value,
     kinds: &[String],
 ) -> Result<Value, String> {
     let vec3 = |v: &Value| -> Value {
@@ -924,26 +1036,12 @@ fn effects(
             smokes.insert(wreck.to_owned(), json!("wreck"));
         }
     }
-    let wreck_stop_s = game["movement"]["drive"]["wreck_stop_s"]
-        .as_f64()
-        .ok_or("movement.drive.wreck_stop_s")?;
+    let wreck_stop_s = number(rules, "movement.drive", "wreck_stop_s")?;
     let (mut wrecks, mut looks) = (Map::new(), Map::new());
-    let by_unit = layout["unitAppearance"]
-        .as_object()
-        .ok_or("layout: no unitAppearance")?;
-    for (unit, model) in by_unit {
-        let Some(model) = model.as_str().filter(|m| art.has(m)) else {
-            continue;
-        };
-        let Some(name) = art.entry(model)["wreck"].as_str().filter(|w| art.has(w)) else {
-            continue;
-        };
-        let entry = art.entry(name);
-        let footprint = &entry["footprint_half_m"];
-        let hash = entry["bundle"]
-            .as_str()
-            .ok_or(format!("{name}: no bundle"))?;
-        let bytes = art.bytes(hash)?;
+    for (unit, name) in hull_wrecks(catalog, art) {
+        let name = name.as_str();
+        let footprint = &art.entry(name)["footprint_half_m"];
+        let bytes = art.bytes(art.bundle(name)?)?;
         let bundle = Container::<Value>::parse(&bytes, BUNDLE, name)?;
         let states: &[Value] = match bundle.content["kind"].as_str() {
             Some("static") => bundle.content["states"]
@@ -970,12 +1068,12 @@ fn effects(
             }),
         );
         looks.insert(
-            unit.clone(),
+            unit.to_owned(),
             json!({
                 "appearance": name,
                 "footprint": vec3(footprint),
                 "bounds": [vec3(&whole["bounds"]["min"]), vec3(&whole["bounds"]["max"])],
-                "braking": top_speed_kmh(catalog.get(unit)?) / 3.6 / wreck_stop_s,
+                "braking": top_speed_kmh(catalog.get(&unit)?) / 3.6 / wreck_stop_s,
             }),
         );
     }
@@ -986,4 +1084,27 @@ fn effects(
         "wrecks": wrecks,
         "wreckLooks": looks,
     }))
+}
+
+/// Each hulled unit type's wreck, where its installed model (its
+/// `appearance`, as `layout.unitAppearance` names it) has an installed one,
+/// by type.
+fn hull_wrecks(catalog: &Catalog, art: &Art) -> BTreeMap<String, String> {
+    catalog
+        .ids()
+        .filter_map(|unit| {
+            let t = catalog.types.get(unit)?;
+            t["body"].get("hull")?;
+            let model = t["appearance"].as_str().filter(|m| art.has(m))?;
+            let wreck = art.entry(model)["wreck"].as_str().filter(|w| art.has(w))?;
+            Some((unit.to_owned(), wreck.to_owned()))
+        })
+        .collect()
+}
+
+/// The number at `section`.`key` of `rules` (`section` dotted).
+fn number(rules: &Value, section: &str, key: &str) -> Result<f64, String> {
+    section.split('.').fold(rules, |v, k| &v[k])[key]
+        .as_f64()
+        .ok_or(format!("rules: no {section}.{key}"))
 }

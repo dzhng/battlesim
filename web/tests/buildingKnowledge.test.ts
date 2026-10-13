@@ -9,7 +9,7 @@ import { beforeAll, expect, test } from "vitest";
 import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
 import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { shippedBuildingArt } from "./support/presentedBuildings";
-import { gameEffects } from "@apps/battle-lab/src/benchmark/effectPresentation";
+import game from "@fixtures/game.json";
 import { TEST_RULES, labScenario } from "./catalog";
 import { type LabEncounter } from "@apps/battle-lab/src/scenarios";
 import { Battle, initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -233,7 +233,9 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
 
     // What a side knows destroyed smokes for it (the presentation's effects,
     // `crates/presentation`): ruins and gutted shells each have a look.
-    expect(Object.keys(gameEffects.smoke)).toEqual(expect.arrayContaining(["gutted", "ruin"]));
+    expect(Object.keys(game.presentation.effects.smoke)).toEqual(
+      expect.arrayContaining(["gutted", "ruin"]),
+    );
 
     // Long after, red has still not seen either: both intact for it.
     const walks = encounter.scripts[0].tick;
