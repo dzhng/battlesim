@@ -315,7 +315,7 @@ mod tests {
 
     /// How deep `(x, y)` lies in the deepest of `strokes`: its half width
     /// less the distance to the stretch, and past a cut end the distance to
-    /// that square end instead (`terrain/strokes.ts`' `strokeInside`).
+    /// that square end instead.
     fn inside(strokes: &[f32], x: f64, y: f64) -> f64 {
         let mut deepest = f64::NEG_INFINITY;
         for s in strokes.as_chunks::<SURFACE_STROKE>().0 {

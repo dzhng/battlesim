@@ -5,8 +5,9 @@
 //! a smoke budget that thins every wreck alike, dust behind a moving hull
 //! and off a hull whose heavy gun fires, and rotors that show their blades still and smear when fast. Driven by
 //! synthetic publications over the fixture's presentation.
-use presentation::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
+use presentation::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
 use presentation::effects::publication::EffectPublication;
+use presentation::effects::tables::EffectPresentation;
 use presentation::effects::DrawnRotor;
 use std::f64::consts::FRAC_PI_2;
 

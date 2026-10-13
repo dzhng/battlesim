@@ -340,7 +340,7 @@ fn the_field_reads_the_all_primitives_distance() {
             .fold(-1e9, f64::max)
     };
     let water = |x: f64, y: f64| super::water::stretch_inside(&RIVER, x, y);
-    let mut rng = super::js::Rng::new(3);
+    let mut rng = crate::seed::Mulberry32::new(3);
     for _ in 0..4000 {
         let (x, y) = (rng.float(-20.0, 220.0), rng.float(-20.0, 220.0));
         let want = [paved(x, y), forest(x, y), water(x, y)];
@@ -414,7 +414,7 @@ fn a_points_props_cell_lists_every_prop_that_could_cover_it() {
     let f = |w: u32| f32::from_bits(w) as f64;
     let (origin, cell, across) = ([f(table[0]), f(table[1])], f(table[2]), table[4] as usize);
     let margin = g.biome.grass.clear_m.prop;
-    let mut rng = super::js::Rng::new(9);
+    let mut rng = crate::seed::Mulberry32::new(9);
     let mut covered = 0;
     for _ in 0..20000 {
         let (x, y) = (rng.float(0.0, 200.0), rng.float(0.0, 200.0));

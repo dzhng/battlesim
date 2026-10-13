@@ -3,6 +3,9 @@
 //! units), and the text JavaScript writes for a number in a template string,
 //! which the seeds' keys embed.
 
+/// 2³² over the golden ratio: spreads consecutive keys across the seeds.
+pub const GOLDEN: u32 = 0x9e37_79b1;
+
 /// A Mulberry32 state (`mulberry32.create`).
 #[derive(Clone, Copy, Debug)]
 pub struct Mulberry32(u32);
@@ -19,6 +22,11 @@ impl Mulberry32 {
         t = (t ^ (t >> 15)).wrapping_mul(t | 1);
         t ^= t.wrapping_add((t ^ (t >> 7)).wrapping_mul(t | 61));
         f64::from(t ^ (t >> 14)) / 4_294_967_296.0
+    }
+
+    /// The next number in [lo, hi) (`random.float(rng, lo, hi)`).
+    pub fn float(&mut self, lo: f64, hi: f64) -> f64 {
+        self.sample() * (hi - lo) + lo
     }
 }
 

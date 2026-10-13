@@ -13,3 +13,12 @@ pub mod ground;
 pub mod library;
 pub mod props;
 pub mod walk;
+
+/// `srgbToLinear` (`math/color`): an art colour channel as the GPU reads it.
+pub fn srgb_to_linear(c: f64) -> f64 {
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        libm::pow((c + 0.055) / 1.055, 2.4)
+    }
+}

@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 use sim::publication::reader::{FallenBody, KnownProp, Observation, Reader, Shared};
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
-use crate::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
+use crate::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
 use crate::effects::launches::Launch;
 use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
+use crate::effects::tables::EffectPresentation;
 use crate::effects::MuzzleSource;
 use crate::fog::sight::{
     Eye, FogSight, FogStats, FogUpload, KnownBox, Occluder, Sensors, SightWorld,

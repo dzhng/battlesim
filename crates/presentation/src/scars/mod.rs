@@ -51,7 +51,7 @@ pub fn normalization() -> Vec<u8> {
 
 /// The directory's hash of a tile key.
 pub fn hash(key: u32, mask: u32) -> u32 {
-    (key.wrapping_mul(0x9e37_79b1) ^ (key >> 16)) & mask
+    (key.wrapping_mul(crate::seed::GOLDEN) ^ (key >> 16)) & mask
 }
 
 /// A map iterated in insertion order, as JavaScript's `Map` is: setting a
