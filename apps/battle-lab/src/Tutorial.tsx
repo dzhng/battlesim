@@ -304,6 +304,11 @@ export function Tutorial() {
             <kbd>Middle-drag</kbd> also orbits and tilts.
           </li>
           <li>The mouse wheel zooms, from close over a squad to the whole battlefield.</li>
+          <li>
+            <kbd>N</kbd> jumps the view to your newest contact and pressing it again steps through
+            older ones; hold <kbd>Shift</kbd> to step back the other way. The view keeps its angle
+            and zoom.
+          </li>
         </ul>
       </Section>
 

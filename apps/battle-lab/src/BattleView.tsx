@@ -9,6 +9,7 @@ import {
 // pause menu items (the scenario, replays, a lab's switches).
 import type { PreparedSession } from "@web/battle/prepare/client";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { contactFocusTargets } from "@web/battle/input/contactFocus";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
@@ -141,6 +142,8 @@ export function BattleView({
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
   const { contacts } = session;
+  // Contacts N steps through, newest first.
+  const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
@@ -238,6 +241,7 @@ export function BattleView({
           fog={session.fogFeed}
           {...session.viewport}
           initialCamera={camera}
+          focusTargets={focusTargets}
           cameraConfig={cameraConfig}
           groundAt={surfaceZ}
           onPick={input ? session.input.onPick : undefined}

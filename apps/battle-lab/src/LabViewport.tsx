@@ -46,6 +46,8 @@ import {
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
+import { focusStep, type FocusTarget } from "@web/battle/input/contactFocus";
+import { isGameKey } from "@web/battle/input/keyGuard";
 import type { Project } from "@web/battle/present/readouts";
 import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
@@ -137,6 +139,8 @@ interface LabViewportProps {
   /** The proxy instances (none by default: a battle draws posed models). */
   instances?: readonly SceneInstance[];
   initialCamera: Camera3DParams;
+  /** Contacts the camera steps through, newest first; empty leaves N inert. */
+  focusTargets?: readonly FocusTarget[];
   /** Ground height under a world point: the camera target rides it. */
   groundAt?: (x: number, y: number) => number;
   /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
@@ -426,6 +430,7 @@ export function LabViewport({
   light,
   instances = NO_INSTANCES,
   initialCamera,
+  focusTargets,
   groundAt,
   onPick,
   leftDragAction = false,
@@ -512,6 +517,8 @@ export function LabViewport({
   const diagnosticsRef = useRef(diagnostics);
   diagnosticsRef.current = diagnostics;
   const initialCameraRef = useRef(initialCamera);
+  const focusTargetsRef = useRef(focusTargets);
+  focusTargetsRef.current = focusTargets;
   const groundAtRef = useRef(groundAt);
   groundAtRef.current = groundAt;
   useEffect(() => {
@@ -667,6 +674,33 @@ export function LabViewport({
       const next = controller.step(asked, intent, dt);
       if (next !== asked) place(next);
     };
+    /** The contact last visited; null before any. */
+    let focused: number | null = null;
+    /** Jump to the next (older) or previous (newer) contact; angle and zoom kept. */
+    const jumpToEvidence = (newer: boolean) => {
+      if (piloted || !inputEnabledRef.current) return;
+      const targets = focusTargetsRef.current ?? [];
+      const index = focusStep(targets, focused, newer);
+      const target = index < 0 ? undefined : targets[index];
+      if (!target) return;
+      focused = target.id;
+      place(
+        controller.place(asked, {
+          target: target.target,
+          distance: asked.distance,
+          yaw: asked.yaw,
+          pitch: asked.pitch,
+        }),
+      );
+    };
+    window.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.code !== "KeyN" || !isGameKey(e)) return;
+        jumpToEvidence(e.shiftKey);
+      },
+      { signal },
+    );
     let dirty = true;
 
     const snapshot = (): ViewportCamera => ({
