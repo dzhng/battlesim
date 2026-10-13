@@ -32,5 +32,5 @@ batches carry, with the buildings'. The player's scenery settings
 (`set_scenery_quality`) and the ground the side has seen cleared (`set_cleared`)
 are its inputs. Its `ground_` probes (`ground_distances` and the like) serve the
 ground scenes; no frame reads them. The ground's other meshes (terrain, skirt,
-backdrop) and the map's box are free functions, and `SunShadow` fits the sun's
+backdrop) and the map's box are free functions, and `SunShadowFit` fits the sun's
 cascades each frame.

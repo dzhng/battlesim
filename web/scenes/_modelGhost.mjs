@@ -71,7 +71,7 @@ export async function modelGhostAgreement(ctx) {
       // eye, every cell is unseen. The ground is drawn in every case, so
       // only the fog differs between them.
       await presentation.loadPresentation();
-      const sight = new presentation.ObservationDecoder();
+      const sight = new presentation.ScenePresentation();
       sight.setGround(world.terrain.input, null);
       sight.frame(
         0,

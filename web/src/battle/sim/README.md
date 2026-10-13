@@ -27,9 +27,9 @@ JSON in [the view's shape](observationView.ts). The fog bits and ground runs com
 back as typed arrays, and unchanged fog and static groups keep their previous
 views. Nothing on the page reads field offsets, enum rosters or packed bit grammars.
 
-[Learned ground](ground.ts) applies side-local patches to one forward-moving
-view; it does not expose authoritative ground changes a side
-has not learned.
+The side's [learned ground](../../../../crates/presentation/src/scars/) applies
+side-local patches to one forward-moving view; it does not expose authoritative
+ground changes a side has not learned.
 
 Changing the observed side requires a fresh visibility/ground epoch. Old side
 patches cannot continue into the new one. Command ownership remains separate from

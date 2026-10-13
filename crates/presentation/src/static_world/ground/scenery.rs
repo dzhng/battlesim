@@ -25,9 +25,10 @@
 use super::biome::{Biome, Trees};
 use super::field::{Field, FOOTPRINT_M};
 use super::forests::Kind;
-use super::js::{self, Rng};
+use super::js;
 use super::shapes::{centroid, polygon_contains};
 use super::{chunks, Ground, FOREST_STROKE, FOREST_TRIANGLE, PROP};
+use crate::seed::Mulberry32;
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::PI;
 
@@ -60,8 +61,8 @@ pub struct Size {
 }
 
 /// A seeded stream per purpose, so one population's count never shifts another's.
-fn stream(seed: u32, salt: i64) -> Rng {
-    Rng::new(seed ^ ((salt + 1) as u32).wrapping_mul(0x9e3779b1))
+fn stream(seed: u32, salt: i64) -> Mulberry32 {
+    Mulberry32::new(seed ^ ((salt + 1) as u32).wrapping_mul(crate::seed::GOLDEN))
 }
 
 /// One number for cell `(i, j)` of a grid over the map.
@@ -70,7 +71,7 @@ fn cell_key(i: i64, j: i64) -> i64 {
 }
 
 /// One of `weights`' indices by weight.
-fn weighted(rng: &mut Rng, weights: impl Iterator<Item = f64> + Clone) -> usize {
+fn weighted(rng: &mut Mulberry32, weights: impl Iterator<Item = f64> + Clone) -> usize {
     let mut r = rng.float(0.0, weights.clone().fold(0.0, |a, w| a + w));
     let mut last = 0;
     for (i, w) in weights.enumerate() {
@@ -83,7 +84,7 @@ fn weighted(rng: &mut Rng, weights: impl Iterator<Item = f64> + Clone) -> usize 
     last
 }
 
-fn push(out: &mut Vec<f32>, at: [f64; 7], tint: [f64; 3], rng: &mut Rng, jitter: f64) {
+fn push(out: &mut Vec<f32>, at: [f64; 7], tint: [f64; 3], rng: &mut Mulberry32, jitter: f64) {
     let v = rng.float(-1.0, 1.0) * jitter;
     let w = rng.float(-1.0, 1.0) * jitter * 0.5;
     out.extend(at.map(|f| f as f32));
@@ -289,7 +290,7 @@ impl Species {
 
     /// The species a tree at `(x, y)` is drawn as, standing `inside` metres
     /// within its forest's edge (`OPEN` where it has none).
-    fn pick(&mut self, rng: &mut Rng, x: f64, y: f64, inside: f64) -> Pick {
+    fn pick(&mut self, rng: &mut Mulberry32, x: f64, y: f64, inside: f64) -> Pick {
         let total = self.rows.iter().fold(0.0, |a, r| a + r.2);
         let mut r = rng.float(0.0, total);
         for &s in &self.odd {
@@ -301,7 +302,7 @@ impl Species {
                 break;
             }
         }
-        let family = if rng.next() < self.purity {
+        let family = if rng.sample() < self.purity {
             self.stand(x, y)
         } else {
             weighted(rng, self.families.iter().map(|f| f.0))
@@ -499,7 +500,7 @@ impl Ground {
             let row = &rules.kinds[k];
             // Between its drifts a kind thins to `1 - drift` of its pieces.
             let thick = drifted(d.rows[k].1.sample(x / rules.drift_m, y / rules.drift_m));
-            if rng.next() >= 1.0 - row.drift * (1.0 - thick) {
+            if rng.sample() >= 1.0 - row.drift * (1.0 - thick) {
                 continue;
             }
             let at = [x, y, FOOTPRINT_M];
@@ -667,7 +668,7 @@ fn understorey(site: &Site, b: &Biome, size: &[Size], kind: usize) -> Vec<f32> {
                 let long = rng.float(rules.length[0], rules.length[1]);
                 let tall = rng.float(rules.height[0], rules.height[1]);
                 let turn = rng.float(-SHRUB_TURN, SHRUB_TURN);
-                if rng.next() < rules.gap || along >= length {
+                if rng.sample() < rules.gap || along >= length {
                     continue;
                 }
                 while stretch + 1 < starts.len() && starts[stretch + 1] <= along {
@@ -735,7 +736,7 @@ fn backdrop(
                 x - radius >= b[0] && y - radius >= b[1] && x + radius <= b[2] && y + radius <= b[3]
             })
     };
-    let mut tree = |out: &mut Vec<f32>, rng: &mut Rng, x: f64, y: f64| {
+    let mut tree = |out: &mut Vec<f32>, rng: &mut Mulberry32, x: f64, y: f64| {
         let (kind, tint) = species.pick(rng, x, y, OPEN);
         let sz = rng.float(rules.tree_scale[0], rules.tree_scale[1]);
         let sxy = sz * rng.float(trees.forest.girth[0], trees.forest.girth[1]);
@@ -771,7 +772,7 @@ fn backdrop(
             let j = (i + 1) % n;
             let (ax, ay, bx, by) = (poly[i * 2], poly[i * 2 + 1], poly[j * 2], poly[j * 2 + 1]);
             let length = js::hypot(bx - ax, by - ay);
-            if rng.next() >= rules.chance || length < rules.min_edge_m {
+            if rng.sample() >= rules.chance || length < rules.min_edge_m {
                 continue;
             }
             let (dx, dy) = ((bx - ax) / length, (by - ay) / length);
@@ -807,7 +808,7 @@ fn backdrop(
             }
         }
         // A copse: a disc of trees about the plot's centre, inside the plot.
-        if rng.next() < trees.copses.chance {
+        if rng.sample() < trees.copses.chance {
             let [cx, cy] = centroid(poly);
             let radius = rng.float(trees.copses.radius_m[0], trees.copses.radius_m[1]);
             let step = trees.copses.spacing_m;

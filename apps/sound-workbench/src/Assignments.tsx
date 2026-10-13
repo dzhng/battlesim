@@ -1,4 +1,4 @@
-import { SOUNDS } from "../../../packages/battle-audio/src/synth";
+import { SOUNDS } from "../../../packages/battle-audio/src/synthSounds.gen";
 import { resolveShot } from "../../../packages/battle-audio/src/catalog";
 import { inheritRows } from "../../../packages/renderer-core/src/kindTable";
 import { Choices } from "./controls";

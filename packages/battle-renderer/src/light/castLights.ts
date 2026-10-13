@@ -21,7 +21,7 @@
 // lights. Each light costs every lit fragment a loop step, so the uniform
 // holds few, the strongest.
 import { d } from "typegpu";
-import { CastLight } from "../records.gen";
+import { CAST_LIGHT_WORDS, CAST_LIGHTS_MAX, CastLight } from "../records.gen";
 
 /** How fast a light falls off inside its radius (the model above): 0 is the
  *  plain window, which reads as a spotlight's disc with a shoulder. */
@@ -33,16 +33,14 @@ export const CAST_ALBEDO_GREY = 0.35;
 /** The least albedo a cast light sees (linear): dark grass takes a pool
  *  near what the pale road beside it does, so no pool stops at a verge. */
 export const CAST_ALBEDO_FLOOR = 0.1;
-/** Lights the world's uniform holds (fixed at module load: a uniform array). */
-export const CAST_LIGHTS_MAX = 24;
 /** The frame's lights: count and wrap, then the lights. */
 export const CastLights = d.struct({
   /** x: the lights in use; y: the facing wrap; zw unused. */
   header: d.vec4f,
   lights: d.arrayOf(CastLight, CAST_LIGHTS_MAX),
 });
-/** `CastLights`' bytes holding its first `count` lights: the 16 B header
- *  and 32 B a light. */
-export const castLightsBytes = (count: number) => 16 + count * 32;
+/** `CastLights`' bytes holding its first `count` lights: the 16 B header,
+ *  then the lights. */
+export const castLightsBytes = (count: number) => 16 + count * CAST_LIGHT_WORDS * 4;
 /** `CastLights`' whole bytes. */
 export const CAST_LIGHTS_BYTES = castLightsBytes(CAST_LIGHTS_MAX);

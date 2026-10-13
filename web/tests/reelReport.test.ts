@@ -5,7 +5,6 @@ import { createReelReport } from "@apps/battle-lab/src/benchmark/reelReport";
 import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/menuReel";
 import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
-import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
 import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
 import type { PropsManifest } from "@web/battle/benchmark/propManifest";
@@ -111,9 +110,8 @@ test("exports each scene's capture with the frames it drew and what it drew them
   expect(report.drawnPresentations).toEqual([
     {
       lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
-      light: { ...gameLight, sunDirection: Array.from(sunDirection(gameLight)) },
+      light: gameLight,
       layers: ["sky", "terrain"],
-      omissions: [],
       units,
       props,
       effects,

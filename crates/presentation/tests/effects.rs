@@ -6,11 +6,11 @@
 use std::path::PathBuf;
 
 use presentation::effects::frame::{
-    EffectBatch, EffectCounts, EffectFrame, EffectPresentation, EFFECT_FLOATS, EFFECT_KINDS,
-    SHAPE_NAMES,
+    EffectBatch, EffectCounts, EffectFrame, EFFECT_FLOATS, EFFECT_KINDS, SHAPE_NAMES,
 };
 use presentation::effects::lights::CAST_LIGHT_FLOATS;
 use presentation::effects::publication::{EffectFeed, EffectPublication};
+use presentation::effects::tables::EffectPresentation;
 use presentation::effects::{DrawnRotor, MuzzleSource};
 use presentation::seed::js_round;
 use presentation::world::{EffectsSection, UnitsSection, Vec3};

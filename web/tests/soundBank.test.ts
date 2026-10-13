@@ -312,7 +312,7 @@ test("synthesized support sounds under every shot of a recorded burst", async ()
 
 test("every synthesized baseline retains its exact samples, including stereo ambience", async () => {
   const { synthesize } = await import("@packages/battle-audio/src/soundBank");
-  const { SOUNDS } = await import("@packages/battle-audio/src/synth");
+  const { SOUNDS } = await import("@packages/battle-audio/src/synthSounds.gen");
   const sampleRate = 8000;
   const context = { sampleRate, createBuffer: buffer } as unknown as BaseAudioContext;
   const catalog = recordingCatalog();

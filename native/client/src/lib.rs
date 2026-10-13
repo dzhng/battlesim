@@ -1,5 +1,5 @@
 //! The native client: the browser's own shaders and passes on `wgpu`, drawing
-//! what the presentation crate's `Frame` lists (slice 25).
+//! what the presentation crate's `Frame` lists.
 pub mod audio;
 pub mod bench;
 pub mod bundle;

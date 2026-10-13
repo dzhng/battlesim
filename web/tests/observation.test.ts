@@ -11,7 +11,7 @@ import {
   type PanelRules,
 } from "../src/battle/present/panelRows";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import { packedGroundRuns } from "./groundRuns";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, TEST_RULES } from "./catalog";
@@ -37,11 +37,11 @@ beforeAll(() => {
 });
 
 /** Publish first: packing can grow WASM memory and move the buffer. */
-const decoders = new WeakMap<Battle, ObservationDecoder>();
+const decoders = new WeakMap<Battle, ScenePresentation>();
 function published(battle: Battle, layout: ObservationLayout, side: "blue" | "red" = "blue") {
   const length = battle.publish(side);
   let decoder = decoders.get(battle);
-  if (!decoder) decoders.set(battle, (decoder = new ObservationDecoder(layout)));
+  if (!decoder) decoders.set(battle, (decoder = new ScenePresentation(layout)));
   return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!;
 }
 
@@ -149,7 +149,7 @@ test("a packed side frame decodes group by group through the published layout", 
   const battle = new Battle(scenario, 3);
   for (let t = 0; t < 15; t++) battle.step();
   const length = battle.publish("blue");
-  const frame = new ObservationDecoder(
+  const frame = new ScenePresentation(
     JSON.parse(battle.observation_layout()) as ObservationLayout,
   ).decode(new Float32Array(memory.buffer, battle.publication_ptr(), length).slice())!;
   expect(frame.tick).toBe(15);
@@ -460,10 +460,10 @@ test("every frozen animation field and ground value decodes, integers exact past
     const delivered = new Float32Array(wire.length + packed.length);
     delivered.set(wire);
     delivered.set(packed, wire.length);
-    decoder = new ObservationDecoder(layout);
+    decoder = new ScenePresentation(layout);
     return decoder.decode(delivered)!;
   };
-  let decoder: ObservationDecoder | null = null;
+  let decoder: ScenePresentation | null = null;
   const o = decodeVector("base");
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual([
     "test_rifle",

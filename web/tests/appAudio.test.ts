@@ -4,7 +4,7 @@ import { loadPresentation } from "@web/battle/sim/presentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import game from "@fixtures/game.json";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
-import { SOUNDS } from "@packages/battle-audio/src/synth";
+import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";

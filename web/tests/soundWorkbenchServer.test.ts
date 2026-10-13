@@ -12,7 +12,7 @@ import {
   validateSoundCatalog,
   type SoundCatalog,
 } from "@packages/battle-audio/src/catalog";
-import { SOUNDS } from "@packages/battle-audio/src/synth";
+import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import {
   ALL_TRIGGERS,
   validateVoiceCatalog,

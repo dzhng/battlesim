@@ -44,7 +44,7 @@ export async function groundFilterExact(ctx) {
         { GpuRegistry },
         terrain,
         surface,
-        { ObservationDecoder },
+        { ScenePresentation },
         { groundRecords },
       ] = await Promise.all([
         import(gpuUrl),
@@ -112,7 +112,7 @@ export async function groundFilterExact(ctx) {
         const published = JSON.parse(battle.observation_layout());
         battle.free();
         published.ground = { ...published.ground, cellM: 1, cols: 600, rows: 600 };
-        const decoder = new ObservationDecoder(published);
+        const decoder = new ScenePresentation(published);
         decoder.decode(
           groundRecords(published)({
             epoch: 1,

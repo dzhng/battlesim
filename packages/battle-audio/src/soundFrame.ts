@@ -14,7 +14,7 @@ import {
 } from "@wasm/presentation/presentation_wasm.js";
 import type { AudioPresentation, Bus, VehicleSound } from "./audioPresentation";
 import type { SoundCatalog } from "./catalog";
-import { SOUNDS } from "./synth";
+import { SOUNDS } from "./synthSounds.gen";
 import type { Chatter, ChatterUpdate } from "./voices/chatter";
 
 type P3 = readonly [number, number, number] | readonly number[];

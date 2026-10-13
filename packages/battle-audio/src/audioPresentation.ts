@@ -2,8 +2,7 @@
 // the battle's sound reads, keyed like `presentation.effects` (round kinds,
 // hit kinds, unit kinds, smoke kinds, cue categories), each table with a
 // `default` row so a new kind sounds like something until its row is added.
-// Sound names are the synthesised bank's (`synth.ts` `SOUNDS`).
-import { requireDefaults } from "@packages/renderer-core/src/kindTable";
+// Sound names are the synthesised bank's (`synthSounds.gen.ts` `SOUNDS`).
 import type { BattleMusicRules } from "./music/battleMusic";
 import type { ChatterRules } from "./voices/chatter";
 
@@ -125,37 +124,4 @@ export interface AudioPresentation {
     far_lowpass_hz: number;
     repeat_s: number;
   };
-}
-
-const TABLES = ["shots", "impacts", "impact_scale", "blasts", "vehicles", "fires"] as const;
-
-/** Throws on a table without its `default`, or a budget that leaves no transients. */
-export function validateAudio(p: AudioPresentation): AudioPresentation {
-  requireDefaults("presentation.audio", p, TABLES);
-  if (!p.cook_off?.blast || !p.cook_off.landing)
-    throw new Error("presentation.audio.cook_off needs a blast and a landing");
-  if (!(p.budget.voices > p.budget.loops && p.budget.loops >= 0))
-    throw new Error("presentation.audio.budget: voices must exceed loops");
-  const { floor, cull } = p.distance;
-  if (!(floor >= 0 && floor <= 1 && cull >= 0))
-    throw new Error("presentation.audio.distance: floor must be 0 to 1, cull at least 0");
-  const { near_hz, far_hz, far_m, wet, reverb_s, attack_s } = p.air;
-  if (!(near_hz >= far_hz && far_hz > 0 && far_m > 0))
-    throw new Error("presentation.audio.air: near_hz ≥ far_hz > 0 and far_m > 0");
-  if (!(wet >= 0 && wet <= 1 && reverb_s > 0 && attack_s >= 0))
-    throw new Error("presentation.audio.air: wet 0 to 1, reverb_s > 0, attack_s ≥ 0");
-  const voices = p.voices;
-  if (
-    !(
-      Number.isInteger(voices?.lines) &&
-      voices.lines >= 1 &&
-      voices.wait_s >= 0 &&
-      voices.group_s >= 0 &&
-      voices.gain > 0
-    )
-  )
-    throw new Error(
-      "presentation.audio.voices: lines a whole number from 1, wait_s and group_s ≥ 0, gain > 0",
-    );
-  return p;
 }

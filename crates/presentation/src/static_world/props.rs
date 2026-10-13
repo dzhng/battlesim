@@ -128,15 +128,9 @@ pub struct PropInput {
     pub detail: Detail,
 }
 
-/// `srgbToLinear` (`math/color`).
+/// A tint as the GPU reads it, linear.
 fn linear(c: [f64; 3]) -> [f32; 3] {
-    c.map(|c| {
-        (if c <= 0.04045 {
-            c / 12.92
-        } else {
-            libm::pow((c + 0.055) / 1.055, 2.4)
-        }) as f32
-    })
+    c.map(|c| super::srgb_to_linear(c) as f32)
 }
 
 /// An appearance a kind chooses among.

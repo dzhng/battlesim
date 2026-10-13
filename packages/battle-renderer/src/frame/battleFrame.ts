@@ -43,9 +43,9 @@ import { createDetailView, detailKey, setDetailView } from "./detailView";
 import { FrameHeader } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
-/** Post's five-level bloom needs at least this many pixels a side. */
 const EMPTY = new Float32Array(0);
-const MIN_TARGET_PX = 64;
+/** Post's five-level bloom needs at least this many pixels a side. */
+export const MIN_TARGET_PX = 64;
 
 export interface BattleFrameOptions {
   /** Optional resolved graphics quality; omitted preserves authored High.

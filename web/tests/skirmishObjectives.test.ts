@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import record from "@fixtures/parity/skirmish-objectives.json";
 import type { ObservationLayout } from "@web/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "@web/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "@web/battle/sim/presentation";
 
 await loadPresentation();
 
@@ -14,7 +14,7 @@ test("objective capture and both scores publish exactly the native timeline", ()
   }).memory;
   const battle = new Battle(JSON.stringify(record.scenario), record.seed);
   try {
-    const decoder = new ObservationDecoder(
+    const decoder = new ScenePresentation(
       JSON.parse(battle.observation_layout()) as ObservationLayout,
     );
     for (const command of record.commands)

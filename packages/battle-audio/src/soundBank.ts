@@ -9,7 +9,7 @@ import {
 } from "@wasm/presentation/presentation_wasm.js";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { clipCadence, type SoundCatalog } from "./catalog";
-import { SOUNDS } from "./synth";
+import { SOUNDS } from "./synthSounds.gen";
 
 /** One sound's channels, as the module takes them: its layout and samples. */
 function packed(channels: readonly Float32Array[]): [Uint32Array, Float32Array] {

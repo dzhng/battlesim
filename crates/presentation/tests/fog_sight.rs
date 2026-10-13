@@ -1,8 +1,7 @@
 //! Fog of war's sight is the browser's, word for word: over the paris-corner
 //! reel's whole publication stream, market-town's capture window and the
 //! fog labs' street (blue's encounter, six seconds of ticks), every frame's
-//! uploads and passes equal what the browser's TypeScript (`fogInputs.ts`,
-//! `fogVisibility.ts`) wrote before it moved here
+//! uploads and passes equal the recorded browser vectors
 //! (`fixtures/fog-sight-vectors.json`: FNV-1a over each upload's bytes, the
 //! dispatches and the clears, a frame after each publication and a second
 //! after every third).

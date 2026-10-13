@@ -6,9 +6,10 @@
 //! per pixel: the nearest cut on the way down is the distance to the plot's
 //! edge, where the verge grows, as sharp up close as from afar.
 use super::biome::{Biome, FieldRules, PLOT_HUE_JITTER};
-use super::js::{self, Rng};
+use super::js;
 use super::shapes::{centroid, segments_cross, signed_area};
 use super::{chunks, is_road, Source, RUN, SURFACE_BOUNDARY, SURFACE_STROKE, SURFACE_TRIANGLE};
+use crate::seed::Mulberry32;
 use std::collections::HashMap;
 use std::f64::consts::PI;
 
@@ -166,7 +167,7 @@ struct Split<'a> {
     rules: &'a FieldRules,
     biome: &'a Biome,
     source: &'a Source,
-    rng: Rng,
+    rng: Mulberry32,
     /// The guides fields are cut along, `ax, ay, bx, by` each, and which
     /// of them are the rivers'.
     roads: Vec<f32>,
@@ -256,7 +257,7 @@ impl Split<'_> {
             return self.surround;
         }
         let total = self.biome.plots.iter().fold(0.0, |a, p| a + p.weight);
-        let mut roll = self.rng.next() * total;
+        let mut roll = self.rng.sample() * total;
         for (k, p) in self.biome.plots.iter().enumerate() {
             roll -= p.weight;
             if roll < 0.0 {
@@ -269,11 +270,11 @@ impl Split<'_> {
     fn leaf(&mut self, poly: Vec<f64>, heading: f64) -> f64 {
         let kind = self.pick_kind(centroid(&poly));
         let palette = &self.biome.palettes[&self.biome.plots[kind].palette];
-        let base = &palette[(self.rng.next() * palette.len() as f64).floor() as usize];
+        let base = &palette[(self.rng.sample() * palette.len() as f64).floor() as usize];
         let jitter = self.rules.colour_jitter;
-        let value = 1.0 + (self.rng.next() * 2.0 - 1.0) * jitter;
+        let value = 1.0 + (self.rng.sample() * 2.0 - 1.0) * jitter;
         let colour = [0, 1, 2].map(|c| {
-            let hue = 1.0 + (self.rng.next() * 2.0 - 1.0) * jitter * PLOT_HUE_JITTER;
+            let hue = 1.0 + (self.rng.sample() * 2.0 - 1.0) * jitter * PLOT_HUE_JITTER;
             js::min(1.0, js::max(0.0, base[c] * value * hue))
         });
         // Rows run along the plot's longer side.
@@ -401,7 +402,7 @@ impl Split<'_> {
         }
         // Across the length by default; along it into strips, by chance,
         // while the strips stay wide enough and not too long.
-        let strips = self.rng.next() < rules.strip_chance
+        let strips = self.rng.sample() < rules.strip_chance
             && short >= wide
             && long <= rules.max_aspect * (short / 2.0);
         let across_u = (lu >= lv) != strips;
@@ -456,7 +457,7 @@ pub fn plots(s: &Source, strip_runs: &[f32], biome: &Biome) -> Result<Plots, Str
         settlement: kind(&rules.settlement_kind)?,
     };
     let reach = js::max(rules.settlement_m, 1.0);
-    let rng = Rng::new(biome.seed);
+    let rng = Mulberry32::new(biome.seed);
     let surround = kind(&rules.surround_kind)?;
     let buildings = HashMap::new();
     let mut split = Split {

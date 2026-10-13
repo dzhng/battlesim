@@ -34,7 +34,7 @@ import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import { loadEncounter, loadMap } from "@web/maps/node";
 import type { ObservationLayout, ObservationView } from "../src/battle/sim/observationView";
 import {
-  ObservationDecoder,
+  ScenePresentation,
   loadPresentation,
   type FallenBuilding,
 } from "../src/battle/sim/presentation";
@@ -76,7 +76,7 @@ interface Played {
    *  whole publication. */
   drawn(side: "blue" | "red"): FallenBuilding[];
   /** The boxes a side's fog of war is cut by now, from its whole publication. */
-  occluders(side: "blue" | "red"): ReturnType<ObservationDecoder["fogOccluders"]>;
+  occluders(side: "blue" | "red"): ReturnType<ScenePresentation["fogOccluders"]>;
   /** The building of `template`, as `index` numbers it. */
   building(template: string): number;
   free(): void;
@@ -108,12 +108,12 @@ function play(encounter: LabEncounter): Played {
       // A whole publication, read by a decoder with nothing behind it.
       battle.resync_observation();
       const len = battle.publish(side);
-      return new ObservationDecoder(observations).decode(
+      return new ScenePresentation(observations).decode(
         new Float32Array(memory.buffer, battle.publication_ptr(), len),
       )!;
     },
     drawn(side) {
-      const presentation = new ObservationDecoder(observations);
+      const presentation = new ScenePresentation(observations);
       try {
         presentation.loadWorld(
           { sun_azimuth: 0, sun_elevation: 1, buildings: gameBuildingStyle },
@@ -135,7 +135,7 @@ function play(encounter: LabEncounter): Played {
       }
     },
     occluders(side) {
-      const presentation = new ObservationDecoder(observations);
+      const presentation = new ScenePresentation(observations);
       try {
         const ground = { exports, layout: JSON.stringify(layout), biome: gameBiome, family: null };
         presentation.setGround(ground, null);

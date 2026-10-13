@@ -3,7 +3,7 @@ import { expect, test, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { createSimClient, type Publication } from "../src/battle/sim/client";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import type { SimReply, SimRequest } from "../src/battle/sim/protocol";
 import { labScenario } from "./catalog";
 import { loadMap } from "@web/maps/node";
@@ -173,7 +173,7 @@ test("raw capture words replay through a fresh Rust publication decoder", () => 
     ]),
     9,
   );
-  const decoder = new ObservationDecoder(JSON.parse(battle.observation_layout()));
+  const decoder = new ScenePresentation(JSON.parse(battle.observation_layout()));
   decoder.invalidate("blue");
   for (let i = 0; i < 3; i++) {
     const tick = battle.step();

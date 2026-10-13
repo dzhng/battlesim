@@ -11,7 +11,8 @@ import { createTypegpuEnvironment } from "../world/environment";
 import { createTypegpuSunShadow } from "../world/shadow";
 import { validateLight, type ResolvedLight } from "../light/sceneLight";
 import type { SkyRays } from "../shaders/physicalSky";
-import { CAST_LIGHTS_BYTES, CAST_LIGHTS_MAX } from "../light/castLights";
+import { CAST_LIGHTS_BYTES } from "../light/castLights";
+import { CAST_LIGHT_WORDS, CAST_LIGHTS_MAX } from "../records.gen";
 import { FRAME_MSAA } from "./targets";
 import type { GpuRegistry } from "./registry";
 
@@ -31,8 +32,6 @@ export async function createEnvironmentFrame(
   return {
     /** The authored light (the shadows, the backdrop and the scenery read it). */
     light: light.settings,
-    /** Unit vector toward the sun: the sky, the shading and the cascades all use it. */
-    sunDirection: environment.sunDirection,
     group: environment.group,
     /** The light as raw resources (uniform, PMREM) for raw passes. */
     raw: environment.raw,
@@ -60,7 +59,7 @@ export async function createEnvironmentFrame(
       castCount = Math.min(count, CAST_LIGHTS_MAX);
       castImage[0] = castCount;
       castImage[1] = wrap;
-      castImage.set(rows.subarray(0, castCount * 8), 4);
+      castImage.set(rows.subarray(0, castCount * CAST_LIGHT_WORDS), 4);
       environment.setCastLights(castImage, castCount);
     },
     encodeBackground(

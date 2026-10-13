@@ -12,7 +12,7 @@ import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply } from "../src/battle/sim/protocol";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
 import { labScenario } from "./catalog";
@@ -382,7 +382,7 @@ test("the ground streams as deltas, and a side switch reopens it with a full sna
   const layout = JSON.parse(
     (h.replies.find((r) => r.type === "ready") as { layout: string }).layout,
   ) as ObservationLayout;
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const patches = h
     .publications()
     .flatMap((p) =>
@@ -511,7 +511,7 @@ test("purchase preview resolves through the authority without spending or advanc
     (h.replies.find((r) => r.type === "ready") as { layout: string }).layout,
   ) as ObservationLayout;
   const p = h.publications()[0];
-  const view = new ObservationDecoder(layout).decode(new Float32Array(p.buffer, 0, p.length))!;
+  const view = new ScenePresentation(layout).decode(new Float32Array(p.buffer, 0, p.length))!;
   expect(view.skirmish).toMatchObject({ credits: 1000, occupiedSlots: 0, pending: [] });
   expect(view.own).toEqual([]);
 });
