@@ -133,3 +133,34 @@ fn a_height_band_cannot_reach_past_the_row() {
         );
     }
 }
+
+#[test]
+fn seeker_fov_is_typed_and_bounded() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["stinger"]["seeker"] = json!("infrared");
+    game["weapons"]["stinger"]["seeker_fov_deg"] = json!(70.0);
+    let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
+    assert_eq!(rows["stinger"].seeker_fov_deg, Some(70.0));
+
+    game["weapons"]["stinger"]["seeker_fov_deg"] = json!(361.0);
+    let error = contract::weapons::resolve_weapons(game["weapons"].clone())
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("seeker_fov_deg"), "{error}");
+}
+
+#[test]
+fn short_air_defence_missiles_cannot_be_interceptors() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["stinger"]["aa_tier"] = json!("short");
+    game["weapons"]["stinger"]["interception"] = json!("missile");
+    let error = contract::weapons::resolve_weapons(game["weapons"].clone())
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("short air-defence") && error.contains("intercept"),
+        "{error}"
+    );
+}

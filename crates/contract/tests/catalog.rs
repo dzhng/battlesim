@@ -105,6 +105,56 @@ fn air_mobility_defaults_to_low_air_and_can_author_high_air() {
 }
 
 #[test]
+fn aircraft_capability_carries_air_ranges_flares_afterburner_radar_and_refund() {
+    let mut aircraft = base_tank();
+    aircraft["abstract"] = json!(false);
+    aircraft["mobility"] = json!({
+        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air" }
+    });
+    aircraft["sensors"] = json!({
+        "ground_m": 500, "low_air_m": 1500, "high_air_m": 3000,
+        "sight_shape": { "front": 1, "side": 0.8, "rear": 0.5 }
+    });
+    aircraft["capabilities"] = json!({ "air": {
+        "fuel_capacity_s": 180,
+        "flares": { "capacity": 6, "reload_s": 18 },
+        "afterburner": {},
+        "radar": { "emits": false, "detection_m": 0 },
+        "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
+    }});
+    let catalog = resolve(&units(json!({ "aircraft": aircraft }))).unwrap();
+    let t = catalog.by_id("aircraft");
+    assert_eq!(t.sensors.high_air_m, 3000.0);
+    assert_eq!(
+        t.capabilities
+            .air
+            .as_ref()
+            .unwrap()
+            .afterburner
+            .unwrap()
+            .speed_multiplier,
+        1.5
+    );
+}
+
+#[test]
+fn aircraft_refund_weights_must_sum_to_one() {
+    let mut aircraft = base_tank();
+    aircraft["abstract"] = json!(false);
+    aircraft["mobility"] = json!({
+        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air" }
+    });
+    aircraft["capabilities"] = json!({ "air": {
+        "fuel_capacity_s": 180,
+        "refund": { "health": 0.6, "ammunition": 0.3, "fuel": 0.3 }
+    }});
+    let error = resolve(&units(json!({ "aircraft": aircraft })))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("refund weights"), "{error}");
+}
+
+#[test]
 fn concealed_detection_bonus_cannot_reduce_ordinary_sight() {
     for multiplier in [0.5, 0.0, -1.0] {
         let mut base = base_tank();

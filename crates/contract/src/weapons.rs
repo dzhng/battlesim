@@ -68,6 +68,27 @@ pub struct WeaponDefinition {
     /// bullets do not inherit eligibility from penetration or guidance.
     #[serde(default)]
     pub interceptable: bool,
+    /// Optional seeker mounted on a guided air weapon. A seeker is authored
+    /// separately from launcher guidance so fire-and-forget rows are explicit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seeker: Option<SeekerSupport>,
+    /// Forward seeker cone in degrees. It is required when a seeker exists.
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "fov_deg")]
+    pub seeker_fov_deg: Option<f64>,
+    /// Whether a seeker can be diverted by an aircraft flare.
+    #[serde(default)]
+    pub decoyable: bool,
+    /// A missile target class this row may intercept. Interception is an
+    /// authored weapon property, never inferred from penetration or guidance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interception: Option<InterceptionTargetClass>,
+    /// Air-defence tier metadata used for cross-row admission checks.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        alias = "air_defense_tier"
+    )]
+    pub aa_tier: Option<crate::catalog::AirDefenseTier>,
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
@@ -77,6 +98,20 @@ pub struct WeaponDefinition {
     /// wider spread than along the ground; a tank gun, a grenade or a ground
     /// missile cannot. A layer it does not list, it never engages.
     pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SeekerSupport {
+    Infrared,
+    Radar,
+    Optical,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InterceptionTargetClass {
+    Missile,
 }
 
 /// How a weapon fires at one altitude layer. Each value it leaves out is
@@ -293,6 +328,53 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     }
                     if def.ballistics.turn_deg_s.is_some() != def.ballistics.guidance.is_some() {
                         return Err(serde::de::Error::custom("a guided row (turn_deg_s) states its guidance, and only a guided row"));
+                    }
+                    if def.seeker.is_some() != def.seeker_fov_deg.is_some() {
+                        return Err(serde::de::Error::custom(
+                            "a seeker row must author seeker_fov_deg, and only a seeker row",
+                        ));
+                    }
+                    if def.seeker_fov_deg.is_some_and(|fov| {
+                        !fov.is_finite() || !(fov > 0.0 && fov <= 360.0)
+                    }) {
+                        return Err(serde::de::Error::custom(
+                            "seeker_fov_deg must be finite and in (0, 360]",
+                        ));
+                    }
+                    if def.interception.is_some() && def.ballistics.guidance.is_none() {
+                        return Err(serde::de::Error::custom(
+                            "an interception row must be guided",
+                        ));
+                    }
+                    if matches!(def.aa_tier, Some(crate::catalog::AirDefenseTier::Short))
+                        && def.interception.is_some()
+                    {
+                        return Err(serde::de::Error::custom(
+                            "short air-defence missile rows cannot intercept missiles",
+                        ));
+                    }
+                    if let Some(tier) = def.aa_tier {
+                        use crate::catalog::AltitudeLayer::{HighAir, LowAir};
+                        match tier {
+                            crate::catalog::AirDefenseTier::Short
+                            | crate::catalog::AirDefenseTier::Medium
+                                if !def.targets.contains_key(&LowAir)
+                                    && !def.targets.contains_key(&HighAir) =>
+                            {
+                                return Err(serde::de::Error::custom(
+                                    "short or medium air-defence rows must target an air layer",
+                                ));
+                            }
+                            crate::catalog::AirDefenseTier::Long
+                                if !def.targets.contains_key(&HighAir)
+                                    || def.targets.contains_key(&LowAir) =>
+                            {
+                                return Err(serde::de::Error::custom(
+                                    "long air-defence rows must target HighAir only",
+                                ));
+                            }
+                            _ => {}
+                        }
                     }
                     if let Some(m) = def.magazine {
                         if m.rounds < 2 || !m.shot_interval_s.is_finite() || m.shot_interval_s <= 0.0
