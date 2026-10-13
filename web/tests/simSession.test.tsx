@@ -60,17 +60,21 @@ test("ticks published within one frame render once, the latest, while each is st
     ]),
     9,
   );
-  let worker: { onmessage: ((event: MessageEvent<Reply>) => void) | null } | null = null;
+  let worker: {
+    onmessage: ((event: MessageEvent<Reply>) => void) | null;
+    postMessage(): void;
+    terminate(): void;
+  } | null = null;
   vi.stubGlobal(
     "Worker",
     class {
-      onmessage = null;
-      onerror = null;
       constructor() {
-        worker = this;
+        return (worker = {
+          onmessage: null,
+          postMessage() {},
+          terminate() {},
+        });
       }
-      postMessage() {}
-      terminate() {}
     },
   );
   const frames: FrameRequestCallback[] = [];
