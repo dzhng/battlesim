@@ -1013,11 +1013,12 @@ export function LabViewport({
                   scene.setPresentationWorld(world);
                 }
               }
-              // The stats calls may grow memory: the views are taken after them.
+              // A new ground's tables and the stats calls may grow memory:
+              // the views are taken after them.
+              scene.setPresentedGround(decoder.presentedGround());
               walk = decoder.buildingWalk();
               scenery = decoder.sceneryWalk();
               views = decoder.lastFrame();
-              scene.setPresentedGround(decoder.presentedGround());
             }
             if (views) scene.setCamera(views);
             if (scene.setStaticFrame(decoder ? views : null, { buildings: walk, scenery }))
