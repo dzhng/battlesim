@@ -25,7 +25,10 @@ export function downloadScenarioBundle(canonicalJson: string, filename = "scenar
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
-  queueMicrotask(() => URL.revokeObjectURL(url));
+  // Let Chromium finish consuming the object URL before releasing it. A
+  // microtask can cancel the download before Playwright or the browser has
+  // opened its stream.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 export interface ScenarioBundleIdentity {
