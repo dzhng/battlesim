@@ -1158,3 +1158,14 @@ The uploads are unchanged: `fog_sight.rs` still matches word for word.
 | Benchmark under the GPU lock (load average 8–10) | 9.1 FPS, CPU p95 164 ms | 12.6 FPS, CPU p95 102 ms |
 
 What remains is inherent to the schedule the vectors pin: up to 48 eyes rebuilt each frame (their searches and the sectors' `atan2`/`asin`) and the whole-fog rows.
+
+**Against the TypeScript it replaced** (the same 10 s CDP profile on `city-contact`, frames counted by `getCurrentTexture`):
+
+| | Fog's main-thread cost in 10 s | Frames | Per frame |
+| --- | --- | --- | --- |
+| TypeScript (`b7096267f^`) | 3,814 ms | 164 | about 23 ms |
+| Rust, after this fix | 2,321 ms | 258 | about 9 ms |
+
+So fog now costs less than the TypeScript did. The rest of the main thread in both profiles is React and the battle overlays (`BattleView`, `battleOverlay`), not fog.
+
+A rerun of the benchmark under the GPU lock (load average 5–8) passed every check, including "the simulation advanced in real time": 13.2 FPS, with a CPU p95 of 147 ms that swings run to run.
