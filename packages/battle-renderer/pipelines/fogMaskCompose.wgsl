@@ -20,7 +20,7 @@ struct FogMaskView {
 
 @group(0) @binding(1) var<uniform> view: FogMaskView;
 
-struct FogStyleUniform {
+struct FogLook {
   tint: vec3f,
   dim: f32,
   cool: f32,
@@ -38,11 +38,11 @@ struct FogStyleUniform {
   reachPx: f32,
 }
 
-@group(0) @binding(0) var<uniform> look: FogStyleUniform;
+@group(0) @binding(0) var<uniform> look: FogLook;
 
 @group(0) @binding(4) var distance_1: texture_2d<f32>;
 
-fn fogLook(lit: vec3f, pixel: vec2f, s: FogStyleUniform) -> vec3f {
+fn fogLook(lit: vec3f, pixel: vec2f, s: FogLook) -> vec3f {
   let lum = dot(lit, vec3f(0.2126, 0.7152, 0.0722));
   let kept = mix(vec3f(lum), lit, s.saturation);
   let c = mix(kept, lum * s.tint, s.cool) * s.dim;

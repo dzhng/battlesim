@@ -1,12 +1,11 @@
 //! The uniforms Rust hands a pipeline are the structs its shader declares:
-//! every field of the presentation's light and fog records sits at the offset of the
-//! exported WGSL's member of the same name, and the records span the struct.
-//! A renderer uploads the record's bytes as they are.
+//! every field of a struct record sits at the offset of the exported WGSL's
+//! member of the same name, and the record spans the struct. The struct
+//! records' schemas are generated (`records.gen.ts`); the records carried
+//! inside a struct the browser composes are checked here by hand. A renderer
+//! uploads the record's bytes as they are.
 use naga::{Module, TypeInner};
-use presentation::records::{
-    Aerial, Bloom, Camera, FogBox, FogEye, FogLook, FogParams, Grade, Layout, SkyLight, Sun,
-    SunShadow, View,
-};
+use presentation::records::{camel, Binding, Layout, Sun, View, LAYOUTS};
 use std::fs;
 
 fn module(file: &str) -> Module {
@@ -34,23 +33,8 @@ fn members(module: &Module, name: &str) -> (Vec<(String, u32)>, u32) {
     )
 }
 
-fn camel(snake: &str) -> String {
-    let mut out = String::new();
-    let mut upper = false;
-    for c in snake.chars() {
-        match c {
-            '_' => upper = true,
-            c if upper => {
-                out.push(c.to_ascii_uppercase());
-                upper = false;
-            }
-            c => out.push(c),
-        }
-    }
-    out
-}
-
-/// The record's fields from `first` on, by WGSL name, at offsets from it.
+/// The record's fields from the first named `prefix…` on, by WGSL name, at
+/// offsets from it.
 fn fields(layout: &Layout, prefix: &str) -> Vec<(String, u32)> {
     let base = layout
         .fields
@@ -67,45 +51,29 @@ fn fields(layout: &Layout, prefix: &str) -> Vec<(String, u32)> {
 }
 
 #[test]
-fn the_uniform_records_are_the_shaders_structs() {
-    for (file, name, layout) in [
-        ("bake.wgsl", "SkyLight", &SkyLight::LAYOUT),
-        ("background.wgsl", "SkyLight", &SkyLight::LAYOUT),
-        ("bloomHighpass.wgsl", "Bloom", &Bloom::LAYOUT),
-        ("bloomComposite.wgsl", "Bloom", &Bloom::LAYOUT),
-        ("postLook.wgsl", "Grade", &Grade::LAYOUT),
-        ("worldOpaque.wgsl", "Aerial", &Aerial::LAYOUT),
-        ("effects.wgsl", "Aerial", &Aerial::LAYOUT),
-        ("fogMaskRows.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
-        ("fogMaskColumns.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
-        ("fogMaskCompose.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
-        ("fogMaskRim.wgsl", "FogStyleUniform", &FogLook::LAYOUT),
-        ("worldPrepass.wgsl", "Camera", &Camera::LAYOUT),
-        ("worldTerrain.wgsl", "Camera", &Camera::LAYOUT),
-        ("worldTerrain.wgsl", "SunShadow", &SunShadow::LAYOUT),
-        ("worldOpaque.wgsl", "SunShadow", &SunShadow::LAYOUT),
-    ] {
-        let (want, span) = members(&module(file), name);
-        assert_eq!(fields(layout, ""), want, "{file} {name}");
-        assert_eq!(layout.size as u32, span, "{file} {name} size");
-    }
-}
-
-#[test]
-fn fog_s_sight_records_are_the_shaders_structs() {
-    for (file, name, layout) in [
-        ("fogMerge.wgsl", "FogParams", &FogParams::LAYOUT),
-        ("worldTerrain.wgsl", "FogParams", &FogParams::LAYOUT),
-        ("fogMerge.wgsl", "FogEyeRecord", &FogEye::LAYOUT),
-        ("fogMerge.wgsl", "FogBox", &FogBox::LAYOUT),
-    ] {
-        let (members, span) = members(&module(file), name);
-        let want: Vec<_> = members
-            .into_iter()
-            .filter(|(n, _)| !n.starts_with("pad"))
-            .collect();
-        assert_eq!(fields(layout, ""), want, "{file} {name}");
-        assert_eq!(layout.size as u32, span, "{file} {name} size");
+fn every_struct_record_is_the_shaders_struct() {
+    let modules: Vec<(String, Module)> = fs::read_dir(pipelines::DIR)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().into_string().unwrap())
+        .filter(|f| f.ends_with(".wgsl"))
+        .map(|f| (f.clone(), module(&f)))
+        .collect();
+    for layout in LAYOUTS.iter().filter(|l| l.binding == Binding::Struct) {
+        let mut found = 0;
+        for (file, module) in &modules {
+            if !module
+                .types
+                .iter()
+                .any(|(_, t)| t.name.as_deref() == Some(layout.name))
+            {
+                continue;
+            }
+            let (want, span) = members(module, layout.name);
+            assert_eq!(fields(layout, ""), want, "{file} {}", layout.name);
+            assert_eq!(layout.size as u32, span, "{file} {} size", layout.name);
+            found += 1;
+        }
+        assert!(found > 0, "no shader declares {}", layout.name);
     }
 }
 

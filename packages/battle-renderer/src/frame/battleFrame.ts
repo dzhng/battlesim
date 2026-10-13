@@ -19,7 +19,7 @@ import { tgpu } from "typegpu";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { BattleFrame, FrameView, SceneInstance, WorldLayers } from "../scene";
-import { Camera, typegpuCameraLayout } from "../world/camera";
+import { typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
 import { frameCamera } from "../frameCamera";
 import { battleWorldDepth } from "../worldDepth";
@@ -40,7 +40,7 @@ import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
-import { FrameHeader } from "../records.gen";
+import { Camera, FrameHeader } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
 const EMPTY = new Float32Array(0);

@@ -1,5 +1,4 @@
 import {
-  SunShadow,
   shadowVisibility,
   sunShadowEntries,
   sunShadowSampleBodyWgsl,
@@ -12,11 +11,11 @@ import { createTypegpuSky } from "./sky";
 import { createTypegpuPmrem } from "./pmrem";
 import { samplePmrem } from "./pmremSampling";
 import { standardPbrWgsl } from "../shaders/standardPbr";
-import { Aerial, aerialWgsl } from "../shaders/aerial";
+import { aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
 import { shadeEnvironmentWgsl } from "../shaders/environment";
-import { CAST_LIGHTS_MAX } from "../records.gen";
+import { Aerial, CAST_LIGHTS_MAX, SunShadow } from "../records.gen";
 import {
   CAST_ALBEDO_FLOOR,
   CAST_ALBEDO_GREY,

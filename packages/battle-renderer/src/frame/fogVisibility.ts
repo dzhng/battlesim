@@ -24,6 +24,9 @@ import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";
 import type { TerrainGrid } from "../terrain/terrainGrid";
 import {
+  FogBox,
+  FogEye,
+  FogParams,
   FOLIAGE_STEP,
   FOG_BOX_WORDS,
   FOG_EYE_WORDS,
@@ -31,10 +34,8 @@ import {
   WHOLE_TEXTURE_WIDTH,
 } from "../records.gen";
 import {
-  FogEyeRecord,
   FogLayer,
   GroundPaintStyle,
-  FogParams,
   fogBinEdge,
   fogLayout,
   fogSeenSurface,
@@ -51,9 +52,6 @@ const WORD = 4;
 const PROBE_BYTES = 32;
 const BUILD_WORKGROUP = 64;
 
-const FogBox = d
-  .struct({ center: d.vec2f, half: d.vec2f, yaw: d.f32, top: d.f32, base: d.f32, pad1: d.f32 })
-  .$name("FogBox");
 const FogProbe = d
   .struct({ position: d.vec3f, ground: d.u32, normal: d.vec3f, pad: d.u32 })
   .$name("FogProbe");
@@ -61,7 +59,7 @@ const FogProbe = d
 const words = (n: number) => d.arrayOf(d.u32, n);
 const buildLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["compute"] },
-  eyes: { storage: (n: number) => d.arrayOf(FogEyeRecord, n), access: "readonly" },
+  eyes: { storage: (n: number) => d.arrayOf(FogEye, n), access: "readonly" },
   heights: { storage: (n: number) => d.arrayOf(d.u32, n), access: "readonly" },
   foliage: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
   occluders: { storage: (n: number) => d.arrayOf(FogBox, n), access: "readonly" },
@@ -73,7 +71,7 @@ const buildLayout = tgpu.bindGroupLayout({
 });
 const cullLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["compute"] },
-  eyes: { storage: (n: number) => d.arrayOf(FogEyeRecord, n), access: "readonly" },
+  eyes: { storage: (n: number) => d.arrayOf(FogEye, n), access: "readonly" },
   depth: { texture: d.textureDepthMultisampled2d(), visibility: ["compute"] },
   lists: { storage: words, access: "mutable" },
   counts: { storage: (n: number) => d.arrayOf(d.atomic(d.u32), n), access: "mutable" },

@@ -7,24 +7,9 @@ import { SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
 import { tgpu, d, type TgpuCommandEncoder, type TgpuRenderPass } from "typegpu";
 import { shadowPcfWgsl, shadowVisibilityWgsl, sunShadowSampleWgsl } from "../shaders/shadow";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
-import { Camera, typegpuCameraLayout } from "./camera";
-import { CAMERA_WORDS, SUN_CASCADES } from "../records.gen";
+import { typegpuCameraLayout } from "./camera";
+import { Camera, CAMERA_WORDS, SUN_CASCADES, SunShadow } from "../records.gen";
 import type { LightPresentation } from "../light/sceneLight";
-
-/** One cascade's receiver record, as a typed schema: the shared 96-byte layout
- * of `SunCascade` expressed once for TypeGPU instead of a WGSL struct string. */
-export const SunCascade = d.struct({
-  matrix: d.mat4x4f,
-  bias: d.vec4f,
-  interval: d.vec4f,
-});
-/** The world's fixed receiver block — every shadow receiver's only uniform.
- * The record count is the cascade policy's, so the typed schema and the
- * shared WGSL block describe the same bytes. */
-export const SunShadow = d.struct({
-  cascades: d.arrayOf(SunCascade, SUN_CASCADES),
-  control: d.vec4f,
-});
 
 /** The receiver binding shape, owned once: the world environment group
  * spreads these entries. */

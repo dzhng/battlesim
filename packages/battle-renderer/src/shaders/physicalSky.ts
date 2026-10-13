@@ -30,46 +30,6 @@ export const equirectUvWgsl = `(direction: vec3f) -> vec2f {
     asin(clamp(direction.y, -1.0, 1.0)) * ${f(1 / Math.PI)} + 0.5);
 }`;
 
-/** The sky's per-battle numbers, each one a value the WGSL once had spliced in. */
-export const SkyLight = d.struct({
-  /** Unit vector toward the sun (z up). */
-  sunDirection: d.vec3f,
-  overcast: d.f32,
-  /** Max-channel-normalised transmittance toward the sun. */
-  sunTransmittance: d.vec3f,
-  /** `presentation.light.sky.radiance`. */
-  radiance: d.f32,
-  /** The lower hemisphere's ground bounce, greyed by overcast. */
-  groundTint: d.vec3f,
-  mieScatter: d.f32,
-  mieExtinction: d.f32,
-  /** The multiple-scattering floor's share for this sun. */
-  multipleScatter: d.f32,
-  /** The low sun's aureole strength. */
-  aureole: d.f32,
-  /** The overcast dome's brightness for this sun. */
-  overcastScale: d.f32,
-  /** The sun disc's radiance through the overcast. */
-  discRadiance: d.f32,
-  /** The cloud layer's height over its mass size. */
-  cloudReach: d.f32,
-  /** Cloud density's smoothstep edges, either side of the coverage threshold. */
-  cloudEdge: d.vec2f,
-  /** A step across the layer toward the sun. */
-  cloudToSun: d.vec2f,
-  /** The coverage threshold, and where the sunward shadow and the thick core saturate. */
-  cloudLow: d.f32,
-  cloudShadowTop: d.f32,
-  cloudCoreTop: d.f32,
-  cloudOpacity: d.f32,
-  /** A sunlit top's radiance. */
-  cloudLit: d.vec3f,
-  /** The silver lining's radiance. */
-  cloudSilver: d.f32,
-  /** A shaded base's radiance, before the sky shows through it. */
-  cloudBase: d.vec3f,
-});
-
 const R0 = sky.PLANET_RADIUS_KM + sky.EYE_ALTITUDE_KM;
 const G2 = sky.MIE_G * sky.MIE_G;
 export const skyRadianceWgsl = `(dirIn: vec3f) -> vec3f {
