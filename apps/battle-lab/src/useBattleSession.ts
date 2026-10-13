@@ -85,7 +85,7 @@ import { factionVoices } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { frameCounts, presentationWorld, presentedCamera } from "./presentedFrame";
 import { gameLight } from "./gameLight";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
-import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
+import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
 import { describeBuildings } from "./benchmark/propPresentation";

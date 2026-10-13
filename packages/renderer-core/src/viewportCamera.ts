@@ -1,66 +1,21 @@
-// Adapted from ~/dev/game renderer-core/src/cameraUniform.ts:
-// the camera uniform every world, shadow and overlay shader binds at group 0.
-// Local changes: `liveCamera` is exported (the source's private `realParams`)
-// for CPU picking, the unused screen-space helpers are dropped, and a frame's
-// camera is the presentation's (`Frame.camera`, `crates/presentation`): the
-// packer here writes a camera the page poses itself (an impostor bake's).
+// The live camera of a viewport: the orbit camera and the pixels it is drawn
+// into. The presentation frames it (`presentedCamera`) and CPU picking reads
+// it, both through `liveCamera`, so a resize moves the projection in one place.
+// `liveCamera` is adapted from ~/dev/game renderer-core/src/cameraUniform.ts
+// (its private `realParams`).
 import type { Camera3DParams } from "./camera3d";
 
 /** The projection camera and the viewport it is drawn into. */
 export interface ViewportCamera {
-  /** The real 3D perspective camera (camera3d) — the ONE projection owner.
-   *  `aspect` is overridden by the live width/height so the projection follows
-   *  every resize with a single owner. */
+  /** The real 3D perspective camera (camera3d). `aspect` is overridden by the
+   *  live width/height so the projection follows every resize. */
   camera3d: Camera3DParams;
   /** Viewport in device pixels. */
   width: number;
   height: number;
 }
 
-// Packed layout of `struct Camera` (battle-renderer world/camera.ts),
-// WGSL 16-byte alignment. Float offsets:
-//   0..15  viewProj (mat4x4, 64B)
-//  16..31  invViewProj (mat4x4, 64B)
-//  32..34  eye (vec3, padded to 16B by znear)
-//  35      znear
-//  36      width
-//  37      height
-//  38      time
-//  39      pad (struct rounds up to 40 floats / 160 bytes)
-export const CAMERA_UNIFORM_FLOATS = 40;
-export const CAMERA_UNIFORM_BYTES = CAMERA_UNIFORM_FLOATS * 4;
-const VIEW_PROJ_OFFSET = 0;
-const INV_VIEW_PROJ_OFFSET = 16;
-const EYE_OFFSET = 32;
-const ZNEAR_OFFSET = 35;
-const WIDTH_OFFSET = 36;
-const HEIGHT_OFFSET = 37;
-const TIME_OFFSET = 38;
-
-/** camera3d params with aspect pinned to the live viewport: what the
- *  presentation frames (`presentedCamera`) and CPU picking reads. */
+/** camera3d params with aspect pinned to the live viewport. */
 export function liveCamera(camera: ViewportCamera): Camera3DParams {
   return { ...camera.camera3d, aspect: camera.width / Math.max(1, camera.height) };
-}
-
-/** Packs a camera given by its matrices (an impostor bake's view) into
- *  `data` (`CAMERA_UNIFORM_FLOATS` long) and returns it. */
-export function packCameraUniform<T extends Float32Array>(
-  data: T,
-  viewProj: ArrayLike<number>,
-  inverse: ArrayLike<number>,
-  eye: ArrayLike<number>,
-  near: number,
-  width: number,
-  height: number,
-  time: number,
-): T {
-  data.set(viewProj, VIEW_PROJ_OFFSET);
-  data.set(inverse, INV_VIEW_PROJ_OFFSET);
-  data.set(eye, EYE_OFFSET);
-  data[ZNEAR_OFFSET] = near;
-  data[WIDTH_OFFSET] = width;
-  data[HEIGHT_OFFSET] = height;
-  data[TIME_OFFSET] = time;
-  return data;
 }

@@ -10,7 +10,7 @@ import {
   viewProjMatrix,
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
-import { liveCamera } from "@packages/renderer-core/src/cameraUniform";
+import { liveCamera } from "@packages/renderer-core/src/viewportCamera";
 import { plateShot, sampleReel, type BackdropScene } from "../menuReel";
 import type { ScriptedSim } from "../useSimSession";
 import type { FramePlate, ViewportPilot } from "../LabViewport";

@@ -26,7 +26,7 @@ import {
   type Camera3DParams,
   type WorldRay,
 } from "@packages/renderer-core/src/camera3d";
-import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
+import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { readTexturePng } from "@packages/renderer-core/src/textureReadback";
 import {
   CAMERA_KEYS,

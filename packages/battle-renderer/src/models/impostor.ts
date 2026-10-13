@@ -15,14 +15,10 @@
 import { tgpu } from "typegpu";
 import { mat4, vec3, type Mat4, type Vec3 } from "math";
 import { orthographicReverseZ } from "@packages/renderer-core/src/camera3d";
-import {
-  CAMERA_UNIFORM_FLOATS,
-  packCameraUniform,
-} from "@packages/renderer-core/src/cameraUniform";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import { typegpuCameraLayout } from "../world/camera";
-import { Camera } from "../records.gen";
+import { Camera, CAMERA_WORDS, CameraAt } from "../records.gen";
 import { battleWorldDepth } from "../worldDepth";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
 import type { GpuRegistry } from "../frame/registry";
@@ -224,16 +220,10 @@ export function createImpostorBaker(
           usage: 0x10,
         });
         const cameras = frame.views.map((view) => {
-          const data = packCameraUniform(
-            new Float32Array(CAMERA_UNIFORM_FLOATS),
-            view.viewProj,
-            mat4.invert(mat4.create(), view.viewProj) ?? mat4.create(),
-            view.eye,
-            0,
-            0,
-            0,
-            0,
-          );
+          const data = new Float32Array(CAMERA_WORDS);
+          data.set(view.viewProj, CameraAt.view_proj);
+          data.set(mat4.invert(mat4.create(), view.viewProj) ?? mat4.create(), CameraAt.inv_view_proj);
+          data.set(view.eye, CameraAt.eye);
           const buffer = scope.own(root.createBuffer(Camera).$usage("uniform"));
           buffer.write(data.buffer);
           return root.createBindGroup(typegpuCameraLayout, { cam: buffer });

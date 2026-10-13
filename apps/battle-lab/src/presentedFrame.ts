@@ -5,7 +5,7 @@
 import { Counts, EFFECT_WORDS } from "@packages/battle-renderer/src/records.gen";
 import { MIN_TARGET_PX } from "@packages/battle-renderer/src/frame/battleFrame";
 import type { PresentedCamera, PresentedFrame } from "@web/battle/sim/presentation";
-import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
+import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { eyePosition } from "@packages/renderer-core/src/camera3d";
 import { vec3 } from "math";
 import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
