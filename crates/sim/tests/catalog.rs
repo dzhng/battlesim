@@ -622,6 +622,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         let mut b = battle(&fixture, id, json!([]));
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
+            slot: None,
             seq: 1,
             order: Order::Move {
                 units: vec![UnitId(0)],

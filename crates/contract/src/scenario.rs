@@ -1208,9 +1208,31 @@ pub struct ScriptedOrder {
     pub queued: bool,
 }
 
+/// Executable authored behavior carried inside a portable scenario projection.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuthoredScript {
+    pub id: String,
+    pub source: String,
+    #[serde(default = "default_script_side")]
+    pub side: Side,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slot: Option<String>,
+}
+
+fn default_script_side() -> Side {
+    Side::Blue
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct UnitSetup {
     pub side: Side,
+    /// Scenario-bundle player slot that owns this unit. Legacy authored
+    /// encounters omit it and remain side-owned; portable bundles materialize
+    /// it before the battle starts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
     /// The unit type's catalog id.
     pub kind: String,
     pub position: [f64; 2],
@@ -1257,6 +1279,7 @@ fn is_zero(v: &f64) -> bool {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ScenarioDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skirmish: Option<crate::skirmish::SkirmishSetup>,
@@ -1267,6 +1290,10 @@ pub struct ScenarioDefinition {
     pub events: Vec<ScenarioEvent>,
     #[serde(default)]
     pub scripts: Vec<ScriptedOrder>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub authored_scripts: Vec<AuthoredScript>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub victory: Option<String>,
     /// An observation-bound opponent playing one side (the encounter defender).
     #[serde(default)]
     pub opponent: Option<Opponent>,
@@ -1302,6 +1329,8 @@ impl EncounterDefinition {
             units: self.units,
             events: self.events,
             scripts: self.scripts,
+            authored_scripts: Vec::new(),
+            victory: None,
             opponent: self.opponent,
             encounter: self.encounter,
         }

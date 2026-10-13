@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scenario builder roadmap</title>
+<style>
+  :root { color-scheme: dark; --bg:#0d1117; --card:#151c25; --line:#2a3543; --ink:#e7edf4; --muted:#9caabd; --blue:#5ea7ff; --green:#63d6a0; --amber:#f4bd63; --red:#ff7d82; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui,sans-serif; }
+  h1 { margin:0 0 6px; font-size:24px; letter-spacing:-.02em; }
+  .sub { color:var(--muted); margin-bottom:22px; }
+  .rail { display:grid; gap:10px; }
+  .row { display:grid; grid-template-columns:58px 1fr; gap:12px; align-items:stretch; }
+  .num { color:var(--muted); padding-top:14px; font:12px ui-monospace,monospace; }
+  .card { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--blue); border-radius:10px; padding:12px 14px; }
+  .card.risk { border-left-color:var(--red); }
+  .card.ui { border-left-color:var(--green); }
+  .card.close { border-left-color:var(--amber); }
+  .title { font-weight:700; margin-bottom:3px; }
+  .detail { color:var(--muted); }
+  .tag { display:inline-block; margin-left:8px; padding:2px 6px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:11px; }
+  .legend { display:flex; gap:14px; color:var(--muted); margin-top:18px; font-size:12px; }
+  .dot { width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:5px; }
+</style>
+<main>
+  <h1>Scenario builder · implementation ladder</h1>
+  <div class="sub">Portable self-contained exports → normal runtime upload/play · hard cutover · no hidden persistence</div>
+  <section class="rail">
+    <div class="row"><div class="num">00</div><div class="card risk"><div class="title">Side topology and controller spike <span class="tag">kill / keep</span></div><div class="detail">Run Blue/Red/Neutral and a 4+ side FFA candidate through contract, Battle, WASM, publication, browser decoding, AI takeover, passive slots, and replay.</div></div></div>
+    <div class="row"><div class="num">01</div><div class="card"><div class="title">Canonical ScenarioBundle</div><div class="detail">Freeze resolved map/rules/catalog bytes, slot ownership, scripts, hashes, embedded user assets, limits, and deterministic container.</div></div></div>
+    <div class="row"><div class="num">02</div><div class="card"><div class="title">Offline admission</div><div class="detail">Upload bytes construct PreparedWorld and one frame without fixtures or generator lookup; validate map dependencies and audio.</div></div></div>
+    <div class="row"><div class="num">03–04</div><div class="card"><div class="title">Player slots and controllers</div><div class="detail">Per-slot unit ownership, one active human, active/passive AI, neutral self-defense, deterministic takeover and replay.</div></div></div>
+    <div class="row"><div class="num">05–06</div><div class="card risk"><div class="title">Script sandbox and modes</div><div class="detail">Prove deterministic bounded authored code, then integrate Sandbox/Economy and scripted victory without bypassing authority.</div></div></div>
+    <div class="row"><div class="num">07</div><div class="card ui"><div class="title">Tactical canvas builder</div><div class="detail">Common fields, placement, inspector, asset upload, validation, Download/Upload. Advanced source stays hand-authored.</div></div></div>
+    <div class="row"><div class="num">08</div><div class="card ui"><div class="title">Normal upload/play</div><div class="detail">The ordinary runtime loads the package, exposes one human slot, supports takeover, and plays bundled audio.</div></div></div>
+    <div class="row"><div class="num">09</div><div class="card close"><div class="title">Mixed-player acceptance and closeout</div><div class="detail">Fresh-context upload, passive/active slots, hidden-state proof, scripted result, replay identity, visual review, full checks.</div></div></div>
+  </section>
+  <div class="legend"><span><i class="dot" style="background:var(--red)"></i>architecture verdict</span><span><i class="dot" style="background:var(--blue)"></i>contract/runtime seam</span><span><i class="dot" style="background:var(--green)"></i>browser surface</span><span><i class="dot" style="background:var(--amber)"></i>acceptance</span></div>
+</main>
+</html>

@@ -51,7 +51,7 @@ fn shoot_down(map: Value, jeep: [f64; 2], others: Value) -> (Battle, V3, Vec<Fel
 /// A tick its crash fell: its yaw, and what each side's observation showed.
 struct Fell {
     yaw: f64,
-    seen: [Vec<FallingAirframe>; 2],
+    seen: [Vec<FallingAirframe>; 3],
 }
 
 /// The helicopter's wreck: (centre, base z, yaw).

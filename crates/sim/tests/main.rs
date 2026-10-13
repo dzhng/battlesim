@@ -56,6 +56,7 @@ mod road_journeys;
 mod route_planning;
 mod sensing;
 mod shouts;
+mod side_topology;
 mod sight;
 mod sight_gaps;
 mod skirmish;

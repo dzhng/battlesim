@@ -262,6 +262,7 @@ fn moving_or_firing_recipients_wait() {
     assert!(firing_seen, "a recipient firing this tick is not served");
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(1)],
@@ -371,6 +372,7 @@ fn a_moving_truck_serves_nobody() {
     assert!(hp > 50.0);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],
@@ -539,6 +541,7 @@ fn a_truck_on_the_move_serves_nobody() {
     run(&mut b, deploy_ticks() + 30);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],

@@ -21,6 +21,7 @@ export interface SimModule {
 export interface SimBattle {
   /** The publication layout: offsets, tags and this battle's round kinds. */
   observation_layout(): string;
+  set_controllers(controllersJson: string): void;
   accept(commandJson: string): string;
   preview_purchase(side: string, variant: string, x: number, y: number): string;
   preview_move(side: string, moveJson: string): string;
@@ -276,6 +277,9 @@ export function createAuthority(host: AuthorityHost): Authority {
         case "side":
           side = request.side;
           battle!.resync_observation();
+          return;
+        case "controllers":
+          battle!.set_controllers(request.controllers);
           return;
       }
       pump();

@@ -359,6 +359,7 @@ fn different_clicked_parts_claim_one_building_in_the_same_tick() {
     let mut b = Battle::new(&setup, 11);
     let order = |seq, unit, building| contract::command::CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq,
         queued: false,
         order: contract::command::Order::Garrison {
@@ -1068,6 +1069,7 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
     }
     let ack = b.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 2,
         queued: false,
         order: contract::command::Order::Garrison {
@@ -1339,6 +1341,7 @@ fn a_helicopter_ordered_onto_a_building_flies_there() {
     assert!(preview.destinations[0].placed);
     let ack = b.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: contract::command::Order::OccupyBuilding {
             units: vec![contract::ids::UnitId(0)],

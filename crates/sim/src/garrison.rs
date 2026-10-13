@@ -473,7 +473,7 @@ fn want(unit: &Unit) -> Want {
 /// fix the arrangement a leaving squad spreads into.
 pub fn advance(
     world: &WorldGeometry,
-    sides: &[crate::movement::SideGeometry; 2],
+    sides: &[crate::movement::SideGeometry; 3],
     authored: PropId,
     units: &mut [Unit],
     rules: &Rules,

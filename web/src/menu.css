@@ -85,7 +85,7 @@
   align-content: start;
 }
 .menu[data-open]:not([data-open="tutorial"]) .menu-slot {
-  min-height: var(--menu-home-height, 0px);
+  height: var(--menu-home-height, 0px);
 }
 .menu-body {
   width: min(560px, 100%);
@@ -435,6 +435,33 @@
   position: fixed;
   inset: 0;
   z-index: 10;
+  place-items: center;
+  justify-items: center;
+  padding: 24px;
+}
+.scenario-play-menu {
+  place-items: center;
+  justify-items: center;
+  padding: 24px;
+}
+.scenario-play-upload {
+  width: min(560px, 100%);
+}
+.scenario-play-upload .hud-menu-file {
+  min-width: 0;
+}
+.scenario-play-upload .scenario-upload-title {
+  display: block;
+}
+.scenario-play-upload .scenario-upload-copy {
+  display: block;
+  margin-top: 6px;
+  color: rgb(var(--hud-dim));
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+  text-transform: uppercase;
 }
 .loading-subject {
   overflow-wrap: anywhere;
@@ -455,16 +482,29 @@
   gap: 6px;
 }
 .loading-stages li {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: rgb(var(--hud-dim));
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.loading-stage-bar {
+  display: block;
   height: 6px;
   border: 1px solid rgb(var(--hud-accent) / 0.45);
 }
-.loading-stages li[data-state="done"] {
+.loading-stages li[data-state="done"] .loading-stage-bar {
   background: rgb(var(--hud-accent) / 0.85);
 }
-.loading-stages li[data-state="active"] {
+.loading-stages li[data-state="active"] .loading-stage-bar {
   background: rgb(var(--hud-accent) / 0.85);
   box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.7);
   animation: loading-pulse 1.1s ease-in-out infinite;
+}
+.loading-stages li[data-state="active"] .loading-stage-label {
+  color: rgb(var(--hud-text));
 }
 @keyframes loading-pulse {
   50% {

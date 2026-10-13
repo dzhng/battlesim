@@ -133,6 +133,8 @@ pub(crate) fn prepare_row(
         units: vec![],
         events: vec![],
         scripts: vec![],
+        authored_scripts: vec![],
+        victory: None,
         opponent: None,
         encounter: None,
     };

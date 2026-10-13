@@ -2,7 +2,7 @@
  * and the main-thread client: ordered commands, acknowledgements, and one
  * completed-tick publication per credit. There is no simulation-shaped proxy. */
 
-export type SideName = "blue" | "red";
+export type SideName = "blue" | "red" | "neutral";
 export type RoutePolicy = "shortest" | "fastest";
 /** Mirrors `contract::command::MoveDirection`: a reverse move backs along
  *  its route with the facing held (Q31). */
@@ -60,6 +60,8 @@ export type Order =
 
 export interface CommandEnvelope {
   side: SideName;
+  /** Player slot issuing the order in a slot-owned scenario. */
+  slot?: string;
   seq: number;
   order: Order;
   queued: boolean;
@@ -142,6 +144,8 @@ export type SimRequest =
       scenario: string;
       seed: number;
       side: SideName;
+      /** Player slot issuing commands for a slot-owned scenario. */
+      slot?: string;
       /** Replay these accepted commands instead of taking input. */
       replay?: string;
     }
@@ -178,6 +182,7 @@ export type SimRequest =
   /** Lab diagnostic: publish the other side's observation from now on. Its
    *  ground arrives as a new epoch's full snapshot. */
   | { type: "side"; side: SideName }
+  | { type: "controllers"; controllers: string }
   | { type: "dispose" };
 
 export type SimReply =

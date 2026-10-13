@@ -100,6 +100,7 @@ fn own(b: &Battle, id: u32) -> OwnUnit {
 fn send(b: &mut Battle, seq: u64, unit: u32, goal: [f64; 2]) {
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq,
         order: Order::Move {
             units: vec![UnitId(unit)],

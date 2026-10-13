@@ -153,7 +153,7 @@ impl Objectives {
                 }
             }
         }
-        for side in Side::ALL {
+        for side in Side::COMBATANTS {
             if self
                 .sites
                 .iter()

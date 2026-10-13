@@ -387,6 +387,7 @@ pub fn order(
 ) {
     let ack = b.accept(contract::command::CommandEnvelope {
         side,
+        slot: None,
         seq,
         order,
         queued: false,
@@ -414,6 +415,7 @@ impl Commander {
         self.seq[side.index()] += 1;
         b.accept(CommandEnvelope {
             side,
+            slot: None,
             seq: self.seq[side.index()],
             order,
             queued,

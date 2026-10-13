@@ -79,6 +79,7 @@ fn a_corridor_member_walks_round_idle_soldiers_while_his_squadmate_advances() {
     let scouts = [soldiers(&b, 1)[0], soldiers(&b, 2)[0]];
     let ack = b.accept(contract::command::CommandEnvelope {
         side: contract::ids::Side::Blue,
+        slot: None,
         seq: 1,
         queued: false,
         order: contract::command::Order::Move {

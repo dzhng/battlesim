@@ -9,7 +9,7 @@ import { admitScenario, presentationRules } from "@web/battle/catalog/sets";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
-import type { PreparedSession } from "@web/battle/prepare/client";
+import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -131,7 +131,7 @@ export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
   scenario: string;
   seed: number;
-  prepared?: PreparedSession;
+  prepared?: PreparedConnectionSession;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** A recorded battle to replay: input is off. */
@@ -140,6 +140,8 @@ export interface BattleSessionOptions {
   scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
+  /** Player slot issuing orders in a slot-owned scenario. */
+  slot?: string;
   /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
@@ -147,6 +149,8 @@ export interface BattleSessionOptions {
   /** Own units hidden by the world are drawn through it (the player's x-ray);
    *  off, the picture shows only what the camera sees. */
   xray?: boolean;
+  /** Uploaded resolved sandbox bundles may narrow art to their fielded map. */
+  scenarioArt?: boolean;
 }
 
 /** The rule values the scenario runs under (only what views read). Its
@@ -172,10 +176,12 @@ export function useBattleSession({
   replay,
   scripted,
   side = "blue",
+  slot,
   sound = false,
   inputEnabled = true,
   xray = true,
   prepared,
+  scenarioArt = false,
 }: BattleSessionOptions) {
   const appAudio = useAppAudio();
   const catalog = useSessionCatalog();
@@ -218,7 +224,16 @@ export function useBattleSession({
     },
     [audio, onDecoded],
   );
-  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
+  const sim = useSimSession({
+    scenario,
+    seed,
+    onDecoded: noteDecoded,
+    replay,
+    scripted,
+    prepared,
+    slot,
+    side,
+  });
   presentationRef.current = sim.client?.presentation ?? null;
   const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
   useEffect(() => {
@@ -241,6 +256,14 @@ export function useBattleSession({
     () => (requestedKindKey ? requestedKindKey.split("\0") : []),
     [requestedKindKey],
   );
+  const factionsForArt = useMemo(() => (skirmish ? new Set(skirmish.factions) : null), [skirmish]);
+  const sceneryForArt = useMemo(() => {
+    if (!scenarioArt) return undefined;
+    const candidate = map as { props?: unknown[]; forests?: unknown[] } | null;
+    return (candidate?.props?.length ?? 0) === 0 && (candidate?.forests?.length ?? 0) === 0
+      ? null
+      : undefined;
+  }, [map, scenarioArt]);
   // A shout heard in the open is a bark in its kind's set for its side's
   // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
   // those, only the sets of kinds fielded or identified load.
@@ -355,8 +378,10 @@ export function useBattleSession({
   const appearances = useMapAppearances(
     drawnBuildings?.placed ?? null,
     world?.exports.buildings.regionalFamily ?? null,
-    true,
+    (world?.exports.props.length ?? 0) > 0 || (drawnBuildings?.placed.template.length ?? 0) > 0,
     requestedKinds,
+    factionsForArt,
+    sceneryForArt,
   );
   // The ground, and the art its scenery and grass draw from; its props and
   // what the side knows of them (rubble, wrecks, shoved bodies where it last
@@ -365,8 +390,15 @@ export function useBattleSession({
     () =>
       world &&
       appearances &&
-      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", appearances),
-    [world, appearances],
+      buildWorldLayers(
+        world.exports,
+        world.layout,
+        gameBiome,
+        "surface",
+        appearances,
+        sceneryForArt !== null,
+      ),
+    [world, appearances, sceneryForArt],
   );
   const knownProps = observation?.knownProps;
   const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
@@ -472,9 +504,10 @@ export function useBattleSession({
             drawnBuildings.placed,
             true,
             installedUnitNames(appearances, units.appearancesFor(requestedKinds)),
+            skirmish !== undefined || world.exports.forests.length > 0,
           )
         : null,
-    [appearances, world, drawnBuildings, units, requestedKinds],
+    [appearances, world, drawnBuildings, units, requestedKinds, skirmish],
   );
   const modelAppearancesFeed = useFeed(modelAppearances);
 

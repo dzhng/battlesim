@@ -207,6 +207,7 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
         family: family.map(str::to_owned),
         detail: serde_json::from_value(presentation["models"].clone())
             .map_err(|e| format!("presentation.models: {e}"))?,
+        dynamic: true,
     })
 }
 

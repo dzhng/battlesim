@@ -22,7 +22,11 @@ import {
   testSources,
 } from "./synthetic";
 
-async function install(catalog: Catalog = testCatalog(), wearing?: ReadonlySet<string>) {
+async function install(
+  catalog: Catalog = testCatalog(),
+  wearing?: ReadonlySet<string>,
+  factions?: ReadonlySet<string> | null,
+) {
   const sources = testSources();
   const result = await bakeCatalog(catalog, async (path) => sources[path], {
     authority: AUTHORITY,
@@ -32,7 +36,7 @@ async function install(catalog: Catalog = testCatalog(), wearing?: ReadonlySet<s
     ["catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime))],
     ...result.files,
   ]);
-  return new AppearanceLibrary(memoryFetch(files, "/assets/")).load("/assets/", wearing);
+  return new AppearanceLibrary(memoryFetch(files, "/assets/")).load("/assets/", wearing, factions);
 }
 
 /** The synthetic units with the rifleman soldier kind wearing `set`, and a
@@ -61,6 +65,30 @@ test("a hull type draws its appearance and a squad its soldiers', tinted by the 
   // A type the catalog lacks, or a slot the squad lacks, draws nothing.
   expect(catalog.resolve("recon", "blue")).toBeNull();
   expect(catalog.resolve("rifle", "blue", 0, 7)).toBeNull();
+});
+
+test("a fielded unit set includes only the art worn by those units", () => {
+  const catalog = syntheticUnits();
+  expect([...catalog.appearancesFor(["rifle"])].sort()).toEqual(["rifleman"]);
+  expect([...catalog.appearancesFor(["tank"])].sort()).toEqual(["tank"]);
+});
+
+test("a sandbox without faction art does not load unused faction looks", async () => {
+  const base = testCatalog();
+  const installed = await install(
+    {
+      ...base,
+      appearances: {
+        ...base.appearances,
+        rifleman: { ...base.appearances.rifleman, factions: { eastern: "rifleman_eastern" } },
+        rifleman_eastern: { ...base.appearances.rifleman },
+      },
+    },
+    syntheticUnits().appearances,
+    null,
+  );
+  expect(installed.appearances.has("rifleman")).toBe(true);
+  expect(installed.appearances.has("rifleman_eastern")).toBe(false);
 });
 
 test("a soldier kind's set is picked by soldier id, so consecutive soldiers differ", async () => {

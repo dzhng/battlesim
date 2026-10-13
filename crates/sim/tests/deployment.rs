@@ -89,6 +89,7 @@ impl Commander {
         self.seq += 1;
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
+            slot: None,
             seq: self.seq,
             order,
             queued,
