@@ -22,7 +22,7 @@ use crate::fog::sight::{
 use crate::light::LightSettings;
 use crate::records::{
     Appearance as Row, Batch, Camera as CameraRecord, CastLight, Counts, Effect, Emitter, Instance,
-    Joint, Pick, View as ViewRecord, FOG_FACES, FOG_GROUND, FOG_UNITS, GHOST_PASS, NONE, VIEW_PASS,
+    Joint, Pick, View as ViewRecord, GHOST_PASS, NONE,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{sun_shadow, SunShadowFrame};
@@ -47,7 +47,7 @@ use crate::units::feed::ObservationFeed;
 use crate::units::interpolate::{FrameSample, TickInterpolator};
 use crate::units::pose::{Articulation, ClipBlend, Kick, PoseFrame};
 use crate::units::skin::{self, Mat4};
-use crate::view::{caster_tier, model_detail, Camera, View, CULLED, IMPOSTOR};
+use crate::view::{batch_caster, model_detail, model_fog, Camera, View, CULLED, IMPOSTOR};
 use crate::world::{
     bounds_size, Appearance, BattleInput, Bounds, Trs, UnitsSection, Vec3, WorldInput,
 };
@@ -1461,7 +1461,7 @@ impl Loaded {
             colour,
             palette,
             scroll,
-            fog: FOG_UNITS,
+            fog: model_fog(false, false, false),
         };
 
         // Soldiers, living and dying: a body's far bounds tier him.
@@ -1584,7 +1584,7 @@ impl Loaded {
             }
             // Remains are seen or unseen whole, as the ground under them.
             models.push(Model {
-                fog: FOG_GROUND,
+                fog: model_fog(true, false, false),
                 ..model(
                     row(name, "", c.lies as u32),
                     tier,
@@ -1663,11 +1663,9 @@ impl Loaded {
                 scroll,
             );
             m.scale = piece.scale.map(|v| v as f32);
-            // A thrown piece is the world's, face by face; the whole wreck
-            // still moving is posed as a unit is.
-            if piece.state.is_some() {
-                m.fog = FOG_FACES;
-            }
+            // A thrown piece is the world's; the whole wreck still moving is
+            // posed as a unit is.
+            m.fog = model_fog(false, piece.state.is_some(), false);
             models.push(m);
         }
         // Ghosts: where the UI's units will stand, at rest, in their colour.
@@ -1744,17 +1742,12 @@ fn batches(models: &mut [Model], f: &mut Frame) {
     models.sort_by_key(|m| (m.row, m.tier, m.pass));
     for run in models.chunk_by(|a, b| (a.row, a.tier, a.pass) == (b.row, b.tier, b.pass)) {
         let m = &run[0];
-        let casts = m.pass == VIEW_PASS && m.tier != IMPOSTOR as u32;
         f.batches.push(Batch {
             key: (m.row << 8) | (m.tier << 4) | m.pass,
             appearance: m.row,
             tier: m.tier,
             pass: m.pass,
-            caster: if casts {
-                caster_tier(m.tier as usize) as u32
-            } else {
-                NONE
-            },
+            caster: batch_caster(m.tier, m.pass),
             fog: m.fog,
             version: f.index,
             first: f.instances.len() as u32,

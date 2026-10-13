@@ -35,12 +35,12 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
-use crate::records::{FOG_FACES, FOG_PAINTED_FACES, VIEW_PASS};
+use crate::records::VIEW_PASS;
 use crate::seed::Key;
 use crate::static_world::batches::{List, Population};
 use crate::static_world::fallen::Known;
 use crate::static_world::walk::{Record, Shadow};
-use crate::view::{caster_tier, model_detail, View, CULLED, SHADOW_MARGIN_M, TIERS};
+use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MARGIN_M, TIERS};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use sim::publication::reader::KnownProp;
@@ -794,12 +794,11 @@ impl Population for PropPopulation {
                 pass: VIEW_PASS,
                 // A prop casts as a unit does: no caster lists of its own.
                 caster: caster_tier(tier) as u32,
-                // A surface movers stand on takes the ground's paint.
-                fog: if self.looks.list[k / TIERS].2 == DRAWS_PROP_GROUND {
-                    FOG_PAINTED_FACES
-                } else {
-                    FOG_FACES
-                },
+                fog: model_fog(
+                    false,
+                    true,
+                    self.looks.list[k / TIERS].2 == DRAWS_PROP_GROUND,
+                ),
                 records: list,
                 print: self.prints[k],
             });

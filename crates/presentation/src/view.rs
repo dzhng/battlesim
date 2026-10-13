@@ -6,7 +6,10 @@
 //! (`modelDetail.ts`): nothing off screen, one of four mesh tiers by
 //! projected height, or the impostor card; and what it casts with,
 //! [`caster_tier`].
-use crate::records::{Camera as CameraRecord, View as ViewRecord};
+use crate::records::{
+    Camera as CameraRecord, View as ViewRecord, FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES,
+    FOG_UNITS, NONE, VIEW_PASS,
+};
 use crate::shadow::{camera_record, invert, multiply, screen_ray, IDENTITY};
 use crate::world::{Detail, Vec3};
 
@@ -53,6 +56,29 @@ pub const TIERS: usize = 4;
 /// coarser, since a cascade texel is larger than the detail between tiers.
 pub fn caster_tier(tier: usize) -> usize {
     (tier + 1).min(TIERS - 1)
+}
+/// What a batch of models at `tier` drawn for `pass` casts with
+/// (`Batch.caster`): in view, [`caster_tier`]; an impostor card and a ghost
+/// nothing (`NONE`). A battle's models and a lab's own take it alike.
+pub fn batch_caster(tier: u32, pass: u32) -> u32 {
+    if pass == VIEW_PASS && tier != IMPOSTOR as u32 {
+        caster_tier(tier as usize) as u32
+    } else {
+        NONE
+    }
+}
+/// How fog of war takes a model (`Batch.fog`), by what it is: a posed body
+/// or a whole vehicle is a unit, drawn only while identified; remains
+/// (`lies`) are seen or unseen whole, as the ground under them; a model in a
+/// `state` (a building's piece, a prop, a thrown piece) is the world's faces,
+/// with the ground's paint when movers stand on it (`ground`).
+pub fn model_fog(lies: bool, state: bool, ground: bool) -> u32 {
+    match (lies, state, ground) {
+        (true, ..) => FOG_GROUND,
+        (_, false, _) => FOG_UNITS,
+        (_, true, true) => FOG_PAINTED_FACES,
+        (_, true, false) => FOG_FACES,
+    }
 }
 /// A model's sun shadow reaches this far past it.
 pub const SHADOW_MARGIN_M: f64 = 3.0;
@@ -297,4 +323,32 @@ pub fn model_detail(
 pub fn building_tier(view: &View, distance: f64, lod: &[f64; 3]) -> usize {
     let px = view.pixels_per_metre / distance.max(1e-3);
     lod.iter().position(|&t| px > t).unwrap_or(lod.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::records::GHOST_PASS;
+
+    #[test]
+    fn a_model_in_view_casts_from_the_next_coarser_tier_and_a_card_or_ghost_casts_nothing() {
+        assert_eq!(batch_caster(0, VIEW_PASS), 1);
+        assert_eq!(batch_caster(2, VIEW_PASS), 3);
+        // The coarsest tier has none coarser: it casts from itself.
+        assert_eq!(batch_caster(3, VIEW_PASS), 3);
+        assert_eq!(batch_caster(IMPOSTOR as u32, VIEW_PASS), NONE);
+        assert_eq!(batch_caster(1, GHOST_PASS), NONE);
+    }
+
+    #[test]
+    fn fog_takes_a_model_by_what_it_is() {
+        // A posed body or a whole vehicle is a unit: never fogged.
+        assert_eq!(model_fog(false, false, false), FOG_UNITS);
+        // Remains lie seen or unseen whole, as the ground under them.
+        assert_eq!(model_fog(true, false, false), FOG_GROUND);
+        // A model in a state is the world's: face by face, with the ground's
+        // paint when movers stand on it.
+        assert_eq!(model_fog(false, true, false), FOG_FACES);
+        assert_eq!(model_fog(false, true, true), FOG_PAINTED_FACES);
+    }
 }
