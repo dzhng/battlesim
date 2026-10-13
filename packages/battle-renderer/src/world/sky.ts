@@ -1,4 +1,5 @@
 import { tgpu, d, common } from "typegpu";
+import { SkyLight } from "../records.gen";
 import { SKY_LUT_WIDTH, SKY_LUT_HEIGHT } from "../light/skyParameters";
 import {
   type SkyRays,
@@ -7,7 +8,6 @@ import {
   skyRadianceWgsl,
   skyDiscWgsl,
   skyCloudsWgsl,
-  SkyLight,
   cloudHashWgsl,
   cloudNoiseWgsl,
   cloudFbmWgsl,

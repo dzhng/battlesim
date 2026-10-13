@@ -2,8 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { d } from "typegpu";
-import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
-import { CAMERA_WORDS } from "@packages/battle-renderer/src/records.gen.ts";
+import { Camera, CAMERA_WORDS } from "@packages/battle-renderer/src/records.gen.ts";
 import {
   CAMERA_UNIFORM_BYTES,
   CAMERA_UNIFORM_FLOATS,

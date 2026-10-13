@@ -189,10 +189,10 @@ struct Cascade<'a> {
 fn cascades(r: &SunShadow, active: usize) -> Vec<Cascade<'_>> {
     (0..active)
         .map(|i| {
-            let c = &r.cascades[i * 24..(i + 1) * 24];
+            let c = &r.cascades[i];
             Cascade {
-                matrix: &c[..16],
-                interval: [f64::from(c[20]), f64::from(c[21])],
+                matrix: &c.matrix,
+                interval: [f64::from(c.interval[0]), f64::from(c.interval[1])],
             }
         })
         .collect()
@@ -305,7 +305,7 @@ fn the_strategic_camera_spends_its_cascades_on_the_map_not_the_air_above_it() {
     // About two metres a texel or finer: the normal bias is its texels'
     // width per texel of PCF radius.
     for c in 0..CASCADES {
-        let [normal, radius] = [17, 18].map(|k| f64::from(frame.receiver.cascades[c * 24 + k]));
+        let [normal, radius] = [1, 2].map(|k| f64::from(frame.receiver.cascades[c].bias[k]));
         let texel = normal / (light.cascades.normal_bias_texels * radius);
         assert!(texel < 2.5, "cascade {c}: {texel} m a texel");
     }

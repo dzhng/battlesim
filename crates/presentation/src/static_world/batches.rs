@@ -7,7 +7,6 @@
 //! a new generation, and is written every list.
 use crate::presentation::Frame;
 use crate::records::{Batch, NONE};
-use crate::seed::js_hypot;
 use crate::static_world::walk::{Record, Shadow};
 use crate::view::{Camera, View};
 use std::collections::HashMap;
@@ -79,7 +78,7 @@ impl Sun {
                 -libm::cos(self.azimuth) * throw,
                 -libm::sin(self.azimuth) * throw,
             ],
-            reach: self.far_m * js_hypot(&[1.0, tan_v, tan_v * w / h]),
+            reach: self.far_m * crate::world::length([1.0, tan_v, tan_v * w / h]),
         }
     }
 }

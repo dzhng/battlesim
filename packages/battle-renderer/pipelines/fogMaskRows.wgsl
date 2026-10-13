@@ -12,7 +12,7 @@ struct fullScreenTriangle_Output {
 
 @group(0) @binding(1) var mask: texture_2d<f32>;
 
-struct FogStyleUniform {
+struct FogLook {
   tint: vec3f,
   dim: f32,
   cool: f32,
@@ -30,7 +30,7 @@ struct FogStyleUniform {
   reachPx: f32,
 }
 
-@group(0) @binding(0) var<uniform> look: FogStyleUniform;
+@group(0) @binding(0) var<uniform> look: FogLook;
 
 fn groundSide(m: vec4f) -> vec2f {
   if (m.z <= 0.5) { return vec2f(0.0); }

@@ -23,7 +23,7 @@ use std::time::{Duration, Instant};
 
 use native_client::audio::{self, Audio, OutputSettings};
 use native_client::bench::{self, Bench};
-use native_client::bundle::{Library, RUNTIME};
+use native_client::bundle::Library;
 use native_client::capture::Replay;
 use native_client::effects::{EffectPass, Effects};
 use native_client::environment::Environment;
@@ -40,6 +40,7 @@ use native_client::scenery::{Drawn, Scenery};
 use native_client::shadow::{ShadowPass, SunShadow};
 use native_client::sky::Sky;
 use native_client::world::{DepthPrepass, Ghosts, WorldColour};
+use presentation::assets::RUNTIME;
 use presentation::records::View;
 use presentation::shadow::SunShadowFrame;
 use wgpu::{

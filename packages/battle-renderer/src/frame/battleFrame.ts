@@ -18,7 +18,7 @@
 import { tgpu } from "typegpu";
 import { GPU_DEPTH_CLEAR, GPU_DEPTH_FORMAT } from "@packages/renderer-core/src/depthContract";
 import type { BattleFrame, FrameView, SceneInstance, WorldLayers } from "../scene";
-import { Camera, typegpuCameraLayout } from "../world/camera";
+import { typegpuCameraLayout } from "../world/camera";
 import { createTypegpuPost } from "../world/post";
 import { battleWorldDepth } from "../worldDepth";
 import type { LightPresentation, ResolvedLight } from "../light/sceneLight";
@@ -38,7 +38,7 @@ import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
 import { createDetailView, setDetailView } from "./detailView";
-import { CAMERA_WORDS, Camera as CameraWord, FrameHeader, VIEW_WORDS } from "../records.gen";
+import { Camera, CAMERA_WORDS, CameraAt, FrameHeader, VIEW_WORDS } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
 const EMPTY = new Float32Array(0);
@@ -212,8 +212,8 @@ export async function createBattleFrame(
         },
         render(output: GPUTextureView) {
           if (disposed || !framed) return;
-          const width = cameraRecord[CameraWord.width];
-          const height = cameraRecord[CameraWord.height];
+          const width = cameraRecord[CameraAt.width];
+          const height = cameraRecord[CameraAt.height];
           const t = targets.current;
           if (!t || t.width !== width || t.height !== height) {
             void rebuild(width, height);
@@ -413,7 +413,7 @@ export async function createBattleFrame(
               compare: battleWorldDepth("read-write").depthCompare!,
             },
             view,
-            clock: cameraRecord[CameraWord.time],
+            clock: cameraRecord[CameraAt.time],
             gpu: timer?.stats() ?? null,
             memory: registry.stats(),
             shadow: passes.shadow,

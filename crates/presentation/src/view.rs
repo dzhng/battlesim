@@ -160,7 +160,7 @@ impl View {
             eye: camera.eye,
             target: camera.target,
             distance: (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt(),
-            pixels_per_metre: h / (2.0 * (fov / 2.0).tan()),
+            pixels_per_metre: h / (2.0 * libm::tan(fov / 2.0)),
             sides: [
                 plane(r3, r0, 1.0),
                 plane(r3, r0, -1.0),

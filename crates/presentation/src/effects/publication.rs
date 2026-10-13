@@ -9,7 +9,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sim::publication::reader::{Observation, WeaponPose};
 
-use crate::seed::{js_number, side_key};
+use crate::seed::side_key;
 use crate::world::{EffectsSection, MountMuzzle, UnitsSection, Vec3};
 
 /// A visible stretch of one round's flight this tick.
@@ -205,14 +205,7 @@ impl EffectFeed {
             let key = self
                 .keys
                 .entry((p.kind.clone(), p.center[0].to_bits(), p.center[1].to_bits()))
-                .or_insert_with(|| {
-                    format!(
-                        "{}:{},{}",
-                        p.kind,
-                        js_number(p.center[0]),
-                        js_number(p.center[1])
-                    )
-                })
+                .or_insert_with(|| format!("{}:{},{}", p.kind, p.center[0], p.center[1]))
                 .clone();
             smokes.push(SmokeSource {
                 key,

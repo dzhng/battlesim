@@ -36,7 +36,7 @@
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
 use crate::records::{FOG_FACES, FOG_PAINTED_FACES};
-use crate::seed::{js_round, to_uint32, Mulberry32};
+use crate::seed::Key;
 use crate::static_world::batches::{List, Population, VIEW_PASS};
 use crate::static_world::fallen::Known;
 use crate::static_world::walk::{Record, Shadow};
@@ -299,7 +299,7 @@ impl PropArt {
         let mut least = f64::INFINITY;
         for &c in self.by_kind.get(&b.kind).into_iter().flatten() {
             let f = self.candidates[c].footprint;
-            let misfit: f64 = (0..3).map(|a| (b.half[a] / f[a]).ln().abs()).sum();
+            let misfit: f64 = (0..3).map(|a| libm::log(b.half[a] / f[a]).abs()).sum();
             if misfit < least {
                 (least, best) = (misfit, Some(c));
             }
@@ -412,7 +412,7 @@ impl PropArt {
             FRAC_PI_2
         };
         let (long, across) = if turn == 0.0 { (hx, hy) } else { (hy, hx) };
-        let count = js_round(long / fx).max(1.0);
+        let count = (long / fx).round().max(1.0);
         let step = 2.0 * long / count;
         let scale = [long / (count * fx), across / fy, hz / fz];
         for k in 0..count as usize {
@@ -426,10 +426,13 @@ impl PropArt {
 /// else from where it stands, so the same car is the same colour in every
 /// battle.
 fn paint_of(paints: &[[f32; 3]], b: &PropBox, authored: Option<f64>) -> [f32; 3] {
-    let seed = authored.unwrap_or_else(|| {
-        js_round(b.center[0] * 10.0) * 73_856_093.0 + js_round(b.center[1] * 10.0)
-    });
-    let sample = Mulberry32::new(to_uint32(seed)).sample();
+    let key = match authored {
+        Some(id) => Key::new().num(id),
+        None => Key::new()
+            .num((b.center[0] * 10.0).round())
+            .num((b.center[1] * 10.0).round()),
+    };
+    let sample = key.unit();
     paints[(sample * paints.len() as f64).floor() as usize]
 }
 

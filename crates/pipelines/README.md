@@ -16,6 +16,8 @@ This crate's test holds the export to what `wgpu` accepts: naga parses and
 validates every file, writes it as Metal Shading Language, and finds each
 pipeline's entry points.
 
-A second test holds the uniform records the presentation crate resolves to
-the structs the shaders declare, member by member, so the [native
-client](../../native/client/README.md) uploads their bytes as they are.
+A second test holds every struct record the presentation crate generates
+the browser's schemas from to each shader that declares it, member by
+member, and the records carried inside a struct the browser composes (the
+sun in the environment, the sky's rays in the view) to theirs, so the
+[native client](../../native/client/README.md) uploads their bytes as they are.

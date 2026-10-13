@@ -60,7 +60,11 @@ class FakeSink implements VoiceSink {
   }
   start(id: number, spec: VoiceSpec) {
     this.started.push(spec);
-    this.voices.set(id, { spec, end: spec.loop ? Infinity : spec.at + 0.5 });
+    // A voice plays its length at rate 1 over its rate, as a player plays it.
+    this.voices.set(id, {
+      spec,
+      end: spec.loop ? Infinity : spec.at + this.duration() / spec.rate,
+    });
   }
   set(id: number, p: VoiceParams) {
     const v = this.voices.get(id);

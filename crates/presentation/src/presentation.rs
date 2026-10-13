@@ -554,7 +554,7 @@ impl Presentation {
                 self.world.row(&look.appearance, state, NONE, 0, false);
             }
         }
-        let throw = 1.0 / elevation.tan();
+        let throw = 1.0 / libm::tan(elevation);
         let mut loaded = Loaded {
             feed: ObservationFeed::new(&side),
             driver: PoseDriver::new(&units)?,
@@ -566,7 +566,7 @@ impl Presentation {
             cook_offs: CookOffs::new(self.tick_hz),
             pieces: Vec::new(),
             sound: None,
-            shadow_fall: [-azimuth.cos() * throw, -azimuth.sin() * throw],
+            shadow_fall: [-libm::cos(azimuth) * throw, -libm::sin(azimuth) * throw],
             locals: Vec::new(),
             worlds: Vec::new(),
             models: Vec::new(),
@@ -823,6 +823,7 @@ impl Presentation {
         };
         let poses = l.driver.poses();
         let units = &l.units;
+        let (mut locals, mut worlds) = (Vec::new(), Vec::new());
         let name = |kind: &str,
                     side: &str,
                     id: f64,
@@ -888,6 +889,10 @@ impl Presentation {
                 "yaw": s.facing,
                 "clip": &*s.clip,
                 "phase": s.phase,
+                // His weapon's muzzle where his body draws it, crossfaded and kicked.
+                "muzzle": s.active_mount.and_then(|m| {
+                    crate::units::drawn::soldier_muzzle(units, &l.tables, s, m, &mut worlds)
+                }),
             })).collect::<Vec<_>>(),
             "vehicles": poses.vehicles.iter().map(|v| {
                 let a = v.articulation;
@@ -902,6 +907,15 @@ impl Presentation {
                         "travel_r": a.travel_r, "deploy": a.deploy, "rotor": a.rotor,
                         "rotor_blur": a.rotor_blur,
                     },
+                    // Each mount's muzzle where the hull draws it, rocked and articulated.
+                    "muzzles": (0..units.types.get(&*v.kind).map_or(0, |t| t.roles.len()))
+                        .filter_map(|m| {
+                            let (name, at) = crate::units::drawn::vehicle_muzzle(
+                                units, v, m, &mut locals, &mut worlds,
+                            )?;
+                            Some(serde_json::json!({ "name": name, "at": at }))
+                        })
+                        .collect::<Vec<_>>(),
                 })
             }).collect::<Vec<_>>(),
         })
@@ -1789,8 +1803,7 @@ fn pose_body(
     let Some(table) = tables.get(table) else {
         return 0;
     };
-    skin::joint_worlds(joints, clips, table, clip, phase, blend, worlds);
-    skin::kick_worlds(joints, kick, worlds);
+    skin::drawn_worlds(joints, clips, table, clip, phase, blend, kick, worlds);
     let first = palettes.len() as u32;
     let ibs = &inverse_binds[name];
     palettes.extend(

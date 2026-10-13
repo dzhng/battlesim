@@ -13,8 +13,7 @@ import {
 } from "@packages/battle-renderer/src/light/sceneLight.ts";
 import { loadPresentation, resolveLight, ScenePresentation } from "@web/battle/sim/presentation";
 import { createTypegpuPost } from "@packages/battle-renderer/src/world/post.ts";
-import { Camera } from "@packages/battle-renderer/src/world/camera.ts";
-import { SunShadow } from "@packages/battle-renderer/src/world/shadow.ts";
+import { Camera, SunShadow } from "@packages/battle-renderer/src/records.gen.ts";
 import { d } from "typegpu";
 
 await loadPresentation();

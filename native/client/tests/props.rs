@@ -4,8 +4,9 @@
 //! world and the props' bundles (Git LFS).
 use std::path::Path;
 
-use native_client::bundle::{Library, RUNTIME};
+use native_client::bundle::Library;
 use native_client::capture::Replay;
+use presentation::assets::RUNTIME;
 use presentation::static_world::files;
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use serde_json::Value;

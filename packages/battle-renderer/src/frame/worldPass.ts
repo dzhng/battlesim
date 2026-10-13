@@ -52,7 +52,7 @@ import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth, BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";
-import { Camera as CameraWord } from "../records.gen";
+import { CameraAt } from "../records.gen";
 import type { EnvironmentFrame } from "./environmentFrame";
 import { backdrop_mesh, map_box } from "@wasm/presentation/presentation_wasm.js";
 import {
@@ -491,13 +491,11 @@ export async function createWorldPass(
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     }),
   );
+  // The configured fraction is checked once; 0 turns the coverage test off.
+  const xrayFraction = validateXrayFraction(xrayMinHiddenFragmentFraction);
   const writeXrayMinimum = (value: number) =>
-    registry.device.queue.writeBuffer(
-      xrayMinimum,
-      0,
-      new Float32Array([validateXrayFraction(value)]),
-    );
-  writeXrayMinimum(xrayMinHiddenFragmentFraction);
+    registry.device.queue.writeBuffer(xrayMinimum, 0, new Float32Array([value]));
+  writeXrayMinimum(xrayFraction);
   const xrayCounts = registry.slot<GPUBuffer>();
   let xrayCapacity = 0;
   let xrayCoverageEnabled = true;
@@ -653,7 +651,7 @@ export async function createWorldPass(
   return {
     setXrayCoverageEnabled(on: boolean) {
       xrayCoverageEnabled = on;
-      writeXrayMinimum(on ? xrayMinHiddenFragmentFraction : 0);
+      writeXrayMinimum(on ? xrayFraction : 0);
     },
     setWorld(next: WorldLayers) {
       world.ground.set(next.terrain.mesh);
@@ -744,8 +742,8 @@ export async function createWorldPass(
       count: number,
     ) {
       frameProjection = camera.subarray(
-        CameraWord.view_proj,
-        CameraWord.view_proj + 16,
+        CameraAt.view_proj,
+        CameraAt.view_proj + 16,
       ) as unknown as Mat4;
       environment.prepare(view, sunShadow, casters, count);
       grass.prepare(frameProjection);

@@ -33,85 +33,15 @@
 //
 // `fogLayout` is read by the world's fragments and by FogVisibility's probe;
 // both call the same `fogSeenBy`.
-import { FOLIAGE_STEP, WHOLE_BOX_WORDS, WHOLE_TEXTURE_WIDTH } from "../records.gen";
+import {
+  FogEye,
+  FogParams,
+  FOLIAGE_STEP,
+  WHOLE_BOX_WORDS,
+  WHOLE_TEXTURE_WIDTH,
+} from "../records.gen";
 import { tgpu, d } from "typegpu";
 import { typegpuCameraLayout } from "../world/camera";
-
-/** Per-frame fog parameters: the map resolution, the rule numbers, the
- *  screen tiles and the camera the cull unprojects depth with. */
-export const FogParams = d
-  .struct({
-    invViewProj: d.mat4x4f,
-    cameraEye: d.vec3f,
-    /** Height of the tallest translucent surface (canopy) above the ground. */
-    translucentLiftM: d.f32,
-    azimuthBins: d.u32,
-    terrainAzimuthBins: d.u32,
-    radialBins: d.u32,
-    tilePx: d.u32,
-    tilesX: d.u32,
-    tileEyesMax: d.u32,
-    eyeCount: d.u32,
-    /** The foliage grid's cells across and down (0: no foliage). */
-    foliageNx: d.u32,
-    foliageNy: d.u32,
-    heightNx: d.u32,
-    heightNy: d.u32,
-    rebuildCount: d.u32,
-    /** 0: no fog (everything seen). */
-    enabled: d.u32,
-    probeCount: d.u32,
-    firstBinM: d.f32,
-    targetHeightM: d.f32,
-    foliageCellM: d.f32,
-    /** Foliage depth that blocks a ground ray outright (`sensors.foliage_full_block`). */
-    foliageFullBlock: d.f32,
-    /** Least room a ray needs between occluders it squeezes past, its two
-     *  sides together (`sensors.min_sight_gap_m`); 0: none. */
-    minSightGapM: d.f32,
-    /** x, y, width, height of the playable rectangle; rendered margin is fogged. */
-    playable: d.vec4f,
-    heightSpacing: d.f32,
-    faceProbeM: d.f32,
-    width: d.f32,
-    height: d.f32,
-    stepMinM: d.f32,
-    stepMaxM: d.f32,
-    stepFraction: d.f32,
-    /** How far toward an eye a roof or canopy top looks for seen air. */
-    roofReachM: d.f32,
-    /** The structures that take fog whole (`fogWholeSeen`): how many, and
-     *  their lookup grid in the `wholes` texture: cells across and down, the
-     *  cell's size and the grid's origin, and where the item lists, boxes and
-     *  seen flags start (words). 0 structures: none. */
-    wholeCount: d.u32,
-    wholeNx: d.u32,
-    wholeNy: d.u32,
-    wholeCellM: d.f32,
-    wholeOrigin: d.vec2f,
-    wholeItemsBase: d.u32,
-    wholeBoxesBase: d.u32,
-    wholeFlagsBase: d.u32,
-  })
-  .$name("FogParams");
-
-/** One eye as its map was built: `position` is the map's origin and `reach`
- *  its radius; forward, shape and range are this publication's. */
-export const FogEyeRecord = d
-  .struct({
-    position: d.vec3f,
-    reach: d.f32,
-    forward: d.f32,
-    front: d.f32,
-    side: d.f32,
-    rear: d.f32,
-    range: d.f32,
-    /** Which map slot holds this eye's maps. */
-    slot: d.u32,
-    pad0: d.u32,
-    pad1: d.u32,
-  })
-  .$name("FogEyeRecord");
 
 /** What the drawn layer is: `ground` 1 for ground, 0 for faces standing on
  *  it; `seen` 1 for layers fog never covers (units); `painted` 1 for the
@@ -146,7 +76,7 @@ export const fogLayout = tgpu.bindGroupLayout({
   params: { uniform: FogParams, visibility: ["fragment", "compute"] },
   layer: { uniform: FogLayer, visibility: ["fragment", "compute"] },
   eyes: {
-    storage: (n: number) => d.arrayOf(FogEyeRecord, n),
+    storage: (n: number) => d.arrayOf(FogEye, n),
     access: "readonly",
     visibility: ["fragment", "compute"],
   },

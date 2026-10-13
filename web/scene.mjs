@@ -197,6 +197,24 @@ export async function startServer(production = false) {
   return { url: `http://127.0.0.1:${address.port}`, close: () => server.close() };
 }
 
+/** A page in a browser context of its own, closed with it. The context holds
+ *  what the page stored: an incognito context keeps its Cache Storage (the
+ *  appearance prefetch, every runtime asset) in the browser process, so a
+ *  context left open after its page grows the browser until it crashes. */
+export async function openScenePage(
+  browser,
+  { viewport = { width: 1280, height: 800 }, deviceScaleFactor = 1 } = {},
+) {
+  const context = await browser.newContext({ viewport, deviceScaleFactor });
+  // The app declares an empty icon (index.html); a bare document a scene
+  // opens (a JSON file, for its origin) has none, so the browser asks for
+  // /favicon.ico itself, and its 404 would read as a page error.
+  await context.route("**/favicon.ico", (route) => route.fulfill({ status: 204 }));
+  const page = await context.newPage();
+  page.close = () => context.close();
+  return page;
+}
+
 export async function run(fixtures) {
   await ensureNativeTools();
   const servers = new Map();
@@ -257,13 +275,7 @@ export async function run(fixtures) {
           deviceScaleFactor = 1,
           allowErrors = false,
         } = {}) {
-          const context = await browser.newContext({ viewport, deviceScaleFactor });
-          // The app declares an empty icon (index.html); a bare document a
-          // scene opens (a JSON file, for its origin) has none, so the
-          // browser asks for /favicon.ico itself, and its 404 would read as
-          // a page error.
-          await context.route("**/favicon.ico", (route) => route.fulfill({ status: 204 }));
-          const page = await context.newPage();
+          const page = await openScenePage(browser, { viewport, deviceScaleFactor });
           await page.addInitScript(guardMeasures, MEASURE_ENTRIES_MAX);
           const failForGpu = (message) => {
             recordSceneFailure(`fatal WebGPU error: ${message}`);

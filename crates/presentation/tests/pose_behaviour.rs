@@ -17,7 +17,7 @@ use presentation::units::drawn::{ClipTables, DrawnModels};
 use presentation::units::driver::{
     FeedFallen, FeedFrame, FeedMount, FeedSoldier, FeedUnit, PoseDriver,
 };
-use presentation::units::pose::{Kick, PoseFrame, SoldierPose};
+use presentation::units::pose::{ClipBlend, Kick, PoseFrame, SoldierPose};
 use presentation::units::skin::{joint_worlds, kick_worlds, mul, trs, Mat4};
 use presentation::world::{Appearance, UnitsSection, Vec3};
 use serde_json::{json, Value};
@@ -598,6 +598,97 @@ fn a_kick_turns_his_upper_body_back_about_his_waist_the_muzzle_climbs_the_hips_s
     for (moved, rest) in [(shoved.0, muzzle), (shoved.1, head)] {
         assert!((moved[0] - (rest[0] - 0.05)).abs() < 1e-9 && (moved[2] - rest[2]).abs() < 1e-9);
     }
+}
+
+#[test]
+fn a_soldier_s_flash_sits_on_his_muzzle_as_his_body_is_drawn_mid_crossfade_and_kicked() {
+    let units = units();
+    let mut pose = SoldierPose {
+        soldier: 3.0,
+        unit: 1.0,
+        kind: "menu_rifle".into(),
+        slot: 0,
+        operator_mount: None,
+        active_mount: Some(0),
+        side: "blue".into(),
+        position: [10.0, 5.0, 0.0],
+        facing: 0.7,
+        clip: "stand_aim".into(),
+        phase: 0.0,
+        blend: Some(ClipBlend {
+            clip: "kneel_fire".into(),
+            phase: 0.3,
+            weight: 0.5,
+        }),
+        kick: Kick {
+            pitch: 0.15,
+            back: 0.05,
+        },
+    };
+    let name = units
+        .resolve(&pose.kind, &pose.side, pose.soldier, 0, None, Some(0))
+        .expect("a rifleman with his rifle up")
+        .to_owned();
+    let Some(Appearance::Skinned {
+        joints,
+        clips,
+        table,
+        muzzle: Some(socket),
+        ..
+    }) = units.appearances.get(&name)
+    else {
+        panic!("{name} is skinned, with a muzzle");
+    };
+    let samples = clip_table(table);
+    // Where his body is drawn: his clip crossfaded and kicked, as his palette is.
+    let body_muzzle = |pose: &SoldierPose| {
+        let mut worlds = Vec::new();
+        joint_worlds(
+            joints,
+            clips,
+            &samples,
+            &pose.clip,
+            pose.phase,
+            pose.blend.as_ref(),
+            &mut worlds,
+        );
+        kick_worlds(joints, pose.kick, &mut worlds);
+        let o = &socket.offset;
+        let m = mul(&worlds[socket.joint], &trs(o.t, o.r, o.s));
+        let (s, c) = pose.facing.sin_cos();
+        [
+            pose.position[0] + m[12] * c - m[13] * s,
+            pose.position[1] + m[12] * s + m[13] * c,
+            pose.position[2] + m[14],
+        ]
+    };
+    let mut tables = ClipTables::new();
+    tables.insert(table.clone(), samples.clone());
+    let mut drawn = DrawnModels::new(Arc::new(units.clone()), Arc::new(tables), "blue");
+    let mut flash_at = |pose: &SoldierPose| {
+        drawn.update(&PoseFrame {
+            soldiers: vec![pose.clone()],
+            ..PoseFrame::default()
+        });
+        drawn
+            .muzzle(side_key(1.0, true), 0, Some(pose.soldier))
+            .expect("his rifle is up")
+    };
+    let blended = flash_at(&pose);
+    let want = body_muzzle(&pose);
+    for i in 0..3 {
+        assert!(
+            (blended[i] - want[i]).abs() < 1e-9,
+            "{blended:?} vs {want:?}"
+        );
+    }
+    // The crossfade moves the muzzle: without it he would be drawn elsewhere.
+    pose.blend = None;
+    let unblended = body_muzzle(&pose);
+    assert!(
+        (0..3).any(|i| (unblended[i] - want[i]).abs() > 0.05),
+        "{unblended:?} vs {want:?}"
+    );
 }
 
 /// The fixture's units with a hull kick of the test's own: a main-gun round
