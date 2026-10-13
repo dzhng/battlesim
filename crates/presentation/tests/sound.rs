@@ -11,7 +11,7 @@ use presentation::effects::publication::{EffectPublication, Segment};
 use presentation::sound::bank::{max_momentary_loudness, Bank};
 use presentation::sound::frame::{
     sector_pan, Command, Cue, Heard, Listener, Motion, Scripted, Shout, ShoutTake, Sound,
-    SoundSoldier, Voice,
+    SoundSoldier, SoundVehicle, Voice,
 };
 use presentation::sound::synth;
 use presentation::sound::tables::{Bus, SoundTables};
@@ -35,6 +35,133 @@ fn sound() -> Sound {
         "effects": { "smoke": fx["smoke"], "cook_off": fx["cook_off"] },
     });
     Sound::from_json(&setup.to_string()).unwrap()
+}
+
+#[test]
+fn first_high_air_entry_raises_one_alarm_until_the_episode_ends() {
+    let v: Value = serde_json::from_str(
+        &std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/sound-vectors.json"
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    let mut s = sound();
+    s.set_durations(serde_json::from_value(v["durations"].clone()).unwrap())
+        .unwrap();
+    let listener = Listener {
+        position: [0.0, 0.0, 0.0],
+        forward: [0.0, 1.0, 0.0],
+    };
+    let empty = Motion::default();
+    s.update(0.0, 0.0, 0.0, &empty, listener);
+    let jet = Motion {
+        vehicles: vec![SoundVehicle {
+            key: 7.0,
+            vehicle_class: "high_air_light".to_owned(),
+            position: [100.0, 0.0, 1000.0],
+            travel_l: 0.0,
+            travel_r: 0.0,
+            turret: 0.0,
+            reverse: false,
+        }],
+        soldiers: Vec::new(),
+    };
+    s.update(1.0, 1.0, 1.0, &jet, listener);
+    let commands = s.update(1.1, 1.1, 1.1, &jet, listener);
+    let alarms = commands
+        .iter()
+        .filter(|c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-air-alarm"))
+        .count();
+    assert_eq!(alarms, 1);
+    s.update(1.2, 1.2, 1.2, &empty, listener);
+    s.update(1.3, 1.3, 1.3, &jet, listener);
+    let commands = s.update(1.4, 1.4, 1.4, &jet, listener);
+    let alarms = commands
+        .iter()
+        .filter(|c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-air-alarm"))
+        .count();
+    assert_eq!(alarms, 1);
+}
+
+#[test]
+fn incoming_missile_shout_starts_the_authored_warning() {
+    let mut s = ready();
+    let effects = EffectPublication {
+        tick: 1.0,
+        segments: Vec::new(),
+        blasts: Vec::new(),
+        shooters: Vec::new(),
+        smokes: Vec::new(),
+        cook_offs: Vec::new(),
+        flare_deploys: Vec::new(),
+    };
+    let shout = Shout {
+        own: true,
+        id: 7.0,
+        kind: "high_air_light".into(),
+        position: [20.0, 0.0, 1000.0],
+        trigger: "b15_incoming_missile".into(),
+        intensity: "stressed".into(),
+    };
+    s.note(
+        &Heard {
+            effects: &effects,
+            launches: &[],
+            audible: Vec::new(),
+            shouts: vec![shout],
+        },
+        0.0,
+    );
+    let commands = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
+    assert!(commands.iter().any(
+        |c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-missile-warning")
+    ));
+}
+
+#[test]
+fn flare_deploy_starts_the_positional_flare_sound() {
+    let mut s = ready();
+    let effects = EffectPublication {
+        tick: 1.0,
+        segments: Vec::new(),
+        blasts: Vec::new(),
+        shooters: Vec::new(),
+        smokes: Vec::new(),
+        cook_offs: Vec::new(),
+        flare_deploys: vec![[20.0, 0.0, 1000.0]],
+    };
+    s.note(
+        &Heard {
+            effects: &effects,
+            launches: &[],
+            audible: Vec::new(),
+            shouts: Vec::new(),
+        },
+        0.0,
+    );
+    let commands = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
+    assert!(commands.iter().any(|c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-flare-deploy" && voice.position == Some([20.0, 0.0, 1000.0]))));
+}
+
+#[test]
+fn air_defense_launches_use_the_authored_aa_launch_sound() {
+    let mut s = ready();
+    let (effects, launches) = shot(1.0, 3.0, [20.0, 0.0, 0.0], "aa_long");
+    s.note(
+        &Heard {
+            effects: &effects,
+            launches: &launches,
+            audible: Vec::new(),
+            shouts: Vec::new(),
+        },
+        0.0,
+    );
+    let commands = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
+    assert!(commands
+        .iter()
+        .any(|c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-aa-launch")));
 }
 
 fn tables() -> SoundTables {
@@ -128,6 +255,7 @@ fn shot(tick: f64, shooter: f64, at: [f64; 3], kind: &str) -> (EffectPublication
         shooters: Vec::new(),
         smokes: Vec::new(),
         cook_offs: Vec::new(),
+        flare_deploys: Vec::new(),
     };
     let l = Launch {
         shooter,
@@ -218,6 +346,7 @@ fn the_budget_holds_and_the_loudest_win() {
         shooters: Vec::new(),
         smokes: Vec::new(),
         cook_offs: Vec::new(),
+        flare_deploys: Vec::new(),
     };
     s.note(
         &Heard {

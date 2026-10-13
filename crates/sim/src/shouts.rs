@@ -414,7 +414,7 @@ fn intensity(unit: &Unit, rules: &Rules) -> Intensity {
 
 fn contact_trigger(target: &Unit, layer: AltitudeLayer) -> ShoutTrigger {
     match layer {
-        AltitudeLayer::LowAir => ShoutTrigger::B3ContactAir,
+        AltitudeLayer::LowAir | AltitudeLayer::HighAir => ShoutTrigger::B3ContactAir,
         AltitudeLayer::Ground if target.hull.is_some() => ShoutTrigger::B2ContactVehicle,
         AltitudeLayer::Ground => ShoutTrigger::B1ContactInfantry,
     }

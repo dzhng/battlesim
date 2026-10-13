@@ -84,6 +84,8 @@ pub struct Round {
     pub weapon: usize,
     pub unit: UnitId,
     pub side: Side,
+    /// A seeker missile keeps its target independently of launcher support.
+    pub seeker_target: Option<Target>,
 }
 
 /// One round's flight this tick, for the animation feed: presentation data
@@ -543,7 +545,24 @@ fn spawn_unit(
         } else {
             u.engagement.unwrap_or(Engagement::FireAtWill)
         },
-        air: airborne.then(units::AirState::default),
+        air: airborne.then(|| {
+            let fuel_s = t
+                .capabilities
+                .air
+                .as_ref()
+                .map_or(f64::INFINITY, |air| air.fuel_capacity_s);
+            let flare_charges = t
+                .capabilities
+                .air
+                .as_ref()
+                .and_then(|air| air.flares)
+                .map_or(0, |f| f.capacity);
+            units::AirState {
+                fuel_s,
+                flare_charges,
+                ..Default::default()
+            }
+        }),
         mounts,
         attackers: BTreeSet::new(),
         reach: Default::default(),
@@ -611,6 +630,206 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 }
 
 impl Battle {
+    fn advance_air_ingress(&mut self) {
+        for unit in &mut self.units {
+            let fuel_s = unit
+                .unit_type(&self.rules)
+                .capabilities
+                .air
+                .as_ref()
+                .map_or(f64::INFINITY, |a| a.fuel_capacity_s);
+            let Some(air) = unit.air.as_mut().filter(|air| air.traversing) else {
+                continue;
+            };
+            air.ingress_remaining = air.ingress_remaining.saturating_sub(1);
+            if air.ingress_remaining == 0 {
+                air.traversing = false;
+                let ground = self
+                    .world
+                    .height_at(unit.position.x, unit.position.y)
+                    .unwrap_or(0.0);
+                air.fuel_s = fuel_s;
+                unit.position.z = ground + self.rules.air.cruise_agl_m;
+            }
+        }
+        for i in 0..self.units.len() {
+            let Some(target) = self.units[i]
+                .air
+                .as_ref()
+                .and_then(|air| air.dogfight_target)
+            else {
+                continue;
+            };
+            let broken = !self.units[target.0 as usize].alive()
+                || (self.units[i].position.xy() - self.units[target.0 as usize].position.xy())
+                    .length()
+                    > 1200.0;
+            if broken {
+                if let Some(air) = self.units[i].air.as_mut() {
+                    air.dogfight_target = None;
+                }
+            }
+        }
+    }
+
+    /// A finite-endurance aircraft turns for home while it still has enough
+    /// fuel for the friendly entry.  The ordinary withdrawal route then
+    /// settles its weighted refund at that base; a combat order cannot strand
+    /// an airframe after its tank is effectively empty.
+    fn trigger_fuel_withdrawals(&mut self) {
+        let Some(skirmish) = &self.skirmish else {
+            return;
+        };
+        let entries: Vec<_> = Side::COMBATANTS
+            .iter()
+            .filter_map(|side| {
+                skirmish
+                    .setup
+                    .sites
+                    .entries
+                    .iter()
+                    .find(|entry| entry.side == *side)
+                    .map(|entry| (*side, v2(entry.center[0], entry.center[1])))
+            })
+            .collect();
+        for unit in &mut self.units {
+            if !unit.alive() || unit.retired || unit.withdrawing {
+                continue;
+            }
+            let Some(air_state) = unit.air.as_ref().filter(|air| !air.traversing) else {
+                continue;
+            };
+            let Some(capability) = unit.unit_type(&self.rules).capabilities.air.as_ref() else {
+                continue;
+            };
+            let Some((_, entry)) = entries.iter().find(|(side, _)| *side == unit.side) else {
+                continue;
+            };
+            let units::Motion::Air(flight) = unit.motion else {
+                continue;
+            };
+            let speed = flight.cruise_mps
+                * if air_state.afterburner {
+                    capability.afterburner.map_or(1.0, |a| a.speed_multiplier)
+                } else {
+                    1.0
+                };
+            let return_s = (unit.position.xy() - *entry).length() / speed.max(1.0) + 2.0;
+            if air_state.fuel_s > return_s {
+                continue;
+            }
+            if let Some(air) = unit.air.as_mut() {
+                air.afterburner = false;
+            }
+            unit.enqueue(
+                UnitOrder::Move(MoveOrder {
+                    destination: *entry,
+                    policy: RoutePolicy::Fastest,
+                    gesture: 0,
+                    direction: contract::command::MoveDirection::Forward,
+                    facing: None,
+                    short: None,
+                }),
+                false,
+            );
+            unit.withdrawing = true;
+        }
+    }
+
+    /// Give authored anti-missile weapons a physical lock on an incoming
+    /// round before ordinary target selection.  The lock is represented by
+    /// its current point, so the existing launch solver, seeker FOV and LOS
+    /// rules still decide whether the interceptor can actually leave the
+    /// mount.  Explicit orders retain ownership of a mount; an idle mount
+    /// drops yesterday's synthetic point before looking for a new threat.
+    fn arm_missile_interceptors(&mut self) {
+        let incoming: Vec<_> = self
+            .projectiles
+            .active()
+            .iter()
+            .filter_map(|projectile| {
+                let round = self.rounds.get(&projectile.id)?;
+                let weapon = &self.arsenal.weapons[round.weapon].def;
+                weapon.interceptable.then_some((
+                    round.side,
+                    projectile.position,
+                    if projectile.position.z >= self.rules.air.cruise_agl_m * 0.5 {
+                        AltitudeLayer::HighAir
+                    } else {
+                        AltitudeLayer::LowAir
+                    },
+                ))
+            })
+            .collect();
+        for unit in &mut self.units {
+            if !unit.alive()
+                || unit.retired
+                || unit.airborne()
+                || unit
+                    .unit_type(&self.rules)
+                    .capabilities
+                    .air_defense
+                    .is_none()
+            {
+                continue;
+            }
+            let explicit = unit.attack_target().is_some();
+            let specs = self.arsenal.specs(unit.kind);
+            for mount_index in 0..unit.mounts.len() {
+                if !explicit
+                    && matches!(
+                        unit.mounts[mount_index]
+                            .lock
+                            .as_ref()
+                            .map(|lock| lock.target),
+                        Some(Target::Ground(_))
+                    )
+                {
+                    unit.mounts[mount_index].lock = None;
+                }
+                if explicit || unit.mounts[mount_index].lock.is_some() {
+                    continue;
+                }
+                if incoming.is_empty() {
+                    continue;
+                }
+                let mount = &unit.mounts[mount_index];
+                let Some((_, point, layer)) = incoming
+                    .iter()
+                    .filter(|(side, point, layer)| {
+                        let max_range = specs[mount.spec]
+                            .kinds
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(slot, kind)| {
+                                let loaded = mount.ammo[slot].is_none_or(|n| n > 0);
+                                let def = &self.arsenal.weapons[*kind].def;
+                                (loaded && def.interception.is_some())
+                                    .then(|| def.against(*layer).map(|fire| fire.range_m))
+                                    .flatten()
+                            })
+                            .fold(0.0, f64::max);
+                        *side != unit.side
+                            && max_range > 0.0
+                            && (*point - unit.position).length() <= max_range
+                    })
+                    .min_by(|a, b| {
+                        (a.1 - unit.position)
+                            .length()
+                            .total_cmp(&(b.1 - unit.position).length())
+                    })
+                else {
+                    continue;
+                };
+                let _ = layer;
+                unit.mounts[mount_index].lock = Some(crate::weapons::Lock {
+                    target: Target::Ground(*point),
+                    engaging: false,
+                });
+            }
+        }
+    }
+
     fn dispatch_reinforcements(&mut self) {
         use crate::encounter::legality::{apart, footprint, stands_on};
         let Some(skirmish) = &mut self.skirmish else {
@@ -628,8 +847,36 @@ impl Battle {
                 continue;
             };
             let entry = &skirmish.setup.sites.entries[index];
-            let at = v2(entry.center[0], entry.center[1]);
+            let destination = v2(
+                reservation.data.destination[0],
+                reservation.data.destination[1],
+            );
             let t = self.rules.catalog.get(reservation.data.kind);
+            let aircraft = units::ground_mobility(t, &self.rules).is_none();
+            let at = if aircraft {
+                let candidates = [
+                    v2(destination.x.clamp(0.0, self.world.width()), 0.0),
+                    v2(
+                        destination.x.clamp(0.0, self.world.width()),
+                        self.world.depth(),
+                    ),
+                    v2(0.0, destination.y.clamp(0.0, self.world.depth())),
+                    v2(
+                        self.world.width(),
+                        destination.y.clamp(0.0, self.world.depth()),
+                    ),
+                ];
+                *candidates
+                    .iter()
+                    .min_by(|a, b| {
+                        (**a - destination)
+                            .length()
+                            .total_cmp(&(**b - destination).length())
+                    })
+                    .unwrap()
+            } else {
+                v2(entry.center[0], entry.center[1])
+            };
             // An aircraft flies in at cruise height over whatever stands there.
             let clear = match units::ground_mobility(t, &self.rules) {
                 None => true,
@@ -672,7 +919,7 @@ impl Battle {
                 side,
                 owner: None,
                 kind: self.rules.catalog.id(reservation.data.kind).to_string(),
-                position: entry.center,
+                position: [at.x, at.y],
                 yaw: entry.yaw,
                 engagement: None,
                 condition: None,
@@ -687,6 +934,17 @@ impl Battle {
                 &mut self.last_soldier,
                 self.seed,
             );
+            if aircraft {
+                let mut rng = contract::random::Rng::new(contract::random::mix(
+                    self.seed ^ u64::from(unit.id.0),
+                ));
+                let delay_s = 15.0 + 15.0 * rng.unit();
+                if let Some(air) = unit.air.as_mut() {
+                    air.traversing = true;
+                    air.ingress_remaining =
+                        (delay_s * f64::from(self.rules.tick_hz)).round() as u64;
+                }
+            }
             unit.settle();
             unit.orders.push_back(UnitOrder::Move(MoveOrder {
                 destination: v2(
@@ -736,11 +994,22 @@ impl Battle {
             }
             let entered = &skirmish.entered[&unit.id];
             let (health, ammo) = crate::withdrawal::condition(unit, &self.rules, &self.arsenal);
+            let fuel = crate::withdrawal::fuel(unit, &self.rules);
             let age = self.tick.saturating_sub(entered.entered_tick) as f64
                 / f64::from(self.rules.tick_hz);
-            let credits = (f64::from(entered.price)
-                * crate::withdrawal::fraction(health, ammo, age)
-                * crate::skirmish::CREDIT_SCALE as f64)
+            let refund = unit
+                .unit_type(&self.rules)
+                .capabilities
+                .air
+                .as_ref()
+                .map(|air| (air.refund.health, air.refund.ammunition, air.refund.fuel))
+                .map_or_else(
+                    || crate::withdrawal::fraction(health, ammo, age),
+                    |weights| {
+                        crate::withdrawal::weighted_fraction(health, ammo, fuel, weights, age)
+                    },
+                );
+            let credits = (f64::from(entered.price) * refund * crate::skirmish::CREDIT_SCALE as f64)
                 .round() as u64;
             skirmish.wallets[unit.side.index()] += credits;
             skirmish.record_refund(
@@ -1447,6 +1716,7 @@ impl Battle {
             }
             Order::Stop { units }
             | Order::OccupyBuilding { units, .. }
+            | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
             | Order::ExitBuilding { units } => units,
@@ -1563,6 +1833,7 @@ impl Battle {
                 | Order::Stop { units }
                 | Order::Attack { units, .. }
                 | Order::AttackMove { units, .. }
+                | Order::SetAfterburner { units, .. }
                 | Order::SetEngagement { units, .. }
                 | Order::SetDeployment { units, .. }
                 | Order::Garrison { units, .. }
@@ -1594,6 +1865,7 @@ impl Battle {
         if let Some(skirmish) = &mut self.skirmish {
             skirmish.advance(self.tick, self.rules.tick_hz);
         }
+        self.advance_air_ingress();
         self.dispatch_reinforcements();
         completed(TickPhase::Orders);
         garrison::advance(
@@ -1641,6 +1913,7 @@ impl Battle {
             self.ground.wear(from, to, channel, &self.rules.ground);
         }
         let after = self.poses();
+        self.trigger_fuel_withdrawals();
         // Moving is changing place on the map: an aircraft climbing or sinking
         // over one spot stands still, and a ground unit cannot change height
         // without changing place.
@@ -1666,6 +1939,7 @@ impl Battle {
             }
         }
         self.prune_attackers();
+        self.arm_missile_interceptors();
         let fired = self.fire(&moved);
         self.shout_fired = fired.clone();
         supply::service(
@@ -2815,6 +3089,72 @@ impl Battle {
                 }
             }
         }
+        // Fire-and-forget seekers update from the last authoritative target
+        // pose, without requiring the launcher to stand still or retain LOS.
+        let seekers: Vec<_> = self
+            .rounds
+            .iter()
+            .filter_map(|(id, round)| {
+                round
+                    .seeker_target
+                    .map(|target| (*id, round.weapon, target))
+            })
+            .collect();
+        for (projectile, weapon, target) in seekers {
+            if let Target::Unit(target_id) = target {
+                let decoyable = self.arsenal.weapons[weapon].def.decoyable;
+                if decoyable {
+                    let flare = self.units[target_id.0 as usize]
+                        .unit_type(&self.rules)
+                        .capabilities
+                        .air
+                        .as_ref()
+                        .and_then(|a| a.flares);
+                    if let Some(flare) = flare {
+                        let ready =
+                            self.units[target_id.0 as usize]
+                                .air
+                                .as_ref()
+                                .is_some_and(|a| {
+                                    a.flare_charges > 0 && a.flare_ready_tick <= self.tick
+                                });
+                        if ready {
+                            let unit = &self.units[target_id.0 as usize];
+                            let half = unit.hull.expect("airframe hull");
+                            let lateral = v2(-libm::sin(unit.yaw), libm::cos(unit.yaw));
+                            let position = (unit.position.xy() + lateral * (half.y + 0.5))
+                                .with_z(unit.position.z + half.z);
+                            let velocity =
+                                (unit.air.unwrap().velocity + lateral * 18.0).with_z(-2.0);
+                            self.projectiles
+                                .decoy_seeker(projectile, position, velocity);
+                            if let Some(air) = self.units[target_id.0 as usize].air.as_mut() {
+                                air.flare_charges -= 1;
+                                air.flare_ready_tick = self.tick
+                                    + (flare.reload_s * self.rules.tick_hz as f64).round() as u64;
+                            }
+                            if let Some(round) = self.rounds.get_mut(&projectile) {
+                                round.seeker_target = None;
+                            }
+                            continue;
+                        }
+                    }
+                }
+            }
+            let point = match target {
+                Target::Unit(id) if self.units.get(id.0 as usize).is_some_and(Unit::alive) => {
+                    Some(self.units[id.0 as usize].position)
+                }
+                Target::Contact(id) => self
+                    .knowledge
+                    .iter()
+                    .find_map(|k| k.contact(id).map(|c| c.center)),
+                _ => None,
+            };
+            if let Some(point) = point {
+                self.projectiles.steer_seeker(projectile, point);
+            }
+        }
         let released: Vec<ProjectileId> = self
             .projectiles
             .active()
@@ -2851,7 +3191,14 @@ impl Battle {
         for shot in shots {
             let side = self.units[shot.unit.0 as usize].side;
             for launch in shot.launches {
-                let guided = launch.guidance.is_some();
+                let seeker = self.arsenal.weapons[shot.weapon].def.seeker.is_some();
+                let guided = launch.guidance.is_some() && !seeker;
+                let mut launch = launch;
+                if seeker {
+                    if let Some(guidance) = launch.guidance.as_mut() {
+                        guidance.supported = false;
+                    }
+                }
                 let id = self.projectiles.launch(launch);
                 self.rounds.insert(
                     id,
@@ -2859,6 +3206,7 @@ impl Battle {
                         weapon: shot.weapon,
                         unit: shot.unit,
                         side,
+                        seeker_target: seeker.then_some(shot.target),
                     },
                 );
                 // A guided round is supported by the mount that launched it.
@@ -2870,9 +3218,44 @@ impl Battle {
                     });
                 }
             }
+            if self.arsenal.weapons[shot.weapon].def.interception.is_some()
+                && matches!(shot.target, Target::Ground(_))
+            {
+                self.units[shot.unit.0 as usize].mounts[shot.mount].lock = None;
+            }
             // The attacked unit may answer this attacker under Return fire only.
             if let Target::Unit(t) = shot.target {
                 self.units[t.0 as usize].attackers.insert(shot.unit);
+                if self.units[shot.unit.0 as usize].airborne()
+                    && self.units[t.0 as usize].airborne()
+                {
+                    let distance = (self.units[shot.unit.0 as usize].position.xy()
+                        - self.units[t.0 as usize].position.xy())
+                    .length();
+                    let move_order = |unit: &Unit| {
+                        unit.orders
+                            .iter()
+                            .any(|order| matches!(order, UnitOrder::Move(_)))
+                    };
+                    // A plain move is an explicit disengage. Attack-move is
+                    // deliberately retained: its normal policy and the
+                    // close fight coexist until range is lost.
+                    if distance <= 1200.0
+                        && !move_order(&self.units[shot.unit.0 as usize])
+                        && !move_order(&self.units[t.0 as usize])
+                    {
+                        self.units[shot.unit.0 as usize]
+                            .air
+                            .as_mut()
+                            .expect("airborne state")
+                            .dogfight_target = Some(t);
+                        self.units[t.0 as usize]
+                            .air
+                            .as_mut()
+                            .expect("airborne state")
+                            .dogfight_target = Some(shot.unit);
+                    }
+                }
             }
             let shooter = &self.units[shot.unit.0 as usize];
             let heard = self
@@ -2904,6 +3287,7 @@ impl Battle {
         ));
         sightings.sort_by_key(|s| (s.observer, s.target));
         let identified = self.knowledge[side.index()].update(tick, &sightings, units, &self.rules);
+        self.knowledge[side.index()].update_radar(tick, side, units, &self.rules);
         self.sightings[side.index()] = sightings;
         // An attack on an area whose cause is now identified carries over to
         // that enemy, queued ones too, as if the player had right-clicked it.
@@ -2932,6 +3316,12 @@ impl Battle {
         let mut remembered = Vec::new();
         let mut views = Vec::new();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
+            // HighAir aircraft see other air layers, but never illuminate
+            // the ground fog. Their ground view is intentionally absent;
+            // the optical sensing pass still handles air targets separately.
+            if unit.layer() == AltitudeLayer::HighAir {
+                continue;
+            }
             let sight = sight::of(unit, &self.rules);
             let eyes = sensing::eyes(unit, &self.rules);
             for eye in &eyes {
@@ -3184,6 +3574,7 @@ impl Battle {
             | Order::AttackMove { units, .. }
             | Order::Stop { units }
             | Order::Attack { units, .. }
+            | Order::SetAfterburner { units, .. }
             | Order::SetEngagement { units, .. }
             | Order::SetDeployment { units, .. }
             | Order::Garrison { units, .. }
@@ -3286,6 +3677,9 @@ impl Battle {
             } => {
                 for slot in prepared.placement.unwrap().destinations {
                     let unit = &mut movers[slot.unit.0 as usize];
+                    if let Some(air) = unit.air.as_mut() {
+                        air.dogfight_target = None;
+                    }
                     if !slot.placed {
                         if !queued {
                             Self::hold_position(unit);
@@ -3334,6 +3728,14 @@ impl Battle {
                 for id in units {
                     let unit = &mut movers[id.0 as usize];
                     unit.engagement = Engagement::FireAtWill; // W14
+                    if let Some(air) = unit.air.as_mut() {
+                        air.dogfight_target = match target {
+                            Target::Unit(other) if self.units[other.0 as usize].airborne() => {
+                                Some(other)
+                            }
+                            _ => None,
+                        };
+                    }
                     push(
                         unit,
                         UnitOrder::Attack {
@@ -3369,6 +3771,13 @@ impl Battle {
             Order::SetEngagement { units, policy } => {
                 for id in units {
                     movers[id.0 as usize].engagement = policy;
+                }
+            }
+            Order::SetAfterburner { units, enabled } => {
+                for id in units {
+                    if let Some(air) = movers[id.0 as usize].air.as_mut() {
+                        air.afterburner = enabled;
+                    }
                 }
             }
             Order::Stop { units } => {
@@ -3961,6 +4370,33 @@ impl Battle {
                     .filter(|u| u.side == side && u.alive())
                     .map(|u| OwnUnit {
                         withdrawing: u.withdrawing,
+                        fuel_s: u.air.as_ref().map(|air| air.fuel_s),
+                        afterburner: u.air.as_ref().is_some_and(|air| air.afterburner),
+                        traversing: u.air.as_ref().is_some_and(|air| air.traversing),
+                        in_dogfight: u
+                            .air
+                            .as_ref()
+                            .is_some_and(|air| air.dogfight_target.is_some()),
+                        flares: u.air.as_ref().and_then(|air| {
+                            u.unit_type(&self.rules)
+                                .capabilities
+                                .air
+                                .as_ref()
+                                .and_then(|a| a.flares)
+                                .map(|definition| {
+                                    let remaining =
+                                        (air.flare_ready_tick as f64 - self.tick as f64).max(0.0);
+                                    contract::observation::FlareReadiness {
+                                        charges: air.flare_charges,
+                                        cooldown: (remaining > 0.0).then(|| {
+                                            (1.0 - remaining
+                                                / (definition.reload_s
+                                                    * f64::from(self.rules.tick_hz)))
+                                            .clamp(0.0, 1.0)
+                                        }),
+                                    }
+                                })
+                        }),
                         protection: u.protection.as_ref().map(|p| {
                             let definition = u
                                 .unit_type(&self.rules)
@@ -4269,6 +4705,12 @@ impl Battle {
                 .u64(r.weapon as u64)
                 .u64(r.unit.0 as u64)
                 .u64(r.side.index() as u64);
+            if let Some(target) = r.seeker_target {
+                d.u64(1);
+                target.digest(&mut d);
+            } else {
+                d.u64(0);
+            }
         }
         d.u64(self.suppressed.len() as u64);
         for ((id, i), v) in &self.suppressed {
@@ -4335,6 +4777,63 @@ struct PreparedCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn idle_air_defence_mount_acquires_an_incoming_interceptable_round() {
+        let mut rules = crate::fixtures::test_game();
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            serde_json::json!({
+                "name": "AA Jeep",
+                "capabilities": { "air_defense": { "tier": "short" } },
+                "mounts": [{ "id": "AA", "name": "AA", "weapons": ["aa_ballistic"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
+            }),
+        );
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": rules,
+            "units": [
+                { "side": "blue", "kind": "test_jeep", "position": [100, 200] },
+                { "side": "red", "kind": "test_tank", "position": [500, 200] }
+            ],
+            "events": [], "scripts": []
+        }))
+        .expect("interceptor scenario");
+        let mut battle = Battle::new(&setup, 17);
+        let incoming_weapon = battle
+            .arsenal
+            .weapons
+            .iter()
+            .position(|weapon| weapon.id == "sead_missile")
+            .expect("SEAD row");
+        let projectile = battle.projectiles.launch(crate::flight::Launch {
+            origin: v3(300.0, 200.0, 500.0),
+            velocity: v3(-100.0, 0.0, 0.0),
+            gravity_scale: 0.0,
+            lifetime_s: 5.0,
+            suppression_radius_m: 0.0,
+            shooter: None,
+            guidance: None,
+            motor: None,
+            fall: None,
+        });
+        battle.rounds.insert(
+            projectile,
+            Round {
+                weapon: incoming_weapon,
+                unit: UnitId(1),
+                side: Side::Red,
+                seeker_target: None,
+            },
+        );
+        battle.arm_missile_interceptors();
+        assert!(matches!(
+            battle.units[0].mounts[1].lock.as_ref().map(|lock| lock.target),
+            Some(Target::Ground(point)) if (point - v3(300.0, 200.0, 500.0)).length() < 1e-9
+        ));
+    }
 
     /// A battle that changes what each side knows in every way a battle
     /// can: a tank shoves a crate and knocks a lane through a wood, shells
@@ -4429,7 +4928,8 @@ mod tests {
             world.props().any(|p| p.known_to_all),
             "remains both sides plan with"
         );
-        for side in &battle.sides {
+        for side in Side::COMBATANTS {
+            let side = &battle.sides[side.index()];
             assert!(side.revision > 0);
             assert!(!side.seen.is_empty());
         }
@@ -4619,6 +5119,7 @@ mod tests {
                             weapon,
                             unit: UnitId(1),
                             side: Side::Blue,
+                            seeker_target: None,
                         },
                     );
                     FlightEvent::Impact(flight::Impact {

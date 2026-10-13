@@ -315,6 +315,20 @@ pub struct AirState {
     /// Its arrival at the goal it flies to last, once it has turned onto
     /// the leg that ends there.
     pub settle: Option<Settle>,
+    /// Remaining endurance in seconds. It starts when an aircraft reaches
+    /// the map edge; off-map traversal never consumes fuel.
+    pub fuel_s: f64,
+    /// Explicit persistent afterburner toggle, consumed by the air mover.
+    pub afterburner: bool,
+    /// Paid aircraft still traversing from off-map to its ingress edge.
+    pub traversing: bool,
+    /// Ticks until the aircraft physically enters the map.
+    pub ingress_remaining: u64,
+    /// Close air engagement target while this aircraft is in a dogfight.
+    pub dogfight_target: Option<UnitId>,
+    /// Remaining automatic flare charges and the next reload tick.
+    pub flare_charges: u32,
+    pub flare_ready_tick: u64,
 }
 
 /// How an aircraft arrives: it aims a little past its goal, then, stopped
@@ -340,6 +354,8 @@ pub struct Flight {
     pub cruise_mps: f64,
     pub turn_rad_s: f64,
     pub climb_mps: f64,
+    /// Authored altitude band copied into runtime state at spawn.
+    pub layer: AltitudeLayer,
 }
 
 /// How a unit of type `t` moves.
@@ -349,10 +365,12 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
             cruise_kmh,
             turn_deg_s,
             climb_mps,
+            layer,
         } => Motion::Air(Flight {
             cruise_mps: cruise_kmh / 3.6,
             turn_rad_s: turn_deg_s.to_radians(),
             climb_mps,
+            layer,
         }),
         _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
     }
@@ -443,6 +461,14 @@ pub fn validate_drive(rules: &Rules) {
 impl Unit {
     /// Admit an order with the same replacement and deployment semantics everywhere.
     pub(crate) fn enqueue(&mut self, order: UnitOrder, queued: bool) {
+        // Attack-move is the one explicit order that keeps an aircraft's
+        // automatic dogfight lock: the aircraft continues its close fight
+        // while advancing, then resumes the attack-move policy afterwards.
+        if !queued && !matches!(order, UnitOrder::AttackMove(_)) {
+            if let Some(air) = self.air.as_mut() {
+                air.dogfight_target = None;
+            }
+        }
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
         }
@@ -476,7 +502,10 @@ impl Unit {
     /// The height band it occupies, which decides what can engage it.
     pub fn layer(&self) -> AltitudeLayer {
         if self.airborne() {
-            AltitudeLayer::LowAir
+            match self.motion {
+                Motion::Air(flight) => flight.layer,
+                Motion::Ground(_) => unreachable!("airborne unit has ground motion"),
+            }
         } else {
             AltitudeLayer::Ground
         }
@@ -584,6 +613,13 @@ impl Unit {
                 Some(s) => d.u64(1).f64(s.aim.x).f64(s.aim.y).u64(s.back as u64),
                 None => d.u64(0),
             };
+            d.f64(a.fuel_s)
+                .u64(a.afterburner as u64)
+                .u64(a.traversing as u64)
+                .u64(a.ingress_remaining)
+                .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)))
+                .u64(a.flare_charges as u64)
+                .u64(a.flare_ready_tick);
         }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),

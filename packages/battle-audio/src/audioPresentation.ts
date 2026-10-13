@@ -109,6 +109,12 @@ export interface AudioPresentation {
   voices: ChatterRules;
   /** The countryside bed, never positional. */
   ambience: OneShot;
+  /** One alarm when the first fixed-wing aircraft enters a side's field. */
+  air_alarm: OneShot;
+  /** A positional warning when a visible missile is steering onto an own unit. */
+  missile_warning: OneShot;
+  /** A positional burst when an aircraft releases a flare. */
+  flare_deploy: OneShot;
   /** Unseen enemies, from hearing cues: a sound by `category` or
    *  `category_moving` (a category with neither is silent), a shout from the
    *  enemy's pool, its gain by band, the far band muffled, and a same cue not

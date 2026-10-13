@@ -40,6 +40,7 @@ fn cannon(at: [f64; 3], seconds: f64) -> (Vec<f32>, Audio) {
         shooters: Vec::new(),
         smokes: Vec::new(),
         cook_offs: Vec::new(),
+        flare_deploys: Vec::new(),
     };
     let launches = [Launch {
         shooter: 2.0,
@@ -153,6 +154,7 @@ fn scored(music: bool, shout: bool, voices: f64) -> (Vec<f32>, Audio) {
         shooters: Vec::new(),
         smokes: Vec::new(),
         cook_offs: Vec::new(),
+        flare_deploys: Vec::new(),
     };
     let hz = read("game.json")["tick_hz"].as_f64().unwrap();
     let dt = 1.0 / 60.0;

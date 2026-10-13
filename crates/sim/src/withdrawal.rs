@@ -5,6 +5,38 @@ pub fn fraction(health: f64, ammo: f64, age_s: f64) -> f64 {
         * (1.0 - age_s.max(0.0) / 1200.0).max(0.5)
 }
 
+/// Fuel remaining for a persistent aircraft, or full for non-air units.
+pub fn fuel(unit: &crate::units::Unit, rules: &contract::scenario::Rules) -> f64 {
+    let Some(air) = unit.air.as_ref() else {
+        return 1.0;
+    };
+    let capacity = unit
+        .unit_type(rules)
+        .capabilities
+        .air
+        .as_ref()
+        .map_or(0.0, |a| a.fuel_capacity_s);
+    if capacity > 0.0 {
+        (air.fuel_s / capacity).clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
+}
+
+/// Refund value with authored health/ammunition/fuel shares.
+pub fn weighted_fraction(
+    health: f64,
+    ammo: f64,
+    fuel: f64,
+    weights: (f64, f64, f64),
+    age_s: f64,
+) -> f64 {
+    let condition = health.clamp(0.0, 1.0) * weights.0
+        + ammo.clamp(0.0, 1.0) * weights.1
+        + fuel.clamp(0.0, 1.0) * weights.2;
+    0.15 + 0.60 * condition * (1.0 - age_s.max(0.0) / 1200.0).max(0.5)
+}
+
 /// Remaining original health and finite resources, including lost carriers.
 pub fn condition(
     unit: &crate::units::Unit,

@@ -5,6 +5,7 @@ import {
   GHOST_SELECTED,
   ghostBodies,
   orderedGhost,
+  aircraftOrderReadouts,
   type UnitGhost,
 } from "@apps/battle-lab/src/unitGhosts";
 
@@ -14,6 +15,7 @@ const draw = (ghosts: UnitGhost[]) =>
     ghosts,
     (k) => k === "jeep" || k === "heli",
     () => 3,
+    () => 0,
   );
 
 test("a squad's ghost is each of its soldiers where he stands, a vehicle's its one hull", () => {
@@ -86,4 +88,48 @@ test("with Space held a moving squad's soldiers stand where its orders end, faci
 
 test("a unit holding where it stands has no ghost", () => {
   expect(orderedGhost(squad({ goal: null }), LOOK)).toBeNull();
+});
+
+test("Space aircraft cards follow the final order at flight altitude with the actual unit info", () => {
+  const jet = squad({ id: 7, kind: "jet", queue: [[250, 180]], fuelS: 95 });
+  const heli = squad({ id: 8, kind: "heli" });
+  const holding = squad({ id: 9, kind: "jet", goal: null });
+  const ingress = squad({
+    id: 10,
+    kind: "jet",
+    goal: null,
+    position: [12, 24, 0],
+    traversing: true,
+  });
+  const isHighAir = (kind: string) => kind === "jet";
+  const elevation = () => 64;
+  const altitude = (kind: string) => (kind === "jet" ? 1000 : 20);
+  expect(
+    aircraftOrderReadouts(
+      [jet, heli, holding],
+      false,
+      new Map([[7, 1]]),
+      isHighAir,
+      elevation,
+      altitude,
+    ),
+  ).toEqual([]);
+  const cards = aircraftOrderReadouts(
+    [jet, heli, holding, ingress],
+    true,
+    new Map([
+      [7, 1],
+      [8, 1],
+      [9, 1],
+      [10, 1],
+    ]),
+    isHighAir,
+    elevation,
+    altitude,
+  );
+  expect(cards).toEqual([
+    { unit: jet, position: [250, 180, 1064] },
+    { unit: ingress, position: [12, 24, 1064] },
+  ]);
+  expect(cards[0].unit).toBe(jet);
 });

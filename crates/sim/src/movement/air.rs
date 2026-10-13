@@ -47,13 +47,55 @@ pub(super) fn step_aircraft(
         unreachable!("only aircraft fly");
     };
     let side = units[i].side.index();
+    if units[i].air.is_some_and(|air| air.traversing) {
+        return;
+    }
+    let dogfight_target = units[i].air.as_ref().and_then(|air| air.dogfight_target);
+    let dogfight_explicit = units[i].orders.iter().any(|o| {
+        matches!(
+            o,
+            crate::units::UnitOrder::Move(_) | crate::units::UnitOrder::Attack { .. }
+        )
+    });
+    let dogfight_side = dogfight_target
+        .and_then(|target| units.get(target.0 as usize))
+        .map(|target| {
+            let relative = target.position.xy() - units[i].position.xy();
+            if relative.length() > 1e-6 {
+                let direction = relative.normalized();
+                Some(v2(-direction.y, direction.x))
+            } else {
+                None
+            }
+        })
+        .flatten();
+    if let Some(target) = dogfight_target {
+        if let Some(target_unit) = units.get(target.0 as usize) {
+            if target_unit.alive()
+                && !units[i].orders.iter().any(|o| {
+                    matches!(
+                        o,
+                        crate::units::UnitOrder::Move(_) | crate::units::UnitOrder::Attack { .. }
+                    )
+                })
+            {
+                let goal = target_unit.position.xy();
+                units[i].route = Some(vec![goal]);
+                units[i].planned_goal = Some(goal);
+                units[i].route_from = units[i].position.xy();
+                units[i].state = MoveState::Moving;
+            }
+        }
+    }
     plan(ctx, &mut units[i], &mut sides[side]);
     let drift = separation(ctx, units, i);
+    let afterburner = unit_afterburner(&units[i], ctx.rules);
     let unit = &mut units[i];
     let here = unit.position.xy();
-    let accel = flight.cruise_mps / ctx.rules.air.acceleration_s;
+    let cruise_mps = flight.cruise_mps * afterburner.0;
+    let accel = cruise_mps / ctx.rules.air.acceleration_s;
     let air_rules = &ctx.rules.air;
-    let wanted = if may_advance(ctx, unit) {
+    let mut wanted = if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
         let state = unit.air.as_mut().expect("an aircraft's flight state");
         // On the leg that ends at its goal it aims past the goal by its
@@ -91,17 +133,26 @@ pub(super) fn step_aircraft(
             Some(&after) => {
                 let turn = leg.normalized().dot((after - route[0]).normalized());
                 let rest: f64 = route.windows(2).map(|w| (w[1] - w[0]).length()).sum();
-                (flight.cruise_mps * turn.max(0.0)).min((2.0 * BRAKING_SHARE * accel * rest).sqrt())
+                (cruise_mps * turn.max(0.0)).min((2.0 * BRAKING_SHARE * accel * rest).sqrt())
             }
             None => 0.0,
         };
-        let speed = flight
-            .cruise_mps
-            .min((corner * corner + 2.0 * BRAKING_SHARE * accel * leg.length()).sqrt());
+        let speed =
+            cruise_mps.min((corner * corner + 2.0 * BRAKING_SHARE * accel * leg.length()).sqrt());
         leg.normalized() * speed
     } else {
         v2(0.0, 0.0)
     };
+    // An aircraft that is automatically closing another aircraft jinks across
+    // its nose. The weave is deterministic and disappears as soon as an
+    // explicit move or attack order takes over, so a player can always make a
+    // pilot hold a clean line when that is the intent.
+    if dogfight_target.is_some() && !dogfight_explicit {
+        if let Some(side) = dogfight_side {
+            let phase = ctx.tick as f64 * 0.17 + unit.id.0 as f64 * 0.31;
+            wanted = wanted + side * (cruise_mps * 0.22 * libm::sin(phase));
+        }
+    }
     let air = unit.air.as_mut().expect("an aircraft's flight state");
     let change = wanted - air.velocity;
     let most = accel * dt;
@@ -111,6 +162,7 @@ pub(super) fn step_aircraft(
         wanted
     };
     let velocity = air.velocity;
+    air.fuel_s = (air.fuel_s - dt * afterburner.1).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
     let target = height_target(ctx, next, velocity, flight, reach, sinks(unit));
@@ -145,6 +197,22 @@ pub(super) fn step_aircraft(
     }
 }
 
+/// Return the authored speed and fuel multipliers when the persistent toggle
+/// is enabled. A legacy air row has no afterburner capability and remains
+/// unchanged even if a stale toggle bit is present.
+fn unit_afterburner(unit: &Unit, rules: &Rules) -> (f64, f64) {
+    if !unit.air.is_some_and(|air| air.afterburner) {
+        return (1.0, 1.0);
+    }
+    unit.unit_type(rules)
+        .capabilities
+        .air
+        .as_ref()
+        .and_then(|air| air.afterburner)
+        .map(|a| (a.speed_multiplier, a.fuel_multiplier))
+        .unwrap_or((1.0, 1.0))
+}
+
 /// The resupply sink (D10): with no order and no target, inside a set-up
 /// supply truck's zone, it holds the low hover. `service` is last tick's,
 /// since supply serves after movement; an order or an engagement since then
@@ -176,6 +244,14 @@ pub(crate) fn low_hover(rules: &Rules) -> f64 {
 
 /// Plan a route when the goal is new or moved, or the side's knowledge changed.
 fn plan(ctx: &MovementContext, unit: &mut Unit, side: &mut SideGeometry) {
+    if unit
+        .air
+        .as_ref()
+        .is_some_and(|air| air.dogfight_target.is_some())
+        && unit.route.is_some()
+    {
+        return;
+    }
     let Some((goal, _)) = unit.movement_goal() else {
         unit.route = None;
         unit.planned_goal = None;

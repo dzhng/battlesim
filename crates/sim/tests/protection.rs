@@ -5,6 +5,7 @@ use sim::flight::{
     Launch, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::v3;
+use sim::weapons::seeker_in_fov;
 
 struct Shield {
     intercepted: Vec<Interception>,
@@ -36,6 +37,65 @@ fn shot(x: f64, speed: f64) -> Launch {
         motor: None,
         fall: None,
     }
+}
+
+struct MissileShield {
+    interceptor: ProjectileId,
+    intercepted: Vec<(ProjectileId, ProjectileId)>,
+}
+impl ImpactResolver for MissileShield {
+    fn resolve(&mut self, _: &ImpactContext) -> ImpactDecision {
+        ImpactDecision::Stop
+    }
+    fn projectile_interceptor_reach(&self, projectile: ProjectileId) -> f64 {
+        (projectile == self.interceptor)
+            .then_some(12.0)
+            .unwrap_or(0.0)
+    }
+    fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
+        self.intercepted.push((interceptor, target));
+        true
+    }
+}
+
+#[test]
+fn projectile_interceptor_consumes_both_rounds_at_a_physical_meeting_point() {
+    let world = flat([1000.0, 400.0], "");
+    let mut store = Projectiles::new(config());
+    store.launch(shot(100.0, 0.0));
+    store.launch(shot(106.0, 0.0));
+    let mut events = Vec::new();
+    let mut shield = MissileShield {
+        interceptor: ProjectileId(0),
+        intercepted: Vec::new(),
+    };
+    flight::advance_projectiles(&mut store, &world, &[], &mut events, &mut shield);
+    assert_eq!(shield.intercepted, vec![(ProjectileId(0), ProjectileId(1))]);
+    assert!(store.active().is_empty());
+}
+
+#[test]
+fn projectile_interceptor_may_be_launched_after_the_incoming_round() {
+    let world = flat([1000.0, 400.0], "");
+    let mut store = Projectiles::new(config());
+    let incoming = store.launch(shot(106.0, 0.0));
+    let interceptor = store.launch(shot(100.0, 0.0));
+    let mut events = Vec::new();
+    let mut shield = MissileShield {
+        interceptor,
+        intercepted: Vec::new(),
+    };
+    flight::advance_projectiles(&mut store, &world, &[], &mut events, &mut shield);
+    assert_eq!(shield.intercepted, vec![(interceptor, incoming)]);
+    assert!(store.active().is_empty());
+}
+
+#[test]
+fn seeker_fov_wraps_at_north_and_rejects_outside_bearings() {
+    let north = std::f64::consts::FRAC_PI_2;
+    assert!(seeker_in_fov(north, north + 0.5_f64.to_radians(), 70.0));
+    assert!(!seeker_in_fov(north, north + 36.0_f64.to_radians(), 70.0));
+    assert!(seeker_in_fov(0.0, std::f64::consts::TAU - 0.1, 70.0));
 }
 fn hull() -> Body {
     Body {
@@ -232,6 +292,7 @@ fn production_resolver_prevents_hull_damage_but_keeps_ordinary_collateral_and_so
             weapon,
             unit: UnitId(0),
             side: Side::Blue,
+            seeker_target: None,
         },
     )]);
     let mut events = Vec::new();
@@ -433,4 +494,122 @@ fn ordinary_tank_shell_metadata_bypasses_active_protection() {
             "{id} is an eligible threat"
         );
     }
+}
+
+#[test]
+fn missile_burst_at_a_nearby_flare_still_damages_the_airframe() {
+    use contract::ids::Side;
+    use contract::random::Rng;
+    use serde_json::json;
+    use sim::battle::{Battle, Round};
+    use sim::damage::{self, DamageContext, HullResolver};
+    use std::collections::BTreeMap;
+    let mut rules = game();
+    rules["weapons"]["atgm"]["damage"] = json!(50);
+    rules["weapons"]["atgm"]["blast_radius_m"] = json!(20);
+    rules["weapons"]["atgm"]["penetration"] = json!(1000);
+    let setup = serde_json::from_value(json!({
+        "rules": rules,
+        "map": {"size":[1000,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "units": [{"side":"red","kind":"test_heli","position":[500,200]}]
+    }))
+    .unwrap();
+    let battle = Battle::new(&setup, 7);
+    let mut units = vec![battle.unit(UnitId(0)).unwrap().clone()];
+    let full = units[0].hp;
+    let half = units[0].hull.unwrap();
+    let center = units[0].position + v3(0.0, 0.0, half.z);
+    let body = Body {
+        id: BodyId(sim::weapons::VEHICLE_BODY_BASE),
+        unit: UnitId(0),
+        shape: Shape::Box { half },
+        from: Pose {
+            base: units[0].position,
+            yaw: 0.0,
+        },
+        to: Pose {
+            base: units[0].position,
+            yaw: 0.0,
+        },
+    };
+    let mut store = Projectiles::new(config());
+    let mut launch = shot(0.0, 900.0);
+    launch.origin = center - v3(30.0, 0.0, 0.0);
+    launch.guidance = Some(flight::Guidance {
+        point: center,
+        turn_rad_s: 1.0,
+        supported: false,
+        loft: None,
+    });
+    let id = store.launch(launch);
+    store.decoy_seeker(id, center - v3(half.x + 2.0, 0.0, 0.0), v3(0.0, 0.0, 0.0));
+    let weapon = battle
+        .arsenal()
+        .weapons
+        .iter()
+        .position(|w| w.id == "atgm")
+        .unwrap();
+    let rounds = BTreeMap::from([(
+        id,
+        Round {
+            weapon,
+            unit: UnitId(1),
+            side: Side::Blue,
+            seeker_target: None,
+        },
+    )]);
+    let mut events = vec![];
+    flight::advance_projectiles(
+        &mut store,
+        battle.world(),
+        &[body],
+        &mut events,
+        &mut HullResolver {
+            rules: battle.rules(),
+            arsenal: battle.arsenal(),
+            rounds: &rounds,
+            units: &mut units,
+            tick: 1,
+            rng: &mut Rng::new(7),
+        },
+    );
+    let impact = events
+        .iter()
+        .find_map(|e| {
+            if let FlightEvent::Impact(i) = e {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .expect("missile detonates beside the hull at its flare");
+    assert_eq!(
+        impact.struck,
+        Struck::Terrain,
+        "flare has no direct body recipient"
+    );
+    assert!(impact.detonated);
+    assert!(
+        impact.point.x < center.x - half.x,
+        "burst precedes airframe collision"
+    );
+    damage::resolve(
+        &DamageContext {
+            world: battle.world(),
+            ground: battle.ground(),
+            arsenal: battle.arsenal(),
+            rules: battle.rules(),
+            tick: 1,
+        },
+        &events,
+        &rounds,
+        &mut BTreeMap::new(),
+        &mut units,
+        &mut Rng::new(7),
+    );
+    assert!(
+        units[0].hp < full && units[0].hp > full - 50.0,
+        "ordinary distance-scaled blast hurts the nearby aircraft: {}",
+        units[0].hp
+    );
 }

@@ -52,6 +52,8 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     fog: Arc<Fog>, ground_patch: GroundPatch });
 view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
+    fuel_s: Option<f64>, afterburner: bool, traversing: bool, in_dogfight: bool,
+    flares: Option<Protection>,
     blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
@@ -89,7 +91,9 @@ view!(Identified { id: f64, kind: Name, cost: f64, position: Point3, yaw: f64, v
     member_active_mounts: Vec<Option<f64>>, member_leans: Vec<Option<MemberLean>>,
     weapon_poses: Vec<WeaponPose>, reversing: bool, smoking: bool });
 view!(Contact { id: f64, source: Name, center: Point3, layer: Name, aloft: bool, radius: f64,
-    evidence_tick: f64, expires_tick: f64, kind: Option<Name>, heard: Vec<Name> });
+    evidence_tick: f64, expires_tick: f64, kind: Option<Name>, heard: Vec<Name>,
+    #[serde(skip_serializing_if = "Option::is_none")] bearing_deg: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")] range_m: Option<f64> });
 view!(SoundCue {
     listener: f64,
     category: Name,
@@ -322,7 +326,7 @@ impl Reader {
                 && delivery["copyAlignments"] == json!(alignments)
                 && layout["fog"]["count"] == "fogFloats"
                 && ground["count"] == "groundRunCount"
-                && same_names(&ground["fields"], &GROUND_FIELDS)
+                && (same_names(&ground["fields"], &GROUND_FIELDS))
                 && ground["tileSize"] == 16
                 && layout["limbBits"] == LIMB_BITS,
             "the publication layout is not this writer's",
@@ -837,6 +841,15 @@ impl Reader {
             })
         });
         Ok(OwnUnit {
+            withdrawing: v!(f, "withdrawing") == 1.0,
+            fuel_s: present(v!(f, "fuelSeconds")),
+            afterburner: v!(f, "afterburner") == 1.0,
+            traversing: v!(f, "traversing") == 1.0,
+            in_dogfight: v!(f, "inDogfight") == 1.0,
+            flares: (v!(f, "flareCharges") >= 0.0).then(|| Protection {
+                charges: v!(f, "flareCharges"),
+                cooldown: present(v!(f, "flareCooldown")),
+            }),
             id: v!(f, "id"),
             kind: self.name("unitKinds", v!(f, "kind"))?,
             position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
@@ -845,7 +858,6 @@ impl Reader {
             policy: self.optional("policies", v!(f, "policy"))?,
             direction: self.optional("directions", v!(f, "direction"))?,
             reversing: v!(f, "reversing") == 1.0,
-            withdrawing: v!(f, "withdrawing") == 1.0,
             protection: (charges >= 0.0).then(|| Protection {
                 charges,
                 cooldown: present(v!(f, "protectionCooldownProgress")),
@@ -985,6 +997,8 @@ impl Reader {
                 .filter(|&k| mask >> k & 1 == 1)
                 .map(|k| kinds[k].clone())
                 .collect(),
+            bearing_deg: present(v!(f, "bearingDeg")),
+            range_m: present(v!(f, "rangeM")),
         })
     }
 

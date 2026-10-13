@@ -133,3 +133,58 @@ fn a_height_band_cannot_reach_past_the_row() {
         );
     }
 }
+
+#[test]
+fn seeker_fov_is_typed_and_bounded() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["stinger"]["seeker"] = json!("infrared");
+    game["weapons"]["stinger"]["seeker_fov_deg"] = json!(70.0);
+    let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
+    assert_eq!(rows["stinger"].seeker_fov_deg, Some(70.0));
+
+    game["weapons"]["stinger"]["seeker_fov_deg"] = json!(361.0);
+    let error = contract::weapons::resolve_weapons(game["weapons"].clone())
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("seeker_fov_deg"), "{error}");
+}
+
+#[test]
+fn short_air_defence_missiles_cannot_be_interceptors() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["stinger"]["aa_tier"] = json!("short");
+    game["weapons"]["stinger"]["interception"] = json!("missile");
+    let error = contract::weapons::resolve_weapons(game["weapons"].clone())
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("short air-defence") && error.contains("intercept"),
+        "{error}"
+    );
+}
+
+#[test]
+fn a_short_ballistic_air_defence_row_may_intercept_missiles() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["aa_ballistic"]["aa_tier"] = json!("short");
+    game["weapons"]["aa_ballistic"]["interception"] = json!("missile");
+    contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
+}
+
+#[test]
+fn anti_radiation_is_distinct_from_a_radar_seeker() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["sead_missile"]["anti_radiation"] = json!(true);
+    game["weapons"]["air_missile"]["anti_radiation"] = json!(false);
+    let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
+    assert!(rows["sead_missile"].anti_radiation);
+    assert!(!rows["air_missile"].anti_radiation);
+    assert_eq!(
+        rows["sead_missile"].seeker,
+        Some(contract::weapons::SeekerSupport::Radar)
+    );
+}

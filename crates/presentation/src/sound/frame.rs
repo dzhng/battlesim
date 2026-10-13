@@ -7,7 +7,7 @@
 //!   at each glance; an impact by hit kind; a blast; a hull cooking off,
 //!   booming with each fireball and clanging where its turret lands; a motor
 //!   on a flying guided round; fire on every smoke source the side knows
-//!   (a wreck), burning then smouldering;
+//!   (a wreck), burning then smouldering; and positional flare releases;
 //! - the frame's emitters ([`Motion`]): each drawn vehicle's engine (idle to
 //!   load), running gear, turret traverse and back-up beeper, and each drawn
 //!   soldier's footsteps by the distance he walks;
@@ -19,7 +19,8 @@
 //! - the observation's shouts: an own unit's, or an enemy's the side
 //!   identifies, asks the voice lines ([`super::voices::Chatter`]) for a
 //!   bark in its kind's set ([`Sound::set_speakers`]), spoken where the
-//!   shout was and placed as every unit sound is ([`Sound::place`]).
+//!   shout was and placed as every unit sound is ([`Sound::place`]); incoming
+//!   missile shouts also raise the positional warning cue.
 //!
 //! So sound keeps fog of war as the picture does: every positional sound has
 //! a cause in the side's observation.
@@ -36,7 +37,7 @@
 //! place and a quieter one is dropped. The player only carries out the
 //! [`Command`]s: it starts, glides and stops voices, and places them by
 //! direction (distance is decided here).
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -536,6 +537,9 @@ pub struct Sound {
     listener: Listener,
     stats: Stats,
     out: Vec<Command>,
+    /// HighAir ids currently present; the transition from empty to non-empty
+    /// is one air-alarm episode for this side.
+    high_air: BTreeSet<u64>,
 }
 
 /// Where a flying round's stretch ends, as a loop's key.
@@ -672,6 +676,7 @@ impl Sound {
             },
             stats: Stats::default(),
             out: Vec::new(),
+            high_air: BTreeSet::new(),
         }
     }
 
@@ -784,6 +789,7 @@ impl Sound {
         self.bursts.clear();
         self.cue_heard.clear();
         self.barks.clear();
+        self.high_air.clear();
         self.last_tick = -1.0;
         self.clock = None;
         self.held = false;
@@ -854,6 +860,21 @@ impl Sound {
                 s.gain,
                 l.at,
                 variety,
+                key,
+            );
+        }
+        for (i, point) in fx.flare_deploys.iter().enumerate() {
+            let flare = &p.flare_deploy;
+            let key = Key::new().text("flare").num(i as f64).nums(point);
+            self.queue(
+                t0,
+                flare.sound.clone(),
+                None,
+                0.0,
+                Bus::Effects,
+                flare.gain,
+                *point,
+                key,
                 key,
             );
         }
@@ -1082,6 +1103,21 @@ impl Sound {
         // too far off to be heard is never asked.
         let at = now + self.clock.map_or(0.0, |c| (t0 - c).max(0.0));
         for s in &heard.shouts {
+            if &*s.trigger == "b15_incoming_missile" {
+                let warning = &p.missile_warning;
+                let key = Key::new().text("missile_warning").num(s.id);
+                self.queue(
+                    t0,
+                    warning.sound.clone(),
+                    None,
+                    0.0,
+                    Bus::Effects,
+                    warning.gain,
+                    s.position,
+                    key,
+                    key,
+                );
+            }
             let Some(bark) = self.speakers.bark(s, at) else {
                 continue;
             };
@@ -1342,6 +1378,31 @@ impl Sound {
         let tables = self.tables.clone();
         let p = &tables.audio;
         let mut wants: Vec<LoopWant> = Vec::new();
+        let current_high_air: BTreeSet<u64> = motion
+            .vehicles
+            .iter()
+            .filter(|v| v.vehicle_class.starts_with("high_air_"))
+            .map(|v| v.key.to_bits())
+            .collect();
+        if self.high_air.is_empty() && !current_high_air.is_empty() {
+            let alarm = &p.air_alarm;
+            self.pending.push(Pending {
+                t: clock,
+                sound: tables.effect(&alarm.sound).to_owned(),
+                variant: 0,
+                far: None,
+                far_m: 0.0,
+                bus: Bus::Ambience,
+                gain: alarm.gain,
+                rate: 1.0,
+                position: None,
+                sector: -1.0,
+                lowpass: p.air.near_hz,
+                wet: 0.0,
+                far_share: 0.0,
+            });
+        }
+        self.high_air = current_high_air;
         let mut seen = Vec::with_capacity(motion.vehicles.len());
         for v in &motion.vehicles {
             let key = v.key.to_bits();

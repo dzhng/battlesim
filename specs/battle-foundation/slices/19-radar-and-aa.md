@@ -1,6 +1,6 @@
 # 19 — Radar support and self-guided AA
 
-**Status:** planned, not implemented. **Dependencies:** 10, 12, 18. **Milestone:** Deferred continuation — implement only after village checkpoint and explicit continuation scope.
+**Status:** superseded 2026-10-13 by the combined [persistent aircraft and layered air-defence plan](../../air-war/README.md). Do not implement this historical slice independently. Its radar/AA intent is carried by air-war slices 01, 03, and 04.
 
 ## Contract and question
 

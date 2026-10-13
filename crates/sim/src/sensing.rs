@@ -3,6 +3,7 @@
 //! vehicle's hull centre and top, each living soldier). Solid geometry blocks;
 //! foliage attenuates reach continuously and blocks outright past a full run;
 //! forest ground conceals a target by class, independently of tree crowns.
+use contract::catalog::AltitudeLayer;
 use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules};
 
@@ -199,7 +200,7 @@ pub fn evaluate(
     // Each with its samples and their concealment, which no observer changes.
     let targets: Vec<(&Unit, f64, Vec<Sample>)> = units
         .iter()
-        .filter(|u| u.side != side && u.alive())
+        .filter(|u| u.side != side && u.alive() && !u.air.is_some_and(|air| air.traversing))
         .map(|u| {
             let samples = samples(u)
                 .into_iter()
@@ -208,17 +209,23 @@ pub fn evaluate(
             (u, u.footprint_radius(body), samples)
         })
         .collect();
-    for observer in units
-        .iter()
-        .filter(|u| u.side == side && u.alive() && due(u))
-    {
+    for observer in units.iter().filter(|u| {
+        u.side == side && u.alive() && !u.air.is_some_and(|air| air.traversing) && due(u)
+    }) {
+        // Fixed-wing aircraft fly in HighAir and have no ground-facing
+        // vision. They still run the same optical pass for LowAir and
+        // HighAir targets, so air-to-air sensing remains authoritative here.
+        let observer_layer = observer.layer();
         let from = eyes(observer, rules);
-        let sight = crate::sight::of(observer, rules);
         let concealed_range_multiplier =
             observer.unit_type(rules).sensors.concealed_range_multiplier;
         let observer_radius = observer.footprint_radius(body);
         for (target, target_radius, samples) in &targets {
             let (target, target_radius) = (*target, *target_radius);
+            let sight = crate::sight::of_layer(observer, rules, target.layer());
+            if observer_layer == AltitudeLayer::HighAir && target.layer() == AltitudeLayer::Ground {
+                continue;
+            }
             // Every eye and sample lies within `spread` of the two centres, so
             // no sample can be seen past the widest reach across that arc.
             let spread = observer_radius + target_radius;

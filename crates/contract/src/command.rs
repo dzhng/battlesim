@@ -157,6 +157,11 @@ pub enum Order {
         units: Vec<UnitId>,
         policy: Engagement,
     },
+    /// Persistently toggle an aircraft's afterburner. Other units ignore it.
+    SetAfterburner {
+        units: Vec<UnitId>,
+        enabled: bool,
+    },
     /// Set up in place (`deployed`) or pack for movement, for units that
     /// deploy (L01, L02). Deploying cancels movement; others ignore it.
     SetDeployment {

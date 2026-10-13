@@ -82,7 +82,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     let mut previous: Option<ProgressSignature> = None;
     while report.ticks < row.horizon_ticks {
         let mut refused_this_tick = 0;
-        for side in Side::ALL {
+        for side in Side::COMBATANTS {
             let frame = battle.observe(side).clone();
             let orders = policies[side.index()].decide(
                 side,
@@ -119,7 +119,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         report.refused_orders += refused_this_tick;
         battle.step();
         report.ticks += 1;
-        for side in Side::ALL {
+        for side in Side::COMBATANTS {
             let frame = battle.observe(side);
             if !frame.contacts.is_empty() || !frame.identified.is_empty() {
                 report.first_contact_tick.get_or_insert(frame.tick);
@@ -146,7 +146,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 }
             }
         }
-        for side in Side::ALL {
+        for side in Side::COMBATANTS {
             report.living_cost[side.index()] = battle
                 .observe(side)
                 .own

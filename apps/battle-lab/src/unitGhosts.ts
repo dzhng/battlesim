@@ -3,7 +3,8 @@
 // preview, and every ordered destination with Space held. The UI says where
 // each body stands; the presentation fields and poses them (`GhostBody`).
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { airborne, highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
+import type { GhostReadout } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { GhostBody } from "@web/battle/sim/presentation";
 
@@ -19,7 +20,28 @@ export const GHOST_BLOCKED = 2;
 export const ghostAloft =
   (units: UnitCatalog, cruiseAglM: number) =>
   (kind: string): number =>
-    airborne(units.type(kind)) ? cruiseAglM : 0;
+    highAir(units.type(kind)) ? 1000 : airborne(units.type(kind)) ? cruiseAglM : 0;
+
+/** Cards accompany only revealed HighAir order ghosts while Space is held.
+ * Traversing aircraft have no landed goal yet, so their card hangs from the
+ * current ingress-edge position until the flight reaches the map. */
+export function aircraftOrderReadouts(
+  own: readonly OwnUnitView[],
+  showOrders: boolean,
+  revealed: ReadonlyMap<number, number>,
+  isHighAir: (kind: string) => boolean,
+  ground: SurfaceHeight,
+  altitude: (kind: string) => number,
+): GhostReadout[] {
+  if (!showOrders) return [];
+  return own.flatMap((unit) => {
+    if (!revealed.has(unit.id) || !isHighAir(unit.kind)) return [];
+    const ghost = orderedGhost(unit, GHOST_OWN);
+    if (!ghost && !unit.traversing) return [];
+    const [x, y] = ghost?.at ?? unit.position;
+    return [{ unit, position: [x, y, ground(x, y) + altitude(unit.kind)] }];
+  });
+}
 
 export interface UnitGhost {
   kind: string;
@@ -71,6 +93,7 @@ export function ghostBodies(
   ghosts: readonly UnitGhost[],
   hull: (kind: string) => boolean,
   z: SurfaceHeight,
+  altitude: (kind: string) => number,
 ): GhostBody[] {
   return ghosts.flatMap((ghost) =>
     (hull(ghost.kind) ? [{ at: ghost.at, slot: 0, id: 0 }] : ghost.soldiers).map(
@@ -80,7 +103,7 @@ export function ghostBodies(
         id,
         x: at[0],
         y: at[1],
-        z: z(at[0], at[1]),
+        z: z(at[0], at[1]) + altitude(ghost.kind),
         yaw: ghost.yaw,
         look: ghost.look,
       }),

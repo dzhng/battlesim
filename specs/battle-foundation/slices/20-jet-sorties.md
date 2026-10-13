@@ -1,6 +1,6 @@
 # 20 — Off-map strike lifecycle
 
-**Status:** planned, not implemented. **Dependencies:** 07, 09, 18, 19. **Milestone:** Deferred continuation — implement only after village checkpoint and explicit continuation scope.
+**Status:** superseded 2026-10-13 by the combined [persistent aircraft and layered air-defence plan](../../air-war/README.md). Do not implement this historical off-map-sortie contract independently. Its aircraft work is replaced by air-war slices 01–11.
 
 ## Contract and question
 
