@@ -2976,8 +2976,19 @@ impl Battle {
                 {
                     let distance = (self.units[shot.unit.0 as usize].position.xy()
                         - self.units[t.0 as usize].position.xy())
-                        .length();
-                    if distance <= 1200.0 {
+                    .length();
+                    let move_order = |unit: &Unit| {
+                        unit.orders
+                            .iter()
+                            .any(|order| matches!(order, UnitOrder::Move(_)))
+                    };
+                    // A plain move is an explicit disengage. Attack-move is
+                    // deliberately retained: its normal policy and the
+                    // close fight coexist until range is lost.
+                    if distance <= 1200.0
+                        && !move_order(&self.units[shot.unit.0 as usize])
+                        && !move_order(&self.units[t.0 as usize])
+                    {
                         self.units[shot.unit.0 as usize]
                             .air
                             .as_mut()
