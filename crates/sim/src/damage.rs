@@ -425,6 +425,26 @@ pub fn resolve(
                     Struck::Body(b) => locate(units, b).map(|at| (b, at)),
                     _ => None,
                 };
+                if def.decoyable {
+                    if let Some((_, (target_index, _))) = direct {
+                        let target = &mut units[target_index];
+                        let reload = target
+                            .unit_type(ctx.rules)
+                            .capabilities
+                            .air
+                            .as_ref()
+                            .and_then(|a| a.flares)
+                            .map_or(0.0, |f| f.reload_s);
+                        if let Some(air) = target.air.as_mut() {
+                            if air.flare_charges > 0 && air.flare_ready_tick <= ctx.tick {
+                                air.flare_charges -= 1;
+                                air.flare_ready_tick = ctx.tick
+                                    + (reload * ctx.rules.tick_hz as f64).round() as u64;
+                                continue;
+                            }
+                        }
+                    }
+                }
                 // Only weapons with structural damage wear props down (L10,
                 // Q17): the struck body by its kind's armour, and every other
                 // destroyable body the burst reaches by its distance.
@@ -685,7 +705,17 @@ fn hull_damage(
 ) -> f64 {
     let armor = unit.armor(ctx.rules).expect("vehicle armour");
     let face = struck_face(unit.hull.expect("vehicle hull"), pose, point, normal);
-    def.damage * pierce_share(def, bounces, ctx.rules, armor.face(face))
+    let aspect = if unit.airborne() {
+        match face {
+            contract::scenario::Face::Front => 1.0,
+            contract::scenario::Face::Rear => 0.85,
+            contract::scenario::Face::Roof => 0.75,
+            contract::scenario::Face::Side => 0.5,
+        }
+    } else {
+        1.0
+    };
+    def.damage * aspect * pierce_share(def, bounces, ctx.rules, armor.face(face))
 }
 
 /// Weapon-specific suppression at `distance` from a round's path or impact.

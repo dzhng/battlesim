@@ -539,8 +539,15 @@ fn spawn_unit(
                 .air
                 .as_ref()
                 .map_or(f64::INFINITY, |air| air.fuel_capacity_s);
+            let flare_charges = t
+                .capabilities
+                .air
+                .as_ref()
+                .and_then(|air| air.flares)
+                .map_or(0, |f| f.capacity);
             units::AirState {
                 fuel_s,
+                flare_charges,
                 ..Default::default()
             }
         }),

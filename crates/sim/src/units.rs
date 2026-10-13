@@ -326,6 +326,9 @@ pub struct AirState {
     pub ingress_remaining: u64,
     /// Close air engagement target while this aircraft is in a dogfight.
     pub dogfight_target: Option<UnitId>,
+    /// Remaining automatic flare charges and the next reload tick.
+    pub flare_charges: u32,
+    pub flare_ready_tick: u64,
 }
 
 /// How an aircraft arrives: it aims a little past its goal, then, stopped
@@ -611,7 +614,9 @@ impl Unit {
                 .u64(a.afterburner as u64)
                 .u64(a.traversing as u64)
                 .u64(a.ingress_remaining)
-                .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)));
+                .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)))
+                .u64(a.flare_charges as u64)
+                .u64(a.flare_ready_tick);
         }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),
