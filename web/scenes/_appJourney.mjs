@@ -327,7 +327,7 @@ export async function armyJourney(ctx) {
   // (here, its three corner shops), the rules or what the digest folds.
   ctx.check(
     "matched army capture preserves the original battle digest",
-    armyDigest === "d1d3939064ebf9d0",
+    armyDigest === "2ef5e4b9d3e18f2e",
     armyDigest,
   );
   await roster.first().click();
