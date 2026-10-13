@@ -154,7 +154,8 @@ export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?
  *  names, the appearances a page's units wear (`UnitCatalog.appearances`),
  *  with each worn vehicle's own wreck and each worn soldier's faction
  *  looks. Without `wearing`, every unit's art: a tool judging all baked art.
- *  So a game page never fetches art only test or menu units wear. */
+ *  The browser may warm other files into its cache, but does not install them
+ *  into the GPU generation. */
 export const catalogLoadNames = (
   catalog: Pick<RuntimeCatalog, "appearances">,
   wearing?: ReadonlySet<string>,
