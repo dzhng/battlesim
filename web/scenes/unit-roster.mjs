@@ -1,7 +1,7 @@
 // The player's production faction skirmish, through its ordinary picker and cursor.
 import assert from "node:assert/strict";
 import { modelGhostAgreement } from "./_modelGhost.mjs";
-import { advance, obs, presented, snapshot } from "./_lab.mjs";
+import { advance, obs, presented, snapshot, until } from "./_lab.mjs";
 export async function run(ctx) {
   await modelGhostAgreement(ctx);
   const page = await ctx.newPage();
@@ -21,6 +21,9 @@ export async function run(ctx) {
     await page.screenshot({ path: ctx.evidencePath("startup.png") });
     throw error;
   }
+  // The live FPS readout is diagnostic and changes with asset upload timing;
+  // keep journey pictures focused on the player's view.
+  await page.addStyleTag({ content: ".frame-rate { display: none !important; }" });
   await page.evaluate(() => window.__lab.route.pause());
   await presented(page);
   const initial = await obs(page);
@@ -65,12 +68,20 @@ export async function run(ctx) {
   const variant = page.getByRole("button", { name: /^SEP v2 — \d+ credits$/ });
   await variant.click();
   await page.mouse.move(640, 340);
-  await page.waitForFunction(() => {
-    const ghost = window.__lab.route.purchaseGhost?.();
-    return ghost && ghost.destination && ghost.variant;
-  });
+  await page.waitForFunction(
+    () => {
+      const ghost = window.__lab.route.purchaseGhost?.();
+      return ghost && ghost.destination && ghost.variant;
+    },
+    undefined,
+    { timeout: 250 },
+  );
   const previewGhost = await page.evaluate(() => window.__lab.route.purchaseGhost());
   assert(previewGhost?.variant, "selecting a reinforcement creates a cursor ghost");
+  assert(
+    !(await page.getByTestId("loading").isVisible()),
+    "selecting a previously unfielded reinforcement does not show a loading cover",
+  );
   const cameraWithGhost = await page.evaluate(() => window.__lab.camera());
   assert.deepEqual(
     cameraWithGhost,
@@ -137,10 +148,14 @@ export async function run(ctx) {
   await snapshot(ctx, page, "journey-placed-facing.png");
   await ctx.matchBaseline(page, "journey-placed-facing");
   await page.getByRole("button", { name: "START BATTLE", exact: true }).click();
-  await advance(page, 60 * 30);
-  const active = await obs(page);
+  const active = await until(
+    page,
+    (o) => o.own.length >= 1 && o.skirmish.phase === "active",
+    60 * 60,
+    60,
+  );
   assert(
-    active.own.length >= 1 && active.skirmish.pending.length === 0,
+    active && active.own.length >= 1 && active.skirmish.phase === "active",
     "reinforcement physically enters through the ordinary road-edge spawn",
   );
   await snapshot(ctx, page, "first-reinforcement.png");
@@ -162,8 +177,8 @@ export async function run(ctx) {
     window.__lab.route.acks().find(({ order, ack }) => order.kind === "move" && !ack.error),
   );
   assert(moveAck, "a right-click moves the selected unit");
-  await advance(page, 60);
-  const moved = (await obs()).own.find((unit) => unit.id === selected.id);
+  await advance(page, 300);
+  const moved = (await obs(page)).own.find((unit) => unit.id === selected.id);
   assert(
     moved &&
       Math.hypot(

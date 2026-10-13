@@ -109,6 +109,13 @@ test("deployment marker stacks three inward chevrons along the battle direction"
   // Facing east: the chevrons are stacked east-to-west, with only their
   // short arms spanning north/south.
   expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(Math.max(...ys) - Math.min(...ys));
+
+  // A spawn sits on the map edge. Even at that edge, the marker's arms stay
+  // on the playable side instead of painting into the lower UI pane.
+  const edge = buildDeploymentMarker([0, 10], 0, flat, STYLE, [0.2, 0.8, 1], at(0.05));
+  const edgeXs: number[] = [];
+  for (let i = 0; i < edge.length; i += VERTEX_FLOATS) edgeXs.push(edge[i]);
+  expect(Math.min(...edgeXs)).toBeGreaterThanOrEqual(-1e-6);
 });
 
 test("cover icons appear only with the order marks, one per tier present, none for no cover", () => {

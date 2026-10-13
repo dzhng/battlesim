@@ -692,13 +692,18 @@ export function buildDeploymentMarker(
   const pen = orderPen(z, style, stroke);
   const color = glowing([...markerColor, 1], style.glow.selected);
   const { cycles_per_s, amplitude } = style.march;
-  const offsets = [-9, 0, 9];
+  // The spawn is on the playable edge. A chevron's arms extend behind its
+  // tip, so start the stack one arm length inside the map; otherwise the
+  // outer chevron paints across the border and into the HUD pane.
+  const armLength = 12.5;
+  const firstTip = armLength + pen.line * 2;
+  const offsets = [firstTip, firstTip + 9, firstTip + 18];
   const outline: Rgba = [markerColor[0] * 0.45, markerColor[1] * 0.55, markerColor[2] * 0.6, 1];
   offsets.forEach((offset, i) => {
     const tip = along(destination, facing, offset);
     // A dark, slightly oversized underlay leaves the crisp outlined edge seen
     // in the reference around each painted chevron.
-    marchChevron(mesh, pen, tip, facing, outline, [0, 0, 0], [7.8, 12.5], pen.line * 2.6);
+    marchChevron(mesh, pen, tip, facing, outline, [0, 0, 0], [7.8, armLength], pen.line * 2.6);
     // The pulse advances from the outer chevron toward the spawn point and
     // back again. At any instant one chevron is visibly bright.
     marchChevron(

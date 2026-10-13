@@ -1,10 +1,9 @@
 // The page's appearances, through the one loader (`AppearanceLibrary`), from
 // what the bake wrote under `assets/runtime/` (Vite's publicDir, served at
-// the site root). The catalog loads once per page: the scenery and the art
-// its session's units wear (`UnitCatalog.appearances`), not every unit's, so
-// its GPU generation never installs the art only test units wear; a later session
-// with other units (a lab after the game) adds theirs. The browser warms the
-// remaining files into network/cache storage without uploading them. Kits and regional
+// the site root). A battle installs the complete unit-art catalog with its
+// scenery at map startup, so selecting a reinforcement never has to decode or
+// upload a new model during play. The browser warms the remaining files into
+// network/cache storage without uploading them. Kits and regional
 // looks are fetched on request. One of those is fetched the
 // first time the page asks for it, and a page asks for what it will draw: a
 // map for the kits its buildings' templates place and its region's looks
@@ -48,7 +47,6 @@ function selectionKey(
 }
 
 /** Warm the browser's network/cache storage without decoding or uploading art.
- * GPU installation remains limited to the current battle's requested kinds.
  * The page cancels it as it leaves (`appResources.signal`): that is no failure,
  * where a fetch the network fails while the page stays is. */
 async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
@@ -292,10 +290,9 @@ export function useMapAppearances(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],
   );
-  // A battle may ask for one new reinforcement while it is already live. Keep
-  // the complete generation on screen while that unit's art is fetched; the
-  // viewport must not unmount and reset the player's camera for a background
-  // appearance update.
+  // Keep the complete generation on screen while map-specific art is fetched;
+  // the viewport must not unmount and reset the player's camera for a
+  // background appearance update.
   return useGameAppearances(asked, kinds, factions, scenery, true);
 }
 
