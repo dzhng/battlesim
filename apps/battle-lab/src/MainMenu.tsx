@@ -272,11 +272,11 @@ export function MainMenu() {
     return () => clearTimeout(dismiss);
   }, [detection.status]);
   const detectionStageVisible = detectionNeeded || showDetection;
-  const displayLoading = loading || showDetection;
+  const displayLoading = loading || detectionNeeded || showDetection;
   const stages = detectionStageVisible
     ? [...LOADING_STAGES, { id: "graphics", label: "Detecting Graphics" }]
     : LOADING_STAGES;
-  const detectionCurrent = !loading && showDetection ? "graphics" : progress.current;
+  const detectionCurrent = !loading && detectionStageVisible ? "graphics" : progress.current;
   const detectionDetail =
     detection.status === "running" && detection.currentTier
       ? `Testing ${detection.currentTier.toUpperCase()} graphics · ${Math.min(
@@ -285,7 +285,7 @@ export function MainMenu() {
         )} of ${GRAPHICS_TIERS.length} presets`
       : detection.status === "complete" && detection.tier
         ? `Graphics set to ${detection.tier.toUpperCase()}`
-        : detection.status === "idle" && showDetection
+        : detection.status === "idle" && detectionStageVisible
           ? "Preparing graphics test…"
           : undefined;
   const detectionFailure =
