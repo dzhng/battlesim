@@ -88,7 +88,6 @@ import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
-import { describeBuildings } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
 import {
@@ -670,7 +669,7 @@ export function useBattleSession({
       const panel = readouts.current?.pick(pick.x, pick.y);
       return panel ? { ...pointer, ...panel } : pointer;
     },
-    [world, observation, units],
+    [world, observation],
   );
   const onRightPress = useCallback(
     (pick: LabPick | null) => {
@@ -1121,9 +1120,6 @@ export function useBattleSession({
     known: { buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
     /** The player's pointer on a viewport that takes orders. */
     input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
-    /** What a second client needs to draw this side's fallen buildings
-     *  (`describeBuildings`); null until the map's buildings are known. */
-    describeBuildings: () => (drawnBuildings ? describeBuildings(drawnBuildings, units) : null),
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,
@@ -1147,11 +1143,6 @@ export function useBattleSession({
     revealed,
     pointerPaint,
     surfaceZ,
-    /** What a second client needs to pose and draw this battle's units and
-     *  its combat effects (`describeUnits`, `describeEffects`): the
-     *  presentation's own input; null until it can load. */
-    describeUnits: () => worldInput?.units ?? null,
-    describeEffects: () => worldInput?.effects ?? null,
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,

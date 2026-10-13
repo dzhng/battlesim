@@ -234,14 +234,9 @@ export interface ViewportPilot {
   /** Show the in-game frame-rate counter, which a piloted view otherwise
    *  hides (the graphics test shows it; the menu's reel does not). */
   frameRate?: boolean;
-  /** The battle frame is up: the adapter, the light it was built with, the
-   *  frame's own statistics (its rolling GPU frame time from
+  /** The battle frame is up: the adapter and the frame's own statistics (its rolling GPU frame time from
    *  `timestamp-query`, and live memory). */
-  attach?(frame: {
-    adapter: string;
-    light: LightPresentation;
-    stats: () => ReturnType<BattleFrame["stats"]>;
-  }): void;
+  attach?(frame: { adapter: string; stats: () => ReturnType<BattleFrame["stats"]> }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
    *  Null leaves the camera to the player for that frame. */
@@ -835,7 +830,6 @@ export function LabViewport({
         const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
         pilot?.attach?.({
           adapter,
-          light: light(),
           stats: () => scene.stats(),
         });
         // What the battle draws, for a player's diagnostics report.

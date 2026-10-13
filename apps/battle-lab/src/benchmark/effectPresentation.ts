@@ -1,6 +1,5 @@
-// What the presentation crate needs to draw a battle's combat effects as
-// this page does (the `native-visual-presentation` manifest's `effects`,
-// `web/src/battle/benchmark/effectManifest.ts`): the effects' tuning, each
+// What the presentation crate draws a battle's combat effects from
+// (`load_world`'s `effects`, `presentedFrame.ts`): the effects' tuning, each
 // weapon's rows resolved to its nearest styled ancestor's, each fielded
 // type's hull and mount muzzles, the prop kinds that smoke once known, what
 // each wreck throws when it cooks off, and how each hull's wreck is fitted
@@ -16,11 +15,7 @@ import type { Bounds } from "@packages/scene-assets/src/schema";
 import { SCENERY_KINDS, WRECK_PIECES } from "@packages/scene-assets/src/scenery";
 import { topSpeedKmh, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { WorldLayout } from "@packages/battle-renderer/src/worldMesh";
-import type {
-  EffectsManifest,
-  WreckLookRecord,
-  WreckRecord,
-} from "@web/battle/benchmark/effectManifest";
+import type { EffectsSection, WreckLookRecord, WreckRecord } from "../presentedFrame";
 
 const vec = (v: ArrayLike<number>): Vec3 => [v[0], v[1], v[2]];
 
@@ -93,8 +88,8 @@ export function describeEffects({
   layout: Pick<WorldLayout, "unitAppearance">;
   installed: InstalledAppearances;
   wreckStopS: number;
-}): EffectsManifest {
-  const types: EffectsManifest["types"] = {};
+}): EffectsSection {
+  const types: EffectsSection["types"] = {};
   for (const kind of [...new Set(kinds)].sort()) {
     const type = units.type(kind);
     const half = units.hull(kind)?.half_extents_m;

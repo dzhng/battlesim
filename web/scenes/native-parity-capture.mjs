@@ -3,13 +3,14 @@
 // For each scene it writes
 //
 //   throwaway/native-parity/<run>/<scene>/{capture.json, manifest.json,
-//     plate-<index>.png, plain-<index>.png, units-<table>.u32}
+//     plate-<index>.png, plain-<index>.png}
 //
-// the capture and its frame records, the `native-visual-presentation`
-// manifest (with each plate's grass, building-module, scenery, posed-model
-// and effect counts), the plates read back in their own frames with each
-// frame lit without its grass, and the units' clip tables the manifest hashes.
-// The ground, grass and scenery travel as the map itself: Rust resolves them.
+// the capture (its publications and frame records), the
+// `native-visual-presentation` manifest (the battle's identity, the lens and
+// layers, and each plate's grass, building-module, scenery, posed-model and
+// effect counts), and the plates read back in their own frames with each
+// frame lit without its grass. The world (ground, buildings, units, effects,
+// light) travels as the repository itself: Rust resolves it.
 // PARITY_SCENES=<map,…> films only those scenes (`?scenes=`); PARITY_FOG=1
 // films them with the side's fog of war (`?fog=1`, the manifest's `fog`
 // layer). Run it under the GPU lock; it waits on the route's stage, never on
@@ -122,7 +123,7 @@ export async function run(ctx) {
     await writeFile(new URL("capture.json", dir), captureJson);
     const mapBytes = await readFile(new URL(`fixtures/maps/${map}/map.json`, ROOT));
     const own = plates.filter((p) => p.scene === map);
-    const { manifest, artifacts } = await writeVisualPresentation({
+    const manifest = await writeVisualPresentation({
       captureJson,
       mapBytes,
       drawn: report.drawnPresentations[i],
@@ -132,7 +133,6 @@ export async function run(ctx) {
       effectCounts: own.map(({ file, effects }) => ({ plate: file, ...effects })),
     });
     await writeFile(new URL("manifest.json", dir), manifest);
-    for (const { file, bytes } of artifacts) await writeFile(new URL(file, dir), bytes);
     const sizes = [];
     for (const plate of own)
       for (const [file, base64] of [
@@ -177,7 +177,7 @@ export async function run(ctx) {
       [c.soldiers, c.vehicles, c.aircraft, c.corpses, c.fading].join("/"),
     );
     console.log(
-      `METRIC native-parity-capture ${map} units: ${Object.keys(parsed.units.types).length} unit types, ${Object.keys(parsed.units.appearances).length} appearances, ${parsed.units.tables.length} clip tables; soldiers/vehicles/aircraft/corpses/fading per plate ${posed.join(", ")}`,
+      `METRIC native-parity-capture ${map} units: soldiers/vehicles/aircraft/corpses/fading per plate ${posed.join(", ")}`,
     );
     console.log(
       `METRIC native-parity-capture ${map}: ${frames.length} frames, ${own.length} plates, grass per plate ${grown.join(", ")}; building modules per plate ${modules.join(", ")}; forest/understorey/backdrop/dressing per plate ${scenery.join(", ")}; props per plate ${props.join(", ")} → ${dir.pathname}`,
@@ -186,7 +186,7 @@ export async function run(ctx) {
       (c) => `${sum(Object.values(c.running))}/${sum(Object.values(c.instances))}/${c.lights}`,
     );
     console.log(
-      `METRIC native-parity-capture ${map} effects: ${Object.keys(parsed.effects.smokes).length} smoking prop kinds, ${Object.keys(parsed.effects.wrecks).length} wrecks; running/instances/lights per plate ${effected.join(", ")}`,
+      `METRIC native-parity-capture ${map} effects: running/instances/lights per plate ${effected.join(", ")}`,
     );
   }
   console.log(

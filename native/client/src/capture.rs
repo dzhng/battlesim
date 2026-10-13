@@ -1,21 +1,24 @@
-//! A browser parity run's scene, replayed through the presentation crate: the map's ground set and its scenery and props placed,
-//! the battle's world loaded once, then for each frame record in order,
+//! A browser parity run's scene, replayed through the presentation crate:
+//! the world read from the repository (the saved map the run's manifest
+//! names, its ground, scenery, props and buildings, and the units its
+//! encounter fields), loaded once, then for each frame record in order,
 //! every publication up to its tick pushed and `frame()` asked at its sim
 //! time and camera. Every record is framed, since poses, effects and the
 //! scenery's walk carry state from frame to frame.
 use std::fs;
 use std::path::Path;
 
+use presentation::fielded;
 use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
 use presentation::presentation::{FogSetup, Frame, Presentation, Ui};
 use presentation::records::FogLook;
 use presentation::static_world::files;
-use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
-use presentation::world::{Appearance, WorldInput};
+use presentation::world::{BattleInput, SoldierBody, WorldInput, Xray};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 use crate::bundle::Library;
 use crate::scenery::tier_mesh;
@@ -24,18 +27,13 @@ use crate::scenery::tier_mesh;
 #[serde(rename_all = "camelCase")]
 struct CaptureFile {
     schema: String,
+    /// What was filmed: scene, map, encounter and seed.
+    workload: Value,
     tick_hz: f64,
     side: String,
     layout: String,
     samples: Vec<Sample>,
     frames: Vec<Record>,
-}
-
-/// The manifest's `props.buildings`.
-#[derive(Deserialize)]
-struct Staged {
-    parts: Vec<Vec<u32>>,
-    shells: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -102,10 +100,16 @@ fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
 
 impl Replay {
     /// Loads scene `dir` of a parity run; `game` is the rules fixture, for
-    /// the soldier's body and the aircraft's cruise height. The scenery is
-    /// placed from `library`'s bundles.
+    /// the soldier's body, the aircraft's cruise height and the light. The
+    /// world is the repository's: the saved map the manifest names, the
+    /// units its encounter fields and their art, the scenery placed from
+    /// `library`'s bundles.
     pub fn open(dir: &Path, game_path: &Path, library: &Library) -> Result<Self, String> {
-        let capture: CaptureFile = read_json(&dir.join("capture.json"))?;
+        let capture_path = dir.join("capture.json");
+        let capture_bytes =
+            fs::read(&capture_path).map_err(|e| format!("{}: {e}", capture_path.display()))?;
+        let capture: CaptureFile = serde_json::from_slice(&capture_bytes)
+            .map_err(|e| format!("{}: {e}", capture_path.display()))?;
         if capture.schema != "battle-presentation-capture" {
             return Err(format!("capture schema {}", capture.schema));
         }
@@ -113,66 +117,82 @@ impl Replay {
         if manifest["schema"] != "native-visual-presentation" {
             return Err(format!("manifest schema {}", manifest["schema"]));
         }
-        let game: Value = read_json(game_path)?;
-        let light: LightSettings =
-            serde_json::from_value(manifest["light"].clone()).map_err(|e| format!("light: {e}"))?;
-        let lens: Lens =
-            serde_json::from_value(manifest["lens"].clone()).map_err(|e| format!("lens: {e}"))?;
-        let physics = &game["physics"];
-        let input: WorldInput = serde_json::from_value(json!({
-            "battle": {
-                "units": manifest["units"],
-                "effects": manifest["effects"],
-                "side": capture.side,
-                "tick_hz": capture.tick_hz,
-                "soldier": {
-                    "radius_m": physics["soldier_radius_m"],
-                    "height_m": physics["soldier_height_m"],
-                },
-                // The UI's colours: a replay selects nothing and shows no
-                // x-ray or ghost, so no frame reads them.
-                "xray": { "own": [0, 0, 0, 0], "selected": [0, 0, 0, 0] },
-                "blocked": [0, 0, 0, 0],
-                "cruise_agl_m": game["air"]["cruise_agl_m"],
-            },
-            "sun_azimuth": light.sun_azimuth,
-            "sun_elevation": light.sun_elevation,
-            "cascade_far_m": light.cascades.max_far_m,
-            "buildings": game["presentation"]["buildings"],
-        }))
-        .map_err(|e| format!("world: {e}"))?;
-        let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
-            .map_err(|e| format!("presentation.fog: {e}"))?;
-        let fog_look = fog.selected()?.look()?;
-        let mut tables = ClipTables::new();
-        let units = &input.battle.as_ref().ok_or("world: no battle")?.units;
-        for a in units.appearances.values() {
-            if let Appearance::Skinned { table, .. } = a {
-                let path = dir.join(format!("units-{table}.u32"));
-                let bytes = fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-                let floats = bytes.as_chunks::<4>().0.iter();
-                tables.insert(
-                    table.clone(),
-                    floats.map(|b| f32::from_le_bytes(*b)).collect(),
-                );
-            }
-        }
-        let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
-        // The buildings, each one's part props and the kinds a gutted
-        // building's parts become, as the page staged them.
-        let map = manifest["identity"]["map"]
-            .as_str()
-            .ok_or("manifest: no identity.map")?
-            .to_owned();
-        let staged: Staged = serde_json::from_value(manifest["props"]["buildings"].clone())
-            .map_err(|e| format!("props.buildings: {e}"))?;
         let root = game_path
             .parent()
             .and_then(Path::parent)
             .ok_or("no repository root")?;
-        let (buildings, _) = files::placed_buildings(root, &map, staged.parts, staged.shells)?;
+        // The battle the manifest names, and nothing else: the capture's
+        // workload, and both files byte for byte.
+        let identity = &manifest["identity"];
+        let workload = &capture.workload;
+        for key in ["scene", "map", "encounter", "seed"] {
+            if identity[key] != workload[key] {
+                return Err(format!(
+                    "{}: the capture's workload {key} is {}, the manifest's identity names {}",
+                    capture_path.display(),
+                    workload[key],
+                    identity[key]
+                ));
+            }
+        }
+        let map = workload["map"]
+            .as_str()
+            .ok_or("capture: the workload names no map")?
+            .to_owned();
+        let encounter = workload["encounter"]
+            .as_str()
+            .ok_or("capture: the workload names no encounter")?;
+        let map_path = root.join("fixtures/maps").join(&map).join("map.json");
+        let map_bytes = fs::read(&map_path).map_err(|e| format!("{}: {e}", map_path.display()))?;
+        for (path, bytes, key) in [
+            (&capture_path, &capture_bytes, "captureHash"),
+            (&map_path, &map_bytes, "mapHash"),
+        ] {
+            let hash = format!("{:x}", Sha256::digest(bytes));
+            if identity[key] != hash.as_str() {
+                return Err(format!(
+                    "{} is not the file the control ran on: sha256 {hash}, the manifest's identity.{key} is {}",
+                    path.display(),
+                    identity[key]
+                ));
+            }
+        }
+        let game: Value = read_json(game_path)?;
+        let light: LightSettings = serde_json::from_value(game["presentation"]["light"].clone())
+            .map_err(|e| format!("presentation.light: {e}"))?;
+        let lens: Lens =
+            serde_json::from_value(manifest["lens"].clone()).map_err(|e| format!("lens: {e}"))?;
+        // The battle's units, effects and clip tables, as a page fielding
+        // the encounter's units installs them.
+        let kinds = fielded::encounter_kinds(root, &map, encounter)?;
+        let fielded = fielded::fielded(root, &map, &kinds, None)?;
+        let physics = &game["physics"];
+        let number = |v: &Value, what: &str| v.as_f64().ok_or(format!("game.json: no {what}"));
+        let battle = BattleInput {
+            units: fielded.units,
+            effects: fielded.effects,
+            side: capture.side.clone(),
+            tick_hz: capture.tick_hz,
+            soldier: SoldierBody {
+                radius_m: number(&physics["soldier_radius_m"], "physics.soldier_radius_m")?,
+                height_m: number(&physics["soldier_height_m"], "physics.soldier_height_m")?,
+            },
+            // The UI's colours: a replay selects nothing and shows no x-ray
+            // or ghost, so no frame reads them.
+            xray: Xray {
+                own: [0.0; 4],
+                selected: [0.0; 4],
+            },
+            blocked: [0.0; 4],
+            cruise_agl_m: number(&game["air"]["cruise_agl_m"], "air.cruise_agl_m")?,
+        };
+        let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
+            .map_err(|e| format!("presentation.fog: {e}"))?;
+        let fog_look = fog.selected()?.look()?;
+        let mut presentation = Presentation::new(Some(&capture.layout), capture.tick_hz)?;
         // The ground, and its scenery placed from each kind's finest mesh.
         let ground = files::ground(root, &map)?;
+        let (buildings, style) = files::placed_buildings(root, &map, &ground.world)?;
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
         // Fog of war, where the browser drew it: the side's sight under the
         // game's sensor rules.
@@ -194,13 +214,25 @@ impl Replay {
         let finest: Vec<&[f32]> = finest.iter().map(Vec::as_slice).collect();
         presentation.place_scenery(&finest)?;
         // The props, from the art a page running these units installs.
-        let wearing: Vec<&str> = units.appearances.keys().map(String::as_str).collect();
+        let wearing: Vec<&str> = battle
+            .units
+            .appearances
+            .keys()
+            .map(String::as_str)
+            .collect();
         let art = files::prop_art(root, ground.family.as_deref(), &wearing)?;
         let records = presentation
             .ground()
             .map_or_else(Vec::new, |g| g.source.props.clone());
         presentation.place_props(&records, &ground.layout, art)?;
-        presentation.load_world(input, tables, Some(buildings))?;
+        let input = WorldInput {
+            battle: Some(battle),
+            sun_azimuth: light.sun_azimuth,
+            sun_elevation: light.sun_elevation,
+            cascade_far_m: Some(light.cascades.max_far_m),
+            buildings: Some(style),
+        };
+        presentation.load_world(input, fielded.tables, Some(buildings))?;
         Ok(Self {
             map,
             records: capture.frames,

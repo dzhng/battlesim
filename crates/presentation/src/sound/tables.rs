@@ -301,7 +301,10 @@ pub fn pick<'a, T>(table: &'a HashMap<String, T>, key: &str) -> &'a T {
 
 /// `table` with a row for every weapon of `weapons` that has none: its
 /// nearest ancestor's (`extends`), so a derived weapon sounds as its parent.
-fn inherit<T: Clone>(table: &mut HashMap<String, T>, weapons: &BTreeMap<String, Option<String>>) {
+pub(crate) fn inherit<T: Clone>(
+    table: &mut HashMap<String, T>,
+    weapons: &BTreeMap<String, Option<String>>,
+) {
     let mut added = Vec::new();
     for kind in weapons.keys() {
         if table.contains_key(kind) {
