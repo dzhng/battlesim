@@ -643,7 +643,6 @@ export function useBattleSession({
       presentation,
       worldInput,
       units,
-      audio,
       orderReveal,
       control.showOrders,
       control.acks,
