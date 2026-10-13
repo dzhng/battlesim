@@ -32,12 +32,8 @@ import { LoadingScreen } from "./LoadingScreen";
 import { Wordmark } from "./Wordmark";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
-import {
-  GRAPHICS_TIERS,
-  graphicsDetectionState,
-  subscribeGraphicsDetection,
-} from "./graphicsDetection";
-import { graphicsSettings } from "./graphicsSettings";
+import { graphicsDetectionState, subscribeGraphicsDetection } from "./graphicsDetection";
+import { GRAPHICS_TIERS, graphicsSettings } from "./graphicsSettings";
 
 interface Entry {
   label: string;
@@ -266,11 +262,6 @@ export function MainMenu() {
   useEffect(() => {
     if (!loading && detectionNeeded) setShowDetection(true);
   }, [loading, detectionNeeded]);
-  useEffect(() => {
-    if (detection.status !== "complete") return;
-    const dismiss = setTimeout(() => setShowDetection(false), 900);
-    return () => clearTimeout(dismiss);
-  }, [detection.status]);
   const detectionStageVisible = detectionNeeded || showDetection;
   const displayLoading = loading || detectionNeeded || showDetection;
   const stages = detectionStageVisible
@@ -360,7 +351,11 @@ export function MainMenu() {
     <>
       <main className="menu" data-open={page ?? undefined} inert={displayLoading}>
         <LoadingTasks report={report}>
-          <MenuBackdrop plate={plate} shown={shown.promise} />
+          <MenuBackdrop
+            plate={plate}
+            shown={shown.promise}
+            onDetectionSceneReady={() => setShowDetection(false)}
+          />
         </LoadingTasks>
         <div className="menu-slot">
           <GraphicsDetectionHost runner={null} enabled={!loading}>

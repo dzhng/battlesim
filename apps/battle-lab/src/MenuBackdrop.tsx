@@ -38,7 +38,12 @@ import {
   resolveEffectiveTier,
   type GraphicsTier,
 } from "./graphicsSettings";
-import { createCanonicalFrameRunner, registerGraphicsDetectionRunner } from "./graphicsDetection";
+import {
+  createCanonicalFrameRunner,
+  graphicsDetectionState,
+  registerGraphicsDetectionRunner,
+  subscribeGraphicsDetection,
+} from "./graphicsDetection";
 
 const SCENES = validateBackdrop(backdrop, listMaps()).scenes;
 const FILM_CAMERA = filmCamera(
@@ -81,6 +86,8 @@ interface BackdropProps {
   plate: RefObject<HTMLElement | null>;
   /** Settles when the menu is shown. */
   shown: Promise<void>;
+  /** Releases the first-launch detection cover after the reset scene is ready. */
+  onDetectionSceneReady?: () => void;
 }
 
 /** The backdrop's battles run on the menu's own catalog. */
@@ -94,17 +101,30 @@ export function MenuBackdrop(props: BackdropProps) {
   );
 }
 
-function BackdropScenes({ plate, shown }: BackdropProps) {
+function BackdropScenes({ plate, shown, onDetectionSceneReady }: BackdropProps) {
   const { rules } = useSessionCatalog();
   // A refused page GPU leaves the menu its plain background, with nothing to wait for.
   const refused = useSyncExternalStore(appResources.subscribe, appResources.error);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
+  const detection = useSyncExternalStore(subscribeGraphicsDetection, graphicsDetectionState);
   const [probeTier, setProbeTier] = useState<GraphicsTier | null>(null);
   const [probeGeneration, setProbeGeneration] = useState(0);
+  const [reelGeneration, setReelGeneration] = useState(0);
+  const detectionWasRunning = useRef(false);
   const frameListeners = useRef(new Set<(timestampMs: number) => void>());
   const readyWaiter = useRef<{ resolve: () => void; reject: (reason: unknown) => void } | null>(
     null,
   );
+  useEffect(() => {
+    if (detection.status === "running") detectionWasRunning.current = true;
+    if (detection.status === "complete" && detectionWasRunning.current) {
+      // Detection ran over the live reel while the loading card covered it.
+      // Start a fresh scene before lifting that card so the player always sees
+      // the first framing, never a camera left halfway through a shot.
+      detectionWasRunning.current = false;
+      setReelGeneration((generation) => generation + 1);
+    }
+  }, [detection.status]);
   useEffect(() => {
     const runner = createCanonicalFrameRunner({
       setTier: (tier, signal) => {
@@ -161,12 +181,15 @@ function BackdropScenes({ plate, shown }: BackdropProps) {
   if (refused || !battle || buildFailed(battle)) return null;
   return (
     <BackdropBattle
-      key={played}
+      key={`${played}:${reelGeneration}`}
       scene={scene}
       scenario={battle}
       plate={plate}
       shown={shown}
-      onWarm={() => void sceneScenario(next, rules).catch(() => {})}
+      onWarm={() => {
+        void sceneScenario(next, rules).catch(() => {});
+        if (detection.status === "complete") onDetectionSceneReady?.();
+      }}
       onEnd={() => setPlayed((n) => n + 1)}
       onProbeReady={() => readyWaiter.current?.resolve()}
       onProbeFrame={(now) => frameListeners.current.forEach((listener) => listener(now))}

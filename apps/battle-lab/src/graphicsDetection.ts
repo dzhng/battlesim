@@ -1,4 +1,5 @@
 import {
+  GRAPHICS_TIERS,
   graphicsSettings,
   resolveAutoDetect,
   type GraphicsTier,
@@ -6,8 +7,6 @@ import {
 } from "./graphicsSettings";
 
 export const GRAPHICS_TARGET = { averageFps: 45 } as const;
-export const GRAPHICS_TIERS: readonly GraphicsTier[] = ["high", "medium", "low"];
-
 export function judgeIntervals(
   intervalsMs: readonly number[],
   _tier?: GraphicsTier,
@@ -25,9 +24,9 @@ export function chooseTier(
   samples: Partial<Record<GraphicsTier, TierBenchmarkInput>>,
 ): GraphicsTier {
   const result = resolveAutoDetect({
-    high: samples.high ?? null,
-    medium: samples.medium ?? null,
     low: samples.low ?? null,
+    medium: samples.medium ?? null,
+    high: samples.high ?? null,
   });
   if ("unusable" in result || !result.mode)
     throw new Error(
@@ -204,6 +203,7 @@ export function runAutoDetect(): Promise<GraphicsTier> {
         completed: index + 1,
         error: null,
       });
+      if (result.averageFps < GRAPHICS_TARGET.averageFps) break;
     }
     const selectedMode = chooseTier(results);
     const result = results[selectedMode]!;
@@ -216,7 +216,7 @@ export function runAutoDetect(): Promise<GraphicsTier> {
       status: "complete",
       tier: selectedMode,
       currentTier: null,
-      completed: GRAPHICS_TIERS.length,
+      completed: Object.keys(results).length,
       error: null,
     });
     return selectedMode;
