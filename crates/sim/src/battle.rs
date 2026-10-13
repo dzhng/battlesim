@@ -49,10 +49,20 @@ use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_B
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
 
-/// Ticks between ground-visibility sweeps for each side (sides alternate).
+/// Ticks between ground-visibility sweeps for each side ([`fog_phase`]).
 /// Identification runs every [`sensing::SENSE_EVERY`] ticks per observer;
 /// the fog display lags by at most this many ticks.
 const FOG_INTERVAL_TICKS: u64 = 6;
+
+/// The tick within each fog interval on which `side` sweeps: the two
+/// combatants half an interval apart, so their sweeps never share a tick,
+/// and the passive neutral side on blue's.
+fn fog_phase(side: Side) -> u64 {
+    match side {
+        Side::Red => FOG_INTERVAL_TICKS / 2,
+        Side::Blue | Side::Neutral => 0,
+    }
+}
 /// Seed salt for each side's observation-uncertainty stream (contact placement),
 /// kept apart from combat and policy randomness.
 const OBSERVATION_STREAM: u64 = 0x6f62_7365_7276_6531;
@@ -1650,7 +1660,7 @@ impl Battle {
         for side in Side::ALL {
             self.sense(side, false);
             completed(TickPhase::Sight);
-            if self.tick % FOG_INTERVAL_TICKS == side.index() as u64 * FOG_INTERVAL_TICKS / 2 {
+            if self.tick % FOG_INTERVAL_TICKS == fog_phase(side) {
                 self.sweep_fog_profiled(side, &mut completed);
                 completed(TickPhase::Learning);
             }
@@ -4329,8 +4339,9 @@ mod tests {
     /// A battle that changes what each side knows in every way a battle
     /// can: a tank shoves a crate and knocks a lane through a wood, shells
     /// fell trees, break a wall into rubble and a wreck into a lighter
-    /// wreck, and a wreck appears; one side watches from close by, the
-    /// other learns of each only as it comes into view. Whatever a side
+    /// wreck, and a wreck appears; one side watches from close by, another
+    /// learns of each only as it comes into view, and the neutral side looks
+    /// on from where it stands, past the wall. Whatever a side
     /// believes at any tick, its planning grid, kept up body by body, is
     /// the grid built whole from those beliefs.
     #[test]
@@ -4381,7 +4392,8 @@ mod tests {
                 { "side": "red", "kind": "test_rifle", "position": [860, 100],
                   "engagement": "return_fire_only" },
                 { "side": "red", "kind": "test_jeep", "position": [880, 180], "yaw": 3.1,
-                  "engagement": "return_fire_only" }
+                  "engagement": "return_fire_only" },
+                { "side": "neutral", "kind": "test_rifle", "position": [320, 130] }
             ],
             "events": events,
             "scripts": [
