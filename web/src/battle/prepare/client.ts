@@ -1,7 +1,7 @@
 /** Main-thread side of battle preparation: one worker per request. */
 import type { SimConnection } from "../sim/client";
 import type { SimReply } from "../sim/protocol";
-import { scenarioBundleCatalog, type ScenarioBundlePreparationReport } from "./scenarioBundle";
+import type { ScenarioBundlePreparationReport } from "./scenarioBundle";
 export { scenarioBundleCatalog } from "./scenarioBundle";
 import type {
   PrepareDiagnostic,

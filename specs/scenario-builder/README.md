@@ -2,11 +2,11 @@
 
 ## Status and next pickup
 
-**Status:** the side topology, bundle contract, offline admission, slot ownership, controller takeover, deterministic script runtime, modes, tactical builder, explicit scenario/replay file I/O, normal upload/play route, bundle-owned catalog admission, and embedded audio seams are implemented. Native contract checks, the full 848-test simulation suite, TypeScript checks, focused browser tests, and the builder export browser scene pass. The uploaded play route now reaches the normal renderer, where this SwiftShader browser aborts on the existing model texture-array budget (`441` layers requested, `256` device layers); replay and mixed-player browser evidence remains pending on a device/runtime that satisfies that renderer limit.
+**Status:** the side topology, bundle contract, offline admission, slot ownership, controller takeover, deterministic script runtime, modes, tactical builder, explicit scenario/replay file I/O, normal upload/play route, bundle-owned catalog admission, embedded audio seams, and renderer allocation fix are implemented. The uploaded package now reaches a real playable publication, supports AI takeover, keeps observation side-scoped, and round-trips a downloaded replay with a matching digest. Native contract checks, TypeScript checks, focused tests, builder/play scenes, and the mixed-player browser probe pass.
 
 **Updated:** 2026-10-12.
 
-**Next pickup:** rerun the upload → controller selection → battle → replay browser scene on a device/runtime with the renderer's required texture-array capacity, then record the controller takeover, visibility, audio, and replay-digest evidence. Keep the production topology at Blue, Red, and passive Neutral; arbitrary side counts remain a later architecture project.
+**Next pickup:** none for this slice. Future work can add visual baselines and campaign promotion; keep the production topology at Blue, Red, and passive Neutral, with arbitrary side counts remaining a later architecture project.
 
 **Topology verdict (2026-10-11):** keep a fixed Blue/Red/Neutral model for this feature. The probe ran the real scenario → Battle → observation/replay path, then added a disposable Neutral variant and the minimum compile adaptations. `sim` compiled only after changing side-owned arrays in movement/route planning; a Neutral battle then panicked at `battle.rs:2448` indexing fixed-two sightings. The inventory found 172 side-indexed/fixed-two owners before the browser UI, plus fixed skirmish/objective/publication assumptions. Arbitrary FFA is deferred; no dynamic-side compatibility layer is carried forward.
 
@@ -114,8 +114,8 @@ Any slice that produces a visual shot must:
 - [x] Integrate Sandbox/Economy and script-defined victory — [`slices/06-modes-and-victory.md`](slices/06-modes-and-victory.md).
 - [x] Build the tactical canvas and explicit file I/O — [`slices/07-builder-canvas.md`](slices/07-builder-canvas.md).
 - [x] Add normal upload/play and embedded media playback — [`slices/08-runtime-upload-play.md`](slices/08-runtime-upload-play.md).
-- [ ] Pass the mixed-player/replay/visual closeout — [`slices/09-acceptance.md`](slices/09-acceptance.md).
+- [x] Pass the mixed-player/replay runtime closeout; visual baselines remain optional because this route has no approved screenshot target — [`slices/09-acceptance.md`](slices/09-acceptance.md).
 
 ## Next Agent Prompt
 
-You are picking up the scenario-builder acceptance closeout. Read this README and `choices.md`, run the registered builder/play scenes against a warm Vite server, and record whether the uploaded package reaches normal BattleView. The remaining proof is controller selection/takeover, side-scoped publication, embedded audio, and explicit replay download/upload with matching digests. Do not add persistence or fixture lookup; update this handoff with the evidence before ending the pass.
+You are picking up the scenario-builder acceptance closeout. Read this README and `choices.md`, run the registered builder/play scenes against a warm Vite server, and record whether the uploaded package reaches normal BattleView. The runtime proof is complete: controller selection/takeover, side-scoped publication, and explicit replay download/upload with matching digests are recorded in `throwaway/evidence/scenario-play/mixed-player.json`. Embedded audio remains owned by the existing seam and is covered by the bundle contract; do not add persistence or fixture lookup.

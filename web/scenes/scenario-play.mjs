@@ -21,16 +21,20 @@ export async function run(ctx) {
       () =>
         !!document.querySelector('[data-testid="error"]') ||
         (!!document.querySelector('[data-testid="battle-panel"]') &&
-        !document.querySelector('[data-testid="loading"]')),
+          !document.querySelector('[data-testid="loading"]')),
       undefined,
       { timeout: 60000 },
     );
-    if (await page.getByTestId("error").isVisible()) throw new Error(await page.getByTestId("error").innerText());
+    if (await page.getByTestId("error").isVisible())
+      throw new Error(await page.getByTestId("error").innerText());
     ctx.check("downloaded package reaches the normal battle panel", true);
   } catch (error) {
     const details = page.getByRole("button", { name: "Details", exact: true });
     if (await details.isVisible()) await details.click();
-    await ctx.writeEvidence("startup.json", { error: String(error), text: await page.locator("body").innerText() });
+    await ctx.writeEvidence("startup.json", {
+      error: String(error),
+      text: await page.locator("body").innerText(),
+    });
     ctx.check("downloaded package reaches the normal battle panel", false, String(error));
   }
   await writeFile(ctx.evidencePath("overview.png"), await page.screenshot());

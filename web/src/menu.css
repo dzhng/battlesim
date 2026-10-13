@@ -503,7 +503,9 @@
   box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.7);
   animation: loading-pulse 1.1s ease-in-out infinite;
 }
-.loading-stages li[data-state="active"] .loading-stage-label { color: rgb(var(--hud-text)); }
+.loading-stages li[data-state="active"] .loading-stage-label {
+  color: rgb(var(--hud-text));
+}
 @keyframes loading-pulse {
   50% {
     opacity: 0.35;

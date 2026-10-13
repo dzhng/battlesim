@@ -35,7 +35,7 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
           prepared.canonical,
           message.active_human === undefined
             ? prepared.report.human_capable_slots[0]
-            : message.active_human ?? undefined,
+            : (message.active_human ?? undefined),
         );
         authority = workerAuthority(scope, async () => ({
           memory,

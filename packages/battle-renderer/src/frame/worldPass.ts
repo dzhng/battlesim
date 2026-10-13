@@ -488,11 +488,22 @@ export async function createWorldPass(
   // body touching the ground (a prone man, a track's lower run) is not
   // x-rayed where it dips under the surface; a canopy or a wall hides by
   // metres.
+  // Allocate the full uniform block explicitly: SwiftShader rejects the
+  // mapped four-byte buffer TypeGPU can otherwise create for this scalar.
   const xrayMinimum = registry.own(
-    root
-      .createBuffer(d.size(16, d.f32), validateXrayFraction(xrayMinHiddenFragmentFraction))
-      .$usage("uniform"),
+    registry.device.createBuffer({
+      label: "xray-minimum",
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    }),
   );
+  const writeXrayMinimum = (value: number) =>
+    registry.device.queue.writeBuffer(
+      xrayMinimum,
+      0,
+      new Float32Array([validateXrayFraction(value)]),
+    );
+  writeXrayMinimum(xrayMinHiddenFragmentFraction);
   const xrayCounts = registry.slot<GPUBuffer>();
   let xrayCapacity = 0;
   let xrayCoverageEnabled = true;
@@ -649,7 +660,7 @@ export async function createWorldPass(
   return {
     setXrayCoverageEnabled(on: boolean) {
       xrayCoverageEnabled = on;
-      xrayMinimum.write(on ? xrayMinHiddenFragmentFraction : 0);
+      writeXrayMinimum(on ? xrayMinHiddenFragmentFraction : 0);
     },
     setWorld(next: WorldLayers) {
       world.ground.set(next.terrain.mesh);

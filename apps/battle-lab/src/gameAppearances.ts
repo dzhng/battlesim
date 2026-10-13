@@ -224,7 +224,7 @@ export function useGameAppearances(
       live = false;
       if (retry !== undefined) clearTimeout(retry);
     };
-  }, [asked, units, wearing, factions, scenery, retainOnError]);
+  }, [asked, kinds, units, wearing, factions, scenery, retainOnError]);
   // What an earlier request installed answers this one only if it has what it asked.
   const held =
     installed &&
@@ -301,8 +301,9 @@ export function mapAppearances(
   buildings: PlacedBuildings,
   units: boolean,
   unitNames: ReadonlySet<string> | null = null,
+  dynamicProps = true,
 ): InstalledAppearances {
-  const art = propArt(appearances, world.exports.buildings.regionalFamily);
+  const art = propArt(appearances, world.exports.buildings.regionalFamily, dynamicProps);
   const drawn = new Set(
     JSON.parse(
       prop_appearances(JSON.stringify(world.layout), world.exports.props, art),

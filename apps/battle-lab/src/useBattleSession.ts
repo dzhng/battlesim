@@ -9,7 +9,7 @@ import { admitScenario, presentationRules } from "@web/battle/catalog/sets";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { ContactPresentation } from "@web/battle/present/contactPresentation";
 import { gameContactStyle } from "./gameFog";
-import type { PreparedSession } from "@web/battle/prepare/client";
+import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import { metresPerPxAt, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -132,7 +132,7 @@ export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
   scenario: string;
   seed: number;
-  prepared?: PreparedSession;
+  prepared?: PreparedConnectionSession;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** A recorded battle to replay: input is off. */
@@ -141,6 +141,8 @@ export interface BattleSessionOptions {
   scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
+  /** Player slot issuing orders in a slot-owned scenario. */
+  slot?: string;
   /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
@@ -175,6 +177,7 @@ export function useBattleSession({
   replay,
   scripted,
   side = "blue",
+  slot,
   sound = false,
   inputEnabled = true,
   xray = true,
@@ -222,7 +225,16 @@ export function useBattleSession({
     },
     [audio, onDecoded],
   );
-  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
+  const sim = useSimSession({
+    scenario,
+    seed,
+    onDecoded: noteDecoded,
+    replay,
+    scripted,
+    prepared,
+    slot,
+    side,
+  });
   presentationRef.current = sim.client?.presentation ?? null;
   const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
   useEffect(() => {

@@ -87,7 +87,10 @@ export function useSimSession({
       slot,
       transport: "worker",
       replay,
-      connect: generation === 0 ? prepared?.connect : undefined,
+      // A prepared bundle connection owns one live authority. Once the
+      // session is replaced (for example by uploading a replay), start a
+      // fresh worker rather than sending init through the closed connection.
+      connect: generation === 0 && !replay ? prepared?.connect : undefined,
     });
     let warm = !plan;
     if (plan) {
