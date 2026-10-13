@@ -60,7 +60,7 @@ const STAGES: (LoadingStage & { id: Stage })[] = [
 
 /** What the player is told when a stage refuses. The request stands as
  *  asked: nothing else is tried in its place. */
-function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolean): LoadingFailure {
+function failureOf(error: unknown, replay: boolean): LoadingFailure {
   const stage: RefusalStage | null = error instanceof PreparationFailed ? error.stage : null;
   const details =
     error instanceof PreparationFailed && error.diagnostics.length
@@ -257,7 +257,7 @@ function PreparedBattleView({
                     : [a.failure?.message ?? a.outcome],
                 ) ?? [String(error)],
               }
-            : failureOf(request, error, !!replay),
+            : failureOf(error, !!replay),
         );
       },
     );

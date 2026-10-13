@@ -116,13 +116,15 @@ test("a prefetch the page cuts off as it leaves is not an error", async () => {
       }),
   );
   const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
-  const { gameAppearances } = await import("@apps/battle-lab/src/gameAppearances");
+  const { gameAppearances, prefetchRuntimeAssets } =
+    await import("@apps/battle-lab/src/gameAppearances");
   render(
     <AppResourceBoundary menu={false}>
       <div>Main menu</div>
     </AppResourceBoundary>,
   );
   await gameAppearances(TEST_CATALOG.units);
+  void prefetchRuntimeAssets("/");
   await waitFor(() => expect(asked.length).toBe(2));
   fireEvent(window, new Event("pagehide"));
   await new Promise((resolve) => setTimeout(resolve, 10));
@@ -135,19 +137,46 @@ test("a prefetch the network fails while the page stays is still an error", asyn
     throw new TypeError("Failed to fetch");
   });
   const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
-  const { gameAppearances } = await import("@apps/battle-lab/src/gameAppearances");
+  const { gameAppearances, prefetchRuntimeAssets } =
+    await import("@apps/battle-lab/src/gameAppearances");
   render(
     <AppResourceBoundary menu={false}>
       <div>Main menu</div>
     </AppResourceBoundary>,
   );
   await gameAppearances(TEST_CATALOG.units);
+  await prefetchRuntimeAssets("/");
   await waitFor(() =>
     expect(prefetchErrors(errors).map(([, detail]) => (detail as { url: string }).url)).toEqual([
       "/gzip-a/texture.bin",
       "/gzip-b/texture.bin",
     ]),
   );
+});
+
+test("a successful prefetch removes obsolete runtime cache entries", async () => {
+  const asked = prefetchServer(async () => new Response(new Uint8Array([1])));
+  const entries = new Map<string, Response>([
+    [new URL("/old/texture.bin", window.location.href).href, new Response("old")],
+  ]);
+  const key = (request: RequestInfo | URL) =>
+    new URL(request instanceof Request ? request.url : String(request), window.location.href).href;
+  const cache = {
+    match: async (request: RequestInfo | URL) => entries.get(key(request)) ?? undefined,
+    put: async (request: RequestInfo | URL, response: Response) => {
+      entries.set(key(request), response);
+    },
+    keys: async () => [...entries.keys()].map((url) => new Request(url)),
+    delete: async (request: RequestInfo | URL) => entries.delete(key(request)),
+  };
+  vi.stubGlobal("caches", { open: async () => cache });
+  const { prefetchRuntimeAssets } = await import("@apps/battle-lab/src/gameAppearances");
+  await prefetchRuntimeAssets("/");
+  expect(asked).toEqual(["/gzip-a/texture.bin", "/gzip-b/texture.bin"]);
+  expect([...entries.keys()].sort()).toEqual([
+    new URL("/gzip-a/texture.bin", window.location.href).href,
+    new URL("/gzip-b/texture.bin", window.location.href).href,
+  ]);
 });
 
 test("document departure releases the active view and restored documents require manual reload", async () => {

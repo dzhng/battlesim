@@ -45,7 +45,7 @@ cross-origin isolation policy. Runtime assets must be materialized from Git LFS 
 serve them; committed pointer files are not media.
 
 Vercel Analytics is mounted by [`src/main.tsx`](src/main.tsx) at the application root
-of a production build, so deployed page views and client-side route changes use the
+of a Vercel build (only Vercel serves its script), so deployed page views and client-side route changes use the
 same single browser entry.
 
 ## Checks and evidence

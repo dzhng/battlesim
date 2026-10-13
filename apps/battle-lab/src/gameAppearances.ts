@@ -37,6 +37,7 @@ let loadingFactions: string | null | undefined;
 let loadingScenery: string | null | undefined;
 let appearanceStatus: Record<string, unknown> = { state: "idle" };
 let prefetching: Promise<void> | null = null;
+let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
 let prefetchStatus: Record<string, unknown> = { state: "idle" };
 diagnosticsSource("appearance loading", () => ({ ...appearanceStatus, prefetch: prefetchStatus }));
 
@@ -49,7 +50,7 @@ function selectionKey(
 /** Warm the browser's network/cache storage without decoding or uploading art.
  * The page cancels it as it leaves (`appResources.signal`): that is no failure,
  * where a fetch the network fails while the page stays is. */
-async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
+export async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
   if (prefetching) return prefetching;
   const { signal } = appResources;
   prefetching = (async () => {
@@ -93,6 +94,14 @@ async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
       }
     };
     await Promise.all(Array.from({ length: Math.min(6, urls.length) }, () => worker()));
+    if (cache && failed === 0 && !signal.aborted) {
+      const expected = new Set(
+        urls.map((url) => new URL(url, globalThis.location?.href ?? "http://localhost/").href),
+      );
+      for (const request of await cache.keys()) {
+        if (!expected.has(request.url)) await cache.delete(request);
+      }
+    }
     prefetchStatus = signal.aborted
       ? { state: "cancelled" }
       : { state: failed ? "partial" : "ready", files: urls.length, failed };
@@ -110,6 +119,17 @@ async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
     })
     .then(() => undefined);
   return prefetching;
+}
+
+function scheduleRuntimePrefetch(baseUrl: string): void {
+  if (prefetching || prefetchTimer !== null) return;
+  prefetchStatus = { state: "scheduled" };
+  // Let the first page settle before broadening the network/cache work beyond
+  // the current view's required art.
+  prefetchTimer = setTimeout(() => {
+    prefetchTimer = null;
+    void prefetchRuntimeAssets(baseUrl);
+  }, 3_000);
 }
 
 /** The page's appearances for a session running `units`, with `asked`
@@ -132,7 +152,7 @@ export function gameAppearances(
     .then(() => library.withUnits(wearing))
     .then(() => library.withAppearances(asked))
     .then((next) => {
-      void prefetchRuntimeAssets("/");
+      scheduleRuntimePrefetch("/");
       return next;
     });
 }
@@ -145,27 +165,15 @@ export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppe
   loadingFactions = undefined;
   loadingScenery = undefined;
   prefetching = null;
+  if (prefetchTimer !== null) {
+    clearTimeout(prefetchTimer);
+    prefetchTimer = null;
+  }
   prefetchStatus = { state: "idle" };
   return gameAppearances(units);
 }
 
 const NOTHING: ReadonlySet<string> = new Set();
-
-/** Unit art needed by the renderer for a set of worn base appearances,
- * including faction looks and vehicle wrecks that the catalog links from it. */
-export function installedUnitNames(
-  installed: InstalledAppearances,
-  worn: ReadonlySet<string>,
-): ReadonlySet<string> {
-  const names = new Set(worn);
-  for (const name of worn) {
-    const entry = installed.appearances.get(name);
-    if (!entry) continue;
-    if (entry.wreck) names.add(entry.wreck);
-    for (const look of Object.values(entry.factions ?? {})) names.add(look);
-  }
-  return names;
-}
 
 /** The installed appearances for the session's units (`useSessionCatalog`)
  *  with `asked` among them, or null until they have loaded, and while `asked`
@@ -311,7 +319,6 @@ export function mapAppearances(
   world: { exports: WorldExports; layout: WorldLayout },
   buildings: PlacedBuildings,
   units: boolean,
-  unitNames: ReadonlySet<string> | null = null,
   dynamicProps = true,
 ): InstalledAppearances {
   const art = propArt(appearances, world.exports.buildings.regionalFamily, dynamicProps);
@@ -332,9 +339,7 @@ export function mapAppearances(
     appearances: new Map(
       [...appearances.appearances].filter(
         ([name, a]) =>
-          (units &&
-            (a.unit === "soldier" || a.unit === "vehicle") &&
-            (!unitNames || unitNames.has(name))) ||
+          (units && (a.unit === "soldier" || a.unit === "vehicle")) ||
           kits.has(name) ||
           drawn.has(name),
       ),
