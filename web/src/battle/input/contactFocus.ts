@@ -7,6 +7,8 @@ export interface FocusTarget {
   id: number;
   /** Its ground centre. */
   target: readonly [number, number];
+  /** Evidence generation, so reused handles do not inherit focus. */
+  evidenceTick: number;
 }
 
 /** The contact fields this module reads. */
@@ -22,18 +24,25 @@ export function contactFocusTargets(contacts: readonly FocusContact[]): FocusTar
   return contacts
     .filter((c) => !c.retiring)
     .sort((a, b) => b.evidenceTick - a.evidenceTick || b.id - a.id)
-    .map((c) => ({ id: c.id, target: [c.center[0], c.center[1]] as const }));
+    .map((c) => ({
+      id: c.id,
+      target: [c.center[0], c.center[1]] as const,
+      evidenceTick: c.evidenceTick,
+    }));
 }
 
 /** The target a jump lands on: -1 when empty, otherwise the newest when the
  *  last contact is gone, or one step older or newer, wrapping. */
 export function focusStep(
   targets: readonly FocusTarget[],
-  lastId: number | null,
+  last: Pick<FocusTarget, "id" | "evidenceTick"> | null,
   newer: boolean,
 ): number {
   if (targets.length === 0) return -1;
-  const at = lastId === null ? -1 : targets.findIndex((t) => t.id === lastId);
+  const at =
+    last === null
+      ? -1
+      : targets.findIndex((t) => t.id === last.id && t.evidenceTick === last.evidenceTick);
   if (at < 0) return 0;
   return newer ? (at - 1 + targets.length) % targets.length : (at + 1) % targets.length;
 }

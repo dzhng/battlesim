@@ -675,7 +675,7 @@ export function LabViewport({
       if (next !== asked) place(next);
     };
     /** The contact last visited; null before any. */
-    let focused: number | null = null;
+    let focused: Pick<FocusTarget, "id" | "evidenceTick"> | null = null;
     /** Jump to the next (older) or previous (newer) contact; angle and zoom kept. */
     const jumpToEvidence = (newer: boolean) => {
       if (piloted || !inputEnabledRef.current) return;
@@ -683,7 +683,7 @@ export function LabViewport({
       const index = focusStep(targets, focused, newer);
       const target = index < 0 ? undefined : targets[index];
       if (!target) return;
-      focused = target.id;
+      focused = target;
       place(
         controller.place(asked, {
           target: target.target,
