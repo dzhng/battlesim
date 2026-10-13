@@ -310,11 +310,7 @@ test("save publishes the Rust catalog generator’s exact canonical bytes of the
     texts.push(await readFile(join(root, path), "utf8"));
   const game = await readFile(join(root, "fixtures/game.json"), "utf8");
   const native = spawnSync(
-    resolve(
-      "..",
-      process.env.CARGO_TARGET_DIR ?? "throwaway/target",
-      "debug/examples/mechanics_validate",
-    ),
+    resolve("..", process.env.CARGO_TARGET_DIR ?? "target", "debug/examples/mechanics_validate"),
     [],
     { input: `{"game":${game},"catalog":[${texts.join(",")}]}`, encoding: "utf8" },
   );
