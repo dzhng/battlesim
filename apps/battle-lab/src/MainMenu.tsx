@@ -12,10 +12,8 @@ import { Link } from "react-router";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
@@ -44,29 +42,29 @@ const DEVELOPER: Entry[] = [
     ? [
         {
           label: "Mechanics editor",
-          href: "/mechanics",
+          href: "/labs/mechanics",
         },
         {
           label: "Map workbench",
-          href: "/map-workbench",
+          href: "/labs/map-workbench",
         },
         {
           label: "Scenario builder",
-          href: "/scenario-builder",
+          href: "/labs/scenario-builder",
         },
         {
           label: "Scenario play",
-          href: "/scenario-play",
+          href: "/labs/scenario-play",
         },
         {
           label: "Sound workbench",
-          href: "/sound-workbench",
+          href: "/labs/sound-workbench",
         },
       ]
     : []),
   {
     label: "Benchmark",
-    href: "/benchmark",
+    href: "/labs/benchmark",
   },
   { label: "Labs", href: "/labs" },
 ];
@@ -275,18 +273,6 @@ export function MainMenu() {
     plate.current?.querySelector<HTMLElement>(`[data-page="${left.current}"]`)?.focus();
     left.current = null;
   }, [page]);
-  // The main page's height, kept while another page is open, for the slot
-  // that keeps a page's top edge where the main page's was (`menu.css`).
-  const [homeHeight, setHomeHeight] = useState<number | null>(null);
-  useLayoutEffect(() => {
-    const el = plate.current;
-    if (page !== null || !el || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) =>
-      setHomeHeight(entry.borderBoxSize[0].blockSize),
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [page]);
   useEffect(() => {
     if (page === null) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && back();
@@ -325,15 +311,6 @@ export function MainMenu() {
             <GraphicsSettingsControls />
             <SoundControls />
             <DiagnosticsControls />
-            <nav aria-label="Graphics">
-              <ul>
-                <li>
-                  <Link className="menu-card" to="/graphics-test" target="_self">
-                    <span className="menu-card-label">Graphics test</span>
-                  </Link>
-                </li>
-              </ul>
-            </nav>
           </>
         )}
         {page === "developer" && <Entries label="Developer" entries={DEVELOPER} />}
@@ -345,14 +322,7 @@ export function MainMenu() {
         <LoadingTasks report={report}>
           <MenuBackdrop plate={plate} shown={shown.promise} />
         </LoadingTasks>
-        <div
-          className="menu-slot"
-          style={
-            homeHeight === null
-              ? undefined
-              : ({ "--menu-home-height": `${homeHeight}px` } as CSSProperties)
-          }
-        >
+        <div className="menu-slot">
           <GraphicsDetectionHost runner={null} enabled={!loading}>
             <div className="hud-panel menu-body" ref={plate}>
               {content}

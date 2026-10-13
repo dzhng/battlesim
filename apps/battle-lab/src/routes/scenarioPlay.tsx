@@ -108,7 +108,7 @@ export default function ScenarioPlay() {
           <button type="button" className="hud-menu-item" onClick={() => setDeploy(true)}>
             Deploy scenario
           </button>
-          <Link className="hud-menu-item" to="/scenario-play">
+          <Link className="hud-menu-item" to="/labs/scenario-play">
             Choose another package
           </Link>
         </div>
@@ -134,7 +134,7 @@ export default function ScenarioPlay() {
               }
             : null
         }
-        back="/scenario-play"
+        back="/labs/scenario-play"
       />
     );
 
@@ -155,7 +155,7 @@ export default function ScenarioPlay() {
             </span>
           </label>
           {error && <p role="alert">{error}</p>}
-          <Link className="hud-menu-item" to="/scenario-builder">
+          <Link className="hud-menu-item" to="/labs/scenario-builder">
             Open scenario builder
           </Link>
           <Link className="hud-menu-item" to="/">
@@ -314,7 +314,7 @@ function ScenarioBattle({
                 Take human slot over by AI
               </button>
             )}
-            <Link className="hud-menu-item" to="/scenario-play">
+            <Link className="hud-menu-item" to="/labs/scenario-play">
               Upload another scenario
             </Link>
           </>

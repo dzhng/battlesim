@@ -1,4 +1,4 @@
-// The street test map's battle watched (`/lab/street?watch`): blue's start
+// The street test map's battle watched (`/labs/street?watch`): blue's start
 // is ordered onto the street at once, and the battle plays itself.
 // The whole-battle frames the composed look is judged on (`battle`), and the
 // ground past the playable area's edge, always unseen, with its border (`edge`).

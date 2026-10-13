@@ -307,16 +307,16 @@ export async function run(ctx) {
   await mediaDecodes(ctx, page, "menu");
   const body = page.locator("main.menu:not(.loading):not([inert]) .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
-  // The pages open in the plate's place: its top edge stays where the main
-  // page's is, except the tutorial's, a plate as tall as the screen.
-  const homeTop = (await body.boundingBox())?.y;
+  // Every page is centred by its own measured height, including after the
+  // first-launch graphics detector has replaced the plate.
   for (const entry of ["skirmish", "settings", "developer"]) {
     await page.locator(`main.menu:not(.loading):not([inert]) [data-page="${entry}"]`).click();
-    const top = (await body.boundingBox())?.y;
+    const box = await body.boundingBox();
+    const viewportHeight = await page.evaluate(() => innerHeight);
     ctx.check(
-      `menu ${entry}: the plate's top stays where the main page's is`,
-      top !== undefined && homeTop !== undefined && Math.abs(top - homeTop) < 0.5,
-      JSON.stringify({ homeTop, top }),
+      `menu ${entry}: the plate is vertically centred`,
+      box !== null && Math.abs(box.y + box.height / 2 - viewportHeight / 2) < 1,
+      JSON.stringify({ box, viewportHeight }),
     );
     await page.keyboard.press("Escape");
   }
@@ -331,6 +331,16 @@ export async function run(ctx) {
     );
     await contained(ctx, page, `menu ${entry}`);
     if (entry === "settings") {
+      const settingsBox = await page.getByRole("dialog", { name: "Settings" }).boundingBox();
+      const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+      ctx.check(
+        "menu settings keeps a compact centred modal",
+        settingsBox !== null &&
+          settingsBox.width <= 600 &&
+          Math.abs(settingsBox.x + settingsBox.width / 2 - viewport.width / 2) < 1 &&
+          Math.abs(settingsBox.y + settingsBox.height / 2 - viewport.height / 2) < 1,
+        JSON.stringify({ settingsBox, viewport }),
+      );
       const choices = await page
         .getByRole("radio")
         .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));

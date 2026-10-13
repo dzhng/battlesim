@@ -1,4 +1,4 @@
-// /lab/city-block: a block of a generated town, drawn from the template art
+// /labs/city-block: a block of a generated town, drawn from the template art
 // library, with no battle on it. The map is the generator's for a fixed
 // request (?type=, ?size=, ?seed=, ?region= choose another), the block is
 // the apartment building nearest the main town's centre that has a house

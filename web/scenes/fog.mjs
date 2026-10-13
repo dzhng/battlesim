@@ -284,7 +284,7 @@ async function checkEdge(ctx, page, name, framing, band, recon) {
  *  8), then with every eye's maps rebuilt each frame (the worst case). */
 async function measureCost(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page, new URL("/lab/endurance", ctx.url).href);
+  await ctx.openLab(page, new URL("/labs/endurance", ctx.url).href);
   // React's development build records a measure per render; a battle running
   // in real time for minutes would exhaust that buffer.
   await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));

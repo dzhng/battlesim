@@ -297,7 +297,7 @@ export async function appJourney(ctx) {
  *  card selection above compact commands. */
 export async function armyJourney(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1600, height: 900 } });
-  await page.goto(`${new URL(ctx.url).origin}/lab/street?seed=1`);
+  await page.goto(`${new URL(ctx.url).origin}/labs/street?seed=1`);
   await page.waitForFunction(() => window.__lab?.ready && window.__lab.route?.tick() > 3);
   await page.evaluate(() => window.__lab.route.pause());
   await advance(page, 90 - (await obs(page)).tick);

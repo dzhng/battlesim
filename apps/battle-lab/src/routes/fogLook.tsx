@@ -1,4 +1,4 @@
-// /lab/fog-look: how unseen looks, its edge (a
+// /labs/fog-look: how unseen looks, its edge (a
 // soft fade and a rim on the seen side), and the contact
 // glyphs drawn over it, on the street test map (`streetScenario.ts`). The panel
 // picks one of the fixture's named styles, tunes every number of it live, and

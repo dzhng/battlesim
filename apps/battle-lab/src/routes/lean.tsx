@@ -1,4 +1,4 @@
-// /lab/lean: the lean-out firefight on the street test map, watched: the
+// /labs/lean: the lean-out firefight on the street test map, watched: the
 // map's saved encounter `lean` (`fixtures/maps/street/encounters/lean.json`).
 // A blue squad at rest just inside the west wood trades fire with a red
 // squad in the open 45 m east; soldiers too tough to fall, so the fight

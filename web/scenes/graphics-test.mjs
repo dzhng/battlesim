@@ -11,7 +11,7 @@ export async function run(ctx) {
   );
   ctx.check(
     "graphics-test route keeps its canonical URL",
-    new URL(page.url()).pathname === "/graphics-test",
+    new URL(page.url()).pathname === "/labs/graphics-test",
     page.url(),
   );
 }
