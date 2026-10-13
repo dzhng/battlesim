@@ -36,7 +36,6 @@ import {
   groundStrip,
   isRgba,
   MeshBuilder,
-  VERTEX_FLOATS,
   paintOnly,
   type Mesh,
   type Rgba,

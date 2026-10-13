@@ -26,6 +26,10 @@ native.
   container the template library and the bundles travel in, and (feature
   `files`) of the runtime directory: its catalog and each gzipped transport
   file. The native client reads its models through it.
+- [What a battle fields](src/fielded.rs) (feature `files`): `load_world`'s
+  units, effects and clip tables for the units a map's encounter fields,
+  resolved from the rules fixture, the map's category catalog and the
+  runtime bundles, as a page wearing those units installs them.
 - [Units](src/units/): interpolation between ticks, the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse
   as it lies, a body in its far pose, which a renderer poses its mesh by once),

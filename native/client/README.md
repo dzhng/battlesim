@@ -100,9 +100,13 @@ The native client on `wgpu`. It runs the browser's own shaders and passes over t
 ## Running a parity scene
 
 The binary replays one scene of a browser parity run (the control the
-[spec](../../specs/native-rendering-parity/README.md) names): it loads the
-world, frames every record through the presentation crate, and writes each
-plate the browser wrote, under the same name. Its usage text lists the flags.
+[spec](../../specs/native-rendering-parity/README.md) names). It refuses a
+capture or a saved map that is not the one the manifest's identity hashes,
+naming the file. It reads the world from the repository, not from the run:
+the map, its ground, buildings and props, and the units its encounter fields
+with their effects (`presentation::fielded`). Then it frames every record
+through the presentation crate and writes each plate the browser wrote,
+under the same name. Its usage text lists the flags.
 Run it under the GPU lock.
 
 The window opens borderless and off-screen by default, so nothing appears on

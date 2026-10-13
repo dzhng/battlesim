@@ -14,28 +14,9 @@ These are the decisions this spec left in the code. Each was checked against the
 
 **Decided by:** *User* means you decided it. *Agent* means an implementing agent, coordinator or orchestrator decided it on your behalf. **Confidence** is how sure the audit is that you would have made the same call.
 
-**Review these first:**
-1. **Native's replay still takes its units, effects and light from the browser's manifest** (needs you, low).
-2. **Native no longer checks that a capture is the battle its manifest names** (unsound, low).
-3. **Labs that hand the renderer their own models keep a second copy of the caster rule** (unsound, low).
+**Review these first:** none open. The three least-confident entries were closed on 2026-10-13 (`lastowners`); they are listed under Sound with their resolution.
 
 ## Needs you
-
-### Native's replay still takes its units, effects and light from the browser's manifest
-*Agent, slices 14, 17 and 20. Confidence: low.*
-
-Picture native replaying the market-town reel. Native reads the ground, the buildings, the scenery and the props itself, from the saved map and the asset files. Four things still come from the `native-visual-presentation` manifest, the file the browser's capture run writes beside its capture:
-- the `units` section: each unit type's facts, the appearances each side wears, every body's joints, bounds and tiers;
-- the `effects` section: effect tuning, hull muzzles, wreck looks;
-- the raw `light`;
-- `props.buildings`: each building's part props and the kinds a gutted building's parts become.
-
-Native also reads each skinned body's clip table (`units-<table>.u32`) from beside the manifest. It hands all of this to `load_world` (`native/client/src/capture.rs`).
-
-The page's TypeScript resolves these sections from the scene-assets and unit catalogs. So a native client with no browser run behind it cannot field a single soldier. The alternative is for Rust to resolve them from the catalogs, as 20b did for buildings, scenery and props. Then `load_world` takes catalogs, as 18b first proposed.
-
-- **Reach:** a live native client, one that plays a battle rather than replaying one, needs this first. Until then, the browser's resolvers (`unitPresentation.ts`, `effectPresentation.ts`, `propPresentation.ts`) are a second owner of facts Rust otherwise owns.
-- **Provisional call:** keep it for the replay, and move units, effects and building parts into Rust before native plays live. To reverse it, delete the manifest sections once `load_world` reads the catalogs.
 
 ### Native draws far soldiers as meshes, not impostor cards
 *Agent, slices 14 and 25 (step 5a). Confidence: medium.*
@@ -48,27 +29,23 @@ Counts are equal, and the picture is the same few pixels. The bake pipeline (`ba
 - **Reach:** a large battle with hundreds of far soldiers costs native more triangles than the browser. Slice 22 (completeness) owns closing it.
 - **Provisional call:** keep the mesh until a measure shows the triangles matter. To reverse it, run the exported bake at load and draw tier 4 as cards.
 
-## Unsound
-
-### Native no longer checks that a capture is the battle its manifest names
-*Agent, slice 25 (wgpu port). Confidence: low.*
-
-The manifest names its battle by identity: the capture's workload and the SHA-256 hashes of the capture file and the map file. Phase 1 decided native must refuse to render on any mismatch, so a plate can never be compared against a different battle. Godot's runner checked this.
-
-`native/client` reads only `identity.map`, to know which saved map to load. Suppose someone copies a stale `capture.json` into a scene folder, or edits the map after the control ran. Native would replay it without complaint, and the plates would differ for a reason no gate names.
-- **Corrected decision:** native hashes `capture.json` and the saved map it loads and refuses to run on any difference from `manifest.identity`, naming the file that differs.
-
-### Labs that hand the renderer their own models keep a second copy of the caster rule
-*Agent, `derive2rust`. Confidence: low.*
-
-"Cast one tier coarser" means a model's shadow is drawn from a cheaper mesh than the model itself. It has one owner in Rust: `view::caster_tier`, written into each batch as `Batch.caster`, together with `Batch.fog` (which fog group the batch binds). Battles route by those fields.
-
-A lab with no battle that calls `setModels` with its own instance list has no batches. The TypeScript model layer therefore keeps its own `CASTER_COARSER` and fog rule for that path (`modelLayer.ts`). If someone changes the rule in Rust, labs would keep the old shadows.
-- **Corrected decision:** labs build batch records too, as 18b's "labs build their own records" says, so the TypeScript copy is deleted.
-
 ## Sound
 
 Least confident first.
+
+### Native reads its world from the repository, not the browser's manifest
+*Agent, slices 14, 17 and 20; resolved `lastowners`. Confidence: medium.*
+
+Native used to take each unit type's facts, its appearances' joints, clips and rigs, the effects' tuning and wrecks, the light and each building's part props from the manifest the browser's capture run wrote. Now Rust resolves them from the repository's own files, through `presentation::fielded` (feature `files`, with `presentation::assets`):
+- **Units and effects:** the units the map's encounter fields, under the catalog of the map's category; their art from the runtime catalog's bundles and skeleton clips, as a page wearing those units installs it; the clip tables built from the skeletons.
+- **Buildings:** the parts from the simulation's own `export_buildings`, and the gutted shells from the catalog's props.
+- **The light:** `presentation.light` in `fixtures/game.json`.
+
+Proven before the manifest path was deleted, on fresh captures of both scenes: every field equal, the clip tables bit for bit, and the posed bounds within 3.4e-7 relative. The bounds are posed from the clip table's float32 rotations, the same table a renderer poses with. One difference was the browser's, not Rust's: a page that films several scenes keeps every scene's art installed, so a later scene's manifest listed wreck looks for units it never fielded. Filmed alone, it matched.
+
+The manifest keeps only the battle's identity, the lens, the drawn layers and the per-plate counts. Its `units`, `effects`, `props` and `light` sections, the clip-table files and the page's `describe*` hooks are deleted.
+- **Reach:** the browser still resolves its own world input in TypeScript (`unitPresentation.ts`, `effectPresentation.ts`). The two are held together by the fixture run's effect counts, which `tests/effects.rs` replays through the Rust-resolved input, not by sharing one resolver. Moving the browser onto `fielded` would mean handing Rust the bundle bytes the page already decodes.
+- **Factions:** a replay knows no skirmish factions, so it resolves one look per soldier. `fielded` takes the factions when a caller has them.
 
 ### An aircraft's shadow-visibility test assumes it flies at cruise height
 *Agent, slice 20. Confidence: medium.*
@@ -207,6 +184,18 @@ On macOS, an off-screen `wgpu` window presents nothing, so the bench keeps at mo
 The committed `<scene>-observations.json` files are what the TypeScript decoder produced on two capture fixtures. That decoder was deleted when the Rust reader replaced it. `crates/sim/tests/publication_reader.rs` still holds the reader to those files. No fixture carries guided missiles, crashes, member leans, the encounter or skirmish objectives. Those rows are proven only by the web tests that now run through the reader.
 - **Verdict:** sound. Re-record the reference from Rust when the layout changes, rather than keeping a shim.
 
+### Native refuses a capture that is not the battle its manifest names
+*Agent, slice 25; resolved `lastowners`. Confidence: high.*
+
+Native hashes `capture.json` and the saved map it loads (SHA-256) and checks both against `manifest.identity`. It also checks the capture's workload (scene, map, encounter, seed) against the identity, and reads the map and encounter from the hashed capture. On any difference it refuses to run and names the file (`native/client/tests/identity.rs`). This is the check Godot's runner did.
+
+### Labs that hand the renderer their own models take Rust's caster and fog rules
+*Agent, `derive2rust`; resolved `lastowners`. Confidence: high.*
+
+The caster rule and the fog group each have one owner in Rust: `view::batch_caster`, over `caster_tier`, and `view::model_fog`. Battles write them into `Batch.caster` and `Batch.fog`. A lab that calls `setModels` gets the same answers through two presentation-wasm calls, `batch_caster(tier, pass)` and `model_fog(lies, state, ground)`. `CASTER_COARSER`, the TypeScript fog rule and its test are deleted.
+- **One behaviour change:** in a lab, a model with fewer than four tiers no longer casts from its own coarsest tier. A battle never did this. The only such model is the workbench's deliberately broken tank.
+- **Still a copy:** the lab path's tier choice itself (`modelDetail.ts`) mirrors Rust's `model_detail`.
+
 ### `min`, `max`, `round` and `signum` are Rust's own
 *User, `jsretire`. Confidence: high.*
 
@@ -241,7 +230,7 @@ Muzzle flashes and fires light the scene. Rust culls them to the view, ranks the
 *Agent, slices 20b and 25. Confidence: high.*
 
 Buildings, scenery and props are static batches.
-- **Prints:** each list has a print, a fingerprint of what it holds, and a batch is written only when its print changes. Otherwise its `first` is `NONE`, meaning "unchanged". Felled trees print by what they hold, not by a counter.
+- **Prints:** each list has a print, a fingerprint of what it holds, and a batch is written only when its print changes. Otherwise its `first` is `NONE`, meaning "unchanged": exactly what was last written, count included. Felled trees print by what they hold, not by a counter. `StaticBatches` mixes each population's print with the list's length, so no population can name a list unchanged under another count (`lastowners`). The scenery walk's prints had collided: a whole chunk's mark equalled an instance's, and the first instance's mark of 0 left a print unmoved. Main's renderer guard against that (`a9bc388fd`) had made the browser's scenery counts stale on one plate per scene.
 - **Generation:** the renderer passes a generation number to `frame()` and bumps it whenever it holds no static batches: a new GPU frame, a new world, or a replay jumping between plates. A new generation rewrites every static batch. This replaced the old `resend_statics()` call.
 - **Buffers:** each renderer holds a batch's buffer, sized to a power of two of records, while the frame lists it, and drops it when the frame stops listing it. Native keeps them in `statics.rs`, with the models layer.
 
