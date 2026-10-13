@@ -18,7 +18,8 @@
 use presentation::presentation::Presentation;
 use presentation::static_world::batches::{CAST_PASS, VIEW_PASS};
 use presentation::static_world::ground::mesh::VERTEX_FLOATS;
-use presentation::static_world::ground::walk::{Draws, DRAWS, TIERS};
+use presentation::static_world::ground::walk::{Draws, DRAWS};
+use presentation::view::TIERS;
 use wgpu::*;
 
 use crate::bundle::{Bundle, Library, Shape};

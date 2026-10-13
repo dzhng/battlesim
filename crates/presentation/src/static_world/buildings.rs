@@ -8,11 +8,11 @@
 //! one state ([`Buildings::rows`]) when a chunk comes near.
 use crate::static_world::library::{Bounds, Library, ROW_FLOATS};
 use crate::static_world::walk::Record;
+use crate::view::TIERS;
 use crate::world::BuildingStyle;
 use std::ops::Range;
 
-/// Detail tiers, 0 finest; every building draws at the coarsest from afar.
-pub use crate::view::TIERS;
+/// Every building draws at the coarsest tier from afar.
 const COARSEST: usize = TIERS - 1;
 
 /// A map's buildings and the art they are drawn from, as `load_world` takes

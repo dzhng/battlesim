@@ -14,8 +14,8 @@
 //!   its chunk takes.
 use crate::records::FOG_FACES;
 use crate::static_world::batches::{List, Population, CAST_PASS, VIEW_PASS};
-use crate::static_world::buildings::{BuildingModule, Buildings, TIERS};
-use crate::view::{building_tier, caster_tier, View};
+use crate::static_world::buildings::{BuildingModule, Buildings};
+use crate::view::{building_tier, caster_tier, View, TIERS};
 use std::collections::{BTreeMap, HashMap};
 
 const COARSEST: usize = TIERS - 1;

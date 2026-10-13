@@ -27,11 +27,10 @@ use super::Ground;
 use crate::records::{FOG_FACES, NONE};
 use crate::static_world::batches::{print, List, Population, CAST_PASS, VIEW_PASS};
 use crate::static_world::walk::{casts_into, Record, Shadow};
-use crate::view::{caster_tier, View};
+use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::FRAC_PI_2;
 
-pub use crate::view::TIERS;
 const LAST: usize = TIERS - 1;
 const CHUNK_M: f64 = 128.0;
 /// A crown's heart, where a whole tree probes fog, as a share of its height.
