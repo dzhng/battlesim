@@ -5,6 +5,7 @@ use sim::flight::{
     Launch, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::v3;
+use sim::weapons::seeker_in_fov;
 
 struct Shield {
     intercepted: Vec<Interception>,
@@ -87,6 +88,14 @@ fn projectile_interceptor_may_be_launched_after_the_incoming_round() {
     flight::advance_projectiles(&mut store, &world, &[], &mut events, &mut shield);
     assert_eq!(shield.intercepted, vec![(interceptor, incoming)]);
     assert!(store.active().is_empty());
+}
+
+#[test]
+fn seeker_fov_wraps_at_north_and_rejects_outside_bearings() {
+    let north = std::f64::consts::FRAC_PI_2;
+    assert!(seeker_in_fov(north, north + 0.5_f64.to_radians(), 70.0));
+    assert!(!seeker_in_fov(north, north + 36.0_f64.to_radians(), 70.0));
+    assert!(seeker_in_fov(0.0, std::f64::consts::TAU - 0.1, 70.0));
 }
 fn hull() -> Body {
     Body {
