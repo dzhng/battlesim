@@ -37,7 +37,7 @@ export type AutoDetectResolution =
 
 const STORAGE_KEY = "battle.graphics";
 const DEFAULTS: GraphicsSettings = { mode: "auto", detectedMode: null, lastResult: null };
-const TIERS: readonly GraphicsTier[] = ["low", "medium", "high"];
+export const GRAPHICS_TIERS: readonly GraphicsTier[] = ["low", "medium", "high"];
 
 /** Values from the graphics spike; mood-critical effects intentionally never vary. */
 export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProfile>> = {
@@ -144,14 +144,16 @@ export function resolveEffectiveTier(
 
 /** Pick the best tier that meets the RTS target (45 average FPS). */
 export function resolveAutoDetect(results: AutoDetectResults): AutoDetectResolution {
-  for (const mode of [...TIERS].reverse()) {
+  let selected: GraphicsTier | null = null;
+  for (const mode of GRAPHICS_TIERS) {
     const result = results[mode];
-    if (!result || !isFiniteFps(result.averageFps) || !isFiniteFps(result.onePercentLowFps)) {
-      return { mode: null, result: null, unusable: true };
-    }
-    if (result.averageFps >= 45) return { mode, result };
+    if (!result || !isFiniteFps(result.averageFps) || !isFiniteFps(result.onePercentLowFps)) break;
+    if (result.averageFps < 45) break;
+    selected = mode;
   }
-  return { mode: null, result: null, unusable: true };
+  return selected
+    ? { mode: selected, result: results[selected]! }
+    : { mode: null, result: null, unusable: true };
 }
 
 export const graphicsSettings = {
