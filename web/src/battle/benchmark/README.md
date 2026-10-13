@@ -45,6 +45,15 @@ differs between the clients.
   macOS a `wgpu` window that isn't visible presents nothing and runs
   unpaced, so the bench holds two frames in flight. Its frames are then as
   long as the slower of its CPU and its GPU.
+- **The same GPU span.** Both clients bracket the frame with two 1×1 marker
+  passes ([`gpuTiming.ts`](../../../../packages/battle-renderer/src/frame/gpuTiming.ts)):
+  the frame opens at the first marker's start and closes at the last
+  marker's end. Apple's GPU runs a pass's vertex stage ahead of the fragment
+  work before it wherever nothing makes it wait. Dawn makes a pass wait only
+  at the stage that reads, and `wgpu` makes the whole pass wait, so a stamp
+  at the last marker's start falls at a different point of each client's
+  frame. Fragment work runs in order, so the last marker's end is the frame's
+  end on both.
 - **Same pacing, no presentation.** The browser runs headless and does not
   present to the display. Chromium's `--disable-frame-rate-limit` hangs the
   graphics test in battle preparation (inside the model layer's appearance
