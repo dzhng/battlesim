@@ -4,8 +4,6 @@
 //! (0 draws the biome, 1 the tint alone). Computed in f64, so every
 //! float matches the recorded vectors (`tests/ground_meshes.rs`).
 
-use super::js;
-
 /// Floats a vertex.
 pub const VERTEX_FLOATS: usize = 10;
 
@@ -57,9 +55,9 @@ pub fn skirt(positions: &[f32]) -> Vec<f32> {
         .collect();
     let (mut max_x, mut max_y, mut min_z) = (0.0f64, 0.0f64, f64::INFINITY);
     for v in &vertices {
-        max_x = js::max(max_x, v[0]);
-        max_y = js::max(max_y, v[1]);
-        min_z = js::min(min_z, v[2]);
+        max_x = max_x.max(v[0]);
+        max_y = max_y.max(v[1]);
+        min_z = min_z.min(v[2]);
     }
     let bottom = min_z - SKIRT_DEPTH_M;
     let mut edges: [Vec<V3>; 4] = Default::default();

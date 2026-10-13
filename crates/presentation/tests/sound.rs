@@ -1,9 +1,9 @@
-//! The battle's sound: equal to the browser's, and what it plays.
+//! The battle's sound: equal to its recorded commands, and what it plays.
 //!
-//! `fixtures/sound-vectors.json` was written by the browser's `SoundFrame`
-//! (TypeScript, before it moved here) over the sound lab's scripted
-//! firefight, a pause, a cook-off, a reversing truck and a new battle: every
-//! command it gave its sink. The behaviour tests below cover what a mixer
+//! `fixtures/sound-vectors.json` holds every command given over the sound
+//! lab's scripted firefight, a pause, a cook-off, a reversing truck and a new
+//! battle (first written by the TypeScript `SoundFrame` this replaced,
+//! re-recorded from Rust when its seeds became integer keys). The behaviour tests below cover what a mixer
 //! needs to hold: the budget, fog of war and distance.
 use std::collections::HashMap;
 
@@ -42,7 +42,7 @@ fn tables() -> SoundTables {
     sound().tables().clone()
 }
 
-/// `actual` equals `wanted` (the browser's), floats within 1e-9 relative.
+/// `actual` equals `wanted` (the recorded), floats within 1e-9 relative.
 fn same(actual: &Value, wanted: &Value, at: &str) {
     match (actual, wanted) {
         (Value::Number(a), Value::Number(w)) => {
@@ -74,7 +74,7 @@ fn same(actual: &Value, wanted: &Value, at: &str) {
 }
 
 #[test]
-fn every_command_equals_the_browsers() {
+fn every_command_equals_the_recorded_ones() {
     let v: Value = serde_json::from_str(
         &std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),

@@ -48,7 +48,7 @@ use crate::effects::cook_off::CookOffFeel;
 use crate::effects::launches::Launch;
 use crate::effects::publication::EffectPublication;
 use crate::records::{Emitter, NONE};
-use crate::seed::{hash_string, js_hypot, js_number, Mulberry32};
+use crate::seed::Key;
 use crate::world::Vec3;
 
 /// Pending transients held at most; past it the oldest go.
@@ -333,7 +333,7 @@ struct Sounding {
 enum LoopKey {
     Vehicle(u64, &'static str),
     Fire(String),
-    Motor(String),
+    Motor([u64; 3]),
     Ambience,
 }
 
@@ -478,7 +478,7 @@ impl Scripted {
 }
 
 /// An insertion-ordered map: the order loops and fires were first wanted
-/// is the order they are stopped and ranked in, as the browser's `Map` was.
+/// is the order they are stopped and ranked in.
 struct Ordered<K, T>(Vec<(K, T)>);
 
 impl<K: PartialEq, T> Ordered<K, T> {
@@ -519,9 +519,9 @@ pub struct Sound {
     movers: HashMap<u64, Mover>,
     strides: HashMap<u64, Stride>,
     fires: Ordered<String, Fire>,
-    motors: Ordered<String, Motor>,
-    bursts: HashMap<String, BurstVoice>,
-    cue_heard: HashMap<String, f64>,
+    motors: Ordered<[u64; 3], Motor>,
+    bursts: HashMap<(u64, usize, Option<u64>), BurstVoice>,
+    cue_heard: HashMap<(String, u64, Arc<str>), f64>,
     /// The enemy faction's shout pool, as far as the player has loaded it.
     shouts: Vec<ShoutTake>,
     /// Which set each unit kind speaks with, own and enemy.
@@ -538,17 +538,9 @@ pub struct Sound {
     out: Vec<Command>,
 }
 
-fn end_key(p: &Vec3) -> String {
-    format!(
-        "{},{},{}",
-        js_number(p[0]),
-        js_number(p[1]),
-        js_number(p[2])
-    )
-}
-
-fn hash01(key: &str) -> f64 {
-    f64::from(hash_string(key)) / f64::from(u32::MAX)
+/// Where a flying round's stretch ends, as a loop's key.
+fn end_key(p: &Vec3) -> [u64; 3] {
+    p.map(f64::to_bits)
 }
 
 fn clamp01(x: f64) -> f64 {
@@ -563,7 +555,7 @@ fn lerp(a: f64, b: f64, t: f64) -> f64 {
 /// `forward`: 0 east, counter-clockwise in 45° steps.
 pub fn sector_pan(sector: f64, forward: Vec3) -> f64 {
     let a = sector * std::f64::consts::PI / 4.0;
-    let len = js_hypot(&[forward[0], forward[1]]);
+    let len = libm::hypot(forward[0], forward[1]);
     let len = if len == 0.0 { 1.0 } else { len };
     // Screen-right: forward × up.
     let (rx, ry) = (forward[1] / len, -forward[0] / len);
@@ -823,8 +815,7 @@ impl Sound {
             // A burst recording sounds the gun's next rounds too, while they
             // land on its shots; a round off its cadence, or past its last,
             // starts another.
-            let soldier = l.soldier.map_or("null".to_owned(), js_number);
-            let gun = format!("{}:{}:{soldier}", js_number(l.shooter), l.mount);
+            let gun = (l.shooter.to_bits(), l.mount, l.soldier.map(f64::to_bits));
             if let Some(b) = self.bursts.get_mut(&gun) {
                 if b.heard < b.shots
                     && (t0 - b.start - b.heard as f64 * b.interval).abs() <= b.interval / 2.0
@@ -847,14 +838,13 @@ impl Sound {
             } else {
                 self.bursts.remove(&gun);
             }
-            let variety = format!("{}{}", js_number(l.shooter), l.kind);
-            let key = format!(
-                "{}:{}:{}:{soldier}:{}",
-                js_number(fx.tick),
-                js_number(l.shooter),
-                l.mount,
-                l.kind
-            );
+            let variety = Key::new().num(l.shooter).text(&l.kind);
+            let key = Key::new()
+                .num(fx.tick)
+                .num(l.shooter)
+                .num(l.mount as f64)
+                .num(l.soldier.unwrap_or(-1.0))
+                .text(&l.kind);
             self.queue(
                 t0,
                 s.near,
@@ -863,8 +853,8 @@ impl Sound {
                 Bus::Effects,
                 s.gain,
                 l.at,
-                &variety,
-                &key,
+                variety,
+                key,
             );
         }
         let mut motors = Ordered::default();
@@ -878,7 +868,7 @@ impl Sound {
                 let mut cum = vec![0.0];
                 for w in s.path.windows(2) {
                     let (a, b) = (w[0], w[1]);
-                    total += js_hypot(&[b[0] - a[0], b[1] - a[1], b[2] - a[2]]);
+                    total += crate::world::length([b[0] - a[0], b[1] - a[1], b[2] - a[2]]);
                     cum.push(total);
                 }
                 for r in &s.ricochets {
@@ -888,8 +878,8 @@ impl Sound {
                         .contact(super::GLANCE, &s.kind, &p.ricochet.sound)
                         .to_owned();
                     let gain = p.ricochet.gain * pick(&p.impact_scale, &s.kind);
-                    let key = end_key(&pt);
-                    self.queue(at, sound, None, 0.0, Bus::Effects, gain, pt, &key, &key);
+                    let key = Key::new().nums(&pt);
+                    self.queue(at, sound, None, 0.0, Bus::Effects, gain, pt, key, key);
                 }
             }
             let end = *s.path.last().expect("two points");
@@ -897,7 +887,7 @@ impl Sound {
                 let hit = pick(&p.impacts, &s.hit);
                 let scale = pick(&p.impact_scale, &s.kind);
                 let sound = tables.contact(&s.hit, &s.kind, &hit.sound).to_owned();
-                let key = end_key(&end);
+                let key = Key::new().nums(&end);
                 self.queue(
                     t1,
                     sound,
@@ -906,8 +896,8 @@ impl Sound {
                     Bus::Effects,
                     hit.gain * scale,
                     end,
-                    &key,
-                    &key,
+                    key,
+                    key,
                 );
             } else if p.motors.contains_key(&*s.kind) {
                 // A flying round with a motor: one loop along its chain of
@@ -931,7 +921,7 @@ impl Sound {
         self.motors = motors;
         for b in &fx.blasts {
             let s = pick(&p.blasts, &b.kind);
-            let key = end_key(&b.point);
+            let key = Key::new().nums(&b.point);
             self.queue(
                 t1,
                 tables.effect(&s.near).to_owned(),
@@ -940,8 +930,8 @@ impl Sound {
                 Bus::Effects,
                 s.gain,
                 b.point,
-                &key,
-                &key,
+                key,
+                key,
             );
         }
         // A cook-off: a boom with each fireball, the biggest loudest, and the
@@ -962,7 +952,7 @@ impl Sound {
         for c in &fx.cook_offs {
             let ring = [c.center[0], c.center[1], c.center[2] + c.height];
             for (i, (after, share)) in booms.iter().enumerate() {
-                let key = format!("cook_off:{i}:{}", end_key(&ring));
+                let key = Key::new().text("cook_off").num(i as f64).nums(&ring);
                 self.queue(
                     t0 + after,
                     tables.effect(&blast.near).to_owned(),
@@ -971,14 +961,14 @@ impl Sound {
                     Bus::Effects,
                     blast.gain * share,
                     ring,
-                    &key,
-                    &key,
+                    key,
+                    key,
                 );
             }
             if let Some(at) = c.landing {
                 let baseline = &pick(&p.impacts, &landing.hit).sound;
                 let sound = tables.contact(&landing.hit, &landing.round, baseline);
-                let key = format!("cook_off:landing:{}", end_key(&at));
+                let key = Key::new().text("cook_off_landing").nums(&at);
                 self.queue(
                     t0 + turret_lands_s,
                     sound.to_owned(),
@@ -987,8 +977,8 @@ impl Sound {
                     Bus::Effects,
                     landing.gain,
                     at,
-                    &key,
-                    &key,
+                    key,
+                    key,
                 );
             }
         }
@@ -1029,7 +1019,7 @@ impl Sound {
                     None => continue,
                 }
             };
-            let key = format!("{name}/{}/{}", js_number(c.sector), c.band);
+            let key = (name.clone(), c.sector.to_bits(), c.band.clone());
             if let Some(&last) = self.cue_heard.get(&key) {
                 if t0 - last < cues.repeat_s && t0 >= last {
                     continue;
@@ -1060,8 +1050,13 @@ impl Sound {
                 None => {
                     // Which take: seeded by the cue and its time, so the
                     // same battle hears the same takes.
-                    let seed = hash_string(&format!("{key}@{}", js_number(t0)));
-                    let pick = Mulberry32::new(seed).sample() * self.shouts.len() as f64;
+                    let pick = Key::new()
+                        .text(&key.0)
+                        .num(c.sector)
+                        .text(&c.band)
+                        .num(t0)
+                        .unit()
+                        * self.shouts.len() as f64;
                     Pending {
                         t: t0,
                         sound: self.shouts[pick as usize].sound.clone(),
@@ -1110,14 +1105,10 @@ impl Sound {
         bus: Bus,
         gain: f64,
         position: Vec3,
-        variety: &str,
-        variant_key: &str,
+        variety: Key,
+        variant: Key,
     ) {
-        let variant = hash_string(&format!(
-            "{}:{variant_key}:{}",
-            js_number(t),
-            end_key(&position)
-        ));
+        let variant = variant.num(t).nums(&position).seed();
         self.pending.push(Pending {
             t,
             sound,
@@ -1126,7 +1117,7 @@ impl Sound {
             far_m,
             bus,
             gain,
-            rate: 0.94 + 0.12 * hash01(variety),
+            rate: 0.94 + 0.12 * variety.unit(),
             position: Some(position),
             sector: -1.0,
             lowpass: 0.0,
@@ -1137,7 +1128,7 @@ impl Sound {
 
     fn distance(&self, position: &Vec3) -> f64 {
         let l = self.listener.position;
-        js_hypot(&[position[0] - l[0], position[1] - l[1], position[2] - l[2]])
+        crate::world::length([position[0] - l[0], position[1] - l[1], position[2] - l[2]])
     }
 
     /// Level at the listener for a sound of `gain` at `position`.
@@ -1213,11 +1204,11 @@ impl Sound {
             seen.push(id);
             let [x, y, _] = s.position;
             let Some(st) = self.strides.get_mut(&id) else {
-                let carry = hash01(&format!("step{}", js_number(s.id))) * f.stride_m;
+                let carry = Key::new().text("step").num(s.id).unit() * f.stride_m;
                 self.strides.insert(id, Stride { x, y, carry });
                 continue;
             };
-            let d = js_hypot(&[x - st.x, y - st.y]);
+            let d = libm::hypot(x - st.x, y - st.y);
             st.x = x;
             st.y = y;
             if step <= 0.0 || d > f.max_step_m {
@@ -1231,7 +1222,7 @@ impl Sound {
             if self.level(f.gain, Some(&s.position)) < tables.audio.distance.cull {
                 continue;
             }
-            let variety = format!("{}:{}", js_number(s.id), js_number(clock));
+            let variety = Key::new().num(s.id).num(clock);
             self.queue(
                 clock,
                 tables.effect(&f.sound).to_owned(),
@@ -1240,8 +1231,8 @@ impl Sound {
                 Bus::Units,
                 f.gain,
                 s.position,
-                &variety,
-                &variety,
+                variety,
+                variety,
             );
         }
         seen.sort_unstable();
@@ -1420,7 +1411,7 @@ impl Sound {
             let at = [0, 1, 2].map(|i| m.from[i] + u * (m.to[i] - m.from[i]));
             let row = &p.motors[&*m.kind];
             wants.push(LoopWant {
-                key: LoopKey::Motor(key.clone()),
+                key: LoopKey::Motor(*key),
                 sound: row.sound.clone(),
                 bus: Bus::Effects,
                 gain: row.gain,

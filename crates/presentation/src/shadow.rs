@@ -10,7 +10,6 @@
 //! plane, so a camera a kilometre up does not spend its cascades on air.
 use crate::light::{CascadeSettings, LightSettings};
 use crate::records::{Camera as CameraRecord, SunShadow};
-use crate::static_world::ground::js;
 use crate::view::{look_at, perspective_reverse_z, Camera};
 
 /// The receiver layout's cascade slots: `SunShadow` and the depth array
@@ -77,10 +76,10 @@ pub fn sun_shadow(
     let count = (settings.count.max(1) as usize).min(CASCADES);
     let map_size = settings.map_size.max(16);
     let projection_far = FAR_FALLBACK;
-    let extent_far = js::max(projection_far, settings.max_far_m);
-    let capped_far = js::min(projection_far, settings.max_far_m);
-    let split_near = js::max(camera.near, near);
-    let capped_far = js::max(split_near * 1.5, js::min(capped_far, far));
+    let extent_far = projection_far.max(settings.max_far_m);
+    let capped_far = projection_far.min(settings.max_far_m);
+    let split_near = camera.near.max(near);
+    let capped_far = (split_near * 1.5).max(capped_far.min(far));
     let breaks = breaks(split_near, capped_far, count, settings.split_lambda);
     let basis = Basis::toward(light.sun_direction());
     let world = invert(&view).unwrap_or(IDENTITY);
@@ -137,7 +136,7 @@ pub fn sun_shadow(
         let light_projection =
             orthographic_reverse_z(-half, half, half, -half, LIGHT_NEAR, light_far);
         let view_projection = multiply(&light_projection, &light_view);
-        let radius = js::min(4.0, js::max(1.0, settings.softness_m / texel));
+        let radius = (settings.softness_m / texel).clamp(1.0, 4.0);
         let interval = [if i == 0 { 0.0 } else { breaks[i - 1] }, breaks[i]];
         let at = i * RECORD;
         let record = &mut receiver.cascades[at..at + RECORD];
@@ -210,8 +209,8 @@ pub fn map_box(mesh: &[f32]) -> Option<[f64; 6]> {
     ];
     for v in mesh.chunks(10) {
         for k in 0..3 {
-            b[k] = js::min(b[k], f64::from(v[k]));
-            b[k + 3] = js::max(b[k + 3], f64::from(v[k]));
+            b[k] = b[k].min(f64::from(v[k]));
+            b[k + 3] = b[k + 3].max(f64::from(v[k]));
         }
     }
     b[2] -= 1.0;
@@ -233,7 +232,7 @@ fn receiver_range(
     let projection = perspective_reverse_z(camera.fov_y, aspect, camera.near, None);
     let inverse = invert(&multiply(&projection, view)).unwrap_or(IDENTITY);
     let eye = camera.eye;
-    let (mut near, mut far) = (f64::INFINITY, 0.0);
+    let (mut near, mut far) = (f64::INFINITY, 0.0f64);
     for iy in 0..=GRID {
         for ix in 0..=GRID {
             let ndc = |i: u32| f64::from(i) / f64::from(GRID) * 2.0 - 1.0;
@@ -242,14 +241,14 @@ fn receiver_range(
                 continue;
             };
             let depth = |t: f64| -transform(&add_scaled(eye, dir, t), view)[2];
-            near = js::min(near, depth(t0));
-            far = js::max(far, depth(t1));
+            near = near.min(depth(t0));
+            far = far.max(depth(t1));
         }
     }
     if !near.is_finite() {
         return empty;
     }
-    (js::max(camera.near, near), far)
+    (camera.near.max(near), far)
 }
 
 /// The unit direction from `eye` through the near-plane unprojection of an
@@ -268,7 +267,7 @@ fn screen_ray(inverse: &M4, eye: V3, x: f64, y: f64) -> V3 {
 
 /// Where a ray enters and leaves a box (`rayBox3Interval`).
 fn ray_box(origin: V3, dir: V3, b: &[f64; 6]) -> Option<(f64, f64)> {
-    let (mut enter, mut exit) = (0.0, f64::INFINITY);
+    let (mut enter, mut exit) = (0.0f64, f64::INFINITY);
     for a in 0..3 {
         let (lo, hi) = (b[a], b[a + 3]);
         if dir[a].abs() < 1e-10 {
@@ -279,8 +278,8 @@ fn ray_box(origin: V3, dir: V3, b: &[f64; 6]) -> Option<(f64, f64)> {
         }
         let t_lo = (lo - origin[a]) / dir[a];
         let t_hi = (hi - origin[a]) / dir[a];
-        enter = js::max(enter, js::min(t_lo, t_hi));
-        exit = js::min(exit, js::max(t_lo, t_hi));
+        enter = enter.max(t_lo.min(t_hi));
+        exit = exit.min(t_lo.max(t_hi));
         if exit < enter {
             return None;
         }
@@ -296,7 +295,7 @@ fn breaks(near: f64, far: f64, count: usize, lambda: f64) -> Vec<f64> {
         .map(|i| {
             let uniform = i as f64 / count as f64;
             let logarithmic =
-                (near * js::pow(far / near, i as f64 / count as f64) - near) / (far - near);
+                (near * libm::pow(far / near, i as f64 / count as f64) - near) / (far - near);
             uniform + (logarithmic - uniform) * lambda
         })
         .collect();
@@ -312,17 +311,16 @@ fn extent(near: &[V3; 4], far: &[V3; 4], span: f64) -> f64 {
     let across = distance(anchor, far[2]);
     let diagonal = distance(anchor, near[2]);
     let linear_depth = far[0][2] / span;
-    js::max(across, diagonal) + 0.25 * linear_depth * linear_depth * span
+    across.max(diagonal) + 0.25 * linear_depth * linear_depth * span
 }
 
 /// Normal offset (m): a few of the cascade's texels for each texel of PCF
 /// radius, with a floor, so the wider near kernel never self-shadows lit
 /// ground in a fine noise while near cascades keep contact.
 fn normal_bias(settings: &CascadeSettings, texel: f64, radius: f64) -> f64 {
-    js::max(
-        settings.normal_bias_min_m,
-        settings.normal_bias_texels * radius * texel,
-    )
+    settings
+        .normal_bias_min_m
+        .max(settings.normal_bias_texels * radius * texel)
 }
 
 /// An unfitted cascade's record: the identity over the interval [1, 1].

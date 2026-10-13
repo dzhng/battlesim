@@ -24,7 +24,6 @@
 use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
-use crate::seed::js_hypot;
 use crate::static_world::batches::{print, List, Population, CAST_PASS, VIEW_PASS};
 use crate::static_world::walk::{casts_into, Record, Shadow};
 use crate::view::View;
@@ -654,7 +653,7 @@ impl SceneryWalk {
             for (r, v) in rest.iter_mut().zip(&pose[2..]) {
                 *r = *v as f32;
             }
-            let d = js_hypot(&[0, 1, 2].map(|a| tree[a] as f64 - view.eye[a]));
+            let d = crate::world::length([0, 1, 2].map(|a| tree[a] as f64 - view.eye[a]));
             let list = &mut self.felled_lists[kind * TIERS + tier_for(h as f64, d, view, lod)];
             list.extend([fall, rest]);
             let mut stump = tree;

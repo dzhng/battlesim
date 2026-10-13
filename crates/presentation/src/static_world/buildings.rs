@@ -78,8 +78,7 @@ pub struct Buildings {
     linear: [f32; 256],
 }
 
-/// The JS `Math.cos` and `Math.sin` the browser placed with: fdlibm's, as
-/// `libm` is.
+/// `yaw`'s cosine and sine, `libm`'s on every client.
 fn turn(yaw: f64) -> (f64, f64) {
     (libm::cos(yaw), libm::sin(yaw))
 }

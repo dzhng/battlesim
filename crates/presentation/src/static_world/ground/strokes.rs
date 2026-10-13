@@ -6,7 +6,6 @@
 //! same line and as wide, cut square a carry past each end, under the
 //! stroke's own surface. No edge of the road moves.
 use super::biome::{Biome, Town};
-use super::js;
 use super::{chunks, AREA_KINDS, CUT_A, CUT_B, SURFACE_STROKE};
 
 /// Built ground is looked for at points this far apart along a stretch, and
@@ -64,7 +63,7 @@ pub fn drawn(strokes: &[f32], biome: &Biome, built: impl Fn(f64, f64) -> bool) -
         for &[start, stop] in &runs {
             between.push([at, start]);
             at = stop;
-            let span = [js::max(0.0, start - carry), js::min(total, stop + carry)];
+            let span = [(start - carry).max(0.0), total.min(stop + carry)];
             match carried.last_mut() {
                 Some(last) if span[0] <= last[1] => last[1] = span[1],
                 _ => carried.push(span),
@@ -78,7 +77,7 @@ pub fn drawn(strokes: &[f32], biome: &Biome, built: impl Fn(f64, f64) -> bool) -
 }
 
 fn length(s: &[f32]) -> f64 {
-    js::hypot(s[2] as f64 - s[0] as f64, s[3] as f64 - s[1] as f64)
+    libm::hypot(s[2] as f64 - s[0] as f64, s[3] as f64 - s[1] as f64)
 }
 
 /// The stroke's stretches within `spans` of its length, as `kind`: a part
@@ -92,7 +91,7 @@ fn lay(out: &mut Vec<f32>, stroke: &[f32], spans: &[[f64; 2]], kind: f64, square
     for s in chunks::<SURFACE_STROKE>(stroke) {
         let [ax, ay, bx, by] = [s[0], s[1], s[2], s[3]].map(f64::from);
         let cuts = s[6] as u32;
-        let length = js::hypot(bx - ax, by - ay);
+        let length = libm::hypot(bx - ax, by - ay);
         let along = |a: f64, b: f64, at: f64| (a + ((b - a) * (at - from)) / length) as f32;
         let point = |at: f64| match at {
             _ if at == from => [s[0], s[1]],
@@ -100,7 +99,7 @@ fn lay(out: &mut Vec<f32>, stroke: &[f32], spans: &[[f64; 2]], kind: f64, square
             _ => [along(ax, bx, at), along(ay, by, at)],
         };
         for &[first, last] in spans {
-            let (start, stop) = (js::max(first, from), js::min(last, from + length));
+            let (start, stop) = (first.max(from), last.min(from + length));
             if stop <= start {
                 continue;
             }
@@ -126,7 +125,7 @@ fn built_runs(stroke: &[f32], rule: &Town, built: &impl Fn(f64, f64) -> bool) ->
     let mut before = 0.0;
     for s in chunks::<SURFACE_STROKE>(stroke) {
         let [ax, ay, bx, by, half] = [s[0], s[1], s[2], s[3], s[4]].map(f64::from);
-        let length = js::hypot(bx - ax, by - ay);
+        let length = libm::hypot(bx - ax, by - ay);
         if length == 0.0 {
             continue;
         }
@@ -327,18 +326,16 @@ mod tests {
             let t = along.clamp(0.0, length);
             let round = half - (along - t).hypot(aside);
             let cut = |bit: u32| cuts as u32 & bit != 0;
-            let past = f64::max(
-                if cut(CUT_A) {
-                    -along
-                } else {
-                    f64::NEG_INFINITY
-                },
-                if cut(CUT_B) {
-                    along - length
-                } else {
-                    f64::NEG_INFINITY
-                },
-            );
+            let past = (if cut(CUT_A) {
+                -along
+            } else {
+                f64::NEG_INFINITY
+            })
+            .max(if cut(CUT_B) {
+                along - length
+            } else {
+                f64::NEG_INFINITY
+            });
             let depth = if past <= 0.0 {
                 round.min(-past)
             } else {

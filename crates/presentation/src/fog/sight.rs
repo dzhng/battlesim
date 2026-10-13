@@ -33,8 +33,7 @@ use sim::publication::reader::{KnownProp, Sight};
 use sim::world::export::PROP_STRIDE;
 
 use crate::records::{Camera, FogBox, FogEye, FogParams};
-use crate::seed::js_number;
-use crate::static_world::ground::{js, Source};
+use crate::static_world::ground::Source;
 
 /// A map prop's id is `lo + hi · 2^16` (the layout's `limbBits`).
 const LIMB: f64 = 65536.0;
@@ -281,7 +280,7 @@ impl Eye {
     /// How far it reaches in any direction: its map's radius.
     pub fn reach(&self) -> f64 {
         let s = self.shape;
-        self.range * js::max(js::max(s.front, s.side), s.rear)
+        self.range * s.front.max(s.side).max(s.rear)
     }
 
     /// Every eye of the side's own units, each `(id, sight)` at the
@@ -295,7 +294,7 @@ impl Eye {
                     .iter()
                     .enumerate()
                     .map(move |(k, &position)| Eye {
-                        key: format!("{}:{k}", js_number(id)),
+                        key: format!("{id}:{k}"),
                         position,
                         forward: sight.forward,
                         shape: Shape {
@@ -357,24 +356,21 @@ pub fn whole_words(boxes: &[Occluder], margin: f64) -> Result<Wholes, String> {
     let extents: Vec<[f64; 2]> = boxes
         .iter()
         .map(|b| {
-            let c = js::cos(b.yaw).abs();
-            let s = js::sin(b.yaw).abs();
+            let c = libm::cos(b.yaw).abs();
+            let s = libm::sin(b.yaw).abs();
             let ex = (b.hx + margin) * c + (b.hy + margin) * s;
             let ey = (b.hx + margin) * s + (b.hy + margin) * c;
-            min_x = js::min(min_x, b.x - ex);
-            min_y = js::min(min_y, b.y - ey);
-            max_x = js::max(max_x, b.x + ex);
-            max_y = js::max(max_y, b.y + ey);
+            min_x = min_x.min(b.x - ex);
+            min_y = min_y.min(b.y - ey);
+            max_x = max_x.max(b.x + ex);
+            max_y = max_y.max(b.y + ey);
             [ex, ey]
         })
         .collect();
     if n == 0 {
         (min_x, min_y, max_x, max_y) = (0.0, 0.0, 1.0, 1.0);
     }
-    let cell = js::max(
-        WHOLE_CELL_M,
-        js::max(max_x - min_x, max_y - min_y) / WHOLE_GRID_MAX,
-    );
+    let cell = WHOLE_CELL_M.max((max_x - min_x).max(max_y - min_y) / WHOLE_GRID_MAX);
     // One more than the far edge's cell: a point exactly on it still has one.
     let nx = ((max_x - min_x) / cell).floor() as usize + 1;
     let ny = ((max_y - min_y) / cell).floor() as usize + 1;
@@ -433,8 +429,8 @@ pub fn whole_words(boxes: &[Occluder], margin: f64) -> Result<Wholes, String> {
         let row = [
             b.x,
             b.y,
-            js::cos(b.yaw),
-            js::sin(b.yaw),
+            libm::cos(b.yaw),
+            libm::sin(b.yaw),
             b.hx,
             b.hy,
             b.base,
@@ -473,7 +469,7 @@ fn broad_pad(grid: &Wholes, [x, y, _]: [f64; 3], reach: f64) -> f64 {
             oy.abs() + ny * cell,
         ]
         .into_iter()
-        .fold(1.0, js::max)
+        .fold(1.0, f64::max)
 }
 
 /// The boxes of `grid` whose bounding circle comes within `reach` (and
@@ -488,10 +484,10 @@ pub fn in_reach(grid: &Wholes, position: [f64; 3], reach: f64, query_margin: f64
     let (nx, ny, cell) = (grid.nx as f64, grid.ny as f64, grid.cell_m);
     let pad = broad_pad(grid, position, reach);
     let query = reach + query_margin;
-    let lo_x = js::max(0.0, ((x - query - pad - ox) / cell).floor());
-    let hi_x = js::min(nx - 1.0, ((x + query + pad - ox) / cell).floor());
-    let lo_y = js::max(0.0, ((y - query - pad - oy) / cell).floor());
-    let hi_y = js::min(ny - 1.0, ((y + query + pad - oy) / cell).floor());
+    let lo_x = ((x - query - pad - ox) / cell).floor().max(0.0);
+    let hi_x = (nx - 1.0).min(((x + query + pad - ox) / cell).floor());
+    let lo_y = ((y - query - pad - oy) / cell).floor().max(0.0);
+    let hi_y = (ny - 1.0).min(((y + query + pad - oy) / cell).floor());
     // A box spans several cells: each is judged once (`seen`), and those in
     // reach are marked (`marked`), read back in index order from the words
     // touched: a bit per box, no sort of the boxes themselves.
@@ -595,8 +591,8 @@ fn horizon_records_of(
                     let radius = length(half[0], half[1]) + margin;
                     let (mut lo, mut hi) = (0, sectors - 1);
                     if distance > radius * (1.0 + 8.0 * 2f64.powi(-23)) {
-                        let angle = js::atan2(center[1] - py, center[0] - px);
-                        let half = libm::asin(js::min(1.0, radius / distance));
+                        let angle = libm::atan2(center[1] - py, center[0] - px);
+                        let half = libm::asin((radius / distance).min(1.0));
                         let pi = std::f64::consts::PI;
                         let a = ((angle - half + pi) * scale).floor() as i64 - 1;
                         let z = ((angle + half + pi) * scale).floor() as i64 + 1;
@@ -933,7 +929,7 @@ impl FogSight {
             .iter()
             .skip(5)
             .step_by(4)
-            .fold(0.0, |m, &v| js::max(m, v as f64));
+            .fold(0.0, |m, &v| m.max(v as f64));
         self.foliage = foliage;
         self.foliage_sent = false;
         self.invalidate();
@@ -1077,9 +1073,7 @@ impl FogSight {
         let slots = &self.slots;
         self.queue
             .retain(|k| slots.iter().any(|s| &s.key == k && s.built.is_some()));
-        self.max_occluder_radius = boxes
-            .iter()
-            .fold(0.0, |m, b| js::max(m, length(b.hx, b.hy)));
+        self.max_occluder_radius = boxes.iter().fold(0.0, |m, b| m.max(length(b.hx, b.hy)));
         self.occluders = Some(next);
         self.occluders_sent = false;
         self.wholes = next_wholes;

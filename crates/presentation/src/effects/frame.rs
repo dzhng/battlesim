@@ -40,19 +40,8 @@ use super::tables::{
     TrailStyle, TRACER_TAIL_MAX_S,
 };
 use super::{DrawnRotor, MuzzleSource};
-use crate::seed::{hash_string, js_hypot, js_number, js_round, to_uint32, Mulberry32, GOLDEN};
+use crate::seed::{Key, Mulberry32, GOLDEN};
 use crate::world::Vec3;
-
-/// `Math.sign`: a zero keeps its sign.
-fn js_sign(v: f64) -> f64 {
-    if v > 0.0 {
-        1.0
-    } else if v < 0.0 {
-        -1.0
-    } else {
-        v
-    }
-}
 
 // ---- The instances the effect pass draws (16 floats each). ----
 
@@ -368,7 +357,7 @@ impl Pool {
         for (i, q) in s.path.iter().enumerate() {
             if i > 0 {
                 let r = s.path[i - 1];
-                total += js_hypot(&[q[0] - r[0], q[1] - r[1], q[2] - r[2]]);
+                total += crate::world::length([q[0] - r[0], q[1] - r[1], q[2] - r[2]]);
             }
             e.path.extend_from_slice(q);
             e.cum.push(total);
@@ -467,7 +456,7 @@ impl Pool {
         let (hull, ground) = (&style.hull, &style.ground);
         let [x, y, z] = u.position;
         let (s, c) = (u.yaw.sin(), u.yaw.cos());
-        let shaken = js_round(hull.count * strength);
+        let shaken = (hull.count * strength).round();
         let mut k = 0.0;
         while k < shaken {
             let along = (rng.sample() * 2.0 - 1.0) * hl * 0.9;
@@ -475,7 +464,7 @@ impl Pool {
             let up = 2.0 * hh * (0.2 + 0.8 * rng.sample());
             // Low down it comes off a flank; high up, off the roof.
             let across = if up < 2.0 * hh * 0.6 {
-                js_sign(side) * hw * 0.95
+                side.signum() * hw * 0.95
             } else {
                 side * hw * 0.9
             };
@@ -490,13 +479,13 @@ impl Pool {
         }
         // Level along the shot; straight up or down, along the hull.
         let [dx, dy, _] = l.dir;
-        let level = js_hypot(&[dx, dy]);
+        let level = libm::hypot(dx, dy);
         let (fx, fy) = if level > 1e-3 {
             (dx / level, dy / level)
         } else {
             (c, s)
         };
-        let blown = js_round(ground.burst.count * strength);
+        let blown = (ground.burst.count * strength).round();
         let mut k = 0.0;
         while k < blown {
             let along = ground.reach_m * (rng.sample().sqrt() * 1.25 - 0.25);
@@ -571,7 +560,7 @@ impl Pool {
             // A random direction, pulled toward the glance and off the face.
             let r: Vec3 = std::array::from_fn(|_| rng.sample() * 2.0 - 1.0);
             let v: Vec3 = std::array::from_fn(|i| dir[i] * 0.8 + normal[i] * 0.6 + r[i] * 0.6);
-            let len = js_hypot(&v);
+            let len = crate::world::length(v);
             let len = if len == 0.0 || len.is_nan() { 1.0 } else { len };
             let speed = style.speed_mps * scale * (0.4 + 0.6 * rng.sample());
             e.sparks.extend(v.map(|c| c / len * speed));
@@ -601,13 +590,13 @@ impl Pool {
         e.rotation = rng.sample() * PI * 2.0;
         // A burst below the style's throws fewer sparks and puffs, and smaller ones.
         let fewer = share.min(1.0);
-        let count = js_round(style.sparks * sparks * fewer);
+        let count = (style.sparks * sparks * fewer).round();
         if count != 0.0 {
             self.sparks(&p.sparks, at, point, UP, UP, count, rng, style.spark_scale);
         }
         let scale = share.sqrt();
         for burst in [&style.plume, &style.smoke] {
-            let n = js_round(burst.count * fewer);
+            let n = (burst.count * fewer).round();
             let mut k = 0.0;
             while k < n {
                 let r = size * 0.3 * rng.sample().sqrt();
@@ -760,7 +749,7 @@ impl Source {
         while k <= last {
             let at = from + k / hz;
             let seed =
-                self.seed ^ to_uint32(k + 1.0).wrapping_mul(GOLDEN) ^ ((stream as u32) << 29);
+                self.seed ^ ((k + 1.0) as u32).wrapping_mul(GOLDEN) ^ ((stream as u32) << 29);
             let mut rng = Mulberry32::new(seed);
             k += 1.0;
             if rng.sample() >= keep {
@@ -880,7 +869,7 @@ impl EffectFrame {
         self.last_tick = tick;
         let dt = self.pool.dt;
         let (t0, t1) = ((tick - 1.0) * dt, tick * dt);
-        let mut rng = Mulberry32::new(to_uint32(tick * f64::from(GOLDEN)));
+        let mut rng = Mulberry32::new((tick as u32).wrapping_mul(GOLDEN));
         let p = &self.p;
         let chance = |kind: &str| pick(&p.tracers, kind).chance.unwrap_or(1.0);
         let launches = self.launches.note(publication, gap, Some(&chance));
@@ -969,7 +958,7 @@ impl EffectFrame {
             };
             m.seen = true;
             let (dx, dy) = (x - m.at[0], y - m.at[1]);
-            let dist = js_hypot(&[dx, dy]);
+            let dist = libm::hypot(dx, dy);
             let speed = dist / dt;
             if !gap && speed >= style.min_speed_mps && dist > 1e-6 {
                 let (fx, fy) = (dx / dist, dy / dist);
@@ -981,12 +970,11 @@ impl EffectFrame {
                     let py = m.at[1] + dy * u01;
                     let pz = m.at[2] + (z - m.at[2]) * u01;
                     let at = t0 + dt * u01;
-                    let mut rng = Mulberry32::new(hash_string(&format!(
-                        "{}:{},{}",
-                        js_number(u.key),
-                        js_number(js_round(px * 100.0)),
-                        js_number(js_round(py * 100.0))
-                    )));
+                    let mut rng = Key::new()
+                        .num(u.key)
+                        .num((px * 100.0).round())
+                        .num((py * 100.0).round())
+                        .rng();
                     for side in [-1.0, 1.0] {
                         let tx = px - fx * hl * 1.1 - fy * hw * 0.75 * side;
                         let ty = py - fy * hl * 1.1 + fx * hw * 0.75 * side;
@@ -1025,12 +1013,12 @@ impl EffectFrame {
                 m.at = here;
             }
             m.seen = true;
-            let hull = hash_string(&format!("smoke:{}", js_number(u.key)));
+            let hull = Key::new().text("smoke").num(u.key).seed();
             let mut k = (t0 * style.rate_hz).ceil();
             while k / style.rate_hz < t1 {
                 let at = k / style.rate_hz;
                 let f = (at - t0) / (t1 - t0);
-                let mut rng = Mulberry32::new(hull ^ to_uint32(k + 1.0).wrapping_mul(GOLDEN));
+                let mut rng = Mulberry32::new(hull ^ ((k + 1.0) as u32).wrapping_mul(GOLDEN));
                 let p: Vec3 = std::array::from_fn(|i| m.at[i] + (here[i] - m.at[i]) * f);
                 self.pool.puff(at, p, &style.puff, 1.0, 1.0, &mut rng);
                 k += 1.0;
@@ -1056,7 +1044,11 @@ impl EffectFrame {
                 self.sources[i].known = true;
                 continue;
             }
-            let seed = hash_string(&k.key);
+            let seed = Key::new()
+                .text(&k.kind)
+                .num(k.center[0])
+                .num(k.center[1])
+                .seed();
             self.source_index.insert(k.key.clone(), self.sources.len());
             self.sources.push(Source {
                 key: k.key.clone(),
@@ -1521,7 +1513,7 @@ fn draw_sparks(p: &EffectPresentation, e: &Effect, age: f64, batch: &mut EffectB
     let s = &p.sparks;
     let fade = 1.0 - age / e.span;
     for v in e.sparks.as_chunks::<3>().0 {
-        let speed = js_hypot(v);
+        let speed = crate::world::length(*v);
         let speed = if speed == 0.0 || speed.is_nan() {
             1.0
         } else {

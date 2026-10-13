@@ -1,7 +1,8 @@
 //! Which voice lines play, held to recorded vectors.
 //!
 //! `fixtures/chatter-vectors.json` was recorded from the TypeScript
-//! arbitration this module replaced: each case its set table, its loaded
+//! arbitration this module replaced, and its lines re-recorded from Rust
+//! when its seeds became integer keys: each case its set table, its loaded
 //! takes and a script of requests, take loads, resets and arbitrations, with
 //! every line each arbitration started (voice, take, moment, length) and
 //! dropped (why). The cases cover the four-line cap, tier then distance

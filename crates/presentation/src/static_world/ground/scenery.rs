@@ -25,7 +25,6 @@
 use super::biome::{Biome, Trees};
 use super::field::{Field, FOOTPRINT_M};
 use super::forests::Kind;
-use super::js;
 use super::shapes::{centroid, polygon_contains};
 use super::{chunks, Ground, FOREST_STROKE, FOREST_TRIANGLE, PROP};
 use crate::seed::Mulberry32;
@@ -100,9 +99,9 @@ fn push(out: &mut Vec<f32>, at: [f64; 7], tint: [f64; 3], rng: &mut Mulberry32, 
 
 /// Distance from `(x, y)` to `box`, 0 inside.
 fn outside_box(b: [f64; 4], x: f64, y: f64) -> f64 {
-    js::hypot(
-        js::max(js::max(b[0] - x, x - b[2]), 0.0),
-        js::max(js::max(b[1] - y, y - b[3]), 0.0),
+    libm::hypot(
+        (b[0] - x).max(x - b[2]).max(0.0),
+        (b[1] - y).max(y - b[3]).max(0.0),
     )
 }
 
@@ -200,7 +199,7 @@ impl Simplex {
 /// How thick a kind's drift lies, 0 to 1, from its field's value in
 /// [-1, 1]: half the ground lies in a drift, with a short ramp at its edge.
 fn drifted(value: f64) -> f64 {
-    js::min(1.0, js::max(0.0, value / 0.3 + 0.5))
+    (value / 0.3 + 0.5).clamp(0.0, 1.0)
 }
 
 /// A tree's species: its kind and tint.
@@ -279,7 +278,7 @@ impl Species {
         for j in cj - 1..=cj + 1 {
             for i in ci - 1..=ci + 1 {
                 let p = self.point(i, j);
-                let d = js::pow(p.0 - x, 2.0) + js::pow(p.1 - y, 2.0);
+                let d = libm::pow(p.0 - x, 2.0) + libm::pow(p.1 - y, 2.0);
                 if d < best {
                     (nearest, best) = (p.2, d);
                 }
@@ -367,10 +366,9 @@ impl Site<'_> {
     }
 
     fn wet_or_paved(&self, x: f64, y: f64) -> f64 {
-        js::max(
-            self.field.paved([x, y, FOOTPRINT_M]),
-            self.field.water([x, y, FOOTPRINT_M]),
-        )
+        self.field
+            .paved([x, y, FOOTPRINT_M])
+            .max(self.field.water([x, y, FOOTPRINT_M]))
     }
 
     /// Whether the simulation's foliage covers the fog cell at `(x, y)` or one beside it.
@@ -388,10 +386,7 @@ impl Site<'_> {
     fn foot(&self, x: f64, y: f64) -> f64 {
         (0..4).fold(self.height(x, y), |foot, k| {
             let a = k as f64 * PI / 2.0;
-            js::min(
-                foot,
-                self.height(x + 0.5 * js::cos(a), y + 0.5 * js::sin(a)),
-            )
+            foot.min(self.height(x + 0.5 * libm::cos(a), y + 0.5 * libm::sin(a)))
         })
     }
 }
@@ -442,7 +437,7 @@ impl Ground {
                 site.trunk_heights.push(2.0 * p[8]);
             } else {
                 site.obstacles
-                    .push([p[3], p[4], js::hypot(p[6] as f64, p[7] as f64) as f32]);
+                    .push([p[3], p[4], libm::hypot(p[6] as f64, p[7] as f64) as f32]);
             }
         }
         if let [columns, _, cell, cells @ ..] = &s.foliage[..] {
@@ -487,8 +482,9 @@ impl Ground {
                 (y / CLEAR_CELL_M).floor() as i64,
             );
             d.clear.get(&key).is_none_or(|l| {
-                l.iter()
-                    .all(|c| js::pow(c[0] - x, 2.0) + js::pow(c[1] - y, 2.0) >= js::pow(c[2], 2.0))
+                l.iter().all(|c| {
+                    libm::pow(c[0] - x, 2.0) + libm::pow(c[1] - y, 2.0) >= libm::pow(c[2], 2.0)
+                })
             })
         };
         for _ in 0..d.capacity {
@@ -507,7 +503,7 @@ impl Ground {
             if field.forest(at) < rules.edge_m || !clear(x, y) {
                 continue;
             }
-            if js::max(field.paved(at), field.water(at)) > -rules.clear_m {
+            if field.paved(at).max(field.water(at)) > -rules.clear_m {
                 continue;
             }
             let scale = rng.float(row.scale[0], row.scale[1]);
@@ -567,10 +563,10 @@ fn forests(
             for ring in 1..=4 {
                 for n in 0..16 {
                     let (a, r) = (n as f64 * PI / 8.0, radius * ring as f64 / 4.0);
-                    floor = js::min(floor, site.height(x + r * js::cos(a), y + r * js::sin(a)));
+                    floor = floor.min(site.height(x + r * libm::cos(a), y + r * libm::sin(a)));
                 }
             }
-            sz = js::min(sz, (floor + canopy - CANOPY_MARGIN_M - z) / k.height);
+            sz = sz.min((floor + canopy - CANOPY_MARGIN_M - z) / k.height);
             let yaw = rng.float(0.0, PI * 2.0);
             push(
                 &mut out,
@@ -629,12 +625,12 @@ fn understorey(site: &Site, b: &Biome, size: &[Size], kind: usize) -> Vec<f32> {
         open(x, y)
             && (0..8).all(|k| {
                 let a = k as f64 * PI / 4.0;
-                open(x + reach * js::cos(a), y + reach * js::sin(a))
+                open(x + reach * libm::cos(a), y + reach * libm::sin(a))
             })
             && site
                 .obstacles
                 .iter()
-                .all(|o| js::hypot(o[0] as f64 - x, o[1] as f64 - y) >= o[2] as f64 + reach)
+                .all(|o| libm::hypot(o[0] as f64 - x, o[1] as f64 - y) >= o[2] as f64 + reach)
     };
     for (index, f) in site.ground.forests.iter().enumerate() {
         if f.kind != Kind::Stroke {
@@ -643,7 +639,7 @@ fn understorey(site: &Site, b: &Biome, size: &[Size], kind: usize) -> Vec<f32> {
         let s = chunks::<FOREST_STROKE>(&site.ground.source.forest_strokes[f.strokes.clone()]);
         let mut rng = stream(b.seed ^ UNDERSTOREY_SALT, index as i64);
         let run = |r: &[f32; FOREST_STROKE]| {
-            js::hypot(r[2] as f64 - r[0] as f64, r[3] as f64 - r[1] as f64)
+            libm::hypot(r[2] as f64 - r[0] as f64, r[3] as f64 - r[1] as f64)
         };
         let mut starts = vec![];
         let mut length = 0.0;
@@ -680,30 +676,27 @@ fn understorey(site: &Site, b: &Biome, size: &[Size], kind: usize) -> Vec<f32> {
                     (r[2] as f64 - r[0] as f64) / l,
                     (r[3] as f64 - r[1] as f64) / l,
                 );
-                let aside = (offset + sway)
-                    * js::min(js::min(1.0, along / taper), (length - along) / taper);
+                let aside =
+                    (offset + sway) * ((along / taper).min(1.0)).min((length - along) / taper);
                 let x = r[0] as f64 + dx * (along - starts[stretch]) - dy * aside;
                 let y = r[1] as f64 + dy * (along - starts[stretch]) + dx * aside;
                 // Its whole reach on the strip's own ground: a shrub is drawn
                 // smaller to fit, and not at all where it would be smaller than its kind.
-                let scale = js::min(long, f.inside(&site.ground.source, x, y) / shrub.radius);
+                let scale = long.min(f.inside(&site.ground.source, x, y) / shrub.radius);
                 if scale < rules.length[0] || !clear(x, y, shrub.radius * scale) {
                     continue;
                 }
                 // On the lowest ground under its length.
                 let reach = shrub.radius * scale / 2.0;
-                let foot = js::min(
-                    js::min(
-                        site.height(x, y),
-                        site.height(x + dx * reach, y + dy * reach),
-                    ),
-                    site.height(x - dx * reach, y - dy * reach),
-                );
+                let foot = site
+                    .height(x, y)
+                    .min(site.height(x + dx * reach, y + dy * reach))
+                    .min(site.height(x - dx * reach, y - dy * reach));
                 let at = [
                     x,
                     y,
                     foot - SINK_M,
-                    js::atan2(dy, dx) + turn,
+                    libm::atan2(dy, dx) + turn,
                     scale,
                     tall,
                     kind as f64,
@@ -759,9 +752,9 @@ fn backdrop(
             poly.as_chunks::<2>()
                 .0
                 .iter()
-                .fold((f64::INFINITY, 0.0), |(lo, hi), p| {
+                .fold((f64::INFINITY, 0.0f64), |(lo, hi), p| {
                     let d = outside_box(source.map, p[0], p[1]);
-                    (js::min(lo, d), js::max(hi, d))
+                    (lo.min(d), hi.max(d))
                 });
         if farthest < clear_m || nearest > reach_m {
             continue;
@@ -771,12 +764,12 @@ fn backdrop(
         for i in 0..n {
             let j = (i + 1) % n;
             let (ax, ay, bx, by) = (poly[i * 2], poly[i * 2 + 1], poly[j * 2], poly[j * 2 + 1]);
-            let length = js::hypot(bx - ax, by - ay);
+            let length = libm::hypot(bx - ax, by - ay);
             if rng.sample() >= rules.chance || length < rules.min_edge_m {
                 continue;
             }
             let (dx, dy) = ((bx - ax) / length, (by - ay) / length);
-            let yaw = js::atan2(dy, dx);
+            let yaw = libm::atan2(dy, dx);
             let at = |t: f64| {
                 (
                     ax + dx * t - dy * rules.inset_m,
@@ -818,7 +811,7 @@ fn backdrop(
                 while x <= cx + radius {
                     let px = x + rng.float(-0.35, 0.35) * step;
                     let py = y + rng.float(-0.35, 0.35) * step;
-                    if js::hypot(px - cx, py - cy) <= radius && polygon_contains(poly, [px, py]) {
+                    if libm::hypot(px - cx, py - cy) <= radius && polygon_contains(poly, [px, py]) {
                         tree(&mut out, &mut rng, px, py);
                     }
                     x += step;
@@ -852,18 +845,16 @@ fn forest_cells(site: &Site, cell_m: f64) -> Vec<i32> {
         for r in chunks::<FOREST_STROKE>(&s.forest_strokes[f.strokes.clone()]) {
             let [ax, ay, bx, by, half] = [r[0], r[1], r[2], r[3], r[4]].map(f64::from);
             reach(
-                js::min(ax, bx) - half,
-                js::min(ay, by) - half,
-                js::max(ax, bx) + half,
-                js::max(ay, by) + half,
+                ax.min(bx) - half,
+                ay.min(by) - half,
+                ax.max(bx) + half,
+                ay.max(by) + half,
             );
         }
         for t in chunks::<FOREST_TRIANGLE>(&s.forest_triangles[f.triangles.clone()]) {
             let [ax, ay, bx, by, cx, cy] = [t[0], t[1], t[2], t[3], t[4], t[5]].map(f64::from);
-            let (lo, hi) = (
-                |a, b, c| js::min(js::min(a, b), c),
-                |a, b, c| js::max(js::max(a, b), c),
-            );
+            let lo = |a: f64, b: f64, c: f64| a.min(b).min(c);
+            let hi = |a: f64, b: f64, c: f64| a.max(b).max(c);
             reach(
                 lo(ax, bx, cx),
                 lo(ay, by, cy),
@@ -903,8 +894,8 @@ fn dressing(site: Site, b: &Biome, kinds: &[String], size: &[Size]) -> Dressing 
         }
     }
     let grid = &site.ground.source.grid;
-    let high = grid.heights.iter().fold(0.0, |h, &v| js::max(h, v as f64));
-    let most = |f: &dyn Fn(usize) -> f64| (0..rules.kinds.len()).fold(0.0, |m, k| js::max(m, f(k)));
+    let high = grid.heights.iter().fold(0.0f64, |h, &v| h.max(v as f64));
+    let most = |f: &dyn Fn(usize) -> f64| (0..rules.kinds.len()).fold(0.0f64, |m, k| m.max(f(k)));
     let seed = (b.seed ^ DRESSING_SALT) as i32;
     Dressing {
         capacity: (DRESSING_CELL_M * DRESSING_CELL_M * rules.per_ha / 10000.0).round() as usize,

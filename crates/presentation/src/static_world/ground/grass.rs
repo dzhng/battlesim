@@ -8,7 +8,7 @@
 //! here is per clump.
 use super::biome::{GrassRules, GRASS_MIX_MAX, VERGE_GROWTH};
 use super::tables::{vec4, word};
-use super::{js, Ground, PROP};
+use super::{Ground, PROP};
 
 /// Plot kinds the growth table holds; the last row is the verge.
 const GROWTH_ROWS: usize = 16;
@@ -109,7 +109,7 @@ impl Ground {
         let mut growth = [[0.0; 4]; GROWTH_ROWS];
         let mut patches = [[0.0; 4]; GROWTH_ROWS];
         let mut mixes = [[0.0; 4]; GROWTH_ROWS * GRASS_MIX_MAX];
-        let (mut tallest, mut row_reach) = (0.0, 0.0);
+        let (mut tallest, mut row_reach) = (0.0f64, 0.0f64);
         let rows = self
             .biome
             .plots
@@ -120,7 +120,7 @@ impl Ground {
             let Some(g) = rules.growth.get(key) else {
                 continue;
             };
-            row_reach = js::max(row_reach, furrow / 2.0 * g.rows);
+            row_reach = row_reach.max(furrow / 2.0 * g.rows);
             let shares = g.mix.iter().fold(0.0, |sum, s| sum + s.share);
             for (i, s) in g.mix.iter().enumerate() {
                 let kind = names.iter().position(|n| *n == s.appearance).unwrap();
@@ -134,7 +134,7 @@ impl Ground {
                 if !(most > 0.0 && most <= limits.tallest) {
                     return Err(format!("grass.growth.{key}: {}'s effective field height {most} m exceeds the {} m cap", s.appearance, limits.tallest));
                 }
-                tallest = js::max(tallest, most);
+                tallest = tallest.max(most);
                 mixes[at * GRASS_MIX_MAX + i] = [kind as f64, s.share / shares, s.drift, s.dry];
             }
             growth[at] = [g.density, g.height, g.mix.len() as f64, g.rows];
@@ -178,7 +178,7 @@ impl Ground {
         vec4(&mut out, [grid.spacing, 0.0, 0.0, 0.0]);
         vec4(
             &mut out,
-            [js::cos(heading), js::sin(heading), w.lean, w.gust],
+            [libm::cos(heading), libm::sin(heading), w.lean, w.gust],
         );
         vec4(
             &mut out,
@@ -247,20 +247,17 @@ impl Ground {
             .iter()
             .map(|p| {
                 let [x, y, yaw, hx, hy] = footprint(p);
-                let (c, s) = (js::cos(yaw).abs(), js::sin(yaw).abs());
+                let (c, s) = (libm::cos(yaw).abs(), libm::sin(yaw).abs());
                 let ex = (hx + margin) * c + (hy + margin) * s + PROP_PAD_M;
                 let ey = (hx + margin) * s + (hy + margin) * c + PROP_PAD_M;
-                (min_x, min_y) = (js::min(min_x, x - ex), js::min(min_y, y - ey));
-                (max_x, max_y) = (js::max(max_x, x + ex), js::max(max_y, y + ey));
+                (min_x, min_y) = (min_x.min(x - ex), min_y.min(y - ey));
+                (max_x, max_y) = (max_x.max(x + ex), max_y.max(y + ey));
                 [x - ex, y - ey, x + ex, y + ey]
             })
             .collect();
         let any = !props.is_empty();
         let cell = if any {
-            js::max(
-                PROP_CELL_M,
-                js::max(max_x - min_x, max_y - min_y) / PROP_GRID_MAX,
-            )
+            PROP_CELL_M.max((max_x - min_x).max(max_y - min_y) / PROP_GRID_MAX)
         } else {
             PROP_CELL_M
         };
@@ -308,8 +305,8 @@ impl Ground {
             let record = [
                 x,
                 y,
-                js::cos(yaw),
-                js::sin(yaw),
+                libm::cos(yaw),
+                libm::sin(yaw),
                 hx + margin,
                 hy + margin,
                 0.0,
@@ -385,7 +382,7 @@ pub fn strip_indices(blades: u32, segments: u32) -> Vec<u16> {
 /// by name where a tier is not its kind's blade strips.
 pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
     let per = FIELD_SEGMENTS.map(|s| blade_vertices(s) as usize);
-    let linear = |c: u8| js::pow(f64::from(c) / 255.0, 2.2);
+    let linear = |c: u8| libm::pow(f64::from(c) / 255.0, 2.2);
     let mut blades = Vec::with_capacity(kinds.len());
     for kind in kinds {
         let lod0 = kind.tiers.first().map_or(0, |t| t.positions.len() / 3);
@@ -406,12 +403,12 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
             for v in 0..vertices {
                 sum += linear(lod0.colors[v * 4 + c]);
             }
-            js::max(sum / vertices as f64, 1e-4)
+            (sum / vertices as f64).max(1e-4)
         });
-        let mut mesh_height = 0.0;
+        let mut mesh_height = 0.0f64;
         for tier in &kind.tiers {
             for z in tier.positions.iter().skip(2).step_by(3) {
-                mesh_height = js::max(mesh_height, f64::from(*z));
+                mesh_height = mesh_height.max(f64::from(*z));
             }
         }
         let mut bases = [0; 2];
@@ -455,7 +452,7 @@ pub fn pack_shapes(kinds: &[KindMesh]) -> Result<PackedShapes, String> {
             mesh_height,
             top: kind.top,
             blades: blades as f64,
-            root_width: js::hypot(p0(0) - p0(3), p0(1) - p0(4)),
+            root_width: libm::hypot(p0(0) - p0(3), p0(1) - p0(4)),
             bases,
         });
     }
@@ -494,7 +491,7 @@ impl Window {
 /// Metres one pixel spans per metre of distance from the eye, for a lens of
 /// `fov_y` on a viewport `height_px` tall.
 pub fn metres_per_pixel(fov_y: f64, height_px: f64) -> f64 {
-    2.0 * js::tan(fov_y / 2.0) / height_px
+    2.0 * libm::tan(fov_y / 2.0) / height_px
 }
 
 /// The tiles round `eye` within the grass's reach: where one pixel spans
@@ -502,7 +499,7 @@ pub fn metres_per_pixel(fov_y: f64, height_px: f64) -> f64 {
 /// is higher than that (the strategic height).
 pub fn window(eye: [f64; 3], lowest: f64, metres_per_px: f64, rules: &GrassRules) -> Window {
     let reach = rules.fade_m_per_px[1] / metres_per_px;
-    let drop = js::max(0.0, eye[2] - lowest);
+    let drop = (eye[2] - lowest).max(0.0);
     if drop >= reach {
         return Window {
             reach,
@@ -511,9 +508,8 @@ pub fn window(eye: [f64; 3], lowest: f64, metres_per_px: f64, rules: &GrassRules
     }
     let flat = (reach * reach - drop * drop).sqrt();
     let lo = |v: f64| ((v - flat) / TILE_M).floor() * TILE_M;
-    let count = |v: f64, from: f64| {
-        js::min(f64::from(MAX_TILES), ((v + flat - from) / TILE_M).ceil()) as u32
-    };
+    let count =
+        |v: f64, from: f64| f64::from(MAX_TILES).min(((v + flat - from) / TILE_M).ceil()) as u32;
     let (x0, y0) = (lo(eye[0]), lo(eye[1]));
     Window {
         x0,

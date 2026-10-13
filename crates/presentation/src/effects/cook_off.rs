@@ -12,7 +12,7 @@
 //! within `settle_s`.
 use serde::Deserialize;
 
-use crate::seed::{to_uint32, Mulberry32};
+use crate::seed::Mulberry32;
 use crate::world::Vec3;
 
 /// Gravity, m/s²: the thrown turret falls under it, and every spark.
@@ -150,7 +150,7 @@ impl CookOffFeel {
             hop(self.rise_m, s) + hop(self.bounce_m, u),
         ];
         let tumble = 2.0 * PI * self.flip_turns * left + self.bounce_tilt_deg * DEG * hop(1.0, u);
-        let across = Mulberry32::new(to_uint32(seed)).sample() * PI * 2.0;
+        let across = Mulberry32::new(seed as u32).sample() * PI * 2.0;
         let turn = axis_angle([across.cos(), across.sin(), 0.0], tumble);
         let q = multiply(
             axis_angle([0.0, 0.0, 1.0], 2.0 * PI * self.spin_turns * left),
@@ -167,7 +167,7 @@ impl CookOffFeel {
         let blast = jolt(age - self.delay_s, self.settle_s);
         let strike = jolt(age - self.impact_after(), self.settle_s);
         let offset = [0.0, 0.0, self.heave_m * blast - self.jolt_m * strike];
-        let side = if to_uint32(seed) & 1 == 1 { 1.0 } else { -1.0 };
+        let side = if (seed as u32) & 1 == 1 { 1.0 } else { -1.0 };
         let q = multiply(
             axis_angle([0.0, 1.0, 0.0], self.rock_deg * DEG * blast),
             axis_angle([1.0, 0.0, 0.0], side * self.rock_deg * DEG * strike),
