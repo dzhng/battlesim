@@ -1,7 +1,6 @@
 # Native client
 
-The native client on `wgpu` ([slice 25](../../specs/native-rendering-parity/slices/25-native-on-wgpu.md)).
-It runs the browser's own shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
+The native client on `wgpu`. It runs the browser's own shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
 `World` and `Frame`, and decides nothing per entity itself.
 
 - **Shaders and pipelines** are the browser's [export](../../crates/pipelines/README.md),
@@ -9,7 +8,7 @@ It runs the browser's own shaders and passes over the [presentation crate](../..
   the client does not know fails the build rather than being dropped, and any
   pipeline the device refuses fails the start, listing each one.
 - **The frame** is one ordered list of passes, encoded in order each drawn
-  frame, as Bevy draws since 0.19 and as the browser's `battleFrame` does. It
+  frame, as Bevy draws and as the browser's `battleFrame` does. It
   has no render graph. A pass reads the frame's `View` and the sized targets.
 - **Uniforms** are records the presentation crate resolves (the sky's light,
   the sun, the haze, the bloom, the grade, the view's sky rays). The client
@@ -126,6 +125,8 @@ lock.
 
 ## Checks
 
-`tests/pipelines.rs` builds every exported pipeline on this machine's device
-(it needs the GPU lock). Plates are judged against the control's, region by
-region, with the spec's screenshot skills.
+`tests/pipelines.rs` builds every exported pipeline on this machine's device.
+The others replay the fixture run's world through what native reads (the
+models, the props, the scenery and the sound) and need the Git LFS files each
+names. Plates are judged against the control's, region by region, with the
+spec's screenshot skills.

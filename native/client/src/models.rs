@@ -818,7 +818,7 @@ impl Models {
                 (_, Kind::Prop) => d.props += count,
             }
             d.impostors += if impostor { count } else { 0 };
-            d.triangles += u64::from(count * drawable.count / 3);
+            d.triangles += u64::from(count) * u64::from(drawable.count) / 3;
         }
         Ok(())
     }

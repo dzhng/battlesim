@@ -282,14 +282,24 @@ impl Bound {
     /// Sets the pipeline, and each slot's group from `groups` by layout name.
     pub fn set(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
         pass.set_pipeline(&self.pipeline);
-        for (i, slot) in self.slots.iter().enumerate() {
-            let (_, group) = groups
-                .iter()
-                .find(|(name, _)| name == slot)
-                .unwrap_or_else(|| panic!("no bind group for layout {slot}"));
-            pass.set_bind_group(i as u32, *group, &[]);
+        for (i, group) in by_layout(&self.slots, groups) {
+            pass.set_bind_group(i, group, &[]);
         }
     }
+}
+
+/// Each slot's group from `groups`, found by its layout's name.
+fn by_layout<'g>(
+    slots: &'g [String],
+    groups: &'g [(&str, &BindGroup)],
+) -> impl Iterator<Item = (u32, &'g BindGroup)> {
+    slots.iter().enumerate().map(|(i, slot)| {
+        let (_, group) = groups
+            .iter()
+            .find(|(name, _)| name == slot)
+            .unwrap_or_else(|| panic!("no bind group for layout {slot}"));
+        (i as u32, *group)
+    })
 }
 
 /// A compute pipeline and its slots' layouts, as [`Bound`].
@@ -303,12 +313,8 @@ impl BoundCompute {
     /// Sets the pipeline, and each slot's group from `groups` by layout name.
     pub fn set(&self, pass: &mut ComputePass, groups: &[(&str, &BindGroup)]) {
         pass.set_pipeline(&self.pipeline);
-        for (i, slot) in self.slots.iter().enumerate() {
-            let (_, group) = groups
-                .iter()
-                .find(|(name, _)| name == slot)
-                .unwrap_or_else(|| panic!("no bind group for layout {slot}"));
-            pass.set_bind_group(i as u32, *group, &[]);
+        for (i, group) in by_layout(&self.slots, groups) {
+            pass.set_bind_group(i, group, &[]);
         }
     }
 }
