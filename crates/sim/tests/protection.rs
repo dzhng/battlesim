@@ -39,6 +39,7 @@ fn shot(x: f64, speed: f64) -> Launch {
 }
 
 struct MissileShield {
+    interceptor: ProjectileId,
     intercepted: Vec<(ProjectileId, ProjectileId)>,
 }
 impl ImpactResolver for MissileShield {
@@ -46,7 +47,7 @@ impl ImpactResolver for MissileShield {
         ImpactDecision::Stop
     }
     fn projectile_interceptor_reach(&self, projectile: ProjectileId) -> f64 {
-        (projectile == ProjectileId(0))
+        (projectile == self.interceptor)
             .then_some(12.0)
             .unwrap_or(0.0)
     }
@@ -64,10 +65,27 @@ fn projectile_interceptor_consumes_both_rounds_at_a_physical_meeting_point() {
     store.launch(shot(106.0, 0.0));
     let mut events = Vec::new();
     let mut shield = MissileShield {
+        interceptor: ProjectileId(0),
         intercepted: Vec::new(),
     };
     flight::advance_projectiles(&mut store, &world, &[], &mut events, &mut shield);
     assert_eq!(shield.intercepted, vec![(ProjectileId(0), ProjectileId(1))]);
+    assert!(store.active().is_empty());
+}
+
+#[test]
+fn projectile_interceptor_may_be_launched_after_the_incoming_round() {
+    let world = flat([1000.0, 400.0], "");
+    let mut store = Projectiles::new(config());
+    let incoming = store.launch(shot(106.0, 0.0));
+    let interceptor = store.launch(shot(100.0, 0.0));
+    let mut events = Vec::new();
+    let mut shield = MissileShield {
+        interceptor,
+        intercepted: Vec::new(),
+    };
+    flight::advance_projectiles(&mut store, &world, &[], &mut events, &mut shield);
+    assert_eq!(shield.intercepted, vec![(interceptor, incoming)]);
     assert!(store.active().is_empty());
 }
 fn hull() -> Body {
