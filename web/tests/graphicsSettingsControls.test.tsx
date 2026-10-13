@@ -112,9 +112,9 @@ test("the shared loading card shows graphics detection progress and the selected
     />,
   );
   expect(view.getByTestId("loading-stage").textContent).toContain("Detecting Graphics");
-  expect(view.getByRole("listitem", { name: "Detecting Graphics" }).getAttribute("data-state")).toBe(
-    "active",
-  );
+  expect(
+    view.getByRole("listitem", { name: "Detecting Graphics" }).getAttribute("data-state"),
+  ).toBe("active");
   expect(view.getByTestId("loading-stage-detail").textContent).toContain("Testing HIGH graphics");
   view.rerender(
     <LoadingScreen
