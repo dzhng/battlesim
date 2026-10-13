@@ -102,6 +102,10 @@ const STATE_ICONS = {
   heard:
     '<path d="M3 10v4h3l5 4V6l-5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/>',
   unknown: '<path d="M8.5 9a3.5 3.5 0 1 1 5 3.2c-1 .5-1.5 1.3-1.5 2.3"/><path d="M12 19v.5"/>',
+  fuel: '<path d="M5 4h9v16H5zM14 8h3l2 2v7a2 2 0 0 1-4 0v-3"/>',
+  afterburner: '<path d="M12 3c3 4 4 6 4 9a4 4 0 1 1-8 0c0-2 1-4 4-9z"/>',
+  traversing: '<path d="M4 12h14M13 7l5 5-5 5"/><path d="M4 5v14"/>',
+  dogfight: '<path d="M4 7h9l-3-3M20 17h-9l3 3M13 7l-3 10"/>',
 } as const;
 
 export type StateIcon = keyof typeof STATE_ICONS;

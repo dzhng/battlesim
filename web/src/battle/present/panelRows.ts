@@ -54,6 +54,10 @@ export const STATE_ROWS = {
   resupplying: { icon: "resupply", word: () => "RESUPPLYING" },
   last_seen: { icon: "last_seen", word: (n: number) => `LAST SEEN ${n} s AGO` },
   heard: { icon: "heard", word: (n: number) => `HEARD ${n} s AGO` },
+  fuel: { icon: "fuel", word: (n: number) => `FUEL ${n} s`, lasting: true },
+  afterburner: { icon: "afterburner", word: () => "AFTERBURNERS ON", lasting: true },
+  traversing: { icon: "traversing", word: () => "TRAVERSING" },
+  dogfight: { icon: "dogfight", word: () => "DOGFIGHT", tone: "warn" },
 } satisfies Record<string, StateRowKind>;
 
 interface StateRowKind {
@@ -156,6 +160,10 @@ export function ownStateRows(
   rules: PanelRules,
 ): StateRow[] {
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
+  if (u.fuelS != null) rows.push(row("fuel", { n: Math.max(0, Math.ceil(u.fuelS)) }));
+  if (u.afterburner) rows.push(row("afterburner"));
+  if (u.traversing) rows.push(row("traversing"));
+  if (u.dogfightTarget != null) rows.push(row("dogfight"));
   if (u.withdrawing) rows.push(row("withdrawing"));
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));

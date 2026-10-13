@@ -461,7 +461,10 @@ pub fn validate_drive(rules: &Rules) {
 impl Unit {
     /// Admit an order with the same replacement and deployment semantics everywhere.
     pub(crate) fn enqueue(&mut self, order: UnitOrder, queued: bool) {
-        if !queued {
+        // Attack-move is the one explicit order that keeps an aircraft's
+        // automatic dogfight lock: the aircraft continues its close fight
+        // while advancing, then resumes the attack-move policy afterwards.
+        if !queued && !matches!(order, UnitOrder::AttackMove(_)) {
             if let Some(air) = self.air.as_mut() {
                 air.dogfight_target = None;
             }

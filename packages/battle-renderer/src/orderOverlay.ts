@@ -613,6 +613,9 @@ export function unitCircle(
   const shown = (u.reveal ?? 0) > 0;
   const here: P2 = [u.position[0], u.position[1]];
   const moving = !!u.goal && u.state !== "route_blocked";
+  // Fixed-wing aircraft carry location and state in their floating cards;
+  // they never receive a ground unit marker.
+  if (u.aircraft) return null;
   if (u.building) {
     const { center, half } = u.building;
     const r = Math.hypot(half[0], half[1]) + style.building_marker_margin_m;
@@ -832,7 +835,10 @@ export function buildOrderOverlay(
     // its area, so a moving squad's is already the destination's), with
     // each soldier's spot in it; a vehicle's marker. Both point the final
     // facing.
-    const dest: UnitCircle | null = blocked ? null : destinationCircle(u, u.goal, style);
+    // Fixed-wing aircraft carry destination state in their floating cards;
+    // never paint a ground circle for them.
+    const dest: UnitCircle | null =
+      blocked || u.aircraft ? null : destinationCircle(u, u.goal, style);
     routeBetween(paint, pen, circle, u.route, dest, color);
     if (blocked) {
       const warning: UnitCircle = { c: u.goal, r: BLOCKED_R, facing: null };
@@ -895,11 +901,12 @@ export function buildAircraftMarks(
   style: OrderStyle,
   { stroke }: OrderOverlayOptions,
 ): WorldMeshes {
-  const pen = orderPen(z, style, stroke);
-  const paint = new MeshBuilder();
-  const lines = new MeshBuilder();
-  const glow = glowing(color, style.glow.order);
-  for (const a of aircraft)
-    aircraftMarker(paint, lines, pen, a.position, aircraftCircle(a, style), glow);
-  return { ...paintOnly(paint.build()), opaque: lines.build() };
+  // Aircraft are represented by their floating info cards. Ground rings and
+  // drop lines make fixed-wing units read like ground movers.
+  void aircraft;
+  void color;
+  void z;
+  void style;
+  void stroke;
+  return { ...paintOnly(new Float32Array()), opaque: new Float32Array() };
 }
