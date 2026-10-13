@@ -1,4 +1,3 @@
-import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import {
   MENU_REEL_WORKLOAD,
@@ -90,12 +89,8 @@ export function createReelReport(
       r.props &&
       r.effects && {
         lens: r.lens,
-        light: {
-          ...r.light,
-          sunDirection: Array.from(sunDirection(r.light)) as [number, number, number],
-        },
+        light: r.light,
         layers,
-        omissions: [],
         units: r.units,
         props: r.props,
         effects: r.effects,

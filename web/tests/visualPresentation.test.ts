@@ -14,7 +14,6 @@ import {
   type InstanceCount,
   type VisualPresentation,
 } from "@web/battle/benchmark/visualPresentation";
-import { sunDirection } from "@packages/battle-renderer/src/light/sceneLight";
 import { gameLight } from "@apps/battle-lab/src/gameLight";
 import type { DrawnUnits, ModelCount } from "@web/battle/benchmark/unitManifest";
 import type { PropsManifest } from "@web/battle/benchmark/propManifest";
@@ -165,12 +164,8 @@ const effects = (): EffectsManifest => ({
 
 const drawn: DrawnPresentation = {
   lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
-  light: {
-    ...gameLight,
-    sunDirection: Array.from(sunDirection(gameLight)) as [number, number, number],
-  },
+  light: gameLight,
   layers: ["sky", "terrain", "grass"],
-  omissions: [],
   units: units(),
   props: props(),
   effects: effects(),
@@ -249,7 +244,6 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     lens: drawn.lens,
     light: drawn.light,
     layers: drawn.layers,
-    omissions: [],
     grassCounts: [],
     instanceCounts: [],
     units: expect.any(Object),
@@ -346,18 +340,14 @@ test("the validator refuses a versioned id, the hashless identity and an unknown
   expect(reject({ identity: hashless })).toThrow(/identity/);
   expect(reject({ layers: ["terrain", "water-boxes"] })).toThrow(/layer/);
   expect(reject({ layers: ["terrain", "terrain"] })).toThrow(/layer/);
-  expect(reject({ omissions: [{ owner: "grass", reason: "" }] })).toThrow(/omission/);
 });
 
-test("the manifest carries the light the frames were drawn under, with a unit sun direction", async () => {
+test("the manifest carries the light the frames were drawn under", async () => {
   const captureJson = encodePresentationCapture(capture([frame(0)]));
   const { manifest } = await written(captureJson);
-  const reject = (change: object) => () => validateVisualPresentation({ ...manifest, ...change });
   const { light: _, ...unlit } = manifest;
   expect(() => validateVisualPresentation(unlit)).toThrow(/malformed/);
-  expect(reject({ light: { ...manifest.light, sunDirection: [0, 0, 2] } })).toThrow(/sun/);
-  const { sunDirection: _sun, ...sunless } = manifest.light;
-  expect(reject({ light: sunless })).toThrow(/sun/);
+  expect(manifest.light).toEqual(gameLight);
 });
 
 test("grass counts hold one row of twelve cells for each plate the capture drew, and only those", async () => {

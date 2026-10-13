@@ -274,7 +274,8 @@ pub fn loop_start(soldier: f64) -> f64 {
 /// whether he stands watching, weapon up (one man in `watch_every`).
 fn rest_manner(soldier: f64, rest: &Rest) -> (f64, f64, bool) {
     // `Math.imul(soldier + 1, 0x9e3779b1) >>> 0`.
-    let mut state = Mulberry32::new(((soldier + 1.0) as i64 as u32).wrapping_mul(0x9e37_79b1));
+    let mut state =
+        Mulberry32::new(((soldier + 1.0) as i64 as u32).wrapping_mul(crate::seed::GOLDEN));
     let turn = (state.sample() * 2.0 - 1.0) * rest.turn_rad;
     let tempo = rest.tempo[0] + state.sample() * (rest.tempo[1] - rest.tempo[0]);
     (turn, tempo, soldier % rest.watch_every == 2.0)

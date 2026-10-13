@@ -4,7 +4,7 @@
 import { createAuthority, type AuthorityHost } from "./authority";
 import { loadSimModule } from "./module";
 import type { ObservationView } from "./observationView";
-import { ObservationDecoder, loadPresentation, type LearnedGround } from "./presentation";
+import { ScenePresentation, loadPresentation, type LearnedGround } from "./presentation";
 import type {
   AuthorityStatus,
   CommandAck,
@@ -53,7 +53,7 @@ export interface SimClientOptions {
 export interface SimClient {
   readonly ready: Promise<{ tickHz: number; tick: number; layout: string }>;
   /** The side's presentation (`presentation.ts`), once the authority is ready. */
-  readonly presentation: ObservationDecoder | null;
+  readonly presentation: ScenePresentation | null;
   /** Explicit pause intent, independent of loading, visibility or consumer stalls. */
   readonly paused: boolean;
   start(): void;
@@ -130,7 +130,7 @@ function directChannel(receive: (reply: SimReply) => void): SimChannel {
 }
 
 export function createSimClient(options: SimClientOptions): SimClient {
-  let decoder: ObservationDecoder | null = null;
+  let decoder: ScenePresentation | null = null;
   let observedSide = options.side;
   let slow = false;
   let paused = false;
@@ -217,7 +217,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
           void loadPresentation()
             .then(() => {
               if (disposed || failure) return;
-              decoder = new ObservationDecoder(reply.layout, reply.tickHz);
+              decoder = new ScenePresentation(reply.layout, reply.tickHz);
               decoder.invalidate(observedSide);
               resolveReady({ tickHz: reply.tickHz, tick: reply.tick, layout: reply.layout });
             })

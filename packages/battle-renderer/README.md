@@ -17,8 +17,9 @@ the meshes and textures an appearance names, skinning by the given palette, the
 passes. Fog of war's sight is decided there too (`presentation::fog::sight`):
 [fog visibility](src/frame/fogVisibility.ts) uploads each frame's eyes,
 occluders, rebuilds and parameters as given and runs the compute.
-[Models](src/models/) for the static world still consume immutable identities
-and published causes here.
+The static world (buildings, scenery, props) arrives the same way, as the
+frame's static batches, walked by the presentation crate and written only when
+a list changes; [models](src/models/) and the scenery draw them.
 Building damage follows the side's known physical remains, not a renderer guess
 from height or floor count.
 

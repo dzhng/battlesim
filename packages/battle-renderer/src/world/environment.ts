@@ -7,7 +7,7 @@ import {
 } from "./shadow";
 import { typegpuTextureBytes } from "./textureUpload";
 import { tgpu, d, std } from "typegpu";
-import { sunDirection, type ResolvedLight } from "../light/sceneLight";
+import type { ResolvedLight } from "../light/sceneLight";
 import { createTypegpuSky } from "./sky";
 import { createTypegpuPmrem } from "./pmrem";
 import { samplePmrem } from "./pmremSampling";
@@ -16,11 +16,11 @@ import { Aerial, aerialWgsl } from "../shaders/aerial";
 import { equirectUvWgsl } from "../shaders/physicalSky";
 import { DFG_LUT_DATA, DFG_LUT_SIZE } from "../shaders/dfgLut";
 import { shadeEnvironmentWgsl } from "../shaders/environment";
+import { CAST_LIGHTS_MAX } from "../records.gen";
 import {
   CAST_ALBEDO_FLOOR,
   CAST_ALBEDO_GREY,
   CAST_FALLOFF,
-  CAST_LIGHTS_MAX,
   castLightsBytes,
   CastLights,
 } from "../light/castLights";
@@ -331,8 +331,6 @@ export async function createTypegpuEnvironment(
       shade,
       unlit,
       sky,
-      /** The one sun direction every material shades with. */
-      sunDirection: sunDirection(light.settings) as readonly [number, number, number],
       /** This frame's cast lights, a packed `CastLights` image
        *  (`packCastLights`): only the header and the lights in use are sent. */
       setCastLights(image: Float32Array<ArrayBuffer>, count: number) {

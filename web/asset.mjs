@@ -561,11 +561,11 @@ async function sheet(args) {
     (file ? basename(file, ".glb") : target).replace(/[^\w.-]+/g, "_") +
     (side === "blue" ? "" : `-${side}`);
   const out = resolve(values.out ?? join(ROOT, "throwaway/sheets", name));
-  const { startServer, WEBGPU_FLAGS } = await import("./scene.mjs");
-  const { chromium } = await import("playwright");
+  const { startServer } = await import("./scene.mjs");
+  const { launchBrowser } = await import("./browser.mjs");
   const { PNG } = await import("pngjs");
   const server = await startServer();
-  const browser = await chromium.launch({ channel: "chromium", args: WEBGPU_FLAGS });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage({
       viewport: { width: 1280, height: 800 },

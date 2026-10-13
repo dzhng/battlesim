@@ -409,7 +409,7 @@ impl Run {
         let d = self.passes.models.drawn();
         let scenery = self.passes.scenery.drawn();
         let trees: u32 = scenery.populations.iter().flatten().sum();
-        let bytes = self.replay.last_frame().instances.len() * 4;
+        let bytes = std::mem::size_of_val(&self.replay.last_frame().instances[..]);
         let frame = [
             f64::from(d.soldiers),
             f64::from(d.vehicles),
@@ -688,10 +688,7 @@ fn effect_mismatches(
     effects: &[presentation::records::Effect],
     drawn: u32,
 ) -> Vec<String> {
-    const KINDS: [&str; 8] = [
-        "tracer", "flash", "impact", "sparks", "blast", "puff", "flame", "trail",
-    ];
-    const SHAPES: [&str; 4] = ["streak", "glow", "flipbook", "rotor"];
+    use presentation::effects::frame::{EFFECT_KINDS as KINDS, SHAPE_NAMES as SHAPES};
     let Some(want) = effect_counts.iter().find(|c| c["plate"] == plate) else {
         return vec![format!("{plate}: no effect counts in the manifest")];
     };

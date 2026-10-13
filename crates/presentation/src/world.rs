@@ -1,5 +1,4 @@
-//! What a presentation is loaded from (18b's `load_world` input, as far as
-//! slices 20 and 20b read it): the light's sun, and a battle's `units` and
+//! What a presentation is loaded from (`load_world`'s input): the light's sun, and a battle's `units` and
 //! `effects` sections both clients already carry
 //! (`web/src/battle/benchmark/unitManifest.ts`, `effectManifest.ts`), each
 //! skinned body's dense clip table, the overlay colours and the side

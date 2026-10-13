@@ -84,14 +84,6 @@ fn turn(yaw: f64) -> (f64, f64) {
     (libm::cos(yaw), libm::sin(yaw))
 }
 
-/// `math`'s Mulberry32, its first sample in [0, 1).
-fn first_sample(seed: u32) -> f64 {
-    let a = seed.wrapping_add(0x6d2b79f5);
-    let mut t = (a ^ (a >> 15)).wrapping_mul(a | 1);
-    t ^= t.wrapping_add((t ^ (t >> 7)).wrapping_mul(t | 61));
-    (t ^ (t >> 14)) as f64 / 4294967296.0
-}
-
 /// A template's intact rows' extent in its own frame: min x, y, z, max x, y, z.
 fn template_extent(
     library: &Library,
@@ -172,7 +164,10 @@ impl Buildings {
                 }
             }
             // The building's own value, from its owner: the same in every battle.
-            value.push((1.0 + (first_sample(p.owner) * 2.0 - 1.0) * style.tint_jitter) as f32);
+            value.push(
+                (1.0 + (crate::seed::Mulberry32::new(p.owner).sample() * 2.0 - 1.0)
+                    * style.tint_jitter) as f32,
+            );
             let coarse = intact
                 .clone()
                 .any(|r| library.tiers[r] & (1 << COARSEST) != 0);
@@ -208,14 +203,7 @@ impl Buildings {
         for (i, &m) in modules.iter().enumerate() {
             compact[m] = i as u32;
         }
-        let linear = std::array::from_fn(|v| {
-            let c = v as f64 / 255.0;
-            (if c <= 0.04045 {
-                c / 12.92
-            } else {
-                libm::pow((c + 0.055) / 1.055, 2.4)
-            }) as f32
-        });
+        let linear = std::array::from_fn(|v| super::srgb_to_linear(v as f64 / 255.0) as f32);
         Ok(Self {
             library,
             placed,

@@ -1,4 +1,4 @@
-//! 18b's `Presentation`: one side's publications in, a [`Frame`] of records
+//! The `Presentation`: one side's publications in, a [`Frame`] of records
 //! out per drawn frame. It runs the browser's per-frame chain in one place:
 //! interpolation, the pose feed and driver, the drawn models' parts, the
 //! effects and the cook-offs, then chooses by the camera what is drawn and
@@ -10,10 +10,11 @@ use serde::{Deserialize, Serialize};
 use sim::publication::reader::{FallenBody, KnownProp, Observation, Reader, Shared};
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
-use crate::effects::frame::{EffectBatch, EffectFrame, EffectPresentation, EFFECT_FLOATS};
+use crate::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
 use crate::effects::launches::Launch;
 use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
+use crate::effects::tables::EffectPresentation;
 use crate::effects::MuzzleSource;
 use crate::fog::sight::{
     Eye, FogSight, FogStats, FogUpload, KnownBox, Occluder, Sensors, SightWorld,
@@ -51,10 +52,10 @@ use crate::world::{
 /// Publications kept for the effects while the world loads: two minutes at 30 Hz.
 const PENDING_MAX: usize = 3600;
 
-/// A batch's pass for a placement preview (18b's passes are 0 view, 1 caster).
+/// A batch's pass for a placement preview (the others are 0 view, 1 caster).
 pub const GHOST_PASS: u32 = 2;
 
-/// What the UI decides of a frame (18b's `ui`).
+/// What the UI decides of a frame.
 #[derive(Default)]
 pub struct Ui<'a> {
     /// Selected own units, x-rayed in the selection's colour.
@@ -83,7 +84,7 @@ pub struct Ghost {
     pub look: u32,
 }
 
-/// One drawn frame's records (18b's `Frame`); the effects and lights are
+/// One drawn frame's records; the effects and lights are
 /// [`Presentation::effects`] and [`Presentation::lights`].
 #[derive(Default)]
 pub struct Frame {
@@ -100,7 +101,7 @@ pub struct Frame {
     pub counts: Counts,
 }
 
-/// The world's records (18b's `World`, as far as slice 20 fills it).
+/// The world's records, read once per load.
 #[derive(Default)]
 pub struct World {
     pub appearances: Vec<Row>,
@@ -888,14 +889,6 @@ impl Presentation {
             }).collect::<Vec<_>>(),
         })
         .to_string()
-    }
-
-    /// The known props whose wreck is drawn moving (a cook-off), which the
-    /// side's static structures leave out.
-    pub fn moving_wrecks(&self) -> Vec<u32> {
-        self.loaded.as_ref().map_or_else(Vec::new, |l| {
-            l.cook_offs.moving_props().map(|p| p as u32).collect()
-        })
     }
 
     /// The map's ground, resolved from `source` under `biome` (its region's

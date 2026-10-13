@@ -3,7 +3,7 @@
 // cascades fitted each frame by the presentation crate (`shadow.rs`) over the map's box.
 import { vec3 } from "math";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { SunShadow as SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
+import { SunShadowFit } from "@wasm/presentation/presentation_wasm.js";
 import { tgpu, d, type TgpuCommandEncoder, type TgpuRenderPass } from "typegpu";
 import { shadowPcfWgsl, shadowVisibilityWgsl, sunShadowSampleWgsl } from "../shaders/shadow";
 import { BATTLE_DEPTH_ATTACHMENT } from "../worldDepth";

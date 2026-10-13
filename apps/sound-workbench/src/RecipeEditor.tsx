@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SOUNDS } from "../../../packages/battle-audio/src/synth";
+import { SOUNDS } from "../../../packages/battle-audio/src/synthSounds.gen";
 import type { SoundCatalog, SoundRecipe } from "../../../packages/battle-audio/src/catalog";
 import { NumberField } from "./controls";
 export function RecipeEditor({

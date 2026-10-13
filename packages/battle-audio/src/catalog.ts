@@ -1,6 +1,6 @@
 import type { NearFar } from "./audioPresentation";
 import { MOODS, type MusicCatalog } from "./music/musicCatalog";
-import { SOUNDS } from "./synth";
+import { SOUNDS } from "./synthSounds.gen";
 
 export interface Generated {
   kind: "Generated";

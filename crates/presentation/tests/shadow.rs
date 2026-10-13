@@ -1,8 +1,7 @@
 //! The sun's cascades are fitted where shadows are received, and every map
 //! point the camera sees within the reach is inside a cascade that shades
 //! it. The fit is the browser's to the last bit: `fixtures/shadow-vectors.json`
-//! was written by its `cascadePolicy.ts`, `shadowData.ts` and
-//! `receiverRange.ts` before they moved here, over a camera tour of both
+//! records it over a camera tour of both
 //! reel maps' boxes (high and ground-level cameras, two lenses, three
 //! viewports) under the game's light, a low sun and a high one.
 use presentation::light::LightSettings;

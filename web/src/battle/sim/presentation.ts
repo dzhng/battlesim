@@ -1,4 +1,4 @@
-/** The page's presentation module (`crates/presentation-wasm`), 18b's
+/** The page's presentation module (`crates/presentation-wasm`), its
  * browser binding: one side's publications in; the game UI's observation,
  * and each drawn frame's records (`records.gen.ts`), out. Rust decodes,
  * interpolates, poses and makes the effects, and walks the static world;
@@ -102,7 +102,7 @@ export function resolveFogLook(style: FogStyle): Float32Array {
   if (!memory) throw new Error("resolveFogLook: the presentation module is not loaded");
   return fog_look(JSON.stringify(style));
 }
-/** 18b's camera: the eye and what it looks at (m, sim), the screen's up,
+/** The camera a frame is drawn for: the eye and what it looks at (m, sim), the screen's up,
  *  the vertical field of view (rad), the near plane (m) and the drawing
  *  size in device pixels. */
 export interface PresentedCamera {
@@ -248,7 +248,7 @@ export interface PresentedSun {
   farM: number;
 }
 
-/** What a scene's props draw (`ObservationDecoder.propStats`). */
+/** What a scene's props draw (`ScenePresentation.propStats`). */
 export interface PropStats {
   bodies: number;
   parts: number;
@@ -358,7 +358,7 @@ export class LearnedGround implements GroundMarks {
  * A scene has one: what it draws is staged (`setBattle`, `setBuildings`)
  * and loaded together, in one `load_world`, by the next frame after any of
  * it changed. */
-export class ObservationDecoder {
+export class ScenePresentation {
   private readonly rust: Presentation;
   private last: ObservationView | null = null;
   /** The last frame's header. */
@@ -808,11 +808,5 @@ export class ObservationDecoder {
   drawnMuzzle(unit: number, mount: number): [number, number, number] | null {
     const at = this.rust.drawn_muzzle(unit, mount);
     return at ? [at[0], at[1], at[2]] : null;
-  }
-
-  /** The known props whose wreck the presentation draws moving (a cook-off),
-   *  which the side's static structures leave out. */
-  movingWrecks(): Uint32Array {
-    return this.rust.moving_wrecks();
   }
 }

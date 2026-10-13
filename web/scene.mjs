@@ -14,8 +14,7 @@
 // fails. Evidence goes to throwaway/evidence/. A scene's approved pictures
 // live in scenes/baselines/<fixture-id>/ (see scenes/_baseline.mjs);
 // UPDATE_BASELINES=1, or =<fixture-id>,…, blesses this run's captures.
-// SCENE_CDP=<http endpoint> drives a browser already started with remote
-// debugging, such as Windows Chrome from WSL, instead of launching Chromium.
+// The browser is browser.mjs's: WEBGPU_BROWSER chooses it.
 //
 //   UPDATE_BASELINES=panels bun run --cwd web scene -- panels
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
@@ -24,6 +23,7 @@ import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { BASELINES, baselines } from "./scenes/_baseline.mjs";
+import { launchBrowser } from "./browser.mjs";
 
 const HERE = new URL(".", import.meta.url);
 const REGISTRY = new URL("../apps/battle-lab/src/fixtures.json", HERE);
@@ -31,8 +31,6 @@ const SCENES_DIR = new URL("./scenes/", HERE);
 const EVIDENCE_DIR = new URL("../throwaway/evidence/", HERE);
 const ROOT = new URL("..", HERE).pathname;
 const execFileAsync = promisify(execFile);
-
-export const WEBGPU_FLAGS = ["--enable-unsafe-webgpu", "--enable-features=WebGPU"];
 
 /** Errors that make a lab page unable to become ready.  Catching these at the
  * runner boundary avoids turning one adapter-limit failure into a chain of
@@ -201,20 +199,16 @@ export async function startServer(production = false) {
 
 export async function run(fixtures) {
   await ensureNativeTools();
-  const { chromium } = await import("playwright");
   const servers = new Map();
   const serverFor = async (fixture) => {
     const production = fixture.build === "production";
     if (!servers.has(production)) servers.set(production, await startServer(production));
     return servers.get(production);
   };
-  const browser = process.env.SCENE_CDP
-    ? await chromium.connectOverCDP(process.env.SCENE_CDP)
-    : await chromium.launch({
-        channel: "chromium",
-        args: [...WEBGPU_FLAGS, "--mute-audio"],
-        ignoreDefaultArgs: ["--hide-scrollbars"],
-      });
+  const browser = await launchBrowser({
+    args: ["--mute-audio"],
+    launch: { ignoreDefaultArgs: ["--hide-scrollbars"] },
+  });
   const failures = [];
   const pageErrors = [];
   const pageErrorKeys = new Set();

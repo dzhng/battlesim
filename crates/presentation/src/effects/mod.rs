@@ -7,6 +7,7 @@ pub mod frame;
 pub mod launches;
 pub mod lights;
 pub mod publication;
+pub mod tables;
 
 use crate::world::Vec3;
 

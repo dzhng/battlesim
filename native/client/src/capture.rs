@@ -1,11 +1,10 @@
-//! A browser parity run's scene, replayed through the presentation crate as
-//! 18b's capture replay does: the map's ground set and its scenery and props placed,
+//! A browser parity run's scene, replayed through the presentation crate: the map's ground set and its scenery and props placed,
 //! the battle's world loaded once, then for each frame record in order,
 //! every publication up to its tick pushed and `frame()` asked at its sim
 //! time and camera. Every record is framed, since poses, effects and the
 //! scenery's walk carry state from frame to frame.
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use presentation::fog::FogPresentation;
 use presentation::light::LightSettings;
@@ -70,7 +69,6 @@ struct Lens {
 }
 
 pub struct Replay {
-    pub dir: PathBuf,
     /// The saved map the scene was filmed on (`identity.map`).
     pub map: String,
     pub records: Vec<Record>,
@@ -140,7 +138,7 @@ impl Replay {
             },
             "sun_azimuth": light.sun_azimuth,
             "sun_elevation": light.sun_elevation,
-            "cascade_far_m": manifest["light"]["cascades"]["max_far_m"],
+            "cascade_far_m": light.cascades.max_far_m,
             "buildings": game["presentation"]["buildings"],
         }))
         .map_err(|e| format!("world: {e}"))?;
@@ -205,7 +203,6 @@ impl Replay {
         presentation.place_props(&records, &ground.layout, art)?;
         presentation.load_world(input, tables, Some(buildings))?;
         Ok(Self {
-            dir: dir.to_owned(),
             map,
             records: capture.frames,
             light,

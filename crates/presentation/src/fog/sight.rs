@@ -23,8 +23,8 @@
 //! maps or the eyes change. [`FogSight::prepare`] is one drawn frame's
 //! uploads and dispatches ([`FogUpload`]).
 //!
-//! Every derivation is the browser's TypeScript (`fogInputs.ts` and
-//! `fogVisibility.ts`) word for word, held by `tests/fog_sight.rs`.
+//! `tests/fog_sight.rs` holds every upload to the recorded vectors word for
+//! word.
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 

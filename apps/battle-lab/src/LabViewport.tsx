@@ -3,7 +3,7 @@ import { useLabLoading } from "./LabLoading";
 import { diagnosticsSource } from "@web/diagnostics";
 import {
   loadPresentation,
-  ObservationDecoder,
+  ScenePresentation,
   type PropStats,
   type PresentedUi,
 } from "@web/battle/sim/presentation";
@@ -112,7 +112,7 @@ interface LabViewportProps {
   buildings?: FeedSource<SceneBuildings | null>;
   /** The battle's presentation (its sim client's), read each frame: null
    *  until the battle has one. Omitted for a scene with no battle. */
-  presentation?: { readonly current: ObservationDecoder | null };
+  presentation?: { readonly current: ScenePresentation | null };
   /** How those buildings are tiered, chunked and pooled; the fixture's when
    *  omitted. The frame takes it when it is built: a change draws at the next
    *  `rebuild`. */
@@ -709,15 +709,15 @@ export function LabViewport({
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
         /** The presentation the viewport makes for a scene with no battle,
          *  once the module is loaded and there are buildings to draw. */
-        let own: ObservationDecoder | null = null;
+        let own: ScenePresentation | null = null;
         let moduleLoaded = false;
         void loadPresentation().then(() => (moduleLoaded = true));
         signal.addEventListener("abort", () => own?.free());
         /** The scene's one presentation: the battle's, else the viewport's own. */
-        const scenePresentation = (): ObservationDecoder | null => {
+        const scenePresentation = (): ScenePresentation | null => {
           const battle = presentationRef.current;
           if (battle) return battle.current;
-          if (!own && moduleLoaded) own = new ObservationDecoder();
+          if (!own && moduleLoaded) own = new ScenePresentation();
           return own;
         };
         const propStats = (): PropStats =>
@@ -733,7 +733,7 @@ export function LabViewport({
         let staticSun = { azimuth: 0, elevation: 1, farM: 0 };
         /** The presentation and quality the detail scale was last given to. */
         let detailed: [
-          ObservationDecoder | null,
+          ScenePresentation | null,
           GraphicsQualityProfile | undefined,
           boolean,
           boolean,

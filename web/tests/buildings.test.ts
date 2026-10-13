@@ -11,7 +11,7 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 
 await loadPresentation();
 let memory: WebAssembly.Memory;
@@ -154,7 +154,7 @@ test("the public picker and delivered replacements share one physical building o
     );
     try {
       const layout = JSON.parse(seated.observation_layout()) as ObservationLayout;
-      const decoder = new ObservationDecoder(layout);
+      const decoder = new ScenePresentation(layout);
       let state = null;
       for (let tick = 0; tick < 600; tick++) {
         seated.step();
@@ -174,7 +174,7 @@ test("the public picker and delivered replacements share one physical building o
       seated.free();
     }
     const observations = JSON.parse(battle.observation_layout()) as ObservationLayout;
-    const decoder = new ObservationDecoder(observations);
+    const decoder = new ScenePresentation(observations);
     const publish = (side: "blue" | "red") => {
       const len = battle.publish(side);
       return decoder.decode(new Float32Array(memory.buffer, battle.publication_ptr(), len))!;

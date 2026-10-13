@@ -8,7 +8,7 @@ import { initSync, Battle, WorldView } from "@wasm/game_wasm.js";
 import { cellPatchRuns, groundRecords } from "./groundRuns";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
 import {
-  ObservationDecoder,
+  ScenePresentation,
   loadPresentation,
   type LearnedGround,
 } from "../src/battle/sim/presentation";
@@ -78,7 +78,7 @@ test(
     const battle = new Battle(SCENARIO, 5);
     const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
     expect([layout.ground.cols, layout.ground.rows]).toEqual([600, 440]);
-    const decoder = new ObservationDecoder(layout);
+    const decoder = new ScenePresentation(layout);
     let deltas = 0;
     for (let t = 0; t < 150; t++) {
       battle.step();
@@ -90,14 +90,14 @@ test(
     expect(deltas).toBeGreaterThan(3);
     const view = decoder.ground!;
     battle.resync_observation();
-    const fresh = new ObservationDecoder(layout);
+    const fresh = new ScenePresentation(layout);
     const snapshot = fresh.decode(publication(battle, "blue"))!;
     expect(snapshot.groundPatch.full && snapshot.groundPatch.epoch === view.epoch + 1).toBe(true);
     expect([...fresh.ground!.markedCells()]).toEqual([...view.markedCells()]);
     expect(crater(view, 200.5, 110.5)).toBeGreaterThan(0);
 
     // Red's ground is its own: blue's crater and tracks are not in it.
-    const red = new ObservationDecoder(layout);
+    const red = new ScenePresentation(layout);
     red.decode(publication(battle, "red"));
     expect(red.ground!.side).toBe("red");
     expect(crater(red.ground!, 200.5, 110.5)).toBe(0);
@@ -155,7 +155,7 @@ test("foliage thins exactly where the side's cleared ground runs say", () => {
       );
     const standing = cells(world.foliage());
     const cellM = world.foliage()[2];
-    const decoder = new ObservationDecoder(layout);
+    const decoder = new ScenePresentation(layout);
     const ground = decoder.ground!;
     expect(cells(world.foliage_cleared(ground.clearedRuns(), size, 1))).toEqual(standing);
 

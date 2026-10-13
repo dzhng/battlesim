@@ -13,7 +13,7 @@ import {
 } from "@packages/battle-renderer/src/records.gen";
 import { cellPatchRuns, groundRecords } from "./groundRuns";
 import type { ObservationLayout } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 import { labScenario } from "./catalog";
 import { loadMap } from "@web/maps/node";
 
@@ -59,7 +59,7 @@ test("the cache's directory, pool texels and params reach the frame's textures",
       },
     ]);
     writes.length = 0;
-    const decoder = new ObservationDecoder(layout);
+    const decoder = new ScenePresentation(layout);
     const ground = decoder.ground!;
     // One varying page and one uniform tile.
     const cols = layout.ground.cols;

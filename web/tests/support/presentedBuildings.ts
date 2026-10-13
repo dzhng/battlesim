@@ -4,7 +4,7 @@
 // frame's static batches hold, as the renderer keeps them (a frame naming its
 // batches unchanged leaves the last ones drawn).
 import { readFileSync } from "node:fs";
-import { ObservationDecoder, type PresentedSun } from "@web/battle/sim/presentation";
+import { ScenePresentation, type PresentedSun } from "@web/battle/sim/presentation";
 import { templateLibraryPath, type RuntimeCatalog } from "@packages/scene-assets/src/schema";
 import { decodeTemplateLibrary } from "@packages/scene-assets/src/templateLibrary";
 import { gzipTransport, unpackGzip } from "@packages/scene-assets/src/gzip";
@@ -65,7 +65,7 @@ export function presentBuildings(
   sun?: PresentedSun,
   knowledge?: Omit<SceneBuildings, "placed">,
 ) {
-  const presentation = new ObservationDecoder();
+  const presentation = new ScenePresentation();
   const world = presentation.loadWorld(
     {
       sun_azimuth: sun?.azimuth ?? 0,

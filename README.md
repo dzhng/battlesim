@@ -113,10 +113,16 @@ git lfs pull                                 # in the main checkout only
 git lfs pull --include="<path>/**"           # in a worktree: only what the task needs
 ```
 
+A battle draws from the runtime appearance bundles (`assets/runtime/`) and the third-party effects (`assets/third-party/`); without them it aborts on its resources. Their audio (`assets/runtime/audio/`) is optional: a page without it plays silent.
+
 [LFS attributes](.gitattributes) define which inputs are large-file objects, and
 [ignore rules](.gitignore) separate generated output and scratch from source.
 
 In a worktree, symlink `web/node_modules` to the main checkout's, and give it its own Rust build directory with `CARGO_TARGET_DIR`. Cargo leaves a workspace crate's path out of its build hash, so two worktrees sharing one `target/` overwrite each other's builds. Delete that directory with the worktree.
+
+## Developing in WSL
+
+WSL has no Vulkan driver for the host GPU, so its Chromium draws WebGPU on SwiftShader, a software adapter whose limits a battle exceeds. Use Windows Chrome instead: with WSL's networking set to `mirrored` in `.wslconfig`, it opens the dev server in WSL at its `localhost` address, draws on the real GPU and keeps hot reload. Browser checks make the same choice on their own ([browser choice](web/README.md#checks-and-evidence)).
 
 ## Plans and decisions
 

@@ -47,7 +47,7 @@ export interface UnitDraws {
   operated: ({ active: string[]; carried: string[] } | null)[];
 }
 
-/** A clip of a dense clip table (`clipTable.ts` `TableClip`): its first float. */
+/** A clip of a dense clip table (`TableClip`): its first float. */
 export interface ClipRecord {
   offset: number;
   frames: number;
@@ -170,8 +170,8 @@ export interface ModelCount {
 
 export const MODEL_COUNT_KINDS = ["soldiers", "vehicles", "aircraft", "corpses", "fading"] as const;
 
-/** Floats per joint sample (`clipTable.ts` `SAMPLE_FLOATS`): rotation, translation, scale. */
-const SAMPLE_FLOATS = 8;
+/** Floats per joint sample: rotation vec4, translation vec3 + scale. */
+export const SAMPLE_FLOATS = 8;
 
 /** The file a clip table is written to, beside the manifest. */
 export const unitTableFile = (name: string) => `units-${name}.u32`;

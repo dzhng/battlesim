@@ -11,7 +11,7 @@ The repository's full check still runs once, at 24.
 
 ## Built (2026-10-12, branch `wholegame`)
 
-**Status:** the gates hold. The web suite and the visual suite (`cursor`, `panels`, `ui`) are green. Every scene passes in the final pass but two street checks, whose staging the rules changed under them. One performance regression is named too. All three are left to their owners (below).
+**Status:** the gates hold. The web suite and the visual suite (`cursor`, `panels`, `ui`) are green. Every scene passes: the two street checks whose staging the rules changed under them were restaged, and the one performance regression, city-contact's fog, is fixed (below).
 
 **What ran**, on `main` with every lane merged up to `9807a9775` (fog sight in Rust, the props lanes, the exact 30 Hz tick, session-scoped appearances):
 - The web suite, whole, once at the end: 191 files, 1,254 tests, green.
@@ -47,5 +47,5 @@ Main-thread work moved from the renderer's JavaScript (1.5 to 0.65 ms a frame) i
 - `mechanicsServer` passes once the mechanics validator is built fresh. `icons` needs its source models from LFS.
 
 **Left, with owners:**
-- *street: no rifle shot in the staged fights. street-watch: the observer never identifies the tank.* Both are deterministic: the paused battle fails identically on every run. In the `attack` and `advance` encounters, red's tank at (1080, 850) kills blue infantry from about 620–650 m, unseen, before it closes. The rifle squad loses its men from x ≈ 424 and never reaches rifle range of anything, even sent alone. The recon arrives with one man left, 2.2 m off its goal, and dies. This is consistent with 442435a2f, after which HE no longer chips armour and a tank picks targets it can hurt; not proven by revert. Making the fight happen is a staging or rules decision: the street scenes' and the rules' owners.
-- *city-contact: 10.0 FPS, CPU p95 137 ms*, against 13.1–15.1 FPS and 72–81 ms at 20b. A main-thread profile puts `Presentation.prepare_fog` (fog sight in Rust, b7096267f) at 6,072 of 10,073 ms busy, about 60 ms a frame. The medium battle doesn't show it. Owner: the fog lane.
+- *street: no rifle shot in the staged fights. street-watch: the observer never identifies the tank.* Restaged, not re-ruled: red's houses see the open west and its tank shells what they see from 620–650 m, so both journeys now go round the south of the west wood, as the woods tour's walker does. The muzzle tour's rifle fights the red AT team in a battle of its own, in the trees, captured with the canopy lifted off. The contacts tour's recon identifies the tank from the wood's east edge, slips back into the trees, and a rifle section pushing up the road draws the unseen tank's fire. Both scenes are green.
+- *city-contact: 10.0 FPS, CPU p95 137 ms*, against 13.1–15.1 FPS and 72–81 ms at 20b. A main-thread profile puts `Presentation.prepare_fog` (fog sight in Rust, b7096267f) at 6,072 of 10,073 ms busy, about 60 ms a frame. The medium battle doesn't show it. **Fixed** (`be4620605`, [slice 25](25-native-on-wgpu.md#step-6b-follow-up-fogs-cpu-cost-on-the-city-map-2026-10-12-branch-fogperf)): fog now costs about 9 ms a frame against the TypeScript's 23 ms on the same map, and the benchmark runs at 13.2 FPS, inside 20b's 13.1–15.1.

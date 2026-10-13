@@ -4,11 +4,9 @@
 //! to its slice and snapped to its own texels, its biases and PCF radius, and
 //! the records a renderer uploads as they are ([`SunShadowFrame`]).
 //!
-//! Ported from the browser's `cascadePolicy.ts`, `shadowPolicy.ts`,
-//! `shadowData.ts` and `receiverRange.ts`. Matrices are held in f32 where the
-//! browser held them (`createGpuMat4`) and vectors in f64, with the `math`
-//! package's operation order, so a fit lands on the browser's texels bit for
-//! bit. The splits run over the receiver range, not from the camera's near
+//! Matrices are held in f32 and vectors in f64, with the `math` package's
+//! operation order, so a fit lands on the recorded vectors' texels bit for
+//! bit (`tests/shadow.rs`). The splits run over the receiver range, not from the camera's near
 //! plane, so a camera a kilometre up does not spend its cascades on air.
 use crate::light::{CascadeSettings, LightSettings};
 use crate::records::{Camera as CameraRecord, SunShadow};

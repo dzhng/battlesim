@@ -2,8 +2,8 @@
 
 The per-frame presentation every client shares: one side's publications in,
 a `Frame` of flat records out ([the presentation API](../../specs/native-rendering-parity/slices/18b-presentation-api.md)).
-The browser runs it through [its WebAssembly binding](../presentation-wasm/README.md);
-native adopts it when it moves to `wgpu`. Rust is as smart as it can be and a
+The browser runs it through [its WebAssembly binding](../presentation-wasm/README.md),
+and [the native client](../../native/client/README.md) links it. Rust is as smart as it can be and a
 renderer as dumb: a renderer draws the records it is given and decides nothing
 per entity.
 
@@ -102,7 +102,7 @@ roll to the resting wreck.
 
 `tests/poses.rs` and `tests/effects.rs` hold it to the browser's recorded vectors
 (native's fixture capture and fixed effect causes), `tests/light.rs`,
-`shadow.rs`, `ground_meshes.rs`, `grass_field.rs` and `fog_sight.rs` to what the browser's
-TypeScript computed before it moved here, bit for bit, and `tests/scars.rs` holds
-every scar upload to the words the browser's own cache wrote; the behaviour
-tests beside them cover what those do not reach.
+`shadow.rs`, `ground_meshes.rs`, `grass_field.rs` and `fog_sight.rs` to recorded
+browser vectors bit for bit, and `tests/scars.rs` holds every scar upload to
+recorded cache words; the behaviour tests beside them cover what those do not
+reach.

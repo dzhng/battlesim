@@ -1,9 +1,8 @@
 //! The ground's meshes are the browser's, float for float: on six saved maps
 //! as the simulation builds them (both reel maps, the river, street,
 //! geometry and ground labs), the terrain in both views, the skirt, the
-//! water and the backdrop hash to what the browser's `terrainSurface.ts`,
-//! `worldMesh.ts`, `waterSurface.ts` and `backdrop.ts` drew before they
-//! moved here (`fixtures/ground-mesh-vectors.json`: FNV-1a over each
+//! water and the backdrop hash to the recorded browser vectors
+//! (`fixtures/ground-mesh-vectors.json`: FNV-1a over each
 //! mesh's f32 bytes, with the map's box and its water cells).
 use presentation::shadow::map_box;
 use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};

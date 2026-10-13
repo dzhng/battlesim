@@ -424,7 +424,7 @@ async function auditionTour(ctx, page) {
     "../../apps/sound-workbench/src/audition.ts",
     "../../packages/battle-audio/src/shippedSounds.ts",
     "../../packages/battle-audio/src/soundBank.ts",
-    "../../packages/battle-audio/src/synth.ts",
+    "../../packages/battle-audio/src/synthSounds.gen.ts",
   ].map((path) => `/@fs${fileURLToPath(new URL(path, import.meta.url))}`);
   const report = await page.evaluate(async (urls) => {
     const [

@@ -1,4 +1,4 @@
-//! The static world's batches (18b's `Frame.batches` for what the world
+//! The static world's batches (`Frame.batches` for what the world
 //! places once): each population a view chooses from hands back its record
 //! lists by appearance row, tier and pass, each with a print of what it
 //! holds. A frame writes a list whose print changed since the renderer last

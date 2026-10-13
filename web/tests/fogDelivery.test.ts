@@ -5,7 +5,7 @@ import { beforeAll, expect, test } from "vitest";
 import { createSimClient } from "../src/battle/sim/client";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import type { ObservationLayout, ObservationView } from "../src/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "../src/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "../src/battle/sim/presentation";
 
 import { labScenario } from "./catalog";
 import { type LabEvent, type LabScript, type LabUnit } from "@apps/battle-lab/src/scenarios";
@@ -123,7 +123,7 @@ function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
   const scenario = publicationScenario(stream);
   const battle = new Battle(scenario, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const retained: ObservationView[] = [];
   let sawShot = false;
   let sawImpact = false;
@@ -197,7 +197,7 @@ function packets() {
 
 test("visibility loses bits, retains earlier frames, and replaces invalidated epochs", () => {
   const { layout, record } = packets();
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const first = decoder.decode(record(1, 0, 1, true, [65535, 65535, 8191, 0]))!;
   const second = decoder.decode(record(1, 1, 2, false, [0, 0, 0]))!;
   expect(Array.from(first.fog.bits)).toEqual([0xffffffff, 8191]);
@@ -213,7 +213,7 @@ test("visibility loses bits, retains earlier frames, and replaces invalidated ep
 
 test("rejected fog records leave the delivered baseline intact", () => {
   const { layout, record } = packets();
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   expect(() => decoder.decode(record(1, 0, 1, false, []))).toThrow(/baseline/);
   decoder.decode(record(1, 0, 1, true, [1, 0, 0, 0]));
   expect(() => decoder.decode(record(1, 2, 3, false, []))).toThrow(/baseline/);
@@ -227,7 +227,7 @@ test("rejected fog records leave the delivered baseline intact", () => {
 
 test("fog and ground reject a broken paired cursor before either baseline advances", () => {
   const { layout, record } = packets();
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const ground = decoder.ground!;
   const paired = (
     base: number,
@@ -321,7 +321,7 @@ test("a view switch returns stale in-flight credits without mixing sides or bloc
 test("oversized field dimensions cannot wrap past the wasm delivery bound", () => {
   const { layout, record } = packets();
   expect(() =>
-    new ObservationDecoder(layout).decode(record(1, 0, 1, true, [], 65536, 65536)),
+    new ScenePresentation(layout).decode(record(1, 0, 1, true, [], 65536, 65536)),
   ).toThrow(/admitted/);
 });
 
@@ -336,7 +336,7 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
   const battle = new Battle(scenario, 1);
   const snapshot = new Battle(scenario, 1);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-  const decoder = new ObservationDecoder(layout);
+  const decoder = new ScenePresentation(layout);
   const record = (b: Battle) => {
     const length = b.publish("blue");
     return new Float32Array(memory.buffer, b.publication_ptr(), length).slice();
@@ -367,7 +367,7 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
       battle.step();
       snapshot.step();
       snapshot.resync_observation();
-      oracle = new ObservationDecoder(layout).decode(record(snapshot))!;
+      oracle = new ScenePresentation(layout).decode(record(snapshot))!;
       if (oracle.own[0].route.length > 0) break;
     }
     expect(

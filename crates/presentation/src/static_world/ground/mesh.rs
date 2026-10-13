@@ -1,9 +1,8 @@
 //! The ground's meshes, in the renderer's one vertex format: ten floats a
 //! vertex (position, normal, rgba), flat-shaded triangle lists. The vertex
 //! colour is a tint over the biome's material, its alpha the tint's weight
-//! (0 draws the biome, 1 the tint alone). Ported from the browser's
-//! `terrainSurface.ts`, `worldMesh.ts`'s skirt, `waterSurface.ts` and
-//! `backdrop.ts`, in f64 as it computed them, so every float is its own.
+//! (0 draws the biome, 1 the tint alone). Computed in f64, so every
+//! float matches the recorded vectors (`tests/ground_meshes.rs`).
 
 use super::js;
 

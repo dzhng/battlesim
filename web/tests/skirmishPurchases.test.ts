@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import record from "@fixtures/parity/skirmish-purchases.json";
 import type { ObservationLayout } from "@web/battle/sim/observationView";
-import { ObservationDecoder, loadPresentation } from "@web/battle/sim/presentation";
+import { ScenePresentation, loadPresentation } from "@web/battle/sim/presentation";
 
 await loadPresentation();
 
@@ -15,7 +15,7 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
   const battle = new Battle(JSON.stringify(record.scenario), record.seed);
   try {
     const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
-    const decoder = new ObservationDecoder(layout);
+    const decoder = new ScenePresentation(layout);
     const frame = (side: "blue" | "red") => {
       const length = battle.publish(side);
       return decoder.decode(

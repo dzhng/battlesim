@@ -9,7 +9,8 @@ import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loade
 import { validateLoose } from "@packages/scene-assets/src/loose.ts";
 import { farPoseBounds, sampleClip } from "@packages/scene-assets/src/pose.ts";
 import type { SkinnedBundle } from "@packages/scene-assets/src/schema.ts";
-import { SAMPLE_FLOATS, buildClipTable } from "@packages/battle-renderer/src/models/clipTable.ts";
+import { buildClipTable } from "@apps/battle-lab/src/benchmark/clipTable.ts";
+import { SAMPLE_FLOATS } from "@web/battle/benchmark/unitManifest.ts";
 import {
   boxFilter,
   impostorViews,
