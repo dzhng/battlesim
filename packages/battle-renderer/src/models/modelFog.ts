@@ -1,34 +1,18 @@
-// How a model takes fog of war: the one decision, and the fragment term that
-// follows it. Units are drawn by identification and never fogged;
-// buildings and props are fogged face by face, except that everything inside
-// an occluding structure's box takes that structure's fog whole
-// (`fogWholeSeen`, in FogTerm itself); corpses are seen or unseen whole, as
-// the ground they lie on. A prop movers stand on (a bridge deck)
-// is fogged face by face and takes the ground paint. The frame binds the fog
-// group a class names (`FogVisibility`: units, faces, ground, paintedFaces)
-// for each of the models' draws.
+// How a model takes fog of war: the fog groups a draw binds, and the
+// fragment term that follows. Which group a model takes is Rust's
+// (`view::model_fog`, as `Batch.fog`); everything inside an occluding
+// structure's box takes that structure's fog whole (`fogWholeSeen`, in
+// FogTerm itself). The frame binds the fog group a class names
+// (`FogVisibility`: units, faces, ground, paintedFaces) for each of the
+// models' draws.
 import { tgpu, d } from "typegpu";
 import { fogIsGround, fogTerm } from "../frame/fogTerm";
 import { FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES, FOG_UNITS } from "../records.gen";
-import type { ModelPose } from "./modelInstances";
 
 /** Which fog group a draw binds (`FogVisibility` layers). */
 export type ModelFog = "units" | "faces" | "ground" | "paintedFaces";
 export const FOG_CLASSES = 4;
 
-/**
- * The one decision of how a model takes fog. A posed body or vehicle is a
- * unit, drawn only while identified, so it is never fogged.
- * Buildings and props are the world's faces, fogged face by face. A corpse is
- * remains lying on the ground: seen or unseen whole, as the ground under it
- * is, so a body in plain view never splits into seen and unseen faces.
- */
-export function modelFog(pose: ModelPose): ModelFog {
-  if (pose.kind === "posed") return "units";
-  // A prop movers stand on takes the ground paint (`StaticModelPose.ground`).
-  if (pose.kind === "static" && pose.ground) return "paintedFaces";
-  return pose.kind === "corpse" ? "ground" : "faces";
-}
 /** Each class's group, numbered as a batch names it (`Batch.fog`). */
 export const FOG_INDEX: Record<ModelFog, number> = {
   units: FOG_UNITS,

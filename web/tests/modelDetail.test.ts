@@ -16,7 +16,6 @@ import {
   validateModelDetail,
   type ModelDetailPresentation,
 } from "@packages/battle-renderer/src/models/modelDetail";
-import { modelFog } from "@packages/battle-renderer/src/models/modelFog";
 import { loadPresentation, ScenePresentation } from "@web/battle/sim/presentation";
 import { presentedCamera } from "../../apps/battle-lab/src/presentedFrame";
 
@@ -110,10 +109,4 @@ test("an airframe off screen still draws while its shadow, cast far below it, is
   expect(modelDetail(DETAIL, v, x, y, z, 3.2, 8, true, [x + fx, y + fy, 0])).toBe(
     detailAt(DETAIL, v, 3.2, Math.hypot(x - v.eye[0], y - v.eye[1], z + 1.6 - v.eye[2]), true),
   );
-});
-
-test("posed soldiers are units, never fogged; corpses take the ground's fog, buildings their faces'", () => {
-  expect(modelFog({ kind: "posed", palette: new Float32Array(0) })).toBe("units");
-  expect(modelFog({ kind: "corpse", lies: 0 })).toBe("ground");
-  expect(modelFog({ kind: "static", state: "intact" })).toBe("faces");
 });

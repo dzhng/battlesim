@@ -456,6 +456,19 @@ pub fn scar_normalization() -> Vec<u8> {
     presentation::scars::normalization()
 }
 
+/// The tier a batch casts with (`Batch.caster`), for a lab's own models,
+/// which reach the renderer without a frame: `view::batch_caster`.
+#[wasm_bindgen]
+pub fn batch_caster(tier: u32, pass: u32) -> u32 {
+    presentation::view::batch_caster(tier, pass)
+}
+
+/// The fog group a lab's own model binds (`Batch.fog`): `view::model_fog`.
+#[wasm_bindgen]
+pub fn model_fog(lies: bool, state: bool, ground: bool) -> u32 {
+    presentation::view::model_fog(lies, state, ground)
+}
+
 /// The battle's light (`presentation.light`, JSON) resolved into its uniform
 /// records' words in order: sky, aerial, sun, bloom, grade (`light.rs`). The
 /// renderer needs them when it builds its frame, before any battle loads and
