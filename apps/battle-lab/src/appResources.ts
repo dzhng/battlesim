@@ -7,6 +7,10 @@ export class AppResources {
   private released = false;
   private failure: string | null = null;
   private readonly listeners = new Set<() => void>();
+  private readonly departure = new AbortController();
+  /** Aborted when the page's resources are released (the document leaves):
+   *  page-lifetime work, such as the background prefetch, ends with it. */
+  readonly signal = this.departure.signal;
 
   readonly error = () => this.failure;
   readonly subscribe = (listener: () => void) => {
@@ -57,6 +61,7 @@ export class AppResources {
   dispose() {
     if (this.released) return;
     this.released = true;
+    this.departure.abort();
     this.device?.device.destroy();
     this.device = null;
     this.refuse("The page's resources were released. Reload to continue.");

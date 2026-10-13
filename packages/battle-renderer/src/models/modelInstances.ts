@@ -35,7 +35,7 @@ export interface StaticModelPose {
    *  yaw; none: as authored. A moving piece is never drawn as a card. */
   motion?: Mat4;
   /** A surface movers stand on (its body stops no mover: a bridge deck,
-   *  rubble): it takes the ground paint, as the ground does (`modelFog`). */
+   *  rubble): it takes the ground paint, as the ground does (`view::model_fog`). */
   ground?: boolean;
 }
 

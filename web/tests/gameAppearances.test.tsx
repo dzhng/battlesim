@@ -16,6 +16,7 @@ async function underTestCatalog() {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.resetModules();
 });
 
@@ -73,6 +74,109 @@ test("a demanded building kit refuses play even after the shared catalog loaded"
   );
   await waitFor(() => expect(view.getByRole("heading", { name: "Aborted" })).toBeTruthy());
   expect(view.queryByText("Loading required kit")).toBeNull();
+});
+
+/** A catalog whose only files are two textures the background prefetch warms,
+ *  and those files' fetch: `file` answers each one. */
+function prefetchServer(file: (url: string, init?: RequestInit) => Promise<Response>) {
+  const asked: string[] = [];
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.endsWith("catalog.json"))
+      return Response.json({
+        appearances: {},
+        skeletons: {},
+        sides: { blue: [0, 0, 1], red: [1, 0, 0] },
+        textures: { "test-look": ["texture-a", "texture-b"] },
+        gzip: {
+          "texture-a": { hash: "gzip-a", bytes: 1, raw_bytes: 1 },
+          "texture-b": { hash: "gzip-b", bytes: 1, raw_bytes: 1 },
+        },
+      });
+    asked.push(url);
+    return file(url, init);
+  });
+  return asked;
+}
+
+const PREFETCH_FAILED = "Background appearance prefetch failed.";
+const prefetchErrors = (spy: { mock: { calls: unknown[][] } }) =>
+  spy.mock.calls.filter(([message]) => message === PREFETCH_FAILED);
+
+test("a prefetch the page cuts off as it leaves is not an error", async () => {
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  // The browser ends a leaving document's fetches; one the page has not
+  // cancelled itself fails as a network error.
+  const asked = prefetchServer(
+    (_url, init) =>
+      new Promise((_, reject) => {
+        const cut = () => reject(new TypeError("Failed to fetch"));
+        init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+        window.addEventListener("pagehide", cut, { once: true });
+      }),
+  );
+  const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
+  const { gameAppearances, prefetchRuntimeAssets } =
+    await import("@apps/battle-lab/src/gameAppearances");
+  render(
+    <AppResourceBoundary menu={false}>
+      <div>Main menu</div>
+    </AppResourceBoundary>,
+  );
+  await gameAppearances(TEST_CATALOG.units);
+  void prefetchRuntimeAssets("/");
+  await waitFor(() => expect(asked.length).toBe(2));
+  fireEvent(window, new Event("pagehide"));
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  expect(prefetchErrors(errors)).toEqual([]);
+});
+
+test("a prefetch the network fails while the page stays is still an error", async () => {
+  const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  prefetchServer(async () => {
+    throw new TypeError("Failed to fetch");
+  });
+  const { AppResourceBoundary } = await import("@apps/battle-lab/src/AppResourceBoundary");
+  const { gameAppearances, prefetchRuntimeAssets } =
+    await import("@apps/battle-lab/src/gameAppearances");
+  render(
+    <AppResourceBoundary menu={false}>
+      <div>Main menu</div>
+    </AppResourceBoundary>,
+  );
+  await gameAppearances(TEST_CATALOG.units);
+  await prefetchRuntimeAssets("/");
+  await waitFor(() =>
+    expect(prefetchErrors(errors).map(([, detail]) => (detail as { url: string }).url)).toEqual([
+      "/gzip-a/texture.bin",
+      "/gzip-b/texture.bin",
+    ]),
+  );
+});
+
+test("a successful prefetch removes obsolete runtime cache entries", async () => {
+  const asked = prefetchServer(async () => new Response(new Uint8Array([1])));
+  const entries = new Map<string, Response>([
+    [new URL("/old/texture.bin", window.location.href).href, new Response("old")],
+  ]);
+  const key = (request: RequestInfo | URL) =>
+    new URL(request instanceof Request ? request.url : String(request), window.location.href).href;
+  const cache = {
+    match: async (request: RequestInfo | URL) => entries.get(key(request)) ?? undefined,
+    put: async (request: RequestInfo | URL, response: Response) => {
+      entries.set(key(request), response);
+    },
+    keys: async () => [...entries.keys()].map((url) => new Request(url)),
+    delete: async (request: RequestInfo | URL) => entries.delete(key(request)),
+  };
+  vi.stubGlobal("caches", { open: async () => cache });
+  const { prefetchRuntimeAssets } = await import("@apps/battle-lab/src/gameAppearances");
+  await prefetchRuntimeAssets("/");
+  expect(asked).toEqual(["/gzip-a/texture.bin", "/gzip-b/texture.bin"]);
+  expect([...entries.keys()].sort()).toEqual([
+    new URL("/gzip-a/texture.bin", window.location.href).href,
+    new URL("/gzip-b/texture.bin", window.location.href).href,
+  ]);
 });
 
 test("document departure releases the active view and restored documents require manual reload", async () => {

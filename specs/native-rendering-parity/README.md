@@ -145,13 +145,13 @@ A visual slice changes one primary variable. Other visible differences are expli
 | Rules, fixed ticks, observations, visibility, replay, digests | Rust simulation and publication layout | Decode and draw; never simulate or infer |
 | Workload identity, frame records (reel time, sim tick, interpolated sim time, which also drives wind, drawn view, canvas size), control plates | Browser graphics-test capture run | Render exactly the recorded frames; refuse a mismatched identity |
 | Which presentation layers are drawn (e.g. no fog overlay in the menu reel) | Browser, recorded in the manifest | Draw only the listed layers |
-| Map admission, height/relief, surfaces and authored placement | Saved-map exports and their browser resolver | Consume resolved records; never re-parse policy ad hoc |
-| Appearance identity, material roles, pivots, LOD tiers | `packages/scene-assets` catalogs and the tiers the browser chose | Import the named source and preserve roles; report fallback |
-| Biome, terrain, grass, light and atmosphere values | Fixture data and one exported tuning table per browser shader owner | Read the values from the manifest; port only the formulas |
+| Map admission, height/relief, surfaces and authored placement | Saved-map exports, resolved by `crates/presentation` | Consume resolved records; never re-parse policy ad hoc |
+| A battle's units, effects, appearances, clips and rigs | The unit catalog and runtime bundles, resolved by `presentation::fielded` | Load what Rust resolves from the repository; report fallback |
+| Biome, terrain, grass, light and atmosphere values | Fixture data (`fixtures/game.json`, the biomes) | Read the values from the fixtures; port only the formulas |
 | Shaders and pipeline settings | The browser's export (`packages/battle-renderer/pipelines/`, `crates/pipelines`) | Build pipelines from it; mirror nothing by hand |
 | Per-frame presentation (interpolation, poses, effects, detail, light, sound) | `crates/presentation` (18b's `World` and `Frame`) | Upload its records as bytes and draw them |
 
-The seam is a `native-visual-presentation` manifest beside each `battle-presentation-capture` file, written by the same browser run. It starts in slice 01 with identity hashes, viewport, lens (`fovY`, near plane, reverse-Z infinite far), drawn layers, and fallback/omission rows. Each later slice adds only the fields native reads in that slice. Large geometry may live in hashed artifacts, but ordering and ownership stay in the manifest.
+The seam is a `native-visual-presentation` manifest beside each `battle-presentation-capture` file, written by the same browser run. The capture carries the publications and frame records; the manifest carries the battle's identity (the capture's workload and both files' hashes, which native checks), the viewport, the lens (`fovY`, near plane, reverse-Z infinite far), the drawn layers and the per-plate counts. Everything else about the battle native reads from the repository itself.
 
 Native must not choose a building shell by family/token heuristics (removed in slice 15), re-read raw map policy, invent visibility or a presentation layer, replace a missing asset silently, cap anything silently, or add a simulation or wall clock in comparison mode. A parity report names every fallback, omission and budget with owner, reason, source id, admitted, rendered and dropped counts, and cut.
 

@@ -1,10 +1,9 @@
 // The page's appearances, through the one loader (`AppearanceLibrary`), from
 // what the bake wrote under `assets/runtime/` (Vite's publicDir, served at
-// the site root). The catalog loads once per page: the scenery and the art
-// its session's units wear (`UnitCatalog.appearances`), not every unit's, so
-// its GPU generation never installs the art only test units wear; a later session
-// with other units (a lab after the game) adds theirs. The browser warms the
-// remaining files into network/cache storage without uploading them. Kits and regional
+// the site root). A battle installs the complete unit-art catalog with its
+// scenery at map startup, so selecting a reinforcement never has to decode or
+// upload a new model during play. The browser warms the remaining files into
+// network/cache storage without uploading them. Kits and regional
 // looks are fetched on request. One of those is fetched the
 // first time the page asks for it, and a page asks for what it will draw: a
 // map for the kits its buildings' templates place and its region's looks
@@ -38,6 +37,7 @@ let loadingFactions: string | null | undefined;
 let loadingScenery: string | null | undefined;
 let appearanceStatus: Record<string, unknown> = { state: "idle" };
 let prefetching: Promise<void> | null = null;
+let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
 let prefetchStatus: Record<string, unknown> = { state: "idle" };
 diagnosticsSource("appearance loading", () => ({ ...appearanceStatus, prefetch: prefetchStatus }));
 
@@ -48,12 +48,14 @@ function selectionKey(
 }
 
 /** Warm the browser's network/cache storage without decoding or uploading art.
- * GPU installation remains limited to the current battle's requested kinds. */
-async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
+ * The page cancels it as it leaves (`appResources.signal`): that is no failure,
+ * where a fetch the network fails while the page stays is. */
+export async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
   if (prefetching) return prefetching;
+  const { signal } = appResources;
   prefetching = (async () => {
     prefetchStatus = { state: "loading" };
-    const response = await fetch(`${baseUrl}catalog.json`, { cache: "force-cache" });
+    const response = await fetch(`${baseUrl}catalog.json`, { cache: "force-cache", signal });
     if (!response.ok) throw new Error(`appearance prefetch catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
     const files = new Set<string>();
@@ -80,20 +82,35 @@ async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
         if (!url) return;
         try {
           if (cache && (await cache.match(url))) continue;
-          const file = await fetch(url, { cache: "force-cache" });
+          const file = await fetch(url, { cache: "force-cache", signal });
           if (!file.ok) throw new Error(`HTTP ${file.status}`);
           if (cache) await cache.put(url, file.clone());
           await file.arrayBuffer();
         } catch (error) {
+          if (signal.aborted) return;
           failed++;
           console.error("Background appearance prefetch failed.", { url, error });
         }
       }
     };
     await Promise.all(Array.from({ length: Math.min(6, urls.length) }, () => worker()));
-    prefetchStatus = { state: failed ? "partial" : "ready", files: urls.length, failed };
+    if (cache && failed === 0 && !signal.aborted) {
+      const expected = new Set(
+        urls.map((url) => new URL(url, globalThis.location?.href ?? "http://localhost/").href),
+      );
+      for (const request of await cache.keys()) {
+        if (!expected.has(request.url)) await cache.delete(request);
+      }
+    }
+    prefetchStatus = signal.aborted
+      ? { state: "cancelled" }
+      : { state: failed ? "partial" : "ready", files: urls.length, failed };
   })()
     .catch((error) => {
+      if (signal.aborted) {
+        prefetchStatus = { state: "cancelled" };
+        return;
+      }
       prefetchStatus = {
         state: "failed",
         error: error instanceof Error ? error.message : String(error),
@@ -102,6 +119,17 @@ async function prefetchRuntimeAssets(baseUrl: string): Promise<void> {
     })
     .then(() => undefined);
   return prefetching;
+}
+
+function scheduleRuntimePrefetch(baseUrl: string): void {
+  if (prefetching || prefetchTimer !== null) return;
+  prefetchStatus = { state: "scheduled" };
+  // Let the first page settle before broadening the network/cache work beyond
+  // the current view's required art.
+  prefetchTimer = setTimeout(() => {
+    prefetchTimer = null;
+    void prefetchRuntimeAssets(baseUrl);
+  }, 3_000);
 }
 
 /** The page's appearances for a session running `units`, with `asked`
@@ -124,7 +152,7 @@ export function gameAppearances(
     .then(() => library.withUnits(wearing))
     .then(() => library.withAppearances(asked))
     .then((next) => {
-      void prefetchRuntimeAssets("/");
+      scheduleRuntimePrefetch("/");
       return next;
     });
 }
@@ -137,27 +165,15 @@ export function reloadGameAppearances(units: UnitCatalog): Promise<InstalledAppe
   loadingFactions = undefined;
   loadingScenery = undefined;
   prefetching = null;
+  if (prefetchTimer !== null) {
+    clearTimeout(prefetchTimer);
+    prefetchTimer = null;
+  }
   prefetchStatus = { state: "idle" };
   return gameAppearances(units);
 }
 
 const NOTHING: ReadonlySet<string> = new Set();
-
-/** Unit art needed by the renderer for a set of worn base appearances,
- * including faction looks and vehicle wrecks that the catalog links from it. */
-export function installedUnitNames(
-  installed: InstalledAppearances,
-  worn: ReadonlySet<string>,
-): ReadonlySet<string> {
-  const names = new Set(worn);
-  for (const name of worn) {
-    const entry = installed.appearances.get(name);
-    if (!entry) continue;
-    if (entry.wreck) names.add(entry.wreck);
-    for (const look of Object.values(entry.factions ?? {})) names.add(look);
-  }
-  return names;
-}
 
 /** The installed appearances for the session's units (`useSessionCatalog`)
  *  with `asked` among them, or null until they have loaded, and while `asked`
@@ -282,7 +298,10 @@ export function useMapAppearances(
     () => catalog && placed && mapDownloads(catalog, placed, family, standIns),
     [catalog, placed, family, standIns],
   );
-  return useGameAppearances(asked, kinds, factions, scenery);
+  // Keep the complete generation on screen while map-specific art is fetched;
+  // the viewport must not unmount and reset the player's camera for a
+  // background appearance update.
+  return useGameAppearances(asked, kinds, factions, scenery, true);
 }
 
 /**
@@ -300,7 +319,6 @@ export function mapAppearances(
   world: { exports: WorldExports; layout: WorldLayout },
   buildings: PlacedBuildings,
   units: boolean,
-  unitNames: ReadonlySet<string> | null = null,
   dynamicProps = true,
 ): InstalledAppearances {
   const art = propArt(appearances, world.exports.buildings.regionalFamily, dynamicProps);
@@ -321,9 +339,7 @@ export function mapAppearances(
     appearances: new Map(
       [...appearances.appearances].filter(
         ([name, a]) =>
-          (units &&
-            (a.unit === "soldier" || a.unit === "vehicle") &&
-            (!unitNames || unitNames.has(name))) ||
+          (units && (a.unit === "soldier" || a.unit === "vehicle")) ||
           kits.has(name) ||
           drawn.has(name),
       ),

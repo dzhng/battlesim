@@ -17,7 +17,7 @@ function near(position: Vec3, at: Vec2) {
 
 export default function Projectiles() {
   const catalog = useSessionCatalog();
-  const built = useBuiltScenario({}, (wasm) => buildProjectileReview(wasm, catalog));
+  const built = useBuiltScenario({}, () => buildProjectileReview(catalog));
   if (built && typeof built !== "string")
     return <main className="lab-rejected">{built.error}</main>;
   return built ? <Review scenario={built} /> : null;

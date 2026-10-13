@@ -7,6 +7,8 @@
 //! tuning it never moves a digest or a replay.
 pub mod assets;
 pub mod effects;
+#[cfg(feature = "files")]
+pub mod fielded;
 pub mod fog;
 pub mod light;
 pub mod presentation;

@@ -19,6 +19,8 @@ libm = { version = "=0.2.16", default-features = false }
 flate2 = { version = "1", optional = true }
 
 [dev-dependencies]
+# The tests read the repository's files as native does.
+presentation = { path = ".", features = ["files"] }
 # The ground's meshes are tested on saved maps as the simulation builds them.
 contract = { path = "../contract" }
 # The recorded vectors' numbers must read back to the same bits.

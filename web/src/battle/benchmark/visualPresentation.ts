@@ -4,25 +4,10 @@
 // browser run is its one writer; it grows only by what native reads, and
 // changes in place (a stale file is refused, never migrated).
 // Plain Node runs the writer (the scene harness), so it imports nothing the
-// renderer owns; the page validates and derives the light before handing it over.
-import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
+// renderer owns. What the battle is (its units, effects, light and
+// buildings) a second client reads from the repository itself.
 import type { DrawnInstances } from "@packages/battle-renderer/src/scene";
 import { decodePresentationCapture, finite, hasKeys, isRecord } from "./presentationCapture.ts";
-import {
-  isEffectCount,
-  validateEffects,
-  type EffectCount,
-  type EffectsManifest,
-} from "./effectManifest.ts";
-import { validateProps, type PropsManifest } from "./propManifest.ts";
-import {
-  isModelCount,
-  unitArtifacts,
-  validateUnits,
-  type DrawnUnits,
-  type ModelCount,
-  type UnitsManifest,
-} from "./unitManifest.ts";
 
 /** The presentation layers a frame can draw. */
 export const PRESENTATION_LAYERS = [
@@ -54,21 +39,33 @@ export interface Lens {
 /** What the page knows of its own drawing; the files give the rest. */
 export interface DrawnPresentation {
   lens: Lens;
-  /** The light the battle frame was built with (`presentation.light`, as
-   *  `validateLight` admits it). */
-  light: LightPresentation;
   layers: readonly PresentationLayer[];
-  /** What poses and draws the battle's units (`unitManifest.ts`). */
-  units: DrawnUnits;
-  /** What stands the side's fallen buildings (`propManifest.ts`). */
-  props: PropsManifest;
-  /** What turns the side's publications into combat effects (`effectManifest.ts`). */
-  effects: EffectsManifest;
 }
 
-export interface VisualPresentation extends Omit<DrawnPresentation, "units"> {
-  /** The units, their clip tables each in its own file (`unitTableFile`). */
-  units: UnitsManifest;
+/** What a plate's frame posed, by kind (`modelCounts`): living and dying
+ *  soldiers, ground vehicles, aircraft, lying corpses and corpses sinking
+ *  away past the cap. */
+export interface ModelCount {
+  plate: string;
+  soldiers: number;
+  vehicles: number;
+  aircraft: number;
+  corpses: number;
+  fading: number;
+}
+
+export const MODEL_COUNT_KINDS = ["soldiers", "vehicles", "aircraft", "corpses", "fading"] as const;
+
+/** What a plate's frame drew of the effects (`Frame.counts`): those
+ *  running at its clock by kind, its instances by shape, and its lights. */
+export interface EffectCount {
+  plate: string;
+  running: Record<string, number>;
+  instances: Record<string, number>;
+  lights: number;
+}
+
+export interface VisualPresentation extends DrawnPresentation {
   schema: "native-visual-presentation";
   identity: {
     scene: string;
@@ -124,20 +121,32 @@ const MANIFEST_KEYS = [
   "identity",
   "viewport",
   "lens",
-  "light",
   "layers",
   "grassCounts",
   "instanceCounts",
-  "units",
   "modelCounts",
-  "props",
-  "effects",
   "effectCounts",
 ];
 const text = (value: unknown) => typeof value === "string" && value.length > 0;
 const isHash = (value: unknown) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
 
 const count = (value: unknown) => Number.isInteger(value) && (value as number) >= 0;
+const counts = (value: unknown) => isRecord(value) && Object.values(value).every(count);
+
+/** Whether `value` is one plate's model counts. */
+export const isModelCount = (value: unknown): boolean =>
+  hasKeys(value, ["plate", ...MODEL_COUNT_KINDS]) &&
+  text(value.plate) &&
+  MODEL_COUNT_KINDS.every((k) => Number.isInteger(value[k]) && (value[k] as number) >= 0);
+
+/** Whether `value` is one plate's effect counts. */
+export const isEffectCount = (value: unknown): boolean =>
+  hasKeys(value, ["plate", "running", "instances", "lights"]) &&
+  text(value.plate) &&
+  counts(value.running) &&
+  counts(value.instances) &&
+  count(value.lights);
+
 const positive = (value: unknown) => finite(value) && value > 0;
 const numbers = (value: unknown, n: number, valid: (v: unknown) => boolean) =>
   Array.isArray(value) && value.length === n && value.every(valid);
@@ -204,7 +213,6 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     lens.far !== "infinite"
   )
     throw new Error("visual presentation lens is malformed");
-  if (!isRecord(value.light)) throw new Error("visual presentation light is malformed");
   const layers = value.layers;
   if (
     !Array.isArray(layers) ||
@@ -237,8 +245,6 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per prop appearance and tier",
     );
-  validateUnits(value.units);
-  validateProps(value.props);
   const models = value.modelCounts;
   if (
     !Array.isArray(models) ||
@@ -248,7 +254,6 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       "visual presentation model counts need one row per plate of whole soldiers, vehicles, aircraft, corpses and fading corpses",
     );
-  validateEffects(value.effects);
   const effects = value.effectCounts;
   if (
     !Array.isArray(effects) ||
@@ -267,7 +272,7 @@ async function sha256(bytes: Uint8Array): Promise<string> {
 }
 
 /** The manifest JSON for a capture file's text `captureJson` drawn on the
- *  map whose `map.json` is `mapBytes`, and the artifact files beside it: the
+ *  map whose `map.json` is `mapBytes`: the
  *  identity is the capture's workload and both files' hashes, the viewport
  *  the canvas every frame drew; `grassCounts` one row per plate the capture
  *  names. */
@@ -287,7 +292,7 @@ export async function writeVisualPresentation({
   instanceCounts: readonly InstanceCount[];
   modelCounts: readonly ModelCount[];
   effectCounts: readonly EffectCount[];
-}): Promise<{ manifest: string; artifacts: { file: string; bytes: Uint8Array }[] }> {
+}): Promise<string> {
   const capture = decodePresentationCapture(captureJson);
   const [first] = capture.frames;
   if (!first) throw new Error("a capture with no frame has no viewport");
@@ -312,7 +317,6 @@ export async function writeVisualPresentation({
         `${what} counts must be one per plate: none for ${uncounted.join(", ") || "-"}; no plate ${stray.join(", ") || "-"}`,
       );
   }
-  const units = await unitArtifacts(drawn.units, sha256);
   const { scene, map, encounter, seed } = capture.workload;
   const manifest: VisualPresentation = {
     schema: "native-visual-presentation",
@@ -326,18 +330,11 @@ export async function writeVisualPresentation({
     },
     viewport: { width, height, scale: 1 },
     lens: drawn.lens,
-    light: drawn.light,
     layers: drawn.layers,
     grassCounts: plates.map((plate) => grassCounts.find((g) => g.plate === plate)!),
     instanceCounts: plates.map((plate) => instanceCounts.find((g) => g.plate === plate)!),
-    units: units.units,
-    props: drawn.props,
     modelCounts: plates.map((plate) => modelCounts.find((g) => g.plate === plate)!),
-    effects: drawn.effects,
     effectCounts: plates.map((plate) => effectCounts.find((g) => g.plate === plate)!),
   };
-  return {
-    manifest: JSON.stringify(validateVisualPresentation(manifest)),
-    artifacts: units.artifacts,
-  };
+  return JSON.stringify(validateVisualPresentation(manifest));
 }

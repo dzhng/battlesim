@@ -117,7 +117,7 @@ test("a viewport disposed during its build releases the late frame and never bec
 
 test("failed frame initialization releases the frame and reports its error to the loading boundary", async () => {
   const reported: (string | null | undefined)[] = [];
-  const { view, props, Viewport } = await mount({}, (id, task) => reported.push(task?.error));
+  const { view, props, Viewport } = await mount({}, (...args) => reported.push(args[1]?.error));
   await building();
   let disposed = false;
   await act(async () =>

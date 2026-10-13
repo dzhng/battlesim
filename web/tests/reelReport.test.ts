@@ -4,32 +4,8 @@ import { BenchmarkRecording } from "@web/battle/benchmark/recording";
 import { createReelReport } from "@apps/battle-lab/src/benchmark/reelReport";
 import { MENU_REEL_WORKLOAD, menuReelFingerprint } from "@web/battle/benchmark/menuReel";
 import type { ReelResult } from "@apps/battle-lab/src/benchmark/reelRun";
-import { gameLight } from "@apps/battle-lab/src/gameLight";
-import type { DrawnUnits } from "@web/battle/benchmark/unitManifest";
-import type { EffectsManifest } from "@web/battle/benchmark/effectManifest";
-import type { PropsManifest } from "@web/battle/benchmark/propManifest";
 
 const pose = { target: [0, 0] as const, distance: 40, yaw: 0, pitch: 0.2 };
-/** A plated scene's units, as the page describes them (`describeUnits`). */
-const units: DrawnUnits = {
-  pose: {},
-  leanHold: 1.5,
-  detail: { lod_px: [150, 60, 24], impostor_px: 10 },
-  tints: { blue: [1, 1, 1], red: [1.18, 1, 0.78] },
-  types: {},
-  appearances: {},
-  tables: [],
-};
-/** Its buildings' parts, as the page describes them (`describeBuildings`). */
-const props: PropsManifest = { buildings: { parts: [], shells: [] } };
-/** Its effects, as the page describes them (`describeEffects`). */
-const effects: EffectsManifest = {
-  presentation: { smoke: {} },
-  types: {},
-  smokes: {},
-  wrecks: {},
-  wreckLooks: {},
-};
 function result(map: string, started: number, intervals: number[]): ReelResult {
   const recording = new BenchmarkRecording(1000);
   recording.start(started);
@@ -69,11 +45,7 @@ function result(map: string, started: number, intervals: number[]): ReelResult {
       },
     ],
     lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
-    light: gameLight,
     plates: [],
-    units,
-    props,
-    effects,
   };
 }
 
@@ -110,11 +82,7 @@ test("exports each scene's capture with the frames it drew and what it drew them
   expect(report.drawnPresentations).toEqual([
     {
       lens: { fovY: 0.8, near: 1, depth: "reverse-z", far: "infinite" },
-      light: gameLight,
       layers: ["sky", "terrain"],
-      units,
-      props,
-      effects,
     },
   ]);
   expect(report.capture.frameTimingComparable).toBe(true);

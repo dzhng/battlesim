@@ -1,6 +1,5 @@
-// What a second client needs to pose and draw a battle's units as this page
-// does (the `native-visual-presentation` manifest's `units`,
-// `web/src/battle/benchmark/unitManifest.ts`): the pose driver's feel, each
+// What the presentation poses and draws a battle's units from
+// (`load_world`'s `units`, `presentedFrame.ts`): the pose driver's feel, each
 // fielded unit type's facts and the appearance sets `AppearanceCatalog`
 // picks from, and each of those appearances' joints and clips or rig. The
 // browser resolves everything static here; native ports the per-frame
@@ -26,7 +25,7 @@ import type {
   TrsRecord,
   UnitDraws,
   UnitTypeRecord,
-} from "@web/battle/benchmark/unitManifest";
+} from "../presentedFrame";
 
 const SIDES: readonly Side[] = ["blue", "red"];
 

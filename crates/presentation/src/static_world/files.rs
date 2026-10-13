@@ -51,15 +51,7 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
     let resolved = sim::maps::load_folder(&folder).map_err(|e| e.to_string())?;
     let game = json(&root.join("fixtures/game.json"))?;
     let meta = json(&folder.join("meta.json"))?;
-    let set = match meta["category"].as_str() {
-        Some("menu") => sim::fixtures::CatalogSet::Menu,
-        Some("test") => sim::fixtures::CatalogSet::Test,
-        _ => sim::fixtures::CatalogSet::Game,
-    };
-    let mut fixture = sim::fixtures::game();
-    fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
-    let rules: contract::scenario::Rules =
-        serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))?;
+    let rules = rules(root, map)?;
     let map_def = &resolved.definition;
     let world = sim::world::WorldGeometry::new(map_def, &rules);
     let layout = sim::world::export::layout_json(&rules.catalog);
@@ -86,6 +78,21 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
         layout,
         family: map_def.regional_family.clone(),
     })
+}
+
+/// The rules of a battle fought on saved map `map`: the game's, with the
+/// units of the map's own category (a menu map's the menu's, a test map's
+/// the tests').
+pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String> {
+    let meta = json(&root.join("fixtures/maps").join(map).join("meta.json"))?;
+    let set = match meta["category"].as_str() {
+        Some("menu") => sim::fixtures::CatalogSet::Menu,
+        Some("test") => sim::fixtures::CatalogSet::Test,
+        _ => sim::fixtures::CatalogSet::Game,
+    };
+    let mut fixture = sim::fixtures::game();
+    fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
+    serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))
 }
 
 /// The simulation's world a saved map's ground was built by.
@@ -184,33 +191,43 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
     })
 }
 
-/// The buildings of saved map `map` as `Presentation::load_world` takes
-/// them, each building's part props `parts` (in the map's building order)
-/// and the prop kinds a gutted building's parts become (`shells`), and the
-/// style that places them.
+/// The buildings of saved map `map`, built by the simulation's `world`, as
+/// `Presentation::load_world` takes them: each placed from its template, its
+/// part props (`export_buildings`, what the page reads), the prop kinds a
+/// gutted building's parts become under the map's catalog, and the style
+/// that places them.
 pub fn placed_buildings(
     root: &Path,
     map: &str,
-    parts: Vec<Vec<u32>>,
-    shells: Vec<String>,
+    world: &World,
 ) -> Result<(PlacedBuildings, BuildingStyle), String> {
-    let saved = json(&root.join("fixtures/maps").join(map).join("map.json"))?;
-    let placed: Vec<Placed> = saved["buildings"]
-        .as_array()
-        .map(|all| {
-            all.iter()
-                .map(|b| {
-                    let t = &b["frame"]["translation"];
-                    let n = |v: &Value| v.as_f64().unwrap_or(0.0);
-                    Placed {
-                        owner: b["owner"].as_u64().unwrap_or(0) as u32,
-                        template: b["template_id"].as_str().unwrap_or("").to_string(),
-                        frame: [n(&t[0]), n(&t[1]), n(&t[2]), n(&b["frame"]["yaw"])],
-                    }
-                })
-                .collect()
+    let exported: Value =
+        serde_json::from_str(&world.export_buildings()).map_err(|e| format!("buildings: {e}"))?;
+    let all: &[Value] = exported["buildings"].as_array().map_or(&[], Vec::as_slice);
+    let n = |v: &Value| v.as_f64().unwrap_or(0.0);
+    let placed: Vec<Placed> = all
+        .iter()
+        .map(|b| {
+            let t = &b["frame"]["translation"];
+            Placed {
+                owner: b["owner"].as_u64().unwrap_or(0) as u32,
+                template: b["templateId"].as_str().unwrap_or("").to_string(),
+                frame: [n(&t[0]), n(&t[1]), n(&t[2]), n(&b["frame"]["yaw"])],
+            }
         })
-        .unwrap_or_default();
+        .collect();
+    let parts: Vec<(u32, usize)> = all
+        .iter()
+        .enumerate()
+        .flat_map(|(i, b)| {
+            let props = b["parts"].as_array().map_or(&[][..], Vec::as_slice);
+            props
+                .iter()
+                .filter_map(move |p| Some((p["prop"].as_u64()? as u32, i)))
+        })
+        .collect();
+    let (_, shells) = crate::fielded::building_remains(&rules(root, map)?.catalog.view());
+    let shells: Vec<String> = shells.into_iter().collect();
     let style: BuildingStyle = serde_json::from_value(
         json(&root.join("fixtures/game.json"))?["presentation"]["buildings"].clone(),
     )
@@ -245,11 +262,6 @@ pub fn placed_buildings(
         .modules
         .iter()
         .map(|m| installed.get(&m.kit).and_then(|k| k.get(&m.name).copied()))
-        .collect();
-    let parts = parts
-        .into_iter()
-        .enumerate()
-        .flat_map(|(b, props)| props.into_iter().map(move |p| (p, b)))
         .collect();
     let placed = PlacedBuildings {
         library,

@@ -28,7 +28,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { installedUnitNames, mapAppearances, useMapAppearances } from "./gameAppearances";
+import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { gameHud } from "@web/battle/present/hudTheme";
 import { gameOrderFlash, gameXray } from "./gameOverlay";
@@ -87,8 +87,7 @@ import { gameLight } from "./gameLight";
 import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
-import { useFeed } from "./feed";
-import { describeBuildings } from "./benchmark/propPresentation";
+import { useFeed, useLive } from "./feed";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
 import {
@@ -236,22 +235,26 @@ export function useBattleSession({
   });
   presentationRef.current = sim.client?.presentation ?? null;
   const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
+  /** The chosen reinforcement must be requested before the cursor asks the
+   *  presentation to draw its ghost.  Keep this in React state so the art
+   *  request advances on the same render as the picker choice. */
+  const [purchasing, setPurchasing] = useState<string | null>(null);
   useEffect(() => {
     responses.current =
       audio && sim.client ? new UnitResponses(audio, units, faction, rules.tick_hz) : null;
   }, [audio, sim.client, units, faction, rules.tick_hz]);
-  // A battle may purchase or reveal a unit that was not in its opening
-  // scenario. Keep the appearance request live so those units are installed
-  // before the presentation names their models, without loading the whole
-  // roster on adapters with small texture-array limits.
+  // A battle may purchase or reveal any unit in the catalog after its opening
+  // scenario. Keep every unit appearance resident from map startup so the
+  // cursor preview never installs a new GPU generation during interaction.
   const { observation } = sim;
   const requestedKindKey = useMemo(() => {
     const kinds = new Set(fielded);
+    if (purchasing) kinds.add(purchasing);
     for (const unit of observation?.own ?? []) kinds.add(unit.kind);
     for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
     for (const pending of observation?.skirmish?.pending ?? []) kinds.add(pending.kind);
     return [...kinds].sort().join("\0");
-  }, [fielded, observation]);
+  }, [fielded, observation, purchasing]);
   const requestedKinds = useMemo(
     () => (requestedKindKey ? requestedKindKey.split("\0") : []),
     [requestedKindKey],
@@ -265,8 +268,9 @@ export function useBattleSession({
       : undefined;
   }, [map, scenarioArt]);
   // A shout heard in the open is a bark in its kind's set for its side's
-  // faction; an unseen enemy's is drawn from the enemy faction's sets. Of
-  // those, only the sets of kinds fielded or identified load.
+  // faction; an unseen enemy's is drawn from the enemy faction's sets. The
+  // requested kinds still scope the simulation's descriptions and voices;
+  // the renderer's unit art is resident for the complete catalog.
   // Outside a skirmish the factions are unknown, so shouts are silent.
   const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
   useEffect(() => {
@@ -328,7 +332,6 @@ export function useBattleSession({
     inputEnabled,
   );
   const [purchasePlacement] = useState(() => new PurchasePlacementControl());
-  const [purchasing, setPurchasing] = useState<string | null>(null);
   const purchaseGhost = useRef<PurchaseGhost | null>(null);
   /** The ghosts the authority accepted, for their facing: a pending purchase
    *  carries only its kind and destination. */
@@ -379,7 +382,7 @@ export function useBattleSession({
     drawnBuildings?.placed ?? null,
     world?.exports.buildings.regionalFamily ?? null,
     (world?.exports.props.length ?? 0) > 0 || (drawnBuildings?.placed.template.length ?? 0) > 0,
-    requestedKinds,
+    null,
     factionsForArt,
     sceneryForArt,
   );
@@ -423,15 +426,10 @@ export function useBattleSession({
     [drawnBuildings, units],
   );
   const buildingsFeed = useFeed(buildings);
-  // The battle's presentation as the viewport reads it each frame.
-  const presentationSource = useMemo(
-    () => ({
-      get current() {
-        return sim.client?.presentation ?? null;
-      },
-    }),
-    [sim.client],
-  );
+  // The battle's presentation as the viewport reads it each frame: one holder
+  // across clients (a Restart), so no prop change copies the old battle's tables.
+  const client = sim.client;
+  const presentationSource = useLive(() => client?.presentation ?? null);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
   // Fog of war: the presentation sees from the side's eyes at each
@@ -503,11 +501,10 @@ export function useBattleSession({
             world,
             drawnBuildings.placed,
             true,
-            installedUnitNames(appearances, units.appearancesFor(requestedKinds)),
             skirmish !== undefined || world.exports.forests.length > 0,
           )
         : null,
-    [appearances, world, drawnBuildings, units, requestedKinds, skirmish],
+    [appearances, world, drawnBuildings, skirmish],
   );
   const modelAppearancesFeed = useFeed(modelAppearances);
 
@@ -646,7 +643,6 @@ export function useBattleSession({
       presentation,
       worldInput,
       units,
-      audio,
       orderReveal,
       control.showOrders,
       control.acks,
@@ -670,7 +666,7 @@ export function useBattleSession({
       const panel = readouts.current?.pick(pick.x, pick.y);
       return panel ? { ...pointer, ...panel } : pointer;
     },
-    [world, observation, units],
+    [world, observation],
   );
   const onRightPress = useCallback(
     (pick: LabPick | null) => {
@@ -978,6 +974,8 @@ export function useBattleSession({
     pointerIntent: () => shownIntent.current,
     pointerResolution: () => ({ state: pointerPaint.state, building: pointerPaint.building }),
     movePreview: () => pointerPaint.preview,
+    /** The currently selected reinforcement's live cursor ghost. */
+    purchaseGhost: () => purchaseGhost.current,
     ruler: () => pointerPaint.shown,
     /** Space held: the order overlay shows every own unit (D2+). */
     showOrders: () => control.showOrders,
@@ -1121,9 +1119,6 @@ export function useBattleSession({
     known: { buildings: buildingsFeed, obstacles: cameraObstaclesFeed },
     /** The player's pointer on a viewport that takes orders. */
     input: { onPick, onRightPress, onCursor, onBox, pointerMarks: pointerPaint.feed },
-    /** What a second client needs to draw this side's fallen buildings
-     *  (`describeBuildings`); null until the map's buildings are known. */
-    describeBuildings: () => (drawnBuildings ? describeBuildings(drawnBuildings, units) : null),
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,
@@ -1147,11 +1142,6 @@ export function useBattleSession({
     revealed,
     pointerPaint,
     surfaceZ,
-    /** What a second client needs to pose and draw this battle's units and
-     *  its combat effects (`describeUnits`, `describeEffects`): the
-     *  presentation's own input; null until it can load. */
-    describeUnits: () => worldInput?.units ?? null,
-    describeEffects: () => worldInput?.effects ?? null,
     /** The battle's sound (null unless `sound`), and its per-frame listener. */
     audio,
     hear,

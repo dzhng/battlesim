@@ -1,7 +1,8 @@
 //! The effects draw what is recorded for the same causes: every instance's
 //! sixteen floats and every cast light at fixed clocks after a few
 //! publications that exercise every kind of effect, and a fixture run's
-//! plate's effect counts replayed from its capture.
+//! plate's effect counts replayed from its capture, its units and effects
+//! resolved from the repository as native resolves them.
 use std::path::PathBuf;
 
 use presentation::effects::frame::{
@@ -11,7 +12,8 @@ use presentation::effects::lights::CAST_LIGHT_FLOATS;
 use presentation::effects::publication::{EffectFeed, EffectPublication};
 use presentation::effects::tables::EffectPresentation;
 use presentation::effects::{DrawnRotor, MuzzleSource};
-use presentation::world::{EffectsSection, UnitsSection, Vec3};
+use presentation::fielded::{self, Fielded};
+use presentation::world::Vec3;
 use serde_json::Value;
 use sim::publication::reader::Reader;
 
@@ -128,9 +130,12 @@ fn effects_match_the_recorded_vectors() {
 fn a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture() {
     let manifest = fixture("run/paris-corner/manifest.json");
     let capture = fixture("run/paris-corner/capture.json");
-    let units: UnitsSection = serde_json::from_value(manifest["units"].clone()).expect("units");
-    let effects: EffectsSection =
-        serde_json::from_value(manifest["effects"].clone()).expect("effects");
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workload = &capture["workload"];
+    let map = workload["map"].as_str().unwrap();
+    let kinds =
+        fielded::encounter_kinds(&root, map, workload["encounter"].as_str().unwrap()).unwrap();
+    let Fielded { units, effects, .. } = fielded::fielded(&root, map, &kinds, None).unwrap();
     let p = EffectPresentation::from_value(&effects.presentation).expect("presentation");
     let mut batch = EffectBatch::new(p.capacity);
     let mut frame = EffectFrame::new(capture["tickHz"].as_f64().unwrap(), p);

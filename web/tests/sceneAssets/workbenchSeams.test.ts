@@ -10,7 +10,7 @@ import { validateLoose } from "@packages/scene-assets/src/loose.ts";
 import { farPoseBounds, sampleClip } from "@packages/scene-assets/src/pose.ts";
 import type { SkinnedBundle } from "@packages/scene-assets/src/schema.ts";
 import { buildClipTable } from "@apps/battle-lab/src/benchmark/clipTable.ts";
-import { SAMPLE_FLOATS } from "@web/battle/benchmark/unitManifest.ts";
+import { SAMPLE_FLOATS } from "@apps/battle-lab/src/benchmark/clipTable";
 import {
   boxFilter,
   impostorViews,

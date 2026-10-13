@@ -26,7 +26,7 @@
 //   impostor cards (`models/impostorCards.ts`). Its static props are what
 //   the side knows stands of the map's props (walls, their rubble, wrecks),
 //   fitted to their boxes by the presentation and handed over as its static
-//   batches. Each draw binds the fog group its class names (`modelFog`). A
+//   batches. Each draw binds the fog group its class names (`view::model_fog`). A
 //   model's surfaces are drawn by kind (`models/surfaceParts.ts`): opaque as
 //   the rest of the world; a cutout cut in the prepass and the cascades; a
 //   room behind a window as solid as a wall and shown unlit; glass last,
@@ -998,7 +998,7 @@ export async function createWorldPass(
       proxies.draw(
         opaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.units),
       );
-      // Each model draws through the fog group its class names (`modelFog`):
+      // Each model draws through the fog group its class names (`view::model_fog`):
       // posed units never fogged, props face by face (an occluding
       // structure whole, in FogTerm), corpses as the
       // ground under them.

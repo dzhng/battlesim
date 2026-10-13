@@ -79,22 +79,9 @@ export function createReelReport(
     samples: r.capture,
     frames: r.frames,
   }));
-  // What each scene drew its frames with; null for a scene that drew none
-  // or took no plate (its units are described at its first plate).
+  // What each scene drew its frames with; null for a scene that drew none.
   const drawnPresentations: (DrawnPresentation | null)[] = results.map(
-    (r) =>
-      r.lens &&
-      r.light &&
-      r.units &&
-      r.props &&
-      r.effects && {
-        lens: r.lens,
-        light: r.light,
-        layers,
-        units: r.units,
-        props: r.props,
-        effects: r.effects,
-      },
+    (r) => r.lens && { lens: r.lens, layers },
   );
   const host = typeof navigator === "undefined" ? null : navigator;
   const viewport =

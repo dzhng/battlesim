@@ -26,6 +26,10 @@ native.
   container the template library and the bundles travel in, and (feature
   `files`) of the runtime directory: its catalog and each gzipped transport
   file. The native client reads its models through it.
+- [What a battle fields](src/fielded.rs) (feature `files`): `load_world`'s
+  units, effects and clip tables for the units a map's encounter fields,
+  resolved from the rules fixture, the map's category catalog and the
+  runtime bundles, as a page wearing those units installs them.
 - [Units](src/units/): interpolation between ticks, the pose feed and driver,
   articulation, joint palettes (and each skinned row's rest palette: a corpse
   as it lies, a body in its far pose, which a renderer poses its mesh by once),
@@ -37,7 +41,8 @@ native.
   tier rule every drawn model takes and the tier it casts with, and the
   frame's `View` record (with the sky's corner rays) and camera uniform,
   the browser's camera math to the bit. Each batch also names the fog group
-  it binds (`Batch.fog`).
+  it binds (`Batch.fog`); a lab's own models, which reach a renderer without
+  a frame, take the same caster and fog rules through the module.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
 - [Scars](src/scars/): the side's learned ground, from its publications'
