@@ -846,17 +846,19 @@ fn engage(
 fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
     match unit.engagement {
         Engagement::FireAtWill => match target {
-            Target::Contact(c) => ctx.knowledge[unit.side.index()]
-                .contact(c)
-                .is_none_or(|contact| {
-                    contact.source != contract::observation::ContactSource::Radar
-                        || unit
-                            .unit_type(ctx.rules)
-                            .capabilities
-                            .air
-                            .as_ref()
-                            .is_some_and(|air| air.sead)
-                }),
+            Target::Contact(c) => {
+                ctx.knowledge[unit.side.index()]
+                    .contact(c)
+                    .is_none_or(|contact| {
+                        contact.source != contract::observation::ContactSource::Radar
+                            || unit
+                                .unit_type(ctx.rules)
+                                .capabilities
+                                .air
+                                .as_ref()
+                                .is_some_and(|air| air.sead)
+                    })
+            }
             _ => true,
         },
         Engagement::ReturnFireOnly => match target {
@@ -1125,6 +1127,27 @@ fn select(
     let weapons = &ctx.arsenal.weapons;
     let mut ranked: Vec<(bool, f64, u32, f64, u32, UnitId)> = knowledge
         .identified_now(ctx.tick)
+        .filter(|(u, _)| {
+            let target = &units[u.0 as usize];
+            let sead = unit
+                .unit_type(ctx.rules)
+                .capabilities
+                .air
+                .as_ref()
+                .is_some_and(|air| air.sead);
+            !sead
+                || target.layer() != AltitudeLayer::Ground
+                || (target
+                    .unit_type(ctx.rules)
+                    .capabilities
+                    .air_defense
+                    .is_some()
+                    && target
+                        .unit_type(ctx.rules)
+                        .capabilities
+                        .radar
+                        .is_some_and(|radar| radar.emits))
+        })
         .map(|(u, t)| {
             let target = &units[u.0 as usize];
             (

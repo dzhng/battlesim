@@ -53,7 +53,14 @@ pub(super) fn step_aircraft(
     if let Some(target) = units[i].air.as_ref().and_then(|air| air.dogfight_target) {
         if let Some(target_unit) = units.get(target.0 as usize) {
             if target_unit.alive()
-                && !units[i].orders.iter().any(|o| matches!(o, crate::units::UnitOrder::Move(_) | crate::units::UnitOrder::AttackMove(_) | crate::units::UnitOrder::Attack { .. }))
+                && !units[i].orders.iter().any(|o| {
+                    matches!(
+                        o,
+                        crate::units::UnitOrder::Move(_)
+                            | crate::units::UnitOrder::AttackMove(_)
+                            | crate::units::UnitOrder::Attack { .. }
+                    )
+                })
             {
                 let goal = target_unit.position.xy();
                 units[i].route = Some(vec![goal]);
@@ -210,7 +217,10 @@ pub(crate) fn low_hover(rules: &Rules) -> f64 {
 
 /// Plan a route when the goal is new or moved, or the side's knowledge changed.
 fn plan(ctx: &MovementContext, unit: &mut Unit, side: &mut SideGeometry) {
-    if unit.air.as_ref().is_some_and(|air| air.dogfight_target.is_some())
+    if unit
+        .air
+        .as_ref()
+        .is_some_and(|air| air.dogfight_target.is_some())
         && unit.route.is_some()
     {
         return;
