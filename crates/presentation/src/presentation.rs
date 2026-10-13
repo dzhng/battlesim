@@ -225,8 +225,10 @@ pub struct Presentation {
     ground: Option<Ground>,
     scenery: Option<SceneryWalk>,
     scenery_quality: SceneryQuality,
-    /// The learned ground's cleared cells the scenery last followed.
-    cleared_from: usize,
+    /// The learned ground's epoch and cleared cells the scenery last
+    /// followed: within an epoch cells are only ever cleared, so the count
+    /// names the set; a new epoch is a new ground.
+    cleared_from: (u64, usize),
     /// The map's props and what the side knows of them (`place_props`).
     props: Option<PropPopulation>,
     /// The fallen bodies the scenery last read.
@@ -338,7 +340,7 @@ impl Presentation {
             ground: None,
             scenery: None,
             scenery_quality: SceneryQuality::default(),
-            cleared_from: 0,
+            cleared_from: (0, 0),
             props: None,
             felled_from: None,
             detail_scale: [1.0, 1.0],
@@ -992,7 +994,7 @@ impl Presentation {
         walk.set_quality(self.scenery_quality);
         self.scenery = Some(walk);
         self.felled_from = None;
-        self.cleared_from = 0;
+        self.cleared_from = (0, 0);
         Ok(())
     }
 
@@ -1046,7 +1048,7 @@ impl Presentation {
         let (Some(walk), Some(learned)) = (&mut self.scenery, &self.learned) else {
             return;
         };
-        let from = learned.cleared_count();
+        let from = (learned.epoch.to_bits(), learned.cleared_count());
         if from == self.cleared_from {
             return;
         }
