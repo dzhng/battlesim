@@ -211,6 +211,24 @@ pub fn joint_worlds(
     }
 }
 
+/// A body's joint worlds as it is drawn, into `out`: `clip` at `phase`,
+/// faded over by `blend`, then kicked by `kick`. Its palette, its muzzle's
+/// flash and the probe all pose a body this one way.
+#[allow(clippy::too_many_arguments)]
+pub fn drawn_worlds(
+    joints: &[Node],
+    clips: &BTreeMap<String, Clip>,
+    table: &[f32],
+    clip: &str,
+    phase: f64,
+    blend: Option<&ClipBlend>,
+    kick: Kick,
+    out: &mut Vec<Mat4>,
+) {
+    joint_worlds(joints, clips, table, clip, phase, blend, out);
+    kick_worlds(joints, kick, out);
+}
+
 /// The joint a shot's kick turns a soldier's upper body about (his waist),
 /// carrying everything it holds up: head, arms and weapon. A body without
 /// it is never kicked.

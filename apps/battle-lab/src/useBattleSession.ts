@@ -88,7 +88,6 @@ import type { FogRequest, ScenePresentation } from "@web/battle/sim/presentation
 import type { ViewportCamera } from "@packages/renderer-core/src/cameraUniform";
 import { useAppAudio } from "./AppAudio";
 import { useFeed } from "./feed";
-import { posedSockets, type BenchPose } from "./workbench/benchWorld";
 import { describeBuildings } from "./benchmark/propPresentation";
 import { describeEffects } from "./benchmark/effectPresentation";
 import type { Vec3 } from "math";
@@ -1072,32 +1071,27 @@ export function useBattleSession({
     /** The lights the effects offered last frame: where, how far, their
      *  colour × intensity, and what cast each. */
     castLights: () => presentationRef.current?.probe().castLights ?? [],
-    /** Every drawn model's muzzle sockets in the world, as posed (the
-     *  workbench's socket gizmos), with each model's origin to select the
-     *  firing body before its attachment is measured. */
+    /** Every drawn model's muzzles in the world, where the presentation
+     *  draws them (a soldier's crossfaded and kicked, a hull's articulated
+     *  and rocked), with each model's origin to select the firing body before
+     *  its attachment is measured. */
     muzzleSockets: () => {
       const probe = presentationRef.current?.probe();
-      if (!probe || !appearances) return [];
-      return [...probe.soldiers, ...probe.vehicles].flatMap((m) => {
-        const bundle = appearances.appearances.get(m.appearance)?.bundle;
-        if (!bundle) return [];
-        const skeleton =
-          bundle.kind === "skinned" ? (appearances.skeletons.get(bundle.skeleton) ?? null) : null;
-        const [x, y, z] = m.position;
-        const [c, s] = [Math.cos(m.yaw), Math.sin(m.yaw)];
-        const pose: BenchPose =
-          "clip" in m
-            ? { kind: "skinned", clip: m.clip, phase: m.phase, blend: null }
-            : { kind: "articulated", articulation: m.articulation };
-        return posedSockets(bundle, skeleton, pose)
-          .filter((k) => k.name.endsWith("muzzle"))
-          .map(({ name, frame: f }) => ({
-            appearance: m.appearance,
-            origin: [x, y, z],
-            name,
-            at: [x + f[12] * c - f[13] * s, y + f[12] * s + f[13] * c, z + f[14]],
-          }));
-      });
+      if (!probe) return [];
+      const soldiers = probe.soldiers.flatMap((m) =>
+        m.muzzle
+          ? [{ appearance: m.appearance, origin: m.position, name: "muzzle", at: m.muzzle }]
+          : [],
+      );
+      const vehicles = probe.vehicles.flatMap((m) =>
+        m.muzzles.map(({ name, at }) => ({
+          appearance: m.appearance,
+          origin: m.position,
+          name,
+          at,
+        })),
+      );
+      return [...soldiers, ...vehicles];
     },
     /** The vehicles as last posed: appearance, placement and articulation. */
     vehicles: () => presentationRef.current?.probe().vehicles ?? [],

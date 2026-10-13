@@ -497,13 +497,11 @@ export async function createWorldPass(
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     }),
   );
+  // The configured fraction is checked once; 0 turns the coverage test off.
+  const xrayFraction = validateXrayFraction(xrayMinHiddenFragmentFraction);
   const writeXrayMinimum = (value: number) =>
-    registry.device.queue.writeBuffer(
-      xrayMinimum,
-      0,
-      new Float32Array([validateXrayFraction(value)]),
-    );
-  writeXrayMinimum(xrayMinHiddenFragmentFraction);
+    registry.device.queue.writeBuffer(xrayMinimum, 0, new Float32Array([value]));
+  writeXrayMinimum(xrayFraction);
   const xrayCounts = registry.slot<GPUBuffer>();
   let xrayCapacity = 0;
   let xrayCoverageEnabled = true;
@@ -660,7 +658,7 @@ export async function createWorldPass(
   return {
     setXrayCoverageEnabled(on: boolean) {
       xrayCoverageEnabled = on;
-      writeXrayMinimum(on ? xrayMinHiddenFragmentFraction : 0);
+      writeXrayMinimum(on ? xrayFraction : 0);
     },
     setWorld(next: WorldLayers) {
       world.ground.set(next.terrain.mesh);

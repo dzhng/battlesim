@@ -7,6 +7,7 @@ import {
   pinnedFixtures,
   selectFixtures,
   fatalGpuMessage,
+  openScenePage,
 } from "./scene.mjs";
 
 test("fatal GPU diagnostics are identified before readiness timeouts", () => {
@@ -46,6 +47,25 @@ test("every registered fixture has exactly one scene", async () => {
   for (const fixture of fixtures) expect([undefined, "production"]).toContain(fixture.build);
   expect(selectFixtures(fixtures, []).length).toBe(fixtures.length);
   expect(() => selectFixtures(fixtures, ["nope"])).toThrow("unknown fixture");
+});
+
+// Each scene page has a browser context of its own, and the context holds what
+// the page stored (the appearance prefetch fills Cache Storage, which an
+// incognito context keeps in the browser process's memory). Contexts left
+// open after their pages grew the browser past 10 GB over street's tours,
+// until it crashed.
+test("a scene page takes its browser context with it when it closes", async () => {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  try {
+    for (let i = 0; i < 3; i++) {
+      const page = await openScenePage(browser);
+      await page.close();
+    }
+    expect(browser.contexts()).toEqual([]);
+  } finally {
+    await browser.close();
+  }
 });
 
 test("--visual selects exactly the fixtures with approved pictures", async () => {
