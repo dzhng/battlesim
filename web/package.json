@@ -16,6 +16,7 @@
     "visual": "node scene.mjs --visual"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "math": "0.1.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",

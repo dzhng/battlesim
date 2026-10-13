@@ -1,6 +1,7 @@
 //! The one battle authority: commands in, fixed ticks, side observations out.
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+use contract::bundle::ControllerKind;
 use contract::catalog::{AltitudeLayer, Destroyed};
 use contract::command::{
     BuildingPlacement, BuildingPreviewRequest, CommandAck, CommandEnvelope, Engagement,
@@ -17,6 +18,7 @@ use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
     UnitCondition,
 };
+use contract::script::{CompiledScript, ScriptInput};
 use serde::{Deserialize, Serialize};
 
 use crate::arrangement;
@@ -195,6 +197,42 @@ pub struct Replay {
     pub seed: u64,
     /// `(applied_tick, command)` in acceptance order.
     pub accepted: Vec<(Tick, CommandEnvelope)>,
+    /// Authored victory/error terminal state captured after the last tick.
+    #[serde(default)]
+    pub script_victory: Option<bool>,
+    #[serde(default)]
+    pub script_error: Option<String>,
+    #[serde(default)]
+    pub script_terminal_tick: Option<Tick>,
+    /// Controller choices used for the recorded session. Replays restore the
+    /// same passive/active policy before consuming accepted commands.
+    #[serde(default)]
+    pub controllers: Vec<(String, ControllerKind)>,
+    #[serde(default)]
+    pub controller_transitions: Vec<ControllerTransition>,
+    #[serde(default)]
+    pub script_events: Vec<contract::script::ScriptEvent>,
+    /// Authored script outputs at the tick where they became authoritative.
+    #[serde(default)]
+    pub script_trace: Vec<ScriptTrace>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ControllerTransition {
+    pub tick: Tick,
+    pub slot: String,
+    pub controller: ControllerKind,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ScriptTrace {
+    pub tick: Tick,
+    #[serde(default)]
+    pub events: Vec<contract::script::ScriptEvent>,
+    #[serde(default)]
+    pub victory: Option<bool>,
+    #[serde(default)]
+    pub error: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -226,7 +264,7 @@ pub struct Battle {
     units: Vec<Unit>,
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
-    sides: [SideGeometry; 2],
+    sides: [SideGeometry; 3],
     /// The map's road graph, built once: public terrain, the same for both
     /// sides.
     roads: RoadNet,
@@ -234,15 +272,26 @@ pub struct Battle {
     planner: RoutePlanner,
     events: VecDeque<ScenarioEvent>,
     scripts: VecDeque<ScriptedOrder>,
-    knowledge: [SideKnowledge; 2],
+    authored_scripts: Vec<(CompiledScript, Side, Option<String>)>,
+    victory_script: Option<CompiledScript>,
+    script_victory: Option<bool>,
+    script_error: Option<String>,
+    script_terminal_tick: Option<Tick>,
+    script_events: Vec<contract::script::ScriptEvent>,
+    script_trace: Vec<ScriptTrace>,
+    replay_script_trace: BTreeMap<Tick, ScriptTrace>,
+    controllers: BTreeMap<String, ControllerKind>,
+    controller_transitions: Vec<ControllerTransition>,
+    replay_controller_transitions: BTreeMap<Tick, Vec<ControllerTransition>>,
+    knowledge: [SideKnowledge; 3],
     occlusion: OcclusionGrid,
-    fog: [VisibilityField; 2],
+    fog: [VisibilityField; 3],
     /// Each side's sightings as of each observer's latest identification run
     /// (27 perf), in observer then target order.
-    sightings: [Vec<Sighting>; 2],
+    sightings: [Vec<Sighting>; 3],
     /// Units that fired during the current sound bucket.
     fired: BTreeSet<UnitId>,
-    audible: [Vec<SoundCue>; 2],
+    audible: [Vec<SoundCue>; 3],
     arsenal: Arsenal,
     /// Building health and the ruins collapses left.
     structures: Structures,
@@ -266,8 +315,8 @@ pub struct Battle {
     segments: Vec<Flown>,
     /// This tick's bursts, by firing side.
     blasts: Vec<(Side, Blast)>,
-    next_seq: [u64; 2],
-    order_bucket: [(u64, Tick); 2],
+    next_seq: [u64; 3],
+    order_bucket: [(u64, Tick); 3],
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
     skirmish_ai: Option<crate::skirmish_ai::BalancedDoctrine>,
@@ -278,8 +327,8 @@ pub struct Battle {
     accepted: Vec<(Tick, CommandEnvelope)>,
     /// Recorded commands still to apply when this battle is a replay.
     replaying: Option<VecDeque<(Tick, CommandEnvelope)>>,
-    observations: [ObservationFrame; 2],
-    pub(crate) shouts: [ShoutLedger; 2],
+    observations: [ObservationFrame; 3],
+    pub(crate) shouts: [ShoutLedger; 3],
     /// Each unit as barks saw it at the start of this tick.
     shout_before: Vec<shouts::Before>,
     shout_evidence: ShoutEvidence,
@@ -288,7 +337,7 @@ pub struct Battle {
     shout_under_fire: BTreeSet<UnitId>,
     /// Per listening side, the enemies that shouted unseen since the last
     /// sound bucket.
-    shouted_unseen: [BTreeSet<UnitId>; 2],
+    shouted_unseen: [BTreeSet<UnitId>; 3],
     scenario_digest: u64,
     config_digest: u64,
     /// Transient bodies (a row with a `lifetime_s`) and the tick each goes.
@@ -455,6 +504,7 @@ fn spawn_unit(
     Unit {
         id: UnitId(i as u32),
         side: u.side,
+        owner: u.owner.clone(),
         kind,
         position: xy.with_z(world.surface_at(xy.x, xy.y).map_or(0.0, |s| s.z) + lift),
         yaw: u.yaw,
@@ -474,7 +524,15 @@ fn spawn_unit(
         stalls: (f64::INFINITY, 0),
         pursuit: None,
         planned_goal: None,
-        engagement: u.engagement.unwrap_or(Engagement::FireAtWill),
+        // Neutral is a passive world actor: it may answer an attacker through
+        // the normal return-fire threat path, but it never acquires a target
+        // on its own. An authored engagement policy cannot override that
+        // topology rule.
+        engagement: if u.side == Side::Neutral {
+            Engagement::ReturnFireOnly
+        } else {
+            u.engagement.unwrap_or(Engagement::FireAtWill)
+        },
         air: airborne.then(units::AirState::default),
         mounts,
         attackers: BTreeSet::new(),
@@ -513,6 +571,9 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     let units = serde_json::to_string(&setup.units).expect("units serialize");
     let events = serde_json::to_string(&setup.events).expect("events serialize");
     let scripts = serde_json::to_string(&setup.scripts).expect("scripts serialize");
+    let authored_scripts =
+        serde_json::to_string(&setup.authored_scripts).expect("authored scripts serialize");
+    let victory = serde_json::to_string(&setup.victory).expect("victory serializes");
     // The opponent's policy and the encounter's rules change what a replay's
     // commands mean, so a replay is pinned to them too.
     let opponent = serde_json::to_string(&setup.opponent).expect("opponent serializes");
@@ -522,7 +583,17 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
         .as_ref()
         .map(|s| serde_json::to_string(s).expect("skirmish serializes"))
         .unwrap_or_default();
-    digest::of_str(&(map + &units + &events + &scripts + &opponent + &encounter + &skirmish))
+    digest::of_str(
+        &(map
+            + &units
+            + &events
+            + &scripts
+            + &authored_scripts
+            + &victory
+            + &opponent
+            + &encounter
+            + &skirmish),
+    )
 }
 
 fn config_digest(setup: &ScenarioDefinition) -> u64 {
@@ -589,6 +660,7 @@ impl Battle {
             let reservation = skirmish.reservations[index].pop_front().unwrap();
             let setup = contract::scenario::UnitSetup {
                 side,
+                owner: None,
                 kind: self.rules.catalog.id(reservation.data.kind).to_string(),
                 position: entry.center,
                 yaw: entry.yaw,
@@ -692,6 +764,10 @@ impl Battle {
     ) -> Self {
         let rules = setup.rules.clone();
         assert!(
+            setup.skirmish.is_none() || setup.units.iter().all(|unit| unit.side != Side::Neutral),
+            "skirmish does not support neutral units"
+        );
+        assert!(
             setup.skirmish.is_none()
                 || (setup.units.is_empty()
                     && setup.events.is_empty()
@@ -751,13 +827,28 @@ impl Battle {
         events.sort_by_key(|e| e.tick);
         let mut scripts: Vec<ScriptedOrder> = setup.scripts.clone();
         scripts.sort_by_key(|o| o.tick);
+        let authored_scripts = setup
+            .authored_scripts
+            .iter()
+            .map(|script| {
+                (
+                    CompiledScript::compile(&script.source)
+                        .expect("scenario authored script was admitted"),
+                    script.side,
+                    script.slot.clone(),
+                )
+            })
+            .collect();
+        let victory_script = setup
+            .victory
+            .as_deref()
+            .map(|source| CompiledScript::compile(source).expect("scenario victory was admitted"));
         let occlusion = OcclusionGrid::new(&world, setup.map.fog_cell_m);
         let structures = Structures::default();
         let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
-        let knowledge = [
-            SideKnowledge::new(seed ^ OBSERVATION_STREAM, &ground),
-            SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ 1, &ground),
-        ];
+        let knowledge = std::array::from_fn(|i| {
+            SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ i as u64, &ground)
+        });
         let mut battle = Battle {
             skirmish: setup.skirmish.clone().map(crate::skirmish::Skirmish::new),
             authored_props: world.props().count() as PropId,
@@ -766,14 +857,22 @@ impl Battle {
             seed,
             tick: 0,
             units,
-            sides: [
-                SideGeometry::new(std::sync::Arc::clone(&grid)),
-                SideGeometry::new(grid),
-            ],
+            sides: std::array::from_fn(|_| SideGeometry::new(std::sync::Arc::clone(&grid))),
             roads,
             planner: RoutePlanner::default(),
             events: events.into(),
             scripts: scripts.into(),
+            authored_scripts,
+            victory_script,
+            script_victory: None,
+            script_error: None,
+            script_terminal_tick: None,
+            script_events: Vec::new(),
+            script_trace: Vec::new(),
+            replay_script_trace: BTreeMap::new(),
+            controllers: BTreeMap::new(),
+            controller_transitions: Vec::new(),
+            replay_controller_transitions: BTreeMap::new(),
             knowledge,
             sightings: Default::default(),
             fired: BTreeSet::new(),
@@ -792,13 +891,13 @@ impl Battle {
             flight_events: Vec::new(),
             segments: Vec::new(),
             blasts: Vec::new(),
-            fog: [occlusion.field(), occlusion.field()],
+            fog: std::array::from_fn(|_| occlusion.field()),
             occlusion,
-            next_seq: [1, 1],
+            next_seq: [1; 3],
             order_bucket: [(
                 u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz),
                 0,
-            ); 2],
+            ); 3],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
             skirmish_ai: setup.skirmish.as_ref().and_then(|s| {
                 s.ai_side.map(|side| {
@@ -885,6 +984,32 @@ impl Battle {
             return Err(ReplayError::ConfigMismatch);
         }
         let mut battle = build();
+        for transition in &replay.controller_transitions {
+            if transition.tick == 0 {
+                battle.apply_controller(transition);
+            } else {
+                battle
+                    .replay_controller_transitions
+                    .entry(transition.tick)
+                    .or_default()
+                    .push(transition.clone());
+            }
+        }
+        if replay.controller_transitions.is_empty() {
+            for (slot, controller) in &replay.controllers {
+                battle.apply_controller(&ControllerTransition {
+                    tick: 0,
+                    slot: slot.clone(),
+                    controller: controller.clone(),
+                });
+            }
+        }
+        battle.replay_script_trace = replay
+            .script_trace
+            .iter()
+            .cloned()
+            .map(|trace| (trace.tick, trace))
+            .collect();
         battle.replaying = Some(replay.accepted.iter().cloned().collect());
         Ok(battle)
     }
@@ -1108,22 +1233,154 @@ impl Battle {
         }
     }
 
+    /// Install the per-slot controller state chosen at play admission. AI
+    /// orders still enter `accept`, while passive slots only retain return fire.
+    pub fn set_controllers(&mut self, controllers: Vec<(String, ControllerKind)>) {
+        for (slot, controller) in controllers {
+            let transition = ControllerTransition {
+                tick: self.tick,
+                slot,
+                controller,
+            };
+            if self
+                .units
+                .iter()
+                .any(|unit| unit.owner.as_deref() == Some(transition.slot.as_str()))
+            {
+                self.apply_controller(&transition);
+                self.controller_transitions.push(transition);
+            }
+        }
+    }
+
+    fn apply_controller(&mut self, transition: &ControllerTransition) {
+        self.controllers
+            .insert(transition.slot.clone(), transition.controller.clone());
+        for unit in &mut self.units {
+            if unit.side == Side::Neutral {
+                unit.engagement = Engagement::ReturnFireOnly;
+                continue;
+            }
+            if unit.owner.as_deref() != Some(transition.slot.as_str()) {
+                continue;
+            }
+            match transition.controller {
+                ControllerKind::PassiveAi => unit.engagement = Engagement::ReturnFireOnly,
+                ControllerKind::ActiveAi | ControllerKind::Human
+                    if unit.engagement == Engagement::ReturnFireOnly =>
+                {
+                    unit.engagement = Engagement::FireAtWill
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn controller_turn(&mut self) {
+        if self.replaying.is_some() || self.controllers.is_empty() {
+            return;
+        }
+        enum Intent {
+            Attack(TargetRef),
+            Move([f64; 2]),
+        }
+        let mut orders: Vec<(Side, String, Vec<UnitId>, Intent)> = Vec::new();
+        for (slot, controller) in &self.controllers {
+            if *controller != ControllerKind::ActiveAi {
+                continue;
+            }
+            let Some(unit) = self
+                .units
+                .iter()
+                .find(|unit| unit.owner.as_deref() == Some(slot.as_str()) && unit.alive())
+            else {
+                continue;
+            };
+            if unit.side == Side::Neutral {
+                continue;
+            }
+            let frame = self.observations[unit.side.index()].clone();
+            let ids: Vec<_> = self
+                .units
+                .iter()
+                .filter(|candidate| {
+                    candidate.owner.as_deref() == Some(slot.as_str()) && candidate.alive()
+                })
+                .map(|candidate| candidate.id)
+                .collect();
+            if ids.is_empty() {
+                continue;
+            }
+            if let Some(target) = frame.identified.iter().max_by(|a, b| {
+                let score = |candidate: &contract::observation::IdentifiedUnit| {
+                    let dx = candidate.position[0] - unit.position.x;
+                    let dy = candidate.position[1] - unit.position.y;
+                    f64::from(candidate.cost) / (dx * dx + dy * dy + 1.0).sqrt()
+                };
+                score(a)
+                    .partial_cmp(&score(b))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| b.id.cmp(&a.id))
+            }) {
+                orders.push((
+                    unit.side,
+                    slot.clone(),
+                    ids,
+                    Intent::Attack(TargetRef::Identified { id: target.id }),
+                ));
+            } else if let Some(objective) = frame.skirmish.as_ref().and_then(|view| {
+                view.objectives
+                    .iter()
+                    .find(|objective| objective.owner.is_none())
+            }) {
+                orders.push((unit.side, slot.clone(), ids, Intent::Move(objective.center)));
+            }
+        }
+        for (side, slot, units, intent) in orders {
+            let seq = self.next_seq[side.index()];
+            let order = match intent {
+                Intent::Attack(target) => Order::Attack { units, target },
+                Intent::Move(goal) => Order::Move {
+                    units,
+                    gesture: 0,
+                    goal,
+                    route: contract::command::RoutePolicy::Shortest,
+                    direction: contract::command::MoveDirection::Forward,
+                    facing: None,
+                },
+            };
+            let _ = self.accept(CommandEnvelope {
+                side,
+                slot: Some(slot),
+                seq,
+                order,
+                queued: false,
+            });
+        }
+    }
+
     pub fn finished(&self) -> bool {
-        self.skirmish
-            .as_ref()
-            .is_some_and(|s| s.phase == contract::skirmish::Phase::Finished)
+        self.script_terminal_tick
+            .is_some_and(|tick| self.tick >= tick)
+            || self
+                .skirmish
+                .as_ref()
+                .is_some_and(|s| s.phase == contract::skirmish::Phase::Finished)
     }
 
     fn validate(&self, command: &CommandEnvelope) -> Result<(), OrderError> {
         if self.finished() {
             return Err(OrderError::MatchFinished);
         }
+        if command.side == Side::Neutral {
+            return Err(OrderError::PassiveSide);
+        }
         let units = match &command.order {
             Order::Refund { units } => {
                 let Some(skirmish) = &self.skirmish else {
                     return Err(OrderError::NotSkirmish);
                 };
-                self.validate_units(command.side, units)?;
+                self.validate_command_units(&command, units)?;
                 if units.iter().any(|id| !skirmish.entered.contains_key(id)) {
                     return Err(OrderError::NotSkirmish);
                 }
@@ -1155,7 +1412,7 @@ impl Battle {
                 units
             }
             Order::Garrison { units, building } => {
-                self.validate_units(command.side, units)?;
+                self.validate_command_units(&command, units)?;
                 // A squad ordered in earlier this tick holds no order yet.
                 let claimed = self.pending.iter().any(|c| {
                     c.command.side == command.side
@@ -1186,7 +1443,26 @@ impl Battle {
             // Gesture tokens are scoped by side at application; nothing else to check.
             Order::UpgradeMove { .. } => return Ok(()),
         };
-        self.validate_units(command.side, units)
+        self.validate_command_units(&command, units)
+    }
+
+    fn validate_command_units(
+        &self,
+        command: &CommandEnvelope,
+        units: &[UnitId],
+    ) -> Result<(), OrderError> {
+        self.validate_units(command.side, units)?;
+        for &unit in units {
+            let Some(owner) = self.units[unit.0 as usize].owner.as_deref() else {
+                continue;
+            };
+            match command.slot.as_deref() {
+                None => return Err(OrderError::MissingSlot),
+                Some(slot) if slot == owner => {}
+                Some(_) => return Err(OrderError::WrongSlot { unit }),
+            }
+        }
+        Ok(())
     }
 
     /// Every unit named exists, is the side's own and is alive.
@@ -1216,7 +1492,13 @@ impl Battle {
         if self.finished() {
             return self.tick;
         }
+        if let Some(transitions) = self.replay_controller_transitions.remove(&self.tick) {
+            for transition in transitions {
+                self.apply_controller(&transition);
+            }
+        }
         self.skirmish_ai_turn();
+        self.controller_turn();
         self.tick += 1;
         shouts::remember(&mut self.shout_before, &self.units, &self.rules);
         for side in Side::ALL {
@@ -1287,6 +1569,7 @@ impl Battle {
             }
             let command = CommandEnvelope {
                 side: script.side,
+                slot: None,
                 seq: 0,
                 order: script.order,
                 queued: script.queued,
@@ -1331,7 +1614,7 @@ impl Battle {
             tick: self.tick,
             seed: self.seed,
             rules: &self.rules,
-            knowledge: [&self.knowledge[0], &self.knowledge[1]],
+            knowledge: std::array::from_fn(|i| &self.knowledge[i]),
             arsenal: &self.arsenal,
         };
         completed(TickPhase::Other);
@@ -1438,9 +1721,118 @@ impl Battle {
         completed(TickPhase::Other);
         self.observe_all();
         completed(TickPhase::Observation);
+        self.run_authored_scripts();
+        completed(TickPhase::Other);
         self.opponent_turn();
         completed(TickPhase::Other);
         self.tick
+    }
+
+    /// Execute authored code from the side-scoped observation produced this
+    /// tick. Replay consumes the accepted command log and never reruns code.
+    fn run_authored_scripts(&mut self) {
+        if self.finished() {
+            return;
+        }
+        if self.replaying.is_some() {
+            if let Some(trace) = self.replay_script_trace.remove(&self.tick) {
+                self.apply_script_trace(&trace);
+            }
+            return;
+        }
+        let mut outputs = Vec::new();
+        for (script, side, slot) in &self.authored_scripts {
+            let input = ScriptInput::new(
+                *side,
+                &self.observations[side.index()],
+                self.seed ^ 0x5343_5249_5054_0000 ^ self.tick ^ side.index() as u64,
+            );
+            let input = match slot.as_deref() {
+                Some(slot) => input.with_slot(slot.to_owned()),
+                None => input,
+            };
+            match script.run(&input) {
+                Ok(output) => outputs.push(output),
+                Err(error) => {
+                    self.script_error = Some(error.to_string());
+                    self.script_terminal_tick = Some(self.tick);
+                    self.script_trace.push(ScriptTrace {
+                        tick: self.tick,
+                        events: Vec::new(),
+                        victory: None,
+                        error: self.script_error.clone(),
+                    });
+                    return;
+                }
+            }
+        }
+        let mut trace_victory = false;
+        if let Some(script) = &self.victory_script {
+            let input = ScriptInput::new(
+                Side::Blue,
+                &self.observations[Side::Blue.index()],
+                self.seed ^ 0x5649_4354_4f52_5900 ^ self.tick,
+            );
+            match script.run(&input) {
+                Ok(output) => {
+                    if output.victory == Some(true) {
+                        self.script_victory = Some(true);
+                        self.script_terminal_tick = Some(self.tick);
+                        trace_victory = true;
+                    }
+                }
+                Err(error) => {
+                    self.script_error = Some(error.to_string());
+                    self.script_terminal_tick = Some(self.tick);
+                    self.script_trace.push(ScriptTrace {
+                        tick: self.tick,
+                        events: Vec::new(),
+                        victory: None,
+                        error: self.script_error.clone(),
+                    });
+                    return;
+                }
+            }
+        }
+        let mut trace_events = Vec::new();
+        for output in outputs {
+            trace_events.extend(output.events.iter().cloned());
+            self.script_events.extend(output.events);
+            if output.victory == Some(true) {
+                self.script_victory = Some(true);
+                trace_victory = true;
+            }
+            for command in output.commands {
+                let seq = self.next_seq[command.side.index()];
+                let _ = self.accept(CommandEnvelope {
+                    side: command.side,
+                    slot: command.slot,
+                    seq,
+                    order: command.order,
+                    queued: command.queued,
+                });
+            }
+        }
+        if !trace_events.is_empty() || trace_victory {
+            self.script_trace.push(ScriptTrace {
+                tick: self.tick,
+                events: trace_events,
+                victory: trace_victory.then_some(true),
+                error: None,
+            });
+        }
+    }
+
+    fn apply_script_trace(&mut self, trace: &ScriptTrace) {
+        if let Some(error) = &trace.error {
+            self.script_error = Some(error.clone());
+            self.script_terminal_tick = Some(trace.tick);
+        }
+        self.script_events.extend(trace.events.clone());
+        if trace.victory == Some(true) {
+            self.script_victory = Some(true);
+            self.script_terminal_tick = Some(trace.tick);
+        }
     }
 
     /// Add a prop after setup, scheduling its end if its row is transient.
@@ -1767,6 +2159,7 @@ impl Battle {
             let seq = self.next_seq[side.index()];
             let _ = self.accept(CommandEnvelope {
                 side,
+                slot: None,
                 seq,
                 order,
                 queued: false,
@@ -1802,6 +2195,7 @@ impl Battle {
             let seq = self.next_seq[side.index()];
             let _ = self.accept(CommandEnvelope {
                 side,
+                slot: None,
                 seq,
                 order,
                 queued: false,
@@ -3049,6 +3443,9 @@ impl Battle {
         variant: &str,
         destination: [f64; 2],
     ) -> Result<contract::skirmish::PurchasePreview, OrderError> {
+        if side == Side::Neutral {
+            return Err(OrderError::NotSkirmish);
+        }
         let skirmish = self.skirmish.as_ref().ok_or(OrderError::NotSkirmish)?;
         let kind = self
             .rules
@@ -3364,7 +3761,7 @@ impl Battle {
             tick: self.tick,
             seed: self.seed,
             rules: &self.rules,
-            knowledge: [&self.knowledge[0], &self.knowledge[1]],
+            knowledge: std::array::from_fn(|i| &self.knowledge[i]),
             arsenal: &self.arsenal,
         }
     }
@@ -3442,8 +3839,10 @@ impl Battle {
         let low_hover = crate::movement::air::low_hover(&self.rules);
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
-            let spotted_by_visible_enemy: BTreeSet<UnitId> = self.sightings[1 - side.index()]
-                .iter()
+            let spotted_by_visible_enemy: BTreeSet<UnitId> = Side::ALL
+                .into_iter()
+                .filter(|other| *other != side)
+                .flat_map(|other| self.sightings[other.index()].iter())
                 .filter(|s| {
                     knowledge
                         .track(s.observer)
@@ -3470,16 +3869,18 @@ impl Battle {
             }));
             frame.audible.clone_from(&self.audible[side.index()]);
             frame.shouts.clone_from(&own_shouts[side.index()]);
-            frame.shouts.extend(shouts::heard(
-                &own_shouts[1 - side.index()],
-                knowledge,
-                self.tick,
-            ));
-            self.shouted_unseen[side.index()].extend(shouts::unheard(
-                &own_shouts[1 - side.index()],
-                knowledge,
-                self.tick,
-            ));
+            for other in Side::ALL.into_iter().filter(|other| *other != side) {
+                frame.shouts.extend(shouts::heard(
+                    &own_shouts[other.index()],
+                    knowledge,
+                    self.tick,
+                ));
+                self.shouted_unseen[side.index()].extend(shouts::unheard(
+                    &own_shouts[other.index()],
+                    knowledge,
+                    self.tick,
+                ));
+            }
             frame.known_props.clear();
             let known = &self.sides[side.index()];
             // Planning and publication share the complete remembered pose.
@@ -3688,17 +4089,24 @@ impl Battle {
                     }),
             );
             frame.encounter = self.encounter;
-            frame.skirmish = self.skirmish.as_ref().map(|s| {
-                s.view(
-                    side,
-                    self.tick,
-                    self.rules.tick_hz,
-                    self.units
-                        .iter()
-                        .filter(|u| u.side == side && u.alive())
-                        .count() as u32,
-                )
-            });
+            // Economy is a deliberately binary mode. Neutral still gets a
+            // normal observation stream, but it has no wallet, purchase
+            // queue, or objective score to publish.
+            frame.skirmish = self
+                .skirmish
+                .as_ref()
+                .filter(|_| side != Side::Neutral)
+                .map(|s| {
+                    s.view(
+                        side,
+                        self.tick,
+                        self.rules.tick_hz,
+                        self.units
+                            .iter()
+                            .filter(|u| u.side == side && u.alive())
+                            .count() as u32,
+                    )
+                });
             frame.guided.clear();
             frame
                 .guided
@@ -3769,6 +4177,10 @@ impl Battle {
 
     pub fn observe(&self, side: Side) -> &ObservationFrame {
         &self.observations[side.index()]
+    }
+
+    pub fn script_events(&self) -> &[contract::script::ScriptEvent] {
+        &self.script_events
     }
 
     /// Digest of the complete authoritative state at the current tick.
@@ -3861,6 +4273,18 @@ impl Battle {
         // The defender's memory is a player's, not the battle's: its effect is
         // its accepted commands, and a replay runs without it.
 
+        d.u64(self.script_victory.map_or(0, |value| u64::from(value)));
+        if let Some(error) = &self.script_error {
+            d.bytes(error.as_bytes());
+        }
+        if let Some(tick) = self.script_terminal_tick {
+            d.u64(tick);
+        }
+        d.u64(self.script_events.len() as u64);
+        for event in &self.script_events {
+            d.u64(event.side.index() as u64)
+                .bytes(event.name.as_bytes());
+        }
         if let Some((_, referee)) = &self.referee {
             referee.digest(&mut d);
         }
@@ -3874,6 +4298,17 @@ impl Battle {
             config_digest: format!("{:016x}", self.config_digest),
             seed: self.seed,
             accepted: self.accepted.clone(),
+            script_victory: self.script_victory,
+            script_error: self.script_error.clone(),
+            script_terminal_tick: self.script_terminal_tick,
+            controllers: self
+                .controllers
+                .iter()
+                .map(|(slot, controller)| (slot.clone(), controller.clone()))
+                .collect(),
+            controller_transitions: self.controller_transitions.clone(),
+            script_events: self.script_events.clone(),
+            script_trace: self.script_trace.clone(),
         }
     }
 }
@@ -4127,6 +4562,7 @@ mod tests {
             let mut battle = Battle::new(&setup, 11);
             let ack = battle.accept(CommandEnvelope {
                 side: Side::Red,
+                slot: None,
                 seq: 1,
                 queued: false,
                 order: Order::Garrison {

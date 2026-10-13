@@ -63,6 +63,7 @@ fn go(units: &[u32], goal: [f64; 2]) -> Order {
 fn send(b: &mut Battle, seq: u64, order: Order) {
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq,
         order,
         queued: false,
@@ -462,6 +463,7 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
     assert!(matches!(journey.plan(), Some(Plan::Blocked(_))));
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order,
         queued: false,
@@ -549,7 +551,7 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
     let old = loop {
         ticks += 1;
         if let Some((_, _, plan)) = twin
-            .advance(&slow, &roads, [Some((&before, 1)), None])
+            .advance(&slow, &roads, [Some((&before, 1)), None, None])
             .pop()
         {
             break plan;
@@ -568,7 +570,7 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
     planner.submit(UnitId(0), request());
     for _ in 1..ticks {
         assert!(planner
-            .advance(&slow, &roads, [Some((&known, 1)), None])
+            .advance(&slow, &roads, [Some((&known, 1)), None, None])
             .is_empty());
     }
     let seen = world.add_prop(&serde_json::from_str(closed).unwrap());
@@ -576,7 +578,7 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
     known.update(&world, learned.into_iter(), std::iter::empty());
     let plan = loop {
         if let Some((_, _, plan)) = planner
-            .advance(&slow, &roads, [Some((&known, 2)), None])
+            .advance(&slow, &roads, [Some((&known, 2)), None, None])
             .pop()
         {
             break plan;
@@ -729,10 +731,10 @@ fn checking_a_long_route_after_learning_stays_inside_the_tick_allowance() {
         },
     );
     assert!(planner
-        .advance(&slow, &RoadNet::default(), [Some((&known, 1)), None])
+        .advance(&slow, &RoadNet::default(), [Some((&known, 1)), None, None])
         .is_empty());
     for _ in 0..10000 {
-        let plans = planner.advance(&slow, &RoadNet::default(), [Some((&known, 2)), None]);
+        let plans = planner.advance(&slow, &RoadNet::default(), [Some((&known, 2)), None, None]);
         assert!(
             planner.spent() <= 40 + sim::navigation::LARGEST_STEP,
             "revision validation spent {} work in one tick",
@@ -788,7 +790,7 @@ fn initial_long_open_orders_do_not_sample_every_half_metre() {
             },
         );
         assert!(p
-            .advance(&budget, &RoadNet::default(), [Some((&grid, 0)), None])
+            .advance(&budget, &RoadNet::default(), [Some((&grid, 0)), None, None])
             .is_empty());
         p.spent()
     };
@@ -843,7 +845,7 @@ fn an_irregular_diagonal_terrain_probe_yields_within_a_tiny_allowance() {
     );
     for tick in 0..4 {
         assert!(p
-            .advance(&budget, &RoadNet::default(), [Some((&grid, 0)), None])
+            .advance(&budget, &RoadNet::default(), [Some((&grid, 0)), None, None])
             .is_empty());
         assert_eq!(
             p.spent(),
@@ -860,7 +862,7 @@ fn an_irregular_diagonal_terrain_probe_yields_within_a_tiny_allowance() {
                 ..rules.navigation
             },
             &roads,
-            [Some((&grid, 0)), None],
+            [Some((&grid, 0)), None, None],
         );
         if let Some((_, _, plan)) = plans.into_iter().next() {
             finished = Some(plan);

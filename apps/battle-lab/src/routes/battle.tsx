@@ -81,7 +81,9 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
         ? "This map could not be built."
         : stage === "encounter"
           ? "No battle could be placed on this map."
-          : "The battle could not be prepared.";
+          : stage === "bundle"
+            ? "This scenario package could not be admitted."
+            : "The battle could not be prepared.";
   return {
     message,
     advice:

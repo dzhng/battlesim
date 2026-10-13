@@ -110,3 +110,19 @@ export function admitScenario(
     );
   return catalog.units;
 }
+
+/** Compose the catalog carried by an uploaded scenario. The bundle's rules
+ * own the resolved catalog documents, so uploaded play never falls back to
+ * repository fixture units for admission or presentation. */
+export function composeScenarioCatalog(
+  rules: GameRules,
+  resolve: (documentsJson: string) => string,
+): SessionCatalog {
+  const view = JSON.parse(resolve(JSON.stringify(rules.catalog))) as CatalogView;
+  return {
+    set: "game",
+    units: new UnitCatalog(view),
+    weapons: rules.weapons as unknown as Record<string, WeaponRow>,
+    rules,
+  };
+}

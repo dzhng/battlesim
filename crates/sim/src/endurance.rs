@@ -144,7 +144,7 @@ fn scenario_in_arena(
     }
     let mut units = Vec::new();
     let mut scripts = Vec::new();
-    for side in Side::ALL {
+    for side in Side::COMBATANTS {
         let east = side == Side::Red;
         let x_of = |depth: f64| left + if east { width - depth } else { depth };
         let yaw = if east { std::f64::consts::PI } else { 0.0 };
@@ -170,6 +170,7 @@ fn scenario_in_arena(
                 let y = bottom + 150.0 + (n as f64 * 17.0) % 1700.0;
                 units.push(UnitSetup {
                     side,
+                    owner: None,
                     kind: kind.to_string(),
                     position: [x_of(depth), y],
                     yaw,
@@ -264,6 +265,7 @@ fn scenario_in_arena(
             );
             units.push(UnitSetup {
                 side: if k % 2 == 0 { Side::Blue } else { Side::Red },
+                owner: None,
                 kind: "test_rifle".to_string(),
                 position: [x, y],
                 yaw: remains.unit() * std::f64::consts::TAU,
@@ -283,6 +285,8 @@ fn scenario_in_arena(
         units,
         events: Vec::new(),
         scripts,
+        authored_scripts: Vec::new(),
+        victory: None,
         opponent: None,
         encounter: None,
     })

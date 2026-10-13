@@ -44,6 +44,9 @@ consistent with Vite so local, preview and deployed pages follow the same
 cross-origin isolation policy. Runtime assets must be materialized from Git LFS before a build can
 serve them; committed pointer files are not media.
 
+Vercel Analytics is mounted by [`src/main.tsx`](src/main.tsx) at the application root,
+so deployed page views and client-side route changes use the same single browser entry.
+
 ## Checks and evidence
 
 [Vitest configuration](vitest.config.ts) and [tests](tests/) own fast browser-side

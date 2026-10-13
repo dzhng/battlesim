@@ -159,11 +159,21 @@ export const fetchedOnRequest = (entry: { unit: AppearanceUnit; regional_family?
 export const catalogLoadNames = (
   catalog: Pick<RuntimeCatalog, "appearances">,
   wearing?: ReadonlySet<string>,
+  factions?: ReadonlySet<string> | null,
+  scenery?: ReadonlySet<string> | null,
 ): string[] => {
   const entries = Object.entries(catalog.appearances ?? {});
   const worn = (name: string) => !wearing || wearing.has(name);
   const looks = new Set(
-    entries.flatMap(([name, e]) => (e.factions && worn(name) ? Object.values(e.factions) : [])),
+    entries.flatMap(([name, e]) => {
+      if (!e.factions || !worn(name)) return [];
+      if (factions === null) return [];
+      return factions
+        ? [...factions]
+            .map((faction) => e.factions![faction as keyof typeof e.factions])
+            .filter(Boolean)
+        : Object.values(e.factions);
+    }),
   );
   const wrecks = new Set(entries.flatMap(([name, e]) => (e.wreck && worn(name) ? [e.wreck] : [])));
   const wrecked = new Set(entries.flatMap(([, e]) => (e.wreck ? [e.wreck] : [])));
@@ -171,7 +181,9 @@ export const catalogLoadNames = (
     .filter(([name, entry]) => {
       if (fetchedOnRequest(entry)) return false;
       if (wrecked.has(name)) return wrecks.has(name);
-      return entry.unit === "scenery" || worn(name) || looks.has(name);
+      return entry.unit === "scenery"
+        ? scenery === undefined || (scenery !== null && scenery.has(name))
+        : worn(name) || looks.has(name);
     })
     .map(([name]) => name);
 };

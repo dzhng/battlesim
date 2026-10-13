@@ -1,15 +1,19 @@
 import { useLabLoading } from "./LabLoading";
-import type { PreparedSession } from "@web/battle/prepare/client";
+import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
 import type { LearnedGround } from "@web/battle/sim/presentation";
 import type { ObservationView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
+import type { SideName } from "@web/battle/sim/protocol";
 
 export interface SimSessionOptions {
   scenario: string;
   seed: number;
-  prepared?: PreparedSession;
+  prepared?: PreparedConnectionSession;
+  side?: SideName;
+  /** Player slot issuing commands in a slot-owned scenario. */
+  slot?: string;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** Replay these accepted commands instead of taking input. */
@@ -47,6 +51,8 @@ export function useSimSession({
   replay,
   scripted,
   prepared,
+  slot,
+  side = "blue",
 }: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
   const [client, setClient] = useState<SimClient | null>(null);
@@ -77,10 +83,14 @@ export function useSimSession({
     const next = createSimClient({
       scenario,
       seed,
-      side: "blue",
+      side,
+      slot,
       transport: "worker",
       replay,
-      connect: generation === 0 ? prepared?.connect : undefined,
+      // A prepared bundle connection owns one live authority. Once the
+      // session is replaced (for example by uploading a replay), start a
+      // fresh worker rather than sending init through the closed connection.
+      connect: generation === 0 && !replay ? prepared?.connect : undefined,
     });
     let warm = !plan;
     if (plan) {
@@ -143,7 +153,7 @@ export function useSimSession({
       if (frame !== null) cancelAnimationFrame(frame);
       next.dispose();
     };
-  }, [scenario, seed, generation, replay, prepared]);
+  }, [scenario, seed, generation, replay, prepared, slot, side]);
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;

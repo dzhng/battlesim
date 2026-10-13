@@ -51,6 +51,14 @@ const DEVELOPER: Entry[] = [
           href: "/map-workbench",
         },
         {
+          label: "Scenario builder",
+          href: "/scenario-builder",
+        },
+        {
+          label: "Scenario play",
+          href: "/scenario-play",
+        },
+        {
           label: "Sound workbench",
           href: "/sound-workbench",
         },

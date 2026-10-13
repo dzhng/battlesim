@@ -75,6 +75,7 @@ fn an_oblique_squad_preview_keeps_the_committed_approach_heading() {
     assert!(preview[0].placed);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         queued: false,
         order: Order::Move {

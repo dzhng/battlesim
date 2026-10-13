@@ -192,6 +192,10 @@ pub enum Order {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CommandEnvelope {
     pub side: Side,
+    /// Player slot issuing the order. Required when the scenario assigns
+    /// units to slots; omitted by legacy side-owned scenarios.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slot: Option<String>,
     /// Strictly increasing per side, starting at 1.
     pub seq: u64,
     pub order: Order,
@@ -203,6 +207,8 @@ pub struct CommandEnvelope {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum OrderError {
+    /// Neutral is a passive world slot and cannot receive player commands.
+    PassiveSide,
     NotSkirmish,
     MatchFinished,
     UnitUnavailable,
@@ -220,6 +226,12 @@ pub enum OrderError {
     NotOwnUnit {
         unit: UnitId,
     },
+    /// A portable scenario assigned the unit to another player slot.
+    WrongSlot {
+        unit: UnitId,
+    },
+    /// A slot-owned scenario command omitted its player slot.
+    MissingSlot,
     OutOfBounds,
     /// No unit has a place to stand there that it can reach.
     NoValidDestination,

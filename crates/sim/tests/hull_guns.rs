@@ -121,6 +121,7 @@ fn a_tracked_hull_gun_on_the_move_never_turns_aside_or_fires_backwards() {
     ]));
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],
@@ -156,6 +157,7 @@ fn a_helicopter_turns_its_airframe_to_aim_while_it_flies_on() {
     ]));
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],
@@ -200,6 +202,7 @@ fn a_gunship_flying_past_holds_its_aim_through_its_bursts_and_reloads() {
     ]));
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],

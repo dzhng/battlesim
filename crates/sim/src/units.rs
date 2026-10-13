@@ -225,6 +225,9 @@ impl UnitOrder {
 pub struct Unit {
     pub id: UnitId,
     pub side: Side,
+    /// Player slot that may issue commands for this unit, when the scenario
+    /// is a portable slot-owned bundle.
+    pub owner: Option<String>,
     /// Its unit type, the catalog's index.
     pub kind: TypeIndex,
     /// Returned through the physical base entry; distinct from combat death.

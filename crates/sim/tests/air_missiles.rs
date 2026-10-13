@@ -44,6 +44,7 @@ fn battle(units: Value) -> Battle {
 fn fly(b: &mut Battle, goal: [f64; 2]) {
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],

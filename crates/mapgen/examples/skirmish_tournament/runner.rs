@@ -102,6 +102,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 report.attempted_orders += 1;
                 let ack = battle.accept(CommandEnvelope {
                     side,
+                    slot: None,
                     seq: seq[side.index()],
                     order,
                     queued: false,

@@ -89,6 +89,13 @@ These are the decisions the build made where the spec was silent or contradicted
 - **The reach:** every keyboard command and the camera.
 - **Confidence:** high.
 
+### Contact-focus keys: N older, Shift+N newer (decided by the user)
+- **When:** after the checkpoint; decided by the user on 2026-10-12.
+- **The choice:** `N` jumps the camera to the side's newest live contact, and each further press steps to the next older one; `Shift+N` steps back toward the newest, both wrapping. Only the ground target moves: the view keeps its angle and zoom. The list is the side's live contacts, newest evidence first, so a contact that is re-identified or expired (its marker only fading) is not a place to visit; with none, `N` is inert. The cycle lives in `web/src/battle/input/contactFocus.ts`, `LabViewport` takes the targets as a prop and runs the jump through the rig (`CameraController.place`), and `BattleView` derives them from `contactPresentation`.
+- **Why / the gap:** many RTSs bind a "jump to last event" key, usually `Space`, but here `Space` is hold-to-show-orders and `Backspace` stops (both user decisions). The user chose `N`/`Shift+N` from the free keys, and the uncertain contacts as the event rather than identified enemies, which the side can already see.
+- **The reach:** Only the camera and contact presentation; no observation, rule or digest changes. A future event kind, such as an own unit under fire or a changing objective, would extend the target list, not the key.
+- **Confidence:** high.
+
 ### What each kind of prop blocks (your decision)
 - **When:** slices 02 and 09; changed by your decision after the checkpoint.
 - **The choice:** Every prop kind says, per kind of mover, whether it stops it: one table (`PropKind::blocks`), with infantry and vehicles as the two mover classes today. A wreck stops vehicles only; soldiers climb over and through it. Buildings, walls, crates and ruins stop everyone. Tree trunks and bridge decks stop no one: trunks still stop rounds and sight, so a tank drives through a forest more slowly (M02) instead of routing round every trunk, and a bridge deck is driven on, not around. A wreck still hides what is behind it and still stops rounds by its shape. Route planning keeps a separate "fits here" map per mover class, so a squad plans straight across a wreck while a tank plans round it.

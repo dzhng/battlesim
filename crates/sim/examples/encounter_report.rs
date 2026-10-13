@@ -205,6 +205,7 @@ fn side_name(side: Side) -> &'static str {
     match side {
         Side::Blue => "blue",
         Side::Red => "red",
+        Side::Neutral => "neutral",
     }
 }
 

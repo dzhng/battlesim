@@ -1087,6 +1087,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     assert!(shown[0].placed, "10 m past the far wall: {shown:?}");
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 2,
         order: Order::Move {
             units: vec![UnitId(squad)],
@@ -1771,6 +1772,7 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
     assert_eq!(hit.observe(Side::Blue), calm.observe(Side::Blue));
     let command = CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         queued: false,
         order: Order::Garrison {

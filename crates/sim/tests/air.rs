@@ -37,6 +37,7 @@ pub(crate) fn open_map() -> Value {
 pub(crate) fn order(units: &[u32], goal: [f64; 2]) -> CommandEnvelope {
     CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Move {
             units: units.iter().map(|&u| UnitId(u)).collect(),
@@ -380,6 +381,7 @@ fn area_fire_refuses_an_air_contact() {
     assert!(ground_rounds > 0, "a ground report still draws area fire");
     let attack = |id| CommandEnvelope {
         side: Side::Blue,
+        slot: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],

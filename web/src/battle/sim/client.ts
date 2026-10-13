@@ -40,6 +40,8 @@ export interface SimClientOptions {
   scenario: string;
   seed: number;
   side: SideName;
+  /** Player slot issuing commands in a slot-owned scenario. */
+  slot?: string;
   /** "worker" in production; "direct" runs the same authority in-thread. */
   transport: "worker" | "direct";
   /** Adopt a worker that already holds this battle's prepared world. */
@@ -69,6 +71,7 @@ export interface SimClient {
   /** Lab diagnostic: observe as the other side. Commands keep their side.
    *  The ground view empties until that side's snapshot arrives. */
   observeAs(side: SideName): void;
+  setControllers(controllers: string): void;
   dispose(): void;
 }
 
@@ -315,6 +318,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
     scenario: options.scenario,
     seed: options.seed,
     side: options.side,
+    slot: options.slot,
     replay: options.replay,
   });
 
@@ -337,7 +341,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
       if (failure || disposed)
         return Promise.reject(failure ?? new Error("simulation client disposed"));
       seq += 1;
-      const command = { side: options.side, seq, order, queued };
+      const command = { side: options.side, slot: options.slot, seq, order, queued };
       return new Promise<CommandAck>((resolve, reject) => {
         pendingAcks.set(seq, { resolve, reject });
         channel.send({ type: "command", command });
@@ -392,6 +396,10 @@ export function createSimClient(options: SimClientOptions): SimClient {
         advances.set(id, { resolve, reject });
         channel.send({ type: "advance", id, ticks });
       });
+    },
+    setControllers(controllers) {
+      if (failure || disposed) return;
+      channel.send({ type: "controllers", controllers });
     },
     observeAs(side) {
       if (failure || disposed) return;

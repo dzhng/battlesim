@@ -2,13 +2,15 @@ import {
   ObjectiveMarkers,
   type ObjectiveMarkersHandle,
 } from "@web/battle/present/objectiveMarkers";
-// A played (or replayed) battle for blue: the world, the side's units and
+// A played (or replayed) battle for the selected side: the world, that side's units and
 // every overlay, and the HUD: the top bar's readout, the army deck and its
 // command bar, subtitles, and the pause menu. Routes compose it with their
 // own readout (a battle's clock, a lab's telemetry) and
 // pause menu items (the scenario, replays, a lab's switches).
-import type { PreparedSession } from "@web/battle/prepare/client";
+import type { PreparedConnectionSession } from "@web/battle/prepare/client";
+import type { ObservationView } from "@web/battle/sim/observationView";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { contactFocusTargets } from "@web/battle/input/contactFocus";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
@@ -52,6 +54,9 @@ export function BattleView({
   scenario,
   seed,
   prepared,
+  scenarioArt,
+  slot,
+  side,
   replay,
   scripted,
   camera,
@@ -63,12 +68,19 @@ export function BattleView({
   onLoadStage,
   onFailure,
   spawn,
+  onDecoded,
 }: {
   fixture: string;
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
   seed: number;
-  prepared?: PreparedSession;
+  prepared?: PreparedConnectionSession;
+  /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
+  scenarioArt?: boolean;
+  /** Player slot issuing commands in a slot-owned scenario. */
+  slot?: string;
+  /** Side whose observation and command stream this player controls. */
+  side?: import("@web/battle/sim/protocol").SideName;
   /** A recorded battle to replay: input is off. */
   replay?: string;
   /** A scripted run: a comparison commander or scenario orders play it, with input off. The benchmark's
@@ -91,8 +103,10 @@ export function BattleView({
   /** The battle's authority refused or failed it: the route's cover shows the
    *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
   onFailure?: (error: string) => void;
-  /** The authoritative blue entry, used for the deployment cue. */
+  /** The authoritative entry for the selected side, used for the deployment cue. */
   spawn?: [number, number] | null;
+  /** Scenario/runtime audio may react to the first authoritative publication. */
+  onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
@@ -129,7 +143,13 @@ export function BattleView({
     scenario,
     seed,
     prepared,
-    onDecoded: noteCues,
+    scenarioArt,
+    slot,
+    side,
+    onDecoded: (observation, digest) => {
+      noteCues(observation);
+      onDecoded?.(observation, digest);
+    },
     replay,
     scripted,
     sound: true,
@@ -141,6 +161,8 @@ export function BattleView({
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
   const { contacts } = session;
+  // Contacts N steps through, newest first.
+  const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
   const { pointerPaint } = session;
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const objectiveMarkers = useRef<ObjectiveMarkersHandle>(null);
@@ -238,6 +260,7 @@ export function BattleView({
           fog={session.fogFeed}
           {...session.viewport}
           initialCamera={camera}
+          focusTargets={focusTargets}
           cameraConfig={cameraConfig}
           groundAt={surfaceZ}
           onPick={input ? session.input.onPick : undefined}

@@ -1,0 +1,105 @@
+use contract::bundle::{
+    base64_encode, BundleAsset, BundleMapIdentity, BundleMode, ControllerKind, PlayerSlot,
+    ScenarioBundle, VictoryDefinition, FORMAT_VERSION,
+};
+use contract::ids::Side;
+use contract::scenario::ScenarioDefinition;
+
+fn bundle() -> ScenarioBundle {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/skirmish-objectives.json"
+    ))
+    .unwrap();
+    let mut scenario: ScenarioDefinition =
+        serde_json::from_value(fixture["scenario"].clone()).unwrap();
+    scenario.skirmish = None;
+    let map_hash = contract::identity::json_hash(&scenario.map).unwrap();
+    let rules_hash = contract::identity::json_hash(&scenario.rules).unwrap();
+    let bytes = b"RIFF";
+    ScenarioBundle {
+        format_version: FORMAT_VERSION.into(),
+        runtime_build: "wasm-test-build".into(),
+        map: BundleMapIdentity {
+            map_hash,
+            template_catalog_hash: None,
+        },
+        rules_hash,
+        scenario,
+        slots: vec![PlayerSlot {
+            id: "blue-1".into(),
+            side: Side::Blue,
+            human_capable: true,
+            faction: None,
+            controller: ControllerKind::Human,
+            units: Vec::new(),
+        }],
+        mode: BundleMode::Sandbox,
+        victory: VictoryDefinition {
+            source: "return true".into(),
+        },
+        authored_scripts: Vec::new(),
+        assets: vec![BundleAsset {
+            id: "intro-audio".into(),
+            media_type: "audio/wav".into(),
+            sha256: contract::identity::bytes_hash(bytes),
+            provenance: "user-upload".into(),
+            bytes_base64: Some(base64_encode(bytes)),
+            builtin: None,
+        }],
+    }
+}
+
+#[test]
+fn wasm_boundary_agrees_with_native_canonical_identity() {
+    let bundle = bundle();
+    let canonical = bundle.to_json().unwrap();
+    let native = bundle.identity().unwrap();
+    let result: serde_json::Value =
+        serde_json::from_str(&game_wasm::check_scenario_bundle(&canonical)).unwrap();
+    assert_eq!(result["status"], "ok");
+    assert_eq!(result["identity"]["sha256"], native.sha256);
+    assert_eq!(
+        game_wasm::canonical_scenario_bundle(&canonical).unwrap(),
+        canonical
+    );
+}
+
+#[test]
+fn wasm_boundary_refuses_noncanonical_upload_before_preparation() {
+    let bundle = bundle();
+    let canonical = bundle.to_json().unwrap();
+    let noncanonical = serde_json::to_string_pretty(
+        &serde_json::from_str::<serde_json::Value>(&canonical).unwrap(),
+    )
+    .unwrap();
+    let result: serde_json::Value =
+        serde_json::from_str(&game_wasm::check_scenario_bundle(&noncanonical)).unwrap();
+    assert_eq!(result["status"], "error");
+    assert_eq!(result["diagnostics"][0]["code"], "non_canonical");
+}
+
+#[test]
+fn bundle_details_uses_resolved_snapshot_without_generation() {
+    let canonical = bundle().to_json().unwrap();
+    let details: serde_json::Value =
+        serde_json::from_str(&game_wasm::scenario_bundle_details(&canonical).unwrap()).unwrap();
+    assert_eq!(
+        details["identity"]["sha256"],
+        bundle().identity().unwrap().sha256
+    );
+    assert_eq!(details["size"], serde_json::json!([800.0, 600.0]));
+    assert!(details["scenario"].as_str().unwrap().contains("\"map\""));
+    assert_eq!(details["assets"][0]["id"], "intro-audio");
+}
+
+#[test]
+fn wasm_controller_admission_keeps_empty_human_slots_passive() {
+    let canonical = bundle().to_json().unwrap();
+    let controllers: Vec<(String, contract::bundle::ControllerKind)> =
+        serde_json::from_str(&game_wasm::scenario_bundle_controllers(&canonical, None).unwrap())
+            .unwrap();
+    assert_eq!(
+        controllers,
+        vec![("blue-1".into(), contract::bundle::ControllerKind::PassiveAi)]
+    );
+}
