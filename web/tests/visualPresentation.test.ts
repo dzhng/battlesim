@@ -11,6 +11,7 @@ import {
   writeVisualPresentation,
   type DrawnPresentation,
   type EffectCount,
+  type FrameCount,
   type GrassCount,
   type InstanceCount,
   type ModelCount,
@@ -132,6 +133,7 @@ test("the manifest names its battle by the capture's workload and the hashes of 
     instanceCounts: [],
     modelCounts: [],
     effectCounts: [],
+    frameCounts: [],
   });
 });
 
@@ -221,5 +223,30 @@ test("each plate's effect counts ride along, one per plate", async () => {
   expect(reject({ effectCounts: [row, row] })).toThrow(/effect counts/);
   await expect(written(platedCapture(), grassCounts, instanceCounts, [])).rejects.toThrow(
     /effect counts must be one per plate/,
+  );
+});
+
+test("a counted run's frame counts ride along in frame order, each naming a frame the capture drew", async () => {
+  const { plate: _i, ...instances } = instanceCounts[0];
+  const { plate: _m, ...models } = modelCounts[0];
+  const { plate: _e, ...effects } = effectCounts[0];
+  const counted = (frame: number): FrameCount => ({ frame, models, effects, drawn: instances });
+  const write = (frameCounts: FrameCount[]) =>
+    writeVisualPresentation({
+      captureJson: platedCapture(),
+      mapBytes,
+      drawn,
+      grassCounts,
+      instanceCounts,
+      modelCounts,
+      effectCounts,
+      frameCounts,
+    });
+  const manifest = JSON.parse(await write([counted(0), counted(1)])) as VisualPresentation;
+  expect(manifest.frameCounts).toEqual([counted(0), counted(1)]);
+  await expect(write([counted(2)])).rejects.toThrow(/frame counts name frame 2/);
+  await expect(write([counted(1), counted(0)])).rejects.toThrow(/frame counts/);
+  await expect(write([{ ...counted(0), models: { ...models, fading: -1 } }])).rejects.toThrow(
+    /frame counts/,
   );
 });

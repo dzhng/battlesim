@@ -1153,7 +1153,7 @@ After the rate fix, about one fresh capture in four still had a market-town plat
 **The contract:**
 - **Native reads the numbers the page wrote with std's correctly rounded parse** (`capture.rs`'s `exact`): each frame's `simTime`, `reelMs`, `eye`, `target` and `up`, and the manifest's lens. The capture and manifest formats are unchanged.
 - **Not serde_json's `float_roundtrip`.** Cargo enables a feature for every crate in a build, so it would also change how native's simulation reads the maps (market-town's has 9,164 numbers of 16 or more digits), while the page's WebAssembly simulation still reads them the default way. Both clients read the maps alike today.
-- **Held by** `a_frame_reads_back_the_numbers_the_page_wrote` (red before the fix: one ULP at 109/30). If a reader drifts again, the count check on each plate is what fails, as it did here.
+- **Held by** `native/client/tests/counts.rs` (branch `replaytest`, which replaced the reader's own `109/30` test): native's replay of a committed count-only browser run (`PARITY_COUNTS=1`, the manifest's `frameCounts`: 1,387 frames of paris-corner's reel, 582 on a tick boundary) gives the browser's model, effect, building, prop and scenery counts on every counted frame. With serde_json's default reader in place of `exact` it fails on 86 counts, all on boundary frames (the first at 11.966666666666669 s). It runs in `cargo test`, with no GPU.
 
 **Evidence:**
 - Four fresh captures of both scenes before the fix: the third (`throwaway/native-parity/2026-10-13T20-22-01-640Z`) differed on market-town plate 6485 only. Fixed native equals the browser on it.

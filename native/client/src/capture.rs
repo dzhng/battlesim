@@ -109,6 +109,10 @@ pub struct Replay {
     /// The building modules, scenery and known props the browser drew by
     /// plate (`instanceCounts`).
     pub instance_counts: Vec<Value>,
+    /// What the browser drew of each counted frame (`frameCounts`).
+    pub frame_counts: Vec<Value>,
+    /// The rate the page's presentation ran at.
+    pub tick_hz: f64,
     /// The map's terrain triangles, as the simulation exports them:
     /// vertices (x, y, z), then indices.
     pub terrain: (Vec<f32>, Vec<u32>),
@@ -284,6 +288,11 @@ impl Replay {
                 .as_array()
                 .cloned()
                 .unwrap_or_default(),
+            frame_counts: manifest["frameCounts"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default(),
+            tick_hz: capture.tick_hz,
             terrain: (ground.positions, ground.indices),
             world: fog.then_some(ground.world),
             cleared: 0,
@@ -357,29 +366,5 @@ impl Replay {
             }
         }
         Ok(self.presentation.last_frame())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The page writes each number as JavaScript does, the shortest text
-    /// that reads back to its double; a frame is drawn at exactly that
-    /// time. 109/30 is a tick boundary serde_json's default reader lands one
-    /// ULP past, where a whole tick's effects start or end.
-    #[test]
-    fn a_frame_reads_back_the_numbers_the_page_wrote() {
-        let boundary: f64 = 109.0 / 30.0;
-        let eye: [f64; 3] = [0.1 + 0.2, 1.0 / 3.0, 3.6042550000053653];
-        let text = format!(
-            r#"{{"index":0,"reelMs":{boundary:?},"tick":109,"simTime":{boundary:?},"eye":[{:?},{:?},{:?}],"target":[{boundary:?},0,1e-7],"up":[0,0,1],"canvas":[1280,720],"plate":null}}"#,
-            eye[0], eye[1], eye[2]
-        );
-        let record: Record = serde_json::from_str(&text).unwrap();
-        assert_eq!(record.sim_time.to_bits(), boundary.to_bits());
-        assert_eq!(record.reel_ms.to_bits(), boundary.to_bits());
-        assert_eq!(record.eye.map(f64::to_bits), eye.map(f64::to_bits));
-        assert_eq!(record.target, [boundary, 0.0, 1e-7]);
     }
 }
