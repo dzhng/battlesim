@@ -40,8 +40,10 @@ consumers read the same current state.
 - Aircraft have no ground circles. Their state lives in the existing floating
   cards; order ghosts carry compact cards while Space is held. The first
   HighAir episode raises one side-local alarm and the jet loop is positional.
-- Downloaded audio sources remain provenance and audition material until their
-  rights are accepted. Runtime assignments use safe generated placeholders.
+- Air-war recordings are admitted as personal-project sources. Jet approach,
+  air alarm, AA launch, missile warning and flare deployment remain ordinary
+  sound-workbench recipes, while the battle presentation owns when each cause
+  is emitted.
 
 ## Code pointers
 
@@ -80,5 +82,5 @@ The original immediate fixed-entry sortie model was not kept as a compatibility
 layer. Radar was not folded into ordinary fog because that would reveal too much
 or make SEAD impossible to reason about. Dogfights were not represented as a
 special group object: pair links naturally admit additional aircraft and break
-when range or explicit orders change. Unlicensed downloaded clips were not
-assigned to runtime recipes.
+when range or explicit orders change. Air-war recordings use the personal
+project's ordinary catalog and workbench path rather than a second audio system.
