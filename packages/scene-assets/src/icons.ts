@@ -102,12 +102,18 @@ const STATE_ICONS = {
   heard:
     '<path d="M3 10v4h3l5 4V6l-5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/>',
   unknown: '<path d="M8.5 9a3.5 3.5 0 1 1 5 3.2c-1 .5-1.5 1.3-1.5 2.3"/><path d="M12 19v.5"/>',
-  fuel: '<path d="M5 4h9v16H5zM14 8h3l2 2v7a2 2 0 0 1-4 0v-3"/>',
-  afterburner: '<path d="M12 3c3 4 4 6 4 9a4 4 0 1 1-8 0c0-2 1-4 4-9z"/>',
+  // A fuel pump: its dial window keeps the body from reading as a mug.
+  fuel: '<path d="M5 4h9v16H5z"/><path d="M8 7h3v3H8z"/><path d="M14 8h3l2 2v7a2 2 0 0 1-4 0v-3"/>',
+  // A flame with its hot core, full height: a lone small drop read as an "o".
+  afterburner:
+    '<path d="M12 2c4 5 6 8 6 12a6 6 0 0 1-12 0c0-4 2-7 6-12z"/><path d="M12 12c1.5 2 2.5 3.5 2.5 5a2.5 2.5 0 0 1-5 0c0-1.5 1-3 2.5-5z"/>',
   traversing: '<path d="M4 12h14M13 7l5 5-5 5"/><path d="M4 5v14"/>',
   dogfight: '<path d="M4 7h9l-3-3M20 17h-9l3 3M13 7l-3 10"/>',
   radar: '<circle cx="12" cy="12" r="8"/><path d="M12 12l6-5M12 12V4"/>',
-  flares: '<path d="M7 20l5-16 5 16M9 14h6M8 18h8"/>',
+  // Twin decoys shed from one point, their trails bending apart as they
+  // fall, each ending in its burning head.
+  flares:
+    '<path d="M10 3c0 5-1 9-2.5 12M14 3c0 5 1 9 2.5 12"/><circle cx="7" cy="18" r="2.3" fill="currentColor"/><circle cx="17" cy="18" r="2.3" fill="currentColor"/>',
 } as const;
 
 export type StateIcon = keyof typeof STATE_ICONS;

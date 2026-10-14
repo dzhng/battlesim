@@ -34,17 +34,19 @@ export interface PanelRules {
  *    stock); a panel lists its lasting rows first, then the temporary ones
  *    (something happening now or passing).
  *  - `tone`: warning states, including pinned, draw in the shared warning
- *    colour. */
+ *    colour.
+ *  - `amount`: `n` is something the unit spends (supply, fuel, flares); run
+ *    out, the row draws in the warning colour, as a weapon out of rounds is
+ *    marked. */
 export const STATE_ROWS = {
   deployed: { icon: "deployed", word: () => "DEPLOYED", lasting: true },
   in_building: { icon: "building", word: () => "IN BUILDING", lasting: true },
   hidden: { icon: "hidden", word: () => "HIDDEN", lasting: true },
-  stock: { icon: "stock", word: (n: number | string) => `SUPPLY ${n}`, lasting: true },
-  stock_empty: {
+  stock: {
     icon: "stock",
     word: (n: number | string) => `SUPPLY ${n}`,
     lasting: true,
-    tone: "warn",
+    amount: true,
   },
   withdrawing: { icon: "withdrawing", word: () => "RETURNING TO BASE" },
   deploying: { icon: "deploy", word: () => "DEPLOYING" },
@@ -59,13 +61,23 @@ export const STATE_ROWS = {
   resupplying: { icon: "resupply", word: () => "RESUPPLYING" },
   last_seen: { icon: "last_seen", word: (n: number | string) => `LAST SEEN ${n} s AGO` },
   heard: { icon: "heard", word: (n: number | string) => `HEARD ${n} s AGO` },
-  fuel: { icon: "fuel", word: (n: number | string) => `FUEL ${n} s`, lasting: true },
+  fuel: {
+    icon: "fuel",
+    word: (n: number | string) => `FUEL ${n} s`,
+    lasting: true,
+    amount: true,
+  },
   afterburner: { icon: "afterburner", word: () => "AFTERBURNERS ON", lasting: true },
   traversing: { icon: "traversing", word: () => "TRAVERSING" },
   dogfight: { icon: "dogfight", word: () => "DOGFIGHT", tone: "warn" },
   radar_contact: { icon: "radar", word: () => "RADAR CONTACT", tone: "warn" },
   radar_details: { icon: "radar", word: (n: number | string) => String(n), tone: "warn" },
-  flares: { icon: "flares", word: (n: number | string) => `FLARES ${n}`, lasting: true },
+  flares: {
+    icon: "flares",
+    word: (n: number | string) => `FLARES ${n}`,
+    lasting: true,
+    amount: true,
+  },
 } satisfies Record<string, StateRowKind>;
 
 interface StateRowKind {
@@ -73,6 +85,7 @@ interface StateRowKind {
   word: (n: number | string) => string;
   lasting?: boolean;
   tone?: StateTone;
+  amount?: boolean;
 }
 
 type StateKind = keyof typeof STATE_ROWS;
@@ -112,7 +125,7 @@ const row = (
     progress,
     fill,
     lasting: !!s.lasting,
-    tone: s.tone ?? null,
+    tone: s.tone ?? (s.amount && n === 0 ? "warn" : null),
   };
 };
 
@@ -184,7 +197,7 @@ export function ownStateRows(
   if (u.stock !== null) {
     const full = units.type(u.kind).capabilities?.supply?.stock;
     rows.push(
-      row(u.stock > 0 ? "stock" : "stock_empty", {
+      row("stock", {
         n: u.stock,
         fill: full ? Math.min(1, u.stock / full) : null,
       }),

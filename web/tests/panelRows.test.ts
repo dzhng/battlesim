@@ -119,10 +119,18 @@ test("a truck shows its stock, and supplying while set up with a unit in reach b
   // Deploying, it supplies nobody yet; its lasting stock stays above.
   const setting = { ...truck, deployment: { progress: 0.5, target: "deployed" } };
   expect(words(setting, [setting, served]).map(([w]) => w)).toEqual(["SUPPLY 400", "DEPLOYING"]);
-  // An empty truck's stock is a warning of its own.
-  expect(ownStateRows(UNITS, { ...truck, stock: 0 }, [], RULES).map((r) => r.state)).toContain(
-    "stock_empty",
-  );
+});
+
+test("an amount the unit has run out of draws in the warning tone: supply, fuel, flares", () => {
+  const tones = (u: Partial<OwnUnitView>) =>
+    ownStateRows(UNITS, unit(u), [], RULES).map((r) => [r.word, r.tone]);
+  const truck = { kind: "test_supply" };
+  expect(tones({ ...truck, stock: 400 })).toEqual([["SUPPLY 400", null]]);
+  expect(tones({ ...truck, stock: 0 })).toEqual([["SUPPLY 0", "warn"]]);
+  expect(tones({ fuelS: 0.4 })).toEqual([["FUEL 1 s", null]]);
+  expect(tones({ fuelS: 0 })).toEqual([["FUEL 0 s", "warn"]]);
+  expect(tones({ flares: { charges: 1, cooldown: null } })).toEqual([["FLARES 1", null]]);
+  expect(tones({ flares: { charges: 0, cooldown: 0.5 } })).toEqual([["FLARES 0", "warn"]]);
 });
 
 test("suppression is the published tier's word alone: SUPPRESSED and PINNED, both in the shared warning tone", () => {
