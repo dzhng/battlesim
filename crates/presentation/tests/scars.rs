@@ -782,23 +782,28 @@ fn a_region_draws_only_where_it_is_on_screen() {
     // The lower-left quarter of the map: the screen's lower-left quarter,
     // two pixels wider each side.
     assert_eq!(
-        scissor([0.0, 0.0, 50.0, 50.0], &map, &overhead(1.0), size),
+        scissor([0.0, 0.0, 50.0, 50.0], Some(&map), &overhead(1.0), size),
         Some([0, 248, 502, 252])
     );
     // Past the screen's edge, or behind the eye: nothing to draw.
     assert_eq!(
-        scissor([150.0, 0.0, 200.0, 50.0], &map, &overhead(1.0), size),
+        scissor([150.0, 0.0, 200.0, 50.0], Some(&map), &overhead(1.0), size),
         None
     );
     assert_eq!(
-        scissor([0.0, 0.0, 50.0, 50.0], &map, &overhead(-1.0), size),
+        scissor([0.0, 0.0, 50.0, 50.0], Some(&map), &overhead(-1.0), size),
         None
     );
     // Crossing the eye's plane: the whole screen, as nothing bounds it.
     let mut across = overhead(1.0);
     across[11] = -0.1; // w falls with height: the box's top is behind the eye
     assert_eq!(
-        scissor([0.0, 0.0, 50.0, 50.0], &map, &across, size),
+        scissor([0.0, 0.0, 50.0, 50.0], Some(&map), &across, size),
+        Some([0, 0, 1000, 500])
+    );
+    // A map with no box: nothing bounds the region either.
+    assert_eq!(
+        scissor([0.0, 0.0, 50.0, 50.0], None, &overhead(1.0), size),
         Some([0, 0, 1000, 500])
     );
 }

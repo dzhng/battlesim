@@ -593,7 +593,7 @@ export async function createWorldPass(
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
   /** The map's box (`map_box`): what a scar's scissor projects. */
-  let box: Float64Array | null = null;
+  let box: Float64Array | undefined;
   let frameProjection: Float32Array | null = null;
   /** The pixels a scar region can cover (`scar_scissor`), none off screen. */
   const scissor = (
@@ -601,7 +601,7 @@ export async function createWorldPass(
     width: number,
     height: number,
   ): readonly [number, number, number, number] | null => {
-    if (!box || !frameProjection) return [0, 0, width, height];
+    if (!frameProjection) return [0, 0, width, height];
     const rect = scar_scissor(new Float64Array(r), box, frameProjection, width, height);
     return rect.length ? [rect[0], rect[1], rect[2], rect[3]] : null;
   };
@@ -633,7 +633,7 @@ export async function createWorldPass(
       layers = next;
       scenery.set(next.scenery);
       setGround();
-      box = map_box(next.terrain.mesh) ?? null;
+      box = map_box(next.terrain.mesh);
       if (box) backdrop.set(backdrop_mesh(box, environment.light.backdrop.reach_m) as Mesh);
     },
     /** The ground the scene's presentation resolved: its tables, its grass

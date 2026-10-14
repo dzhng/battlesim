@@ -106,25 +106,23 @@ impl Scars {
 
     /// Takes this frame's uploads from `presentation`: for the grass's
     /// window `grass` when it regrows, then the view's or, for the regions
-    /// on screen through the map's box `map_box`, each region's. True when
-    /// the directory outgrew its texture (the group must be made again).
+    /// on a `size` target through the map's box `map_box`, each region's.
+    /// True when the directory outgrew its texture (the group must be made
+    /// again).
     pub fn prepare(
         &mut self,
         device: &Device,
         presentation: &mut Presentation,
         grass: Option<[f64; 4]>,
         map_box: Option<&[f64; 6]>,
+        size: [u32; 2],
     ) -> bool {
         self.grass = grass.map(|window| presentation.prepare_scars(Some(window), false));
         let regions = presentation.scar_regions();
         self.regional = !regions.is_empty();
         let camera = presentation.last_frame().camera;
-        let size = [camera.width as u32, camera.height as u32];
         let view_proj = camera.view_proj.first_chunk().expect("a 4×4 matrix");
-        let on_screen = |r| match map_box {
-            Some(b) => scars::scissor(r, b, view_proj, size),
-            None => Some([0, 0, size[0], size[1]]),
-        };
+        let on_screen = |r| scars::scissor(r, map_box, view_proj, size);
         (self.view, self.regions) = if regions.is_empty() {
             (Some(presentation.prepare_scars(None, false)), Vec::new())
         } else {

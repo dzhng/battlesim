@@ -438,19 +438,21 @@ pub fn map_box(mesh: &[f32]) -> Option<Vec<f64>> {
 }
 
 /// The pixels a scar region can cover on a `width` × `height` target
-/// (`scars::scissor`): `[x, y, width, height]`, empty when it is off screen.
+/// through the map's box, if it has one (`scars::scissor`): `[x, y, width,
+/// height]`, empty when it is off screen.
 #[wasm_bindgen]
 pub fn scar_scissor(
     region: &[f64],
-    map_box: &[f64],
+    map_box: Option<Box<[f64]>>,
     view_proj: &[f32],
     width: u32,
     height: u32,
 ) -> Vec<u32> {
     let view_proj = view_proj.first_chunk().expect("a 4×4 matrix");
+    let map_box = map_box.map(|b| std::array::from_fn(|i| b[i]));
     presentation::scars::scissor(
         std::array::from_fn(|i| region[i]),
-        &std::array::from_fn(|i| map_box[i]),
+        map_box.as_ref(),
         view_proj,
         [width, height],
     )

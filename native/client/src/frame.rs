@@ -160,8 +160,9 @@ impl Passes {
     /// Takes this frame's scars from `presentation`: the grass regrows over
     /// them when they changed (the next frame's growth reads them).
     pub fn prepare_scars(&mut self, device: &Device, presentation: &mut Presentation) {
+        let size = self.targets.size;
         self.ground
-            .prepare_scars(device, presentation, self.grass.scar_bounds());
+            .prepare_scars(device, presentation, self.grass.scar_bounds(), size);
     }
 
     /// Takes this frame's fog of war from `presentation`, for its last

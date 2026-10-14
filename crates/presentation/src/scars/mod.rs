@@ -53,13 +53,17 @@ pub fn normalization() -> Vec<u8> {
 /// y1]`) can cover, through the map's box (`shadow::map_box`, its heights)
 /// and the frame's `view_proj`: `[x, y, width, height]`, two pixels wider
 /// each side, or none when the region is off screen or behind the eye. A
-/// box crossing the eye's plane has no bound on screen: the whole target.
+/// box crossing the eye's plane has no bound on screen, and a map without a
+/// box has no heights to bound it: the whole target.
 pub fn scissor(
     region: [f64; 4],
-    map_box: &[f64; 6],
+    map_box: Option<&[f64; 6]>,
     view_proj: &[f32; 16],
     size: [u32; 2],
 ) -> Option<[u32; 4]> {
+    let Some(map_box) = map_box else {
+        return Some([0, 0, size[0], size[1]]);
+    };
     let m = view_proj.map(f64::from);
     let [w, h] = size.map(f64::from);
     let (mut front, mut lo, mut hi) = (0, [f64::INFINITY; 2], [f64::NEG_INFINITY; 2]);

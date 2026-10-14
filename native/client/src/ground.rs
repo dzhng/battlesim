@@ -187,17 +187,18 @@ impl Ground {
         })
     }
 
-    /// Takes this frame's scar uploads from `presentation`, the grass's
-    /// window `grass` first when it regrows.
+    /// Takes this frame's scar uploads from `presentation` for a `size`
+    /// target, the grass's window `grass` first when it regrows.
     pub fn prepare_scars(
         &mut self,
         device: &Device,
         presentation: &mut Presentation,
         grass: Option<[f64; 4]>,
+        size: [u32; 2],
     ) {
         if self
             .scars
-            .prepare(device, presentation, grass, self.map_box.as_ref())
+            .prepare(device, presentation, grass, self.map_box.as_ref(), size)
         {
             self.group = terrain_group(device, &self.layout, &self.tables, &self.scars);
         }
