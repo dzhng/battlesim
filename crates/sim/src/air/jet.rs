@@ -17,6 +17,8 @@ pub struct JetLimits {
     pub climb_mps: f64,
     pub ramp_s: f64,
     pub floor_agl_m: f64,
+    pub edge_margin_m: f64,
+    pub cruise_agl_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
