@@ -21,7 +21,7 @@ use crate::ground::GroundLayer;
 use crate::math::{v2, Obb2, V2};
 use crate::navigation::{NavBase, NavGrid, Plan, RoadNet};
 use crate::route_planner::{Request, RoutePlanner};
-use crate::units::Unit;
+use crate::units::{Motion, Unit};
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
 pub(crate) mod air;
@@ -507,7 +507,12 @@ pub(crate) fn advance(
             if units[i].air.is_some_and(|air| air.traversing) {
                 continue;
             }
-            air::step_aircraft(ctx, units, i, sides);
+            if matches!(units[i].motion, Motion::Air(flight) if flight.layer == contract::catalog::AltitudeLayer::HighAir)
+            {
+                crate::air::step_jet(ctx, &mut units[i]);
+            } else {
+                air::step_aircraft(ctx, units, i, sides);
+            }
             continue;
         }
         if units[i].is_vehicle() {

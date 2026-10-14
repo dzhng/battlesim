@@ -8140,9 +8140,9 @@
           "mobility": {
             "air": {
               "climb_mps": 30.0,
-              "cruise_kmh": 300.0,
+              "cruise_kmh": 650.0,
               "layer": "high_air",
-              "turn_deg_s": 45.0
+              "turn_deg_s": 72.0
             }
           },
           "mounts": [
@@ -10005,9 +10005,9 @@
           "mobility": {
             "air": {
               "climb_mps": 30.0,
-              "cruise_kmh": 300.0,
+              "cruise_kmh": 650.0,
               "layer": "high_air",
-              "turn_deg_s": 45.0
+              "turn_deg_s": 72.0
             }
           },
           "mounts": [
@@ -13794,9 +13794,9 @@
           "mobility": {
             "air": {
               "climb_mps": 30.0,
-              "cruise_kmh": 300.0,
+              "cruise_kmh": 650.0,
               "layer": "high_air",
-              "turn_deg_s": 45.0
+              "turn_deg_s": 72.0
             }
           },
           "mounts": [
@@ -16082,9 +16082,9 @@
           "mobility": {
             "air": {
               "climb_mps": 30.0,
-              "cruise_kmh": 300.0,
+              "cruise_kmh": 650.0,
               "layer": "high_air",
-              "turn_deg_s": 45.0
+              "turn_deg_s": 72.0
             }
           },
           "mounts": [
@@ -17444,9 +17444,9 @@
           "mobility": {
             "air": {
               "climb_mps": 30.0,
-              "cruise_kmh": 300.0,
+              "cruise_kmh": 650.0,
               "layer": "high_air",
-              "turn_deg_s": 45.0
+              "turn_deg_s": 72.0
             }
           },
           "mounts": [
@@ -17874,9 +17874,9 @@
           "mobility": {
             "air": {
               "climb_mps": 30.0,
-              "cruise_kmh": 300.0,
+              "cruise_kmh": 650.0,
               "layer": "high_air",
-              "turn_deg_s": 45.0
+              "turn_deg_s": 72.0
             }
           },
           "mounts": [
@@ -26539,9 +26539,9 @@
       "mobility": {
         "air": {
           "climb_mps": 30.0,
-          "cruise_kmh": 300.0,
+          "cruise_kmh": 650.0,
           "layer": "high_air",
-          "turn_deg_s": 45.0
+          "turn_deg_s": 72.0
         }
       },
       "mounts": [
@@ -28647,9 +28647,9 @@
       "mobility": {
         "air": {
           "climb_mps": 30.0,
-          "cruise_kmh": 300.0,
+          "cruise_kmh": 650.0,
           "layer": "high_air",
-          "turn_deg_s": 45.0
+          "turn_deg_s": 72.0
         }
       },
       "mounts": [
@@ -32456,9 +32456,9 @@
       "mobility": {
         "air": {
           "climb_mps": 30.0,
-          "cruise_kmh": 300.0,
+          "cruise_kmh": 650.0,
           "layer": "high_air",
-          "turn_deg_s": 45.0
+          "turn_deg_s": 72.0
         }
       },
       "mounts": [
@@ -34790,9 +34790,9 @@
       "mobility": {
         "air": {
           "climb_mps": 30.0,
-          "cruise_kmh": 300.0,
+          "cruise_kmh": 650.0,
           "layer": "high_air",
-          "turn_deg_s": 45.0
+          "turn_deg_s": 72.0
         }
       },
       "mounts": [
@@ -36446,9 +36446,9 @@
       "mobility": {
         "air": {
           "climb_mps": 30.0,
-          "cruise_kmh": 300.0,
+          "cruise_kmh": 650.0,
           "layer": "high_air",
-          "turn_deg_s": 45.0
+          "turn_deg_s": 72.0
         }
       },
       "mounts": [
@@ -36718,9 +36718,9 @@
       "mobility": {
         "air": {
           "climb_mps": 30.0,
-          "cruise_kmh": 300.0,
+          "cruise_kmh": 650.0,
           "layer": "high_air",
-          "turn_deg_s": 45.0
+          "turn_deg_s": 72.0
         }
       },
       "mounts": [

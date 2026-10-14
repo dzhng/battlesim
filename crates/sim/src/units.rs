@@ -10,7 +10,7 @@ use contract::scenario::{Armor, Face, Rules};
 
 use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
-use crate::math::{v3, Obb2, Rotation, V2, V3};
+use crate::math::{Obb2, Rotation, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
@@ -310,8 +310,12 @@ pub struct Unit {
 /// What an aircraft carries from tick to tick.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct AirState {
-    /// Over the ground, metres a second.
-    pub velocity: V2,
+    /// World velocity, metres a second.
+    pub velocity: V3,
+    /// Afterburner ramp state, from zero to one.
+    pub burner: f64,
+    /// Last non-zero turn direction, retained by the jet law.
+    pub turn_sign: i8,
     /// Its arrival at the goal it flies to last, once it has turned onto
     /// the leg that ends there.
     pub settle: Option<Settle>,
@@ -492,11 +496,10 @@ impl Unit {
     }
 
     /// The velocity a round carries away from this unit at launch. Ground
-    /// units contribute zero; air state is 2D until the flight-law slice
-    /// promotes it to 3D.
+    /// units contribute zero; aircraft carry their full world velocity.
     pub fn flight_velocity(&self) -> V3 {
         match (self.airborne(), self.air) {
-            (true, Some(air)) => v3(air.velocity.x, air.velocity.y, 0.0),
+            (true, Some(air)) => air.velocity,
             _ => V3::default(),
         }
     }
@@ -618,7 +621,11 @@ impl Unit {
         }
         d.opt_f64(self.turn_to);
         if let Some(a) = self.air {
-            d.f64(a.velocity.x).f64(a.velocity.y);
+            d.f64(a.velocity.x)
+                .f64(a.velocity.y)
+                .f64(a.velocity.z)
+                .f64(a.burner)
+                .f64(a.turn_sign as f64);
             match a.settle {
                 Some(s) => d.u64(1).f64(s.aim.x).f64(s.aim.y).u64(s.back as u64),
                 None => d.u64(0),

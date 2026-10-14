@@ -2,7 +2,7 @@ use super::scenario;
 use contract::ids::UnitId;
 use serde_json::json;
 use sim::battle::Battle;
-use sim::math::{v3, V3};
+use sim::math::V3;
 
 /// Small authored-like field for fixed-wing flight tests. It keeps setup in the
 /// shared test catalog, so tests do not duplicate battle construction.
@@ -60,10 +60,7 @@ impl Track {
             let unit = battle.unit(UnitId(0)).expect("jet unit");
             let pos = unit.position;
             let ground = battle.world().height_at(pos.x, pos.y).unwrap_or(0.0);
-            let vel = unit
-                .air
-                .map(|air| v3(air.velocity.x, air.velocity.y, 0.0))
-                .unwrap_or_default();
+            let vel = unit.air.map(|air| air.velocity).unwrap_or_default();
             samples.push(Sample {
                 pos,
                 vel,
