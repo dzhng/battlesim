@@ -630,6 +630,11 @@ pub trait ImpactResolver {
     fn projectile_interceptor_reach(&self, _projectile: ProjectileId) -> f64 {
         0.0
     }
+    /// A missile aimed at an aircraft may burst at a swept standoff from its
+    /// hull. Ground targets never return a fuse here.
+    fn aircraft_fuse(&self, _projectile: ProjectileId) -> Option<(UnitId, f64)> {
+        None
+    }
     /// Resolve a projectile-to-projectile interception. Returning true
     /// consumes both rounds; ordering is stable by projectile id.
     fn intercept_projectile(&mut self, _interceptor: ProjectileId, _target: ProjectileId) -> bool {
@@ -1004,7 +1009,7 @@ pub fn advance_projectiles(
             let tick_span = config.tick_s.min(traced.lifetime_s - traced.age_s);
             let gravity = flight.acceleration(&mut traced, tick_span);
             scratch.misses.clear();
-            let _ = flight.fly_leg(&traced, &mut scratch, gravity, span, 0.0, None);
+            let _ = flight.fly_leg(&traced, &mut scratch, gravity, span, 0.0, None, None);
             events.extend(scratch.passes.drain(..).map(FlightEvent::Pass));
             events.extend(scratch.misses.drain(..).map(FlightEvent::NearMiss));
             events.push(FlightEvent::Impact(Impact {
@@ -1101,7 +1106,7 @@ impl Flight<'_> {
             (tick_span + max_reach / p.velocity.length().max(1.0)).min(p.lifetime_s - p.age_s);
         scratch.passes.clear();
         scratch.misses.clear();
-        let hit = self.fly_leg(&p, scratch, gravity, span, 0.0, None)?;
+        let hit = self.fly_leg(&p, scratch, gravity, span, 0.0, None, None)?;
         let body = &self.bodies[hit.body?];
         let reach = resolver.standoff(p.id, body)?;
         for k in 0..scratch.accelerations.len() {
@@ -1145,12 +1150,13 @@ impl Flight<'_> {
             g.point = decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
         }
         let gravity = self.acceleration(p, span);
+        let fuse = resolver.aircraft_fuse(p.id);
         scratch.misses.clear();
         // Each leg flies from the round's state `flown` seconds into the tick;
         // a ricochet starts the next leg at its hit, clear of the body it
         // glanced off.
         let (mut flown, mut glanced) = (0.0, None);
-        while let Some(hit) = self.fly_leg(p, scratch, gravity, span, flown, glanced) {
+        while let Some(hit) = self.fly_leg(p, scratch, gravity, span, flown, glanced, fuse) {
             events.extend(scratch.passes.drain(..).map(FlightEvent::Pass));
             let pose = hit.body.map(|i| self.bodies[i].pose_at(hit.time));
             let decision = resolver.resolve(&ImpactContext {
@@ -1241,6 +1247,7 @@ impl Flight<'_> {
     /// `scratch.path` and folding each unit's closest pass into
     /// `scratch.misses`, so a round passes a unit at most once a tick however
     /// often it glances.
+    #[allow(clippy::too_many_arguments)]
     fn fly_leg(
         &self,
         p: &Projectile,
@@ -1249,6 +1256,7 @@ impl Flight<'_> {
         span: f64,
         flown: f64,
         glanced: Option<BodyId>,
+        fuse: Option<(UnitId, f64)>,
     ) -> Option<Hit> {
         let Flight {
             config,
@@ -1296,12 +1304,13 @@ impl Flight<'_> {
         }
         // Bodies near this leg's path, out to the near-miss reach.
         let reach = p.suppression_radius_m;
+        let query_reach = fuse.map_or(reach, |(_, radius)| reach.max(radius));
         let (mut lo, mut hi) = (p.position.xy(), p.position.xy());
         for (q, _) in &scratch.path {
             lo = v2(lo.x.min(q.x), lo.y.min(q.y));
             hi = v2(hi.x.max(q.x), hi.y.max(q.y));
         }
-        let pad = v2(reach, reach);
+        let pad = v2(query_reach, query_reach);
         grid.query(lo - pad, hi + pad, &mut scratch.candidates);
         // A unit's rounds never strike its own bodies (a squad keeps its own
         // fire lanes), and a ricochet never meets the body it glanced off.
@@ -1368,6 +1377,28 @@ impl Flight<'_> {
                 let body = &bodies[i as usize];
                 (i as usize, sweep::Motion::new(body, s0, s1))
             }));
+            if let Some((target, radius)) = fuse {
+                for (i, motion) in &scratch.motions {
+                    let body = &bodies[*i];
+                    if body.unit != target {
+                        continue;
+                    }
+                    if let Some(u) = sweep::standoff_entry(&body.shape, motion, a0, a1, 1.0, radius)
+                    {
+                        let point = a0 + chord * u;
+                        let pose = body.pose_at(s0 + (s1 - s0) * u);
+                        let centre = match body.shape {
+                            Shape::Box { half } => pose.base + v3(0.0, 0.0, half.z),
+                            Shape::Capsule { height, .. } => pose.base + v3(0.0, 0.0, height * 0.5),
+                        };
+                        let normal = (point - centre).normalized();
+                        let struck = Struck::Body(body.id);
+                        if best.is_none_or(|(bu, bs, ..)| u < bu || (u == bu && struck < bs)) {
+                            best = Some((u, struck, normal, Some(*i)));
+                        }
+                    }
+                }
+            }
             for (i, motion) in &scratch.motions {
                 let body = &bodies[*i];
                 if let Some((u, normal)) = sweep::entry(&body.shape, motion, a0, a1) {

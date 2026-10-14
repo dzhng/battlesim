@@ -188,3 +188,41 @@ fn anti_radiation_is_distinct_from_a_radar_seeker() {
         Some(contract::weapons::SeekerSupport::Radar)
     );
 }
+
+#[test]
+fn every_air_target_row_reaches_its_range_within_its_lifetime() {
+    let game: Value = serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    let rows = contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
+    for (id, row) in rows {
+        if row
+            .targets
+            .contains_key(&contract::catalog::AltitudeLayer::LowAir)
+            || row
+                .targets
+                .contains_key(&contract::catalog::AltitudeLayer::HighAir)
+        {
+            let Some(accel) = row.ballistics.accel_mps2 else {
+                continue;
+            };
+            let top = row.ballistics.top_speed_mps.expect("motor has a top speed");
+            assert_eq!(top, 290.0, "{id} aircraft missile top speed");
+            let lifetime = row
+                .ballistics
+                .lifetime_s
+                .expect("guided air row has a lifetime");
+            let motor_s = (top - row.ballistics.speed_mps) / accel;
+            assert!(
+                (motor_s - 2.0).abs() < 1e-9,
+                "{id} motor reaches cap in {motor_s:.3}s"
+            );
+            let distance = row.ballistics.speed_mps * motor_s
+                + 0.5 * accel * motor_s * motor_s
+                + top * (lifetime - motor_s).max(0.0);
+            assert!(
+                distance >= row.ballistics.range_m,
+                "{id} expires after {distance:.0} m, short of {:.0} m",
+                row.ballistics.range_m
+            );
+        }
+    }
+}

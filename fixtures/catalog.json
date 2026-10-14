@@ -40450,7 +40450,7 @@
     },
     "aa_long": {
       "aa_tier": "long",
-      "accel_mps2": 400.0,
+      "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 6,
       "anti_armor": true,
@@ -40466,7 +40466,7 @@
       "icon": "aa_missile",
       "interceptable": false,
       "interception": "missile",
-      "lifetime_s": 10.0,
+      "lifetime_s": 19.0,
       "magazine": null,
       "min_range_m": 50.0,
       "name": "Long SAM",
@@ -40485,13 +40485,13 @@
       "targets": {
         "high_air": {}
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },
     "aa_medium": {
       "aa_tier": "medium",
-      "accel_mps2": 400.0,
+      "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 8,
       "anti_armor": true,
@@ -40506,7 +40506,7 @@
       "guidance": "on_the_move",
       "icon": "aa_missile",
       "interceptable": false,
-      "lifetime_s": 6.0,
+      "lifetime_s": 10.0,
       "magazine": null,
       "min_range_m": 50.0,
       "name": "Medium SAM",
@@ -40526,7 +40526,7 @@
         "high_air": {},
         "low_air": {}
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },
@@ -40733,7 +40733,7 @@
       "turn_deg_s": null
     },
     "air_missile": {
-      "accel_mps2": 400.0,
+      "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 4,
       "anti_armor": true,
@@ -40748,7 +40748,7 @@
       "guidance": "on_the_move",
       "icon": "aa_missile",
       "interceptable": false,
-      "lifetime_s": 6.0,
+      "lifetime_s": 11.0,
       "magazine": null,
       "min_range_m": 50.0,
       "name": "Air missile",
@@ -40765,9 +40765,10 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "high_air": {}
+        "high_air": {},
+        "low_air": {}
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },
@@ -41169,7 +41170,7 @@
       "turn_deg_s": null
     },
     "fn_6": {
-      "accel_mps2": 400.0,
+      "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
@@ -41201,7 +41202,7 @@
       "targets": {
         "low_air": {}
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },
@@ -41510,7 +41511,7 @@
       "turn_deg_s": null
     },
     "igla_s": {
-      "accel_mps2": 400.0,
+      "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
@@ -41542,7 +41543,7 @@
       "targets": {
         "low_air": {}
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },
@@ -42114,7 +42115,7 @@
       "turn_deg_s": 60.0
     },
     "stinger": {
-      "accel_mps2": 400.0,
+      "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 3,
       "anti_armor": true,
@@ -42146,7 +42147,7 @@
       "targets": {
         "low_air": {}
       },
-      "top_speed_mps": 600.0,
+      "top_speed_mps": 290.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
     },

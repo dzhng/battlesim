@@ -4,11 +4,18 @@
 //! (`guidance::moving_releases_at_once_and_frees_the_crew`). Rockets never
 //! go up at aircraft.
 
+use crate::common;
+use crate::common::jet::JetField;
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
+use sim::flight::{
+    advance_projectiles, fire_round, Aim, Body, BodyId, FlightEvent, ImpactContext, ImpactDecision,
+    ImpactResolver, Launch, Pose, Projectiles, Shape, Struck,
+};
+use sim::math::v3;
 
 /// The test rules plus an attack helicopter: a chin autocannon on a turret,
 /// and rockets and missiles fixed in its hull.
@@ -129,4 +136,239 @@ fn a_guided_row_must_say_how_it_guides() {
         .remove("guidance");
     let error = serde_json::from_value::<Rules>(fixture).expect_err("guidance missing");
     assert!(error.to_string().contains("guidance"), "{error}");
+}
+
+struct TestFuse {
+    target: Option<UnitId>,
+}
+
+impl ImpactResolver for TestFuse {
+    fn resolve(&mut self, impact: &ImpactContext) -> ImpactDecision {
+        match impact.struck {
+            Struck::Body(_) => ImpactDecision::Detonate,
+            _ => ImpactDecision::Stop,
+        }
+    }
+
+    fn aircraft_fuse(&self, _projectile: sim::flight::ProjectileId) -> Option<(UnitId, f64)> {
+        self.target.map(|target| (target, 3.0))
+    }
+}
+
+#[test]
+fn a_missile_bursts_within_its_blast_radius_of_a_passing_jet() {
+    let battle = JetField::new(3000.0)
+        .jet("test_jet", [800.0, 300.0], 0.0)
+        .battle();
+    let jet = battle.unit(UnitId(0)).unwrap();
+    let half = jet.hull.unwrap();
+    let body = Body {
+        id: BodyId(sim::weapons::VEHICLE_BODY_BASE),
+        unit: UnitId(0),
+        shape: Shape::Box { half },
+        from: Pose {
+            base: jet.position,
+            yaw: jet.yaw,
+        },
+        to: Pose {
+            base: jet.position,
+            yaw: jet.yaw,
+        },
+    };
+    let mut projectiles = Projectiles::new(common::config());
+    let _projectile = projectiles.launch(Launch {
+        origin: v3(
+            700.0,
+            jet.position.y + half.y + 2.5,
+            jet.position.z + half.z,
+        ),
+        carrier: v3(0.0, 0.0, 0.0),
+        velocity: v3(290.0, 0.0, 0.0),
+        gravity_scale: 0.0,
+        lifetime_s: 1.0,
+        suppression_radius_m: 0.0,
+        shooter: None,
+        guidance: None,
+        motor: None,
+        fall: None,
+    });
+    let mut events = Vec::new();
+    let mut resolver = TestFuse {
+        target: Some(UnitId(0)),
+    };
+    for _ in 0..20 {
+        advance_projectiles(
+            &mut projectiles,
+            battle.world(),
+            &[body],
+            &mut events,
+            &mut resolver,
+        );
+        if !projectiles.active().is_empty() {
+            continue;
+        }
+        break;
+    }
+    let impact = events.iter().find_map(|event| match event {
+        FlightEvent::Impact(impact) => Some(impact),
+        _ => None,
+    });
+    let impact = impact.expect("the passing missile burst");
+    assert!(impact.detonated);
+    let lateral_surface_distance = (impact.point.y - jet.position.y).abs() - half.y;
+    assert!(
+        lateral_surface_distance <= 3.0 + 1e-6,
+        "burst was {lateral_surface_distance:.3} m from the hull"
+    );
+}
+
+#[test]
+fn no_proximity_fuse_against_ground() {
+    let battle = battle(json!([
+        { "side": "red", "kind": "test_tank", "position": [800, 300], "yaw": 0.0 }
+    ]));
+    let tank = battle.unit(UnitId(0)).unwrap();
+    let half = tank.hull.unwrap();
+    let body = Body {
+        id: BodyId(sim::weapons::VEHICLE_BODY_BASE),
+        unit: UnitId(0),
+        shape: Shape::Box { half },
+        from: Pose {
+            base: tank.position,
+            yaw: tank.yaw,
+        },
+        to: Pose {
+            base: tank.position,
+            yaw: tank.yaw,
+        },
+    };
+    let mut projectiles = Projectiles::new(common::config());
+    projectiles.launch(Launch {
+        origin: v3(
+            700.0,
+            tank.position.y + half.y + 2.5,
+            tank.position.z + half.z,
+        ),
+        carrier: v3(0.0, 0.0, 0.0),
+        velocity: v3(290.0, 0.0, 0.0),
+        gravity_scale: 0.0,
+        lifetime_s: 1.0,
+        suppression_radius_m: 0.0,
+        shooter: None,
+        guidance: None,
+        motor: None,
+        fall: None,
+    });
+    let mut events = Vec::new();
+    let mut resolver = TestFuse { target: None };
+    advance_projectiles(
+        &mut projectiles,
+        battle.world(),
+        &[body],
+        &mut events,
+        &mut resolver,
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, FlightEvent::Impact(_))),
+        "a ground target got a proximity fuse"
+    );
+}
+
+#[test]
+fn an_air_missile_ends_at_its_lifetime() {
+    let world = common::flat([10_000.0, 600.0], "");
+    let profile = common::profile("air_missile");
+    let mut projectiles = Projectiles::new(common::config());
+    projectiles.launch(Launch {
+        origin: v3(100.0, 300.0, 250.0),
+        carrier: v3(0.0, 0.0, 0.0),
+        velocity: v3(profile.speed_mps, 0.0, 0.0),
+        gravity_scale: profile.gravity_scale,
+        lifetime_s: profile.lifetime_s,
+        suppression_radius_m: profile.suppression_radius_m,
+        shooter: None,
+        guidance: Some(sim::flight::Guidance {
+            point: v3(10_000.0, 300.0, 250.0),
+            turn_rad_s: profile.turn_rad_s.unwrap(),
+            supported: false,
+            loft: profile.loft,
+        }),
+        motor: profile.motor,
+        fall: None,
+    });
+    let events = common::fly(&mut projectiles, &world, 400, |_| Vec::new());
+    let expiry = events.iter().find_map(|(_, event)| match event {
+        FlightEvent::Expired(expiry) => Some(expiry),
+        _ => None,
+    });
+    let expiry = expiry.expect("the missile expired");
+    assert_eq!(expiry.cause, sim::flight::Expiry::Lifetime);
+    assert!(
+        (expiry.time - 1.0).abs() < 1e-9,
+        "expiry fraction was {}",
+        expiry.time
+    );
+}
+
+#[test]
+fn a_seeker_steers_at_the_box_centre() {
+    let world = common::flat([3000.0, 1000.0], "");
+    let profile = common::profile("air_missile");
+    let mut rng = contract::random::Rng::new(1);
+    let (_, solution) = fire_round(
+        &world,
+        &common::config(),
+        &profile,
+        &Aim {
+            origin: v3(300.0, 500.0, 250.0),
+            target: v3(1000.0, 500.0, 251.6),
+            target_velocity: v3(0.0, 0.0, 0.0),
+            carrier: v3(0.0, 0.0, 0.0),
+        },
+        0.0,
+        &mut rng,
+        None,
+        |_| false,
+        |_| false,
+    )
+    .unwrap()
+    .expect("the seeker solution");
+    assert!(solution.intercept.z > 250.0, "the seeker aimed at the base");
+}
+
+#[test]
+fn a_missile_engages_a_helicopter() {
+    let row = sim::fixtures::test_game()["weapons"]["air_missile"].clone();
+    assert!(row["targets"]["low_air"].is_object());
+}
+
+#[test]
+fn a_climbing_targets_vertical_velocity_is_led() {
+    let world = common::flat([3000.0, 1000.0], "");
+    let profile = common::profile("air_missile");
+    let mut rng = contract::random::Rng::new(2);
+    let (_, solution) = fire_round(
+        &world,
+        &common::config(),
+        &profile,
+        &Aim {
+            origin: v3(300.0, 500.0, 250.0),
+            target: v3(1000.0, 500.0, 251.6),
+            target_velocity: v3(0.0, 0.0, 30.0),
+            carrier: v3(0.0, 0.0, 0.0),
+        },
+        0.0,
+        &mut rng,
+        None,
+        |_| false,
+        |_| false,
+    )
+    .unwrap()
+    .expect("the climbing intercept");
+    assert!(
+        solution.intercept.z > 251.6,
+        "vertical target motion was discarded"
+    );
 }
