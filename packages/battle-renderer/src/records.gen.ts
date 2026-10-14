@@ -22,6 +22,19 @@ export const WHOLE_BOX_WORDS = 8;
 export const SUN_CASCADES = 4;
 /** The cast lights a frame's uniform holds (`effects/lights.rs`). */
 export const CAST_LIGHTS_MAX = 24;
+/** Each effect kind (`Counts.running`'s order) and instance shape
+ *  (`Effect.misc.x`), as a capture's effect counts name them (`effects/frame.rs`). */
+export const EFFECT_KINDS = [
+  "tracer",
+  "flash",
+  "impact",
+  "sparks",
+  "blast",
+  "puff",
+  "flame",
+  "trail",
+] as const;
+export const SHAPE_NAMES = ["streak", "glow", "flipbook", "rotor"] as const;
 /** The scar cache's directory flags over a tile key + 1, its pool texture
  *  and the normalization table at the pool's start, and `ScarParams`' words
  *  before the biome's look (`scars/mod.rs`). */

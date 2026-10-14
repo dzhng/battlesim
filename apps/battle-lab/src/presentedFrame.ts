@@ -3,7 +3,12 @@
 // capture's plates record. And what the page hands the presentation once
 // per battle (`load_world`'s battle), which Rust resolves from the files the
 // page reads.
-import { Counts, EFFECT_WORDS } from "@packages/battle-renderer/src/records.gen";
+import {
+  Counts,
+  EFFECT_KINDS,
+  EFFECT_WORDS,
+  SHAPE_NAMES,
+} from "@packages/battle-renderer/src/records.gen";
 import { MIN_TARGET_PX } from "@packages/battle-renderer/src/frame/battleFrame";
 import game from "@fixtures/game.json";
 import type { AppearanceLibrary } from "@packages/scene-assets/src/loader";
@@ -29,19 +34,6 @@ export interface ModelCounts {
   corpses: number;
   fading: number;
 }
-
-/** Each effect kind (`Counts.running`'s order) and instance shape (`Effect.misc.x`). */
-export const EFFECT_KINDS = [
-  "tracer",
-  "flash",
-  "impact",
-  "sparks",
-  "blast",
-  "puff",
-  "flame",
-  "trail",
-] as const;
-export const SHAPE_NAMES = ["streak", "glow", "flipbook", "rotor"] as const;
 
 /** What a frame drew of the effects: running by kind, instances by shape,
  *  and the lights they offered. */

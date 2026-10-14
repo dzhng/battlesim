@@ -627,6 +627,25 @@ pub fn typescript() -> String {
         crate::effects::lights::CAST_LIGHTS_MAX
     ));
     {
+        use crate::effects::frame::{EFFECT_KINDS, SHAPE_NAMES};
+        // One line when it fits the formatter's width, else a name a line.
+        let names = |name: &str, names: &[&str]| {
+            let quoted: Vec<_> = names.iter().map(|n| format!("\"{n}\"")).collect();
+            let line = format!("export const {name} = [{}] as const;\n", quoted.join(", "));
+            if line.len() <= 101 {
+                return line;
+            }
+            let rows: String = quoted.iter().map(|q| format!("  {q},\n")).collect();
+            format!("export const {name} = [\n{rows}] as const;\n")
+        };
+        out.push_str(
+            "/** Each effect kind (`Counts.running`'s order) and instance shape\n \
+             *  (`Effect.misc.x`), as a capture's effect counts name them (`effects/frame.rs`). */\n",
+        );
+        out.push_str(&names("EFFECT_KINDS", &EFFECT_KINDS));
+        out.push_str(&names("SHAPE_NAMES", &SHAPE_NAMES));
+    }
+    {
         use crate::scars::*;
         out.push_str(&format!(
             "/** The scar cache's directory flags over a tile key + 1, its pool texture\n \
