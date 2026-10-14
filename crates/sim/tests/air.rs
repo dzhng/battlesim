@@ -642,3 +642,46 @@ fn a_report_from_the_low_hover_lies_on_the_ground() {
     assert_eq!(c.layer, AltitudeLayer::LowAir);
     assert!(!c.aloft, "heard from the low hover: on the ground");
 }
+
+#[test]
+fn a_helicopter_ordered_onto_an_identified_tank_takes_the_order() {
+    // The player picks a tank his helicopter can see and orders the attack:
+    // the order lands like any other unit's.
+    let fixture = fixture();
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_heli", "position": [300, 200], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [330, 215], "engagement": "return_fire_only" },
+        ]),
+    );
+    for _ in 0..30 {
+        b.step();
+    }
+    let [tank] = b.observe(Side::Blue).identified.as_slice() else {
+        panic!(
+            "the tank in plain sight: {:?}",
+            b.observe(Side::Blue).identified
+        );
+    };
+    let attack = CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id: tank.id },
+        },
+        queued: false,
+    };
+    assert_eq!(b.accept(attack).error, None);
+    for _ in 0..5 {
+        b.step();
+    }
+    assert_eq!(
+        b.observe(Side::Blue).own[0].engagement,
+        contract::command::Engagement::FireAtWill,
+        "an attack order frees the helicopter to fire"
+    );
+}

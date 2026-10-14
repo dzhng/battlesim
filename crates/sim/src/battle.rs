@@ -3725,16 +3725,16 @@ impl Battle {
                 let Some(target) = self.resolve_target(side, &target) else {
                     return;
                 };
+                // `movers` holds the battle's units while orders apply.
+                let dogfight = match target {
+                    Target::Unit(other) if movers[other.0 as usize].airborne() => Some(other),
+                    _ => None,
+                };
                 for id in units {
                     let unit = &mut movers[id.0 as usize];
                     unit.engagement = Engagement::FireAtWill; // W14
                     if let Some(air) = unit.air.as_mut() {
-                        air.dogfight_target = match target {
-                            Target::Unit(other) if self.units[other.0 as usize].airborne() => {
-                                Some(other)
-                            }
-                            _ => None,
-                        };
+                        air.dogfight_target = dogfight;
                     }
                     push(
                         unit,
