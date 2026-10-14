@@ -321,7 +321,7 @@ export async function run(fixtures) {
       const sceneUrl = sceneUrlFor(
         `${server.url}${fixture.route}`,
         quality,
-        !fixture.serial && !["cursor", "panels", "ui", "unit-roster"].includes(fixture.id),
+        !fixture.serial && !fixture.authored_quality,
       );
       const ctx = {
         fixture,

@@ -37,7 +37,8 @@
     "route": "/labs/cursor",
     "describe": "Arrow and action cursor at native screen size over grass, road and fog; every badge and a moving pointer through the real presentation component.",
     "map": null,
-    "verify": false
+    "verify": false,
+    "authored_quality": true
   },
   {
     "id": "foundation",
@@ -258,14 +259,16 @@
     "route": "/labs/panels",
     "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?scale= zooms.",
     "map": null,
-    "verify": false
+    "verify": false,
+    "authored_quality": true
   },
   {
     "id": "ui",
     "route": "/labs/ui",
     "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
     "map": null,
-    "verify": false
+    "verify": false,
+    "authored_quality": true
   },
   {
     "id": "readouts",
@@ -335,7 +338,8 @@
     "route": "/battle?type=open&size=small&seed=1&faction=us",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
     "map": null,
-    "verify": false
+    "verify": false,
+    "authored_quality": true
   },
   {
     "id": "benchmark",

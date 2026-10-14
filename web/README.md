@@ -122,7 +122,7 @@ and generated-map scenes remain registered and run through `bun run --cwd web
 scene`; authored screenshot galleries run through `bun run --cwd web scene --
 --visual`. Set `SCENE_GRAPHICS_QUALITY=high` to exercise authored detail in the
 mechanics gate.
-Timing and parity fixtures always use their own high/current-quality contract.
+Timing and parity fixtures, and fixtures marked `authored_quality` (their scenes judge the authored graphics), always keep their own quality.
 
 [The asset CLI](asset.mjs) is file IO around [scene-assets](../packages/scene-assets/README.md).
 Its bare invocation prints available commands. Audio preparation has a separate
