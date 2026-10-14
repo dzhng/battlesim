@@ -24,6 +24,7 @@ export async function modelGhostAgreement(ctx) {
         overlay,
         models,
         presentation,
+        presented,
         game,
       ] = await Promise.all([
         import(file("packages/renderer-core/src/device.ts")),
@@ -37,6 +38,7 @@ export async function modelGhostAgreement(ctx) {
         import(file("apps/battle-lab/src/gameOverlay.ts")),
         import(file("apps/battle-lab/src/gameModels.ts")),
         import(file("web/src/battle/sim/presentation.ts")),
+        import(file("apps/battle-lab/src/presentedFrame.ts")),
         import(file("fixtures/game.json")),
       ]);
       // Every unit's art: the probe draws one model of each kind, whoever wears it.
@@ -73,6 +75,7 @@ export async function modelGhostAgreement(ctx) {
       await presentation.loadPresentation();
       const sight = new presentation.ScenePresentation();
       sight.setGround(world.terrain.input, null);
+      sight.setShadow(light.gameLight, world.terrain.mesh);
       sight.frame(
         0,
         {
@@ -118,7 +121,16 @@ export async function modelGhostAgreement(ctx) {
           const camera = views.viewCamera("q-front", bundle.bounds);
           async function pixels(list) {
             frame.setModels(list);
-            frame.render(target.createView(), { camera3d: camera, width, height: width });
+            // The frame draws for the camera the scene's presentation framed.
+            frame.setCamera(
+              sight.frame(
+                0,
+                presented.presentedCamera({ camera3d: camera, width, height: width }),
+                { selected: [], xray: false, ghosts: [] },
+                frame.staticGeneration,
+              ),
+            );
+            frame.render(target.createView());
             const encoder = device.createCommandEncoder();
             encoder.copyTextureToBuffer(
               { texture: target },
