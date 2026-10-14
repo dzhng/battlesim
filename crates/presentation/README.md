@@ -45,7 +45,7 @@ native.
   frame's `View` record (with the sky's corner rays) and camera uniform,
   the browser's camera math to the bit. Each batch also names the fog group
   it binds (`Batch.fog`); a lab's own models, which reach a renderer without
-  a frame, take the same caster and fog rules through the module.
+  a frame, take the same tier, caster and fog rules through the module.
 - [The light](src/light.rs): the fixture's light resolved into the sky's,
   bloom's and grade's uniform records, as the browser's sky model resolves it.
 - [Scars](src/scars/): the side's learned ground, from its publications'
