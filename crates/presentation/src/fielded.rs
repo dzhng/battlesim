@@ -927,6 +927,7 @@ fn units(
     let sides = &art.runtime["sides"];
     let units = json!({
         "pose": game["presentation"]["pose"],
+        "transit": game["presentation"]["transit"],
         "leanHold": number(rules, "cover", "lean_hold_s")?,
         "detail": game["presentation"]["models"],
         "tints": { "blue": sides["blue"], "red": sides["red"] },

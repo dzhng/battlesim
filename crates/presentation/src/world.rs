@@ -8,6 +8,8 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::effects::transit::TransitFeel;
+
 pub type Vec3 = [f64; 3];
 pub type Quat = [f64; 4];
 
@@ -91,6 +93,9 @@ pub struct PoseRef {
 pub struct UnitsSection {
     /// `presentation.pose`, as the pose driver reads it.
     pub pose: Value,
+    /// `presentation.transit`, the visible approach and departure durations.
+    #[serde(default)]
+    pub transit: TransitFeel,
     pub lean_hold: f64,
     pub detail: Detail,
     pub tints: BTreeMap<String, Vec3>,
