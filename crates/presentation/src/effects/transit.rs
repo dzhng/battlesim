@@ -26,6 +26,54 @@ pub struct TransitPose {
     pub outbound: bool,
 }
 
+/// Edge transits observed in prior publications, retained until their visual
+/// window ends so a one-tick publication remains drawable.
+#[derive(Default)]
+pub struct TransitHistory {
+    seen: Vec<AirTransit>,
+}
+
+impl TransitHistory {
+    /// Retain newly observed edge events, keyed by their kind, direction,
+    /// edge tick and edge point.
+    pub fn note(&mut self, transits: &[AirTransit], now: f64, tick_hz: f64, feel: &TransitFeel) {
+        self.prune(now, tick_hz, feel);
+        for transit in transits {
+            if !self.seen.iter().any(|seen| same_key(seen, transit)) {
+                self.seen.push(transit.clone());
+            }
+        }
+    }
+
+    /// Reconstruct all retained tracks at presentation time and discard those
+    /// whose visual windows have ended.
+    pub fn tracks(&mut self, now: f64, tick_hz: f64, feel: &TransitFeel) -> Vec<TransitPose> {
+        self.prune(now, tick_hz, feel);
+        tracks(&self.seen, now, tick_hz, feel)
+    }
+
+    pub fn clear(&mut self) {
+        self.seen.clear();
+    }
+
+    fn prune(&mut self, now: f64, tick_hz: f64, feel: &TransitFeel) {
+        self.seen.retain(|transit| match transit.dir.as_ref() {
+            "in" => now <= transit.edge_tick,
+            "out" => {
+                let duration_ticks = feel.outbound_s * tick_hz;
+                duration_ticks.is_finite()
+                    && duration_ticks > 0.0
+                    && now < transit.edge_tick + duration_ticks
+            }
+            _ => false,
+        });
+    }
+}
+
+fn same_key(a: &AirTransit, b: &AirTransit) -> bool {
+    a.kind == b.kind && a.dir == b.dir && a.edge_tick == b.edge_tick && a.point == b.point
+}
+
 /// Reconstruct the visible approach or departure at presentation time `now`
 /// (simulation ticks), using `tick_hz` to turn travel into seconds.
 pub fn tracks(

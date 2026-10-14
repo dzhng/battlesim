@@ -886,7 +886,24 @@ impl Battle {
                     reservation.ingress_ready_tick =
                         Some(self.tick + (delay_s * f64::from(self.rules.tick_hz)).round() as u64);
                 }
-                if self.tick < reservation.ingress_ready_tick.unwrap() {
+                let ready_tick = reservation.ingress_ready_tick.unwrap();
+                if self.tick < ready_tick {
+                    let edge =
+                        crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
+                    let (point, heading) = crate::air::edge::entry(&edge, destination);
+                    let units::Motion::Air(flight) = units::motion(t, &self.rules) else {
+                        unreachable!("jet has air motion")
+                    };
+                    let z = self.world.height_at(point.x, point.y).unwrap_or(0.0)
+                        + self.rules.air.cruise_agl_m(flight.layer);
+                    self.air_transits[side.index()].push(AirTransit {
+                        kind: reservation.data.kind,
+                        point: [point.x, point.y, z],
+                        heading,
+                        speed_mps: flight.cruise_mps,
+                        edge_tick: ready_tick,
+                        dir: AirTransitDirection::In,
+                    });
                     continue;
                 }
             }
@@ -979,14 +996,6 @@ impl Battle {
                 if let Some(air) = unit.air.as_mut() {
                     air.velocity = v3(libm::cos(heading) * speed, libm::sin(heading) * speed, 0.0);
                 }
-                self.air_transits[side.index()].push(AirTransit {
-                    kind: unit.kind,
-                    point: [point.x, point.y, unit.position.z],
-                    heading,
-                    speed_mps: speed,
-                    edge_tick: self.tick,
-                    dir: AirTransitDirection::In,
-                });
             }
             unit.settle();
             unit.orders.push_back(UnitOrder::Move(MoveOrder {

@@ -15,7 +15,7 @@ use crate::effects::launches::Launch;
 use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
 use crate::effects::tables::EffectPresentation;
-use crate::effects::transit::tracks;
+use crate::effects::transit::TransitHistory;
 use crate::effects::MuzzleSource;
 use crate::fog::sight::{
     Eye, FogSight, FogStats, FogUpload, KnownBox, Occluder, Sensors, SightWorld,
@@ -196,6 +196,7 @@ struct Loaded {
     batch: EffectBatch,
     lights: CastLights,
     cook_offs: CookOffs,
+    transits: TransitHistory,
     pieces: Vec<PlacedModel>,
     /// The last publication as sound reads it.
     sound: Option<(EffectPublication, Vec<Launch>)>,
@@ -380,6 +381,9 @@ impl Presentation {
         self.latest = None;
         self.interpolator = TickInterpolator::new(self.tick_hz);
         self.pending.clear();
+        if let Some(loaded) = &mut self.loaded {
+            loaded.transits.clear();
+        }
         Ok(())
     }
 
@@ -576,6 +580,7 @@ impl Presentation {
             batch: EffectBatch::new(capacity),
             lights: CastLights::default(),
             cook_offs: CookOffs::new(self.tick_hz),
+            transits: TransitHistory::default(),
             pieces: Vec::new(),
             sound: None,
             shadow_fall,
@@ -1393,6 +1398,12 @@ impl Loaded {
     /// One publication noted for effects (and sound), with the hulls the
     /// side watched brew up.
     fn note(&mut self, o: &Observation) {
+        self.transits.note(
+            &o.air_transits,
+            o.tick,
+            self.input.tick_hz,
+            &self.input.units.transit,
+        );
         let mut publication =
             self.effect_feed
                 .publication(o, &self.input.units, &self.input.effects);
@@ -1427,6 +1438,7 @@ impl Loaded {
             batch,
             lights,
             cook_offs,
+            transits,
             pieces,
             shadow_fall,
             worlds,
@@ -1591,12 +1603,7 @@ impl Loaded {
         // publication. They use the same appearance, articulation and shadow
         // path as a live aircraft, but have no unit identity for selection or
         // cards.
-        for t in tracks(
-            &o.air_transits,
-            time * input.tick_hz,
-            input.tick_hz,
-            &units.transit,
-        ) {
+        for t in transits.tracks(time * input.tick_hz, input.tick_hz, &units.transit) {
             let Some(name) = units.resolve(&t.kind, side, 0.0, 0, None, None) else {
                 continue;
             };

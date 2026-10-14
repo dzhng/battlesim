@@ -1340,6 +1340,61 @@ fn inbound_transit_is_published_to_its_own_side_only() {
 }
 
 #[test]
+fn an_inbound_transit_is_published_through_the_whole_delay() {
+    let rules = test_jet_rules(180.0);
+    let mut battle = Battle::new(&match_on(rules), 6);
+    battle.accept(command(
+        Side::Blue,
+        1,
+        Order::ConfirmPurchase {
+            variant: "test_jet".into(),
+            destination: [300.0, 300.0],
+        },
+    ));
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+
+    let mut edge_tick = None;
+    let mut previous_tick = None;
+    let mut spawned = false;
+    for _ in 0..1000 {
+        battle.step();
+        let frame = battle.observe(Side::Blue);
+        let inbound = frame
+            .air_transits
+            .iter()
+            .find(|t| matches!(t.dir, contract::observation::AirTransitDirection::In));
+        if let Some(transit) = inbound {
+            let edge = *edge_tick.get_or_insert(transit.edge_tick);
+            assert_eq!(transit.edge_tick, edge);
+            assert!(
+                battle.tick() < edge,
+                "an inbound transit must precede spawn"
+            );
+            if let Some(previous) = previous_tick {
+                assert_eq!(
+                    battle.tick(),
+                    previous + 1,
+                    "the delay must have no publication gap"
+                );
+            }
+            previous_tick = Some(battle.tick());
+        } else if edge_tick.is_some() {
+            spawned = frame
+                .own
+                .iter()
+                .any(|u| battle.rules().catalog.id(u.kind) == "test_jet");
+            if spawned {
+                break;
+            }
+            panic!("inbound transit disappeared before the jet spawned");
+        }
+    }
+    assert!(edge_tick.is_some(), "no inbound transit was published");
+    assert!(spawned, "the jet did not spawn after its transit");
+}
+
+#[test]
 fn nothing_senses_or_targets_a_jet_before_it_arrives() {
     let mut battle = Battle::new(&match_on(test_jet_rules(180.0)), 6);
     assert!(battle

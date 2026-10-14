@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use presentation::effects::transit::{tracks, TransitFeel};
+use presentation::effects::transit::{tracks, TransitFeel, TransitHistory};
 use sim::publication::reader::AirTransit;
 
 fn transit(dir: &str, edge_tick: f64) -> AirTransit {
@@ -53,4 +53,35 @@ fn an_outbound_track_ends_after_its_duration() {
     assert_eq!(before.len(), 1);
     let after = tracks(&[transit], edge_tick + 2.0 * 30.0, 30.0, &feel);
     assert!(after.is_empty());
+}
+
+#[test]
+fn an_outbound_transit_published_for_one_tick_draws_for_its_whole_duration() {
+    let feel = TransitFeel {
+        inbound_s: 10.0,
+        outbound_s: 2.0,
+    };
+    let edge_tick = 300.0;
+    let mut history = TransitHistory::default();
+    history.note(&[transit("out", edge_tick)], edge_tick, 30.0, &feel);
+
+    assert_eq!(history.tracks(edge_tick + 1.0 * 30.0, 30.0, &feel).len(), 1);
+    assert!(history
+        .tracks(edge_tick + 2.0 * 30.0, 30.0, &feel)
+        .is_empty());
+}
+
+#[test]
+fn an_inbound_transit_draws_before_its_edge_tick() {
+    let feel = TransitFeel {
+        inbound_s: 10.0,
+        outbound_s: 2.0,
+    };
+    let edge_tick = 300.0;
+    let mut history = TransitHistory::default();
+    history.note(&[transit("in", edge_tick)], edge_tick - 30.0, 30.0, &feel);
+
+    let poses = history.tracks(edge_tick - 1.0, 30.0, &feel);
+    assert_eq!(poses.len(), 1);
+    assert!(poses[0].position[0] < 100.0);
 }
