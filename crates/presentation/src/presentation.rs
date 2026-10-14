@@ -574,6 +574,15 @@ impl Presentation {
             tables,
             input,
         };
+        // Publications taken before the first load wait in `pending`. A
+        // world loaded again (for another side, or another fielded kind)
+        // starts from the latest, so what the side knows (the smoke over
+        // what it saw destroyed) is drawn without waiting for the next.
+        if self.pending.is_empty() {
+            if let Some(o) = &self.latest {
+                loaded.note(o);
+            }
+        }
         for o in self.pending.drain(..) {
             loaded.note(&o);
         }
