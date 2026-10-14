@@ -71,7 +71,7 @@ export async function run(ctx) {
       peak[u.kind] = u.weaponPoses.map((p, i) => Math.max(peak[u.kind]?.[i] ?? 0, p.shots));
     return false;
   });
-  const bombs = mountOf(BOMBER, "air_bomb_guided");
+  const bombs = mountOf(BOMBER, "air_bomb");
   ctx.check(
     "the bomber drops bombs on its ground point",
     bombs >= 0 && (peak[BOMBER]?.[bombs] ?? 0) > 0 && !!blastNear,

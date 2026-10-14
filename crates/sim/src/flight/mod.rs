@@ -14,15 +14,17 @@
 //! body it glanced off again that tick. Exact ties go to the lowest [`Struck`]
 //! (terrain, then props, then bodies, each by id).
 mod index;
+mod release;
 mod solve;
 mod sweep;
 
+pub use release::{release, Release};
 pub use solve::{
     fire_round, predicted_path, scatter_aim, solve_fire, solve_launch_past, Aim, ArcKind,
     FiringSolution, NoSolution,
 };
 
-use contract::ballistics::{FlightRules, GuidedRules, Trajectory, WeaponBallistics};
+use contract::ballistics::{Delivery, FlightRules, GuidedRules, Trajectory, WeaponBallistics};
 use contract::ids::UnitId;
 
 use crate::digest::Digest;
@@ -190,6 +192,12 @@ impl FlightConfig {
             ("lifetime_s", lifetime_s),
             ("gravity_scale", weapon.gravity_scale),
         ] {
+            if weapon.delivery == Delivery::Unpowered
+                && (name == "speed_mps" || name == "range_m")
+                && v == 0.0
+            {
+                continue;
+            }
             if !(v > 0.0 && v.is_finite()) {
                 return Err(FlightConfigError::NotPositive(name));
             }
@@ -244,7 +252,12 @@ impl FlightConfig {
             }),
         };
         let spread_m = weapon.scatter_mrad * 1e-3 * weapon.range_m;
-        if weapon.turn_deg_s.is_none() && spread_m < self.min_spread_at_max_range_m {
+        if weapon.delivery == Delivery::Powered
+            && weapon.speed_mps > 0.0
+            && weapon.range_m > 0.0
+            && weapon.turn_deg_s.is_none()
+            && spread_m < self.min_spread_at_max_range_m
+        {
             return Err(FlightConfigError::TighterThanCeiling {
                 spread_m,
                 min_m: self.min_spread_at_max_range_m,

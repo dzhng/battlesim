@@ -128,7 +128,7 @@ pub const MAX_AMMO_KINDS: usize = 2;
 /// Weapon rows a firing report's heard mask can name. It travels as two
 /// words of `HEARD_WORD_BITS` each, since a float holds an integer exactly
 /// below 2^24.
-pub const MAX_WEAPON_ROWS: usize = 2 * HEARD_WORD_BITS;
+pub const MAX_WEAPON_ROWS: usize = 2 * HEARD_WORD_BITS + 1;
 const HEARD_WORD_BITS: usize = 24;
 const MOUNT_FIELDS: [&str; 15] = [
     "mount",

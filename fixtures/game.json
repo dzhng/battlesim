@@ -627,16 +627,14 @@
             "seeker_fov_deg": 70,
             "decoyable": true
         },
-        "air_bomb_guided": {
+        "air_bomb": {
+            "delivery": "unpowered",
             "targets": { "ground": {} },
-            "name": "Guided bomb",
-            "description": "Low-dispersion guided bomb for bombing runs.",
+            "name": "Iron bomb",
+            "description": "Unguided iron bomb with a heavy single blast.",
             "icon": "bomb",
             "stationary": false,
-            "range_m": 1800,
-            "min_range_m": 80,
-            "speed_mps": 240,
-            "gravity_scale": 1,
+            "gravity_scale": 4.5,
             "aim_s": 1.2,
             "reload_s": 10,
             "ammo": 4,
@@ -645,20 +643,18 @@
             "scatter_mrad": 4,
             "near_miss_suppression": 0.3,
             "suppression_radius_m": 18,
-            "blast_radius_m": 11,
+            "blast_radius_m": 14,
             "structural_damage": 80,
             "ground_attack": "bomb"
         },
         "air_bomb_cluster": {
+            "delivery": "unpowered",
             "targets": { "ground": {} },
             "name": "Cluster bombs",
             "description": "Wide-spread cluster bomb salvo for area attacks.",
             "icon": "bomb",
             "stationary": false,
-            "range_m": 1500,
-            "min_range_m": 80,
-            "speed_mps": 220,
-            "gravity_scale": 1,
+            "gravity_scale": 4.5,
             "aim_s": 1.2,
             "reload_s": 12,
             "ammo": 3,
@@ -671,6 +667,14 @@
             "structural_damage": 35,
             "magazine": { "rounds": 4, "shot_interval_s": 0.08 },
             "ground_attack": "bomb"
+        },
+        "air_ground_missile": {
+            "extends": "heli_atgm",
+            "name": "Air ground missile",
+            "description": "A fast guided anti-armour missile for ground attack.",
+            "range_m": 2000,
+            "top_speed_mps": 400,
+            "ammo": 4
         },
         "sead_missile": {
             "targets": {
@@ -996,6 +1000,7 @@
       "tank_he": 5,
       "atgm": 20,
       "heli_atgm": 20,
+      "air_ground_missile": 20,
       "rocket_pod": 2,
       "marksman_rifle": 1,
       "heavy_sniper": 2,
@@ -1009,7 +1014,7 @@
       "aa_long": 45,
       "air_gun": 1,
       "air_missile": 25,
-      "air_bomb_guided": 25,
+      "air_bomb": 25,
       "air_bomb_cluster": 25,
       "sead_missile": 40,
       "ground_tank_ap": 5,

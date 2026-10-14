@@ -227,6 +227,39 @@ fn a_missile_leaves_at_its_launch_speed_and_speeds_up_striking_at_its_full_range
 }
 
 #[test]
+fn the_ground_missile_pulls_ahead_of_its_jet() {
+    let rows = contract::weapons::resolve_weapons(game()["weapons"].clone()).unwrap();
+    let missile = config()
+        .profile(&rows["air_ground_missile"].ballistics)
+        .unwrap();
+    let carrier_speed = 650.0 / 3.6;
+    let launch = Launch {
+        carrier: v3(carrier_speed, 0.0, 0.0),
+        velocity: v3(missile.speed_mps, 0.0, 0.0),
+        motor: missile.motor,
+        ..launch(v3(0.0, 0.0, 250.0), v3(missile.speed_mps, 0.0, 0.0))
+    };
+    let mut store = Projectiles::new(config());
+    let id = store.launch(launch);
+    let world = flat([3000.0, 400.0], "");
+    let mut separation_at_ten = 0.0;
+    for tick in 0..30 {
+        let _ = fly(&mut store, &world, 1, |_| Vec::new());
+        let separation = store.get(id).unwrap().position.x
+            - carrier_speed * (tick + 1) as f64 * config().tick_s();
+        if tick == 9 {
+            separation_at_ten = separation;
+        }
+        if tick == 29 {
+            assert!(
+                separation > separation_at_ten && separation > 0.0,
+                "{separation_at_ten} -> {separation}"
+            );
+        }
+    }
+}
+
+#[test]
 fn a_motor_needs_a_guided_row_with_a_top_speed_above_launch() {
     let atgm = weapon("atgm");
     let refused =
@@ -263,6 +296,113 @@ fn an_unguided_row_tighter_than_the_spread_ceiling_is_refused_and_a_guided_one_i
         ..weapon("atgm")
     };
     assert!(config().profile(&guided).is_ok());
+}
+
+fn unpowered_bomb_launch(carrier: V3, velocity: V3, aim: V3, profile: &LaunchProfile) -> Launch {
+    let gravity = profile.gravity(&config());
+    let drop = sim::flight::release(carrier, velocity, gravity, aim);
+    Launch {
+        origin: drop.at.with_z(carrier.z),
+        carrier: velocity,
+        velocity: V3::default(),
+        gravity_scale: profile.gravity_scale,
+        lifetime_s: profile.lifetime_s,
+        suppression_radius_m: profile.suppression_radius_m,
+        shooter: None,
+        guidance: None,
+        motor: None,
+        fall: None,
+    }
+}
+
+#[test]
+fn a_bomb_released_at_the_solved_point_lands_on_its_aim() {
+    let profile = profile("air_bomb");
+    let carrier = v3(100.0, 100.0, 200.0);
+    let aim = v3(500.0, 100.0, 0.0);
+    let mut store = Projectiles::new(config());
+    store.launch(unpowered_bomb_launch(
+        carrier,
+        v3(100.0, 0.0, 0.0),
+        aim,
+        &profile,
+    ));
+    let events = fly(&mut store, &flat([1200.0, 400.0], ""), 240, |_| Vec::new());
+    let [(_, hit)] = impacts(&events)[..] else {
+        panic!("{events:?}")
+    };
+    assert!(
+        (hit.point - aim).length() < 0.1,
+        "{:?} vs {:?}",
+        hit.point,
+        aim
+    );
+}
+
+#[test]
+fn a_bomb_falls_ahead_carrying_the_jets_velocity() {
+    let profile = profile("air_bomb");
+    let carrier = v3(100.0, 100.0, 200.0);
+    let velocity = v3(100.0, 0.0, 0.0);
+    let aim = v3(500.0, 100.0, 0.0);
+    let release = sim::flight::release(carrier, velocity, profile.gravity(&config()), aim);
+    let mut store = Projectiles::new(config());
+    store.launch(unpowered_bomb_launch(carrier, velocity, aim, &profile));
+    let events = fly(&mut store, &flat([1200.0, 400.0], ""), 240, |_| Vec::new());
+    let [(_, hit)] = impacts(&events)[..] else {
+        panic!("{events:?}")
+    };
+    assert!((hit.point.x - release.at.x - velocity.x * release.fall_s).abs() < 0.1);
+}
+
+#[test]
+fn a_bomb_falls_about_three_seconds_from_200m() {
+    let row = weapon("air_bomb");
+    let profile = config().profile(&row).unwrap();
+    let carrier = v3(100.0, 100.0, 200.0);
+    let aim = v3(100.0, 100.0, 0.0);
+    let mut store = Projectiles::new(config());
+    store.launch(unpowered_bomb_launch(carrier, V3::default(), aim, &profile));
+    let events = fly(&mut store, &flat([1200.0, 400.0], ""), 240, |_| Vec::new());
+    let [(tick, event)] = impacts(&events)[..] else {
+        panic!("{events:?}")
+    };
+    let impact_s = event_time(tick, &FlightEvent::Impact(event), config().tick_s());
+    assert!((impact_s - 3.0).abs() < 0.1, "{impact_s}");
+}
+
+#[test]
+fn cluster_bombs_scatter_around_the_aim_point() {
+    let profile = profile("air_bomb_cluster");
+    let carrier = v3(100.0, 100.0, 200.0);
+    let aim = v3(700.0, 600.0, 0.0);
+    let mut rng = Rng::new(20261014);
+    let mut store = Projectiles::new(config());
+    for _ in 0..64 {
+        let scattered = scatter_aim(carrier, aim, profile.scatter_mrad, &mut rng);
+        let scattered = v3(scattered.x, scattered.y, aim.z);
+        store.launch(unpowered_bomb_launch(
+            carrier,
+            V3::default(),
+            scattered,
+            &profile,
+        ));
+    }
+    let events = fly(&mut store, &flat([1600.0, 1400.0], ""), 240, |_| Vec::new());
+    let points: Vec<_> = impacts(&events)
+        .into_iter()
+        .map(|(_, hit)| hit.point)
+        .collect();
+    assert_eq!(points.len(), 64);
+    let centroid =
+        points.iter().fold(V3::default(), |sum, point| sum + *point) * (1.0 / points.len() as f64);
+    assert!(
+        (centroid - aim).xy().length() < 20.0,
+        "{centroid:?} vs {aim:?}"
+    );
+    assert!(points
+        .iter()
+        .any(|point| (*point - aim).xy().length() > 5.0));
 }
 
 #[test]

@@ -138,7 +138,7 @@
           "id": "bombs",
           "name": "Bombs",
           "weapons": [
-            "air_bomb_guided",
+            "air_bomb",
             "air_bomb_cluster"
           ],
           "turret": false,
@@ -305,7 +305,7 @@
           "id": "bombs",
           "name": "Bombs",
           "weapons": [
-            "air_bomb_guided",
+            "air_bomb",
             "air_bomb_cluster"
           ],
           "turret": false,
@@ -472,7 +472,7 @@
           "id": "bombs",
           "name": "Bombs",
           "weapons": [
-            "air_bomb_guided",
+            "air_bomb",
             "air_bomb_cluster"
           ],
           "turret": false,
