@@ -1,6 +1,6 @@
 {
   "units": [
-    {"side":"blue","kind":"us_ea18g_sead","position":[40,260],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"us_ea_18g_growler_electronic_warfare_aircraft","position":[40,260],"engagement":"return_fire_only"},
     {"side":"blue","kind":"f_16c_block_50","position":[40,140],"engagement":"return_fire_only"},
     {"side":"red","kind":"eastern_buk_buk_m3_medium_range_air_defense","position":[560,120],"yaw":3.14159,"engagement":"return_fire_only"},
     {"side":"red","kind":"eastern_pantsir_pantsir_sm","position":[475,460],"yaw":3.14159,"engagement":"return_fire_only"},

@@ -1,7 +1,7 @@
 {
   "units": [
     {"side":"blue","kind":"f_16c_block_50","position":[140,150],"engagement":"return_fire_only"},
-    {"side":"blue","kind":"us_ea18g_sead","position":[140,250],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"us_ea_18g_growler_electronic_warfare_aircraft","position":[140,250],"engagement":"return_fire_only"},
     {"side":"blue","kind":"ah_64e_guardian","position":[140,350],"engagement":"return_fire_only"},
     {"side":"blue","kind":"us_stryker_m_shorad_gun_and_missile_air_defense_vehicle","position":[330,150],"engagement":"return_fire_only"},
     {"side":"blue","kind":"us_nasams_medium","position":[330,250],"engagement":"return_fire_only"},

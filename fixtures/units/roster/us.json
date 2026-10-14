@@ -24,12 +24,8 @@
             "icon": "autocannon"
           },
           {
-            "name": "AT Missile",
+            "name": "Ground Missile",
             "icon": "atgm"
-          },
-          {
-            "name": "Bombs",
-            "icon": "bomb"
           }
         ]
       }
@@ -582,7 +578,7 @@
         },
         {
           "id": "missiles",
-          "name": "AA missiles",
+          "name": "SEAD missiles",
           "weapons": [
             "sead_missile"
           ],
@@ -661,10 +657,6 @@
           {
             "name": "AA Missile",
             "icon": "aa_missile"
-          },
-          {
-            "name": "Bombs",
-            "icon": "bomb"
           }
         ]
       }
@@ -727,7 +719,7 @@
             "icon": "aa_missile"
           },
           {
-            "name": "Bombs",
+            "name": "Cluster bombs",
             "icon": "bomb"
           }
         ]
@@ -761,8 +753,8 @@
             "icon": "aa_missile"
           },
           {
-            "name": "Bombs",
-            "icon": "bomb"
+            "name": "Ground Missile",
+            "icon": "atgm"
           }
         ]
       }
@@ -2721,7 +2713,10 @@
           "reverse_fraction": 0.3
         }
       },
-      "sensors": { "low_air_m": 900, "high_air_m": 900 },
+      "sensors": {
+        "low_air_m": 900,
+        "high_air_m": 900
+      },
       "capabilities": {
         "air_defense": {
           "tier": "short"
