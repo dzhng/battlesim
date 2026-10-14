@@ -462,3 +462,6 @@ pub fn isolated_cost_test(name: &str) -> bool {
     assert!(status.success(), "isolated {name} failed");
     false
 }
+
+#[path = "jet.rs"]
+pub mod jet;

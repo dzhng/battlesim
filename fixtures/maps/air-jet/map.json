@@ -1,0 +1,266 @@
+{
+  "size": [
+    3000,
+    3000
+  ],
+  "render_margin_m": 2000,
+  "fog_cell_m": 8,
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "surfaces": [
+    {
+      "kind": "country_road",
+      "shape": {
+        "kind": "stroke",
+        "points": [
+          [
+            0,
+            1500
+          ],
+          [
+            3000,
+            1500
+          ]
+        ],
+        "width_m": 12
+      }
+    },
+    {
+      "kind": "country_road",
+      "shape": {
+        "kind": "stroke",
+        "points": [
+          [
+            1500,
+            0
+          ],
+          [
+            1500,
+            3000
+          ]
+        ],
+        "width_m": 10
+      }
+    }
+  ],
+  "forests": [
+    {
+      "shape": {
+        "kind": "polygon",
+        "ring": [
+          [
+            2062.5,
+            2451.923077
+          ],
+          [
+            2390.625,
+            2451.923077
+          ],
+          [
+            2390.625,
+            2855.769231
+          ],
+          [
+            2062.5,
+            2855.769231
+          ]
+        ]
+      }
+    }
+  ],
+  "props": [],
+  "buildings": [
+    {
+      "owner": 0,
+      "kind": "building",
+      "template_id": "china-home-12x9-2f",
+      "frame": {
+        "translation": [
+          703.125,
+          2815.384615,
+          0.0
+        ],
+        "yaw": 0.0
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 0
+        }
+      ]
+    },
+    {
+      "owner": 1,
+      "kind": "building",
+      "template_id": "china-home-9x9-2f",
+      "frame": {
+        "translation": [
+          806.25,
+          2515.384615,
+          0.0
+        ],
+        "yaw": 0.0
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 1
+        }
+      ]
+    },
+    {
+      "owner": 2,
+      "kind": "building",
+      "template_id": "china-apartment-point-20x20-7f",
+      "frame": {
+        "translation": [
+          960.9375,
+          2723.076923,
+          0.0
+        ],
+        "yaw": 0.0
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 2
+        }
+      ]
+    },
+    {
+      "owner": 3,
+      "kind": "building",
+      "template_id": "china-corner-shop-3f",
+      "frame": {
+        "translation": [
+          1171.875,
+          2763.461538,
+          0.0
+        ],
+        "yaw": 0.0
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 3
+        }
+      ]
+    },
+    {
+      "owner": 4,
+      "kind": "building",
+      "template_id": "china-townhouse-2f",
+      "frame": {
+        "translation": [
+          1181.25,
+          2492.307692,
+          0.0
+        ],
+        "yaw": 1.5707963267948966
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 4
+        }
+      ]
+    },
+    {
+      "owner": 5,
+      "kind": "building",
+      "template_id": "china-tower-20f",
+      "frame": {
+        "translation": [
+          1687.5,
+          2653.846154,
+          0.0
+        ],
+        "yaw": 0.0
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 5
+        }
+      ]
+    },
+    {
+      "owner": 6,
+      "kind": "building",
+      "template_id": "china-home-12x9-2f",
+      "frame": {
+        "translation": [
+          1050,
+          1450,
+          0.0
+        ],
+        "yaw": 0
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 6
+        }
+      ]
+    },
+    {
+      "owner": 7,
+      "kind": "building",
+      "template_id": "china-home-9x9-2f",
+      "frame": {
+        "translation": [
+          1180,
+          1570,
+          0.0
+        ],
+        "yaw": 0.3
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 7
+        }
+      ]
+    },
+    {
+      "owner": 8,
+      "kind": "building",
+      "template_id": "china-corner-shop-3f",
+      "frame": {
+        "translation": [
+          1320,
+          1420,
+          0.0
+        ],
+        "yaw": 1.57
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 8
+        }
+      ]
+    },
+    {
+      "owner": 9,
+      "kind": "building",
+      "template_id": "china-townhouse-2f",
+      "frame": {
+        "translation": [
+          1450,
+          1570,
+          0.0
+        ],
+        "yaw": 0
+      },
+      "parts": [
+        {
+          "part": "body",
+          "prop": 9
+        }
+      ]
+    }
+  ],
+  "template_catalog_hash": "a7f1169ec5919f8e2203f349a3a01b984e4e427548128782104fe3b624d19067",
+  "regional_family": "china"
+}

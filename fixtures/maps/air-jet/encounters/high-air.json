@@ -1,0 +1,71 @@
+{
+  "units": [
+    {
+      "side": "blue",
+      "kind": "f_16c_block_50",
+      "position": [
+        80,
+        1500
+      ],
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "eastern_t_72_t_72b3_2016",
+      "position": [
+        1500,
+        2300
+      ],
+      "yaw": 3.14159,
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "eastern_mi_8_hip_mi_8amtsh",
+      "position": [
+        2100,
+        900
+      ],
+      "yaw": 3.14159,
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "eastern_j_10_vigorous_dragon_j_10c",
+      "position": [
+        2820,
+        350
+      ],
+      "yaw": 3.14159,
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "eastern_short_aa",
+      "position": [
+        2450,
+        1900
+      ],
+      "yaw": 3.14159,
+      "engagement": "return_fire_only"
+    }
+  ],
+  "scripts": [
+    {
+      "tick": 1,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [
+          0
+        ],
+        "gesture": 1,
+        "goal": [
+          2700,
+          2300
+        ],
+        "route": "shortest"
+      }
+    }
+  ]
+}

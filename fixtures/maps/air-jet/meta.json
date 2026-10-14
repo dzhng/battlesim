@@ -1,0 +1,22 @@
+{
+  "category": "test",
+  "status": "released",
+  "label": "Air jet lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [
+    3000,
+    3000
+  ],
+  "tags": [
+    "road",
+    "forest",
+    "building"
+  ],
+  "source": "authored",
+  "seed": null,
+  "encounters": [
+    "high-air"
+  ],
+  "benchmarks": []
+}

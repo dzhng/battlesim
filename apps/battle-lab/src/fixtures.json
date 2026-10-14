@@ -145,7 +145,7 @@
     "id": "air-high",
     "route": "/labs/air-high",
     "describe": "An F-16 flies across the air field, over the village, the tower and the wood, beside an enemy Mi-8 and J-10: blue's fog never clears and it never identifies the T-72 in the village, though the jet identifies both enemy aircraft; it stays inside the map at the air layer's height.",
-    "map": "air"
+    "map": "air-jet"
   },
   {
     "id": "air-defense",
