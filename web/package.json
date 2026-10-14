@@ -12,7 +12,7 @@
     "scene": "node scene.mjs",
     "asset": "node asset.mjs",
     "tutorial-shots": "node tutorial-shots.mjs",
-    "verify": "SCENE_GRAPHICS_QUALITY=${SCENE_GRAPHICS_QUALITY:-low} node scene.mjs",
+    "verify": "SCENE_GRAPHICS_QUALITY=${SCENE_GRAPHICS_QUALITY:-minimum} node scene.mjs",
     "visual": "node scene.mjs --visual"
   },
   "dependencies": {

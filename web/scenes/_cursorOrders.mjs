@@ -703,7 +703,7 @@ export async function partialBuildingCursor(ctx) {
     { width: 430, height: 800 },
   ]) {
     const page = await openBattle(ctx, {
-      url: `${base(ctx)}/labs/cursor-orders`,
+      url: `${base(ctx)}/labs/garrison?cursor=1`,
       tick: 40,
       viewport,
     });
@@ -776,7 +776,7 @@ async function calloutFits(page, pointer) {
 
 export async function narrowRefusal(ctx) {
   const page = await openBattle(ctx, {
-    url: `${base(ctx)}/labs/cursor-orders`,
+    url: `${base(ctx)}/labs/garrison?cursor=1`,
     tick: 40,
     viewport: { width: 430, height: 800 },
   });
@@ -804,7 +804,7 @@ async function resetWorkerBattle(page) {
 
 export async function readoutEdge(ctx) {
   const page = await openBattle(ctx, {
-    url: `${base(ctx)}/labs/cursor-orders`,
+    url: `${base(ctx)}/labs/garrison?cursor=1`,
     tick: 40,
     viewport: { width: 430, height: 800 },
   });

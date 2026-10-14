@@ -5,9 +5,10 @@
 // platform. The battle parks each of those types on the air field, and each
 // is drawn; a contact sheet of them is left for review.
 import { gpuWarnings, aim, lab, hideHud } from "./_lab.mjs";
-import { openAir, shoot, drawnVehicles } from "./_air.mjs";
+import { encounter, openAir, shoot, drawnVehicles } from "./_air.mjs";
 import { writeSheet } from "./_sheet.mjs";
-import { unitType } from "./_units.mjs";
+import { layerOf } from "../../packages/scene-assets/src/units.ts";
+import { unitType, weapons } from "./_units.mjs";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 import { AIR_ROLES, airRole, FACTIONS } from "../../packages/scene-assets/src/units.ts";
 const cards = (await nodeCatalogSet("test")).units.view.cards.filter((c) => !c.disabled_reason);
@@ -26,6 +27,7 @@ const matrix = Object.fromEntries(
 );
 
 export async function run(ctx) {
+  await recordsPanel(ctx);
   const page = await openAir(ctx);
   const warnings = gpuWarnings(page);
   const shown = await page.evaluate(() =>
@@ -95,4 +97,59 @@ export async function run(ctx) {
     cells,
   });
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
+}
+
+async function recordsPanel(ctx) {
+  const page = await openAir(ctx, "records");
+  const kinds = [...new Set(encounter("contracts", "air-roster").units.map((u) => u.kind))];
+  // The panel: one record per fielded type, its fields the catalog's.
+  const records = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-testid=air-records] [data-kind]")].map((s) => ({
+      kind: s.getAttribute("data-kind"),
+      fields: Object.fromEntries(
+        [...s.querySelectorAll(".lab-row > span[data-field]")].map((f) => [
+          f.getAttribute("data-field"),
+          f.textContent.slice(f.getAttribute("data-field").length + 1),
+        ]),
+      ),
+      weapons: Object.fromEntries(
+        [...s.querySelectorAll("[data-weapon]")].map((w) => [
+          w.getAttribute("data-weapon"),
+          w.querySelector("[data-field=targets]").textContent,
+        ]),
+      ),
+    })),
+  );
+  ctx.check(
+    "the panel prints one record per fielded type",
+    JSON.stringify(records.map((r) => r.kind).sort()) === JSON.stringify([...kinds].sort()),
+    JSON.stringify(records.map((r) => r.kind)),
+  );
+  for (const kind of kinds) {
+    const t = unitType(kind);
+    const rec = records.find((r) => r.kind === kind);
+    const caps = t.capabilities;
+    const radar = caps.air?.radar ?? caps.radar;
+    const want = {
+      layer: layerOf(t),
+      fuel: caps.air ? String(caps.air.fuel_capacity_s) : "—",
+      aa_tier: caps.air_defense?.tier ?? "—",
+      radar: radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—",
+      sead: caps.air?.sead ? "yes" : "no",
+    };
+    const targets = Object.fromEntries(
+      t.mounts
+        .flatMap((m) => m.weapons)
+        .map((w) => [w, Object.keys(weapons[w].targets ?? { ground: {} }).join("+")]),
+    );
+    ctx.check(
+      `${kind}: its record reads the catalog's layer, fuel, tier, radar and weapon layers`,
+      !!rec &&
+        Object.entries(want).every(([k, v]) => rec.fields[k] === v) &&
+        JSON.stringify(rec.weapons) === JSON.stringify(targets),
+      JSON.stringify({ rec, want, targets }),
+    );
+  }
+
+  await page.close();
 }

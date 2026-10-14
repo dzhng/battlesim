@@ -3,6 +3,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SideName } from "@web/battle/sim/protocol";
 import { buildSightOverlay } from "@packages/battle-renderer/src/sightOverlay";
 import { LabViewport } from "../LabViewport";
+import { BattleView } from "../BattleView";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
@@ -28,6 +29,7 @@ const SENSORS_CAMERA: Camera3DParams = {
 };
 
 export default function Sensors() {
+  if (new URLSearchParams(window.location.search).has("contacts")) return <ContactsView />;
   return (
     <SavedEncounter fixture="sensors" encounter="sensors">
       {(battle) => <SensorsLab battle={battle} />}
@@ -149,5 +151,34 @@ function SensorsLab({ battle }: { battle: SavedBattle }) {
         </ul>
       </aside>
     </>
+  );
+}
+
+
+function ContactsView() {
+  const CONTACTS_CAMERA: Camera3DParams = {
+    target: [720, 420, 0],
+    distance: 520,
+    pitch: 0.95,
+    yaw: -1.57,
+    ...gameCamera.lens,
+  };
+  return (
+    <SavedEncounter fixture="sensors" encounter="contacts">
+      {(battle) => (
+        <BattleView
+          fixture="sensors"
+          scenario={battle.scenario}
+          seed={6}
+          camera={CONTACTS_CAMERA}
+          status={({ sim }) => (
+            <>
+              <strong>Contacts and sound</strong>
+              <TickStatus tick={sim.observation?.tick} status={sim.status.status} />
+            </>
+          )}
+        />
+      )}
+    </SavedEncounter>
   );
 }

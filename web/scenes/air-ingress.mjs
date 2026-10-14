@@ -13,7 +13,7 @@
 // enemy fire), and circling at the destination (aircraft hover there).
 import { writeFile } from "node:fs/promises";
 import { gpuWarnings, obs, advance } from "./_lab.mjs";
-import { openAir, play, FIELD, command, surface, CRUISE, shoot } from "./_air.mjs";
+import { openAir, play, FIELD, command, surface, JET_CRUISE, shoot } from "./_air.mjs";
 import { unitType } from "./_units.mjs";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
 
@@ -104,7 +104,7 @@ export async function run(ctx) {
     "it enters where it waited, at the air height, fuel full",
     Math.hypot(entered.position[0] - first.position[0], entered.position[1] - first.position[1]) <
       5 &&
-      Math.abs(lift - CRUISE) < 1 &&
+      Math.abs(lift - JET_CRUISE) < 1 &&
       entered.fuel >= FUEL - 0.1,
     JSON.stringify({ entered, waited: first.position, lift }),
   );

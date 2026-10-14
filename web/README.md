@@ -60,7 +60,7 @@ A focused invocation is `bun run --cwd web test -- tests/observation.test.ts`.
 [fixture registry](../apps/battle-lab/src/fixtures.json) is their one inventory.
 A fixture and its [scene](scenes/) have matching identities. Files prefixed with
 an underscore are shared harness helpers, not separately registered scenes.
-Run a selected fixture with `bun run --cwd web scene -- <fixture-id>`.
+Run a selected fixture with `bun run --cwd web scene -- <fixture-id>`; the scene/tool contract is stated below.
 The runner prepares missing native fixture helpers automatically in the
 worktree's Cargo `target/` directory; `throwaway/` is reserved for evidence
 and other disposable output. Set `CARGO_TARGET_DIR` when a separate build
@@ -106,21 +106,21 @@ panel the geometric question a picture answers only once approved: does it
 hold its content?
 
 Every scene says what it proves in its registry entry's `describe`, which
-`--list` prints; that is the one place a scene is documented.
+`--list` prints; that is the one place a scene is documented. While working, run
+the scenes a change can move, by id. The scenes are the repository's test
+harness: at the close of every implementation, `bun run verify` runs every one
+of them once, and every one must pass. A fixture with `"tool": true` is a lab
+page for humans or a measurement, not a test, and not part of the harness;
+verify skips it, and it runs only when named by id. Timing and parity scenes are marked `serial` and run alone, because GPU
+contention would invalidate their measurements.
 
-Scenes run at two scales, as [AGENTS.md](../AGENTS.md) asks. While working, run
-the scenes a change can move, by id. When a spec's implementation is finished,
-`bun run verify` runs every registered scene once; nothing is left out of it.
-It draws ordinary scenes at a test-only low graphics profile and overlaps them,
-which is what keeps that full run affordable. One low-quality copy of the
-foundation scene pins the low profile's own pictures. The visual suite
-(`--visual`) runs the scenes with approved pictures at their authored quality.
-
-Scenes overlap to keep the full run moving. Timing and parity scenes are marked
-`serial` and run alone, because GPU contention would invalidate their
-measurements. Scenes that judge the authored graphics are marked
-`authored_quality` and keep it. Rendering jobs from separate checkouts still
-share one GPU, so run them under the repository lock, for example
+Harness scenes use the test-only `minimum` graphics profile by default. A scene
+with an approved picture directory under `scenes/baselines/<id>/` uses the
+player's `low` profile instead, because its regression is judged on the setting
+humans see; the runner derives this from that directory and `--visual` selects
+the same set. Set `SCENE_GRAPHICS_QUALITY` to override the default for a run.
+Rendering jobs from separate checkouts still share one GPU, so run them under
+the repository lock, for example
 `lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`
 (`flock` on Linux). [The runner's usage comment](scene.mjs) owns the flags and
 environment settings.

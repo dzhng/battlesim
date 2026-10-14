@@ -274,13 +274,13 @@ button{background:var(--acc);color:var(--bg);border:0;border-radius:6px;padding:
   <div class="ev">3.3 GB in <code>web/public/assets/soldiers</code>; Quaternius CC0 marked "not yet accepted"; other families have no licence notes.</div>
   Port the pipeline, not the assets. Audit provenance before copying anything.</div>
 <div class="card"><b>16 · Keys pressed by scenes change meaning <span class="tag edge">sharp edge</span></b>
-  <div class="ev"><code>readouts.mjs</code>, <code>movement.mjs</code>, <code>village-replay.mjs</code>, <code>foundation.mjs</code>; typing guard <code>LabViewport.tsx:402</code>.</div>
+  <div class="ev"><code>readouts.mjs</code>, <code>movement.mjs</code>, <code>village-replay.mjs</code>, <code>frame.mjs</code>; typing guard <code>LabViewport.tsx:402</code>.</div>
   Move the commands before WASD lands. Use the stronger typing guard, plus held-key tracking.</div>
 <div class="card"><b>17 · Explicit scene framings <span class="tag edge">sharp edge</span></b>
   <div class="ev">Seven scenes set pitch and distance; <code>geometry.mjs:108</code> is below the minimum pitch.</div>
   The zoom-to-pitch link goes in the wheel gesture only; <code>setCamera</code> stays raw. <code>projectToCss</code> must equal <code>camera3d</code>.</div>
 <div class="card"><b>18 · Pixel checks tuned to flat shading <span class="tag edge">sharp edge</span></b>
-  <div class="ev"><code>sensors.mjs:44-48</code> (seen ground must change by less than 3), <code>contacts.mjs</code>, <code>geometry.mjs</code>, <code>ballistics.mjs</code>, <code>foundation.mjs</code>.</div>
+  <div class="ev"><code>sensors.mjs:44-48</code> (seen ground must change by less than 3), <code>contacts.mjs</code>, <code>geometry.mjs</code>, <code>ballistics.mjs</code>, <code>frame.mjs</code>.</div>
   Retune each deliberately; never loosen one silently.</div>
 <div class="card"><b>19 · Picking uses box proxies <span class="tag edge">sharp edge</span></b>
   <div class="ev"><code>picking.ts:39</code>, <code>picking.test.ts</code>.</div>

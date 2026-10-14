@@ -17,7 +17,7 @@ const ffmpeg = promisify(execFile);
 export const encounter = (name, fixture) => loadEncounter(mapOf(fixture), name);
 
 /** The fixture's saved map. */
-export const mapOf = (fixture = "air-contracts") => FIXTURES.find((f) => f.id === fixture).map;
+export const mapOf = (fixture = "air-hover") => FIXTURES.find((f) => f.id === fixture).map;
 
 /** The fixture's field size, metres, from its map's metadata. */
 export const field = (fixture) =>

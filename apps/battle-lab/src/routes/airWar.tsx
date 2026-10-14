@@ -69,11 +69,6 @@ interface Checkpoint {
 }
 
 const CHECKPOINTS: Record<string, Checkpoint> = {
-  "air-contracts": {
-    title: "Air contracts",
-    variants: { contracts: { label: "Records", source: { encounter: "contracts" } } },
-    panel: "records",
-  },
   "air-high": {
     title: "High air",
     variants: { flight: { label: "Jet over the village", source: { encounter: "high-air" } } },
@@ -87,13 +82,6 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
         side: "red",
       },
       jet: { label: "Jet", source: { encounter: "defense-jet" }, side: "red" },
-    },
-  },
-  "air-radar": {
-    title: "Radar contacts",
-    variants: {
-      sead: { label: "SEAD aircraft", source: { encounter: "radar-sead" } },
-      fighter: { label: "Fighter only", source: { encounter: "radar-fighter" } },
     },
   },
   "air-dogfight": {
@@ -114,7 +102,10 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
   },
   "air-roster": {
     title: "Air roster",
-    variants: { lineup: { label: "Line-up", source: { lineup: true } } },
+    variants: {
+      lineup: { label: "Line-up", source: { lineup: true } },
+      records: { label: "Records", source: { encounter: "contracts" } },
+    },
     panel: "matrix",
   },
   "air-hud": {
@@ -124,10 +115,6 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
   "air-audio": {
     title: "Air audio",
     variants: { alarm: { label: "Air alarm", source: { encounter: "audio" } } },
-  },
-  "air-combined": {
-    title: "Combined air battle",
-    variants: { battle: { label: "Battle", source: { encounter: "combined" } } },
   },
 };
 
@@ -245,7 +232,12 @@ function Checkpoint({ fixture, checkpoint }: { fixture: string; checkpoint: Chec
           </>
         )}
       />
-      {checkpoint.panel && <AirPanel kind={checkpoint.panel} scenario={scenario} />}
+      {checkpoint.panel && (
+        <AirPanel
+          kind={variant === "records" ? "records" : checkpoint.panel}
+          scenario={scenario}
+        />
+      )}
     </>
   );
   const { source } = chosen;

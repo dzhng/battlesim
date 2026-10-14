@@ -10,6 +10,7 @@ import {
   openScenePage,
   runConcurrent,
   sceneUrlFor,
+  fixtureGraphicsQuality,
   mergeSceneUrl,
 } from "./scene.mjs";
 
@@ -31,8 +32,8 @@ test("native helpers live in the durable Cargo target by default", () => {
 });
 
 test("scene args: fixture ids, the bun `--` separator, --list and --visual", () => {
-  expect(parseArgs(["--", "foundation"])).toEqual({
-    ids: ["foundation"],
+  expect(parseArgs(["--", "frame"])).toEqual({
+    ids: ["frame"],
     list: false,
     visual: false,
   });
@@ -63,11 +64,23 @@ test("scene scheduler limits overlap and returns fixture order", async () => {
 
 test("test graphics quality is only added to lab routes", () => {
   expect(
-    sceneUrlFor("http://127.0.0.1:5173/labs/foundation", "low").searchParams.get("test-quality"),
+    sceneUrlFor("http://127.0.0.1:5173/labs/frame", "low").searchParams.get("test-quality"),
   ).toBe("low");
   expect(
     sceneUrlFor("http://127.0.0.1:5173/battle?seed=1", "low").searchParams.has("test-quality"),
   ).toBe(false);
+});
+
+
+test("scene quality follows baseline, ordinary, and serial contracts", () => {
+  expect(fixtureGraphicsQuality({ id: "frame" }, { pinned: true, env: null })).toBe("low");
+  expect(fixtureGraphicsQuality({ id: "geometry" }, { pinned: false, env: null })).toBe("minimum");
+  expect(
+    fixtureGraphicsQuality({ id: "benchmark", serial: true }, { pinned: false, env: null }),
+  ).toBeUndefined();
+  expect(
+    fixtureGraphicsQuality({ id: "geometry" }, { pinned: false, env: "medium" }),
+  ).toBe("medium");
 });
 
 test("scene URL parameters merge with fixture queries", () => {
@@ -76,13 +89,27 @@ test("scene URL parameters merge with fixture queries", () => {
   ).toBe("http://127.0.0.1:5173/labs/geometry?test-quality=low&map=river");
 });
 
+test("verify selection skips tools while explicit ids still run them", () => {
+  const fixtures = [
+    { id: "test", tool: false },
+    { id: "measurement", tool: true },
+  ];
+  expect(selectFixtures(fixtures, [])).toEqual([fixtures[0]]);
+  expect(selectFixtures(fixtures, ["measurement"])).toEqual([fixtures[1]]);
+});
+
 test("every registered fixture has exactly one scene", async () => {
   const fixtures = await loadRegistry();
   expect(fixtures.length).toBeGreaterThan(0);
   expect(new Set(fixtures.map((fixture) => fixture.id)).size).toBe(fixtures.length);
   expect(new Set(fixtures.map((fixture) => fixture.route)).size).toBe(fixtures.length);
-  for (const fixture of fixtures) expect([undefined, "production"]).toContain(fixture.build);
-  expect(selectFixtures(fixtures, []).length).toBe(fixtures.length);
+  for (const fixture of fixtures) {
+    expect([undefined, "production"]).toContain(fixture.build);
+    expect([undefined, true]).toContain(fixture.tool);
+  }
+  expect(selectFixtures(fixtures, []).length).toBe(
+    fixtures.filter((fixture) => !fixture.tool).length,
+  );
   expect(() => selectFixtures(fixtures, ["nope"])).toThrow("unknown fixture");
 });
 
@@ -109,6 +136,6 @@ test("--visual selects exactly the fixtures with approved pictures", async () =>
   const fixtures = await loadRegistry();
   const pinned = (await pinnedFixtures(fixtures)).map((f) => f.id);
   expect(pinned).toEqual(expect.arrayContaining(["cursor", "panels", "ui"]));
-  // A scene with no approved pictures (the GPU foundation) is not selected.
-  expect(pinned).not.toContain("foundation");
+  // The merged frame scene carries the approved pictures.
+  expect(pinned).toContain("frame");
 });

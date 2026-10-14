@@ -111,4 +111,20 @@ describe("quality profiles", () => {
     expect(graphicsProfiles.low.shadowReach).toBeLessThan(graphicsProfiles.medium.shadowReach);
     expect(graphicsProfiles.medium.shadowReach).toBeLessThan(graphicsProfiles.high.shadowReach);
   });
+
+  test("scene minimum is cheaper than player low without changing mood", async () => {
+    const { sceneMinimumProfile, graphicsProfiles } = await loadStore();
+    expect(sceneMinimumProfile.unitLodScale).toBeGreaterThan(graphicsProfiles.low.unitLodScale);
+    expect(sceneMinimumProfile.buildingLodScale).toBeGreaterThan(graphicsProfiles.low.buildingLodScale);
+    expect(sceneMinimumProfile.treeLodScale).toBeGreaterThan(graphicsProfiles.low.treeLodScale);
+    expect(sceneMinimumProfile.grassDensity).toBe(0);
+    expect(sceneMinimumProfile.forestDressing).toBe(false);
+    expect(sceneMinimumProfile.understorey).toBe(false);
+    expect(sceneMinimumProfile.shadowMapSize).toBe(512);
+    expect(sceneMinimumProfile.shadowReach).toBeLessThan(graphicsProfiles.low.shadowReach);
+    expect(sceneMinimumProfile.bloom).toBe(true);
+    expect(sceneMinimumProfile.castLights).toBe(true);
+    expect(sceneMinimumProfile.authoredSunSky).toBe(true);
+    expect(sceneMinimumProfile.effectMood).toBe("full");
+  });
 });

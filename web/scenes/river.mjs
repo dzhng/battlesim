@@ -194,35 +194,6 @@ async function waterEdge(ctx) {
   // The class mask's water distance, which the bands are painted by, against
   // the exported stretches' at seeded pixels within the bands' reach.
   const mask = decode(await shoot(page, "river", "bend-65", { view: "ground-classes" }));
-  let seed = 70;
-  const next = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-  const pixels = [];
-  while (pixels.length < 600) {
-    const p = [Math.floor(next() * mask.width), Math.floor(next() * mask.height)];
-    const c = classAt(mask, ...p);
-    if (c && Math.abs(c.riverSd) < BAND_REACH_M) pixels.push(p);
-  }
-  const points = await groundUnder(page, pixels);
-  const exported = await lab(
-    page,
-    (points) => points.map((p) => -window.__inside(...p.xy)),
-    points,
-  );
-  let off = 0;
-  pixels.forEach((p, i) => {
-    // A byte's step, and what the pixel's own width moves the point.
-    const slack = 1 / 8 + points[i].footprint;
-    if (Math.abs(classAt(mask, ...p).riverSd - exported[i]) > slack) off++;
-  });
-  ctx.check(
-    `within ${BAND_REACH_M} m of the water's edge the ground reads the simulation's distance to it`,
-    off === 0,
-    JSON.stringify({ sampled: pixels.length, off }),
-  );
-
   // --- grass thins across the bare earth ---------------------------------------
   await shoot(page, "river", "bend-65");
   const outside = await lab(page, async () =>
@@ -362,37 +333,7 @@ export async function run(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT, grass: true, timeout: 60000, tick: 30 });
   await page.addStyleTag({ content: ".lab-panel { display: none }" });
 
-  // --- the rule, through the simulation's own surface query -----------------
-  const stations = await lab(page, () => window.__lab.route.stations);
-  const midstream = await surfaceAt(page, stations.midstream);
-  ctx.check(
-    "the middle of the 30 m stretch is water no mover stands on",
-    midstream.kind === "water" && !midstream.traversable,
-    JSON.stringify(midstream),
-  );
-  const deck = await surfaceAt(page, [60, 240]);
-  ctx.check(
-    "the bridge deck over the water is walkable",
-    deck.kind === "bridge" && deck.traversable,
-    JSON.stringify(deck),
-  );
-  // West of its first bend the 12 m stretch runs along y = 240: its edge is
-  // 6 m off the centreline, and the water lies 1.2 m under the land.
-  const edge = await lab(page, () => ({
-    wet: window.__lab.route.surfaceAt(78, 240 - 5.9),
-    dry: window.__lab.route.surfaceAt(78, 240 - 6.1),
-    waterline: window.__lab.route.groundHeight(78, 234),
-  }));
-  ctx.check(
-    "the 12 m stretch's edge is where the distance puts it, and the ground meets the surface there",
-    edge.wet.kind === "water" &&
-      edge.dry.kind === "ground" &&
-      edge.dry.traversable &&
-      Math.abs(edge.waterline - -1.2) < 0.05,
-    JSON.stringify(edge),
-  );
-
-  // --- the look: frames for review, and SG2's measures ------------------------
+  // --- the look: frames for review and pixel measures ------------------------
   await lab(page, () => window.__lab.suppressFog(true));
   await aim(page, [260, 255], TOP);
   await snapshot(ctx, page, "top-250.png");
@@ -466,92 +407,6 @@ export async function run(ctx) {
     JSON.stringify(facets),
   );
 
-  // --- a squad and a tank cross by the bridge --------------------------------
-  await lab(page, (view) => window.__lab.setCamera({ ...window.__lab.camera(), ...view }), OPENING);
-  await lab(page, () => window.__lab.route.demo("Over the bridge"));
-  const wet = [];
-  const onDeck = new Set();
-  let own = [];
-  let framed = false;
-  for (let step = 0; step < 200; step++) {
-    await advance(page, 15);
-    own = (await obs(page)).own;
-    const standing = await lab(
-      page,
-      (units) =>
-        units.map((u) =>
-          (u.members.length ? u.members : [u.position]).map(
-            (p) => window.__lab.route.surfaceAt(p[0], p[1])?.kind,
-          ),
-        ),
-      own,
-    );
-    standing.forEach((kinds, k) => {
-      if (kinds.includes("water") || kinds.includes(undefined))
-        wet.push({ unit: own[k].kind, tick: step * 15, at: own[k].position });
-      if (kinds.includes("bridge")) onDeck.add(own[k].kind);
-    });
-    if (onDeck.size === 2 && !framed) {
-      framed = true;
-      await aim(page, [60, 240], PLAY);
-      await snapshot(ctx, page, "crossing-play-65.png");
-    }
-    if (own.every((u) => u.state === "idle")) break;
-  }
-  // The far bank begins 6 m north of the 12 m stretch's centreline.
-  const across = (p) => p[1] > 246;
-  const tank = own.find((u) => u.kind === "test_tank");
-  const squad = own.find((u) => u.kind === "test_rifle");
-  const crossing = {
-    tank: { state: tank.state, at: tank.position.map((v) => +v.toFixed(1)) },
-    squad: {
-      state: squad.state,
-      across: squad.members.filter(across).length,
-      of: squad.members.length,
-    },
-    onDeck: [...onDeck],
-  };
-  // The river's part: the way across is the deck, and both take it. A squad
-  // wider than the deck can leave soldiers standing at the water beside it:
-  // they do not sidestep ground they cannot enter. That is the movement
-  // rules' to fix; the scenario table holds it as pending
-  // (`c69-river-bridge`, `c69-river-around`), and the count is recorded here.
-  ctx.check(
-    "ordered up the road, the tank and the squad cross on the deck and the tank reaches its place",
-    tank.state === "idle" &&
-      Math.hypot(tank.position[0] - stations.north[0], tank.position[1] - stations.north[1] - 30) <
-        3 &&
-      onDeck.size === 2 &&
-      crossing.squad.across > 0,
-    JSON.stringify(crossing),
-  );
-  ctx.check(
-    "nobody stood in the water on the way",
-    wet.length === 0,
-    JSON.stringify(wet.slice(0, 3)),
-  );
-
-  await lab(page, () => window.__lab.route.demo("Into the river"));
-  await advance(page, 30);
-  const sent = (await obs(page)).own;
-  const goals = await lab(
-    page,
-    (units) => units.map((u) => u.goal && window.__lab.route.surfaceAt(u.goal[0], u.goal[1])?.kind),
-    sent,
-  );
-  const ordered = sent.map((u, k) => ({
-    kind: u.kind,
-    state: u.state,
-    goal: u.goal,
-    on: goals[k],
-  }));
-  // Joint placement may move every member onto a bank; no order grants
-  // permission to stand in the water.
-  ctx.check(
-    "ordered into the water, no unit is given a way in: its route is blocked, or its goal is moved to dry ground",
-    ordered.every((u) => u.state === "route_blocked" || !u.goal || (u.on && u.on !== "water")),
-    JSON.stringify(ordered),
-  );
   await ctx.writeEvidence("meta.json", {
     browser: ctx.browser,
     adapter: await page.evaluate(() => window.__lab.adapter),

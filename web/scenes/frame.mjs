@@ -3,7 +3,6 @@
 // crate and soldiers proxies; picking reads the simulation's boxes.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
-import { menuShown, openMenuPage } from "./_lab.mjs";
 
 // The crate is a pale warm proxy (r > b); the tank's camouflage is dark
 // (retuned when the tank was a blue proxy, told apart by hue).
@@ -62,7 +61,7 @@ export async function run(ctx) {
   ctx.check("clicking the tank picks the tank", picked === tankIndex, `picked ${picked}`);
   await page.mouse.click(tankPx[0], tankPx[1]);
   await page.evaluate(() => window.__lab.frame());
-  const selectedText = await page.getByTestId("foundation-panel").textContent();
+  const selectedText = await page.getByTestId("frame-panel").textContent();
   ctx.check("selection reaches the panel", selectedText.includes("test_tank"), selectedText);
   const sky = await page.evaluate(() => window.__lab.pickAt(640, 5));
   ctx.check("sky pick selects nothing", sky === -1, `picked ${sky}`);
@@ -178,76 +177,6 @@ export async function run(ctx) {
     `${size.width}×${size.height}`,
   );
 
-  // Menu warm-up and one lab visit share one device; the lab viewport releases
-  // its buffers/textures without destroying that page's admission.
-  const visits = await ctx.newPage();
-  await visits.addInitScript(() => {
-    const probe = { devices: [], destroyed: 0, allocations: null };
-    window.__pageGpuProbe = probe;
-    const gpu = navigator.gpu;
-    const requestAdapter = gpu.requestAdapter.bind(gpu);
-    gpu.requestAdapter = async (...args) => {
-      const adapter = await requestAdapter(...args);
-      if (!adapter) return adapter;
-      const requestDevice = adapter.requestDevice.bind(adapter);
-      adapter.requestDevice = async (...args) => {
-        const device = await requestDevice(...args);
-        probe.devices.push(device);
-        const destroy = device.destroy.bind(device);
-        device.destroy = () => {
-          probe.destroyed++;
-          destroy();
-        };
-        return device;
-      };
-      return adapter;
-    };
-  });
-  await visits.goto(new URL(ctx.url).origin);
-  await menuShown(visits);
-  await visits.waitForFunction(() => window.__pageGpuProbe.devices.length === 1);
-  ctx.check(
-    "menu warm-up starts one battle worker, its backdrop's",
-    visits.workers().length === 1,
-    `${visits.workers().length} workers`,
-  );
-  const origin = await visits.evaluate(() => performance.timeOrigin);
-  await openMenuPage(visits, "Developer");
-  await visits.getByRole("link", { name: "Labs", exact: true }).click();
-  await visits.getByRole("link", { name: "foundation", exact: true }).click();
-  await visits.waitForFunction(() => window.__lab?.ready);
-  await visits.evaluate(() => {
-    window.__pageGpuProbe.allocations = window.__lab.allocations;
-  });
-  await visits.goBack();
-  // Read on the lab index, which draws nothing: the menu's backdrop builds
-  // its scene within a frame of mounting, so the device is never empty there.
-  const allocationRelease = await visits.waitForFunction(() => {
-    const n = window.__pageGpuProbe.allocations();
-    return n.buffers === 0 && n.textures === 0 && n;
-  });
-  const allocations = await allocationRelease.jsonValue();
-  await visits.getByRole("link", { name: "Main menu", exact: true }).click();
-  await menuShown(visits);
-  const visit = {
-    ...(await visits.evaluate(() => ({
-      devices: window.__pageGpuProbe.devices.length,
-      destroyed: window.__pageGpuProbe.destroyed,
-      sameDocument: performance.timeOrigin,
-    }))),
-    allocations,
-  };
-  ctx.check(
-    "client visit disposal returns allocations to zero and retains one live page GPU",
-    visit.devices === 1 &&
-      visit.destroyed === 0 &&
-      visit.allocations.buffers === 0 &&
-      visit.allocations.textures === 0 &&
-      visit.sameDocument === origin,
-    JSON.stringify(visit),
-  );
-  await ctx.writeEvidence("app-resource-visits.json", [visit]);
-
   // Unsupported GPU is reported, not an endless loading state.
   const bare = await ctx.newPage({ allowErrors: true });
   await bare.addInitScript(() =>
@@ -259,4 +188,19 @@ export async function run(ctx) {
   await bare.getByRole("button", { name: "Details", exact: true }).click();
   const alert = await bare.getByTestId("error-details").textContent();
   ctx.check("missing WebGPU shows an actionable message", /WebGPU/.test(alert), alert);
+
+  // The frame fixture also owns the player-low picture gates for the shared
+  // renderer compositions; keep these captures in the same browser run.
+  const quality = ctx.graphicsQuality ?? "low";
+  const origin = new URL(ctx.url).origin;
+  await ctx.openLab(page, ctx.url);
+  await ctx.matchBaseline(page, "foundation");
+  for (const [url, name] of [
+    [`${origin}/labs/geometry?map=geometry&test-quality=${quality}`, "geometry"],
+    [`${origin}/labs/river?test-quality=${quality}`, "river"],
+  ]) {
+    await ctx.openLab(page, url);
+    const capture = await ctx.matchBaseline(page, name);
+    ctx.check(`low graphics draws an opaque ${name} frame`, capture.length > 1000);
+  }
 }

@@ -1,16 +1,20 @@
 // Deterministic browser verification for registered lab fixtures.
 //
 //   bun run --cwd web scene -- <fixture-id>...   run those fixtures' scenes
-//   bun run --cwd web scene                      run every registered scene
+//   bun run --cwd web scene                      run every registered test scene
 //   bun run --cwd web scene -- --list            list fixture ids and what each scene proves
 //   bun run --cwd web scene -- --visual          run every scene with approved pictures
 //
 // Fixtures run two at a time (SCENE_CONCURRENCY sets the overlap, 1 serializes);
 // a fixture marked `"serial"` always runs alone. A lab must become ready within
 // 30 s alone or 60 s overlapped (SCENE_READINESS_TIMEOUT_MS overrides).
-// SCENE_GRAPHICS_QUALITY=low|medium|high asks lab routes for that test-only
-// graphics profile; serial and `"authored_quality"` fixtures keep their own.
-// `bun run --cwd web verify` runs every scene at the low profile.
+// SCENE_GRAPHICS_QUALITY=minimum|low|medium|high asks lab routes for that
+// test-only graphics profile. Serial timing/parity fixtures keep their own.
+// `bun run --cwd web verify` runs every registered scene; tools are skipped
+// unless named explicitly. Scenes default to minimum, while scenes with an
+// approved baseline directory use the player low profile.
+// A fixture marked `"tool": true` is a lab page for humans and a runnable
+// measurement, not a test; it is skipped without ids and runs by explicit id.
 //
 // The registry is apps/battle-lab/src/fixtures.json; every fixture id must have
 // exactly one scene at web/scenes/<id>.mjs and vice versa. Without VERIFY_URL
@@ -143,11 +147,11 @@ export async function loadRegistry() {
  *  suite, `--visual`. */
 export async function pinnedFixtures(fixtures) {
   const pinned = new Set(await readdir(BASELINES).catch(() => []));
-  return fixtures.filter((f) => pinned.has(f.id));
+  return fixtures.filter((f) => !f.tool && pinned.has(f.id));
 }
 
 export function selectFixtures(fixtures, ids) {
-  if (ids.length === 0) return fixtures;
+  if (ids.length === 0) return fixtures.filter((fixture) => !fixture.tool);
   const unknown = ids.filter((id) => !fixtures.some((f) => f.id === id));
   if (unknown.length) {
     throw new Error(
@@ -259,7 +263,13 @@ export async function openScenePage(
   return page;
 }
 
-export async function run(fixtures) {
+/** Resolve the runner's quality contract from the baseline directory set. */
+export function fixtureGraphicsQuality(fixture, { pinned = false, env } = {}) {
+  if (fixture.serial) return undefined;
+  return env || process.env.SCENE_GRAPHICS_QUALITY || (pinned ? "low" : "minimum");
+}
+
+export async function run(fixtures, { pinnedIds = new Set() } = {}) {
   await ensureNativeTools();
   const servers = new Map();
   const serverFor = async (fixture) => {
@@ -315,12 +325,8 @@ export async function run(fixtures) {
         sceneFailure = new Error(message);
         rejectSceneFailure(sceneFailure);
       };
-      const quality = process.env.SCENE_GRAPHICS_QUALITY;
-      const sceneUrl = sceneUrlFor(
-        `${server.url}${fixture.route}`,
-        quality,
-        !fixture.serial && !fixture.authored_quality,
-      );
+      const quality = fixtureGraphicsQuality(fixture, { pinned: pinnedIds.has(fixture.id) });
+      const sceneUrl = sceneUrlFor(`${server.url}${fixture.route}`, quality, Boolean(quality));
       const ctx = {
         fixture,
         url: sceneUrl.href,
@@ -503,7 +509,11 @@ export async function main(argv = process.argv.slice(2)) {
     for (const f of fixtures) console.log(`${f.id}\t${f.route}\t${f.describe}`);
     return 0;
   }
-  return run(args.visual ? await pinnedFixtures(fixtures) : selectFixtures(fixtures, args.ids));
+  const pinned = new Set((await pinnedFixtures(fixtures)).map((fixture) => fixture.id));
+  const selected = args.visual
+    ? fixtures.filter((fixture) => pinned.has(fixture.id))
+    : selectFixtures(fixtures, args.ids);
+  return run(selected, { pinnedIds: pinned });
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

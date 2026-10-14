@@ -39,6 +39,8 @@ export async function run(ctx) {
       Math.hypot(wreck.center[0] - 520, wreck.center[1] - 390) < 2,
     JSON.stringify({ attack, wreck }),
   );
+  const debris = await lab(page, () => window.__lab.route.cookOffPieces?.() ?? []);
+  ctx.check("a destroyed hull draws debris", debris.some((piece) => piece.state === "debris"), JSON.stringify(debris));
   ctx.check(
     "the destroyed tank is no longer identified",
     !!o && !o.identified.some((e) => e.kind === "test_tank"),

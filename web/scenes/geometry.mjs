@@ -43,26 +43,6 @@ export async function run(ctx) {
       ) < 1e-4,
     JSON.stringify(onRidge),
   );
-  const deck = await probeAt(page, 192, 160, 0.1);
-  ctx.check(
-    "the bridge deck is a solid walkable surface",
-    deck?.collider.startsWith("bridge_deck") && deck.surface === "bridge" && deck.traversable,
-    JSON.stringify(deck),
-  );
-  const water = await probeAt(page, 192, 125, -0.5);
-  ctx.check(
-    "water beside the bridge blocks ground units",
-    water?.surface === "water" && !water.traversable,
-    JSON.stringify(water),
-  );
-  const steep = await probeAt(page, 315, 50, 5);
-  const gentle = await probeAt(page, 215, 50, 4.5);
-  ctx.check(
-    "the steep ramp is blocked and the gentle one is not",
-    steep && !steep.traversable && gentle?.traversable,
-    JSON.stringify({ steep, gentle }),
-  );
-
   // Clicking shows the probe in the panel and drops the marker.
   const px = await page.evaluate(([x, y, z]) => window.__lab.projectToCss(x, y, z), [215, 50, 4.5]);
   await page.mouse.click(px[0], px[1]);

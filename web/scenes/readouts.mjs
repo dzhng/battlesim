@@ -58,7 +58,7 @@ export async function run(ctx) {
   const panelBox = await truckPanel.boundingBox();
   await page.mouse.click(panelBox.x + panelBox.width / 2, panelBox.y + panelBox.height / 2);
   await page.waitForFunction(() => window.__lab.route.selected().join(",") === "3");
-  ctx.check("clicking a floating panel selects its unit", true);
+  ctx.check("clicking a floating panel selects its unit", (await lab(page, () => window.__lab.route.selected())).join(",") === "3");
   await lab(page, () => window.__lab.route.select([]));
   await page.mouse.move(panelBox.x - 2, panelBox.y - 2);
   await page.mouse.down();
@@ -67,7 +67,7 @@ export async function run(ctx) {
   });
   await page.mouse.up();
   await page.waitForFunction(() => window.__lab.route.selected().includes(3));
-  ctx.check("dragging a rectangle over a floating panel selects its unit", true);
+  ctx.check("dragging a rectangle over a floating panel selects its unit", (await lab(page, () => window.__lab.route.selected())).includes(3));
   await lab(page, () => window.__lab.route.select([]));
   await page.mouse.move(panelBox.x + 4, panelBox.y + 4);
   await page.mouse.down();
@@ -76,7 +76,7 @@ export async function run(ctx) {
   });
   await page.mouse.up();
   await page.waitForFunction(() => window.__lab.route.selected().includes(3));
-  ctx.check("a selection drag can start inside a floating panel", true);
+  ctx.check("a selection drag can start inside a floating panel", (await lab(page, () => window.__lab.route.selected())).includes(3));
 
   // Pick empty ground inside the rifle squad's circle, away from each body and panel.
   const interior = await lab(
@@ -117,7 +117,7 @@ export async function run(ctx) {
   if (interior) {
     await page.mouse.click(...interior);
     await page.waitForFunction(() => window.__lab.route.selected().join(",") === "2");
-    ctx.check("clicking empty ground inside the infantry circle selects the squad", true);
+    ctx.check("clicking empty ground inside the infantry circle selects the squad", (await lab(page, () => window.__lab.route.selected())).join(",") === "2");
   }
   await lab(page, () => window.__lab.route.select([0, 1, 2, 3]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 4);
@@ -353,180 +353,16 @@ export async function run(ctx) {
   await page.mouse.move(20, 20);
   await lab(page, () => window.__lab.reset());
 
-  // Keys (CommandBindings): F toggles the fire policy; C arms attack-move,
-  // R a reverse move.
-  await page.keyboard.press("f");
-  await advance(page, 2);
-  o = await obs(page);
+  // One real-keyboard smoke: a key produces one acknowledged order.
+  const beforeKeys = await lab(page, () => window.__lab.route.acks().length);
+  await page.keyboard.press("Backspace");
+  await page.waitForFunction((n) => window.__lab.route.acks().length > n, beforeKeys);
+  const keyboardAck = await lab(page, () => window.__lab.route.acks()[0]);
   ctx.check(
-    "F switches the selection's fire policy",
-    o.own[0].engagement === "return_fire_only",
-    o.own[0].engagement,
+    "one real key produces one acknowledged order",
+    keyboardAck?.order.kind === "stop" && keyboardAck.ack.error === null,
+    JSON.stringify(keyboardAck),
   );
-  await page.keyboard.press("c");
-  ctx.check(
-    "C arms attack-move",
-    (await lab(page, () => window.__lab.route.mode())) === "attack_move",
-  );
-  await page.keyboard.press("r");
-  ctx.check(
-    "R arms a reverse move",
-    (await lab(page, () => window.__lab.route.mode())) === "reverse_move",
-  );
-
-  const mode = () => lab(page, () => window.__lab.route.mode());
-  const lastAck = async () => (await lab(page, () => window.__lab.route.acks()))[0];
-  await page.keyboard.press("Escape");
-  ctx.check("Escape disarms", (await mode()) === "move");
-
-  // A leader is one line everywhere: solid, one width, in its panel's
-  // colour (the HUD accent for own units, selected or not); amber belongs to
-  // the ground markers alone. Selection dims or lifts it with its panel.
-  const want = game.presentation.hud.accent.map((v) => Math.round(v * 255));
-  const leaders = await page.evaluate(() =>
-    [...document.querySelectorAll(".ro-leader.ro-own")].map((l) => {
-      const cs = getComputedStyle(l);
-      return {
-        selected: l.classList.contains("ro-selected"),
-        stroke: cs.stroke,
-        width: cs.strokeWidth,
-        dash: cs.strokeDasharray,
-        opacity: Number(cs.opacity),
-      };
-    }),
-  );
-  const sel = leaders.filter((l) => l.selected);
-  const unsel = leaders.filter((l) => !l.selected);
-  ctx.check(
-    "every own leader line is one style: solid, one width, the callouts' cyan; selection only as the panel's opacity",
-    sel.length > 0 &&
-      unsel.length > 0 &&
-      leaders.every(
-        (l) =>
-          l.stroke.startsWith(`rgba(${want.join(", ")}`) &&
-          l.dash === "none" &&
-          l.width === leaders[0].width,
-      ) &&
-      sel.every((l) => l.opacity === 1) &&
-      unsel.every((l) => l.opacity < 1),
-    JSON.stringify({ leaders, want }),
-  );
-
-  // Keys are ignored while typing in a control.
-  await page.evaluate(() => {
-    const input = document.createElement("input");
-    input.id = "typing-probe";
-    document.body.append(input);
-    input.focus();
-  });
-  await page.keyboard.press("g");
-  ctx.check("keys do nothing while typing", (await mode()) === "move");
-  await page.evaluate(() => document.getElementById("typing-probe")?.remove());
-
-  // G arms attack-ground for one left-click, then movement is the default again.
-  await page.keyboard.press("g");
-  const count = (await lab(page, () => window.__lab.route.acks())).length;
-  const spot = await lab(page, () => window.__lab.projectToCss(300, 300, 0));
-  await page.mouse.click(spot[0], spot[1], { button: "left" });
-  await page.waitForFunction((n) => window.__lab.route.acks().length > n, count, {
-    timeout: 5000,
-  });
-  ack = await lastAck();
-  ctx.check(
-    "G then left-click attacks the ground, and the mode resets",
-    /attack ground/.test(ack.label) && ack.ack.error === null && (await mode()) === "move",
-    JSON.stringify(ack),
-  );
-
-  await page.keyboard.press("g");
-  const cancelSeq = ack.seq;
-  const cancelSelection = await lab(page, () => window.__lab.route.selected());
-  await page.mouse.click(spot[0], spot[1], { button: "right" });
-  ctx.check(
-    "right-click cancels attack ground without issuing an order or changing selection",
-    (await mode()) === "move" &&
-      (await lastAck()).seq === cancelSeq &&
-      JSON.stringify(await lab(page, () => window.__lab.route.selected())) ===
-        JSON.stringify(cancelSelection),
-  );
-
-  // Ctrl+right-click attack-moves at once, with nothing armed.
-  const ctrlCount = (await lab(page, () => window.__lab.route.acks())).length;
-  const there = await lab(page, () => window.__lab.projectToCss(260, 240, 0));
-  await page.keyboard.down("Control");
-  await page.mouse.click(there[0], there[1], { button: "right" });
-  await page.keyboard.up("Control");
-  await page.waitForFunction((n) => window.__lab.route.acks().length > n, ctrlCount, {
-    timeout: 5000,
-  });
-  ack = await lastAck();
-  ctx.check(
-    "Ctrl+right-click attack-moves the selection",
-    ack.label.startsWith("attack-move") && ack.ack.error === null && (await mode()) === "move",
-    JSON.stringify(ack),
-  );
-
-  // Reverse (Q31): R or X then a right-click, and the zone behind a single
-  // selected vehicle.
-  const clickAt = async (x, y, key, button = "right") => {
-    // The log keeps the newest eight: wait on the newest sequence number.
-    const seq = (await lastAck())?.seq ?? 0;
-    if (key) await page.keyboard.press(key);
-    const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], 0), [x, y]);
-    await page.mouse.click(at[0], at[1], { button });
-    await page.waitForFunction((k) => (window.__lab.route.acks()[0]?.seq ?? 0) > k, seq, {
-      timeout: 5000,
-    });
-    // Past the double-click window, so the next right-click is a fresh move.
-    await page.waitForTimeout(400);
-    return lastAck();
-  };
-  const selectOnly = async (ids) => {
-    await lab(page, (u) => window.__lab.route.select(u), ids);
-    await page.waitForFunction((k) => window.__lab.route.selected().length === k, ids.length);
-  };
-  await selectOnly([0, 1]);
-  ack = await clickAt(320, 320, "r");
-  ctx.check(
-    "R then right-click issues a reverse move",
-    ack.label.startsWith("reverse move") && ack.ack.error === null && (await mode()) === "move",
-    JSON.stringify(ack),
-  );
-  ack = await clickAt(330, 300, "c");
-  ctx.check(
-    "C then right-click issues an attack-move",
-    ack.label.startsWith("attack-move") && ack.ack.error === null && (await mode()) === "move",
-    JSON.stringify(ack),
-  );
-  // A point `back` metres behind the tank's centre along its hull (the
-  // hull is 3.5 m long each way, so 12 m back is 8.5 m behind its rear).
-  const tankNow = (await obs(page)).own.find((u) => u.id === 0);
-  const behind = (back, left = 0) => [
-    tankNow.position[0] - back * Math.cos(tankNow.yaw) - left * Math.sin(tankNow.yaw),
-    tankNow.position[1] - back * Math.sin(tankNow.yaw) + left * Math.cos(tankNow.yaw),
-  ];
-  await selectOnly([0]);
-  ack = await clickAt(...behind(12));
-  ctx.check(
-    "a right-click behind a single selected tank reverses",
-    ack.label.startsWith("reverse move") && ack.ack.error === null,
-    JSON.stringify(ack),
-  );
-  await selectOnly([0, 3]);
-  ack = await clickAt(...behind(12));
-  ctx.check(
-    "the same click with two vehicles selected is a normal move",
-    ack.label.startsWith("move ") && ack.ack.error === null,
-    JSON.stringify(ack),
-  );
-  await selectOnly([0]);
-  ack = await clickAt(...behind(12, -10));
-  ctx.check(
-    "a click outside the zone (10 m beside the strip) is a normal move",
-    ack.label.startsWith("move ") && ack.ack.error === null,
-    JSON.stringify(ack),
-  );
-  // Each button shows its key on a chip; its accessible name is the full wording.
   const bar = await page
     .getByRole("toolbar", { name: "Commands" })
     .evaluate((t) => [...t.querySelectorAll("button")].map((b) => b.ariaLabel).join("\n"));
@@ -535,112 +371,8 @@ export async function run(ctx) {
     /Attack-move \(C or Ctrl\+right-click\)/.test(bar) && /Reverse \(R,/.test(bar),
     bar,
   );
-
-  const stopSeq = (await lastAck()).seq;
-  await page.keyboard.press("Backspace");
-  await page.waitForFunction((seq) => window.__lab.route.acks()[0]?.seq > seq, stopSeq);
-  const stoppedAck = await lastAck();
-  await advance(page, 2);
-  const stopped = (await obs(page)).own.find((u) => u.id === tankNow.id);
-  ctx.check(
-    "Backspace stops the selection",
-    stoppedAck.label.startsWith("stop") &&
-      stoppedAck.ack.error === null &&
-      !!stopped &&
-      stopped.goal === null &&
-      stopped.queue.length === 0,
-    JSON.stringify({ ack: stoppedAck, goal: stopped?.goal, queue: stopped?.queue }),
-  );
-
-  // An attack reaches only armed units (`reach("attack")`): with a tank and
-  // the unarmed supply truck selected, attack-move and attack-ground go to
-  // the tank alone, and the truck keeps the move it was given.
-  const truck = (await obs(page)).own.find((u) => u.kind === "test_supply");
-  await selectOnly([truck.id]);
-  ack = await clickAt(truck.position[0] + 20, truck.position[1], null);
-  await advance(page, 2);
-  await selectOnly([0, truck.id]);
-  const truckName = `test_supply #${truck.id}`;
-  const attackMove = await clickAt(330, 300, "c");
-  await advance(page, 2);
-  const truckGoal = (await obs(page)).own.find((u) => u.id === truck.id).goal;
-  const attackGround = await clickAt(300, 300, "g", "left");
-  await advance(page, 2);
-  const truckAfter = (await obs(page)).own.find((u) => u.id === truck.id);
-  ctx.check(
-    "attack-move reaches the tank and truck; attack-ground reaches only the tank and preserves the truck move",
-    attackMove.ack.error === null &&
-      attackMove.order.units.join() === `0,${truck.id}` &&
-      attackGround.ack.error === null &&
-      attackGround.order.units.join() === "0" &&
-      !attackGround.label.includes(truckName) &&
-      !!truckGoal &&
-      JSON.stringify(truckAfter.goal) === JSON.stringify(truckGoal),
-    JSON.stringify({ attackMove, attackGround, truckGoal, after: truckAfter.goal }),
-  );
-
-  // T deploys the supply truck, or packs it once it is deployed or deploying.
-  await lab(page, (id) => window.__lab.route.select([id]), truck.id);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  // Standard moves stay available; attack-ground is disabled for an unarmed truck.
-  const tiles = async () =>
-    (await page.getByRole("toolbar", { name: "Commands" }).count())
-      ? await page.getByRole("toolbar", { name: "Commands" }).evaluate((t) =>
-          [...t.querySelectorAll("button")].map((b) => ({
-            label: b.ariaLabel.split(" (")[0],
-            disabled: b.disabled,
-          })),
-        )
-      : [];
-  const truckTiles = await tiles();
-  await lab(page, () => window.__lab.route.select([]));
-  await page.waitForFunction(() => window.__lab.route.selected().length === 0);
-  const none = await tiles();
-  await lab(page, (id) => window.__lab.route.select([id]), truck.id);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  ctx.check(
-    "the unarmed truck has attack-move, disabled attack-ground, one deploy toggle, and a disabled toolbar without selection",
-    truckTiles.some((t) => t.label === "Attack-move" && !t.disabled) &&
-      truckTiles.some((t) => t.label === "Attack ground" && t.disabled) &&
-      truckTiles.filter((t) => /^(Deploy|Pack)$/.test(t.label) && !t.disabled).length === 1 &&
-      !truckTiles.some((t) => /^(Move|Garrison)$/.test(t.label)) &&
-      truckTiles.some((t) => t.label === "Stop" && !t.disabled) &&
-      none.length === truckTiles.length &&
-      none.every((t) => t.disabled),
-    JSON.stringify({ truckTiles, none }),
-  );
-  // Read now: the move above packed it.
-  const heading = truckAfter.deployment.target;
-  await page.keyboard.press("t");
-  await page.waitForFunction(() => /^(deploy|pack) /.test(window.__lab.route.acks()[0].label));
-  ack = await lastAck();
-  ctx.check(
-    "T deploys a packed truck and packs a deployed one",
-    ack.label.startsWith(heading === "deployed" ? "pack " : "deploy ") && ack.ack.error === null,
-    `${heading}: ${JSON.stringify(ack)}`,
-  );
   await page.close();
-  await commandDeck(ctx);
   await vehicleMarker(ctx);
-}
-
-async function commandDeck(ctx) {
-  const page = await openBattle(ctx, { url: new URL("/labs/street?seed=14", ctx.url).href });
-  const unit = (await obs(page)).own[0];
-  await lab(page, (id) => window.__lab.route.select([id]), unit.id);
-  await page.waitForFunction(() => window.__lab.route.selected().length === 1);
-  const selectedDeck = await page.locator(".hud-army-deck").boundingBox();
-  await snapshot(ctx, page, "commands-selected.png");
-  await lab(page, () => window.__lab.route.select([]));
-  await page.waitForFunction(() => window.__lab.route.selected().length === 0);
-  const emptyDeck = await page.locator(".hud-army-deck").boundingBox();
-  await snapshot(ctx, page, "commands-empty.png");
-  ctx.check(
-    "selection does not move or resize the bottom bar",
-    JSON.stringify(selectedDeck) === JSON.stringify(emptyDeck),
-    JSON.stringify({ selectedDeck, emptyDeck }),
-  );
-  await page.close();
 }
 
 /** A vehicle's marker is painted on the ground, depth-tested

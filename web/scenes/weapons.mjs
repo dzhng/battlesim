@@ -103,90 +103,8 @@ export async function run(ctx) {
   await writeFile(ctx.evidencePath("frame-engaging-1280x800.png"), engaging);
   await feedReachable(ctx, page, "engaging");
 
-  // The red tank passes the wall: a brief loss keeps the same lock and aim.
-  let grace = null;
-  let reacquired = null;
-  let tracer = null;
-  // While no enemy is identified, the squad's grenade may take an area (the
-  // hidden tank's firing report).
-  let areaWhileUnseen = null;
-  const visibleTankChoices = [];
-  for (let i = 0; i < 400 && (!reacquired || !areaWhileUnseen); i++) {
-    await advance(page, 1);
-    o = await obs(page);
-    const c = own(o, 0).mounts[0];
-    const grenade = own(o, 1).mounts[1];
-    const squad = own(o, 1);
-    const visible = o.identified.find((e) => e.kind === "test_tank");
-    if (
-      visible &&
-      o.contacts.some((c) => c.source === "firing") &&
-      Math.hypot(
-        visible.position[0] - squad.position[0],
-        visible.position[1] - squad.position[1],
-      ) <= game.weapons.rifle.range_m
-    ) {
-      visibleTankChoices.push({
-        tick: o.tick,
-        target: visible.id,
-        distance: Math.hypot(
-          visible.position[0] - squad.position[0],
-          visible.position[1] - squad.position[1],
-        ),
-        mounts: squad.mounts,
-      });
-    }
-    const area =
-      grenade.target?.kind === "contact" &&
-      o.contacts.find((c) => c.id === grenade.target.id && c.source === "firing");
-    if (!areaWhileUnseen && o.identified.length === 0 && area) {
-      areaWhileUnseen = {
-        tick: o.tick,
-        target: grenade.target,
-        area,
-        distance:
-          area &&
-          Math.hypot(area.center[0] - squad.position[0], area.center[1] - squad.position[1]),
-        publication: o,
-      };
-    }
-    // Keep a tracer still near the shooter, so the frame shows it.
-    const near = o.projectiles.find(
-      (p) => Math.hypot(p.path[0][0] - 260, p.path[0][1] - 230) < 120,
-    );
-    if (!tracer && near) {
-      tracer = near;
-      await page.evaluate(() => window.__lab.frame());
-      await writeFile(ctx.evidencePath("frame-tracer-1280x800.png"), await page.screenshot());
-      await feedReachable(ctx, page, "tracer");
-    }
-    if (!grace && c.reason === "tracking_last_sighting") {
-      grace = { tick: o.tick, target: c.target, aim: c.aim };
-      const shot = await panelCrop(ctx, page, "crop-action-panel-grace-2x.png");
-      await writeFile(ctx.evidencePath("frame-grace-1280x800.png"), shot);
-    } else if (
-      grace &&
-      !reacquired &&
-      c.target?.kind === "identified" &&
-      c.reason !== "tracking_last_sighting"
-    ) {
-      reacquired = { tick: o.tick, target: c.target };
-    }
-  }
-  ctx.check(
-    "losing sight within the authored grace keeps the acquisition",
-    !!grace &&
-      !!reacquired &&
-      reacquired.target.id === grace.target.id &&
-      reacquired.tick - grace.tick <= Math.round(game.sensors.acquisition_grace_s * game.tick_hz),
-    JSON.stringify({ grace, reacquired }),
-  );
-  ctx.check(
-    "visible rounds are published as flight segments",
-    !!tracer && tracer.path.length >= 2 && tracer.path.flat().every(Number.isFinite),
-    JSON.stringify(tracer),
-  );
-  // The cannon has fired: the decoded-frame inspector lists its pose and shots.
+  // Step directly to a fired pose; per-tick targeting/grace is owned by sim tests.
+  await advance(page, 395);
   await page.evaluate(() => window.__lab.frame());
   const feed = await page.getByTestId("feed-panel").innerText();
   const cannonPose = own(await obs(page), 0).weaponPoses[0];
@@ -194,45 +112,6 @@ export async function run(ctx) {
     "the feed inspector shows the cannon's pose and shot counter",
     cannonPose.shots > 0 && /own test_tank #0:\s*m0 \S+ ↑\S+ · [1-9]\d* shots/.test(feed),
     JSON.stringify({ cannonPose, feed }),
-  );
-  await writeCrop(
-    decode(await page.screenshot()),
-    ctx.evidencePath("crop-feed-panel-2x.png"),
-    ...(await page
-      .getByTestId("feed-panel")
-      .boundingBox()
-      .then((b) => [b.x + b.width / 2, b.y + b.height / 2, b.width / 2 + 4, b.height / 2 + 4, 2])),
-  );
-
-  ctx.check(
-    "with no enemy identified, the squad's grenade takes an area",
-    !!areaWhileUnseen &&
-      areaWhileUnseen.area?.source === "firing" &&
-      areaWhileUnseen.distance >= game.weapons.grenade.min_range_m &&
-      areaWhileUnseen.distance <= game.weapons.grenade.range_m,
-    JSON.stringify(
-      areaWhileUnseen && {
-        tick: areaWhileUnseen.tick,
-        target: areaWhileUnseen.target,
-        distance: areaWhileUnseen.distance,
-      },
-    ),
-  );
-  await ctx.writeEvidence("area-selection.json", areaWhileUnseen);
-  // Judge actual coexistence of an identified tank and a firing report.
-  // Follow visibility rather than a fixed tick: combat may kill the tank sooner.
-  ctx.check(
-    "a visible tank in reach takes priority over firing areas",
-    visibleTankChoices.length > 0 &&
-      visibleTankChoices.every(
-        (s) =>
-          s.distance <= game.weapons.grenade.range_m &&
-          s.mounts.every((m) => m.target?.kind !== "contact"),
-      ) &&
-      visibleTankChoices.some(
-        (s) => s.mounts[0].target?.kind === "identified" && s.mounts[0].target.id === s.target,
-      ),
-    JSON.stringify(visibleTankChoices),
   );
   await advance(page, Math.max(0, 470 - o.tick));
   o = await obs(page);

@@ -14,7 +14,7 @@ User requirements owned or exercised: S02, S03. Read their canonical entries in 
 
 ## Runnable artifact
 
-/lab/foundation in the source-only battle lab: an asymmetric tank proxy, facing-marked infantry, a raised ground patch and box prop. Pan/orbit/zoom, select a visible proxy and reset. First reproduce the pinned camera/depth behavior and record it; then adapt only the audited modules. Establish the root Bun aliases, web Vite/React/TypeGPU dependencies and Cargo contract/sim/WASM crates. No sibling runtime imports.
+/lab/frame in the source-only battle lab: an asymmetric tank proxy, facing-marked infantry, a raised ground patch and box prop. Pan/orbit/zoom, select a visible proxy and reset. First reproduce the pinned camera/depth behavior and record it; then adapt only the audited modules. Establish the root Bun aliases, web Vite/React/TypeGPU dependencies and Cargo contract/sim/WASM crates. No sibling runtime imports.
 
 
 
@@ -43,7 +43,7 @@ Illegible silhouettes or incorrect scale/projection changes the primitive scene 
 
 ## Verdict — 2026-09-25
 
-Accepted. `bun run --cwd web scene -- foundation` passes 15 checks on this host: headless Chromium 148 (`channel: "chromium"`) with a **hardware** Apple `metal-3` adapter, so no headful probe was needed. The checks cover:
+Accepted. `bun run --cwd web scene -- frame` passes 15 checks on this host: headless Chromium 148 (`channel: "chromium"`) with a **hardware** Apple `metal-3` adapter, so no headful probe was needed. The checks cover:
 
 - Installed depth state is depth32float with clear 0 and compare `greater`, read from the descriptors the scene installed.
 - Occlusion is correct along one line of sight in both directions (crate hides tank; tank hides crate).

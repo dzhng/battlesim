@@ -4,7 +4,8 @@
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
     "map": null,
-    "timeout_s": 300
+    "timeout_s": 300,
+    "catalog": "menu"
   },
   {
     "id": "native-parity-capture",
@@ -12,7 +13,9 @@
     "describe": "The native client's control run: the graphics-test reel at 1280×720 with control plates read back from the canvas at each shot's middle; writes each scene's capture, visual presentation manifest and plates to throwaway/native-parity/. PARITY_SCENES=<map,…> films only those scenes.",
     "map": null,
     "timeout_s": 600,
-    "serial": true
+    "serial": true,
+    "tool": true,
+    "catalog": "menu"
   },
   {
     "id": "graphics-fps",
@@ -21,31 +24,20 @@
     "map": null,
     "build": "production",
     "timeout_s": 900,
-    "serial": true
-  },
-  {
-    "id": "cursor-orders",
-    "route": "/labs/cursor-orders",
-    "describe": "The production pointer over a reachable squad and a vehicle enclosed by known walls: combined entry, partial gathering refusal and readable callouts.",
-    "map": "garrison"
+    "serial": true,
+    "tool": true,
+    "catalog": "menu"
   },
   {
     "id": "cursor",
     "route": "/labs/cursor",
     "describe": "Arrow and action cursor at native screen size over grass, road and fog; every badge and a moving pointer through the real presentation component.",
-    "map": null,
-    "authored_quality": true
-  },
-  {
-    "id": "foundation",
-    "route": "/labs/foundation",
-    "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset.",
     "map": null
   },
   {
-    "id": "foundation-low",
-    "route": "/labs/foundation?test-quality=low",
-    "describe": "Low graphics test picture: the foundation composition through the test-only reduced renderer.",
+    "id": "frame",
+    "route": "/labs/frame",
+    "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset. Includes player-low picture checks for the frame, geometry and river compositions.",
     "map": null
   },
   {
@@ -75,20 +67,15 @@
   {
     "id": "sensors",
     "route": "/labs/sensors",
-    "describe": "Own sensors and shared identification: a scripted red tank tours thin forest, deep forest, the ridge's far side and a building's shadow; ground fog; per-unit own-sensor lists; labelled side-view switch.",
+    "describe": "Own sensors and shared identification: a scripted red tank tours thin forest, deep forest, the ridge's far side and a building's shadow; ground fog; per-unit own-sensor lists; labelled side-view switch. Includes contact UNKNOWN labels, red glow, overlay isolation and captions.",
     "map": "sensors"
   },
   {
     "id": "ballistics",
     "route": "/labs/ballistics",
     "describe": "Physical flight and swept collision: gravity arcs, a fast bullet leading a thin sliding target, dodge after launch, a hill crest blocking direct fire while the indirect high arc clears it, and bodies crossing a round's line between ticks.",
-    "map": "geometry"
-  },
-  {
-    "id": "contacts",
-    "route": "/labs/contacts",
-    "describe": "Uncertain evidence: a hidden squad fires every 3 s (stable firing area), a tank leaves a fixed last-seen area when it drives behind the hill, synthesized sound cues with captions.",
-    "map": "sensors"
+    "map": "geometry",
+    "tool": true
   },
   {
     "id": "weapons",
@@ -99,20 +86,8 @@
   {
     "id": "consequences",
     "route": "/labs/consequences",
-    "describe": "Consequences of physical fire: HE into an exposed squad and a forest squad side by side, a friendly squad close enough to share the blast, a red tank destroyed in a walled passage whose wreck reroutes a supply truck, fallen soldiers that stay, and each squad's suppression in its info panel.",
+    "describe": "Consequences of physical fire: HE into an exposed squad and a forest squad side by side, a friendly squad close enough to share the blast, a red tank destroyed in a walled passage whose wreck reroutes a supply truck, fallen soldiers that stay, and each squad's suppression in its info panel. Includes one browser check that drawn debris follows a destroyed hull.",
     "map": "consequences"
-  },
-  {
-    "id": "cook-off",
-    "route": "/labs/cook-off",
-    "describe": "Cook-offs: a red tank and a red jeep destroyed by one order each; each brews up where it stood, its debris thrown wider than its wreck, lying for a while and then sinking away, while the wreck stays.",
-    "map": "consequences"
-  },
-  {
-    "id": "deployment",
-    "route": "/labs/deployment",
-    "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress.",
-    "map": "deployment"
   },
   {
     "id": "air-hover",
@@ -121,27 +96,9 @@
     "map": "air"
   },
   {
-    "id": "air",
-    "route": "/labs/air",
-    "describe": "The first helicopter checkpoint: the test helicopter flies one move order across a village at cruise height, climbs over the roofs taller than its clearance allows, routes round the 61 m tower in its way and crosses a wood; a red rifle squad's rounds spark off it without hurting it, a red tank's main gun never selects it, and the gun jeep's autocannon, freed once it hovers at its goal, damages it.",
-    "map": "air"
-  },
-  {
     "id": "air-crash",
     "route": "/labs/air-crash",
     "describe": "A test helicopter, one hit from death, flies across the field past a gun jeep, trailing smoke, and is shot down: it falls on in a spinning arc, nose down, keeping its momentum, bursts where it strikes the ground and leaves its wreck there. It never vanishes in mid-air or brews up like a ground hull.",
-    "map": "air"
-  },
-  {
-    "id": "air-closing",
-    "route": "/labs/air-closing",
-    "describe": "The helicopters' closing scene (D14): the AH-64E flies in from the map's west edge over the village roofs and kills the T-72 behind them with rockets and its chin gun; ordered on east, holding its fire, it is shot down by the BMP-2M's autocannon from behind the tower, falls on in a spinning arc and its wreck comes down in the wood, flattening the trees there.",
-    "map": "air"
-  },
-  {
-    "id": "air-contracts",
-    "route": "/labs/air-contracts",
-    "describe": "The air-war records as the catalog resolves them, beside the battle that fields them: a fighter and a SEAD jet (HighAir, fuel and flares), an Apache (LowAir) and short, medium and long air defence (tier, radar, weapon target layers, interception, decoyability, seekers) parked on the air field; each aircraft's published fuel and flares start at its record's capacity, a ground unit publishes none.",
     "map": "air"
   },
   {
@@ -154,12 +111,6 @@
     "id": "air-defense",
     "route": "/labs/air-defense",
     "describe": "Layered air defence from red's side: ?variant=helicopter, an Apache and a Mi-8 fly in: the Buk and the short gun engage them, the long S-300 never does; ?variant=jet, an F-16 flies in: every tier fires at it, and the short gun the tower hides from it never fires.",
-    "map": "air"
-  },
-  {
-    "id": "air-radar",
-    "route": "/labs/air-radar",
-    "describe": "SEAD radar contacts: ?variant=sead, an EA-18G holds over the west edge: each emitting AA (a Buk in the open, a Pantsir in the wood, an S-300 behind the tower) is published as a RADAR CONTACT area with a quantized bearing and range, never identified and never clearing fog; the silent short gun is no contact; ?variant=fighter, the same field with an F-16 only: no radar contact.",
     "map": "air"
   },
   {
@@ -189,13 +140,13 @@
   {
     "id": "air-roster",
     "route": "/labs/air-roster",
-    "describe": "Every faction's short, medium and long air defence, SEAD jet and other fixed-wing aircraft as the roster's cards list them, in a matrix beside the battle that parks each of those types on the air field, with a contact sheet of their runtime models.",
+    "describe": "Every faction's short, medium and long air defence, SEAD jet and other fixed-wing aircraft as the roster's cards list them, in a matrix beside the battle that parks each of those types on the air field, with a contact sheet of their runtime models. Includes the resolved air-war records panel.",
     "map": "air"
   },
   {
     "id": "air-hud",
     "route": "/labs/air-hud",
-    "describe": "Aircraft in the battle HUD: an F-16 has no ground marker or drop line where the Apache beside it has both; the jet's card shows its fuel and flares; with Space held its ordered move shows a compact card at its ghost; the EA-18G's radar contact reads RADAR CONTACT with its bearing and range.",
+    "describe": "Aircraft in the battle HUD: an F-16 has no ground marker or drop line where the Apache beside it has both; the jet's card shows its fuel and flares; with Space held its ordered move shows a compact card at its ghost; the EA-18G's radar contact reads RADAR CONTACT with its bearing and range. Includes the live RADAR CONTACT card with bearing and range.",
     "map": "air"
   },
   {
@@ -205,27 +156,15 @@
     "map": "air"
   },
   {
-    "id": "air-combined",
-    "route": "/labs/air-combined",
-    "describe": "The combined air battle: a SEAD jet, an F-16 and a bomber against short, medium and long air defence, a J-10, a Hind and a T-72: radar contacts and SEAD launches, a dogfight, a bomb on the tank, flares, and aircraft lost to the air defence, all on the production battle view.",
-    "map": "air"
-  },
-  {
-    "id": "ambush",
-    "route": "/labs/ambush",
-    "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire.",
-    "map": "ambush"
-  },
-  {
     "id": "garrison",
     "route": "/labs/garrison",
-    "describe": "Buildings as fighting positions: the closest eligible blue squad enters a building while selected companions gather outside; direct entry admits one squad whole, enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned.",
+    "describe": "Buildings as fighting positions: the closest eligible blue squad enters a building while selected companions gather outside; direct entry admits one squad whole, enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned. Includes delayed admission, queued cursor, refusal callout and edge-readout cursor checks.",
     "map": "garrison"
   },
   {
     "id": "supply",
     "route": "/labs/supply",
-    "describe": "Recovery with finite stock: a supply truck sets up (3 s) and serves a damaged tank, an AT team short of missiles and a rifle squad with casualties; moving units wait; stock falls and never regrows; an empty truck leaves its neighbours waiting for stock; relocation.",
+    "describe": "Recovery with finite stock: a supply truck sets up (3 s) and serves a damaged tank, an AT team short of missiles and a rifle squad with casualties; moving units wait; stock falls and never regrows; an empty truck leaves its neighbours waiting for stock; relocation. Includes the service-ready deployment text.",
     "map": "supply"
   },
   {
@@ -238,15 +177,13 @@
     "id": "panels",
     "route": "/labs/panels",
     "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?scale= zooms.",
-    "map": null,
-    "authored_quality": true
+    "map": null
   },
   {
     "id": "ui",
     "route": "/labs/ui",
     "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
-    "map": null,
-    "authored_quality": true
+    "map": null
   },
   {
     "id": "readouts",
@@ -261,21 +198,15 @@
     "map": "camera-lab"
   },
   {
-    "id": "city-block",
-    "route": "/labs/city-block",
-    "describe": "A block of a generated town drawn from the template art library, with no battle on it: the apartment building nearest the main town's centre that has a house beside it (mixed, small, seed 1; ?type=, ?size= and ?seed= choose another map). Stations cut the camera to the street, the default tactical camera, 250 m out, low over the town from 2 km and the strategic overview; a switch makes the side see the apartment building fall, which draws its remains; ?tier=0..3 draws every building at one detail tier.",
-    "map": null
-  },
-  {
     "id": "city-lineup",
     "route": "/labs/city-lineup",
-    "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws the templates that end in that state as a side that saw them destroyed knows them (a low template collapses to a ruin, a tall one stands gutted; the others are left out), and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary.",
+    "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws the templates that end in that state as a side that saw them destroyed knows them (a low template collapses to a ruin, a tall one stands gutted; the others are left out), and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes its per-tier contact sheets only when CITY_LINEUP_SHEETS=1.",
     "map": null
   },
   {
     "id": "city-ruins",
     "route": "/labs/city-ruins",
-    "describe": "Buildings destroyed in a battle, drawn as each side knows them: on the camera lab's map, HE bursts bring a five-floor U block down to remains and gut a twenty-floor tower, which stands. Blue's squad watches both and draws the block's ruin and the tower's burnt shell; red's stands behind two slabs and draws both intact until its scripted walk takes it round them; a labelled side-view switch. The camera's obstacles, the fog's occluders and the smoke over a destroyed building follow the same knowledge.",
+    "describe": "Buildings destroyed in a battle, drawn as each side knows them: on the camera lab's map, HE bursts bring a five-floor U block down to remains and gut a twenty-floor tower, which stands. Blue's squad watches both and draws the block's ruin and the tower's burnt shell; red's stands behind two slabs and draws both intact until its scripted walk takes it round them; a labelled side-view switch. The camera's obstacles, the fog's occluders and the smoke over a destroyed building follow the same knowledge. Includes the building-fall rendering check.",
     "map": "camera-lab"
   },
   {
@@ -299,15 +230,18 @@
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",
-    "map": null
+    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
+    "map": null,
+    "catalog": "game",
+    "loading": false
   },
   {
     "id": "unit-roster",
     "route": "/battle?type=open&size=small&seed=1&faction=us",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
     "map": null,
-    "authored_quality": true
+    "catalog": "game",
+    "loading": false
   },
   {
     "id": "benchmark",
@@ -315,7 +249,8 @@
     "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro Large seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
     "build": "production",
     "map": null,
-    "serial": true
+    "serial": true,
+    "tool": true
   },
   {
     "id": "endurance",
@@ -350,16 +285,11 @@
     "map": "street"
   },
   {
-    "id": "lean",
-    "route": "/labs/lean",
-    "describe": "Soldiers lean out round tall cover: on the street test map, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera.",
-    "map": "street"
-  },
-  {
     "id": "sound",
     "route": "/labs/sound",
     "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events.",
-    "map": null
+    "map": null,
+    "loading": false
   },
   {
     "id": "map-workbench",
@@ -368,17 +298,12 @@
     "map": null
   },
   {
-    "id": "scenario-builder",
-    "route": "/labs/scenario-builder",
-    "describe": "Tactical scenario authoring canvas: place units, edit controllers, and explicitly download or upload self-contained bundles.",
+    "id": "scenario",
+    "route": "/labs/scenario",
+    "describe": "Scenario authoring and play: place units, download a self-contained package, upload that package into the normal battle worker, and boot the playable world.",
     "map": null,
-    "serial": true
-  },
-  {
-    "id": "scenario-play",
-    "route": "/labs/scenario-play",
-    "describe": "Upload a downloaded scenario bundle into the normal battle worker and play it.",
-    "map": null,
-    "serial": true
+    "serial": true,
+    "catalog": "game",
+    "loading": false
   }
 ]

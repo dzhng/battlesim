@@ -1899,7 +1899,7 @@ them and did not fix them.
 - **Web test `battleFailure`** ("a rejected replay shows its refusal"). A
   replay the simulation refuses shows its message in the battle's top bar,
   not on the loading screen's Aborted page the test expects.
-- **Scene `foundation`** times out.
+- **Scene `frame`** times out.
 - **Scene `consequences`** fails its soldier-death check.
 - **Scene `panels`** fails all six of its checks.
 - The `unit-roster` scene also reports one 404 page error, seen since the
