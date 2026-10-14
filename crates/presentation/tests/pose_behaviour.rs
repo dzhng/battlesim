@@ -370,6 +370,135 @@ fn tank(x: f64, yaw: f64, gun: (f64, f64, f64), hmg: f64) -> FeedUnit {
 }
 
 #[test]
+fn a_diving_jet_pitches_nose_down() {
+    let units = units_with(|v| {
+        let mut jet = v["types"]["menu_us_tank"].clone();
+        jet["airborne"] = true.into();
+        jet["vehicleClass"] = "high_air_light".into();
+        v["types"]["test_jet"] = jet;
+        v["pose"]["attitude"]["jet"] = json!({
+            "gain": 1,
+            "max_deg": 35,
+            "smoothing_s": 0.01
+        });
+    });
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
+    jet.kind = "test_jet".into();
+    jet.position[2] = 100.0;
+    driver.update(&frame(0.0, vec![jet.clone()], &none), &units);
+    for time in 1..=8 {
+        jet.position[0] = f64::from(time) * 100.0;
+        driver.update(&frame(f64::from(time), vec![jet.clone()], &none), &units);
+    }
+    jet.position = [900.0, 0.0, 90.0];
+    let motion = driver
+        .update(&frame(9.0, vec![jet], &none), &units)
+        .vehicles[0]
+        .motion
+        .expect("a diving jet tilts");
+    assert!(
+        motion[2] < -0.05,
+        "nose points down from its flight path: {motion:?}"
+    );
+}
+
+#[test]
+fn a_climbing_jet_pitches_nose_up() {
+    let units = units_with(|v| {
+        let mut jet = v["types"]["menu_us_tank"].clone();
+        jet["airborne"] = true.into();
+        jet["vehicleClass"] = "high_air_light".into();
+        v["types"]["test_jet"] = jet;
+        v["pose"]["attitude"]["jet"] = json!({
+            "gain": 1,
+            "max_deg": 35,
+            "smoothing_s": 0.01
+        });
+    });
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
+    jet.kind = "test_jet".into();
+    jet.position[2] = 100.0;
+    driver.update(&frame(0.0, vec![jet.clone()], &none), &units);
+    for time in 1..=8 {
+        jet.position[0] = f64::from(time) * 100.0;
+        driver.update(&frame(f64::from(time), vec![jet.clone()], &none), &units);
+    }
+    jet.position = [900.0, 0.0, 110.0];
+    let motion = driver
+        .update(&frame(9.0, vec![jet], &none), &units)
+        .vehicles[0]
+        .motion
+        .expect("a climbing jet tilts");
+    assert!(
+        motion[2] > 0.05,
+        "nose points up from its flight path: {motion:?}"
+    );
+}
+
+#[test]
+fn a_turning_jet_banks_into_the_turn() {
+    let units = units_with(|v| {
+        let mut jet = v["types"]["menu_us_tank"].clone();
+        jet["airborne"] = true.into();
+        jet["vehicleClass"] = "high_air_light".into();
+        v["types"]["test_jet"] = jet;
+        v["pose"]["attitude"]["jet"] = json!({
+            "gain": 1,
+            "max_deg": 35,
+            "smoothing_s": 0.01
+        });
+    });
+    let none = fallen(&[]);
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut jet = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
+    jet.kind = "test_jet".into();
+    jet.position[2] = 100.0;
+    driver.update(&frame(0.0, vec![jet.clone()], &none), &units);
+    for time in 1..=8 {
+        jet.position[0] = f64::from(time) * 100.0;
+        driver.update(&frame(f64::from(time), vec![jet.clone()], &none), &units);
+    }
+    jet.position[0] = 900.0;
+    jet.yaw = 0.4;
+    let motion = driver
+        .update(&frame(9.0, vec![jet], &none), &units)
+        .vehicles[0]
+        .motion
+        .expect("a turning jet banks");
+    assert!(motion[6] < -0.05, "left turn banks left: {motion:?}");
+}
+
+#[test]
+fn a_helicopters_attitude_is_unchanged() {
+    let units = units_with(|v| {
+        let mut heli = v["types"]["menu_us_tank"].clone();
+        heli["airborne"] = true.into();
+        v["types"]["test_heli"] = heli;
+    });
+    let none = fallen(&[]);
+    let max = feel(&units, "/attitude/max_deg").to_radians();
+    let mut driver = PoseDriver::new(&units).unwrap();
+    let mut heli = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
+    heli.kind = "test_heli".into();
+    heli.position[2] = 20.0;
+    driver.update(&frame(0.0, vec![heli.clone()], &none), &units);
+    heli.position[0] = 10.0;
+    let motion = driver
+        .update(&frame(1.0, vec![heli], &none), &units)
+        .vehicles[0]
+        .motion
+        .expect("an accelerating helicopter leans");
+    assert!(
+        (motion[2] + max.sin()).abs() < 1e-9,
+        "helicopters retain acceleration lean: {motion:?}"
+    );
+}
+
+#[test]
 fn a_tank_s_turret_slews_to_its_bearing_its_gun_eases_and_recoils_on_a_shot() {
     let units = units();
     let none = fallen(&[]);
