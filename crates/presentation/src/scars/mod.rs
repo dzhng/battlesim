@@ -49,6 +49,55 @@ pub fn normalization() -> Vec<u8> {
         .collect()
 }
 
+/// The pixels of a `size` target that a scar region (metres, `[x0, y0, x1,
+/// y1]`) can cover, through the map's box (`shadow::map_box`, its heights)
+/// and the frame's `view_proj`: `[x, y, width, height]`, two pixels wider
+/// each side, or none when the region is off screen or behind the eye. A
+/// box crossing the eye's plane has no bound on screen: the whole target.
+pub fn scissor(
+    region: [f64; 4],
+    map_box: &[f64; 6],
+    view_proj: &[f32; 16],
+    size: [u32; 2],
+) -> Option<[u32; 4]> {
+    let m = view_proj.map(f64::from);
+    let [w, h] = size.map(f64::from);
+    let (mut front, mut lo, mut hi) = (0, [f64::INFINITY; 2], [f64::NEG_INFINITY; 2]);
+    for x in [region[0], region[2]] {
+        for y in [region[1], region[3]] {
+            for z in [map_box[2], map_box[5]] {
+                let clip = |r: usize| m[r] * x + m[4 + r] * y + m[8 + r] * z + m[12 + r];
+                let cw = clip(3);
+                if cw <= 0.0 {
+                    continue;
+                }
+                front += 1;
+                for axis in 0..2 {
+                    let ndc = clip(axis) / cw;
+                    lo[axis] = lo[axis].min(ndc);
+                    hi[axis] = hi[axis].max(ndc);
+                }
+            }
+        }
+    }
+    if front == 0 {
+        return None;
+    }
+    if front < 8 {
+        return Some([0, 0, size[0], size[1]]);
+    }
+    let x = (((lo[0] + 1.0) * w / 2.0).floor() - 2.0).max(0.0);
+    let y = (((1.0 - hi[1]) * h / 2.0).floor() - 2.0).max(0.0);
+    let right = (((hi[0] + 1.0) * w / 2.0).ceil() + 2.0).min(w);
+    let bottom = (((1.0 - lo[1]) * h / 2.0).ceil() + 2.0).min(h);
+    (right > x && bottom > y).then_some([
+        x as u32,
+        y as u32,
+        (right - x) as u32,
+        (bottom - y) as u32,
+    ])
+}
+
 /// The directory's hash of a tile key.
 pub fn hash(key: u32, mask: u32) -> u32 {
     (key.wrapping_mul(crate::seed::GOLDEN) ^ (key >> 16)) & mask

@@ -764,3 +764,41 @@ fn a_new_renderer_is_sent_everything_again() {
     fresh.take(&u);
     fresh.matches_marked(&g);
 }
+
+/// A camera over a 100 m square: x and y map straight onto the screen,
+/// every point at `w` (nothing in front when `w` ≤ 0).
+fn overhead(w: f32) -> [f32; 16] {
+    let mut m = [0.0; 16];
+    [m[0], m[5], m[12], m[13], m[14], m[15]] = [0.02, 0.02, -1.0, -1.0, 0.5, 1.0];
+    m.iter_mut().for_each(|v| *v *= w);
+    m
+}
+
+#[test]
+fn a_region_draws_only_where_it_is_on_screen() {
+    use presentation::scars::scissor;
+    let map = [0.0, 0.0, -5.0, 100.0, 100.0, 20.0];
+    let size = [1000, 500];
+    // The lower-left quarter of the map: the screen's lower-left quarter,
+    // two pixels wider each side.
+    assert_eq!(
+        scissor([0.0, 0.0, 50.0, 50.0], &map, &overhead(1.0), size),
+        Some([0, 248, 502, 252])
+    );
+    // Past the screen's edge, or behind the eye: nothing to draw.
+    assert_eq!(
+        scissor([150.0, 0.0, 200.0, 50.0], &map, &overhead(1.0), size),
+        None
+    );
+    assert_eq!(
+        scissor([0.0, 0.0, 50.0, 50.0], &map, &overhead(-1.0), size),
+        None
+    );
+    // Crossing the eye's plane: the whole screen, as nothing bounds it.
+    let mut across = overhead(1.0);
+    across[11] = -0.1; // w falls with height: the box's top is behind the eye
+    assert_eq!(
+        scissor([0.0, 0.0, 50.0, 50.0], &map, &across, size),
+        Some([0, 0, 1000, 500])
+    );
+}
