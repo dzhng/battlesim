@@ -95,7 +95,9 @@ export function rangeRuler(
   for (const m of mounts)
     for (const row of m.weapons) {
       const w = rules.weapons[row];
-      if (!w) continue;
+      // An unpowered round (a bomb) has no reach of its own: it lands where
+      // the jet releases it, so it marks no range.
+      if (!w || !(w.range_m > 0)) continue;
       const name = m.weapons.length === 1 ? w.name : m.name;
       const names = byRange.get(w.range_m) ?? [];
       if (!names.includes(name)) names.push(name);

@@ -141,7 +141,11 @@ test("the shipped view carries every weapon row a mount names, resolved", () => 
       for (const w of m.weapons) {
         expect(WEAPONS[w], `${t.id} ${m.name} ${w}`).toBeDefined();
         expect(WEAPONS[w], w).not.toHaveProperty("extends");
-        expect(WEAPONS[w].speed_mps, w).toBeGreaterThan(0);
+        // Resolved: a launched round carries its speed; an unpowered one
+        // (a bomb) falls under its own gravity instead.
+        const row = WEAPONS[w] as { speed_mps: number; delivery?: string; gravity_scale?: number };
+        if (row.delivery === "unpowered") expect(row.gravity_scale, w).toBeGreaterThan(0);
+        else expect(row.speed_mps, w).toBeGreaterThan(0);
       }
 });
 
