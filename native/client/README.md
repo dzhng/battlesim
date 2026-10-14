@@ -123,7 +123,8 @@ list, framing each one as a plate is framed, and writes no plates. Each frame
 records the same things as the browser's reel: its interval, its CPU time, and
 its GPU time from the first timestamp marker pass's start to the last one's
 end, as the browser takes it. The CPU time is split into
-framing, preparing, encoding and submitting. The report goes to
+framing, preparing, encoding and submitting; submitting includes acquiring
+the window's surface, copying the frame to it and presenting it. The report goes to
 `native-<scene>-<time>.json` in the browser file's shape. A window that isn't
 shown presents nothing and never blocks, so the bench keeps at most two frames
 on the GPU, as a swap chain would. Every frame is drawn, so the static batches

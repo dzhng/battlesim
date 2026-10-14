@@ -2,7 +2,7 @@
 // bracket the frame: 1×1 cleared render passes carrying `timestampWrites`,
 // because empty compute passes write no timestamps on Metal. Per-pass splits
 // are not reported: Apple's tile-based GPU overlaps passes, so only the total
-// means anything (spike 01, landmine 3).
+// means anything.
 import type { GpuRegistry } from "./registry";
 
 /** Frames kept for the rolling statistics. */

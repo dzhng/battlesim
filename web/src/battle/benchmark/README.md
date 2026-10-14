@@ -72,6 +72,7 @@ differs between the clients.
 - **Conditions.** Every run records its power source, build, adapter and
   pacing. Compare runs on the same power source; three runs per side, with
   the spread explained before any comparison.
-- **Same drawing, not yet.** The browser also runs the live simulation
+- **What still differs.** The browser also runs the live simulation
   worker and the reel's script, while native replays recorded publications.
-  Native draws only the layers it has ported, so its frames hold less.
+  Native draws the browser's passes, but not the painted ground marks: a
+  replay has no UI to paint them.
