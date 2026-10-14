@@ -2,6 +2,12 @@
 members = ["crates/contract", "crates/sim", "crates/game-wasm", "crates/presentation", "crates/presentation-wasm", "crates/mapgen", "crates/pipelines", "native/client"]
 resolver = "2"
 
+# Every build reads JSON numbers exactly. Cargo unifies features per binary, so a
+# feature enabled by one crate would split the simulation's reader between the
+# binaries that link that crate and the ones that do not.
+[workspace.dependencies]
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
 [profile.release]
 opt-level = 3
 lto = "thin"

@@ -289,14 +289,15 @@ impl ImpactResolver for HullResolver<'_> {
         let def = &self.arsenal.weapons[round.weapon].def;
         // Only an explicitly authored interception row may destroy another
         // projectile.  `interceptable` remains the incoming missile flag.
-        def.interception
-            .is_some()
-            // Range decides whether the mount may launch.  Once launched,
-            // projectile interception is a proximity fuse, so using the
-            // weapon's full engagement range would erase rounds at a visibly
-            // impossible distance.
-            .then_some(def.blast_radius_m.max(5.0))
-            .unwrap_or(0.0)
+        // Range decides whether the mount may launch.  Once launched,
+        // projectile interception is a proximity fuse, so using the weapon's
+        // full engagement range would erase rounds at a visibly impossible
+        // distance.
+        if def.interception.is_some() {
+            def.blast_radius_m.max(5.0)
+        } else {
+            0.0
+        }
     }
     fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
         let Some(attacker) = self.rounds.get(&interceptor) else {

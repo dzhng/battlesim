@@ -121,7 +121,8 @@ comparison](../../web/src/battle/benchmark/README.md#the-frame-rate-comparison).
 It draws every frame record of the scene back to back through the whole pass
 list, framing each one as a plate is framed, and writes no plates. Each frame
 records the same things as the browser's reel: its interval, its CPU time, and
-its GPU time between two timestamp marker passes. The CPU time is split into
+its GPU time from the first timestamp marker pass's start to the last one's
+end, as the browser takes it. The CPU time is split into
 framing, preparing, encoding and submitting. The report goes to
 `native-<scene>-<time>.json` in the browser file's shape. A window that isn't
 shown presents nothing and never blocks, so the bench keeps at most two frames

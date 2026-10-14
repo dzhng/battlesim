@@ -437,6 +437,26 @@ pub fn map_box(mesh: &[f32]) -> Option<Vec<f64>> {
     shadow::map_box(mesh).map(|b| b.to_vec())
 }
 
+/// The pixels a scar region can cover on a `width` × `height` target
+/// (`scars::scissor`): `[x, y, width, height]`, empty when it is off screen.
+#[wasm_bindgen]
+pub fn scar_scissor(
+    region: &[f64],
+    map_box: &[f64],
+    view_proj: &[f32],
+    width: u32,
+    height: u32,
+) -> Vec<u32> {
+    let view_proj = view_proj.first_chunk().expect("a 4×4 matrix");
+    presentation::scars::scissor(
+        std::array::from_fn(|i| region[i]),
+        &std::array::from_fn(|i| map_box[i]),
+        view_proj,
+        [width, height],
+    )
+    .map_or_else(Vec::new, |r| r.to_vec())
+}
+
 /// The installed grass kinds' meshes packed for the field
 /// (`ground::grass::pack_shapes`), and their facts for `Ground.grass_params`.
 #[wasm_bindgen]

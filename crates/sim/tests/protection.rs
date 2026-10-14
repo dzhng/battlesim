@@ -48,9 +48,11 @@ impl ImpactResolver for MissileShield {
         ImpactDecision::Stop
     }
     fn projectile_interceptor_reach(&self, projectile: ProjectileId) -> f64 {
-        (projectile == self.interceptor)
-            .then_some(12.0)
-            .unwrap_or(0.0)
+        if projectile == self.interceptor {
+            12.0
+        } else {
+            0.0
+        }
     }
     fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
         self.intercepted.push((interceptor, target));
