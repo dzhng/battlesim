@@ -43,6 +43,7 @@ export type Order =
       goal: [number, number];
     }
   | { kind: "set_engagement"; units: number[]; policy: Engagement }
+  | { kind: "set_afterburner"; units: number[]; enabled: boolean }
   /** Set up in place (true) or pack for movement (false); others ignore it. */
   | { kind: "set_deployment"; units: number[]; deployed: boolean }
   /** Walk one squad into a building; the complete squad must fit. */

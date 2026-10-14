@@ -1,0 +1,525 @@
+{
+  "units": {
+    "roster_profile_fixed_wing": {
+      "abstract": true,
+      "name": "Fixed-wing aircraft profile",
+      "description": "Persistent HighAir aircraft.",
+      "faction": "generic",
+      "family": "fixed_wing",
+      "roles": [
+        "recon"
+      ],
+      "cost": 300,
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7,
+            3,
+            1.8
+          ],
+          "eye_m": 2.0,
+          "hp": 100,
+          "armor": {
+            "front": 20,
+            "side": 12,
+            "rear": 10,
+            "roof": 8,
+            "ricochet": {
+              "front": 0,
+              "side": 0,
+              "rear": 0,
+              "roof": 0
+            }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "mobility": {
+        "air": {
+          "cruise_kmh": 300,
+          "turn_deg_s": 45,
+          "climb_mps": 30,
+          "layer": "high_air"
+        }
+      },
+      "sensors": {
+        "ground_m": 1,
+        "low_air_m": 1800,
+        "high_air_m": 5000,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.8,
+          "rear": 0.5
+        }
+      },
+      "sound": {
+        "profile": "vehicle",
+        "loudness_m": 1400
+      },
+      "capabilities": {
+        "air": {
+          "fuel_capacity_s": 180,
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20
+          },
+          "afterburner": {},
+          "refund": {
+            "health": 0.4,
+            "ammunition": 0.3,
+            "fuel": 0.3
+          }
+        }
+      }
+    },
+    "us_fighter_aircraft": {
+      "name": "US Fighter",
+      "description": "Fighter",
+      "faction": "us",
+      "family": "us_fighter",
+      "roles": [
+        "recon"
+      ],
+      "cost": 380,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "Fighter",
+        "family_name": "US Fighter"
+      },
+      "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "air": {
+          "sead": false
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Cannon",
+          "weapons": [
+            "air_gun"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AA missiles",
+          "weapons": [
+            "air_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "bombs",
+          "name": "Bombs",
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            2,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_f_16c_block_50"
+    },
+    "us_ea18g_sead": {
+      "name": "EA-18G Growler",
+      "description": "SEAD",
+      "faction": "us",
+      "family": "ea-18g_growler",
+      "roles": [
+        "recon"
+      ],
+      "cost": 420,
+      "roster": {
+        "factions": [
+          "us"
+        ],
+        "category": "air",
+        "variant": "SEAD",
+        "family_name": "EA-18G Growler"
+      },
+      "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "air": {
+          "sead": true,
+          "radar": {
+            "emits": false,
+            "detection_m": 7000
+          }
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Cannon",
+          "weapons": [
+            "air_gun"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AA missiles",
+          "weapons": [
+            "sead_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "us_ea_18g_growler_electronic_warfare_aircraft"
+    },
+    "europe_fighter_aircraft": {
+      "name": "European Fighter",
+      "description": "Fighter",
+      "faction": "europe",
+      "family": "european_fighter",
+      "roles": [
+        "recon"
+      ],
+      "cost": 380,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "Fighter",
+        "family_name": "European Fighter"
+      },
+      "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "air": {
+          "sead": false
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Cannon",
+          "weapons": [
+            "air_gun"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AA missiles",
+          "weapons": [
+            "air_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "bombs",
+          "name": "Bombs",
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            2,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_tornado_ids"
+    },
+    "europe_tornado_ecr_sead": {
+      "name": "Tornado ECR",
+      "description": "SEAD",
+      "faction": "europe",
+      "family": "tornado_ecr",
+      "roles": [
+        "recon"
+      ],
+      "cost": 420,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "air",
+        "variant": "SEAD",
+        "family_name": "Tornado ECR"
+      },
+      "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "air": {
+          "sead": true,
+          "radar": {
+            "emits": false,
+            "detection_m": 7000
+          }
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Cannon",
+          "weapons": [
+            "air_gun"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AA missiles",
+          "weapons": [
+            "sead_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_tornado_ecr"
+    },
+    "eastern_fighter_aircraft": {
+      "name": "Eastern Fighter",
+      "description": "Fighter",
+      "faction": "eastern",
+      "family": "eastern_fighter",
+      "roles": [
+        "recon"
+      ],
+      "cost": 380,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "Fighter",
+        "family_name": "Eastern Fighter"
+      },
+      "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "air": {
+          "sead": false
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Cannon",
+          "weapons": [
+            "air_gun"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AA missiles",
+          "weapons": [
+            "air_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "bombs",
+          "name": "Bombs",
+          "weapons": [
+            "air_bomb_guided",
+            "air_bomb_cluster"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            2,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_sukhoi_flanker_family_su_34"
+    },
+    "eastern_su34_sead": {
+      "name": "Su-34 SEAD",
+      "description": "SEAD",
+      "faction": "eastern",
+      "family": "su-34_sead",
+      "roles": [
+        "recon"
+      ],
+      "cost": 420,
+      "roster": {
+        "factions": [
+          "eastern"
+        ],
+        "category": "air",
+        "variant": "SEAD",
+        "family_name": "Su-34 SEAD"
+      },
+      "extends": "roster_profile_fixed_wing",
+      "capabilities": {
+        "air": {
+          "sead": true,
+          "radar": {
+            "emits": false,
+            "detection_m": 7000
+          }
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Cannon",
+          "weapons": [
+            "air_gun"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AA missiles",
+          "weapons": [
+            "sead_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "eastern_sukhoi_flanker_family_su_34"
+    }
+  }
+}

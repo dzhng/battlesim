@@ -14,7 +14,7 @@
 // them as diagnostics.
 import { gameHud } from "@web/battle/present/hudTheme";
 import game from "@fixtures/game.json";
-import { airborne, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { airborne, highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
@@ -191,7 +191,8 @@ export function orderView(
     // Its footprint sizes its marker: a hull's half length, 0 for a squad;
     // a garrisoned squad's, its building's (inside or leaving, not entering).
     hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
-    aircraft: airborne(units.type(u.kind)),
+    aircraft: highAir(units.type(u.kind)),
+    airborne: airborne(units.type(u.kind)),
     building: g && g.phase !== "entering" ? { center: g.center, half: g.half } : null,
     selected,
     reveal,
@@ -238,6 +239,7 @@ export function aircraftView(
     position: u.position,
     yaw: u.yaw,
     hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
+    highAir: highAir(units.type(u.kind)),
   };
 }
 

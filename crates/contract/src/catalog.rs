@@ -184,6 +184,8 @@ pub enum AltitudeLayer {
     Ground,
     /// Helicopters: below every building's obstacle height plus clearance.
     LowAir,
+    /// Fixed-wing aircraft: the shared high-air combat layer.
+    HighAir,
 }
 
 /// How a unit moves (Q29, Q30). A ground mover has its own two top speeds,
@@ -214,19 +216,23 @@ pub enum Mobility {
         turning_radius_m: f64,
         reverse_fraction: f64,
     },
-    /// Flies in the low-air layer and turns on the spot when hovering.
+    /// Flies in an authored air layer and turns on the spot when hovering.
     Air {
         cruise_kmh: f64,
         turn_deg_s: f64,
         /// How fast it climbs or sinks toward its target height.
         climb_mps: f64,
+        /// The altitude layer this aircraft occupies. Existing helicopter
+        /// rows default to LowAir; fixed-wing rows opt into HighAir.
+        #[serde(default = "default_air_layer")]
+        layer: AltitudeLayer,
     },
 }
 
 impl Mobility {
     pub fn layer(&self) -> AltitudeLayer {
         match self {
-            Mobility::Air { .. } => AltitudeLayer::LowAir,
+            Mobility::Air { layer, .. } => *layer,
             _ => AltitudeLayer::Ground,
         }
     }
@@ -259,12 +265,24 @@ impl Mobility {
     }
 }
 
+fn default_air_layer() -> AltitudeLayer {
+    AltitudeLayer::LowAir
+}
+
 /// A unit's one sight.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Sensors {
     /// Ground range in the open, before shape.
     pub ground_m: f64,
+    /// Detection reach for the low-air band. Zero means this sensor does not
+    /// author an air reach (legacy ground rows leave it absent).
+    #[serde(default)]
+    pub low_air_m: f64,
+    /// Detection reach for the high-air band. Zero means this sensor does not
+    /// author an air reach (legacy ground rows leave it absent).
+    #[serde(default)]
+    pub high_air_m: f64,
     /// Reach by direction as multipliers of `ground_m`; 1/1/1 sees evenly.
     pub sight_shape: SightShape,
     /// Bonus to concealed-target detection reach (at least 1), capped at ordinary sight reach.
@@ -299,6 +317,102 @@ pub struct Capabilities {
     /// A finite defensive interceptor, independent of offensive mounts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_protection: Option<ActiveProtection>,
+    /// Authored aircraft lifecycle and air-combat capability. The alias keeps
+    /// fixture prose readable while the contract uses one stable key.
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "aircraft")]
+    pub air: Option<AirCapability>,
+    /// A ground air-defence capability and its tier. Weapon rows still own
+    /// the exact targets and interception behaviour.
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "aa")]
+    pub air_defense: Option<AirDefenseCapability>,
+    /// Radar emission/detection is separate from optical sensors.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radar: Option<RadarCapability>,
+}
+
+/// The three air-defence ranges used by the roster contract.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AirDefenseTier {
+    Short,
+    Medium,
+    Long,
+}
+
+/// A radar's authored emission and detection contract.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RadarCapability {
+    #[serde(default)]
+    pub emits: bool,
+    #[serde(default)]
+    pub detection_m: f64,
+}
+
+/// A ground unit's air-defence role. The tier is data, while each mount's
+/// weapon rows decide the actual layer and missile targets.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AirDefenseCapability {
+    pub tier: AirDefenseTier,
+}
+
+/// Finite flare stores and their reload interval.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FlareCapability {
+    pub capacity: u32,
+    pub reload_s: f64,
+}
+
+/// The explicit afterburner tradeoff. Defaults are the initial 50% speed and
+/// 2x fuel tuning, but remain authored for later aircraft variants.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AfterburnerCapability {
+    #[serde(default = "afterburner_speed_multiplier")]
+    pub speed_multiplier: f64,
+    #[serde(default = "afterburner_fuel_multiplier")]
+    pub fuel_multiplier: f64,
+}
+
+fn afterburner_speed_multiplier() -> f64 {
+    1.5
+}
+
+fn afterburner_fuel_multiplier() -> f64 {
+    2.0
+}
+
+/// Health/ammunition/fuel shares of an aircraft's withdrawal refund.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RefundWeights {
+    pub health: f64,
+    #[serde(alias = "ammo")]
+    pub ammunition: f64,
+    pub fuel: f64,
+}
+
+/// Persistent fixed-wing aircraft data. Presence is optional while legacy
+/// helicopter rows continue to load; an authored row must still be complete.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AirCapability {
+    #[serde(alias = "fuel_s")]
+    pub fuel_capacity_s: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flares: Option<FlareCapability>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub afterburner: Option<AfterburnerCapability>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aa_tier: Option<AirDefenseTier>,
+    /// Anti-radiation mission capability; only these aircraft may engage radar contacts.
+    #[serde(default)]
+    pub sead: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radar: Option<RadarCapability>,
+    pub refund: RefundWeights,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1530,6 +1644,72 @@ fn check(
             );
         }
     }
+    if let Some(air) = &t.capabilities.air {
+        if !matches!(t.mobility, Mobility::Air { .. }) {
+            return rule("capabilities.air requires air mobility");
+        }
+        if !positive(air.fuel_capacity_s) {
+            return rule("capabilities.air.fuel_capacity_s must be positive");
+        }
+        if let Some(flares) = air.flares {
+            if flares.capacity == 0 || !positive(flares.reload_s) {
+                return rule("capabilities.air.flares needs positive capacity and reload_s");
+            }
+        }
+        if let Some(afterburner) = air.afterburner {
+            if !(afterburner.speed_multiplier > 1.0
+                && afterburner.fuel_multiplier > 1.0
+                && afterburner.speed_multiplier.is_finite()
+                && afterburner.fuel_multiplier.is_finite())
+            {
+                return rule(
+                    "capabilities.air.afterburner multipliers must be finite and greater than one",
+                );
+            }
+        }
+        if let Some(radar) = air.radar {
+            if radar.emits && !positive(radar.detection_m) {
+                return rule("capabilities.air.radar detection_m must be positive when it emits");
+            }
+            if !at_least_zero(radar.detection_m) {
+                return rule("capabilities.air.radar detection_m must be finite and nonnegative");
+            }
+        }
+        let refund = air.refund;
+        if ![refund.health, refund.ammunition, refund.fuel]
+            .into_iter()
+            .all(at_least_zero)
+            || (refund.health + refund.ammunition + refund.fuel - 1.0).abs() > 1e-6
+        {
+            return rule(
+                "capabilities.air.refund weights must be finite, nonnegative and sum to one",
+            );
+        }
+        let rows: std::collections::BTreeSet<&str> = t
+            .mounts
+            .iter()
+            .flat_map(|mount| mount.weapons.iter().map(String::as_str))
+            .collect();
+        if rows.len() > 4 {
+            return rule("an aircraft may carry at most four distinct weapon rows");
+        }
+    }
+    if let Some(aa) = &t.capabilities.air_defense {
+        if matches!(t.mobility, Mobility::Air { .. }) {
+            return rule("capabilities.air_defense is for ground air-defence units");
+        }
+        // Keep tier values typed and reject an accidental empty/unknown row at
+        // serde time; this branch documents the owner of the combination.
+        let _ = aa.tier;
+    }
+    if let Some(radar) = t.capabilities.radar {
+        if radar.emits && !positive(radar.detection_m) {
+            return rule("capabilities.radar detection_m must be positive when it emits");
+        }
+        if !at_least_zero(radar.detection_m) {
+            return rule("capabilities.radar detection_m must be finite and nonnegative");
+        }
+    }
     ranges(t).map_or(Ok(()), rule)
 }
 
@@ -1541,6 +1721,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         cruise_kmh,
         turn_deg_s,
         climb_mps,
+        ..
     } = t.mobility
     {
         if !(cruise_kmh > 0.0 && cruise_kmh <= MAX_AIR_SPEED_KMH) {
@@ -1589,6 +1770,12 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         (!(t.sensors.concealed_range_multiplier.is_finite()
             && t.sensors.concealed_range_multiplier >= 1.0))
             .then_some("sensors.concealed_range_multiplier must be finite and at least 1")
+    })
+    .or_else(|| {
+        (![t.sensors.low_air_m, t.sensors.high_air_m]
+            .into_iter()
+            .all(at_least_zero))
+        .then_some("sensors air ranges must be finite and nonnegative")
     })
     .or_else(|| {
         (!(positive(s.rear) && s.rear <= s.side && s.side <= s.front && s.front.is_finite()))

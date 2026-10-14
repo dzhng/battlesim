@@ -1,6 +1,6 @@
 # Battle foundation: village first, full game preserved
 
-Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint.
+Build a browser combined-arms game where reconnaissance, physical fire and positioning matter, with clear controls and less routine management. The first meaningful deliverable is a replayable village assault with infantry, tanks, an AT ambush and finite supplies. The full agreed game remains specified here, including features deliberately scheduled after that checkpoint. Persistent fixed-wing aircraft and layered air defence now live in the active [air-war plan](../air-war/README.md), which supersedes historical slices 19 and 20.
 
 **Status: village checkpoint (slices 01–16) implemented; awaiting the user's review and next instruction. Updated 2026-09-25.** Routes, tests and modules named in slices 17–22 are planned, not existing.
 

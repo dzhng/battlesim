@@ -369,6 +369,9 @@
 .ro-callout[data-hovered] {
   z-index: 3;
 }
+.ro-callout[data-ghost] {
+  pointer-events: none;
+}
 .ro-leaders {
   z-index: 2;
   position: absolute;
@@ -1081,6 +1084,11 @@
   color: rgb(var(--hud-accent));
   border-width: 2px;
   padding: 13px 4px 9px;
+}
+
+.hud-panel button.hud-army-traversing {
+  filter: grayscale(1);
+  opacity: 0.58;
 }
 .hud-panel button.hud-army-card:is([aria-pressed="true"], :hover) {
   box-shadow: inset 0 0 8px rgb(var(--hud-accent) / 0.16);

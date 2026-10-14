@@ -88,6 +88,10 @@ pub enum ContactSource {
     Firing,
     /// An identified enemy was last seen here.
     LastSeen,
+    /// A radar-only report from a SEAD sensor. It is deliberately distinct
+    /// from firing and last-seen evidence so presentation can label it
+    /// "RADAR CONTACT" without exposing an identity or ground visibility.
+    Radar,
 }
 
 /// Uncertain evidence: an area where something is or was. It carries no
@@ -120,6 +124,13 @@ pub struct ApproximateContact {
     /// gun's report doesn't say which round it loaded (a cannon's AP and HE
     /// sound alike). 0 for a last sighting.
     pub heard: u64,
+    /// Quantized bearing from the detecting SEAD aircraft, in degrees. Radar
+    /// reports carry this separately from the uncertain area centre.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bearing_deg: Option<f64>,
+    /// Quantized range from the detecting SEAD aircraft, in metres.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range_m: Option<f64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -471,10 +482,31 @@ pub struct ProtectionReadiness {
     pub cooldown: Option<f64>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FlareReadiness {
+    pub charges: u32,
+    pub cooldown: Option<f64>,
+}
+
 /// A unit of the observing side: its own state is complete.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OwnUnit {
     pub withdrawing: bool,
+    /// Remaining fuel seconds for an aircraft; absent for ground units.
+    #[serde(default)]
+    pub fuel_s: Option<f64>,
+    /// Whether the aircraft's persistent afterburner toggle is enabled.
+    #[serde(default)]
+    pub afterburner: bool,
+    /// Paid aircraft still traversing to its map-edge ingress point.
+    #[serde(default)]
+    pub traversing: bool,
+    /// Own aircraft is currently in a close air engagement. The opponent's
+    /// authority id never crosses the observation boundary.
+    #[serde(default)]
+    pub in_dogfight: bool,
+    #[serde(default)]
+    pub flares: Option<FlareReadiness>,
     pub protection: Option<ProtectionReadiness>,
     pub id: UnitId,
     /// Its unit type: its rank in the catalog, the layout's `unitKinds`.

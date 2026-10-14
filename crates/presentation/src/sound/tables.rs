@@ -205,6 +205,12 @@ pub struct AudioPresentation {
     /// How unit voice lines are chosen ([`super::voices`]).
     pub voices: ChatterRules,
     pub ambience: OneShot,
+    /// The one alarm raised when a side's first fixed-wing aircraft enters.
+    pub air_alarm: OneShot,
+    /// A positional warning for a visible missile steering onto an own unit.
+    pub missile_warning: OneShot,
+    /// A positional burst when an aircraft releases a flare.
+    pub flare_deploy: OneShot,
     pub cues: Cues,
 }
 
@@ -427,6 +433,29 @@ impl SoundTables {
             names.extend(row.values().map(String::as_str));
         }
         names.extend(c.effects.values().map(String::as_str));
+        names.extend(self.audio.vehicles.values().map(|row| row.engine.as_str()));
+        names.extend(
+            self.audio
+                .vehicles
+                .values()
+                .filter_map(|row| row.running.as_deref()),
+        );
+        names.extend(
+            self.audio
+                .vehicles
+                .values()
+                .filter_map(|row| row.turret.as_deref()),
+        );
+        names.extend(
+            self.audio
+                .vehicles
+                .values()
+                .filter_map(|row| row.reverse.as_deref()),
+        );
+        names.insert(self.audio.ambience.sound.as_str());
+        names.insert(self.audio.air_alarm.sound.as_str());
+        names.insert(self.audio.missile_warning.sound.as_str());
+        names.insert(self.audio.flare_deploy.sound.as_str());
         names.into_iter().map(str::to_owned).collect()
     }
 

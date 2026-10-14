@@ -33,6 +33,28 @@ export interface SoundSource {
   sha256: string;
   notes: string;
 }
+/**
+ * A source candidate kept out of the playable source bank. A downloaded
+ * candidate records its pinned bytes and path, but remains unassigned until
+ * its rights and crop are accepted.
+ */
+export interface SourceProvenance {
+  label: string;
+  author: string;
+  license: string;
+  url: string;
+  sha256: string | null;
+  source_frames: [number, number];
+  processing: string;
+  download: {
+    tool: string;
+    version: string;
+    status: "candidate-not-downloaded" | "downloaded-unassigned";
+  };
+  /** Present only after the candidate bytes have been downloaded. */
+  path?: string;
+  notes: string;
+}
 /** Source receipts stay explicit, including user-supplied reserved-rights media. */
 const LICENSES = [
   "CC0-1.0",
@@ -97,6 +119,8 @@ export interface ShotChoice {
 }
 export interface SoundCatalog {
   sources: Record<string, SoundSource | GeneratedSource>;
+  /** Selected external receipts kept out of the playable source bank. */
+  provenance?: Record<string, SourceProvenance>;
   clips: Record<string, SoundClip>;
   sounds: Record<string, SoundRecipe>;
   /** Firing choices by weapon row; `default` for a row without one. */
@@ -125,8 +149,20 @@ function finite(value: unknown, low: number, high: number): boolean {
 }
 export function validateSoundCatalog(value: unknown): SoundCatalog {
   const root = record(value, "sound catalog");
-  const sections = ["sources", "clips", "sounds", "defaults", "impacts", "effects", "music"];
-  for (const section of sections) record(root[section], section);
+  const sections = [
+    "sources",
+    "provenance",
+    "clips",
+    "sounds",
+    "defaults",
+    "impacts",
+    "effects",
+    "music",
+  ];
+  for (const section of sections) {
+    if (section === "provenance" && root[section] === undefined) continue;
+    record(root[section], section);
+  }
   const unknown = Object.keys(root).find((key) => !sections.includes(key));
   if (unknown) throw new Error(`sound catalog: unknown section ${unknown}`);
   const catalog = value as SoundCatalog;
@@ -150,6 +186,38 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
           /^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path))
     )
       throw new Error(`source ${name}: invalid provenance`);
+  }
+  for (const [name, source] of Object.entries(catalog.provenance ?? {})) {
+    record(source, `provenance ${name}`);
+    const frames = source.source_frames;
+    if (
+      !id.test(name) ||
+      typeof source.label !== "string" ||
+      typeof source.author !== "string" ||
+      !(LICENSES as readonly string[]).includes(source.license) ||
+      !source.url.startsWith("https://") ||
+      (source.sha256 !== null && !hash.test(source.sha256)) ||
+      !Array.isArray(frames) ||
+      frames.length !== 2 ||
+      !frames.every(Number.isSafeInteger) ||
+      frames[0] < 0 ||
+      frames[1] <= frames[0] ||
+      typeof source.processing !== "string" ||
+      source.processing.length === 0 ||
+      !source.download ||
+      typeof source.download.tool !== "string" ||
+      typeof source.download.version !== "string" ||
+      !["candidate-not-downloaded", "downloaded-unassigned"].includes(source.download.status) ||
+      (source.download.status === "candidate-not-downloaded" &&
+        (source.sha256 !== null || source.path !== undefined)) ||
+      (source.download.status === "downloaded-unassigned" &&
+        (source.sha256 === null ||
+          !hash.test(source.sha256) ||
+          typeof source.path !== "string" ||
+          !/^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path))) ||
+      typeof source.notes !== "string"
+    )
+      throw new Error(`provenance ${name}: invalid source receipt`);
   }
   const roles = ["shot", "launch", "impact", "explosion", "loop", "reload", "mechanical", "other"];
   const crop = (c: SourceCrop) =>

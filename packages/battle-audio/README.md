@@ -75,7 +75,9 @@ stopping mid-rumble. Designs keep every source's provenance, as crops do.
 
 Each source row records attribution and rights alongside its pinned bytes.
 User-supplied recordings retain an explicit receipt, including reserved-rights
-material chosen for a personal project. Music is the exception to this
+material chosen for a personal project. Downloaded candidates may instead live
+in the catalog's provenance section with a pinned hash and an explicit
+rights-unassigned status; they are not playable sources until accepted. Music is the exception to this
 preparation: it streams instead (see [Music playback](#music-playback)).
 
 The tool averages stereo channels, keeps the source crop in its original frame

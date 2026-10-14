@@ -3,7 +3,7 @@
 //! side sees (own units and identified enemies, apart by side key), the
 //! downed airframes still falling (which smoke), and every wreck and part of
 //! a destroyed building it knows (which smoke, each with its kind's look).
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -100,6 +100,9 @@ pub struct EffectPublication {
     pub smokes: Vec<SmokeSource>,
     #[serde(default)]
     pub cook_offs: Vec<CookOff>,
+    /// Own aircraft flare releases observed since the previous publication.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub flare_deploys: Vec<Vec3>,
 }
 
 /// Reads observations into effect publications for one side.
@@ -107,6 +110,7 @@ pub struct EffectFeed {
     blue: bool,
     /// Each smoke source's key, by its kind and centre's bits.
     keys: HashMap<(Arc<str>, u64, u64), String>,
+    flares: HashMap<u64, u32>,
 }
 
 impl EffectFeed {
@@ -114,6 +118,7 @@ impl EffectFeed {
         Self {
             blue: side == "blue",
             keys: HashMap::new(),
+            flares: HashMap::new(),
         }
     }
 
@@ -125,6 +130,23 @@ impl EffectFeed {
         effects: &EffectsSection,
     ) -> EffectPublication {
         let own_even = true;
+        let mut flare_deploys = Vec::new();
+        let mut seen_flares = HashSet::new();
+        for u in &o.own {
+            let key = u.id.to_bits();
+            seen_flares.insert(key);
+            let Some(flares) = u.flares.as_ref() else {
+                self.flares.remove(&key);
+                continue;
+            };
+            let charges = flares.charges.max(0.0) as u32;
+            if let Some(previous) = self.flares.insert(key, charges) {
+                for _ in 0..previous.saturating_sub(charges) {
+                    flare_deploys.push(u.position);
+                }
+            }
+        }
+        self.flares.retain(|key, _| seen_flares.contains(key));
         let shooter = |key: f64,
                        kind: &str,
                        position: Vec3,
@@ -248,6 +270,7 @@ impl EffectFeed {
             shooters,
             smokes,
             cook_offs: Vec::new(),
+            flare_deploys,
         }
     }
 

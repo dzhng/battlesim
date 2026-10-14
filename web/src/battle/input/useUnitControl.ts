@@ -151,6 +151,8 @@ export function useUnitControl(
             .join(", ")})`;
         case "set_engagement":
           return `${order.policy === "fire_at_will" ? "fire at will" : "return fire only"}: ${order.units.map(unitName).join(", ")}`;
+        case "set_afterburner":
+          return `${order.enabled ? "afterburners on" : "afterburners off"}: ${order.units.map(unitName).join(", ")}`;
         case "set_deployment":
           return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
         case "garrison":
@@ -306,6 +308,14 @@ export function useUnitControl(
     void issue({ kind: "set_deployment", units: units.map((u) => u.id), deployed: !deployed });
   }, [issue, catalog]);
 
+  /** Toggle the persistent afterburner on the selected aircraft. */
+  const toggleAfterburner = useCallback(() => {
+    const aircraft = selectedUnitsRef.current.filter((u) => u.fuelS != null);
+    if (!aircraft.length) return;
+    const enabled = !aircraft.every((u) => u.afterburner);
+    void issue({ kind: "set_afterburner", units: aircraft.map((u) => u.id), enabled });
+  }, [issue]);
+
   /** The selection's units inside a building leave it. */
   const exitBuilding = useCallback(() => {
     const units = reach("exit_building", selectedUnitsRef.current, catalog).map((u) => u.id);
@@ -331,6 +341,7 @@ export function useUnitControl(
       if (command === "stop") stop();
       else if (command === "toggle_fire_policy") togglePolicy();
       else if (command === "toggle_deployment") toggleDeployment();
+      else if (command === "toggle_afterburner") toggleAfterburner();
       else if (command === "attack_move" && any) setMode("attack_move");
       else if (command === "reverse_move" && any) setMode("reverse_move");
       else if (command === "attack_ground" && armed) setMode("attack_ground");
@@ -340,7 +351,7 @@ export function useUnitControl(
     // listeners' order.
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [stop, togglePolicy, toggleDeployment, setMode, catalog]);
+  }, [stop, togglePolicy, toggleDeployment, toggleAfterburner, setMode, catalog]);
 
   return {
     refund: observation?.skirmish ? refund : undefined,
@@ -355,6 +366,7 @@ export function useUnitControl(
     stop,
     setDeployment,
     toggleDeployment,
+    toggleAfterburner,
     exitBuilding,
     togglePolicy,
     mode,

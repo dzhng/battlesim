@@ -122,7 +122,7 @@ export interface GhostBody {
   id: number;
   x: number;
   y: number;
-  /** The ground under it (m); an aircraft's ghost flies its cruise height above. */
+  /** Final world altitude, shared with the ghost's floating card. */
   z: number;
   yaw: number;
   /** 0 the side's own colour, 1 the selection's, 2 a purchase refused. */

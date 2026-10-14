@@ -6,26 +6,6 @@
   },
   "entries": [
     {
-      "id": "eastern_buk_buk_m3_medium_range_air_defense",
-      "family": "buk",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "buk",
-      "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/buk/eastern_buk_buk_m3_medium_range_air_defense.glb"
-    },
-    {
-      "id": "eastern_j_10_vigorous_dragon_j_10c",
-      "family": "j_10_vigorous_dragon",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "j_10_vigorous_dragon",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c.glb"
-    },
-    {
       "id": "eastern_j_20_mighty_dragon_stealth_fighter",
       "family": "j_20_mighty_dragon",
       "category": "air",
@@ -86,16 +66,6 @@
       "source_path": "assets/source/roster/orlan_10/eastern_orlan_10_reconnaissance_drone.glb"
     },
     {
-      "id": "eastern_pantsir_pantsir_sm",
-      "family": "pantsir",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "pantsir",
-      "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm.glb"
-    },
-    {
       "id": "eastern_scout_drone_thermal",
       "family": "scout_drone",
       "category": "rec",
@@ -146,16 +116,6 @@
       "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2.glb"
     },
     {
-      "id": "eastern_sukhoi_flanker_family_su_34",
-      "family": "sukhoi_flanker_family",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "sukhoi_flanker_family",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34.glb"
-    },
-    {
       "id": "eastern_sukhoi_flanker_family_su_35s",
       "family": "sukhoi_flanker_family",
       "category": "air",
@@ -164,26 +124,6 @@
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
       "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb"
-    },
-    {
-      "id": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
-      "family": "boxer_skyranger_30",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "boxer_skyranger_30",
-      "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb"
-    },
-    {
-      "id": "europe_eurofighter_typhoon_tranche_3",
-      "family": "eurofighter_typhoon",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "eurofighter_typhoon",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3.glb"
     },
     {
       "id": "europe_gepard_1a2",
@@ -236,16 +176,6 @@
       "source_path": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv.glb"
     },
     {
-      "id": "europe_nasams_nasams_3",
-      "family": "nasams",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "nasams",
-      "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/nasams/europe_nasams_nasams_3.glb"
-    },
-    {
       "id": "europe_rafale_c_f4",
       "family": "rafale",
       "category": "air",
@@ -276,16 +206,6 @@
       "source_path": "assets/source/roster/scout_drone/europe_scout_drone_thermal.glb"
     },
     {
-      "id": "europe_tornado_ecr",
-      "family": "tornado",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "tornado",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and electronic-warfare mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_tornado_ecr.glb"
-    },
-    {
       "id": "europe_tornado_ids",
       "family": "tornado",
       "category": "air",
@@ -294,16 +214,6 @@
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
       "source_path": "assets/source/roster/disabled/europe_tornado_ids.glb"
-    },
-    {
-      "id": "f_16c_block_50",
-      "family": "f_16_fighting_falcon",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "f_16_fighting_falcon",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/f_16c_block_50.glb"
     },
     {
       "id": "f_35a",
@@ -324,16 +234,6 @@
       "source_kind": "aircraft",
       "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
       "source_path": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb"
-    },
-    {
-      "id": "us_ea_18g_growler_electronic_warfare_aircraft",
-      "family": "ea_18g_growler",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "ea_18g_growler",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and electronic-warfare mechanics deferred",
-      "source_path": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft.glb"
     },
     {
       "id": "us_f_15_eagle_f_15e_strike_eagle",
@@ -434,16 +334,6 @@
       "source_kind": "ground_vehicle",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
       "source_path": "assets/source/roster/scout_drone/us_scout_drone_thermal.glb"
-    },
-    {
-      "id": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
-      "family": "stryker_m_shorad",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "stryker_m_shorad",
-      "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb"
     }
   ]
 }

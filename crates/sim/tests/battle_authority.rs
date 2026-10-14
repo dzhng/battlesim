@@ -97,6 +97,7 @@ fn slot_owned_commands_require_the_matching_player_slot() {
 
     command.seq = 2;
     command.slot = Some("blue-2".into());
+    command.seq = 2;
     assert_eq!(
         b.accept(command.clone()).error,
         Some(OrderError::WrongSlot { unit: UnitId(0) })
@@ -104,6 +105,7 @@ fn slot_owned_commands_require_the_matching_player_slot() {
 
     command.seq = 3;
     command.slot = Some("blue-1".into());
+    command.seq = 3;
     assert_eq!(b.accept(command).error, None);
 }
 

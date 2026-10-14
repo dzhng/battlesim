@@ -50,6 +50,7 @@ mod objectives;
 mod order_markers;
 mod publication;
 mod publication_reader;
+mod radar;
 mod ricochet;
 mod rivers;
 mod road_journeys;

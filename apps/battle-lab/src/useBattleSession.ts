@@ -38,7 +38,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import type { Faction } from "@packages/scene-assets/src/units";
+import { highAir, type Faction } from "@packages/scene-assets/src/units";
 import {
   DEFAULT_PLACEMENT_FACING,
   PurchasePlacementControl,
@@ -94,6 +94,8 @@ import {
   GHOST_SELECTED,
   fieldedSoldiers,
   ghostBodies,
+  ghostAloft,
+  aircraftOrderReadouts,
   orderedGhost,
   ownSoldiers,
   type UnitGhost,
@@ -630,7 +632,12 @@ export function useBattleSession({
         {
           selected: control.selected,
           xray,
-          ghosts: ghostBodies(ghosts, (kind) => Boolean(units.hull(kind)), surfaceZ),
+          ghosts: ghostBodies(
+            ghosts,
+            (kind) => Boolean(units.hull(kind)),
+            surfaceZ,
+            ghostAloft(units, rules.air.cruise_agl_m),
+          ),
         },
         generation,
       );
@@ -1113,6 +1120,19 @@ export function useBattleSession({
     structures: () => presentationRef.current?.propModels() ?? [],
   };
 
+  const visibleGhostReadouts = useMemo(
+    () =>
+      aircraftOrderReadouts(
+        observation?.own ?? [],
+        control.showOrders,
+        revealed,
+        (kind) => highAir(units.type(kind)),
+        surfaceZ,
+        ghostAloft(units, rules.air.cruise_agl_m),
+      ),
+    [control.showOrders, observation, revealed, units, surfaceZ, rules.air.cruise_agl_m],
+  );
+
   return {
     world,
     meshes,
@@ -1178,6 +1198,7 @@ export function useBattleSession({
             }
           : null,
       ),
+    ghostReadouts: visibleGhostReadouts,
     gpuAllocations,
     probes,
   };

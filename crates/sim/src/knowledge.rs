@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use contract::catalog::{AltitudeLayer, TypeIndex};
-use contract::ids::{Tick, UnitId};
+use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{
     ApproximateContact, ContactId, ContactSource, IdentifiedUnit, ObservedTargetId,
 };
@@ -47,6 +47,8 @@ pub struct Contact {
     pub kind: Option<TypeIndex>,
     /// A firing report's weapons as heard (`ApproximateContact::heard`).
     pub heard: u64,
+    pub bearing_deg: Option<f64>,
+    pub range_m: Option<f64>,
     pub(crate) emitter: UnitId,
     /// Retired slots preserve their handle, but are never published or targeted.
     live: bool,
@@ -193,6 +195,8 @@ impl SideKnowledge {
             expires_tick: tick + lifetime,
             kind,
             heard,
+            bearing_deg: None,
+            range_m: None,
             emitter,
             live: true,
         };
@@ -272,6 +276,101 @@ impl SideKnowledge {
         identified
     }
 
+    /// Fold the radar-only evidence supplied by SEAD aircraft into this
+    /// side's knowledge. Radar is intentionally a separate sensor pass: it
+    /// has no terrain/foliage interaction and never identifies the emitter.
+    pub fn update_radar(&mut self, tick: Tick, side: Side, units: &[Unit], rules: &Rules) {
+        let lifetime = (rules.sensors.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
+        let detectors: Vec<&Unit> = units
+            .iter()
+            .filter(|u| {
+                u.side == side
+                    && u.alive()
+                    && u.layer() == AltitudeLayer::HighAir
+                    && u.unit_type(rules)
+                        .capabilities
+                        .air
+                        .as_ref()
+                        .is_some_and(|air| air.sead)
+                    && u.unit_type(rules)
+                        .capabilities
+                        .air
+                        .as_ref()
+                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
+                        .is_some_and(|(sead, radar)| sead && radar.detection_m > 0.0)
+            })
+            .collect();
+        if detectors.is_empty() {
+            return;
+        }
+        let emitters: Vec<UnitId> = units
+            .iter()
+            .filter(|u| {
+                u.alive()
+                    && u.side != side
+                    && !self.identifies(u.id, tick)
+                    && !u.airborne()
+                    && u.unit_type(rules).capabilities.air_defense.is_some()
+                    && u.unit_type(rules)
+                        .capabilities
+                        .radar
+                        .is_some_and(|radar| radar.emits)
+            })
+            .map(|u| u.id)
+            .collect();
+        for emitter_id in emitters {
+            let emitter = &units[emitter_id.0 as usize];
+            let Some((detector, distance)) = detectors
+                .iter()
+                .map(|detector| {
+                    let distance = (emitter.position.xy() - detector.position.xy()).length();
+                    (detector, distance)
+                })
+                .find(|(detector, distance)| {
+                    detector
+                        .unit_type(rules)
+                        .capabilities
+                        .air
+                        .as_ref()
+                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
+                        .is_some_and(|(sead, radar)| sead && *distance <= radar.detection_m)
+                })
+            else {
+                continue;
+            };
+            let delta = emitter.position.xy() - detector.position.xy();
+            let bearing = libm::atan2(delta.y, delta.x).to_degrees();
+            let bearing = (bearing / 5.0).round() * 5.0;
+            let range = (distance / 100.0).round() * 100.0;
+            let radius = emitter.contact_radius(rules).max(50.0);
+            // The report's centre is deliberately displaced inside its area;
+            // the exact emitter position never crosses the observation seam.
+            let angle = std::f64::consts::TAU * self.rng.unit();
+            let offset = radius * self.rng.unit().sqrt();
+            let center = (emitter.position.xy() + v2(libm::cos(angle), libm::sin(angle)) * offset)
+                .with_z(emitter.position.z);
+            let contact = Contact {
+                id: ContactId(0),
+                source: ContactSource::Radar,
+                center,
+                layer: AltitudeLayer::Ground,
+                radius,
+                evidence_tick: tick,
+                expires_tick: tick + lifetime,
+                kind: None,
+                heard: 0,
+                bearing_deg: Some(bearing),
+                range_m: Some(range),
+                emitter: emitter.id,
+                live: true,
+            };
+            self.new_contact(contact);
+            // Keep the detector selection stable in the deterministic unit
+            // ordering; one report is enough for a shared team contact.
+            let _ = detector;
+        }
+    }
+
     /// The side's live contacts; `aloft` says which centres hang in the air
     /// (`ApproximateContact::aloft`).
     pub fn contacts<'a>(
@@ -289,6 +388,8 @@ impl SideKnowledge {
             expires_tick: c.expires_tick,
             kind: c.kind,
             heard: c.heard,
+            bearing_deg: c.bearing_deg,
+            range_m: c.range_m,
         })
     }
 
@@ -494,6 +595,8 @@ impl SideKnowledge {
                 .u64(c.expires_tick)
                 .u64(c.kind.map_or(u64::MAX, |k| k.0 as u64))
                 .u64(c.heard)
+                .f64(c.bearing_deg.unwrap_or(f64::NAN))
+                .f64(c.range_m.unwrap_or(f64::NAN))
                 .u64(c.emitter.0 as u64);
         }
         d.u64(self.pending_fire.len() as u64);
