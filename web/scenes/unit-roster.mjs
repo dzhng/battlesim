@@ -175,6 +175,8 @@ export async function run(ctx) {
     window.__lab.route.acks().find(({ order, ack }) => order.kind === "move" && !ack.error),
   );
   check(ctx, moveAck, "a right-click moves the selected unit");
+  // The approved journey pictures are taken once the move is under way.
+  await advance(page, 300);
   const facingFrom = targetCss;
   const facingTo = [facingFrom[0] + 80, facingFrom[1]];
   await page.mouse.move(...facingFrom);

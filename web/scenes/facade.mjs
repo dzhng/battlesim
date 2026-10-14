@@ -44,7 +44,10 @@ function mean(png, p, r) {
 async function open(ctx, query = "") {
   const page = await ctx.newPage({ viewport: VIEWPORT });
   const warnings = gpuWarnings(page);
-  await page.goto(`${ctx.url}${query}`);
+  // The runner's URL already carries its own query (the graphics profile).
+  const url = new URL(ctx.url);
+  for (const [key, value] of new URLSearchParams(query)) url.searchParams.set(key, value);
+  await page.goto(url.href);
   await page.waitForFunction(
     () =>
       document.querySelector("[data-testid=error]") ||

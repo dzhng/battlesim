@@ -74,6 +74,7 @@ test("test graphics quality is only added to lab routes", () => {
 
 test("scene quality follows baseline, ordinary, and serial contracts", () => {
   expect(fixtureGraphicsQuality({ id: "frame" }, { pinned: true, env: null })).toBe("low");
+  expect(fixtureGraphicsQuality({ id: "frame" }, { pinned: true, env: "minimum" })).toBe("low");
   expect(fixtureGraphicsQuality({ id: "geometry" }, { pinned: false, env: null })).toBe("minimum");
   expect(
     fixtureGraphicsQuality({ id: "benchmark", serial: true }, { pinned: false, env: null }),

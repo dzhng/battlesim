@@ -47,7 +47,9 @@ export async function run(ctx) {
     .catch(() => false);
   ctx.check(
     "downloaded package boots the normal battle worker",
-    !error && (await page.getByTestId("battle-panel").isVisible()),
+    // The HUD container has no box of its own (its parts are placed absolutely),
+    // so its presence, with no error and no loading cover, is the booted battle.
+    !error && (await page.getByTestId("battle-panel").count()) === 1,
   );
   await writeFile(ctx.evidencePath("overview.png"), await page.screenshot());
 }

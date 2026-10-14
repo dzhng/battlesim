@@ -126,7 +126,8 @@ Harness scenes use the test-only `minimum` graphics profile by default. A scene
 with an approved picture directory under `scenes/baselines/<id>/` uses the
 player's `low` profile instead, because its regression is judged on the setting
 humans see; the runner derives this from that directory and `--visual` selects
-the same set. Set `SCENE_GRAPHICS_QUALITY` to override the default for a run.
+the same set. `SCENE_GRAPHICS_QUALITY` moves the other scenes off `minimum` for a
+run; it never changes the setting pictures are judged at.
 Rendering jobs from separate checkouts still share one GPU, so run them under
 the repository lock, for example
 `lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`

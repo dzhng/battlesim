@@ -90,7 +90,7 @@ export const sceneMinimumProfile: GraphicsQualityProfile = {
   unitLodScale: 2.2,
   buildingLodScale: 2.2,
   treeLodScale: 2.2,
-  grassDensity: 0,
+  grassDensity: 0.2,
   forestDressing: false,
   understorey: false,
   shadowMapSize: 512,

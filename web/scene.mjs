@@ -8,8 +8,8 @@
 // Fixtures run two at a time (SCENE_CONCURRENCY sets the overlap, 1 serializes);
 // a fixture marked `"serial"` always runs alone. A lab must become ready within
 // 30 s alone or 60 s overlapped (SCENE_READINESS_TIMEOUT_MS overrides).
-// SCENE_GRAPHICS_QUALITY=minimum|low|medium|high asks lab routes for that
-// test-only graphics profile. Serial timing/parity fixtures keep their own.
+// SCENE_GRAPHICS_QUALITY=minimum|low|medium|high moves the scenes without
+// approved pictures to that profile. Serial timing/parity fixtures keep their own.
 // `bun run --cwd web verify` runs every registered scene; tools are skipped
 // unless named explicitly. Scenes default to minimum, while scenes with an
 // approved baseline directory use the player low profile.
@@ -263,10 +263,14 @@ export async function openScenePage(
   return page;
 }
 
-/** Resolve the runner's quality contract from the baseline directory set. */
+/** Resolve the runner's quality contract from the baseline directory set: a
+ * scene with approved pictures is judged at the player's low setting, whatever
+ * the run asks for; SCENE_GRAPHICS_QUALITY only moves the other scenes off the
+ * test-only minimum. */
 export function fixtureGraphicsQuality(fixture, { pinned = false, env } = {}) {
   if (fixture.serial) return undefined;
-  return env || process.env.SCENE_GRAPHICS_QUALITY || (pinned ? "low" : "minimum");
+  if (pinned) return "low";
+  return env || process.env.SCENE_GRAPHICS_QUALITY || "minimum";
 }
 
 export async function run(fixtures, { pinnedIds = new Set() } = {}) {
