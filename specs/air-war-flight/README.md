@@ -1,6 +1,6 @@
 # Air-war flight
 
-**Status:** slice 00 landed; slice 01 in progress.
+**Status:** slice 05 landed; slice 06 next.
 **Updated:** 2026-10-14.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
@@ -20,7 +20,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [ ] 02 [jet flight law](slices/02-jet-flight-law.md)
 - [ ] 03 [steering: circle and edge](slices/03-steer-orbit-edge.md)
 - [ ] 04 [distances in 3D, layers from the catalog](slices/04-distances-3d.md)
-- [ ] 05 [carrier velocity](slices/05-carrier-velocity.md)
+- [x] 05 [carrier velocity](slices/05-carrier-velocity.md)
 - [ ] 06 [missiles: speed, lifetime, fuse, aim](slices/06-missiles.md)
 - [ ] 07 [bomb release and new rows](slices/07-release-and-rows.md)
 - [ ] 08 [attack passes](slices/08-pass-planner.md)

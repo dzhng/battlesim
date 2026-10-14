@@ -14,6 +14,7 @@ use sim::math::{v3, V3};
 fn round(origin: V3, velocity: V3, suppression_radius_m: f64) -> Launch {
     Launch {
         origin,
+        carrier: V3::default(),
         velocity,
         gravity_scale: 1.0,
         lifetime_s: profile("rifle").lifetime_s,

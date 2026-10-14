@@ -5,9 +5,12 @@
 //! for the sparks.
 
 use super::air::{battle_with, fixture, open_map, order};
+use crate::common::{config, flat, profile};
 use contract::ids::UnitId;
 use serde_json::{json, Value};
 use sim::battle::Battle;
+use sim::flight::{fire_round, predicted_path, Aim, Projectiles};
+use sim::math::v3;
 
 /// A hovering helicopter at [200, 200] and one red `kind` `metres` east of
 /// it, facing it, after `seconds`.
@@ -44,6 +47,77 @@ fn shots(b: &Battle, id: &str) -> u32 {
 fn heli_loss(b: &Battle) -> f64 {
     let heli = b.unit(UnitId(0)).unwrap();
     b.rules().catalog.get(heli.kind).hull().unwrap().hp - heli.hp
+}
+
+#[test]
+fn a_round_fired_from_a_jet_starts_with_its_velocity() {
+    let world = flat([1000.0, 400.0], "");
+    let config = config();
+    let profile = profile("hmg");
+    let aim = Aim {
+        origin: v3(100.0, 200.0, 20.0),
+        target: v3(500.0, 200.0, 20.0),
+        target_velocity: v3(0.0, 0.0, 0.0),
+        carrier: v3(80.0, 0.0, 0.0),
+    };
+    let (launch, solution) = fire_round(
+        &world,
+        &config,
+        &profile,
+        &aim,
+        0.0,
+        &mut contract::random::Rng::new(1),
+        None,
+        |_| false,
+        |_| false,
+    )
+    .unwrap()
+    .expect("round launches");
+    let mut projectiles = Projectiles::new(config.clone());
+    let id = projectiles.launch(launch);
+    assert_eq!(
+        projectiles.get(id).unwrap().velocity,
+        launch.velocity + aim.carrier
+    );
+    let endpoint = predicted_path(
+        &config,
+        &profile,
+        launch.origin,
+        launch.velocity + aim.carrier,
+        solution.time_of_flight_s,
+    )
+    .last()
+    .copied()
+    .unwrap();
+    assert!((endpoint - solution.intercept).length() < 1e-6);
+}
+
+#[test]
+fn a_ground_shooters_round_is_unchanged() {
+    let world = flat([1000.0, 400.0], "");
+    let config = config();
+    let profile = profile("hmg");
+    let aim = Aim {
+        origin: v3(100.0, 200.0, 1.5),
+        target: v3(500.0, 200.0, 1.5),
+        target_velocity: v3(0.0, 0.0, 0.0),
+        carrier: v3(0.0, 0.0, 0.0),
+    };
+    let (launch, fired) = fire_round(
+        &world,
+        &config,
+        &profile,
+        &aim,
+        0.0,
+        &mut contract::random::Rng::new(1),
+        None,
+        |_| false,
+        |_| false,
+    )
+    .unwrap()
+    .expect("round launches");
+    assert_eq!(launch.velocity, fired.velocity);
+    assert_eq!(launch.carrier, v3(0.0, 0.0, 0.0));
 }
 
 #[test]

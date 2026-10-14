@@ -4810,6 +4810,7 @@ mod tests {
             .expect("SEAD row");
         let projectile = battle.projectiles.launch(crate::flight::Launch {
             origin: v3(300.0, 200.0, 500.0),
+            carrier: v3(0.0, 0.0, 0.0),
             velocity: v3(-100.0, 0.0, 0.0),
             gravity_scale: 0.0,
             lifetime_s: 5.0,

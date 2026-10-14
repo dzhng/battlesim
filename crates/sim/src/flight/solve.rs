@@ -33,6 +33,8 @@ pub struct Aim {
     pub origin: V3,
     pub target: V3,
     pub target_velocity: V3,
+    /// World velocity carried by the shooter. Ground shooters use zero.
+    pub carrier: V3,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -73,7 +75,16 @@ pub fn solve_launch_past(
     aim: &Aim,
     past: Option<PropId>,
 ) -> Result<FiringSolution, NoSolution> {
-    let (o, t, w) = (aim.origin, aim.target, aim.target_velocity);
+    let carrier = aim.carrier;
+    let frame_aim = Aim {
+        target_velocity: aim.target_velocity - carrier,
+        ..*aim
+    };
+    let (o, t, w) = (
+        frame_aim.origin,
+        frame_aim.target,
+        frame_aim.target_velocity,
+    );
     let motor = profile
         .motor
         .map_or([f64::NAN; 2], |m| [m.accel_mps2, m.top_speed_mps]);
@@ -95,17 +106,21 @@ pub fn solve_launch_past(
         motor[1],
         profile.motor.map_or(0.0, |_| 1.0),
     ]
-    .map(f64::to_bits);
+    .map(f64::to_bits)
+    .into_iter()
+    .chain([carrier.x, carrier.y, carrier.z].map(f64::to_bits))
+    .collect::<Vec<_>>()
+    .try_into()
+    .expect("launch key has fixed length");
     let world_at = (
         world as *const WorldGeometry as usize,
         world.obstacle_revision(),
     );
     let indirect = profile.trajectory == Trajectory::Indirect;
     let key = (flight, past, indirect, world_at.0, world_at.1);
-    config
-        .solved
-        .launches
-        .get_or(key, || launch_uncached(world, config, profile, aim, past))
+    config.solved.launches.get_or(key, || {
+        launch_uncached(world, config, profile, &frame_aim, aim, past, carrier)
+    })
 }
 
 /// [`solve_launch_past`], worked out.
@@ -113,21 +128,44 @@ fn launch_uncached(
     world: &WorldGeometry,
     config: &FlightConfig,
     profile: &LaunchProfile,
-    aim: &Aim,
+    frame_aim: &Aim,
+    world_aim: &Aim,
     past: Option<PropId>,
+    carrier: V3,
 ) -> Result<FiringSolution, NoSolution> {
-    let arcs = intercepts(config, profile, aim);
+    let arcs = intercepts(config, profile, frame_aim);
     let preferred: Vec<FiringSolution> = match profile.trajectory {
         Trajectory::Direct => arcs.into_iter().filter(|s| s.arc == ArcKind::Low).collect(),
         Trajectory::Indirect => arcs.into_iter().rev().collect(),
     };
     let mut blocked = None;
     for solution in preferred {
-        match first_obstruction(world, config, profile, aim.origin, &solution, past) {
-            None => return Ok(solution),
+        match first_obstruction(
+            world,
+            config,
+            profile,
+            frame_aim.origin,
+            &FiringSolution {
+                velocity: solution.velocity + carrier,
+                intercept: world_aim.target + world_aim.target_velocity * solution.time_of_flight_s,
+                ..solution
+            },
+            past,
+        ) {
+            None => {
+                return Ok(FiringSolution {
+                    intercept: world_aim.target
+                        + world_aim.target_velocity * solution.time_of_flight_s,
+                    ..solution
+                })
+            }
             Some((point, by)) => {
                 blocked.get_or_insert(NoSolution::Blocked {
-                    arc: solution,
+                    arc: FiringSolution {
+                        intercept: world_aim.target
+                            + world_aim.target_velocity * solution.time_of_flight_s,
+                        ..solution
+                    },
                     point,
                     by,
                 });
@@ -222,7 +260,7 @@ impl<K: std::hash::Hash + Eq, V: Clone> Kept<K, V> {
 /// target velocity), the round's flight (speed, gravity scale, lifetime,
 /// arc, turn limit, motor), the body it flies past, and the world it is
 /// flown against: which one, at which obstacle revision.
-type LaunchKey = ([u64; 16], Option<PropId>, bool, usize, u64);
+type LaunchKey = ([u64; 19], Option<PropId>, bool, usize, u64);
 
 /// The ballistic intercepts and the launches already solved: kept answers
 /// ([`Kept`]). An intercept depends on nothing but its inputs; a launch also
@@ -584,6 +622,11 @@ fn launch_along(
     rng: &mut Rng,
     shooter: Option<Shooter>,
 ) -> Result<(Launch, FiringSolution), NoSolution> {
+    let carrier = aim.carrier;
+    let frame_aim = Aim {
+        target_velocity: aim.target_velocity - carrier,
+        ..*aim
+    };
     let mut target = scatter_aim(aim.origin, aim.target, scatter_mrad, rng);
     let bounded = config.miss_fall_max_s > 0.0
         && profile.turn_rad_s.is_none()
@@ -591,13 +634,20 @@ fn launch_along(
     if bounded {
         target.z = target.z.min(aim.target.z);
     }
-    let scattered = Aim { target, ..*aim };
-    let fired = intercepts(config, profile, &scattered)
+    let scattered = Aim {
+        target,
+        ..frame_aim
+    };
+    let relative = intercepts(config, profile, &scattered)
         .into_iter()
         .find(|s| s.arc == intended.arc)
         .ok_or(NoSolution::OutOfReach)?;
+    let fired = FiringSolution {
+        intercept: scattered.target + aim.target_velocity * relative.time_of_flight_s,
+        ..relative
+    };
     let fall = if bounded {
-        let velocity = fired.velocity + profile.gravity(config) * fired.time_of_flight_s;
+        let velocity = fired.velocity + carrier + profile.gravity(config) * fired.time_of_flight_s;
         let duration = config.miss_fall_max_s;
         let height = (fired.intercept.z - world.lowest_ground_height()).max(0.0);
         // Bound the descent even over lower terrain, without changing horizontal flight.
@@ -615,6 +665,7 @@ fn launch_along(
     Ok((
         Launch {
             origin: aim.origin,
+            carrier,
             velocity: fired.velocity,
             gravity_scale: profile.gravity_scale,
             lifetime_s: profile.lifetime_s,

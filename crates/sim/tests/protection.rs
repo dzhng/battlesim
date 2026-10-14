@@ -28,6 +28,7 @@ impl ImpactResolver for Shield {
 fn shot(x: f64, speed: f64) -> Launch {
     Launch {
         origin: v3(x, 200.0, 1.0),
+        carrier: v3(0.0, 0.0, 0.0),
         velocity: v3(speed, 0.0, 0.0),
         gravity_scale: 0.0,
         lifetime_s: profile("rifle").lifetime_s,

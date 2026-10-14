@@ -482,6 +482,10 @@ pub struct MissFall {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Launch {
     pub origin: V3,
+    /// Shooter motion carried into the round at launch. Added to `velocity`
+    /// exactly once when the projectile enters the store.
+    pub carrier: V3,
+    /// Initial velocity relative to the shooter. The store adds `carrier`.
     pub velocity: V3,
     /// The share of the world's gravity it falls under while unguided.
     pub gravity_scale: f64,
@@ -757,7 +761,7 @@ impl Projectiles {
         self.active.push(Projectile {
             id,
             position: launch.origin,
-            velocity: launch.velocity,
+            velocity: launch.velocity + launch.carrier,
             gravity_scale: launch.gravity_scale,
             age_s: 0.0,
             lifetime_s: launch.lifetime_s,

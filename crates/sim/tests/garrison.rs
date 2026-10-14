@@ -716,6 +716,7 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
         let v = (aim - origin).normalized() * common::profile("rifle").speed_mps;
         store.launch(sim::flight::Launch {
             origin,
+            carrier: v3(0.0, 0.0, 0.0),
             velocity: v,
             gravity_scale: common::profile("rifle").gravity_scale,
             lifetime_s: common::profile("rifle").lifetime_s,

@@ -10,7 +10,7 @@ use contract::scenario::{Armor, Face, Rules};
 
 use crate::digest::Digest;
 use crate::garrison::{Garrison, Phase};
-use crate::math::{Obb2, Rotation, V2, V3};
+use crate::math::{v3, Obb2, Rotation, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
@@ -489,6 +489,16 @@ impl Unit {
     /// concealment) reaches it.
     pub fn airborne(&self) -> bool {
         matches!(self.motion, Motion::Air(_))
+    }
+
+    /// The velocity a round carries away from this unit at launch. Ground
+    /// units contribute zero; air state is 2D until the flight-law slice
+    /// promotes it to 3D.
+    pub fn flight_velocity(&self) -> V3 {
+        match (self.airborne(), self.air) {
+            (true, Some(air)) => v3(air.velocity.x, air.velocity.y, 0.0),
+            _ => V3::default(),
+        }
     }
 
     /// It trails smoke (D19, D34): an aircraft below half its health. What a

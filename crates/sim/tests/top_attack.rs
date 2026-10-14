@@ -137,6 +137,7 @@ fn shoot(w: &WeaponBallistics, distance: f64) -> Shot {
         origin,
         target,
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let (launch, _) = fire_round(
         &world,
@@ -280,6 +281,7 @@ fn the_loft_is_part_of_the_digest_only_when_present() {
             origin,
             target: origin + v3(400.0, 0.0, 0.0),
             target_velocity: V3::default(),
+            carrier: V3::default(),
         };
         let (launch, _) = fire_round(
             &world,
