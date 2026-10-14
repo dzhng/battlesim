@@ -26,7 +26,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [ ] 09 [nose-on gun and self-firing weapons](slices/09-gun-and-autofire.md)
 - [ ] 10 [dogfights](slices/10-dogfight.md)
 - [ ] 11 [orders and reactions](slices/11-air-orders.md)
-- [ ] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
+- [x] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
 - [ ] 13 [approach and departure effect](slices/13-transit-effect.md)
 - [ ] 14 [jet attitude](slices/14-jet-attitude.md)
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
