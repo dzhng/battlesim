@@ -145,7 +145,10 @@ profile names a clip in [`sounds.json`](../../fixtures/sounds.json) (the interco
 rotor is `rotor-uh60`, the loop every helicopter plays) and a filter that places it,
 such as the cockpit's muffling. Only a machine the game has no recording of gets a
 generated bed, a raw master the tool's `beds` command buys once and the lock records;
-the tank's engine is one, since the game synthesises engines. Either way the bed's
+the tank's engine is one, since the game synthesises engines. The fighter cockpit
+(`voice-cockpit`) takes the HighAir jet loop, whose All-Rights-Reserved source is
+admitted for this personal project; its generated `jet_cockpit` bed is kept as the
+alternative, heard through `voice-cockpit-generated`. Either way the bed's
 sha256 enters the processing key, so a changed clip or master re-renders its takes.
 
 Which lines play is decided in one place, in Rust

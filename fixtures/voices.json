@@ -3821,6 +3821,594 @@
           ]
         }
       }
+    },
+    "fighter_pilot": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, go ahead.",
+            "Flight lead, send it."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, go, I'm defending!",
+            "[shouting] Send it, make it quick!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Copy, proceeding.",
+            "Roger, en route."
+          ],
+          "stressed": [
+            "[urgent] Copy, pushing now!",
+            "[shouting] Moving, burner on!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Tally target, in hot.",
+            "Copy, rolling in."
+          ],
+          "stressed": [
+            "[shouting] In hot, in hot!",
+            "[urgent] Rolling in, cover me!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Pushing, weapons hot.",
+            "Sweeping ahead, sensors hot."
+          ],
+          "stressed": [
+            "[urgent] Pushing, engage anything!",
+            "[shouting] Weapons hot, going in!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Copy, holding in the orbit.",
+            "Roger, capping here."
+          ],
+          "stressed": [
+            "[urgent] Holding, orbiting here!",
+            "[shouting] Cap here, now!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Copy, cleared hot."
+          ],
+          "stressed": [
+            "[shouting] Cleared hot, kill it!",
+            "[urgent] Weapons free, go!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Weapons hold.",
+            "Roger, cold on the pass."
+          ],
+          "stressed": [
+            "[urgent] Hold fire, hold fire!",
+            "[shouting] Cold, cold, don't shoot!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Negative, fast mover, staying high.",
+            "Unable, nowhere to set down."
+          ],
+          "stressed": [
+            "[urgent] Negative, can't land there!",
+            "[shouting] Unable, we're a jet!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Climbing out.",
+            "Copy, back to altitude."
+          ],
+          "stressed": [
+            "[urgent] Climbing, climbing!",
+            "[shouting] Pull up, get altitude!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Bingo fuel, returning to base.",
+            "Copy, egressing."
+          ],
+          "stressed": [
+            "[panicked] Bugging out, bugging out!",
+            "[shouting] Egress now, go, go!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, on station.",
+            "In the orbit, eyes on."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, on station, hot!",
+            "[urgent] In position, watch for SAMs!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, unable.",
+            "Unable, too many SAMs."
+          ],
+          "stressed": [
+            "[urgent] Negative, that's suicide!",
+            "[shouting] Unable, unable!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Troops on the ground.",
+            "Infantry, in the open."
+          ],
+          "stressed": [
+            "[shouting] Troops below, rolling in!",
+            "[urgent] Infantry, light them up!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Armour, tally.",
+            "Vehicles on the road."
+          ],
+          "stressed": [
+            "[shouting] Armour! Bombs ready!",
+            "[urgent] Tally vehicles, in hot!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Bandit, nose.",
+            "Contact, bandit high."
+          ],
+          "stressed": [
+            "[shouting] Bandit! Bandit! Engaging!",
+            "[panicked] Bandit on my six!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Guns.",
+            "Rifle."
+          ],
+          "stressed": [
+            "[shouting] Guns, guns, guns!",
+            "[urgent] Firing, firing!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Triple-A, left side."
+          ],
+          "stressed": [
+            "[shouting] Triple-A! Jinking!",
+            "[urgent] Tracers! Breaking right!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heavy flak, staying high.",
+            "Too hot down there."
+          ],
+          "stressed": [
+            "[panicked] It's too hot, too hot!",
+            "[shouting] Everything's shooting at me!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Spiked, can't commit.",
+            "Locked up, staying defensive."
+          ],
+          "stressed": [
+            "[panicked] I'm spiked, can't get in!",
+            "[shouting] Can't shake it, too much fire!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "I'm hit, still flying.",
+            "Took a hit, systems okay."
+          ],
+          "stressed": [
+            "[shouting] I'm hit! Damage check!",
+            "[panicked] Hit! She's still flying!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Back seat's hit.",
+            "Wingman down."
+          ],
+          "stressed": [
+            "[panicked] Two's down, two's down!",
+            "[shouting] Lost my wingman!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Hydraulics failing.",
+            "Heavy damage, losing an engine."
+          ],
+          "stressed": [
+            "[panicked] Master caution! Losing her!",
+            "[shouting] Fire light! She won't hold!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Splash one.",
+            "Good hit."
+          ],
+          "stressed": [
+            "[shouting] Splash! Target down!",
+            "[breathless] Hell yes, direct hit!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Switching weapons.",
+            "Selecting next store."
+          ],
+          "stressed": [
+            "[urgent] Switching, stand by!",
+            "[shouting] Changing weapons, hurry!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Winchester.",
+            "Out of ordnance."
+          ],
+          "stressed": [
+            "[shouting] Winchester! I'm dry!",
+            "[urgent] Nothing left, heading home!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Fox two.",
+            "Magnum."
+          ],
+          "stressed": [
+            "[shouting] Fox two! Fox two!",
+            "[urgent] Magnum, magnum!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Launch, left side."
+          ],
+          "stressed": [
+            "[shouting] Missile, missile! Flares, break left!",
+            "[panicked] SAM launch! Flares, break right!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "Ejecting.",
+            "I'm going down."
+          ],
+          "stressed": [
+            "[panicked] Mayday, mayday! Ejecting!",
+            "[shouting] Eject, eject, eject!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly down.",
+            "We lost one."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] They're down, oh God!"
+          ]
+        }
+      }
+    },
+    "air_defense_crew": {
+      "lines": {
+        "selected": {
+          "steady": [
+            "{callsign}, go ahead.",
+            "Air defence, send it."
+          ],
+          "stressed": [
+            "[urgent] {callsign}, quick, we're tracking!",
+            "[shouting] Go ahead, sky's full!"
+          ]
+        },
+        "move": {
+          "steady": [
+            "Copy, relocating.",
+            "Roger, moving the battery."
+          ],
+          "stressed": [
+            "[urgent] Moving, shut it down!",
+            "[shouting] Relocate, go, go!"
+          ]
+        },
+        "attack": {
+          "steady": [
+            "Target assigned, engaging.",
+            "Copy, tracking target."
+          ],
+          "stressed": [
+            "[shouting] Engage, engage!",
+            "[urgent] Tracking, fire when locked!"
+          ]
+        },
+        "attack_move": {
+          "steady": [
+            "Moving up, radar on.",
+            "Advancing, ready to engage."
+          ],
+          "stressed": [
+            "[urgent] Moving, keep the radar up!",
+            "[shouting] Push, engage on the move!"
+          ]
+        },
+        "stop": {
+          "steady": [
+            "Halting, emplacing.",
+            "Roger, holding here."
+          ],
+          "stressed": [
+            "[urgent] Stop here, set up!",
+            "[shouting] Hold, hold, emplace!"
+          ]
+        },
+        "weapons_free": {
+          "steady": [
+            "Weapons free.",
+            "Copy, free to engage."
+          ],
+          "stressed": [
+            "[shouting] Weapons free, shoot them down!",
+            "[urgent] Free to fire, go!"
+          ]
+        },
+        "hold_fire": {
+          "steady": [
+            "Weapons tight.",
+            "Roger, holding fire."
+          ],
+          "stressed": [
+            "[urgent] Hold, hold, could be friendly!",
+            "[shouting] Weapons tight, don't fire!"
+          ]
+        },
+        "enter_building": {
+          "steady": [
+            "Pulling in by the building.",
+            "Hiding by the structure."
+          ],
+          "stressed": [
+            "[urgent] Get us next to that building!",
+            "[shouting] In close, under cover!"
+          ]
+        },
+        "leave_building": {
+          "steady": [
+            "Pulling out.",
+            "Moving off the building."
+          ],
+          "stressed": [
+            "[urgent] Out, get us out!",
+            "[shouting] Move, move, clear it!"
+          ]
+        },
+        "withdraw": {
+          "steady": [
+            "Falling back.",
+            "Withdrawing the battery."
+          ],
+          "stressed": [
+            "[panicked] Pull back, they've got us!",
+            "[shouting] Fall back, now!"
+          ]
+        },
+        "arrived": {
+          "steady": [
+            "{callsign}, in position.",
+            "Emplaced, radar up."
+          ],
+          "stressed": [
+            "[breathless] {callsign}, in position, tracking!",
+            "[urgent] Set, radar's up, watch the sky!"
+          ]
+        },
+        "refused": {
+          "steady": [
+            "Negative, can't get there.",
+            "Unable, no route."
+          ],
+          "stressed": [
+            "[urgent] Negative, we'd be exposed!",
+            "[shouting] Unable, unable!"
+          ]
+        },
+        "contact_infantry": {
+          "steady": [
+            "Infantry, close.",
+            "Troops near the battery."
+          ],
+          "stressed": [
+            "[shouting] Infantry, close in!",
+            "[urgent] Troops on us, use the gun!"
+          ]
+        },
+        "contact_vehicle": {
+          "steady": [
+            "Vehicles, ground.",
+            "Armour approaching."
+          ],
+          "stressed": [
+            "[shouting] Armour coming!",
+            "[urgent] Tanks, get us out of here!"
+          ]
+        },
+        "contact_air": {
+          "steady": [
+            "Air contact, tracking.",
+            "Aircraft, bearing locked."
+          ],
+          "stressed": [
+            "[shouting] Air contact! Lock it up!",
+            "[urgent] Fast mover, inbound!"
+          ]
+        },
+        "opens_fire": {
+          "steady": [
+            "Engaging.",
+            "Firing."
+          ],
+          "stressed": [
+            "[shouting] Firing, firing!",
+            "[urgent] Gun's hot!"
+          ]
+        },
+        "under_fire": {
+          "steady": [
+            "Taking fire.",
+            "Rounds on the battery."
+          ],
+          "stressed": [
+            "[shouting] Taking fire! Button up!",
+            "[urgent] They're hitting us!"
+          ]
+        },
+        "suppressed": {
+          "steady": [
+            "Heavy fire, keeping low.",
+            "Too much incoming."
+          ],
+          "stressed": [
+            "[panicked] Too much fire, stay down!",
+            "[shouting] We're getting hammered!"
+          ]
+        },
+        "pinned": {
+          "steady": [
+            "Pinned, can't move.",
+            "Stuck in place."
+          ],
+          "stressed": [
+            "[panicked] We can't move, they'll get us!",
+            "[shouting] Pinned down, damn it!"
+          ]
+        },
+        "hit": {
+          "steady": [
+            "We're hit.",
+            "Took a hit, still up."
+          ],
+          "stressed": [
+            "[shouting] We're hit! Damage check!",
+            "[panicked] Hit! Radar's flickering!"
+          ]
+        },
+        "man_down": {
+          "steady": [
+            "Operator's hit.",
+            "Crewman wounded."
+          ],
+          "stressed": [
+            "[panicked] Operator down, operator down!",
+            "[shouting] He's hit, take his station!"
+          ]
+        },
+        "badly_damaged": {
+          "steady": [
+            "Radar's damaged.",
+            "Heavy damage, systems failing."
+          ],
+          "stressed": [
+            "[panicked] Radar's gone! We're blind!",
+            "[shouting] Fire inside, get out!"
+          ]
+        },
+        "kill": {
+          "steady": [
+            "Target destroyed.",
+            "Splash, target down."
+          ],
+          "stressed": [
+            "[shouting] Splash! We got it!",
+            "[breathless] Direct hit, it's going down!"
+          ]
+        },
+        "reloading": {
+          "steady": [
+            "Reloading.",
+            "Loading the next missile."
+          ],
+          "stressed": [
+            "[urgent] Reloading, cover us!",
+            "[shouting] Load it, hurry up!"
+          ]
+        },
+        "out_of_ammo": {
+          "steady": [
+            "Out of missiles.",
+            "Launchers empty."
+          ],
+          "stressed": [
+            "[shouting] We're dry, nothing left!",
+            "[urgent] Empty, need resupply!"
+          ]
+        },
+        "missile_away": {
+          "steady": [
+            "Missile away.",
+            "Launch, launch."
+          ],
+          "stressed": [
+            "[shouting] Missile away!",
+            "[urgent] Launched, keep the lock!"
+          ]
+        },
+        "incoming_missile": {
+          "steady": [
+            "Missile, incoming.",
+            "Anti-radiation missile inbound."
+          ],
+          "stressed": [
+            "[shouting] Missile inbound! Radar off!",
+            "[panicked] It's homing on us! Shut it down!"
+          ]
+        },
+        "destroyed": {
+          "steady": [
+            "We're done.",
+            "Battery destroyed."
+          ],
+          "stressed": [
+            "[panicked] Get out, get out!",
+            "[shouting] Bail out, she's burning!"
+          ]
+        },
+        "friendly_destroyed_nearby": {
+          "steady": [
+            "Friendly lost.",
+            "Friendly unit down."
+          ],
+          "stressed": [
+            "[shouting] We lost one!",
+            "[panicked] They're gone, oh God!"
+          ]
+        }
+      }
     }
   },
   "sets": {
@@ -5118,6 +5706,160 @@
           "voice_id": "DX6QGC61tc7j0IOiRgv9"
         }
       ]
+    },
+    "us_fighter_pilot": {
+      "role": "fighter_pilot",
+      "country": "us",
+      "callsign": "Oscar 57",
+      "processing": "voice-cockpit",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "American female fighter pilot and flight lead in her thirties, crisp confident radio voice through an oxygen mask, calm and clipped under G.",
+          "voice_id": "2PI7Bq8Y74df5iYniP6A"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "American male fighter wingman in his late twenties, bright tenor voice, fast strained callouts through an oxygen mask. He speaks with a Texan American accent.",
+          "voice_id": "J3jv8OYLyiAhpEwvb1nR"
+        }
+      ]
+    },
+    "de_fighter_pilot": {
+      "role": "fighter_pilot",
+      "country": "de",
+      "callsign": "Adler 18",
+      "processing": "voice-cockpit",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "German female fighter pilot and flight lead in her thirties, precise controlled radio voice through an oxygen mask, cool under pressure. She speaks English with a German accent.",
+          "voice_id": "Cts74ScNYAnamD5dM4PQ"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "German male fighter wingman in his late twenties, firm mid-range voice, terse strained callouts through an oxygen mask. He speaks English with a strong German accent.",
+          "voice_id": "5bvzEwyTBWMUs4V8kWQX"
+        }
+      ]
+    },
+    "ru_fighter_pilot": {
+      "role": "fighter_pilot",
+      "country": "ru",
+      "callsign": "Vostok 38",
+      "processing": "voice-cockpit",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "Russian male strike pilot and flight lead in his forties, deep steady baritone through an oxygen mask, unhurried and hard. He speaks English with a strong Russian accent.",
+          "voice_id": "BgcllgCY1v2eVg2nYgle"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "Russian male weapons systems officer in his late twenties, rough tenor voice, quick strained callouts through an oxygen mask. He speaks English with a strong Russian accent.",
+          "voice_id": "5xzx1B8cxz5BpHlM1Tii"
+        }
+      ]
+    },
+    "cn_fighter_pilot": {
+      "role": "fighter_pilot",
+      "country": "cn",
+      "callsign": "Dragon 6",
+      "processing": "voice-cockpit",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "Chinese female fighter pilot and flight lead in her thirties, clear disciplined radio voice through an oxygen mask, composed and exact. She speaks English with a Mandarin Chinese accent.",
+          "voice_id": "NDRjb3gDK3ki4peLHMSW"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "Chinese male fighter wingman in his twenties, sharp bright voice, rapid strained callouts through an oxygen mask. He speaks English with a strong Mandarin Chinese accent.",
+          "voice_id": "eG5g9QzRGJG7mBzTV6iL"
+        }
+      ]
+    },
+    "us_air_defense_crew": {
+      "role": "air_defense_crew",
+      "country": "us",
+      "callsign": "Oscar 58",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "female",
+          "description": "American female air defense battery commander in her thirties, calm authoritative radio voice inside an armored vehicle, measured and precise.",
+          "voice_id": "ccYu7u7hcYwRpgr4CnfT"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "American male air defense radar operator in his mid twenties, nasal mid-range voice, rapid tense callouts from the console. He speaks with a Midwestern American accent.",
+          "voice_id": "YBTkNi1iEv6juYtOlVRv"
+        }
+      ]
+    },
+    "de_air_defense_crew": {
+      "role": "air_defense_crew",
+      "country": "de",
+      "callsign": "Adler 19",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "German male air defense battery commander in his forties, dry level baritone over a vehicle radio, methodical. He speaks English with a German accent.",
+          "voice_id": "PUlPrGDreKjWjFyV1UQx"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "female",
+          "description": "German female air defense radar operator in her twenties, clear quick voice, alert tense callouts from the console. She speaks English with a strong German accent.",
+          "voice_id": "icCBYWBCB7JHCAx1PnHM"
+        }
+      ]
+    },
+    "ru_air_defense_crew": {
+      "role": "air_defense_crew",
+      "country": "ru",
+      "callsign": "Vostok 39",
+      "processing": "voice-radio-light",
+      "voices": [
+        {
+          "id": "lead",
+          "speaks": "responses",
+          "gender": "male",
+          "description": "Russian male air defense battery commander in his fifties, gravelly heavy voice over a vehicle radio, stern and slow. He speaks English with a strong Russian accent.",
+          "voice_id": "8zKP9sjLsLiJ4Fzc3Pt0"
+        },
+        {
+          "id": "soldier",
+          "speaks": "barks",
+          "gender": "male",
+          "description": "Russian male missile guidance operator in his twenties, thin tense tenor voice, quick urgent callouts from the console. He speaks English with a strong Russian accent.",
+          "voice_id": "GfMQwfwpnvPxA8CZ4It9"
+        }
+      ]
     }
   },
   "assignments": {
@@ -5239,41 +5981,41 @@
     "europe_recon_patrol_light_patrol": "de_recon_infantry",
     "europe_vbci_infantry_fighting_vehicle": "de_ifv_crew",
     "europe_vbl_machine_gun_scout": "de_ifv_crew",
-    "eastern_buk_buk_m3_medium_range_air_defense": "ru_manpads_team",
-    "eastern_fighter_aircraft": "ru_attack_helicopter_pilot",
-    "eastern_j_10_vigorous_dragon_j_10c": "cn_attack_helicopter_pilot",
-    "eastern_long_aa": "ru_manpads_team",
-    "eastern_medium_aa": "ru_manpads_team",
-    "eastern_pantsir_pantsir_sm": "ru_manpads_team",
-    "eastern_s300_long": "ru_manpads_team",
-    "eastern_s350_long": "ru_manpads_team",
-    "eastern_short_aa": "ru_manpads_team",
-    "eastern_su34_sead": "ru_attack_helicopter_pilot",
-    "eastern_sukhoi_flanker_family_su_34": "ru_attack_helicopter_pilot",
-    "europe_boxer_skyranger_30_gun_and_missile_air_defense": "de_manpads_team",
-    "europe_eurofighter_typhoon_tranche_3": "de_attack_helicopter_pilot",
-    "europe_fighter_aircraft": "de_attack_helicopter_pilot",
-    "europe_iris_t_medium": "de_manpads_team",
-    "europe_long_aa": "de_manpads_team",
-    "europe_medium_aa": "de_manpads_team",
-    "europe_nasams_long": "de_manpads_team",
-    "europe_nasams_nasams_3": "de_manpads_team",
-    "europe_short_aa": "de_manpads_team",
-    "europe_tornado_ecr": "de_attack_helicopter_pilot",
-    "europe_tornado_ecr_sead": "de_attack_helicopter_pilot",
+    "eastern_buk_buk_m3_medium_range_air_defense": "ru_air_defense_crew",
+    "eastern_fighter_aircraft": "ru_fighter_pilot",
+    "eastern_j_10_vigorous_dragon_j_10c": "cn_fighter_pilot",
+    "eastern_long_aa": "ru_air_defense_crew",
+    "eastern_medium_aa": "ru_air_defense_crew",
+    "eastern_pantsir_pantsir_sm": "ru_air_defense_crew",
+    "eastern_s300_long": "ru_air_defense_crew",
+    "eastern_s350_long": "ru_air_defense_crew",
+    "eastern_short_aa": "ru_air_defense_crew",
+    "eastern_su34_sead": "ru_fighter_pilot",
+    "eastern_sukhoi_flanker_family_su_34": "ru_fighter_pilot",
+    "europe_boxer_skyranger_30_gun_and_missile_air_defense": "de_air_defense_crew",
+    "europe_eurofighter_typhoon_tranche_3": "de_fighter_pilot",
+    "europe_fighter_aircraft": "de_fighter_pilot",
+    "europe_iris_t_medium": "de_air_defense_crew",
+    "europe_long_aa": "de_air_defense_crew",
+    "europe_medium_aa": "de_air_defense_crew",
+    "europe_nasams_long": "de_air_defense_crew",
+    "europe_nasams_nasams_3": "de_air_defense_crew",
+    "europe_short_aa": "de_air_defense_crew",
+    "europe_tornado_ecr": "de_fighter_pilot",
+    "europe_tornado_ecr_sead": "de_fighter_pilot",
     "f_16c_block_50": {
-      "us": "us_attack_helicopter_pilot",
-      "europe": "de_attack_helicopter_pilot"
+      "us": "us_fighter_pilot",
+      "europe": "de_fighter_pilot"
     },
-    "us_ea18g_sead": "us_attack_helicopter_pilot",
-    "us_ea_18g_growler_electronic_warfare_aircraft": "us_attack_helicopter_pilot",
-    "us_fighter_aircraft": "us_attack_helicopter_pilot",
-    "us_long_aa": "us_manpads_team",
-    "us_medium_aa": "us_manpads_team",
-    "us_nasams_medium": "us_manpads_team",
-    "us_patriot_long": "us_manpads_team",
-    "us_short_aa": "us_manpads_team",
-    "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": "us_manpads_team"
+    "us_ea18g_sead": "us_fighter_pilot",
+    "us_ea_18g_growler_electronic_warfare_aircraft": "us_fighter_pilot",
+    "us_fighter_aircraft": "us_fighter_pilot",
+    "us_long_aa": "us_air_defense_crew",
+    "us_medium_aa": "us_air_defense_crew",
+    "us_nasams_medium": "us_air_defense_crew",
+    "us_patriot_long": "us_air_defense_crew",
+    "us_short_aa": "us_air_defense_crew",
+    "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": "us_air_defense_crew"
   },
   "retakes": {
     "us_tank_crew/lead/selected/steady/1": 1,
@@ -6140,6 +6882,141 @@
     "us_transport_helicopter_pilot/soldier/man_down/steady/0": 1,
     "us_transport_helicopter_pilot/soldier/man_down/stressed/0": 1,
     "us_transport_helicopter_pilot/soldier/missile_away/steady/0": 1,
-    "us_transport_helicopter_pilot/soldier/missile_away/stressed/1": 1
+    "us_transport_helicopter_pilot/soldier/missile_away/stressed/1": 1,
+    "cn_fighter_pilot/lead/attack/steady/0": 1,
+    "cn_fighter_pilot/lead/enter_building/stressed/1": 1,
+    "cn_fighter_pilot/lead/hold_fire/steady/0": 1,
+    "cn_fighter_pilot/lead/leave_building/steady/0": 1,
+    "cn_fighter_pilot/lead/move/steady/1": 1,
+    "cn_fighter_pilot/lead/move/stressed/1": 1,
+    "cn_fighter_pilot/lead/selected/steady/1": 1,
+    "cn_fighter_pilot/lead/weapons_free/stressed/0": 1,
+    "cn_fighter_pilot/lead/withdraw/stressed/0": 1,
+    "cn_fighter_pilot/soldier/contact_air/steady/0": 1,
+    "cn_fighter_pilot/soldier/contact_infantry/stressed/1": 1,
+    "cn_fighter_pilot/soldier/contact_vehicle/steady/0": 1,
+    "cn_fighter_pilot/soldier/contact_vehicle/stressed/1": 1,
+    "cn_fighter_pilot/soldier/destroyed/stressed/0": 1,
+    "cn_fighter_pilot/soldier/incoming_missile/stressed/0": 1,
+    "cn_fighter_pilot/soldier/kill/steady/1": 1,
+    "cn_fighter_pilot/soldier/man_down/stressed/1": 1,
+    "cn_fighter_pilot/soldier/missile_away/steady/1": 1,
+    "cn_fighter_pilot/soldier/missile_away/stressed/0": 1,
+    "cn_fighter_pilot/soldier/opens_fire/steady/0": 1,
+    "cn_fighter_pilot/soldier/opens_fire/steady/1": 1,
+    "cn_fighter_pilot/soldier/pinned/steady/0": 1,
+    "cn_fighter_pilot/soldier/reloading/stressed/1": 1,
+    "cn_fighter_pilot/soldier/suppressed/steady/1": 1,
+    "cn_fighter_pilot/soldier/under_fire/stressed/0": 1,
+    "de_air_defense_crew/lead/arrived/steady/1": 1,
+    "de_air_defense_crew/lead/selected/stressed/0": 1,
+    "de_air_defense_crew/lead/stop/stressed/1": 1,
+    "de_air_defense_crew/lead/weapons_free/steady/0": 1,
+    "de_air_defense_crew/soldier/badly_damaged/steady/0": 1,
+    "de_air_defense_crew/soldier/contact_vehicle/steady/1": 1,
+    "de_air_defense_crew/soldier/contact_vehicle/stressed/0": 1,
+    "de_air_defense_crew/soldier/destroyed/stressed/0": 1,
+    "de_air_defense_crew/soldier/friendly_destroyed_nearby/stressed/1": 1,
+    "de_air_defense_crew/soldier/hit/steady/1": 1,
+    "de_air_defense_crew/soldier/kill/stressed/0": 1,
+    "de_air_defense_crew/soldier/missile_away/steady/0": 1,
+    "de_air_defense_crew/soldier/missile_away/steady/1": 1,
+    "de_air_defense_crew/soldier/missile_away/stressed/1": 1,
+    "de_air_defense_crew/soldier/opens_fire/steady/1": 1,
+    "de_air_defense_crew/soldier/opens_fire/stressed/0": 1,
+    "de_air_defense_crew/soldier/opens_fire/stressed/1": 1,
+    "de_fighter_pilot/lead/weapons_free/stressed/0": 1,
+    "de_fighter_pilot/lead/withdraw/stressed/0": 1,
+    "de_fighter_pilot/soldier/contact_infantry/stressed/0": 1,
+    "de_fighter_pilot/soldier/contact_vehicle/steady/0": 1,
+    "de_fighter_pilot/soldier/opens_fire/steady/0": 1,
+    "de_fighter_pilot/soldier/out_of_ammo/stressed/0": 1,
+    "ru_air_defense_crew/lead/arrived/steady/1": 1,
+    "ru_air_defense_crew/lead/leave_building/steady/0": 1,
+    "ru_air_defense_crew/lead/selected/steady/0": 1,
+    "ru_air_defense_crew/lead/stop/stressed/1": 1,
+    "ru_air_defense_crew/lead/weapons_free/steady/0": 1,
+    "ru_air_defense_crew/soldier/badly_damaged/steady/0": 1,
+    "ru_air_defense_crew/soldier/contact_infantry/steady/1": 1,
+    "ru_air_defense_crew/soldier/contact_vehicle/steady/1": 1,
+    "ru_air_defense_crew/soldier/contact_vehicle/stressed/0": 1,
+    "ru_air_defense_crew/soldier/destroyed/steady/0": 1,
+    "ru_air_defense_crew/soldier/destroyed/steady/1": 1,
+    "ru_air_defense_crew/soldier/destroyed/stressed/1": 1,
+    "ru_air_defense_crew/soldier/friendly_destroyed_nearby/steady/0": 1,
+    "ru_air_defense_crew/soldier/friendly_destroyed_nearby/stressed/1": 1,
+    "ru_air_defense_crew/soldier/hit/stressed/0": 1,
+    "ru_air_defense_crew/soldier/incoming_missile/stressed/0": 1,
+    "ru_air_defense_crew/soldier/kill/stressed/1": 1,
+    "ru_air_defense_crew/soldier/man_down/steady/1": 1,
+    "ru_air_defense_crew/soldier/man_down/stressed/1": 1,
+    "ru_air_defense_crew/soldier/missile_away/stressed/1": 1,
+    "ru_air_defense_crew/soldier/opens_fire/steady/0": 1,
+    "ru_air_defense_crew/soldier/opens_fire/steady/1": 1,
+    "ru_air_defense_crew/soldier/opens_fire/stressed/1": 1,
+    "ru_air_defense_crew/soldier/out_of_ammo/stressed/0": 1,
+    "ru_air_defense_crew/soldier/out_of_ammo/stressed/1": 1,
+    "ru_air_defense_crew/soldier/pinned/stressed/1": 1,
+    "ru_air_defense_crew/soldier/reloading/stressed/1": 1,
+    "ru_air_defense_crew/soldier/suppressed/steady/0": 1,
+    "ru_air_defense_crew/soldier/suppressed/steady/1": 1,
+    "ru_air_defense_crew/soldier/suppressed/stressed/0": 1,
+    "ru_fighter_pilot/lead/arrived/stressed/0": 1,
+    "ru_fighter_pilot/lead/attack/steady/0": 1,
+    "ru_fighter_pilot/lead/attack_move/steady/0": 1,
+    "ru_fighter_pilot/lead/hold_fire/steady/0": 1,
+    "ru_fighter_pilot/lead/hold_fire/stressed/1": 1,
+    "ru_fighter_pilot/lead/move/steady/1": 1,
+    "ru_fighter_pilot/lead/move/stressed/1": 1,
+    "ru_fighter_pilot/lead/selected/steady/0": 1,
+    "ru_fighter_pilot/lead/selected/stressed/0": 1,
+    "ru_fighter_pilot/lead/withdraw/stressed/0": 1,
+    "ru_fighter_pilot/soldier/badly_damaged/steady/0": 1,
+    "ru_fighter_pilot/soldier/contact_air/steady/0": 1,
+    "ru_fighter_pilot/soldier/contact_air/stressed/0": 1,
+    "ru_fighter_pilot/soldier/contact_infantry/steady/0": 1,
+    "ru_fighter_pilot/soldier/contact_vehicle/stressed/0": 1,
+    "ru_fighter_pilot/soldier/destroyed/steady/1": 1,
+    "ru_fighter_pilot/soldier/incoming_missile/stressed/0": 1,
+    "ru_fighter_pilot/soldier/kill/steady/0": 1,
+    "ru_fighter_pilot/soldier/kill/steady/1": 1,
+    "ru_fighter_pilot/soldier/kill/stressed/0": 1,
+    "ru_fighter_pilot/soldier/man_down/steady/0": 1,
+    "ru_fighter_pilot/soldier/man_down/steady/1": 1,
+    "ru_fighter_pilot/soldier/missile_away/steady/1": 1,
+    "ru_fighter_pilot/soldier/opens_fire/steady/0": 1,
+    "ru_fighter_pilot/soldier/opens_fire/steady/1": 1,
+    "ru_fighter_pilot/soldier/opens_fire/stressed/0": 1,
+    "ru_fighter_pilot/soldier/out_of_ammo/stressed/1": 1,
+    "ru_fighter_pilot/soldier/suppressed/steady/1": 1,
+    "ru_fighter_pilot/soldier/under_fire/steady/0": 1,
+    "us_air_defense_crew/lead/arrived/steady/1": 1,
+    "us_air_defense_crew/lead/stop/steady/0": 1,
+    "us_air_defense_crew/lead/stop/stressed/1": 1,
+    "us_air_defense_crew/soldier/badly_damaged/stressed/1": 1,
+    "us_air_defense_crew/soldier/contact_infantry/stressed/1": 1,
+    "us_air_defense_crew/soldier/destroyed/steady/0": 1,
+    "us_air_defense_crew/soldier/kill/stressed/1": 1,
+    "us_air_defense_crew/soldier/missile_away/stressed/1": 1,
+    "us_air_defense_crew/soldier/opens_fire/steady/0": 1,
+    "us_air_defense_crew/soldier/out_of_ammo/stressed/1": 1,
+    "us_air_defense_crew/soldier/pinned/stressed/1": 1,
+    "us_air_defense_crew/soldier/reloading/steady/0": 1,
+    "us_air_defense_crew/soldier/reloading/stressed/1": 1,
+    "us_air_defense_crew/soldier/suppressed/stressed/1": 1,
+    "us_fighter_pilot/lead/arrived/stressed/0": 1,
+    "us_fighter_pilot/lead/attack_move/steady/0": 1,
+    "us_fighter_pilot/lead/hold_fire/stressed/1": 1,
+    "us_fighter_pilot/lead/weapons_free/steady/0": 1,
+    "us_fighter_pilot/soldier/badly_damaged/stressed/0": 1,
+    "us_fighter_pilot/soldier/contact_air/steady/0": 1,
+    "us_fighter_pilot/soldier/contact_infantry/stressed/0": 1,
+    "us_fighter_pilot/soldier/contact_vehicle/steady/0": 1,
+    "us_fighter_pilot/soldier/friendly_destroyed_nearby/steady/1": 1,
+    "us_fighter_pilot/soldier/friendly_destroyed_nearby/stressed/1": 1,
+    "us_fighter_pilot/soldier/hit/stressed/1": 1,
+    "us_fighter_pilot/soldier/kill/steady/0": 1,
+    "us_fighter_pilot/soldier/opens_fire/stressed/0": 1,
+    "us_fighter_pilot/soldier/under_fire/stressed/1": 1
   }
 }

@@ -52,6 +52,13 @@ export const BEDS: Record<string, { prompt: string; duration_s: number }> = {
       "Inside a main battle tank: steady diesel engine rumble and turbine whine, metallic rattles, muffled, constant loop",
     duration_s: 12,
   },
+  // The fighter cockpit's alternative to the game's jet loop (`voice-cockpit`'s
+  // bed), heard through `voice-cockpit-generated`.
+  jet_cockpit: {
+    prompt:
+      "Inside a fighter jet cockpit in flight: steady turbofan roar and air rush over the canopy, muffled, constant loop",
+    duration_s: 12,
+  },
 };
 const FLUSH_EVERY = 20;
 const LOCAL_JOBS = 4;

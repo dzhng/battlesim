@@ -10,7 +10,12 @@ export function standInPresentationRecordings(
   presentation: AudioPresentation,
 ) {
   const { sounds } = catalog;
-  for (const row of Object.values(presentation.vehicles)) sounds[row.engine] ??= { ...sounds.rotor };
-  for (const cue of [presentation.air_alarm, presentation.missile_warning, presentation.flare_deploy])
+  for (const row of Object.values(presentation.vehicles))
+    sounds[row.engine] ??= { ...sounds.rotor };
+  for (const cue of [
+    presentation.air_alarm,
+    presentation.missile_warning,
+    presentation.flare_deploy,
+  ])
     sounds[cue.sound] ??= { ...sounds.launch };
 }

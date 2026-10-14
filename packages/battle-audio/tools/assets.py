@@ -56,6 +56,23 @@ VOICE_PROFILES = {
         "bed": {"clip": "rotor-uh60", "filter": "lowpass=f=900", "volume": 0.6},
         "loudness_lufs": -16,
     },
+    # A fighter's oxygen mask: a narrower, harder-pressed radio, and the jet heard through
+    # the canopy. The bed is the game's own jet loop (`airwar-jet-approach-recording`, the
+    # loop every HighAir aircraft plays; its All-Rights-Reserved source is admitted for this
+    # personal project). `voice-cockpit-generated` is the same radio over the generated
+    # `jet_cockpit` bed (voices.lock.json `beds`): a set's `processing` chooses between them.
+    "voice-cockpit": {
+        "filter": "highpass=f=350,lowpass=f=3200,acompressor=threshold=0.08:ratio=6:attack=3:release=50:makeup=3",
+        "hiss": {"color": "white", "amplitude": 0.02, "highpass": 600, "lowpass": 3000, "weight": 0.3},
+        "bed": {"clip": "airwar-jet-approach-recording", "filter": "lowpass=f=1200", "volume": 0.4},
+        "loudness_lufs": -16,
+    },
+    "voice-cockpit-generated": {
+        "filter": "highpass=f=350,lowpass=f=3200,acompressor=threshold=0.08:ratio=6:attack=3:release=50:makeup=3",
+        "hiss": {"color": "white", "amplitude": 0.02, "highpass": 600, "lowpass": 3000, "weight": 0.3},
+        "bed": {"generated": "jet_cockpit", "filter": "lowpass=f=1200", "volume": 0.4},
+        "loudness_lufs": -16,
+    },
 }
 
 

@@ -64,7 +64,13 @@ export interface VoiceSet {
   role: string;
   country: "us" | "de" | "uk" | "fr" | "se" | "it" | "ru" | "cn";
   callsign: string;
-  processing: "voice-radio-light" | "voice-dry" | "voice-earpiece" | "voice-intercom";
+  processing:
+    | "voice-radio-light"
+    | "voice-dry"
+    | "voice-earpiece"
+    | "voice-intercom"
+    | "voice-cockpit"
+    | "voice-cockpit-generated";
   voices: VoiceSpec[];
 }
 export interface VoiceCatalog {
@@ -79,7 +85,14 @@ const own = (value: unknown): Record<string, unknown> => {
   return value as Record<string, unknown>;
 };
 const countries = new Set(["us", "de", "uk", "fr", "se", "it", "ru", "cn"]);
-const processing = new Set(["voice-radio-light", "voice-dry", "voice-earpiece", "voice-intercom"]);
+const processing = new Set([
+  "voice-radio-light",
+  "voice-dry",
+  "voice-earpiece",
+  "voice-intercom",
+  "voice-cockpit",
+  "voice-cockpit-generated",
+]);
 const triggerSet = new Set<string>(ALL_TRIGGERS);
 function checkLine(text: unknown, where: string): string {
   if (typeof text !== "string" || text.trim().length === 0)
