@@ -142,8 +142,8 @@
     "map": "air"
   },
   {
-    "id": "high-air",
-    "route": "/labs/high-air",
+    "id": "air-high",
+    "route": "/labs/air-high",
     "describe": "An F-16 flies across the air field, over the village, the tower and the wood, beside an enemy Mi-8 and J-10: blue's fog never clears and it never identifies the T-72 in the village, though the jet identifies both enemy aircraft; it stays inside the map at the air layer's height.",
     "map": "air"
   },
@@ -160,8 +160,8 @@
     "map": "air"
   },
   {
-    "id": "dogfight",
-    "route": "/labs/dogfight",
+    "id": "air-dogfight",
+    "route": "/labs/air-dogfight",
     "describe": "Two F-16s against two J-10s: the attacked jet and the attacker lock into a dogfight, a second blue jet joins the same enemy, an explicit move breaks the mover's dogfight while its wingman stays in, and the card shows DOGFIGHT while it lasts.",
     "map": "air"
   },

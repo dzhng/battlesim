@@ -1,7 +1,6 @@
-// What the air-war checkpoints (`/labs/air-*`, `/labs/high-air`,
-// `/labs/dogfight`) share: opening a variant, playing the paused battle
-// tick by tick while a scene watches its side's observation, and reading
-// the published state the slices' claims are about.
+// What the air-war checkpoints (`/labs/air-*`) share: opening a variant,
+// playing the paused battle tick by tick while a scene watches its side's
+// observation, and reading the published state the slices' claims are about.
 import { writeFile } from "node:fs/promises";
 import { lab, obs, advance, presented, openBattle } from "./_lab.mjs";
 import { loadEncounter } from "../src/maps/node.ts";

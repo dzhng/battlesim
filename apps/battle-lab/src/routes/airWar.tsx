@@ -68,7 +68,7 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
     variants: { contracts: { label: "Records", source: { encounter: "contracts" } } },
     panel: "records",
   },
-  "high-air": {
+  "air-high": {
     title: "High air",
     variants: { flight: { label: "Jet over the village", source: { encounter: "high-air" } } },
   },
@@ -90,7 +90,7 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
       fighter: { label: "Fighter only", source: { encounter: "radar-fighter" } },
     },
   },
-  dogfight: {
+  "air-dogfight": {
     title: "Dogfight",
     variants: { duel: { label: "Two against two", source: { encounter: "dogfight" } } },
   },
