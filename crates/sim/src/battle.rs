@@ -657,25 +657,6 @@ impl Battle {
                 unit.position.z = ground + self.rules.air.cruise_agl_m(unit.layer());
             }
         }
-        for i in 0..self.units.len() {
-            let Some(target) = self.units[i]
-                .air
-                .as_ref()
-                .and_then(|air| air.dogfight_target)
-            else {
-                continue;
-            };
-            let broken = !self.units[target.0 as usize].alive()
-                || body_distance(
-                    self.units[i].position,
-                    self.units[target.0 as usize].position,
-                ) > 1200.0;
-            if broken {
-                if let Some(air) = self.units[i].air.as_mut() {
-                    air.dogfight_target = None;
-                }
-            }
-        }
     }
 
     /// A finite-endurance aircraft turns for home while it still has enough
@@ -3314,36 +3295,17 @@ impl Battle {
             // The attacked unit may answer this attacker under Return fire only.
             if let Target::Unit(t) = shot.target {
                 self.units[t.0 as usize].attackers.insert(shot.unit);
-                if self.units[shot.unit.0 as usize].airborne()
-                    && self.units[t.0 as usize].airborne()
-                {
-                    let distance = body_distance(
-                        self.units[shot.unit.0 as usize].position,
-                        self.units[t.0 as usize].position,
-                    );
-                    let move_order = |unit: &Unit| {
-                        unit.orders
-                            .iter()
-                            .any(|order| matches!(order, UnitOrder::Move(_)))
+                let shooter = shot.unit.0 as usize;
+                let target = t.0 as usize;
+                if shooter != target {
+                    let (a, b) = if shooter < target {
+                        let (left, right) = self.units.split_at_mut(target);
+                        (&mut left[shooter], &mut right[0])
+                    } else {
+                        let (left, right) = self.units.split_at_mut(shooter);
+                        (&mut right[0], &mut left[target])
                     };
-                    // A plain move is an explicit disengage. Attack-move is
-                    // deliberately retained: its normal policy and the
-                    // close fight coexist until range is lost.
-                    if distance <= 1200.0
-                        && !move_order(&self.units[shot.unit.0 as usize])
-                        && !move_order(&self.units[t.0 as usize])
-                    {
-                        self.units[shot.unit.0 as usize]
-                            .air
-                            .as_mut()
-                            .expect("airborne state")
-                            .dogfight_target = Some(t);
-                        self.units[t.0 as usize]
-                            .air
-                            .as_mut()
-                            .expect("airborne state")
-                            .dogfight_target = Some(shot.unit);
-                    }
+                    crate::air::dogfight::on_fire(a, b, &self.rules);
                 }
             }
             let shooter = &self.units[shot.unit.0 as usize];
@@ -3781,9 +3743,7 @@ impl Battle {
             } => {
                 for slot in prepared.placement.unwrap().destinations {
                     let unit = &mut movers[slot.unit.0 as usize];
-                    if let Some(air) = unit.air.as_mut() {
-                        air.dogfight_target = None;
-                    }
+                    crate::air::dogfight::clear_target(unit);
                     if !slot.placed {
                         if !queued {
                             Self::hold_position(unit);
@@ -3829,17 +3789,19 @@ impl Battle {
                 let Some(target) = self.resolve_target(side, &target) else {
                     return;
                 };
-                // `movers` holds the battle's units while orders apply.
-                let dogfight = match target {
-                    Target::Unit(other) if movers[other.0 as usize].airborne() => Some(other),
-                    _ => None,
-                };
                 for id in units {
+                    let is_high_air = movers[id.0 as usize].layer() == AltitudeLayer::HighAir;
+                    let dogfight = match target {
+                        Target::Unit(other)
+                            if movers[other.0 as usize].layer() == AltitudeLayer::HighAir
+                                && is_high_air =>
+                        {
+                            Some(other)
+                        }
+                        _ => None,
+                    };
                     let unit = &mut movers[id.0 as usize];
                     unit.engagement = Engagement::FireAtWill; // W14
-                    if let Some(air) = unit.air.as_mut() {
-                        air.dogfight_target = dogfight;
-                    }
                     push(
                         unit,
                         UnitOrder::Attack {
@@ -3847,6 +3809,9 @@ impl Battle {
                             last_known: None,
                         },
                     );
+                    if let Some(target) = dogfight {
+                        crate::air::dogfight::set_target(unit, target);
+                    }
                 }
             }
             Order::Garrison { units, building } => {

@@ -411,6 +411,11 @@ impl SideKnowledge {
         self.tracks.get(&unit)
     }
 
+    /// All currently retained enemy tracks, for attack-move target pickup.
+    pub fn tracks(&self) -> impl Iterator<Item = (UnitId, &Track)> {
+        self.tracks.iter().map(|(&unit, track)| (unit, track))
+    }
+
     /// Enemies identified this tick, keyed by their authority id (sim-internal).
     pub fn identified_now(&self, tick: Tick) -> impl Iterator<Item = (UnitId, &Track)> {
         self.tracks

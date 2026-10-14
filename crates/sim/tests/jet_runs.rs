@@ -304,3 +304,274 @@ fn a_strafe_is_allowed_while_bombs_remain() {
     }
     panic!("gun never fired with a bomb mount present");
 }
+
+fn attack_move_battle() -> sim::battle::Battle {
+    attack_move_battle_with_hp(100.0)
+}
+
+fn attack_move_battle_with_hp(target_hp: f64) -> sim::battle::Battle {
+    attack_move_battle_with_hp_and_fire(target_hp, false)
+}
+
+fn attack_move_battle_with_hp_and_fire(target_hp: f64, fire: bool) -> sim::battle::Battle {
+    let mut rules = sim::fixtures::test_game();
+    if fire {
+        rules["sensors"]["contact_lifetime_s"] = json!(100.0);
+    }
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mounts": [{
+            "id": "air gun", "name": "Air Gun", "weapons": ["air_gun"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
+        }] }),
+    );
+    let events = if fire {
+        json!([{ "tick": 5, "fire": { "unit": 3 } }])
+    } else {
+        json!([])
+    };
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [2400, 800], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [300, 400], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_recon", "position": [300, 500], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [900, 400], "yaw": std::f64::consts::PI, "engagement": "return_fire_only", "condition": { "hp": target_hp } },
+            { "side": "red", "kind": "test_jet", "position": [1_900, 700], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
+        ],
+        "events": events, "scripts": []
+    })).unwrap();
+    sim::battle::Battle::new(&setup, 1)
+}
+
+fn holding_ground_battle(engagement: &str, fire_event: bool) -> sim::battle::Battle {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mounts": [{
+            "id": "air gun", "name": "Air Gun", "weapons": ["air_gun"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
+        }] }),
+    );
+    let events = if fire_event {
+        json!([{ "tick": 5, "fire": { "unit": 1 } }])
+    } else {
+        json!([])
+    };
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [2000, 800], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [500, 400], "yaw": 0.0, "engagement": engagement },
+            { "side": "red", "kind": "test_tank", "position": [900, 400], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
+        ],
+        "events": events, "scripts": []
+    })).unwrap();
+    sim::battle::Battle::new(&setup, 1)
+}
+
+fn attack_move(battle: &mut sim::battle::Battle, seq: u64, goal: [f64; 2]) {
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq,
+        queued: false,
+        order: Order::AttackMove {
+            units: vec![UnitId(0)],
+            gesture: seq,
+            goal,
+        },
+    });
+    assert_eq!(ack.error, None);
+}
+
+#[test]
+fn an_explicit_attack_repeats_passes_until_the_target_dies() {
+    let mut battle = attack_move_battle_with_hp(10_000.0);
+    battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [900.0, 400.0, 0.0],
+            },
+        },
+    });
+    let mut starts = 0;
+    let mut had_pass = false;
+    for _ in 0..5000 {
+        battle.step();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        let has_pass = jet.air.is_some_and(|a| a.pass.is_some());
+        if has_pass && !had_pass {
+            starts += 1;
+        }
+        had_pass = has_pass;
+    }
+    assert!(
+        starts >= 2,
+        "explicit attack only started {starts} pass(es)"
+    );
+    assert!(
+        !battle.unit(UnitId(2)).unwrap().alive(),
+        "target survived repeated passes"
+    );
+}
+
+#[test]
+fn attack_move_picks_up_targets_then_holds_circling() {
+    let mut battle = attack_move_battle();
+    attack_move(&mut battle, 1, [1_700.0, 400.0]);
+    let mut fired = false;
+    for _ in 0..1800 {
+        battle.step();
+        fired |= battle.unit(UnitId(0)).unwrap().mounts[0].shots > 0;
+    }
+    assert!(fired, "attack-move never picked up the target");
+    assert!(
+        battle.unit(UnitId(0)).unwrap().orders.is_empty(),
+        "attack-move did not settle"
+    );
+}
+
+#[test]
+fn a_holding_jet_starts_no_runs() {
+    let mut battle = holding_ground_battle("fire_at_will", false);
+    battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 2,
+        queued: false,
+        order: Order::Stop {
+            units: vec![UnitId(0)],
+        },
+    });
+    for _ in 0..300 {
+        battle.step();
+    }
+    let jet = battle.unit(UnitId(0)).unwrap();
+    assert!(jet.air.unwrap().pass.is_none());
+    assert_eq!(jet.mounts[0].shots, 0);
+}
+
+#[test]
+fn a_fired_on_holding_jet_attacks_its_visible_attacker() {
+    let mut battle = air_battle();
+    for _ in 0..30 {
+        battle.step();
+    }
+    assert!(battle
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .any(|u| u.kind == battle.unit(UnitId(1)).unwrap().kind));
+    for _ in 0..180 {
+        battle.step();
+        if battle.unit(UnitId(0)).unwrap().air.unwrap().dogfight_target == Some(UnitId(1)) {
+            return;
+        }
+    }
+    panic!("holding jet did not answer its visible attacker");
+}
+
+#[test]
+fn a_fired_on_holding_jet_attacks_the_contact_area_when_unseen() {
+    let mut battle = holding_ground_battle("fire_at_will", true);
+    for _ in 0..30 {
+        battle.step();
+    }
+    assert!(battle.observe(Side::Blue).identified.is_empty());
+    for _ in 0..300 {
+        battle.step();
+        if battle.unit(UnitId(0)).unwrap().air.unwrap().pass.is_some() {
+            return;
+        }
+    }
+    panic!("holding jet did not attack its firing contact");
+}
+
+#[test]
+fn hold_fire_stops_the_answer() {
+    let mut battle = holding_ground_battle("return_fire_only", true);
+    for _ in 0..300 {
+        battle.step();
+    }
+    let jet = battle.unit(UnitId(0)).unwrap();
+    assert!(jet.air.unwrap().pass.is_none());
+    assert_eq!(jet.mounts[0].shots, 0);
+}
+
+#[test]
+fn an_explicit_attack_keeps_passing_under_fire() {
+    let mut battle = attack_move_battle();
+    battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [900.0, 400.0, 0.0],
+            },
+        },
+    });
+    let mut starts = 0;
+    let mut had_pass = false;
+    for _ in 0..1800 {
+        battle.step();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        let has_pass = jet.air.is_some_and(|a| a.pass.is_some());
+        if has_pass && !had_pass {
+            starts += 1;
+        }
+        had_pass = has_pass;
+    }
+    assert!(starts >= 2, "incoming fire interrupted explicit passes");
+}
+
+#[test]
+fn attack_move_finishes_its_pass_then_turns_on_the_attacker() {
+    let mut battle = attack_move_battle_with_hp_and_fire(100.0, true);
+    attack_move(&mut battle, 1, [1_700.0, 400.0]);
+    for _ in 0..1200 {
+        battle.step();
+    }
+    let jet = battle.unit(UnitId(0)).unwrap();
+    assert!(jet.orders.is_empty() && jet.air.unwrap().pass.is_none());
+}
+
+#[test]
+fn a_move_breaks_off_mid_pass_at_once() {
+    let mut battle = ground_attack_battle(&["air_gun"]);
+    for _ in 0..300 {
+        battle.step();
+        if battle.unit(UnitId(0)).unwrap().air.unwrap().pass.is_some() {
+            break;
+        }
+    }
+    assert!(battle.unit(UnitId(0)).unwrap().air.unwrap().pass.is_some());
+    battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 2,
+        queued: false,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 2,
+            goal: [500.0, 700.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    });
+    battle.step();
+    assert!(battle.unit(UnitId(0)).unwrap().air.unwrap().pass.is_none());
+}

@@ -9,6 +9,7 @@ use crate::math::{v2, V2, V3};
 
 use super::jet::JetState;
 use super::steer::Intent;
+use crate::weapons::Target;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PassWeapon {
@@ -27,6 +28,10 @@ pub enum PassPhase {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PassPlan {
+    /// The order target this pass is flying against. Keeping it with the
+    /// phase lets attack-move finish a leg before choosing a new reaction.
+    pub target: Target,
+    pub aim: V3,
     pub phase: PassPhase,
     pub weapon: PassWeapon,
     /// The seeded height used for the attack leg, in metres above ground.
@@ -76,6 +81,8 @@ pub fn begin(
     };
     let heading = libm::atan2(aim.y - state.pos.y, aim.x - state.pos.x);
     PassPlan {
+        target: Target::Ground(aim),
+        aim,
         phase: PassPhase::LineUp,
         weapon,
         agl,
@@ -127,7 +134,9 @@ pub fn advance(
             )
         }
         PassPhase::PullOut => {
-            if distance > speed * 5.0 {
+            // The jet has cleared the aim line once it is two speed-lengths
+            // out; a five-length gate is outside the authored orbit radius.
+            if distance > speed * 2.0 {
                 plan.phase = PassPhase::LineUp;
                 plan.released = false;
             }
