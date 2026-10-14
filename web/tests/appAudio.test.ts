@@ -7,6 +7,7 @@ import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
+import { standInPresentationRecordings } from "./support/soundStandIns";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 
 beforeAll(() => loadPresentation());
@@ -209,6 +210,7 @@ function setup() {
   };
   catalog.sounds["recorded-clack-14"] = { ...catalog.sounds.rifle };
   catalog.sounds["recorded-clack-17"] = { ...catalog.sounds.cannon };
+  standInPresentationRecordings(catalog, presentation);
   const app = new AppAudio({ presentation, catalog });
   active.push(app);
   return app;

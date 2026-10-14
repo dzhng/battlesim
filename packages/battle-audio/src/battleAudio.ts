@@ -3,6 +3,7 @@ import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/ca
 import { vec3 } from "math";
 import {
   SoundFrame,
+  battleSounds,
   type Listener,
   type SoundFrameOptions,
   type SoundMotion,
@@ -17,9 +18,8 @@ export interface ScriptedHearing {
   motion: SoundMotion;
   listener: Listener;
 }
-import { battleSounds } from "./catalog";
 import type { AppAudio } from "./appAudio";
-import type { SoundBank } from "./soundBank";
+import { loadSoundModule, type SoundBank } from "./soundBank";
 import { WebAudioSink } from "./webAudioSink";
 import { BattleVoices } from "./voices/battleVoices";
 import { ShoutPool } from "./voices/shoutPool";
@@ -85,8 +85,8 @@ export class BattleAudio {
     ));
     this.frame = new SoundFrame(this.options, sink);
     this.voices = new BattleVoices(sink, this.options.presentation.voices);
-    void bank
-      .prepare(battleSounds(this.options.catalog))
+    void loadSoundModule()
+      .then(() => bank.prepare(battleSounds(this.options)))
       .then(() => {
         if (this.sink !== sink) return;
         this.ready = true;

@@ -5,6 +5,7 @@ import game from "@fixtures/game.json";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
+import { standInPresentationRecordings } from "./support/soundStandIns";
 import { AppAudio } from "@packages/battle-audio/src/appAudio";
 import { soundSettings } from "@packages/battle-audio/src/settings";
 import { MusicPlayer } from "@packages/battle-audio/src/music/musicPlayer";
@@ -151,10 +152,9 @@ function setupDecode(
     effects: {},
     music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
   };
-  const app = new AppAudio({
-    presentation: game.presentation.audio as unknown as AudioPresentation,
-    catalog,
-  });
+  const presentation = game.presentation.audio as unknown as AudioPresentation;
+  standInPresentationRecordings(catalog, presentation);
+  const app = new AppAudio({ presentation, catalog });
   const audio = app.createBattle({
     tickHz: 30,
     presentation: game.presentation.audio as unknown as AudioPresentation,

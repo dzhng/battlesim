@@ -225,6 +225,30 @@ export function vehicleLoops(
   return JSON.parse(vehicle_loops(JSON.stringify(row), load, traverse, reversing)) as VehicleLoop[];
 }
 
+const rustFrame = (o: SoundFrameOptions) =>
+  new RustSoundFrame(
+    JSON.stringify({
+      audio: o.presentation,
+      catalog: o.catalog,
+      weapons: o.weapons ?? {},
+      tick_hz: o.tickHz,
+      effects: { smoke: o.smokeTimes, cook_off: o.cookOff },
+    }),
+  );
+
+/** Every recipe a battle with `options` can play, as the Rust frame names
+ *  them: the synthesized baselines, each assigned or replacing recipe and
+ *  each sound its presentation names. The rest of the library is for
+ *  audition, prepared only when auditioned. The module must be loaded. */
+export function battleSounds(options: SoundFrameOptions): string[] {
+  const frame = rustFrame(options);
+  try {
+    return JSON.parse(frame.sounds()) as string[];
+  } finally {
+    frame.free();
+  }
+}
+
 export class SoundFrame {
   private frame: RustSoundFrame | null = null;
 
@@ -238,15 +262,7 @@ export class SoundFrame {
   private get rust(): RustSoundFrame {
     if (this.frame) return this.frame;
     const o = this.options;
-    const frame = new RustSoundFrame(
-      JSON.stringify({
-        audio: o.presentation,
-        catalog: o.catalog,
-        weapons: o.weapons ?? {},
-        tick_hz: o.tickHz,
-        effects: { smoke: o.smokeTimes, cook_off: o.cookOff },
-      }),
-    );
+    const frame = rustFrame(o);
     const names = new Set([...(JSON.parse(frame.sounds()) as string[]), ...Object.keys(SOUNDS)]);
     const durations: Record<string, number[]> = {};
     for (const name of names) {

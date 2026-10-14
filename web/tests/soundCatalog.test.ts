@@ -3,11 +3,10 @@ import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
 import units from "@fixtures/catalog.json";
 import shipped from "@fixtures/sounds.json";
 import {
-  battleSounds,
   firingCadence,
   recording,
   resolveShot,
@@ -16,6 +15,12 @@ import {
   type SoundClip,
 } from "@packages/battle-audio/src/catalog";
 import { musicUrl } from "@packages/battle-audio/src/music/musicCatalog";
+import game from "@fixtures/game.json";
+import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import { battleSounds } from "@packages/battle-audio/src/soundFrame";
+import { loadPresentation } from "@web/battle/sim/presentation";
+
+beforeAll(() => loadPresentation());
 
 const catalog = (): SoundCatalog => ({
   sources: {},
@@ -213,9 +218,16 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
   expect(
     Object.values(sounds.defaults).flatMap((choice) => [choice.near, choice.far]),
   ).not.toContain("airwar-jet-approach-placeholder");
-  expect(battleSounds(sounds)).not.toEqual(
-    expect.arrayContaining(["airwar-jet-approach-placeholder", "airwar-air-alarm-placeholder"]),
-  );
+  const prepared = battleSounds({
+    tickHz: 30,
+    presentation: game.presentation.audio as unknown as AudioPresentation,
+    catalog: sounds,
+    weapons: game.weapons,
+    smokeTimes: game.presentation.effects.smoke,
+    cookOff: game.presentation.effects.cook_off,
+  });
+  expect(prepared).not.toContain("airwar-jet-approach-placeholder");
+  expect(prepared).not.toContain("airwar-air-alarm-placeholder");
 });
 
 test("air-war audio has workbench recipes for every authored air cue", () => {
@@ -292,22 +304,6 @@ test("a user-supplied recording retains an explicit reserved-rights receipt", ()
     notes: "User-supplied recording for personal project.",
   };
   expect(validateSoundCatalog(c).sources.menu).toEqual(c.sources.menu);
-});
-
-test("a battle prepares the baselines and what is assigned, not the audition-only library", () => {
-  const c = catalog();
-  const recipe = { label: "r", clips: [], synth: "rifle", synth_gain: 0.5, gain: 1, loop: false };
-  for (const name of ["near", "far", "fallback", "hit", "glance", "replacement", "unused"])
-    c.sounds[name] = { ...recipe };
-  c.defaults.rifle = { near: "near", far: "far", gain: 1 };
-  c.defaults.default = { near: "fallback", far: "fallback", gain: 1 };
-  c.impacts = { hull: { rifle: "hit" }, ricochet: { tank_ap: "glance" } };
-  c.effects = { ricochet: "replacement" };
-  const prepared = battleSounds(c);
-  expect(prepared).toEqual(expect.arrayContaining(["rifle", "hmg", "near", "far", "fallback"]));
-  expect(prepared).toEqual(expect.arrayContaining(["hit", "glance", "replacement"]));
-  expect(prepared).not.toContain("unused");
-  expect(new Set(prepared).size).toBe(prepared.length);
 });
 
 test("music tracks name a real source and moods name real tracks; the section is required", () => {

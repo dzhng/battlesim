@@ -15,6 +15,7 @@ import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
 import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   SoundFrame,
+  battleSounds,
   type HeardPublication,
   type Listener,
   type SoundCue,
@@ -104,6 +105,41 @@ function setup() {
   );
   return { sink, frame };
 }
+
+test("a battle prepares the baselines, what is assigned and what its presentation names, not the audition-only library", () => {
+  const recipe = { label: "r", clips: [], synth: "rifle", synth_gain: 0.5, gain: 1, loop: false };
+  const sounds: SoundCatalog["sounds"] = {
+    rifle: { ...recipe },
+    hmg: { ...recipe, synth: "hmg" },
+  };
+  for (const name of ["near", "far", "fallback", "hit", "glance", "replacement", "alarm", "unused"])
+    sounds[name] = { ...recipe };
+  const catalog: SoundCatalog = {
+    sources: {},
+    clips: {},
+    sounds,
+    defaults: {
+      rifle: { near: "near", far: "far", gain: 1 },
+      default: { near: "fallback", far: "fallback", gain: 1 },
+    },
+    impacts: { hull: { rifle: "hit" }, ricochet: { tank_ap: "glance" } },
+    effects: { ricochet: "replacement" },
+    music: { moods: { menu: [], tension: [], combat: [] }, tracks: {} },
+  };
+  const prepared = battleSounds({
+    tickHz: HZ,
+    presentation: { ...AUDIO, air_alarm: { ...AUDIO.air_alarm, sound: "alarm" } },
+    catalog,
+    smokeTimes: SMOKE,
+    cookOff: COOK_OFF,
+  });
+  expect(prepared).toEqual(expect.arrayContaining(["rifle", "hmg", "near", "far", "fallback"]));
+  expect(prepared).toEqual(expect.arrayContaining(["hit", "glance", "replacement"]));
+  // A cue the presentation names directly is prepared like an assigned one.
+  expect(prepared).toContain("alarm");
+  expect(prepared).not.toContain("unused");
+  expect(new Set(prepared).size).toBe(prepared.length);
+});
 
 const launch = (
   shooter: number,

@@ -377,18 +377,6 @@ export function firingCadence(catalog: SoundCatalog, sound: string): Cadence {
   return clipCadence(catalog.clips[catalog.sounds[sound]?.clips[0]]);
 }
 
-/** Every recipe a battle can play: the synthesized baselines its presentation
- *  names, and each assigned or replacing recipe. The rest of the library is
- *  for audition, prepared only when auditioned. */
-export function battleSounds(catalog: SoundCatalog): string[] {
-  const names = new Set(Object.keys(catalog.sounds).filter((name) => Object.hasOwn(SOUNDS, name)));
-  for (const choice of Object.values(catalog.defaults)) names.add(choice.near).add(choice.far);
-  for (const row of Object.values(catalog.impacts))
-    for (const name of Object.values(row)) names.add(name);
-  for (const name of Object.values(catalog.effects)) names.add(name);
-  return [...names];
-}
-
 /** Only implicit baseline slots follow shared replacements; explicit choices keep their recipe. */
 export function resolveEffect(catalog: SoundCatalog, baseline: string): string {
   return catalog.effects[baseline] ?? baseline;

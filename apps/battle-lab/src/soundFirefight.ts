@@ -16,6 +16,7 @@ import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPre
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import {
   SoundFrame,
+  battleSounds,
   type Listener,
   type HeardPublication,
   type SoundCue,
@@ -27,7 +28,7 @@ import { launches } from "@wasm/presentation/presentation_wasm.js";
 import { loadPresentation } from "@web/battle/sim/presentation";
 import { gameAudio } from "./soundFeed";
 import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
-import { battleSounds, type SoundCatalog } from "@packages/battle-audio/src/catalog";
+import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 
 type HeardEffects = HeardPublication["effects"];
 type EffectSegment = HeardEffects["segments"][number];
@@ -393,18 +394,17 @@ export async function offlineSound(
       }
     : gameAudio;
   const sink = new OfflineSink(ctx, presentation, catalog);
-  await Promise.all([sink.bank.prepare(battleSounds(catalog)), loadPresentation()]);
-  const frame = new SoundFrame(
-    {
-      tickHz: HZ,
-      presentation,
-      catalog,
-      weapons: game.weapons,
-      smokeTimes: game.presentation.effects.smoke,
-      cookOff: game.presentation.effects.cook_off,
-    },
-    sink,
-  );
+  const options = {
+    tickHz: HZ,
+    presentation,
+    catalog,
+    weapons: game.weapons,
+    smokeTimes: game.presentation.effects.smoke,
+    cookOff: game.presentation.effects.cook_off,
+  };
+  await loadPresentation();
+  await sink.bank.prepare(battleSounds(options));
+  const frame = new SoundFrame(options, sink);
   return { sampleRate, ctx, sink, frame };
 }
 
