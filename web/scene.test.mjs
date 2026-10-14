@@ -12,6 +12,7 @@ import {
   sceneUrlFor,
   mergeSceneUrl,
 } from "./scene.mjs";
+import { launchBrowser } from "./browser.mjs";
 
 test("fatal GPU diagnostics are identified before readiness timeouts", () => {
   expect(fatalGpuMessage("WebGPU uncaptured error: Texture size exceeded maximum")).toBe(true);
@@ -92,14 +93,14 @@ test("every registered fixture has exactly one scene", async () => {
 // open after their pages grew the browser past 10 GB over street's tours,
 // until it crashed.
 test("a scene page takes its browser context with it when it closes", async () => {
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   try {
+    const baselineContexts = browser.contexts().length;
     for (let i = 0; i < 3; i++) {
       const page = await openScenePage(browser);
       await page.close();
     }
-    expect(browser.contexts()).toEqual([]);
+    expect(browser.contexts()).toHaveLength(baselineContexts);
   } finally {
     await browser.close();
   }

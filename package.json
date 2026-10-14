@@ -3,7 +3,7 @@
   "name": "battlegame",
   "description": "Repo task runner. Thin aliases over cargo (Rust) and the web app's own bun scripts; no dependencies of its own. A bare script runs the whole job; a :suffix runs one part.",
   "scripts": {
-    "setup": "bun install --cwd web",
+    "setup": "bun install --cwd web && bun run --cwd web install-browsers",
     "dev": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web dev",
     "dev:mechanics": "bun run dev --open /mechanics",
     "dev:maps": "bun run dev --open /map-workbench",

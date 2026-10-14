@@ -70,9 +70,17 @@ It's a game, not a physics simulation. The target is **Hollywood realism**: the 
 You need [Bun](https://bun.sh), [rustup](https://rustup.rs) (it installs the pinned Rust and its `wasm32-unknown-unknown` target from [`rust-toolchain.toml`](rust-toolchain.toml), the same release the deployment builds with), [wasm-pack](https://rustwasm.github.io/wasm-pack/), and a WebGPU browser.
 
 ```bash
-bun run setup   # install web dependencies
+bun run setup   # install web dependencies and Playwright Chromium
 bun run dev     # build the WebAssembly, start the lab app
 ```
+
+`bun run setup` is also the browser-test prerequisite. It installs the managed
+Chromium used by Vitest and by checks that cannot attach to a system browser.
+To repair an existing checkout, run `bun run --cwd web install-browsers`.
+On WSL, checks prefer headless Windows Chrome when `.wslconfig` uses
+`networkingMode=mirrored`; the managed Chromium remains available as the
+fallback when Windows Chrome cannot be reached. macOS uses the managed
+Chromium directly.
 
 The main menu owns play and tutorial entry. The battle route's URL is a shareable
 identity for the admitted map and player choices; its parser and the benchmark
