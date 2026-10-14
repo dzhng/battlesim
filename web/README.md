@@ -33,12 +33,16 @@ Use the root [startup instructions](../README.md#running-it) for a first checkou
 generated bindings and how publications cross the boundary.
 
 `bun run setup` installs the web dependencies and Playwright's managed
-Chromium. If dependencies are already present but the browser executable is
-missing, run `bun run --cwd web install-browsers` (the same command works on
-macOS and WSL). The browser harness reports that command instead of exposing a
-raw Playwright executable error. WSL checks prefer headless Windows Chrome
-when `.wslconfig` has `networkingMode=mirrored`; they fall back to the managed
-Chromium when Windows Chrome is unavailable. macOS uses the managed Chromium.
+Chromium, then checks the `ffmpeg` and `ffprobe` tools used by the audio asset
+tests. If dependencies are already present but the browser executable is
+missing, run `bun run --cwd web install-browsers`; check the audio tools with
+`bun run --cwd web check-prerequisites`. On macOS install the audio tools with
+`brew install ffmpeg`. On WSL install them with
+`sudo apt-get update && sudo apt-get install -y ffmpeg`. The browser harness
+reports its repair command instead of exposing a raw Playwright executable
+error. WSL checks prefer headless Windows Chrome when `.wslconfig` has
+`networkingMode=mirrored`; they fall back to managed Chromium when Windows
+Chrome is unavailable. macOS uses managed Chromium.
 
 [Vite configuration](vite.config.ts) resolves source-only packages and apps against
 this application's dependencies, keeps caches local to the checkout and serves

@@ -13,6 +13,7 @@
     "asset": "node asset.mjs",
     "tutorial-shots": "node tutorial-shots.mjs",
     "install-browsers": "playwright install chromium",
+    "check-prerequisites": "node check-prerequisites.mjs",
     "verify": "SCENE_GRAPHICS_QUALITY=${SCENE_GRAPHICS_QUALITY:-low} node scene.mjs --verify",
     "visual": "node scene.mjs --visual"
   },

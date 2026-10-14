@@ -74,9 +74,11 @@ bun run setup   # install web dependencies and Playwright Chromium
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`bun run setup` is also the browser-test prerequisite. It installs the managed
-Chromium used by Vitest and by checks that cannot attach to a system browser.
+`bun run setup` is also the test prerequisite. It installs the managed Chromium
+used by Vitest and by checks that cannot attach to a system browser, then checks
+for `ffmpeg` and `ffprobe`, which the audio asset tests execute.
 To repair an existing checkout, run `bun run --cwd web install-browsers`.
+To check only the native audio tools, run `bun run --cwd web check-prerequisites`.
 On WSL, checks prefer headless Windows Chrome when `.wslconfig` uses
 `networkingMode=mirrored`; the managed Chromium remains available as the
 fallback when Windows Chrome cannot be reached. macOS uses the managed
