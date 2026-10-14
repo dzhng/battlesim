@@ -34,7 +34,7 @@ use crate::garrison;
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
+use crate::math::{body_distance, v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::navigation::RoadNet;
 use crate::route_planner::RoutePlanner;
@@ -45,7 +45,7 @@ use crate::structures::Structures;
 use crate::supply;
 use crate::units::{self, MoveOrder, Pursuit, Soldier, Unit, UnitOrder};
 use crate::visibility::OcclusionGrid;
-use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
+use crate::weapons::{self, Arsenal, FireContext, RoundTarget, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
 
@@ -661,9 +661,10 @@ impl Battle {
                 continue;
             };
             let broken = !self.units[target.0 as usize].alive()
-                || (self.units[i].position.xy() - self.units[target.0 as usize].position.xy())
-                    .length()
-                    > 1200.0;
+                || body_distance(
+                    self.units[i].position,
+                    self.units[target.0 as usize].position,
+                ) > 1200.0;
             if broken {
                 if let Some(air) = self.units[i].air.as_mut() {
                     air.dogfight_target = None;
@@ -737,11 +738,12 @@ impl Battle {
     }
 
     /// Give authored anti-missile weapons a physical lock on an incoming
-    /// round before ordinary target selection.  The lock is represented by
-    /// its current point, so the existing launch solver, seeker FOV and LOS
-    /// rules still decide whether the interceptor can actually leave the
-    /// mount.  Explicit orders retain ownership of a mount; an idle mount
-    /// drops yesterday's synthetic point before looking for a new threat.
+    /// round before ordinary target selection. The round target carries its
+    /// current point and selected interceptor row, so the existing launch
+    /// solver, seeker FOV and LOS rules still decide whether the interceptor
+    /// can actually leave the mount. Explicit orders retain ownership of a
+    /// mount; an idle mount drops yesterday's round lock before looking for a
+    /// new threat.
     fn arm_missile_interceptors(&mut self) {
         let incoming: Vec<_> = self
             .projectiles
@@ -750,15 +752,9 @@ impl Battle {
             .filter_map(|projectile| {
                 let round = self.rounds.get(&projectile.id)?;
                 let weapon = &self.arsenal.weapons[round.weapon].def;
-                weapon.interceptable.then_some((
-                    round.side,
-                    projectile.position,
-                    if projectile.position.z >= self.rules.air.rotor.cruise_agl_m * 0.5 {
-                        AltitudeLayer::HighAir
-                    } else {
-                        AltitudeLayer::LowAir
-                    },
-                ))
+                weapon
+                    .interceptable
+                    .then_some((round.side, projectile.id, projectile.position))
             })
             .collect();
         for unit in &mut self.units {
@@ -782,7 +778,7 @@ impl Battle {
                             .lock
                             .as_ref()
                             .map(|lock| lock.target),
-                        Some(Target::Ground(_))
+                        Some(Target::Ground(_) | Target::Round(_))
                     )
                 {
                     unit.mounts[mount_index].lock = None;
@@ -794,36 +790,45 @@ impl Battle {
                     continue;
                 }
                 let mount = &unit.mounts[mount_index];
-                let Some((_, point, layer)) = incoming
+                let Some((projectile, point, layer)) = incoming
                     .iter()
-                    .filter(|(side, point, layer)| {
-                        let max_range = specs[mount.spec]
+                    .filter_map(|(side, projectile, point)| {
+                        let (layer, max_range) = specs[mount.spec]
                             .kinds
                             .iter()
                             .enumerate()
                             .filter_map(|(slot, kind)| {
                                 let loaded = mount.ammo[slot].is_none_or(|n| n > 0);
                                 let def = &self.arsenal.weapons[*kind].def;
-                                (loaded && def.interception.is_some())
-                                    .then(|| def.against(*layer).map(|fire| fire.range_m))
-                                    .flatten()
+                                if !loaded || def.interception.is_none() {
+                                    return None;
+                                }
+                                [AltitudeLayer::LowAir, AltitudeLayer::HighAir]
+                                    .into_iter()
+                                    .filter_map(|layer| {
+                                        def.against(layer).map(|fire| (layer, fire.range_m))
+                                    })
+                                    .max_by(|a, b| a.1.total_cmp(&b.1))
                             })
-                            .fold(0.0, f64::max);
-                        *side != unit.side
+                            .max_by(|a, b| a.1.total_cmp(&b.1))?;
+                        (*side != unit.side
                             && max_range > 0.0
-                            && (*point - unit.position).length() <= max_range
+                            && body_distance(*point, unit.position) <= max_range)
+                            .then_some((*projectile, *point, layer))
                     })
                     .min_by(|a, b| {
-                        (a.1 - unit.position)
-                            .length()
-                            .total_cmp(&(b.1 - unit.position).length())
+                        body_distance(a.1, unit.position)
+                            .total_cmp(&body_distance(b.1, unit.position))
                     })
                 else {
                     continue;
                 };
-                let _ = layer;
                 unit.mounts[mount_index].lock = Some(crate::weapons::Lock {
-                    target: Target::Ground(*point),
+                    target: Target::Round(RoundTarget {
+                        id: projectile,
+                        point,
+                        layer,
+                    }),
                     engaging: false,
                 });
             }
@@ -3005,6 +3010,7 @@ impl Battle {
                 },
                 Target::Contact(c) => knowledge.ground_contact(c).is_none(),
                 Target::Ground(_) => false,
+                Target::Round(_) => true,
             };
             if done {
                 unit.orders.pop_front();
@@ -3223,7 +3229,7 @@ impl Battle {
                 }
             }
             if self.arsenal.weapons[shot.weapon].def.interception.is_some()
-                && matches!(shot.target, Target::Ground(_))
+                && matches!(shot.target, Target::Ground(_) | Target::Round(_))
             {
                 self.units[shot.unit.0 as usize].mounts[shot.mount].lock = None;
             }
@@ -3233,9 +3239,10 @@ impl Battle {
                 if self.units[shot.unit.0 as usize].airborne()
                     && self.units[t.0 as usize].airborne()
                 {
-                    let distance = (self.units[shot.unit.0 as usize].position.xy()
-                        - self.units[t.0 as usize].position.xy())
-                    .length();
+                    let distance = body_distance(
+                        self.units[shot.unit.0 as usize].position,
+                        self.units[t.0 as usize].position,
+                    );
                     let move_order = |unit: &Unit| {
                         unit.orders
                             .iter()
@@ -4365,6 +4372,7 @@ impl Battle {
                     Target::Ground(p) => Some(TargetRef::Ground {
                         point: [p.x, p.y, p.z],
                     }),
+                    Target::Round(_) => None,
                 }
             };
             frame.own.clear();
@@ -4836,7 +4844,9 @@ mod tests {
         battle.arm_missile_interceptors();
         assert!(matches!(
             battle.units[0].mounts[1].lock.as_ref().map(|lock| lock.target),
-            Some(Target::Ground(point)) if (point - v3(300.0, 200.0, 500.0)).length() < 1e-9
+            Some(Target::Round(round))
+                if round.id == projectile
+                    && (round.point - v3(300.0, 200.0, 500.0)).length() < 1e-9
         ));
     }
 

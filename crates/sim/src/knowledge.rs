@@ -12,7 +12,7 @@ use contract::scenario::Rules;
 use crate::ground::{GroundLayer, KnownGround};
 use contract::random::Rng;
 
-use crate::math::{v2, V2, V3};
+use crate::math::{body_distance, v2, V2, V3};
 use crate::sensing::Sighting;
 use crate::units::{Fallen, Unit};
 
@@ -323,7 +323,7 @@ impl SideKnowledge {
             let Some((detector, distance)) = detectors
                 .iter()
                 .map(|detector| {
-                    let distance = (emitter.position.xy() - detector.position.xy()).length();
+                    let distance = body_distance(emitter.position, detector.position);
                     (detector, distance)
                 })
                 .find(|(detector, distance)| {

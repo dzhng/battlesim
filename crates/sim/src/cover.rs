@@ -666,6 +666,7 @@ pub fn engaged(unit: &Unit, knowledge: &SideKnowledge) -> Option<Enemy> {
                 at: p.xy(),
                 unit: None,
             }),
+            Target::Round(_) => None,
         }
     })
 }

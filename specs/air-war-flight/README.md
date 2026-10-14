@@ -1,6 +1,6 @@
 # Air-war flight
 
-**Status:** slices 00, 01, 02 and 05 landed; 03 next.
+**Status:** slices 00, 01, 02, 04 and 05 landed; 03 in progress.
 **Updated:** 2026-10-14.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec-with-codex`. Codex writes the code (`codex exec`, model `gpt-6.1-sol`, `model_reasoning_effort=high`), while you orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** slice 03 next; slice 04 is in review in `../awf-s04`. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
+- **Pickup:** slice 03 is running in `../awf-s03`; next 06 (missiles), then 07. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
 - **Open user questions:** Q13 and Q14, with provisional answers below. They only block slices 12 and 17. If the user hasn't answered when you reach either slice, adopt the provisional answer, record it in [choices.md](choices.md), and keep going.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Before ending each pass,** update this section: status, pickup and the checklist.
@@ -19,7 +19,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [x] 01 [air rules split, one height owner](slices/01-air-rules-split.md)
 - [x] 02 [jet flight law](slices/02-jet-flight-law.md)
 - [ ] 03 [steering: circle and edge](slices/03-steer-orbit-edge.md)
-- [ ] 04 [distances in 3D, layers from the catalog](slices/04-distances-3d.md)
+- [x] 04 [distances in 3D, layers from the catalog](slices/04-distances-3d.md)
 - [x] 05 [carrier velocity](slices/05-carrier-velocity.md)
 - [ ] 06 [missiles: speed, lifetime, fuse, aim](slices/06-missiles.md)
 - [ ] 07 [bomb release and new rows](slices/07-release-and-rows.md)

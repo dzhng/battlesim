@@ -20,7 +20,7 @@ use crate::flight::{
 };
 use crate::knowledge::SideKnowledge;
 use crate::lean;
-use crate::math::{v2, v3, wrap_angle, V3};
+use crate::math::{body_distance, v2, v3, wrap_angle, V3};
 use crate::units::Unit;
 use crate::world::{Collider, PropId, WorldGeometry};
 use contract::random::Rng;
@@ -277,6 +277,14 @@ pub enum Target {
     Unit(UnitId),
     Contact(ContactId),
     Ground(V3),
+    Round(RoundTarget),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RoundTarget {
+    pub id: ProjectileId,
+    pub point: V3,
+    pub layer: AltitudeLayer,
 }
 
 impl Target {
@@ -285,6 +293,13 @@ impl Target {
             Target::Unit(u) => d.u64(0).u64(u.0 as u64),
             Target::Contact(c) => d.u64(1).u64(c.0 as u64),
             Target::Ground(p) => d.u64(2).f64(p.x).f64(p.y).f64(p.z),
+            Target::Round(round) => d
+                .u64(3)
+                .u64(round.id.0)
+                .f64(round.point.x)
+                .f64(round.point.y)
+                .f64(round.point.z)
+                .u64(round.layer as u64),
         };
     }
 }
@@ -521,17 +536,17 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             velocity: v3(0.0, 0.0, 0.0),
             current: true,
             armor: None,
-            // Ground orders normally carry a terrain-height point.  A
-            // synthetic anti-missile lock carries the physical round's
-            // altitude instead, so authored short/long interceptors can use
-            // their ordinary air target rows and seeker geometry.
-            layer: if p.z >= ctx.rules.air.rotor.cruise_agl_m * 0.5 {
-                AltitudeLayer::HighAir
-            } else if p.z > 2.0 {
-                AltitudeLayer::LowAir
-            } else {
-                AltitudeLayer::Ground
-            },
+            // Ground orders always remain Ground; only a round target carries
+            // an air interception row.
+            layer: AltitudeLayer::Ground,
+            radar_contact: false,
+        }),
+        Target::Round(round) => Some(Resolved {
+            point: round.point,
+            velocity: v3(0.0, 0.0, 0.0),
+            current: true,
+            armor: None,
+            layer: round.layer,
             radar_contact: false,
         }),
     }
@@ -902,6 +917,7 @@ fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
                 .contact(c)
                 .is_some_and(|contact| unit.attackers.contains(&contact.emitter)),
             Target::Ground(_) => false,
+            Target::Round(_) => true,
         },
     }
 }
@@ -1106,11 +1122,10 @@ fn enemy_in_reach(
                 .map(|k| spec.kinds[k]),
         )
     };
-    let here = unit.position.xy();
     ctx.knowledge[unit.side.index()]
         .identified_now(ctx.tick)
         .any(|(u, t)| {
-            (t.position.xy() - here).length() <= reach(units[u.0 as usize].layer())
+            body_distance(t.position, unit.position) <= reach(units[u.0 as usize].layer())
                 && permitted(ctx, unit, Target::Unit(u))
         })
 }
@@ -1212,7 +1227,7 @@ fn select(
     assessed: &mut Assessed,
 ) -> (Option<Target>, ActionReason) {
     let knowledge = &ctx.knowledge[unit.side.index()];
-    let here = unit.position.xy();
+    let here = unit.position;
     let weapons = &ctx.arsenal.weapons;
     let air_priority = unit.airborne()
         && spec.kinds.iter().enumerate().any(|(slot, &kind)| {
@@ -1236,7 +1251,7 @@ fn select(
                 return_fire_threat(ctx, unit, target.kind, t),
                 share_through(ctx, unit, mount, spec, target),
                 target.unit_type(ctx.rules).cost,
-                (t.position.xy() - here).length(),
+                body_distance(t.position, here),
                 t.id.0,
                 u,
             )
@@ -1260,7 +1275,7 @@ fn select(
     } else {
         knowledge
             .all_contacts()
-            .map(|c| ((c.center.xy() - here).length(), c.id))
+            .map(|c| (body_distance(c.center, here), c.id))
             .collect()
     };
     areas.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));

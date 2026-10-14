@@ -22,6 +22,7 @@ mod cover;
 mod damage;
 mod deployment;
 mod destruction;
+mod distances_3d;
 mod door_guns;
 mod drive;
 mod encounter;
