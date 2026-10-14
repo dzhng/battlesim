@@ -14,9 +14,9 @@ ladder with parallel named-model production.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield
-contract. [Air-war flight](air-war-flight/README.md) is a placeholder for the
-fixed-wing flight it specified but the simulation doesn't yet deliver: jets at their
-own altitude, circling, attack runs, and dogfight and afterburner tests.
+contract. [Air-war flight](air-war-flight/README.md) (active) makes jets fly as jets:
+their own altitude, circling, attack runs, organic dogfights, edge arrival and
+departure, and every planned jet enabled with a reviewed model.
 
 [Battle voices and music](done/battle-voices-music/README.md) (shipped) gave units RTS-style voice lines (answers to their owner and simulation-emitted barks) and battles an adaptive background score, generated with ElevenLabs and reviewed in the sound workbench.
 

@@ -1,45 +1,107 @@
-# Air-war flight (placeholder)
+# Air-war flight
 
-**Status:** placeholder. Nothing is sliced or implemented yet.
-**Updated:** 2026-10-13.
+**Status:** sliced; implementation starting.
+**Updated:** 2026-10-14.
+
+Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
 
 ## Next Agent Prompt
 
-You are picking up the flight behaviour [air war](../done/air-war/README.md) specified but the simulation does not yet deliver. The air-war follow-up gave each air fixture its own lab scene, and those scenes show that fixed-wing aircraft don't fly the way the spec describes. When the user starts this work, run `explore-unknowns`, then `write-spec`, and turn this page into a sliced plan. Load `tweak-mechanics` before changing any rule: judge each behaviour by picturing the real moment on the battlefield. Update this section before you end each pass.
+You are implementing this spec with `implement-spec-with-codex`. Codex writes the code (`codex exec`, model `gpt-6.1-sol`, `model_reasoning_effort=high`), while you orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- [ ] Map the unknowns with the user (see the open questions below).
-- [ ] Slice: jets fly at their own altitude, not the helicopters'.
-- [ ] Slice: jets circle (orbit) a goal instead of hovering on it.
-- [ ] Slice: ground attacks are attack runs.
-- [ ] Slice: dedicated simulation tests for dogfights and the afterburner.
-- [ ] Revisit what follows from altitude (routing clearance, sight, AA reach) once jets fly high.
+- **Pickup:** slice 00. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
+- **Open user questions:** Q13 and Q14, with provisional answers below. They only block slices 12 and 17. If the user hasn't answered when you reach either slice, adopt the provisional answer, record it in [choices.md](choices.md), and keep going.
+- **Before ending each pass,** update this section: status, pickup and the checklist.
 
-## Why it exists
+### Checklist
+- [ ] 00 [jet field and test kit](slices/00-jet-field-and-kit.md)
+- [ ] 01 [air rules split, one height owner](slices/01-air-rules-split.md)
+- [ ] 02 [jet flight law](slices/02-jet-flight-law.md)
+- [ ] 03 [steering: circle and edge](slices/03-steer-orbit-edge.md)
+- [ ] 04 [distances in 3D, layers from the catalog](slices/04-distances-3d.md)
+- [ ] 05 [carrier velocity](slices/05-carrier-velocity.md)
+- [ ] 06 [missiles: speed, lifetime, fuse, aim](slices/06-missiles.md)
+- [ ] 07 [bomb release and new rows](slices/07-release-and-rows.md)
+- [ ] 08 [attack passes](slices/08-pass-planner.md)
+- [ ] 09 [nose-on gun and self-firing weapons](slices/09-gun-and-autofire.md)
+- [ ] 10 [dogfights](slices/10-dogfight.md)
+- [ ] 11 [orders and reactions](slices/11-air-orders.md)
+- [ ] 12 [edge transit in the sim](slices/12-edge-transit-sim.md) (blocked on Q13, provisional answer A)
+- [ ] 13 [approach and departure effect](slices/13-transit-effect.md)
+- [ ] 14 [jet attitude](slices/14-jet-attitude.md)
+- [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
+- [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
+- [ ] 17 [skirmish AI and jets](slices/17-skirmish-ai.md) (blocked on Q14, provisional answer A)
+- [ ] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
+- [ ] 19 [closeout](slices/19-closeout.md)
 
-The air-war spec says fixed-wing units occupy `HighAir` at an authored cruise height, and enter from a friendly edge, circle, attack, dogfight, burn fuel and withdraw. The simulation and the air lab scenes show four gaps against that:
+## Open user questions
 
-1. **Jets fly at the helicopters' height.** Fixed-wing aircraft fly at the same 30 m cruise height as helicopters and route on the same low-air grid around tall buildings. That's why the air routing clearance is "the largest airframe any battle may field", which is now a jet (`crates/sim/src/navigation/air.rs`, `hull_limits.air` in `fixtures/game.json`). The placement ghost disagrees: it stands a `HighAir` kind 1000 m up (`ghostAloft` in `apps/battle-lab/src/unitGhosts.ts`), so a jet's order card hangs far above where it flies. Give both one cruise height when jets get their own.
-2. **Jets hover at their goal.** Given a move or attack goal, a jet stops over it like a helicopter instead of circling.
-3. **Ground attacks aren't runs.** A jet attacks a ground target from wherever it is, rather than lining up, diving or passing, releasing and pulling away.
-4. **Dogfights and the afterburner have no dedicated simulation tests.** Dogfight joining and breaking, and afterburner fuel burn, are held only by browser checkpoints. Afterburner speed and ground-attack accuracy have no behavioural test at all (`specs/done/air-war/README.md`).
+| Question | Provisional answer, adopted if unanswered when its slice starts |
+|---|---|
+| **Q13:** Bought helicopters share today's four-sides spawn, which D35 deletes for jets. How do they arrive? | **A:** the same back-edge arrival as jets, at their own cruise height, with the same approach effect. One arrival rule for every aircraft. |
+| **Q14:** The skirmish AI (`crates/sim/src/skirmish_ai/mod.rs`) buys helicopters and answers low-air threats, but ignores jets. | **A:** it buys high-air-capable units when it sees enemy `HighAir`, and jets join its reinforcement rotation under attack-move. |
 
-## What already holds, to build on
+## Slice graph
 
-- **Air layers:** `HighAir` sensing and fog rules, layered ground AA, SEAD, radar contacts, flares, fuel, the afterburner toggle, and the dogfight state (`crates/sim/src/movement/air.rs`, `flight/`, `sight.rs`, `weapons.rs`).
-- **Lab scenes:** each air fixture has its own scenario and lab scene, which record the claims above as they stand today. They are the browser checkpoints to turn green.
-- **Airframe sizes:** jets carry real hull dimensions from their art, and `hull_limits.air` is sized to the largest (Su-34).
-- **Sound:** the air alarm and the positional jet loop play in battle, now that jets are classed as fixed-wing in Rust (`crates/presentation/src/sound/`).
+```
+00 ─► 01 ─► 02 ─► 03 ─┬─► 08 ─► 11 ─► 17
+            │         ├─► 10 ──┘
+            │         ├─► 12 ─► 13
+            │         └─► 14
+            ├─► 04 ─────────┐
+            └─► 05 ─► 06 ─► 07 ─► 08
+                     09 (after 03, 05) ─► 10, 11
+15 (after 07; its enable pass after 16's family is accepted)
+16, 18: parallel lanes from day one
+19: after everything
+```
+
+Slices that share a seam stay on one lane. These pairs can run concurrently:
+- 02 with 04;
+- 05 with 03;
+- 06 with 12;
+- 10 with 08 once 09 has landed;
+- 13 and 14 with anything after 03.
+
+## Single-owner invariants
+
+Every slice inherits these:
+- **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A shadow lies on the ground directly beneath the aircraft's actual position.
+- **`crates/sim/src/air/`** owns fixed-wing behaviour:
+  - `jet.rs` is the only flight law; nothing else writes a jet's position, heading or speed.
+  - `movement/air.rs` handles helicopters only.
+  - Orders reach a jet's flight only through `air/orders.rs` → `air/steer.rs`. Weapons never turn a jet.
+- **`air/pass.rs`** owns pass phases and pass-weapon choice. **`flight/release.rs`** owns where an unpowered round lands.
+- **`air/dogfight.rs`** is the only place that writes `dogfight_target`. The break distance lives in the rules.
+- **`air/edge.rs`** owns back edges, entry and exit. The sim never holds a position off the map: off-map flight exists only as the published `AirTransit` record and the presentation effect drawn from it, for its own side only.
+- **Distance between two bodies is 3D,** through one helper. The layer, from the catalog or `interception`, chooses the rule row. Height never chooses a layer.
+- **A round's starting velocity is set in one place,** at launch.
+- **One row per airframe.** No generic or duplicate rows, and no fixed-wing entries in the model manifest.
+- **Every mechanism this spec replaces is deleted in the slice that replaces it:** the weave, `traversing`, the snap, the four-sides spawn, the entry-centre retirement, the crash clamp, the strafe ban, bomb-first, the height thresholds and `air_bomb_guided`. No compatibility layer. Fixtures and digests are re-recorded.
+
+## Verification rules
+
+- **Write the test first** (`write-tests`). A red behavioural sim test pins every claim before its lab scene is rewritten, and each scene's header names that test. The last plan shipped "circle at a location order" with only a scene behind it.
+- **Tests pin mechanisms, never balance outcomes.** Who escapes, who wins and the prices are tuned by eye and in sample runs.
+- **Every numeric value is a starting guess** that lives in data: rules or rows, never literals in code. The exception is the **hard 100 m floor** (D20).
+- **Run the narrowest check** per pass: the slice's own tests and its one or two scenes. The full test and scene run, and the balance report, run once, in 19.
+- **Visual slices name one visual variable and its crop.** Each one:
+  - uses [compare-screenshots](../../.agents/skills/compare-screenshots/SKILL.md) whenever there is a target (a before shot, a reference, or the behaviour mock `throwaway/air-war-flight/flight-mock.html`);
+  - runs [screenshot-critique](../../.agents/skills/screenshot-critique/SKILL.md) unprimed as the last check;
+  - opens the shots with [preview-shots](../../.agents/skills/preview-shots/SKILL.md) as a **non-blocking** checkpoint: about 5 minutes for the user to respond, then decide on the evidence, record the decision and continue.
+- **Codex passes run sandboxed and never see a browser.** The orchestrator browser-verifies every visual slice on the production route, and that includes a pixel diff against the shot from before the change.
 
 ## Panel follow-ups
 
-These are smaller UI items, left from the air panels pass (`web/scenes/baselines/panels/panels-aircraft-states.png`):
-- At the panels' real size the radar dish icon is a small blob; it only reads as a dish when zoomed. The UNKNOWN, RADAR CONTACT and BEARING rows all share it, and in red on UNKNOWN it loses most of its detail.
-- The UNKNOWN row starts a few pixels left of the rows below it.
-- With no context, the dogfight icon (two chevrons meeting nose to nose) can pass for a bow tie.
+These are owned by slice 18. The reference shot is `web/scenes/baselines/panels/panels-aircraft-states.png`.
+- **Radar dish icon.** At the panels' real size it is a small blob that only reads as a dish when zoomed. The UNKNOWN, RADAR CONTACT and BEARING rows all share it, and in red on the UNKNOWN row it loses most of its detail.
+- **UNKNOWN row alignment.** It starts a few pixels left of the rows below it.
+- **Dogfight icon.** Two chevrons meeting nose to nose can pass for a bow tie.
 
-## Open questions for the walk
+## Pointers
 
-- Cruise height: one `HighAir` height for every jet, or per type? Do jets descend for attack runs, and if so, do they then enter low-air routing and AA reach?
-- Orbit: what radius and direction, and does it follow the target or stay on the goal?
-- Attack run: one pass per order, or repeated passes until the target dies or ammunition runs out? How does a run interact with flares, AA and dogfights?
-- Once jets fly high, should the low-air routing clearance fall back to the largest low-flying airframe (the helicopters)?
+- [The map](map.md): the settled ground, decisions D1–D36, loadouts L1, context and landmines.
+- [Choices](choices.md): decisions made where the spec was silent, appended each pass.
+- The closed parent spec, [air war](../done/air-war/README.md).
+- The behaviour mock: `throwaway/air-war-flight/flight-mock.html`. It is scratch; copy it into `visualizations/` if a slice uses it as a target.
