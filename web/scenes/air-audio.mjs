@@ -59,7 +59,10 @@ export async function run(ctx) {
     entry[ALARM] === 1 && entry[ENGINE] > 0,
     JSON.stringify({ tick: first, entry }),
   );
+  // A picture waits for the frame to settle on the latest tick: held still for it.
+  await lab(page, () => window.__lab.route.pause());
   await shoot(ctx, page, "j-10-seen");
+  await lab(page, () => window.__lab.route.resume());
   const lost = await until(page, false, 60);
   const during = await heard(page);
   ctx.check(
