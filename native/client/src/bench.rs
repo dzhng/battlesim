@@ -4,7 +4,8 @@
 //! records its interval (start to next start), its CPU time (framing,
 //! preparing, encoding, submitting and presenting) and its GPU time between
 //! two marker passes (`gpuTiming.ts`'s technique: 1×1 cleared render passes
-//! carrying timestamp writes, whole frame only). The report is the browser
+//! carrying timestamp writes, the first at its start, the last at its end;
+//! whole frame only). The report is the browser
 //! file's shape with `client: "native"`.
 //!
 //! A window that isn't shown presents nothing and blocks on nothing, so the
@@ -113,10 +114,13 @@ impl FrameTimer {
                     store: StoreOp::Store,
                 },
             })],
+            // The frame opens where the first marker's vertex stage starts
+            // and closes where the last marker's fragment stage ends, as
+            // `gpuTiming.ts` takes them: fragment work runs in order.
             timestamp_writes: Some(RenderPassTimestampWrites {
                 query_set: &self.slots[frame % self.slots.len()].queries,
-                beginning_of_pass_write_index: Some(index),
-                end_of_pass_write_index: None,
+                beginning_of_pass_write_index: (index == 0).then_some(0),
+                end_of_pass_write_index: (index == 1).then_some(1),
             }),
             ..Default::default()
         });

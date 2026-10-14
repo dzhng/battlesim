@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 contract = { path = "../contract" }
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["raw_value"] }
+serde_json = { workspace = true, features = ["raw_value"] }
 libm = { version = "=0.2.16", default-features = false }
 
 [dev-dependencies]

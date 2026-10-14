@@ -44,12 +44,19 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
   const samples: number[] = [];
   let pending: (typeof readbacks)[number] | undefined;
 
+  // The frame opens where the first marker's vertex stage starts, and closes
+  // where the last marker's fragment stage ends: a pass's vertex stage may
+  // run ahead of the fragment work before it (Dawn holds a pass back only at
+  // the stage that reads), but fragment work runs in order.
   const mark = (encoder: GPUCommandEncoder, index: number) =>
     encoder
       .beginRenderPass({
         label: index === 0 ? "frame-begin" : "frame-end",
         colorAttachments: [{ view: marker, loadOp: "clear", storeOp: "store" }],
-        timestampWrites: { querySet, beginningOfPassWriteIndex: index },
+        timestampWrites:
+          index === 0
+            ? { querySet, beginningOfPassWriteIndex: 0 }
+            : { querySet, endOfPassWriteIndex: 1 },
       })
       .end();
 

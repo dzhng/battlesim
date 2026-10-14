@@ -825,9 +825,93 @@ Bold marks where the browser is lower.
 
 **No fix was made.** The one cheap lead was naga's bounds checks: shaders built unchecked (`create_shader_module_trusted`) took 0.5–1.5 ms less on paris-corner in 5 of 6 paired runs, on the same contended GPU. That is unsafe, and it does not close a 3 ms gap.
 
-**Next for the gate:** find where native's extra GPU time goes. Split the GPU on a quiet GPU, not just a quiet CPU: per-pass ablation, or a trace from a run that presents to a visible window so that frames are assigned. Compare each pass's pipeline state and attachment load and store operations against Dawn's.
-
 The `graphics-fps` runs above completed their timing, but each failed the scene on a page error: a local production build loaded Vercel Analytics' script, which only Vercel serves (a 404). Analytics now mounts only on a Vercel build (`__ON_VERCEL__`, from Vercel's `VERCEL` build variable).
+
+The GPU reading above is superseded: the two clients' timers measured different spans of the frame (below).
+
+### Where native's extra GPU time went (2026-10-13, branch `nativegpu`)
+
+**The contract:**
+- **The GPU time is the frame's whole span on both clients:** from the first marker pass's start to the last marker pass's end (`gpuTiming.ts`'s `endOfPassWriteIndex`, the bench's `end_of_pass_write_index`). It was stamped at the last marker's start.
+- **A scar region's scissor has one owner,** `presentation::scars::scissor`: the pixels a region's box can cover on screen, or none when it is off screen or behind the eye. The browser calls it through `presentation-wasm`'s `scar_scissor`; the TypeScript copy is gone. Native now skips an off-screen region's upload and draw, and scissors the rest, as the browser does.
+- **Native's world pass resolves and discards** its multisampled colour and fog mask, as the browser's does. Only a ground region's pass keeps them for the next region.
+
+**Method: work, not time.** A fresh control (`throwaway/native-parity/2026-10-13T20-52-26-693Z`) was captured with an init script wrapping WebGPU (`throwaway/gpuwork/browser-work.js`). For each plate frame (the frame read back from the canvas) it records every pass's attachments and load and store operations, and every pipeline's draws, vertices, instances and dispatches. Native recorded the same per plate, from its pass list, with a throwaway counter. All 24 plates compare draw for draw:
+- **Shadows:** 4 cascades of 2048², the same caster draws in each (paris-corner 1259: `modelCaster` 50 draws and 2.79M vertices a cascade on both).
+- **Depth prepass, world pass and bloom:** the same draws, the same targets (4× MSAA full size; bloom from half size, 5 levels), and the same pipeline state from the export.
+- **Grass, fog and post:** the same grass dispatch (3,600 groups on paris-corner). No fog compute runs, since the reel has no fog of war. The same 12 bloom passes and the look.
+- **No scar regions** on any plate: every mark fits at once in this reel.
+- **Native drew nothing the browser did not,** except two things. First, its world pass stored both multisampled targets where the browser discards them (about 44 MB of writes a frame at 1280×720). Second, it drew impostor-tier bodies as meshes where the browser draws cards, since cards are not baked natively: at most 60k extra vertices a frame of 17M.
+- **The browser draws more:** the ground paint, the x-ray, the overlays and glow, and two depth copies a frame (37 passes against native's 26).
+
+**The other candidates, checked and equal:** shadow casters (culled per view in Rust for both), MSAA and target sizes, the early depth tests (the exported compares), static batches (drawn once), per-frame resource creation (native makes none outside a regional frame), and `wgpu`'s release flags (only indirect-draw validation, which Dawn also does; 0.004 ms a frame in the trace).
+
+**The shader settings, compared against Dawn's own Metal Shading Language** (dumped with `dump_shaders`):
+- Tint bounds loops and clamps indices as naga does, so naga's runtime checks are the browser's work too. Building them out would do less than the browser, and they stay.
+- Both mark the position invariant, and both pull vertices in the shader.
+- naga differs in two places: it drops the explicit level on `textureSampleCompareLevel`, and it reads vertex attributes byte by byte. Native A/B builds of each, with a patched naga and a patched `wgpu-hal`, moved the world pass within the noise. Neither is extra work.
+
+**Where the time went: the measure.** A Metal System Trace of each client puts each pass's vertex and fragment stages on a timeline:
+- In the browser, the `frame-end` marker's vertex stage started at 9.7 ms of a frame whose fragment work ran to 23.6 ms (traced, so slowed). Dawn holds a pass back only at the stage that reads, so every later pass's vertex stage ran ahead while the world was still shading.
+- `wgpu` leaves Metal's per-resource hazard tracking on, which holds the whole pass back. Native's post chain and markers waited for the world's fragment work, so its end stamp fell at the frame's true end.
+- Both timers stamped the end at the last marker's start, so the browser's GPU time stopped early. Taken to the end of the last marker pass (fragment work runs in order), the browser read 12.17 and 9.96 ms on market-town and paris-corner in its next run, against 8.60 and 5.35 before.
+
+**The reading** (both clients at `bb003bf16`, control `throwaway/native-parity/2026-10-13T22-01-55-089Z`, both scenes passing `native-parity-capture` with native's counts equal on every plate. Three interleaved pairs, each run started under the GPU lock at a 1-minute load under 4 (1.7–3.9). The rows are `fps-compare.mjs`'s medians; `throwaway/perf/nativegpu/summary.md`):
+
+| client | scene | avg FPS (min–max of runs) | 1% low | min FPS | frame ms p50 / p95 / p99 / max | CPU ms p50 / p95 | GPU ms mean (runs) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| browser | market-town | 83.2 (82.3–83.4) | **39.7** | **24.0** | **9.19** / **17.00** / **23.41** / **41.59** | **2.28** / **3.27** | **10.87** (10.87, 11.04, 10.87) |
+| native | market-town | 80.1 (66.6–83.8) | 32.8 | 4.1 | 12.69 / 17.47 / 24.94 / 245.16 | 2.29 / 4.07 | 11.68 (14.03, 11.68, 11.42) |
+| browser | paris-corner | 108.0 (108.0–111.5) | 57.9 | 40.0 | 8.33 / 16.67 / 16.74 / 24.99 | 1.39 / 1.69 | **7.54** (7.54, 7.65, 7.17) |
+| native | paris-corner | 121.0 (114.3–125.7) | 72.6 | 70.7 | 7.64 / 12.40 / 13.58 / 14.15 | 1.14 / 1.67 | 7.94 (8.41, 7.94, 7.64) |
+
+Bold marks where the browser is lower or better.
+
+**Verdict: the gate still fails, now narrowly.** Measured to the frame's end on both clients, native's GPU frame is 5–7% longer, where the old reading put it 40–60% longer:
+- market-town 11.68 against 10.87 ms;
+- paris-corner 7.94 against 7.54 ms;
+- in the quietest pair (load 1.7–2.8), 11.42 against 10.87 and 7.64 against 7.17.
+
+Native leads on every paris-corner measure but the GPU mean. On market-town the browser leads on most measures. Native's first market-town run was contended: every CPU phase doubled and the GPU read 14.03. Its tail (min FPS 4.1, max 245 ms) is a single stall, inside the first run.
+
+**What is left, and where:** per-pass timestamps over the paris-corner reel put native's remaining excess in the world colour pass (6.2 against 5.6 ms from vertex start to fragment end), with the same draws and pipeline state. The cascades are within 0.1–0.2 ms, and the depth prepass is faster on native. The two shader-level differences found (naga's implicit-level compare lookups and byte-wise vertex fetch) did not move it.
+
+The remaining lead is `wgpu`'s whole-pass hazard tracking. Dawn lets later passes' vertex work, and the next frame's cascades, overlap the world's shading; `wgpu`'s tracked Metal resources serialise them. It is untested here.
+
+**Next for the gate:** test that lead. One way is a `wgpu` build whose Metal resources are untracked (`wgpu-hal` has the `HazardTrackingModeUntracked` TODOs), A/B'd on the frame's span. The other is a native frame that lets the cascades of frame N+1 start before frame N's world pass ends. Either is a dependency or architecture decision for the user, not a setting.
+
+Native's market-town plates also differ run to run (the same binary, 0 of 18 plates byte-identical between two replays, under 0.3% of pixels). Paris-corner's are exact, so the likely source is the grass build's append order. This predates this branch.
+
+### The gap's last experiment, and the gate closed (2026-10-14, branch `passoverlap`)
+
+**The question:** does any `wgpu` setting, short of restructuring native's frame, let its passes overlap as Dawn's do?
+
+**The candidates, read in `wgpu` 30.0.1's source before any were measured.** Only one could move the GPU frame:
+- **Hazard tracking.** Metal tracks every buffer and texture `wgpu-hal` creates; untracked is a `TODO` in `create_buffer` and `create_texture`, with no option to reach it. Turning it off means patching `wgpu-hal` and fencing by hand, which is not a setting.
+- **Backend options.** `BackendOptions` has GL, DX12 and noop fields and none for Metal. Metal's `open` ignores `MemoryHints`.
+- **Instance flags.** A release build's default is `VALIDATION_INDIRECT_CALL` alone, with no debug flags and no validation. That flag injects a compute pass checking the grass's indirect draws in every frame. **It was the one candidate measured.**
+- **Present mode and `desired_maximum_frame_latency`.** The bench's window is off-screen and presents nothing, and the bench keeps its own `IN_FLIGHT` of two. Neither setting is on the timed path.
+- **Usages.** Every render target is `RENDER_ATTACHMENT`, plus `TEXTURE_BINDING` where something samples it. Only the display adds `COPY_SRC`. Nothing carries `STORAGE_BINDING`, so no target gets Metal's `ShaderWrite`. The depth format is `Depth32Float`, which does not get `PixelFormatView`. Only the bench's and the plates' readback buffers are mappable, so every other buffer is private.
+
+**The measure.** A fresh control (`throwaway/native-parity/2026-10-14T00-44-09-571Z`, both scenes, passes `native-parity-capture`). One release binary was run with the default flags and with `InstanceFlags::empty()`, in three interleaved pairs a scene. Each run started under the GPU lock at a 1-minute load under 4 (1.71–3.94). GPU ms mean (`throwaway/passoverlap/noindirect/`):
+
+| scene | default flags (runs) | no indirect validation (runs) | median change |
+| --- | --- | --- | --- |
+| market-town | 11.78, 11.53, 11.47 | 12.25, 11.42, 11.45 | 11.53 → 11.45 |
+| paris-corner | 8.04, 7.77, 7.67 | 7.84, 7.78, 7.67 | 7.77 → 7.78 |
+
+Within the spread of runs: the validation pass costs nothing measurable, and the change was reverted. The default flags' medians reproduce `nativegpu`'s reading (11.68 and 7.94 ms). No Metal System Trace was taken, since there was no overlap change to show.
+
+**Verdict: the gate is closed, with one named exception.** Native's GPU frame stays 5–7% longer than the browser's. That is the cost of `wgpu`'s tracked Metal resources, and it is accepted (`choices.md`, "Native's GPU frame is 5–7% longer than the browser's").
+
+What the player gets is at or above the browser's. This branch's default-flag runs (`fps-compare.mjs`'s medians) are set against `nativegpu`'s browser rows, which were not rerun:
+
+| scene | avg FPS (native / browser) | 1% low | frame p99 ms |
+| --- | --- | --- | --- |
+| market-town | 83.2 / 83.2 | 56.5 / 39.7 | 17.38 / 23.41 |
+| paris-corner | 123.2 / 108.0 | 81.3 / 57.9 | 11.24 / 16.74 |
+
+Native's paris-corner min FPS (30.9, against 40.0) is a single stalled frame in one run. Counts were equal on every plate of both scenes, replayed from the merged main (`91ec9e8e3`).
 
 ## Step 5b: the scenery, and the ground on `Presentation` (2026-10-12, branch `native5i`)
 

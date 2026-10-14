@@ -228,8 +228,8 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
             "factions": ["us", "eastern"],
             "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "dispatch_interval_s": 1 },
             "sites": { "entries": [
-                { "center": [400, 10], "side": "blue", "yaw": 1.5707963267948966 },
-                { "center": [400, 590], "side": "red", "yaw": -1.5707963267948966 }
+                { "center": [400, 10], "side": "blue", "yaw": std::f64::consts::FRAC_PI_2 },
+                { "center": [400, 590], "side": "red", "yaw": -std::f64::consts::FRAC_PI_2 }
             ], "objectives": [
                 { "id": "center", "center": [400, 300], "radius_m": 50, "kind": "junction", "counterpart": null },
                 { "id": "south", "center": [200, 200], "radius_m": 50, "kind": "field", "counterpart": "north" },

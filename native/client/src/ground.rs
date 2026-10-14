@@ -195,7 +195,10 @@ impl Ground {
         presentation: &mut Presentation,
         grass: Option<[f64; 4]>,
     ) {
-        if self.scars.prepare(device, presentation, grass) {
+        if self
+            .scars
+            .prepare(device, presentation, grass, self.map_box.as_ref())
+        {
             self.group = terrain_group(device, &self.layout, &self.tables, &self.scars);
         }
     }
