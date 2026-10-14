@@ -126,7 +126,7 @@ Read the low-confidence checkpoint-preview and sampled-lane tradeoffs first, the
 
 **Gap:** The plan named furniture without choosing its placed dimensions, ordering, lane margin or bounded placement policy. **Reach:** The final 0.9 m lane margin is a measured initial default, not a guarantee from a drawn kerb. A car's art has its own reference dimensions and is fitted to the physical placed box. Planning legality still needs executed widest-hull/door/traffic checks; the generator cannot promise all turning maneuvers from a grid-clearance test alone.
 
-**Verdict:** sound; a new furniture kind is data through an existing general physical check. **Confidence:** medium for placement defaults, high for one legality owner. [Owner](../../../crates/mapgen/src/street_props.rs), [all parameters](generation-parameters.md#presets-street_props).
+**Verdict:** sound; a new furniture kind is data through an existing general physical check. **Confidence:** medium for placement defaults, high for one legality owner. [Owner](../../../crates/mapgen/src/street_props/), [all parameters](generation-parameters.md#presets-street_props).
 
 #### Small rural features use count or length fairness, while broad geography uses area or river length
 

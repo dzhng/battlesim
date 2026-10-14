@@ -47,7 +47,7 @@ departure releases them, and a cached browser return starts from fresh evidence.
   Measurements establish onset, clipping and reproducibility, not auditory identity.
 - Prepared recordings and synthesis share a source loudness reference before
   authored mixing gains. Calibration changes playback gain, preserving sample
-  waveforms and their decay. The [loudness owner](../../../packages/battle-audio/src/loudness.ts)
+  waveforms and their decay. The [loudness owner](../../../crates/presentation/src/sound/bank.rs)
   meters short effects without letting long quiet tails dilute the reference.
 
 ## Source review and rejected assumptions

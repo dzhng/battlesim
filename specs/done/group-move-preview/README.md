@@ -20,7 +20,7 @@ Failed unqueued moves cancel movement; failed queued waypoints preserve the exis
 
 [Pointer paint](../../../apps/battle-lab/src/pointerPaint.ts) keeps one query in flight and displays a resolved result for the current intent while requesting updated battle state. Gesture generations include the complete request, preventing cancelled or changed-intent replies from painting another gesture, even at the same anchor. The renderer uses the existing [destination marker](../../../packages/battle-renderer/src/orderOverlay.ts), and confirmation uses the existing [order fade](../../../web/src/battle/present/orderReveal.ts).
 
-Preview isolates navigation caches and route-work charges. Otherwise merely holding the mouse could change scheduling and replay outcomes. Native [formation](../../../crates/sim/tests/formation.rs) and [navigation](../../../crates/sim/tests/navigation.rs) checks pin spacing, partial fallback, bounded work and future/replay parity. The [village browser scene](../../../web/scenes/village.mjs) pins the press, drag and confirmation flow.
+Preview isolates navigation caches and route-work charges. Otherwise merely holding the mouse could change scheduling and replay outcomes. Native [formation](../../../crates/sim/tests/formation.rs) and [navigation](../../../crates/sim/tests/navigation.rs) checks pin spacing, partial fallback, bounded work and future/replay parity. The village browser scene pins the press, drag and confirmation flow.
 
 ## Visual provenance
 
