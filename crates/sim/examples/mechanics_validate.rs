@@ -103,6 +103,15 @@ mod tests {
     fn rejects_finite_ammunition_without_a_supply_price() {
         let mut game = game();
         game["weapons"]["rifle"]["ammo"] = json!(60);
+        // The rifle and every row extending it now carry finite ammunition;
+        // the refusal names one of them, whichever it meets first.
+        let finite: Vec<String> = game["weapons"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .filter(|(id, row)| *id == "rifle" || row["extends"] == "rifle")
+            .map(|(id, _)| format!("row {id}"))
+            .collect();
         let error = sim::fixtures::admit(
             game,
             sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game),
@@ -110,7 +119,7 @@ mod tests {
         .err()
         .expect("finite ammunition needs a supply price");
         assert!(
-            error.contains("service.round_costs") && error.contains("rifle"),
+            error.contains("service.round_costs") && finite.iter().any(|row| error.contains(row)),
             "{error}"
         );
     }
