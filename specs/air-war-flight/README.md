@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec-with-codex`. Codex writes the code (`codex exec`, model `gpt-6.1-sol`, `model_reasoning_effort=high`), while you orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** slice 02, then 03 and 04 (04 can run beside 02). Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
+- **Pickup:** slice 03 next; slice 04 is in review in `../awf-s04`. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
 - **Open user questions:** Q13 and Q14, with provisional answers below. They only block slices 12 and 17. If the user hasn't answered when you reach either slice, adopt the provisional answer, record it in [choices.md](choices.md), and keep going.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Before ending each pass,** update this section: status, pickup and the checklist.
