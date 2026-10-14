@@ -275,17 +275,26 @@ fn air_defence_tiers_follow_the_target_layer_and_need_their_own_sight() {
         "long AA never fires at LowAir"
     );
 
+    // The hidden gun may see the circling jet at times; the rule is that it
+    // never fires on a tick it has no sight of its own.
     let mut jet = air_defence_battle("defense-jet");
     let mut hidden_no_sight = false;
     for _ in 0..300 {
+        let before = shots(&jet, UnitId(3));
         jet.step();
-        hidden_no_sight |=
-            jet.observe(Side::Red).own[3].mounts[0].reason == ActionReason::NoOwnSight;
+        let blind = jet.observe(Side::Red).own[3].mounts[0].reason == ActionReason::NoOwnSight;
+        hidden_no_sight |= blind;
+        if blind {
+            assert_eq!(
+                shots(&jet, UnitId(3)),
+                before,
+                "AA without sight holds fire"
+            );
+        }
     }
     for id in [UnitId(0), UnitId(1), UnitId(2)] {
         assert!(shots(&jet, id) > 0, "AA tier {id:?} fires at HighAir");
     }
-    assert_eq!(shots(&jet, UnitId(3)), 0, "AA without sight holds fire");
     assert!(hidden_no_sight, "the hidden gun explains its hold");
 }
 
