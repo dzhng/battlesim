@@ -513,11 +513,15 @@
   font-variant-numeric: tabular-nums;
   color: rgb(var(--hud-dim));
 }
+/* The stage in progress, announced: the stage row already shows it, lit,
+   so it is read out and never drawn a second time. */
 .loading-stage {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgb(var(--hud-text));
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .loading-stage-detail {
   width: fit-content;

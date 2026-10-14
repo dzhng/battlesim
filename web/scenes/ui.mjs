@@ -307,6 +307,7 @@ export async function run(ctx) {
   await mediaDecodes(ctx, page, "menu");
   const body = page.locator("main.menu:not(.loading):not([inert]) .menu-body");
   await ctx.matchBaseline(body, "menu", { style: MENU_UNPINNED });
+  const home = await body.boundingBox();
   // Every page is centred by its own measured height, including after the
   // first-launch graphics detector has replaced the plate.
   for (const entry of ["skirmish", "settings", "developer"]) {
@@ -331,15 +332,16 @@ export async function run(ctx) {
     );
     await contained(ctx, page, `menu ${entry}`);
     if (entry === "settings") {
-      const settingsBox = await page.getByRole("dialog", { name: "Settings" }).boundingBox();
-      const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+      // Settings is a page of the menu's own plate, opened in its place: the
+      // main page's edge and width (its height is centred above).
+      const settingsBox = await body.boundingBox();
       ctx.check(
-        "menu settings keeps a compact centred modal",
-        settingsBox !== null &&
-          settingsBox.width <= 600 &&
-          Math.abs(settingsBox.x + settingsBox.width / 2 - viewport.width / 2) < 1 &&
-          Math.abs(settingsBox.y + settingsBox.height / 2 - viewport.height / 2) < 1,
-        JSON.stringify({ settingsBox, viewport }),
+        "menu settings opens as a page of the plate, in the main page's place",
+        (await body.getByRole("heading", { name: "Settings", level: 2 }).count()) === 1 &&
+          settingsBox !== null &&
+          Math.abs(settingsBox.x - home.x) < 0.5 &&
+          Math.abs(settingsBox.width - home.width) < 0.5,
+        JSON.stringify({ settingsBox, home }),
       );
       const choices = await page
         .getByRole("radio")
