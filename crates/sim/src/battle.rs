@@ -508,9 +508,11 @@ fn spawn_unit(
     // An aircraft enters at cruise height over the ground beneath it.
     let motion = units::motion(t, rules);
     let airborne = matches!(motion, units::Motion::Air(_));
-    let lift = airborne
-        .then(|| rules.air.cruise_agl_m(t.mobility.layer()))
-        .unwrap_or(0.0);
+    let lift = if airborne {
+        rules.air.cruise_agl_m(t.mobility.layer())
+    } else {
+        0.0
+    };
     Unit {
         id: UnitId(i as u32),
         side: u.side,
@@ -2910,7 +2912,7 @@ impl Battle {
                 self.crashes.push(crate::crash::Crash::new(
                     id,
                     unit.position,
-                    air.velocity,
+                    air.velocity.xy(),
                     unit.yaw,
                     death.source,
                     knowing,
@@ -3122,8 +3124,12 @@ impl Battle {
                             let lateral = v2(-libm::sin(unit.yaw), libm::cos(unit.yaw));
                             let position = (unit.position.xy() + lateral * (half.y + 0.5))
                                 .with_z(unit.position.z + half.z);
-                            let velocity =
-                                (unit.air.unwrap().velocity + lateral * 18.0).with_z(-2.0);
+                            let base = unit.air.unwrap().velocity;
+                            let velocity = v3(
+                                base.x + lateral.x * 18.0,
+                                base.y + lateral.y * 18.0,
+                                base.z - 2.0,
+                            );
                             self.projectiles
                                 .decoy_seeker(projectile, position, velocity);
                             if let Some(air) = self.units[target_id.0 as usize].air.as_mut() {

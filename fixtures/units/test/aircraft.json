@@ -1,5 +1,16 @@
 {
   "units": {
+    "test_jet": {
+      "extends": "test_heli",
+      "name": "Test Jet",
+      "description": "A fixed-wing test aircraft in the high-air layer.",
+      "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air" } },
+      "capabilities": { "air": {
+        "fuel_capacity_s": 180,
+        "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
+        "refund": { "health": 0.4, "ammunition": 0.3, "fuel": 0.3 }
+      } }
+    },
     "test_heli": {
       "name": "Helicopter",
       "description": "A small utility helicopter on skids with a door HMG, flying in the low-air layer.",
