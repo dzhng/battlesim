@@ -7,7 +7,7 @@ use contract::command::{
     CommandEnvelope, MoveDirection, Order, OrderError, RoutePolicy, TargetRef,
 };
 use contract::ids::{Side, UnitId};
-use contract::observation::ContactSource;
+use contract::observation::{ActionReason, ContactSource};
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -242,6 +242,72 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
         !blue.ground_visibility.visible(300.0, 200.0),
         "high-air aircraft do not illuminate ground fog"
     );
+}
+
+fn air_defence_battle(name: &str) -> Battle {
+    let map = sim::maps::load("air").unwrap().definition;
+    let encounter = sim::maps::encounter("air", name).unwrap();
+    let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    Battle::new(&encounter.on(map, rules), 6)
+}
+
+fn shots(b: &Battle, id: UnitId) -> u32 {
+    b.unit(id).unwrap().mounts.iter().map(|m| m.shots).sum()
+}
+
+#[test]
+fn air_defence_tiers_follow_the_target_layer_and_need_their_own_sight() {
+    let mut helicopters = air_defence_battle("defense-helicopter");
+    for _ in 0..300 {
+        helicopters.step();
+    }
+    assert!(
+        shots(&helicopters, UnitId(1)) > 0,
+        "medium AA fires at LowAir"
+    );
+    assert!(
+        shots(&helicopters, UnitId(0)) > 0,
+        "short AA fires at LowAir"
+    );
+    assert_eq!(
+        shots(&helicopters, UnitId(2)),
+        0,
+        "long AA never fires at LowAir"
+    );
+
+    let mut jet = air_defence_battle("defense-jet");
+    let mut hidden_no_sight = false;
+    for _ in 0..300 {
+        jet.step();
+        hidden_no_sight |=
+            jet.observe(Side::Red).own[3].mounts[0].reason == ActionReason::NoOwnSight;
+    }
+    for id in [UnitId(0), UnitId(1), UnitId(2)] {
+        assert!(shots(&jet, id) > 0, "AA tier {id:?} fires at HighAir");
+    }
+    assert_eq!(shots(&jet, UnitId(3)), 0, "AA without sight holds fire");
+    assert!(hidden_no_sight, "the hidden gun explains its hold");
+}
+
+#[test]
+fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
+    let map = sim::maps::load("air").unwrap().definition;
+    let encounter = sim::maps::encounter("air", "ground").unwrap();
+    let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let mut b = Battle::new(&encounter.on(map, rules), 6);
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![UnitId(2)],
+            target: TargetRef::Identified {
+                id: contract::observation::ObservedTargetId(9999),
+            },
+        },
+        queued: false,
+    });
+    assert_eq!(ack.error, Some(OrderError::UnknownTarget));
 }
 
 #[test]

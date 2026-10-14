@@ -1191,3 +1191,74 @@ fn a_helicopter_the_player_buys_enters_and_flies_to_its_destination() {
         "it ended at {p:?}"
     );
 }
+
+#[test]
+fn a_bought_helicopter_is_paid_immediately_and_waits_at_the_nearest_edge() {
+    const HELI: &str = "ah_64e_guardian";
+    let setup = match_on(sim::fixtures::game());
+    let mut battle = Battle::new(&setup, 6);
+    let price = battle.rules().catalog.by_id(HELI).cost;
+    let before = battle
+        .observe(Side::Blue)
+        .skirmish
+        .as_ref()
+        .unwrap()
+        .credits;
+    assert!(battle
+        .accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: HELI.into(),
+                destination: [300.0, 200.0],
+            },
+        ))
+        .error
+        .is_none());
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    battle.step();
+    let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
+    assert_eq!(before - status.credits, f64::from(price));
+
+    let mut entered = None;
+    let mut waited = false;
+    for _ in 0..(31 * battle.rules().tick_hz) {
+        battle.step();
+        let Some(aircraft) = battle
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .find(|u| u.kind == battle.rules().catalog.index(HELI).unwrap())
+        else {
+            continue;
+        };
+        if aircraft.traversing {
+            waited = true;
+            assert!(
+                (aircraft.position[1]).abs() < 1.0,
+                "it waits at the nearest map edge"
+            );
+            assert!((aircraft.position[0] - 300.0).abs() < 1.0);
+        }
+        if waited && !aircraft.traversing {
+            entered = Some(battle.tick());
+            break;
+        }
+    }
+    assert!(waited, "the purchased helicopter enters through traversal");
+    let entered = entered.expect("the helicopter enters after its seeded delay");
+    let spawned = battle
+        .replay()
+        .accepted
+        .iter()
+        .find_map(|(tick, command)| {
+            matches!(command.order, Order::ConfirmPurchase { .. }).then_some(*tick)
+        })
+        .unwrap();
+    let delay_s = (entered - spawned) as f64 / f64::from(battle.rules().tick_hz);
+    assert!(
+        (15.0..=30.1).contains(&delay_s),
+        "seeded ingress delay {delay_s:.2}s"
+    );
+}

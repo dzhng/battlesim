@@ -696,15 +696,16 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
                 );
             }
             if closest > 10.0 {
-                failures.push(format!("{id}: never came within {closest:.1} m of its goal"));
+                failures.push(format!(
+                    "{id}: never came within {closest:.1} m of its goal"
+                ));
             }
         } else {
             for _ in 0..90 * rules.tick_hz {
                 b.step();
             }
-            let short = (b.unit(UnitId(0)).unwrap().position.xy()
-                - sim::math::v2(200.0, 500.0))
-                .length();
+            let short =
+                (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0)).length();
             if short > 10.0 {
                 failures.push(format!("{id}: stopped {short:.1} m short of its goal"));
             }

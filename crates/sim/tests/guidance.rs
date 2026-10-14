@@ -1514,4 +1514,51 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
         1,
         "one locked missile consumes one flare"
     );
+    let readiness = b.observe(Side::Red).own[0]
+        .flares
+        .expect("the aircraft publishes flare readiness");
+    assert!(
+        readiness.cooldown.is_some(),
+        "spending a flare starts its reload"
+    );
+    for _ in 0..30 * b.rules().tick_hz {
+        b.step();
+    }
+    let reloaded = b.observe(Side::Red).own[0]
+        .flares
+        .expect("the aircraft still publishes flare readiness");
+    assert_eq!(reloaded.charges, 1, "the flare spend is retained");
+    assert!(reloaded.cooldown.is_none(), "reload completes");
+}
+
+#[test]
+fn a_prompt_escape_is_beaten_by_a_second_launcher_in_crossfire() {
+    let map = sim::maps::load("ambush").unwrap().definition;
+    let encounter = sim::maps::encounter("ambush", "crossfire").unwrap();
+    let mut rules = sim::fixtures::test_game();
+    rules["movement"]["drive"]["acceleration_s"] = json!(1e-6);
+    rules["movement"]["drive"]["braking_s"] = json!(1e-6);
+    let rules = serde_json::from_value(rules).unwrap();
+    let mut b = Battle::new(&encounter.on(map, rules), 10);
+    let full = b.unit(UnitId(0)).unwrap().hp;
+    let mut saw_crossfire = false;
+    for _ in 0..600 {
+        b.step();
+        let observation = b.observe(Side::Blue);
+        let guided = &observation.guided;
+        saw_crossfire |= guided.len() == 2
+            && guided.iter().any(|m| !m.supported)
+            && guided.iter().any(|m| m.supported);
+        if guided.is_empty() && b.tick() > 300 {
+            break;
+        }
+    }
+    assert!(
+        saw_crossfire,
+        "one launcher released while the other kept sight"
+    );
+    assert!(
+        b.unit(UnitId(0)).unwrap().hp < full,
+        "the prompt escape survived despite the prepared crossfire"
+    );
 }

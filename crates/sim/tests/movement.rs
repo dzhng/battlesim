@@ -158,6 +158,13 @@ fn dist(a: [f64; 2], b: [f64; 2]) -> f64 {
     (a[0] - b[0]).hypot(a[1] - b[1])
 }
 
+fn movement_battle() -> Battle {
+    let map = sim::maps::load("movement").unwrap().definition;
+    let encounter = sim::maps::encounter("movement", "movement").unwrap();
+    let rules = serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    Battle::new(&encounter.on(map, rules), 4)
+}
+
 /// Step until every listed unit is idle or `limit` ticks pass; checks `each` every tick.
 fn run(b: &mut Battle, ids: &[u32], limit: u32, mut each: impl FnMut(&Battle)) -> u32 {
     for t in 0..limit {
@@ -198,6 +205,85 @@ fn a_truck_can_park_in_clear_space_behind_a_stationary_tank() {
     );
     assert!(dist(xy(&own(&b, 0)), [60.0, 60.0]) < 1.0);
     assert_eq!(xy(&own(&b, 1)), [70.0, 60.0], "tank stays put");
+}
+
+#[test]
+fn the_fastest_route_arrives_before_the_shortest_route() {
+    let mut b = movement_battle();
+    let mut orders = Orders { seq: 0 };
+    orders.go(
+        &mut b,
+        &[0],
+        [275.0, 185.0],
+        9001,
+        RoutePolicy::Shortest,
+        false,
+    );
+    orders.go(
+        &mut b,
+        &[1],
+        [300.0, 215.0],
+        9002,
+        RoutePolicy::Fastest,
+        false,
+    );
+    let mut arrivals = [None, None];
+    for _ in 0..6000 {
+        b.step();
+        for (i, slot) in arrivals.iter_mut().enumerate() {
+            if slot.is_none() && own(&b, i as u32).state == MoveState::Idle {
+                *slot = Some(b.tick());
+            }
+        }
+        if arrivals.iter().all(Option::is_some) {
+            break;
+        }
+    }
+    let [shortest, fastest] = arrivals;
+    assert!(
+        fastest.expect("fast route arrives") < shortest.expect("short route arrives"),
+        "fastest route did not win the race: {arrivals:?}"
+    );
+}
+
+#[test]
+fn a_vehicle_ordered_to_the_mesa_top_is_admitted_at_its_foot() {
+    let mut b = movement_battle();
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        order: Order::Move {
+            units: vec![UnitId(5)],
+            gesture: 9005,
+            goal: [455.0, 345.0],
+            route: RoutePolicy::Shortest,
+            direction: Default::default(),
+            facing: None,
+        },
+        queued: false,
+    });
+    assert_eq!(ack.error, None, "mesa click is accepted: {ack:?}");
+    let destination = ack.placement.unwrap().destinations[0].goal;
+    assert!(
+        dist(destination, [455.0, 345.0]) <= 48.0
+            && !((440.0..=470.0).contains(&destination[0])
+                && (330.0..=360.0).contains(&destination[1])),
+        "truck destination remains on clear ground at the mesa foot: {destination:?}"
+    );
+    for _ in 0..6000 {
+        b.step();
+        if own(&b, 5).state == MoveState::Idle {
+            break;
+        }
+    }
+    let truck = own(&b, 5);
+    assert_eq!(truck.state, MoveState::Idle);
+    assert!(
+        dist(xy(&truck), destination) < 1.0,
+        "truck stopped at {:?}",
+        truck.position
+    );
 }
 
 #[test]
