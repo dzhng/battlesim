@@ -196,6 +196,16 @@ pub struct AttitudeFeel {
     pub gain: f64,
     pub max_deg: f64,
     pub smoothing_s: f64,
+    /// Fixed-wing attitude tuning; helicopters use the fields above.
+    #[serde(default)]
+    pub jet: Option<JetAttitudeFeel>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct JetAttitudeFeel {
+    pub gain: f64,
+    pub max_deg: f64,
+    pub smoothing_s: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -593,6 +603,10 @@ struct Flight {
     /// Its drawn ground velocity and acceleration, eased.
     velocity: [f64; 2],
     accel: [f64; 2],
+    /// A fixed-wing aircraft's published 3D flight velocity, eased.
+    path_velocity: [f64; 3],
+    /// Its last published heading, for fixed-wing turn rate.
+    heading: Option<f64>,
     /// The (pitch, roll) they gave it last, held while the clock stands still.
     attitude: Option<(f64, f64)>,
 }
@@ -1153,7 +1167,7 @@ impl PoseDriver {
         }
         let flying = if pose.airborne && unit.attitude.is_none() {
             let f = state.flight.get_or_insert_with(Flight::default);
-            aircraft_attitude(f, &feel.attitude, pose.position, unit, dt)
+            aircraft_attitude(f, &feel.attitude, pose.position, unit, ty, dt)
         } else {
             None
         };
@@ -1194,6 +1208,46 @@ impl PoseDriver {
     }
 }
 
+/// How a HighAir aircraft follows its published flight path: pitch is the
+/// path angle and roll is the bank needed to turn at its published yaw rate.
+fn jet_attitude(
+    f: &mut Flight,
+    feel: &AttitudeFeel,
+    was: Vec3,
+    unit: &FeedUnit,
+    dt: f64,
+) -> Option<(f64, f64)> {
+    let (gain, max_deg, smoothing_s) = feel
+        .jet
+        .as_ref()
+        .map_or((feel.gain, feel.max_deg, feel.smoothing_s), |jet| {
+            (jet.gain, jet.max_deg, jet.smoothing_s)
+        });
+    let k = 1.0 - libm::exp(-dt / smoothing_s);
+    let measured = [
+        (unit.position[0] - was[0]) / dt,
+        (unit.position[1] - was[1]) / dt,
+        (unit.position[2] - was[2]) / dt,
+    ];
+    for (velocity, next) in f.path_velocity.iter_mut().zip(measured) {
+        *velocity += (next - *velocity) * k;
+    }
+    let horizontal = libm::hypot(f.path_velocity[0], f.path_velocity[1]);
+    let max = max_deg * PI / 180.0;
+    let limit = |angle: f64| (gain * angle).clamp(-max, max);
+    let target_pitch = limit(libm::atan2(f.path_velocity[2], horizontal));
+    let turn_rate = f
+        .heading
+        .map_or(0.0, |heading| delta_angle(heading, unit.yaw) / dt);
+    f.heading = Some(unit.yaw);
+    let target_roll = limit(-libm::atan2(horizontal * turn_rate, GRAVITY));
+    let (old_pitch, old_roll) = f.attitude.unwrap_or_default();
+    let pitch = old_pitch + (target_pitch - old_pitch) * k;
+    let roll = old_roll + (target_roll - old_roll) * k;
+    f.attitude = (pitch.abs() + roll.abs() > 1e-9).then_some((pitch, roll));
+    f.attitude
+}
+
 /// How a flying aircraft leans, from how its drawn position moved since the
 /// last frame (`was`): nose down to speed up, up to brake, into a turn, by
 /// the angle that tilts its lift into its acceleration. Held while the clock
@@ -1203,10 +1257,18 @@ fn aircraft_attitude(
     feel: &AttitudeFeel,
     was: Vec3,
     unit: &FeedUnit,
+    ty: &UnitType,
     dt: f64,
 ) -> Option<(f64, f64)> {
     if dt == 0.0 {
         return f.attitude;
+    }
+    if ty
+        .vehicle_class
+        .as_deref()
+        .is_some_and(|class| class.starts_with("high_air_"))
+    {
+        return jet_attitude(f, feel, was, unit, dt);
     }
     let k = 1.0 - libm::exp(-dt / feel.smoothing_s);
     let v = [
