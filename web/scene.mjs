@@ -2,7 +2,6 @@
 //
 //   bun run --cwd web scene -- <fixture-id>...   run those fixtures' scenes
 //   bun run --cwd web scene                      run every registered scene
-//   bun run --cwd web scene -- --verify          run the verify gate (fixtures without "verify": false)
 //   bun run --cwd web scene -- --list            list fixture ids and what each scene proves
 //   bun run --cwd web scene -- --visual          run every scene with approved pictures
 //
@@ -11,7 +10,7 @@
 // 30 s alone or 60 s overlapped (SCENE_READINESS_TIMEOUT_MS overrides).
 // SCENE_GRAPHICS_QUALITY=low|medium|high asks lab routes for that test-only
 // graphics profile; serial and `"authored_quality"` fixtures keep their own.
-// `bun run --cwd web verify` is --verify at the low profile.
+// `bun run --cwd web verify` runs every scene at the low profile.
 //
 // The registry is apps/battle-lab/src/fixtures.json; every fixture id must have
 // exactly one scene at web/scenes/<id>.mjs and vice versa. Without VERIFY_URL
@@ -114,17 +113,15 @@ export function parseArgs(argv) {
   const ids = [];
   let list = false;
   let visual = false;
-  let verify = false;
   for (const arg of argv) {
     if (arg === "--") continue;
     if (arg === "--list") list = true;
     else if (arg === "--visual") visual = true;
-    else if (arg === "--verify") verify = true;
     else if (arg.startsWith("-")) throw new Error(`unknown flag ${arg}`);
     else ids.push(arg);
   }
   if (visual && ids.length) throw new Error("--visual selects its own fixtures; name none");
-  return { ids, list, visual, verify };
+  return { ids, list, visual };
 }
 
 export async function loadRegistry() {
@@ -158,13 +155,6 @@ export function selectFixtures(fixtures, ids) {
     );
   }
   return ids.map((id) => fixtures.find((f) => f.id === id));
-}
-
-/** Keep the default gate focused on behavior plus the committed low-quality
- * visual smoke fixture. The authored screenshot galleries remain available
- * through `--visual`. */
-export function selectVerifyFixtures(fixtures) {
-  return fixtures.filter((fixture) => fixture.verify !== false);
 }
 
 export function sceneUrlFor(url, quality, allowQuality = true) {
@@ -513,12 +503,7 @@ export async function main(argv = process.argv.slice(2)) {
     for (const f of fixtures) console.log(`${f.id}\t${f.route}\t${f.describe}`);
     return 0;
   }
-  const selected = args.visual
-    ? await pinnedFixtures(fixtures)
-    : args.verify
-      ? selectVerifyFixtures(fixtures)
-      : selectFixtures(fixtures, args.ids);
-  return run(selected);
+  return run(args.visual ? await pinnedFixtures(fixtures) : selectFixtures(fixtures, args.ids));
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

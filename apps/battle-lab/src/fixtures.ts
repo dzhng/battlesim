@@ -11,8 +11,6 @@ export interface LabFixture {
   map: string | null;
   /** A timing verdict runs against a production build. */
   build?: "production";
-  /** Left out of the default `verify` gate (still runnable by id). */
-  verify?: boolean;
   /** Runs alone: timing and parity scenes GPU contention would invalidate. */
   serial?: boolean;
   /** Its scene judges the authored graphics, so the runner never lowers its

@@ -6,7 +6,6 @@ import {
   parseArgs,
   pinnedFixtures,
   selectFixtures,
-  selectVerifyFixtures,
   fatalGpuMessage,
   openScenePage,
   runConcurrent,
@@ -31,33 +30,16 @@ test("native helpers live in the durable Cargo target by default", () => {
   vi.unstubAllEnvs();
 });
 
-test("scene args: fixture ids, the bun `--` separator, --list, --verify and --visual", () => {
+test("scene args: fixture ids, the bun `--` separator, --list and --visual", () => {
   expect(parseArgs(["--", "foundation"])).toEqual({
     ids: ["foundation"],
     list: false,
     visual: false,
-    verify: false,
   });
-  expect(parseArgs(["--list"])).toEqual({ ids: [], list: true, visual: false, verify: false });
-  expect(parseArgs(["--visual"])).toEqual({ ids: [], list: false, visual: true, verify: false });
-  expect(parseArgs(["--verify"])).toEqual({ ids: [], list: false, visual: false, verify: true });
+  expect(parseArgs(["--list"])).toEqual({ ids: [], list: true, visual: false });
+  expect(parseArgs(["--visual"])).toEqual({ ids: [], list: false, visual: true });
   expect(() => parseArgs(["--visual", "panels"])).toThrow("--visual");
-  expect(() => parseArgs(["--bogus"])).toThrow("unknown flag");
-});
-
-test("the default verify gate keeps behavior scenes and the low visual smoke test", async () => {
-  const fixtures = await loadRegistry();
-  const selected = selectVerifyFixtures(fixtures).map((fixture) => fixture.id);
-  expect(selected).toContain("foundation-low");
-  expect(selected).not.toContain("panels");
-  expect(selected).not.toContain("ui");
-  expect(selected).not.toContain("unit-roster");
-  expect(selected).not.toContain("city-lineup");
-  expect(selected).not.toContain("generated");
-  expect(selected).not.toContain("street");
-  expect(selected).toContain("air-combined");
-  expect(selected).toContain("garrison");
-  expect(selected).not.toContain("scenario-play");
+  expect(() => parseArgs(["--verify"])).toThrow("unknown flag");
 });
 
 test("scene scheduler limits overlap and returns fixture order", async () => {

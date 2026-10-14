@@ -108,26 +108,15 @@ hold its content?
 Every scene says what it proves in its registry entry's `describe`, which
 `--list` prints; that is the one place a scene is documented.
 
-Scenes run as three suites, cheapest first:
+Scenes run at two scales, as [AGENTS.md](../AGENTS.md) asks. While working, run
+the scenes a change can move, by id. When a spec's implementation is finished,
+`bun run verify` runs every registered scene once; nothing is left out of it.
+It draws ordinary scenes at a test-only low graphics profile and overlaps them,
+which is what keeps that full run affordable. One low-quality copy of the
+foundation scene pins the low profile's own pictures. The visual suite
+(`--visual`) runs the scenes with approved pictures at their authored quality.
 
-- **The verify gate** (`bun run verify`) is what everyone runs before calling
-  work done. It is deliberately partial, so it stays fast enough to run every
-  time. A scene belongs in it when a change elsewhere could silently break the
-  contract it proves: a game rule, the simulation's authority, publication, or
-  the frame every scene is drawn through. Each such area keeps one
-  representative, not every checkpoint it ever had. A scene stays out (`"verify": false`) when it is a feature's own slice
-  checkpoint, judges looks rather than behaviour, plays audio, generates maps,
-  measures timing, or only repeats what an in-gate scene already proves. A new
-  fixture is in the gate unless it says otherwise, so leaving one out is a
-  decision. The gate draws ordinary scenes at a test-only low graphics profile.
-  One low-quality copy of the foundation scene keeps the frame path itself under
-  test.
-- **The visual suite** (`--visual`) holds every scene with approved pictures.
-- **Everything** (the runner with no ids) runs each registered scene once, when
-  a spec's implementation is finished, as [AGENTS.md](../AGENTS.md) requires.
-  An out-of-gate scene is also run by id whenever a change could move it.
-
-Scenes overlap to keep the gate moving. Timing and parity scenes are marked
+Scenes overlap to keep the full run moving. Timing and parity scenes are marked
 `serial` and run alone, because GPU contention would invalidate their
 measurements. Scenes that judge the authored graphics are marked
 `authored_quality` and keep it. Rendering jobs from separate checkouts still

@@ -4,8 +4,7 @@
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
     "map": null,
-    "timeout_s": 300,
-    "verify": false
+    "timeout_s": 300
   },
   {
     "id": "native-parity-capture",
@@ -13,8 +12,7 @@
     "describe": "The native client's control run: the graphics-test reel at 1280×720 with control plates read back from the canvas at each shot's middle; writes each scene's capture, visual presentation manifest and plates to throwaway/native-parity/. PARITY_SCENES=<map,…> films only those scenes.",
     "map": null,
     "timeout_s": 600,
-    "serial": true,
-    "verify": false
+    "serial": true
   },
   {
     "id": "graphics-fps",
@@ -23,8 +21,7 @@
     "map": null,
     "build": "production",
     "timeout_s": 900,
-    "serial": true,
-    "verify": false
+    "serial": true
   },
   {
     "id": "cursor-orders",
@@ -37,7 +34,6 @@
     "route": "/labs/cursor",
     "describe": "Arrow and action cursor at native screen size over grass, road and fog; every badge and a moving pointer through the real presentation component.",
     "map": null,
-    "verify": false,
     "authored_quality": true
   },
   {
@@ -122,106 +118,91 @@
     "id": "air-hover",
     "route": "/labs/air-hover",
     "describe": "Test helicopters hovering at cruise height, each with its ground marker and drop line: ?variant=hover (default) over open ground, a jeep on the road below for scale (its rotors turn, its shadow lies on the ground off to the side, nothing under it raises dust or rolls; selected, its marker and line take the selection's colour; ordered away with Space held, its ghost flies at cruise height); ?variant=roof over a house, the line cut by the roof, an identified enemy one over the field beyond; ?variant=fog an enemy one seen over the ground the house hides from blue's jeep; ?variant=apache the AH-64E on its real art, its chin gun firing down at an enemy tank on the road with its flash at the barrel's tip; ?variant=lost an enemy one blue's jeep loses behind the shop it stands against, its last sighting a red sign facing the camera at its height, with a thin stem to the ground under it.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air",
     "route": "/labs/air",
     "describe": "The first helicopter checkpoint: the test helicopter flies one move order across a village at cruise height, climbs over the roofs taller than its clearance allows, routes round the 61 m tower in its way and crosses a wood; a red rifle squad's rounds spark off it without hurting it, a red tank's main gun never selects it, and the gun jeep's autocannon, freed once it hovers at its goal, damages it.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-crash",
     "route": "/labs/air-crash",
     "describe": "A test helicopter, one hit from death, flies across the field past a gun jeep, trailing smoke, and is shot down: it falls on in a spinning arc, nose down, keeping its momentum, bursts where it strikes the ground and leaves its wreck there. It never vanishes in mid-air or brews up like a ground hull.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-closing",
     "route": "/labs/air-closing",
     "describe": "The helicopters' closing scene (D14): the AH-64E flies in from the map's west edge over the village roofs and kills the T-72 behind them with rockets and its chin gun; ordered on east, holding its fire, it is shot down by the BMP-2M's autocannon from behind the tower, falls on in a spinning arc and its wreck comes down in the wood, flattening the trees there.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-contracts",
     "route": "/labs/air-contracts",
     "describe": "The air-war records as the catalog resolves them, beside the battle that fields them: a fighter and a SEAD jet (HighAir, fuel and flares), an Apache (LowAir) and short, medium and long air defence (tier, radar, weapon target layers, interception, decoyability, seekers) parked on the air field; each aircraft's published fuel and flares start at its record's capacity, a ground unit publishes none.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-high",
     "route": "/labs/air-high",
     "describe": "An F-16 flies across the air field, over the village, the tower and the wood, beside an enemy Mi-8 and J-10: blue's fog never clears and it never identifies the T-72 in the village, though the jet identifies both enemy aircraft; it stays inside the map at the air layer's height.",
-    "map": "air-jet",
-    "verify": false
+    "map": "air-jet"
   },
   {
     "id": "air-defense",
     "route": "/labs/air-defense",
     "describe": "Layered air defence from red's side: ?variant=helicopter, an Apache and a Mi-8 fly in: the Buk and the short gun engage them, the long S-300 never does; ?variant=jet, an F-16 flies in: every tier fires at it, and the short gun the tower hides from it never fires.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-radar",
     "route": "/labs/air-radar",
     "describe": "SEAD radar contacts: ?variant=sead, an EA-18G holds over the west edge: each emitting AA (a Buk in the open, a Pantsir in the wood, an S-300 behind the tower) is published as a RADAR CONTACT area with a quantized bearing and range, never identified and never clearing fog; the silent short gun is no contact; ?variant=fighter, the same field with an F-16 only: no radar contact.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-dogfight",
     "route": "/labs/air-dogfight",
     "describe": "Two F-16s against two J-10s: the attacked jet and the attacker lock into a dogfight, a second blue jet joins the same enemy, an explicit move breaks the mover's dogfight while its wingman stays in, and the card shows DOGFIGHT while it lasts.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-ingress",
     "route": "/labs/air-ingress",
     "describe": "An empty skirmish on the air field: blue buys an F-16 for the middle of the field; it is paid at once, waits off the nearest map edge for its seeded traversal (published as traversing, its card greyed, fuel untouched), enters at that edge at the air height, burns fuel from entry, twice as fast with afterburners on, turns for home on its own when the fuel left only covers the way back, and is refunded at the entry.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-ground",
     "route": "/labs/air-ground",
     "describe": "Air-to-ground orders: the US Fighter bombs a T-72 it cannot see, an F-16 without bombs strafes the other with its gun, the EA-18G launches its anti-radiation missile at a radar contact, and an attack on a target blue does not know is refused.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-survivability",
     "route": "/labs/air-survivability",
     "describe": "An F-16 with flares and an Apache without them under a Buk: the Apache is hit and brought down; the jet spends a flare when the decoyable missile locks, the missile is diverted, and the jet is unhurt.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-roster",
     "route": "/labs/air-roster",
     "describe": "Every faction's short, medium and long air defence, SEAD jet and other fixed-wing aircraft as the roster's cards list them, in a matrix beside the battle that parks each of those types on the air field, with a contact sheet of their runtime models.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-hud",
     "route": "/labs/air-hud",
     "describe": "Aircraft in the battle HUD: an F-16 has no ground marker or drop line where the Apache beside it has both; the jet's card shows its fuel and flares; with Space held its ordered move shows a compact card at its ghost; the EA-18G's radar contact reads RADAR CONTACT with its bearing and range.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-audio",
     "route": "/labs/air-audio",
     "describe": "The air alarm: a J-10 flies into the view of blue's Abrams, and blue hears one alarm and the jet's approach; while it stays seen no second alarm sounds; it flies off out of sight and back, a new episode, and the alarm sounds once more.",
-    "map": "air",
-    "verify": false
+    "map": "air"
   },
   {
     "id": "air-combined",
@@ -251,15 +232,13 @@
     "id": "ground",
     "route": "/labs/ground",
     "describe": "The ground layer as each side learns it: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell view of the observed side's learned craters, scorch, tracks and trampling, rebuilt from its ground patches, with a side switch and the patch stream readout.",
-    "map": "ground",
-    "verify": false
+    "map": "ground"
   },
   {
     "id": "panels",
     "route": "/labs/panels",
     "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?scale= zooms.",
     "map": null,
-    "verify": false,
     "authored_quality": true
   },
   {
@@ -267,78 +246,67 @@
     "route": "/labs/ui",
     "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
     "map": null,
-    "verify": false,
     "authored_quality": true
   },
   {
     "id": "readouts",
     "route": "/labs/readouts",
     "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, ∞ unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the army deck's card keeps a unit's whole panel when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
-    "map": "readouts",
-    "verify": false
+    "map": "readouts"
   },
   {
     "id": "camera",
     "route": "/labs/camera",
     "describe": "Camera clearance: scripted camera trajectories round a wall, a tower, a corner of two tall slabs, a courtyard block and a concave compound (the generator's templates). Watch from outside, with the eye path asked for (amber, red inside a building's clearance) beside the eye path drawn (cyan), or ride the camera as the viewport flies it; a switch makes blue see the courtyard block collapse.",
-    "map": "camera-lab",
-    "verify": false
+    "map": "camera-lab"
   },
   {
     "id": "city-block",
     "route": "/labs/city-block",
     "describe": "A block of a generated town drawn from the template art library, with no battle on it: the apartment building nearest the main town's centre that has a house beside it (mixed, small, seed 1; ?type=, ?size= and ?seed= choose another map). Stations cut the camera to the street, the default tactical camera, 250 m out, low over the town from 2 km and the strategic overview; a switch makes the side see the apartment building fall, which draws its remains; ?tier=0..3 draws every building at one detail tier.",
-    "map": null,
-    "verify": false
+    "map": null
   },
   {
     "id": "city-lineup",
     "route": "/labs/city-lineup",
     "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws the templates that end in that state as a side that saw them destroyed knows them (a low template collapses to a ruin, a tall one stands gutted; the others are left out), and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary.",
-    "map": null,
-    "verify": false
+    "map": null
   },
   {
     "id": "city-ruins",
     "route": "/labs/city-ruins",
     "describe": "Buildings destroyed in a battle, drawn as each side knows them: on the camera lab's map, HE bursts bring a five-floor U block down to remains and gut a twenty-floor tower, which stands. Blue's squad watches both and draws the block's ruin and the tower's burnt shell; red's stands behind two slabs and draws both intact until its scripted walk takes it round them; a labelled side-view switch. The camera's obstacles, the fog's occluders and the smoke over a destroyed building follow the same knowledge.",
-    "map": "camera-lab",
-    "verify": false
+    "map": "camera-lab"
   },
   {
     "id": "facade",
     "route": "/labs/facade",
     "describe": "What a facade material can say beyond opaque, on the facade lab's kit with no battle on it: a grille and a perforated sheet as fence panels (cutouts: there or not texel by texel, in colour, depth and shadow); free-standing panes of glass, each half across the next (blended over what is behind them, unsorted); and a block three bays wide and three floors high with a pane and a room behind every window and shopfront (a cell of the interior atlas, unlit, chosen by where the window stands). Stations cut the camera to each from 25 m, the default tactical camera and 250 m; ?blocks= stands a field of blocks behind (a dense view for the paired cost), ?fog=1 ends an eye's sight across each station, ?azimuth= and ?sun= turn and raise the sun, ?order=reversed hands the frame the same modules in the opposite order.",
-    "map": null,
-    "verify": false
+    "map": null
   },
   {
     "id": "street",
     "route": "/labs/street",
     "describe": "A battle on the street test map through the production controls, readouts and pause menu: blue starts west of the street, red holds it under the encounter's defender policy (its rifle squads garrison the three buildings). ?watch plays the encounter where blue's start is ordered onto the street at once, under a free camera; ?seed= sets the seed. The browser scenes judge the battle view here.",
-    "map": "street",
-    "verify": false
+    "map": "street"
   },
   {
     "id": "street-watch",
     "route": "/labs/street?watch",
     "describe": "The street battle watched: blue's start ordered onto the street at once, the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks that ground past the playable area's edge is always unseen, and the dim white border that marks the area.",
-    "map": "street",
-    "verify": false
+    "map": "street"
   },
   {
     "id": "generated",
     "route": "/battle",
     "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",
-    "map": null,
-    "verify": false
+    "map": null
   },
   {
     "id": "unit-roster",
     "route": "/battle?type=open&size=small&seed=1&faction=us",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
     "map": null,
-    "verify": false,
     "authored_quality": true
   },
   {
@@ -347,8 +315,7 @@
     "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro Large seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
     "build": "production",
     "map": null,
-    "serial": true,
-    "verify": false
+    "serial": true
   },
   {
     "id": "endurance",
@@ -374,51 +341,44 @@
     "id": "workbench",
     "route": "/labs/workbench",
     "describe": "Model workbench: drop a GLB (or /labs/workbench?bundle=name) to see validator findings and the production render — named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake.",
-    "map": null,
-    "verify": false
+    "map": null
   },
   {
     "id": "fog-look",
     "route": "/labs/fog-look",
     "describe": "How unseen looks: the fixture's named fog styles over the street test map under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (red through the middle, hatched, a last sighting ringed pale).",
-    "map": "street",
-    "verify": false
+    "map": "street"
   },
   {
     "id": "lean",
     "route": "/labs/lean",
     "describe": "Soldiers lean out round tall cover: on the street test map, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera.",
-    "map": "street",
-    "verify": false
+    "map": "street"
   },
   {
     "id": "sound",
     "route": "/labs/sound",
     "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events.",
-    "map": null,
-    "verify": false
+    "map": null
   },
   {
     "id": "map-workbench",
     "route": "/labs/map-workbench",
     "describe": "Local generation and numerical validation tuning: searchable controls, authoritative plan, exact save review, retained inputs and seed samples.",
-    "map": null,
-    "verify": false
+    "map": null
   },
   {
     "id": "scenario-builder",
     "route": "/labs/scenario-builder",
     "describe": "Tactical scenario authoring canvas: place units, edit controllers, and explicitly download or upload self-contained bundles.",
     "map": null,
-    "serial": true,
-    "verify": false
+    "serial": true
   },
   {
     "id": "scenario-play",
     "route": "/labs/scenario-play",
     "describe": "Upload a downloaded scenario bundle into the normal battle worker and play it.",
     "map": null,
-    "serial": true,
-    "verify": false
+    "serial": true
   }
 ]
