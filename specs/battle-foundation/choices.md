@@ -105,7 +105,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### Screenshots are regenerated, not committed
 - **When:** slice 01.
-- **The choice:** Each lab scene writes its evidence images into `throwaway/evidence/<fixture-id>/`, a folder git ignores. To see them, rerun the scene, for example `bun run --cwd web scene -- foundation`. The committed record is each slice's verdict: the numbers, and every critique finding with its outcome.
+- **The choice:** Each lab scene writes its evidence images into `throwaway/evidence/<fixture-id>/`, a folder git ignores. To see them, rerun the scene, for example `bun run --cwd web scene -- frame`. The committed record is each slice's verdict: the numbers, and every critique finding with its outcome.
 - **Why / the gap:** the spec first asked for images committed under `specs/.../assets/evidence/`. The workflow keeps raw captures out of git, so every re-capture doesn't pile PNGs into history.
 - **The reach:** every slice. Old captures are lost on the next run unless copied aside.
 - **Confidence:** medium.

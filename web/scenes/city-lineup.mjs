@@ -2,7 +2,7 @@
 // on flat ground, drawn through the frame's own buildings path. The scene
 // holds each template to its contract at each detail tier (it is drawn, it
 // stands on the ground, and nothing of it leaves its physical parts grown by
-// its set's fit), and writes the pictures the art is judged by:
+// its set's fit). Set CITY_LINEUP_SHEETS=1 to write the pictures the art is judged by:
 //
 // - `sheet-<category>-tier<k>.png`: each of the category's templates alone,
 //   framed to fit, at tier k;
@@ -222,7 +222,8 @@ async function runSet(ctx, page, set, fit) {
             png: picture,
           });
         }
-        await writeSheet(ctx, `sheet-${category}-tier${tier}${tag}.png`, {
+        if (process.env.CITY_LINEUP_SHEETS === "1")
+          await writeSheet(ctx, `sheet-${category}-tier${tier}${tag}.png`, {
           title: `${category}, ${state}, tier ${tier}: each template alone, framed to fit`,
           columns: Math.min(3, cells.length),
           cellWidth: 640,
@@ -262,7 +263,8 @@ async function runSet(ctx, page, set, fit) {
           png: crops[p].get(entry.id)[tier],
         }));
       for (const entry of standing)
-        await writeSheet(ctx, `pair-${name}-${entry.id}.png`, {
+        if (process.env.CITY_LINEUP_SHEETS === "1")
+          await writeSheet(ctx, `pair-${name}-${entry.id}.png`, {
           title: `${entry.id}, ${state}, at ${where}`,
           columns: 2,
           cellWidth: PAIR_WIDTH,
@@ -270,7 +272,8 @@ async function runSet(ctx, page, set, fit) {
           pixelated: true,
         });
       for (const category of rows)
-        await writeSheet(ctx, `pairs-${name}-${category}.png`, {
+        if (process.env.CITY_LINEUP_SHEETS === "1")
+          await writeSheet(ctx, `pairs-${name}-${category}.png`, {
           title: `${category}, ${state}, at ${where}`,
           columns: 2,
           cellWidth: PAIR_WIDTH,

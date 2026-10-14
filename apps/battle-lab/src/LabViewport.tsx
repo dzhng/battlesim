@@ -92,7 +92,7 @@ import {
 } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
-import { graphicsProfiles, type GraphicsQualityProfile } from "./graphicsSettings";
+import { graphicsProfiles, sceneMinimumProfile, type GraphicsQualityProfile } from "./graphicsSettings";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
 const NO_WALK = emptyBuildingWalkStats();
@@ -461,16 +461,19 @@ export function LabViewport({
   }, [inputEnabled]);
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
-  // Verification can request a cheaper renderer without adding a player-facing
-  // setting. Production builds ignore the query; approved visual fixtures keep
-  // their authored quality unless a route supplies one explicitly.
+  // Verification can request a test-only renderer without adding a player-facing
+  // setting. Production builds ignore the query; the runner chooses minimum or
+  // player low for picture scenes.
   const requestedTestQuality = new URLSearchParams(window.location.search).get("test-quality");
   const testQuality =
     import.meta.env.DEV &&
-    (requestedTestQuality === "low" ||
+    (requestedTestQuality === "minimum" ||
+      requestedTestQuality === "low" ||
       requestedTestQuality === "medium" ||
       requestedTestQuality === "high")
-      ? graphicsProfiles[requestedTestQuality]
+      ? requestedTestQuality === "minimum"
+        ? sceneMinimumProfile
+        : graphicsProfiles[requestedTestQuality]
       : undefined;
   const effectiveQuality = quality ?? testQuality;
   const qualityRef = useRef(effectiveQuality);

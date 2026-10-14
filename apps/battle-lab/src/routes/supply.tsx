@@ -151,6 +151,11 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
                 {u.stock === 0
                   ? "empty: serves nothing"
                   : setup(u, capabilities(u).deploy?.seconds ?? 0)}
+                {u.deployment && (
+                  <span data-testid="service-ready">
+                    service: {u.deployment.progress >= 1 ? "ready (fully deployed)" : "not ready until fully deployed"}
+                  </span>
+                )}
               </li>
             ))}
         </ul>

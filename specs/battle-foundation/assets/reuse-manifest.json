@@ -23,7 +23,7 @@
       "destination": "packages/renderer-core/src/depthContract.ts",
       "transitive_imports": [],
       "local_changes": "Kept format/clear/isGpuReverseZ; added GPU_DEPTH_COMPARE; dropped depth-mode attachment names used by the old frame graph.",
-      "retained_tests": "web/scenes/foundation.mjs reads the installed depth state and checks occlusion both ways"
+      "retained_tests": "web/scenes/frame.mjs reads the installed depth state and checks occlusion both ways"
     },
     {
       "source": "packages/renderer-core/src/cameraUniform.ts",
@@ -37,7 +37,7 @@
       "destination": "packages/renderer-core/src/device.ts",
       "transitive_imports": ["capabilities.ts"],
       "local_changes": "Unchanged.",
-      "retained_tests": "web/scenes/foundation.mjs (adapter report; missing-WebGPU message)"
+      "retained_tests": "web/scenes/frame.mjs (adapter report; missing-WebGPU message)"
     },
     {
       "source": "packages/renderer-core/src/capabilities.ts",

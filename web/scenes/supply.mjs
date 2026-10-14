@@ -73,6 +73,8 @@ export async function run(ctx) {
   await advance(page, 90 + 600);
   o = await obs(page);
   const truck = unit(o, 0);
+  const readyText = await page.getByTestId("service-ready").first().textContent();
+  ctx.check("the service-ready text says the deployed truck is ready", /service: ready \(fully deployed\)/.test(readyText ?? ""), readyText ?? "missing service-ready text");
   ctx.check(
     "the set-up truck pays from its stock for what it restores",
     truck.stock < start.stock && unit(o, 2).mounts[1].ammo[0] > start.at,

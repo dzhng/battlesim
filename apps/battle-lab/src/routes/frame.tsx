@@ -131,7 +131,7 @@ const FOUNDATION_CAMERA: Camera3DParams = {
   near: 0.5,
 };
 
-export default function Foundation() {
+export default function Frame() {
   const { units } = useSessionCatalog();
   const targets = useMemo(() => targetsOf(units), [units]);
   const world = useMemo(groundPatch, []);
@@ -182,7 +182,7 @@ export default function Foundation() {
   return (
     <>
       <LabViewport
-        fixture="foundation"
+        fixture="frame"
         world={worldFeed}
         instances={instances}
         appearances={appearancesFeed}
@@ -192,8 +192,8 @@ export default function Foundation() {
         onPick={(pick) => pick.button === "left" && setSelected(pick.instance)}
         diagnostics={diagnostics}
       />
-      <aside className="hud-panel lab-panel" data-testid="foundation-panel">
-        <strong>Foundation</strong>
+      <aside className="hud-panel lab-panel" data-testid="frame-panel">
+        <strong>Frame</strong>
         <div>Selected: {selected >= 0 ? `${FOUNDATION[selected].kind} #${selected}` : "none"}</div>
         <div className="lab-hint">
           Click select · WASD/arrows/screen edge pan · Q/E turn · middle‑drag orbit · wheel zoom

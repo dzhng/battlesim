@@ -53,8 +53,6 @@ const FRAMES = BEFORE ? JSON.parse(await readFile(new URL("rounds.json", BEFORE)
 const SCAN = 15;
 /** Where a kind the battle never fires is found instead: a lab that fires it. */
 const FALLBACK_LABS = [
-  // The AT lab's late escape: the team guides its missile all the way in.
-  ["/labs/ambush", "late"],
   // The weapons lab: a squad lobs grenades over a building.
   ["/labs/weapons", null],
   // The projectile review: the gun jeep's autocannon lane.

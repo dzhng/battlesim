@@ -49,7 +49,7 @@ export interface BattleFrameOptions {
    *  (`setDetailScale`, `setSceneryQuality`): Rust tiers them. */
   quality?: {
     grassDensity: number;
-    shadowMapSize: 1024 | 2048;
+    shadowMapSize: 512 | 1024 | 2048;
     shadowReach: number;
   };
   /** `presentation.light`: sun, sky, haze, grade, bloom and cascades. */

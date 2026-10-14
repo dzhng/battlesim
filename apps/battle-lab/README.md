@@ -8,7 +8,7 @@ review setup must not change the game's shared rules.
 
 [The router](src/router.tsx) owns player pages, developer tools and the lab index.
 [The fixture registry](src/fixtures.json) declares focused routes and verification
-identities; [route modules](src/routes/) implement them. The browser [scene runner](../../web/README.md#checks-and-evidence)
+identities; browser scene and tool policy lives in [web/README.md#checks-and-evidence](../../web/README.md#checks-and-evidence); [route modules](src/routes/) implement them. The browser [scene runner](../../web/README.md#checks-and-evidence)
 holds the registry and scene files to each other, so adding a lab needs its matching
 check. The registry is the route inventory; docs do not maintain a parallel list.
 

@@ -1,3 +1,4 @@
+import { BattleView } from "../BattleView";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -89,6 +90,11 @@ function scriptTick(battle: SavedBattle, kind: Order["kind"]): number {
 }
 
 export default function Garrison() {
+  if (new URLSearchParams(window.location.search).has("cursor")) return <CursorOrders />;
+  return <GarrisonEncounter />;
+}
+
+function GarrisonEncounter() {
   const { rules } = useSessionCatalog();
   const durable = useMemo(() => durableSoldiers(rules), [rules]);
   return (
@@ -216,5 +222,30 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
         <AckLog acks={control.acks} />
       </aside>
     </>
+  );
+}
+
+/** A reachable squad beside a building and a vehicle enclosed by walls. */
+function CursorOrders() {
+  return (
+    <SavedEncounter fixture="garrison" encounter="cursor-orders">
+      {(battle) => (
+        <BattleView
+          fixture="garrison"
+          scenario={battle.scenario}
+          seed={4}
+          camera={{
+            ...gameCamera.lens,
+            target: [346, 252, 0],
+            distance: 130,
+            pitch: 0.95,
+            yaw: -0.75,
+          }}
+          status={({ sim }) => (
+            <TickStatus tick={sim.observation?.tick} status={sim.status.status} />
+          )}
+        />
+      )}
+    </SavedEncounter>
   );
 }

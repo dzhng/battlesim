@@ -21,7 +21,7 @@ export interface GraphicsQualityProfile {
   grassDensity: number;
   forestDressing: boolean;
   understorey: boolean;
-  shadowMapSize: 1024 | 2048;
+  shadowMapSize: 512 | 1024 | 2048;
   shadowReach: number;
   bloom: true;
   castLights: true;
@@ -83,6 +83,22 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     authoredSunSky: true,
     effectMood: "full",
   },
+};
+
+/** Test-only scene profile: cheaper than the player's low tier and never exposed as a player choice. */
+export const sceneMinimumProfile: GraphicsQualityProfile = {
+  unitLodScale: 2.2,
+  buildingLodScale: 2.2,
+  treeLodScale: 2.2,
+  grassDensity: 0,
+  forestDressing: false,
+  understorey: false,
+  shadowMapSize: 512,
+  shadowReach: 450,
+  bloom: true,
+  castLights: true,
+  authoredSunSky: true,
+  effectMood: "full",
 };
 
 function isTier(value: unknown): value is GraphicsTier {

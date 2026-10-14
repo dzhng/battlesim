@@ -4,7 +4,7 @@ A browser real-time tactics game, built around reconnaissance, physical fire and
 
 Players know the game by a public name that may change at any time, owned by [`gameName.ts`](apps/battle-lab/src/gameName.ts); code, packages and the repo keep their working names and never take it.
 
-Content has three owners, and none reaches another's place. Game battles are generated and field the roster's units. Test units (`test_*`) and `test` maps are the tests', labs' and benchmarks' own; menu units and `menu` maps are the menu backdrop's own. A saved map's `meta.json` says which it is ([saved maps](fixtures/README.md#saved-maps)). The developer menu's entries are tools, labelled as such, and stay in production builds.
+Content has three owners, and none reaches another's place. Game battles are generated and field the roster's units. Test units (`test_*`) and `test` maps are the tests', labs' and benchmarks' own; menu units and `menu` maps are the menu backdrop's own. A saved map's `meta.json` says which it is ([saved maps](fixtures/README.md#saved-maps)). The developer menu's entries are tools, labelled as such, and stay in production builds; [browser checks](web/README.md#checks-and-evidence) say which lab pages are tests (scenes) and which are tools.
 
 ## How it fits together
 

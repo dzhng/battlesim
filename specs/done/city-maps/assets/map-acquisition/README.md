@@ -22,7 +22,7 @@ At the baseline revision every route had a scene module and every scene a route;
 - **Village** (village, replay, watch, benchmark, fog, lean, ground's village mode): `crates/sim/src/village/mod.rs` composes the fixture map with deployment; `crates/sim/src/village/scripts.rs` discovers buildings for comparison scripts.
 - **The labs** (geometry, sensors, movement, weapons, consequences, deployment, ambush, garrison, supply, ground, readouts): one saved physical arena each; `apps/battle-lab/src/scenarios.ts` and the scenario owners supply encounter state.
 - **Endurance**: `crates/sim/src/endurance.rs` owns a code-built field and house base. Seeded late wrecks are physical augmentation. Its separate wave/remains RNG streams and the wreck-to-corpse draw continuation must survive extraction.
-- **Foundation and workbench**: render-only ground at negative coordinates in `apps/battle-lab/src/routes/foundation.tsx` and `apps/battle-lab/src/workbench/benchWorld.ts`. `MapDefinition` cannot express them exactly; they stay pending under C56 and are not counted as cut over.
+- **Foundation and workbench**: render-only ground at negative coordinates in `apps/battle-lab/src/routes/frame.tsx` and `apps/battle-lab/src/workbench/benchWorld.ts`. `MapDefinition` cannot express them exactly; they stay pending under C56 and are not counted as cut over.
 
 Consumers that bypass acquisition today: `apps/battle-lab/src/useStaticWorld.ts` builds a second main-thread query world from the same map (removing that is C33), and asset-fit inputs (`packages/scene-assets/src/authority.ts`, `web/asset.mjs`, `benchWorld.ts`) read fixture-derived geometry. They must receive resolved geometry through the built-Wasm prerequisite, without adding IO or Wasm to scene-assets.
 

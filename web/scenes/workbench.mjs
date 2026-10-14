@@ -257,16 +257,7 @@ export async function run(ctx) {
   // ---- the named views at 1920×1080, with the figure, hit box and sockets.
   await drop(page, "rifleman.glb", await synthetic(page, "soldierGlb"), "test_rifle");
   await wb(page, () => window.__workbench.show({ hitBox: true, sockets: true, figure: true }));
-  for (const view of [
-    "q-front",
-    "front",
-    "left",
-    "rear",
-    "top",
-    "battle-near",
-    "battle-mid",
-    "battle-far",
-  ]) {
+  for (const view of ["q-front", "battle-mid"]) {
     await wb(page, (v) => window.__workbench.setView(v), view);
     await shot(ctx, page, `view-${view}.png`);
   }

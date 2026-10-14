@@ -14,10 +14,10 @@ const SoundWorkbench = lazy(() => import("../../sound-workbench/src/SoundWorkben
 /** The pages: the benchmark page also owns its named workload URLs. */
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "graphics-test": lazy(() => import("./routes/graphicsTest")),
-  "cursor-orders": lazy(() => import("./routes/cursorOrders")),
+  "native-parity-capture": lazy(() => import("./routes/graphicsTest")),
+  "graphics-fps": lazy(() => import("./routes/graphicsTest")),
   cursor: lazy(() => import("./routes/cursor")),
-  foundation: lazy(() => import("./routes/foundation")),
-  "foundation-low": lazy(() => import("./routes/foundation")),
+  frame: lazy(() => import("./routes/frame")),
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),
   movement: lazy(() => import("./routes/movement")),
@@ -25,19 +25,12 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   sensors: lazy(() => import("./routes/sensors")),
   ballistics: lazy(() => import("./routes/ballistics")),
   artillery: lazy(() => import("./routes/ballistics")),
-  contacts: lazy(() => import("./routes/contacts")),
   weapons: lazy(() => import("./routes/weapons")),
   consequences: lazy(() => import("./routes/consequences")),
-  "cook-off": lazy(() => import("./routes/cookOff")),
-  deployment: lazy(() => import("./routes/deployment")),
   "air-hover": lazy(() => import("./routes/airHover")),
   "air-crash": lazy(() => import("./routes/airCrash")),
-  "air-closing": lazy(() => import("./routes/airClosing")),
-  air: lazy(() => import("./routes/air")),
-  "air-contracts": lazy(() => import("./routes/airWar")),
   "air-high": lazy(() => import("./routes/airWar")),
   "air-defense": lazy(() => import("./routes/airWar")),
-  "air-radar": lazy(() => import("./routes/airWar")),
   "air-dogfight": lazy(() => import("./routes/airWar")),
   "air-ingress": lazy(() => import("./routes/airWar")),
   "air-ground": lazy(() => import("./routes/airWar")),
@@ -45,8 +38,6 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "air-roster": lazy(() => import("./routes/airWar")),
   "air-hud": lazy(() => import("./routes/airWar")),
   "air-audio": lazy(() => import("./routes/airWar")),
-  "air-combined": lazy(() => import("./routes/airWar")),
-  ambush: lazy(() => import("./routes/ambush")),
   garrison: lazy(() => import("./routes/garrison")),
   supply: lazy(() => import("./routes/supply")),
   ground: lazy(() => import("./routes/ground")),
@@ -54,22 +45,21 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   ui: lazy(() => import("./routes/ui")),
   readouts: lazy(() => import("./routes/readouts")),
   camera: lazy(() => import("./routes/camera")),
-  "city-block": lazy(() => import("./routes/cityBlock")),
   facade: lazy(() => import("./routes/facade")),
   "city-lineup": lazy(() => import("./routes/cityLineup")),
   "city-ruins": lazy(() => import("./routes/cityRuins")),
   street: lazy(() => import("./routes/street")),
+  "street-watch": lazy(() => import("./routes/street")),
   generated: lazy(() => import("./routes/battle")),
+  "unit-roster": lazy(() => import("./routes/battle")),
   benchmark: lazy(() => import("./routes/benchmark")),
   endurance: lazy(() => import("./routes/endurance")),
-  lean: lazy(() => import("./routes/lean")),
   fog: lazy(() => import("./routes/fog")),
   projectiles: lazy(() => import("./routes/projectiles")),
   workbench: lazy(() => import("./routes/workbench")),
   "fog-look": lazy(() => import("./routes/fogLook")),
   sound: lazy(() => import("./routes/sound")),
-  "scenario-builder": lazy(() => import("./routes/scenarioBuilder")),
-  "scenario-play": lazy(() => import("./routes/scenarioPlay")),
+  scenario: lazy(() => import("./routes/scenario")),
 };
 
 /** Canonical URLs for the developer fixture surface all live below `/labs`. */
@@ -82,8 +72,7 @@ export function canonicalLabPath(path: string): string {
     "/workbench",
     "/map-workbench",
     "/mechanics",
-    "/scenario-play",
-    "/scenario-builder",
+    "/scenario",
     "/sound-workbench",
   ];
   return legacy.includes(path) ? `/labs${path}` : path;
@@ -92,9 +81,11 @@ export function canonicalLabPath(path: string): string {
 /** `/` is the main menu, `/labs` the index of every fixture route. */
 export function LabRouter() {
   const location = useLocation();
-  const path = canonicalLabPath(location.pathname);
-  if (path !== location.pathname)
-    return <Navigate replace to={`${path}${location.search}${location.hash}`} />;
+  const requested = `${location.pathname}${location.search}`;
+  const path = canonicalLabPath(requested);
+  const pathname = path.split("?", 1)[0];
+  if (pathname !== location.pathname)
+    return <Navigate replace to={`${path}${location.hash}`} />;
   return (
     <PageVisit>
       <LabPage path={path} />
@@ -109,9 +100,14 @@ const EDITORS: Record<string, LazyExoticComponent<ComponentType>> = {
 };
 
 function resolvePage(path: string) {
-  const normalized = canonicalLabPath(path.replace(/\/$/, "") || "/");
+  const [pathname, search = ""] = path.split("?", 2);
+  const normalized = `${canonicalLabPath(pathname.replace(/\/$/, "") || "/")}${search ? `?${search}` : ""}`;
   const editor = import.meta.env.DEV ? EDITORS[normalized] : undefined;
-  const fixture = LAB_FIXTURES.find((f) => f.route === normalized);
+  const fixture =
+    LAB_FIXTURES.find((f) => f.route === normalized) ??
+    (LAB_FIXTURES.filter((f) => f.route.split("?", 1)[0] === pathname).length === 1
+      ? LAB_FIXTURES.find((f) => f.route.split("?", 1)[0] === pathname)
+      : undefined);
   const Route = fixture && ROUTES[fixture.id];
   return { path: normalized, editor, fixture, Route };
 }
@@ -126,6 +122,13 @@ export function screenForPath(path: string): "menu" | "loading" | "other" {
   return /^\/battle(\/|$)/.test(page.path) ? "loading" : "other";
 }
 
+export function labIndexSections() {
+  return {
+    scenes: LAB_FIXTURES.filter((fixture) => !fixture.tool),
+    tools: LAB_FIXTURES.filter((fixture) => fixture.tool),
+  };
+}
+
 function LabPage({ path: requestedPath }: { path: string }) {
   const { path, editor: Editor, fixture, Route } = resolvePage(requestedPath);
   if (Editor)
@@ -136,6 +139,7 @@ function LabPage({ path: requestedPath }: { path: string }) {
     );
   if (!Route && path !== "/labs") return <MainMenu />;
   if (!fixture || !Route) {
+    const { scenes, tools } = labIndexSections();
     return (
       <main
         className="lab-index"
@@ -156,38 +160,44 @@ function LabPage({ path: requestedPath }: { path: string }) {
               </li>
             ))}
         </ul>
-        <h2>Fixtures and tools</h2>
+        <h2>Scenes</h2>
+        <p>These registered scenes are the test harness; every scene passes at implementation closeout.</p>
         <ul>
-          {LAB_FIXTURES.map((f) => (
+          {scenes.map((f) => (
             <li key={f.id}>
               <Link to={f.route}>{f.id}</Link> — {f.describe}
             </li>
           ))}
         </ul>
+        <h2>Tools</h2>
+        <p>Tools are human lab pages and measurements; they run when opened by id.</p>
+        <ul>
+          {tools.map((f) => (
+            <li key={f.id}>
+              <Link to={f.route}>{f.id}</Link> — {f.describe}
+            </li>
+          ))}
+          {import.meta.env.DEV &&
+            [
+              ["Mechanics editor", "/labs/mechanics"],
+              ["Map workbench", "/labs/map-workbench"],
+              ["Sound workbench", "/labs/sound-workbench"],
+            ].map(([label, href]) => (
+              <li key={href}>
+                <Link to={href}>{label}</Link> — development editor
+              </li>
+            ))}
+        </ul>
       </main>
     );
   }
-  // Player battles and replays run the game's catalog; the graphics test uses
-  // the menu catalog because its reference reel is the menu's own content;
-  // labs run the test set.
-  const catalog =
-    fixture.id === "generated" || fixture.id === "scenario-builder"
-      ? "game"
-      : fixture.id === "graphics-test"
-        ? "menu"
-        : "test";
-  const page =
-    fixture.id === "scenario-play" ? (
+  const catalog = fixture.catalog ?? "test";
+  const page = (
+    <SessionCatalogScope set={catalog}>
       <Route />
-    ) : (
-      <SessionCatalogScope set={catalog}>
-        <Route />
-      </SessionCatalogScope>
-    );
-  return fixture.id === "generated" ||
-    fixture.id === "sound" ||
-    fixture.id === "scenario-builder" ||
-    fixture.id === "scenario-play" ? (
+    </SessionCatalogScope>
+  );
+  return fixture.loading === false ? (
     <Suspense fallback={null}>{page}</Suspense>
   ) : (
     <LabLoading key={path} subject={fixture.id.toUpperCase()}>

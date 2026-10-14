@@ -4,7 +4,7 @@ import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
 import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { canonicalLabPath, LabRouter } from "@apps/battle-lab/src/router";
+import { canonicalLabPath, LabRouter, labIndexSections } from "@apps/battle-lab/src/router";
 
 afterEach(() => {
   cleanup();
@@ -38,8 +38,8 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     Developer: {
       "Mechanics editor": "/labs/mechanics",
       "Map workbench": "/labs/map-workbench",
-      "Scenario builder": "/labs/scenario-builder",
-      "Scenario play": "/labs/scenario-play",
+      "Scenario builder": "/labs/scenario",
+      "Scenario play": "/labs/scenario?mode=play",
       "Sound workbench": "/labs/sound-workbench",
       Benchmark: "/labs/benchmark",
       Labs: "/labs",
@@ -68,6 +68,8 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   menu.unmount();
   window.history.replaceState(null, "", "/labs");
   const index = await visit(createElement(LabRouter));
+  expect(index.getByRole("heading", { name: "Scenes" })).toBeTruthy();
+  expect(index.getByRole("heading", { name: "Tools" })).toBeTruthy();
   const hrefs = index.getAllByRole("link").map((a) => a.getAttribute("href"));
   const labUrl = (route: string) => {
     const url = new URL(route, "http://localhost");
@@ -98,4 +100,14 @@ test("lab fixture URLs use the /labs namespace and legacy paths canonicalize", (
   expect(canonicalLabPath("/benchmark")).toBe("/labs/benchmark");
   expect(canonicalLabPath("/labs/street")).toBe("/labs/street");
   expect(canonicalLabPath("/battle")).toBe("/battle");
+});
+
+test("lab index separates registered scenes from tools", () => {
+  const { scenes, tools } = labIndexSections();
+  expect(scenes.length).toBeGreaterThan(0);
+  expect(tools.length).toBeGreaterThan(0);
+  expect(scenes.every((fixture) => !fixture.tool)).toBe(true);
+  expect(tools.every((fixture) => fixture.tool)).toBe(true);
+  expect(scenes.map((fixture) => fixture.id)).not.toContain("ballistics");
+  expect(tools.map((fixture) => fixture.id)).toContain("ballistics");
 });
