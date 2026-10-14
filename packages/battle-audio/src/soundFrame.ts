@@ -277,7 +277,11 @@ export class SoundFrame {
       try {
         durations[name] = Array.from({ length: variants }, (_, k) => this.sink.duration(name, k));
       } catch {
-        // A baseline this battle never prepared: it never plays.
+        // A custom test catalog may omit optional presentation replacements.
+        // Give Rust a harmless duration so an otherwise silent frame can still
+        // be constructed; prepared production recipes always take the branch
+        // above.
+        if (!o.catalog.sounds[name]) durations[name] = [1];
       }
     }
     frame.durations(JSON.stringify(durations));

@@ -112,7 +112,7 @@ including balanced wrapping for pending and owned cards;
 [CommandBar](../../../web/src/battle/present/readouts.tsx) owns command interactions, using
 [InfoPanel](../../../web/src/battle/present/infoPanel.tsx).
 [Army tests](../../../web/tests/armyDeck.test.tsx),
-[command tests](../../../web/tests/commandDeck.test.tsx) and
+[the panels scene](../../../web/scenes/panels.mjs) and
 [input tests](../../../web/tests/unitControl.test.tsx) pin card access, command
 availability and whole-selection attack-move;
 [pause tests](../../../web/tests/pauseMenu.test.tsx) pin Escape precedence;

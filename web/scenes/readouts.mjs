@@ -559,7 +559,7 @@ export async function run(ctx) {
   await advance(page, 2);
   await selectOnly([0, truck.id]);
   const truckName = `test_supply #${truck.id}`;
-  const attackMove = await clickAt(330, 300, "x");
+  const attackMove = await clickAt(330, 300, "c");
   await advance(page, 2);
   const truckGoal = (await obs(page)).own.find((u) => u.id === truck.id).goal;
   const attackGround = await clickAt(300, 300, "g", "left");

@@ -3,19 +3,19 @@
 The plan reuses shipped repository contracts before introducing new ones:
 
 - Helicopter air state, LowAir target layers, air grids, crash publication, and
-  side-scoped contacts: [`specs/done/helicopters/README.md`](../done/helicopters/README.md).
+  side-scoped contacts: [`specs/done/helicopters/README.md`](../helicopters/README.md).
 - Guided projectile lifetime, motors, turn limits, guidance support, and
-  `interceptable`: [`crates/contract/src/ballistics.rs`](../../crates/contract/src/ballistics.rs),
-  [`crates/contract/src/weapons.rs`](../../crates/contract/src/weapons.rs), and
-  [`crates/sim/src/flight/mod.rs`](../../crates/sim/src/flight/mod.rs).
-- Existing side-local optical sensing and Ground fog: [`crates/sim/src/sensing.rs`](../../crates/sim/src/sensing.rs),
-  [`crates/sim/src/visibility.rs`](../../crates/sim/src/visibility.rs), and
-  [`crates/sim/src/knowledge.rs`](../../crates/sim/src/knowledge.rs).
-- Purchase/deployment/refund ownership: [`crates/sim/src/battle.rs`](../../crates/sim/src/battle.rs)
-  and [`specs/done/unit-roster/README.md`](../done/unit-roster/README.md).
+  `interceptable`: [`crates/contract/src/ballistics.rs`](../../../crates/contract/src/ballistics.rs),
+  [`crates/contract/src/weapons.rs`](../../../crates/contract/src/weapons.rs), and
+  [`crates/sim/src/flight/mod.rs`](../../../crates/sim/src/flight/mod.rs).
+- Existing side-local optical sensing and Ground fog: [`crates/sim/src/sensing.rs`](../../../crates/sim/src/sensing.rs),
+  [`crates/sim/src/visibility.rs`](../../../crates/sim/src/visibility.rs), and
+  [`crates/sim/src/knowledge.rs`](../../../crates/sim/src/knowledge.rs).
+- Purchase/deployment/refund ownership: [`crates/sim/src/battle.rs`](../../../crates/sim/src/battle.rs)
+  and [`specs/done/unit-roster/README.md`](../unit-roster/README.md).
 - Audio provenance, source hashes, crop frames, processing, calibration, and
-  runtime preparation: [`packages/battle-audio/README.md`](../../packages/battle-audio/README.md)
-  and [`assets/README.md`](../../assets/README.md).
+  runtime preparation: [`packages/battle-audio/README.md`](../../../packages/battle-audio/README.md)
+  and [`assets/README.md`](../../../assets/README.md).
 
 External audio research is deliberately a first slice. Slice 00 must record
 the exact YouTube URLs, attribution/rights, download tool/version, hashes,

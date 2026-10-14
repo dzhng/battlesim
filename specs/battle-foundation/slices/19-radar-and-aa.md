@@ -1,6 +1,6 @@
 # 19 — Radar support and self-guided AA
 
-**Status:** superseded 2026-10-13 by the combined [persistent aircraft and layered air-defence plan](../../air-war/README.md). Do not implement this historical slice independently. Its radar/AA intent is carried by air-war slices 01, 03, and 04.
+**Status:** superseded 2026-10-13 by the combined [persistent aircraft and layered air-defence plan](../../done/air-war/README.md). Do not implement this historical slice independently. Its radar/AA intent is carried by air-war slices 01, 03, and 04.
 
 ## Contract and question
 

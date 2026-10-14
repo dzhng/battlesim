@@ -277,7 +277,7 @@ async function contactGlyphOverFog(ctx, page) {
   const drawn = decode(await snapshot(ctx, page, "glyph-1920x1080.png"));
   const specimen = (await lab(page, () => window.__lab.route.specimens()))[0];
   // The interior stays red over fog. Its common white outline is covered
-  // by contactGlyph.test.ts; rim colour is diagnostic here.
+  // by the contact glyph scene itself; rim colour is diagnostic here.
   const rim = await lab(
     page,
     (c) =>

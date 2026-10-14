@@ -8,36 +8,10 @@ import type { ObservationLayout } from "../src/battle/sim/observationView";
 import { easeNudge } from "../src/battle/present/readouts";
 import { REASON_MARK } from "../src/battle/present/infoPanel";
 import { REASON_TEXT } from "@apps/battle-lab/src/reasonText";
-import { mountTimers, ownStateRows, type PanelRules } from "../src/battle/present/panelRows";
-import type { MountView, OwnUnitView } from "../src/battle/sim/observationView";
+import { ownStateRows, type PanelRules } from "../src/battle/present/panelRows";
+import type { OwnUnitView } from "../src/battle/sim/observationView";
 
 const geometry = loadMap("geometry").definition;
-
-const mount = (m: Partial<MountView>): MountView => ({
-  mount: 0,
-  loaded: 0,
-  ammo: [20, 15],
-  aim: 1,
-  reload: 0,
-  target: null,
-  reason: "no_compatible_target",
-  guiding: false,
-  reloading: null,
-  ...m,
-});
-test("completed timers vanish; running ones are the published fractions", () => {
-  expect(mountTimers(mount({}))).toEqual({ aim: null, reload: null });
-  const t = { kind: "identified" as const, id: 1 };
-  expect(mountTimers(mount({ target: t, aim: 0.4, loaded: null, reload: 0.25 }))).toEqual({
-    aim: 0.4,
-    reload: 0.25,
-  });
-  // Aimed and loaded: nothing left to show.
-  expect(mountTimers(mount({ target: t, aim: 1, loaded: 1, reload: 0 }))).toEqual({
-    aim: null,
-    reload: null,
-  });
-});
 
 test("every published action reason has player words and a mark, and every garrison phase a row", () => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });

@@ -3,7 +3,7 @@
 This is a requirement for future implementation, not authorization to launch
 model production during the unknowns walk. The [roster spec](README.md) and
 [starter balance](starter-balance.md) define identities and provisional gameplay
-data. The existing [scene-assets owner](../../packages/scene-assets/README.md)
+data. The existing [scene-assets owner](../../../packages/scene-assets/README.md)
 owns source, bake, validation, appearance bindings and icons.
 
 ## One family per assignment, one owner per shared platform

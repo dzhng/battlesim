@@ -1008,7 +1008,7 @@ The following values are fixed implementation geometry/proof settings, not curre
 | `CARRIED_M` | `1.0` | A district's edge carries a carriageway whose own edge is this near it. |
 | `END_MARGIN_M` | `1.0` | A street that ends in the open stops this far inside its district. |
 
-### [crates/mapgen/src/street_props.rs](../../../crates/mapgen/src/street_props.rs)
+### [crates/mapgen/src/street_props.rs](../../../crates/mapgen/src/street_props/mod.rs)
 
 | Name | Value/expression | Purpose from source |
 | --- | --- | --- |

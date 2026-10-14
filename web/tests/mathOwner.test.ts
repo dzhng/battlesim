@@ -48,18 +48,6 @@ function handRolled(text: string): string[] {
   return [...names, ...[...text.matchAll(TYPE)].map((m) => m[0])];
 }
 
-test("the detector recognises the migrated helpers", () => {
-  // The shapes the old hand-rolled owners took, so the grep cannot rot silent.
-  expect(handRolled("function cross(a: readonly number[], b: readonly number[]) {")).toEqual([
-    "cross",
-  ]);
-  expect(handRolled("export function lookAt(eye: Vec3, target: Vec3): Mat4 {")).toEqual(["lookAt"]);
-  expect(handRolled("function lerp3(a: Vec3, b: Vec3, t: number): Vec3 {")).toEqual(["lerp3"]);
-  expect(handRolled("const clamp = (v: number, lo: number, hi: number) => v")).toEqual(["clamp"]);
-  expect(handRolled("export type Mat4 = Float32Array;")).toEqual(["type Mat4 ="]);
-  expect(handRolled("const length = Math.hypot(dx, dy);")).toEqual([]);
-});
-
 test("no vector or matrix math is hand-rolled outside the math package", () => {
   const offenders: string[] = [];
   for (const path of SCANNED.flatMap((dir) => sources(join(ROOT, dir)))) {

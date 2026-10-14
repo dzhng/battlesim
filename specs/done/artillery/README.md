@@ -84,7 +84,7 @@ texture set.
   Attack Ground emphasis. `apps/battle-lab/src/routes/ballistics.tsx` and
   `web/scenes/artillery.mjs` own the focused lab checkpoint.
 - `crates/sim/src/skirmish_ai/tests.rs`, `crates/sim/tests/flight_ballistics.rs`,
-  `crates/sim/tests/skirmish.rs`, `web/tests/commandDeck.test.tsx` and
+  `crates/sim/tests/skirmish.rs`, `web/scenes/panels.mjs` and
   `web/tests/unitControl.test.tsx` pin the behavioral contracts.
 
 ## Hard cutover and verification
