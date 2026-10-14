@@ -44,7 +44,7 @@ use presentation::assets::RUNTIME;
 use presentation::records::View;
 use presentation::shadow::SunShadowFrame;
 use wgpu::{
-    CommandBuffer, CommandEncoder, CurrentSurfaceTexture, PresentMode, SubmissionIndex, Surface,
+    CommandEncoder, CurrentSurfaceTexture, PresentMode, SubmissionIndex, Surface,
     SurfaceConfiguration,
 };
 use winit::application::ApplicationHandler;
@@ -328,13 +328,9 @@ impl Run {
         })
     }
 
-    /// Submits `encoder` after `first`, copying the display target to the
-    /// window and presenting it if the window can show it.
-    fn present(
-        &mut self,
-        first: Option<CommandBuffer>,
-        mut encoder: CommandEncoder,
-    ) -> SubmissionIndex {
+    /// Submits `encoder`, copying the display target to the window and
+    /// presenting it if the window can show it.
+    fn present(&mut self, mut encoder: CommandEncoder) -> SubmissionIndex {
         let now = Instant::now();
         if let Some(last) = self.last.replace(now) {
             self.presents.intervals.push(now - last);
@@ -343,18 +339,12 @@ impl Run {
             CurrentSurfaceTexture::Success(t) | CurrentSurfaceTexture::Suboptimal(t) => t,
             CurrentSurfaceTexture::Occluded => {
                 self.presents.occluded += 1;
-                return self
-                    .gpu
-                    .queue
-                    .submit(first.into_iter().chain([encoder.finish()]));
+                return self.gpu.queue.submit([encoder.finish()]);
             }
             other => {
                 let status = format!("{other:?}");
                 self.presents.other.push(status);
-                return self
-                    .gpu
-                    .queue
-                    .submit(first.into_iter().chain([encoder.finish()]));
+                return self.gpu.queue.submit([encoder.finish()]);
             }
         };
         let targets = &self.passes.targets;
@@ -363,10 +353,7 @@ impl Run {
             texture.texture.as_image_copy(),
             targets.display_texture.size(),
         );
-        let index = self
-            .gpu
-            .queue
-            .submit(first.into_iter().chain([encoder.finish()]));
+        let index = self.gpu.queue.submit([encoder.finish()]);
         self.window.pre_present_notify();
         self.gpu.queue.present(texture);
         self.presents.shown += 1;
@@ -429,11 +416,11 @@ impl Run {
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.mark();
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-        let first = bench.begin(device);
+        bench.begin(device, queue);
         let mut encoder = self.passes.encode(device, queue, &self.view);
         bench.end(&mut encoder);
         bench.mark();
-        let index = self.present(first, encoder);
+        let index = self.present(encoder);
         let bench = self.bench.as_mut().ok_or("not a bench")?;
         bench.submitted(&self.gpu.device, index)?;
         Ok(true)
@@ -517,7 +504,7 @@ impl Run {
             write_png(&out.join(&plate), self.passes.targets.size, &rgba)?;
             self.plates += 1;
             let encoder = device.create_command_encoder(&Default::default());
-            self.present(None, encoder);
+            self.present(encoder);
             return Ok(true);
         }
         if self.paced < args.pace {
@@ -525,7 +512,7 @@ impl Run {
             let encoder = self
                 .passes
                 .encode(&self.gpu.device, &self.gpu.queue, &self.view);
-            self.present(None, encoder);
+            self.present(encoder);
             return Ok(true);
         }
         Ok(false)

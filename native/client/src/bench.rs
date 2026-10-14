@@ -199,12 +199,13 @@ impl Bench {
         self.marks.push(Instant::now());
     }
 
-    /// The command buffer that opens the frame's GPU time: submit it first.
-    pub fn begin(&self, device: &Device) -> Option<CommandBuffer> {
-        let timer = self.timer.as_ref()?;
+    /// Opens the frame's GPU time, submitted at once: the frame's passes may
+    /// submit parts of the frame before its last encoder.
+    pub fn begin(&self, device: &Device, queue: &Queue) {
+        let Some(timer) = &self.timer else { return };
         let mut encoder = device.create_command_encoder(&Default::default());
         timer.mark(&mut encoder, self.frame, 0);
-        Some(encoder.finish())
+        queue.submit([encoder.finish()]);
     }
 
     /// Closes the frame's GPU time at the end of `encoder`.
