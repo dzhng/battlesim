@@ -12,6 +12,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - **Pickup:** browser-verify the restaged jet scenes, then slice 15; slices 16, 17 and 18 can run beside it. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Merging a worktree:** commit its work on its branch first, and check `git log` shows the merge brought commits in. Merging an uncommitted branch is an empty, silent no-op.
+- **Clean up merged worktrees:** after a branch merges, `git worktree remove` it and delete the branch. Each worktree carries its own multi-gigabyte Cargo `target/`, and leaving them filled the disk once.
 - **Before ending each pass,** update this section: status, pickup and the checklist.
 
 ### Checklist
@@ -32,7 +33,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [x] 14 [jet attitude](slices/14-jet-attitude.md)
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
 - [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
-- [ ] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
+- [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
 - [ ] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
 - [ ] 19 [closeout](slices/19-closeout.md)
 
