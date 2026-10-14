@@ -132,12 +132,12 @@ export interface SoundCatalog {
 }
 export const isGenerated = (source: SoundSource | GeneratedSource): source is GeneratedSource =>
   (source as GeneratedSource).kind === "Generated";
+/** Where generated sound-effect masters are kept; what makes a generated source cuttable. */
+export const EFFECT_MASTERS = "assets/source/audio/effects";
 /** Whether clips may be cut from `source`: a recording or a generated sound effect; a
  *  generated music master streams whole and is never cut. */
 export const cuttable = (source: SoundSource | GeneratedSource) =>
-  !isGenerated(source) || source.path.startsWith("assets/source/audio/effects/");
-/** A clip's crop source, which validation guarantees is a recording. */
-export const recording = (catalog: SoundCatalog, id: string) => catalog.sources[id] as SoundSource;
+  !isGenerated(source) || source.path.startsWith(`${EFFECT_MASTERS}/`);
 const id = /^[a-zA-Z0-9_-]+$/;
 const hash = /^[a-f0-9]{64}$/;
 function record(value: unknown, where: string): Record<string, unknown> {

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { recording } from "../../../packages/battle-audio/src/catalog";
+import { isGenerated } from "../../../packages/battle-audio/src/catalog";
 import { SOUNDS } from "../../../packages/battle-audio/src/synthSounds.gen";
 import { RecipeEditor } from "./RecipeEditor";
 import type { EditorProps } from "./editorProps";
@@ -120,7 +120,12 @@ export function Library({
             const crops = "layers" in clip ? clip.layers : [clip];
             return (
               <section className="sw-detail">
-                <p className="sw-eyebrow">CLEAN RECORDING · {clip.role.toUpperCase()}</p>
+                <p className="sw-eyebrow">
+                  {crops.every(({ source }) => isGenerated(draft.sources[source]))
+                    ? "GENERATED EFFECT"
+                    : "CLEAN RECORDING"}{" "}
+                  · {clip.role.toUpperCase()}
+                </p>
                 <h2>{clip.label}</h2>
                 <p className="sw-id">{selected.id}</p>
                 <button onClick={() => void play("clip", selected.id)}>Play clip</button>
@@ -133,15 +138,24 @@ export function Library({
                     {(clip.frames / clip.sample_rate).toFixed(3)} s · {clip.sample_rate} Hz
                   </dd>
                   {crops.map((crop, i) => {
-                    const source = recording(draft, crop.source);
+                    const source = draft.sources[crop.source];
                     return (
                       <Fragment key={i}>
                         <dt>{crops.length > 1 ? `Layer ${i + 1}` : "Source"}</dt>
                         <dd>
-                          <a href={source.url} target="_blank" rel="noreferrer">
-                            {source.label}
-                          </a>{" "}
-                          · {source.author} · {source.license}
+                          {isGenerated(source) ? (
+                            <>
+                              {crop.source} · {source.generator} · {source.model}
+                              <br />“{source.prompt}”
+                            </>
+                          ) : (
+                            <>
+                              <a href={source.url} target="_blank" rel="noreferrer">
+                                {source.label}
+                              </a>{" "}
+                              · {source.author} · {source.license}
+                            </>
+                          )}
                           <br />
                           {(crop.source_frames[0] / crop.source_rate).toFixed(3)}–
                           {(crop.source_frames[1] / crop.source_rate).toFixed(3)} s
@@ -155,7 +169,14 @@ export function Library({
                   <dt>Processing</dt>
                   <dd>{clip.processing}</dd>
                 </dl>
-                {[...new Set(crops.map((crop) => recording(draft, crop.source).notes))]
+                {[
+                  ...new Set(
+                    crops.flatMap(({ source }) => {
+                      const held = draft.sources[source];
+                      return isGenerated(held) ? [] : [held.notes];
+                    }),
+                  ),
+                ]
                   .filter(Boolean)
                   .map((notes) => (
                     <p key={notes}>{notes}</p>

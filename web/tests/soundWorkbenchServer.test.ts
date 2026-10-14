@@ -8,9 +8,9 @@ import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { SoundWorkbenchStore, soundWorkbenchMiddleware } from "../../apps/sound-workbench/server";
 import {
-  recording,
   validateSoundCatalog,
   type SoundCatalog,
+  type SoundSource,
 } from "@packages/battle-audio/src/catalog";
 import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 import {
@@ -328,7 +328,7 @@ test.each(["source", "clip"])(
     const source = await installRecording(root);
     const initial = (await request("snapshot")).body;
     const catalog: SoundCatalog = structuredClone(initial.catalog);
-    if (kind === "source") recording(catalog, "master").label = "Edited master";
+    if (kind === "source") (catalog.sources.master as SoundSource).label = "Edited master";
     else catalog.clips.reload.label = "Edited reload";
     // The request must reach the immutable-provenance guard, not generic schema validation.
     expect(() => validateSoundCatalog(catalog)).not.toThrow();

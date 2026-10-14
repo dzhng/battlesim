@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { GeneratedSource, SoundCatalog } from "../../src/catalog";
+import { EFFECT_MASTERS, type GeneratedSource, type SoundCatalog } from "../../src/catalog";
 import { sha256 } from "./cacheKey";
 import type { ElevenLabsClient } from "./elevenlabs";
 import { writeAtomic } from "./lock";
@@ -8,7 +8,6 @@ import { writeCatalog } from "./music";
 import { LIMITS, Pool } from "./pool";
 
 export const EFFECT_MODEL = "eleven_text_to_sound_v2";
-const RAW = "assets/source/audio/effects";
 const SOUNDS = "fixtures/sounds.json";
 /** What every effect prompt rules out: the game's recordings are of machines, never of people. */
 const NOTHING_HUMAN =
@@ -84,7 +83,7 @@ export async function generateEffects(run: EffectRun): Promise<{ calls: number; 
         );
         result.calls++;
         const sha = sha256(bytes);
-        const raw = `${RAW}/${name}.${sha.slice(0, 8)}.mp3`;
+        const raw = `${EFFECT_MASTERS}/${name}.${sha.slice(0, 8)}.mp3`;
         writeAtomic(join(root, raw), bytes);
         catalog.sources[name] = {
           kind: "Generated",

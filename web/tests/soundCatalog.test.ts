@@ -8,11 +8,11 @@ import units from "@fixtures/catalog.json";
 import shipped from "@fixtures/sounds.json";
 import {
   firingCadence,
-  recording,
   resolveShot,
   validateSoundCatalog,
   type SoundCatalog,
   type SoundClip,
+  type SoundSource,
 } from "@packages/battle-audio/src/catalog";
 import { musicUrl } from "@packages/battle-audio/src/music/musicCatalog";
 import game from "@fixtures/game.json";
@@ -315,9 +315,9 @@ test("a designed clip layers crops of attributed sources; each layer names a rea
     notes: "",
   };
   expect(validateSoundCatalog(c)).toBe(c);
-  recording(c, "whine").license = "Unknown";
+  (c.sources.whine as SoundSource).license = "Unknown";
   expect(() => validateSoundCatalog(c)).toThrow(/whine: invalid provenance/);
-  recording(c, "whine").license = "CC-BY-NC-3.0";
+  (c.sources.whine as SoundSource).license = "CC-BY-NC-3.0";
   expect(validateSoundCatalog(c)).toBe(c);
   (c.clips.heavy as { layers: { source: string }[] }).layers[1].source = "missing";
   expect(() => validateSoundCatalog(c)).toThrow(/clip heavy/);
