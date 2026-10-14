@@ -17,6 +17,7 @@ import { matches } from "@packages/battle-audio/tools/generate/transcript";
 import {
   readLock,
   recordVerdicts,
+  verdictOf,
   type CandidateRecord,
   type DesignRecord,
 } from "@packages/battle-audio/tools/generate/lock";
@@ -86,8 +87,11 @@ const profiles = (compression = 4): VoiceProfiles => ({
   },
 });
 
-/** The proxy at the network edge: speech is the text's bytes, a transcript echoes the speech. */
-function fakeProxy(options: { failAfter?: number; transcript?: (spoken: string) => string } = {}) {
+/** The proxy at the network edge: speech is the text's bytes (marked by `take`, as a
+ *  real retake speaks new bytes), a transcript echoes the speech. */
+function fakeProxy(
+  options: { failAfter?: number; transcript?: (spoken: string) => string; take?: number } = {},
+) {
   /** Requests the proxy answered, so the ones that cost credits. */
   const calls: string[] = [];
   /** Descriptions sent to Voice Design, and bodies sent to save a voice. */
@@ -101,7 +105,7 @@ function fakeProxy(options: { failAfter?: number; transcript?: (spoken: string) 
     calls.push(path);
     if (path.includes("/text-to-speech/")) {
       const { text } = JSON.parse(String(init?.body));
-      return new Response(new TextEncoder().encode(`speech:${text}`));
+      return new Response(new TextEncoder().encode(`speech${options.take ?? ""}:${text}`));
     }
     if (path.endsWith("/speech-to-text")) {
       const file = (init!.body as FormData).get("file") as Blob;
@@ -311,6 +315,50 @@ describe("voice generation", () => {
     expect(checkVoices({ root, catalog: catalog(), profiles: profiles(6) })).toEqual([]);
   });
 
+  it("a re-mix onto another background keeps a reviewed set approved and packed; a new recording is reviewed again", async () => {
+    const root = workspace();
+    const lockPath = join(root, "fixtures/voices.lock.json");
+    await run(root, fakeProxy());
+    const reviewed = readLock(lockPath);
+    const takes = Object.keys(reviewed.takes);
+    expect(takes).toHaveLength(4);
+    recordVerdicts(
+      lockPath,
+      "ok",
+      takes.map((id) => `${id}@${reviewed.takes[id].served_sha256}`),
+      quiet,
+    );
+    const packedTakes = (c: VoiceCatalog) => {
+      writePacks({ root, catalog: c, unreviewed: false, log: quiet });
+      const pack = JSON.parse(
+        readFileSync(join(root, "assets/runtime/audio/voices/tank/pack.json"), "utf8"),
+      ) as { takes: { intensity: string; take: number }[] };
+      return pack.takes.map((take) => `tank/lead/move/${take.intensity}/${take.take}`);
+    };
+    expect(packedTakes(catalog())).toEqual(takes);
+
+    // The set moves onto another bed: every take is re-rendered, no speech is bought.
+    const remixed = catalog();
+    remixed.sets.tank.processing = "voice-intercom";
+    const local = fakeProcessor();
+    await run(root, null, { catalog: remixed, processor: local.processor });
+    expect(local.jobs).toEqual(Array(4).fill("voice-intercom"));
+    const after = readLock(lockPath);
+    for (const id of takes) {
+      expect(after.takes[id].served_sha256).not.toBe(reviewed.takes[id].served_sha256);
+      expect(verdictOf(after.takes[id]), id).toBe("ok");
+      expect(after.takes[id].match).toEqual(reviewed.takes[id].match);
+    }
+    expect(packedTakes(remixed)).toEqual(takes);
+
+    // A take spoken again is a new recording: its approval no longer holds.
+    const retaken = "tank/lead/move/steady/1";
+    remixed.retakes[retaken] = 1;
+    await run(root, fakeProxy({ take: 2 }), { catalog: remixed });
+    expect(verdictOf(readLock(lockPath).takes[retaken])).toBeNull();
+    expect(packedTakes(remixed)).toEqual(takes.filter((id) => id !== retaken));
+  });
+
   it("lays a profile's bed from the game's catalog clip, and a changed clip re-renders", async () => {
     const root = workspace();
     const heli = catalog();
@@ -409,13 +457,15 @@ describe("voice packs", () => {
     const file = `assets/runtime/audio/voices/tank/lead-move-${intensity}-${n}.${sha256.slice(0, 8)}.mp3`;
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), record.onDisk ?? bytes);
+    const raw_sha256 = createHash("sha256").update(`raw:${bytes}`).digest("hex");
     const verdict =
       record.verdict === "stale"
-        ? { value: "ok", sha256: "f".repeat(64) }
-        : record.verdict && { value: record.verdict, sha256 };
+        ? { value: "ok", raw_sha256: "f".repeat(64) }
+        : record.verdict && { value: record.verdict, raw_sha256 };
     return [
       `tank/lead/move/${take}`,
       {
+        raw_sha256,
         served_sha256: sha256,
         duration_s: 1.25,
         match: { flagged: record.flagged ?? false },
@@ -435,13 +485,13 @@ describe("voice packs", () => {
   const listed = (pack: { takes: { intensity: string; take: number }[] } | null) =>
     pack?.takes.map((take) => `${take.intensity}/${take.take}`) ?? [];
 
-  it("lists only takes judged ok on the bytes served", () => {
+  it("lists only takes judged ok on the recording served", () => {
     const root = workspace();
     const pack = packed(
       false,
       [
         locked(root, "steady/0", "ok", { verdict: "ok" }),
-        // Judged on bytes since replaced; judged bad; never judged.
+        // Judged on a recording since replaced; judged bad; never judged.
         locked(root, "steady/1", "regenerated", { verdict: "stale" }),
         locked(root, "stressed/0", "bad", { verdict: "bad" }),
         locked(root, "stressed/1", "unjudged"),

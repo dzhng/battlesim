@@ -261,7 +261,7 @@ validates it, and every playable roster unit must resolve to a set.
 [`voices.lock.json`](voices.lock.json) is the generation tool's ledger and has no
 other writer: per take, the hashes of what it was made from, of its raw master and
 of its served file, its length, transcript, match against the script, provenance,
-and the verdict a reviewer gave, bound to the bytes it judged; each voice's
+and the verdict a reviewer gave, bound to the recording it judged; each voice's
 design candidates; and each generated bed. Never edit it by hand; the workbench records verdicts through
 the tool. [Battle audio](../packages/battle-audio/README.md#generated-voices) owns
 generation, review and packs.

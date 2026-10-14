@@ -133,7 +133,8 @@ const USAGE = `usage: bun run generate <command>
   check                    prove the lock against the files by hash
   report                   the plan, then what the lock holds
   verdict ok|bad <take>@<sha256> ...
-                           judge takes, each bound to the served bytes heard
+                           judge takes by the served bytes heard; a verdict
+                           binds to their raw master, so a re-mix keeps it
   pack [--set a,b] [--unreviewed]
                            write each set's pack.json from its takes judged ok;
                            --unreviewed also lists unjudged, unflagged takes

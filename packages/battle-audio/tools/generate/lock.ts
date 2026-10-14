@@ -25,8 +25,9 @@ export interface TakeRecord {
   transcript: string;
   match: Match;
   provenance: Generated;
-  /** The reviewer's judgement, bound to the served bytes it judged. */
-  verdict?: { value: "ok" | "bad"; sha256: string };
+  /** The reviewer's judgement of the speech: bound to the raw master it was spoken as,
+   *  so a re-mix onto another bed keeps it and a new recording is judged again. */
+  verdict?: { value: "ok" | "bad"; raw_sha256: string };
 }
 /** One Voice Design preview, kept as a raw master because its generated id is temporary. */
 export interface CandidateRecord {
@@ -71,15 +72,16 @@ export function readLock(path: string): VoiceLock {
   return { beds: lock.beds ?? {}, designs: lock.designs ?? {}, takes: lock.takes ?? {} };
 }
 
-/** A take's standing verdict: one given to other bytes no longer holds. */
+/** A take's standing verdict: one given to another recording no longer holds. */
 export function verdictOf(record: TakeRecord): "ok" | "bad" | null {
-  return record.verdict?.sha256 === record.served_sha256 ? record.verdict.value : null;
+  return record.verdict?.raw_sha256 === record.raw_sha256 ? record.verdict.value : null;
 }
 
 /**
  * `generate verdict`: judges takes named `<take>@<served sha256>`, the bytes the
  * reviewer heard. A take whose bytes changed since, or that the lock lacks, is
- * refused by name; the others are recorded. True when every one was recorded.
+ * refused by name; the others are recorded against the raw master those bytes were
+ * made from. True when every one was recorded.
  */
 export function recordVerdicts(
   path: string,
@@ -98,7 +100,7 @@ export function recordVerdicts(
     if (!record) log(`UNKNOWN ${entry}`);
     else if (record.served_sha256 !== sha256) log(`CHANGED ${id}`);
     else {
-      record.verdict = { value, sha256 };
+      record.verdict = { value, raw_sha256: record.raw_sha256 };
       recorded++;
       log(`VERDICT ${id} ${value}`);
     }

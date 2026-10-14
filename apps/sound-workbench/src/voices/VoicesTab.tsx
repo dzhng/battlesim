@@ -392,7 +392,7 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
                     const next = event.target.value;
                     if (
                       window.confirm(
-                        `Mix ${set} over ${next}? Its takes are re-mixed (no new speech) and stay out of the pack until reviewed.`,
+                        `Mix ${set} over ${next}? Its takes are re-mixed from the same recordings and keep their review.`,
                       )
                     )
                       void background(set, next);

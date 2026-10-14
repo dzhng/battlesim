@@ -238,7 +238,7 @@ export class VoiceWorkbenchStore {
    * Re-mixes a set onto another background: its `processing` becomes another of its
    * placement's profiles, published like any edit to voices.json, then the tool
    * re-renders the set's takes from their raw masters (no calls) and re-packs it.
-   * Re-mixed takes are new bytes, so they wait for review before they are packed.
+   * The recordings are unchanged, so their verdicts hold and the pack keeps them.
    */
   async background(value: unknown): Promise<VoiceSnapshot> {
     const request = object(value, ["revision", "set", "processing"]);

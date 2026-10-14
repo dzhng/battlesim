@@ -478,10 +478,10 @@ test("a voice verdict is recorded by the generation tool and survives a reload",
   expect(judged.status).toBe(200);
   expect(judged.body.takes[LEAD_MOVE].verdict).toBe("ok");
   expect(judged.body.counts.tank).toMatchObject({ unreviewed: 1, ok: 1 });
-  // The verdict is bound to the bytes that were heard.
+  // The verdict is given on the bytes heard and bound to the recording they were made from.
   expect((await lockOf(root)).takes[LEAD_MOVE].verdict).toEqual({
     value: "ok",
-    sha256: "a".repeat(64),
+    raw_sha256: "r".repeat(64),
   });
   const reloaded = (await (await fixture.open())("snapshot")).body;
   expect(reloaded.takes[LEAD_MOVE].verdict).toBe("ok");
@@ -495,8 +495,10 @@ test("a regenerated take falls back to unreviewed, and a verdict on the old byte
   const heard = (await request("snapshot")).body.takes[LEAD_MOVE].sha256;
   await request("verdict", { verdict: "bad", takes: [{ take: LEAD_MOVE, sha256: heard }] });
   expect((await request("snapshot")).body.counts.tank.bad).toBe(1);
-  // The tool regenerates the take: new served bytes, the old verdict kept with its sha.
+  // The tool regenerates the take: a new recording and new served bytes, the old
+  // verdict kept with the recording it judged.
   const lock = await lockOf(root);
+  lock.takes[LEAD_MOVE].raw_sha256 = "s".repeat(64);
   lock.takes[LEAD_MOVE].served_sha256 = "c".repeat(64);
   await writeFile(join(root, "fixtures/voices.lock.json"), JSON.stringify(lock));
   const after = (await request("snapshot")).body;
