@@ -12,6 +12,8 @@ ladder with parallel named-model production.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
 
+[Air-war flight](air-war-flight/README.md) is a placeholder for the fixed-wing flight the [air war](done/air-war/README.md) specified but the simulation doesn't yet deliver: jets at their own altitude, circling, attack runs, and dogfight and afterburner tests.
+
 [Battle voices and music](done/battle-voices-music/README.md) (shipped) gave units RTS-style voice lines (answers to their owner and simulation-emitted barks) and battles an adaptive background score, generated with ElevenLabs and reviewed in the sound workbench.
 
 [Native rendering parity](native-rendering-parity/README.md) (active) builds a
