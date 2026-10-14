@@ -141,7 +141,7 @@ impl StaticBatches {
                     caster,
                     fog,
                     records,
-                    print,
+                    print: listed,
                 } = list;
                 if records.is_empty() {
                     return;
@@ -151,8 +151,8 @@ impl StaticBatches {
                 // never one of another length under a colliding print. The
                 // population's print is mixed first, so a small counter and
                 // a length never cancel.
-                let print = self::print(self::print(PRINT_BASIS, print), records.len() as u64);
-                let held = self.sent.get(&key).filter(|(p, _)| *p == print);
+                let written = print(print(PRINT_BASIS, listed), records.len() as u64);
+                let held = self.sent.get(&key).filter(|(p, _)| *p == written);
                 let version = held.map_or(f.index, |&(_, v)| v);
                 f.batches.push(Batch {
                     key,
@@ -173,7 +173,7 @@ impl StaticBatches {
                 if held.is_none() {
                     f.instances.extend_from_slice(bytemuck::cast_slice(records));
                 }
-                sent.insert(key, (print, version));
+                sent.insert(key, (written, version));
             });
         }
         // A batch left out is the renderer's to drop: it is written anew
