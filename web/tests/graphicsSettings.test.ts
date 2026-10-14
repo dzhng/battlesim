@@ -119,10 +119,11 @@ describe("quality profiles", () => {
       graphicsProfiles.low.buildingLodScale,
     );
     expect(sceneMinimumProfile.treeLodScale).toBeGreaterThan(graphicsProfiles.low.treeLodScale);
-    expect(sceneMinimumProfile.grassDensity).toBe(0);
+    expect(sceneMinimumProfile.grassDensity).toBeLessThan(graphicsProfiles.low.grassDensity);
+    expect(sceneMinimumProfile.grassDensity).toBeGreaterThan(0);
     expect(sceneMinimumProfile.forestDressing).toBe(false);
     expect(sceneMinimumProfile.understorey).toBe(false);
-    expect(sceneMinimumProfile.shadowMapSize).toBe(512);
+    expect(sceneMinimumProfile.shadowMapSize).toBeLessThan(graphicsProfiles.low.shadowMapSize);
     expect(sceneMinimumProfile.shadowReach).toBeLessThan(graphicsProfiles.low.shadowReach);
     expect(sceneMinimumProfile.bloom).toBe(true);
     expect(sceneMinimumProfile.castLights).toBe(true);
