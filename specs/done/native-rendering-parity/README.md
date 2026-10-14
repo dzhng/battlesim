@@ -313,7 +313,8 @@ Each is named in `choices.md` and owned where listed.
 `wgpu` renderer, so both clients share one renderer and the pass orchestration
 stops being duplicated. This was deferred until native was measured against
 TypeGPU. It now is: equal or better frame rates, a 5–7% longer GPU frame. TypeGPU
-stays the browser's stack until the user decides.
+stays the browser's stack until the user decides; the decision is held in
+[One renderer](../../one-renderer/README.md).
 
 ## Visual provenance
 
