@@ -57,6 +57,22 @@ fn a_map_edited_after_the_control_ran_is_refused_by_name() {
 }
 
 #[test]
+fn a_manifest_naming_no_scene_is_refused() {
+    let dir = staged("unnamed", |capture, manifest| {
+        manifest["identity"]
+            .as_object_mut()
+            .unwrap()
+            .remove("scene");
+        let mut parsed: Value = serde_json::from_str(capture).unwrap();
+        parsed["workload"].as_object_mut().unwrap().remove("scene");
+        *capture = parsed.to_string();
+    });
+    let e = refusal(&dir);
+    assert!(e.contains("workload scene is null"), "{e}");
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn the_fixture_run_is_its_manifests_battle() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
     Replay::open(Path::new(RUN), &library).unwrap();

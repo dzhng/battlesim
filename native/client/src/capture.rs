@@ -129,7 +129,7 @@ impl Replay {
         let identity = &manifest["identity"];
         let workload = &capture.workload;
         for key in ["scene", "map", "encounter", "seed"] {
-            if identity[key] != workload[key] {
+            if identity[key].is_null() || identity[key] != workload[key] {
                 return Err(format!(
                     "{}: the capture's workload {key} is {}, the manifest's identity names {}",
                     capture_path.display(),
