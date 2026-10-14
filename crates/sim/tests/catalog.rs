@@ -5,7 +5,7 @@
 //! rules: it is admitted where the view is written, and no test plays it;
 //! only roster-wide data contracts (no squad runs dry) read its entries.
 use contract::catalog::AltitudeLayer;
-use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
 use serde_json::{json, Value};
@@ -594,10 +594,21 @@ fn targets(range: f64) -> Value {
 
 /// A battle on open ground: the type under test at [200, 300], and `others`.
 fn battle(fixture: &Value, id: &str, others: Value) -> Battle {
-    let mut units = vec![json!({ "side": "blue", "kind": id, "position": [200, 300] })];
+    battle_at(fixture, id, others, [200.0, 300.0], 700.0, 600.0)
+}
+
+fn battle_at(
+    fixture: &Value,
+    id: &str,
+    others: Value,
+    at: [f64; 2],
+    width: f64,
+    depth: f64,
+) -> Battle {
+    let mut units = vec![json!({ "side": "blue", "kind": id, "position": at })];
     units.extend(others.as_array().unwrap().iter().cloned());
     let setup = serde_json::from_value(json!({
-        "map": { "size": [700, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "map": { "size": [width, depth], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture, "units": units, "events": [], "scripts": [],
     }))
     .unwrap();
@@ -643,9 +654,9 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         );
         let mut others = if never_stops {
             json!([
-                { "side": "red", "kind": "test_rifle", "position": [350, 295], "engagement": "return_fire_only" },
-                { "side": "red", "kind": "test_tank", "position": [350, 305], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
-                { "side": "red", "kind": "test_heli", "position": [600, 300], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_rifle", "position": [1100, 995], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [1100, 1005], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_heli", "position": [1200, 1000], "engagement": "return_fire_only" },
             ])
         } else {
             targets(range.min(300.0))
@@ -664,7 +675,26 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
                 { "side": "red", "kind": "test_heli", "position": [400, 300], "engagement": "return_fire_only" }
             ));
         }
-        let mut b = battle(&fixture, id, others);
+        let mut b = if never_stops {
+            battle_at(&fixture, id, others, [500.0, 1000.0], 3000.0, 2000.0)
+        } else {
+            battle(&fixture, id, others)
+        };
+        if never_stops {
+            let ack = b.accept(CommandEnvelope {
+                side: Side::Blue,
+                slot: None,
+                seq: 1,
+                order: Order::Attack {
+                    units: vec![UnitId(0)],
+                    target: TargetRef::Ground {
+                        point: [1100.0, 1000.0, 0.0],
+                    },
+                },
+                queued: false,
+            });
+            assert_eq!(ack.error, None, "{id}: {ack:?}");
+        }
         for _ in 0..60 * rules.tick_hz {
             b.step();
         }

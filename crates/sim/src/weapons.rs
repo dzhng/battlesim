@@ -29,6 +29,15 @@ use contract::random::Rng;
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
 
+/// Whether a jet's fixed nose gun bears on a point in its authored range.
+pub fn nose_on(unit: &Unit, target: V3, range: f64) -> bool {
+    let delta = target - unit.position;
+    range.is_finite()
+        && range >= 0.0
+        && delta.length() <= range
+        && wrap_angle(libm::atan2(delta.y, delta.x) - unit.yaw).abs() <= 2.0_f64.to_radians()
+}
+
 /// A weapon row with its validated flight profile.
 pub struct Weapon {
     /// The row's id in the rules' `weapons`.
@@ -990,7 +999,9 @@ fn assess(
     target: Target,
     r: &Resolved,
 ) -> Result<usize, ActionReason> {
-    if !permitted(ctx, unit, target) {
+    // Ground units retain the pre-slice permission gate and assessment order.
+    // The pass/autofire changes below belong only to airborne units.
+    if !unit.airborne() && !permitted(ctx, unit, target) {
         return Err(ActionReason::HoldingFire);
     }
     let k = preferred_kind(ctx, mount, spec, r).ok_or(if mount.out_of_ammo() {
@@ -999,12 +1010,27 @@ fn assess(
         ActionReason::NoCompatibleTarget
     })?;
     let weapon = &ctx.arsenal.weapons[spec.kinds[k]].def;
-    if matches!(target, Target::Ground(_))
-        && unit.airborne()
-        && matches!(weapon.ground_attack, Some(GroundAttackKind::Strafe))
-        && aircraft_has_bomb(ctx, unit)
-    {
-        return Err(ActionReason::NoCompatibleTarget);
+    let self_firing = unit.airborne()
+        && weapon.seeker.is_some()
+        && (weapon.anti_radiation
+            || weapon.against(AltitudeLayer::LowAir).is_some()
+            || weapon.against(AltitudeLayer::HighAir).is_some());
+    if !self_firing && !permitted(ctx, unit, target) {
+        return Err(ActionReason::HoldingFire);
+    }
+    if unit.airborne() && r.layer == AltitudeLayer::Ground {
+        let pass = unit.air.as_ref().and_then(|air| air.pass);
+        match (pass.map(|p| p.weapon), weapon.ground_attack) {
+            (Some(crate::air::pass::PassWeapon::Bomb), Some(GroundAttackKind::Bomb))
+                if !unit.air.as_ref().is_some_and(|air| air.pass_release) =>
+            {
+                return Err(ActionReason::HoldingFire);
+            }
+            (Some(crate::air::pass::PassWeapon::Bomb), Some(GroundAttackKind::Strafe)) => {
+                return Err(ActionReason::NoCompatibleTarget);
+            }
+            _ => {}
+        }
     }
     // Air-defence crews need a physical view of an airborne target even for
     // ballistic mounts.  A forest can hide the launcher, but it cannot turn
@@ -1023,6 +1049,16 @@ fn assess(
         if !seeker_in_fov(forward, bearing, fov) {
             return Err(ActionReason::NoFacingSlot);
         }
+    }
+    if unit.airborne()
+        && unit.layer() == AltitudeLayer::HighAir
+        && weapon.default
+        && !spec.turret
+        && !weapon
+            .against(r.layer)
+            .is_some_and(|fire| nose_on(unit, r.point, fire.range_m))
+    {
+        return Err(ActionReason::NoFacingSlot);
     }
     // Shared identification supplies the target; the launcher still needs
     // a physical sight line to acquire and support it (P05).
@@ -1043,20 +1079,6 @@ fn assess(
     engage(ctx, unit, units, mount, spec, k, target, r).map(|_| k)
 }
 
-fn aircraft_has_bomb(ctx: &FireContext, unit: &Unit) -> bool {
-    let specs = ctx.arsenal.specs(unit.kind);
-    unit.mounts.iter().any(|mount| {
-        let spec = &specs[mount.spec];
-        spec.kinds.iter().enumerate().any(|(k, &weapon)| {
-            mount.has_rounds(k)
-                && matches!(
-                    ctx.arsenal.weapons[weapon].def.ground_attack,
-                    Some(GroundAttackKind::Bomb)
-                )
-        })
-    })
-}
-
 /// Whether a seeker can acquire a bearing inside its forward cone. This is
 /// kept as a small pure rule so native and WASM tests can pin the wraparound
 /// at north without constructing a battle.
@@ -1065,27 +1087,6 @@ pub fn seeker_in_fov(forward: f64, bearing: f64, fov_deg: f64) -> bool {
         && fov_deg > 0.0
         && fov_deg <= 360.0
         && wrap_angle(bearing - forward).abs() <= fov_deg.to_radians() * 0.5
-}
-
-/// Choose the ground mission for an aircraft mount: an available authored bomb
-/// row wins; once its finite store is empty, a strafe-capable gun remains the
-/// fallback. This keeps mission choice data-driven and independent of aircraft
-/// names.
-pub fn ground_attack_kind<'a>(
-    rows: impl IntoIterator<Item = (&'a WeaponDefinition, Option<u32>)>,
-) -> Option<GroundAttackKind> {
-    let mut fallback = None;
-    for (def, rounds) in rows {
-        if rounds == Some(0) {
-            continue;
-        }
-        match def.ground_attack {
-            Some(GroundAttackKind::Bomb) => return Some(GroundAttackKind::Bomb),
-            Some(GroundAttackKind::Strafe) => fallback = Some(GroundAttackKind::Strafe),
-            None => {}
-        }
-    }
-    fallback
 }
 
 /// Optical support is physical LOS from the operator, independent of spotting
@@ -1840,7 +1841,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             // weapons already bears on it.
             if let (Some(_), Some(r), Some(Ok(_))) = (&mount.lock, &resolved, assessment) {
                 let bearing = bearing_from(unit, r.point);
-                if hull_fixed(unit, spec) {
+                if hull_fixed(unit, spec)
+                    && (!unit.airborne() || unit.layer() != AltitudeLayer::HighAir)
+                {
                     face.get_or_insert(bearing);
                 } else if let Some(arc) = spec.arc {
                     let bears = |s: &MountSpec| s.arc.is_none_or(|a| a.holds(unit.yaw, bearing));
@@ -1874,7 +1877,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         .any(|c| active(c) && c.ready() == Some(k))
                     {
                         ActionReason::Reloading
-                    } else if (spec.turret || hull_fixed(unit, spec))
+                    } else if (spec.turret
+                        || (hull_fixed(unit, spec)
+                            && (!unit.airborne() || unit.layer() != AltitudeLayer::HighAir)))
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
                     {
                         ActionReason::TurretTraversing

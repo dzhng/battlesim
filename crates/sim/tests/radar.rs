@@ -5,7 +5,6 @@ use std::collections::BTreeSet;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::observation::ContactSource;
-use contract::weapons::GroundAttackKind;
 use serde_json::json;
 use sim::battle::Battle;
 
@@ -136,20 +135,13 @@ fn anti_radiation_weapon_can_fire_at_radar_contact_without_unit_los() {
 }
 
 #[test]
-fn ground_mission_prefers_available_bombs_then_falls_back_to_strafe() {
-    let rules = sim::fixtures::test_game();
-    let gun = &rules["weapons"]["hmg"];
-    let mut bomb_value = gun.clone();
-    bomb_value["ground_attack"] = json!("bomb");
-    bomb_value["ammo"] = json!(4);
-    let bomb: contract::weapons::WeaponDefinition = serde_json::from_value(bomb_value).unwrap();
-    let mut gun_value = gun.clone();
-    gun_value["ground_attack"] = json!("strafe");
-    let gun: contract::weapons::WeaponDefinition = serde_json::from_value(gun_value).unwrap();
-    let rows = sim::weapons::ground_attack_kind([(&bomb, Some(4)), (&gun, None)]);
-    assert_eq!(rows, Some(GroundAttackKind::Bomb));
-    let fallback = sim::weapons::ground_attack_kind([(&bomb, Some(0)), (&gun, None)]);
-    assert_eq!(fallback, Some(GroundAttackKind::Strafe));
+fn ground_mission_can_strafe_while_bombs_remain() {
+    use sim::air::pass::{choose_weapon, PassWeapon};
+    assert_eq!(
+        choose_weapon(&[PassWeapon::Gun, PassWeapon::Bomb]),
+        Some(PassWeapon::Bomb)
+    );
+    assert_eq!(choose_weapon(&[PassWeapon::Gun]), Some(PassWeapon::Gun));
 }
 
 #[test]
