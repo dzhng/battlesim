@@ -8,6 +8,7 @@
 // at the jet cruise height (`air.jet.cruise_agl_m`), and stop and hover at a move's goal instead of
 // circling it.
 import { gpuWarnings, aim } from "./_lab.mjs";
+import { unitType } from "./_units.mjs";
 import {
   encounter,
   openAir,
@@ -33,6 +34,11 @@ export async function run(ctx) {
   const heights = [];
   let offMap = null;
   let k = 0;
+  // A jet never stops: it has reached its goal once it is within one turning
+  // radius of it (cruise speed over turn rate), where it starts to circle.
+  const flight = unitType(JET).mobility.air;
+  const radius = flight.cruise_kmh / 3.6 / ((flight.turn_deg_s * Math.PI) / 180);
+  const near = (p) => Math.hypot(p[0] - goal[0], p[1] - goal[1]) <= radius + 10;
   // Until the jet reaches its goal across the field, with a generous cap.
   const last = await play(page, 3600, (o) => {
     fog = Math.max(fog, visibleCells(o));
@@ -41,7 +47,7 @@ export async function run(ctx) {
     const jet = own(o, JET)[0];
     if (jet && !onMap(jet.position, field("air-high"))) offMap = jet.position;
     if (jet && k++ % 30 === 0) heights.push(jet.position);
-    return !!jet && Math.hypot(jet.position[0] - goal[0], jet.position[1] - goal[1]) < 10;
+    return !!jet && near(jet.position);
   });
   ctx.check("blue's fog never clears while only the jet flies", fog === 0, `${fog} cells`);
   ctx.check("the jet never identifies the tank on the ground", !tankSeen);
@@ -60,8 +66,8 @@ export async function run(ctx) {
   );
   const jet = own(last, JET)[0];
   ctx.check(
-    "it reaches its goal past the village",
-    !!jet && Math.hypot(jet.position[0] - goal[0], jet.position[1] - goal[1]) < 10,
+    "it reaches its goal past the village, within one turning radius",
+    !!jet && near(jet.position),
     JSON.stringify(jet?.position),
   );
   // The jet over the wood at its goal, the village and the tower behind it.

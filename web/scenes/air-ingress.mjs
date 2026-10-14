@@ -9,16 +9,24 @@
 // arrival is a cruise-height aircraft heading in; and the low-fuel aircraft's
 // outbound pose leaves at the blue back edge before the refund appears.
 import { writeFile } from "node:fs/promises";
-import { gpuWarnings, obs, advance } from "./_lab.mjs";
+import { gpuWarnings, obs, advance, aim } from "./_lab.mjs";
 import { openAir, command, JET_CRUISE, shoot } from "./_air.mjs";
+import { game } from "./_units.mjs";
 const JET = "f_16c_block_50";
-const DESTINATIONS = [[1500, 1500], [2500, 2400]];
+const DESTINATIONS = [
+  [1500, 1500],
+  [2500, 2400],
+];
 
 export async function run(ctx) {
   const page = await openAir(ctx);
   const warnings = gpuWarnings(page);
   let o = await obs(page);
-  ctx.check("the checkpoint is an empty skirmish on air-jet", !!o.skirmish && o.own.length === 0, JSON.stringify(o.skirmish));
+  ctx.check(
+    "the checkpoint is an empty skirmish on air-jet",
+    !!o.skirmish && o.own.length === 0,
+    JSON.stringify(o.skirmish),
+  );
   await command(page, { kind: "ready" });
   await advance(page, 2);
   const before = (await obs(page)).skirmish.credits;
@@ -29,9 +37,14 @@ export async function run(ctx) {
   const cost = before - o.skirmish.credits;
 
   o = await obs(page);
-  ctx.check("the delayed aircraft is not a unit", o.own.filter((u) => u.kind === JET).length === 0, JSON.stringify(o.own));
+  ctx.check(
+    "the delayed aircraft is not a unit",
+    o.own.filter((u) => u.kind === JET).length === 0,
+    JSON.stringify(o.own),
+  );
 
   let inbound = null;
+  let approachShot = false;
   let entered = null;
   let firstId = null;
   for (let i = 0; i < 900; i++) {
@@ -39,7 +52,30 @@ export async function run(ctx) {
     o = await obs(page);
     if (!inbound && o.airTransits.some((t) => t.dir === "in")) {
       inbound = { tick: o.tick, transits: o.airTransits.filter((t) => t.dir === "in") };
-      ctx.check("the approach frame has no aircraft unit behind its transit", o.own.filter((u) => u.kind === JET).length === 0, JSON.stringify(inbound));
+      ctx.check(
+        "the approach frame has no aircraft unit behind its transit",
+        o.own.filter((u) => u.kind === JET).length === 0,
+        JSON.stringify(inbound),
+      );
+    }
+    // The approach is drawn in the last seconds before arrival.
+    const coming = o.airTransits.find((t) => t.dir === "in");
+    if (coming && !approachShot && coming.edgeTick - o.tick <= 4 * game.tick_hz) {
+      approachShot = true;
+      // Close on where the approach draws the jet now: back along its heading
+      // from the edge point by the distance it has still to fly.
+      const ahead = (coming.speedMps * (coming.edgeTick - o.tick)) / game.tick_hz;
+      const at = [
+        coming.point[0] - Math.cos(coming.heading) * ahead,
+        coming.point[1] - Math.sin(coming.heading) * ahead,
+        coming.point[2],
+      ];
+      await aim(
+        page,
+        at,
+        { distance: 140, pitch: 0.35, yaw: coming.heading + Math.PI * 0.8 },
+        { onGround: false },
+      );
       await shoot(ctx, page, "air-ingress-approach");
     }
     const jet = o.own.find((u) => u.kind === JET);
@@ -49,10 +85,17 @@ export async function run(ctx) {
       break;
     }
   }
-  ctx.check("the inbound AirTransit is seen before the unit arrives", !!inbound && !!entered && inbound.tick <= entered.tick, JSON.stringify({ inbound, entered }));
+  ctx.check(
+    "the inbound AirTransit is seen before the unit arrives",
+    !!inbound && !!entered && inbound.tick < entered.tick,
+    JSON.stringify({ inbound, entered }),
+  );
   ctx.check(
     "the jet arrives on the blue back edge at cruise height heading in",
-    !!entered && entered.position[0] < 400 && Math.abs(entered.position[2] - JET_CRUISE) < 2 && Math.cos(entered.yaw) > 0,
+    !!entered &&
+      entered.position[0] < 400 &&
+      Math.abs(entered.position[2] - JET_CRUISE) < 2 &&
+      Math.cos(entered.yaw) > 0,
     JSON.stringify(entered),
   );
   if (!entered) return;
@@ -61,19 +104,34 @@ export async function run(ctx) {
   let outbound = null;
   let retired = null;
   let wallet = (await obs(page)).skirmish.credits;
-  for (let i = 0; i < 7200 && !retired; i += 30) {
-    await advance(page, 30);
+  // Coarse steps until the return starts, then tick by tick: the departure is
+  // published on the single tick the jet crosses its edge.
+  for (let i = 0; i < 7200 && !retired; i += withdrawing ? 1 : 30) {
+    await advance(page, withdrawing ? 1 : 30);
     const now = await obs(page);
     const jet = now.own.find((u) => u.id === firstId);
-    if (jet?.withdrawing && !withdrawing) withdrawing = { tick: now.tick, fuel: jet.fuelS, position: jet.position };
-    if (now.airTransits.some((t) => t.dir === "out")) outbound = { tick: now.tick, transits: now.airTransits.filter((t) => t.dir === "out") };
+    if (jet?.withdrawing && !withdrawing)
+      withdrawing = { tick: now.tick, fuel: jet.fuelS, position: jet.position };
+    if (now.airTransits.some((t) => t.dir === "out"))
+      outbound = { tick: now.tick, transits: now.airTransits.filter((t) => t.dir === "out") };
     if (!jet) retired = { tick: now.tick, refund: now.skirmish.credits - wallet };
     wallet = now.skirmish.credits;
   }
-  ctx.check("low fuel starts the return", !!withdrawing && withdrawing.fuelS > 0, JSON.stringify(withdrawing));
-  ctx.check("the outbound effect uses the nearest back edge", !!outbound && outbound.transits.some((t) => t.point[0] <= 10), JSON.stringify(outbound));
+  ctx.check(
+    "low fuel starts the return",
+    !!withdrawing && withdrawing.fuel > 0,
+    JSON.stringify(withdrawing),
+  );
+  ctx.check(
+    "the outbound effect uses the nearest back edge",
+    !!outbound && outbound.transits.some((t) => t.point[0] <= 10),
+    JSON.stringify(outbound),
+  );
 
-  await writeFile(ctx.evidencePath("ingress.json"), JSON.stringify({ cost, inbound, entered, withdrawing, outbound, retired }, null, 2));
+  await writeFile(
+    ctx.evidencePath("ingress.json"),
+    JSON.stringify({ cost, inbound, entered, withdrawing, outbound, retired }, null, 2),
+  );
   await shoot(ctx, page, "air-ingress");
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
 }
