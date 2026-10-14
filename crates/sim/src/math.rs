@@ -24,6 +24,11 @@ pub const fn v3(x: f64, y: f64, z: f64) -> V3 {
     V3 { x, y, z }
 }
 
+/// Distance between two physical bodies, including their height separation.
+pub fn body_distance(a: V3, b: V3) -> f64 {
+    (a - b).length()
+}
+
 impl V2 {
     pub fn dot(self, o: V2) -> f64 {
         self.x * o.x + self.y * o.y
