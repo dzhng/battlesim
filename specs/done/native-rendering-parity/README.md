@@ -275,7 +275,8 @@ Each was tried and rejected; don't walk it again.
 
 ## Known limitations
 
-Each is named in `choices.md` and owned where listed.
+Each is named in `choices.md` and owned where listed. The follow-up work is held
+in [Native gaps](../../native-gaps/README.md).
 
 - **Native's GPU frame is 5–7% longer than the browser's.** It is accepted:
   `wgpu` keeps Metal's per-resource hazard tracking, so later passes wait for

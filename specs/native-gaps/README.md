@@ -1,0 +1,38 @@
+# Native gaps (placeholder)
+
+**Status:** placeholder. Nothing is sliced or implemented yet.
+**Updated:** 2026-10-14.
+
+## Next Agent Prompt
+
+You are picking up the known limitations [native rendering parity](../done/native-rendering-parity/README.md) shipped with. The archive's "Known limitations" section names each one and its owner. When the user starts this, walk the list with them: which items matter, in what order, and whether any waits for [one renderer](../one-renderer/README.md). Then run `write-spec` and turn this page into a sliced plan. Load `renderer` before any GPU work. Update this section before you end each pass.
+
+Each item is independent, so they slice one by one, roughly cheapest first:
+
+- [ ] Name the sky's two bind group layouts.
+- [ ] Judge water on a plate.
+- [ ] Load the shout pool in Rust, so unseen enemies' shouts play natively.
+- [ ] Draw far soldiers as impostor cards on native.
+- [ ] Native ground marks, once native has a UI.
+- [ ] Match the browser's music duck and reverb, if the difference is ever audible enough to matter.
+- [ ] Verify native on a second platform.
+- [ ] Revisit the 5–7% GPU frame gap if `wgpu` ships untracked resources.
+
+## The gaps
+
+Where an item proposes a move into Rust, it follows the project's rule: Rust decides, renderers draw, one owner per concept.
+
+1. **The sky's layouts carry auto-generated names.** Two of the sky's bind group layouts in the shader export are named by TypeGPU automatically (`bake - Automatic Bind Group & Layout`, `background - …`), and `native/client/src/sky.rs` looks them up by those names. Name them in the browser's sky, regenerate the export, and update native in the same change.
+2. **Water has never been judged on a plate.** Neither reel map has water. Native draws it through the browser's own shaders, so it should match by construction, but nobody has looked. Film a map with water in `native-parity-capture` and compare.
+3. **Unseen enemies' shouts are silent natively.** Rust already picks the take (`presentation::sound::frame`, `Sound::set_shouts`), but the pool of takes is loaded by the browser's `packages/battle-audio/src/voices/shoutPool.ts`, and native loads none. Move the pool's take list into Rust, so it has one owner and native plays the shouts.
+4. **Native draws far soldiers as meshes, not impostor cards.** At the card tier, native draws the body's coarsest mesh in its far pose. The counts and the picture match, but a battle with hundreds of distant soldiers costs more triangles. First export the browser's impostor bake (`packages/battle-renderer/src/models/impostor.ts`). No impostor-bake pipeline is exported today; `bake.wgsl` is the sky's lookup bake. Then bake the cards at load and draw the card tier as cards.
+5. **Native paints no ground marks.** The UI paints them, and a native replay has no UI. This waits until native gains one, which depends on the [one renderer](../one-renderer/README.md) decision and on native ever playing live.
+6. **Native's music duck and reverb differ.** Native glides the music duck linearly and uses `kira`'s reverb; the browser glides by a time constant and convolves with a synthesized impulse. These are player differences only, not decisions.
+7. **Only macOS with Metal is verified.** Windows isn't a requirement, and no native dependency rules it out. Verify on a second platform when one matters.
+8. **Native's GPU frame is 5–7% longer than the browser's.** This is accepted: `wgpu` keeps Metal's per-resource hazard tracking, so later passes wait for the world's shading. If `wgpu` ships untracked resources, enable them and re-run the interleaved timing pairs (slice 25 step 8 in git history, method in the archive).
+
+## Open questions for the walk
+
+- Does native need to play live (with a HUD) before ground marks, the impostor cost or the audio differences matter?
+- Is any of this worth doing before the [one renderer](../one-renderer/README.md) decision, which could change who owns the native renderer?
+- Which second platform, if any?
