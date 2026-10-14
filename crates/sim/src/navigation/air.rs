@@ -28,19 +28,12 @@ pub fn walls_aircraft(world: &WorldGeometry, rules: &Rules, prop: &Prop) -> bool
 }
 
 pub fn routing_margin(rules: &Rules) -> f64 {
-    rules
-        .catalog
-        .indices()
-        .map(|i| rules.catalog.get(i))
-        .filter(|t| t.mobility.layer() == contract::catalog::AltitudeLayer::LowAir)
-        .filter_map(|t| t.hull())
-        .map(|h| h.half_extents_m[0].max(h.half_extents_m[1]))
-        .fold(0.0, f64::max)
+    rules.hull_limits.low_air.half_length_m
 }
 
 impl AirGrid {
-    /// The grid over `world` with `walls` closed, each widened by the largest
-    /// airframe any battle may field (`hull_limits.air`).
+    /// The grid over `world` with `walls` closed, each widened by the
+    /// helicopter hull limit (`hull_limits.low_air.half_length_m`).
     pub fn build<'a>(
         world: &WorldGeometry,
         rules: &Rules,

@@ -22,7 +22,7 @@ AirRules::cruise_agl_m(layer) -> f64
   - native capture (`native/client/src/capture.rs`);
   - presentation input (`crates/presentation/src/world.rs` `cruise_agl_m`), which becomes per layer.
 - **Shadow:** it falls along the sun onto the ground, thrown from the aircraft's actual height above that ground (`presentation.rs` ~1536), not from a constant cruise height.
-- **Routing margin:** the helicopter margin (`navigation/air.rs` ~45) comes from the largest `LowAir` hull in the catalog. `hull_limits.air` is used only for hull admission.
+- **Routing margin:** the helicopter margin (`navigation/air.rs`) comes from the data value `hull_limits.low_air.half_length_m`; each aircraft is admitted against its own layer's hull limit.
 - **Re-recorded:** the three parity fixtures that embed `air`, and the helicopter beats.
 - **Jets still use the old mover in this slice.** The old mover reads `cruise_agl_m(layer)`, so jets already fly at 250 m on the old law.
 

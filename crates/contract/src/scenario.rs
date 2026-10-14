@@ -712,8 +712,10 @@ impl AirRules {
 pub struct HullLimits {
     pub tracked: DriveLimits,
     pub wheeled: DriveLimits,
-    /// An aircraft's hull, without its rotor disc.
-    pub air: DriveLimits,
+    /// A helicopter's hull, without its rotor disc.
+    pub low_air: DriveLimits,
+    /// A fixed-wing aircraft's hull.
+    pub high_air: DriveLimits,
 }
 
 /// One drive's largest hull; a tracked hull pivots and has no turn limit.
@@ -738,7 +740,11 @@ impl HullLimits {
                 Mobility::Wheeled {
                     turning_radius_m, ..
                 } => ("wheeled", &self.wheeled, Some(turning_radius_m)),
-                Mobility::Air { .. } => ("air", &self.air, None),
+                Mobility::Air { layer, .. } => match layer {
+                    crate::catalog::AltitudeLayer::Ground => ("low_air", &self.low_air, None),
+                    crate::catalog::AltitudeLayer::LowAir => ("low_air", &self.low_air, None),
+                    crate::catalog::AltitudeLayer::HighAir => ("high_air", &self.high_air, None),
+                },
                 // A squad has no hull; the catalog refuses a hull on foot.
                 Mobility::Foot { .. } => continue,
             };

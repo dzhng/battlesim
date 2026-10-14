@@ -92,17 +92,28 @@ fn air_rules_refuse_a_jet_floor_above_its_ceilings() {
 }
 
 #[test]
-fn a_helicopters_routing_margin_is_its_largest_low_air_hull() {
+fn helicopters_route_with_the_low_air_hull_limit() {
     let rules: Rules = serde_json::from_value(fixture()).unwrap();
-    let expected = rules
-        .catalog
-        .indices()
-        .map(|i| rules.catalog.get(i))
-        .filter(|t| t.mobility.layer() == AltitudeLayer::LowAir)
-        .filter_map(|t| t.hull())
-        .map(|h| h.half_extents_m[0].max(h.half_extents_m[1]))
-        .fold(0.0, f64::max);
-    assert_eq!(sim::navigation::air::routing_margin(&rules), expected);
+    assert_eq!(
+        sim::navigation::air::routing_margin(&rules),
+        rules.hull_limits.low_air.half_length_m
+    );
+}
+
+#[test]
+fn high_air_admission_uses_the_high_air_hull_limit() {
+    let mut fixture = fixture();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_heli",
+        json!({
+            "mobility": { "air": { "layer": "high_air" } },
+            "body": { "hull": { "half_extents_m": [10.0, 4.0, 1.6] } }
+        }),
+    );
+    serde_json::from_value::<Rules>(fixture)
+        .expect("a high-air hull within the high-air limit is admitted");
 }
 
 #[test]
@@ -462,7 +473,7 @@ fn an_identified_enemy_helicopter_below_half_hp_publishes_smoking() {
 #[test]
 fn an_air_hull_past_its_limits_is_refused() {
     let mut fixture = fixture();
-    let past = fixture["hull_limits"]["air"]["half_length_m"]
+    let past = fixture["hull_limits"]["low_air"]["half_length_m"]
         .as_f64()
         .unwrap()
         + 0.5;
@@ -472,8 +483,8 @@ fn an_air_hull_past_its_limits_is_refused() {
         "test_heli",
         json!({ "body": { "hull": { "half_extents_m": [past, 1.2, 1.6] } } }),
     );
-    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the air limit");
-    assert!(error.to_string().contains("air half length"), "{error}");
+    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the low-air limit");
+    assert!(error.to_string().contains("low_air half length"), "{error}");
 }
 
 #[test]
