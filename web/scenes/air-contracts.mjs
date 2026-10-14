@@ -4,8 +4,9 @@
 // its record's capacity, a ground unit publishes neither, and every
 // aircraft holds the air height over the ground.
 import { gpuWarnings, obs } from "./_lab.mjs";
-import { encounter, openAir, layerOf, surface, CRUISE, shoot, own } from "./_air.mjs";
+import { encounter, openAir, surface, CRUISE, shoot, own } from "./_air.mjs";
 import { unitType, weapons } from "./_units.mjs";
+import { layerOf } from "../../packages/scene-assets/src/units.ts";
 
 const fielded = encounter("contracts").units;
 const kinds = [...new Set(fielded.map((u) => u.kind))];
@@ -45,7 +46,7 @@ export async function run(ctx) {
     const caps = t.capabilities;
     const radar = caps.air?.radar ?? caps.radar;
     const want = {
-      layer: layerOf(kind),
+      layer: layerOf(t),
       fuel: caps.air ? String(caps.air.fuel_capacity_s) : "—",
       aa_tier: caps.air_defense?.tier ?? "—",
       radar: radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—",
@@ -76,7 +77,7 @@ export async function run(ctx) {
     const caps = unitType(kind).capabilities;
     for (const u of own(o, kind)) {
       const lift = u.position[2] - (await surface(page, u.position));
-      const flies = layerOf(kind) !== "ground";
+      const flies = layerOf(unitType(kind)) !== "ground";
       const ok =
         (caps.air
           ? u.fuelS !== null &&

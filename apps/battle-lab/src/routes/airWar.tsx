@@ -1,7 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { highAir, FACTIONS, type UnitType } from "@packages/scene-assets/src/units";
+import {
+  AIR_ROLES,
+  airRole,
+  FACTIONS,
+  layerOf,
+  type AirRole,
+} from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import type { MapDefinition } from "@web/maps/resolve";
@@ -144,53 +150,21 @@ const INGRESS_SKIRMISH = {
   },
 };
 
-/** The resolved catalog fields the air checkpoints read, which the shared
- *  `UnitType` leaves untyped. */
-interface AirType {
-  sensors: { ground_m: number; low_air_m?: number; high_air_m?: number };
-  capabilities: {
-    air?: {
-      fuel_capacity_s: number;
-      sead: boolean;
-      flares?: { capacity: number; reload_s: number };
-      afterburner?: { speed_multiplier: number; fuel_multiplier: number };
-      radar?: { emits: boolean; detection_m: number };
-    };
-    air_defense?: { tier: "short" | "medium" | "long" };
-    radar?: { emits: boolean; detection_m: number };
-  };
-}
-const air = (t: UnitType) => t as UnitType & AirType;
-
-/** A type's altitude layer, as the simulation names it. */
-const layerOf = (t: UnitType) =>
-  "air" in t.mobility ? (highAir(t) ? "high_air" : "low_air") : "ground";
-
-/** The roster's air-defence and fixed-wing types, by faction and role:
- *  short, medium and long air defence, SEAD, and the other fixed-wing. */
-const ROLES = ["short", "medium", "long", "sead", "fixed_wing"] as const;
-type Role = (typeof ROLES)[number];
-function roleOf(t: UnitType): Role | null {
-  const caps = air(t).capabilities;
-  if (caps.air_defense) return caps.air_defense.tier;
-  if (highAir(t)) return caps.air?.sead ? "sead" : "fixed_wing";
-  return null;
-}
 function rosterMatrix(catalog: SessionCatalog) {
   return FACTIONS.map((faction) => ({
     faction,
     roles: Object.fromEntries(
-      ROLES.map((role) => [
+      AIR_ROLES.map((role) => [
         role,
         catalog.units.cards.filter(
           (c) =>
             !c.disabled_reason &&
             c.roster.factions.includes(faction) &&
             catalog.units.has(c.id) &&
-            roleOf(catalog.units.type(c.id)) === role,
+            airRole(catalog.units.type(c.id)) === role,
         ),
       ]),
-    ) as Record<Role, SessionCatalog["units"]["cards"][number][]>,
+    ) as Record<AirRole, SessionCatalog["units"]["cards"][number][]>,
   }));
 }
 
@@ -199,7 +173,7 @@ function rosterMatrix(catalog: SessionCatalog) {
 function lineupEncounter(catalog: SessionCatalog) {
   const kinds = new Set(
     rosterMatrix(catalog).flatMap((row) =>
-      ROLES.flatMap((role) => row.roles[role].map((c) => c.id)),
+      AIR_ROLES.flatMap((role) => row.roles[role].map((c) => c.id)),
     ),
   );
   return {
@@ -343,7 +317,7 @@ function AirPanel({ kind, scenario }: { kind: "records" | "matrix"; scenario: st
 
 function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
   const t = catalog.units.type(id);
-  const { sensors, capabilities: caps } = air(t);
+  const { sensors, capabilities: caps } = t;
   const radar = caps.air?.radar ?? caps.radar;
   const fields: [string, string][] = [
     ["layer", layerOf(t)],
@@ -387,7 +361,7 @@ function AirMatrix({ catalog }: { catalog: SessionCatalog }) {
       {rosterMatrix(catalog).map(({ faction, roles }) => (
         <section key={faction} data-faction={faction} style={{ marginBottom: 8 }}>
           <strong>{faction}</strong>
-          {ROLES.map((role) => (
+          {AIR_ROLES.map((role) => (
             <div key={role} data-role={role}>
               {role.replace("_", " ")}: {roles[role].map((c) => c.name).join(", ") || "—"}
             </div>

@@ -65,13 +65,21 @@ export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in 
 export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.layer === "high_air";
 
-/** A mover's top speed, km/h: its road speed, or an aircraft's cruise
- *  (`Mobility::speeds_kmh`). */
-export function topSpeedKmh(m: Mobility): number {
-  if ("air" in m) return m.air.cruise_kmh;
-  if ("tracked" in m) return m.tracked.road_kmh;
-  if ("wheeled" in m) return m.wheeled.road_kmh;
-  return m.foot.road_kmh;
+/** A type's altitude layer, as the simulation names it. */
+export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" | "high_air" =>
+  "air" in type.mobility ? (highAir(type) ? "high_air" : "low_air") : "ground";
+
+/** The air war's roles: short, medium and long air defence, SEAD, and the
+ *  other fixed-wing. */
+export const AIR_ROLES = ["short", "medium", "long", "sead", "fixed_wing"] as const;
+export type AirRole = (typeof AIR_ROLES)[number];
+
+/** A type's air-war role, or null for one with none. */
+export function airRole(type: Pick<UnitType, "mobility" | "capabilities">): AirRole | null {
+  const caps = type.capabilities;
+  if (caps.air_defense) return caps.air_defense.tier;
+  if (highAir(type)) return caps.air?.sead ? "sead" : "fixed_wing";
+  return null;
 }
 
 /** A mount row, as a hull lists it or a soldier kind carries it. */
@@ -137,6 +145,8 @@ export interface UnitType {
   mobility: Mobility;
   sensors: {
     ground_m: number;
+    low_air_m?: number;
+    high_air_m?: number;
     sight_shape: { front: number; side: number; rear: number };
     on?: string;
   };
@@ -154,6 +164,15 @@ export interface UnitType {
       service_s: number;
       stock_per_charge: number;
     };
+    air?: {
+      fuel_capacity_s: number;
+      sead: boolean;
+      flares?: { capacity: number; reload_s: number };
+      afterburner?: { speed_multiplier: number; fuel_multiplier: number };
+      radar?: { emits: boolean; detection_m: number };
+    };
+    air_defense?: { tier: "short" | "medium" | "long" };
+    radar?: { emits: boolean; detection_m: number };
   };
   sound: { profile: "infantry" | "vehicle"; loudness_m: number };
   /** A hull's model; a squad draws its soldiers' appearance sets. */

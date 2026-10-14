@@ -5,7 +5,7 @@
 import { writeFile } from "node:fs/promises";
 import { lab, obs, advance, presented, openBattle } from "./_lab.mjs";
 import { loadEncounter } from "../src/maps/node.ts";
-import { game, unitType } from "./_units.mjs";
+import { game } from "./_units.mjs";
 
 /** The air map's saved encounter `name`, as the route plays it. */
 export const encounter = (name) => loadEncounter("air", name);
@@ -39,12 +39,6 @@ export const own = (o, kind) => o.own.filter((u) => u.kind === kind);
 
 /** Rounds `u`'s mount `mount` has launched (its pose's counter). */
 export const shots = (u, mount = 0) => u.weaponPoses.find((p) => p.mount === mount)?.shots ?? 0;
-
-/** A type's altitude layer, as the simulation names it. */
-export const layerOf = (kind) => {
-  const air = unitType(kind).mobility.air;
-  return air ? (air.layer ?? "low_air") : "ground";
-};
 
 /** The ground under `p`, as the lab's walkable surface reads it. */
 export const surface = (page, p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);

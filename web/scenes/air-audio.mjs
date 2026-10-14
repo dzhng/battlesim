@@ -8,13 +8,14 @@
 // presentation's sound tests hold (`crates/presentation/tests/sound.rs`).
 import { gpuWarnings, obs, lab } from "./_lab.mjs";
 import { openAir, shoot } from "./_air.mjs";
-import { game, hull } from "./_units.mjs";
+import { game, unitType } from "./_units.mjs";
+import { vehicleClass } from "../../packages/scene-assets/src/units.ts";
 
 const ENEMY_JET = "eastern_j_10_vigorous_dragon_j_10c";
 const { air_alarm, vehicles } = game.presentation.audio;
 const ALARM = air_alarm.sound;
-/** The engine the J-10 sounds with: its HighAir class's row. */
-const ENGINE = vehicles[`high_air_${hull(ENEMY_JET).weight_class}`].engine;
+/** The engine the J-10 sounds with: its class's row. */
+const ENGINE = vehicles[vehicleClass(unitType(ENEMY_JET))].engine;
 
 const heard = async (page) => (await lab(page, () => window.__lab.route.sound()))?.bySound ?? {};
 

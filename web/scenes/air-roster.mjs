@@ -9,25 +9,16 @@ import { openAir, shoot, drawnVehicles } from "./_air.mjs";
 import { writeSheet } from "./_sheet.mjs";
 import { unitType } from "./_units.mjs";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
-
-const ROLES = ["short", "medium", "long", "sead", "fixed_wing"];
-const FACTIONS = ["us", "europe", "eastern"];
-const roleOf = (t) =>
-  t.capabilities.air_defense?.tier ??
-  (t.mobility.air?.layer === "high_air"
-    ? t.capabilities.air?.sead
-      ? "sead"
-      : "fixed_wing"
-    : null);
+import { AIR_ROLES, airRole, FACTIONS } from "../../packages/scene-assets/src/units.ts";
 const cards = (await nodeCatalogSet("test")).units.view.cards.filter((c) => !c.disabled_reason);
 const matrix = Object.fromEntries(
   FACTIONS.map((f) => [
     f,
     Object.fromEntries(
-      ROLES.map((r) => [
+      AIR_ROLES.map((r) => [
         r,
         cards
-          .filter((c) => c.roster.factions.includes(f) && roleOf(unitType(c.id)) === r)
+          .filter((c) => c.roster.factions.includes(f) && airRole(unitType(c.id)) === r)
           .map((c) => c.name),
       ]),
     ),
@@ -51,7 +42,7 @@ export async function run(ctx) {
     ),
   );
   for (const f of FACTIONS) {
-    const want = Object.fromEntries(ROLES.map((r) => [r, matrix[f][r].join(", ") || "—"]));
+    const want = Object.fromEntries(AIR_ROLES.map((r) => [r, matrix[f][r].join(", ") || "—"]));
     ctx.check(
       `${f}: the matrix lists the roster's air roles`,
       JSON.stringify(shown[f]) === JSON.stringify(want),
@@ -66,7 +57,7 @@ export async function run(ctx) {
 
   // The line-up: one of each type in the matrix, every one drawn.
   const o = await lab(page, () => window.__lab.route.observation());
-  const kinds = new Set(cards.filter((c) => roleOf(unitType(c.id))).map((c) => c.id));
+  const kinds = new Set(cards.filter((c) => airRole(unitType(c.id))).map((c) => c.id));
   ctx.check(
     "the battle parks each type of the matrix once",
     o.own.length === kinds.size && o.own.every((u) => kinds.has(u.kind)),
