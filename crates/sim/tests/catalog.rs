@@ -655,7 +655,6 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         }
         if id == "test_jet" {
             eprintln!("jet unit: {:?}", b.unit(UnitId(0)).unwrap());
-            eprintln!("others: {:?}", b.units().map(|u| (u.position, u.layer())).collect::<Vec<_>>());
         }
         for (m, mount) in b.unit(UnitId(0)).unwrap().mounts.iter().enumerate() {
             if mount.shots == 0 {

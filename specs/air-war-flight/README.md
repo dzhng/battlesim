@@ -41,6 +41,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 |---|---|
 | **Q13:** Bought helicopters share today's four-sides spawn. Should they arrive the way jets will? | **No.** Helicopters keep their current arrival: the four-sides spawn, the off-map wait and `traversing`. Only jets change (slice 12). |
 | **Q14:** Should the skirmish AI buy jets and answer enemy jets? | **Yes:** it buys high-air-capable units when it sees enemy `HighAir`, and jets join its reinforcement rotation under attack-move (slice 17). |
+| **AA is standard (follow-up):** | Every standard opening includes at least one AA unit that can reach jets. Jets are tuned so that **a side without AA takes heavy damage before it recovers**: that is the balance target for slice 19, and the AI's opening models the habit (slice 17). |
 
 ## Slice graph
 
