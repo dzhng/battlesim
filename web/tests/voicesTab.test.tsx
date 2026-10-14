@@ -134,6 +134,7 @@ function fixture() {
       job: { id: "2", args: [], status: "queued" as const, lines: [] },
     })),
     pick: vi.fn(async () => snapshot),
+    background: vi.fn(async () => snapshot),
   };
   const sounds: WorkbenchAPI = {
     snapshot: () => new Promise<Snapshot>(() => {}),
@@ -155,8 +156,9 @@ const heard = (audition: Auditioner) =>
   vi.mocked(audition.voice).mock.calls.at(-1)?.[0] as string[] | undefined;
 const url = (id: string, sha: string) => voiceUrl(take(id), sha.repeat(64));
 
-async function open() {
+async function open(change?: (snapshot: VoiceSnapshot) => void) {
   const f = fixture();
+  change?.(await f.voices.snapshot());
   render(<SoundWorkbench api={f.sounds} voices={f.voices} audition={f.audition} />, {
     wrapper: MemoryRouter,
   });
@@ -296,4 +298,33 @@ test("a voice waiting for its designed voice offers its candidates through the s
   expect(vi.mocked(voices.preview).mock.calls.at(-1)![0].catalog.retakes).toEqual({
     "tank/soldier/design": 1,
   });
+});
+
+test("a set's background is chosen among its placement's profiles, after a confirmation", async () => {
+  const { voices } = await open((snapshot) => {
+    snapshot.catalog.sets.tank.processing = "voice-cockpit";
+  });
+  const select = screen.getByRole("combobox", { name: "Background" });
+  expect(
+    within(select)
+      .getAllByRole("option")
+      .map((o) => o.textContent),
+  ).toEqual(["voice-cockpit", "voice-cockpit-generated"]);
+  const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+  fireEvent.change(select, { target: { value: "voice-cockpit-generated" } });
+  expect(voices.background).not.toHaveBeenCalled();
+  fireEvent.change(select, { target: { value: "voice-cockpit-generated" } });
+  await waitFor(() =>
+    expect(voices.background).toHaveBeenCalledWith(
+      expect.any(String),
+      "tank",
+      "voice-cockpit-generated",
+    ),
+  );
+  expect(confirm).toHaveBeenCalledTimes(2);
+});
+
+test("a set whose placement has one profile shows it without a choice", async () => {
+  await open();
+  expect(screen.queryByRole("combobox", { name: "Background" })).toBeNull();
 });

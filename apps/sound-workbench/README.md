@@ -50,8 +50,8 @@ battle's choices; reload or open a page to capture the latest saved generation. 
 identities; the browser cannot choose publication paths.
 
 Voices are reviewed one set at a time on their own tab, never through the library.
-`voices.json` is edited here only for line text, voice descriptions and retakes, through
-the same publication. The voice lock has one writer, the generation tool: the
+`voices.json` is edited here only for line text, voice descriptions, retakes and a
+set's background, through the same publication. The voice lock has one writer, the generation tool: the
 workbench server runs it for each verdict and generation, one command at a time, and
 a verdict names the served bytes it judged, so a regenerated take reads as unreviewed
 again. A generation always names its sets, so a click never spends on the whole library.
@@ -60,6 +60,10 @@ profile; Pick runs the tool's `pick`, and None of these bumps the voice's design
 retake and designs again. A picked voice still lists its candidates, the one in use
 marked: Use this runs `pick --replace`, then makes that voice's takes again and
 rebuilds the set's pack. The new takes stay out of the pack until reviewed.
+A set whose placement has more than one profile (the cockpit's jet loop or its
+generated bed) offers them as its background: choosing one runs `process` on the set,
+re-mixing its takes from their raw masters without new speech, then rebuilds its pack;
+the re-mixed bytes wait for review like any new take.
 
 The Music tab plays the score through the battle's own music player and music
 director. Its mood switch drives the director on a clock the tab owns, so the

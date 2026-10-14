@@ -82,6 +82,8 @@ export interface VoiceAPI {
   /** Saves candidate 1–3 as the voice; voices.json gains its voice_id. */
   /** Saves a design candidate as the voice; `replace` swaps one already picked. */
   pick(voice: string, candidate: number, replace: boolean): Promise<VoiceSnapshot>;
+  /** Re-mixes a set onto another of its placement's profiles; its takes then wait for review. */
+  background(revision: string, set: string, processing: string): Promise<VoiceSnapshot>;
   jobs(): Promise<{ jobs: GenerationJob[] }>;
 }
 /** A design candidate rendered through its set's profile. */
@@ -111,5 +113,6 @@ export const voiceAPI: VoiceAPI = {
   generate: (scope) => request("generate", { scope }),
   design: (voice) => request("design", { voice }),
   pick: (voice, candidate, replace) => request("pick", { voice, candidate, replace }),
+  background: (revision, set, processing) => request("background", { revision, set, processing }),
   jobs: () => request("jobs"),
 };

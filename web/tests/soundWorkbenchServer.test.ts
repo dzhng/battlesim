@@ -607,6 +607,58 @@ test("voice edits publish line text, descriptions and retakes only", async () =>
   }
 });
 
+test("a set's background is chosen among its placement's profiles and re-mixes its takes", async () => {
+  const runs: string[][] = [];
+  const fixture = await voiceFixture(async (args) => {
+    runs.push(args);
+    return 0;
+  });
+  const catalog = voiceCatalog();
+  catalog.sets.tank.processing = "voice-cockpit";
+  const text = `${JSON.stringify(catalog, null, 2)}\n`;
+  await writeFile(join(fixture.root, "fixtures/voices.json"), text);
+  const request = await fixture.open();
+  const { revision } = (await request("snapshot")).body;
+
+  const chosen = await request("background", {
+    revision,
+    set: "tank",
+    processing: "voice-cockpit-generated",
+  });
+  expect(chosen.status).toBe(200);
+  expect(chosen.body.catalog.sets.tank.processing).toBe("voice-cockpit-generated");
+  const written = JSON.parse(await readFile(join(fixture.root, "fixtures/voices.json"), "utf8"));
+  expect(written.sets.tank.processing).toBe("voice-cockpit-generated");
+  // Nothing else in the file moves.
+  written.sets.tank.processing = "voice-cockpit";
+  expect(written).toEqual(catalog);
+  // The speech is kept: the set's takes are re-mixed onto the new bed, then re-packed.
+  await vi.waitFor(() => expect(runs.at(-1)?.[0]).toBe("pack"));
+  expect(runs).toEqual([
+    ["process", "--set", "tank"],
+    ["pack", "--set", "tank"],
+  ]);
+});
+
+test("a background that is not one of the set's placement's profiles is refused; nothing runs", async () => {
+  const fixture = await voiceFixture();
+  const request = await fixture.open();
+  const { revision } = (await request("snapshot")).body;
+  for (const body of [
+    { revision, set: "tank", processing: "voice-nowhere" },
+    // A profile that exists, but places the speaker somewhere else.
+    { revision, set: "tank", processing: "voice-cockpit" },
+    { revision, set: "nobody", processing: "voice-radio-light" },
+  ])
+    expect((await request("background", body)).status).toBe(400);
+  expect(
+    (await request("background", { revision: "stale", set: "tank", processing: "voice-dry" }))
+      .status,
+  ).toBe(409);
+  expect(await readFile(join(fixture.root, "fixtures/voices.json"), "utf8")).toBe(fixture.text);
+  expect((await request("jobs")).body.jobs).toEqual([]);
+});
+
 test("a design candidate is played through the tool's preview, and pick runs the tool's pick", async () => {
   const runs: string[][] = [];
   let root = "";

@@ -60,17 +60,28 @@ export interface VoiceSpec {
   description: string;
   voice_id: string | null;
 }
+/** Each processing profile (`assets.py` `VOICE_PROFILES`), by where it places the
+ *  speaker. Profiles of one placement differ only in their bed, so they are a set's
+ *  background choices; a profile of another placement is another way of speaking. */
+export const VOICE_PROFILES = {
+  "voice-dry": "open",
+  "voice-radio-light": "vehicle",
+  "voice-earpiece": "earpiece",
+  "voice-intercom": "helicopter",
+  "voice-cockpit": "cockpit",
+  "voice-cockpit-generated": "cockpit",
+} as const;
+export type VoiceProfile = keyof typeof VOICE_PROFILES;
+/** The profiles a set speaking through `profile` can be re-mixed onto: its placement's. */
+export const backgroundChoices = (profile: VoiceProfile): VoiceProfile[] =>
+  (Object.keys(VOICE_PROFILES) as VoiceProfile[]).filter(
+    (other) => VOICE_PROFILES[other] === VOICE_PROFILES[profile],
+  );
 export interface VoiceSet {
   role: string;
   country: "us" | "de" | "uk" | "fr" | "se" | "it" | "ru" | "cn";
   callsign: string;
-  processing:
-    | "voice-radio-light"
-    | "voice-dry"
-    | "voice-earpiece"
-    | "voice-intercom"
-    | "voice-cockpit"
-    | "voice-cockpit-generated";
+  processing: VoiceProfile;
   voices: VoiceSpec[];
 }
 export interface VoiceCatalog {
@@ -85,14 +96,7 @@ const own = (value: unknown): Record<string, unknown> => {
   return value as Record<string, unknown>;
 };
 const countries = new Set(["us", "de", "uk", "fr", "se", "it", "ru", "cn"]);
-const processing = new Set([
-  "voice-radio-light",
-  "voice-dry",
-  "voice-earpiece",
-  "voice-intercom",
-  "voice-cockpit",
-  "voice-cockpit-generated",
-]);
+
 const triggerSet = new Set<string>(ALL_TRIGGERS);
 function checkLine(text: unknown, where: string): string {
   if (typeof text !== "string" || text.trim().length === 0)
@@ -134,7 +138,7 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
     if (
       !catalog.roles[set.role] ||
       !countries.has(set.country) ||
-      !processing.has(set.processing) ||
+      !Object.hasOwn(VOICE_PROFILES, set.processing) ||
       typeof set.callsign !== "string" ||
       !Array.isArray(set.voices) ||
       set.voices.length === 0
