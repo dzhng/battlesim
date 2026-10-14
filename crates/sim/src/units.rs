@@ -474,10 +474,8 @@ impl Unit {
         // Attack-move is the one explicit order that keeps an aircraft's
         // automatic dogfight lock: the aircraft continues its close fight
         // while advancing, then resumes the attack-move policy afterwards.
-        if !queued && !matches!(order, UnitOrder::AttackMove(_)) {
-            if let Some(air) = self.air.as_mut() {
-                air.dogfight_target = None;
-            }
+        if !queued && !matches!(order, UnitOrder::AttackMove(_)) && self.air.is_some() {
+            crate::air::dogfight::clear(self);
         }
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;

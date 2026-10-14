@@ -1,5 +1,6 @@
 //! Fixed-wing flight laws. Helicopters remain in [`crate::movement::air`].
 
+pub mod dogfight;
 pub mod edge;
 pub mod jet;
 pub mod pass;
@@ -85,6 +86,18 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
     };
     let mut pass_release_now = false;
     // A withdrawing jet only flies for its back edge (air::edge).
+    let linked_target = unit.air.as_ref().and_then(|air| air.dogfight_target);
+    let dogfight_intent = linked_target
+        .filter(|_| !matches!(current_order, Some(UnitOrder::Move(_))))
+        .and_then(|target| ctx.knowledge[unit.side.index()].track(target))
+        .map(|track| {
+            dogfight::intent(
+                &state,
+                track,
+                mix(ctx.seed ^ u64::from(unit.id.0)),
+                &ctx.rules.air.jet,
+            )
+        });
     let intent = if unit.withdrawing {
         unit.air.as_mut().expect("jet air state").pass = None;
         match current_order {
@@ -93,6 +106,9 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                 to: unit.position.xy(),
             },
         }
+    } else if let Some(intent) = dogfight_intent {
+        unit.air.as_mut().expect("jet air state").pass = None;
+        intent
     } else {
         match current_order {
             Some(UnitOrder::Move(m)) | Some(UnitOrder::AttackMove(m)) => {

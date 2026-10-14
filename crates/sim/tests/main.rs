@@ -40,6 +40,7 @@ mod ground;
 mod ground_delivery;
 mod guidance;
 mod hull_guns;
+mod jet_dogfight;
 mod jet_flight;
 mod jet_runs;
 mod kerbside;
