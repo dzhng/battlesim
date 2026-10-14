@@ -43,8 +43,8 @@ scales remain unit scale. Export glTF normally; bake owns Y-up conversion.
 Vehicle appearances use `basis_yaw_deg: 0`. Infantry imported rest space faces -Y
 and left +X; its existing `basis_yaw_deg: 90` converts once at bake.
 
-Read [the contract mount definition](../../../crates/contract/src/weapons.rs) and
-[the one muzzle evaluator](../../../packages/scene-assets/src/mountMuzzle.ts).
+Read [the contract mount definition](../../../../crates/contract/src/weapons.rs) and
+[the one muzzle evaluator](../../../../packages/scene-assets/src/mountMuzzle.ts).
 A mount `pivot_m` is in the carrier bearing frame **from hull origin**; its muzzle
 is an offset rotated by its own bearing. `on` names an earlier turret mount,
 not a transform whose translation gets added a second time. Author actual node

@@ -72,7 +72,7 @@ native heap, and the codec's 64 MiB refusal ceiling is not a performance budget.
 | Exact fog and spatial mutation ownership | [`visibility`](../../../crates/sim/src/visibility.rs), [`world`](../../../crates/sim/src/world/), public sight tests in [`sim/tests`](../../../crates/sim/tests/) |
 | Sampled route legality and incremental planning | [`navigation`](../../../crates/sim/src/navigation/), [`route_planner`](../../../crates/sim/src/route_planner.rs), public navigation/route-planning tests |
 | Physical movement, cover and settling | [`movement`](../../../crates/sim/src/movement/), public movement/cover tests |
-| Exact delivery and cursor lifetime | [`publication`](../../../crates/sim/src/publication.rs), [`observation decoder`](../../../crates/sim/src/publication/reader.rs), native publication and web delivery tests |
+| Exact delivery and cursor lifetime | [`publication`](../../../crates/sim/src/publication.rs), [`observation view`](../../../web/src/battle/sim/observationView.ts), native publication and web delivery tests |
 | Reset presentation and resource lifetime | [`reset scene seam`](../../../web/scenes/_reset.mjs), shared [`lab settlement`](../../../web/scenes/_lab.mjs) |
 | Supported-engine replay admission | [`sim build identity`](../../../crates/sim/build.rs), replay admission and paired native/Wasm publication records |
 | Every generated request and refusal | [`mapgen` tooling](../../../crates/mapgen/), parent C54 generation gate |

@@ -1,6 +1,6 @@
 # 20 — Off-map strike lifecycle
 
-**Status:** superseded 2026-10-13 by the combined [persistent aircraft and layered air-defence plan](../../air-war/README.md). Do not implement this historical off-map-sortie contract independently. Its aircraft work is replaced by air-war slices 01–11.
+**Status:** superseded 2026-10-13 by the combined [persistent aircraft and layered air-defence plan](../../done/air-war/README.md). Do not implement this historical off-map-sortie contract independently. Its aircraft work is replaced by air-war slices 01–11.
 
 ## Contract and question
 

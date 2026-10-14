@@ -99,7 +99,7 @@ Research behind the rules:
   - The hover and closing labs share `apps/battle-lab/src/labOverlay.ts`.
 - **Tests:**
   - `crates/sim/tests/air*.rs` and `hull_guns.rs`
-  - `web/tests/aircraftMarks.test.ts`, `contactGlyph.test.ts` and `unitControl.test.tsx` (an airborne contact offers no attack)
+  - `web/scenes/air-hover.mjs`, `web/scenes/air-crash.mjs` and `unitControl.test.tsx` (an airborne contact offers no attack)
 - **Art:** `packages/scene-assets/blender/aircraft_parts.py` (rotor, chin gun, door gun, wreck helpers) and the helicopter exporters in `roster/` (`apache.py`, `chinook.py`, `havoc.py`, `hind.py`, `hip.py`, `ka52.py`, `little_bird.py`, `h1.py`, `tiger.py`, `z10.py`, `utility_helis.py`).
 
 ## How the build diverged from the plan

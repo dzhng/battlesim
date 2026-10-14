@@ -63,25 +63,25 @@ purchase cost from value priority or use hidden enemy ammo to classify threats.
 
 Repository facts actually inspected:
 
-- [UnitType and capabilities](../../crates/contract/src/catalog.rs:39) own faction,
+- [UnitType and capabilities](../../../crates/contract/src/catalog.rs#L39) own faction,
   family, cost, bodies/mobility, mounts, inheritance and capability admission.
-- [Weapons](../../crates/sim/src/weapons.rs:894) already prioritize cost; the new
+- [Weapons](../../../crates/sim/src/weapons.rs#L894) already prioritize cost; the new
   return-threat tier extends that owner rather than replacing it with UI logic.
-- [Commands](../../crates/contract/src/command.rs:112) need purchase/retirement
+- [Commands](../../../crates/contract/src/command.rs#L112) need purchase/retirement
   intents; the current deploy ability is supply setup, not reinforcement entry.
-- [Damage outcomes](../../crates/sim/src/damage.rs:247) carry destroyed IDs but
-  not economic lethal-source attribution. [Round](../../crates/sim/src/battle.rs:70)
+- [Damage outcomes](../../../crates/sim/src/damage.rs#L247) carry destroyed IDs but
+  not economic lethal-source attribution. [Round](../../../crates/sim/src/battle.rs#L70)
   already carries shooter unit and side.
-- [Supply](../../crates/sim/src/supply.rs:1) is finite stock with stationary
-  recipients and deployed sources; [fixture service](../../fixtures/game.json:350)
+- [Supply](../../../crates/sim/src/supply.rs#L1) is finite stock with stationary
+  recipients and deployed sources; [fixture service](../../../fixtures/game.json#L350)
   owns existing stock costs/rates.
-- [ArmyDeck](../../web/src/battle/present/armyDeck.tsx:11) shows deployed own units;
+- [ArmyDeck](../../../web/src/battle/present/armyDeck.tsx#L11) shows deployed own units;
   purchase cards, planned catalog entries and pending orders need explicit input.
-- [Weapon rows](../../web/src/battle/present/panelRows.ts:303) already share own/enemy
+- [Weapon rows](../../../web/src/battle/present/panelRows.ts#L303) already share own/enemy
   presentation while hiding enemy readiness. Trophy should extend that surface.
-- [Map sizes](../../crates/contract/src/generation.rs:52) are 4/6/8/10 km;
-  [generation](../../crates/mapgen/README.md) is seeded and bounded.
-- [Scene-assets](../../packages/scene-assets/README.md:16) freezes meters/axes,
+- [Map sizes](../../../crates/contract/src/generation.rs#L52) are 4/6/8/10 km;
+  [generation](../../../crates/mapgen/README.md) is seeded and bounded.
+- [Scene-assets](../../../packages/scene-assets/README.md#L16) freezes meters/axes,
   physical fit, mount frames and shared infantry rigs.
 
 ## Known unknowns — decision ledger
@@ -190,21 +190,21 @@ sweep for a not-yet-implemented feature, not a claim to inspect every future dif
 
 | Status | Evidence | Why it bites / required consequence |
 |---|---|---|
-| OPEN feasibility | [MapSize extents](../../crates/contract/src/generation.rs:52) | Edge-to-center infantry travel is ~11–27 minutes; a 30-minute majority target does not make a short match. Probe compact skirmish geometry before committing layout sizes. |
-| decided | [Ground-only mobility/capabilities](../../crates/contract/src/catalog.rs:107), [strict unit decoding](../../crates/contract/src/catalog.rs:38) | Disabled future planes cannot just be invalid playable unit rows. Extend the one catalog owner with explicit planned/available state; planned metadata is visible but never admitted as a live unit. |
-| decided | [Automatic value selection](../../crates/sim/src/weapons.rs:894) | Price tuning changes targeting intentionally. Keep one cost, add return-threat ranking with side knowledge, verify higher-price changes and incapable targets. |
-| decided | [Outcome destroyed IDs](../../crates/sim/src/damage.rs:247), [building-collapse consequences](../../crates/sim/src/battle.rs:1618) | Destruction alone loses economic source and can pay twice. Carry stable source/side/original-cost through full-unit death and collapse; ledger once. |
-| sharp edge | [Unseen-death suppression](../../crates/sim/src/battle.rs:1608) | Kill credits can reveal an unseen loss indirectly. Accepted wallet-only reward must not add enemy identity/position or corrupt contact memory. |
-| decided | [Finite supply validation](../../crates/sim/src/supply.rs:77) | Every finite weapon needs a stock price. Trophy needs an explicit service item/timer; avoid instant refill or restarting cooldown. |
-| decided | [Town parks become wooded](../../crates/mapgen/src/layout/towns/mod.rs:823) | An empty park today may become trees later. Reserve square/junction/field objective sites through final layout and forest generation, then validate physical accessibility. |
-| sharp edge | [Site centers are street junctions](../../crates/contract/src/encounter.rs:73) | Settlement centers need not lie exactly on the halfway line. Preserve selected center-line objectives by composing the site, never silently snapping off-line. |
-| decided | [Enemy weapon rows hide readiness](../../web/src/battle/present/panelRows.ts:303) | Showing Trophy ammo/cooldown for enemies leaks state. Own panels show live values; enemy panels show only admitted equipment evidence. |
-| decided | [Preparation needs a blue unit](../../web/src/battle/prepare/prepare.ts:245) | A zero-unit encounter throws and cannot frame the camera. Slice 02 uses admitted base/start geometry instead. |
-| decided | [ArmyDeck depends on own units](../../web/src/battle/present/armyDeck.tsx:11) | Zero-unit starts currently remove the army footer. Purchase access must stay visible at zero units; pending cards need explicit observed economy data. |
-| decided | [AI command/replay path](../../crates/sim/src/battle.rs:1391) | Current defensive AI has no purchase/objective planner. Extend a basic observation-bound controller; record orders and do not rerun policy in replay. |
-| decided | [Digest enumerates authoritative state](../../crates/sim/src/battle.rs:2824) | Credits, pools, reservations, objectives, retirement and APS state must join digest/replay/native–WASM parity; UI timers cannot become authority. |
-| decided | [Flight admission](../../crates/contract/src/ballistics.rs:6) | Range/speed/gravity/lifetime/scatter are coupled. Starter envelopes require real admission; use swept Trophy interception rather than a per-frame distance check. |
-| sharp edge | [Asset fit and atomic loading](../../packages/scene-assets/README.md:7) | 150 cards do not require loading unsupported meshes at startup. Use explicit placeholder bindings for planned entries; no disabled entry should make the entire playable catalog fail asset admission. |
+| OPEN feasibility | [MapSize extents](../../../crates/contract/src/generation.rs#L52) | Edge-to-center infantry travel is ~11–27 minutes; a 30-minute majority target does not make a short match. Probe compact skirmish geometry before committing layout sizes. |
+| decided | [Ground-only mobility/capabilities](../../../crates/contract/src/catalog.rs#L107), [strict unit decoding](../../../crates/contract/src/catalog.rs#L38) | Disabled future planes cannot just be invalid playable unit rows. Extend the one catalog owner with explicit planned/available state; planned metadata is visible but never admitted as a live unit. |
+| decided | [Automatic value selection](../../../crates/sim/src/weapons.rs#L894) | Price tuning changes targeting intentionally. Keep one cost, add return-threat ranking with side knowledge, verify higher-price changes and incapable targets. |
+| decided | [Outcome destroyed IDs](../../../crates/sim/src/damage.rs#L247), [building-collapse consequences](../../../crates/sim/src/battle.rs#L1618) | Destruction alone loses economic source and can pay twice. Carry stable source/side/original-cost through full-unit death and collapse; ledger once. |
+| sharp edge | [Unseen-death suppression](../../../crates/sim/src/battle.rs#L1608) | Kill credits can reveal an unseen loss indirectly. Accepted wallet-only reward must not add enemy identity/position or corrupt contact memory. |
+| decided | [Finite supply validation](../../../crates/sim/src/supply.rs#L77) | Every finite weapon needs a stock price. Trophy needs an explicit service item/timer; avoid instant refill or restarting cooldown. |
+| decided | [Town parks become wooded](../../../crates/mapgen/src/layout/towns/mod.rs#L823) | An empty park today may become trees later. Reserve square/junction/field objective sites through final layout and forest generation, then validate physical accessibility. |
+| sharp edge | [Site centers are street junctions](../../../crates/contract/src/encounter.rs#L73) | Settlement centers need not lie exactly on the halfway line. Preserve selected center-line objectives by composing the site, never silently snapping off-line. |
+| decided | [Enemy weapon rows hide readiness](../../../web/src/battle/present/panelRows.ts#L303) | Showing Trophy ammo/cooldown for enemies leaks state. Own panels show live values; enemy panels show only admitted equipment evidence. |
+| decided | [Preparation needs a blue unit](../../../web/src/battle/prepare/prepare.ts#L245) | A zero-unit encounter throws and cannot frame the camera. Slice 02 uses admitted base/start geometry instead. |
+| decided | [ArmyDeck depends on own units](../../../web/src/battle/present/armyDeck.tsx#L11) | Zero-unit starts currently remove the army footer. Purchase access must stay visible at zero units; pending cards need explicit observed economy data. |
+| decided | [AI command/replay path](../../../crates/sim/src/battle.rs#L1391) | Current defensive AI has no purchase/objective planner. Extend a basic observation-bound controller; record orders and do not rerun policy in replay. |
+| decided | [Digest enumerates authoritative state](../../../crates/sim/src/battle.rs#L2824) | Credits, pools, reservations, objectives, retirement and APS state must join digest/replay/native–WASM parity; UI timers cannot become authority. |
+| decided | [Flight admission](../../../crates/contract/src/ballistics.rs#L6) | Range/speed/gravity/lifetime/scatter are coupled. Starter envelopes require real admission; use swept Trophy interception rather than a per-frame distance check. |
+| sharp edge | [Asset fit and atomic loading](../../../packages/scene-assets/README.md#L7) | 150 cards do not require loading unsupported meshes at startup. Use explicit placeholder bindings for planned entries; no disabled entry should make the entire playable catalog fail asset admission. |
 | sharp edge | Selected 200/minute income and 30-unit cap | Thirty minutes injects 6,000 passive credits, not 1,800. Check field density and replacement churn; do not silently add upkeep/taper to solve crowding. |
 | sharp edge | Selected score-target victory | If every flag stays contested, a match can run indefinitely. This follows removal of the hard cutoff; no unstated overtime or forced score mechanic is added. |
 

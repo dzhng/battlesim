@@ -74,9 +74,10 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: start a battle on a generated map (its type, its size and optionally its region), or read the tutorial on how to play; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=&faction=&enemy=`, with `&region=` when one was chosen) is its share identity: the same address prepares the same battle on the same build. An address without the player's faction, or with a parameter the battle does not read, is refused by name. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` runs explicitly synthetic local contact on a complete generated world (`?preset=city-contact` names it).
-
-Ordinary Play chooses an admitted battlefield from the selected type and size, with bounded fresh candidates. Once admitted, its address names the actual battlefield. Explicit seed addresses and saved replays remain exact.
+The main menu owns play and tutorial entry. The battle route's URL is a shareable
+identity for the admitted map and player choices; its parser and the benchmark
+README own the accepted fields. Ordinary Play admits a generated battlefield
+before publishing its address, while explicit seeds and saved replays remain exact.
 
 The local [map workbench](apps/map-workbench/README.md) tunes generation on a live
 top-down plan. The [mechanics editor](apps/mechanics-editor/README.md) edits resolved
@@ -92,33 +93,15 @@ and balance measurements.
 
 ## Checks
 
-[The task runner](package.json) defines `check` (format, lint, types and Rust/web
-tests) and `verify` (browser scenes). Both run once at a spec's closeout; iteration
-uses the narrowest check the change can move, as [AGENTS.md](AGENTS.md) requires.
-For an interface change that check is `visual`: the scenes whose captures must
-match approved pictures.
+[The task runner](package.json) owns the check, verification and visual commands;
+the simulation and browser READMEs explain which evidence each command provides.
+Use the narrowest check that can move while iterating and run the full closeout
+checks when a spec is finished, as [AGENTS.md](AGENTS.md) requires.
 
-[Simulation checks](crates/sim/README.md#checks) explain deterministic outcomes and
-native tests. [Browser checks](web/README.md#checks-and-evidence) explain test and
-scene selection, prerequisites, GPU serialization and evidence. Documentation and
-data that no code reads need no battle run.
-
-## Worktrees
-
-Large binaries (models, textures, reference images) are in Git LFS, set up once per clone so that checkouts get small pointer files:
-
-```bash
-git lfs install --local --skip-smudge
-git lfs pull                                 # in the main checkout only
-git lfs pull --include="<path>/**"           # in a worktree: only what the task needs
-```
-
-A battle draws from the runtime appearance bundles (`assets/runtime/`) and the third-party effects (`assets/third-party/`); without them it aborts on its resources. Their audio (`assets/runtime/audio/`) is optional: a page without it plays silent.
-
-[LFS attributes](.gitattributes) define which inputs are large-file objects, and
-[ignore rules](.gitignore) separate generated output and scratch from source.
-
-In a worktree, symlink `web/node_modules` to the main checkout's, and give it its own Rust build directory with `CARGO_TARGET_DIR`. Cargo leaves a workspace crate's path out of its build hash, so two worktrees sharing one `target/` overwrite each other's builds. Delete that directory with the worktree.
+Large media is Git LFS material and generated output belongs in ignored scratch
+directories. [Assets](assets/README.md) owns fetching and provenance; [browser
+configuration](web/README.md#build-and-serving) owns serving prerequisites and
+worktree-specific build isolation.
 
 ## Developing in WSL
 
@@ -129,8 +112,6 @@ WSL has no Vulkan driver for the host GPU, so its Chromium draws WebGPU on Swift
 [Specs](specs/README.md) hold active plans and finished rationale. A plan's own
 README is its live handoff; its choices ledger records decisions made where the
 plan was silent. [Design references](design/) retain the earliest planning map.
-Repository working principles and skill entry points live in [AGENTS.md](AGENTS.md);
-[CLAUDE.md](CLAUDE.md) supplies the corresponding agent entry point. [Repository
-skills](.agents/skills/) own procedure-specific tools; `.claude/skills/` links to
-those same owners, and [the skill lock](skills-lock.json) records acquired skill
-provenance. Those are agent workflows rather than game runtime scripts.
+Repository working principles and agent entry points live in [AGENTS.md](AGENTS.md)
+and [CLAUDE.md](CLAUDE.md); procedure-specific workflows live under
+[`.agents/skills/`](.agents/skills/).

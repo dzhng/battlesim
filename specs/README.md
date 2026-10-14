@@ -12,15 +12,20 @@ ladder with parallel named-model production.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
 
-[Air-war flight](air-war-flight/README.md) is a placeholder for the fixed-wing flight the [air war](done/air-war/README.md) specified but the simulation doesn't yet deliver: jets at their own altitude, circling, attack runs, and dogfight and afterburner tests.
+[Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
+made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield
+contract. [Air-war flight](air-war-flight/README.md) is a placeholder for the
+fixed-wing flight it specified but the simulation doesn't yet deliver: jets at their
+own altitude, circling, attack runs, and dogfight and afterburner tests.
 
 [Battle voices and music](done/battle-voices-music/README.md) (shipped) gave units RTS-style voice lines (answers to their owner and simulation-emitted barks) and battles an adaptive background score, generated with ElevenLabs and reviewed in the sound workbench.
 
 [Native rendering parity](done/native-rendering-parity/README.md) (shipped) built a
 native `wgpu` client that draws what the browser draws, over one Rust
 presentation crate both clients share, and holds the presentation API's contract.
-
-[One renderer](one-renderer/README.md) is a placeholder for the open decision on whether the browser moves onto native's Rust `wgpu` renderer, so the game has one renderer instead of two.
+[One renderer](one-renderer/README.md) is a placeholder for the open decision on
+whether the browser moves onto native's Rust `wgpu` renderer, so the game has one
+renderer instead of two.
 
 [Performance](performance/README.md) is a placeholder for measured, deferred
 optimizations (GPU memory, model packing, loading), kept until a player-visible
