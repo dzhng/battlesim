@@ -395,6 +395,17 @@ impl Run {
         self.replay.frame(&record, self.generation, |_| {})?;
         self.bench.as_mut().ok_or("not a bench")?.mark();
         self.prepare()?;
+        let bench = self.bench.as_mut().ok_or("not a bench")?;
+        bench.mark();
+        let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+        bench.begin(device, queue);
+        let mut encoder = self.passes.encode(device, queue, &self.view);
+        bench.end(&mut encoder);
+        bench.mark();
+        let index = self.present(encoder);
+        let bench = self.bench.as_mut().ok_or("not a bench")?;
+        bench.submitted(&self.gpu.device, index)?;
+        // What the frame drew, tallied outside its timed phases.
         let d = self.passes.models.drawn();
         let scenery = Counted::of(self.replay.presentation()).scenery;
         let trees: u32 = scenery.iter().flatten().sum();
@@ -413,16 +424,6 @@ impl Run {
         for (sum, v) in self.drew.iter_mut().zip(frame) {
             *sum += v;
         }
-        let bench = self.bench.as_mut().ok_or("not a bench")?;
-        bench.mark();
-        let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-        bench.begin(device, queue);
-        let mut encoder = self.passes.encode(device, queue, &self.view);
-        bench.end(&mut encoder);
-        bench.mark();
-        let index = self.present(encoder);
-        let bench = self.bench.as_mut().ok_or("not a bench")?;
-        bench.submitted(&self.gpu.device, index)?;
         Ok(true)
     }
 
