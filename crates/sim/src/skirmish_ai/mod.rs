@@ -244,6 +244,7 @@ impl BalancedDoctrine {
                 + view.pending.iter().filter(|p| p.kind == kind).count()
         };
         let low_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
+        let high_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::HighAir);
         let opening = match self.doctrine {
             Doctrine::TankSwarm => [
                 ("mbt", Category::Veh, 0),
@@ -283,6 +284,19 @@ impl BalancedDoctrine {
             .iter()
             .filter_map(|&(role, category, ordinal)| pick(role, category, ordinal))
             .collect();
+        // AA is insurance every opening carries. Select it from the admitted
+        // weapon capabilities so roster renames and faction-specific cards do
+        // not change the rule.
+        let high_air_defender = eligible
+            .iter()
+            .copied()
+            .filter(|&kind| unit_can_target_layer(rules, kind, AltitudeLayer::HighAir))
+            .max_by(|a, b| {
+                candidate_score(rules, *a, draw_unit, Some(AltitudeLayer::HighAir)).total_cmp(
+                    &candidate_score(rules, *b, draw_unit, Some(AltitudeLayer::HighAir)),
+                )
+            });
+        let desired: Vec<_> = high_air_defender.iter().copied().chain(desired).collect();
         let mut orders = Vec::new();
         // Only units that can take an objective count toward its load: a
         // helicopter sent to fight over a flag never holds it (D20).
@@ -299,6 +313,7 @@ impl BalancedDoctrine {
             let mut credits = view.credits;
             let mut slots = view.occupied_slots;
             let mut needed = BTreeMap::new();
+            let mut high_air_bought = high_air_defender.is_none_or(|kind| count(kind) > 0);
             desired
                 .iter()
                 .copied()
@@ -306,10 +321,24 @@ impl BalancedDoctrine {
                     let wanted = needed.entry(kind).or_insert(0);
                     *wanted += 1;
                     let cost = f64::from(rules.catalog.get(kind).cost);
-                    let buy = count(kind) < *wanted && cost <= credits && slots < view.max_units;
+                    // Reserve the wallet and a slot for the mandatory AA card;
+                    // lower-priority roles yield when it would otherwise be
+                    // crowded out.
+                    let high_air_cost = high_air_defender
+                        .map(|defender| f64::from(rules.catalog.get(defender).cost));
+                    let reserves_aa = !high_air_bought
+                        && high_air_defender.is_some_and(|defender| kind != defender)
+                        && high_air_cost.is_some_and(|aa| credits - cost < aa);
+                    let buy = count(kind) < *wanted
+                        && cost <= credits
+                        && slots < view.max_units
+                        && !reserves_aa;
                     if buy {
                         credits -= cost;
                         slots += 1;
+                        if high_air_defender == Some(kind) {
+                            high_air_bought = true;
+                        }
                     }
                     buy
                 })
@@ -330,7 +359,8 @@ impl BalancedDoctrine {
                     truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
                 } else {
                     // Helicopters reinforce, ordered like light vehicles (D35);
-                    // a deck without one buys the next role in turn instead.
+                    // fixed-wing aircraft are the next air category in the
+                    // same rotation. A deck without one buys the next role.
                     let roles = [
                         ("infantry", Category::Inf),
                         ("recon", Category::Rec),
@@ -338,22 +368,22 @@ impl BalancedDoctrine {
                         ("light_vehicle", Category::Veh),
                         ("artillery", Category::Sup),
                         ("helicopter", Category::Hel),
+                        ("fixed_wing", Category::Air),
                     ];
-                    let selected = if low_air_demand {
+                    let selected = if let Some(layer) = [
+                        (AltitudeLayer::HighAir, high_air_demand),
+                        (AltitudeLayer::LowAir, low_air_demand),
+                    ]
+                    .into_iter()
+                    .find_map(|(layer, demanded)| demanded.then_some(layer))
+                    {
                         eligible
                             .iter()
                             .copied()
-                            .filter(|&kind| {
-                                unit_can_target_layer(rules, kind, AltitudeLayer::LowAir)
-                            })
+                            .filter(|&kind| unit_can_target_layer(rules, kind, layer))
                             .max_by(|a, b| {
-                                candidate_score(rules, *a, draw_unit, Some(AltitudeLayer::LowAir))
-                                    .total_cmp(&candidate_score(
-                                        rules,
-                                        *b,
-                                        draw_unit,
-                                        Some(AltitudeLayer::LowAir),
-                                    ))
+                                candidate_score(rules, *a, draw_unit, Some(layer))
+                                    .total_cmp(&candidate_score(rules, *b, draw_unit, Some(layer)))
                                     .then_with(|| rules.catalog.id(*b).cmp(rules.catalog.id(*a)))
                             })
                             .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)

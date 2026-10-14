@@ -525,6 +525,171 @@ fn opening_procures_an_authored_artillery_role() {
 }
 
 #[test]
+fn every_ai_opening_includes_a_high_air_defender() {
+    let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+    let (_, frame, entry) = empty_match();
+    for faction in [Faction::Us, Faction::Europe, Faction::Eastern] {
+        let orders = BalancedDoctrine::default().decide(
+            Side::Red,
+            faction,
+            &entry,
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        );
+        assert!(
+            orders.iter().any(|order| matches!(
+                order,
+                Order::ConfirmPurchase { variant, .. }
+                    if unit_can_target_layer(
+                        &rules,
+                        rules.catalog.index(variant).unwrap(),
+                        AltitudeLayer::HighAir
+                    )
+            )),
+            "{faction:?} opening has no HighAir defender: {orders:?}"
+        );
+    }
+}
+
+#[test]
+fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
+    let mut authored = deck();
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({
+            "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }]
+        }),
+    );
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jet",
+        json!({
+            "roster": { "factions": ["us"], "category": "air", "family_name": "Test jet", "variant": "Test" }
+        }),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let (_, mut frame, entry) = empty_match();
+    let view = frame.skirmish.as_mut().unwrap();
+    view.phase = Phase::Active;
+    view.credits = 500.0;
+    view.occupied_slots = 1;
+    view.pending.push(contract::skirmish::PendingPurchase {
+        id: contract::skirmish::PurchaseId(1),
+        kind: rules.catalog.index("test_supply").unwrap(),
+        destination: entry.center,
+        confirmed_tick: 0,
+        blocked: false,
+    });
+    let ordinary = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry,
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    frame
+        .identified
+        .push(contract::observation::IdentifiedUnit {
+            id: contract::observation::ObservedTargetId(7),
+            kind: rules.catalog.index("test_jet").unwrap(),
+            cost: 300,
+            position: [500.0, 500.0, 250.0],
+            yaw: 0.0,
+            velocity: [0.0, 0.0],
+            members: vec![],
+            member_ids: vec![],
+            member_slots: vec![],
+            member_active_mounts: vec![],
+            weapon_poses: vec![],
+            reversing: false,
+            smoking: false,
+            member_leans: vec![],
+        });
+    let threatened = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry,
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let purchased = |orders: &[Order]| {
+        orders.iter().find_map(|order| match order {
+            Order::ConfirmPurchase { variant, .. } => Some(rules.catalog.index(variant).unwrap()),
+            _ => None,
+        })
+    };
+    let ordinary_kind = purchased(&ordinary).expect("ordinary reinforcement");
+    assert!(!unit_can_target_layer(
+        &rules,
+        ordinary_kind,
+        AltitudeLayer::HighAir
+    ));
+    let defended = purchased(&threatened).expect("jet sighting buys a defender");
+    assert!(
+        unit_can_target_layer(&rules, defended, AltitudeLayer::HighAir),
+        "threat response bought {}",
+        rules.catalog.id(defended)
+    );
+}
+
+#[test]
+fn the_ai_sends_bought_jets_on_attack_move() {
+    let mut authored = deck();
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jet",
+        json!({
+            "roster": { "factions": ["us"], "category": "air", "family_name": "Test jet", "variant": "Test" }
+        }),
+    );
+    let rules: Rules = serde_json::from_value(authored.clone()).unwrap();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":authored,"units":[{"side":"red","kind":"test_jet","position":[500,100]}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    let (_, mut frame, entry) = empty_match();
+    frame.own = battle.observe(Side::Red).own.clone();
+    let view = frame.skirmish.as_mut().unwrap();
+    view.phase = Phase::Active;
+    view.credits = 500.0;
+    view.occupied_slots = 1;
+    view.pending.push(contract::skirmish::PendingPurchase {
+        id: contract::skirmish::PurchaseId(1),
+        kind: rules.catalog.index("test_supply").unwrap(),
+        destination: entry.center,
+        confirmed_tick: 0,
+        blocked: false,
+    });
+    let jet = rules.catalog.index("test_jet").unwrap();
+    assert_eq!(frame.own[0].kind, jet);
+    let mut ai = BalancedDoctrine {
+        reinforcement: 6,
+        ..BalancedDoctrine::default()
+    };
+    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+        Some(1.0)
+    });
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::ConfirmPurchase { variant, .. } if variant == "test_jet"
+    )));
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::AttackMove { units, .. } if units == &vec![frame.own[0].id]
+    )));
+}
+
+#[test]
 fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
     let (rules, mut frame, entry) = empty_match();
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
