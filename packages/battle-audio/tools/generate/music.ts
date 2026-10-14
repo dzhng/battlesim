@@ -95,7 +95,7 @@ function inOrder<T>(record: Record<string, T>, entry: Record<string, T>): Record
  * Writes the catalog as it is kept: non-ASCII escaped as `assets.py build` writes it,
  * laid out by the repo's formatter, so an added track never reflows the rest of the file.
  */
-function writeCatalog(path: string, catalog: SoundCatalog) {
+export function writeCatalog(path: string, catalog: SoundCatalog) {
   const text = JSON.stringify(catalog, null, 2).replace(
     /[\u0080-\uffff]/g,
     (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`,

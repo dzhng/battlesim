@@ -9,8 +9,8 @@ synthesis baselines. Audition is explicit; opening or testing the tool stays sil
 Recipes select alternative clips and blend optional synthesis into each alternative.
 A recipe's alternatives play the same number of shots: burst clips with burst clips
 at one interval, single reports with single reports.
-Air-war cues use this same catalog path: jet approach, air alarm, AA launch, missile
-warning and flare deployment are editable recipes, while their observed causes remain
+Air-war cues use this same catalog path: the jet engine, air alarm, AA launch, missile
+warning and flare burst are editable recipes, while their observed causes remain
 owned by the battle presentation.
 The [production sound bank](../../packages/battle-audio/src/soundBank.ts) owns
 decoding and mixing for audition and battle playback. A baseline retains its original

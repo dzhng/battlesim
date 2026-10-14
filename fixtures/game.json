@@ -1431,7 +1431,7 @@
           "reverse_gain": 0
         },
         "high_air_light": {
-          "engine": "airwar-jet-approach",
+          "engine": "airwar-jet-engine",
           "idle_rate": 0.7,
           "load_rate": 1.25,
           "idle_gain": 0.34,
@@ -1446,7 +1446,7 @@
           "reverse_gain": 0
         },
         "high_air_medium": {
-          "engine": "airwar-jet-approach",
+          "engine": "airwar-jet-engine",
           "idle_rate": 0.7,
           "load_rate": 1.25,
           "idle_gain": 0.4,
@@ -1461,7 +1461,7 @@
           "reverse_gain": 0
         },
         "high_air_heavy": {
-          "engine": "airwar-jet-approach",
+          "engine": "airwar-jet-engine",
           "idle_rate": 0.7,
           "load_rate": 1.25,
           "idle_gain": 0.46,
@@ -1481,7 +1481,7 @@
       "ambience": { "sound": "countryside", "gain": 0.2 },
       "air_alarm": { "sound": "airwar-air-alarm", "gain": 0.8 },
       "missile_warning": { "sound": "airwar-missile-warning", "gain": 0.9 },
-      "flare_deploy": { "sound": "airwar-flare-deploy", "gain": 0.75 },
+      "flare_deploy": { "sound": "airwar-flare-burst", "gain": 0.75 },
       "music": {
         "duck": { "depth": 0.35, "attack_s": 0.05, "release_s": 0.8 },
         "combat_window_s": 20,

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { FixturePublication } from "../fixture-publication/publication";
 import {
   ALL_TRIGGERS,
+  VOICE_PROFILES,
   backgroundChoices,
   takeId,
   voiceTriggers,
@@ -109,6 +110,8 @@ export class VoiceWorkbenchStore {
     private readonly root: string,
     private readonly validateCatalog: (value: unknown) => VoiceCatalog,
     private readonly queue: GenerationQueue,
+    /** Each processing profile's placement; a set's background is chosen within its own. */
+    private readonly placements: Readonly<Record<string, string>> = VOICE_PROFILES,
   ) {
     this.publication = new FixturePublication(
       root,
@@ -142,6 +145,12 @@ export class VoiceWorkbenchStore {
       takes: Object.fromEntries(Object.entries(lock.takes).map(([id, take]) => [id, view(take)])),
       counts: Object.fromEntries(
         Object.keys(catalog.sets).map((set) => [set, counts(catalog, lock, set)]),
+      ),
+      backgrounds: Object.fromEntries(
+        Object.entries(catalog.sets).map(([set, spec]) => [
+          set,
+          backgroundChoices(spec.processing, this.placements),
+        ]),
       ),
       designs: Object.fromEntries(
         Object.entries(lock.designs).map(([id, design]) => [
@@ -249,7 +258,7 @@ export class VoiceWorkbenchStore {
     if (typeof name !== "string" || !Object.hasOwn(input.catalog.sets, name))
       throw new WorkbenchError("Name a set the catalog has");
     const current = input.catalog.sets[name].processing;
-    const choices: string[] = backgroundChoices(current);
+    const choices = backgroundChoices(current, this.placements);
     if (!choices.includes(request.processing as string))
       throw new WorkbenchError(
         `${String(request.processing)} is not a background for ${name}: choose ${choices.join(" or ")}`,

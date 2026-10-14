@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ALL_TRIGGERS,
-  backgroundChoices,
   takeId,
   voiceTriggers,
   voiceUrl,
@@ -382,7 +381,7 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
             <h2>{set}</h2>
             <p>
               {spec.country.toUpperCase()} · {spec.role} · “{spec.callsign}” ·{" "}
-              {backgroundChoices(spec.processing).length > 1 ? (
+              {(snapshot.backgrounds[set] ?? []).length > 1 ? (
                 <select
                   aria-label="Background"
                   title="The bed this set's lines are mixed over"
@@ -398,7 +397,7 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
                       void background(set, next);
                   }}
                 >
-                  {backgroundChoices(spec.processing).map((profile) => (
+                  {snapshot.backgrounds[set].map((profile) => (
                     <option key={profile} value={profile}>
                       {profile}
                     </option>

@@ -142,7 +142,8 @@ fn flare_deploy_starts_the_positional_flare_sound() {
         0.0,
     );
     let commands = s.update(1.0 / 30.0, 0.0, 0.0, &Motion::default(), HERE);
-    assert!(commands.iter().any(|c| matches!(c, Command::Start { voice, .. } if voice.sound == "airwar-flare-deploy" && voice.position == Some([20.0, 0.0, 1000.0]))));
+    let flare = fixture("game.json")["presentation"]["audio"]["flare_deploy"]["sound"].clone();
+    assert!(commands.iter().any(|c| matches!(c, Command::Start { voice, .. } if voice.sound == flare.as_str().unwrap() && voice.position == Some([20.0, 0.0, 1000.0]))));
 }
 
 #[test]

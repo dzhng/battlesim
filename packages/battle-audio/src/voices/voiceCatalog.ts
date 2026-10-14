@@ -69,14 +69,14 @@ export const VOICE_PROFILES = {
   "voice-earpiece": "earpiece",
   "voice-intercom": "helicopter",
   "voice-cockpit": "cockpit",
-  "voice-cockpit-generated": "cockpit",
 } as const;
 export type VoiceProfile = keyof typeof VOICE_PROFILES;
-/** The profiles a set speaking through `profile` can be re-mixed onto: its placement's. */
-export const backgroundChoices = (profile: VoiceProfile): VoiceProfile[] =>
-  (Object.keys(VOICE_PROFILES) as VoiceProfile[]).filter(
-    (other) => VOICE_PROFILES[other] === VOICE_PROFILES[profile],
-  );
+/** The profiles a set speaking through `profile` can be re-mixed onto: its placement's
+ *  in `placements` (profile to placement). */
+export const backgroundChoices = (
+  profile: string,
+  placements: Readonly<Record<string, string>> = VOICE_PROFILES,
+): string[] => Object.keys(placements).filter((other) => placements[other] === placements[profile]);
 export interface VoiceSet {
   role: string;
   country: "us" | "de" | "uk" | "fr" | "se" | "it" | "ru" | "cn";

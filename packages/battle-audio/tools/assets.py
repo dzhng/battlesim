@@ -5,6 +5,7 @@ import array
 import hashlib
 import io
 import json
+import math
 from pathlib import Path
 import struct
 import subprocess
@@ -57,17 +58,8 @@ VOICE_PROFILES = {
         "loudness_lufs": -16,
     },
     # A fighter's oxygen mask: a narrower, harder-pressed radio, and the jet heard through
-    # the canopy. The bed is the game's own jet loop (`airwar-jet-approach-recording`, the
-    # loop every HighAir aircraft plays; its All-Rights-Reserved source is admitted for this
-    # personal project). `voice-cockpit-generated` is the same radio over the generated
-    # `jet_cockpit` bed (voices.lock.json `beds`): a set's `processing` chooses between them.
+    # the canopy, a generated bed (voices.lock.json `beds` `jet_cockpit`).
     "voice-cockpit": {
-        "filter": "highpass=f=350,lowpass=f=3200,acompressor=threshold=0.08:ratio=6:attack=3:release=50:makeup=3",
-        "hiss": {"color": "white", "amplitude": 0.02, "highpass": 600, "lowpass": 3000, "weight": 0.3},
-        "bed": {"clip": "airwar-jet-approach-recording", "filter": "lowpass=f=1200", "volume": 0.4},
-        "loudness_lufs": -16,
-    },
-    "voice-cockpit-generated": {
         "filter": "highpass=f=350,lowpass=f=3200,acompressor=threshold=0.08:ratio=6:attack=3:release=50:makeup=3",
         "hiss": {"color": "white", "amplitude": 0.02, "highpass": 600, "lowpass": 3000, "weight": 0.3},
         "bed": {"generated": "jet_cockpit", "filter": "lowpass=f=1200", "volume": 0.4},
@@ -177,6 +169,43 @@ def layer(decoded, spec):
     return array.array("f", (v * spec["gain"] for v in x))
 
 
+def window_rms(x, start, end):
+    start, end = max(0, start), min(len(x), end)
+    if end <= start:
+        return 0.0
+    return math.sqrt(sum(v * v for v in x[start:end]) / (end - start))
+
+
+def fade_s(level, peak, longest):
+    """A fade for a cut through sound at `level` against the crop's loudest 100 ms: the
+    click guard at -40 dB and below, up to `longest` seconds at full level."""
+    if level <= 0 or peak <= 0:
+        return 0.0
+    return longest * min(1.0, max(0.0, (20 * math.log10(level / peak) + 40) / 40))
+
+
+def cut_fades(source, crop, start, rate):
+    """The fade-in and fade-out a crop of `source` from `start` needs, in seconds.
+
+    Its end fades by how loud the crop still is there: a sound stopped mid-ring (a
+    siren mid-cycle, a generated master at its requested length) fades out over up to
+    half a second, one already died away keeps the click guard. Its start fades in only
+    when it begins inside a sound that was already going, never on an attack that rises
+    out of whatever rang before it (a shot after the shot before), and then only over a
+    few milliseconds, so an attack never softens. A crop shorter than 400 ms is a
+    transient, not a sound cut mid-ring: its ends keep the click guard."""
+    if len(crop) < rate * 2 // 5:
+        return 0.0, 0.0
+    span = rate // 10
+    peak = max(window_rms(crop, i, i + span) for i in range(0, max(1, len(crop) - span + 1), span // 2))
+    fade_out = fade_s(window_rms(crop, len(crop) - span, len(crop)), peak, 0.5)
+    before = window_rms(source, start - span, start)
+    head = window_rms(crop, 0, rate // 50)
+    rising = head > 2 * before
+    fade_in = 0.0 if rising else fade_s(before, peak, 0.005)
+    return fade_in, fade_out
+
+
 def render(clip, decoded):
     profile = clip["processing"]
     if profile not in FILTERS:
@@ -186,14 +215,18 @@ def render(clip, decoded):
             raise ValueError("invalid layers")
         rate = 48000
         crop = overlay([(round(spec["at_s"] * rate), layer(decoded, spec)) for spec in clip["layers"]])
+        fades = (0.0, 0.0)
     else:
         rate = clip["source_rate"]
         start, end = clip["source_frames"]
         source = decoded[clip["source"]][1]
         crop = cut(decoded, clip["source"], rate, clip["source_frames"])
         burst = clip.get("burst")
+        fades = (0.0, 0.0)
         if burst:
             crop = relay(source, burst, rate, start, end)
+        else:
+            fades = cut_fades(source, crop, start, rate)
     if sys.byteorder != "little":
         crop.byteswap()
     x = floats(ffmpeg(["-f", "f32le", "-ar", str(rate), "-ac", "1", "-i", "-",
@@ -208,11 +241,14 @@ def render(clip, decoded):
             result[len(result) - cross + i] = x[len(x) - cross + i] * (1 - t) + x[i] * t
         x = result
     else:
-        fade = min(240, len(x) // 8)
+        # A click guard at both ends; a cut through a still-sounding source fades longer.
+        fade_in_s, fade_out_s = fades
+        fade = min(max(240, round(fade_out_s * 48000)), len(x) // 4 if fade_out_s else len(x) // 8)
         for i in range(fade):
             x[-1-i] *= i / fade
-        for i in range(min(12, len(x))):
-            x[i] *= i / 12
+        rise = min(max(12, round(fade_in_s * 48000)), len(x) // 8 if fade_in_s else len(x))
+        for i in range(rise):
+            x[i] *= i / rise
     peak = max(abs(v) for v in x)
     if peak < 0.00001:
         raise ValueError("silent clip")

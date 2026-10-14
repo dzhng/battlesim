@@ -44,6 +44,8 @@ export interface VoiceSnapshot {
   takes: Record<string, TakeView>;
   counts: Record<string, SetCounts>;
   designs: Record<string, DesignView>;
+  /** Each set's background choices: its placement's profiles, its own first among them. */
+  backgrounds: Record<string, string[]>;
 }
 export interface VoiceDraft {
   revision: string;

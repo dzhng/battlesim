@@ -70,6 +70,106 @@ function wav(samples: Float32Array, rate: number): Buffer {
   return Buffer.concat([head, data]);
 }
 
+test.skipIf(!hasFfmpeg)(
+  "a clip cut out of a sustained sound fades in and out instead of starting or stopping on the cut",
+  () => {
+    const root = mkdtempSync(join(tmpdir(), "battle-audio-fade-"));
+    try {
+      const rate = 48000;
+      // A steady 440 Hz tone for 3 s; the clip takes the middle second. Then a crack
+      // that rises out of a ringing tail, as a shot does out of the shot before it.
+      const source = new Float32Array(4 * rate);
+      for (let i = 0; i < 3 * rate; i++) source[i] = 0.5 * Math.sin((2 * Math.PI * 440 * i) / rate);
+      for (let i = 3 * rate; i < 3.5 * rate; i++)
+        source[i] = 0.08 * Math.sin((2 * Math.PI * 440 * i) / rate);
+      for (let i = 0; i < 0.5 * rate; i++)
+        source[3.5 * rate + i] = 0.9 * Math.exp(-i / 2000) * (i % 2 ? 1 : -1);
+      const bytes = wav(source, rate);
+      mkdirSync(join(root, "fixtures"));
+      mkdirSync(join(root, "assets/third-party/audio"), { recursive: true });
+      writeFileSync(join(root, "assets/third-party/audio/tone.wav"), bytes);
+      writeFileSync(
+        join(root, "fixtures/sounds.json"),
+        JSON.stringify({
+          sources: {
+            tone: {
+              path: "assets/third-party/audio/tone.wav",
+              sha256: createHash("sha256").update(bytes).digest("hex"),
+            },
+          },
+          clips: {
+            cut: {
+              source: "tone",
+              source_rate: rate,
+              source_frames: [rate, 2 * rate],
+              processing: "launch",
+              url: "/audio/clips/cut.wav",
+              loop: false,
+            },
+            crack: {
+              source: "tone",
+              source_rate: rate,
+              source_frames: [3.5 * rate, 4 * rate],
+              processing: "launch",
+              url: "/audio/clips/crack.wav",
+              loop: false,
+            },
+            // The tone from its first sample, stopping while it still sounds, as a
+            // generated master stops at its requested length.
+            whole: {
+              source: "tone",
+              source_rate: rate,
+              source_frames: [0, 3 * rate],
+              processing: "launch",
+              url: "/audio/clips/whole.wav",
+              loop: false,
+            },
+          },
+        }),
+      );
+      const run = spawnSync(
+        "python3",
+        [resolve("../packages/battle-audio/tools/assets.py"), "build", "--root", root],
+        { encoding: "utf8" },
+      );
+      expect(run.stderr).toBe("");
+      expect(run.status).toBe(0);
+      const out = readFileSync(join(root, "assets/runtime/audio/clips/cut.wav"));
+      const pcm = new Int16Array(out.buffer, out.byteOffset + 44, (out.length - 44) / 2);
+      const rms = (from: number, to: number) =>
+        Math.sqrt(pcm.slice(from, to).reduce((sum, v) => sum + v * v, 0) / (to - from));
+      const steady = rms(pcm.length / 2 - 4800, pcm.length / 2 + 4800);
+      const ms = rate / 1000;
+      // It ends at near-zero level, and its last 50 ms are already well down: a
+      // fade, not a cut with a click guard.
+      expect(Math.max(...Array.from(pcm.slice(-ms), Math.abs))).toBeLessThan(0.02 * 32767);
+      expect(rms(pcm.length - 50 * ms, pcm.length)).toBeLessThan(0.5 * steady);
+      // It starts mid-tone, so it rises in over a few milliseconds rather than
+      // starting at full level; short, so an attack in its place would survive.
+      expect(rms(0, 2 * ms)).toBeLessThan(0.5 * steady);
+      expect(rms(10 * ms, 20 * ms)).toBeGreaterThan(0.9 * steady);
+      // The tone itself is kept between the fades.
+      expect(rms(200 * ms, 800 * ms)).toBeGreaterThan(0.9 * steady);
+
+      const whole = readFileSync(join(root, "assets/runtime/audio/clips/whole.wav"));
+      const all = new Int16Array(whole.buffer, whole.byteOffset + 44, (whole.length - 44) / 2);
+      const level = (from: number, to: number) =>
+        Math.sqrt(all.slice(from, to).reduce((sum, v) => sum + v * v, 0) / (to - from));
+      const held = level(all.length / 2 - 4800, all.length / 2 + 4800);
+      expect(level(all.length - 50 * ms, all.length)).toBeLessThan(0.5 * held);
+      // Nothing sounded before its first sample, so its start is left as recorded.
+      expect(level(ms, 5 * ms)).toBeGreaterThan(0.9 * held);
+
+      // A crack cut where it rises out of a ringing tail keeps its attack whole.
+      const crack = readFileSync(join(root, "assets/runtime/audio/clips/crack.wav"));
+      const hit = new Int16Array(crack.buffer, crack.byteOffset + 44, (crack.length - 44) / 2);
+      expect(Math.max(...Array.from(hit.slice(0, 2 * ms), Math.abs))).toBeGreaterThan(0.5 * 32767);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  },
+);
+
 test.skipIf(!hasFfmpeg)("a burst clip re-lays its source shots at the gun's interval", () => {
   const root = mkdtempSync(join(tmpdir(), "battle-audio-burst-"));
   try {

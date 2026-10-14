@@ -191,10 +191,8 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
   const sounds = validateSoundCatalog(structuredClone(shipped));
   const receipts = sounds.provenance ?? {};
   expect(Object.keys(receipts)).toEqual([
-    "airwar-jet-approach",
     "airwar-air-alarm",
     "airwar-missile-warning",
-    "airwar-flare-deploy",
     "airwar-aa-launch",
   ]);
   for (const receipt of Object.values(receipts)) {
@@ -207,17 +205,10 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
     expect(createHash("sha256").update(readFileSync(path)).digest("hex")).toBe(receipt.sha256);
     expect(receipt.source_frames[1]).toBeGreaterThan(receipt.source_frames[0]);
   }
-  expect(sounds.sounds["airwar-jet-approach-placeholder"]).toMatchObject({
-    synth: "rotor",
-    loop: true,
-  });
   expect(sounds.sounds["airwar-air-alarm-placeholder"]).toMatchObject({
     synth: "cue_engine",
     loop: false,
   });
-  expect(
-    Object.values(sounds.defaults).flatMap((choice) => [choice.near, choice.far]),
-  ).not.toContain("airwar-jet-approach-placeholder");
   const prepared = battleSounds({
     tickHz: 30,
     presentation: game.presentation.audio as unknown as AudioPresentation,
@@ -226,13 +217,53 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
     smokeTimes: game.presentation.effects.smoke,
     cookOff: game.presentation.effects.cook_off,
   });
-  expect(prepared).not.toContain("airwar-jet-approach-placeholder");
   expect(prepared).not.toContain("airwar-air-alarm-placeholder");
+});
+
+test("a generated sound effect is cut into clips like a recording; a generated music master is not", () => {
+  const c = catalog();
+  const generated = (path: string) => ({
+    kind: "Generated" as const,
+    generator: "ElevenLabs sound effects",
+    model: "m",
+    prompt: "a jet",
+    length_s: 10,
+    date: "2026-10-13",
+    plan: "Duet ElevenLabs" as const,
+    path,
+    sha256: "a".repeat(64),
+  });
+  const clip = (source: string): SoundClip => ({
+    label: "Jet",
+    category: "air-war",
+    role: "loop",
+    source,
+    source_rate: 44100,
+    source_frames: [0, 441000],
+    processing: "motor-loop",
+    url: "/audio/clips/jet.wav",
+    sha256: "b".repeat(64),
+    sample_rate: 48000,
+    frames: 475200,
+    loop: true,
+    notes: "",
+  });
+  c.sources.jet = generated("assets/source/audio/effects/jet.aaaaaaaa.mp3");
+  c.clips.jet = clip("jet");
+  expect(validateSoundCatalog(c).clips.jet).toMatchObject({ source: "jet" });
+  c.sources.score = generated("assets/source/audio/music/score.aaaaaaaa.mp3");
+  c.clips.jet = clip("score");
+  expect(() => validateSoundCatalog(c)).toThrow(/clip jet/);
 });
 
 test("air-war audio has workbench recipes for every authored air cue", () => {
   const sounds = validateSoundCatalog(structuredClone(shipped));
-  for (const name of ["airwar-missile-warning", "airwar-flare-deploy", "airwar-aa-launch"]) {
+  for (const name of [
+    "airwar-missile-warning",
+    "airwar-flare-burst",
+    "airwar-aa-launch",
+    "airwar-jet-engine",
+  ]) {
     expect(sounds.sounds[name], name).toBeDefined();
     expect(sounds.sounds[name].clips.length, name).toBeGreaterThan(0);
   }

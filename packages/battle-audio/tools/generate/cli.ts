@@ -13,6 +13,7 @@ import voiceJson from "../../../../fixtures/voices.json";
 import { duetClient, type ElevenLabsClient } from "./elevenlabs";
 import { autoPicks, designVoices, pickVoice, renderPreviews } from "./design";
 import { LOCK, readLock, recordVerdicts } from "./lock";
+import { generateEffects } from "./effects";
 import { assetsEncoder, generateMusic } from "./music";
 import { writePacks } from "./packs";
 import {
@@ -124,6 +125,7 @@ function html(path: string) {
 const USAGE = `usage: bun run generate <command>
   plan [--html path]       the whole library's clips and characters, per set
   beds                     generate the profiles' ambience beds (once)
+  effects [--dry-run]      generate the sound effects' missing or changed candidates
   music [--track a,b] [--dry-run]
                            generate the battle score's missing or changed tracks;
                            --track buys those tracks again
@@ -222,6 +224,15 @@ if (command === "plan") {
 } else if (command === "beds") {
   const { calls } = await generateBeds({ root, client: duetClient(), log });
   console.log(`TOTAL calls=${calls}`);
+} else if (command === "effects") {
+  const result = await generateEffects({
+    root,
+    client: duetClient(),
+    dryRun: args.includes("--dry-run"),
+    log,
+  });
+  console.log(`TOTAL calls=${result.calls} failed=${result.failed}`);
+  if (result.failed) process.exitCode = 1;
 } else if (command === "music") {
   const result = await generateMusic({
     root,

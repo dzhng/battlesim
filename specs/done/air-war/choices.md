@@ -8,7 +8,7 @@ least certain (future tuning) to firm architectural constraints.
 | Verdict | Decision | Why it matters |
 |---|---|---|
 | Provisional | Hit-count balance targets 1–3 long, 3–4 medium, and 4–6 short missile hits, with ballistic AA relying on spread. | These are provisional fixture targets; no balance report or equivalent proof is shipped yet. |
-| Sound | The downloaded air-war clips are admitted as personal-project sources and assigned through the sound workbench. | The five air cues stay editable in the catalog and use the same reviewed playback path as ground combat audio. |
+| Sound | The alarm, AA launch and missile-warning recordings are admitted as personal-project sources; the jet engine and flare burst are generated sound effects, since the downloaded flyby and flare clips carried crowd voices and were deleted. | The five air cues stay editable in the catalog and use the same reviewed playback path as ground combat audio. |
 | Sound | HighAir uses the existing generic air contact bark. | Adding a new voice taxonomy would couple identity to the altitude-layer cutover. |
 | Sound | The first visible HighAir episode raises one side-local air alarm; approach audio is a positional HighAir loop. | Aircraft should announce their arrival without leaking hidden units. |
 | Sound | Missile, flare and AA sounds remain cause-driven through presentation observations. | Audio cannot invent hidden combat events from unit labels. |

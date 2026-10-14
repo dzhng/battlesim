@@ -23,7 +23,7 @@ export interface GeneratedSource extends Generated {
   path: string;
   sha256: string;
 }
-/** A pinned third-party recording; only these are cropped into clips. */
+/** A pinned third-party recording, cut into clips like a generated sound effect. */
 export interface SoundSource {
   label: string;
   author: string;
@@ -132,6 +132,10 @@ export interface SoundCatalog {
 }
 export const isGenerated = (source: SoundSource | GeneratedSource): source is GeneratedSource =>
   (source as GeneratedSource).kind === "Generated";
+/** Whether clips may be cut from `source`: a recording or a generated sound effect; a
+ *  generated music master streams whole and is never cut. */
+export const cuttable = (source: SoundSource | GeneratedSource) =>
+  !isGenerated(source) || source.path.startsWith("assets/source/audio/effects/");
 /** A clip's crop source, which validation guarantees is a recording. */
 export const recording = (catalog: SoundCatalog, id: string) => catalog.sources[id] as SoundSource;
 const id = /^[a-zA-Z0-9_-]+$/;
@@ -178,7 +182,7 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
           finite(source.length_s, 1, 600) &&
           /^\d{4}-\d{2}-\d{2}$/.test(source.date) &&
           source.plan === "Duet ElevenLabs" &&
-          /^assets\/source\/audio\/music\/[a-zA-Z0-9_.-]+$/.test(source.path)
+          /^assets\/source\/audio\/(music|effects)\/[a-zA-Z0-9_.-]+$/.test(source.path)
         : typeof source.label === "string" &&
           typeof source.author === "string" &&
           (LICENSES as readonly string[]).includes(source.license) &&
@@ -222,7 +226,7 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
   const roles = ["shot", "launch", "impact", "explosion", "loop", "reload", "mechanical", "other"];
   const crop = (c: SourceCrop) =>
     Object.hasOwn(catalog.sources, c.source) &&
-    !isGenerated(catalog.sources[c.source]) &&
+    cuttable(catalog.sources[c.source]) &&
     Array.isArray(c.source_frames) &&
     c.source_frames.length === 2 &&
     c.source_frames.every(Number.isSafeInteger) &&

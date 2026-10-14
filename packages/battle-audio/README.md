@@ -77,12 +77,21 @@ Each source row records attribution and rights alongside its pinned bytes.
 User-supplied recordings retain an explicit receipt, including reserved-rights
 material chosen for a personal project. Downloaded candidates may instead live
 in the catalog's provenance section with a pinned hash and an explicit
-rights-unassigned status; they are not playable sources until accepted. Music is the exception to this
-preparation: it streams instead (see [Music playback](#music-playback)).
+rights-unassigned status; they are not playable sources until accepted. A sound the library has no clean recording of
+is a generated sound effect: `bun run generate effects` buys its candidates once
+(their prompts, in [the tool](tools/generate/effects.ts), rule out voices and
+crowds), keeps each raw master under `assets/source/audio/effects/` as a
+`Generated` source, and the asset tool cuts it into clips like a recording. Music is
+the exception to this preparation: it streams instead (see [Music playback](#music-playback)).
 
 The tool averages stereo channels, keeps the source crop in its original frame
 coordinates, applies the selected tonal profile and fades, and normalizes peak
-level with headroom. Loop clips use a crossfade. A burst clip names each shot's
+level with headroom. Loop clips use a crossfade. A one-shot clip never ends on a cut:
+one still ringing at its end (a siren mid-cycle, a hit cut at 1.6 s, a generated master
+stopping at its requested length) fades out over up to half a second by how loud it
+still is there, and one starting inside a sound already going fades in over a few
+milliseconds, never over an attack. A crop under 400 ms is a transient and keeps
+the click guard. A burst clip names each shot's
 source frames and overlap-adds them at its interval: a shot's retained tail ends
 before its next source attack, so a recording faster than the gun leaves a short
 gap between shots rather than a doubled attack. It admits all pinned sources and
@@ -145,10 +154,7 @@ profile names a clip in [`sounds.json`](../../fixtures/sounds.json) (the interco
 rotor is `rotor-uh60`, the loop every helicopter plays) and a filter that places it,
 such as the cockpit's muffling. Only a machine the game has no recording of gets a
 generated bed, a raw master the tool's `beds` command buys once and the lock records;
-the tank's engine is one, since the game synthesises engines. The fighter cockpit
-(`voice-cockpit`) takes the HighAir jet loop, whose All-Rights-Reserved source is
-admitted for this personal project; its generated `jet_cockpit` bed is kept as the
-alternative, heard through `voice-cockpit-generated`. Either way the bed's
+the tank's engine is one, since the game synthesises engines. Either way the bed's
 sha256 enters the processing key, so a changed clip or master re-renders its takes.
 
 Which lines play is decided in one place, in Rust
@@ -245,7 +251,7 @@ by the asset tool's `music` command; the hash in the name keeps a re-encoded
 track from meeting a cached one. A track's gain sets its loudness in the mix.
 
 The battle score is generated, so its sources record how (`Generated`: model,
-prompt, length) instead of a licence, and only a recording can be cropped into
+prompt, length) instead of a licence, and a music master is never cropped into
 a clip. `bun run generate music` owns those tracks: their table and prompts live
 in [the tool](tools/generate/music.ts), each raw master is paid for once and kept
 under `assets/source/audio/music/`, and each served encode is given the gain that
