@@ -76,6 +76,11 @@ export function useSimSession({
   onDecodedRef.current = onDecoded;
   // Fixed for the session's life, like the scenario it scripts.
   const scriptedRef = useRef(scripted);
+  // The side a new battle opens as. A lab that switches sides mid-battle
+  // observes as the other side (`observeAs`) in the same battle; a change of
+  // side never starts a new one.
+  const openSide = useRef(side);
+  openSide.current = side;
 
   useEffect(() => {
     const plan = scriptedRef.current;
@@ -83,7 +88,7 @@ export function useSimSession({
     const next = createSimClient({
       scenario,
       seed,
-      side,
+      side: openSide.current,
       slot,
       transport: "worker",
       replay,
@@ -153,7 +158,7 @@ export function useSimSession({
       if (frame !== null) cancelAnimationFrame(frame);
       next.dispose();
     };
-  }, [scenario, seed, generation, replay, prepared, slot, side]);
+  }, [scenario, seed, generation, replay, prepared, slot]);
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;
