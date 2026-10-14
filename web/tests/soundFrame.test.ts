@@ -26,6 +26,7 @@ import {
   vehicleLoops,
 } from "@packages/battle-audio/src/soundFrame";
 import { synthesize } from "@packages/battle-audio/src/soundBank";
+import { SOUNDS } from "@packages/battle-audio/src/synthSounds.gen";
 
 const HZ = 30;
 const DT = 1 / HZ;
@@ -83,6 +84,15 @@ class FakeSink implements VoiceSink {
   }
 }
 
+/** Every synthesized baseline as a recipe, as the shipped catalog holds them: a
+ *  battle prepares, and so can play, only what Rust's list names. */
+const BASELINES: SoundCatalog["sounds"] = Object.fromEntries(
+  Object.entries(SOUNDS).map(([name, { loop }]) => [
+    name,
+    { label: name, clips: [], synth: name, synth_gain: 1, gain: 1, loop },
+  ]),
+);
+
 function setup() {
   const sink = new FakeSink();
   const frame = new SoundFrame(
@@ -92,7 +102,7 @@ function setup() {
       catalog: {
         sources: {},
         clips: {},
-        sounds: {},
+        sounds: BASELINES,
         defaults: {},
         impacts: {},
         effects: {},

@@ -14,7 +14,6 @@ import {
 } from "@wasm/presentation/presentation_wasm.js";
 import type { AudioPresentation, Bus, VehicleSound } from "./audioPresentation";
 import type { SoundCatalog } from "./catalog";
-import { SOUNDS } from "./synthSounds.gen";
 import type { Chatter, ChatterUpdate } from "./voices/chatter";
 
 type P3 = readonly [number, number, number] | readonly number[];
@@ -270,15 +269,10 @@ export class SoundFrame {
     if (this.frame) return this.frame;
     const o = this.options;
     const frame = rustFrame(o);
-    const names = new Set([...(JSON.parse(frame.sounds()) as string[]), ...Object.keys(SOUNDS)]);
     const durations: Record<string, number[]> = {};
-    for (const name of names) {
+    for (const name of JSON.parse(frame.sounds()) as string[]) {
       const variants = Math.max(1, o.catalog.sounds[name]?.clips.length ?? 0);
-      try {
-        durations[name] = Array.from({ length: variants }, (_, k) => this.sink.duration(name, k));
-      } catch {
-        // A baseline this battle never prepared: it never plays.
-      }
+      durations[name] = Array.from({ length: variants }, (_, k) => this.sink.duration(name, k));
     }
     frame.durations(JSON.stringify(durations));
     return (this.frame = frame);
