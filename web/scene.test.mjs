@@ -72,16 +72,15 @@ test("test graphics quality is only added to lab routes", () => {
   ).toBe(false);
 });
 
-
 test("scene quality follows baseline, ordinary, and serial contracts", () => {
   expect(fixtureGraphicsQuality({ id: "frame" }, { pinned: true, env: null })).toBe("low");
   expect(fixtureGraphicsQuality({ id: "geometry" }, { pinned: false, env: null })).toBe("minimum");
   expect(
     fixtureGraphicsQuality({ id: "benchmark", serial: true }, { pinned: false, env: null }),
   ).toBeUndefined();
-  expect(
-    fixtureGraphicsQuality({ id: "geometry" }, { pinned: false, env: "medium" }),
-  ).toBe("medium");
+  expect(fixtureGraphicsQuality({ id: "geometry" }, { pinned: false, env: "medium" })).toBe(
+    "medium",
+  );
 });
 
 test("scene URL parameters merge with fixture queries", () => {

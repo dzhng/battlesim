@@ -115,7 +115,9 @@ describe("quality profiles", () => {
   test("scene minimum is cheaper than player low without changing mood", async () => {
     const { sceneMinimumProfile, graphicsProfiles } = await loadStore();
     expect(sceneMinimumProfile.unitLodScale).toBeGreaterThan(graphicsProfiles.low.unitLodScale);
-    expect(sceneMinimumProfile.buildingLodScale).toBeGreaterThan(graphicsProfiles.low.buildingLodScale);
+    expect(sceneMinimumProfile.buildingLodScale).toBeGreaterThan(
+      graphicsProfiles.low.buildingLodScale,
+    );
     expect(sceneMinimumProfile.treeLodScale).toBeGreaterThan(graphicsProfiles.low.treeLodScale);
     expect(sceneMinimumProfile.grassDensity).toBe(0);
     expect(sceneMinimumProfile.forestDressing).toBe(false);

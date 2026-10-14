@@ -224,11 +224,11 @@ async function runSet(ctx, page, set, fit) {
         }
         if (process.env.CITY_LINEUP_SHEETS === "1")
           await writeSheet(ctx, `sheet-${category}-tier${tier}${tag}.png`, {
-          title: `${category}, ${state}, tier ${tier}: each template alone, framed to fit`,
-          columns: Math.min(3, cells.length),
-          cellWidth: 640,
-          cells,
-        });
+            title: `${category}, ${state}, tier ${tier}: each template alone, framed to fit`,
+            columns: Math.min(3, cells.length),
+            cellWidth: 640,
+            cells,
+          });
       }
       await show(page, "solo", "solo", null);
 
@@ -265,21 +265,21 @@ async function runSet(ctx, page, set, fit) {
       for (const entry of standing)
         if (process.env.CITY_LINEUP_SHEETS === "1")
           await writeSheet(ctx, `pair-${name}-${entry.id}.png`, {
-          title: `${entry.id}, ${state}, at ${where}`,
-          columns: 2,
-          cellWidth: PAIR_WIDTH,
-          cells: cellsOf(entry),
-          pixelated: true,
-        });
+            title: `${entry.id}, ${state}, at ${where}`,
+            columns: 2,
+            cellWidth: PAIR_WIDTH,
+            cells: cellsOf(entry),
+            pixelated: true,
+          });
       for (const category of rows)
         if (process.env.CITY_LINEUP_SHEETS === "1")
           await writeSheet(ctx, `pairs-${name}-${category}.png`, {
-          title: `${category}, ${state}, at ${where}`,
-          columns: 2,
-          cellWidth: PAIR_WIDTH,
-          cells: inCategory(category).flatMap(cellsOf),
-          pixelated: true,
-        });
+            title: `${category}, ${state}, at ${where}`,
+            columns: 2,
+            cellWidth: PAIR_WIDTH,
+            cells: inCategory(category).flatMap(cellsOf),
+            pixelated: true,
+          });
     }
   }
   await route(page, "drawAt", null);

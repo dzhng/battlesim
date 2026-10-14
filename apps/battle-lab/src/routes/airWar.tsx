@@ -233,10 +233,7 @@ function Checkpoint({ fixture, checkpoint }: { fixture: string; checkpoint: Chec
         )}
       />
       {checkpoint.panel && (
-        <AirPanel
-          kind={variant === "records" ? "records" : checkpoint.panel}
-          scenario={scenario}
-        />
+        <AirPanel kind={variant === "records" ? "records" : checkpoint.panel} scenario={scenario} />
       )}
     </>
   );

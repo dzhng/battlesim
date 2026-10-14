@@ -92,7 +92,11 @@ import {
 } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
-import { graphicsProfiles, sceneMinimumProfile, type GraphicsQualityProfile } from "./graphicsSettings";
+import {
+  graphicsProfiles,
+  sceneMinimumProfile,
+  type GraphicsQualityProfile,
+} from "./graphicsSettings";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
 const NO_WALK = emptyBuildingWalkStats();

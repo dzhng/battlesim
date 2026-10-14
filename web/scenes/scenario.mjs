@@ -11,7 +11,10 @@ export async function run(ctx) {
       (await page.getByRole("button", { name: "Upload" }).isVisible()),
   );
   await page.mouse.click(600, 600);
-  ctx.check("placing on the canvas adds an authored unit", (await page.locator(".builder-unit").count()) >= 3);
+  ctx.check(
+    "placing on the canvas adds an authored unit",
+    (await page.locator(".builder-unit").count()) >= 3,
+  );
   ctx.check(
     "selected-unit inspector exposes side and facing",
     await page.getByRole("region", { name: "Selected unit inspector" }).isVisible(),
@@ -21,7 +24,10 @@ export async function run(ctx) {
   const artifact = await download;
   const packagePath = ctx.evidencePath("scenario.json");
   await artifact.saveAs(packagePath);
-  ctx.check("download exports a self-contained scenario package", (await artifact.failure()) === null);
+  ctx.check(
+    "download exports a self-contained scenario package",
+    (await artifact.failure()) === null,
+  );
   await page.goto(ctx.urlFor(ctx.url, { mode: "play" }));
   await page.getByRole("heading", { name: "Play scenario" }).waitFor();
   await page.locator('input[type="file"]').setInputFiles(packagePath);
@@ -30,11 +36,18 @@ export async function run(ctx) {
   await page.waitForFunction(
     () =>
       !!document.querySelector('[data-testid="error"]') ||
-      (!!document.querySelector('[data-testid="battle-panel"]') && !document.querySelector('[data-testid="loading"]')),
+      (!!document.querySelector('[data-testid="battle-panel"]') &&
+        !document.querySelector('[data-testid="loading"]')),
     undefined,
     { timeout: 60000 },
   );
-  const error = await page.getByTestId("error").isVisible().catch(() => false);
-  ctx.check("downloaded package boots the normal battle worker", !error && await page.getByTestId("battle-panel").isVisible());
+  const error = await page
+    .getByTestId("error")
+    .isVisible()
+    .catch(() => false);
+  ctx.check(
+    "downloaded package boots the normal battle worker",
+    !error && (await page.getByTestId("battle-panel").isVisible()),
+  );
   await writeFile(ctx.evidencePath("overview.png"), await page.screenshot());
 }

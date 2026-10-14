@@ -14,8 +14,6 @@ const SoundWorkbench = lazy(() => import("../../sound-workbench/src/SoundWorkben
 /** The pages: the benchmark page also owns its named workload URLs. */
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "graphics-test": lazy(() => import("./routes/graphicsTest")),
-  "native-parity-capture": lazy(() => import("./routes/graphicsTest")),
-  "graphics-fps": lazy(() => import("./routes/graphicsTest")),
   cursor: lazy(() => import("./routes/cursor")),
   frame: lazy(() => import("./routes/frame")),
   geometry: lazy(() => import("./routes/geometry")),
@@ -49,9 +47,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "city-lineup": lazy(() => import("./routes/cityLineup")),
   "city-ruins": lazy(() => import("./routes/cityRuins")),
   street: lazy(() => import("./routes/street")),
-  "street-watch": lazy(() => import("./routes/street")),
   generated: lazy(() => import("./routes/battle")),
-  "unit-roster": lazy(() => import("./routes/battle")),
   benchmark: lazy(() => import("./routes/benchmark")),
   endurance: lazy(() => import("./routes/endurance")),
   fog: lazy(() => import("./routes/fog")),
@@ -81,11 +77,9 @@ export function canonicalLabPath(path: string): string {
 /** `/` is the main menu, `/labs` the index of every fixture route. */
 export function LabRouter() {
   const location = useLocation();
-  const requested = `${location.pathname}${location.search}`;
-  const path = canonicalLabPath(requested);
-  const pathname = path.split("?", 1)[0];
-  if (pathname !== location.pathname)
-    return <Navigate replace to={`${path}${location.hash}`} />;
+  const path = canonicalLabPath(location.pathname);
+  if (path !== location.pathname)
+    return <Navigate replace to={`${path}${location.search}${location.hash}`} />;
   return (
     <PageVisit>
       <LabPage path={path} />
@@ -100,14 +94,11 @@ const EDITORS: Record<string, LazyExoticComponent<ComponentType>> = {
 };
 
 function resolvePage(path: string) {
-  const [pathname, search = ""] = path.split("?", 2);
-  const normalized = `${canonicalLabPath(pathname.replace(/\/$/, "") || "/")}${search ? `?${search}` : ""}`;
+  const normalized = canonicalLabPath(path.replace(/\/$/, "") || "/");
   const editor = import.meta.env.DEV ? EDITORS[normalized] : undefined;
-  const fixture =
-    LAB_FIXTURES.find((f) => f.route === normalized) ??
-    (LAB_FIXTURES.filter((f) => f.route.split("?", 1)[0] === pathname).length === 1
-      ? LAB_FIXTURES.find((f) => f.route.split("?", 1)[0] === pathname)
-      : undefined);
+  // A page is owned by the fixture whose route is its bare path; fixtures that
+  // add a query (a variant, a tool's workload) play on that owner's page.
+  const fixture = LAB_FIXTURES.find((f) => f.route === normalized);
   const Route = fixture && ROUTES[fixture.id];
   return { path: normalized, editor, fixture, Route };
 }
@@ -161,7 +152,10 @@ function LabPage({ path: requestedPath }: { path: string }) {
             ))}
         </ul>
         <h2>Scenes</h2>
-        <p>These registered scenes are the test harness; every scene passes at implementation closeout.</p>
+        <p>
+          These registered scenes are the test harness; every scene passes at implementation
+          closeout.
+        </p>
         <ul>
           {scenes.map((f) => (
             <li key={f.id}>

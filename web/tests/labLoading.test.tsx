@@ -5,8 +5,8 @@ import { LabRouter } from "@apps/battle-lab/src/router";
 import { lazy } from "react";
 import { LabLoading, useLabLoading } from "@apps/battle-lab/src/LabLoading";
 
-vi.mock("@apps/battle-lab/src/routes/contacts", () => ({
-  default: () => <div>Contact battle preparation</div>,
+vi.mock("@apps/battle-lab/src/routes/sensors", () => ({
+  default: () => <div>Sensors battle preparation</div>,
 }));
 
 afterEach(cleanup);
@@ -24,11 +24,11 @@ test("lab loading covers preparation and the first frame, then reveals the battl
       }),
   );
   const view = render(
-    <LabLoading subject="CONTACTS">
+    <LabLoading subject="SENSORS">
       <Route />
     </LabLoading>,
   );
-  expect(screen.getByTestId("loading-subject").textContent).toBe("CONTACTS");
+  expect(screen.getByTestId("loading-subject").textContent).toBe("SENSORS");
   expect(screen.getByTestId("loading-cancel").getAttribute("href")).toBe("/labs");
   resolve({ default: View });
   await screen.findByText("Battle");
@@ -36,7 +36,7 @@ test("lab loading covers preparation and the first frame, then reveals the battl
     expect(screen.getByTestId("loading-stage").textContent).toBe("Starting the battle"),
   );
   view.rerender(
-    <LabLoading subject="CONTACTS">
+    <LabLoading subject="SENSORS">
       <Route ready />
     </LabLoading>,
   );
@@ -50,13 +50,13 @@ test("a drawn lab stays covered until its first observation arrives", () => {
     return <div>Battle</div>;
   }
   const view = render(
-    <LabLoading subject="CONTACTS">
+    <LabLoading subject="SENSORS">
       <View observed={false} />
     </LabLoading>,
   );
   expect(screen.getByTestId("loading-stage").textContent).toBe("Building the battlefield");
   view.rerender(
-    <LabLoading subject="CONTACTS">
+    <LabLoading subject="SENSORS">
       <View observed />
     </LabLoading>,
   );
@@ -69,7 +69,7 @@ test("startup failures replace loading with the shared refusal and diagnostics",
     return <div data-testid="error">Old refusal</div>;
   }
   render(
-    <LabLoading subject="CONTACTS">
+    <LabLoading subject="SENSORS">
       <View />
     </LabLoading>,
   );
@@ -81,10 +81,10 @@ test("startup failures replace loading with the shared refusal and diagnostics",
 });
 
 test("the router covers a lab while its route prepares", async () => {
-  window.history.replaceState(null, "", "/labs/contacts");
+  window.history.replaceState(null, "", "/labs/sensors");
   await visit(<LabRouter />);
-  expect(screen.getByTestId("loading-subject").textContent).toBe("CONTACTS");
-  await screen.findByText("Contact battle preparation");
+  expect(screen.getByTestId("loading-subject").textContent).toBe("SENSORS");
+  await screen.findByText("Sensors battle preparation");
   expect(screen.getByTestId("loading")).toBeDefined();
 });
 

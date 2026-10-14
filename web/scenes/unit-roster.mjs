@@ -27,7 +27,8 @@ export async function run(ctx) {
   await page.evaluate(() => window.__lab.route.pause());
   await presented(page);
   const initial = await obs(page);
-  check(ctx,
+  check(
+    ctx,
     initial.skirmish?.phase === "preparation" && initial.own.length === 0,
     "skirmish starts in empty preparation",
   );
@@ -68,17 +69,25 @@ export async function run(ctx) {
   );
   const previewGhost = await page.evaluate(() => window.__lab.route.purchaseGhost());
   check(ctx, previewGhost?.variant, "selecting a reinforcement creates a cursor ghost");
-  check(ctx,
+  check(
+    ctx,
     !(await page.getByTestId("loading").isVisible()),
     "selecting a previously unfielded reinforcement does not show a loading cover",
   );
   const cameraWithGhost = await page.evaluate(() => window.__lab.camera());
-  ctx.check("showing a reinforcement ghost keeps the zoomed camera", JSON.stringify(cameraWithGhost) === JSON.stringify(cameraBeforePurchase));
+  ctx.check(
+    "showing a reinforcement ghost keeps the zoomed camera",
+    JSON.stringify(cameraWithGhost) === JSON.stringify(cameraBeforePurchase),
+  );
   await page.waitForTimeout(100);
   await snapshot(ctx, page, "purchase-ghost.png");
   await ctx.matchBaseline(page, "purchase-ghost");
   await page.keyboard.press("Escape");
-  check(ctx, (await obs(page)).skirmish.credits === 1000, "free placement and Escape spend no credits");
+  check(
+    ctx,
+    (await obs(page)).skirmish.credits === 1000,
+    "free placement and Escape spend no credits",
+  );
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   // The picker reopens on its first tab; pointing at a tab switches to it.
   await page.getByRole("tab", { name: "VEH", exact: true }).hover();
@@ -90,14 +99,19 @@ export async function run(ctx) {
   await page.mouse.click(640, 340);
   await advance(page, 1);
   await page.waitForFunction(() => window.__lab.route.observation().skirmish.pending.length === 1);
-  check(ctx,
+  check(
+    ctx,
     !(await page.getByTestId("loading").isVisible()),
     "placing a reinforcement does not return to the Deploying loading screen",
   );
   const cameraAfterPlacement = await page.evaluate(() => window.__lab.camera());
-  ctx.check("confirming a reinforcement keeps the player's camera and viewport mounted", JSON.stringify(cameraAfterPlacement) === JSON.stringify(cameraAtPlacement));
+  ctx.check(
+    "confirming a reinforcement keeps the player's camera and viewport mounted",
+    JSON.stringify(cameraAfterPlacement) === JSON.stringify(cameraAtPlacement),
+  );
   const reserved = await obs(page);
-  check(ctx,
+  check(
+    ctx,
     reserved.own.length === 0 &&
       reserved.skirmish.credits === 650 &&
       reserved.skirmish.occupiedSlots === 1,
@@ -117,7 +131,8 @@ export async function run(ctx) {
   await page.mouse.move(...dragTo, { steps: 12 });
   await page.waitForTimeout(100);
   const dragGhost = await page.evaluate(() => window.__lab.route.purchaseGhost());
-  check(ctx,
+  check(
+    ctx,
     dragGhost &&
       dragPressGhost &&
       dragGhost.destination.every((v, i) => Math.abs(v - dragPressGhost.destination[i]) < 0.01) &&
@@ -136,7 +151,8 @@ export async function run(ctx) {
     60 * 60,
     60,
   );
-  check(ctx,
+  check(
+    ctx,
     active && active.own.length >= 1 && active.skirmish.phase === "active",
     "reinforcement physically enters through the ordinary road-edge spawn",
   );
@@ -172,7 +188,8 @@ export async function run(ctx) {
   );
   await page.keyboard.down("Space");
   await page.waitForTimeout(100);
-  check(ctx,
+  check(
+    ctx,
     await page.evaluate(() => window.__lab.route.showOrders()),
     "Space reveals the order marker",
   );

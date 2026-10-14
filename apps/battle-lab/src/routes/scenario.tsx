@@ -5,5 +5,9 @@ import ScenarioPlay from "./scenarioPlay";
 /** One lab identity owns authoring and the real upload-to-worker handoff. */
 export default function Scenario() {
   const { search } = useLocation();
-  return new URLSearchParams(search).get("mode") === "play" ? <ScenarioPlay /> : <ScenarioBuilder />;
+  return new URLSearchParams(search).get("mode") === "play" ? (
+    <ScenarioPlay />
+  ) : (
+    <ScenarioBuilder />
+  );
 }

@@ -1,7 +1,13 @@
 // Slice 11: buildings as abstract fighting positions, through real orders.
 // The building is prop 0: the generator's three-storey corner shop, centre
 // (360, 250), 12 × 12 m, 12.65 m tall; its seats stand on all three floors.
-import { garrisonCursor, queuedBuildingCursor, partialBuildingCursor, narrowRefusal, readoutEdge } from "./_cursorOrders.mjs";
+import {
+  garrisonCursor,
+  queuedBuildingCursor,
+  partialBuildingCursor,
+  narrowRefusal,
+  readoutEdge,
+} from "./_cursorOrders.mjs";
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
@@ -353,8 +359,6 @@ export async function run(ctx) {
   await advance(page, 5);
   o = await obs(page);
 
-
-
   // The scouts leave; the rifle squad then takes the building.
   const leave = await demo(page, "Scouts leave");
   let exiting = false;
@@ -424,7 +428,6 @@ export async function run(ctx) {
   // change brings the house down, or slows the entries past that tick, fix
   // the lab's staging (routes/garrison.tsx), not these checks.
 
-
   // Red's tank shells the occupants its squad spots; blue answers outward.
   let own = 0,
     ownOnWall = 0,
@@ -467,7 +470,6 @@ export async function run(ctx) {
     }
   }
 
-
   const firefight = shot ?? (await frame(ctx, page, "firefight"));
   // The facades facing away from the first camera, from the other side.
   await look(page, 95, [CENTRE[0] + 14, CENTRE[1] - 2], FAR_SIDE);
@@ -499,7 +501,6 @@ export async function run(ctx) {
     ? (squad(before, 0)?.garrison?.phase === "inside" && squad(before, 0).members) || []
     : [];
   const survivors = o ? [squad(o, 0)].filter(Boolean) : [];
-
 
   await look(page, 95);
   framing.push(await framed(page));

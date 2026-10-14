@@ -154,7 +154,6 @@ function SensorsLab({ battle }: { battle: SavedBattle }) {
   );
 }
 
-
 function ContactsView() {
   const CONTACTS_CAMERA: Camera3DParams = {
     target: [720, 420, 0],

@@ -2,14 +2,14 @@
   "units": {
     "test_jet": {
       "name": "Test Jet",
-      "description": "A fixed-wing test aircraft in the high-air layer, with a fixed forward cannon.",
+      "description": "A fixed-wing test aircraft in the high-air layer, with a fixed forward cannon (drawn with the F-16 art until a test jet model exists).",
       "faction": "generic",
       "family": "aircraft",
       "roles": ["light_vehicle"],
       "cost": 300,
       "body": {
         "hull": {
-          "half_extents_m": [7, 5, 2],
+          "half_extents_m": [7.54, 5.02, 2.44],
           "eye_m": 2,
           "hp": 200,
           "armor": {
@@ -35,7 +35,7 @@
         { "id": "gun", "name": "Forward Cannon", "weapons": ["air_gun"], "turret": false, "pivot_m": [0, 0, 1.8], "muzzle_m": [7, 0, 0] }
       ],
       "sound": { "profile": "vehicle", "loudness_m": 900 },
-      "appearance": "test_heli"
+      "appearance": "f_16c_block_50"
     },
     "test_heli": {
       "name": "Helicopter",

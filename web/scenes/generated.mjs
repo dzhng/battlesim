@@ -610,17 +610,34 @@ export async function run(ctx) {
   const buildingRecords = await lab(page, () => window.__lab.route.buildings?.() ?? []);
   ctx.check(
     "generated town preserves multipart building orientation",
-    buildingRecords.some((building) => building.authored?.length > 1 && building.authored.every((part) => Number.isFinite(part.yaw))),
+    buildingRecords.some(
+      (building) =>
+        building.authored?.length > 1 &&
+        building.authored.every((part) => Number.isFinite(part.yaw)),
+    ),
     JSON.stringify(buildingRecords.slice(0, 2)),
   );
   const stillBefore = await lab(page, () => window.__lab.allocations());
-  await lab(page, async () => { await window.__lab.frame(); await window.__lab.frame(); });
+  await lab(page, async () => {
+    await window.__lab.frame();
+    await window.__lab.frame();
+  });
   const stillAfter = await lab(page, () => window.__lab.allocations());
-  ctx.check("a still camera uploads nothing", stillAfter.bufferBytes === stillBefore.bufferBytes && stillAfter.textureBytes === stillBefore.textureBytes, JSON.stringify({ stillBefore, stillAfter }));
+  ctx.check(
+    "a still camera uploads nothing",
+    stillAfter.bufferBytes === stillBefore.bufferBytes &&
+      stillAfter.textureBytes === stillBefore.textureBytes,
+    JSON.stringify({ stillBefore, stillAfter }),
+  );
   await lab(page, () => window.__lab.rebuild());
   await lab(page, () => window.__lab.frame());
   const rebuiltTown = await lab(page, () => window.__lab.allocations());
-  ctx.check("replacing generated buildings returns bytes", rebuiltTown.bufferBytes === stillAfter.bufferBytes && rebuiltTown.textureBytes === stillAfter.textureBytes, JSON.stringify({ stillAfter, rebuilt: rebuiltTown }));
+  ctx.check(
+    "replacing generated buildings returns bytes",
+    rebuiltTown.bufferBytes === stillAfter.bufferBytes &&
+      rebuiltTown.textureBytes === stillAfter.textureBytes,
+    JSON.stringify({ stillAfter, rebuilt: rebuiltTown }),
+  );
 
   // The battle saved and watched: exact compiled scenario bytes restore the
   // map, encounter and rules without regenerating from the request.
@@ -685,8 +702,6 @@ export async function run(ctx) {
     `${message} | ${details}`,
   );
   await writeFile(ctx.evidencePath("refused-1280x800.png"), await refused.screenshot());
-
-
 }
 
 /** Exhausted generation remains a refused skirmish, never a fixed map. */

@@ -204,17 +204,33 @@ async function contactChecks(ctx) {
     JSON.stringify({ contacts: o.contacts, identified: o.identified }),
   );
   if (!firing) return page.close();
-  await page.locator(`[data-contact="${firing.id}"]`).first().waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+  await page
+    .locator(`[data-contact="${firing.id}"]`)
+    .first()
+    .waitFor({ state: "attached", timeout: 5000 })
+    .catch(() => {});
   const labels = await page.locator(`[data-contact="${firing.id}"]`).allTextContents();
-  ctx.check("the contact card reads UNKNOWN", labels.length === 1 && /UNKNOWN/.test(labels[0]), JSON.stringify(labels));
+  ctx.check(
+    "the contact card reads UNKNOWN",
+    labels.length === 1 && /UNKNOWN/.test(labels[0]),
+    JSON.stringify(labels),
+  );
   const shot = await snapshot(ctx, page, "frame-contact-firing-1280x800.png");
   const at = await lab(page, (c) => window.__lab.projectToCss(c[0], c[1], 0), firing.center);
   const [r, g, b] = pixel(decode(shot), at[0], at[1]);
   ctx.check("the firing contact glows red", r > g + 15 && r > b + 15, `rgb ${r},${g},${b}`);
   const isolation = await checkOverlayIsolation(ctx, page, "overlay-contact-firing");
-  ctx.check("the contact overlay composites over the finished frame", isolation.isolated && isolation.coveredChannels > 0, JSON.stringify(isolation));
+  ctx.check(
+    "the contact overlay composites over the finished frame",
+    isolation.isolated && isolation.coveredChannels > 0,
+    JSON.stringify(isolation),
+  );
   const captions = await page.getByTestId("captions").locator("li").allTextContents();
-  ctx.check("unseen enemies are heard as captioned cues", captions.some((text) => /Heard (gunfire|engine)/.test(text)), captions.join(" | "));
+  ctx.check(
+    "unseen enemies are heard as captioned cues",
+    captions.some((text) => /Heard (gunfire|engine)/.test(text)),
+    captions.join(" | "),
+  );
   await writeFile(ctx.evidencePath("contact-audio-captions.txt"), captions.join("\n"));
   await page.close();
 }

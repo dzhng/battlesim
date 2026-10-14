@@ -74,6 +74,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                     .or_else(|| last_known.map(|p| p.with_z(unit.position.z)))
                     .unwrap_or(unit.position),
                 Target::Ground(point) => point,
+                Target::Round(round) => round.point,
                 Target::Contact(_) => unit
                     .pursuit
                     .map(|p| p.to.with_z(unit.position.z))

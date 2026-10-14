@@ -58,7 +58,10 @@ export async function run(ctx) {
   const panelBox = await truckPanel.boundingBox();
   await page.mouse.click(panelBox.x + panelBox.width / 2, panelBox.y + panelBox.height / 2);
   await page.waitForFunction(() => window.__lab.route.selected().join(",") === "3");
-  ctx.check("clicking a floating panel selects its unit", (await lab(page, () => window.__lab.route.selected())).join(",") === "3");
+  ctx.check(
+    "clicking a floating panel selects its unit",
+    (await lab(page, () => window.__lab.route.selected())).join(",") === "3",
+  );
   await lab(page, () => window.__lab.route.select([]));
   await page.mouse.move(panelBox.x - 2, panelBox.y - 2);
   await page.mouse.down();
@@ -67,7 +70,10 @@ export async function run(ctx) {
   });
   await page.mouse.up();
   await page.waitForFunction(() => window.__lab.route.selected().includes(3));
-  ctx.check("dragging a rectangle over a floating panel selects its unit", (await lab(page, () => window.__lab.route.selected())).includes(3));
+  ctx.check(
+    "dragging a rectangle over a floating panel selects its unit",
+    (await lab(page, () => window.__lab.route.selected())).includes(3),
+  );
   await lab(page, () => window.__lab.route.select([]));
   await page.mouse.move(panelBox.x + 4, panelBox.y + 4);
   await page.mouse.down();
@@ -76,7 +82,10 @@ export async function run(ctx) {
   });
   await page.mouse.up();
   await page.waitForFunction(() => window.__lab.route.selected().includes(3));
-  ctx.check("a selection drag can start inside a floating panel", (await lab(page, () => window.__lab.route.selected())).includes(3));
+  ctx.check(
+    "a selection drag can start inside a floating panel",
+    (await lab(page, () => window.__lab.route.selected())).includes(3),
+  );
 
   // Pick empty ground inside the rifle squad's circle, away from each body and panel.
   const interior = await lab(
@@ -117,7 +126,10 @@ export async function run(ctx) {
   if (interior) {
     await page.mouse.click(...interior);
     await page.waitForFunction(() => window.__lab.route.selected().join(",") === "2");
-    ctx.check("clicking empty ground inside the infantry circle selects the squad", (await lab(page, () => window.__lab.route.selected())).join(",") === "2");
+    ctx.check(
+      "clicking empty ground inside the infantry circle selects the squad",
+      (await lab(page, () => window.__lab.route.selected())).join(",") === "2",
+    );
   }
   await lab(page, () => window.__lab.route.select([0, 1, 2, 3]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 4);
