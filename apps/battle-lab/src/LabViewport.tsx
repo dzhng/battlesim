@@ -92,7 +92,7 @@ import {
 } from "@web/battle/sim/presentation";
 import type { Mesh } from "@packages/battle-renderer/src/mesh";
 import { pickBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
-import type { GraphicsQualityProfile } from "./graphicsSettings";
+import { graphicsProfiles, type GraphicsQualityProfile } from "./graphicsSettings";
 
 const NO_INSTANCES: readonly SceneInstance[] = [];
 const NO_WALK = emptyBuildingWalkStats();
@@ -461,10 +461,22 @@ export function LabViewport({
   }, [inputEnabled]);
   const pilotRef = useRef(pilot);
   const cameraConfigRef = useRef(cameraConfig);
-  const qualityRef = useRef(quality);
-  const qualityKey = quality ? JSON.stringify(quality) : "";
+  // Verification can request a cheaper renderer without adding a player-facing
+  // setting. Production builds ignore the query; approved visual fixtures keep
+  // their authored quality unless a route supplies one explicitly.
+  const requestedTestQuality = new URLSearchParams(window.location.search).get("test-quality");
+  const testQuality =
+    import.meta.env.DEV &&
+    (requestedTestQuality === "low" ||
+      requestedTestQuality === "medium" ||
+      requestedTestQuality === "high")
+      ? graphicsProfiles[requestedTestQuality]
+      : undefined;
+  const effectiveQuality = quality ?? testQuality;
+  const qualityRef = useRef(effectiveQuality);
+  const qualityKey = effectiveQuality ? JSON.stringify(effectiveQuality) : "";
   const previousQualityKey = useRef(qualityKey);
-  qualityRef.current = quality;
+  qualityRef.current = effectiveQuality;
   useEffect(() => {
     if (previousQualityKey.current === qualityKey) return;
     previousQualityKey.current = qualityKey;

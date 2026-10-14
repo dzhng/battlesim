@@ -6,6 +6,8 @@ import { lab, obs, advance, snapshot, until, openBattle } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
 import { hull, game, unitType, weapons } from "./_units.mjs";
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /** The rings on screen, read back from the DOM. */
 const rings = (page) =>
   page.evaluate(() =>
@@ -195,7 +197,7 @@ export async function run(ctx) {
   // A mount of several kinds names each by its catalog label, then its count.
   const cannonKinds = new RegExp(
     `^${unitType(o.own.find((u) => u.id === 0).kind)
-      .mounts[0].weapons.map((w) => `${RegExp.escape(weapons[w].name.toUpperCase())} \\d+`)
+      .mounts[0].weapons.map((w) => `${escapeRegExp(weapons[w].name.toUpperCase())} \\d+`)
       .join(" · ")}$`,
   );
   ctx.check(

@@ -165,7 +165,12 @@ export async function run(ctx) {
   const asked = process.env.CITY_MAP?.split(":");
   await page.goto(
     asked
-      ? `${ctx.url}?type=${asked[0]}&size=${asked[1]}&seed=${asked[2]}${asked[3] ? `&region=${asked[3]}` : ""}`
+      ? ctx.urlFor(ctx.url, {
+          type: asked[0],
+          size: asked[1],
+          seed: asked[2],
+          region: asked[3],
+        })
       : ctx.url,
   );
   await page.waitForFunction(

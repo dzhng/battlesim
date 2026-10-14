@@ -17,6 +17,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "cursor-orders": lazy(() => import("./routes/cursorOrders")),
   cursor: lazy(() => import("./routes/cursor")),
   foundation: lazy(() => import("./routes/foundation")),
+  "foundation-low": lazy(() => import("./routes/foundation")),
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),
   movement: lazy(() => import("./routes/movement")),

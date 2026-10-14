@@ -271,7 +271,7 @@ async function scarFramings(ctx) {
 async function streetInspector(ctx) {
   const page = await openBattle(ctx, {
     viewport: { width: 1920, height: 1080 },
-    url: `${ctx.url}?street`,
+    url: ctx.urlFor(ctx.url, { street: "" }),
     tick: 120 * 30,
     timeout: 240000,
   });

@@ -16,55 +16,53 @@ const CAMERA_TOLERANCE = 1e-6;
 const shot = async (ctx, page, name) =>
   writeFile(ctx.evidencePath(name), await page.screenshot({ fullPage: false }));
 
-/** `named`: open the workload by its address (`?preset=city-contact`)
- *  instead of through the menu, which opens the default, the same workload. */
-export async function run(ctx, named = false) {
+/** Exercise both the shareable preset address and the player menu before the
+ * timed benchmark starts. */
+export async function run(ctx) {
   const preset = "city-contact";
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const origin = new URL(ctx.url).origin;
-  if (named) {
-    await page.goto(`${origin}/labs/benchmark?preset=city-contact`);
-    await page.waitForFunction(() => window.__benchmark?.preset === "city-contact");
-    const selected = await page.evaluate(() => window.__benchmark?.preset);
-    ctx.check(
-      "the named city-contact address selects its distinct workload",
-      selected === preset,
-      page.url(),
-    );
-  } else {
-    await page.goto(`${origin}/`);
-    await menuShown(page);
-    const main = page.getByRole("navigation", { name: "Main menu" });
-    await main.waitFor();
-    const played = await main.locator(".menu-card-label").allTextContents();
-    // The benchmark and the labs are behind the developer link.
-    const hidden = await page.getByRole("navigation", { name: "Developer" }).count();
-    await openMenuPage(page, "Developer");
-    const nav = page.getByRole("navigation", { name: "Developer" });
-    const labels = await nav.locator(".menu-card-label").allTextContents();
-    ctx.check(
-      "the main menu lists its player pages, and the benchmark and labs behind the developer link",
-      played.join() === "Skirmish,Tutorial,Settings" &&
-        hidden === 0 &&
-        labels.join() === "Benchmark,Labs",
-      JSON.stringify({ played, hidden, labels }),
-    );
-    const card = nav.getByRole("link", { name: "Benchmark", exact: true });
-    ctx.check(
-      "each menu entry is one link named by its title",
-      (await nav.getByRole("link").count()) === labels.length,
-      `${await nav.getByRole("link").count()} links for ${labels.length} entries`,
-    );
-    await card.hover();
-    await shot(ctx, page, "menu.png");
-    await card.click();
-    await page.waitForURL("**/labs/benchmark", { timeout: 10_000 });
-    ctx.check(
-      "clicking a menu card's description navigates",
-      page.url().endsWith("/labs/benchmark"),
-      page.url(),
-    );
-  }
+  await page.goto(`${origin}/labs/benchmark?preset=city-contact`);
+  await page.waitForFunction(() => window.__benchmark?.preset === "city-contact");
+  const selected = await page.evaluate(() => window.__benchmark?.preset);
+  ctx.check(
+    "the named city-contact address selects its distinct workload",
+    selected === preset,
+    page.url(),
+  );
+  await page.goto(`${origin}/`);
+  await menuShown(page);
+
+  const main = page.getByRole("navigation", { name: "Main menu" });
+  await main.waitFor();
+  const played = await main.locator(".menu-card-label").allTextContents();
+  // The benchmark and the labs are behind the developer link.
+  const hidden = await page.getByRole("navigation", { name: "Developer" }).count();
+  await openMenuPage(page, "Developer");
+  const nav = page.getByRole("navigation", { name: "Developer" });
+  const labels = await nav.locator(".menu-card-label").allTextContents();
+  ctx.check(
+    "the main menu lists its player pages, and the benchmark and labs behind the developer link",
+    played.join() === "Skirmish,Tutorial,Settings" &&
+      hidden === 0 &&
+      labels.join() === "Benchmark,Labs",
+    JSON.stringify({ played, hidden, labels }),
+  );
+  const card = nav.getByRole("link", { name: "Benchmark", exact: true });
+  ctx.check(
+    "each menu entry is one link named by its title",
+    (await nav.getByRole("link").count()) === labels.length,
+    `${await nav.getByRole("link").count()} links for ${labels.length} entries`,
+  );
+  await card.hover();
+  await shot(ctx, page, "menu.png");
+  await card.click();
+  await page.waitForURL("**/labs/benchmark", { timeout: 10_000 });
+  ctx.check(
+    "clicking a menu card's description navigates",
+    page.url().endsWith("/labs/benchmark"),
+    page.url(),
+  );
   await page.getByRole("button", { name: RUN }).waitFor();
   const footer = await page.getByRole("link", { name: "Main menu", exact: true }).evaluate((a) => ({
     color: getComputedStyle(a).color,

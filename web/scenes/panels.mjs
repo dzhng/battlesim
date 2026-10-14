@@ -208,7 +208,7 @@ async function sheet(ctx, page, file) {
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1500, height: 900 } });
   for (const scale of [1, 1.5, 2]) {
-    await ctx.openLab(page, `${ctx.url}?scale=${scale}`);
+    await ctx.openLab(page, ctx.urlFor(ctx.url, { scale }));
     await page.evaluate(() => document.fonts.ready);
     const c = await offCentre(page);
     ctx.check(
@@ -375,7 +375,7 @@ export async function run(ctx) {
   // (the roster grows; its panels are the full sheet's to review). The
   // viewport grows to the whole page, since `.pw` scrolls itself and a
   // section below the fold would capture blank.
-  await ctx.openLab(page, `${ctx.url}?units=test`);
+  await ctx.openLab(page, ctx.urlFor(ctx.url, { units: "test" }));
   await page.evaluate(() => document.fonts.ready);
   const tall = await page.evaluate(() => document.querySelector(".pw").scrollHeight);
   ctx.check("the test-unit sheet fits one capture", tall <= SHEET_PAGE_PX, String(tall));

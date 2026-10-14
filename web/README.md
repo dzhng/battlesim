@@ -105,11 +105,24 @@ Beside the pictures, the [containment check](scenes/_spills.mjs) asks of every
 panel the geometric question a picture answers only once approved: does it
 hold its content?
 
-Every rendering job shares the machine's GPU. Concurrent sessions serialize through
-one lock in the main checkout, for example
-`lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`
-(on Linux, `flock` in place of `lockf -k`).
-This avoids contention corrupting frame measurements.
+The scene runner executes independent fixtures with bounded overlap (two at a
+time by default) so a long browser scene does not serialize the whole gate.
+Timing and parity fixtures are marked serial and still run alone because GPU
+contention would invalidate their measurements. Set `SCENE_CONCURRENCY=1` for a
+fully serialized run, or lower it on a constrained GPU. Separate rendering jobs
+still share the machine's GPU; use the repository lock when running two jobs,
+for example `lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`
+(on Linux, `flock` in place of `lockf`).
+Parallel runs use a 60 s lab-readiness allowance; serial runs keep the 30 s
+fail-fast allowance. `SCENE_READINESS_TIMEOUT_MS` overrides either value when a
+machine needs a different startup budget.
+The web `verify` script selects the mechanics gate (`--verify`) and the test-only
+low graphics profile for ordinary scenes by default. Extended renderer, audio
+and generated-map scenes remain registered and run through `bun run --cwd web
+scene`; authored screenshot galleries run through `bun run --cwd web scene --
+--visual`. Set `SCENE_GRAPHICS_QUALITY=high` to exercise authored detail in the
+mechanics gate.
+Timing and parity fixtures always use their own high/current-quality contract.
 
 [The asset CLI](asset.mjs) is file IO around [scene-assets](../packages/scene-assets/README.md).
 Its bare invocation prints available commands. Audio preparation has a separate

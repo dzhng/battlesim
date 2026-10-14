@@ -127,7 +127,7 @@ export async function run(ctx) {
   // The same viewer inspects another catalogue map; the default fixture
   // above retains every geometry check and the same scene identity.
   const saved = await ctx.newPage();
-  await ctx.openLab(saved, `${ctx.url}?map=river`);
+  await ctx.openLab(saved, ctx.urlFor(ctx.url, { map: "river" }));
   const selected = await saved.evaluate(() => ({
     id: window.__lab.route.mapId,
     size: window.__lab.route.mapSize,
@@ -145,7 +145,7 @@ export async function run(ctx) {
   await saved.setViewportSize({ width: 360, height: 800 });
   await snapshot(ctx, saved, "catalogue-river-360x800.png");
   const large = await ctx.newPage();
-  await ctx.openLab(large, `${ctx.url}?map=market-town-test`);
+  await ctx.openLab(large, ctx.urlFor(ctx.url, { map: "market-town-test" }));
   const centre = await large.evaluate(() => {
     const [w, h] = window.__lab.route.mapSize;
     return [w / 2, h / 2, window.__lab.route.heightAt(w / 2, h / 2)];
