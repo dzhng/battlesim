@@ -2775,14 +2775,10 @@ impl Battle {
             let half = self.units[crash.unit.0 as usize]
                 .hull
                 .expect("an airframe's hull");
-            if crash.fall(&self.world, gravity, half, dt) {
-                landed.push(crash);
-            } else if crash.position.x >= 0.0
-                && crash.position.x <= self.world.width()
-                && crash.position.y >= 0.0
-                && crash.position.y <= self.world.depth()
-            {
-                self.crashes.push(crash);
+            match crash.fall(&self.world, gravity, half, dt) {
+                crate::crash::Fall::Landed => landed.push(crash),
+                crate::crash::Fall::Falling => self.crashes.push(crash),
+                crate::crash::Fall::LeftMap => {}
             }
         }
         for crash in landed {

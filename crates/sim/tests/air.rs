@@ -872,6 +872,5 @@ fn a_downed_jet_crossing_the_edge_just_ends() {
         unit.hull.unwrap(),
         1.0 / f64::from(b.rules().tick_hz),
     );
-    assert!(!fell);
-    assert!(crash.position.x > b.world().width());
+    assert_eq!(fell, sim::crash::Fall::LeftMap);
 }

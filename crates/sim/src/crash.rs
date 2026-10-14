@@ -44,6 +44,16 @@ pub struct Crash {
     pub knowing: Vec<(Side, u32)>,
 }
 
+/// What one tick of a crash's fall came to.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Fall {
+    Falling,
+    /// It met the ground and bursts there.
+    Landed,
+    /// It left the map; nothing is tracked past the edge (D31).
+    LeftMap,
+}
+
 impl Crash {
     /// The fall of an airframe that died at `position` flying `velocity`.
     pub fn new(
@@ -71,9 +81,9 @@ impl Crash {
         }
     }
 
-    /// Fall one tick of `dt` under `gravity`. Returns whether it met the
-    /// ground; its position is then where it struck.
-    pub fn fall(&mut self, world: &WorldGeometry, gravity: V3, half: V3, dt: f64) -> bool {
+    /// Fall one tick of `dt` under `gravity`. When it lands, its position is
+    /// where it struck; when it leaves the map it just ends (D31).
+    pub fn fall(&mut self, world: &WorldGeometry, gravity: V3, half: V3, dt: f64) -> Fall {
         let was = self.position;
         self.velocity = self.velocity + gravity * dt;
         self.position = self.position + self.velocity * dt;
@@ -113,16 +123,16 @@ impl Crash {
             || self.position.y < 0.0
             || self.position.y > world.depth()
         {
-            return false;
+            return Fall::LeftMap;
         }
         let ground = world
             .height_at(self.position.x, self.position.y)
             .unwrap_or(0.0);
         if self.position.z <= ground {
             self.position.z = ground;
-            return true;
+            return Fall::Landed;
         }
-        false
+        Fall::Falling
     }
 
     /// How it hangs in the air, (pitch, roll): level the moment it dies, its
