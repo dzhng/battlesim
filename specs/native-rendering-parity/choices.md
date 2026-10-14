@@ -169,6 +169,14 @@ Two small tables have their only copy in browser source files: the split-sum lig
 Neither reel map has water, and filming the `river` test map would need a new workload. Native draws water through the browser's own exported WGSL, so the water's look is the browser's by construction. No plate has ever shown it.
 - **Verdict:** sound. Film a map with water if water's look ever changes.
 
+### Native's GPU frame is 5–7% longer than the browser's
+*Agent, on your "less code over speed" rule, slice 25 (step 8). Confidence: high.*
+
+Both clients draw the same passes and draws. Native's GPU frame still takes 5–7% longer: market-town 11.5–11.7 ms against 10.87, paris-corner 7.8–7.9 against 7.54. All of the excess is in the world colour pass. `wgpu` leaves Metal's per-resource hazard tracking on, so a later pass waits for the world's shading as a whole. Dawn makes a pass wait only at the stage that reads, so later passes' vertex work overlaps it.
+- **No setting reaches it:** `wgpu` 30 has no Metal backend option and no untracked mode. The one setting that could matter, turning off indirect-draw validation, measured no change (step 8, `passoverlap`).
+- **Why accept it:** native is at or above the browser on average FPS and well ahead on the 1% lows and frame p99, on both scenes. Closing the gap needs a patched `wgpu-hal` with hand-placed fences, or a frame that starts the next frame's cascades early. Either adds machinery against a budget already met.
+- **To reverse it:** adopt untracked resources if `wgpu` ships them, then re-run step 8's interleaved pairs.
+
 ### The comparison runs under fixed conditions
 *Agent (coordinator, on your behalf), slices 07, 12 and 25. Confidence: medium.*
 

@@ -882,6 +882,37 @@ The remaining lead is `wgpu`'s whole-pass hazard tracking. Dawn lets later passe
 
 Native's market-town plates also differ run to run (the same binary, 0 of 18 plates byte-identical between two replays, under 0.3% of pixels). Paris-corner's are exact, so the likely source is the grass build's append order. This predates this branch.
 
+### The gap's last experiment, and the gate closed (2026-10-14, branch `passoverlap`)
+
+**The question:** does any `wgpu` setting, short of restructuring native's frame, let its passes overlap as Dawn's do?
+
+**The candidates, read in `wgpu` 30.0.1's source before any were measured.** Only one could move the GPU frame:
+- **Hazard tracking.** Metal tracks every buffer and texture `wgpu-hal` creates; untracked is a `TODO` in `create_buffer` and `create_texture`, with no option to reach it. Turning it off means patching `wgpu-hal` and fencing by hand, which is not a setting.
+- **Backend options.** `BackendOptions` has GL, DX12 and noop fields and none for Metal. Metal's `open` ignores `MemoryHints`.
+- **Instance flags.** A release build's default is `VALIDATION_INDIRECT_CALL` alone, with no debug flags and no validation. That flag injects a compute pass checking the grass's indirect draws in every frame. **It was the one candidate measured.**
+- **Present mode and `desired_maximum_frame_latency`.** The bench's window is off-screen and presents nothing, and the bench keeps its own `IN_FLIGHT` of two. Neither setting is on the timed path.
+- **Usages.** Every render target is `RENDER_ATTACHMENT`, plus `TEXTURE_BINDING` where something samples it. Only the display adds `COPY_SRC`. Nothing carries `STORAGE_BINDING`, so no target gets Metal's `ShaderWrite`. The depth format is `Depth32Float`, which does not get `PixelFormatView`. Only the bench's and the plates' readback buffers are mappable, so every other buffer is private.
+
+**The measure.** A fresh control (`throwaway/native-parity/2026-10-14T00-44-09-571Z`, both scenes, passes `native-parity-capture`). One release binary was run with the default flags and with `InstanceFlags::empty()`, in three interleaved pairs a scene. Each run started under the GPU lock at a 1-minute load under 4 (1.71–3.94). GPU ms mean (`throwaway/passoverlap/noindirect/`):
+
+| scene | default flags (runs) | no indirect validation (runs) | median change |
+| --- | --- | --- | --- |
+| market-town | 11.78, 11.53, 11.47 | 12.25, 11.42, 11.45 | 11.53 → 11.45 |
+| paris-corner | 8.04, 7.77, 7.67 | 7.84, 7.78, 7.67 | 7.77 → 7.78 |
+
+Within the spread of runs: the validation pass costs nothing measurable, and the change was reverted. The default flags' medians reproduce `nativegpu`'s reading (11.68 and 7.94 ms). No Metal System Trace was taken, since there was no overlap change to show.
+
+**Verdict: the gate is closed, with one named exception.** Native's GPU frame stays 5–7% longer than the browser's. That is the cost of `wgpu`'s tracked Metal resources, and it is accepted (`choices.md`, "Native's GPU frame is 5–7% longer than the browser's").
+
+What the player gets is at or above the browser's. This branch's default-flag runs (`fps-compare.mjs`'s medians) are set against `nativegpu`'s browser rows, which were not rerun:
+
+| scene | avg FPS (native / browser) | 1% low | frame p99 ms |
+| --- | --- | --- | --- |
+| market-town | 83.2 / 83.2 | 56.5 / 39.7 | 17.38 / 23.41 |
+| paris-corner | 123.2 / 108.0 | 81.3 / 57.9 | 11.24 / 16.74 |
+
+Native's paris-corner min FPS (30.9, against 40.0) is a single stalled frame in one run. Counts were equal on every plate of both scenes, replayed from the merged main (`91ec9e8e3`).
+
 ## Step 5b: the scenery, and the ground on `Presentation` (2026-10-12, branch `native5i`)
 
 Native draws the scenery from `Frame`'s static batches (slice 20b step 4's walk) and reads its ground from `Presentation`. The map's props and the known props are the `props20b` lane's, not yet on main.
