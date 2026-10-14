@@ -1,0 +1,12 @@
+{
+  "units": [
+    {"side":"blue","kind":"f_16c_block_50","position":[520,1050],"yaw":0},
+    {"side":"blue","kind":"f_16c_block_50","position":[520,1950],"yaw":0,"engagement":"return_fire_only"},
+    {"side":"blue","kind":"f_16c_block_50","position":[520,2750],"yaw":0,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[2480,1500],"yaw":3.14159},
+    {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[2580,850],"yaw":3.14159,"engagement":"return_fire_only"}
+  ],
+  "scripts": [
+    {"tick":300,"side":"blue","order":{"kind":"move","units":[2],"gesture":1,"goal":[1900,1500],"route":"fastest"}}
+  ]
+}

@@ -116,26 +116,26 @@
   {
     "id": "air-dogfight",
     "route": "/labs/air-dogfight",
-    "describe": "Two F-16s against two J-10s: the attacked jet and the attacker lock into a dogfight, a second blue jet joins the same enemy, an explicit move breaks the mover's dogfight while its wingman stays in, and the card shows DOGFIGHT while it lasts.",
-    "map": "air"
+    "describe": "A 2v2 jet fight on air-jet grows when a third jet joins. One-way dogfight links, 3D break range and the dogfight height band are observed from the blue publication; the shot shows the turning paths, DOGFIGHT card and a wingman that keeps fighting after an explicit move.",
+    "map": "air-jet"
   },
   {
     "id": "air-ingress",
     "route": "/labs/air-ingress",
-    "describe": "An empty skirmish on the air field: blue buys an F-16 for the middle of the field; it is paid at once, waits off the nearest map edge for its seeded traversal (published as traversing, its card greyed, fuel untouched), enters at that edge at the air height, burns fuel from entry, twice as fast with afterburners on, turns for home on its own when the fuel left only covers the way back, and is refunded at the entry.",
-    "map": "air"
+    "describe": "Paid jet ingress on air-jet: both purchases debit immediately; the delay has no unit or enemy draw; an approach AirTransit streaks over the render margin, then the jet arrives on blue’s back edge at cruise height heading in; after fuel burn it withdraws through the nearest back edge and is refunded.",
+    "map": "air-jet"
   },
   {
     "id": "air-ground",
     "route": "/labs/air-ground",
-    "describe": "Air-to-ground orders: the US Fighter bombs a T-72 it cannot see, an F-16 without bombs strafes the other with its gun, the EA-18G launches its anti-radiation missile at a radar contact, and an attack on a target blue does not know is refused.",
-    "map": "air"
+    "describe": "Air-ground passes on the 3 km air-jet field: a bomber dives and drops near its ground point; a missile-capable/gun jet makes a nose-on pass and fires its gun; SEAD attacks a radar contact; an unknown target is refused; high-air aircraft do not reveal ground. Browser-only evidence is the pass/flash/SEAD order and jet-only fog frame.",
+    "map": "air-jet"
   },
   {
     "id": "air-survivability",
     "route": "/labs/air-survivability",
-    "describe": "An F-16 with flares and an Apache without them under a Buk: the Apache is hit and brought down; the jet spends a flare when the decoyable missile locks, the missile is diverted, and the jet is unhurt.",
-    "map": "air"
+    "describe": "Air-jet survivability: a decoyable 290 m/s proximity-fused missile is flared by the F-16, while the Apache without flares is hit. The shot shows the flare charge/cooldown, missile event and aircraft outcomes.",
+    "map": "air-jet"
   },
   {
     "id": "air-roster",
@@ -146,8 +146,8 @@
   {
     "id": "air-hud",
     "route": "/labs/air-hud",
-    "describe": "Aircraft in the battle HUD: an F-16 has no ground marker or drop line where the Apache beside it has both; the jet's card shows its fuel and flares; with Space held its ordered move shows a compact card at its ghost; the EA-18G's radar contact reads RADAR CONTACT with its bearing and range. Includes the live RADAR CONTACT card with bearing and range.",
-    "map": "air"
+    "describe": "Air-jet HUD: a jet has no ground marker or drop line while the Apache has both; the jet card shows fuel and flares; Space reveals the jet order ghost at cruise height; the radar contact card keeps its bearing and range.",
+    "map": "air-jet"
   },
   {
     "id": "air-audio",
