@@ -30,6 +30,13 @@ The air-war spec says fixed-wing units occupy `HighAir` at an authored cruise he
 - **Airframe sizes:** jets carry real hull dimensions from their art, and `hull_limits.air` is sized to the largest (Su-34).
 - **Sound:** the air alarm and the positional jet loop play in battle, now that jets are classed as fixed-wing in Rust (`crates/presentation/src/sound/`).
 
+## Panel follow-ups
+
+These are smaller UI items, left from the air panels pass (`web/scenes/baselines/panels/panels-aircraft-states.png`):
+- At the panels' real size the radar dish icon is a small blob; it only reads as a dish when zoomed. The UNKNOWN, RADAR CONTACT and BEARING rows all share it, and in red on UNKNOWN it loses most of its detail.
+- The UNKNOWN row starts a few pixels left of the rows below it.
+- With no context, the dogfight icon (two chevrons meeting nose to nose) can pass for a bow tie.
+
 ## Open questions for the walk
 
 - Cruise height: one `HighAir` height for every jet, or per type? Do jets descend for attack runs, and if so, do they then enter low-air routing and AA reach?
