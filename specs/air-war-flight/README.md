@@ -1,6 +1,6 @@
 # Air-war flight
 
-**Status:** slices 00–10, 12 and 13 landed; next 11 (orders and reactions) and 14 (jet attitude). The browser scenes were consolidated alongside (61 fixtures → 47 scenes plus tools).
+**Status:** slices 00–09 and 12–14 landed; 10 and 11 are being reconciled in `../awf-s11` (slice 10 was reviewed but never committed, so its first merge was empty); the jet scenes are being restaged in `../awf-scenes`.
 **Updated:** 2026-10-14.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
@@ -11,6 +11,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 
 - **Pickup:** slice 11, with 14 beside it; then 15–18. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
+- **Merging a worktree:** commit its work on its branch first, and check `git log` shows the merge brought commits in. Merging an uncommitted branch is an empty, silent no-op.
 - **Before ending each pass,** update this section: status, pickup and the checklist.
 
 ### Checklist
@@ -24,7 +25,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [x] 07 [bomb release and new rows](slices/07-release-and-rows.md)
 - [x] 08 [attack passes](slices/08-pass-planner.md)
 - [x] 09 [nose-on gun and self-firing weapons](slices/09-gun-and-autofire.md)
-- [x] 10 [dogfights](slices/10-dogfight.md)
+- [ ] 10 [dogfights](slices/10-dogfight.md)
 - [ ] 11 [orders and reactions](slices/11-air-orders.md)
 - [x] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
 - [x] 13 [approach and departure effect](slices/13-transit-effect.md)
