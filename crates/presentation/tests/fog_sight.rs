@@ -4,13 +4,17 @@
 //! uploads and passes equal the recorded browser vectors
 //! (`fixtures/fog-sight-vectors.json`: FNV-1a over each upload's bytes, the
 //! dispatches and the clears, a frame after each publication and a second
-//! after every third).
+//! after every third); `BLESS_PARITY=1` re-records the street stream and
+//! layout from that encounter and the native publisher.
+use contract::ids::Side;
 use presentation::fog::sight::{FogUpload, Sensors};
 use presentation::presentation::{FogSetup, Presentation};
 use presentation::records::Camera;
 use presentation::static_world::ground::biome::Biome;
 use presentation::static_world::ground::{self, Tuning};
 use serde_json::Value;
+use sim::battle::Battle;
+use sim::publication::{self, Publisher};
 use sim::world::WorldGeometry;
 
 const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
@@ -115,30 +119,107 @@ fn frame(up: &FogUpload, publication: usize) -> Value {
     f
 }
 
-fn publications(source: &str) -> (String, Vec<Vec<u32>>) {
-    if source == "street" {
-        let bytes = std::fs::read(format!(
+fn street_fixture() -> (usize, Vec<Vec<u32>>) {
+    let bytes = std::fs::read(format!(
+        "{}/tests/fixtures/fog-street-publications.u32",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
+    let words: Vec<u32> = bytes
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|b| u32::from_le_bytes(*b))
+        .collect();
+    let n = words[0] as usize;
+    let mut at = 1 + n;
+    let all = words[1..=n]
+        .iter()
+        .map(|&len| {
+            let p = words[at..at + len as usize].to_vec();
+            at += len as usize;
+            p
+        })
+        .collect();
+    (n, all)
+}
+
+fn replace_json_string(text: &mut String, key: &str, value: &str) {
+    let key_start = text.find(key).unwrap() + key.len();
+    let start = text[key_start..].find('"').map(|i| key_start + i).unwrap();
+    let bytes = text.as_bytes();
+    let mut end = start + 1;
+    let mut escaped = false;
+    while end < bytes.len() {
+        match (bytes[end], escaped) {
+            (b'"', false) => break,
+            (b'\\', false) => escaped = true,
+            (_, _) => escaped = false,
+        }
+        end += 1;
+    }
+    text.replace_range(start..=end, &serde_json::to_string(value).unwrap());
+}
+
+/// Re-record only the native street stream; the browser's frame hashes stay
+/// in `fog-sight-vectors.json` as the parity oracle.
+fn bless_street(vectors: &mut Value) {
+    if std::env::var("BLESS_PARITY").as_deref() != Ok("1") {
+        return;
+    }
+
+    let (ticks, _) = street_fixture();
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let map = sim::maps::Catalogue::shipped().load("street").unwrap();
+    let encounter = sim::maps::Catalogue::shipped()
+        .encounter("street", "street")
+        .unwrap();
+    let scenario = encounter.on(map.definition, rules);
+    // Matches STREET_SEED in apps/battle-lab/src/streetScenario.ts.
+    let mut battle = Battle::new(&scenario, 20_260_925);
+    let layout = publication::layout_json(&battle);
+    let mut publisher = Publisher::new();
+    let mut records = Vec::with_capacity(ticks);
+    for _ in 0..ticks {
+        battle.step();
+        records.push(
+            publisher
+                .publish(&battle, Side::Blue)
+                .unwrap()
+                .iter()
+                .map(|word| word.to_bits())
+                .collect::<Vec<_>>(),
+        );
+    }
+
+    let mut words = Vec::with_capacity(1 + ticks + records.iter().map(Vec::len).sum::<usize>());
+    words.push(ticks as u32);
+    words.extend(records.iter().map(|record| record.len() as u32));
+    words.extend(records.into_iter().flatten());
+    let bytes: Vec<u8> = words.iter().flat_map(|word| word.to_le_bytes()).collect();
+    std::fs::write(
+        format!(
             "{}/tests/fixtures/fog-street-publications.u32",
             env!("CARGO_MANIFEST_DIR")
-        ))
-        .unwrap();
-        let words: Vec<u32> = bytes
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .map(|b| u32::from_le_bytes(*b))
-            .collect();
-        let n = words[0] as usize;
-        let mut at = 1 + n;
-        let all = words[1..=n]
-            .iter()
-            .map(|&len| {
-                let p = words[at..at + len as usize].to_vec();
-                at += len as usize;
-                p
-            })
-            .collect();
-        return (String::new(), all);
+        ),
+        bytes,
+    )
+    .unwrap();
+
+    let vectors_path = format!(
+        "{}/tests/fixtures/fog-sight-vectors.json",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let mut text = std::fs::read_to_string(&vectors_path).unwrap();
+    replace_json_string(&mut text, "\"streetLayout\":", &layout);
+    std::fs::write(vectors_path, text).unwrap();
+    vectors["streetLayout"] = Value::String(layout);
+}
+
+fn publications(source: &str) -> (String, Vec<Vec<u32>>) {
+    if source == "street" {
+        return (String::new(), street_fixture().1);
     }
     let capture: Value = serde_json::from_str(&read(source)).unwrap();
     let layout = match &capture["layout"] {
@@ -163,7 +244,7 @@ fn publications(source: &str) -> (String, Vec<Vec<u32>>) {
 
 #[test]
 fn every_fog_upload_is_the_browsers() {
-    let vectors: Value = serde_json::from_str(
+    let mut vectors: Value = serde_json::from_str(
         &std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/fixtures/fog-sight-vectors.json"
@@ -171,6 +252,7 @@ fn every_fog_upload_is_the_browsers() {
         .unwrap(),
     )
     .unwrap();
+    bless_street(&mut vectors);
     let c: Vec<f32> = vectors["camera"]
         .as_array()
         .unwrap()
