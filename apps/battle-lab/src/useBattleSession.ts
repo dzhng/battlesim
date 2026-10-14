@@ -163,8 +163,11 @@ export interface ScenarioRules extends PanelRules, RulerRules {
   /** The sensor numbers fog of war shares with the simulation (the
    *  presentation reads them: `presentation::fog::sight::Sensors`). */
   sensors: object;
-  /** An aircraft's ghost flies at its cruise height. */
-  air: { cruise_agl_m: number };
+  /** Cruise heights for the rotor and jet altitude layers. */
+  air: {
+    rotor: { cruise_agl_m: number };
+    jet: { cruise_agl_m: number };
+  };
 }
 
 export function useBattleSession({
@@ -533,7 +536,6 @@ export function useBattleSession({
       soldier: rules.physics,
       xray: gameXray,
       blocked: PURCHASE_BLOCKED,
-      cruiseAglM: rules.air.cruise_agl_m,
     };
     fieldedBattle({
       rules: rulesText,
@@ -635,7 +637,7 @@ export function useBattleSession({
             ghosts,
             (kind) => Boolean(units.hull(kind)),
             surfaceZ,
-            ghostAloft(units, rules.air.cruise_agl_m),
+            ghostAloft(units, rules.air),
           ),
         },
         generation,
@@ -1127,9 +1129,9 @@ export function useBattleSession({
         revealed,
         (kind) => highAir(units.type(kind)),
         surfaceZ,
-        ghostAloft(units, rules.air.cruise_agl_m),
+        ghostAloft(units, rules.air),
       ),
-    [control.showOrders, observation, revealed, units, surfaceZ, rules.air.cruise_agl_m],
+    [control.showOrders, observation, revealed, units, surfaceZ, rules.air],
   );
 
   return {

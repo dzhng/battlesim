@@ -508,11 +508,9 @@ fn spawn_unit(
     // An aircraft enters at cruise height over the ground beneath it.
     let motion = units::motion(t, rules);
     let airborne = matches!(motion, units::Motion::Air(_));
-    let lift = if airborne {
-        rules.air.cruise_agl_m
-    } else {
-        0.0
-    };
+    let lift = airborne
+        .then(|| rules.air.cruise_agl_m(t.mobility.layer()))
+        .unwrap_or(0.0);
     Unit {
         id: UnitId(i as u32),
         side: u.side,
@@ -649,7 +647,7 @@ impl Battle {
                     .height_at(unit.position.x, unit.position.y)
                     .unwrap_or(0.0);
                 air.fuel_s = fuel_s;
-                unit.position.z = ground + self.rules.air.cruise_agl_m;
+                unit.position.z = ground + self.rules.air.cruise_agl_m(unit.layer());
             }
         }
         for i in 0..self.units.len() {
@@ -753,7 +751,7 @@ impl Battle {
                 weapon.interceptable.then_some((
                     round.side,
                     projectile.position,
-                    if projectile.position.z >= self.rules.air.cruise_agl_m * 0.5 {
+                    if projectile.position.z >= self.rules.air.rotor.cruise_agl_m * 0.5 {
                         AltitudeLayer::HighAir
                     } else {
                         AltitudeLayer::LowAir

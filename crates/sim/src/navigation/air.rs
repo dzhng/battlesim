@@ -24,7 +24,18 @@ pub fn walls_aircraft(world: &WorldGeometry, rules: &Rules, prop: &Prop) -> bool
     let ground = world
         .height_at(prop.center.x, prop.center.y)
         .unwrap_or(prop.base_z);
-    prop.top_z() - ground > rules.air.obstacle_m
+    prop.top_z() - ground > rules.air.rotor.obstacle_m
+}
+
+pub fn routing_margin(rules: &Rules) -> f64 {
+    rules
+        .catalog
+        .indices()
+        .map(|i| rules.catalog.get(i))
+        .filter(|t| t.mobility.layer() == contract::catalog::AltitudeLayer::LowAir)
+        .filter_map(|t| t.hull())
+        .map(|h| h.half_extents_m[0].max(h.half_extents_m[1]))
+        .fold(0.0, f64::max)
 }
 
 impl AirGrid {
@@ -42,7 +53,7 @@ impl AirGrid {
             rows,
             blocked: vec![false; cols * rows],
         };
-        let margin = rules.hull_limits.air.half_length_m;
+        let margin = routing_margin(rules);
         for prop in walls {
             let footprint = prop.footprint();
             let reach = prop.footprint_radius() + margin;

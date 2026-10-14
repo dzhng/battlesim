@@ -115,7 +115,10 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
       rifleman: { name: "Rifleman", description: "", hp: 1, appearance: ["rifleman"], mounts: [] },
     },
     units: [
-      hullType("tank", "tank", [3.5, 1.8, 1.2], tracked, "tracked_heavy", { mounts: tankMounts(), ...tank }),
+      hullType("tank", "tank", [3.5, 1.8, 1.2], tracked, "tracked_heavy", {
+        mounts: tankMounts(),
+        ...tank,
+      }),
       hullType("supply", "truck", [3, 1.4, 1.8], wheeled, "wheeled_heavy", {
         capabilities: { deploy: { seconds: 1 } },
       }),

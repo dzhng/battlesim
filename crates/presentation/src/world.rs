@@ -58,8 +58,6 @@ pub struct BattleInput {
     pub xray: Xray,
     /// A purchase the simulation refused, drawn as a ghost (rgba).
     pub blocked: [f64; 4],
-    /// `air.cruise_agl_m`: where an aircraft's ghost flies.
-    pub cruise_agl_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]

@@ -65,6 +65,13 @@ export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in 
 export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.layer === "high_air";
 
+/** The authored cruise height for an aircraft's layer. */
+export const airCruiseAglM = (
+  type: Pick<UnitType, "mobility">,
+  rules: { rotor: { cruise_agl_m: number }; jet: { cruise_agl_m: number } },
+): number =>
+  "air" in type.mobility ? (highAir(type) ? rules.jet.cruise_agl_m : rules.rotor.cruise_agl_m) : 0;
+
 /** A type's altitude layer, as the simulation names it. */
 export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" | "high_air" =>
   "air" in type.mobility ? (highAir(type) ? "high_air" : "low_air") : "ground";

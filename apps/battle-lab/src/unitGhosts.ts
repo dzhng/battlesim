@@ -3,7 +3,7 @@
 // preview, and every ordered destination with Space held. The UI says where
 // each body stands; the presentation fields and poses them (`GhostBody`).
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import { airborne, highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { airCruiseAglM, highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { GhostReadout } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { GhostBody } from "@web/battle/sim/presentation";
@@ -15,12 +15,15 @@ export const GHOST_SELECTED = 1;
 export const GHOST_BLOCKED = 2;
 
 /** How high over the ground a kind's ghost stands: an aircraft's at its
- *  cruise height (`air.cruise_agl_m`), flying where it will be, anything
+ *  cruise height from the unit's altitude layer, flying where it will be, anything
  *  else on the ground. */
 export const ghostAloft =
-  (units: UnitCatalog, cruiseAglM: number) =>
+  (
+    units: UnitCatalog,
+    airRules: { rotor: { cruise_agl_m: number }; jet: { cruise_agl_m: number } },
+  ) =>
   (kind: string): number =>
-    highAir(units.type(kind)) ? 1000 : airborne(units.type(kind)) ? cruiseAglM : 0;
+    airCruiseAglM(units.type(kind), airRules);
 
 /** Cards accompany only revealed HighAir order ghosts while Space is held.
  * Traversing aircraft have no landed goal yet, so their card hangs from the

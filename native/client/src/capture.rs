@@ -187,7 +187,6 @@ impl Replay {
                 selected: [0.0; 4],
             },
             blocked: [0.0; 4],
-            cruise_agl_m: number(&game["air"]["cruise_agl_m"], "air.cruise_agl_m")?,
         };
         let fog: FogPresentation = serde_json::from_value(game["presentation"]["fog"].clone())
             .map_err(|e| format!("presentation.fog: {e}"))?;

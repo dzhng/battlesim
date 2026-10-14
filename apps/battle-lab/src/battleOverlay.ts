@@ -216,7 +216,7 @@ export function orderLayer(
   metresPerPx = OPENING_METRES_PER_PX,
   ghosts = false,
 ): WorldMeshes {
-  const aloft = ghostAloft(units, game.air.cruise_agl_m);
+  const aloft = ghostAloft(units, game.air);
   return buildOrderOverlay(
     o.own
       .filter((u) => selected.includes(u.id) || reveal.has(u.id) || airborne(units.type(u.kind)))

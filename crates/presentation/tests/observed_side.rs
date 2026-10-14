@@ -44,7 +44,6 @@ fn world(root: &Path, game: &Value, side: Side) -> WorldInput {
                 selected: [0.0; 4],
             },
             blocked: [0.0; 4],
-            cruise_agl_m: game["air"]["cruise_agl_m"].as_f64().unwrap(),
         }),
         sun_azimuth: 0.0,
         sun_elevation: 0.5,

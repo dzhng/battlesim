@@ -251,6 +251,17 @@ pub struct Presentation {
     fog: Option<Fog>,
 }
 
+/// Where an aircraft's shadow lies: thrown along the sun (`shadow_fall`, per
+/// metre of height) from its actual height above the ground under it.
+pub fn aircraft_shadow(position: [f64; 3], ground_z: f64, shadow_fall: [f64; 2]) -> [f64; 3] {
+    let height = position[2] - ground_z;
+    [
+        position[0] + shadow_fall[0] * height,
+        position[1] + shadow_fall[1] * height,
+        ground_z,
+    ]
+}
+
 /// What a scene asks of fog of war (`Presentation::set_fog`).
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct FogSetup {
@@ -554,6 +565,7 @@ impl Presentation {
             }
         }
         let throw = 1.0 / libm::tan(elevation);
+        let shadow_fall = [-libm::cos(azimuth) * throw, -libm::sin(azimuth) * throw];
         let mut loaded = Loaded {
             feed: ObservationFeed::new(&side),
             driver: PoseDriver::new(&units)?,
@@ -565,7 +577,7 @@ impl Presentation {
             cook_offs: CookOffs::new(self.tick_hz),
             pieces: Vec::new(),
             sound: None,
-            shadow_fall: [-libm::cos(azimuth) * throw, -libm::sin(azimuth) * throw],
+            shadow_fall,
             locals: Vec::new(),
             worlds: Vec::new(),
             models: Vec::new(),
@@ -1363,7 +1375,15 @@ impl Presentation {
         };
         let f = &mut self.frame;
         f.tick = sample.observation.tick as u32;
-        loaded.frame(sample, &view, ui, &self.world, self.detail_scale[0], f);
+        loaded.frame(
+            sample,
+            &view,
+            ui,
+            &self.world,
+            self.ground.as_ref(),
+            self.detail_scale[0],
+            f,
+        );
         Ok(&self.frame)
     }
 }
@@ -1389,6 +1409,7 @@ impl Loaded {
         view: &View,
         ui: &Ui,
         world: &World,
+        ground: Option<&Ground>,
         unit_scale: f64,
         f: &mut Frame,
     ) {
@@ -1533,13 +1554,9 @@ impl Loaded {
             }
             let far = bounds(units, name, 0);
             let shadow = v.airborne.then(|| {
-                let lift = input.cruise_agl_m;
                 let p = v.position;
-                [
-                    p[0] + shadow_fall[0] * lift,
-                    p[1] + shadow_fall[1] * lift,
-                    p[2] - lift,
-                ]
+                let ground_z = ground.map_or(0.0, |g| g.source.grid.height(p[0], p[1]));
+                aircraft_shadow(p, ground_z, *shadow_fall)
             });
             let tier = model_detail(
                 &detail, view, v.position, far.size, far.radius, false, shadow,

@@ -2194,5 +2194,5 @@
       "b17_friendly_destroyed_nearby": 2.5
     }
   },
-  "air": { "cruise_agl_m": 30, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "separation_m": 14, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4 }
+  "air": {"rotor": {"cruise_agl_m": 30, "clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4}, "jet": {"cruise_agl_m": 250, "floor_agl_m": 100, "strafe_ceiling_m": 130, "bomb_ceiling_m": 200, "dogfight_band_agl_m": [150, 350], "dogfight_break_m": 1200, "afterburner_ramp_s": 2, "edge_margin_m": 300}, "separation_m": 14}
 }

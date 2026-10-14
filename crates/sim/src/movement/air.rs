@@ -92,7 +92,7 @@ pub(super) fn step_aircraft(
     let unit = &mut units[i];
     let here = unit.position.xy();
     let cruise_mps = flight.cruise_mps * afterburner.0;
-    let accel = cruise_mps / ctx.rules.air.acceleration_s;
+    let accel = cruise_mps / ctx.rules.air.rotor.acceleration_s;
     let air_rules = &ctx.rules.air;
     let mut wanted = if may_advance(ctx, unit) {
         let route = unit.route.as_ref().expect("a route to fly");
@@ -103,7 +103,8 @@ pub(super) fn step_aircraft(
             let goal = route[0];
             if state.settle.is_none_or(|s| s.goal != goal) {
                 let leg = goal - here;
-                let past = (air_rules.settle_share * leg.length()).min(air_rules.settle_max_m);
+                let past =
+                    (air_rules.rotor.settle_share * leg.length()).min(air_rules.rotor.settle_max_m);
                 state.settle = Some(Settle {
                     goal,
                     aim: goal + leg.normalized() * past,
@@ -336,14 +337,25 @@ fn height_target(
     low: bool,
 ) -> f64 {
     let air = &ctx.rules.air;
-    let (agl, clearance) = if low {
-        (low_hover(ctx.rules), LOW_HOVER_CLEARANCE_M)
+    let layer = flight.layer;
+    let (agl, clearance, ceiling) = if low {
+        (
+            low_hover(ctx.rules),
+            LOW_HOVER_CLEARANCE_M,
+            air.rotor.ceiling_agl_m,
+        )
+    } else if layer == AltitudeLayer::HighAir {
+        (air.cruise_agl_m(layer), 0.0, air.jet.cruise_agl_m)
     } else {
-        (air.cruise_agl_m, air.clearance_m)
+        (
+            air.rotor.cruise_agl_m,
+            air.rotor.clearance_m,
+            air.rotor.ceiling_agl_m,
+        )
     };
     let world = ctx.world;
     let ground = |p: V2| world.height_at(p.x, p.y).unwrap_or(0.0);
-    let ahead = velocity.length() * (air.ceiling_agl_m - air.cruise_agl_m) / flight.climb_mps;
+    let ahead = velocity.length() * (ceiling - agl).max(0.0) / flight.climb_mps;
     let dir = if velocity.length() > 1e-9 {
         velocity.normalized()
     } else {
@@ -365,5 +377,5 @@ fn height_target(
             }
         }
     }
-    wanted.min(ground(at) + air.ceiling_agl_m)
+    wanted.min(ground(at) + ceiling)
 }

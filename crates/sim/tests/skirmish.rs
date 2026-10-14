@@ -651,7 +651,10 @@ fn the_skirmish_ai_buys_and_flies_a_helicopter() {
     let mut battle = Battle::new(&setup, 3);
     battle.accept(command(Side::Blue, 1, Order::Ready));
     let heli = battle.rules().catalog.index("red_test_heli").unwrap();
-    let cruise = battle.rules().air.cruise_agl_m;
+    let cruise = battle
+        .rules()
+        .air
+        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
     let mut flown = false;
     for _ in 0..600 * battle.rules().tick_hz {
         battle.step();
