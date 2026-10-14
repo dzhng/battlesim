@@ -165,25 +165,23 @@ mod files {
     }
 
     /// What a battle on saved map `map` fielding `kinds` draws its units and
-    /// effects from, each side fighting for the faction `factions` names:
-    /// its rules the game's, its catalog the map's category's, its art read
-    /// from the runtime directory.
+    /// effects from: its rules `game`'s, its catalog the map's category's,
+    /// its art read from the runtime directory.
     pub fn fielded(
         root: &Path,
+        game: &Value,
         map: &str,
         kinds: &[String],
-        factions: Option<[&str; 2]>,
     ) -> Result<Fielded, String> {
-        let game = read_json(&root.join("fixtures/game.json"))?;
         let catalog = crate::static_world::files::rules(root, map)?.catalog.view();
         let runtime = Runtime::open(&root.join("assets/runtime"))?;
         Fielding {
-            game: &game,
-            rules: &game,
+            game,
+            rules: game,
             catalog: &catalog,
             runtime: &runtime.catalog,
             kinds,
-            factions,
+            factions: None,
         }
         .resolve(&|hash| runtime.read(hash, "bundle.bin"))?
         .typed()

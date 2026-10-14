@@ -14,12 +14,11 @@ const RUN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/capture/run/paris-corner"
 );
-const GAME: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
 
 #[test]
 fn a_felled_trees_stump_is_its_trunk_cut_at_the_biomes_height() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
-    let replay = Replay::open(Path::new(RUN), Path::new(GAME), &library).unwrap();
+    let replay = Replay::open(Path::new(RUN), &library).unwrap();
     let presentation = replay.presentation();
     let trees = &presentation
         .ground()

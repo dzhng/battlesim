@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use native_client::bundle::Library;
-use native_client::capture::Replay;
+use native_client::capture::{Replay, ROOT};
 use presentation::assets::RUNTIME;
 use presentation::static_world::files;
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
@@ -15,7 +15,6 @@ const RUN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/capture/run/paris-corner"
 );
-const GAME: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
 
 /// The names of the world's prop rows.
 fn prop_rows(replay: &Replay) -> Vec<String> {
@@ -32,7 +31,7 @@ fn prop_rows(replay: &Replay) -> Vec<String> {
 #[test]
 fn the_scenes_vehicles_leave_their_own_wrecks_and_the_map_its_own_regions_looks() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
-    let replay = Replay::open(Path::new(RUN), Path::new(GAME), &library).unwrap();
+    let replay = Replay::open(Path::new(RUN), &library).unwrap();
     let rows = prop_rows(&replay);
     assert!(!rows.is_empty(), "the map's props are placed");
     // The scene's tank is a menu unit: its wreck is the hull's own.
@@ -55,7 +54,7 @@ fn the_scenes_vehicles_leave_their_own_wrecks_and_the_map_its_own_regions_looks(
 
 #[test]
 fn a_menu_maps_props_are_placed_under_the_menus_units() {
-    let root = Path::new(GAME).parent().unwrap().parent().unwrap();
+    let root = Path::new(ROOT);
     let ground = files::ground(root, "paris-corner").unwrap();
     let layout: Value = serde_json::from_str(&ground.layout).unwrap();
     // The scene's tank is a menu unit: its wreck is drawn as its own hull's.

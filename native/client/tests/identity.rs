@@ -14,7 +14,6 @@ const RUN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/capture/run/paris-corner"
 );
-const GAME: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
 
 /// The fixture run copied into a scratch folder, its capture's text and its
 /// manifest passed through `edit` first.
@@ -32,7 +31,7 @@ fn staged(name: &str, edit: impl FnOnce(&mut String, &mut Value)) -> PathBuf {
 
 fn refusal(dir: &Path) -> String {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
-    match Replay::open(dir, Path::new(GAME), &library) {
+    match Replay::open(dir, &library) {
         Ok(_) => panic!("{} was replayed", dir.display()),
         Err(e) => e,
     }
@@ -60,5 +59,5 @@ fn a_map_edited_after_the_control_ran_is_refused_by_name() {
 #[test]
 fn the_fixture_run_is_its_manifests_battle() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
-    Replay::open(Path::new(RUN), Path::new(GAME), &library).unwrap();
+    Replay::open(Path::new(RUN), &library).unwrap();
 }

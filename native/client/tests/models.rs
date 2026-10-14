@@ -13,7 +13,6 @@ const RUN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/capture/run/paris-corner"
 );
-const GAME: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
 
 fn heights(positions: &[f32]) -> (f32, f32) {
     let z = positions.as_chunks::<3>().0.iter().map(|p| p[2]);
@@ -26,7 +25,7 @@ fn heights(positions: &[f32]) -> (f32, f32) {
 #[test]
 fn a_corpse_lies_on_the_ground() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
-    let replay = Replay::open(Path::new(RUN), Path::new(GAME), &library).unwrap();
+    let replay = Replay::open(Path::new(RUN), &library).unwrap();
     let presentation = replay.presentation();
     let world = presentation.world();
     let text = |at: u32, len: u32| &world.strings[at as usize..(at + len) as usize];
@@ -55,7 +54,7 @@ fn a_corpse_lies_on_the_ground() {
 #[test]
 fn a_far_body_stands_in_its_far_pose() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
-    let replay = Replay::open(Path::new(RUN), Path::new(GAME), &library).unwrap();
+    let replay = Replay::open(Path::new(RUN), &library).unwrap();
     let presentation = replay.presentation();
     let world = presentation.world();
     let row = world

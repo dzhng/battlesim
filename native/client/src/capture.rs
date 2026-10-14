@@ -102,13 +102,15 @@ fn read_json<T: for<'a> Deserialize<'a>>(path: &Path) -> Result<T, String> {
     serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// The repository a replay reads its world and rules from.
+pub const ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
+
 impl Replay {
-    /// Loads scene `dir` of a parity run; `game` is the rules fixture, for
-    /// the soldier's body, the aircraft's cruise height and the light. The
-    /// world is the repository's: the saved map the manifest names, the
-    /// units its encounter fields and their art, the scenery placed from
-    /// `library`'s bundles.
-    pub fn open(dir: &Path, game_path: &Path, library: &Library) -> Result<Self, String> {
+    /// Loads scene `dir` of a parity run. The world is the repository's: the
+    /// saved map the manifest names, the units its encounter fields and their
+    /// art, the scenery placed from `library`'s bundles, under the game's
+    /// rules (the soldier's body, the aircraft's cruise height, the light).
+    pub fn open(dir: &Path, library: &Library) -> Result<Self, String> {
         let capture_path = dir.join("capture.json");
         let capture_bytes =
             fs::read(&capture_path).map_err(|e| format!("{}: {e}", capture_path.display()))?;
@@ -121,10 +123,7 @@ impl Replay {
         if manifest["schema"] != "native-visual-presentation" {
             return Err(format!("manifest schema {}", manifest["schema"]));
         }
-        let root = game_path
-            .parent()
-            .and_then(Path::parent)
-            .ok_or("no repository root")?;
+        let root = Path::new(ROOT);
         // The battle the manifest names, and nothing else: the capture's
         // workload, and both files byte for byte.
         let identity = &manifest["identity"];
@@ -161,7 +160,7 @@ impl Replay {
                 ));
             }
         }
-        let game: Value = read_json(game_path)?;
+        let game: Value = read_json(&root.join("fixtures/game.json"))?;
         let light: LightSettings = serde_json::from_value(game["presentation"]["light"].clone())
             .map_err(|e| format!("presentation.light: {e}"))?;
         let lens: Lens = serde_json::from_value(manifest["lens"].clone())
@@ -169,7 +168,7 @@ impl Replay {
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
         let kinds = fielded::encounter_kinds(root, &map, encounter)?;
-        let fielded = fielded::fielded(root, &map, &kinds, None)?;
+        let fielded = fielded::fielded(root, &game, &map, &kinds)?;
         let physics = &game["physics"];
         let number = |v: &Value, what: &str| v.as_f64().ok_or(format!("game.json: no {what}"));
         let battle = BattleInput {

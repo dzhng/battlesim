@@ -141,10 +141,9 @@ struct Run {
 
 impl Run {
     fn start(event_loop: &ActiveEventLoop, args: &Args) -> Result<Self, String> {
-        let game = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/game.json");
         let library = Library::open(std::path::Path::new(RUNTIME))?;
         let opened = Instant::now();
-        let mut replay = Replay::open(&args.scene, &game, &library)?;
+        let mut replay = Replay::open(&args.scene, &library)?;
         println!(
             "world: ground set, scenery placed and the battle loaded in {:.2} s",
             opened.elapsed().as_secs_f64()

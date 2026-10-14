@@ -26,7 +26,6 @@ const COUNTED: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/parity/capture/counts/paris-corner"
 );
-const GAME: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/game.json");
 
 /// The fixture's files inflated into a scratch folder, byte for byte as the
 /// browser wrote them.
@@ -46,7 +45,7 @@ fn inflated() -> PathBuf {
 fn every_frame_the_browser_counted_shows_the_same_counts_natively() {
     let library = Library::open(Path::new(RUNTIME)).unwrap();
     let dir = inflated();
-    let replay = Replay::open(&dir, Path::new(GAME), &library);
+    let replay = Replay::open(&dir, &library);
     fs::remove_dir_all(&dir).unwrap();
     let mut replay = replay.unwrap();
     let counted = replay.frame_counts.clone();
