@@ -415,9 +415,10 @@ impl SoundTables {
         Ok(())
     }
 
-    /// Every recipe a battle can play: the synthesized baselines, and each
-    /// assigned or replacing recipe. The rest of the library is the
-    /// workbench's, prepared only when auditioned.
+    /// Every recipe a battle can play: the catalog's synthesized baselines,
+    /// each assigned or replacing recipe, and each sound the presentation
+    /// names itself (vehicle loops, the ambience bed, the air-war cues). The
+    /// rest of the library is the workbench's, prepared only when auditioned.
     pub fn battle_sounds(&self) -> Vec<String> {
         let c = &self.catalog;
         let mut names: BTreeSet<&str> = c
