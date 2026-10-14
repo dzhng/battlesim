@@ -7,4 +7,5 @@
 5. **Visual findings carried from earlier slices.** Judge each with `screenshot-critique` at the game camera and fix what still reads wrong:
    - **Slice 01 critique:** a jet at 250 m doesn't read as high up in a close shot. Its shadow falls far off along the sun, there is no drop line by design, and the model looks large against the field plots.
    - **Out of this spec's scope, noted for the user:** fog hatching shimmer and a hard band at the horizon; label leader lines ending on the fuselage; un-backed "Heard engine" lines.
-6. **Whole-spec review** (`review`), then consolidate `choices.md` and close with `close-spec`.
+6. **Stale native tools.** The scene runner builds the mechanics validator and map-workbench tool only when they are missing, not when the rules or catalog schema changed. During this spec that caused three false scene failures. Make the runner rebuild them when stale, or check their freshness.
+7. **Whole-spec review** (`review`), then consolidate `choices.md` and close with `close-spec`.
