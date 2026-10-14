@@ -90,7 +90,10 @@ const rowCentres = (page) =>
       const baseline = probe.getBoundingClientRect().bottom;
       probe.remove();
       ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-      const m = ctx.measureText(cs.textTransform === "uppercase" ? text.toUpperCase() : text);
+      // A comma hangs below the line, as in print (a range's 6,350 m); the
+      // eye centres the line on its letters and figures, so it is not ink here.
+      const letters = text.replace(/[,;]/g, "");
+      const m = ctx.measureText(cs.textTransform === "uppercase" ? letters.toUpperCase() : letters);
       // measureText is in CSS px of the font size as declared; the page zoom
       // scales the rendered glyphs by `zoom`.
       return baseline - ((m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2) * zoom;
