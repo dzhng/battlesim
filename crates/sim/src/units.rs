@@ -316,6 +316,8 @@ pub struct AirState {
     pub burner: f64,
     /// Last non-zero turn direction, retained by the jet law.
     pub turn_sign: i8,
+    /// Where the last explicit goal was lost; idle jets orbit this point.
+    pub last_goal: Option<V2>,
     /// Its arrival at the goal it flies to last, once it has turned onto
     /// the leg that ends there.
     pub settle: Option<Settle>,
@@ -626,6 +628,7 @@ impl Unit {
                 .f64(a.velocity.z)
                 .f64(a.burner)
                 .f64(a.turn_sign as f64);
+            d.opt_v2(a.last_goal);
             match a.settle {
                 Some(s) => d.u64(1).f64(s.aim.x).f64(s.aim.y).u64(s.back as u64),
                 None => d.u64(0),
