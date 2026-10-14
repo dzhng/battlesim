@@ -298,4 +298,3 @@ test("a voice waiting for its designed voice offers its candidates through the s
     "tank/soldier/design": 1,
   });
 });
-
