@@ -1,0 +1,8 @@
+{
+  "units": [
+    {"side":"blue","kind":"f_16c_block_50","position":[60,160]},
+    {"side":"blue","kind":"f_16c_block_50","position":[60,380],"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[580,300],"yaw":3.14159},
+    {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[600,120],"yaw":3.14159,"engagement":"return_fire_only"}
+  ]
+}

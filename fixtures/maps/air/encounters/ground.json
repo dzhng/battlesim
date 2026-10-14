@@ -1,0 +1,14 @@
+{
+  "units": [
+    {"side":"blue","kind":"us_fighter_aircraft","position":[20,120],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"f_16c_block_50","position":[20,260],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"us_ea18g_sead","position":[20,400],"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_t_72_t_72b3_2016","position":[420,120],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_t_72_t_72b3_2016","position":[420,260],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_buk_buk_m3_medium_range_air_defense","position":[580,470],"yaw":3.14159,"engagement":"return_fire_only"}
+  ],
+  "scripts": [
+    {"tick":5,"side":"blue","order":{"kind":"attack","units":[0],"target":{"kind":"ground","point":[420,120,0]}}},
+    {"tick":5,"side":"blue","order":{"kind":"attack","units":[1],"target":{"kind":"ground","point":[420,260,0]}}}
+  ]
+}

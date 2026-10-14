@@ -8,6 +8,10 @@
   "tags": ["road", "forest", "building"],
   "source": "authored",
   "seed": null,
-  "encounters": ["apache", "closing", "crash", "flight", "fog", "hover", "lost", "roof"],
+  "encounters": [
+    "apache", "audio", "closing", "combined", "contracts", "crash", "defense-helicopter",
+    "defense-jet", "dogfight", "flight", "fog", "ground", "high-air", "hover", "hud", "lost",
+    "radar-fighter", "radar-sead", "roof", "survivability"
+  ],
   "benchmarks": []
 }

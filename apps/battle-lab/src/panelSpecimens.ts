@@ -397,6 +397,40 @@ export function panelSpecimens(
     panelOf(specimenUnit(catalog, "test_supply", { state: "route_blocked" })),
   );
 
+  // An aircraft's rows. They come from the published air state alone, never
+  // the kind, and no stand-in flies, so they ride the jeep.
+  const a = "aircraft states";
+  const flying = (patch: Partial<OwnUnitView>) =>
+    panelOf(specimenUnit(catalog, "test_jeep", { fuelS: 142.4, ...patch }));
+  add(a, "fuel 143 s", flying({}));
+  add(a, "fuel out", flying({ fuelS: 0 }));
+  add(a, "afterburners on", flying({ afterburner: true }));
+  add(a, "traversing to ingress", flying({ traversing: true }));
+  add(a, "dogfight", flying({ inDogfight: true }));
+  add(a, "flares ready", flying({ flares: { charges: 4, cooldown: null } }));
+  add(a, "flares reloading", flying({ flares: { charges: 1, cooldown: 0.6 } }));
+  add(
+    a,
+    "dogfight on afterburner, flares out",
+    flying({
+      fuelS: 37.8,
+      afterburner: true,
+      inDogfight: true,
+      flares: { charges: 0, cooldown: 0.25 },
+    }),
+  );
+  // What a SEAD aircraft's radar warning shows of an emitter: the warning
+  // alone, and with the bearing and range it measured.
+  const radar = (bearingDeg: number | null, rangeM: number | null) =>
+    contactPanel(
+      catalog.units,
+      { source: "radar", kind: null, heard: [], evidenceTick: 0, bearingDeg, rangeM },
+      0,
+      rules,
+    );
+  add(a, "radar contact", radar(null, null), "contact");
+  add(a, "radar contact, bearing and range", radar(47, 6350), "contact");
+
   // The longest realistic panels.
   const c = "own, busiest";
   add(

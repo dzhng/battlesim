@@ -8004,9 +8004,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                4.876,
+                1.6,
+                1.78
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -8040,16 +8040,16 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                3.0,
+                2.5,
                 0.0,
-                0.0
+                0.59
               ],
               "name": "Buk-M3",
               "on": null,
               "pivot_m": [
+                -2.45,
                 0.0,
-                0.0,
-                2.0
+                2.37
               ],
               "special": false,
               "squad": false,
@@ -8104,9 +8104,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                11.62,
+                7.39,
+                3.05
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -8256,9 +8256,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                8.45,
+                4.86,
+                2.72
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -8580,9 +8580,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.85,
+                1.45,
+                1.205
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -8614,18 +8614,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                4.0,
                 0.0,
-                0.0
+                0.434
               ],
               "name": "Eastern Long SAM",
               "on": null,
               "pivot_m": [
+                0.85,
                 0.0,
-                0.0,
-                2.0
+                1.567
               ],
               "special": false,
               "squad": false,
@@ -8731,9 +8731,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.85,
+                1.45,
+                1.205
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -8765,18 +8765,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                4.0,
                 0.0,
-                0.0
+                0.434
               ],
               "name": "Eastern Medium SAM",
               "on": null,
               "pivot_m": [
+                0.85,
                 0.0,
-                0.0,
-                2.0
+                1.567
               ],
               "special": false,
               "squad": false,
@@ -9260,9 +9260,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                5.33,
+                1.32,
+                2.05
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -9296,16 +9296,16 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                3.0,
-                0.0,
-                0.0
+                1.37,
+                1.12,
+                0.35
               ],
               "name": "Pantsir-SM",
               "on": null,
               "pivot_m": [
+                -1.25,
                 0.0,
-                0.0,
-                2.0
+                2.1
               ],
               "special": false,
               "squad": false,
@@ -9547,9 +9547,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -9581,18 +9581,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "S-300V4",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -9647,9 +9647,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -9681,18 +9681,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "S-350",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -9818,9 +9818,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.85,
+                1.45,
+                1.205
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -9852,18 +9852,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                4.0,
                 0.0,
-                0.0
+                0.434
               ],
               "name": "Eastern Short AA",
               "on": null,
               "pivot_m": [
+                0.85,
                 0.0,
-                0.0,
-                2.0
+                1.567
               ],
               "special": false,
               "squad": false,
@@ -9965,9 +9965,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                11.62,
+                7.39,
+                3.05
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -10231,9 +10231,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                11.62,
+                7.39,
+                3.05
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -12229,9 +12229,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                4.04,
+                1.56,
+                1.69
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -12265,16 +12265,16 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                3.0,
-                0.0,
-                0.0
+                0.67,
+                -1.05,
+                0.23
               ],
               "name": "Skyranger 30",
               "on": null,
               "pivot_m": [
+                -0.8,
                 0.0,
-                0.0,
-                2.0
+                2.62
               ],
               "special": false,
               "squad": false,
@@ -13534,9 +13534,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                8.05,
+                5.54,
+                2.64
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -13758,9 +13758,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                8.38,
+                6.89,
+                2.98
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -13936,9 +13936,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -13970,18 +13970,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "IRIS-T SLM",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -14705,9 +14705,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.965,
+                1.495,
+                1.815
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -14739,18 +14739,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                3.331,
                 0.0,
-                0.0
+                0.62
               ],
               "name": "Europe Long SAM",
               "on": null,
               "pivot_m": [
                 0.0,
                 0.0,
-                2.0
+                2.38
               ],
               "special": false,
               "squad": false,
@@ -15024,9 +15024,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.965,
+                1.495,
+                1.815
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -15058,18 +15058,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                3.331,
                 0.0,
-                0.0
+                0.62
               ],
               "name": "Europe Medium SAM",
               "on": null,
               "pivot_m": [
                 0.0,
                 0.0,
-                2.0
+                2.38
               ],
               "special": false,
               "squad": false,
@@ -15158,9 +15158,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -15192,18 +15192,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "NASAMS 3 Long",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -15258,9 +15258,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.28,
+                1.21,
+                1.43
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -15294,16 +15294,16 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                3.0,
+                1.75,
                 0.0,
-                0.0
+                0.56
               ],
               "name": "NASAMS 3",
               "on": null,
               "pivot_m": [
+                -0.3,
                 0.0,
-                0.0,
-                2.0
+                1.68
               ],
               "special": false,
               "squad": false,
@@ -15808,9 +15808,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.965,
+                1.495,
+                1.815
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -15842,18 +15842,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                3.331,
                 0.0,
-                0.0
+                0.62
               ],
               "name": "Europe Short AA",
               "on": null,
               "pivot_m": [
                 0.0,
                 0.0,
-                2.0
+                2.38
               ],
               "special": false,
               "squad": false,
@@ -15908,9 +15908,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                8.38,
+                6.89,
+                2.98
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -16042,9 +16042,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                8.38,
+                6.89,
+                2.98
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -16396,9 +16396,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                7.54,
+                5.02,
+                2.44
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -17404,9 +17404,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                9.09,
+                6.89,
+                2.44
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -17538,9 +17538,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                9.09,
+                6.89,
+                2.44
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -17821,7 +17821,7 @@
           }
         },
         "us_fighter_aircraft": {
-          "appearance": "us_f_16c_block_50",
+          "appearance": "f_16c_block_50",
           "body": {
             "hull": {
               "armor": {
@@ -17838,9 +17838,9 @@
               },
               "eye_m": 2.0,
               "half_extents_m": [
-                7.0,
-                3.0,
-                1.8
+                7.54,
+                5.02,
+                2.44
               ],
               "hp": 100.0,
               "push_class": "none",
@@ -18278,9 +18278,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -18312,18 +18312,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "Us Long SAM",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -20040,9 +20040,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -20074,18 +20074,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "Us Medium SAM",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -20166,9 +20166,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -20200,18 +20200,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "NASAMS 3",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -20266,9 +20266,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -20300,18 +20300,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "Patriot PAC-3",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -20455,9 +20455,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.475,
+                1.36,
+                1.32
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -20489,18 +20489,18 @@
           },
           "mounts": [
             {
-              "id": "launcher",
+              "id": "autocannon",
               "muzzle_m": [
-                3.0,
+                2.919,
                 0.0,
-                0.0
+                0.475
               ],
               "name": "Us Short AA",
               "on": null,
               "pivot_m": [
+                -1.05,
                 0.0,
-                0.0,
-                2.0
+                1.716
               ],
               "special": false,
               "squad": false,
@@ -20834,9 +20834,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.5,
-                1.5,
-                1.5
+                3.57,
+                1.43,
+                1.65
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -20870,16 +20870,16 @@
             {
               "id": "launcher",
               "muzzle_m": [
-                3.0,
-                0.0,
-                0.0
+                1.02,
+                0.85,
+                0.42
               ],
               "name": "Stryker M-SHORAD",
               "on": null,
               "pivot_m": [
+                -0.4,
                 0.0,
-                0.0,
-                2.0
+                2.5
               ],
               "special": false,
               "squad": false,
@@ -26387,9 +26387,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            4.876,
+            1.6,
+            1.78
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -26425,16 +26425,16 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            3.0,
+            2.5,
             0.0,
-            0.0
+            0.59
           ],
           "name": "Buk-M3",
           "on": null,
           "pivot_m": [
+            -2.45,
             0.0,
-            0.0,
-            2.0
+            2.37
           ],
           "special": false,
           "squad": false,
@@ -26489,9 +26489,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            11.62,
+            7.39,
+            3.05
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -26645,9 +26645,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            8.45,
+            4.86,
+            2.72
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -26893,9 +26893,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.85,
+            1.45,
+            1.205
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -26929,18 +26929,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            4.0,
             0.0,
-            0.0
+            0.434
           ],
           "name": "Eastern Long SAM",
           "on": null,
           "pivot_m": [
+            0.85,
             0.0,
-            0.0,
-            2.0
+            1.567
           ],
           "special": false,
           "squad": false,
@@ -27190,9 +27190,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.85,
+            1.45,
+            1.205
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -27226,18 +27226,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            4.0,
             0.0,
-            0.0
+            0.434
           ],
           "name": "Eastern Medium SAM",
           "on": null,
           "pivot_m": [
+            0.85,
             0.0,
-            0.0,
-            2.0
+            1.567
           ],
           "special": false,
           "squad": false,
@@ -27645,9 +27645,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            5.33,
+            1.32,
+            2.05
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -27683,16 +27683,16 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            3.0,
-            0.0,
-            0.0
+            1.37,
+            1.12,
+            0.35
           ],
           "name": "Pantsir-SM",
           "on": null,
           "pivot_m": [
+            -1.25,
             0.0,
-            0.0,
-            2.0
+            2.1
           ],
           "special": false,
           "squad": false,
@@ -28058,9 +28058,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -28094,18 +28094,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "S-300V4",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -28160,9 +28160,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -28196,18 +28196,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "S-350",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -28370,9 +28370,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.85,
+            1.45,
+            1.205
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -28406,18 +28406,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            4.0,
             0.0,
-            0.0
+            0.434
           ],
           "name": "Eastern Short AA",
           "on": null,
           "pivot_m": [
+            0.85,
             0.0,
-            0.0,
-            2.0
+            1.567
           ],
           "special": false,
           "squad": false,
@@ -28575,9 +28575,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            11.62,
+            7.39,
+            3.05
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -28712,9 +28712,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            11.62,
+            7.39,
+            3.05
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -30788,9 +30788,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            4.04,
+            1.56,
+            1.69
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -30826,16 +30826,16 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            3.0,
-            0.0,
-            0.0
+            0.67,
+            -1.05,
+            0.23
           ],
           "name": "Skyranger 30",
           "on": null,
           "pivot_m": [
+            -0.8,
             0.0,
-            0.0,
-            2.0
+            2.62
           ],
           "special": false,
           "squad": false,
@@ -32125,9 +32125,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            8.05,
+            5.54,
+            2.64
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -32354,9 +32354,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            8.38,
+            6.89,
+            2.98
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -32510,9 +32510,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -32546,18 +32546,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "IRIS-T SLM",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -33210,9 +33210,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.965,
+            1.495,
+            1.815
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -33246,18 +33246,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            3.331,
             0.0,
-            0.0
+            0.62
           ],
           "name": "Europe Long SAM",
           "on": null,
           "pivot_m": [
             0.0,
             0.0,
-            2.0
+            2.38
           ],
           "special": false,
           "squad": false,
@@ -33679,9 +33679,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.965,
+            1.495,
+            1.815
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -33715,18 +33715,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            3.331,
             0.0,
-            0.0
+            0.62
           ],
           "name": "Europe Medium SAM",
           "on": null,
           "pivot_m": [
             0.0,
             0.0,
-            2.0
+            2.38
           ],
           "special": false,
           "squad": false,
@@ -33781,9 +33781,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -33817,18 +33817,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "NASAMS 3 Long",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -33883,9 +33883,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.28,
+            1.21,
+            1.43
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -33921,16 +33921,16 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            3.0,
+            1.75,
             0.0,
-            0.0
+            0.56
           ],
           "name": "NASAMS 3",
           "on": null,
           "pivot_m": [
+            -0.3,
             0.0,
-            0.0,
-            2.0
+            1.68
           ],
           "special": false,
           "squad": false,
@@ -34425,9 +34425,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.965,
+            1.495,
+            1.815
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -34461,18 +34461,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            3.331,
             0.0,
-            0.0
+            0.62
           ],
           "name": "Europe Short AA",
           "on": null,
           "pivot_m": [
             0.0,
             0.0,
-            2.0
+            2.38
           ],
           "special": false,
           "squad": false,
@@ -34527,9 +34527,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            8.38,
+            6.89,
+            2.98
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -34664,9 +34664,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            8.38,
+            6.89,
+            2.98
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -34991,9 +34991,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            7.54,
+            5.02,
+            2.44
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -36306,9 +36306,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            9.09,
+            6.89,
+            2.44
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -36443,9 +36443,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            9.09,
+            6.89,
+            2.44
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -36563,7 +36563,7 @@
       }
     },
     {
-      "appearance": "us_f_16c_block_50",
+      "appearance": "f_16c_block_50",
       "body": {
         "hull": {
           "armor": {
@@ -36580,9 +36580,9 @@
           },
           "eye_m": 2.0,
           "half_extents_m": [
-            7.0,
-            3.0,
-            1.8
+            7.54,
+            5.02,
+            2.44
           ],
           "hp": 100.0,
           "push_class": "none",
@@ -37054,9 +37054,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -37090,18 +37090,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "Us Long SAM",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -39133,9 +39133,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -39169,18 +39169,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "Us Medium SAM",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -39235,9 +39235,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -39271,18 +39271,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "NASAMS 3",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -39337,9 +39337,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -39373,18 +39373,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "Patriot PAC-3",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -39542,9 +39542,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -39578,18 +39578,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "launcher",
+          "id": "autocannon",
           "muzzle_m": [
-            3.0,
+            2.919,
             0.0,
-            0.0
+            0.475
           ],
           "name": "Us Short AA",
           "on": null,
           "pivot_m": [
+            -1.05,
             0.0,
-            0.0,
-            2.0
+            1.716
           ],
           "special": false,
           "squad": false,
@@ -39929,9 +39929,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.57,
+            1.43,
+            1.65
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -39967,16 +39967,16 @@
           "carriers": [],
           "id": "launcher",
           "muzzle_m": [
-            3.0,
-            0.0,
-            0.0
+            1.02,
+            0.85,
+            0.42
           ],
           "name": "Stryker M-SHORAD",
           "on": null,
           "pivot_m": [
+            -0.4,
             0.0,
-            0.0,
-            2.0
+            2.5
           ],
           "special": false,
           "squad": false,

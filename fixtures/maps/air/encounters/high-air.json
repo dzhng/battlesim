@@ -1,0 +1,11 @@
+{
+  "units": [
+    {"side":"blue","kind":"f_16c_block_50","position":[15,300],"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_t_72_t_72b3_2016","position":[300,470],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_mi_8_hip_mi_8amtsh","position":[420,150],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[600,60],"yaw":3.14159,"engagement":"return_fire_only"}
+  ],
+  "scripts": [
+    {"tick":1,"side":"blue","order":{"kind":"move","units":[0],"gesture":1,"goal":[560,470],"route":"shortest"}}
+  ]
+}

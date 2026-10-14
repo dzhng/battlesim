@@ -137,74 +137,74 @@
   },
   {
     "id": "air-contracts",
-    "route": "/lab/air-contracts",
-    "describe": "Air-war contract seam: HighAir/LowAir cards, authored weapons, fuel and radar fields through the production battle view.",
+    "route": "/labs/air-contracts",
+    "describe": "The air-war records as the catalog resolves them, beside the battle that fields them: a fighter and a SEAD jet (HighAir, fuel and flares), an Apache (LowAir) and short, medium and long air defence (tier, radar, weapon target layers, interception, decoyability, seekers) parked on the air field; each aircraft's published fuel and flares start at its record's capacity, a ground unit publishes none.",
     "map": "air"
   },
   {
     "id": "high-air",
-    "route": "/lab/high-air",
-    "describe": "Persistent fixed-wing layer seam with altitude, map bounds and no ground vision.",
+    "route": "/labs/high-air",
+    "describe": "An F-16 flies across the air field, over the village, the tower and the wood, beside an enemy Mi-8 and J-10: blue's fog never clears and it never identifies the T-72 in the village, though the jet identifies both enemy aircraft; it stays inside the map at the air layer's height.",
     "map": "air"
   },
   {
     "id": "air-defense",
-    "route": "/lab/air-defense",
-    "describe": "Layered AA, seeker and projectile-interception seam through the production air battle.",
+    "route": "/labs/air-defense",
+    "describe": "Layered air defence from red's side: ?variant=helicopter, an Apache and a Mi-8 fly in: the Buk and the short gun engage them, the long S-300 never does; ?variant=jet, an F-16 flies in: every tier fires at it, and the short gun the tower hides from it never fires.",
     "map": "air"
   },
   {
     "id": "air-radar",
-    "route": "/lab/air-radar",
-    "describe": "Radar-emitter contacts, bearing/range readouts and SEAD targeting seam.",
+    "route": "/labs/air-radar",
+    "describe": "SEAD radar contacts: ?variant=sead, an EA-18G holds over the west edge: each emitting AA (a Buk in the open, a Pantsir in the wood, an S-300 behind the tower) is published as a RADAR CONTACT area with a quantized bearing and range, never identified and never clearing fog; the silent short gun is no contact; ?variant=fighter, the same field with an F-16 only: no radar contact.",
     "map": "air"
   },
   {
     "id": "dogfight",
-    "route": "/lab/dogfight",
-    "describe": "Automatic close-air lock, explicit-order break and retargeting seam.",
+    "route": "/labs/dogfight",
+    "describe": "Two F-16s against two J-10s: the attacked jet and the attacker lock into a dogfight, a second blue jet joins the same enemy, an explicit move breaks the mover's dogfight while its wingman stays in, and the card shows DOGFIGHT while it lasts.",
     "map": "air"
   },
   {
     "id": "air-ingress",
-    "route": "/lab/air-ingress",
-    "describe": "Off-map ingress, traversal card, persistent fuel, afterburner and withdrawal seam.",
+    "route": "/labs/air-ingress",
+    "describe": "An empty skirmish on the air field: blue buys an F-16 for the middle of the field; it is paid at once, waits off the nearest map edge for its seeded traversal (published as traversing, its card greyed, fuel untouched), enters at that edge at the air height, burns fuel from entry, twice as fast with afterburners on, turns for home on its own when the fuel left only covers the way back, and is refunded at the entry.",
     "map": "air"
   },
   {
     "id": "air-ground",
-    "route": "/lab/air-ground",
-    "describe": "Aircraft guns, bombs, strafing and radar-only SEAD ground mission seam.",
+    "route": "/labs/air-ground",
+    "describe": "Air-to-ground orders: the US Fighter bombs a T-72 it cannot see, an F-16 without bombs strafes the other with its gun, the EA-18G launches its anti-radiation missile at a radar contact, and an attack on a target blue does not know is refused.",
     "map": "air"
   },
   {
     "id": "air-survivability",
-    "route": "/lab/air-survivability",
-    "describe": "Aspect damage, finite flares, seeker lifetime and near-splash survivability seam.",
+    "route": "/labs/air-survivability",
+    "describe": "An F-16 with flares and an Apache without them under a Buk: the Apache is hit and brought down; the jet spends a flare when the decoyable missile locks, the missile is diverted, and the jet is unhurt.",
     "map": "air"
   },
   {
     "id": "air-roster",
-    "route": "/lab/air-roster",
-    "describe": "Faction short, medium, long AA and dedicated SEAD roster seam.",
+    "route": "/labs/air-roster",
+    "describe": "Every faction's short, medium and long air defence, SEAD jet and other fixed-wing aircraft as the roster's cards list them, in a matrix beside the battle that parks each of those types on the air field, with a contact sheet of their runtime models.",
     "map": "air"
   },
   {
     "id": "air-hud",
-    "route": "/lab/air-hud",
-    "describe": "Aircraft cards, compact ingress ghosts, radar glyphs and no-ground-circle presentation seam.",
+    "route": "/labs/air-hud",
+    "describe": "Aircraft in the battle HUD: an F-16 has no ground marker or drop line where the Apache beside it has both; the jet's card shows its fuel and flares; with Space held its ordered move shows a compact card at its ghost; the EA-18G's radar contact reads RADAR CONTACT with its bearing and range.",
     "map": "air"
   },
   {
     "id": "air-audio",
-    "route": "/lab/air-audio",
-    "describe": "Air alarm and jet approach audio causes through the production battle view.",
+    "route": "/labs/air-audio",
+    "describe": "The air alarm: a J-10 flies into the view of blue's Abrams, and blue hears one alarm and the jet's approach; while it stays seen no second alarm sounds; it flies off out of sight and back, a new episode, and the alarm sounds once more.",
     "map": "air"
   },
   {
     "id": "air-combined",
-    "route": "/battle/air-combined",
-    "describe": "Combined air checkpoint on the same production battle surface.",
+    "route": "/labs/air-combined",
+    "describe": "The combined air battle: a SEAD jet, an F-16 and a bomber against short, medium and long air defence, a J-10, a Hind and a T-72: radar contacts and SEAD launches, a dogfight, a bomb on the tank, flares, and aircraft lost to the air defence, all on the production battle view.",
     "map": "air"
   },
   {

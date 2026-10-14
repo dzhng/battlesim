@@ -1,0 +1,11 @@
+{
+  "units": [
+    {"side":"blue","kind":"us_m1_abrams_sep_v2","position":[40,40],"yaw":0.785,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[630,510],"yaw":3.93,"engagement":"return_fire_only"}
+  ],
+  "scripts": [
+    {"tick":150,"side":"red","order":{"kind":"move","units":[1],"gesture":1,"goal":[250,250],"route":"fastest"}},
+    {"tick":450,"side":"red","order":{"kind":"move","units":[1],"gesture":2,"goal":[630,510],"route":"fastest"}},
+    {"tick":800,"side":"red","order":{"kind":"move","units":[1],"gesture":3,"goal":[250,250],"route":"fastest"}}
+  ]
+}

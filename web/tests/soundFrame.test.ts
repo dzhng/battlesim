@@ -346,6 +346,17 @@ test("reset, or a new battle, clears every voice and count", () => {
   expect(sink.voices.size).toBe(0);
 });
 
+test("stats name the sounds started, loops too, until a reset", () => {
+  const { sink, frame } = setup();
+  run(frame, sink, 1, 10, (t) => firefight(t, [{ key: 2, at: [0, 0, 1] }]));
+  const tally: Record<string, number> = {};
+  for (const v of sink.started) tally[v.sound] = (tally[v.sound] ?? 0) + 1;
+  expect(Object.keys(tally).length).toBeGreaterThan(1);
+  expect(frame.stats().bySound).toEqual(tally);
+  frame.reset();
+  expect(frame.stats().bySound).toEqual({});
+});
+
 test("a known wreck burns, then smoulders quieter, then falls silent", () => {
   const { sink, frame } = setup();
   const wreck = SMOKE.wreck;

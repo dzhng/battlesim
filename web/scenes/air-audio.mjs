@@ -1,0 +1,75 @@
+// The air alarm (slice 11), heard by blue. Blue's Abrams sees no aircraft
+// until a J-10 flies into its view: then blue hears one air alarm and the
+// jet's approach. While the J-10 stays seen no second alarm sounds. It flies
+// off out of sight, ending the episode, and back: the alarm sounds once more.
+// The battle runs live, as a player hears it, after a first click.
+//
+// Not shown: distance attenuation and side-local hearing, which the
+// presentation's sound tests hold (`crates/presentation/tests/sound.rs`).
+import { gpuWarnings, obs, lab } from "./_lab.mjs";
+import { openAir, shoot } from "./_air.mjs";
+import { game } from "./_units.mjs";
+
+const ALARM = game.presentation.audio.air_alarm.sound;
+const ENEMY_JET = "eastern_j_10_vigorous_dragon_j_10c";
+
+const heard = async (page) => (await lab(page, () => window.__lab.route.sound()))?.bySound ?? {};
+
+/** Wait, live, until the J-10 is identified (`seen`) or not; then a second
+ *  for the frame to hear it. Returns the tick. */
+async function until(page, seen, timeoutS) {
+  const handle = await page.waitForFunction(
+    (seen) => {
+      const o = window.__lab.route.observation();
+      const is = !!o?.identified.some((u) => u.kind === "eastern_j_10_vigorous_dragon_j_10c");
+      return is === seen && o.tick;
+    },
+    seen,
+    { timeout: timeoutS * 1000, polling: 50 },
+  );
+  const tick = await handle.jsonValue();
+  await page.waitForTimeout(1500);
+  return tick;
+}
+
+export async function run(ctx) {
+  const page = await openAir(ctx);
+  const warnings = gpuWarnings(page);
+  ctx.check(
+    "the J-10 starts unseen",
+    !(await obs(page)).identified.some((u) => u.kind === ENEMY_JET),
+  );
+  // The first click is the gesture the sound waits for.
+  await page.click('[data-testid="battle-panel"] header');
+  await lab(page, () => window.__lab.route.resume());
+  await page
+    .waitForFunction(() => window.__lab.route.sound()?.running, undefined, { timeout: 30000 })
+    .catch(() => {});
+  const before = await heard(page);
+  ctx.check("no alarm before any aircraft is seen", !before[ALARM], JSON.stringify(before));
+
+  const first = await until(page, true, 60);
+  const entry = await heard(page);
+  ctx.check(
+    "one alarm and the jet's approach when the J-10 comes into view",
+    entry[ALARM] === 1 && Object.keys(entry).some((s) => s.startsWith("airwar-jet")),
+    JSON.stringify({ tick: first, entry }),
+  );
+  await shoot(ctx, page, "j-10-seen");
+  const lost = await until(page, false, 60);
+  const during = await heard(page);
+  ctx.check(
+    "no second alarm while it stays seen",
+    during[ALARM] === 1,
+    JSON.stringify({ lost, during }),
+  );
+  const again = await until(page, true, 60);
+  const back = await heard(page);
+  ctx.check(
+    "seen again after it was lost, a new episode raises the alarm once more",
+    back[ALARM] === 2,
+    JSON.stringify({ again, back }),
+  );
+  await lab(page, () => window.__lab.route.pause());
+  ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
+}

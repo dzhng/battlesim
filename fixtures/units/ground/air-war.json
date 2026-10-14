@@ -42,21 +42,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Us Short AA",
           "weapons": [
             "aa_ballistic"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -64,9 +64,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -127,21 +127,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Us Medium SAM",
           "weapons": [
             "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -149,9 +149,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -212,21 +212,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Us Long SAM",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -234,9 +234,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -297,21 +297,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Europe Short AA",
           "weapons": [
             "aa_ballistic"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            0.0,
+            0.0,
+            2.38
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            3.331,
+            0.0,
+            0.62
           ]
         }
       ],
@@ -319,9 +319,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.965,
+            1.495,
+            1.815
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -382,21 +382,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Europe Medium SAM",
           "weapons": [
             "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            0.0,
+            0.0,
+            2.38
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            3.331,
+            0.0,
+            0.62
           ]
         }
       ],
@@ -404,9 +404,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.965,
+            1.495,
+            1.815
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -467,21 +467,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Europe Long SAM",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            0.0,
+            0.0,
+            2.38
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            3.331,
+            0.0,
+            0.62
           ]
         }
       ],
@@ -489,9 +489,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.965,
+            1.495,
+            1.815
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -552,21 +552,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Eastern Short AA",
           "weapons": [
             "aa_ballistic"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            0.85,
+            0.0,
+            1.567
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            4.0,
+            0.0,
+            0.434
           ]
         }
       ],
@@ -574,9 +574,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.85,
+            1.45,
+            1.205
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -637,21 +637,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Eastern Medium SAM",
           "weapons": [
             "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            0.85,
+            0.0,
+            1.567
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            4.0,
+            0.0,
+            0.434
           ]
         }
       ],
@@ -659,9 +659,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.85,
+            1.45,
+            1.205
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -722,21 +722,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Eastern Long SAM",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            0.85,
+            0.0,
+            1.567
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            4.0,
+            0.0,
+            0.434
           ]
         }
       ],
@@ -744,9 +744,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.85,
+            1.45,
+            1.205
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -807,21 +807,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "Patriot PAC-3",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -829,9 +829,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -892,21 +892,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "NASAMS 3",
           "weapons": [
             "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -914,9 +914,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -977,21 +977,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "IRIS-T SLM",
           "weapons": [
             "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -999,9 +999,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -1062,21 +1062,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "NASAMS 3 Long",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -1084,9 +1084,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -1147,21 +1147,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "S-300V4",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -1169,9 +1169,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -1232,21 +1232,21 @@
       },
       "mounts": [
         {
-          "id": "launcher",
+          "id": "autocannon",
           "name": "S-350",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            0,
-            0,
-            2.0
+            -1.05,
+            0.0,
+            1.716
           ],
           "muzzle_m": [
-            3,
-            0,
-            0
+            2.919,
+            0.0,
+            0.475
           ]
         }
       ],
@@ -1254,9 +1254,9 @@
       "body": {
         "hull": {
           "half_extents_m": [
-            3.5,
-            1.5,
-            1.5
+            3.475,
+            1.36,
+            1.32
           ],
           "eye_m": 2.4,
           "hp": 120,

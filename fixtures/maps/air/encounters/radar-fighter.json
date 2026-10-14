@@ -1,0 +1,9 @@
+{
+  "units": [
+    {"side":"blue","kind":"f_16c_block_50","position":[40,140],"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_buk_buk_m3_medium_range_air_defense","position":[560,120],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_pantsir_pantsir_sm","position":[475,460],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_s300_long","position":[400,462],"yaw":3.14159,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_short_aa","position":[560,260],"yaw":3.14159,"engagement":"return_fire_only"}
+  ]
+}

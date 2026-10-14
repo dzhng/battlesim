@@ -1,0 +1,7 @@
+{
+  "units": [
+    {"side":"blue","kind":"f_16c_block_50","position":[200,150],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"ah_64e_guardian","position":[200,330],"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_buk_buk_m3_medium_range_air_defense","position":[560,240],"yaw":3.14159}
+  ]
+}

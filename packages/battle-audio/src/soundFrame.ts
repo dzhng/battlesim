@@ -182,6 +182,11 @@ export interface SoundStats {
   held: boolean;
   /** The last publication taken. */
   tick: number;
+  /** Voices started, loops included, by sound name since this frame's last
+   *  `reset()`: which causes were heard (an air alarm, a jet's approach), not
+   *  only how many. Counted as the voices reach the sink, so a publication
+   *  that rewinds the battle without a reset does not clear it. */
+  bySound: Record<string, number>;
 }
 
 export interface SoundFrameOptions {
@@ -251,6 +256,8 @@ export function battleSounds(options: SoundFrameOptions): string[] {
 
 export class SoundFrame {
   private frame: RustSoundFrame | null = null;
+  /** Voices started since the last reset, by sound name (`SoundStats.bySound`). */
+  private bySound: Record<string, number> = {};
 
   constructor(
     private readonly options: SoundFrameOptions,
@@ -282,6 +289,7 @@ export class SoundFrame {
       if (c.op === "start") {
         const { op: _, id, ...voice } = c;
         this.sink.start(id, voice);
+        this.bySound[voice.sound] = (this.bySound[voice.sound] ?? 0) + 1;
       } else if (c.op === "set") {
         const { op: _, id, at, ...params } = c;
         this.sink.set(id, params, at);
@@ -305,6 +313,7 @@ export class SoundFrame {
   /** Silence and forget everything (a new battle). */
   reset() {
     if (this.frame) this.run(this.frame.reset(this.sink.now()));
+    this.bySound = {};
   }
 
   /** Take `presentation`'s last publication. */
@@ -360,8 +369,9 @@ export class SoundFrame {
   }
 
   stats(): SoundStats {
+    const bySound = { ...this.bySound };
     return this.frame
-      ? (JSON.parse(this.frame.stats()) as SoundStats)
+      ? { ...(JSON.parse(this.frame.stats()) as Omit<SoundStats, "bySound">), bySound }
       : {
           transients: 0,
           loops: 0,
@@ -373,6 +383,7 @@ export class SoundFrame {
           cues: 0,
           held: false,
           tick: -1,
+          bySound,
         };
   }
 }

@@ -1035,12 +1035,16 @@ export function typeFindings(
 }
 
 /** A hull model's mount declarations against its type: every mount with a
- *  muzzle is declared, each once, by a rig the renderer has, and nothing
- *  names a mount the type lacks. */
+ *  muzzle is declared, each once, by a rig the renderer has or by the hull
+ *  (a turning mount its model has no rig for), and nothing names a mount the
+ *  type lacks. */
 function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | null): Finding[] {
   const out: Finding[] = [];
   const fix = (m: string) =>
-    `declare it in the appearance's catalog entry: "mounts": { "${m}": ${Object.keys(MOUNT_NODES)
+    `declare it in the appearance's catalog entry: "mounts": { "${m}": ${[
+      ...Object.keys(MOUNT_NODES),
+      "hull",
+    ]
       .map((a) => `"${a}"`)
       .join(" | ")} }`;
   const names = new Set(type.mounts.map((m) => m.id));
@@ -1054,6 +1058,7 @@ function mountDrawFindings(label: string, type: UnitType, draws: MountDraws | nu
           "name the type's mount by its catalog row's id",
         ),
       );
+    if (rig === "hull") continue;
     if (!isArticulation(rig))
       out.push(
         finding(

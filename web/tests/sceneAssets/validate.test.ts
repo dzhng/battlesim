@@ -594,6 +594,40 @@ test("a mount fixed in the hull is drawn by the hull, with no rig of its own", a
   );
 });
 
+test("a turning mount its model has no rig for is drawn by the hull when declared so", async () => {
+  // A SAM's launcher turns in the simulation, but its model has no rig for
+  // it: the appearance says the hull draws it, and nothing measures a rig.
+  const [cannon, hmg] = tankMounts();
+  const launcher = {
+    ...cannon,
+    id: "launcher",
+    turret: true,
+    on: null,
+    pivot_m: [-1, 0, 1.2],
+    muzzle_m: [1.5, 0, 0.4],
+  } as typeof cannon;
+  const fit = (mounts: Record<string, "gun" | "hmg" | "hull">) =>
+    validateAppearance(
+      {
+        name: "tank",
+        entry: { unit: "vehicle", source: "t.glb", basis_yaw_deg: 0, mounts },
+        files: { "t.glb": tankGlb() },
+      },
+      {
+        tolerances: TOLERANCES,
+        authority: { ...AUTHORITY, units: syntheticUnits({ mounts: [cannon, hmg, launcher] }) },
+      },
+    );
+  expect((await fit({ ...TANK_DRAWS, launcher: "hull" })).findings).toEqual([]);
+  // Left undeclared it still needs a rig, and a name it lacks is still named.
+  expect((await fit(TANK_DRAWS)).findings.map((f) => f.message)).toContainEqual(
+    expect.stringMatching(/mount "launcher" is not drawn by any rig/),
+  );
+  expect(
+    (await fit({ ...TANK_DRAWS, launcher: "hull", radar: "hull" })).findings.map((f) => f.message),
+  ).toContainEqual(expect.stringMatching(/declares mount "radar", which tank does not have/));
+});
+
 test("the roof HMG is fitted on its own pivot, turning with the turret and on its own ring", async () => {
   // Right at rest, wrong as it turns: the row puts the HMG's pivot at its
   // muzzle's foot, not on the ring the model turns it on.

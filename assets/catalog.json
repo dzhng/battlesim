@@ -6128,6 +6128,288 @@
       "tolerances": {
         "footprint_m": 6.0
       }
+    },
+    "eastern_buk_buk_m3_medium_range_air_defense": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/buk/eastern_buk_buk_m3_medium_range_air_defense.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "launcher": "hull"
+      },
+      "wreck": "eastern_buk_buk_m3_medium_range_air_defense_wreck"
+    },
+    "eastern_buk_buk_m3_medium_range_air_defense_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/buk/eastern_buk_buk_m3_medium_range_air_defense_wreck.glb",
+        "debris": "assets/source/roster/buk/eastern_buk_buk_m3_medium_range_air_defense_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.876,
+        1.6,
+        1.78
+      ]
+    },
+    "eastern_pantsir_pantsir_sm": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "launcher": "hull"
+      },
+      "wreck": "eastern_pantsir_pantsir_sm_wreck"
+    },
+    "eastern_pantsir_pantsir_sm_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm_wreck.glb",
+        "debris": "assets/source/roster/pantsir/eastern_pantsir_pantsir_sm_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        5.33,
+        1.32,
+        2.05
+      ],
+      "tolerances": {
+        "footprint_m": 0.8
+      }
+    },
+    "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "launcher": "hull"
+      },
+      "wreck": "europe_boxer_skyranger_30_gun_and_missile_air_defense_wreck"
+    },
+    "europe_boxer_skyranger_30_gun_and_missile_air_defense_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense_wreck.glb",
+        "debris": "assets/source/roster/boxer_skyranger_30/europe_boxer_skyranger_30_gun_and_missile_air_defense_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        4.04,
+        1.56,
+        1.69
+      ]
+    },
+    "europe_nasams_nasams_3": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/nasams/europe_nasams_nasams_3.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "launcher": "hull"
+      },
+      "wreck": "europe_nasams_nasams_3_wreck"
+    },
+    "europe_nasams_nasams_3_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/nasams/europe_nasams_nasams_3_wreck.glb",
+        "debris": "assets/source/roster/nasams/europe_nasams_nasams_3_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.28,
+        1.21,
+        1.43
+      ]
+    },
+    "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "launcher": "hull"
+      },
+      "wreck": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle_wreck"
+    },
+    "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle_wreck.glb",
+        "debris": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.57,
+        1.43,
+        1.65
+      ],
+      "tolerances": {
+        "footprint_m": 0.6
+      }
+    },
+    "eastern_j_10_vigorous_dragon_j_10c": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_j_10_vigorous_dragon_j_10c_wreck"
+    },
+    "eastern_j_10_vigorous_dragon_j_10c_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.45,
+        4.86,
+        2.72
+      ],
+      "tolerances": {
+        "footprint_m": 1.9
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_34": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_sukhoi_flanker_family_su_34_wreck"
+    },
+    "eastern_sukhoi_flanker_family_su_34_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        11.62,
+        7.39,
+        3.05
+      ],
+      "tolerances": {
+        "footprint_m": 2.6
+      }
+    },
+    "europe_eurofighter_typhoon_tranche_3": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_eurofighter_typhoon_tranche_3_wreck"
+    },
+    "europe_eurofighter_typhoon_tranche_3_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3_wreck.glb",
+        "debris": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.05,
+        5.54,
+        2.64
+      ],
+      "tolerances": {
+        "footprint_m": 2.0
+      }
+    },
+    "europe_tornado_ids": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/europe_tornado_ids.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_tornado_ids_wreck"
+    },
+    "europe_tornado_ids_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/europe_tornado_ids_wreck.glb",
+        "debris": "assets/source/roster/disabled/europe_tornado_ids_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.38,
+        6.89,
+        2.98
+      ],
+      "tolerances": {
+        "footprint_m": 2.6
+      }
+    },
+    "europe_tornado_ecr": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/europe_tornado_ecr.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_tornado_ecr_wreck"
+    },
+    "europe_tornado_ecr_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/europe_tornado_ecr_wreck.glb",
+        "debris": "assets/source/roster/disabled/europe_tornado_ecr_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.38,
+        6.89,
+        2.98
+      ],
+      "tolerances": {
+        "footprint_m": 2.6
+      }
+    },
+    "f_16c_block_50": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/f_16c_block_50.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "f_16c_block_50_wreck"
+    },
+    "f_16c_block_50_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/f_16c_block_50_wreck.glb",
+        "debris": "assets/source/roster/disabled/f_16c_block_50_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.54,
+        5.02,
+        2.44
+      ],
+      "tolerances": {
+        "footprint_m": 1.9
+      }
+    },
+    "us_ea_18g_growler_electronic_warfare_aircraft": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_ea_18g_growler_electronic_warfare_aircraft_wreck"
+    },
+    "us_ea_18g_growler_electronic_warfare_aircraft_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft_wreck.glb",
+        "debris": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.09,
+        6.89,
+        2.44
+      ],
+      "tolerances": {
+        "footprint_m": 2.4
+      }
     }
   }
 }

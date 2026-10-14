@@ -154,7 +154,16 @@
           ]
         }
       ],
-      "appearance": "us_f_16c_block_50"
+      "appearance": "f_16c_block_50",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.54,
+            5.02,
+            2.44
+          ]
+        }
+      }
     },
     "us_ea18g_sead": {
       "name": "EA-18G Growler",
@@ -221,7 +230,16 @@
           ]
         }
       ],
-      "appearance": "us_ea_18g_growler_electronic_warfare_aircraft"
+      "appearance": "us_ea_18g_growler_electronic_warfare_aircraft",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            9.09,
+            6.89,
+            2.44
+          ]
+        }
+      }
     },
     "europe_fighter_aircraft": {
       "name": "European Fighter",
@@ -303,7 +321,16 @@
           ]
         }
       ],
-      "appearance": "europe_tornado_ids"
+      "appearance": "europe_tornado_ids",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            8.38,
+            6.89,
+            2.98
+          ]
+        }
+      }
     },
     "europe_tornado_ecr_sead": {
       "name": "Tornado ECR",
@@ -370,7 +397,16 @@
           ]
         }
       ],
-      "appearance": "europe_tornado_ecr"
+      "appearance": "europe_tornado_ecr",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            8.38,
+            6.89,
+            2.98
+          ]
+        }
+      }
     },
     "eastern_fighter_aircraft": {
       "name": "Eastern Fighter",
@@ -452,7 +488,16 @@
           ]
         }
       ],
-      "appearance": "eastern_sukhoi_flanker_family_su_34"
+      "appearance": "eastern_sukhoi_flanker_family_su_34",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            11.62,
+            7.39,
+            3.05
+          ]
+        }
+      }
     },
     "eastern_su34_sead": {
       "name": "Su-34 SEAD",
@@ -519,7 +564,16 @@
           ]
         }
       ],
-      "appearance": "eastern_sukhoi_flanker_family_su_34"
+      "appearance": "eastern_sukhoi_flanker_family_su_34",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            11.62,
+            7.39,
+            3.05
+          ]
+        }
+      }
     }
   }
 }

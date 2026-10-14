@@ -270,8 +270,11 @@ export type MountRole = Articulation | "hull" | "hand";
 export const hullFixed = (m: Pick<MountRow, "turret" | "on">): boolean =>
   !m.turret && m.on === null;
 
-/** An appearance's mount declarations: mount id to the rig that draws it. */
-export type MountDraws = Readonly<Record<string, Articulation>>;
+/** An appearance's mount declarations: mount id to the rig that draws it,
+ *  or `hull` for a turning mount its model has no rig for (a launcher drawn
+ *  fixed on the hull): it never turns on screen, and its muzzle is the
+ *  published one. */
+export type MountDraws = Readonly<Record<string, Articulation | "hull">>;
 
 /** Each rig's nodes: the node it yaws on, the one it pitches on, and its muzzle. */
 export const MOUNT_NODES: Record<Articulation, { yaw: string; pitch: string; muzzle: string }> = {
