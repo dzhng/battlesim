@@ -19,9 +19,9 @@ use contract::catalog::AltitudeLayer;
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
-    ActionReason, ContactSource, EncounterResult, GarrisonPhase, Intensity, LeanSide, MemberLean,
-    MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus, ShoutSpeaker, ShoutTrigger,
-    SoundBand, SoundCategory, SuppressionTier, WeaponPose,
+    ActionReason, AirTransitDirection, ContactSource, EncounterResult, GarrisonPhase, Intensity,
+    LeanSide, MemberLean, MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus,
+    ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SuppressionTier, WeaponPose,
 };
 use contract::scenario::CoverTier;
 
@@ -160,7 +160,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 44] = [
+const HEADER: [&str; 45] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -171,6 +171,7 @@ const HEADER: [&str; 44] = [
     "blastCount",
     "corpseCount",
     "guidedCount",
+    "airTransitCount",
     "encounterHeldS",
     "encounterResult",
     "fogCellM",
@@ -259,6 +260,9 @@ const PROJECTILE_FIELDS: [&str; 10] = [
 ];
 const BLAST_FIELDS: [&str; 5] = ["x", "y", "z", "radius", "kind"];
 const GUIDED_FIELDS: [&str; 9] = ["idLo", "idHi", "x", "y", "z", "px", "py", "pz", "supported"];
+const AIR_TRANSIT_FIELDS: [&str; 8] = [
+    "kind", "x", "y", "z", "heading", "speedMps", "edgeTick", "dir",
+];
 const CORPSE_FIELDS: [&str; 9] = [
     "x",
     "y",
@@ -487,6 +491,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     },
     rows("blasts", "blastCount", &BLAST_FIELDS),
     rows("guided", "guidedCount", &GUIDED_FIELDS),
+    rows("airTransits", "airTransitCount", &AIR_TRANSIT_FIELDS),
     rows("corpses", "corpseCount", &CORPSE_FIELDS),
     rows("knownProps", "knownPropCount", &KNOWN_PROP_FIELDS),
     rows("fallenBodies", "fallenBodyCount", &FALLEN_BODY_FIELDS),
@@ -633,6 +638,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "directions": names(&DIRECTIONS),
         "contactSources": names(&CONTACT_SOURCES),
         "layers": names(&LAYERS),
+        "airTransitDirections": ["in", "out"],
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
         "shoutTriggers": names(&ShoutTrigger::ALL),
@@ -936,6 +942,7 @@ fn pack_record(
         frame.blasts.len() as f32,
         frame.corpses.len() as f32,
         frame.guided.len() as f32,
+        frame.air_transits.len() as f32,
         frame.encounter.map_or(-1.0, |e| e.held_s as f32),
         frame
             .encounter
@@ -1257,6 +1264,21 @@ fn pack_record(
             g.point[1] as f32,
             g.point[2] as f32,
             g.supported as u8 as f32,
+        ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for t in &frame.air_transits {
+        out.extend([
+            t.kind.0 as f32,
+            t.point[0] as f32,
+            t.point[1] as f32,
+            t.point[2] as f32,
+            t.heading as f32,
+            t.speed_mps as f32,
+            t.edge_tick as f32,
+            matches!(t.dir, AirTransitDirection::Out) as u8 as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {
@@ -1595,6 +1617,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     }
     add(frame.blasts.len(), BLAST_FIELDS.len())?;
     add(frame.guided.len(), GUIDED_FIELDS.len())?;
+    add(frame.air_transits.len(), AIR_TRANSIT_FIELDS.len())?;
     add(frame.corpses.len(), CORPSE_FIELDS.len())?;
     add(frame.known_props.len(), KNOWN_PROP_FIELDS.len())?;
     add(frame.fallen_bodies.len(), FALLEN_BODY_FIELDS.len())?;
@@ -1920,7 +1943,7 @@ fn write_group_operations(
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 16;
+pub const GROUPS: usize = 17;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.

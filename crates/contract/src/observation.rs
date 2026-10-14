@@ -340,6 +340,23 @@ pub struct GuidedMissile {
     pub supported: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AirTransitDirection {
+    In,
+    Out,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AirTransit {
+    pub kind: TypeIndex,
+    pub point: [f64; 3],
+    pub heading: f64,
+    pub speed_mps: f64,
+    pub edge_tick: Tick,
+    pub dir: AirTransitDirection,
+}
+
 /// What a weapon mount is doing, for posing its model. The pose itself is
 /// derived only in the renderer (Q7). Published for own mounts and for the
 /// mounts of identified enemies.
@@ -743,6 +760,8 @@ pub struct ObservationFrame {
     pub crashes: Vec<FallingAirframe>,
     /// This side's own guided missiles in flight.
     pub guided: Vec<GuidedMissile>,
+    #[serde(default)]
+    pub air_transits: Vec<AirTransit>,
     /// The fixture's completion condition, when it has one.
     pub encounter: Option<EncounterStatus>,
     pub ground_visibility: VisibilityField,

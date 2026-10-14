@@ -538,6 +538,7 @@ export interface ObservationView {
   knownProps: readonly KnownPropView[];
   projectiles: ProjectileView[];
   blasts: BlastView[];
+  airTransits: AirTransitView[];
   corpses: readonly CorpseView[];
   fallenBodies: readonly FallenBodyView[];
   /** Downed airframes still falling that this side saw go down. */
@@ -558,4 +559,13 @@ export interface ObservationView {
     revision: number;
     full: boolean;
   };
+}
+
+export interface AirTransitView {
+  kind: string;
+  point: Point3;
+  heading: number;
+  speedMps: number;
+  edgeTick: number;
+  dir: "in" | "out";
 }

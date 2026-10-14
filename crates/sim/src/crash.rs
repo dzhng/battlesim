@@ -108,9 +108,13 @@ impl Crash {
                 self.position = out.with_z(self.position.z);
             }
         }
-        // The map's edge stops it: what goes down near it lands on the map.
-        self.position.x = self.position.x.clamp(half.x, world.width() - half.x);
-        self.position.y = self.position.y.clamp(half.x, world.depth() - half.x);
+        if self.position.x < 0.0
+            || self.position.x > world.width()
+            || self.position.y < 0.0
+            || self.position.y > world.depth()
+        {
+            return false;
+        }
         let ground = world
             .height_at(self.position.x, self.position.y)
             .unwrap_or(0.0);

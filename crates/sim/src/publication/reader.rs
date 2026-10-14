@@ -22,8 +22,8 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use super::{
-    fixed_row_width, GroupLayout, AUDIBLE_FIELDS, BLAST_FIELDS, CONTACT_FIELDS, COPY_FIELDS,
-    CORPSE_FIELDS, CRASH_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GROUND_FIELDS,
+    fixed_row_width, GroupLayout, AIR_TRANSIT_FIELDS, AUDIBLE_FIELDS, BLAST_FIELDS, CONTACT_FIELDS,
+    COPY_FIELDS, CORPSE_FIELDS, CRASH_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GROUND_FIELDS,
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
     OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS, RANGE_FIELDS,
@@ -47,7 +47,7 @@ macro_rules! view {
 
 view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, contacts: Vec<Contact>,
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
-    blasts: Vec<Blast>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
+    blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
     crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
     fog: Arc<Fog>, ground_patch: GroundPatch });
 view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
@@ -116,6 +116,14 @@ view!(Blast {
     kind: Name
 });
 view!(Guided { id: Option<f64>, position: Point3, point: Point3, supported: bool });
+view!(AirTransit {
+    kind: Name,
+    point: Point3,
+    heading: f64,
+    speed_mps: f64,
+    edge_tick: f64,
+    dir: Name
+});
 view!(Corpse { position: Point3, own: bool, soldier: Option<f64>, kind: Name, slot: f64, yaw: f64 });
 view!(FallenBody { prop: Option<f64>, at: Point2, toward: Point2, tick: f64 });
 view!(Crash {
@@ -764,6 +772,7 @@ impl Reader {
             },
             projectiles: map(&rows[group("projectiles")], |r| self.projectile(r))?,
             blasts: map(&rows[group("blasts")], |r| self.blast(r))?,
+            air_transits: map(&rows[group("airTransits")], |r| air_transit(self, r))?,
             corpses: match statics {
                 Some((kept_corpses, _, _)) if kept(corpses) => kept_corpses.clone(),
                 _ => Arc::new(map(&rows[corpses], |r| self.corpse(r))?),
@@ -1442,6 +1451,19 @@ fn guided(r: &Row) -> Guided {
         point: [v!(f, "px"), v!(f, "py"), v!(f, "pz")],
         supported: v!(f, "supported") == 1.0,
     }
+}
+
+fn air_transit(reader: &Reader, r: &Row) -> Result<AirTransit> {
+    const FIELDS: &[&str] = &AIR_TRANSIT_FIELDS;
+    let f = r.fields;
+    Ok(AirTransit {
+        kind: reader.name("unitKinds", v!(f, "kind"))?,
+        point: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
+        heading: v!(f, "heading"),
+        speed_mps: v!(f, "speedMps"),
+        edge_tick: v!(f, "edgeTick"),
+        dir: reader.name("airTransitDirections", v!(f, "dir"))?,
+    })
 }
 
 fn fallen_body(r: &Row) -> FallenBody {

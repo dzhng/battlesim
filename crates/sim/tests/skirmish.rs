@@ -1,8 +1,8 @@
 #![allow(clippy::approx_constant)]
 
 use crate::common;
-use contract::command::{CommandEnvelope, Order};
-use contract::ids::Side;
+use contract::command::{CommandEnvelope, Order, TargetRef};
+use contract::ids::{Side, UnitId};
 use serde_json::json;
 use sim::battle::Battle;
 
@@ -62,6 +62,20 @@ fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition 
             ] }
         }
     })).unwrap()
+}
+
+fn test_jet_rules(fuel_capacity_s: f64) -> serde_json::Value {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({
+            "roster": {"factions":["us","eastern"],"category":"veh","family_name":"Test jet","variant":"Test"},
+            "capabilities": {"air": {"fuel_capacity_s": fuel_capacity_s}}
+        }),
+    );
+    rules
 }
 
 #[test]
@@ -1260,5 +1274,187 @@ fn a_bought_helicopter_is_paid_immediately_and_waits_at_the_nearest_edge() {
     assert!(
         (15.0..=30.1).contains(&delay_s),
         "seeded ingress delay {delay_s:.2}s"
+    );
+}
+
+#[test]
+fn a_bought_jet_spawns_on_its_back_edge_at_cruise_heading_in_after_its_delay() {
+    let rules = test_jet_rules(180.0);
+    let mut battle = Battle::new(&match_on(rules), 6);
+    assert!(battle
+        .accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_jet".into(),
+                destination: [300.0, 300.0]
+            }
+        ))
+        .error
+        .is_none());
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    let mut found = false;
+    for _ in 0..1000 {
+        battle.step();
+        if let Some(u) = battle
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .find(|u| battle.rules().catalog.id(u.kind) == "test_jet")
+        {
+            found = true;
+            assert!(u.position[1] < 20.0);
+            break;
+        }
+    }
+    assert!(found);
+}
+
+#[test]
+fn inbound_transit_is_published_to_its_own_side_only() {
+    let rules = test_jet_rules(180.0);
+    let mut battle = Battle::new(&match_on(rules), 6);
+    battle.accept(command(
+        Side::Blue,
+        1,
+        Order::ConfirmPurchase {
+            variant: "test_jet".into(),
+            destination: [300.0, 300.0],
+        },
+    ));
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    for _ in 0..1000 {
+        battle.step();
+        if !battle.observe(Side::Blue).air_transits.is_empty() {
+            assert!(!battle
+                .observe(Side::Red)
+                .air_transits
+                .iter()
+                .any(|t| t.kind == battle.observe(Side::Blue).air_transits[0].kind));
+            return;
+        }
+    }
+    panic!("no transit published");
+}
+
+#[test]
+fn nothing_senses_or_targets_a_jet_before_it_arrives() {
+    let mut battle = Battle::new(&match_on(test_jet_rules(180.0)), 6);
+    assert!(battle
+        .accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_jet".into(),
+                destination: [300.0, 300.0],
+            },
+        ))
+        .error
+        .is_none());
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    for _ in 0..(14 * battle.rules().tick_hz) {
+        battle.step();
+        assert!(battle.observe(Side::Blue).own.is_empty());
+        assert!(battle.observe(Side::Red).identified.is_empty());
+        assert!(battle
+            .accept(command(
+                Side::Red,
+                1000 + battle.tick(),
+                Order::Attack {
+                    units: vec![UnitId(0)],
+                    target: TargetRef::Identified {
+                        id: contract::observation::ObservedTargetId(0),
+                    },
+                },
+            ))
+            .error
+            .is_some());
+    }
+}
+
+#[test]
+fn withdrawal_retires_and_refunds_on_crossing_the_nearest_back_edge_point() {
+    let mut battle = Battle::new(&match_on(test_jet_rules(2.0)), 6);
+    assert!(battle
+        .accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_jet".into(),
+                destination: [300.0, 300.0],
+            },
+        ))
+        .error
+        .is_none());
+    battle.accept(command(Side::Blue, 2, Order::Ready));
+    battle.accept(command(Side::Red, 1, Order::Ready));
+    let mut saw_out = false;
+    for _ in 0..(90 * battle.rules().tick_hz) {
+        battle.step();
+        saw_out |= battle
+            .observe(Side::Blue)
+            .air_transits
+            .iter()
+            .any(|t| matches!(t.dir, contract::observation::AirTransitDirection::Out));
+        if battle.observe(Side::Blue).own.is_empty() && saw_out {
+            break;
+        }
+    }
+    assert!(
+        saw_out,
+        "the departing jet did not publish an Out transit; own={:?} tick={}",
+        battle.observe(Side::Blue).own,
+        battle.tick()
+    );
+    assert!(battle.observe(Side::Blue).own.is_empty());
+    assert!(
+        battle
+            .observe(Side::Blue)
+            .skirmish
+            .as_ref()
+            .unwrap()
+            .credits
+            > 700.0
+    );
+}
+
+#[test]
+fn fuel_return_uses_the_edge_distance() {
+    fn withdrawal_tick(destination: [f64; 2]) -> (u64, f64) {
+        let mut battle = Battle::new(&match_on(test_jet_rules(60.0)), 6);
+        battle.accept(command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_jet".into(),
+                destination,
+            },
+        ));
+        battle.accept(command(Side::Blue, 2, Order::Ready));
+        battle.accept(command(Side::Red, 1, Order::Ready));
+        for _ in 0..(120 * battle.rules().tick_hz) {
+            battle.step();
+            if battle.observe(Side::Blue).own.iter().any(|u| u.withdrawing) {
+                return (battle.tick(), battle.observe(Side::Blue).own[0].position[1]);
+            }
+        }
+        panic!("fuel withdrawal never triggered");
+    }
+    let near = withdrawal_tick([400.0, 50.0]);
+    let far = withdrawal_tick([400.0, 550.0]);
+    assert!(
+        far.0 <= near.0,
+        "far-edge return should not trigger later: near {}, far {}",
+        near.0,
+        far.0
+    );
+    assert!(
+        far.1 >= near.1,
+        "far withdrawal starts farther from the back edge: near {}, far {}",
+        near.1,
+        far.1
     );
 }

@@ -1,5 +1,6 @@
 //! Fixed-wing flight laws. Helicopters remain in [`crate::movement::air`].
 
+pub mod edge;
 pub mod jet;
 pub mod steer;
 
@@ -52,7 +53,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
         let radius = speed / flight.turn_rad_s.max(f64::MIN_POSITIVE);
         ((unit.position.xy() - centre).length() - radius).abs() <= radius * 0.08 + 2.0
     });
-    if on_circle {
+    if on_circle && !unit.withdrawing {
         unit.orders.pop_front();
         unit.state = if unit.orders.is_empty() {
             contract::observation::MoveState::Idle
@@ -61,31 +62,40 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
         };
     }
     let current_order = unit.orders.front().cloned();
-    let intent = match current_order {
-        Some(UnitOrder::Move(m)) | Some(UnitOrder::AttackMove(m)) => Intent::Orbit {
-            centre: m.destination,
-        },
-        Some(UnitOrder::Attack { target, last_known }) => {
-            let point = match target {
-                Target::Unit(id) => ctx.knowledge[unit.side.index()]
-                    .track(id)
-                    .map(|track| track.position)
-                    .or_else(|| unit.pursuit.map(|p| p.to.with_z(unit.position.z)))
-                    .or_else(|| last_known.map(|p| p.with_z(unit.position.z)))
-                    .unwrap_or(unit.position),
-                Target::Ground(point) => point,
-                Target::Round(round) => round.point,
-                Target::Contact(_) => unit
-                    .pursuit
-                    .map(|p| p.to.with_z(unit.position.z))
-                    .or_else(|| last_known.map(|p| p.with_z(unit.position.z)))
-                    .unwrap_or(unit.position),
-            };
-            Intent::Orbit { centre: point.xy() }
+    let intent = if unit.withdrawing {
+        match current_order {
+            Some(UnitOrder::Move(m)) => Intent::Exit { to: m.destination },
+            _ => Intent::Exit {
+                to: unit.position.xy(),
+            },
         }
-        _ => Intent::Orbit {
-            centre: last_goal.unwrap_or_else(|| unit.position.xy()),
-        },
+    } else {
+        match current_order {
+            Some(UnitOrder::Move(m)) | Some(UnitOrder::AttackMove(m)) => Intent::Orbit {
+                centre: m.destination,
+            },
+            Some(UnitOrder::Attack { target, last_known }) => {
+                let point = match target {
+                    Target::Unit(id) => ctx.knowledge[unit.side.index()]
+                        .track(id)
+                        .map(|track| track.position)
+                        .or_else(|| unit.pursuit.map(|p| p.to.with_z(unit.position.z)))
+                        .or_else(|| last_known.map(|p| p.with_z(unit.position.z)))
+                        .unwrap_or(unit.position),
+                    Target::Ground(point) => point,
+                    Target::Round(round) => round.point,
+                    Target::Contact(_) => unit
+                        .pursuit
+                        .map(|p| p.to.with_z(unit.position.z))
+                        .or_else(|| last_known.map(|p| p.with_z(unit.position.z)))
+                        .unwrap_or(unit.position),
+                };
+                Intent::Orbit { centre: point.xy() }
+            }
+            _ => Intent::Orbit {
+                centre: last_goal.unwrap_or_else(|| unit.position.xy()),
+            },
+        }
     };
     let state = JetState {
         pos: unit.position,

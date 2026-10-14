@@ -1,5 +1,6 @@
 //! The reader decodes every sample of both fixture captures exactly as the
 //! browser's decoder did (its decode is the fixture `<scene>-observations.json`).
+//! Vitest re-records those observations through the browser decoder; this test only verifies parity.
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use sim::publication::reader::Reader;

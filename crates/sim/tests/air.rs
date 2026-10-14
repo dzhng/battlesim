@@ -825,3 +825,53 @@ fn a_helicopter_ordered_onto_an_identified_tank_takes_the_order() {
         "an attack order frees the helicopter to fire"
     );
 }
+
+#[test]
+fn back_edge_entry_and_crossing_follow_the_entry_site_side() {
+    let fixture = fixture();
+    let setup = serde_json::from_value::<contract::scenario::ScenarioDefinition>(serde_json::json!({
+        "map": {"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules": fixture, "units": [],
+        "skirmish": {"factions":["us","eastern"],"rules":{"credits_per_minute":1,"starting_minutes":1,"preparation_s":1,"max_units":1,"dispatch_interval_s":1},"sites":{"entries":[{"side":"blue","center":[300,5],"yaw":1.57},{"side":"red","center":[300,395],"yaw":-1.57}],"objectives":[{"id":"center","center":[300,200],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,100],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[400,300],"radius_m":50,"kind":"field","counterpart":"south"}]}}
+    })).unwrap();
+    let world = sim::encounter::PreparedMap::new(&setup.map, &setup.rules).world;
+    let edge = sim::air::edge::back_edge(
+        contract::ids::Side::Blue,
+        &setup.skirmish.as_ref().unwrap().sites,
+        &world,
+    );
+    let (point, heading) = sim::air::edge::entry(&edge, sim::math::v2(100.0, 0.0));
+    assert!((point.y - 0.0).abs() < 1e-9);
+    assert!((heading - std::f64::consts::FRAC_PI_2).abs() < 1e-9);
+    assert!(sim::air::edge::crossed(
+        &edge,
+        sim::math::v2(100.0, 1.0),
+        sim::math::v2(100.0, -1.0)
+    ));
+}
+
+#[test]
+fn a_downed_jet_crossing_the_edge_just_ends() {
+    let b = battle_with(
+        &fixture(),
+        open_map(),
+        json!([{"side":"blue","kind":"test_jet","position":[300,200]}]),
+    );
+    let unit = b.unit(UnitId(0)).unwrap();
+    let mut crash = sim::crash::Crash::new(
+        UnitId(0),
+        sim::math::v3(599.0, 200.0, 10.0),
+        sim::math::v2(1000.0, 0.0),
+        0.0,
+        None,
+        vec![],
+    );
+    let fell = crash.fall(
+        b.world(),
+        sim::math::v3(0.0, 0.0, -9.81),
+        unit.hull.unwrap(),
+        1.0 / f64::from(b.rules().tick_hz),
+    );
+    assert!(!fell);
+    assert!(crash.position.x > b.world().width());
+}

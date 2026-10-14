@@ -10,9 +10,10 @@ use contract::command::{
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
-    Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe, GuidedMissile, KnownProp,
-    MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture, SegmentHit, SegmentRicochet,
-    ServiceStatus, SoundCue, SquadArea, UnitSight, VisibilityField, VisibleSegment,
+    AirTransit, AirTransitDirection, Blast, Corpse, EncounterStatus, FallenBody, FallingAirframe,
+    GuidedMissile, KnownProp, MemberOrder, MoveState, ObservationFrame, OwnUnit, Posture,
+    SegmentHit, SegmentRicochet, ServiceStatus, SoundCue, SquadArea, UnitSight, VisibilityField,
+    VisibleSegment,
 };
 use contract::scenario::{
     EncounterRules, EventAction, Opponent, Rules, ScenarioDefinition, ScenarioEvent, ScriptedOrder,
@@ -362,6 +363,7 @@ pub struct Battle {
     fallen: BTreeMap<PropId, FallenBody>,
     /// Downed aircraft still falling, in the order they went down.
     crashes: Vec<crate::crash::Crash>,
+    air_transits: [Vec<AirTransit>; 3],
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen, leg by leg
@@ -684,30 +686,32 @@ impl Battle {
         let Some(skirmish) = &self.skirmish else {
             return;
         };
-        let entries: Vec<_> = Side::COMBATANTS
-            .iter()
-            .filter_map(|side| {
-                skirmish
-                    .setup
-                    .sites
-                    .entries
-                    .iter()
-                    .find(|entry| entry.side == *side)
-                    .map(|entry| (*side, v2(entry.center[0], entry.center[1])))
-            })
-            .collect();
         for unit in &mut self.units {
             if !unit.alive() || unit.retired || unit.withdrawing {
                 continue;
             }
-            let Some(air_state) = unit.air.as_ref().filter(|air| !air.traversing) else {
+            let Some(air_state) = unit
+                .air
+                .as_ref()
+                .filter(|air| !air.traversing || unit.layer() == AltitudeLayer::HighAir)
+            else {
                 continue;
             };
             let Some(capability) = unit.unit_type(&self.rules).capabilities.air.as_ref() else {
                 continue;
             };
-            let Some((_, entry)) = entries.iter().find(|(side, _)| *side == unit.side) else {
-                continue;
+            let edge = crate::air::edge::back_edge(unit.side, &skirmish.setup.sites, &self.world);
+            let entry = if unit.layer() == AltitudeLayer::HighAir {
+                crate::air::edge::nearest_exit(&edge, unit.position.xy())
+            } else {
+                skirmish
+                    .setup
+                    .sites
+                    .entries
+                    .iter()
+                    .find(|e| e.side == unit.side)
+                    .map(|e| v2(e.center[0], e.center[1]))
+                    .unwrap()
             };
             let units::Motion::Air(flight) = unit.motion else {
                 continue;
@@ -718,7 +722,7 @@ impl Battle {
                 } else {
                     1.0
                 };
-            let return_s = (unit.position.xy() - *entry).length() / speed.max(1.0) + 2.0;
+            let return_s = (unit.position.xy() - entry).length() / speed.max(1.0) + 2.0;
             if air_state.fuel_s > return_s {
                 continue;
             }
@@ -727,7 +731,7 @@ impl Battle {
             }
             unit.enqueue(
                 UnitOrder::Move(MoveOrder {
-                    destination: *entry,
+                    destination: entry,
                     policy: RoutePolicy::Fastest,
                     gesture: 0,
                     direction: contract::command::MoveDirection::Forward,
@@ -854,34 +858,40 @@ impl Battle {
             let Some(reservation) = skirmish.reservations[index].front_mut() else {
                 continue;
             };
-            let entry = &skirmish.setup.sites.entries[index];
+            let entry = skirmish
+                .setup
+                .sites
+                .entries
+                .iter()
+                .find(|entry| entry.side == side)
+                .expect("combatant entry site");
             let destination = v2(
                 reservation.data.destination[0],
                 reservation.data.destination[1],
             );
             let t = self.rules.catalog.get(reservation.data.kind);
             let aircraft = units::ground_mobility(t, &self.rules).is_none();
+            let jet = aircraft
+                && matches!(
+                    units::motion(t, &self.rules),
+                    units::Motion::Air(flight) if flight.layer == AltitudeLayer::HighAir
+                );
+            if jet {
+                if reservation.ingress_ready_tick.is_none() {
+                    let mut rng = contract::random::Rng::new(contract::random::mix(
+                        self.seed ^ u64::from(reservation.data.id.0),
+                    ));
+                    let delay_s = 15.0 + 15.0 * rng.unit();
+                    reservation.ingress_ready_tick =
+                        Some(self.tick + (delay_s * f64::from(self.rules.tick_hz)).round() as u64);
+                }
+                if self.tick < reservation.ingress_ready_tick.unwrap() {
+                    continue;
+                }
+            }
             let at = if aircraft {
-                let candidates = [
-                    v2(destination.x.clamp(0.0, self.world.width()), 0.0),
-                    v2(
-                        destination.x.clamp(0.0, self.world.width()),
-                        self.world.depth(),
-                    ),
-                    v2(0.0, destination.y.clamp(0.0, self.world.depth())),
-                    v2(
-                        self.world.width(),
-                        destination.y.clamp(0.0, self.world.depth()),
-                    ),
-                ];
-                *candidates
-                    .iter()
-                    .min_by(|a, b| {
-                        (**a - destination)
-                            .length()
-                            .total_cmp(&(**b - destination).length())
-                    })
-                    .unwrap()
+                let edge = crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
+                crate::air::edge::entry(&edge, destination).0
             } else {
                 v2(entry.center[0], entry.center[1])
             };
@@ -942,7 +952,7 @@ impl Battle {
                 &mut self.last_soldier,
                 self.seed,
             );
-            if aircraft {
+            if aircraft && !jet {
                 let mut rng = contract::random::Rng::new(contract::random::mix(
                     self.seed ^ u64::from(unit.id.0),
                 ));
@@ -952,6 +962,30 @@ impl Battle {
                     air.ingress_remaining =
                         (delay_s * f64::from(self.rules.tick_hz)).round() as u64;
                 }
+            }
+            if jet {
+                let edge = crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
+                let (point, heading) = crate::air::edge::entry(&edge, destination);
+                let units::Motion::Air(flight) = unit.motion else {
+                    unreachable!("jet has air motion")
+                };
+                let speed = flight.cruise_mps;
+                unit.position = point.with_z(
+                    self.world.height_at(point.x, point.y).unwrap_or(0.0)
+                        + self.rules.air.cruise_agl_m(unit.layer()),
+                );
+                unit.yaw = heading;
+                if let Some(air) = unit.air.as_mut() {
+                    air.velocity = v3(libm::cos(heading) * speed, libm::sin(heading) * speed, 0.0);
+                }
+                self.air_transits[side.index()].push(AirTransit {
+                    kind: unit.kind,
+                    point: [point.x, point.y, unit.position.z],
+                    heading,
+                    speed_mps: speed,
+                    edge_tick: self.tick,
+                    dir: AirTransitDirection::In,
+                });
             }
             unit.settle();
             unit.orders.push_back(UnitOrder::Move(MoveOrder {
@@ -985,7 +1019,27 @@ impl Battle {
             return;
         };
         for unit in &mut self.units {
-            if !unit.alive() || !unit.withdrawing || unit.movement_goal().is_some() {
+            if !unit.alive() || !unit.withdrawing {
+                continue;
+            }
+            if unit.layer() == AltitudeLayer::HighAir {
+                let edge =
+                    crate::air::edge::back_edge(unit.side, &skirmish.setup.sites, &self.world);
+                let dt = 1.0 / f64::from(self.rules.tick_hz);
+                let previous = unit.position.xy() - unit.flight_velocity().xy() * dt;
+                if !crate::air::edge::crossed(&edge, previous, unit.position.xy()) {
+                    continue;
+                }
+                let air = unit.air.as_ref().expect("jet flight");
+                self.air_transits[unit.side.index()].push(AirTransit {
+                    kind: unit.kind,
+                    point: [unit.position.x, unit.position.y, unit.position.z],
+                    heading: unit.yaw,
+                    speed_mps: air.velocity.xy().length(),
+                    edge_tick: self.tick,
+                    dir: AirTransitDirection::Out,
+                });
+            } else if unit.movement_goal().is_some() {
                 continue;
             }
             let entry = skirmish
@@ -995,9 +1049,11 @@ impl Battle {
                 .iter()
                 .find(|entry| entry.side == unit.side)
                 .unwrap();
-            // Retirement follows completed ordinary movement at the admitted base.
+            // Helicopter retirement follows completed ordinary movement at the admitted base.
             let half = unit.hull.map_or(2.0, |half| half.x.max(half.y));
-            if (unit.position.xy() - v2(entry.center[0], entry.center[1])).length() > half * 2.0 {
+            if unit.layer() != AltitudeLayer::HighAir
+                && (unit.position.xy() - v2(entry.center[0], entry.center[1])).length() > half * 2.0
+            {
                 continue;
             }
             let entered = &skirmish.entered[&unit.id];
@@ -1213,6 +1269,7 @@ impl Battle {
             expiries: BTreeMap::new(),
             fallen: BTreeMap::new(),
             crashes: Vec::new(),
+            air_transits: Default::default(),
         };
         let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
         if let Some(skirmish) = &mut battle.skirmish {
@@ -1788,6 +1845,9 @@ impl Battle {
         self.skirmish_ai_turn();
         self.controller_turn();
         self.tick += 1;
+        for transits in &mut self.air_transits {
+            transits.clear();
+        }
         shouts::remember(&mut self.shout_before, &self.units, &self.rules);
         for side in Side::ALL {
             for contact in self.knowledge[side.index()].expire_contacts(self.tick) {
@@ -2717,7 +2777,11 @@ impl Battle {
                 .expect("an airframe's hull");
             if crash.fall(&self.world, gravity, half, dt) {
                 landed.push(crash);
-            } else {
+            } else if crash.position.x >= 0.0
+                && crash.position.x <= self.world.width()
+                && crash.position.y >= 0.0
+                && crash.position.y <= self.world.depth()
+            {
                 self.crashes.push(crash);
             }
         }
@@ -3498,26 +3562,41 @@ impl Battle {
         let mut stops = BTreeMap::new();
         let placement = match &command.order {
             Order::Refund { units } => {
-                let entry = self
-                    .skirmish
-                    .as_ref()
-                    .unwrap()
-                    .setup
-                    .sites
-                    .entries
-                    .iter()
-                    .find(|entry| entry.side == command.side)
-                    .unwrap();
+                let skirmish = self.skirmish.as_ref().unwrap();
                 Some(MovePlacement {
                     gesture: 0,
                     destinations: units
                         .iter()
-                        .map(|unit| contract::command::MoveDestination {
-                            unit: *unit,
-                            goal: entry.center,
-                            placed: true,
-                            facing: entry.yaw,
-                            spots: vec![],
+                        .map(|unit| {
+                            let entry = skirmish
+                                .setup
+                                .sites
+                                .entries
+                                .iter()
+                                .find(|entry| entry.side == command.side)
+                                .unwrap();
+                            let (goal, facing) =
+                                if self.units[unit.0 as usize].layer() == AltitudeLayer::HighAir {
+                                    let edge = crate::air::edge::back_edge(
+                                        command.side,
+                                        &skirmish.setup.sites,
+                                        &self.world,
+                                    );
+                                    let (point, heading) = crate::air::edge::entry(
+                                        &edge,
+                                        self.units[unit.0 as usize].position.xy(),
+                                    );
+                                    ([point.x, point.y], heading)
+                                } else {
+                                    (entry.center, entry.yaw)
+                                };
+                            contract::command::MoveDestination {
+                                unit: *unit,
+                                goal,
+                                placed: true,
+                                facing,
+                                spots: vec![],
+                            }
                         })
                         .collect(),
                 })
@@ -4590,6 +4669,10 @@ impl Battle {
                         supported: g.supported,
                     })
                 }));
+            frame.air_transits.clear();
+            frame
+                .air_transits
+                .extend(self.air_transits[side.index()].iter().copied());
             frame.corpses.clear();
             for u in &self.units {
                 for s in &u.members {
