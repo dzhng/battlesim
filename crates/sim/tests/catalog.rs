@@ -653,6 +653,10 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         for _ in 0..60 * rules.tick_hz {
             b.step();
         }
+        if id == "test_jet" {
+            eprintln!("jet unit: {:?}", b.unit(UnitId(0)).unwrap());
+            eprintln!("others: {:?}", b.units().map(|u| (u.position, u.layer())).collect::<Vec<_>>());
+        }
         for (m, mount) in b.unit(UnitId(0)).unwrap().mounts.iter().enumerate() {
             if mount.shots == 0 {
                 let name = &rules.catalog.mounts(t)[m].def.name;
@@ -679,13 +683,32 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             queued: false,
         });
         assert_eq!(ack.error, None, "{id}: {ack:?}");
-        for _ in 0..90 * rules.tick_hz {
-            b.step();
-        }
-        let short =
-            (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0)).length();
-        if short > 10.0 {
-            failures.push(format!("{id}: stopped {short:.1} m short of its goal"));
+        let never_stops = matches!(
+            b.unit(UnitId(0)).unwrap().motion,
+            sim::units::Motion::Air(flight) if flight.layer == AltitudeLayer::HighAir
+        );
+        if never_stops {
+            let mut closest = f64::INFINITY;
+            for _ in 0..90 * rules.tick_hz {
+                b.step();
+                closest = closest.min(
+                    (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0))
+                        .length(),
+                );
+            }
+            if closest > 10.0 {
+                failures.push(format!("{id}: never came within {closest:.1} m of its goal"));
+            }
+        } else {
+            for _ in 0..90 * rules.tick_hz {
+                b.step();
+            }
+            let short = (b.unit(UnitId(0)).unwrap().position.xy()
+                - sim::math::v2(200.0, 500.0))
+                .length();
+            if short > 10.0 {
+                failures.push(format!("{id}: stopped {short:.1} m short of its goal"));
+            }
         }
     }
     assert!(failures.is_empty(), "{failures:#?}");

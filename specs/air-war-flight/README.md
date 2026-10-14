@@ -10,7 +10,6 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 You are implementing this spec with `implement-spec-with-codex`. Codex writes the code (`codex exec`, model `gpt-6.1-sol`, `model_reasoning_effort=high`), while you orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
 - **Pickup:** slice 03 is running in `../awf-s03`; next 06 (missiles), then 07. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
-- **Open user questions:** Q13 and Q14, with provisional answers below. They only block slices 12 and 17. If the user hasn't answered when you reach either slice, adopt the provisional answer, record it in [choices.md](choices.md), and keep going.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Before ending each pass,** update this section: status, pickup and the checklist.
 
@@ -27,21 +26,21 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [ ] 09 [nose-on gun and self-firing weapons](slices/09-gun-and-autofire.md)
 - [ ] 10 [dogfights](slices/10-dogfight.md)
 - [ ] 11 [orders and reactions](slices/11-air-orders.md)
-- [ ] 12 [edge transit in the sim](slices/12-edge-transit-sim.md) (blocked on Q13, provisional answer A)
+- [ ] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
 - [ ] 13 [approach and departure effect](slices/13-transit-effect.md)
 - [ ] 14 [jet attitude](slices/14-jet-attitude.md)
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
 - [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
-- [ ] 17 [skirmish AI and jets](slices/17-skirmish-ai.md) (blocked on Q14, provisional answer A)
+- [ ] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
 - [ ] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
 - [ ] 19 [closeout](slices/19-closeout.md)
 
-## Open user questions
+## User decisions made during the build
 
-| Question | Provisional answer, adopted if unanswered when its slice starts |
+| Question | Answer (user, 2026-10-14) |
 |---|---|
-| **Q13:** Bought helicopters share today's four-sides spawn, which D35 deletes for jets. How do they arrive? | **A:** the same back-edge arrival as jets, at their own cruise height, with the same approach effect. One arrival rule for every aircraft. |
-| **Q14:** The skirmish AI (`crates/sim/src/skirmish_ai/mod.rs`) buys helicopters and answers low-air threats, but ignores jets. | **A:** it buys high-air-capable units when it sees enemy `HighAir`, and jets join its reinforcement rotation under attack-move. |
+| **Q13:** Bought helicopters share today's four-sides spawn. Should they arrive the way jets will? | **No.** Helicopters keep their current arrival: the four-sides spawn, the off-map wait and `traversing`. Only jets change (slice 12). |
+| **Q14:** Should the skirmish AI buy jets and answer enemy jets? | **Yes:** it buys high-air-capable units when it sees enemy `HighAir`, and jets join its reinforcement rotation under attack-move (slice 17). |
 
 ## Slice graph
 
@@ -79,7 +78,7 @@ Every slice inherits these:
 - **Distance between two bodies is 3D,** through one helper. The layer, from the catalog or `interception`, chooses the rule row. Height never chooses a layer.
 - **A round's starting velocity is set in one place,** at launch.
 - **One row per airframe.** No generic or duplicate rows, and no fixed-wing entries in the model manifest.
-- **Every mechanism this spec replaces is deleted in the slice that replaces it:** the weave, `traversing`, the snap, the four-sides spawn, the entry-centre retirement, the crash clamp, the strafe ban, bomb-first, the height thresholds and `air_bomb_guided`. No compatibility layer. Fixtures and digests are re-recorded.
+- **Every mechanism this spec replaces is deleted in the slice that replaces it:** the weave, the jets' `traversing`, snap and four-sides spawn, the entry-centre retirement, the crash clamp, the strafe ban, bomb-first, the height thresholds and `air_bomb_guided`. No compatibility layer. Fixtures and digests are re-recorded.
 
 ## Verification rules
 

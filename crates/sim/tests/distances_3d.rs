@@ -128,11 +128,11 @@ fn a_gun_holds_fire_at_a_jet_out_of_3d_reach_overhead() {
         &fixture,
         json!([
             { "side": "blue", "kind": "test_jeep", "position": [100, 300] },
-            { "side": "red", "kind": "test_heli", "position": [1590, 300], "yaw": std::f64::consts::PI }
+            { "side": "red", "kind": "test_jet", "position": [1585, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
         ]),
-        &map([2200.0, 600.0]),
+        &map([2200.0, 2200.0]),
     );
-    for _ in 0..120 {
+    for _ in 0..20 {
         b.step();
     }
     assert_eq!(

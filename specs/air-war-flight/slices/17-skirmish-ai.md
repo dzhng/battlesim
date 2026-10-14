@@ -1,6 +1,6 @@
 # 17 — Skirmish AI and jets
 
-**Delivers:** Q14, provisional answer A.
+**Delivers:** Q14 (the user said yes).
 
 ## Seam
 In `crates/sim/src/skirmish_ai/mod.rs`:

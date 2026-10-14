@@ -9,7 +9,15 @@
         "fuel_capacity_s": 180,
         "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
         "refund": { "health": 0.4, "ammunition": 0.3, "fuel": 0.3 }
-      } }
+      } },
+      "mounts": [{
+        "id": "HMG",
+        "name": "Cannon",
+        "weapons": ["air_gun"],
+        "turret": true,
+        "pivot_m": [0, 0, 1.8],
+        "muzzle_m": [7, 0, 0]
+      }]
     },
     "test_heli": {
       "name": "Helicopter",
