@@ -511,6 +511,8 @@ impl FlightLab {
             origin: v3_of(origin)?,
             target: v3_of(target)?,
             target_velocity: v3_of(target_velocity)?,
+            // The ballistics lab fires from a standing mount.
+            carrier: V3::default(),
         };
         let min_range_m = number("min_range_m");
         if min_range_m > 0.0 && (aim.target - aim.origin).length() < min_range_m {
