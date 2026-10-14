@@ -86,7 +86,7 @@ import { gameLight } from "./gameLight";
 import type { FogRequest, PresentedBattle, ScenePresentation } from "@web/battle/sim/presentation";
 import type { ViewportCamera } from "@packages/renderer-core/src/viewportCamera";
 import { useAppAudio } from "./AppAudio";
-import { useFeed, useLive } from "./feed";
+import { useFeed } from "./feed";
 import type { Vec3 } from "math";
 import {
   GHOST_BLOCKED,
@@ -210,7 +210,10 @@ export function useBattleSession({
   // The units' answers to their owner (R1–R12), one battle's at a time.
   const responses = useRef<UnitResponses | null>(null);
   // The presentation notes every publication for the effects as it decodes
-  // it (`presentation.ts`); sound hears the same.
+  // it (`presentation.ts`); sound hears the same. The viewport reads it each
+  // frame through this one holder for the session's life: a holder that
+  // changed with its client (a Restart) would have React's development build
+  // log the old battle's tables into a measure detail (`feed.ts`).
   const presentationRef = useRef<ScenePresentation | null>(null);
   const noteDecoded = useCallback(
     (o: ObservationView, digest: string) => {
@@ -426,10 +429,6 @@ export function useBattleSession({
     [drawnBuildings, units],
   );
   const buildingsFeed = useFeed(buildings);
-  // The battle's presentation as the viewport reads it each frame: one holder
-  // across clients (a Restart), so no prop change copies the old battle's tables.
-  const client = sim.client;
-  const presentationSource = useLive(() => client?.presentation ?? null);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
   // Fog of war: the presentation sees from the side's eyes at each
@@ -1142,7 +1141,7 @@ export function useBattleSession({
      *  models layer installs, and the GPU's arrival. */
     viewport: {
       frame,
-      presentation: presentationSource,
+      presentation: presentationRef,
       appearances: modelAppearancesFeed,
       onReady,
     },
