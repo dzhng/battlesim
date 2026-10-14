@@ -15,6 +15,7 @@ use crate::effects::launches::Launch;
 use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
 use crate::effects::tables::EffectPresentation;
+use crate::effects::transit::tracks;
 use crate::effects::MuzzleSource;
 use crate::fog::sight::{
     Eye, FogSight, FogStats, FogUpload, KnownBox, Occluder, Sensors, SightWorld,
@@ -1403,6 +1404,7 @@ impl Loaded {
         self.sound = Some((publication, launches));
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn frame(
         &mut self,
         sample: &FrameSample,
@@ -1581,6 +1583,59 @@ impl Loaded {
                 v.yaw,
                 tint(&v.side),
                 colour_of(&v.side, v.unit),
+                palette,
+                scroll,
+            ));
+        }
+        // Edge transits are own-side aircraft records reconstructed from the
+        // publication. They use the same appearance, articulation and shadow
+        // path as a live aircraft, but have no unit identity for selection or
+        // cards.
+        for t in tracks(
+            &o.air_transits,
+            time * input.tick_hz,
+            input.tick_hz,
+            &units.transit,
+        ) {
+            let Some(name) = units.resolve(&t.kind, side, 0.0, 0, None, None) else {
+                continue;
+            };
+            f.counts.aircraft += 1;
+            let far = bounds(units, name, 0);
+            let shadow = {
+                let p = t.position;
+                let ground_z = ground.map_or(0.0, |g| g.source.grid.height(p[0], p[1]));
+                aircraft_shadow(p, ground_z, *shadow_fall)
+            };
+            let tier = model_detail(
+                &detail,
+                view,
+                t.position,
+                far.size,
+                far.radius,
+                false,
+                Some(shadow),
+            );
+            if tier == CULLED {
+                continue;
+            }
+            let (palette, scroll) = pose_vehicle(
+                units,
+                locals,
+                worlds,
+                &mut f.palettes,
+                name,
+                &Articulation::default(),
+                None,
+            );
+            models.push(model(
+                row(name, "", NONE),
+                tier,
+                0,
+                t.position,
+                t.heading,
+                tint(side),
+                [0.0; 4],
                 palette,
                 scroll,
             ));

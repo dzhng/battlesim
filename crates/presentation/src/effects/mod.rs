@@ -8,6 +8,7 @@ pub mod launches;
 pub mod lights;
 pub mod publication;
 pub mod tables;
+pub mod transit;
 
 use crate::world::Vec3;
 
