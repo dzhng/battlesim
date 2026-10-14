@@ -657,6 +657,26 @@ impl Battle {
                 unit.position.z = ground + self.rules.air.cruise_agl_m(unit.layer());
             }
         }
+        for i in 0..self.units.len() {
+            let Some(target) = self.units[i]
+                .air
+                .as_ref()
+                .and_then(|air| air.dogfight_target)
+            else {
+                continue;
+            };
+            let broken = !crate::air::dogfight::valid_target(&self.units, target)
+                || crate::air::dogfight::breaks(
+                    body_distance(
+                        self.units[i].position,
+                        self.units[target.0 as usize].position,
+                    ),
+                    &self.rules.air.jet,
+                );
+            if broken {
+                crate::air::dogfight::clear(&mut self.units[i]);
+            }
+        }
     }
 
     /// A finite-endurance aircraft turns for home while it still has enough
@@ -3295,18 +3315,7 @@ impl Battle {
             // The attacked unit may answer this attacker under Return fire only.
             if let Target::Unit(t) = shot.target {
                 self.units[t.0 as usize].attackers.insert(shot.unit);
-                let shooter = shot.unit.0 as usize;
-                let target = t.0 as usize;
-                if shooter != target {
-                    let (a, b) = if shooter < target {
-                        let (left, right) = self.units.split_at_mut(target);
-                        (&mut left[shooter], &mut right[0])
-                    } else {
-                        let (left, right) = self.units.split_at_mut(shooter);
-                        (&mut right[0], &mut left[target])
-                    };
-                    crate::air::dogfight::on_fire(a, b, &self.rules);
-                }
+                crate::air::dogfight::on_fire(&mut self.units, shot.unit, t);
             }
             let shooter = &self.units[shot.unit.0 as usize];
             let heard = self
@@ -3743,7 +3752,7 @@ impl Battle {
             } => {
                 for slot in prepared.placement.unwrap().destinations {
                     let unit = &mut movers[slot.unit.0 as usize];
-                    crate::air::dogfight::clear_target(unit);
+                    crate::air::dogfight::clear(unit);
                     if !slot.placed {
                         if !queued {
                             Self::hold_position(unit);

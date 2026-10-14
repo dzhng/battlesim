@@ -475,7 +475,7 @@ impl Unit {
         // automatic dogfight lock: the aircraft continues its close fight
         // while advancing, then resumes the attack-move policy afterwards.
         if !queued && !matches!(order, UnitOrder::AttackMove(_)) {
-            crate::air::dogfight::clear_target(self);
+            crate::air::dogfight::clear(self);
         }
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
