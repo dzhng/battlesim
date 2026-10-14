@@ -6,8 +6,12 @@ import {
   parseArgs,
   pinnedFixtures,
   selectFixtures,
+  selectVerifyFixtures,
   fatalGpuMessage,
   openScenePage,
+  runConcurrent,
+  sceneUrlFor,
+  mergeSceneUrl,
 } from "./scene.mjs";
 
 test("fatal GPU diagnostics are identified before readiness timeouts", () => {
@@ -27,16 +31,67 @@ test("native helpers live in the durable Cargo target by default", () => {
   vi.unstubAllEnvs();
 });
 
-test("scene args: fixture ids, the bun `--` separator, --list and --visual", () => {
+test("scene args: fixture ids, the bun `--` separator, --list, --verify and --visual", () => {
   expect(parseArgs(["--", "foundation"])).toEqual({
     ids: ["foundation"],
     list: false,
     visual: false,
+    verify: false,
   });
-  expect(parseArgs(["--list"])).toEqual({ ids: [], list: true, visual: false });
-  expect(parseArgs(["--visual"])).toEqual({ ids: [], list: false, visual: true });
+  expect(parseArgs(["--list"])).toEqual({ ids: [], list: true, visual: false, verify: false });
+  expect(parseArgs(["--visual"])).toEqual({ ids: [], list: false, visual: true, verify: false });
+  expect(parseArgs(["--verify"])).toEqual({ ids: [], list: false, visual: false, verify: true });
   expect(() => parseArgs(["--visual", "panels"])).toThrow("--visual");
   expect(() => parseArgs(["--bogus"])).toThrow("unknown flag");
+});
+
+test("the default verify gate keeps behavior scenes and the low visual smoke test", async () => {
+  const fixtures = await loadRegistry();
+  const selected = selectVerifyFixtures(fixtures).map((fixture) => fixture.id);
+  expect(selected).toContain("foundation-low");
+  expect(selected).not.toContain("panels");
+  expect(selected).not.toContain("ui");
+  expect(selected).not.toContain("unit-roster");
+  expect(selected).not.toContain("city-lineup");
+  expect(selected).not.toContain("generated");
+  expect(selected).not.toContain("street");
+  expect(selected).toContain("air-combined");
+  expect(selected).toContain("garrison");
+  expect(selected).not.toContain("scenario-play");
+});
+
+test("scene scheduler limits overlap and returns fixture order", async () => {
+  let active = 0;
+  let peak = 0;
+  const seen = [];
+  const values = await runConcurrent(["a", "b", "c", "d"], 2, async (id) => {
+    active++;
+    peak = Math.max(peak, active);
+    seen.push(`${id}:start`);
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    seen.push(`${id}:end`);
+    active--;
+    return id.toUpperCase();
+  });
+  expect(values).toEqual(["A", "B", "C", "D"]);
+  expect(peak).toBe(2);
+  expect(seen.filter((event) => event.endsWith(":start"))).toHaveLength(4);
+  expect(seen.filter((event) => event.endsWith(":end"))).toHaveLength(4);
+});
+
+test("test graphics quality is only added to lab routes", () => {
+  expect(
+    sceneUrlFor("http://127.0.0.1:5173/labs/foundation", "low").searchParams.get("test-quality"),
+  ).toBe("low");
+  expect(
+    sceneUrlFor("http://127.0.0.1:5173/battle?seed=1", "low").searchParams.has("test-quality"),
+  ).toBe(false);
+});
+
+test("scene URL parameters merge with fixture queries", () => {
+  expect(
+    mergeSceneUrl("http://127.0.0.1:5173/labs/geometry?test-quality=low", { map: "river" }),
+  ).toBe("http://127.0.0.1:5173/labs/geometry?test-quality=low&map=river");
 });
 
 test("every registered fixture has exactly one scene", async () => {

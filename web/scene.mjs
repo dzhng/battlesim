@@ -106,15 +106,17 @@ export function parseArgs(argv) {
   const ids = [];
   let list = false;
   let visual = false;
+  let verify = false;
   for (const arg of argv) {
     if (arg === "--") continue;
     if (arg === "--list") list = true;
     else if (arg === "--visual") visual = true;
+    else if (arg === "--verify") verify = true;
     else if (arg.startsWith("-")) throw new Error(`unknown flag ${arg}`);
     else ids.push(arg);
   }
   if (visual && ids.length) throw new Error("--visual selects its own fixtures; name none");
-  return { ids, list, visual };
+  return { ids, list, visual, verify };
 }
 
 export async function loadRegistry() {
@@ -148,6 +150,50 @@ export function selectFixtures(fixtures, ids) {
     );
   }
   return ids.map((id) => fixtures.find((f) => f.id === id));
+}
+
+/** Keep the default gate focused on behavior plus the committed low-quality
+ * visual smoke fixture. The authored screenshot galleries remain available
+ * through `--visual`. */
+export function selectVerifyFixtures(fixtures) {
+  return fixtures.filter((fixture) => fixture.verify !== false);
+}
+
+export function sceneUrlFor(url, quality, allowQuality = true) {
+  const sceneUrl = new URL(url);
+  if (quality && allowQuality && sceneUrl.pathname.startsWith("/labs/"))
+    sceneUrl.searchParams.set("test-quality", quality);
+  return sceneUrl;
+}
+
+export function mergeSceneUrl(url, params = {}) {
+  const target = new URL(url);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) target.searchParams.delete(key);
+    else target.searchParams.set(key, String(value));
+  }
+  return target.href;
+}
+
+/** Run independent scene jobs with bounded overlap while returning results in
+ * input order. Browser contexts are isolated per scene, so this keeps the
+ * verification gate moving without allowing a slow fixture to serialize the
+ * whole suite or an unbounded burst to exhaust the GPU. */
+export async function runConcurrent(items, limit, worker) {
+  if (items.length === 0) return [];
+  const workers = Math.min(items.length, Math.max(1, Math.floor(limit) || 1));
+  const results = Array.from({ length: items.length });
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: workers }, async () => {
+      while (true) {
+        const index = next++;
+        if (index >= items.length) return;
+        results[index] = await worker(items[index], index);
+      }
+    }),
+  );
+  return results;
 }
 
 export async function startServer(production = false) {
@@ -220,7 +266,13 @@ export async function run(fixtures) {
   const servers = new Map();
   const serverFor = async (fixture) => {
     const production = fixture.build === "production";
-    if (!servers.has(production)) servers.set(production, await startServer(production));
+    if (!servers.has(production)) {
+      const starting = startServer(production).catch((error) => {
+        servers.delete(production);
+        throw error;
+      });
+      servers.set(production, starting);
+    }
     return servers.get(production);
   };
   const browser = await launchBrowser({
@@ -237,7 +289,11 @@ export async function run(fixtures) {
   };
   const seconds = [];
   try {
-    for (const fixture of fixtures) {
+    const concurrency = Number(process.env.SCENE_CONCURRENCY ?? 2);
+    const readinessTimeout = Number(
+      process.env.SCENE_READINESS_TIMEOUT_MS ?? (concurrency > 1 ? 60_000 : 30_000),
+    );
+    const runFixture = async (fixture) => {
       const started = performance.now();
       const scene = await import(new URL(`${fixture.id}.mjs`, SCENES_DIR));
       const evidenceDir = new URL(`${fixture.id}/`, EVIDENCE_DIR);
@@ -248,9 +304,10 @@ export async function run(fixtures) {
       } catch (error) {
         console.log(`FAIL  ${fixture.id}: server did not start  (${error?.message ?? error})`);
         failures.push(`${fixture.id}: server did not start`);
-        continue;
+        return;
       }
       let sceneFailure;
+      const scenePages = new Set();
       let rejectSceneFailure;
       const sceneFailurePromise = new Promise((_, reject) => {
         rejectSceneFailure = reject;
@@ -260,10 +317,21 @@ export async function run(fixtures) {
         sceneFailure = new Error(message);
         rejectSceneFailure(sceneFailure);
       };
+      const quality = process.env.SCENE_GRAPHICS_QUALITY;
+      const sceneUrl = sceneUrlFor(
+        `${server.url}${fixture.route}`,
+        quality,
+        !fixture.serial && !["cursor", "panels", "ui", "unit-roster"].includes(fixture.id),
+      );
       const ctx = {
         fixture,
-        url: `${server.url}${fixture.route}`,
+        url: sceneUrl.href,
+        urlFor(url = sceneUrl.href, params = {}) {
+          return mergeSceneUrl(url, params);
+        },
         browser: browser.version(),
+        readinessTimeout,
+        graphicsQuality: quality,
         check(name, ok, detail) {
           console.log(
             `${ok ? "PASS" : "FAIL"}  ${fixture.id}: ${name}${detail ? `  (${detail})` : ""}`,
@@ -276,6 +344,8 @@ export async function run(fixtures) {
           allowErrors = false,
         } = {}) {
           const page = await openScenePage(browser, { viewport, deviceScaleFactor });
+          scenePages.add(page);
+          page.setDefaultTimeout(readinessTimeout);
           await page.addInitScript(guardMeasures, MEASURE_ENTRIES_MAX);
           const failForGpu = (message) => {
             recordSceneFailure(`fatal WebGPU error: ${message}`);
@@ -308,7 +378,7 @@ export async function run(fixtures) {
           }
           return page;
         },
-        async openLab(page, url = ctx.url, timeout = 30000) {
+        async openLab(page, url = ctx.url, timeout = readinessTimeout) {
           await page.goto(url);
           try {
             await Promise.race([
@@ -374,7 +444,7 @@ export async function run(fixtures) {
           // Preserve the first renderer/environment error while closing pages
           // to release any scene-owned waits. This avoids reporting only a
           // secondary "Target page ... closed" rejection.
-          await Promise.allSettled(browser.contexts().map((c) => c.close()));
+          await Promise.allSettled([...scenePages].map((page) => page.close()));
           await Promise.allSettled([scenePromise]);
           reportedError = sceneFailure;
         }
@@ -385,13 +455,29 @@ export async function run(fixtures) {
         );
       } finally {
         clearTimeout(timer);
-        await Promise.allSettled(browser.contexts().map((c) => c.close()));
+        await Promise.allSettled([...scenePages].map((page) => page.close()));
       }
       seconds.push([fixture.id, (performance.now() - started) / 1000]);
+    };
+    let parallel = [];
+    for (const fixture of fixtures) {
+      if (!fixture.serial) {
+        parallel.push(fixture);
+        continue;
+      }
+      await runConcurrent(parallel, concurrency, runFixture);
+      parallel = [];
+      await runFixture(fixture);
     }
+    await runConcurrent(parallel, concurrency, runFixture);
   } finally {
     await browser.close();
-    await Promise.allSettled([...servers.values()].map((server) => server.close()));
+    const startedServers = await Promise.allSettled(servers.values());
+    await Promise.allSettled(
+      startedServers
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => result.value.close()),
+    );
   }
   // Where the gate's time goes, slowest first.
   const slowest = seconds.sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -419,7 +505,12 @@ export async function main(argv = process.argv.slice(2)) {
     for (const f of fixtures) console.log(`${f.id}\t${f.route}\t${f.describe}`);
     return 0;
   }
-  return run(args.visual ? await pinnedFixtures(fixtures) : selectFixtures(fixtures, args.ids));
+  const selected = args.visual
+    ? await pinnedFixtures(fixtures)
+    : args.verify
+      ? selectVerifyFixtures(fixtures)
+      : selectFixtures(fixtures, args.ids);
+  return run(selected);
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

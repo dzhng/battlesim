@@ -284,7 +284,7 @@ export async function run(ctx) {
   for (const shot of shots) {
     // Not `openLab`: the loading failure shot draws the error a lab's
     // failure would, on purpose.
-    await page.goto(`${ctx.url}?shot=${shot}`);
+    await page.goto(ctx.urlFor(ctx.url, { shot }));
     await page.locator(`[data-shot="${shot}"]`).waitFor();
     await page.evaluate(() => document.fonts.ready);
     await pointerAway(page);

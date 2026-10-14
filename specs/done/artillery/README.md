@@ -82,7 +82,7 @@ texture set.
 - `web/src/battle/input/commandReach.ts`,
   `web/src/battle/present/readouts.tsx` and `web/src/hud.css` own the contextual
   Attack Ground emphasis. `apps/battle-lab/src/routes/ballistics.tsx` and
-  `web/scenes/artillery.mjs` own the focused lab checkpoint.
+  `web/scenes/ballistics.mjs` owns the artillery assertions inside the shared flight-bench checkpoint.
 - `crates/sim/src/skirmish_ai/tests.rs`, `crates/sim/tests/flight_ballistics.rs`,
   `crates/sim/tests/skirmish.rs`, `web/scenes/panels.mjs` and
   `web/tests/unitControl.test.tsx` pin the behavioral contracts.
@@ -106,7 +106,7 @@ shipped `/lab/artillery` route (seed `20260925`, SHA-256
 records the tactical flight-bench result; no external command-bar baseline was
 supplied.
 
-The focused native tests, browser tests and artillery scene pass. The browser
+The focused native tests and shared ballistics browser scene pass. The browser
 scene uses proxy emitters and completes on this host with SwiftShader;
 production appearance loading remains covered by the session-scoped
 texture-array tests. A repository-wide run is intentionally not claimed here;

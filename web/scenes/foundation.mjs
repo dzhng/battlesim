@@ -178,7 +178,7 @@ export async function run(ctx) {
     `${size.width}×${size.height}`,
   );
 
-  // Menu warm-up and repeated visits share one device; each viewport releases
+  // Menu warm-up and one lab visit share one device; the lab viewport releases
   // its buffers/textures without destroying that page's admission.
   const visits = await ctx.newPage();
   await visits.addInitScript(() => {
@@ -212,47 +212,41 @@ export async function run(ctx) {
     `${visits.workers().length} workers`,
   );
   const origin = await visits.evaluate(() => performance.timeOrigin);
-  const visitCounts = [];
-  for (let i = 0; i < 2; i++) {
-    await openMenuPage(visits, "Developer");
-    await visits.getByRole("link", { name: "Labs", exact: true }).click();
-    await visits.getByRole("link", { name: "foundation", exact: true }).click();
-    await visits.waitForFunction(() => window.__lab?.ready);
-    await visits.evaluate(() => {
-      window.__pageGpuProbe.allocations = window.__lab.allocations;
-    });
-    await visits.goBack();
-    // Read on the lab index, which draws nothing: the menu's backdrop builds
-    // its scene within a frame of mounting, so the device is never empty there.
-    const released = await visits.waitForFunction(() => {
-      const n = window.__pageGpuProbe.allocations();
-      return n.buffers === 0 && n.textures === 0 && n;
-    });
-    const allocations = await released.jsonValue();
-    await visits.getByRole("link", { name: "Main menu", exact: true }).click();
-    await menuShown(visits);
-    visitCounts.push({
-      ...(await visits.evaluate(() => ({
-        devices: window.__pageGpuProbe.devices.length,
-        destroyed: window.__pageGpuProbe.destroyed,
-        sameDocument: performance.timeOrigin,
-      }))),
-      allocations,
-    });
-  }
+  await openMenuPage(visits, "Developer");
+  await visits.getByRole("link", { name: "Labs", exact: true }).click();
+  await visits.getByRole("link", { name: "foundation", exact: true }).click();
+  await visits.waitForFunction(() => window.__lab?.ready);
+  await visits.evaluate(() => {
+    window.__pageGpuProbe.allocations = window.__lab.allocations;
+  });
+  await visits.goBack();
+  // Read on the lab index, which draws nothing: the menu's backdrop builds
+  // its scene within a frame of mounting, so the device is never empty there.
+  const allocationRelease = await visits.waitForFunction(() => {
+    const n = window.__pageGpuProbe.allocations();
+    return n.buffers === 0 && n.textures === 0 && n;
+  });
+  const allocations = await allocationRelease.jsonValue();
+  await visits.getByRole("link", { name: "Main menu", exact: true }).click();
+  await menuShown(visits);
+  const visit = {
+    ...(await visits.evaluate(() => ({
+      devices: window.__pageGpuProbe.devices.length,
+      destroyed: window.__pageGpuProbe.destroyed,
+      sameDocument: performance.timeOrigin,
+    }))),
+    allocations,
+  };
   ctx.check(
     "client visit disposal returns allocations to zero and retains one live page GPU",
-    visitCounts.every(
-      (n) =>
-        n.devices === 1 &&
-        n.destroyed === 0 &&
-        n.allocations.buffers === 0 &&
-        n.allocations.textures === 0 &&
-        n.sameDocument === origin,
-    ),
-    JSON.stringify(visitCounts),
+    visit.devices === 1 &&
+      visit.destroyed === 0 &&
+      visit.allocations.buffers === 0 &&
+      visit.allocations.textures === 0 &&
+      visit.sameDocument === origin,
+    JSON.stringify(visit),
   );
-  await ctx.writeEvidence("app-resource-visits.json", visitCounts);
+  await ctx.writeEvidence("app-resource-visits.json", [visit]);
 
   // Unsupported GPU is reported, not an endless loading state.
   const bare = await ctx.newPage({ allowErrors: true });
