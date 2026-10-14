@@ -335,6 +335,10 @@ pub struct AirState {
     /// Remaining automatic flare charges and the next reload tick.
     pub flare_charges: u32,
     pub flare_ready_tick: u64,
+    /// Current ground attack run, if the explicit attack names a ground aim.
+    pub pass: Option<crate::air::pass::PassPlan>,
+    /// The one tick in which a pass's unpowered round may leave the jet.
+    pub pass_release: bool,
 }
 
 /// How an aircraft arrives: it aims a little past its goal, then, stopped

@@ -3045,6 +3045,11 @@ impl Battle {
             if unit.garrisoned() {
                 continue;
             }
+            // Fixed-wing attacks are planned as passes by `air::step_jet`;
+            // they never enter the generic ground-style hover pursuit.
+            if unit.layer() == AltitudeLayer::HighAir {
+                continue;
+            }
             let knowledge = &self.knowledge[unit.side.index()];
             let Some(UnitOrder::Attack { target, last_known }) = unit.orders.front_mut() else {
                 continue;
