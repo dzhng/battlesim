@@ -7,6 +7,6 @@
   "scripts": [
     {"tick":1,"side":"blue","order":{"kind":"move","units":[0],"gesture":1,"goal":[205,472],"route":"shortest"}},
     {"tick":300,"side":"blue","order":{"kind":"set_engagement","units":[0],"policy":"return_fire_only"}},
-    {"tick":300,"side":"blue","order":{"kind":"move","units":[0],"gesture":2,"goal":[455,465],"route":"shortest"}}
+    {"tick":300,"side":"blue","order":{"kind":"move","units":[0],"gesture":2,"goal":[460,465],"route":"shortest"}}
   ]
 }
