@@ -20,6 +20,8 @@ ladder with parallel named-model production.
 native `wgpu` client that draws what the browser draws, over one Rust
 presentation crate both clients share, and holds the presentation API's contract.
 
+[One renderer](one-renderer/README.md) is a placeholder for the open decision on whether the browser moves onto native's Rust `wgpu` renderer, so the game has one renderer instead of two.
+
 [Performance](performance/README.md) is a placeholder for measured, deferred
 optimizations (GPU memory, model packing, loading), kept until a player-visible
 problem calls for one.
