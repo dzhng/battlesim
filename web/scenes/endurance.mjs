@@ -272,20 +272,10 @@ async function modelCostAt(page, label) {
     }
     await lab(page, () => window.__lab.suppressModels(false));
     const models = await lab(page, () => window.__lab.stats().models);
-    const kernel = await lab(page, () => window.__lab.timePoseKernel(50));
-    // The kernel as if every soldier on the field were a posed mesh.
-    const all = await lab(page, () =>
-      window.__lab.timePoseKernel(
-        20,
-        window.__lab.route.observation().own.reduce((n, u) => n + u.members.length, 0) * 2,
-      ),
-    );
     out[name] = {
       target,
       offMs: median(off),
       modelsMs: median(on.map((v, i) => v - off[i])),
-      kernel,
-      kernelAtScale: all,
       models,
     };
   }
@@ -294,7 +284,7 @@ async function modelCostAt(page, label) {
       Object.entries(out)
         .map(
           ([k, v]) =>
-            `${k} +${v.modelsMs.toFixed(2)} ms (${v.models.instances} meshes, ${v.models.cards} cards, kernel ${v.kernel ? `${v.kernel.ms.toFixed(3)} ms for ${v.kernel.bodies}` : "idle"}${v.kernelAtScale ? `, ${v.kernelAtScale.ms.toFixed(3)} ms for ${v.kernelAtScale.bodies}` : ""})`,
+            `${k} +${v.modelsMs.toFixed(2)} ms (${v.models.instances} meshes, ${v.models.cards} cards)`,
         )
         .join("; "),
   );

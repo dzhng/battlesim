@@ -14,9 +14,9 @@ ladder with parallel named-model production.
 
 [Battle voices and music](done/battle-voices-music/README.md) (shipped) gave units RTS-style voice lines (answers to their owner and simulation-emitted barks) and battles an adaptive background score, generated with ElevenLabs and reviewed in the sound workbench.
 
-[Native rendering parity](native-rendering-parity/README.md) (active) builds a
+[Native rendering parity](done/native-rendering-parity/README.md) (shipped) built a
 native `wgpu` client that draws what the browser draws, over one Rust
-presentation crate both clients share.
+presentation crate both clients share, and holds the presentation API's contract.
 
 [Performance](performance/README.md) is a placeholder for measured, deferred
 optimizations (GPU memory, model packing, loading), kept until a player-visible

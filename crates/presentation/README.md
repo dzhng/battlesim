@@ -1,7 +1,7 @@
 # Presentation
 
 The per-frame presentation every client shares: one side's publications in,
-a `Frame` of flat records out ([the presentation API](../../specs/native-rendering-parity/slices/18b-presentation-api.md)).
+a `Frame` of flat records out ([the presentation API](../../specs/done/native-rendering-parity/README.md#the-presentation-api-18b)).
 The browser runs it through [its WebAssembly binding](../presentation-wasm/README.md),
 and [the native client](../../native/client/README.md) links it. Rust is as smart as it can be and a
 renderer as dumb: a renderer draws the records it is given and decides nothing

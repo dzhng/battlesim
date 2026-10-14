@@ -2,7 +2,7 @@
 
 The page's own WebAssembly module, beside the battle's
 ([`game-wasm`](../game-wasm/README.md)), and the browser binding of the
-[presentation API](../../specs/native-rendering-parity/slices/18b-presentation-api.md)
+[presentation API](../../specs/done/native-rendering-parity/README.md#the-presentation-api-18b)
 over [the presentation crate](../presentation/README.md). Each tick's publication
 goes in through `push_publication`; `clock` gives the presentation time and
 `frame` returns the address of a `FrameHeader` whose sets the page reads as typed

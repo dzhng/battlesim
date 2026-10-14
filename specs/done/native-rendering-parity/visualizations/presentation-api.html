@@ -26,7 +26,7 @@
 </style>
 
 <h1>The presentation API</h1>
-<p class="muted">Slice 18b · native rendering parity, phase 4 · the reference is <a href="../slices/18b-presentation-api.md">18b-presentation-api.md</a>; this page is its picture.</p>
+<p class="muted">Native rendering parity · the presentation API as the user reviewed and approved it on 2026-10-11 (slice 18b). Kept as provenance: the shipped contract, and where it moved since (the 64-byte <code>Instance</code>, no Godot binding, <code>prepare_fog</code>, sound commands), is in <a href="../README.md#the-presentation-api-18b">the spec's README</a>, and the code is <code>crates/presentation</code>.</p>
 
 <div class="lead">
   <strong>The Rust side is as smart as possible; each renderer as dumb as possible.</strong> Rust owns everything per entity (unit, joint, chunk, effect, light, eye). Renderers own everything per vertex, texel and pixel, and draw flat records they are handed. Presentation reads only the side's publication and never the simulation's state, so it can't see past fog of war and never moves a digest.
