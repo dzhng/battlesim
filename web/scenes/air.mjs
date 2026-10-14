@@ -47,9 +47,9 @@ function inside(p, q) {
   return Math.abs(u) <= p.half[0] && Math.abs(v) <= p.half[1];
 }
 // The tower walls the route; the roofs the clearance rises over lift it.
-const towers = parts.filter((p) => p.top > air.obstacle_m);
+const towers = parts.filter((p) => p.top > air.rotor.obstacle_m);
 const lifting = parts.filter(
-  (p) => p.top <= air.obstacle_m && p.top + air.clearance_m > air.cruise_agl_m,
+  (p) => p.top <= air.rotor.obstacle_m && p.top + air.rotor.clearance_m > air.rotor.cruise_agl_m,
 );
 
 /** One observed instant of the flight (no helicopter once it has fallen). */
@@ -143,7 +143,7 @@ export async function run(ctx) {
   let s = await sample(page);
   ctx.check(
     "the helicopter waits at cruise height over open ground before its order",
-    Math.abs(s.heli.position[2] - s.ground - air.cruise_agl_m) < 0.5,
+    Math.abs(s.heli.position[2] - s.ground - air.rotor.cruise_agl_m) < 0.5,
     JSON.stringify({ at: s.heli.position, ground: s.ground }),
   );
 
@@ -183,7 +183,7 @@ export async function run(ctx) {
     // From under the roof's edge: the roof and the helicopter over it both
     // against the sky, the gap between them at one distance.
     const roof = lifting.find((p) => inside(p, heli.position));
-    if (!popShot && roof && roof.top + air.clearance_m > air.cruise_agl_m + 1) {
+    if (!popShot && roof && roof.top + air.rotor.clearance_m > air.rotor.cruise_agl_m + 1) {
       const [x, y, z] = heli.position;
       popShot = await close("roof-pop", { distance: 70, pitch: -0.12, yaw: -1.3 }, heli, [
         x,
@@ -214,19 +214,19 @@ export async function run(ctx) {
   const ceiling = Math.max(...rows.map((r) => r.agl));
   ctx.check(
     "it never climbs past the ceiling",
-    ceiling <= air.ceiling_agl_m + 0.5,
-    JSON.stringify({ highest: ceiling, ceiling: air.ceiling_agl_m }),
+    ceiling <= air.rotor.ceiling_agl_m + 0.5,
+    JSON.stringify({ highest: ceiling, ceiling: air.rotor.ceiling_agl_m }),
   );
   const overRoofs = rows.filter((r) => r.roofs.some((p) => lifting.includes(p)));
   const lowest = overRoofs.map((r) => r.at[2] - Math.max(...r.roofs.map((p) => p.top)));
   ctx.check(
     "over each roof taller than its clearance allows it flies a clearance above the roof",
-    overRoofs.length > 0 && Math.min(...lowest) >= air.clearance_m - 1,
+    overRoofs.length > 0 && Math.min(...lowest) >= air.rotor.clearance_m - 1,
     JSON.stringify({ samples: overRoofs.length, lowestOverRoof: Math.min(...lowest) }),
   );
   ctx.check(
     "over those roofs it flies higher than cruise",
-    overRoofs.every((r) => r.agl > air.cruise_agl_m + 1),
+    overRoofs.every((r) => r.agl > air.rotor.cruise_agl_m + 1),
     JSON.stringify(overRoofs.map((r) => +r.agl.toFixed(1))),
   );
   const inTower = rows.filter((r) => towers.some((p) => inside(p, r.at)));
@@ -252,13 +252,13 @@ export async function run(ctx) {
   }
   ctx.check(
     "it never turns back on its route, and eases back no more than its overshoot at its goal",
-    fellBack < 2 && settledBack <= air.settle_max_m + 1,
+    fellBack < 2 && settledBack <= air.rotor.settle_max_m + 1,
     JSON.stringify({ fellBack, settledBack }),
   );
   ctx.check(
     "it arrives at its goal and hovers at cruise height over open ground",
     Math.hypot(arrived.heli.position[0] - goal[0], arrived.heli.position[1] - goal[1]) < 1 &&
-      Math.abs(arrived.heli.position[2] - arrived.ground - air.cruise_agl_m) < 0.5,
+      Math.abs(arrived.heli.position[2] - arrived.ground - air.rotor.cruise_agl_m) < 0.5,
     JSON.stringify({ at: arrived.heli.position, ground: arrived.ground }),
   );
   ctx.check("rifle rounds strike the helicopter", rifleHits >= 5, JSON.stringify({ rifleHits }));

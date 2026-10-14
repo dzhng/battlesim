@@ -16,7 +16,7 @@ const map = loadMap("air").definition;
 const encounter = loadEncounter("air", "closing");
 const [APACHE, TANK, IFV] = encounter.units.map((u) => u.kind);
 const start = encounter.units[0].position;
-const cruise = game.air.cruise_agl_m;
+const cruise = game.air.rotor.cruise_agl_m;
 
 /** Whether XY point `q` lies inside polygon `ring`. */
 function inPolygon(ring, q) {

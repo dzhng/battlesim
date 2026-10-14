@@ -525,7 +525,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             // synthetic anti-missile lock carries the physical round's
             // altitude instead, so authored short/long interceptors can use
             // their ordinary air target rows and seeker geometry.
-            layer: if p.z >= ctx.rules.air.cruise_agl_m * 0.5 {
+            layer: if p.z >= ctx.rules.air.rotor.cruise_agl_m * 0.5 {
                 AltitudeLayer::HighAir
             } else if p.z > 2.0 {
                 AltitudeLayer::LowAir

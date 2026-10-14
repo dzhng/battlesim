@@ -62,12 +62,47 @@ fn a_helicopter_enters_the_battle_at_cruise_height() {
     let heli = b.unit(UnitId(0)).unwrap();
     assert!(heli.airborne());
     assert!(heli.ground_footprint().is_none());
-    let cruise = b.rules().air.cruise_agl_m;
+    let cruise = b
+        .rules()
+        .air
+        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
     assert!(
         (heli.position.z - cruise).abs() < 1e-9,
         "z {}",
         heli.position.z
     );
+}
+
+#[test]
+fn air_rules_refuse_a_jet_floor_above_its_ceilings() {
+    let mut fixture = fixture();
+    fixture["air"]["jet"] = json!({
+        "cruise_agl_m": 250,
+        "floor_agl_m": 250,
+        "strafe_ceiling_m": 130,
+        "bomb_ceiling_m": 200,
+        "dogfight_band_agl_m": [150, 350],
+        "dogfight_break_m": 1200,
+        "afterburner_ramp_s": 2,
+        "edge_margin_m": 300
+    });
+    let error = serde_json::from_value::<contract::scenario::Rules>(fixture)
+        .expect_err("a jet floor above a ceiling must be rejected");
+    assert!(error.to_string().contains("jet floor"), "{error}");
+}
+
+#[test]
+fn a_helicopters_routing_margin_is_its_largest_low_air_hull() {
+    let rules: Rules = serde_json::from_value(fixture()).unwrap();
+    let expected = rules
+        .catalog
+        .indices()
+        .map(|i| rules.catalog.get(i))
+        .filter(|t| t.mobility.layer() == AltitudeLayer::LowAir)
+        .filter_map(|t| t.hull())
+        .map(|h| h.half_extents_m[0].max(h.half_extents_m[1]))
+        .fold(0.0, f64::max);
+    assert_eq!(sim::navigation::air::routing_margin(&rules), expected);
 }
 
 #[test]
@@ -88,6 +123,30 @@ fn authored_high_air_is_retained_in_runtime_layer() {
     let jet = b.unit(UnitId(0)).unwrap();
     assert_eq!(jet.layer(), AltitudeLayer::HighAir);
     assert!(jet.airborne());
+}
+
+#[test]
+fn a_jet_spawns_at_the_jet_cruise_height() {
+    let mut fixture = fixture();
+    let doc = fixture["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|doc| doc["units"].get("test_heli").is_some())
+        .unwrap();
+    doc["units"]["test_heli"]["mobility"]["air"]["layer"] = json!("high_air");
+    let b = battle_with(
+        &fixture,
+        open_map(),
+        json!([{ "side": "blue", "kind": "test_heli", "position": [300, 200] }]),
+    );
+    let jet = b.unit(UnitId(0)).unwrap();
+    let cruise = b.rules().air.cruise_agl_m(AltitudeLayer::HighAir);
+    assert!(
+        (jet.position.z - cruise).abs() < 1e-9,
+        "z {}",
+        jet.position.z
+    );
 }
 
 #[test]
@@ -630,7 +689,11 @@ fn a_report_from_the_low_hover_lies_on_the_ground() {
     }
     let heli = b.unit(UnitId(2)).unwrap().position;
     assert!(
-        heli.z < b.rules().air.cruise_agl_m / 2.0,
+        heli.z
+            < b.rules()
+                .air
+                .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir)
+                / 2.0,
         "sank to the low hover before firing: {:.1} m",
         heli.z
     );

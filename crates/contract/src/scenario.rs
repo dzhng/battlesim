@@ -620,19 +620,24 @@ impl ShoutRules {
     }
 }
 
-/// The heights every aircraft flies at, one rule for the whole battle (D25):
-/// it cruises `cruise_agl_m` above the ground, climbs to `clearance_m` over
-/// anything taller, never above `ceiling_agl_m`, and routes around any body
-/// whose top stands more than `obstacle_m` above its ground.
+/// The heights every aircraft flies at, split by altitude layer (D1, D2, D19).
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AirRules {
+    pub rotor: RotorAir,
+    pub jet: JetAir,
+    /// Aircraft closer than this, centre to centre, drift apart.
+    pub separation_m: f64,
+}
+
+/// Helicopter flight heights and settling behaviour.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RotorAir {
     pub cruise_agl_m: f64,
     pub clearance_m: f64,
     pub ceiling_agl_m: f64,
     pub obstacle_m: f64,
-    /// Aircraft closer than this, centre to centre, drift apart.
-    pub separation_m: f64,
     /// Seconds an aircraft takes to gather its cruise speed from a hover,
     /// and to shed it: a helicopter's, not a car's.
     pub acceleration_s: f64,
@@ -642,23 +647,58 @@ pub struct AirRules {
     pub settle_max_m: f64,
 }
 
+/// Fixed-wing flight heights and attack/dogfight bands.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JetAir {
+    pub cruise_agl_m: f64,
+    pub floor_agl_m: f64,
+    pub strafe_ceiling_m: f64,
+    pub bomb_ceiling_m: f64,
+    pub dogfight_band_agl_m: [f64; 2],
+    pub dogfight_break_m: f64,
+    pub afterburner_ramp_s: f64,
+    pub edge_margin_m: f64,
+}
+
 impl AirRules {
     fn check(&self) -> Result<(), String> {
-        let ok = self.cruise_agl_m > 0.0
-            && self.clearance_m > 0.0
-            && self.obstacle_m + self.clearance_m <= self.ceiling_agl_m
-            && self.cruise_agl_m <= self.ceiling_agl_m
-            && self.separation_m > 0.0
-            && self.acceleration_s > 0.0
-            && (0.0..1.0).contains(&self.settle_share)
-            && self.settle_max_m >= 0.0;
+        let rotor = &self.rotor;
+        let jet = &self.jet;
+        let rotor_ok = rotor.cruise_agl_m > 0.0
+            && rotor.clearance_m > 0.0
+            && rotor.obstacle_m + rotor.clearance_m <= rotor.ceiling_agl_m
+            && rotor.cruise_agl_m <= rotor.ceiling_agl_m
+            && rotor.acceleration_s > 0.0
+            && (0.0..1.0).contains(&rotor.settle_share)
+            && rotor.settle_max_m >= 0.0;
+        let jet_ok = jet.floor_agl_m > 0.0
+            && jet.floor_agl_m <= jet.strafe_ceiling_m
+            && jet.floor_agl_m <= jet.bomb_ceiling_m
+            && jet.strafe_ceiling_m <= jet.cruise_agl_m
+            && jet.bomb_ceiling_m <= jet.cruise_agl_m
+            && jet.dogfight_band_agl_m[0] >= jet.floor_agl_m
+            && jet.dogfight_band_agl_m[0] <= jet.dogfight_band_agl_m[1]
+            && jet.dogfight_break_m > 0.0
+            && jet.afterburner_ramp_s > 0.0
+            && jet.edge_margin_m >= 0.0;
+        let ok = rotor_ok && jet_ok && self.separation_m > 0.0;
         if ok {
             Ok(())
         } else {
             Err(
-                "air: heights must be positive, cruise and obstacle + clearance within the ceiling, acceleration_s positive, settle_share in [0, 1), settle_max_m not negative"
+                "air: rotor heights must be positive and within the ceiling; jet floor must not exceed its ceilings, jet ceilings must not exceed cruise, dogfight band must be ordered within floor..cruise, and air timings/margins must be positive"
                     .into(),
             )
+        }
+    }
+
+    /// The one height lookup shared by simulation and presentation readers.
+    pub fn cruise_agl_m(&self, layer: crate::catalog::AltitudeLayer) -> f64 {
+        match layer {
+            crate::catalog::AltitudeLayer::Ground => 0.0,
+            crate::catalog::AltitudeLayer::LowAir => self.rotor.cruise_agl_m,
+            crate::catalog::AltitudeLayer::HighAir => self.jet.cruise_agl_m,
         }
     }
 }

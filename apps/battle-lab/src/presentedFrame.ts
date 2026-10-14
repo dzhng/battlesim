@@ -121,7 +121,6 @@ export async function fieldedBattle(input: {
   soldier: { soldier_radius_m: number; soldier_height_m: number };
   xray: { own: readonly number[]; selected: readonly number[] };
   blocked: readonly number[];
-  cruiseAglM: number;
 }): Promise<PresentedBattle> {
   const catalog = input.runtime.catalog;
   if (!catalog) throw new Error("a battle was fielded before the runtime catalog was loaded");
@@ -160,7 +159,6 @@ export async function fieldedBattle(input: {
           },
           xray: input.xray,
           blocked: input.blocked,
-          cruise_agl_m: input.cruiseAglM,
         },
         sun_azimuth: input.sun.azimuth,
         sun_elevation: input.sun.elevation,

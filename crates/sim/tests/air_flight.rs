@@ -59,7 +59,10 @@ fn height_near(track: &[sim::math::V3], x: f64, reach: f64) -> f64 {
 fn cruises_at_its_height_to_its_goal() {
     let (b, track) = fly(map(json!([]), json!([])));
     assert!(arrived(&b) < 1.0, "{:.1} m short", arrived(&b));
-    let cruise = b.rules().air.cruise_agl_m;
+    let cruise = b
+        .rules()
+        .air
+        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
     for p in &track {
         assert!((p.z - cruise).abs() < 1e-6, "left cruise height: {p:?}");
     }
@@ -84,11 +87,11 @@ fn pops_over_a_roof_and_comes_back_down() {
     let air = &b.rules().air;
     let over = height_near(&track, 300.0, 6.0);
     assert!(
-        (over - (25.0 + air.clearance_m)).abs() < 0.5,
+        (over - (25.0 + air.rotor.clearance_m)).abs() < 0.5,
         "over the 25 m roof it flew at {over:.1} m"
     );
     assert!(
-        (track.last().unwrap().z - air.cruise_agl_m).abs() < 0.5,
+        (track.last().unwrap().z - air.rotor.cruise_agl_m).abs() < 0.5,
         "it came back down"
     );
 }
@@ -109,7 +112,7 @@ fn clears_forest_canopy_and_fells_nothing() {
     let canopy = b.rules().forests.rule.canopy_height_m;
     let air = &b.rules().air;
     assert!(
-        (over - (canopy + air.clearance_m).max(air.cruise_agl_m)).abs() < 0.5,
+        (over - (canopy + air.rotor.clearance_m).max(air.rotor.cruise_agl_m)).abs() < 0.5,
         "over the forest it flew at {over:.1} m"
     );
     assert_eq!(trees(&b), before, "flying over felled trees");
@@ -125,9 +128,14 @@ fn routes_around_a_tower_over_30m_and_never_passes_the_ceiling() {
         .map(|p| (p.x - 300.0).abs().max((p.y - 200.0).abs()) - 10.0)
         .fold(f64::INFINITY, f64::min);
     // Its whole airframe, not just its centre, stays clear of the walls.
-    let half_length = b.unit(UnitId(0)).unwrap().hull.unwrap().x;
-    assert!(clear > half_length, "it passed {clear:.1} m from the tower");
-    let ceiling = b.rules().air.ceiling_agl_m;
+    let margin = sim::navigation::air::routing_margin(b.rules());
+    // The 4 m air grid rounds a corner by at most one cell; the authored
+    // hull margin remains the routing bound, with that grid quantisation.
+    assert!(
+        clear + 1.0 > margin,
+        "it passed {clear:.1} m from the tower"
+    );
+    let ceiling = b.rules().air.rotor.ceiling_agl_m;
     assert!(track.iter().all(|p| p.z <= ceiling + 1e-9));
 }
 
@@ -147,7 +155,7 @@ fn flies_on_past_a_tower_without_turning_back() {
         // It never turns back on its way: a skimmed corner once turned it
         // back 100 m. Past the goal it runs on by no more than its designed
         // overshoot, then settles back.
-        let settle = b.rules().air.settle_max_m;
+        let settle = b.rules().air.rotor.settle_max_m;
         let mut furthest = f64::NEG_INFINITY;
         for p in &track {
             furthest = furthest.max(p.x);
@@ -240,7 +248,7 @@ fn gathers_speed_gently_from_a_hover() {
     assert_eq!(b.accept(order(&[0], GOAL)).error, None);
     let hz = b.rules().tick_hz;
     let cruise = 220.0 / 3.6;
-    let accel = cruise / b.rules().air.acceleration_s;
+    let accel = cruise / b.rules().air.rotor.acceleration_s;
     let mut last = 0.0;
     for t in 1..=4 * hz {
         b.step();
@@ -268,7 +276,10 @@ fn runs_past_its_goal_and_settles_back_without_turning() {
         .map(|p| p.x - GOAL[0])
         .fold(f64::NEG_INFINITY, f64::max);
     assert!(past > 0.5, "it stopped dead: {past:.2} m past");
-    assert!(past <= air.settle_max_m + 0.05, "ran {past:.2} m past");
+    assert!(
+        past <= air.rotor.settle_max_m + 0.05,
+        "ran {past:.2} m past"
+    );
     let heli = b.unit(UnitId(0)).unwrap();
     assert!(arrived(&b) < 0.05, "settled {:.2} m off", arrived(&b));
     assert!(
@@ -296,7 +307,7 @@ fn a_short_hop_overshoots_little() {
     }
     let air = &b.rules().air;
     assert!(
-        past <= air.settle_share * 30.0 + 0.05,
+        past <= air.rotor.settle_share * 30.0 + 0.05,
         "ran {past:.2} m past a 30 m hop"
     );
     assert!(arrived(&b) < 0.05);

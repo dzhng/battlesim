@@ -6,6 +6,7 @@ import {
   ghostBodies,
   orderedGhost,
   aircraftOrderReadouts,
+  ghostAloft,
   type UnitGhost,
 } from "@apps/battle-lab/src/unitGhosts";
 
@@ -132,4 +133,26 @@ test("Space aircraft cards follow the final order at flight altitude with the ac
     { unit: ingress, position: [12, 24, 1064] },
   ]);
   expect(cards[0].unit).toBe(jet);
+});
+
+test("the ghost reads the layer height", () => {
+  const units = {
+    type: (kind: string) => ({
+      mobility: {
+        air: {
+          cruise_kmh: 200,
+          turn_deg_s: 30,
+          climb_mps: 8,
+          layer: kind === "jet" ? "high_air" : "low_air",
+        },
+      },
+    }),
+  } as any;
+  const air = {
+    rotor: { cruise_agl_m: 30 },
+    jet: { cruise_agl_m: 250 },
+  };
+  const altitude = ghostAloft(units, air);
+  expect(altitude("heli")).toBe(30);
+  expect(altitude("jet")).toBe(250);
 });
