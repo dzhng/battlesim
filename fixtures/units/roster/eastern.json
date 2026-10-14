@@ -833,14 +833,6 @@
           "wreck": "light_wreck"
         }
       },
-      "mobility": {
-        "air": {
-          "cruise_kmh": 300,
-          "turn_deg_s": 45,
-          "climb_mps": 30,
-          "layer": "high_air"
-        }
-      },
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
@@ -1859,14 +1851,6 @@
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
-        }
-      },
-      "mobility": {
-        "air": {
-          "cruise_kmh": 300,
-          "turn_deg_s": 45,
-          "climb_mps": 30,
-          "layer": "high_air"
         }
       },
       "sensors": {
