@@ -78,7 +78,6 @@ function fixture() {
   const snapshot: VoiceSnapshot = {
     revision: "voices-1",
     catalog,
-    backgrounds: { tank: ["voice-radio-light"] },
     takes: {
       [FLAGGED]: view("move!", "b", {
         transcript: "groove",
@@ -135,7 +134,6 @@ function fixture() {
       job: { id: "2", args: [], status: "queued" as const, lines: [] },
     })),
     pick: vi.fn(async () => snapshot),
-    background: vi.fn(async () => snapshot),
   };
   const sounds: WorkbenchAPI = {
     snapshot: () => new Promise<Snapshot>(() => {}),
@@ -301,27 +299,3 @@ test("a voice waiting for its designed voice offers its candidates through the s
   });
 });
 
-test("a set's background is chosen among its placement's profiles, after a confirmation", async () => {
-  const { voices } = await open((snapshot) => {
-    snapshot.backgrounds = { tank: ["voice-radio-light", "voice-earpiece"] };
-  });
-  const select = screen.getByRole("combobox", { name: "Background" });
-  expect(
-    within(select)
-      .getAllByRole("option")
-      .map((o) => o.textContent),
-  ).toEqual(["voice-radio-light", "voice-earpiece"]);
-  const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
-  fireEvent.change(select, { target: { value: "voice-earpiece" } });
-  expect(voices.background).not.toHaveBeenCalled();
-  fireEvent.change(select, { target: { value: "voice-earpiece" } });
-  await waitFor(() =>
-    expect(voices.background).toHaveBeenCalledWith(expect.any(String), "tank", "voice-earpiece"),
-  );
-  expect(confirm).toHaveBeenCalledTimes(2);
-});
-
-test("a set whose placement has one profile shows it without a choice", async () => {
-  await open();
-  expect(screen.queryByRole("combobox", { name: "Background" })).toBeNull();
-});

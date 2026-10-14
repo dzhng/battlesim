@@ -5,8 +5,6 @@ import { join } from "node:path";
 import { FixturePublication } from "../fixture-publication/publication";
 import {
   ALL_TRIGGERS,
-  VOICE_PROFILES,
-  backgroundChoices,
   takeId,
   voiceTriggers,
   type VoiceCatalog,
@@ -110,8 +108,6 @@ export class VoiceWorkbenchStore {
     private readonly root: string,
     private readonly validateCatalog: (value: unknown) => VoiceCatalog,
     private readonly queue: GenerationQueue,
-    /** Each processing profile's placement; a set's background is chosen within its own. */
-    private readonly placements: Readonly<Record<string, string>> = VOICE_PROFILES,
   ) {
     this.publication = new FixturePublication(
       root,
@@ -145,12 +141,6 @@ export class VoiceWorkbenchStore {
       takes: Object.fromEntries(Object.entries(lock.takes).map(([id, take]) => [id, view(take)])),
       counts: Object.fromEntries(
         Object.keys(catalog.sets).map((set) => [set, counts(catalog, lock, set)]),
-      ),
-      backgrounds: Object.fromEntries(
-        Object.entries(catalog.sets).map(([set, spec]) => [
-          set,
-          backgroundChoices(spec.processing, this.placements),
-        ]),
       ),
       designs: Object.fromEntries(
         Object.entries(lock.designs).map(([id, design]) => [
@@ -240,39 +230,6 @@ export class VoiceWorkbenchStore {
         candidate.after !== candidate.before && (await this.inputs()).text === candidate.after,
     );
     if (!already) await this.publication.publish(candidate.review.files, verify);
-    return this.snapshot();
-  }
-
-  /**
-   * Re-mixes a set onto another background: its `processing` becomes another of its
-   * placement's profiles, published like any edit to voices.json, then the tool
-   * re-renders the set's takes from their raw masters (no calls) and re-packs it.
-   * The recordings are unchanged, so their verdicts hold and the pack keeps them.
-   */
-  async background(value: unknown): Promise<VoiceSnapshot> {
-    const request = object(value, ["revision", "set", "processing"]);
-    const input = await this.publication.capture(() => this.inputs());
-    if (request.revision !== hash(input.text))
-      throw new WorkbenchError("voices.json changed; reload before choosing a background", 409);
-    const name = request.set as string;
-    if (typeof name !== "string" || !Object.hasOwn(input.catalog.sets, name))
-      throw new WorkbenchError("Name a set the catalog has");
-    const current = input.catalog.sets[name].processing;
-    const choices = backgroundChoices(current, this.placements);
-    if (!choices.includes(request.processing as string))
-      throw new WorkbenchError(
-        `${String(request.processing)} is not a background for ${name}: choose ${choices.join(" or ")}`,
-      );
-    if (request.processing === current) return this.snapshot();
-    const catalog = structuredClone(input.catalog);
-    catalog.sets[name].processing = request.processing as typeof current;
-    const after = `${JSON.stringify(this.validate(catalog), null, 2)}\n`;
-    await this.publication.publish([{ path: VOICES, before: input.text, after }], async (phase) => {
-      if ((await this.inputs()).text !== (phase === "before" ? input.text : after))
-        throw new WorkbenchError("voices.json changed while saving; outside edits were kept", 409);
-    });
-    this.queue.start(["process", "--set", name]);
-    this.queue.start(["pack", "--set", name]);
     return this.snapshot();
   }
 
@@ -448,7 +405,6 @@ export function voiceWorkbenchMiddleware(store: VoiceWorkbenchStore) {
       generate: (body) => store.generate(body),
       design: (body) => store.design(body),
       pick: (body) => store.pick(body),
-      background: (body) => store.background(body),
     },
   );
   return async (request: IncomingMessage, response: ServerResponse, next: () => void) => {

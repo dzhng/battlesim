@@ -60,23 +60,15 @@ export interface VoiceSpec {
   description: string;
   voice_id: string | null;
 }
-/** Each processing profile (`assets.py` `VOICE_PROFILES`), by where it places the
- *  speaker. Profiles of one placement differ only in their bed, so they are a set's
- *  background choices; a profile of another placement is another way of speaking. */
-export const VOICE_PROFILES = {
-  "voice-dry": "open",
-  "voice-radio-light": "vehicle",
-  "voice-earpiece": "earpiece",
-  "voice-intercom": "helicopter",
-  "voice-cockpit": "cockpit",
-} as const;
-export type VoiceProfile = keyof typeof VOICE_PROFILES;
-/** The profiles a set speaking through `profile` can be re-mixed onto: its placement's
- *  in `placements` (profile to placement). */
-export const backgroundChoices = (
-  profile: string,
-  placements: Readonly<Record<string, string>> = VOICE_PROFILES,
-): string[] => Object.keys(placements).filter((other) => placements[other] === placements[profile]);
+/** The processing profiles a set may speak through (`assets.py` `VOICE_PROFILES`). */
+export const VOICE_PROFILES = [
+  "voice-dry",
+  "voice-radio-light",
+  "voice-earpiece",
+  "voice-intercom",
+  "voice-cockpit",
+] as const;
+export type VoiceProfile = (typeof VOICE_PROFILES)[number];
 export interface VoiceSet {
   role: string;
   country: "us" | "de" | "uk" | "fr" | "se" | "it" | "ru" | "cn";
@@ -138,7 +130,7 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
     if (
       !catalog.roles[set.role] ||
       !countries.has(set.country) ||
-      !Object.hasOwn(VOICE_PROFILES, set.processing) ||
+      !(VOICE_PROFILES as readonly string[]).includes(set.processing) ||
       typeof set.callsign !== "string" ||
       !Array.isArray(set.voices) ||
       set.voices.length === 0

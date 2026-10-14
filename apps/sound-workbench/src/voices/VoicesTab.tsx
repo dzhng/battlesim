@@ -238,20 +238,6 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
     },
     [api, report],
   );
-  /** Re-mixes the set onto another background; the tool re-renders and re-packs it. */
-  const background = useCallback(
-    async (set: string, processing: string) => {
-      try {
-        const saved = await api.background(latest.current!.revision, set, processing);
-        latest.current = saved;
-        setSnapshot(saved);
-        setJobs((await api.jobs()).jobs);
-      } catch (error) {
-        report(error);
-      }
-    },
-    [api, report],
-  );
   /** None of these: bump the voice's design retake, then design new candidates. */
   const redesign = useCallback(
     async (voice: string) => {
@@ -380,32 +366,7 @@ export function VoicesTab({ api, audition }: { api: VoiceAPI; audition: Audition
           <div>
             <h2>{set}</h2>
             <p>
-              {spec.country.toUpperCase()} · {spec.role} · “{spec.callsign}” ·{" "}
-              {(snapshot.backgrounds[set] ?? []).length > 1 ? (
-                <select
-                  aria-label="Background"
-                  title="The bed this set's lines are mixed over"
-                  value={spec.processing}
-                  disabled={running}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    if (
-                      window.confirm(
-                        `Mix ${set} over ${next}? Its takes are re-mixed from the same recordings and keep their review.`,
-                      )
-                    )
-                      void background(set, next);
-                  }}
-                >
-                  {snapshot.backgrounds[set].map((profile) => (
-                    <option key={profile} value={profile}>
-                      {profile}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                spec.processing
-              )}
+              {spec.country.toUpperCase()} · {spec.role} · “{spec.callsign}” · {spec.processing}
             </p>
           </div>
           <div className="sw-actions">

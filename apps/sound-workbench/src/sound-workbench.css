@@ -406,11 +406,6 @@
 .sw-voice-header p {
   margin: 0 0 8px;
 }
-/* The set's background sits in its header line, as wide as its profile's name. */
-.sound-workbench .sw-voice-header p select {
-  width: auto;
-  padding: 2px 6px;
-}
 .sw-voice-header .sw-actions {
   margin: 8px 0;
 }
