@@ -170,15 +170,15 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
             "mounts": [
                 { "id": "HMG", "weapons": ["air_gun"], "turret": true,
                   "pivot_m": [1.6, 1.12, 1.25], "muzzle_m": [1.2, 0, 0] },
-                { "id": "bombs", "name": "Bombs", "weapons": ["air_bomb_guided"], "turret": false,
+                { "id": "bombs", "name": "Bombs", "weapons": ["air_bomb"], "turret": false,
                   "pivot_m": [0, 0, 0], "muzzle_m": [1.2, 0, 0] }
             ]
         }),
     );
     // One bomb is enough to prove the transition without making this test
     // wait through the authored ten-second aircraft reload interval.
-    rules["weapons"]["air_bomb_guided"]["ammo"] = json!(1);
-    rules["weapons"]["air_bomb_guided"]["aim_s"] = json!(0.1);
+    rules["weapons"]["air_bomb"]["ammo"] = json!(1);
+    rules["weapons"]["air_bomb"]["aim_s"] = json!(0.1);
     let setup = serde_json::from_value(json!({
         "map": { "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
@@ -210,15 +210,13 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
                 launches.push(battle.arsenal().weapons[round.weapon].id.clone());
             }
         }
-        if launches.iter().any(|id| id == "air_bomb_guided")
-            && launches.iter().any(|id| id == "air_gun")
-        {
+        if launches.iter().any(|id| id == "air_bomb") && launches.iter().any(|id| id == "air_gun") {
             break;
         }
     }
     assert_eq!(
         launches.first().map(String::as_str),
-        Some("air_bomb_guided"),
+        Some("air_bomb"),
         "{launches:?}"
     );
     assert!(

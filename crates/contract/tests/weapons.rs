@@ -56,6 +56,20 @@ fn minimum_range_cannot_exceed_maximum_range() {
     );
 }
 
+#[test]
+fn an_unpowered_row_with_range_is_refused() {
+    let mut game: Value =
+        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+    game["weapons"]["air_bomb"]["range_m"] = json!(1000.0);
+    let error = contract::weapons::resolve_weapons(game["weapons"].clone())
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("weapons.air_bomb") && error.contains("unpowered"),
+        "{error}"
+    );
+}
+
 /// A weapon row's `name` is what the player reads on a card and its `icon`
 /// names a generated drawing: an identifier, a slug, a long description or
 /// a missing icon is refused at load, naming the row.

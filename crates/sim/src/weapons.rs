@@ -1,5 +1,6 @@
 //! Mounts choose targets from their side's knowledge (W06, W10).
 //! Physical guns own aim and cycles (W01–W02); rounds leave only through flight.
+use contract::ballistics::Delivery;
 use contract::catalog::{AltitudeLayer, TypeIndex};
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
@@ -803,12 +804,21 @@ fn engage(
             // OutOfRange asks an ordered unit to advance; too close holds.
             return Err(ActionReason::HoldingFire);
         }
-        if weapon
-            .def
-            .against(r.layer)
-            .is_none_or(|fire| distance > fire.range_m)
+        if weapon.def.ballistics.delivery == Delivery::Powered
+            && weapon
+                .def
+                .against(r.layer)
+                .is_none_or(|fire| distance > fire.range_m)
         {
             return Err(ActionReason::OutOfRange);
+        }
+        if weapon.def.ballistics.delivery == Delivery::Unpowered {
+            return Ok(FiringSolution {
+                velocity: V3::default(),
+                time_of_flight_s: 0.0,
+                intercept: r.point,
+                arc: crate::flight::ArcKind::Low,
+            });
         }
         let aim = Aim {
             origin,
@@ -2161,7 +2171,7 @@ fn fire(
         let rounds = mount.ammo[k];
         // A cycle's first round waits out its aiming pause (a burst) or its
         // place in the squad's stagger once the arc is known.
-        let hold = |rng: &mut Rng| {
+        let mut hold = |rng: &mut Rng| {
             if cycle.started {
                 return false;
             }
@@ -2180,17 +2190,45 @@ fn fire(
                 false
             }
         };
-        if let Ok(Some((launch, _))) = crate::flight::fire_round(
-            ctx.world,
-            &ctx.arsenal.config,
-            &weapon.profile,
-            &aim,
-            scatter,
-            rng,
-            shooter,
-            |id| fires_into(ctx, weapon, rounds, target, id),
-            hold,
-        ) {
+        let launch = if weapon.def.ballistics.delivery == Delivery::Unpowered {
+            (!hold(rng)).then(|| {
+                let scattered = crate::flight::scatter_aim(aim.origin, aim.target, scatter, rng);
+                let drop = crate::flight::release(
+                    aim.origin,
+                    aim.carrier,
+                    weapon.profile.gravity(&ctx.arsenal.config),
+                    scattered,
+                );
+                Launch {
+                    origin: drop.at.with_z(aim.origin.z),
+                    carrier: aim.carrier,
+                    velocity: V3::default(),
+                    gravity_scale: weapon.profile.gravity_scale,
+                    lifetime_s: weapon.profile.lifetime_s,
+                    suppression_radius_m: weapon.profile.suppression_radius_m,
+                    shooter,
+                    guidance: None,
+                    motor: None,
+                    fall: None,
+                }
+            })
+        } else {
+            crate::flight::fire_round(
+                ctx.world,
+                &ctx.arsenal.config,
+                &weapon.profile,
+                &aim,
+                scatter,
+                rng,
+                shooter,
+                |id| fires_into(ctx, weapon, rounds, target, id),
+                hold,
+            )
+            .ok()
+            .flatten()
+            .map(|(launch, _)| launch)
+        };
+        if let Some(launch) = launch {
             launches.push(launch);
             if let Some(n) = mount.ammo[k].as_mut() {
                 *n -= 1;

@@ -53,13 +53,30 @@ pub enum Trajectory {
     Indirect,
 }
 
+/// How an aircraft weapon reaches its aim point.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Delivery {
+    #[default]
+    Powered,
+    Unpowered,
+}
+
 /// The flight fields of a fixture weapon row.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WeaponBallistics {
+    /// Unpowered air delivery drops launch range and speed: the flight solver
+    /// computes its release point from the carrier and gravity.
+    #[serde(default, skip_serializing_if = "Delivery::is_powered")]
+    pub delivery: Delivery,
     /// Launch speed: a gun's muzzle speed, a missile's speed off the rail.
+    /// An unpowered air bomb omits this and resolves to zero.
+    #[serde(default)]
     pub speed_mps: f64,
     /// Farthest the weapon is fired; its spread there is held to at least
-    /// `physics.min_spread_at_max_range_m`.
+    /// `physics.min_spread_at_max_range_m`. An unpowered air bomb omits this
+    /// and resolves to zero.
+    #[serde(default)]
     pub range_m: f64,
     /// A rocket motor: the round speeds up along its heading at this rate
     /// until `top_speed_mps` (absent: none). Only a guided round, which flies
@@ -96,6 +113,12 @@ pub struct WeaponBallistics {
     /// above (absent: it flies straight at its point).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub top_attack: Option<TopAttack>,
+}
+
+impl Delivery {
+    fn is_powered(value: &Self) -> bool {
+        matches!(value, Self::Powered)
+    }
 }
 
 /// When a guided round's launcher can steer it.

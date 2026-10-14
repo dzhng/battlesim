@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ballistics::WeaponBallistics;
+use crate::ballistics::{Delivery, WeaponBallistics};
 
 /// `"unlimited"` or a round count. Unlimited is its own state, never a big number.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -304,6 +304,8 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                         .and_then(|()| crate::labels::check_icon(&def.icon))
                         .map_err(serde::de::Error::custom)?;
                     for (field, value) in [
+                        ("speed_mps", def.ballistics.speed_mps),
+                        ("range_m", def.ballistics.range_m),
                         ("damage", def.damage),
                         ("penetration", def.penetration),
                         ("aim_s", def.aim_s),
@@ -318,17 +320,38 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             return Err(serde::de::Error::custom(format!("{field} must be finite and nonnegative")));
                         }
                     }
+                    let unpowered = def.ballistics.delivery == Delivery::Unpowered;
+                    if matches!(def.ground_attack, Some(GroundAttackKind::Bomb)) && !unpowered {
+                        return Err(serde::de::Error::custom(
+                            "a bomb row must use unpowered delivery",
+                        ));
+                    }
+                    if unpowered {
+                        if def.ballistics.speed_mps != 0.0 || def.ballistics.range_m != 0.0 {
+                            return Err(serde::de::Error::custom(
+                                "an unpowered row must not author range_m or speed_mps",
+                            ));
+                        }
+                    } else if def.ballistics.speed_mps <= 0.0 || def.ballistics.range_m <= 0.0 {
+                        return Err(serde::de::Error::custom(
+                            "a powered row needs positive range_m and speed_mps",
+                        ));
+                    }
                     if def.partial_from.is_some_and(|p| !(0.0..1.0).contains(&p)) {
                         return Err(serde::de::Error::custom("partial_from must lie in [0, 1)"));
                     }
-                    if def.min_range_m > def.ballistics.range_m {
+                    if !unpowered && def.min_range_m > def.ballistics.range_m {
                         return Err(serde::de::Error::custom("min_range_m must not exceed range_m"));
                     }
                     for (layer, fire) in &def.targets {
                         // The layer as authored (`low_air`), not its Rust name.
                         let layer = serde_json::to_value(layer)?;
                         let layer = layer.as_str().unwrap_or_default();
-                        if fire.range_m.is_some_and(|r| !(r > 0.0 && r <= def.ballistics.range_m)) {
+                        if !unpowered
+                            && fire.range_m.is_some_and(|r| {
+                                !(r > 0.0 && r <= def.ballistics.range_m)
+                            })
+                        {
                             return Err(serde::de::Error::custom(format!(
                                 "targets.{layer}.range_m must be positive and not exceed range_m"
                             )));

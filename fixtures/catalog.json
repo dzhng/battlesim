@@ -8206,7 +8206,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "air_bomb_guided",
+                "air_bomb",
                 "air_bomb_cluster"
               ]
             }
@@ -13860,7 +13860,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "air_bomb_guided",
+                "air_bomb",
                 "air_bomb_cluster"
               ]
             }
@@ -17940,7 +17940,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "air_bomb_guided",
+                "air_bomb",
                 "air_bomb_cluster"
               ]
             }
@@ -26608,7 +26608,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "air_bomb_guided",
+            "air_bomb",
             "air_bomb_cluster"
           ]
         }
@@ -32525,7 +32525,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "air_bomb_guided",
+            "air_bomb",
             "air_bomb_cluster"
           ]
         }
@@ -36787,7 +36787,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "air_bomb_guided",
+            "air_bomb",
             "air_bomb_cluster"
           ]
         }
@@ -40602,6 +40602,44 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "air_bomb": {
+      "accel_mps2": null,
+      "aim_s": 1.2,
+      "ammo": 4,
+      "anti_armor": false,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 14.0,
+      "damage": 140.0,
+      "decoyable": false,
+      "default": false,
+      "delivery": "unpowered",
+      "description": "Unguided iron bomb with a heavy single blast.",
+      "gravity_scale": 4.5,
+      "ground_attack": "bomb",
+      "icon": "bomb",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": null,
+      "min_range_m": 0.0,
+      "name": "Iron bomb",
+      "near_miss_suppression": 0.3,
+      "partial_from": null,
+      "penetration": 40.0,
+      "range_m": 0.0,
+      "reload_s": 10.0,
+      "scatter_mrad": 4.0,
+      "speed_mps": 0.0,
+      "stationary": false,
+      "structural_damage": 80.0,
+      "suppression_radius_m": 18.0,
+      "targets": {
+        "ground": {}
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
     "air_bomb_cluster": {
       "accel_mps2": null,
       "aim_s": 1.2,
@@ -40613,8 +40651,9 @@
       "damage": 70.0,
       "decoyable": false,
       "default": false,
+      "delivery": "unpowered",
       "description": "Wide-spread cluster bomb salvo for area attacks.",
-      "gravity_scale": 1.0,
+      "gravity_scale": 4.5,
       "ground_attack": "bomb",
       "icon": "bomb",
       "interceptable": false,
@@ -40624,15 +40663,15 @@
         "rounds": 4,
         "shot_interval_s": 0.08
       },
-      "min_range_m": 80.0,
+      "min_range_m": 0.0,
       "name": "Cluster bombs",
       "near_miss_suppression": 0.45,
       "partial_from": null,
       "penetration": 20.0,
-      "range_m": 1500.0,
+      "range_m": 0.0,
       "reload_s": 12.0,
       "scatter_mrad": 28.0,
-      "speed_mps": 220.0,
+      "speed_mps": 0.0,
       "stationary": false,
       "structural_damage": 35.0,
       "suppression_radius_m": 24.0,
@@ -40643,42 +40682,42 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
-    "air_bomb_guided": {
-      "accel_mps2": null,
-      "aim_s": 1.2,
+    "air_ground_missile": {
+      "accel_mps2": 140.0,
+      "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": false,
+      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
-      "blast_radius_m": 11.0,
-      "damage": 140.0,
+      "blast_radius_m": 4.0,
+      "damage": 45.0,
       "decoyable": false,
       "default": false,
-      "description": "Low-dispersion guided bomb for bombing runs.",
+      "description": "A fast guided anti-armour missile for ground attack.",
       "gravity_scale": 1.0,
-      "ground_attack": "bomb",
-      "icon": "bomb",
-      "interceptable": false,
-      "lifetime_s": null,
+      "guidance": "on_the_move",
+      "icon": "atgm",
+      "interceptable": true,
+      "lifetime_s": 12.0,
       "magazine": null,
-      "min_range_m": 80.0,
-      "name": "Guided bomb",
+      "min_range_m": 5.0,
+      "name": "Air ground missile",
       "near_miss_suppression": 0.3,
       "partial_from": null,
-      "penetration": 40.0,
-      "range_m": 1800.0,
-      "reload_s": 10.0,
-      "scatter_mrad": 4.0,
-      "speed_mps": 240.0,
+      "penetration": 300.0,
+      "range_m": 2000.0,
+      "reload_s": 9.0,
+      "scatter_mrad": 0.5,
+      "speed_mps": 50.0,
       "stationary": false,
-      "structural_damage": 80.0,
-      "suppression_radius_m": 18.0,
+      "structural_damage": 100.0,
+      "suppression_radius_m": 10.0,
       "targets": {
         "ground": {}
       },
-      "top_speed_mps": null,
+      "top_speed_mps": 400.0,
       "trajectory": "direct",
-      "turn_deg_s": null
+      "turn_deg_s": 60.0
     },
     "air_gun": {
       "accel_mps2": null,
