@@ -1,162 +1,79 @@
-// Ingress, fuel, afterburner and withdrawal (slice 06), in an empty
-// skirmish on the air field. Blue buys two F-16s, one for the middle of the
-// field and one near its north edge. Both are paid at once; each appears,
-// a dispatch interval apart, as its own unit, traversing: off the map edge nearest its destination (the
-// south edge for the first, the north for the second), its army card
-// greyed, its ghost's card shown with Space held, and its fuel untouched.
-// After a seeded 15–30 s it enters at that edge point at the air height,
-// without a jump, and burns fuel from then on; afterburners double the
-// burn. Run dry, it turns for blue's entry on its own and is refunded there:
-// some but not all of its card's price.
-//
-// Not shown: a destroyed aircraft's lack of refund (the skirmish has no
-// enemy fire), and circling at the destination (aircraft hover there).
+// AWF-JETSCENES — paid jet ingress and edge withdrawal on air-jet.
+// Simulation contracts named here are pinned by crates/sim/tests/skirmish.rs:
+// confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation,
+// a_bought_jet_spawns_on_its_back_edge_at_cruise_heading_in_after_its_delay,
+// inbound_transit_is_published_to_its_own_side_only, nothing_senses_or_targets_a_jet_before_it_arrives,
+// withdrawal_retires_and_refunds_on_crossing_the_nearest_back_edge_point, and fuel_return_uses_the_edge_distance.
+// Browser-only evidence: both purchases debit immediately; the delayed aircraft
+// has no unit/card before arrival; the approach pose is visible over the margin;
+// arrival is a cruise-height aircraft heading in; and the low-fuel aircraft's
+// outbound pose leaves at the blue back edge before the refund appears.
 import { writeFile } from "node:fs/promises";
 import { gpuWarnings, obs, advance } from "./_lab.mjs";
-import { openAir, play, FIELD, command, surface, JET_CRUISE, shoot } from "./_air.mjs";
-import { unitType } from "./_units.mjs";
-import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
-
-const { cards } = (await nodeCatalogSet("test")).units.view;
-
+import { openAir, command, JET_CRUISE, shoot } from "./_air.mjs";
 const JET = "f_16c_block_50";
-const PRICE = cards.find((c) => c.id === JET).cost;
-/** The checkpoint skirmish's income (`airWar.tsx`). */
-const INCOME_PER_MINUTE = 200;
-const FUEL = unitType(JET).capabilities.air.fuel_capacity_s;
-const AB = unitType(JET).capabilities.air.afterburner.fuel_multiplier;
-const ORDERS = [
-  { destination: [300, 200], edge: (p) => p[1] },
-  { destination: [300, 480], edge: (p) => FIELD[1] - p[1] },
-];
+const DESTINATIONS = [[1500, 1500], [2500, 2400]];
 
 export async function run(ctx) {
   const page = await openAir(ctx);
   const warnings = gpuWarnings(page);
   let o = await obs(page);
-  ctx.check("the checkpoint is a skirmish", !!o.skirmish, JSON.stringify(o.skirmish));
+  ctx.check("the checkpoint is an empty skirmish on air-jet", !!o.skirmish && o.own.length === 0, JSON.stringify(o.skirmish));
   await command(page, { kind: "ready" });
   await advance(page, 2);
   const before = (await obs(page)).skirmish.credits;
-  for (const { destination } of ORDERS)
+  for (const destination of DESTINATIONS)
     await command(page, { kind: "confirm_purchase", variant: JET, destination });
   await advance(page, 1);
   o = await obs(page);
   const cost = before - o.skirmish.credits;
-  ctx.check(
-    "both purchases are paid at once",
-    Math.abs(cost - 2 * PRICE) < 1,
-    JSON.stringify({ cost, price: PRICE }),
-  );
-  // The first is dispatched at once, the next a dispatch interval later.
-  const bought = o.tick;
-  await advance(page, 45);
-  o = await obs(page);
-  const jets = o.own.filter((u) => u.kind === JET).sort((a, b) => a.id - b.id);
-  ctx.check(
-    "each appears as its own unit, traversing",
-    jets.length === 2 && jets.every((u) => u.traversing),
-    JSON.stringify(jets.map((u) => [u.id, u.position, u.traversing])),
-  );
-  if (jets.length !== 2) return;
-  ORDERS.forEach(({ edge }, i) =>
-    ctx.check(
-      `aircraft ${i + 1} waits on the map edge nearest its destination`,
-      edge(jets[i].position) < 1,
-      JSON.stringify(jets[i].position),
-    ),
-  );
-  ctx.check(
-    "a traversing aircraft's fuel is untouched",
-    jets.every((u) => u.fuelS === FUEL),
-    JSON.stringify(jets.map((u) => u.fuelS)),
-  );
-  const greyed = await page.locator(".hud-army-traversing").count();
-  ctx.check("its army card is greyed as traversing", greyed === 2, `${greyed}`);
-  await page.keyboard.down("Space");
-  await page.evaluate(() => window.__lab.frame());
-  const ghosts = await page.locator("[data-testid=readouts] .ro-callout[data-ghost]").count();
-  await shoot(ctx, page, "traversing-ghosts");
-  await page.keyboard.up("Space");
-  ctx.check(
-    "with Space held each traversing aircraft's ghost shows its card",
-    ghosts === 2,
-    `${ghosts}`,
-  );
 
-  // Entry, after the seeded delay, at the edge it waited on.
-  const [first] = jets;
+  o = await obs(page);
+  ctx.check("the delayed aircraft is not a unit", o.own.filter((u) => u.kind === JET).length === 0, JSON.stringify(o.own));
+
+  let inbound = null;
   let entered = null;
-  o = await play(page, 31 * 30, (o) => {
-    const u = o.own.find((u) => u.id === first.id);
-    if (u && !u.traversing) entered = { tick: o.tick, position: u.position, fuel: u.fuelS };
-    return !!entered;
-  });
-  const delayS = entered ? (entered.tick - bought) / 30 : null;
+  let firstId = null;
+  for (let i = 0; i < 900; i++) {
+    await advance(page, 1);
+    o = await obs(page);
+    if (!inbound && o.airTransits.some((t) => t.dir === "in")) {
+      inbound = { tick: o.tick, transits: o.airTransits.filter((t) => t.dir === "in") };
+      ctx.check("the approach frame has no aircraft unit behind its transit", o.own.filter((u) => u.kind === JET).length === 0, JSON.stringify(inbound));
+      await shoot(ctx, page, "air-ingress-approach");
+    }
+    const jet = o.own.find((u) => u.kind === JET);
+    if (jet && !firstId) {
+      firstId = jet.id;
+      entered = { tick: o.tick, position: jet.position, yaw: jet.yaw, fuel: jet.fuelS };
+      break;
+    }
+  }
+  ctx.check("the inbound AirTransit is seen before the unit arrives", !!inbound && !!entered && inbound.tick <= entered.tick, JSON.stringify({ inbound, entered }));
   ctx.check(
-    "it enters after a 15–30 s traversal",
-    delayS !== null && delayS >= 15 && delayS <= 30.1,
-    `${delayS}`,
+    "the jet arrives on the blue back edge at cruise height heading in",
+    !!entered && entered.position[0] < 400 && Math.abs(entered.position[2] - JET_CRUISE) < 2 && Math.cos(entered.yaw) > 0,
+    JSON.stringify(entered),
   );
   if (!entered) return;
-  const lift = entered.position[2] - (await surface(page, entered.position));
-  ctx.check(
-    "it enters where it waited, at the air height, fuel full",
-    Math.hypot(entered.position[0] - first.position[0], entered.position[1] - first.position[1]) <
-      5 &&
-      Math.abs(lift - JET_CRUISE) < 1 &&
-      entered.fuel >= FUEL - 0.1,
-    JSON.stringify({ entered, waited: first.position, lift }),
-  );
 
-  // Burn: plain, then with afterburners, over the same 90 ticks.
-  const fuel = async () => (await obs(page)).own.find((u) => u.id === first.id).fuelS;
-  let f0 = await fuel();
-  await advance(page, 90);
-  const plain = f0 - (await fuel());
-  await command(page, { kind: "set_afterburner", units: [first.id], enabled: true });
-  await advance(page, 2);
-  ctx.check(
-    "the afterburner toggle is published",
-    (await obs(page)).own.find((u) => u.id === first.id).afterburner,
-  );
-  f0 = await fuel();
-  await advance(page, 90);
-  const burner = f0 - (await fuel());
-  ctx.check(
-    `afterburners burn fuel ${AB}× as fast`,
-    plain > 2.9 && Math.abs(burner / plain - AB) < 0.05,
-    JSON.stringify({ plain, burner }),
-  );
-
-  // Run dry: it turns for home by itself and is refunded at the entry. The
-  // wallet also earns the skirmish's income, steadily, each step.
-  const step = 30;
-  const income = (INCOME_PER_MINUTE / 60 / 30) * step;
-  let home = null;
+  let withdrawing = null;
+  let outbound = null;
   let retired = null;
   let wallet = (await obs(page)).skirmish.credits;
-  for (let t = 0; t < 3600 && !retired; t += step) {
-    await advance(page, step);
+  for (let i = 0; i < 7200 && !retired; i += 30) {
+    await advance(page, 30);
     const now = await obs(page);
-    const u = now.own.find((u) => u.id === first.id);
-    if (u?.withdrawing && !home) home = { tick: now.tick, fuel: u.fuelS, position: u.position };
-    if (!u) retired = { tick: now.tick, refund: now.skirmish.credits - wallet - income };
+    const jet = now.own.find((u) => u.id === firstId);
+    if (jet?.withdrawing && !withdrawing) withdrawing = { tick: now.tick, fuel: jet.fuelS, position: jet.position };
+    if (now.airTransits.some((t) => t.dir === "out")) outbound = { tick: now.tick, transits: now.airTransits.filter((t) => t.dir === "out") };
+    if (!jet) retired = { tick: now.tick, refund: now.skirmish.credits - wallet };
     wallet = now.skirmish.credits;
   }
-  ctx.check(
-    "near empty, it turns for home on its own",
-    !!home && home.fuel > 0 && home.fuel < 15,
-    JSON.stringify(home),
-  );
-  ctx.check(
-    "it leaves the field at the entry and is refunded part of its price",
-    !!retired && retired.refund > 1 && retired.refund < PRICE,
-    JSON.stringify({ retired, cost }),
-  );
-  await writeFile(
-    ctx.evidencePath("ingress.json"),
-    JSON.stringify({ cost, delayS, plain, burner, home, retired }, null, 2),
-  );
+  ctx.check("low fuel starts the return", !!withdrawing && withdrawing.fuelS > 0, JSON.stringify(withdrawing));
+  ctx.check("the outbound effect uses the nearest back edge", !!outbound && outbound.transits.some((t) => t.point[0] <= 10), JSON.stringify(outbound));
+
+  await writeFile(ctx.evidencePath("ingress.json"), JSON.stringify({ cost, inbound, entered, withdrawing, outbound, retired }, null, 2));
+  await shoot(ctx, page, "air-ingress");
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
 }

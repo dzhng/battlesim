@@ -16,7 +16,11 @@
   "source": "authored",
   "seed": null,
   "encounters": [
-    "high-air"
+    "dogfight",
+    "ground",
+    "high-air",
+    "hud",
+    "survivability"
   ],
   "benchmarks": []
 }
