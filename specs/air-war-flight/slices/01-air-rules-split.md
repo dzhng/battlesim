@@ -21,7 +21,7 @@ AirRules::cruise_agl_m(layer) -> f64
   - the order ghost (`apps/battle-lab/src/unitGhosts.ts`): delete the literal 1000 and read the lookup through a TS helper beside `highAir` in `packages/scene-assets/src/units.ts`;
   - native capture (`native/client/src/capture.rs`);
   - presentation input (`crates/presentation/src/world.rs` `cruise_agl_m`), which becomes per layer.
-- **Shadow:** it lies on the ground directly under the aircraft's actual published position (`presentation.rs` ~1536), not at a constant offset.
+- **Shadow:** it falls along the sun onto the ground, thrown from the aircraft's actual height above that ground (`presentation.rs` ~1536), not from a constant cruise height.
 - **Routing margin:** the helicopter margin (`navigation/air.rs` ~45) comes from the largest `LowAir` hull in the catalog. `hull_limits.air` is used only for hull admission.
 - **Re-recorded:** the three parity fixtures that embed `air`, and the helicopter beats.
 - **Jets still use the old mover in this slice.** The old mover reads `cruise_agl_m(layer)`, so jets already fly at 250 m on the old law.
@@ -34,7 +34,7 @@ On `/labs/air-high`, the jet, its order ghost and its card sit at 250 m, while t
 - `a_helicopters_routing_margin_is_its_largest_low_air_hull`
 - `a_jet_spawns_at_the_jet_cruise_height`
 - Presentation tests:
-  - `a_shadow_lies_on_the_ground_under_the_aircraft`
+  - `a_shadow_falls_along_the_sun_from_the_aircrafts_actual_height`
   - `the_ghost_reads_the_layer_height` (TS)
 
 ## Visual gate
