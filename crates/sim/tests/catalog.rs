@@ -634,7 +634,22 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             .flat_map(|m| &m.def.weapons)
             .map(|w| rules.weapons[w].ballistics.range_m)
             .fold(f64::INFINITY, f64::min);
-        let mut others = targets(range.min(300.0));
+        let never_stops = matches!(
+            rules.catalog.get(t).mobility,
+            contract::catalog::Mobility::Air {
+                layer: AltitudeLayer::HighAir,
+                ..
+            }
+        );
+        let mut others = if never_stops {
+            json!([
+                { "side": "red", "kind": "test_rifle", "position": [350, 295], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [350, 305], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_heli", "position": [600, 300], "engagement": "return_fire_only" },
+            ])
+        } else {
+            targets(range.min(300.0))
+        };
         // A weapon that reaches only aircraft gets a helicopter hovering in
         // reach; the rest never see one, so none takes its return fire.
         let air_only = rules.catalog.mounts(t).iter().any(|m| {
@@ -652,9 +667,6 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         let mut b = battle(&fixture, id, others);
         for _ in 0..60 * rules.tick_hz {
             b.step();
-        }
-        if id == "test_jet" {
-            eprintln!("jet unit: {:?}", b.unit(UnitId(0)).unwrap());
         }
         for (m, mount) in b.unit(UnitId(0)).unwrap().mounts.iter().enumerate() {
             if mount.shots == 0 {
@@ -682,11 +694,15 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             queued: false,
         });
         assert_eq!(ack.error, None, "{id}: {ack:?}");
-        let never_stops = matches!(
-            b.unit(UnitId(0)).unwrap().motion,
-            sim::units::Motion::Air(flight) if flight.layer == AltitudeLayer::HighAir
-        );
-        if never_stops {
+        // A jet never stops and cannot turn inside its turning circle, so it
+        // has arrived once it comes within one turning radius of its goal.
+        let turning_radius = match b.unit(UnitId(0)).unwrap().motion {
+            sim::units::Motion::Air(flight) if flight.layer == AltitudeLayer::HighAir => {
+                Some(flight.cruise_mps / flight.turn_rad_s)
+            }
+            _ => None,
+        };
+        if let Some(radius) = turning_radius {
             let mut closest = f64::INFINITY;
             for _ in 0..90 * rules.tick_hz {
                 b.step();
@@ -695,16 +711,17 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
                         .length(),
                 );
             }
-            if closest > 10.0 {
-                failures.push(format!("{id}: never came within {closest:.1} m of its goal"));
+            if closest > radius + 10.0 {
+                failures.push(format!(
+                    "{id}: never came within its {radius:.0} m turning radius of its goal ({closest:.1} m)"
+                ));
             }
         } else {
             for _ in 0..90 * rules.tick_hz {
                 b.step();
             }
-            let short = (b.unit(UnitId(0)).unwrap().position.xy()
-                - sim::math::v2(200.0, 500.0))
-                .length();
+            let short =
+                (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0)).length();
             if short > 10.0 {
                 failures.push(format!("{id}: stopped {short:.1} m short of its goal"));
             }

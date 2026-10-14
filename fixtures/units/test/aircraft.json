@@ -1,23 +1,41 @@
 {
   "units": {
     "test_jet": {
-      "extends": "test_heli",
       "name": "Test Jet",
-      "description": "A fixed-wing test aircraft in the high-air layer.",
+      "description": "A fixed-wing test aircraft in the high-air layer, with a fixed forward cannon.",
+      "faction": "generic",
+      "family": "aircraft",
+      "roles": ["light_vehicle"],
+      "cost": 300,
+      "body": {
+        "hull": {
+          "half_extents_m": [7, 5, 2],
+          "eye_m": 2,
+          "hp": 200,
+          "armor": {
+            "front": 15,
+            "side": 15,
+            "rear": 15,
+            "roof": 15,
+            "ricochet": { "front": 0.1, "side": 0.1, "rear": 0.1, "roof": 0.1 }
+          },
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
       "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air" } },
+      "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "capabilities": { "air": {
         "fuel_capacity_s": 180,
         "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
         "refund": { "health": 0.4, "ammunition": 0.3, "fuel": 0.3 }
       } },
-      "mounts": [{
-        "id": "HMG",
-        "name": "Cannon",
-        "weapons": ["air_gun"],
-        "turret": true,
-        "pivot_m": [0, 0, 1.8],
-        "muzzle_m": [7, 0, 0]
-      }]
+      "mounts": [
+        { "id": "gun", "name": "Forward Cannon", "weapons": ["air_gun"], "turret": false, "pivot_m": [0, 0, 1.8], "muzzle_m": [7, 0, 0] }
+      ],
+      "sound": { "profile": "vehicle", "loudness_m": 900 },
+      "appearance": "test_heli"
     },
     "test_heli": {
       "name": "Helicopter",
