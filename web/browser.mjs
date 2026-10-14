@@ -40,6 +40,24 @@ export function browserChoice(setting, { wsl, mirrored, windowsChrome }) {
   return { kind: "local", note: `WebGPU runs on SwiftShader in WSL's Chromium: ${unreachable}` };
 }
 
+/** Launch Playwright's managed Chromium with a setup hint when its executable
+ * is missing. The browser tests use this same entry point as the scene runner
+ * so a fresh checkout fails with the command that repairs the environment. */
+export async function launchLocalChromium(options = {}) {
+  const { chromium } = await import("playwright");
+  try {
+    return await chromium.launch({ channel: "chromium", ...options });
+  } catch (error) {
+    if (/Executable doesn't exist|playwright install/i.test(error?.message ?? "")) {
+      throw new Error(
+        "Playwright Chromium is missing. Run `bun run setup` (or `bun run --cwd web install-browsers)`, then rerun the test.",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
 function machine() {
   const wsl = Boolean(process.env.WSL_DISTRO_NAME);
   const mode = wsl ? spawnSync("wslinfo", ["--networking-mode"], { encoding: "utf8" }) : null;
@@ -58,7 +76,7 @@ export async function launchBrowser({ args = [], launch = {} } = {}) {
   const choice = browserChoice(process.env.WEBGPU_BROWSER, machine());
   if (choice.note) console.warn(choice.note);
   if (choice.kind === "local")
-    return chromium.launch({ channel: "chromium", ...launch, args: [...WEBGPU_FLAGS, ...args] });
+    return launchLocalChromium({ ...launch, args: [...WEBGPU_FLAGS, ...args] });
   return launchWindowsChrome(chromium, args);
 }
 

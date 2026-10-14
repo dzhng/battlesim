@@ -32,6 +32,14 @@ Use the root [startup instructions](../README.md#running-it) for a first checkou
 [WebAssembly build and memory ownership](../crates/game-wasm/README.md) explains
 generated bindings and how publications cross the boundary.
 
+`bun run setup` installs the web dependencies and Playwright's managed
+Chromium. If dependencies are already present but the browser executable is
+missing, run `bun run --cwd web install-browsers` (the same command works on
+macOS and WSL). The browser harness reports that command instead of exposing a
+raw Playwright executable error. WSL checks prefer headless Windows Chrome
+when `.wslconfig` has `networkingMode=mirrored`; they fall back to the managed
+Chromium when Windows Chrome is unavailable. macOS uses the managed Chromium.
+
 [Vite configuration](vite.config.ts) resolves source-only packages and apps against
 this application's dependencies, keeps caches local to the checkout and serves
 prepared [runtime assets](../assets/README.md). Development plugins provide the

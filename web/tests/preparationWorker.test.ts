@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { chromium, type Browser } from "playwright";
+import type { Browser } from "playwright";
+import { launchBrowser } from "../browser.mjs";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
@@ -21,8 +22,7 @@ test("a preparation worker becomes the battle authority and replays its commands
   let browser: Browser | undefined;
   try {
     await server.listen();
-    browser = await chromium.launch({
-      channel: "chromium",
+    browser = await launchBrowser({
       args: ["--disable-gpu", "--disable-software-rasterizer"],
     });
     const page = await browser.newPage();
