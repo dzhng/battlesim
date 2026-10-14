@@ -1,6 +1,6 @@
 # Air-war flight
 
-**Status:** slices 00–09 and 12 landed; next 10 (dogfights), 11 (orders) and 13 (approach effect). The browser scenes were consolidated alongside (61 fixtures → 47 scenes plus tools).
+**Status:** slices 00–10, 12 and 13 landed; next 11 (orders and reactions) and 14 (jet attitude). The browser scenes were consolidated alongside (61 fixtures → 47 scenes plus tools).
 **Updated:** 2026-10-14.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec-with-codex`. Codex writes the code (`codex exec`, model `gpt-6.1-sol`, `model_reasoning_effort=high`), while you orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** slices 10 and 13 (in parallel), then 11 after 10. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
+- **Pickup:** slice 11, with 14 beside it; then 15–18. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Before ending each pass,** update this section: status, pickup and the checklist.
 
@@ -24,10 +24,10 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [x] 07 [bomb release and new rows](slices/07-release-and-rows.md)
 - [x] 08 [attack passes](slices/08-pass-planner.md)
 - [x] 09 [nose-on gun and self-firing weapons](slices/09-gun-and-autofire.md)
-- [ ] 10 [dogfights](slices/10-dogfight.md)
+- [x] 10 [dogfights](slices/10-dogfight.md)
 - [ ] 11 [orders and reactions](slices/11-air-orders.md)
 - [x] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
-- [ ] 13 [approach and departure effect](slices/13-transit-effect.md)
+- [x] 13 [approach and departure effect](slices/13-transit-effect.md)
 - [ ] 14 [jet attitude](slices/14-jet-attitude.md)
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
 - [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
