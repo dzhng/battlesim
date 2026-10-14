@@ -210,22 +210,22 @@ def render(clip, decoded):
     profile = clip["processing"]
     if profile not in FILTERS:
         raise ValueError(f"unknown processing profile {profile}")
+    # A loop crossfades its seam instead; a design or a burst keeps the click guard.
+    fades = (0.0, 0.0)
     if "layers" in clip:
         if not clip["layers"] or any(spec["at_s"] < 0 for spec in clip["layers"]):
             raise ValueError("invalid layers")
         rate = 48000
         crop = overlay([(round(spec["at_s"] * rate), layer(decoded, spec)) for spec in clip["layers"]])
-        fades = (0.0, 0.0)
     else:
         rate = clip["source_rate"]
         start, end = clip["source_frames"]
         source = decoded[clip["source"]][1]
         crop = cut(decoded, clip["source"], rate, clip["source_frames"])
         burst = clip.get("burst")
-        fades = (0.0, 0.0)
         if burst:
             crop = relay(source, burst, rate, start, end)
-        else:
+        elif not clip["loop"]:
             fades = cut_fades(source, crop, start, rate)
     if sys.byteorder != "little":
         crop.byteswap()

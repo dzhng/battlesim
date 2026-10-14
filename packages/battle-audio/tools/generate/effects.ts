@@ -56,7 +56,7 @@ export async function generateEffects(run: EffectRun): Promise<{ calls: number; 
   const { root, client, log } = run;
   const path = join(root, SOUNDS);
   const catalog = JSON.parse(readFileSync(path, "utf8")) as SoundCatalog;
-  const pool = new Pool(LIMITS.music);
+  const pool = new Pool(LIMITS.effects);
   const result = { calls: 0, failed: 0 };
   const jobs = Object.entries(SOUND_EFFECTS).flatMap(([effect, spec]) =>
     Array.from({ length: spec.candidates }, (_, k) => ({

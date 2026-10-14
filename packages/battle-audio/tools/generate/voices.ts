@@ -349,7 +349,7 @@ export async function generateBeds(run: {
 }): Promise<{ calls: number }> {
   const lockPath = join(run.root, LOCK);
   const lock = readLock(lockPath);
-  const pool = new Pool(LIMITS.music);
+  const pool = new Pool(LIMITS.effects);
   let calls = 0;
   await Promise.all(
     Object.entries(BEDS).map(async ([name, bed]) => {
