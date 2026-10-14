@@ -86,6 +86,9 @@ pub struct Round {
     pub side: Side,
     /// A seeker missile keeps its target independently of launcher support.
     pub seeker_target: Option<Target>,
+    /// Aircraft target retained for proximity fuses, including guided rounds
+    /// without a fire-and-forget seeker.
+    pub air_target: Option<UnitId>,
 }
 
 /// One round's flight this tick, for the animation feed: presentation data
@@ -3153,7 +3156,11 @@ impl Battle {
             }
             let point = match target {
                 Target::Unit(id) if self.units.get(id.0 as usize).is_some_and(Unit::alive) => {
-                    Some(self.units[id.0 as usize].position)
+                    let unit = &self.units[id.0 as usize];
+                    let centre = unit
+                        .hull
+                        .map_or(unit.position, |half| unit.position + v3(0.0, 0.0, half.z));
+                    Some(centre)
                 }
                 Target::Contact(id) => self
                     .knowledge
@@ -3217,6 +3224,12 @@ impl Battle {
                         unit: shot.unit,
                         side,
                         seeker_target: seeker.then_some(shot.target),
+                        air_target: match shot.target {
+                            Target::Unit(target) if self.units[target.0 as usize].airborne() => {
+                                Some(target)
+                            }
+                            _ => None,
+                        },
                     },
                 );
                 // A guided round is supported by the mount that launched it.
@@ -4723,6 +4736,11 @@ impl Battle {
             } else {
                 d.u64(0);
             }
+            if let Some(target) = r.air_target {
+                d.u64(1).u64(target.0 as u64);
+            } else {
+                d.u64(0);
+            }
         }
         d.u64(self.suppressed.len() as u64);
         for ((id, i), v) in &self.suppressed {
@@ -4839,6 +4857,7 @@ mod tests {
                 unit: UnitId(1),
                 side: Side::Red,
                 seeker_target: None,
+                air_target: None,
             },
         );
         battle.arm_missile_interceptors();
@@ -5135,6 +5154,7 @@ mod tests {
                             unit: UnitId(1),
                             side: Side::Blue,
                             seeker_target: None,
+                            air_target: None,
                         },
                     );
                     FlightEvent::Impact(flight::Impact {

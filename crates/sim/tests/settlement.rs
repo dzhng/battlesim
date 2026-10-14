@@ -52,6 +52,7 @@ fn lethal_damage_keeps_the_rounds_dead_shooter() {
             unit: UnitId(0),
             side: Side::Blue,
             seeker_target: None,
+            air_target: None,
         },
     )]);
     let outcome = damage::resolve(
@@ -122,6 +123,7 @@ fn direct_and_blast_structural_damage_keep_the_same_round_source() {
             unit: UnitId(0),
             side: Side::Blue,
             seeker_target: None,
+            air_target: None,
         },
     )]);
     let outcome = damage::resolve(
@@ -215,6 +217,7 @@ fn pass_through_structural_hit_keeps_round_source() {
             unit: UnitId(0),
             side: Side::Blue,
             seeker_target: None,
+            air_target: None,
         },
     )]);
     let outcome = damage::resolve(
@@ -448,6 +451,7 @@ fn squad_emits_one_death_only_when_its_last_soldier_dies() {
                 unit: UnitId(0),
                 side: Side::Blue,
                 seeker_target: None,
+                air_target: None,
             },
         )]);
         let outcome = damage::resolve(
@@ -525,6 +529,7 @@ fn one_blast_preserves_source_for_multiple_full_unit_deaths() {
             unit: UnitId(0),
             side: Side::Blue,
             seeker_target: None,
+            air_target: None,
         },
     )]);
     let outcome = damage::resolve(

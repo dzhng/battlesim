@@ -255,10 +255,35 @@ pub(super) fn standoff_entry(
     if distance(0.0) <= reach {
         return Some(0.0);
     }
-    if distance(end) > reach {
-        return None;
-    }
-    let (mut lo, mut hi) = (0.0, end);
+    let limit = if distance(end) <= reach {
+        end
+    } else {
+        // A passing round can enter and leave the standoff envelope in one
+        // chord, so find its closest approach before looking for the first
+        // crossing. The distance to a convex hull along a line is convex.
+        let ratio = (5f64.sqrt() - 1.0) * 0.5;
+        let (mut lo, mut hi) = (0.0, end);
+        let (mut x1, mut x2) = (hi - ratio * (hi - lo), lo + ratio * (hi - lo));
+        let (mut f1, mut f2) = (distance(x1), distance(x2));
+        for _ in 0..GOLDEN_STEPS {
+            if f1 <= f2 {
+                hi = x2;
+                x2 = x1;
+                f2 = f1;
+                x1 = hi - ratio * (hi - lo);
+                f1 = distance(x1);
+            } else {
+                lo = x1;
+                x1 = x2;
+                f1 = f2;
+                x2 = lo + ratio * (hi - lo);
+                f2 = distance(x2);
+            }
+        }
+        let at = (lo + hi) * 0.5;
+        (distance(at) <= reach).then_some(at)?
+    };
+    let (mut lo, mut hi) = (0.0, limit);
     for _ in 0..50 {
         let mid = (lo + hi) * 0.5;
         if distance(mid) > reach {

@@ -503,7 +503,9 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             });
             Some(Resolved {
                 point: track.position + v3(0.0, 0.0, height),
-                velocity: track.velocity.with_z(0.0),
+                velocity: track
+                    .velocity
+                    .with_z(unit.air.as_ref().map_or(0.0, |air| air.velocity.z)),
                 current: track.last_seen == ctx.tick,
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
@@ -2059,6 +2061,11 @@ fn fire(
                 p.with_z(
                     ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + ctx.rules.physics.infantry_aim_m,
                 )
+            }
+            Target::Unit(u) if weapon.def.seeker.is_some() && units[u.0 as usize].airborne() => {
+                let unit = &units[u.0 as usize];
+                unit.hull
+                    .map_or(r.point, |half| unit.position + v3(0.0, 0.0, half.z))
             }
             _ if !seen.is_empty() => seen[n % seen.len()],
             _ => r.point,
