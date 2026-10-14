@@ -396,31 +396,6 @@ export function panelSpecimens(
     "route blocked",
     panelOf(specimenUnit(catalog, "test_supply", { state: "route_blocked" })),
   );
-  const aircraft = (patch: Partial<OwnUnitView>) =>
-    specimenUnit(catalog, "test_tank", { fuelS: 95, ...patch });
-  add(s, "aircraft fuel", panelOf(aircraft({})));
-  add(s, "afterburners", panelOf(aircraft({ afterburner: true })));
-  add(s, "traversing", panelOf(aircraft({ traversing: true })));
-  add(s, "dogfight", panelOf(aircraft({ inDogfight: true })));
-  add(s, "flares", panelOf(aircraft({ flares: { charges: 2, cooldown: 0.4 } })));
-  add(
-    "air contacts",
-    "radar contact",
-    contactPanel(
-      catalog.units,
-      {
-        source: "radar",
-        kind: null,
-        heard: ["rifle"],
-        evidenceTick: 0,
-        bearingDeg: 45,
-        rangeM: 1200,
-      },
-      30,
-      rules,
-    ),
-    "contact",
-  );
 
   // An aircraft's rows. They come from the published air state alone, never
   // the kind, and no stand-in flies, so they ride the jeep.
