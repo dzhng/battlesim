@@ -298,9 +298,6 @@ Each is named in `choices.md` and owned where listed.
   These are player differences only. _Owner:_ `native/client/src/audio.rs`.
 - **Native paints no ground marks.** The UI paints them, and a replay has no UI.
   _Owner:_ `native/client`, if it gains a UI.
-- **A lab's own models are tiered by a TypeScript copy of Rust's rule.**
-  `packages/battle-renderer/src/models/modelDetail.ts` mirrors
-  `presentation::view::model_detail`. _Owner:_ `packages/battle-renderer`.
 - **Two of the sky's bind group layouts carry TypeGPU's automatic names** in the
   export (`bake - Automatic Bind Group & Layout`, `background - …`). _Owners:_
   `packages/battle-renderer`'s sky, which names them, and `native/client/src/sky.rs`,

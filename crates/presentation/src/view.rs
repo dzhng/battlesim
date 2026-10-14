@@ -2,10 +2,9 @@
 //! eye is, how many pixels a metre covers at a metre's distance, the view's
 //! side planes, and the matrices, the camera uniform and the sky's rays a
 //! renderer uploads as they are (`camera3d.ts`' math, to the bit). The one
-//! tier rule every drawn model takes is [`model_detail`]
-//! (`modelDetail.ts`): nothing off screen, one of four mesh tiers by
-//! projected height, or the impostor card; and what it casts with,
-//! [`caster_tier`].
+//! tier rule every drawn model takes, a lab's own included, is
+//! [`model_detail`]: nothing off screen, one of four mesh tiers by projected
+//! height, or the impostor card; and what it casts with, [`caster_tier`].
 use crate::records::{
     Camera as CameraRecord, View as ViewRecord, FOG_FACES, FOG_GROUND, FOG_PAINTED_FACES,
     FOG_UNITS, NONE, VIEW_PASS,
@@ -157,8 +156,36 @@ impl View {
         let [w, h] = camera.size;
         let (w, h) = (f64::from(w.max(1)), f64::from(h.max(1)));
         let fov = camera.fov_y;
-        let view = look_at(camera.eye, camera.target, camera.up);
-        let projection = perspective_reverse_z(fov, w / h, camera.near, None);
+        Self::framed(
+            camera.eye,
+            camera.target,
+            h / (2.0 * libm::tan(fov / 2.0)),
+            look_at(camera.eye, camera.target, camera.up),
+            perspective_reverse_z(fov, w / h, camera.near, None),
+        )
+    }
+
+    /// The view a frame's `View` record was made for, to the record's
+    /// float32: how a lab's own models, which reach a renderer beside the
+    /// frame, are tiered by the frame's camera.
+    pub fn from_record(record: &ViewRecord) -> Self {
+        let point = |p: [f32; 4]| [p[0], p[1], p[2]].map(f64::from);
+        Self::framed(
+            point(record.eye),
+            point(record.target),
+            f64::from(record.size[3]),
+            record.view,
+            record.projection,
+        )
+    }
+
+    fn framed(
+        eye: Vec3,
+        target: Vec3,
+        pixels_per_metre: f64,
+        view: [f32; 16],
+        projection: [f32; 16],
+    ) -> Self {
         let (p, v) = (projection.map(f64::from), view.map(f64::from));
         // Rows 0, 1 and 3 of projection · view.
         let row = |r: usize| -> [f64; 4] {
@@ -177,16 +204,12 @@ impl View {
                 constant: c * inv,
             }
         };
-        let d = [
-            camera.target[0] - camera.eye[0],
-            camera.target[1] - camera.eye[1],
-            camera.target[2] - camera.eye[2],
-        ];
+        let d = [target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]];
         Self {
-            eye: camera.eye,
-            target: camera.target,
+            eye,
+            target,
             distance: (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt(),
-            pixels_per_metre: h / (2.0 * libm::tan(fov / 2.0)),
+            pixels_per_metre,
             sides: [
                 plane(r3, r0, 1.0),
                 plane(r3, r0, -1.0),
@@ -350,5 +373,102 @@ mod tests {
         // paint when movers stand on it.
         assert_eq!(model_fog(false, true, false), FOG_FACES);
         assert_eq!(model_fog(false, true, true), FOG_PAINTED_FACES);
+    }
+
+    /// `presentation.models`, as the fixture tunes it.
+    fn detail() -> Detail {
+        let game: serde_json::Value =
+            serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
+        serde_json::from_value(game["presentation"]["models"].clone()).unwrap()
+    }
+
+    /// 65 m out from a target on the ground, looking north, at 1080p.
+    fn view() -> View {
+        View::new(&Camera {
+            eye: [0.0, -43.0, 49.0],
+            target: [0.0, 0.0, 0.0],
+            up: [0.0, 0.0, 1.0],
+            fov_y: 0.8,
+            near: 1.0,
+            size: [1920, 1080],
+        })
+    }
+
+    const SOLDIER: f64 = 1.8;
+
+    #[test]
+    fn a_soldiers_tier_falls_with_his_projected_height_to_a_card_only_if_he_has_one() {
+        let (detail, v) = (detail(), view());
+        let at = |d: f64, card: bool| detail_at(&detail, &v, SOLDIER, d, card);
+        let tiers: Vec<i32> = [10.0, 20.0, 40.0, 80.0, 160.0, 400.0]
+            .map(|d| at(d, true))
+            .to_vec();
+        assert!(tiers.windows(2).all(|w| w[1] >= w[0]), "{tiers:?}");
+        assert_eq!(at(10.0, true), 0);
+        assert_eq!(at(400.0, true), IMPOSTOR);
+        // No card: the coarsest mesh stands in, never nothing.
+        assert_eq!(at(400.0, false), 3);
+        // The fixture's thresholds decide the edges exactly.
+        let d_at = |px: f64| SOLDIER * v.pixels_per_metre / px;
+        assert_eq!(at(d_at(detail.lod_px[0] + 1.0), true), 0);
+        assert_eq!(at(d_at(detail.lod_px[0] - 1.0), true), 1);
+        assert_eq!(at(d_at(detail.impostor_px + 0.5), true), 3);
+        assert_eq!(at(d_at(detail.impostor_px - 0.5), true), IMPOSTOR);
+    }
+
+    #[test]
+    fn a_model_off_screen_is_culled_only_past_its_shadows_reach() {
+        let (detail, v) = (detail(), view());
+        let tier = |x: f64| model_detail(&detail, &v, [x, 0.0, 0.0], SOLDIER, 1.0, true, None);
+        assert_ne!(tier(0.0), CULLED);
+        assert_eq!(tier(400.0), CULLED);
+        let edge = (0..)
+            .map(|k| f64::from(k) * 0.25)
+            .find(|&x| tier(x) == CULLED);
+        let bare = (0..)
+            .map(|k| f64::from(k) * 0.25)
+            .find(|&x| !v.sees_sphere([x, 0.0, SOLDIER / 2.0], 1.0));
+        assert!(edge.unwrap() - bare.unwrap() >= SHADOW_MARGIN_M * 0.9);
+    }
+
+    #[test]
+    fn an_airframe_off_screen_draws_while_its_shadow_is_in_view_at_its_own_tier() {
+        let (detail, v) = (detail(), view());
+        let at = [400.0, 0.0, 20.0];
+        let tier = |shadow| model_detail(&detail, &v, at, 3.2, 8.0, true, shadow);
+        assert_eq!(tier(None), CULLED);
+        let c = [at[0] - v.eye[0], at[1] - v.eye[1], at[2] + 1.6 - v.eye[2]];
+        let own = detail_at(
+            &detail,
+            &v,
+            3.2,
+            (c[0] * c[0] + c[1] * c[1] + c[2] * c[2]).sqrt(),
+            true,
+        );
+        assert_eq!(tier(Some([0.0, 0.0, 0.0])), own);
+    }
+
+    #[test]
+    fn a_frames_view_record_tiers_a_model_as_the_frame_did() {
+        let camera = Camera {
+            eye: [12.0, -43.0, 49.0],
+            target: [5.0, 3.0, 0.0],
+            up: [0.0, 0.0, 1.0],
+            fov_y: 0.8,
+            near: 1.0,
+            size: [1280, 720],
+        };
+        let (detail, v) = (detail(), View::new(&camera));
+        let from_record = View::from_record(&v.record(&camera));
+        for x in (-60..=60).step_by(3) {
+            for y in (-40..=400).step_by(7) {
+                let at = [f64::from(x), f64::from(y), 0.0];
+                assert_eq!(
+                    model_detail(&detail, &from_record, at, SOLDIER, 1.0, true, None),
+                    model_detail(&detail, &v, at, SOLDIER, 1.0, true, None),
+                    "at {at:?}"
+                );
+            }
+        }
     }
 }

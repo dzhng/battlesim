@@ -22,11 +22,12 @@
 // batch is one drawable at one tier, or its impostor card, and draws as one
 // run of the frame's instance records. The map's props and what the side
 // knows of them arrive as its static batches (`setStaticFrame`), each held
-// in a buffer of its own until the frame writes it again. A lab's models are
-// chosen here each frame from the camera (`modelDetail.ts`): models off
-// screen are skipped, the rest take a mesh tier by projected height or,
-// below `impostor_px`, their impostor card (`impostorCards.ts`). Each draw's
-// fog group and the tier it casts with are Rust's, a lab's as a batch's
+// in a buffer of its own until the frame writes it again. A lab's models
+// are tiered each frame by Rust's rule for the frame's camera
+// (`view::model_detail`, through `model_tiers`): models off screen are
+// skipped, the rest take a mesh tier by projected height or, below
+// `impostor_px`, their impostor card (`impostorCards.ts`). Each draw's fog
+// group and the tier it casts with are Rust's too, a lab's as a batch's
 // (`view::model_fog`, `view::batch_caster`).
 //
 // A mesh's surfaces are not all drawn alike: a material may be a cutout,
@@ -74,7 +75,6 @@ import {
   type SurfacePart,
   type SurfaceParts,
 } from "./surfaceParts";
-import type { DetailView } from "../frame/detailView";
 import { FOG_CLASSES, FOG_INDEX, modelSeen, type ModelFog } from "./modelFog";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import { restingModelPose, type ModelInstance, type ModelPose } from "./modelInstances";
@@ -92,8 +92,7 @@ import {
   VIEW_PASS,
   type frameViews,
 } from "../records.gen";
-import { batch_caster, model_fog } from "@wasm/presentation/presentation_wasm.js";
-import { CULLED, IMPOSTOR, modelDetail, type ModelDetailPresentation } from "./modelDetail";
+import { batch_caster, model_fog, model_tiers } from "@wasm/presentation/presentation_wasm.js";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
 import { createBuildingLayer, type BuildingStats, type BuildingWalkStats } from "./buildingLayer";
@@ -119,6 +118,12 @@ export const ModelRecord = Instance;
 // Each drawable has ordinary and ghost runs, each with the same fog classes.
 const DRAW_CLASSES = FOG_CLASSES * 2;
 const RECORD_FLOATS = INSTANCE_WORDS;
+/** Rust's tiers for a model off screen and for its card (`view::CULLED`,
+ *  `view::IMPOSTOR`): `model_tiers` and `Batch.tier` give them. */
+const CULLED = -1;
+const IMPOSTOR = 4;
+/** The words `model_tiers` reads per model. */
+const TIER_INPUT = 6;
 export const modelVertexLayout = tgpu.vertexLayout(d.disarrayOf(ModelVertex));
 export const modelRecordLayout = tgpu.vertexLayout(d.disarrayOf(ModelRecord), "instance");
 export const modelAttribs = { ...modelVertexLayout.attrib, ...modelRecordLayout.attrib };
@@ -718,7 +723,8 @@ export interface CardAtlas {
 export async function createModelLayer(
   root: Root,
   registry: GpuRegistry,
-  detail: ModelDetailPresentation,
+  /** `presentation.models` as JSON, handed to Rust's tier rule unread. */
+  detail: string,
 ) {
   const device = root.device;
   const buildings = createBuildingLayer(device, registry);
@@ -818,6 +824,8 @@ export async function createModelLayer(
   let dirty = true;
   // Grow-once scratch: each unit's choice (bucket, or −1 culled, −2 card).
   let unitChoice = new Int32Array(64);
+  /** Each lab model's place and reach, as `model_tiers` reads them. */
+  let tierInput = new Float64Array(64 * TIER_INPUT);
   let bucketCount = new Int32Array(8);
   let bucketCursor = new Int32Array(8);
 
@@ -1226,29 +1234,20 @@ export async function createModelLayer(
     return changed;
   }
 
-  /** Choose, sort and upload a lab's models' draws. With `view` null every
-   *  model draws at its own tier (0 unless given) and nothing is culled.
-   *  The presentation frame's runs are `setFrame`'s, the props' `setProps`'. */
-  function pack(view: DetailView | null) {
-    hasXrayMeshes = frameXray;
-    const total = units.length;
-    const modelAt = (i: number) => units[i];
-    if (unitChoice.length < total) unitChoice = new Int32Array(total * 2);
-    const buckets = drawables.length * DRAW_CLASSES;
-    bucketCount.fill(0, 0, buckets);
-    let culled = 0;
-    let unitCards = 0;
-
-    // A mesh bucket, a card, or nothing.
-    for (let i = 0; i < total; i++) {
-      const inst = modelAt(i);
+  /** Each lab model's tier by Rust's rule for the frame's `View` record
+   *  (`CULLED`, a mesh tier or `IMPOSTOR`), in `units`' order. A model whose
+   *  appearance is not installed is sized nothing; its tier goes unread. */
+  function labTiers(view: Float32Array): Int32Array {
+    if (tierInput.length < units.length * TIER_INPUT)
+      tierInput = new Float64Array(units.length * TIER_INPUT * 2);
+    for (let i = 0; i < units.length; i++) {
+      const inst = units[i];
       const gpu = appearances.get(inst.appearance);
-      unitChoice[i] = CULLED;
+      const o = i * TIER_INPUT;
+      tierInput.fill(0, o, o + TIER_INPUT);
       if (!gpu) continue;
       const lying = inst.pose.kind === "corpse" ? (gpu.corpses[inst.pose.lies] ?? null) : null;
       const card = lying ? lying.card : gpu.farCard;
-      const tiers = tierCount(gpu.bundle);
-      let tier: number;
       // A fitted prop's reach grows with its largest scale, and a moving
       // piece's by how far it has moved.
       const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
@@ -1262,18 +1261,40 @@ export async function createModelLayer(
         !motion &&
         (inst.pose.kind !== "static" ||
           (gpu.bundle.kind === "static" && inst.pose.state === gpu.bundle.states[0]?.name));
-      if (inst.tier !== undefined || !view) tier = Math.min(tiers - 1, Math.max(0, inst.tier ?? 0));
-      else
-        tier = modelDetail(
-          detail,
-          view,
-          inst.x,
-          inst.y,
-          inst.z,
-          (lying ?? gpu).size * grow,
-          (lying ?? gpu).radius * grow + moved,
-          carded,
-        );
+      tierInput[o] = inst.x;
+      tierInput[o + 1] = inst.y;
+      tierInput[o + 2] = inst.z;
+      tierInput[o + 3] = (lying ?? gpu).size * grow;
+      tierInput[o + 4] = (lying ?? gpu).radius * grow + moved;
+      tierInput[o + 5] = carded ? 1 : 0;
+    }
+    return model_tiers(view, detail, tierInput.subarray(0, units.length * TIER_INPUT));
+  }
+
+  /** Choose, sort and upload a lab's models' draws. With `view` null every
+   *  model draws at its own tier (0 unless given) and nothing is culled.
+   *  The presentation frame's runs are `setFrame`'s, the props' `setProps`'. */
+  function pack(view: Float32Array | null) {
+    hasXrayMeshes = frameXray;
+    const total = units.length;
+    const modelAt = (i: number) => units[i];
+    if (unitChoice.length < total) unitChoice = new Int32Array(total * 2);
+    const buckets = drawables.length * DRAW_CLASSES;
+    bucketCount.fill(0, 0, buckets);
+    let culled = 0;
+    let unitCards = 0;
+    const chosen = view ? labTiers(view) : null;
+
+    // A mesh bucket, a card, or nothing.
+    for (let i = 0; i < total; i++) {
+      const inst = modelAt(i);
+      const gpu = appearances.get(inst.appearance);
+      unitChoice[i] = CULLED;
+      if (!gpu) continue;
+      const tier =
+        inst.tier !== undefined || !chosen
+          ? Math.min(tierCount(gpu.bundle) - 1, Math.max(0, inst.tier ?? 0))
+          : chosen[i];
       if (tier === CULLED) {
         culled++;
         continue;
@@ -1612,7 +1633,6 @@ export async function createModelLayer(
   }
 
   let viewKey = "";
-  /** The detail view the last frame packed at (null, exact, before any frame). */
 
   /** Every mesh run with the record buffer it draws from: the packed lab
    *  models', the props', then the presentation frame's. */
@@ -1690,8 +1710,8 @@ export async function createModelLayer(
     setSurfaceShown(surface: SurfaceClass, on: boolean) {
       hiddenSurfaces[surface] = !on;
     },
-    /** Choose a lab's models' draws for the camera (`view`), when anything changed. */
-    prepare(view: DetailView, key: string) {
+    /** Choose a lab's models' draws for the frame's `View` record, when anything changed. */
+    prepare(view: Float32Array, key: string) {
       if (!dirty && key === viewKey) return;
       viewKey = key;
       dirty = false;

@@ -4,10 +4,6 @@
 // battle, the labs, the workbench) draws with them.
 import game from "@fixtures/game.json";
 import {
-  validateModelDetail,
-  type ModelDetailPresentation,
-} from "@packages/battle-renderer/src/models/modelDetail";
-import {
   validateGlass,
   type GlassStyle,
 } from "@packages/battle-renderer/src/models/surfaceFragments";
@@ -16,9 +12,8 @@ import {
   type BuildingStyle,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 
-export const gameModelDetail: ModelDetailPresentation = validateModelDetail(
-  game.presentation.models as ModelDetailPresentation,
-);
+/** Handed to Rust's tier rule unread (`model_tiers`). */
+export const gameModelDetail = JSON.stringify(game.presentation.models);
 
 export const gameGlass: GlassStyle = validateGlass(game.presentation.glass);
 

@@ -36,8 +36,6 @@ import { createModelLayer, type CardAtlas } from "../models/modelLayer";
 import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
-import type { ModelDetailPresentation } from "../models/modelDetail";
-import { createDetailView, setDetailView } from "./detailView";
 import { Camera, CAMERA_WORDS, CameraAt, FrameHeader, VIEW_WORDS } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
@@ -68,8 +66,8 @@ export interface BattleFrameOptions {
   paint: PaintStyle;
   /** Minimum fraction of hidden rasterized surface fragments before a model receives its x-ray cue. */
   xrayMinHiddenFragmentFraction: number;
-  /** `presentation.models`: the models' detail tiers and impostor size. */
-  models: ModelDetailPresentation;
+  /** `presentation.models` as JSON: the tiers Rust gives a lab's own models. */
+  models: string;
   /** `presentation.glass`: how a pane of glass takes light. */
   glass: GlassStyle;
   world: WorldLayers;
@@ -197,7 +195,6 @@ export async function createBattleFrame(
       /** What the static batches held were sent for: new now, and with each
        *  new presentation world (which drops them). */
       let staticGeneration = ++generations;
-      const detailView = createDetailView();
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
           () => options.requestRedraw?.(),
@@ -222,7 +219,7 @@ export async function createBattleFrame(
           camera.write(cameraRecord.buffer);
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
           world.prepare(cameraRecord, viewRecord, sunShadow, casters, casterCount);
-          models.prepare(setDetailView(detailView, viewRecord), viewRecord.join());
+          models.prepare(viewRecord, viewRecord.join());
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           let raw = root.unwrap(encoder);

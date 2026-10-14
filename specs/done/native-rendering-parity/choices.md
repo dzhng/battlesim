@@ -281,14 +281,14 @@ serde_json's default float reader lands one ULP off on about one 17-digit number
 - **What moved:** nothing. Every digest, paired record and fixture is unchanged; no committed battle's outcome turned on a misread number.
 - **Held by** a paired record, `fixtures/parity/exact-numbers.json`: a battle whose map, units and orders carry numbers the default reader misreads. `crates/sim/tests/exact_numbers.rs` checks the simulation reads each one exactly and pins its digests; `web/tests/exactNumbers.test.ts` steps the browser's simulation module on the same battle and must reach the same digests. With the default reader the browser's build ends at a different digest from tick 0. `native/client/tests/counts.rs` still holds native's counts on boundary frames.
 
-### Labs that hand the renderer their own models take Rust's caster and fog rules
+### Labs that hand the renderer their own models take Rust's tier, caster and fog rules
 
-_Agent, `derive2rust`; resolved `lastowners`. Confidence: high._
+_Agent, `derive2rust`; resolved `lastowners` and the final review. Confidence: high._
 
-The caster rule and the fog group each have one owner in Rust: `view::batch_caster`, over `caster_tier`, and `view::model_fog`. Battles write them into `Batch.caster` and `Batch.fog`. A lab that calls `setModels` gets the same answers through two presentation-wasm calls, `batch_caster(tier, pass)` and `model_fog(lies, state, ground)`. `CASTER_COARSER`, the TypeScript fog rule and its test are deleted.
+The tier rule, the caster rule and the fog group each have one owner in Rust: `view::model_detail`, `view::batch_caster` (over `caster_tier`) and `view::model_fog`. Battles write them into `Batch.tier`, `Batch.caster` and `Batch.fog`. A lab that calls `setModels` gets the same answers through presentation-wasm: `model_tiers(view, detail, models)` tiers every lab model in one call for the frame's `View` record (`View::from_record`), and `batch_caster(tier, pass)` and `model_fog(lies, state, ground)` name the rest. No TypeScript copy of any of the three remains.
 
 - **One behaviour change:** in a lab, a model with fewer than four tiers no longer casts from its own coarsest tier. A battle never did this. The only such model is the workbench's deliberately broken tank.
-- **Still a copy:** the lab path's tier choice itself (`modelDetail.ts`) mirrors Rust's `model_detail`.
+- **Held by** `view.rs`'s tests: the thresholds, the cull past the shadow margin, an airframe drawn for its shadow, and a frame's `View` record tiering a model exactly as the frame's camera did.
 
 ### `min`, `max`, `round` and `signum` are Rust's own
 

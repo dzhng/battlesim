@@ -156,7 +156,7 @@ export function farPoseBounds(
   );
 }
 
-/** How big a model is drawn, for its tier and culling (`modelDetail`): its
+/** How big a model is drawn, for its tier and culling (`view::model_detail`): its
  *  largest extent, and its reach from its foot. */
 export function boundsSize(b: Bounds): { size: number; radius: number } {
   return {

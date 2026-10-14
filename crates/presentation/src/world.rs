@@ -173,7 +173,7 @@ pub struct Muzzle {
     pub offset: Trs,
 }
 
-/// How big a model is drawn, for its tier and culling (`modelDetail`):
+/// How big a model is drawn, for its tier and culling (`view::model_detail`):
 /// standing height and reach from its foot, metres.
 #[derive(Clone, Copy, Debug, Default, Deserialize)]
 pub struct Bounds {
