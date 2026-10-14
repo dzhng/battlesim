@@ -15,8 +15,8 @@ use crate::damage;
 use crate::deployment;
 use crate::digest::Digest;
 use crate::flight::{
-    fire_round, predicted_path, solve_fire, solve_launch_past, Aim, BodyId, FiringSolution,
-    FlightConfig, Launch, LaunchProfile, NoSolution, ProjectileId, Shooter,
+    predicted_path, Aim, BodyId, FiringSolution, FlightConfig, Launch, LaunchProfile, NoSolution,
+    ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
 use crate::lean;
@@ -700,6 +700,7 @@ fn friendly_in_line(
     (s, burst): (&FiringSolution, V3),
     weapon: &Weapon,
     leaning_round: Option<UnitId>,
+    carrier: V3,
 ) -> bool {
     let margin = ctx.rules.physics.friendly_prefire_margin_m;
     let (def, profile) = (&weapon.def, &weapon.profile);
@@ -707,7 +708,7 @@ fn friendly_in_line(
         &ctx.arsenal.config,
         profile,
         origin,
-        s.velocity,
+        s.velocity + carrier,
         s.time_of_flight_s,
     );
     units
@@ -773,6 +774,7 @@ fn engage(
     r: &Resolved,
 ) -> Result<FiringSolution, ActionReason> {
     let weapon = &ctx.arsenal.weapons[spec.kinds[k]];
+    let carrier = unit.flight_velocity();
     let bearing = if spec.turret {
         bearing_from(unit, r.point)
     } else {
@@ -795,8 +797,9 @@ fn engage(
             origin,
             target: r.point,
             target_velocity: r.velocity,
+            carrier,
         };
-        match solve_fire(
+        match crate::flight::solve_fire(
             ctx.world,
             &ctx.arsenal.config,
             &weapon.profile,
@@ -807,7 +810,16 @@ fn engage(
             Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
             Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
             Ok((s, burst))
-                if friendly_in_line(ctx, unit, units, origin, (&s, burst), weapon, hull) =>
+                if friendly_in_line(
+                    ctx,
+                    unit,
+                    units,
+                    origin,
+                    (&s, burst),
+                    weapon,
+                    hull,
+                    carrier,
+                ) =>
             {
                 Err(ActionReason::FriendlyInLine)
             }
@@ -1128,6 +1140,14 @@ fn return_fire_threat(
                 .hull()
                 .map_or(ctx.rules.physics.infantry_eye_m, |h| h.eye_m),
         );
+    let carrier = if matches!(
+        ctx.rules.catalog.get(kind).mobility,
+        contract::catalog::Mobility::Air { .. }
+    ) {
+        v3(track.velocity.x, track.velocity.y, 0.0)
+    } else {
+        V3::default()
+    };
     ctx.arsenal.specs(kind).iter().any(|spec| {
         let origin = match spec.muzzle {
             Some(muzzle) => placed_muzzle(
@@ -1157,7 +1177,7 @@ fn return_fire_threat(
                     || (ctx.world.sight_clear(eye, target)
                         && ctx.world.foliage_depth(eye, target)
                             < ctx.rules.sensors.foliage_full_block))
-                && solve_launch_past(
+                && crate::flight::solve_launch_past(
                     ctx.world,
                     &ctx.arsenal.config,
                     &weapon.profile,
@@ -1165,6 +1185,7 @@ fn return_fire_threat(
                         origin,
                         target,
                         target_velocity: v3(0.0, 0.0, 0.0),
+                        carrier,
                     },
                     None,
                 )
@@ -2088,6 +2109,7 @@ fn fire(
             origin,
             target: point,
             target_velocity: r.velocity,
+            carrier: unit.flight_velocity(),
         };
         // Cover widens the spread; it never softens a hit (V03).
         let cover = if shelter > 0.0 {
@@ -2136,7 +2158,7 @@ fn fire(
                 false
             }
         };
-        if let Ok(Some((launch, _))) = fire_round(
+        if let Ok(Some((launch, _))) = crate::flight::fire_round(
             ctx.world,
             &ctx.arsenal.config,
             &weapon.profile,

@@ -31,6 +31,7 @@ fn lob_profile() -> LaunchProfile {
 fn launch(origin: V3, velocity: V3) -> Launch {
     Launch {
         origin,
+        carrier: V3::default(),
         velocity,
         gravity_scale: 1.0,
         lifetime_s: profile("rifle").lifetime_s,
@@ -119,6 +120,7 @@ fn a_gun_round_is_slowed_for_the_eye_but_flies_the_real_round_s_line() {
             origin: o,
             target,
             target_velocity: V3::default(),
+            carrier: V3::default(),
         };
         let s = solve_launch_past(&world, &config(), &p, &aim, None).unwrap();
         let (real, _) = analytic_elevations(real_mps, G, distance, 0.0);
@@ -166,6 +168,7 @@ fn a_missile_leaves_at_its_launch_speed_and_speeds_up_striking_at_its_full_range
         origin: o,
         target,
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let (launch, s) = fire_round(
         &world,
@@ -271,6 +274,7 @@ fn the_short_range_grenade_keeps_the_old_full_range_lob_height() {
             origin,
             target: origin + v3(distance, 0.0, 0.0),
             target_velocity: V3::default(),
+            carrier: V3::default(),
         };
         let shot = solve_launch_past(&world, &config(), p, &aim, None).unwrap();
         shot.velocity.z.powi(2) / (2.0 * g(p))
@@ -294,6 +298,7 @@ fn a_stationary_ground_target_gets_the_analytic_low_elevation() {
         origin: o,
         target,
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let s = solve_launch_past(&world, &config(), &grenade, &aim, None).unwrap();
     let (low, _) = analytic_elevations(grenade.speed_mps, g(&grenade), 400.0, -o.z);
@@ -322,6 +327,7 @@ fn unequal_launch_and_target_heights_follow_the_analytic_arc_and_hit() {
             origin,
             target,
             target_velocity: V3::default(),
+            carrier: V3::default(),
         };
         let s = solve_launch_past(&world, &config(), &lob, &aim, None).unwrap();
         let (low, _) = analytic_elevations(lob.speed_mps, g(&lob), 250.0, target.z - origin.z);
@@ -356,6 +362,7 @@ fn leading_steady_observed_motion_hits_and_aiming_at_the_present_misses() {
             origin,
             target: centre,
             target_velocity: observed,
+            carrier: V3::default(),
         };
         let s = solve_launch_past(&world, &config(), &rifle, &aim, None).unwrap();
         let mut store = Projectiles::new(config());
@@ -382,6 +389,7 @@ fn indirect_fire_at_a_last_seen_point_misses_after_target_relocation() {
         origin,
         target: observed,
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let solution = solve_launch_past(&world, &config(), &artillery, &aim, None).unwrap();
     assert_eq!(solution.arc, ArcKind::High);
@@ -417,6 +425,7 @@ fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
         origin,
         target: walker.base + v3(0.0, 0.0, 0.85),
         target_velocity: walker.velocity,
+        carrier: V3::default(),
     };
     let s = solve_launch_past(&world, &config(), &grenade, &aim, None).unwrap();
     // Reverses ten ticks after launch; the round keeps its launch velocity.
@@ -484,6 +493,7 @@ fn an_unreachable_target_has_no_firing_solution() {
         origin: o,
         target: v3(100.0 + max_range + 20.0, 200.0, 0.0),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     assert_eq!(
         solve_launch_past(&world, &config(), &grenade, &beyond, None),
@@ -509,6 +519,7 @@ fn an_unreachable_target_has_no_firing_solution() {
     let fleeing = Aim {
         target: v3(300.0, 200.0, 0.0),
         target_velocity: v3(90.0, 0.0, 0.0),
+        carrier: V3::default(),
         ..beyond
     };
     assert_eq!(
@@ -541,6 +552,7 @@ fn the_high_arc_is_used_only_by_indirect_fire_and_never_by_ignoring_a_ridge() {
         origin: o,
         target: v3(400.0, 200.0, 0.0),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     // Direct fire: the low arc meets the ridge, so there is no solution.
     let Err(NoSolution::Blocked { arc, point, .. }) = solve_launch_past(
@@ -613,6 +625,7 @@ fn a_synthetic_artillery_profile_reaches_2500m_on_the_high_arc() {
         origin: v3(100.0, 200.0, 1.4),
         target: v3(2_600.0, 200.0, 0.0),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let solution = solve_launch_past(&world, &config(), &artillery, &aim, None)
         .expect("2.5 km is reachable within the authored lifetime");
@@ -654,6 +667,7 @@ fn every_shipped_artillery_row_reaches_its_declared_range_on_the_high_arc() {
             origin: v3(100.0, 200.0, 1.4),
             target: v3(100.0 + row.range_m, 200.0, 0.0),
             target_velocity: V3::default(),
+            carrier: V3::default(),
         };
         let solution = solve_launch_past(&world, &config, &profile, &aim, None)
             .unwrap_or_else(|error| panic!("{name} cannot reach {} m: {error:?}", row.range_m));
@@ -679,6 +693,7 @@ fn an_indirect_arc_still_stops_on_a_prop_in_its_curved_path() {
         origin: v3(200.0, 200.0, 1.4),
         target: v3(400.0, 200.0, 0.0),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let Err(NoSolution::Blocked { arc, point, .. }) =
         solve_launch_past(&world, &config(), &mortar(Trajectory::Indirect), &aim, None)
@@ -826,6 +841,7 @@ fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
         origin: v3(200.0, 100.0, 1.4),
         target: v3(400.0, 100.0, 0.0),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let mut rng = Rng::new(3);
     let (launch, fired) = fire_round(
@@ -882,6 +898,7 @@ fn missed_direct_rounds_reach_ground_within_the_post_target_fall_limit() {
         origin: v3(100.0, 500.0, 1.4),
         target: v3(700.0, 500.0, 1.4),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     for name in ["rifle", "hmg", "tank_ap", "tank_he"] {
         for seed in 0..32 {
@@ -929,6 +946,7 @@ fn the_miss_tail_preserves_a_high_body_hit_before_the_aim_plane() {
         origin: v3(100.0, 500.0, 2.0),
         target: v3(700.0, 500.0, 2.0),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     for name in ["hmg", "tank_ap"] {
         let p = profile(name);
@@ -968,6 +986,7 @@ fn a_ricochet_keeps_its_deflected_flight_instead_of_the_post_target_fall() {
         origin: v3(200.0, 500.0, 1.4),
         target: v3(400.0, 500.0, 1.4),
         target_velocity: V3::default(),
+        carrier: V3::default(),
     };
     let (launch, _) = fire_round(
         &world,

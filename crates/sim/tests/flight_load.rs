@@ -129,6 +129,7 @@ fn run(rate_scale: f64, seconds: f64) {
                     origin: place(&bodies[i], e.muzzle_z),
                     target: place(foe, 0.9),
                     target_velocity: (foe.to.base - foe.from.base) * (1.0 / dt),
+                    carrier: v3(0.0, 0.0, 0.0),
                 };
                 let shooter = Some(Shooter {
                     unit: bodies[i].unit,

@@ -78,6 +78,7 @@ fn main() {
             origin: v3(150.0, 300.0, 1.4),
             target: pose.base + v3(0.0, 0.0, half.z),
             target_velocity: V3::default(),
+            carrier: V3::default(),
         };
         let launched = fire_round(
             &world,
