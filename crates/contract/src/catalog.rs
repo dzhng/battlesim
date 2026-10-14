@@ -856,7 +856,7 @@ impl Catalog {
     }
 
     /// A self-contained view for readers outside the simulation: every
-    /// type with its id and carried mounts, in index order, beside the
+    /// type with its id, carried mounts and vehicle class, in index order, beside the
     /// roles, parts and soldier kinds; and the resolved `documents` a
     /// scenario's rules carry as their catalog.
     pub fn view(&self) -> Value {
@@ -866,6 +866,7 @@ impl Catalog {
                 let mut v = serde_json::to_value(self.get(t)).expect("types serialize");
                 v["id"] = Value::from(self.id(t));
                 v["mounts"] = serde_json::to_value(self.mounts(t)).expect("mounts serialize");
+                v["vehicle_class"] = Value::from(self.get(t).vehicle_class());
                 v
             })
             .collect();
@@ -912,6 +913,38 @@ impl UnitType {
 
     pub fn has_role(&self, role: &str) -> bool {
         self.roles.iter().any(|r| r == role)
+    }
+
+    /// A vehicle's presentation class, from its physics: how it moves
+    /// (tracked, wheeled, `air`, or `high_air` for a fixed-wing aircraft),
+    /// its hull's weight class, and `_logistics` for a supply hauler, as
+    /// `tracked_heavy`, `air_light` or `wheeled_medium_logistics`. Vehicle
+    /// sound, running gear and art rules are keyed by it, never by unit id.
+    /// None for a squad.
+    pub fn vehicle_class(&self) -> Option<String> {
+        let hull = self.hull()?;
+        let moves = match self.mobility {
+            Mobility::Foot { .. } => return None,
+            Mobility::Tracked { .. } => "tracked",
+            Mobility::Wheeled { .. } => "wheeled",
+            Mobility::Air {
+                layer: AltitudeLayer::HighAir,
+                ..
+            } => "high_air",
+            Mobility::Air { .. } => "air",
+        };
+        let weight = match hull.weight_class {
+            WeightClass::Light => "light",
+            WeightClass::Medium => "medium",
+            WeightClass::Heavy => "heavy",
+            WeightClass::Immovable => "immovable",
+        };
+        let hauls = if self.has_role("logistics") {
+            "_logistics"
+        } else {
+            ""
+        };
+        Some(format!("{moves}_{weight}{hauls}"))
     }
 }
 

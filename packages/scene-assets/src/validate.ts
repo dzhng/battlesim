@@ -22,7 +22,6 @@ import {
   hullFixed,
   isArticulation,
   mountRoles,
-  vehicleClass,
   type Articulation,
   type MountDraws,
   type MountRow,
@@ -352,7 +351,7 @@ export async function validateAppearance(
         bundle,
         tiers.map((t) => t.triangles),
         // A vehicle no type draws has no class, and takes the default rules.
-        types.length ? [...new Set(types.map((id) => vehicleClass(units.type(id))))] : [null],
+        types.length ? [...new Set(types.map((id) => units.type(id).vehicle_class))] : [null],
       ),
     );
     return {
@@ -1007,7 +1006,7 @@ export function typeFindings(
       fix: `fit the hull to the simulation's box; parts that stand outside it (antennas, stowage, crew) go under a "${DRESSING}*" node, held to its class's dressing allowance`,
     }),
   );
-  const allowance = unitArtRule(vehicleClass(type)).dressing;
+  const allowance = unitArtRule(type.vehicle_class).dressing;
   for (const d of dressing)
     out.push(
       ...dressingFindings(

@@ -33,7 +33,7 @@ export interface UnitArtRule extends Budget {
   dressing: DressingAllowance;
 }
 
-/** The rules by class: a vehicle class (`vehicleClass`) or `SOLDIER_CLASS`.
+/** The rules by class: a vehicle class (`vehicle_class`) or `SOLDIER_CLASS`.
  *  A class without a row, and a field a row leaves out, take `default`'s.
  *  The vehicle budgets were set from the first rebuilt vehicles (Abrams,
  *  Stryker, HMMWV, and the test units that share their classes) with about

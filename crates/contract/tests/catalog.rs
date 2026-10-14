@@ -858,3 +858,81 @@ fn every_card_label_is_concise_and_separate_from_its_id() {
         );
     }
 }
+
+/// A vehicle's presentation class comes from its physics (how it moves, how
+/// heavy its hull is, whether it hauls supply), never its unit id, so a new
+/// vehicle sounds and articulates as its kind with no table edit. The view
+/// carries it for every reader; a squad has none.
+#[test]
+fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
+    let roles = json!({ "roles": {
+        "recon": { "name": "Recon", "description": "", "symbol": [] },
+        "logistics": { "name": "Logistics", "description": "", "symbol": [] },
+    } });
+    let mut wheeled = base_tank();
+    wheeled["abstract"] = json!(false);
+    wheeled["body"]["hull"]["weight_class"] = json!("medium");
+    wheeled["body"]["hull"]["wreck"] = json!("medium_wreck");
+    wheeled["mobility"] = json!({ "wheeled": {
+        "offroad_kmh": 30, "road_kmh": 60, "turn_deg_s": 30,
+        "turning_radius_m": 8, "reverse_fraction": 0.3 } });
+    let mut recon = wheeled.clone();
+    recon["roles"] = json!(["recon"]);
+    let mut truck = wheeled.clone();
+    truck["roles"] = json!(["logistics"]);
+    let mut heli = base_tank();
+    heli["abstract"] = json!(false);
+    heli["body"]["hull"]["weight_class"] = json!("light");
+    heli["body"]["hull"]["wreck"] = json!("light_wreck");
+    heli["mobility"] = json!({ "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6 } });
+    let mut fighter = heli.clone();
+    fighter["mobility"]["air"]["cruise_kmh"] = json!(300);
+    fighter["mobility"]["air"]["layer"] = json!("high_air");
+    let mut docs = units(json!({
+        "base": base_tank(),
+        "tank": { "extends": "base" },
+        "recon": recon,
+        "truck": truck,
+        "heli": heli,
+        "fighter": fighter,
+        "team": {
+            "name": "Team", "description": "", "faction": "test", "family": "infantry",
+            "roles": ["infantry"], "cost": 100,
+            "body": { "squad": { "slots": ["rifleman"] } },
+            "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
+            "sensors": { "ground_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
+            "sound": { "profile": "infantry", "loudness_m": 200 }
+        }
+    }));
+    docs.push(roles);
+    docs.push(json!({ "props": {
+        "medium_wreck": { "extends": "wreck",
+            "body": { "weight_class": "medium", "cover_tier": "medium", "hp": 250 },
+            "destroyed": "removed" },
+    } }));
+    docs.push(json!({ "soldiers": {
+        "rifleman": { "name": "Rifleman", "description": "", "hp": 100, "appearance": ["r"],
+            "mounts": [{ "id": "rifles", "name": "Rifle", "weapons": ["rifle"], "squad": true }] },
+    } }));
+    let view = resolve(&docs).unwrap().view();
+    let classes: Vec<(&str, &Value)> = view["units"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| (u["id"].as_str().unwrap(), &u["vehicle_class"]))
+        .collect();
+    let want = [
+        ("fighter", json!("high_air_light")),
+        ("heli", json!("air_light")),
+        ("recon", json!("wheeled_medium")),
+        ("tank", json!("tracked_heavy")),
+        ("team", Value::Null),
+        ("truck", json!("wheeled_medium_logistics")),
+    ];
+    let mut classes = classes;
+    classes.sort_by_key(|(id, _)| *id);
+    assert_eq!(
+        classes,
+        want.iter().map(|(id, c)| (*id, c)).collect::<Vec<_>>()
+    );
+}

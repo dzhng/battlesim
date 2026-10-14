@@ -151,6 +151,12 @@ export interface UnitType {
     on?: string;
   };
   mounts: MountRow[];
+  /** Its presentation class, as the catalog derives it from its physics
+   *  (`UnitType::vehicle_class`): how it moves, its hull's weight class and
+   *  `_logistics` for a supply hauler, as `tracked_heavy`, `air_light` or
+   *  `wheeled_medium_logistics`. Vehicle sound, running gear and art rules
+   *  are keyed by it, never by unit id. Null for a squad. */
+  vehicle_class: string | null;
   capabilities: {
     deploy?: { seconds: number; pack_seconds?: number };
     supply?: { stock: number };
@@ -315,24 +321,6 @@ export function mountRoles(
 ): MountRole[] {
   if (!("hull" in type.body)) return type.mounts.map(() => "hand");
   return type.mounts.map((m) => draws?.[m.id] || (hullFixed(m) ? "hull" : "hand"));
-}
-
-/** A vehicle's presentation class, derived from its physics: how it moves
- *  (tracked, wheeled or air), its hull's weight class, and `_logistics` for
- *  a supply hauler (a truck), as `tracked_heavy`, `air_light` or
- *  `wheeled_medium_logistics`. Vehicle sound and track gauge are keyed by
- *  it, never by unit id. Null for a squad. */
-export function vehicleClass(type: Pick<UnitType, "body" | "mobility" | "roles">): string | null {
-  if (!("hull" in type.body) || "foot" in type.mobility) return null;
-  const moves = airborne(type)
-    ? highAir(type)
-      ? "high_air"
-      : "air"
-    : "tracked" in type.mobility
-      ? "tracked"
-      : "wheeled";
-  const hauls = type.roles.includes("logistics") ? "_logistics" : "";
-  return `${moves}_${type.body.hull.weight_class}${hauls}`;
 }
 
 export class UnitCatalog {

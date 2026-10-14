@@ -309,35 +309,6 @@ fn top_speed_kmh(t: &Value) -> f64 {
     m[way][field].as_f64().unwrap_or(0.0)
 }
 
-/// A vehicle's presentation class (`vehicleClass`): how it moves, its
-/// hull's weight class, and `_logistics` for a supply hauler; none for a squad.
-fn vehicle_class(t: &Value) -> Option<String> {
-    let hull = t["body"].get("hull")?;
-    let m = &t["mobility"];
-    if m.get("foot").is_some() {
-        return None;
-    }
-    let moves = if airborne(t) {
-        // A fixed-wing aircraft sounds as one: the jet loop, and the alarm
-        // its side's first one raises.
-        if m["air"]["layer"].as_str() == Some("high_air") {
-            "high_air"
-        } else {
-            "air"
-        }
-    } else if m.get("tracked").is_some() {
-        "tracked"
-    } else {
-        "wheeled"
-    };
-    let hauls = if names(&t["roles"]).any(|r| r == "logistics") {
-        "_logistics"
-    } else {
-        ""
-    };
-    Some(format!("{moves}_{}{hauls}", hull["weight_class"].as_str()?))
-}
-
 /// The installed art: the runtime catalog's entries for what the battle
 /// wears, each worn vehicle's wreck and each side's faction look, and how
 /// their contents are read.
@@ -823,7 +794,8 @@ fn unit_types(
     for kind in kinds.iter().collect::<BTreeSet<_>>() {
         let t = catalog.get(kind)?;
         let hull = catalog.hull(kind)?;
-        let class = vehicle_class(t);
+        // Its vehicle class, as the catalog derives it from its physics.
+        let class = t["vehicle_class"].as_str().map(str::to_owned);
         let mounts: &[Value] = t["mounts"].as_array().map_or(&[], Vec::as_slice);
         let installed = t["appearance"].as_str().filter(|a| art.has(a));
         let rigs = installed.map(|a| &art.entry(a)["mounts"]);
@@ -1111,32 +1083,4 @@ fn number(rules: &Value, section: &str, key: &str) -> Result<f64, String> {
     section.split('.').fold(rules, |v, k| &v[k])[key]
         .as_f64()
         .ok_or(format!("rules: no {section}.{key}"))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::vehicle_class;
-    use serde_json::json;
-
-    /// The sound frame raises the air alarm and plays the jet loop for a
-    /// `high_air_*` class: a fixed-wing type must get one, a helicopter not.
-    #[test]
-    fn a_fixed_wing_type_sounds_as_high_air_and_a_helicopter_as_air() {
-        let flying = |layer: Option<&str>| {
-            let mut air = json!({ "cruise_kmh": 300.0 });
-            if let Some(layer) = layer {
-                air["layer"] = json!(layer);
-            }
-            json!({ "body": { "hull": { "weight_class": "light" } }, "mobility": { "air": air } })
-        };
-        assert_eq!(
-            vehicle_class(&flying(Some("high_air"))).as_deref(),
-            Some("high_air_light")
-        );
-        assert_eq!(
-            vehicle_class(&flying(Some("low_air"))).as_deref(),
-            Some("air_light")
-        );
-        assert_eq!(vehicle_class(&flying(None)).as_deref(), Some("air_light"));
-    }
 }

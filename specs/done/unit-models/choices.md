@@ -963,6 +963,26 @@ Least confident first.
 - **Verdict:** sound.
 - **Confidence:** high.
 
+### The vehicle class has one owner, in Rust
+
+- **When:** after the spec closed; it moved the class to its owner.
+- **The choice:** `contract::catalog::UnitType::vehicle_class` derives the
+  class, and `Catalog::view` carries it on each unit as `vehicle_class` (null
+  for a squad). The presentation crate's `fielded.rs` and every TypeScript
+  reader (art rules and budgets, the air-audio scene) read it from the view.
+  The TypeScript `vehicleClass` and the presentation crate's private copy are
+  deleted, and the derivation's tests moved to `crates/contract/tests/catalog.rs`.
+- **Re-recorded:** `fixtures/catalog.json`, the committed game view, gains
+  the field on every unit (`BLESS_CATALOG=1`). The view's `documents`, the
+  rules and map digests, and map identities don't change, because the class
+  is computed and never part of a document. A native-parity capture of
+  paris-corner replayed with every plate's counts equal.
+- **The gap:** The six `wheeled_heavy` roster vehicles (the heavy rocket
+  artillery among them) have no engine-sound row and no track gauge, so they
+  take `default`. That predates this move.
+- **Verdict:** sound.
+- **Confidence:** high.
+
 ### What a wreck is, and how it finds its art
 
 - **When:** wrecks (slice 11). Finished in the review.

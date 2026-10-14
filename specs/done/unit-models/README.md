@@ -128,7 +128,8 @@ Content and catalogs:
   `fixtures/maps/street/`.
 - Menu reel pin: `crates/sim/tests/menu_reel.rs`, with recordings under
   `crates/sim/tests/fixtures/menu-reel/`.
-- Presentation class: `packages/scene-assets/src/units.ts` `vehicleClass`.
+- Presentation class: `crates/contract/src/catalog.rs` `UnitType::vehicle_class`,
+  carried by the catalog view as `vehicle_class`.
   Row inheritance: `packages/renderer-core/src/kindTable.ts` `inheritRows`.
   Sounds: `fixtures/game.json` `presentation.audio.vehicles` and
   `fixtures/sounds.json`.

@@ -47,8 +47,8 @@ resolve inheritance: the battle lab gives a derived row without a choice of its 
 its nearest ancestor's (`inheritRows`, as for every weapon-keyed presentation table),
 else the `default` row's. A hull's launch is heard as its mount's first weapon row,
 not its currently selected ammunition. Vehicle loops are keyed by vehicle class
-(`vehicleClass` in `scene-assets/src/units.ts`), derived from mobility, hull
-weight and the logistics role.
+(the catalog view's `vehicle_class`, which `contract::catalog::UnitType::vehicle_class`
+derives from mobility, hull weight and the logistics role).
 
 The [sound workbench](../../apps/sound-workbench/README.md) auditions the complete
 library, including unused reloads and mechanical actions. Storing a clip does not

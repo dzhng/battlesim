@@ -25139,7 +25139,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "body": {
@@ -25327,7 +25328,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "eastern_2s19_msta_s_2s19m2",
@@ -25420,7 +25422,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "eastern_9k515_tornado_s_heavy_rocket_artillery",
@@ -25514,7 +25517,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_heavy"
     },
     {
       "body": {
@@ -25623,7 +25627,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "body": {
@@ -25732,7 +25737,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "body": {
@@ -25850,7 +25856,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "eastern_bm_21_grad_bm_21_rocket_artillery",
@@ -25944,7 +25951,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_heavy"
     },
     {
       "appearance": "eastern_bmp_ifv_family_bmp_2m_berezhok",
@@ -26060,7 +26068,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "eastern_bmp_ifv_family_bmp_3",
@@ -26177,7 +26186,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "eastern_brm_brm_3k",
@@ -26272,7 +26282,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "eastern_btr_btr_82a",
@@ -26367,7 +26378,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "eastern_buk_buk_m3_medium_range_air_defense",
@@ -26469,7 +26481,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "eastern_sukhoi_flanker_family_su_34",
@@ -26625,7 +26638,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "eastern_j_10_vigorous_dragon_j_10c",
@@ -26758,7 +26772,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "eastern_ka_52_alligator_ka_52m",
@@ -26873,7 +26888,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "eastern_btr_btr_82a",
@@ -26975,7 +26991,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "body": {
@@ -27170,7 +27187,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "eastern_btr_btr_82a",
@@ -27272,7 +27290,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "eastern_mi_24_mi_35_hind_mi_35m",
@@ -27387,7 +27406,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "eastern_mi_28_havoc_mi_28nm",
@@ -27502,7 +27522,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "eastern_mi_8_hip_mi_8amtsh",
@@ -27625,7 +27646,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "eastern_pantsir_pantsir_sm",
@@ -27727,7 +27749,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "eastern_plz_05_chinese_tracked_155_mm_howitzer",
@@ -27820,7 +27843,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "body": {
@@ -27929,7 +27953,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "body": {
@@ -28038,7 +28063,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -28140,7 +28166,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -28242,7 +28269,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "body": {
@@ -28350,7 +28378,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "eastern_btr_btr_82a",
@@ -28452,7 +28481,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "body": {
@@ -28555,7 +28585,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "eastern_sukhoi_flanker_family_su_34",
@@ -28692,7 +28723,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "eastern_sukhoi_flanker_family_su_34",
@@ -28829,7 +28861,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "eastern_t_14_armata_main_battle_tank",
@@ -28946,7 +28979,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "eastern_t_15_armata_heavy_ifv",
@@ -29062,7 +29096,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "eastern_t_72_t_72b3_2016",
@@ -29179,7 +29214,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "eastern_t_80_t_80bvm",
@@ -29296,7 +29332,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "eastern_t_90_t_90m_proryv",
@@ -29413,7 +29450,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "eastern_tigr_tigr_m",
@@ -29508,7 +29546,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_light"
     },
     {
       "appearance": "eastern_type_15_ztq_15_light_tank",
@@ -29625,7 +29664,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "eastern_type_99_ztz_99a",
@@ -29742,7 +29782,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "eastern_ural_4320_general_resupply",
@@ -29821,7 +29862,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium_logistics"
     },
     {
       "appearance": "eastern_z_10_attack_helicopter",
@@ -29936,7 +29978,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "eastern_z_20_utility_transport",
@@ -30059,7 +30102,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "eastern_zbl_08_wheeled_ifv",
@@ -30154,7 +30198,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_ajax_tracked_reconnaissance_vehicle",
@@ -30249,7 +30294,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "body": {
@@ -30358,7 +30404,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "europe_aw101_merlin_hc4",
@@ -30481,7 +30528,8 @@
       "sound": {
         "loudness_m": 1000.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "europe_aw159_wildcat_ah1",
@@ -30578,7 +30626,8 @@
       "sound": {
         "loudness_m": 800.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "europe_boxer_apc",
@@ -30673,7 +30722,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_boxer_rct30",
@@ -30768,7 +30818,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
@@ -30870,7 +30921,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_caesar_88",
@@ -30964,7 +31016,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_heavy"
     },
     {
       "appearance": "europe_centauro_ii",
@@ -31082,7 +31135,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_ch_47_chinook_hc6",
@@ -31205,7 +31259,8 @@
       "sound": {
         "loudness_m": 1000.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "europe_challenger_challenger_2_tes",
@@ -31322,7 +31377,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_challenger_challenger_3",
@@ -31452,7 +31508,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_cv90120_light_tank",
@@ -31569,7 +31626,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "europe_cv90_cv9040c",
@@ -31663,7 +31721,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "europe_cv90_mk_iv",
@@ -31757,7 +31816,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "europe_ebrc_jaguar_armed_reconnaissance_vehicle",
@@ -31875,7 +31935,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_ec665_tiger_had",
@@ -31990,7 +32051,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "europe_ec665_tiger_uht",
@@ -32105,7 +32167,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "europe_eurofighter_typhoon_tranche_3",
@@ -32238,7 +32301,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "europe_fennek_reconnaissance_vehicle",
@@ -32334,7 +32398,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_tornado_ids",
@@ -32490,7 +32555,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -32592,7 +32658,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_kf51_panther_prototype_main_battle_tank",
@@ -32709,7 +32776,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_leclerc_xlr",
@@ -32826,7 +32894,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_leopard_2_2a6",
@@ -32943,7 +33012,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_leopard_2_2a7v",
@@ -33060,7 +33130,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_leopard_2_2a8",
@@ -33190,7 +33261,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_boxer_rct30",
@@ -33292,7 +33364,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_man_hx_general_resupply",
@@ -33371,7 +33444,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium_logistics"
     },
     {
       "body": {
@@ -33566,7 +33640,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "europe_mars_ii_multiple_launch_rocket_system",
@@ -33659,7 +33734,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_boxer_rct30",
@@ -33761,7 +33837,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -33863,7 +33940,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_nasams_nasams_3",
@@ -33965,7 +34043,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_nh90_tth",
@@ -34088,7 +34167,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "europe_puma_level_c",
@@ -34204,7 +34284,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "europe_pzh_2000_tracked_155_mm_howitzer",
@@ -34297,7 +34378,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "body": {
@@ -34405,7 +34487,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "europe_boxer_rct30",
@@ -34507,7 +34590,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_tornado_ecr",
@@ -34644,7 +34728,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "europe_tornado_ecr",
@@ -34781,7 +34866,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "europe_vbci_infantry_fighting_vehicle",
@@ -34876,7 +34962,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "europe_vbl_machine_gun_scout",
@@ -34971,7 +35058,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_light"
     },
     {
       "appearance": "f_16c_block_50",
@@ -35105,7 +35193,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "body": {
@@ -35215,7 +35304,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "body": {
@@ -35325,7 +35415,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "body": {
@@ -35494,7 +35585,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "us_acv_acv_p",
@@ -35589,7 +35681,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_ah_1z_viper_attack_helicopter",
@@ -35704,7 +35797,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "us_ah_6_mh_6_little_bird_ah_6m",
@@ -35819,7 +35913,8 @@
       "sound": {
         "loudness_m": 800.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "us_ah_6_mh_6_little_bird_mh_6m",
@@ -35942,7 +36037,8 @@
       "sound": {
         "loudness_m": 800.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "body": {
@@ -36050,7 +36146,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "body": {
@@ -36163,7 +36260,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "us_ch_47_chinook_ch_47f",
@@ -36286,7 +36384,8 @@
       "sound": {
         "loudness_m": 1000.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "us_ea_18g_growler_electronic_warfare_aircraft",
@@ -36423,7 +36522,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "us_ea_18g_growler_electronic_warfare_aircraft",
@@ -36560,7 +36660,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "f_16c_block_50",
@@ -36716,7 +36817,8 @@
       "sound": {
         "loudness_m": 1400.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "body": {
@@ -36844,7 +36946,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "us_lav_lav_25a2",
@@ -36939,7 +37042,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_lav_lav_at",
@@ -37034,7 +37138,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -37136,7 +37241,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_m109_paladin_m109a7",
@@ -37229,7 +37335,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "us_m10_booker",
@@ -37346,7 +37453,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "us_m1127_stryker_rv_reconnaissance_vehicle",
@@ -37442,7 +37550,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_m1129_stryker_mortar_120_mm_mortar_carrier",
@@ -37536,7 +37645,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_heavy"
     },
     {
       "appearance": "us_m1151_hmmwv_hmg",
@@ -37631,7 +37741,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_light"
     },
     {
       "appearance": "us_m142_himars_gmlrs",
@@ -37725,7 +37836,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_heavy"
     },
     {
       "appearance": "us_m142_himars_prsm",
@@ -37819,7 +37931,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_heavy"
     },
     {
       "appearance": "us_m1_abrams_sep_v2",
@@ -37936,7 +38049,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "us_m1_abrams_sep_v2_trophy",
@@ -38066,7 +38180,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "us_m1_abrams_sep_v3_trophy",
@@ -38196,7 +38311,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "us_m1e3_abrams",
@@ -38326,7 +38442,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "us_m270_mlrs_m270a2",
@@ -38419,7 +38536,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "us_m2_bradley_ifv_m2a4",
@@ -38535,7 +38653,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "us_m3_bradley_cfv_m3a3",
@@ -38652,7 +38771,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "tracked_medium"
     },
     {
       "appearance": "us_m977_hemtt_general_resupply",
@@ -38731,7 +38851,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium_logistics"
     },
     {
       "body": {
@@ -38918,7 +39039,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "body": {
@@ -39113,7 +39235,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -39215,7 +39338,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -39317,7 +39441,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -39419,7 +39544,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "body": {
@@ -39522,7 +39648,8 @@
       "sound": {
         "loudness_m": 200.0,
         "profile": "infantry"
-      }
+      },
+      "vehicle_class": null
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -39624,7 +39751,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1126_icv",
@@ -39719,7 +39847,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1134_atgm",
@@ -39814,7 +39943,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",
@@ -39909,7 +40039,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
@@ -40011,7 +40142,8 @@
       "sound": {
         "loudness_m": 650.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "wheeled_medium"
     },
     {
       "appearance": "us_uh_1y_venom_utility_transport",
@@ -40134,7 +40266,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     },
     {
       "appearance": "us_uh_60_black_hawk_uh_60m",
@@ -40257,7 +40390,8 @@
       "sound": {
         "loudness_m": 900.0,
         "profile": "vehicle"
-      }
+      },
+      "vehicle_class": "air_light"
     }
   ],
   "weapons": {

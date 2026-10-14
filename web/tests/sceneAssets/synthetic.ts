@@ -50,12 +50,14 @@ export const tankMounts = (reach = 3): MountRow[] => [
 export const TANK_DRAWS: MountDraws = { cannon: "gun", HMG: "hmg" };
 
 const armor = { front: 1, side: 1, rear: 1, roof: 1 };
-/** A hull type, drawn by appearance `appearance`. */
+/** A hull type, drawn by appearance `appearance`, with the vehicle class
+ *  the catalog's view would give its physics (heavy hull). */
 const hullType = (
   id: string,
   appearance: string,
   half: Vec3,
   mobility: UnitType["mobility"],
+  vehicle_class: string | null,
   rest: Partial<UnitType> = {},
 ): UnitType => ({
   id,
@@ -77,6 +79,7 @@ const hullType = (
     },
   },
   mobility,
+  vehicle_class,
   sensors: { ground_m: 1, sight_shape: { front: 1, side: 1, rear: 1 } },
   mounts: [],
   capabilities: {},
@@ -112,12 +115,12 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
       rifleman: { name: "Rifleman", description: "", hp: 1, appearance: ["rifleman"], mounts: [] },
     },
     units: [
-      hullType("tank", "tank", [3.5, 1.8, 1.2], tracked, { mounts: tankMounts(), ...tank }),
-      hullType("supply", "truck", [3, 1.4, 1.8], wheeled, {
+      hullType("tank", "tank", [3.5, 1.8, 1.2], tracked, "tracked_heavy", { mounts: tankMounts(), ...tank }),
+      hullType("supply", "truck", [3, 1.4, 1.8], wheeled, "wheeled_heavy", {
         capabilities: { deploy: { seconds: 1 } },
       }),
       {
-        ...hullType("rifle", "", [0, 0, 0], { foot: { offroad_kmh: 4, road_kmh: 4 } }),
+        ...hullType("rifle", "", [0, 0, 0], { foot: { offroad_kmh: 4, road_kmh: 4 } }, null),
         body: { squad: { slots: ["rifleman", "rifleman"] } },
         appearance: undefined,
       },
@@ -144,9 +147,13 @@ export const HELI_AUTHORITY: Authority = {
     ...AUTHORITY.units.view,
     units: [
       ...AUTHORITY.units.view.units,
-      hullType("heli", "heli", [4, 0.8, 1.2], {
-        air: { cruise_kmh: 1, turn_deg_s: 1, climb_mps: 1 },
-      }),
+      hullType(
+        "heli",
+        "heli",
+        [4, 0.8, 1.2],
+        { air: { cruise_kmh: 1, turn_deg_s: 1, climb_mps: 1 } },
+        "air_heavy",
+      ),
     ],
   }),
 };
