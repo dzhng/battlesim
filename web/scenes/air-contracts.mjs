@@ -83,8 +83,7 @@ export async function run(ctx) {
             u.fuelS <= caps.air.fuel_capacity_s &&
             u.fuelS > caps.air.fuel_capacity_s - 2 &&
             (u.flares?.charges ?? 0) === (caps.air.flares?.capacity ?? 0)
-          : u.fuelS === null && u.flares === null) &&
-        Math.abs(lift - (flies ? CRUISE : 0)) < 1.5;
+          : u.fuelS === null && u.flares === null) && Math.abs(lift - (flies ? CRUISE : 0)) < 1.5;
       ctx.check(
         `${kind}: published fuel, flares and height follow its record`,
         ok,

@@ -40,16 +40,19 @@ export async function run(ctx) {
     );
     const dx = e.position[0] - detector.position[0];
     const dy = e.position[1] - detector.position[1];
-    const bearing = (Math.atan2(dy, dx) * 180) / Math.PI;
+    // The published bearing is in [0, 360), counter-clockwise from east.
+    const bearing = ((((Math.atan2(dy, dx) * 180) / Math.PI) % 360) + 360) % 360;
     const range = Math.hypot(dx, dy);
     ctx.check(
       `${e.kind}: an approximate area round it, with its quantized bearing and range from the SEAD jet`,
       !!c &&
         (c.center[0] !== e.position[0] || c.center[1] !== e.position[1]) &&
         c.kind === null &&
+        c.bearingDeg >= 0 &&
+        c.bearingDeg < 360 &&
         c.bearingDeg % 5 === 0 &&
         c.rangeM % 100 === 0 &&
-        Math.abs(c.bearingDeg - bearing) <= 5 &&
+        Math.abs(((c.bearingDeg - bearing + 540) % 360) - 180) <= 5 &&
         Math.abs(c.rangeM - range) <= 100,
       JSON.stringify({ c, bearing, range }),
     );

@@ -12,6 +12,8 @@ import { unitType } from "./_units.mjs";
 
 const JET = "f_16c_block_50";
 const HELI = "ah_64e_guardian";
+/** Where the jet is ordered, so its ghost stands there. */
+const GOAL = [320, 330];
 const sum = (c) => c[0] + c[1] + c[2];
 
 /** The brightest pixel within 3 px of the screen segment `a`–`b`. */
@@ -98,9 +100,10 @@ export async function run(ctx) {
     kind: "move",
     units: [jet.id],
     gesture: 1,
-    goal: [320, 330],
+    goal: GOAL,
     route: "fastest",
   });
+  await aim(page, GOAL, { distance: 220, pitch: 0.6 });
   await play(page, 2);
   await page.keyboard.down("Space");
   const ghost = await cardText(page, ".ro-callout[data-ghost]");

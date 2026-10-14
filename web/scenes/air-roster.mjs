@@ -4,7 +4,7 @@
 // catalog resolves them; every faction has all three AA tiers and a SEAD
 // platform. The battle parks each of those types on the air field, and each
 // is drawn; a contact sheet of them is left for review.
-import { gpuWarnings, aim, lab } from "./_lab.mjs";
+import { gpuWarnings, aim, lab, hideHud } from "./_lab.mjs";
 import { openAir, shoot, drawnVehicles } from "./_air.mjs";
 import { writeSheet } from "./_sheet.mjs";
 import { unitType } from "./_units.mjs";
@@ -73,6 +73,9 @@ export async function run(ctx) {
     `${o.own.length} units, ${kinds.size} types`,
   );
   await shoot(ctx, page, "lineup");
+  // The crops show the models alone: no HUD, cards or panel.
+  await hideHud(page);
+  await page.addStyleTag({ content: "[data-testid=air-matrix] { display: none !important; }" });
   const cells = [];
   const undrawn = [];
   for (const u of o.own) {

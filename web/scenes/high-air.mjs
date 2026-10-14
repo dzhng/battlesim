@@ -33,7 +33,6 @@ export async function run(ctx) {
   const heights = [];
   let offMap = null;
   let k = 0;
-  let mid = null;
   const last = await play(page, 420, (o) => {
     fog = Math.max(fog, visibleCells(o));
     for (const u of o.identified) seen.add(u.kind);
@@ -41,7 +40,6 @@ export async function run(ctx) {
     const jet = own(o, JET)[0];
     if (jet && !onMap(jet.position)) offMap = jet.position;
     if (jet && k++ % 30 === 0) heights.push(jet.position);
-    if (jet && !mid && jet.position[0] > 300) mid = jet.position;
     return false;
   });
   ctx.check("blue's fog never clears while only the jet flies", fog === 0, `${fog} cells`);
@@ -65,9 +63,14 @@ export async function run(ctx) {
     !!jet && Math.hypot(jet.position[0] - goal[0], jet.position[1] - goal[1]) < 10,
     JSON.stringify(jet?.position),
   );
-  if (mid) {
-    await aim(page, mid, { distance: 160, pitch: 0.35, yaw: -Math.PI / 2 });
-  }
+  // The jet over the wood at its goal, the village and the tower behind it.
+  if (jet)
+    await aim(
+      page,
+      jet.position,
+      { distance: 120, pitch: 0.3, yaw: -Math.PI / 2 - 0.5 },
+      { onGround: false },
+    );
   await shoot(ctx, page, "jet-over-the-village");
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
 }

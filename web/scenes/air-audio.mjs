@@ -8,10 +8,13 @@
 // presentation's sound tests hold (`crates/presentation/tests/sound.rs`).
 import { gpuWarnings, obs, lab } from "./_lab.mjs";
 import { openAir, shoot } from "./_air.mjs";
-import { game } from "./_units.mjs";
+import { game, hull } from "./_units.mjs";
 
-const ALARM = game.presentation.audio.air_alarm.sound;
 const ENEMY_JET = "eastern_j_10_vigorous_dragon_j_10c";
+const { air_alarm, vehicles } = game.presentation.audio;
+const ALARM = air_alarm.sound;
+/** The engine the J-10 sounds with: its HighAir class's row. */
+const ENGINE = vehicles[`high_air_${hull(ENEMY_JET).weight_class}`].engine;
 
 const heard = async (page) => (await lab(page, () => window.__lab.route.sound()))?.bySound ?? {};
 
@@ -19,12 +22,12 @@ const heard = async (page) => (await lab(page, () => window.__lab.route.sound())
  *  for the frame to hear it. Returns the tick. */
 async function until(page, seen, timeoutS) {
   const handle = await page.waitForFunction(
-    (seen) => {
+    ({ seen, kind }) => {
       const o = window.__lab.route.observation();
-      const is = !!o?.identified.some((u) => u.kind === "eastern_j_10_vigorous_dragon_j_10c");
+      const is = !!o?.identified.some((u) => u.kind === kind);
       return is === seen && o.tick;
     },
-    seen,
+    { seen, kind: ENEMY_JET },
     { timeout: timeoutS * 1000, polling: 50 },
   );
   const tick = await handle.jsonValue();
@@ -52,7 +55,7 @@ export async function run(ctx) {
   const entry = await heard(page);
   ctx.check(
     "one alarm and the jet's approach when the J-10 comes into view",
-    entry[ALARM] === 1 && Object.keys(entry).some((s) => s.startsWith("airwar-jet")),
+    entry[ALARM] === 1 && entry[ENGINE] > 0,
     JSON.stringify({ tick: first, entry }),
   );
   await shoot(ctx, page, "j-10-seen");

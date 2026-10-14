@@ -1,15 +1,15 @@
 // Ingress, fuel, afterburner and withdrawal (slice 06), in an empty
 // skirmish on the air field. Blue buys two F-16s, one for the middle of the
-// field and one near its north edge. Each is paid at once and appears as
-// its own unit, traversing: off the map edge nearest its destination (the
+// field and one near its north edge. Both are paid at once; each appears,
+// a dispatch interval apart, as its own unit, traversing: off the map edge nearest its destination (the
 // south edge for the first, the north for the second), its army card
 // greyed, its ghost's card shown with Space held, and its fuel untouched.
 // After a seeded 15–30 s it enters at that edge point at the air height,
 // without a jump, and burns fuel from then on; afterburners double the
 // burn. Run dry, it turns for blue's entry on its own and is refunded there:
-// some but not all of its price.
+// some but not all of its card's price.
 //
-// Its price is the card's. Not shown: a destroyed aircraft's lack of refund (the skirmish has no
+// Not shown: a destroyed aircraft's lack of refund (the skirmish has no
 // enemy fire), and circling at the destination (aircraft hover there).
 import { writeFile } from "node:fs/promises";
 import { gpuWarnings, obs, advance } from "./_lab.mjs";

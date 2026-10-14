@@ -339,8 +339,9 @@ impl SideKnowledge {
                 continue;
             };
             let delta = emitter.position.xy() - detector.position.xy();
+            // In [0, 360): counter-clockwise from east, as the map's yaw.
             let bearing = libm::atan2(delta.y, delta.x).to_degrees();
-            let bearing = (bearing / 5.0).round() * 5.0;
+            let bearing = ((bearing / 5.0).round() * 5.0).rem_euclid(360.0);
             let range = (distance / 100.0).round() * 100.0;
             let radius = emitter.contact_radius(rules).max(50.0);
             // The report's centre is deliberately displaced inside its area;

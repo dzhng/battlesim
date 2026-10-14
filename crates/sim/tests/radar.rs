@@ -263,3 +263,76 @@ fn long_sam_motor_lifetime_reaches_its_authored_range() {
         "long SAM expires after {distance:.0} m, short of {range:.0} m"
     );
 }
+
+/// An emitter on any side of the SEAD aircraft reaches the browser with its
+/// bearing and range: the bearing is a compass-style 0–360° value, so the
+/// publication's "absent" never swallows one to the south.
+#[test]
+fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
+    use sim::publication::{self, reader::Reader};
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_heli",
+        json!({
+            "mobility": { "air": { "layer": "high_air" } },
+            "capabilities": { "air": {
+                "fuel_capacity_s": 180.0,
+                "sead": true,
+                "radar": { "emits": false, "detection_m": 1200.0 },
+                "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
+            }}
+        }),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "capabilities": {
+            "air_defense": { "tier": "long" },
+            "radar": { "emits": true, "detection_m": 1200.0 }
+        }}),
+    );
+    // Emitters north-east, south-east, south-west and north-west of it.
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [800, 800], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_heli", "position": [400, 400] },
+            { "side": "red", "kind": "test_jeep", "position": [700, 600] },
+            { "side": "red", "kind": "test_jeep", "position": [700, 150] },
+            { "side": "red", "kind": "test_jeep", "position": [100, 150] },
+            { "side": "red", "kind": "test_jeep", "position": [100, 650] }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    battle.step();
+    let layout = publication::layout_json(&battle);
+    let mut reader = Reader::new(&layout).unwrap();
+    let words: Vec<u32> = publication::Publisher::new()
+        .publish(&battle, Side::Blue)
+        .unwrap()
+        .iter()
+        .map(|w| w.to_bits())
+        .collect();
+    let o = reader.decode(&words).unwrap().unwrap();
+    let radar: Vec<_> = o
+        .contacts
+        .iter()
+        .filter(|c| &*c.source == "radar")
+        .collect();
+    assert_eq!(radar.len(), 4, "{:?}", o.contacts);
+    for c in radar {
+        let bearing = c
+            .bearing_deg
+            .expect("every radar contact keeps its bearing");
+        assert!(
+            (0.0..360.0).contains(&bearing) && bearing % 5.0 == 0.0,
+            "{bearing}"
+        );
+        assert!(c.range_m.is_some_and(|r| r > 0.0 && r % 100.0 == 0.0));
+    }
+}

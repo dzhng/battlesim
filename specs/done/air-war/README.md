@@ -59,8 +59,9 @@ and the battle tick in `crates/sim/src/battle.rs`. Focused deterministic proof
 for sensing, weapons, radar, guidance and protection is in
 `crates/sim/tests/air.rs`, `air_weapons.rs`, `radar.rs`, `guidance.rs` and
 `protection.rs`; catalog and weapon admission are covered by the contract tests.
-Dogfight joining/breaking and afterburner speed, fuel and accuracy are
-implemented but do not yet have dedicated behavioral tests.
+Dogfight joining and breaking, and afterburner fuel burn, are held by the
+browser checkpoints below; afterburner speed and ground-attack accuracy have
+no dedicated behavioral test yet.
 
 Publication and side filtering remain in `crates/sim/src/publication.rs` and
 `crates/presentation/src/presentation.rs`. The browser card, ghost and radar
@@ -70,13 +71,14 @@ alarm state are in `crates/presentation/src/sound/` and
 `packages/battle-audio/`; source receipts are kept in `fixtures/sounds.json` and
 `assets/third-party/audio/`.
 
-The air checkpoint URLs are registered in
-`apps/battle-lab/src/fixtures.json` and share the production air scene through
-`apps/battle-lab/src/routes/airWar.tsx`. No approved screenshot baseline was
-provided for this feature. The browser preview loaded the routes and WASM but
-could not render WebGPU in the closeout environment (`No available adapters`),
-so native deterministic tests remain the visual seam's available proof until a
-GPU-capable runner captures those checkpoints.
+The air checkpoints are registered in `apps/battle-lab/src/fixtures.json`
+under `/labs/`. One parametrised route, `apps/battle-lab/src/routes/airWar.tsx`,
+plays each on the air test map through the production battle view: a saved
+encounter per checkpoint or `?variant=`, the catalog's air line-up, or an
+empty skirmish for paid ingress. Each has its own scene in `web/scenes/`
+holding the side's observation to its slice's claim, and naming in its header
+what the simulation does not show. No approved screenshot baseline exists for
+this feature.
 
 ## Deliberate dead ends
 

@@ -124,8 +124,9 @@ pub struct ApproximateContact {
     /// gun's report doesn't say which round it loaded (a cannon's AP and HE
     /// sound alike). 0 for a last sighting.
     pub heard: u64,
-    /// Quantized bearing from the detecting SEAD aircraft, in degrees. Radar
-    /// reports carry this separately from the uncertain area centre.
+    /// Quantized bearing from the detecting SEAD aircraft, in degrees in
+    /// [0, 360), counter-clockwise from +X like the map's yaw. Radar reports
+    /// carry this separately from the uncertain area centre.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bearing_deg: Option<f64>,
     /// Quantized range from the detecting SEAD aircraft, in metres.
