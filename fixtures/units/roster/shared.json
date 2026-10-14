@@ -236,6 +236,24 @@
             0,
             0
           ]
+        },
+        {
+          "id": "ground",
+          "name": "Ground missiles",
+          "weapons": [
+            "air_ground_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
         }
       ],
       "appearance": "f_16c_block_50"

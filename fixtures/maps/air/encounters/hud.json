@@ -2,7 +2,7 @@
   "units": [
     {"side":"blue","kind":"f_16c_block_50","position":[200,200],"engagement":"return_fire_only"},
     {"side":"blue","kind":"ah_64e_guardian","position":[200,330],"yaw":3.14159,"engagement":"return_fire_only"},
-    {"side":"blue","kind":"us_ea18g_sead","position":[100,120],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"us_ea_18g_growler_electronic_warfare_aircraft","position":[100,120],"engagement":"return_fire_only"},
     {"side":"red","kind":"eastern_mi_8_hip_mi_8amtsh","position":[450,200],"yaw":3.14159,"engagement":"return_fire_only"},
     {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[520,120],"yaw":3.14159,"engagement":"return_fire_only"},
     {"side":"red","kind":"eastern_buk_buk_m3_medium_range_air_defense","position":[600,360],"yaw":3.14159,"engagement":"return_fire_only"}

@@ -224,23 +224,6 @@
       }
     },
     {
-      "cost": 380,
-      "description": "Fighter",
-      "disabled_reason": null,
-      "family": "eastern_fighter",
-      "id": "eastern_fighter_aircraft",
-      "name": "Eastern Fighter",
-      "planned_weapons": [],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Eastern Fighter",
-        "variant": "Fighter"
-      }
-    },
-    {
       "cost": 340,
       "description": "J-10C",
       "disabled_reason": null,
@@ -527,23 +510,6 @@
         ],
         "family_name": "Sniper Team",
         "variant": "ASVK heavy sniper team"
-      }
-    },
-    {
-      "cost": 420,
-      "description": "SEAD",
-      "disabled_reason": null,
-      "family": "su-34_sead",
-      "id": "eastern_su34_sead",
-      "name": "Su-34 SEAD",
-      "planned_weapons": [],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Su-34 SEAD",
-        "variant": "SEAD"
       }
     },
     {
@@ -1108,23 +1074,6 @@
       }
     },
     {
-      "cost": 380,
-      "description": "Fighter",
-      "disabled_reason": null,
-      "family": "european_fighter",
-      "id": "europe_fighter_aircraft",
-      "name": "European Fighter",
-      "planned_weapons": [],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "European Fighter",
-        "variant": "Fighter"
-      }
-    },
-    {
       "cost": 360,
       "description": "IRIS-T SLM long-range air defence.",
       "disabled_reason": null,
@@ -1448,23 +1397,6 @@
       }
     },
     {
-      "cost": 420,
-      "description": "SEAD",
-      "disabled_reason": null,
-      "family": "tornado_ecr",
-      "id": "europe_tornado_ecr_sead",
-      "name": "Tornado ECR",
-      "planned_weapons": [],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Tornado ECR",
-        "variant": "SEAD"
-      }
-    },
-    {
       "cost": 220,
       "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
@@ -1691,23 +1623,6 @@
       }
     },
     {
-      "cost": 420,
-      "description": "SEAD",
-      "disabled_reason": null,
-      "family": "ea-18g_growler",
-      "id": "us_ea18g_sead",
-      "name": "EA-18G Growler",
-      "planned_weapons": [],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "EA-18G Growler",
-        "variant": "SEAD"
-      }
-    },
-    {
       "cost": 380,
       "description": "Electronic-warfare aircraft",
       "disabled_reason": null,
@@ -1722,23 +1637,6 @@
         ],
         "family_name": "EA-18G Growler",
         "variant": "Electronic-warfare aircraft"
-      }
-    },
-    {
-      "cost": 380,
-      "description": "Fighter",
-      "disabled_reason": null,
-      "family": "us_fighter",
-      "id": "us_fighter_aircraft",
-      "name": "US Fighter",
-      "planned_weapons": [],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "US Fighter",
-        "variant": "Fighter"
       }
     },
     {
@@ -2294,10 +2192,6 @@
       "name": "J-20",
       "planned_weapons": [
         {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
           "icon": "aa_missile",
           "name": "AA Missile"
         }
@@ -2373,7 +2267,7 @@
         },
         {
           "icon": "bomb",
-          "name": "Bombs"
+          "name": "Cluster bombs"
         }
       ],
       "roster": {
@@ -2459,11 +2353,7 @@
         },
         {
           "icon": "atgm",
-          "name": "AT Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
+          "name": "Ground Missile"
         }
       ],
       "roster": {
@@ -2492,8 +2382,8 @@
           "name": "AA Missile"
         },
         {
-          "icon": "bomb",
-          "name": "Bombs"
+          "icon": "atgm",
+          "name": "Ground Missile"
         }
       ],
       "roster": {
@@ -2545,11 +2435,7 @@
         },
         {
           "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
+          "name": "SEAD Missile"
         }
       ],
       "roster": {
@@ -2627,7 +2513,7 @@
         },
         {
           "icon": "bomb",
-          "name": "Bombs"
+          "name": "Cluster bombs"
         }
       ],
       "roster": {
@@ -2696,10 +2582,6 @@
           "name": "Cannon"
         },
         {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
           "icon": "bomb",
           "name": "Bombs"
         }
@@ -2730,8 +2612,8 @@
           "name": "AA Missile"
         },
         {
-          "icon": "bomb",
-          "name": "Bombs"
+          "icon": "atgm",
+          "name": "Ground Missile"
         }
       ],
       "roster": {
@@ -2790,12 +2672,8 @@
           "name": "Cannon"
         },
         {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
+          "icon": "atgm",
+          "name": "Ground Missile"
         }
       ],
       "roster": {
@@ -2852,11 +2730,7 @@
         },
         {
           "icon": "atgm",
-          "name": "AT Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
+          "name": "Ground Missile"
         }
       ],
       "roster": {
@@ -2913,10 +2787,6 @@
         {
           "icon": "aa_missile",
           "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
         }
       ],
       "roster": {
@@ -2972,7 +2842,7 @@
         },
         {
           "icon": "bomb",
-          "name": "Bombs"
+          "name": "Cluster bombs"
         }
       ],
       "roster": {
@@ -3001,8 +2871,8 @@
           "name": "AA Missile"
         },
         {
-          "icon": "bomb",
-          "name": "Bombs"
+          "icon": "atgm",
+          "name": "Ground Missile"
         }
       ],
       "roster": {
@@ -8086,158 +7956,6 @@
             "profile": "vehicle"
           }
         },
-        "eastern_fighter_aircraft": {
-          "appearance": "eastern_sukhoi_flanker_family_su_34",
-          "body": {
-            "hull": {
-              "armor": {
-                "front": 20.0,
-                "rear": 10.0,
-                "ricochet": {
-                  "front": 0.0,
-                  "rear": 0.0,
-                  "roof": 0.0,
-                  "side": 0.0
-                },
-                "roof": 8.0,
-                "side": 12.0
-              },
-              "eye_m": 2.0,
-              "half_extents_m": [
-                11.62,
-                7.39,
-                3.05
-              ],
-              "hp": 100.0,
-              "push_class": "none",
-              "weight_class": "light",
-              "wreck": "light_wreck"
-            }
-          },
-          "capabilities": {
-            "air": {
-              "afterburner": {
-                "fuel_multiplier": 2.0,
-                "speed_multiplier": 1.5
-              },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 20.0
-              },
-              "fuel_capacity_s": 180.0,
-              "refund": {
-                "ammunition": 0.3,
-                "fuel": 0.3,
-                "health": 0.4
-              },
-              "sead": false
-            }
-          },
-          "cost": 380,
-          "description": "Fighter",
-          "faction": "eastern",
-          "family": "eastern_fighter",
-          "mobility": {
-            "air": {
-              "climb_mps": 30.0,
-              "cruise_kmh": 650.0,
-              "layer": "high_air",
-              "turn_deg_s": 72.0
-            }
-          },
-          "mounts": [
-            {
-              "id": "gun",
-              "muzzle_m": [
-                7.0,
-                0.0,
-                0.0
-              ],
-              "name": "Cannon",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.8
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_gun"
-              ]
-            },
-            {
-              "id": "missiles",
-              "muzzle_m": [
-                4.0,
-                0.0,
-                0.0
-              ],
-              "name": "AA missiles",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_missile"
-              ]
-            },
-            {
-              "id": "bombs",
-              "muzzle_m": [
-                2.0,
-                0.0,
-                0.0
-              ],
-              "name": "Bombs",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_bomb",
-                "air_bomb_cluster"
-              ]
-            }
-          ],
-          "name": "Eastern Fighter",
-          "roles": [
-            "recon"
-          ],
-          "roster": {
-            "category": "air",
-            "factions": [
-              "eastern"
-            ],
-            "family_name": "Eastern Fighter",
-            "variant": "Fighter"
-          },
-          "sensors": {
-            "ground_m": 1.0,
-            "high_air_m": 5000.0,
-            "low_air_m": 1800.0,
-            "sight_shape": {
-              "front": 1.0,
-              "rear": 0.5,
-              "side": 0.8
-            }
-          },
-          "sound": {
-            "loudness_m": 1400.0,
-            "profile": "vehicle"
-          }
-        },
         "eastern_j_10_vigorous_dragon_j_10c": {
           "appearance": "eastern_j_10_vigorous_dragon_j_10c",
           "body": {
@@ -8378,10 +8096,6 @@
             "profile": "stealth-fighter",
             "reason": "Aircraft movement and air-combat mechanics deferred",
             "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
               {
                 "icon": "aa_missile",
                 "name": "AA Missile"
@@ -9177,7 +8891,7 @@
               },
               {
                 "icon": "bomb",
-                "name": "Bombs"
+                "name": "Cluster bombs"
               }
             ]
           },
@@ -9947,140 +9661,6 @@
             "profile": "infantry"
           }
         },
-        "eastern_su34_sead": {
-          "appearance": "eastern_sukhoi_flanker_family_su_34",
-          "body": {
-            "hull": {
-              "armor": {
-                "front": 20.0,
-                "rear": 10.0,
-                "ricochet": {
-                  "front": 0.0,
-                  "rear": 0.0,
-                  "roof": 0.0,
-                  "side": 0.0
-                },
-                "roof": 8.0,
-                "side": 12.0
-              },
-              "eye_m": 2.0,
-              "half_extents_m": [
-                11.62,
-                7.39,
-                3.05
-              ],
-              "hp": 100.0,
-              "push_class": "none",
-              "weight_class": "light",
-              "wreck": "light_wreck"
-            }
-          },
-          "capabilities": {
-            "air": {
-              "afterburner": {
-                "fuel_multiplier": 2.0,
-                "speed_multiplier": 1.5
-              },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 20.0
-              },
-              "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 7000.0,
-                "emits": false
-              },
-              "refund": {
-                "ammunition": 0.3,
-                "fuel": 0.3,
-                "health": 0.4
-              },
-              "sead": true
-            }
-          },
-          "cost": 420,
-          "description": "SEAD",
-          "faction": "eastern",
-          "family": "su-34_sead",
-          "mobility": {
-            "air": {
-              "climb_mps": 30.0,
-              "cruise_kmh": 650.0,
-              "layer": "high_air",
-              "turn_deg_s": 72.0
-            }
-          },
-          "mounts": [
-            {
-              "id": "gun",
-              "muzzle_m": [
-                7.0,
-                0.0,
-                0.0
-              ],
-              "name": "Cannon",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.8
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_gun"
-              ]
-            },
-            {
-              "id": "missiles",
-              "muzzle_m": [
-                4.0,
-                0.0,
-                0.0
-              ],
-              "name": "AA missiles",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "sead_missile"
-              ]
-            }
-          ],
-          "name": "Su-34 SEAD",
-          "roles": [
-            "recon"
-          ],
-          "roster": {
-            "category": "air",
-            "factions": [
-              "eastern"
-            ],
-            "family_name": "Su-34 SEAD",
-            "variant": "SEAD"
-          },
-          "sensors": {
-            "ground_m": 1.0,
-            "high_air_m": 5000.0,
-            "low_air_m": 1800.0,
-            "sight_shape": {
-              "front": 1.0,
-              "rear": 0.5,
-              "side": 0.8
-            }
-          },
-          "sound": {
-            "loudness_m": 1400.0,
-            "profile": "vehicle"
-          }
-        },
         "eastern_su_25_frogfoot_su_25sm3": {
           "cost": 270,
           "description": "Su-25SM3",
@@ -10097,11 +9677,7 @@
               },
               {
                 "icon": "atgm",
-                "name": "AT Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
+                "name": "Ground Missile"
               }
             ]
           },
@@ -10134,8 +9710,8 @@
                 "name": "AA Missile"
               },
               {
-                "icon": "bomb",
-                "name": "Bombs"
+                "icon": "atgm",
+                "name": "Ground Missile"
               }
             ]
           },
@@ -10195,11 +9771,7 @@
               },
               {
                 "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
+                "name": "SEAD Missile"
               }
             ]
           },
@@ -10306,6 +9878,48 @@
                 0.0
               ],
               "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Iron bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb"
+              ]
+            },
+            {
+              "id": "sead",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "SEAD missiles",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -13740,158 +13354,6 @@
             "profile": "vehicle"
           }
         },
-        "europe_fighter_aircraft": {
-          "appearance": "europe_tornado_ids",
-          "body": {
-            "hull": {
-              "armor": {
-                "front": 20.0,
-                "rear": 10.0,
-                "ricochet": {
-                  "front": 0.0,
-                  "rear": 0.0,
-                  "roof": 0.0,
-                  "side": 0.0
-                },
-                "roof": 8.0,
-                "side": 12.0
-              },
-              "eye_m": 2.0,
-              "half_extents_m": [
-                8.38,
-                6.89,
-                2.98
-              ],
-              "hp": 100.0,
-              "push_class": "none",
-              "weight_class": "light",
-              "wreck": "light_wreck"
-            }
-          },
-          "capabilities": {
-            "air": {
-              "afterburner": {
-                "fuel_multiplier": 2.0,
-                "speed_multiplier": 1.5
-              },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 20.0
-              },
-              "fuel_capacity_s": 180.0,
-              "refund": {
-                "ammunition": 0.3,
-                "fuel": 0.3,
-                "health": 0.4
-              },
-              "sead": false
-            }
-          },
-          "cost": 380,
-          "description": "Fighter",
-          "faction": "europe",
-          "family": "european_fighter",
-          "mobility": {
-            "air": {
-              "climb_mps": 30.0,
-              "cruise_kmh": 650.0,
-              "layer": "high_air",
-              "turn_deg_s": 72.0
-            }
-          },
-          "mounts": [
-            {
-              "id": "gun",
-              "muzzle_m": [
-                7.0,
-                0.0,
-                0.0
-              ],
-              "name": "Cannon",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.8
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_gun"
-              ]
-            },
-            {
-              "id": "missiles",
-              "muzzle_m": [
-                4.0,
-                0.0,
-                0.0
-              ],
-              "name": "AA missiles",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_missile"
-              ]
-            },
-            {
-              "id": "bombs",
-              "muzzle_m": [
-                2.0,
-                0.0,
-                0.0
-              ],
-              "name": "Bombs",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_bomb",
-                "air_bomb_cluster"
-              ]
-            }
-          ],
-          "name": "European Fighter",
-          "roles": [
-            "recon"
-          ],
-          "roster": {
-            "category": "air",
-            "factions": [
-              "europe"
-            ],
-            "family_name": "European Fighter",
-            "variant": "Fighter"
-          },
-          "sensors": {
-            "ground_m": 1.0,
-            "high_air_m": 5000.0,
-            "low_air_m": 1800.0,
-            "sight_shape": {
-              "front": 1.0,
-              "rear": 0.5,
-              "side": 0.8
-            }
-          },
-          "sound": {
-            "loudness_m": 1400.0,
-            "profile": "vehicle"
-          }
-        },
         "europe_gepard_1a2": {
           "cost": 200,
           "description": "1A2",
@@ -14038,7 +13500,7 @@
               },
               {
                 "icon": "bomb",
-                "name": "Bombs"
+                "name": "Cluster bombs"
               }
             ]
           },
@@ -15121,10 +14583,6 @@
                 "name": "Cannon"
               },
               {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
                 "icon": "bomb",
                 "name": "Bombs"
               }
@@ -15683,8 +15141,8 @@
                 "name": "AA Missile"
               },
               {
-                "icon": "bomb",
-                "name": "Bombs"
+                "icon": "atgm",
+                "name": "Ground Missile"
               }
             ]
           },
@@ -15982,7 +15440,7 @@
                 0.0,
                 0.0
               ],
-              "name": "AA missiles",
+              "name": "SEAD missiles",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -16024,140 +15482,6 @@
             "profile": "vehicle"
           }
         },
-        "europe_tornado_ecr_sead": {
-          "appearance": "europe_tornado_ecr",
-          "body": {
-            "hull": {
-              "armor": {
-                "front": 20.0,
-                "rear": 10.0,
-                "ricochet": {
-                  "front": 0.0,
-                  "rear": 0.0,
-                  "roof": 0.0,
-                  "side": 0.0
-                },
-                "roof": 8.0,
-                "side": 12.0
-              },
-              "eye_m": 2.0,
-              "half_extents_m": [
-                8.38,
-                6.89,
-                2.98
-              ],
-              "hp": 100.0,
-              "push_class": "none",
-              "weight_class": "light",
-              "wreck": "light_wreck"
-            }
-          },
-          "capabilities": {
-            "air": {
-              "afterburner": {
-                "fuel_multiplier": 2.0,
-                "speed_multiplier": 1.5
-              },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 20.0
-              },
-              "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 7000.0,
-                "emits": false
-              },
-              "refund": {
-                "ammunition": 0.3,
-                "fuel": 0.3,
-                "health": 0.4
-              },
-              "sead": true
-            }
-          },
-          "cost": 420,
-          "description": "SEAD",
-          "faction": "europe",
-          "family": "tornado_ecr",
-          "mobility": {
-            "air": {
-              "climb_mps": 30.0,
-              "cruise_kmh": 650.0,
-              "layer": "high_air",
-              "turn_deg_s": 72.0
-            }
-          },
-          "mounts": [
-            {
-              "id": "gun",
-              "muzzle_m": [
-                7.0,
-                0.0,
-                0.0
-              ],
-              "name": "Cannon",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.8
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_gun"
-              ]
-            },
-            {
-              "id": "missiles",
-              "muzzle_m": [
-                4.0,
-                0.0,
-                0.0
-              ],
-              "name": "AA missiles",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "sead_missile"
-              ]
-            }
-          ],
-          "name": "Tornado ECR",
-          "roles": [
-            "recon"
-          ],
-          "roster": {
-            "category": "air",
-            "factions": [
-              "europe"
-            ],
-            "family_name": "Tornado ECR",
-            "variant": "SEAD"
-          },
-          "sensors": {
-            "ground_m": 1.0,
-            "high_air_m": 5000.0,
-            "low_air_m": 1800.0,
-            "sight_shape": {
-              "front": 1.0,
-              "rear": 0.5,
-              "side": 0.8
-            }
-          },
-          "sound": {
-            "loudness_m": 1400.0,
-            "profile": "vehicle"
-          }
-        },
         "europe_tornado_ids": {
           "cost": 310,
           "description": "IDS",
@@ -16173,12 +15497,8 @@
                 "name": "Cannon"
               },
               {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
+                "icon": "atgm",
+                "name": "Ground Missile"
               }
             ]
           },
@@ -16479,6 +15799,27 @@
               "weapons": [
                 "air_missile"
               ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
             }
           ],
           "name": "F-16C Block 50",
@@ -16713,11 +16054,7 @@
               },
               {
                 "icon": "atgm",
-                "name": "AT Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
+                "name": "Ground Missile"
               }
             ]
           },
@@ -17386,140 +16723,6 @@
             "profile": "vehicle"
           }
         },
-        "us_ea18g_sead": {
-          "appearance": "us_ea_18g_growler_electronic_warfare_aircraft",
-          "body": {
-            "hull": {
-              "armor": {
-                "front": 20.0,
-                "rear": 10.0,
-                "ricochet": {
-                  "front": 0.0,
-                  "rear": 0.0,
-                  "roof": 0.0,
-                  "side": 0.0
-                },
-                "roof": 8.0,
-                "side": 12.0
-              },
-              "eye_m": 2.0,
-              "half_extents_m": [
-                9.09,
-                6.89,
-                2.44
-              ],
-              "hp": 100.0,
-              "push_class": "none",
-              "weight_class": "light",
-              "wreck": "light_wreck"
-            }
-          },
-          "capabilities": {
-            "air": {
-              "afterburner": {
-                "fuel_multiplier": 2.0,
-                "speed_multiplier": 1.5
-              },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 20.0
-              },
-              "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 7000.0,
-                "emits": false
-              },
-              "refund": {
-                "ammunition": 0.3,
-                "fuel": 0.3,
-                "health": 0.4
-              },
-              "sead": true
-            }
-          },
-          "cost": 420,
-          "description": "SEAD",
-          "faction": "us",
-          "family": "ea-18g_growler",
-          "mobility": {
-            "air": {
-              "climb_mps": 30.0,
-              "cruise_kmh": 650.0,
-              "layer": "high_air",
-              "turn_deg_s": 72.0
-            }
-          },
-          "mounts": [
-            {
-              "id": "gun",
-              "muzzle_m": [
-                7.0,
-                0.0,
-                0.0
-              ],
-              "name": "Cannon",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.8
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_gun"
-              ]
-            },
-            {
-              "id": "missiles",
-              "muzzle_m": [
-                4.0,
-                0.0,
-                0.0
-              ],
-              "name": "AA missiles",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "sead_missile"
-              ]
-            }
-          ],
-          "name": "EA-18G Growler",
-          "roles": [
-            "recon"
-          ],
-          "roster": {
-            "category": "air",
-            "factions": [
-              "us"
-            ],
-            "family_name": "EA-18G Growler",
-            "variant": "SEAD"
-          },
-          "sensors": {
-            "ground_m": 1.0,
-            "high_air_m": 5000.0,
-            "low_air_m": 1800.0,
-            "sight_shape": {
-              "front": 1.0,
-              "rear": 0.5,
-              "side": 0.8
-            }
-          },
-          "sound": {
-            "loudness_m": 1400.0,
-            "profile": "vehicle"
-          }
-        },
         "us_ea_18g_growler_electronic_warfare_aircraft": {
           "appearance": "us_ea_18g_growler_electronic_warfare_aircraft",
           "body": {
@@ -17612,7 +16815,7 @@
                 0.0,
                 0.0
               ],
-              "name": "AA missiles",
+              "name": "SEAD missiles",
               "on": null,
               "pivot_m": [
                 0.0,
@@ -17705,10 +16908,6 @@
               {
                 "icon": "aa_missile",
                 "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
               }
             ]
           },
@@ -17772,7 +16971,7 @@
               },
               {
                 "icon": "bomb",
-                "name": "Bombs"
+                "name": "Cluster bombs"
               }
             ]
           },
@@ -17805,8 +17004,8 @@
                 "name": "AA Missile"
               },
               {
-                "icon": "bomb",
-                "name": "Bombs"
+                "icon": "atgm",
+                "name": "Ground Missile"
               }
             ]
           },
@@ -17818,158 +17017,6 @@
             ],
             "family_name": "Super Hornet",
             "variant": "F/A-18E"
-          }
-        },
-        "us_fighter_aircraft": {
-          "appearance": "f_16c_block_50",
-          "body": {
-            "hull": {
-              "armor": {
-                "front": 20.0,
-                "rear": 10.0,
-                "ricochet": {
-                  "front": 0.0,
-                  "rear": 0.0,
-                  "roof": 0.0,
-                  "side": 0.0
-                },
-                "roof": 8.0,
-                "side": 12.0
-              },
-              "eye_m": 2.0,
-              "half_extents_m": [
-                7.54,
-                5.02,
-                2.44
-              ],
-              "hp": 100.0,
-              "push_class": "none",
-              "weight_class": "light",
-              "wreck": "light_wreck"
-            }
-          },
-          "capabilities": {
-            "air": {
-              "afterburner": {
-                "fuel_multiplier": 2.0,
-                "speed_multiplier": 1.5
-              },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 20.0
-              },
-              "fuel_capacity_s": 180.0,
-              "refund": {
-                "ammunition": 0.3,
-                "fuel": 0.3,
-                "health": 0.4
-              },
-              "sead": false
-            }
-          },
-          "cost": 380,
-          "description": "Fighter",
-          "faction": "us",
-          "family": "us_fighter",
-          "mobility": {
-            "air": {
-              "climb_mps": 30.0,
-              "cruise_kmh": 650.0,
-              "layer": "high_air",
-              "turn_deg_s": 72.0
-            }
-          },
-          "mounts": [
-            {
-              "id": "gun",
-              "muzzle_m": [
-                7.0,
-                0.0,
-                0.0
-              ],
-              "name": "Cannon",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.8
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_gun"
-              ]
-            },
-            {
-              "id": "missiles",
-              "muzzle_m": [
-                4.0,
-                0.0,
-                0.0
-              ],
-              "name": "AA missiles",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_missile"
-              ]
-            },
-            {
-              "id": "bombs",
-              "muzzle_m": [
-                2.0,
-                0.0,
-                0.0
-              ],
-              "name": "Bombs",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "air_bomb",
-                "air_bomb_cluster"
-              ]
-            }
-          ],
-          "name": "US Fighter",
-          "roles": [
-            "recon"
-          ],
-          "roster": {
-            "category": "air",
-            "factions": [
-              "us"
-            ],
-            "family_name": "US Fighter",
-            "variant": "Fighter"
-          },
-          "sensors": {
-            "ground_m": 1.0,
-            "high_air_m": 5000.0,
-            "low_air_m": 1800.0,
-            "sight_shape": {
-              "front": 1.0,
-              "rear": 0.5,
-              "side": 0.8
-            }
-          },
-          "sound": {
-            "loudness_m": 1400.0,
-            "profile": "vehicle"
           }
         },
         "us_force_recon_recon_patrol": {
@@ -26485,163 +25532,6 @@
       "vehicle_class": "wheeled_medium"
     },
     {
-      "appearance": "eastern_sukhoi_flanker_family_su_34",
-      "body": {
-        "hull": {
-          "armor": {
-            "front": 20.0,
-            "rear": 10.0,
-            "ricochet": {
-              "front": 0.0,
-              "rear": 0.0,
-              "roof": 0.0,
-              "side": 0.0
-            },
-            "roof": 8.0,
-            "side": 12.0
-          },
-          "eye_m": 2.0,
-          "half_extents_m": [
-            11.62,
-            7.39,
-            3.05
-          ],
-          "hp": 100.0,
-          "push_class": "none",
-          "weight_class": "light",
-          "wreck": "light_wreck"
-        }
-      },
-      "capabilities": {
-        "air": {
-          "afterburner": {
-            "fuel_multiplier": 2.0,
-            "speed_multiplier": 1.5
-          },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 20.0
-          },
-          "fuel_capacity_s": 180.0,
-          "refund": {
-            "ammunition": 0.3,
-            "fuel": 0.3,
-            "health": 0.4
-          },
-          "sead": false
-        }
-      },
-      "cost": 380,
-      "description": "Fighter",
-      "faction": "eastern",
-      "family": "eastern_fighter",
-      "id": "eastern_fighter_aircraft",
-      "mobility": {
-        "air": {
-          "climb_mps": 30.0,
-          "cruise_kmh": 650.0,
-          "layer": "high_air",
-          "turn_deg_s": 72.0
-        }
-      },
-      "mounts": [
-        {
-          "carriers": [],
-          "id": "gun",
-          "muzzle_m": [
-            7.0,
-            0.0,
-            0.0
-          ],
-          "name": "Cannon",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.8
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_gun"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "missiles",
-          "muzzle_m": [
-            4.0,
-            0.0,
-            0.0
-          ],
-          "name": "AA missiles",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_missile"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "bombs",
-          "muzzle_m": [
-            2.0,
-            0.0,
-            0.0
-          ],
-          "name": "Bombs",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_bomb",
-            "air_bomb_cluster"
-          ]
-        }
-      ],
-      "name": "Eastern Fighter",
-      "roles": [
-        "recon"
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Eastern Fighter",
-        "variant": "Fighter"
-      },
-      "sensors": {
-        "ground_m": 1.0,
-        "high_air_m": 5000.0,
-        "low_air_m": 1800.0,
-        "sight_shape": {
-          "front": 1.0,
-          "rear": 0.5,
-          "side": 0.8
-        }
-      },
-      "sound": {
-        "loudness_m": 1400.0,
-        "profile": "vehicle"
-      },
-      "vehicle_class": "high_air_light"
-    },
-    {
       "appearance": "eastern_j_10_vigorous_dragon_j_10c",
       "body": {
         "hull": {
@@ -28639,144 +27529,6 @@
           "sead": true
         }
       },
-      "cost": 420,
-      "description": "SEAD",
-      "faction": "eastern",
-      "family": "su-34_sead",
-      "id": "eastern_su34_sead",
-      "mobility": {
-        "air": {
-          "climb_mps": 30.0,
-          "cruise_kmh": 650.0,
-          "layer": "high_air",
-          "turn_deg_s": 72.0
-        }
-      },
-      "mounts": [
-        {
-          "carriers": [],
-          "id": "gun",
-          "muzzle_m": [
-            7.0,
-            0.0,
-            0.0
-          ],
-          "name": "Cannon",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.8
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_gun"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "missiles",
-          "muzzle_m": [
-            4.0,
-            0.0,
-            0.0
-          ],
-          "name": "AA missiles",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "sead_missile"
-          ]
-        }
-      ],
-      "name": "Su-34 SEAD",
-      "roles": [
-        "recon"
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Su-34 SEAD",
-        "variant": "SEAD"
-      },
-      "sensors": {
-        "ground_m": 1.0,
-        "high_air_m": 5000.0,
-        "low_air_m": 1800.0,
-        "sight_shape": {
-          "front": 1.0,
-          "rear": 0.5,
-          "side": 0.8
-        }
-      },
-      "sound": {
-        "loudness_m": 1400.0,
-        "profile": "vehicle"
-      },
-      "vehicle_class": "high_air_light"
-    },
-    {
-      "appearance": "eastern_sukhoi_flanker_family_su_34",
-      "body": {
-        "hull": {
-          "armor": {
-            "front": 20.0,
-            "rear": 10.0,
-            "ricochet": {
-              "front": 0.0,
-              "rear": 0.0,
-              "roof": 0.0,
-              "side": 0.0
-            },
-            "roof": 8.0,
-            "side": 12.0
-          },
-          "eye_m": 2.0,
-          "half_extents_m": [
-            11.62,
-            7.39,
-            3.05
-          ],
-          "hp": 100.0,
-          "push_class": "none",
-          "weight_class": "light",
-          "wreck": "light_wreck"
-        }
-      },
-      "capabilities": {
-        "air": {
-          "afterburner": {
-            "fuel_multiplier": 2.0,
-            "speed_multiplier": 1.5
-          },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 20.0
-          },
-          "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 7000.0,
-            "emits": false
-          },
-          "refund": {
-            "ammunition": 0.3,
-            "fuel": 0.3,
-            "health": 0.4
-          },
-          "sead": true
-        }
-      },
       "cost": 390,
       "description": "Su-34",
       "faction": "eastern",
@@ -28822,6 +27574,50 @@
             0.0
           ],
           "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Iron bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "sead",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "SEAD missiles",
           "on": null,
           "pivot_m": [
             0.0,
@@ -32402,163 +31198,6 @@
       "vehicle_class": "wheeled_medium"
     },
     {
-      "appearance": "europe_tornado_ids",
-      "body": {
-        "hull": {
-          "armor": {
-            "front": 20.0,
-            "rear": 10.0,
-            "ricochet": {
-              "front": 0.0,
-              "rear": 0.0,
-              "roof": 0.0,
-              "side": 0.0
-            },
-            "roof": 8.0,
-            "side": 12.0
-          },
-          "eye_m": 2.0,
-          "half_extents_m": [
-            8.38,
-            6.89,
-            2.98
-          ],
-          "hp": 100.0,
-          "push_class": "none",
-          "weight_class": "light",
-          "wreck": "light_wreck"
-        }
-      },
-      "capabilities": {
-        "air": {
-          "afterburner": {
-            "fuel_multiplier": 2.0,
-            "speed_multiplier": 1.5
-          },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 20.0
-          },
-          "fuel_capacity_s": 180.0,
-          "refund": {
-            "ammunition": 0.3,
-            "fuel": 0.3,
-            "health": 0.4
-          },
-          "sead": false
-        }
-      },
-      "cost": 380,
-      "description": "Fighter",
-      "faction": "europe",
-      "family": "european_fighter",
-      "id": "europe_fighter_aircraft",
-      "mobility": {
-        "air": {
-          "climb_mps": 30.0,
-          "cruise_kmh": 650.0,
-          "layer": "high_air",
-          "turn_deg_s": 72.0
-        }
-      },
-      "mounts": [
-        {
-          "carriers": [],
-          "id": "gun",
-          "muzzle_m": [
-            7.0,
-            0.0,
-            0.0
-          ],
-          "name": "Cannon",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.8
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_gun"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "missiles",
-          "muzzle_m": [
-            4.0,
-            0.0,
-            0.0
-          ],
-          "name": "AA missiles",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_missile"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "bombs",
-          "muzzle_m": [
-            2.0,
-            0.0,
-            0.0
-          ],
-          "name": "Bombs",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_bomb",
-            "air_bomb_cluster"
-          ]
-        }
-      ],
-      "name": "European Fighter",
-      "roles": [
-        "recon"
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "European Fighter",
-        "variant": "Fighter"
-      },
-      "sensors": {
-        "ground_m": 1.0,
-        "high_air_m": 5000.0,
-        "low_air_m": 1800.0,
-        "sight_shape": {
-          "front": 1.0,
-          "rear": 0.5,
-          "side": 0.8
-        }
-      },
-      "sound": {
-        "loudness_m": 1400.0,
-        "profile": "vehicle"
-      },
-      "vehicle_class": "high_air_light"
-    },
-    {
       "appearance": "us_stryker_m1296_dragoon",
       "body": {
         "hull": {
@@ -34688,7 +33327,7 @@
             0.0,
             0.0
           ],
-          "name": "AA missiles",
+          "name": "SEAD missiles",
           "on": null,
           "pivot_m": [
             0.0,
@@ -34714,144 +33353,6 @@
         ],
         "family_name": "Tornado",
         "variant": "ECR"
-      },
-      "sensors": {
-        "ground_m": 1.0,
-        "high_air_m": 5000.0,
-        "low_air_m": 1800.0,
-        "sight_shape": {
-          "front": 1.0,
-          "rear": 0.5,
-          "side": 0.8
-        }
-      },
-      "sound": {
-        "loudness_m": 1400.0,
-        "profile": "vehicle"
-      },
-      "vehicle_class": "high_air_light"
-    },
-    {
-      "appearance": "europe_tornado_ecr",
-      "body": {
-        "hull": {
-          "armor": {
-            "front": 20.0,
-            "rear": 10.0,
-            "ricochet": {
-              "front": 0.0,
-              "rear": 0.0,
-              "roof": 0.0,
-              "side": 0.0
-            },
-            "roof": 8.0,
-            "side": 12.0
-          },
-          "eye_m": 2.0,
-          "half_extents_m": [
-            8.38,
-            6.89,
-            2.98
-          ],
-          "hp": 100.0,
-          "push_class": "none",
-          "weight_class": "light",
-          "wreck": "light_wreck"
-        }
-      },
-      "capabilities": {
-        "air": {
-          "afterburner": {
-            "fuel_multiplier": 2.0,
-            "speed_multiplier": 1.5
-          },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 20.0
-          },
-          "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 7000.0,
-            "emits": false
-          },
-          "refund": {
-            "ammunition": 0.3,
-            "fuel": 0.3,
-            "health": 0.4
-          },
-          "sead": true
-        }
-      },
-      "cost": 420,
-      "description": "SEAD",
-      "faction": "europe",
-      "family": "tornado_ecr",
-      "id": "europe_tornado_ecr_sead",
-      "mobility": {
-        "air": {
-          "climb_mps": 30.0,
-          "cruise_kmh": 650.0,
-          "layer": "high_air",
-          "turn_deg_s": 72.0
-        }
-      },
-      "mounts": [
-        {
-          "carriers": [],
-          "id": "gun",
-          "muzzle_m": [
-            7.0,
-            0.0,
-            0.0
-          ],
-          "name": "Cannon",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.8
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_gun"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "missiles",
-          "muzzle_m": [
-            4.0,
-            0.0,
-            0.0
-          ],
-          "name": "AA missiles",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "sead_missile"
-          ]
-        }
-      ],
-      "name": "Tornado ECR",
-      "roles": [
-        "recon"
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Tornado ECR",
-        "variant": "SEAD"
       },
       "sensors": {
         "ground_m": 1.0,
@@ -35164,6 +33665,28 @@
           "turret": false,
           "weapons": [
             "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
           ]
         }
       ],
@@ -36438,144 +34961,6 @@
           "sead": true
         }
       },
-      "cost": 420,
-      "description": "SEAD",
-      "faction": "us",
-      "family": "ea-18g_growler",
-      "id": "us_ea18g_sead",
-      "mobility": {
-        "air": {
-          "climb_mps": 30.0,
-          "cruise_kmh": 650.0,
-          "layer": "high_air",
-          "turn_deg_s": 72.0
-        }
-      },
-      "mounts": [
-        {
-          "carriers": [],
-          "id": "gun",
-          "muzzle_m": [
-            7.0,
-            0.0,
-            0.0
-          ],
-          "name": "Cannon",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.8
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_gun"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "missiles",
-          "muzzle_m": [
-            4.0,
-            0.0,
-            0.0
-          ],
-          "name": "AA missiles",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "sead_missile"
-          ]
-        }
-      ],
-      "name": "EA-18G Growler",
-      "roles": [
-        "recon"
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "EA-18G Growler",
-        "variant": "SEAD"
-      },
-      "sensors": {
-        "ground_m": 1.0,
-        "high_air_m": 5000.0,
-        "low_air_m": 1800.0,
-        "sight_shape": {
-          "front": 1.0,
-          "rear": 0.5,
-          "side": 0.8
-        }
-      },
-      "sound": {
-        "loudness_m": 1400.0,
-        "profile": "vehicle"
-      },
-      "vehicle_class": "high_air_light"
-    },
-    {
-      "appearance": "us_ea_18g_growler_electronic_warfare_aircraft",
-      "body": {
-        "hull": {
-          "armor": {
-            "front": 20.0,
-            "rear": 10.0,
-            "ricochet": {
-              "front": 0.0,
-              "rear": 0.0,
-              "roof": 0.0,
-              "side": 0.0
-            },
-            "roof": 8.0,
-            "side": 12.0
-          },
-          "eye_m": 2.0,
-          "half_extents_m": [
-            9.09,
-            6.89,
-            2.44
-          ],
-          "hp": 100.0,
-          "push_class": "none",
-          "weight_class": "light",
-          "wreck": "light_wreck"
-        }
-      },
-      "capabilities": {
-        "air": {
-          "afterburner": {
-            "fuel_multiplier": 2.0,
-            "speed_multiplier": 1.5
-          },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 20.0
-          },
-          "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 7000.0,
-            "emits": false
-          },
-          "refund": {
-            "ammunition": 0.3,
-            "fuel": 0.3,
-            "health": 0.4
-          },
-          "sead": true
-        }
-      },
       "cost": 380,
       "description": "Electronic-warfare aircraft",
       "faction": "us",
@@ -36620,7 +35005,7 @@
             0.0,
             0.0
           ],
-          "name": "AA missiles",
+          "name": "SEAD missiles",
           "on": null,
           "pivot_m": [
             0.0,
@@ -36646,163 +35031,6 @@
         ],
         "family_name": "EA-18G Growler",
         "variant": "Electronic-warfare aircraft"
-      },
-      "sensors": {
-        "ground_m": 1.0,
-        "high_air_m": 5000.0,
-        "low_air_m": 1800.0,
-        "sight_shape": {
-          "front": 1.0,
-          "rear": 0.5,
-          "side": 0.8
-        }
-      },
-      "sound": {
-        "loudness_m": 1400.0,
-        "profile": "vehicle"
-      },
-      "vehicle_class": "high_air_light"
-    },
-    {
-      "appearance": "f_16c_block_50",
-      "body": {
-        "hull": {
-          "armor": {
-            "front": 20.0,
-            "rear": 10.0,
-            "ricochet": {
-              "front": 0.0,
-              "rear": 0.0,
-              "roof": 0.0,
-              "side": 0.0
-            },
-            "roof": 8.0,
-            "side": 12.0
-          },
-          "eye_m": 2.0,
-          "half_extents_m": [
-            7.54,
-            5.02,
-            2.44
-          ],
-          "hp": 100.0,
-          "push_class": "none",
-          "weight_class": "light",
-          "wreck": "light_wreck"
-        }
-      },
-      "capabilities": {
-        "air": {
-          "afterburner": {
-            "fuel_multiplier": 2.0,
-            "speed_multiplier": 1.5
-          },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 20.0
-          },
-          "fuel_capacity_s": 180.0,
-          "refund": {
-            "ammunition": 0.3,
-            "fuel": 0.3,
-            "health": 0.4
-          },
-          "sead": false
-        }
-      },
-      "cost": 380,
-      "description": "Fighter",
-      "faction": "us",
-      "family": "us_fighter",
-      "id": "us_fighter_aircraft",
-      "mobility": {
-        "air": {
-          "climb_mps": 30.0,
-          "cruise_kmh": 650.0,
-          "layer": "high_air",
-          "turn_deg_s": 72.0
-        }
-      },
-      "mounts": [
-        {
-          "carriers": [],
-          "id": "gun",
-          "muzzle_m": [
-            7.0,
-            0.0,
-            0.0
-          ],
-          "name": "Cannon",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.8
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_gun"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "missiles",
-          "muzzle_m": [
-            4.0,
-            0.0,
-            0.0
-          ],
-          "name": "AA missiles",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_missile"
-          ]
-        },
-        {
-          "carriers": [],
-          "id": "bombs",
-          "muzzle_m": [
-            2.0,
-            0.0,
-            0.0
-          ],
-          "name": "Bombs",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "air_bomb",
-            "air_bomb_cluster"
-          ]
-        }
-      ],
-      "name": "US Fighter",
-      "roles": [
-        "recon"
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "US Fighter",
-        "variant": "Fighter"
       },
       "sensors": {
         "ground_m": 1.0,

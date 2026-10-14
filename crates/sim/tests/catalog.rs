@@ -167,6 +167,118 @@ fn every_faction_has_a_dedicated_sead_aircraft() {
     }
 }
 
+#[test]
+fn every_faction_fields_a_ground_missile_jet_and_a_bomb_jet() {
+    // Europe and Eastern receive their dedicated ground-missile jets in pass 3;
+    // this slice proves the roster contract across enabled and planned cards.
+    let view: Value = serde_json::from_str(
+        &std::fs::read_to_string(sim::fixtures::dir().join("catalog.json")).unwrap(),
+    )
+    .unwrap();
+    let mut roles = std::collections::BTreeMap::<&str, (bool, bool)>::new();
+    for card in view["cards"].as_array().unwrap() {
+        let Some(roster) = card["roster"].as_object() else {
+            continue;
+        };
+        if roster["category"] != "air" {
+            continue;
+        }
+        let Some(factions) = roster["factions"].as_array() else {
+            continue;
+        };
+        let enabled = card["disabled_reason"].is_null();
+        let (ground, bomb) = if enabled {
+            let unit = view["units"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|unit| unit["id"] == card["id"])
+                .unwrap_or_else(|| panic!("missing enabled air unit {}", card["id"]));
+            let weapons: Vec<&str> = unit["mounts"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .flat_map(|mount| mount["weapons"].as_array().into_iter().flatten())
+                .filter_map(Value::as_str)
+                .collect();
+            (
+                weapons.contains(&"air_ground_missile"),
+                weapons
+                    .iter()
+                    .any(|w| *w == "air_bomb" || *w == "air_bomb_cluster"),
+            )
+        } else {
+            let icons: Vec<&str> = card["planned_weapons"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|weapon| weapon["icon"].as_str())
+                .collect();
+            (icons.contains(&"atgm"), icons.contains(&"bomb"))
+        };
+        for faction in factions.iter().filter_map(Value::as_str) {
+            let entry = roles.entry(faction).or_insert((false, false));
+            entry.0 |= ground;
+            entry.1 |= bomb;
+        }
+    }
+    for faction in ["us", "europe", "eastern"] {
+        assert_eq!(
+            roles.get(faction),
+            Some(&(true, true)),
+            "{faction} lacks a ground-missile or bomb jet across enabled and planned loadouts"
+        );
+    }
+}
+
+#[test]
+fn no_jet_carries_bombs_and_ground_missiles() {
+    let view: Value = serde_json::from_str(
+        &std::fs::read_to_string(sim::fixtures::dir().join("catalog.json")).unwrap(),
+    )
+    .unwrap();
+    for card in view["cards"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|card| card["roster"]["category"] == "air")
+    {
+        let weapons: (bool, bool) = if card["disabled_reason"].is_null() {
+            let unit = view["units"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|unit| unit["id"] == card["id"])
+                .unwrap();
+            let ws: Vec<&str> = unit["mounts"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .flat_map(|m| m["weapons"].as_array().into_iter().flatten())
+                .filter_map(Value::as_str)
+                .collect();
+            (
+                ws.contains(&"air_ground_missile"),
+                ws.iter()
+                    .any(|w| *w == "air_bomb" || *w == "air_bomb_cluster"),
+            )
+        } else {
+            let icons: Vec<&str> = card["planned_weapons"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|w| w["icon"].as_str())
+                .collect();
+            (icons.contains(&"atgm"), icons.contains(&"bomb"))
+        };
+        assert!(
+            !(weapons.0 && weapons.1),
+            "{} carries both ground missiles and bombs",
+            card["id"]
+        );
+    }
+}
+
 /// A disabled card's source model: present at its `source_path`, and a
 /// binary glTF (version 2) whose JSON names meshes and a scene, or the Git
 /// LFS pointer to one in a checkout that has not pulled it. `asset validate`
