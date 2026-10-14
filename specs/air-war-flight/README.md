@@ -28,7 +28,7 @@ You are implementing this spec with `implement-spec-with-codex`. Codex writes th
 - [ ] 11 [orders and reactions](slices/11-air-orders.md)
 - [x] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
 - [x] 13 [approach and departure effect](slices/13-transit-effect.md)
-- [ ] 14 [jet attitude](slices/14-jet-attitude.md)
+- [x] 14 [jet attitude](slices/14-jet-attitude.md)
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
 - [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [ ] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
