@@ -108,8 +108,15 @@ const STATE_ICONS = {
   afterburner:
     '<path d="M12 2c4 5 6 8 6 12a6 6 0 0 1-12 0c0-4 2-7 6-12z"/><path d="M12 12c1.5 2 2.5 3.5 2.5 5a2.5 2.5 0 0 1-5 0c0-1.5 1-3 2.5-5z"/>',
   traversing: '<path d="M4 12h14M13 7l5 5-5 5"/><path d="M4 5v14"/>',
-  dogfight: '<path d="M4 7h9l-3-3M20 17h-9l3 3M13 7l-3 10"/>',
-  radar: '<circle cx="12" cy="12" r="8"/><path d="M12 12l6-5M12 12V4"/>',
+  // Two solid jet chevrons meeting nose to nose: the merge. At panel size
+  // line marks read as letters (a zigzag as "2", crossed arrows as "X"), and
+  // two whole aircraft silhouettes blur into one shape.
+  dogfight:
+    '<path d="M11 12L2 5l2.5 7L2 19z" fill="currentColor"/><path d="M13 12l9-7-2.5 7 2.5 7z" fill="currentColor"/>',
+  // A radar dish sending its waves (a dial with hands read as a clock, and
+  // a sweep wedge blurred at panel size).
+  radar:
+    '<path d="M4 8a10 10 0 0 0 12 12z" fill="currentColor"/><path d="M10 14l5-5"/><path d="M16 5a3 3 0 0 1 3 3"/><path d="M16 1.5a6.5 6.5 0 0 1 6.5 6.5"/>',
   // Twin decoys shed from one point, their trails bending apart as they
   // fall, each ending in its burning head.
   flares:
