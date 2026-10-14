@@ -2,8 +2,16 @@
 //
 //   bun run --cwd web scene -- <fixture-id>...   run those fixtures' scenes
 //   bun run --cwd web scene                      run every registered scene
-//   bun run --cwd web scene -- --list            list fixture ids
+//   bun run --cwd web scene -- --verify          run the verify gate (fixtures without "verify": false)
+//   bun run --cwd web scene -- --list            list fixture ids and what each scene proves
 //   bun run --cwd web scene -- --visual          run every scene with approved pictures
+//
+// Fixtures run two at a time (SCENE_CONCURRENCY sets the overlap, 1 serializes);
+// a fixture marked `"serial"` always runs alone. A lab must become ready within
+// 30 s alone or 60 s overlapped (SCENE_READINESS_TIMEOUT_MS overrides).
+// SCENE_GRAPHICS_QUALITY=low|medium|high asks lab routes for that test-only
+// graphics profile; serial and `"authored_quality"` fixtures keep their own.
+// `bun run --cwd web verify` is --verify at the low profile.
 //
 // The registry is apps/battle-lab/src/fixtures.json; every fixture id must have
 // exactly one scene at web/scenes/<id>.mjs and vice versa. Without VERIFY_URL

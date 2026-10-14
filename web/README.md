@@ -105,24 +105,36 @@ Beside the pictures, the [containment check](scenes/_spills.mjs) asks of every
 panel the geometric question a picture answers only once approved: does it
 hold its content?
 
-The scene runner executes independent fixtures with bounded overlap (two at a
-time by default) so a long browser scene does not serialize the whole gate.
-Timing and parity fixtures are marked serial and still run alone because GPU
-contention would invalidate their measurements. Set `SCENE_CONCURRENCY=1` for a
-fully serialized run, or lower it on a constrained GPU. Separate rendering jobs
-still share the machine's GPU; use the repository lock when running two jobs,
-for example `lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`
-(on Linux, `flock` in place of `lockf`).
-Parallel runs use a 60 s lab-readiness allowance; serial runs keep the 30 s
-fail-fast allowance. `SCENE_READINESS_TIMEOUT_MS` overrides either value when a
-machine needs a different startup budget.
-The web `verify` script selects the mechanics gate (`--verify`) and the test-only
-low graphics profile for ordinary scenes by default. Extended renderer, audio
-and generated-map scenes remain registered and run through `bun run --cwd web
-scene`; authored screenshot galleries run through `bun run --cwd web scene --
---visual`. Set `SCENE_GRAPHICS_QUALITY=high` to exercise authored detail in the
-mechanics gate.
-Timing and parity fixtures, and fixtures marked `authored_quality` (their scenes judge the authored graphics), always keep their own quality.
+Every scene says what it proves in its registry entry's `describe`, which
+`--list` prints; that is the one place a scene is documented.
+
+Scenes run as three suites, cheapest first:
+
+- **The verify gate** (`bun run verify`) is what everyone runs before calling
+  work done. It is deliberately partial, so it stays fast enough to run every
+  time. A scene belongs in it when a change elsewhere could silently break the
+  contract it proves: a game rule, the simulation's authority, publication, or
+  the frame every scene is drawn through. Each such area keeps one
+  representative, not every checkpoint it ever had. A scene stays out (`"verify": false`) when it is a feature's own slice
+  checkpoint, judges looks rather than behaviour, plays audio, generates maps,
+  measures timing, or only repeats what an in-gate scene already proves. A new
+  fixture is in the gate unless it says otherwise, so leaving one out is a
+  decision. The gate draws ordinary scenes at a test-only low graphics profile.
+  One low-quality copy of the foundation scene keeps the frame path itself under
+  test.
+- **The visual suite** (`--visual`) holds every scene with approved pictures.
+- **Everything** (the runner with no ids) runs each registered scene once, when
+  a spec's implementation is finished, as [AGENTS.md](../AGENTS.md) requires.
+  An out-of-gate scene is also run by id whenever a change could move it.
+
+Scenes overlap to keep the gate moving. Timing and parity scenes are marked
+`serial` and run alone, because GPU contention would invalidate their
+measurements. Scenes that judge the authored graphics are marked
+`authored_quality` and keep it. Rendering jobs from separate checkouts still
+share one GPU, so run them under the repository lock, for example
+`lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- <fixture-id>`
+(`flock` on Linux). [The runner's usage comment](scene.mjs) owns the flags and
+environment settings.
 
 [The asset CLI](asset.mjs) is file IO around [scene-assets](../packages/scene-assets/README.md).
 Its bare invocation prints available commands. Audio preparation has a separate
