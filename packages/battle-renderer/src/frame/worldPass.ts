@@ -38,8 +38,9 @@
 // - the forest's trees (`sceneryLayer.ts`), which draw the simulation's trunks.
 // Plus the backdrop past the map edge and the hedgerows and copses on it:
 // the same ground material (the patchwork runs on past the map), lit, hazed
-// and fogged like the world (sight runs on past the edge over open ground),
-// but unshadowed and casting nothing.
+// and fogged like the world, but unshadowed and casting nothing. Nothing is
+// ever seen past the playable area (`fogSeenBy`), so it is always drawn as
+// unseen.
 // Grass grows on the terrain (`grassPass.ts`): regrown by compute before the
 // colour pass whenever the view moves, drawn after the opaque world, and
 // marked as ground in the fog mask. The ground paint (`paintedMarks.ts`:

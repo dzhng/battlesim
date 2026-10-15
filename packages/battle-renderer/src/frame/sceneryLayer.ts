@@ -439,8 +439,8 @@ export async function createSceneryLayer(
     const lit = surface(v.world, v.normal, v.color, v.local, sun);
     return { color: d.vec4f(lit, 1), fog: fogCoverage(seen, 1) };
   });
-  /** Scenery past the map: unshadowed, but fogged as a forest tree is (the
-   *  sight maps run on past the edge over open ground). */
+  /** Scenery past the map: unshadowed, but fogged as a forest tree is (and
+   *  so always unseen: nothing is seen past the playable area). */
   const backdropFragment = tgpu.fragmentFn({ in: placedVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
     const seen = fogTerm(v.heart, d.vec3f(0), v.clip.xy, false);

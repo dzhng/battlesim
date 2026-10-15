@@ -34,7 +34,7 @@ You are implementing this spec with `implement-spec`. Opus subagents write the c
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
 - [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
-- [ ] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
+- [x] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
 - [ ] 19 [closeout](slices/19-closeout.md)
 
 ## User decisions made during the build
@@ -70,7 +70,8 @@ Slices that share a seam stay on one lane. These pairs can run concurrently:
 ## Single-owner invariants
 
 Every slice inherits these:
-- **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A shadow falls along the sun onto the ground, from the aircraft's actual height above that ground.
+- **High air is an elevation layer.** It is the one layer that bends physics (altitude lowered from about 1,000 m to about 250 m for play), so its special treatments (the shadow beneath, cards drawn on top, ...) key on the HighAir layer, never on "jet" or a unit type.
+- **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A helicopter's shadow is cast along the sun from its actual height; a jet at altitude casts none, and instead shows a soft silhouette shadow on the ground directly beneath it (choices.md).
 - **`crates/sim/src/air/`** owns fixed-wing behaviour:
   - `jet.rs` is the only flight law; nothing else writes a jet's position, heading or speed.
   - `movement/air.rs` handles helicopters only.
