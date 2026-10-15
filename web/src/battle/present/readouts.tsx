@@ -4,7 +4,7 @@
  *    unit's in cyan, with rounds left and running timers; an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
  *  - the command bar: the selection's commands and its fire policy. */
-import type { UnitCatalog } from "@packages/scene-assets/src/units";
+import { highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { useSessionCatalog } from "../catalog/context";
 import {
   useCallback,
@@ -26,6 +26,14 @@ import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { gameHud } from "./hudTheme";
 import { layoutReadoutDetails, type DetailCard } from "./readoutDetails";
+import {
+  EDGE_PX,
+  layoutReadouts,
+  leaderOf,
+  overlaps,
+  readoutPaintOrder,
+  type ReadoutRect,
+} from "./readoutLayout";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { clamp, vec3 } from "math";
 import type { Box2 } from "math/shapes";
@@ -45,24 +53,8 @@ export function unitName(units: UnitCatalog, u: Pick<OwnUnitView, "kind">): stri
   return units.type(u.kind).name;
 }
 
-/** Page-pixel box. */
-export interface ReadoutRect {
-  x0: number;
-  x1: number;
-  y0: number;
-  y1: number;
-}
-const overlaps = (a: ReadoutRect, b: ReadoutRect) =>
-  a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-/** Where a callout sits from its unit's anchor: its near bottom corner this
- *  far to the side and up, so the leader line rises off the unit. */
-const CALLOUT_SIDE_PX = 30;
-const CALLOUT_RISE_PX = 34;
 /** The ring a leader line starts from, on its unit. */
 const LEADER_RING_PX = 2;
-/** Kept clear of the viewport's edge; a callout that would cross the right
- *  edge hangs to the unit's left instead. */
-const EDGE_PX = 8;
 /** A callout eases to a new nudge (another readout to clear, a bar) with
  *  this time constant, on the presentation clock: about 95% of the way in
  *  150 ms. */
@@ -126,6 +118,9 @@ interface Callout {
   /** Hang from the drawn ground under `at` (a contact not aloft), not its z. */
   onGround?: boolean;
   selected: boolean;
+  /** Its unit flies in the high-air layer: its card sits at its own spot,
+   *  makes no room and draws above the ground and low-air cards. */
+  highAir: boolean;
   content: ReactNode;
   opacity?: number;
   retiring?: boolean;
@@ -135,11 +130,11 @@ interface Callout {
 /** A unit panel's anchor: this high over its unit, about its head. */
 const HEAD_M = 2;
 
-/** Observation-only panels, positioned each frame beside their units.
- *  Stack downward in screen order, upward when the bottom fills. If neither
- *  direction fits, hide a panel that cannot fit; selected panels paint above
- *  the others. Far views allow overlap in camera-depth order.
- *  Nudges ease on the presentation clock. */
+/** Observation-only panels, positioned each frame beside their units by
+ *  `layoutReadouts`: high-air cards at their own spot, drawn above; ground
+ *  and low-air cards making room for each other on short, uncrossed leaders.
+ *  Selected panels paint above the others of their layer. Far views allow
+ *  overlap in camera-depth order. Nudges ease on the presentation clock. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -184,6 +179,7 @@ export function ReadoutLayer({
         id: -g.unit.id - 1,
         at: g.position,
         selected: false,
+        highAir: highAir(units.type(g.unit.kind)),
         content: <InfoPanel panel={ownPanel(units, g.unit, own, rules)} zoom="far" />,
       }),
     ),
@@ -195,6 +191,7 @@ export function ReadoutLayer({
         id: u.id,
         at: u.position,
         selected: picked,
+        highAir: highAir(units.type(u.kind)),
         content: <InfoPanel panel={ownPanel(units, u, own, rules)} />,
       };
     }),
@@ -205,6 +202,7 @@ export function ReadoutLayer({
         id: e.id,
         at: e.position,
         selected: false,
+        highAir: highAir(units.type(e.kind)),
         content: <InfoPanel panel={enemyPanel(units, e.kind, rules)} />,
       }),
     ),
@@ -218,6 +216,7 @@ export function ReadoutLayer({
         at: c.center,
         onGround: !c.aloft,
         selected: false,
+        highAir: c.layer === "high_air",
         content: <InfoPanel panel={contactPanel(units, c, tick, rules)} />,
       }),
     ),
@@ -287,6 +286,7 @@ export function ReadoutLayer({
         y: number;
         distanceSq: number;
         selected: boolean;
+        highAir: boolean;
         opacity: number;
       }[] = [];
       for (const c of calloutsRef.current) {
@@ -322,6 +322,7 @@ export function ReadoutLayer({
             id: c.key,
             node,
             selected: c.selected,
+            highAir: c.highAir,
             opacity: c.opacity ?? 1,
             x: at[0],
             y: at[1],
@@ -351,91 +352,34 @@ export function ReadoutLayer({
       const dt = clock === null || lastClock.current === null ? 0 : clock - lastClock.current;
       lastClock.current = clock;
       // One layout read for the frame: the panels to keep clear of, then sizes.
-      const panels = [...document.querySelectorAll("[data-occludes-readouts]")].map((e) =>
-        e.getBoundingClientRect(),
-      );
-      const boxes = anchored.map((a) => ({
+      const panels = [...document.querySelectorAll("[data-occludes-readouts]")].map((e) => {
+        const r = e.getBoundingClientRect();
+        return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
+      });
+      const callouts = anchored.map((a) => ({
         ...a,
         w: a.node.offsetWidth,
         h: a.node.offsetHeight,
       }));
       const gap = gameHud.panel_gap_px;
-      // On screen, and never under a panel: below the top edge, then the
-      // shortest way out of a panel, right of a side panel, below a top
-      // plate, above a bottom bar; never up off the top of the screen.
-      const clear = (box: ReadoutRect): ReadoutRect => {
-        if (box.y0 < EDGE_PX) box = shift(box, EDGE_PX - box.y0);
-        for (const r of panels) {
-          if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
-            const right = r.right + gap - box.x0;
-            const down = r.bottom + gap - box.y0;
-            const up = r.top - gap - box.y1;
-            const dy = Math.abs(down) < Math.abs(up) || box.y0 + up < 0 ? down : up;
-            box =
-              right <= Math.abs(dy)
-                ? { ...box, x0: box.x0 + right, x1: box.x1 + right }
-                : shift(box, dy);
-          }
-        }
-        return box;
-      };
-      const placed: ReadoutRect[] = panels.map((r) => ({
-        x0: r.left,
-        x1: r.right,
-        y0: r.top,
-        y1: r.bottom,
-      }));
-      // Pad obstacles so collision checks and placement use the same edge,
-      // without subtracting the gap again and rounding back into a collision.
-      const hit = (box: ReadoutRect) =>
-        placed.find((o) =>
-          overlaps({ x0: o.x0 - gap, x1: o.x1 + gap, y0: o.y0 - gap, y1: o.y1 + gap }, box),
-        );
-      const shift = (box: ReadoutRect, dy: number): ReadoutRect => ({
-        ...box,
-        y0: box.y0 + dy,
-        y1: box.y1 + dy,
-      });
       const right = window.innerWidth - EDGE_PX;
-      // Highest unit first; keep unit anchors clear as well as panels.
-      const callouts = [...boxes].sort((m, n) => m.y - n.y);
-      for (const b of callouts) placed.push({ x0: b.x - 6, x1: b.x + 6, y0: b.y - 6, y1: b.y + 6 });
+      const layout = layoutReadouts(
+        callouts,
+        panels,
+        { width: window.innerWidth, height: window.innerHeight },
+        gap,
+        overlap,
+      );
       for (const b of callouts) {
-        const left = b.x + CALLOUT_SIDE_PX + b.w > right;
-        const x0 = left ? b.x - CALLOUT_SIDE_PX - b.w : b.x + CALLOUT_SIDE_PX;
-        const y1 = b.y - CALLOUT_RISE_PX;
-        const natural = { x0, x1: x0 + b.w, y0: y1 - b.h, y1 };
-        let target = clear(natural);
-        // Both walks move strictly past each hit, so neither can cycle.
-        for (let direction = 1; !overlap && direction >= -1; direction -= 2) {
-          let candidate = target;
-          for (let o = hit(candidate); o; o = hit(candidate)) {
-            const edge = direction > 0 ? o.y1 + gap : o.y0 - gap;
-            candidate = {
-              ...candidate,
-              y0: direction > 0 ? edge : edge - b.h,
-              y1: direction > 0 ? edge + b.h : edge,
-            };
-          }
-          if (candidate.y0 >= EDGE_PX && candidate.y1 <= window.innerHeight - EDGE_PX) {
-            target = candidate;
-            break;
-          }
-        }
-        if (
-          target.x0 < EDGE_PX ||
-          target.x1 > right ||
-          target.y0 < EDGE_PX ||
-          target.y1 > window.innerHeight - EDGE_PX
-        ) {
+        const at = layout.get(b.id);
+        if (!at) {
           b.node.style.display = "none";
           leaders.current.get(b.id)?.setAttribute("d", "");
           nudges.current.delete(b.id);
           continue;
         }
-        // Layout holds the target, so the next callout clears where this one
-        // is going; this one is drawn eased toward it.
-        placed.push(target);
+        const { natural, box: target } = at;
+        // This one is drawn eased toward its target.
         const want = { dx: target.x0 - natural.x0, dy: target.y0 - natural.y0 };
         const n = easeNudge(overlap ? undefined : nudges.current.get(b.id), want, dt);
         nudges.current.set(b.id, n);
@@ -453,18 +397,23 @@ export function ReadoutLayer({
       for (const { b, box } of situated) compactBoxes.current.set(b.id, box);
       let details: ReturnType<typeof layoutReadoutDetails> | null = null;
       if (detailing && !overlap) {
-        const detailCards: DetailCard[] = situated.map(({ b, box }) => {
-          const size = fullSizes.get(b.id)!;
-          return {
-            id: b.id,
-            distanceSq: b.distanceSq,
-            compact: [box.x0, box.y0, box.x1, box.y1],
-            full: [box.x0, box.y0, box.x0 + size.w, box.y0 + size.h],
-          };
-        });
+        // High-air cards make no room, so they take no part in it here either.
+        const detailCards: DetailCard[] = situated
+          .filter(({ b }) => !b.highAir)
+          .map(({ b, box }) => {
+            const size = fullSizes.get(b.id)!;
+            return {
+              id: b.id,
+              distanceSq: b.distanceSq,
+              compact: [box.x0, box.y0, box.x1, box.y1],
+              full: [box.x0, box.y0, box.x0 + size.w, box.y0 + size.h],
+            };
+          });
         const obstacles: Box2[] = [
-          ...panels.map((r): Box2 => [r.left, r.top, r.right, r.bottom]),
-          ...callouts.map((b): Box2 => [b.x - 6, b.y - 6, b.x + 6, b.y + 6]),
+          ...panels.map((r): Box2 => [r.x0, r.y0, r.x1, r.y1]),
+          ...callouts
+            .filter((b) => !b.highAir)
+            .map((b): Box2 => [b.x - 6, b.y - 6, b.x + 6, b.y + 6]),
         ];
         details = layoutReadoutDetails(
           detailCards,
@@ -475,28 +424,27 @@ export function ReadoutLayer({
           hoveredCard.current,
         );
       }
-      paintOrder.current.clear();
+      paintOrder.current = readoutPaintOrder(
+        situated.map(({ b }) => b),
+        hoveredCard.current,
+        overlap,
+      );
+      for (const { b } of situated)
+        b.node.parentElement!.style.zIndex = String(paintOrder.current.get(b.id));
       const near = [...situated].sort((a, b) => a.b.distanceSq - b.b.distanceSq);
-      for (const [i, { b }] of near.entries()) {
-        const order =
-          b.id === hoveredCard.current
-            ? near.length + 1
-            : overlap
-              ? near.length - i
-              : Number(b.selected);
-        paintOrder.current.set(b.id, order);
-        b.node.parentElement!.style.zIndex = String(order);
-      }
       const drawnBoxes = new Map<string, ReadoutRect>();
       for (const { b, box: compact } of situated) {
         const detail = details?.get(b.id);
         let box = detail
           ? { x0: detail.box[0], y0: detail.box[1], x1: detail.box[2], y1: detail.box[3] }
           : compact;
-        b.node.dataset.zoom = (overlap ? expanded || b.id === hoveredCard.current : detail?.full)
+        // In a far view every card, and always a high-air card, opens where it
+        // stands, kept on screen.
+        const inPlace = overlap || b.highAir;
+        b.node.dataset.zoom = (inPlace ? expanded || b.id === hoveredCard.current : detail?.full)
           ? "default"
           : "compressed";
-        if (overlap && b.node.dataset.zoom === "default") {
+        if (inPlace && b.node.dataset.zoom === "default") {
           const size = fullSizes.get(b.id)!;
           const x0 = clamp(box.x0, EDGE_PX, right - size.w);
           const y0 = clamp(box.y0, EDGE_PX, window.innerHeight - EDGE_PX - size.h);
@@ -508,16 +456,16 @@ export function ReadoutLayer({
         if (b.id === hoveredCard.current) group.dataset.hovered = "true";
         else delete group.dataset.hovered;
         // The leader: a small ring on the unit, a line off it to the
-        // callout's near bottom corner, then along the callout's foot.
-        const [near, far] = box.x0 >= b.x ? [box.x0, box.x1] : [box.x1, box.x0];
-        const [x, y] = [b.x.toFixed(1), b.y.toFixed(1)];
+        // callout's near corner, then along its edge nearest the unit.
+        const [from, corner, foot] = leaderOf(b, box);
         const r = LEADER_RING_PX;
+        const xy = (p: [number, number]) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
         leaders.current
           .get(b.id)
           ?.setAttribute(
             "d",
-            `M ${b.x - r} ${y} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0 ` +
-              `M ${x} ${y} L ${near.toFixed(1)} ${box.y1.toFixed(1)} L ${far.toFixed(1)} ${box.y1.toFixed(1)}`,
+            `M ${b.x - r} ${b.y.toFixed(1)} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0 ` +
+              `M ${xy(from)} L ${xy(corner)} L ${xy(foot)}`,
           );
       }
       for (const { b } of situated) {
