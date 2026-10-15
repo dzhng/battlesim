@@ -16,7 +16,7 @@
 - `firing_makes_it_your_target_and_it_adopts_you_only_if_free`
 - `a_third_jet_joins_by_targeting_an_engaged_one`
 - `the_link_breaks_past_the_rule_distance_in_3d`
-- `a_jet_never_dogfights_a_helicopter`
+- `a_jet_makes_passes_at_a_helicopter_and_neither_dogfights` (since D29c, which supersedes D29b)
 - `on_a_head_on_merge_both_break_away`
 - `pursuit_aims_where_the_target_was`
 - `dogfight_height_stays_in_its_band`
