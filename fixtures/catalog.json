@@ -8727,7 +8727,7 @@
           },
           "capabilities": {
             "air_defense": {
-              "tier": "medium"
+              "tier": "short"
             },
             "radar": {
               "detection_m": 3200.0,
@@ -27580,7 +27580,7 @@
       },
       "capabilities": {
         "air_defense": {
-          "tier": "medium"
+          "tier": "short"
         },
         "radar": {
           "detection_m": 3200.0,

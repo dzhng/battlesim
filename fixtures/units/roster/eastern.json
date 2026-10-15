@@ -1673,7 +1673,7 @@
       },
       "capabilities": {
         "air_defense": {
-          "tier": "medium"
+          "tier": "short"
         },
         "radar": {
           "emits": true,
