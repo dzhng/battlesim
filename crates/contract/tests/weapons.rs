@@ -216,3 +216,92 @@ fn every_air_target_row_reaches_its_range_within_its_lifetime() {
         }
     }
 }
+
+/// A fake direct-fire row whose `targets` each test writes, so no roster
+/// row's eligibility is pinned.
+fn test_rows(targets: Value) -> Value {
+    json!({ "test_gun": {
+        "name": "Test Gun", "description": "A test row.", "icon": "rifle",
+        "stationary": false, "range_m": 300, "speed_mps": 800,
+        "aim_s": 1, "reload_s": 2, "ammo": "unlimited",
+        "penetration": 5, "damage": 10, "scatter_mrad": 5,
+        "near_miss_suppression": 0, "suppression_radius_m": 0, "blast_radius_m": 0,
+        "targets": targets
+    }})
+}
+
+/// Each layer names the kinds of target it engages there: a soldier or a
+/// vehicle on the ground, an aircraft by how it flies. A point on the ground
+/// is no unit, so no class bars it.
+#[test]
+fn a_layer_engages_only_the_target_classes_it_lists() {
+    use contract::catalog::AltitudeLayer::{Ground, HighAir, LowAir};
+    use contract::weapons::TargetClass::{AirFixedWing, AirRotor, Infantry, Vehicle};
+    let rows = contract::weapons::resolve_weapons(test_rows(json!({
+        "ground": { "classes": ["vehicle"] },
+        "low_air": { "classes": ["air_rotor"], "range_m": 100 },
+        "high_air": { "classes": ["air_fixed_wing", "air_rotor"] }
+    })))
+    .unwrap();
+    let gun = &rows["test_gun"];
+    let reach = |layer, class| gun.engages(layer, class).map(|fire| fire.range_m);
+    assert_eq!(reach(Ground, Some(Vehicle)), Some(300.0));
+    assert_eq!(reach(Ground, Some(Infantry)), None);
+    assert_eq!(reach(Ground, None), Some(300.0), "a ground point");
+    assert_eq!(reach(LowAir, Some(AirRotor)), Some(100.0));
+    assert_eq!(reach(LowAir, Some(AirFixedWing)), None);
+    assert_eq!(reach(HighAir, Some(AirFixedWing)), Some(300.0));
+    assert_eq!(reach(HighAir, Some(AirRotor)), Some(300.0));
+}
+
+/// A layer must say what it engages, in classes found at that height: none,
+/// an unknown name, a repeat, or a soldier in the air is refused, naming the
+/// row and the layer.
+#[test]
+fn a_layer_with_missing_unknown_or_misplaced_classes_is_refused() {
+    for ground in [
+        json!({}),
+        json!({ "classes": [] }),
+        json!({ "classes": ["tank"] }),
+        json!({ "classes": ["vehicle", "vehicle"] }),
+        json!({ "classes": ["air_rotor"] }),
+    ] {
+        let error = contract::weapons::resolve_weapons(test_rows(json!({ "ground": ground })))
+            .err()
+            .unwrap_or_else(|| panic!("accepted targets.ground = {ground}"))
+            .to_string();
+        assert!(
+            error.contains("weapons.test_gun") && error.contains("classes"),
+            "{ground}: {error}"
+        );
+    }
+    let error = contract::weapons::resolve_weapons(test_rows(
+        json!({ "low_air": { "classes": ["infantry"] } }),
+    ))
+    .unwrap_err()
+    .to_string();
+    assert!(error.contains("targets.low_air.classes"), "{error}");
+}
+
+/// Fields a cutover removed are refused by name, never silently ignored: a
+/// row still saying `anti_armor` would otherwise lose its meaning unnoticed.
+#[test]
+fn a_removed_or_unknown_weapon_field_is_refused_by_name() {
+    for (field, value) in [
+        ("anti_armor", json!(true)),
+        ("interception", json!("missile")),
+        ("aa_tier", json!("short")),
+        ("fov_deg", json!(60)),
+    ] {
+        let mut rows = test_rows(json!({ "ground": { "classes": ["vehicle"] } }));
+        rows["test_gun"][field] = value;
+        let error = contract::weapons::resolve_weapons(rows)
+            .err()
+            .unwrap_or_else(|| panic!("accepted {field}"))
+            .to_string();
+        assert!(
+            error.contains("weapons.test_gun") && error.contains(field),
+            "{field}: {error}"
+        );
+    }
+}

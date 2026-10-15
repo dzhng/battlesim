@@ -942,6 +942,41 @@ fn an_area_draws_fire_only_while_no_identified_enemy_is_in_range() {
     );
 }
 
+/// A weapon is fired only at the target classes its layer lists: the same
+/// launcher, listing `vehicle` alone, holds its missiles while a rifle squad
+/// stands in the open within reach; listing `infantry` too, it fires at it.
+#[test]
+fn a_weapon_fires_only_at_the_target_classes_its_layer_lists() {
+    let launches = |classes: Value| {
+        let mut rules = rules();
+        rules["weapons"]["atgm"]["targets"]["ground"]["classes"] = classes;
+        let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
+        let setup = serde_json::from_value(json!({
+            "map": map,
+            "rules": rules,
+            "units": [
+                { "side": "blue", "kind": "test_at", "position": [100, 300] },
+                { "side": "red", "kind": "test_rifle", "position": [300, 300],
+                  "engagement": "return_fire_only" },
+            ],
+            "events": [],
+            "scripts": [],
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 5);
+        shots_by(&run(&mut b, ticks(20.0)), 0, "atgm").len()
+    };
+    assert_eq!(
+        launches(json!(["vehicle"])),
+        0,
+        "a vehicle-only row spares soldiers"
+    );
+    assert!(
+        launches(json!(["infantry", "vehicle"])) > 0,
+        "a row listing infantry fires at them"
+    );
+}
+
 #[test]
 fn areas_draw_only_general_purpose_fire_and_never_ap() {
     // A red squad 700 m away, beyond every blue unit's optics, fires at

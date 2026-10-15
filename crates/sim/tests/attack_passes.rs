@@ -33,7 +33,8 @@ fn ground_attack_battle_with_bomb_ammo(weapons: &[&str], bomb_ammo: u32) -> sim:
     rules["weapons"]["air_bomb"]["ammo"] = json!(bomb_ammo);
     rules["weapons"]["air_bomb"]["aim_s"] = json!(0.1);
     rules["weapons"]["air_ground_missile"]["aim_s"] = json!(0.1);
-    rules["weapons"]["air_ground_missile"]["anti_armor"] = json!(false);
+    rules["weapons"]["air_ground_missile"]["targets"]["ground"]["classes"] =
+        json!(["infantry", "vehicle"]);
     let setup = serde_json::from_value(json!({
         "map": { "size": [2000, 800], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,

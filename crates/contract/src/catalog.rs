@@ -934,6 +934,18 @@ impl UnitType {
         }
     }
 
+    /// What it is to a weapon choosing its targets: an aircraft by how it
+    /// flies, else a hull on the ground, else soldiers.
+    pub fn target_class(&self) -> crate::weapons::TargetClass {
+        use crate::weapons::TargetClass;
+        match (self.mobility.flight(), &self.body) {
+            (Some(FlightModel::Rotor), _) => TargetClass::AirRotor,
+            (Some(FlightModel::FixedWing), _) => TargetClass::AirFixedWing,
+            (None, Body::Hull(_)) => TargetClass::Vehicle,
+            (None, Body::Squad { .. }) => TargetClass::Infantry,
+        }
+    }
+
     /// A vehicle: it has a hull.
     pub fn hull(&self) -> Option<&Hull> {
         match &self.body {

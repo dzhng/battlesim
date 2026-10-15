@@ -474,6 +474,60 @@ fn an_air_defence_gun_engages_air_within_its_rows_reach_at_each_layer() {
     assert!(jet_m <= high_reach, "fired at a jet {jet_m} m away");
 }
 
+/// An aircraft is a target class by how it flies: a gun whose high-air
+/// layer lists only rotor aircraft lets a jet pass overhead, and the same gun
+/// listing fixed-wing aircraft fires at it.
+#[test]
+fn a_jet_draws_fire_only_from_a_row_listing_fixed_wing_aircraft() {
+    let reach = 600.0;
+    let passes = |classes: Value| {
+        let mut rules = fixture();
+        rules["weapons"]["test_aa_gun"] = json!({
+            "extends": "aa_ballistic",
+            "range_m": reach,
+            "targets": { "high_air": { "range_m": reach, "classes": classes } }
+        });
+        rules["service"]["round_costs"]["test_aa_gun"] =
+            rules["service"]["round_costs"]["aa_ballistic"].clone();
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            json!({
+                "mounts": [{ "id": "HMG", "weapons": ["test_aa_gun"] }],
+                "sensors": { "high_air_m": 4.0 * reach }
+            }),
+        );
+        let span = 1.5 * reach;
+        let at = [2.0 * span, span];
+        let mut b = battle_with(
+            &rules,
+            json!({ "size": [4.0 * span, 2.0 * span], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 }),
+            json!([
+                { "side": "red", "kind": "test_jeep", "position": at, "yaw": 0 },
+                { "side": "blue", "kind": "test_jet", "position": [at[0] + span, at[1]],
+                  "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            ]),
+        );
+        b.step();
+        let ack = b.accept(order(&[1], [at[0] - span, at[1]]));
+        assert_eq!(ack.error, None, "{ack:?}");
+        for _ in 0..300 {
+            b.step();
+        }
+        shots(&b, UnitId(0))
+    };
+    assert_eq!(
+        passes(json!(["air_rotor"])),
+        0,
+        "a rotor-only row lets the jet pass"
+    );
+    assert!(
+        passes(json!(["air_fixed_wing"])) > 0,
+        "a fixed-wing row fires at it"
+    );
+}
+
 #[test]
 fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
     let rules = serde_json::from_value(sim::fixtures::game()).unwrap();

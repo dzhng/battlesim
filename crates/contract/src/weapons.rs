@@ -61,9 +61,6 @@ pub struct WeaponDefinition {
     pub blast_radius_m: f64,
     #[serde(default)]
     pub structural_damage: f64,
-    /// Dedicated anti-armour: fires only at identified vehicles (W10).
-    #[serde(default)]
-    pub anti_armor: bool,
     /// Ground attack mode for air-launched rows. Bombs take precedence over
     /// strafing guns while a bomb store has rounds remaining.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -82,7 +79,7 @@ pub struct WeaponDefinition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seeker: Option<SeekerSupport>,
     /// Forward seeker cone in degrees. It is required when a seeker exists.
-    #[serde(default, skip_serializing_if = "Option::is_none", alias = "fov_deg")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seeker_fov_deg: Option<f64>,
     /// Whether a seeker can be diverted by an aircraft flare.
     #[serde(default)]
@@ -94,11 +91,11 @@ pub struct WeaponDefinition {
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
-    /// The altitude layers it can engage (D1), each with how it fires there:
-    /// what its crew can bring it to bear on. A rifle, a machine gun or an
-    /// autocannon swings up at a helicopter, from much closer and with a much
-    /// wider spread than along the ground; a tank gun, a grenade or a ground
-    /// missile cannot. A layer it does not list, it never engages.
+    /// The altitude layers it can engage (D1), each with how it fires there
+    /// and the kinds of target it is brought to bear on. A rifle, a machine
+    /// gun or an autocannon swings up at a helicopter, from much closer and
+    /// with a much wider spread than along the ground; a tank gun, a grenade
+    /// or a ground missile cannot. A layer it does not list, it never engages.
     pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
 }
 
@@ -126,7 +123,7 @@ pub enum InterceptionTargetClass {
 /// How a weapon fires at one altitude layer. Each value it leaves out is
 /// the row's own. Only what changes with the target's height lives here:
 /// the gun, its magazine and its round are the same whatever it aims at.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayerFire {
     /// Its reach at this layer; never past the row's `range_m`, whose flight
@@ -136,6 +133,32 @@ pub struct LayerFire {
     /// Its spread at this layer, milliradians.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scatter_mrad: Option<f64>,
+    /// The kinds of target it engages at this layer: `infantry` and
+    /// `vehicle` on the ground, `air_rotor` and `air_fixed_wing` in the air.
+    /// A dedicated anti-tank row lists `vehicle` alone.
+    pub classes: Vec<TargetClass>,
+}
+
+/// What a target is, for what may be fired at it: soldiers on foot, a hull
+/// on the ground, or an aircraft by how it flies (its
+/// `mobility.air.flight`). Read from the unit's body and mobility, never its
+/// name ([`crate::catalog::UnitType::target_class`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TargetClass {
+    Infantry,
+    Vehicle,
+    AirRotor,
+    AirFixedWing,
+}
+
+impl TargetClass {
+    /// The classes found in `layer`: aircraft fly, everything else stands
+    /// on the ground.
+    pub fn found_in(self, layer: crate::catalog::AltitudeLayer) -> bool {
+        let airborne = matches!(self, TargetClass::AirRotor | TargetClass::AirFixedWing);
+        airborne == (layer != crate::catalog::AltitudeLayer::Ground)
+    }
 }
 
 /// A weapon's resolved fire at one altitude layer.
@@ -153,6 +176,21 @@ impl WeaponDefinition {
             range_m: fire.range_m.unwrap_or(self.ballistics.range_m),
             scatter_mrad: fire.scatter_mrad.unwrap_or(self.ballistics.scatter_mrad),
         })
+    }
+
+    /// How it fires at a target of `class` in `layer`, or `None` when that
+    /// layer does not list the class. `None` for `class` is a point, an area
+    /// or a round rather than a unit: no unit class bars it. The one place a
+    /// target's class is matched.
+    pub fn engages(
+        &self,
+        layer: crate::catalog::AltitudeLayer,
+        class: Option<TargetClass>,
+    ) -> Option<Fire> {
+        let listed = self.targets.get(&layer)?;
+        class
+            .is_none_or(|class| listed.classes.contains(&class))
+            .then(|| self.against(layer))?
     }
 }
 
@@ -279,6 +317,17 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                 }
             }
         }
+        let targets = row.get("targets").and_then(serde_json::Value::as_object);
+        for (layer, fire) in targets.into_iter().flatten() {
+            let classes = fire.get("classes").and_then(serde_json::Value::as_array);
+            for class in classes.into_iter().flatten() {
+                if serde_json::from_value::<TargetClass>(class.clone()).is_err() {
+                    return Err(Error::custom(format!(
+                        "weapons.{id}: targets.{layer}.classes: unknown target class {class}"
+                    )));
+                }
+            }
+        }
         if let Some(value) = row.get("turn_deg_s").and_then(serde_json::Value::as_f64) {
             if !value.is_finite() || value <= 0.0 {
                 return Err(Error::custom(format!(
@@ -291,8 +340,15 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
         .map_err(Error::custom)?
         .into_iter()
         .map(|(id, row)| {
-            serde_json::from_value::<WeaponDefinition>(row)
+            serde_json::from_value::<WeaponDefinition>(row.clone())
                 .and_then(|def| {
+                    // Flattened ballistics keep serde from refusing unknown
+                    // fields itself: whatever the row says that its
+                    // definition does not hold is a field it does not have.
+                    let known = serde_json::to_value(&def)?;
+                    if let Some(field) = row.as_object().into_iter().flatten().map(|(k, _)| k).find(|k| known.get(k.as_str()).is_none()) {
+                        return Err(serde::de::Error::custom(format!("unknown field `{field}`")));
+                    }
                     crate::labels::check_label(&def.name)
                         .and_then(|()| crate::labels::check_icon(&def.icon))
                         .map_err(serde::de::Error::custom)?;
@@ -336,10 +392,23 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     if !unpowered && def.min_range_m > def.ballistics.range_m {
                         return Err(serde::de::Error::custom("min_range_m must not exceed range_m"));
                     }
-                    for (layer, fire) in &def.targets {
+                    for (&at, fire) in &def.targets {
                         // The layer as authored (`low_air`), not its Rust name.
-                        let layer = serde_json::to_value(layer)?;
+                        let layer = serde_json::to_value(at)?;
                         let layer = layer.as_str().unwrap_or_default();
+                        if fire.classes.is_empty() {
+                            return Err(serde::de::Error::custom(format!(
+                                "targets.{layer}.classes must name at least one target class"
+                            )));
+                        }
+                        for (i, class) in fire.classes.iter().enumerate() {
+                            if !class.found_in(at) || fire.classes[..i].contains(class) {
+                                return Err(serde::de::Error::custom(format!(
+                                    "targets.{layer}.classes: {} is repeated or never found in {layer}",
+                                    serde_json::to_value(class)?
+                                )));
+                            }
+                        }
                         if !unpowered
                             && fire.range_m.is_some_and(|r| {
                                 !(r > 0.0 && r <= def.ballistics.range_m)

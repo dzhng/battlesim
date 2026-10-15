@@ -1474,7 +1474,8 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
             r["weapons"]["atgm"]["seeker"] = json!("infrared");
             r["weapons"]["atgm"]["seeker_fov_deg"] = json!(180);
             r["weapons"]["atgm"]["decoyable"] = json!(true);
-            r["weapons"]["atgm"]["targets"] = json!({"low_air": {}});
+            r["weapons"]["atgm"]["targets"] =
+                json!({"low_air": {"classes": ["air_rotor", "air_fixed_wing"]}});
             r["weapons"]["atgm"]["ammo"] = json!(1);
             sim::fixtures::patch_catalog(
                 r,

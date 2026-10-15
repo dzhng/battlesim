@@ -7,7 +7,7 @@ use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
 use contract::scenario::{Armor, Rules};
 use contract::weapons::GroundAttackKind;
-use contract::weapons::{AmmoCapacity, WeaponDefinition};
+use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 
 mod cycle;
 use cycle::Cycle;
@@ -414,7 +414,19 @@ struct Resolved {
     armor: Option<Option<Armor>>,
     /// The height band it is in; an area or a ground point is on the ground.
     layer: AltitudeLayer,
+    /// What an identified unit is to a weapon; `None` for an area, a ground
+    /// point or a round, which no unit class bars.
+    class: Option<TargetClass>,
     radar_contact: bool,
+}
+
+impl Resolved {
+    /// How `def` fires at this target, or `None` when it does not engage
+    /// it: its layer is not one the row lists, or the row's classes there
+    /// leave the target out.
+    fn fire(&self, def: &WeaponDefinition) -> Option<Fire> {
+        def.engages(self.layer, self.class)
+    }
 }
 
 /// One weapon's shot this tick: its rounds and who it was aimed at.
@@ -466,14 +478,10 @@ pub fn can_damage(def: &WeaponDefinition, armor: Option<&Armor>, rules: &Rules) 
 }
 
 /// The share of a weapon's damage a fresh hit delivers through a hull face
-/// of `armor`, or into a soldier (`None`): all of it, except that dedicated
-/// anti-armour never engages infantry.
+/// of `armor`, or into a soldier (`None`): all of it. Whether it is fired at
+/// soldiers at all is its target classes' call.
 fn damage_share(def: &WeaponDefinition, armor: Option<f64>, rules: &Rules) -> f64 {
-    match armor {
-        Some(armor) => damage::pierce_share(def, 0, rules, armor),
-        None if def.anti_armor => 0.0,
-        None => 1.0,
-    }
+    armor.map_or(1.0, |armor| damage::pierce_share(def, 0, rules, armor))
 }
 
 /// Whether the mount's kind `k` can hurt `target`; an area or a ground point
@@ -496,9 +504,13 @@ fn fires_regardless(def: &WeaponDefinition) -> bool {
     def.default && matches!(def.ammo, AmmoCapacity::Unlimited(_))
 }
 
-/// General-purpose ammunition: may fire at an area (never AP or dedicated anti-armour, W10).
+/// General-purpose ammunition, made for men on the ground: may fire at an
+/// area (never AP, nor a row whose classes leave infantry out, W10).
 fn area_capable(def: &WeaponDefinition) -> bool {
-    !def.anti_armor && !def.armor_piercing
+    !def.armor_piercing
+        && def
+            .engages(AltitudeLayer::Ground, Some(TargetClass::Infantry))
+            .is_some()
 }
 
 /// Whether `def` is effective against a target whose type is known, or an area.
@@ -526,6 +538,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 current: track.last_seen == ctx.tick,
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
+                class: Some(unit.unit_type(ctx.rules).target_class()),
                 radar_contact: unit.layer() == AltitudeLayer::Ground
                     && unit
                         .unit_type(ctx.rules)
@@ -546,6 +559,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 current: true,
                 armor: None,
                 layer: AltitudeLayer::Ground,
+                class: None,
                 radar_contact: contact.source == contract::observation::ContactSource::Radar,
             })
         }
@@ -557,6 +571,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             // Ground orders always remain Ground; only a round target carries
             // an air interception row.
             layer: AltitudeLayer::Ground,
+            class: None,
             radar_contact: false,
         }),
         Target::Round(round) => Some(Resolved {
@@ -565,6 +580,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             current: true,
             armor: None,
             layer: round.layer,
+            class: None,
             radar_contact: false,
         }),
     }
@@ -584,7 +600,7 @@ fn preferred_kind(
         let def = &weapons[spec.kinds[k]].def;
         mount.has_rounds(k)
             && (!resolved.radar_contact || def.anti_radiation)
-            && def.against(resolved.layer).is_some()
+            && resolved.fire(def).is_some()
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
             && (effective(def, resolved.armor, ctx.rules)
                 || (resolved.radar_contact && def.anti_radiation)
@@ -820,9 +836,7 @@ fn engage(
             return Err(ActionReason::HoldingFire);
         }
         if weapon.def.ballistics.delivery == Delivery::Powered
-            && weapon
-                .def
-                .against(r.layer)
+            && r.fire(&weapon.def)
                 .is_none_or(|fire| distance > fire.range_m)
         {
             return Err(ActionReason::OutOfRange);
@@ -1054,8 +1068,8 @@ fn assess(
     if unit.fixed_wing()
         && weapon.default
         && !spec.turret
-        && !weapon
-            .against(r.layer)
+        && !r
+            .fire(weapon)
             .is_some_and(|fire| nose_on(unit, r.point, fire.range_m))
     {
         return Err(ActionReason::NoFacingSlot);
@@ -1199,7 +1213,10 @@ fn return_fire_threat(
                 && distance >= weapon.def.min_range_m
                 && weapon
                     .def
-                    .against(shooter.layer())
+                    .engages(
+                        shooter.layer(),
+                        Some(shooter.unit_type(ctx.rules).target_class()),
+                    )
                     .is_some_and(|fire| distance <= fire.range_m)
                 && (weapon.profile.turn_rad_s.is_none()
                     || (ctx.world.sight_clear(eye, target)
@@ -1338,7 +1355,13 @@ fn share_through(
     (0..spec.kinds.len())
         .filter(|&k| mount.has_rounds(k))
         .map(|k| &ctx.arsenal.weapons[spec.kinds[k]].def)
-        .filter(|def| def.against(target.layer()).is_some())
+        .filter(|def| {
+            def.engages(
+                target.layer(),
+                Some(target.unit_type(ctx.rules).target_class()),
+            )
+            .is_some()
+        })
         .map(|def| damage_share(def, armor, ctx.rules))
         .fold(0.0, f64::max)
 }
@@ -1351,16 +1374,23 @@ fn compatible(
     target: Target,
     units: &[Unit],
 ) -> bool {
-    let (armor, layer) = match target {
+    let (armor, layer, class) = match target {
         Target::Unit(u) => {
             let unit = &units[u.0 as usize];
-            (Some(unit.armor(ctx.rules).copied()), unit.layer())
+            let class = unit.unit_type(ctx.rules).target_class();
+            (
+                Some(unit.armor(ctx.rules).copied()),
+                unit.layer(),
+                Some(class),
+            )
         }
-        _ => (None, AltitudeLayer::Ground),
+        _ => (None, AltitudeLayer::Ground, None),
     };
     (0..spec.kinds.len()).any(|k| {
         let def = &ctx.arsenal.weapons[spec.kinds[k]].def;
-        mount.has_rounds(k) && def.against(layer).is_some() && effective(def, armor, ctx.rules)
+        mount.has_rounds(k)
+            && def.engages(layer, class).is_some()
+            && effective(def, armor, ctx.rules)
     })
 }
 
@@ -1976,7 +2006,7 @@ fn fire(
     let weapon = &ctx.arsenal.weapons[weapon_index];
     // Its spread at the target's height: wide for a ground gun swung up at
     // an aircraft.
-    let mut scatter = weapon.def.against(r.layer)?.scatter_mrad
+    let mut scatter = r.fire(&weapon.def)?.scatter_mrad
         * ctx
             .rules
             .suppression

@@ -565,14 +565,28 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "Engages ground",
       "Impact & suppression",
       "Its crew brings it to bear on ground targets, at its own range and spread. Rows that extend another inherit it.",
-      { kind: "object", optional: true, initial: {} },
+      { kind: "object", optional: true, initial: { classes: ["infantry", "vehicle"] } },
+    ),
+    field(
+      "targets.ground.classes",
+      "Ground targets",
+      "Impact & suppression",
+      "What it is fired at on the ground: infantry, vehicle, or both. A dedicated anti-tank weapon lists vehicle alone, and is never spent on an area.",
+      { kind: "strings", choices: ["infantry", "vehicle"] },
     ),
     field(
       "targets.low_air",
       "Engages helicopters",
       "Impact & suppression",
       "Its crew swings it up at helicopters. A ground gun reaches them from much closer and with a much wider spread than along the ground. Rows that extend another inherit it.",
-      { kind: "object", optional: true, initial: {} },
+      { kind: "object", optional: true, initial: { classes: ["air_rotor", "air_fixed_wing"] } },
+    ),
+    field(
+      "targets.low_air.classes",
+      "Low-air targets",
+      "Impact & suppression",
+      "Which aircraft it is fired at in low air, by how they fly: air_rotor, air_fixed_wing, or both.",
+      { kind: "strings", choices: ["air_rotor", "air_fixed_wing"] },
     ),
     field(
       "targets.low_air.range_m",
@@ -593,13 +607,6 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "Armour-piercing targeting",
       "Impact & suppression",
       "Prefers identified vehicles and never fires at an unclassified contact.",
-      { kind: "boolean" },
-    ),
-    field(
-      "anti_armor",
-      "Dedicated anti-armour",
-      "Impact & suppression",
-      "Fires only at identified vehicles, even when other targets are visible.",
       { kind: "boolean" },
     ),
     field(
@@ -706,6 +713,12 @@ export function validateGameplayValue(
     return typeof value === "string" && value.length > 0
       ? undefined
       : "Choose an existing reference.";
+  if (f.kind === "strings" && f.choices)
+    return Array.isArray(value) &&
+      value.length > 0 &&
+      value.every((v) => typeof v === "string" && f.choices?.includes(v))
+      ? undefined
+      : `Use a comma-separated list of: ${f.choices.join(", ")}.`;
   if (f.kind === "strings")
     return Array.isArray(value) && value.every((v) => typeof v === "string" && v.length > 0)
       ? undefined

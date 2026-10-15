@@ -41215,7 +41215,6 @@
       "accel_mps2": null,
       "aim_s": 1.0,
       "ammo": 300,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
@@ -41249,12 +41248,25 @@
       "structural_damage": 8.0,
       "suppression_radius_m": 6.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 1500.0,
           "scatter_mrad": 42.0
         },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 350.0,
           "scatter_mrad": 28.0
         }
@@ -41267,7 +41279,6 @@
       "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 6,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
@@ -41297,7 +41308,12 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "high_air": {}
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        }
       },
       "top_speed_mps": 290.0,
       "trajectory": "direct",
@@ -41307,7 +41323,6 @@
       "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 8,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
@@ -41336,8 +41351,18 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "high_air": {},
-        "low_air": {}
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        }
       },
       "top_speed_mps": 290.0,
       "trajectory": "direct",
@@ -41347,7 +41372,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 20,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
@@ -41373,7 +41397,12 @@
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -41383,7 +41412,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 15,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
@@ -41409,7 +41437,12 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -41419,7 +41452,6 @@
       "accel_mps2": null,
       "aim_s": 1.2,
       "ammo": 4,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 14.0,
@@ -41447,7 +41479,12 @@
       "structural_damage": 80.0,
       "suppression_radius_m": 18.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -41457,7 +41494,6 @@
       "accel_mps2": null,
       "aim_s": 1.2,
       "ammo": 3,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 9.0,
@@ -41489,7 +41525,12 @@
       "structural_damage": 35.0,
       "suppression_radius_m": 24.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -41499,7 +41540,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -41526,7 +41566,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 400.0,
       "trajectory": "direct",
@@ -41536,7 +41580,6 @@
       "accel_mps2": null,
       "aim_s": 1.0,
       "ammo": "unlimited",
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
@@ -41570,12 +41613,25 @@
       "structural_damage": 8.0,
       "suppression_radius_m": 6.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 900.0,
           "scatter_mrad": 20.0
         },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 700.0,
           "scatter_mrad": 24.0
         }
@@ -41588,7 +41644,6 @@
       "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
@@ -41617,8 +41672,18 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "high_air": {},
-        "low_air": {}
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        }
       },
       "top_speed_mps": 290.0,
       "trajectory": "direct",
@@ -41628,7 +41693,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -41655,7 +41719,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_attack": {
         "dive_deg": 40.0,
@@ -41669,7 +41737,6 @@
       "accel_mps2": null,
       "aim_s": 2.5,
       "ammo": 24,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 18.0,
@@ -41695,7 +41762,12 @@
       "structural_damage": 180.0,
       "suppression_radius_m": 18.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "indirect",
@@ -41705,7 +41777,6 @@
       "accel_mps2": null,
       "aim_s": 3.0,
       "ammo": 36,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 15.0,
@@ -41731,7 +41802,12 @@
       "structural_damage": 110.0,
       "suppression_radius_m": 16.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "indirect",
@@ -41741,7 +41817,6 @@
       "accel_mps2": null,
       "aim_s": 3.0,
       "ammo": 12,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 24.0,
@@ -41771,7 +41846,12 @@
       "structural_damage": 220.0,
       "suppression_radius_m": 24.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "indirect",
@@ -41781,7 +41861,6 @@
       "accel_mps2": null,
       "aim_s": 2.5,
       "ammo": 18,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 20.0,
@@ -41811,7 +41890,12 @@
       "structural_damage": 150.0,
       "suppression_radius_m": 20.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "indirect",
@@ -41821,7 +41905,6 @@
       "accel_mps2": null,
       "aim_s": 3.0,
       "ammo": 6,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 28.0,
@@ -41847,7 +41930,12 @@
       "structural_damage": 300.0,
       "suppression_radius_m": 26.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "indirect",
@@ -41857,7 +41945,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -41884,7 +41971,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
@@ -41894,7 +41985,6 @@
       "accel_mps2": null,
       "aim_s": 1.0,
       "ammo": 240,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
@@ -41927,8 +42017,17 @@
       "structural_damage": 8.0,
       "suppression_radius_m": 6.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 350.0,
           "scatter_mrad": 18.0
         }
@@ -41941,7 +42040,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -41968,7 +42066,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
@@ -41978,7 +42080,6 @@
       "accel_mps2": null,
       "aim_s": 0.8,
       "ammo": "unlimited",
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42011,8 +42112,17 @@
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 100.0,
           "scatter_mrad": 50.0
         }
@@ -42025,7 +42135,6 @@
       "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 3,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
@@ -42052,7 +42161,12 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "low_air": {}
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        }
       },
       "top_speed_mps": 290.0,
       "trajectory": "direct",
@@ -42062,7 +42176,6 @@
       "accel_mps2": null,
       "aim_s": 1.5,
       "ammo": 8,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
@@ -42088,7 +42201,12 @@
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42098,7 +42216,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 20,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
@@ -42124,7 +42241,12 @@
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42134,7 +42256,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 15,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
@@ -42160,7 +42281,12 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42170,7 +42296,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 30,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42196,8 +42321,17 @@
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 150.0,
           "scatter_mrad": 48.0
         }
@@ -42210,7 +42344,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 8,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -42237,7 +42370,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
@@ -42247,7 +42384,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": "unlimited",
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 9.0,
@@ -42273,7 +42409,12 @@
       "structural_damage": 300.0,
       "suppression_radius_m": 15.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42283,7 +42424,6 @@
       "accel_mps2": null,
       "aim_s": 1.0,
       "ammo": "unlimited",
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42316,8 +42456,17 @@
       "structural_damage": 4.0,
       "suppression_radius_m": 4.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 200.0,
           "scatter_mrad": 24.0
         }
@@ -42330,7 +42479,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 20,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
@@ -42356,7 +42504,12 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42366,7 +42519,6 @@
       "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 3,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
@@ -42393,7 +42545,12 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "low_air": {}
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        }
       },
       "top_speed_mps": 290.0,
       "trajectory": "direct",
@@ -42403,7 +42560,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -42430,7 +42586,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_attack": {
         "dive_deg": 40.0,
@@ -42444,7 +42604,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -42471,7 +42630,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
@@ -42481,7 +42644,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 20,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
@@ -42507,7 +42669,12 @@
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42517,7 +42684,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 15,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
@@ -42543,7 +42709,12 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42553,7 +42724,6 @@
       "accel_mps2": null,
       "aim_s": 1.0,
       "ammo": 600,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42586,8 +42756,17 @@
       "structural_damage": 1.0,
       "suppression_radius_m": 4.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 150.0,
           "scatter_mrad": 32.0
         }
@@ -42600,7 +42779,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 120,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42630,8 +42808,17 @@
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 100.0,
           "scatter_mrad": 40.0
         }
@@ -42644,7 +42831,6 @@
       "accel_mps2": null,
       "aim_s": 0.8,
       "ammo": "unlimited",
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42677,8 +42863,17 @@
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 100.0,
           "scatter_mrad": 40.0
         }
@@ -42691,7 +42886,6 @@
       "accel_mps2": null,
       "aim_s": 1.5,
       "ammo": 38,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 7.0,
@@ -42721,7 +42915,12 @@
       "structural_damage": 80.0,
       "suppression_radius_m": 15.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42731,7 +42930,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 3,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
@@ -42757,7 +42955,11 @@
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42767,7 +42969,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 6.0,
@@ -42793,7 +42994,11 @@
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -42803,7 +43008,6 @@
       "accel_mps2": 400.0,
       "aim_s": 2.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": true,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
@@ -42832,7 +43036,11 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 600.0,
       "trajectory": "direct",
@@ -42842,7 +43050,6 @@
       "accel_mps2": null,
       "aim_s": 0.8,
       "ammo": "unlimited",
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42872,8 +43079,17 @@
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 60.0,
           "scatter_mrad": 60.0
         }
@@ -42886,7 +43102,6 @@
       "accel_mps2": null,
       "aim_s": 0.8,
       "ammo": "unlimited",
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 0.0,
@@ -42919,8 +43134,17 @@
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
       "targets": {
-        "ground": {},
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        },
         "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ],
           "range_m": 100.0,
           "scatter_mrad": 60.0
         }
@@ -42933,7 +43157,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -42960,7 +43183,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
@@ -42970,7 +43197,6 @@
       "accel_mps2": 95.0,
       "aim_s": 2.0,
       "ammo": 3,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
@@ -42997,7 +43223,12 @@
       "structural_damage": 20.0,
       "suppression_radius_m": 0.0,
       "targets": {
-        "low_air": {}
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing"
+          ]
+        }
       },
       "top_speed_mps": 290.0,
       "trajectory": "direct",
@@ -43007,7 +43238,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 20,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": true,
       "blast_radius_m": 0.0,
@@ -43033,7 +43263,12 @@
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -43043,7 +43278,6 @@
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 15,
-      "anti_armor": false,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 12.0,
@@ -43069,7 +43303,12 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 15.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "infantry",
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": null,
       "trajectory": "direct",
@@ -43079,7 +43318,6 @@
       "accel_mps2": 140.0,
       "aim_s": 3.0,
       "ammo": 4,
-      "anti_armor": true,
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 4.0,
@@ -43106,7 +43344,11 @@
       "structural_damage": 100.0,
       "suppression_radius_m": 10.0,
       "targets": {
-        "ground": {}
+        "ground": {
+          "classes": [
+            "vehicle"
+          ]
+        }
       },
       "top_speed_mps": 200.0,
       "trajectory": "direct",
