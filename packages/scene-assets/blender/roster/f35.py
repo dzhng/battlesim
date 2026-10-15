@@ -50,6 +50,11 @@ def spec(variant):
                 # The caret intakes' trunks, from their mouths back into the body.
                 *[(f"fuselage_intake_{k}", [(3.64, 0.44, 1.46, 2.48, 1.96, 4.0), (2.2, 0.46, 1.4, 2.54, 1.96, 3.5),
                                             (0.2, 0.26, 1.6, 2.4, 1.96, 3.0)], side * 1.22)
+                  for side, k in ((1, "L"), (-1, "R"))],
+                # The short tail booms beside the nozzle that carry the fins
+                # and stabilators aft of the body.
+                *[(f"tail_boom_{k}", [(-2.4, 0.3, 1.62, 2.5, 2.0, 2.6), (-5.0, 0.42, 1.64, 2.48, 2.0, 2.6),
+                                      (-7.0, 0.34, 1.78, 2.3, 2.0, 2.4), (-7.45, 0.0, 2.0, 2.0)], side * 1.12)
                   for side, k in ((1, "L"), (-1, "R"))]],
         wing_hinge=(0.1, (0.8, 0, 1)),
         nav=dict(left=(-2.9, 5.2, WING_Z - 0.04), right=(-2.9, -5.2, WING_Z - 0.04)),
