@@ -3086,9 +3086,9 @@ impl Battle {
 
     /// Guided missiles (P05, P06): a launcher supports its missile while it
     /// stands still, has a living operator (including a survivor who takes
-    /// over the launcher), its side identifies the target, and its operator
-    /// has physical line of sight independent of spotting range. It
-    /// steers it at the target's observed position. Losing any of these (or a
+    /// over the launcher), its side identifies the target (a round: while it
+    /// flies), and its operator has physical line of sight independent of
+    /// spotting range. It steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
     /// to ground, so a far one misses a target it can no longer see.
@@ -3111,20 +3111,18 @@ impl Battle {
             for m in 0..unit.mounts.len() {
                 let mount = &unit.mounts[m];
                 let Some(s) = mount.support else { continue };
-                let target = match s.target {
-                    Target::Unit(t) => Some(t),
-                    _ => None,
-                };
-                let sighting = target
-                    .filter(|&t| alive[t.0 as usize])
+                let sighting = match s.target {
                     // Guidance precedes this tick's sensing and reads the
                     // previous completed observation, as before.
-                    .and_then(|t| {
-                        knowledge
-                            .track(t)
-                            .filter(|tr| tr.last_seen + 1 == self.tick)
-                            .map(|tr| tr.position + v3(0.0, 0.0, aim_z[t.0 as usize]))
-                    });
+                    Target::Unit(t) if alive[t.0 as usize] => knowledge
+                        .track(t)
+                        .filter(|tr| tr.last_seen + 1 == self.tick)
+                        .map(|tr| tr.position + v3(0.0, 0.0, aim_z[t.0 as usize])),
+                    // A round is followed where it flies, while it flies, as
+                    // the interceptor lock found it.
+                    Target::Round(round) => self.projectiles.get(round.id).map(|p| p.position),
+                    _ => None,
+                };
                 // Entering or leaving a building is a transition that releases too.
                 let settled = unit
                     .garrison
@@ -3219,6 +3217,7 @@ impl Battle {
                     .knowledge
                     .iter()
                     .find_map(|k| k.contact(id).map(|c| c.center)),
+                Target::Round(round) => self.projectiles.get(round.id).map(|p| p.position),
                 _ => None,
             };
             if let Some(point) = point {
@@ -4937,6 +4936,18 @@ mod tests {
     /// `test_interceptor`), and a still, interceptable red round hanging at
     /// `at`, fired from `layer`.
     fn interceptor_and_round(row: serde_json::Value, at: V3, layer: AltitudeLayer) -> Battle {
+        interceptor_and_flying_round(row, at, v3(0.0, 0.0, 0.0), 30.0, layer).0
+    }
+
+    /// As [`interceptor_and_round`], the round flying at `velocity` without
+    /// falling, for `lifetime_s`; with its id.
+    fn interceptor_and_flying_round(
+        row: serde_json::Value,
+        at: V3,
+        velocity: V3,
+        lifetime_s: f64,
+        layer: AltitudeLayer,
+    ) -> (Battle, ProjectileId) {
         let mut rules = crate::fixtures::test_game();
         rules["weapons"]["test_interceptor"] = row;
         rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
@@ -4968,9 +4979,9 @@ mod tests {
         let projectile = battle.projectiles.launch(crate::flight::Launch {
             origin: at,
             carrier: v3(0.0, 0.0, 0.0),
-            velocity: v3(0.0, 0.0, 0.0),
+            velocity,
             gravity_scale: 0.0,
-            lifetime_s: 30.0,
+            lifetime_s,
             suppression_radius_m: 0.0,
             shooter: None,
             guidance: None,
@@ -4988,7 +4999,7 @@ mod tests {
                 layer,
             },
         );
-        battle
+        (battle, projectile)
     }
 
     /// A ballistic gun that `targets` as given: 1,500 m, 40 rounds.
@@ -5076,6 +5087,119 @@ mod tests {
                 (fired, spent),
                 (shoots, shoots),
                 "a round fired from {layer:?}, the ground listing {ground}"
+            );
+        }
+    }
+
+    /// A guided row that lists `missile` in high air: 1,500 m, accelerating
+    /// from 100 to 290 m/s, turning 180°/s, a 3 m fuse; launcher-supported,
+    /// or homing on its own with a radar seeker.
+    fn test_guided_interceptor(seeker: bool) -> serde_json::Value {
+        let mut row = serde_json::json!({
+            "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
+            "stationary": true, "range_m": 1500, "min_range_m": 50,
+            "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
+            "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
+            "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180, "guidance": "stationary",
+            "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
+            "blast_radius_m": 3, "structural_damage": 20,
+            "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
+        });
+        if seeker {
+            row["seeker"] = serde_json::json!("radar");
+            row["seeker_fov_deg"] = serde_json::json!(100);
+        }
+        row
+    }
+
+    /// The id of the first round the jeep's interceptor launched, if any.
+    fn interceptor_round(battle: &Battle) -> Option<ProjectileId> {
+        let interceptor = battle
+            .arsenal
+            .weapons
+            .iter()
+            .position(|weapon| weapon.id == "test_interceptor")?;
+        battle
+            .rounds
+            .iter()
+            .find(|(_, r)| r.weapon == interceptor && r.unit == UnitId(0))
+            .map(|(&id, _)| id)
+    }
+
+    /// A guided missile homes on a round as it homes on an aircraft: fired
+    /// at a round crossing towards the jeep from high air, both the
+    /// launcher-steered missile and the one with its own seeker follow it
+    /// and burst beside it, ending both in the same tick, long before
+    /// either round's flight would end.
+    #[test]
+    fn a_guided_missile_homes_on_a_round_and_bursts_beside_it() {
+        for seeker in [false, true] {
+            let (mut battle, incoming) = interceptor_and_flying_round(
+                test_guided_interceptor(seeker),
+                v3(800.0, 230.0, 300.0),
+                v3(-40.0, 0.0, 0.0),
+                30.0,
+                AltitudeLayer::HighAir,
+            );
+            let mut missile = None;
+            let mut ended = None;
+            for tick in 0..300 {
+                battle.step();
+                missile = missile.or_else(|| interceptor_round(&battle));
+                let gone = |id| battle.projectiles.get(id).is_none();
+                if missile.is_some_and(gone) || gone(incoming) {
+                    ended = Some((tick, missile.is_some_and(gone), gone(incoming)));
+                    break;
+                }
+            }
+            assert!(
+                missile.is_some(),
+                "seeker {seeker}: the missile was never launched"
+            );
+            assert!(
+                matches!(ended, Some((tick, true, true)) if tick < 240),
+                "seeker {seeker}: the missile and the round did not end together: {ended:?}"
+            );
+        }
+    }
+
+    /// A round that ends in flight is a target lost, as a unit that dies
+    /// is: the launcher lets its missile go, and the missile flies on at a
+    /// point it no longer renews, never at where the round would have been.
+    #[test]
+    fn a_guided_missile_whose_round_ends_mid_flight_is_let_go() {
+        for seeker in [false, true] {
+            let (mut battle, incoming) = interceptor_and_flying_round(
+                test_guided_interceptor(seeker),
+                v3(1200.0, 230.0, 300.0),
+                v3(-40.0, 0.0, 0.0),
+                2.5,
+                AltitudeLayer::HighAir,
+            );
+            let mut missile = None;
+            while battle.projectiles.get(incoming).is_some() {
+                battle.step();
+                missile = missile.or_else(|| interceptor_round(&battle));
+            }
+            let missile = missile.unwrap_or_else(|| panic!("seeker {seeker}: never launched"));
+            battle.step();
+            let point = |battle: &Battle| {
+                let flying = battle.projectiles.get(missile).expect("still in flight");
+                flying.guidance.expect("a guided round")
+            };
+            let released = point(&battle);
+            assert!(!released.supported, "seeker {seeker}: still supported");
+            assert!(
+                battle.units[0].mounts[1].support.is_none(),
+                "seeker {seeker}"
+            );
+            for _ in 0..5 {
+                battle.step();
+            }
+            assert_eq!(
+                point(&battle).point,
+                released.point,
+                "seeker {seeker}: it follows nothing"
             );
         }
     }

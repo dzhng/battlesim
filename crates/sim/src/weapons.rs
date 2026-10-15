@@ -1130,8 +1130,9 @@ fn assess(
     {
         return Err(ActionReason::NoFacingSlot);
     }
-    // Shared identification supplies the target; the launcher still needs
-    // a physical sight line to acquire and support it (P05).
+    // Shared identification supplies the target (or the interceptor lock a
+    // round); the launcher still needs a physical sight line to acquire and
+    // support it (P05).
     let guided = ctx.arsenal.weapons[spec.kinds[k]]
         .profile
         .turn_rad_s
@@ -1139,7 +1140,7 @@ fn assess(
     let anti_radiation = weapon.anti_radiation;
     let anti_radiation_target = anti_radiation && r.radar_contact;
     if guided
-        && (!matches!(target, Target::Unit(_)) && !anti_radiation_target
+        && (!matches!(target, Target::Unit(_) | Target::Round(_)) && !anti_radiation_target
             || !r.current
             || (!anti_radiation_target
                 && !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point)))
