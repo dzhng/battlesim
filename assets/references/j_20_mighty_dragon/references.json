@@ -43,10 +43,50 @@
    "licence": "CC-BY-SA-2.0",
    "sha256": "ccf28faf83c909710e1161a5d8dfb7d44e4201270a1f23d2d9efbc2296ead4dc",
    "note": "J-20 from below with bays open: planform, canards, ventral fins"
+  },
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-front.jpg",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-20_at_Changchun_Air_Show_20250921.jpg",
+   "author": "颐园居",
+   "licence": "CC-BY-SA-4.0",
+   "note": "J-20 on the ground from the front right, about 30 degrees off the nose: the caret intakes, the canards behind them, the canted fins, the gear (the nose leg far forward, the main legs folding out of the fuselage sides)",
+   "sha256": "739c0bbe25ece5f5f35016b2f8ca3cc3ced4de090aeab5fa3d4a87f33e4df8c8"
+  },
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-top-2.jpg",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:J-20_fighter.jpg",
+   "author": "emperornie https://www.flickr.com/photos/77326563@N06/",
+   "licence": "CC-BY-SA-2.0",
+   "note": "J-20 from above, close to plan: the canards just aft of the cockpit, the wing set far aft (its root leading edge past mid-length, its tips level with the fins), the fins and ventral strakes by the nozzles",
+   "sha256": "077e114b940589117be6a5077cbd664d291ae9d52eaa7b78cccaa6c6d10e721d"
+  },
+  {
+   "file": "eastern_j_20_mighty_dragon_stealth_fighter-front-generated.jpg",
+   "variant": "eastern_j_20_mighty_dragon_stealth_fighter",
+   "view": "front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "note": "Generated head-on front view, from the Changchun ground photo beside it. Layout and proportions only: the intakes' spread against the fuselage, the fins' cant, the wing's dihedral, the gear track. The canards blend into the wing in it; the seed is not honoured by the gateway, so it does not reproduce.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "Chengdu J-20 stealth fighter of the PLA Air Force, exact head-on front view (camera on the aircraft's centreline at cockpit height, straight at the nose), standing on its landing gear on a concrete apron in daylight, photographic reference. Long pointed chined nose, bubble canopy, the two caret diverterless intakes either side of the cockpit, the canards just behind the intakes with slight anhedral, the large delta wings behind, the two all-moving vertical fins canted strongly outward, the two small ventral fins canted outward under the tail, tricycle landing gear with the main gear folding out of the fuselage. Dark grey low-visibility paint. Whole aircraft in frame and symmetric, no people, no text.",
+   "inputs": [
+    "eastern_j_20_mighty_dragon_stealth_fighter-front.jpg"
+   ],
+   "seed": 2001,
+   "sha256": "2eb635fe5e8bfefdd1478af4cb52cc38c5e361e271a7710793b904ef8b82f2ee"
   }
  ],
  "gaps": [
-  "eastern_j_20_mighty_dragon_stealth_fighter: in-flight photos only (no ground or gear view); dimensions are published estimates; gear placed from the F-22's proportions",
-  "eastern_j_20_mighty_dragon_stealth_fighter: dimensions 21.2 x 13.01 x 4.69 m from Tsinghua University's national-defence page as cited by https://en.wikipedia.org/wiki/Chengdu_J-20: match; no manufacturer figure is published, so these are estimates"
+  "eastern_j_20_mighty_dragon_stealth_fighter: one ground photo (the front-right view); the gear is placed from it, the rest of the set is in flight; dimensions are published estimates",
+  "eastern_j_20_mighty_dragon_stealth_fighter: dimensions 21.2 x 13.01 x 4.69 m from Tsinghua University's national-defence page as cited by https://en.wikipedia.org/wiki/Chengdu_J-20: match; no manufacturer figure is published, so these are estimates",
+  "eastern_j_20_mighty_dragon_stealth_fighter: no straight head-on photo; the front view is a ground photo about 30 degrees off the nose and a generated head-on view from it"
  ]
 }
