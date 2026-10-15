@@ -89,9 +89,13 @@ def build(variant, v):
         A.mirrored(lambda side, k: box(f"gun_port_{k}", (0.3, 0.1, 0.1), (4.9, side * 0.58, 1.66), m["black"], hull,
                                        lods=NEAR))
     else:
-        # The emitter locator's fairings either side of the nose.
-        A.mirrored(lambda side, k: box(f"els_fairing_{k}", (0.9, 0.12, 0.16), (5.2, side * 0.6, 2.0), m["paint"], hull,
-                                       bevel=0.04, lods=MID))
+        # The emitter locator's fairings either side of the nose, where the
+        # IDS has its cannon: long blisters, their dark antenna windows
+        # facing forward.
+        A.mirrored(lambda side, k: box(f"els_fairing_{k}", (1.5, 0.18, 0.24), (5.0, side * 0.6, 1.9), m["paint"], hull,
+                                       bevel=0.06, taper=(0.8, 0.7), lods=MID))
+        A.mirrored(lambda side, k: box(f"els_window_{k}", (0.03, 0.14, 0.16), (5.76, side * 0.6, 1.9), m["dark"], hull,
+                                       lods=NEAR))
     # The black radome.
     A.body("nose_radome", [(8.38, 0.0, 2.0, 2.0), (7.5, 0.43, 1.69, 2.31, 2.0), (7.05, 0.5, 1.62, 2.42, 2.0)],
            m["dark"], hull, seg=24)
