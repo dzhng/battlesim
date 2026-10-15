@@ -34,7 +34,7 @@ You are implementing this spec with `implement-spec`. Opus subagents write the c
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
 - [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
-- [ ] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
+- [x] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
 - [ ] 19 [closeout](slices/19-closeout.md)
 
 ## User decisions made during the build
