@@ -486,7 +486,7 @@
                     "aim_max_s": 1
                 }
             },
-            "interception": "missile"
+            "can_intercept": "missile"
         },
         "aa_medium": {
             "targets": {
@@ -552,7 +552,7 @@
             "seeker": "radar",
             "seeker_fov_deg": 100,
             "decoyable": true,
-            "interception": "missile"
+            "can_intercept": "missile"
         },
         "air_gun": {
             "extends": "hmg",

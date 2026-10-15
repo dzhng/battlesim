@@ -41219,6 +41219,7 @@
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
+      "can_intercept": "missile",
       "damage": 100.0,
       "decoyable": false,
       "default": true,
@@ -41226,7 +41227,6 @@
       "gravity_scale": 0.5,
       "icon": "autocannon",
       "interceptable": false,
-      "interception": "missile",
       "lifetime_s": null,
       "magazine": {
         "burst": {
@@ -41271,6 +41271,7 @@
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
+      "can_intercept": "missile",
       "damage": 260.0,
       "decoyable": true,
       "default": false,
@@ -41279,7 +41280,6 @@
       "guidance": "stationary",
       "icon": "aa_missile",
       "interceptable": false,
-      "interception": "missile",
       "lifetime_s": 19.0,
       "magazine": null,
       "min_range_m": 50.0,

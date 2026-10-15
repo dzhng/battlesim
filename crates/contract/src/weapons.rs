@@ -90,7 +90,7 @@ pub struct WeaponDefinition {
     /// A missile target class this row may intercept. Interception is an
     /// authored weapon property, never inferred from penetration or guidance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub interception: Option<InterceptionTargetClass>,
+    pub can_intercept: Option<InterceptionTargetClass>,
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
@@ -387,7 +387,7 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "seeker_fov_deg must be finite and in (0, 360]",
                         ));
                     }
-                    if def.interception.is_some()
+                    if def.can_intercept.is_some()
                         && def.ballistics.guidance.is_none()
                         && def.seeker.is_some()
                     {

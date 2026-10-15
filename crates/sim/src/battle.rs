@@ -778,7 +778,7 @@ impl Battle {
                             .filter_map(|(slot, kind)| {
                                 let loaded = mount.ammo[slot].is_none_or(|n| n > 0);
                                 let def = &self.arsenal.weapons[*kind].def;
-                                if !loaded || def.interception.is_none() {
+                                if !loaded || def.can_intercept.is_none() {
                                     return None;
                                 }
                                 [AltitudeLayer::LowAir, AltitudeLayer::HighAir]
@@ -3290,7 +3290,10 @@ impl Battle {
                     });
                 }
             }
-            if self.arsenal.weapons[shot.weapon].def.interception.is_some()
+            if self.arsenal.weapons[shot.weapon]
+                .def
+                .can_intercept
+                .is_some()
                 && matches!(shot.target, Target::Ground(_) | Target::Round(_))
             {
                 self.units[shot.unit.0 as usize].mounts[shot.mount].lock = None;
