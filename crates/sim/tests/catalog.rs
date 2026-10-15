@@ -124,33 +124,6 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
 }
 
 #[test]
-fn every_faction_has_short_medium_and_long_air_defence() {
-    use contract::catalog::{AirDefenseTier, Faction};
-    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
-        sim::fixtures::CatalogSet::Game,
-    ))
-    .unwrap();
-    for faction in [Faction::Us, Faction::Europe, Faction::Eastern] {
-        for tier in [
-            AirDefenseTier::Short,
-            AirDefenseTier::Medium,
-            AirDefenseTier::Long,
-        ] {
-            assert!(
-                catalog.indices().any(|i| {
-                    let t = catalog.get(i);
-                    t.roster
-                        .as_ref()
-                        .is_some_and(|r| r.factions.contains(&faction))
-                        && t.capabilities.air_defense.is_some_and(|aa| aa.tier == tier)
-                }),
-                "{faction:?} has no {tier:?} air defence"
-            );
-        }
-    }
-}
-
-#[test]
 fn every_faction_has_a_dedicated_sead_aircraft() {
     let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
         sim::fixtures::CatalogSet::Game,

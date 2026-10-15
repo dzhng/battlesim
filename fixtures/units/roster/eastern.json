@@ -761,9 +761,6 @@
         "low_air_m": 3200
       },
       "capabilities": {
-        "air_defense": {
-          "tier": "medium"
-        },
         "radar": {
           "emits": true,
           "detection_m": 3200
@@ -1672,9 +1669,6 @@
         "low_air_m": 3200
       },
       "capabilities": {
-        "air_defense": {
-          "tier": "short"
-        },
         "radar": {
           "emits": true,
           "detection_m": 3200
@@ -3719,9 +3713,6 @@
         "low_air_m": 1800
       },
       "capabilities": {
-        "air_defense": {
-          "tier": "long"
-        },
         "radar": {
           "emits": true,
           "detection_m": 7000
@@ -3806,9 +3797,6 @@
         "low_air_m": 1800
       },
       "capabilities": {
-        "air_defense": {
-          "tier": "long"
-        },
         "radar": {
           "emits": true,
           "detection_m": 7000

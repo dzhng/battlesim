@@ -68,8 +68,8 @@ pub struct WeaponDefinition {
     /// strafing guns while a bomb store has rounds remaining.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ground_attack: Option<GroundAttackKind>,
-    /// Anti-radiation seeker: may acquire only a radar contact or identified
-    /// emitting AA unit. This is distinct from a radar/IR seeker on an
+    /// Anti-radiation seeker: may acquire only a radar contact or an
+    /// identified ground unit whose radar emits. This is distinct from a radar/IR seeker on an
     /// ordinary air-to-air missile.
     #[serde(default)]
     pub anti_radiation: bool,
@@ -91,13 +91,6 @@ pub struct WeaponDefinition {
     /// authored weapon property, never inferred from penetration or guidance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub interception: Option<InterceptionTargetClass>,
-    /// Air-defence tier metadata used for cross-row admission checks.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        alias = "air_defense_tier"
-    )]
-    pub aa_tier: Option<crate::catalog::AirDefenseTier>,
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,
@@ -401,37 +394,6 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                         return Err(serde::de::Error::custom(
                             "a seeker interception row must be guided",
                         ));
-                    }
-                    if matches!(def.aa_tier, Some(crate::catalog::AirDefenseTier::Short))
-                        && def.interception.is_some()
-                        && def.ballistics.guidance.is_some()
-                    {
-                        return Err(serde::de::Error::custom(
-                            "short air-defence missile rows cannot intercept missiles",
-                        ));
-                    }
-                    if let Some(tier) = def.aa_tier {
-                        use crate::catalog::AltitudeLayer::{HighAir, LowAir};
-                        match tier {
-                            crate::catalog::AirDefenseTier::Short
-                            | crate::catalog::AirDefenseTier::Medium
-                                if !def.targets.contains_key(&LowAir)
-                                    && !def.targets.contains_key(&HighAir) =>
-                            {
-                                return Err(serde::de::Error::custom(
-                                    "short or medium air-defence rows must target an air layer",
-                                ));
-                            }
-                            crate::catalog::AirDefenseTier::Long
-                                if !def.targets.contains_key(&HighAir)
-                                    || def.targets.contains_key(&LowAir) =>
-                            {
-                                return Err(serde::de::Error::custom(
-                                    "long air-defence rows must target HighAir only",
-                                ));
-                            }
-                            _ => {}
-                        }
                     }
                     if let Some(m) = def.magazine {
                         if m.rounds < 2 || !m.shot_interval_s.is_finite() || m.shot_interval_s <= 0.0
