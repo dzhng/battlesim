@@ -9,7 +9,8 @@ appearance whose source lies in `assets/source/roster/<family>/`.
 Plain Python, no Blender: exporters import it, and it is tested on its own.
 An appearance no unit draws is refused by name. A disabled card has no unit
 type, so `disabled_variant` takes the frame its exporter states from the
-card's references: its length, width and height.
+card's references: its length, width and height; once enabled, its unit
+type's.
 """
 import json
 import os
@@ -104,11 +105,16 @@ def family_variants(family, repo=REPO):
 def disabled_variant(card_id, dimensions, repo=REPO):
     """A disabled card's export path, names, faction and frame: `dimensions`
     (length, width and height in metres) as its exporter states them from its
-    references (`frame_source`)."""
+    references (`frame_source`). A card enabled since (out of the manifest,
+    drawn by a unit type) takes its unit type's frame instead, as any roster
+    variant does."""
     entries = json.loads((Path(repo) / "fixtures/units/model-manifest.json").read_text())["entries"]
     entry = next((e for e in entries if e["id"] == card_id), None)
     if entry is None:
-        raise LookupError(f"{card_id}: no card in fixtures/units/model-manifest.json")
+        try:
+            return dict(roster_variant(card_id, repo), frame_source="catalog")
+        except LookupError as e:
+            raise LookupError(f"{card_id}: no card in fixtures/units/model-manifest.json, and {e}") from e
     card = next(
         doc["units"][card_id]
         for path in sorted((Path(repo) / "fixtures/units/roster").glob("*.json"))

@@ -125,6 +125,9 @@ class DisabledFramesTest(unittest.TestCase):
         (self.repo / "fixtures/units/model-manifest.json").write_text(json.dumps(dict(entries=entries)))
         cards = dict(units=dict(tank_x=dict(name="Tank X", faction="eastern")))
         (self.repo / "fixtures/units/roster/cards.json").write_text(json.dumps(cards))
+        (self.repo / "fixtures/catalog.json").write_text(json.dumps(dict(units=[])))
+        (self.repo / "assets").mkdir()
+        (self.repo / "assets/catalog.json").write_text(json.dumps(dict(appearances={})))
 
     def test_a_card_takes_the_frame_its_exporter_states(self):
         v = disabled_variant("tank_x", [8.0, 3.4, 3.0], repo=self.repo)
@@ -137,6 +140,18 @@ class DisabledFramesTest(unittest.TestCase):
     def test_a_card_the_manifest_lacks_is_refused_by_name(self):
         with self.assertRaisesRegex(LookupError, "nope"):
             disabled_variant("nope", [1.0, 1.0, 1.0], repo=self.repo)
+
+    def test_an_enabled_card_takes_its_unit_types_frame(self):
+        # A card promoted to a unit type leaves the manifest; its unit's hull is its frame.
+        (self.repo / "fixtures/catalog.json").write_text(json.dumps(dict(
+            units=[unit("jet_y", "jet_y", [8.0, 5.5, 2.6], 2.0, [GUN])])))
+        (self.repo / "assets/catalog.json").write_text(json.dumps(dict(appearances=dict(
+            jet_y=dict(source="assets/source/roster/disabled/jet_y.glb")))))
+        v = disabled_variant("jet_y", [15.9, 10.9, 5.3], repo=self.repo)
+        self.assertEqual(v["frame"]["body_dimensions_m"], [16.0, 11.0, 5.2])
+        self.assertEqual(v["frame_source"], "catalog")
+        self.assertEqual([m["role"] for m in v["frame"]["mounts"]], [None])
+        self.assertEqual(v["export"], "assets/source/roster/disabled/jet_y.glb")
 
 
 if __name__ == "__main__":
