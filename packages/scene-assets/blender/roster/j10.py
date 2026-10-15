@@ -39,7 +39,9 @@ SPEC = dict(
     wing_hinge=((0.8, 0, 1), 0.08),
     nav=dict(left=(-3.3, 4.75, WING_Z + 0.05), right=(-3.3, -4.75, WING_Z + 0.05), tail=(-8.3, 0.0, 5.3)),
     canard=[(5.0, 0.62, 2.0, 1.4, 0.08), (4.1, 2.4, 2.06, 0.55, 0.03)],
-    wing=[(2.0, 0.85, WING_Z, 6.6, 0.3), (-3.8, 4.84, WING_Z, 1.0, 0.05)],
+    # The side photos: the delta's root runs from just behind the canards'
+    # root nearly to the nozzle.
+    wing=[(3.2, 0.85, WING_Z, 7.8, 0.3), (-3.8, 4.84, WING_Z, 1.0, 0.05)],
     fins=[dict(root_x=-3.0, root_z=2.6, height=2.83, root_chord=3.8, tip_chord=1.2, sweep_m=2.9),
           dict(VENTRAL, y=0.55), dict(VENTRAL, y=-0.55)],
     intakes=[("rect", (4.48, 0.0, 1.3), 1.12, 0.56, 0.22, (0, -0.1, 0))],
@@ -76,4 +78,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.4, wing_y=3.0, wing_side=1, tail_yaw=0.3, seed=10)
 
 
-run_disabled("j10", CARDS, "chinese_air_grey", build, wreck)
+run_disabled("j10", CARDS, "chinese_air_grey", build, wreck, references="j_10_vigorous_dragon")
