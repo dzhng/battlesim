@@ -70,7 +70,7 @@ Slices that share a seam stay on one lane. These pairs can run concurrently:
 ## Single-owner invariants
 
 Every slice inherits these:
-- **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A shadow falls along the sun onto the ground, from the aircraft's actual height above that ground.
+- **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A helicopter's shadow is cast along the sun from its actual height; a jet at altitude casts none, and instead shows a soft silhouette shadow on the ground directly beneath it (choices.md).
 - **`crates/sim/src/air/`** owns fixed-wing behaviour:
   - `jet.rs` is the only flight law; nothing else writes a jet's position, heading or speed.
   - `movement/air.rs` handles helicopters only.
