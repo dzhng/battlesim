@@ -60,7 +60,7 @@ So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth a
 Combat follows the same idea. A behaviour belongs to the thing that physically has it, never to a unit's role:
 
 - **A weapon owns what it can engage.** For each altitude layer it reaches, it lists a range and the target classes it engages (`infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`, `missile`). Intercepting a missile is just targeting one, fired from a layer the weapon lists `missile` in.
-- **A weapon's mechanisms are opt-in flags that compose.** Guidance needs the operator's line of sight to the target. A seeker acquires inside its cone. `requires_clear_launch_path` holds fire when the launcher's own corridor is blocked. `interceptable` lets its rounds be shot down.
+- **A weapon's mechanisms are opt-in flags that compose.** Guidance needs the operator's line of sight to the target. A seeker acquires inside its cone. `requires_clear_launch_path` holds fire when the launcher's own corridor is blocked. `interceptable` lets its rounds be shot down. `fires_on_its_own` fires whatever the unit's engagement policy.
 - **A radar contact is a contact like any other.** Its source changes only its evidence (its radius, bearing and range), never who may fire at it; an `anti_radiation` row may also fire at what radiates, a radar contact or a seen unit whose radar emits.
 - **A unit owns its body and senses.** That is its hull, its push and weight classes, its sight per layer, its radar (emitting makes it findable, and its reach is how far it sees aircraft), its radar receiver (it finds enemy radars that emit, by bearing and range), its altitude layer and its flight model.
 
@@ -76,6 +76,7 @@ These were all built and then deleted, because each stood in for a property some
 - **Air targets judged by their height.** A target's layer comes from what was seen or heard, and a round keeps the layer it was fired from.
 - **Lane width sized from the widest hull of any unit,** aircraft included. Only ground hulls drive streets.
 - **A `sead` unit flag and a second radar block on aircraft.** Finding emitting radars is a sensor a unit has, shown on its card; firing at a radar contact belongs to the weapon's `anti_radiation`. A unit may have either without the other.
+- **Auto-fire inferred from an airborne seeker.** An aircraft's seeker missile that reached the air, or homed on radars, skipped the engagement policy, behind a ground-only permission path. A row that fires on its own says so (`fires_on_its_own`), and one permission path covers every unit.
 
 If a rule asks "is this an X unit?" or "is this target an aircraft?", the question is usually one of these again.
 

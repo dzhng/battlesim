@@ -71,6 +71,11 @@ pub struct WeaponDefinition {
     /// radar/IR seeker on an ordinary air-to-air missile.
     #[serde(default)]
     pub anti_radiation: bool,
+    /// It fires on its own at what it may engage, whatever its unit's
+    /// engagement policy: a fire-and-forget missile its crew looses at any
+    /// target its seeker takes.
+    #[serde(default)]
+    pub fires_on_its_own: bool,
     /// A missile/rocket body vulnerable to active protection; shells and
     /// bullets do not inherit eligibility from penetration or guidance.
     #[serde(default)]

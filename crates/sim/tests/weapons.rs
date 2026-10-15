@@ -3486,3 +3486,38 @@ fn a_round_with_a_gentle_falloff_still_shakes_armour_twice_its_penetration() {
     assert!(!lost.is_empty(), "no hit landed");
     assert!(lost.iter().all(|l| (l - 15.0).abs() < 1e-9), "{lost:?}");
 }
+
+/// A row that fires on its own looses at what it sees whatever its unit's
+/// engagement policy: on the ground as in the air, by its own flag. A jeep
+/// on return fire only, facing a tank 300 m off that never fires, shoots it
+/// with such a row and holds with the same row unflagged.
+#[test]
+fn a_row_that_fires_on_its_own_ignores_the_engagement_policy() {
+    let shots = |on_its_own: bool| {
+        let mut rules = sim::fixtures::test_game();
+        rules["weapons"]["tank_he"]["fires_on_its_own"] = json!(on_its_own);
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            json!({ "mounts": [{ "id": "HMG", "weapons": ["tank_he"] }] }),
+        );
+        let setup = serde_json::from_value(json!({
+            "map": { "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": rules,
+            "units": [
+                { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0, "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [400, 200], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        for _ in 0..200 {
+            b.step();
+        }
+        b.unit(UnitId(0)).unwrap().mounts[0].shots
+    };
+    assert_eq!(shots(false), 0, "an ordinary row holds on return fire only");
+    assert!(shots(true) > 0, "a row that fires on its own fires");
+}

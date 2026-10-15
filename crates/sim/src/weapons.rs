@@ -1064,25 +1064,17 @@ fn assess(
     target: Target,
     r: &Resolved,
 ) -> Result<usize, ActionReason> {
-    // Ground units retain the pre-slice permission gate and assessment order.
-    // The pass/autofire changes below belong only to airborne units.
-    if !unit.airborne() && !permitted(ctx, unit, target) {
+    let k = preferred_kind(ctx, mount, spec, r);
+    let on_its_own = k.is_some_and(|k| ctx.arsenal.weapons[spec.kinds[k]].def.fires_on_its_own);
+    if !on_its_own && !permitted(ctx, unit, target) {
         return Err(ActionReason::HoldingFire);
     }
-    let k = preferred_kind(ctx, mount, spec, r).ok_or(if mount.out_of_ammo() {
+    let k = k.ok_or(if mount.out_of_ammo() {
         ActionReason::OutOfAmmo
     } else {
         ActionReason::NoCompatibleTarget
     })?;
     let weapon = &ctx.arsenal.weapons[spec.kinds[k]].def;
-    let self_firing = unit.airborne()
-        && weapon.seeker.is_some()
-        && (weapon.anti_radiation
-            || weapon.against(AltitudeLayer::LowAir).is_some()
-            || weapon.against(AltitudeLayer::HighAir).is_some());
-    if !self_firing && !permitted(ctx, unit, target) {
-        return Err(ActionReason::HoldingFire);
-    }
     if unit.airborne() && r.layer == AltitudeLayer::Ground {
         let pass = unit.air.as_ref().and_then(|air| air.pass);
         let bomb_pass = pass.is_some_and(|p| p.weapon == crate::air::pass::PassWeapon::Bomb);

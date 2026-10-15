@@ -592,6 +592,7 @@
             "ground_attack": "strafe"
         },
         "air_missile": {
+            "fires_on_its_own": true,
             "targets": {
                 "low_air": { "classes": ["air_rotor", "air_fixed_wing"] },
                 "high_air": { "classes": ["air_rotor", "air_fixed_wing"] }
@@ -677,6 +678,7 @@
             "ammo": 4
         },
         "sead_missile": {
+            "fires_on_its_own": true,
             "targets": {
                 "ground": { "classes": ["vehicle"] }
             },
