@@ -70,11 +70,13 @@ which existing tests can go, use [audit-tests](../audit-tests/SKILL.md).
   assertion hides the coupling and stops covering the path. Feed the function
   fixed inputs, or stub the lookup so fixture ids resolve to fixed values.
   Litmus: "would this break if a config value changed with no logic change?"
-- **A test sets the bounds it depends on.** A boundary test (in range or out,
-  seen or hidden, fits or overflows) gives a fake its own number in the test
-  and probes either side of it; reading the shipped value instead turns every
-  retune into a test edit. A test of anything else runs at the smallest setup
-  that shows the behaviour, far from any bound: it survives retuning and runs
+- **A test sets the bounds it depends on.** Tuning data (unit stats,
+  ranges, prices, timings) is guaranteed to change: it is retuned all the
+  time, and a test that reads it, or hard-codes today's value, breaks on every
+  retune. So a boundary test (in range or out, seen or hidden, fits or
+  overflows) uses a fake whose numbers the test itself defines, and probes
+  either side of them. A test of anything else runs at the smallest setup that
+  shows the behaviour, far from any bound: it survives retuning and runs
   faster.
 - **Don't over-mock — every mock is a frozen assumption.** Mock at the system's
   edges (network, clock, filesystem, third-party SDK, config lookup), never
@@ -95,9 +97,9 @@ gets slower with each one, while proving nothing a fake could not.
 - **Test a mechanic on test units and fakes.** Use the fixed test content
   (in this repo the `test_*` units, never game content), and build a fake
   entry in the test for a shape it lacks. If the mechanic
-  holds for the fake, it holds for the real entry of that shape. A
-  range or sight a test turns on is patched onto the `test_*` unit in the
-  test, never read from a real unit.
+  holds for the fake, it holds for the real entry of that shape. Real
+  units' stats change all the time, so a range or sight a test turns on is
+  patched onto the `test_*` unit in the test, never read from a real unit.
 - **Make the extremes data, and test at them.** Where a mechanic depends on
   how big, fast or extreme an entry can be, put the bound in the rules, build
   fakes at exactly that bound, and prove the mechanic there. Every entry
