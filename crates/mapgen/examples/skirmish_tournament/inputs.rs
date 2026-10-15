@@ -4,7 +4,7 @@ use contract::encounter::{EntrySite, ObjectiveSite, ObjectiveSiteKind, SkirmishS
 use contract::generation::{GenerationProfile, GenerationRequest, MapSize, MapType};
 use contract::ids::Side;
 use contract::scenario::{Rules, ScenarioDefinition};
-use contract::skirmish::{MatchRules, SkirmishSetup};
+use contract::skirmish::SkirmishSetup;
 use contract::templates::TemplateGeometryCatalog;
 
 pub(crate) struct Inputs {
@@ -126,13 +126,8 @@ pub(crate) fn prepare_row(
         skirmish: Some(SkirmishSetup {
             factions: inputs.factions,
             ai_side: None,
-            rules: MatchRules {
-                credits_per_minute: 200,
-                starting_minutes: 2,
-                preparation_s: 20,
-                max_units: 30,
-                dispatch_interval_s: 1,
-            },
+            // The real skirmish's economy and timing, from their one owner.
+            rules: sim::skirmish::starter_rules(),
             sites,
         }),
         map,

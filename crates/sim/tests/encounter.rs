@@ -339,16 +339,29 @@ fn a_planned_encounter_starts_a_battle_whose_garrisons_enter_their_buildings() {
     let scenario = encounter.setup.scenario(map, common::rules());
     let mut battle = Battle::new(&scenario, 1);
     let hz = battle.rules().tick_hz as u64;
+    // Each garrison is inside its planned building at some point in the
+    // first 20 s: the fight that follows (blue's guns can bring a house
+    // down on it) is not the planner's to answer for.
+    let mut entered = std::collections::BTreeSet::new();
     for _ in 0..20 * hz {
         battle.step();
+        let red = battle.observe(Side::Red);
+        for g in &garrisons {
+            let squad = red.own.iter().find(|u| u.id.0 == g.unit).unwrap();
+            if squad.garrison.is_some_and(|held| {
+                (held.building, held.phase) == (g.building, GarrisonPhase::Inside)
+            }) {
+                entered.insert(g.unit);
+            }
+        }
     }
     let red = battle.observe(Side::Red);
     for g in &garrisons {
-        let squad = red.own.iter().find(|u| u.id.0 == g.unit).unwrap();
-        let held = squad.garrison.expect("the squad holds a building");
-        assert_eq!(
-            (held.building, held.phase),
-            (g.building, GarrisonPhase::Inside)
+        assert!(
+            entered.contains(&g.unit),
+            "squad {} entered building {}",
+            g.unit,
+            g.building
         );
     }
     // The relief column has set off down the road toward the objective.

@@ -449,6 +449,71 @@ fn a_purchase_ghost_keeps_its_shape_as_the_cursor_moves_over_open_ground() {
     }
 }
 
+/// A purchase aimed at ground its unit can't stand on goes where a move
+/// there would: to the nearest ground it can, not refused. Before, the
+/// skirmish AI kept re-sending a purchase aimed at a wrecked objective and
+/// bought nothing for minutes.
+#[test]
+fn a_purchase_aimed_at_a_blocked_point_is_sent_to_the_nearest_open_ground() {
+    // A 6 m by 3 m tank, and a 20 m square block centred on the click.
+    let (hull_half_length, hull_half_width) = (3.0, 1.5);
+    let block_half = 10.0;
+    let mut rules = deck();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({ "body": { "hull": { "half_extents_m": [hull_half_length, hull_half_width, 1.2] } } }),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_rifle",
+        json!({
+            "roster": { "factions": ["us"], "category": "inf", "family_name": "Test squad", "variant": "Test" }
+        }),
+    );
+    let mut setup = serde_json::to_value(match_on(rules)).unwrap();
+    setup["map"]["props"] = json!([{
+        "kind": "wall", "center": [400, 300], "yaw": 0,
+        "half_extents": [block_half, block_half, 2]
+    }]);
+    let mut battle = Battle::new(&serde_json::from_value(setup).unwrap(), 1);
+    // How far outside the block a point lies (negative inside it).
+    let outside = |[x, y]: [f64; 2]| (x - 400.0).abs().max((y - 300.0).abs()) - block_half;
+    for (seq, variant) in [(1, "test_tank"), (2, "test_rifle")] {
+        let ack = battle.accept(command(
+            Side::Blue,
+            seq,
+            Order::ConfirmPurchase {
+                variant: variant.into(),
+                destination: [400.0, 300.0],
+            },
+        ));
+        assert_eq!(ack.error, None, "{variant} is accepted");
+    }
+    battle.step();
+    let pending = &battle
+        .observe(Side::Blue)
+        .skirmish
+        .as_ref()
+        .unwrap()
+        .pending;
+    assert_eq!(pending.len(), 2);
+    let tank = pending[0].destination;
+    // The hull stands clear of the block, on its nearest side: no farther
+    // out than its own length and one 2 m navigation cell.
+    assert!(
+        (hull_half_width..=hull_half_length + 2.0).contains(&outside(tank)),
+        "the tank is sent just outside the block, not to {tank:?}"
+    );
+    let squad = pending[1].destination;
+    assert!(
+        outside(squad) > 0.0,
+        "the squad is sent outside the block, not to {squad:?}"
+    );
+}
+
 #[test]
 fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_atomically() {
     let mut battle = Battle::new(&setup(), 1);

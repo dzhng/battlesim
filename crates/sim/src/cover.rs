@@ -103,8 +103,8 @@ pub struct Anchor {
 
 /// The radius of a squad's area: half its spread for its full
 /// authored strength, plus `search_m`; casualties and replacements never resize it.
-pub fn area_radius(rules: &Rules, unit: &Unit) -> f64 {
-    crate::arrangement::spread(&rules.infantry_movement, unit.unit_type(rules).squad_size()) / 2.0
+pub fn area_radius(rules: &Rules, t: &contract::catalog::UnitType) -> f64 {
+    crate::arrangement::spread(&rules.infantry_movement, t.squad_size()) / 2.0
         + rules.cover.search_m
 }
 

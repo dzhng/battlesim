@@ -3484,9 +3484,7 @@ impl Battle {
             destination,
         } = &command.order
         {
-            let kind = self
-                .preview_purchase(command.side, variant, *destination)?
-                .kind;
+            let preview = self.preview_purchase(command.side, variant, *destination)?;
             let living = self
                 .units
                 .iter()
@@ -3494,9 +3492,9 @@ impl Battle {
                 .count() as u32;
             self.skirmish.as_mut().unwrap().reserve(
                 command.side,
-                kind,
-                *destination,
-                self.rules.catalog.get(kind).cost,
+                preview.kind,
+                preview.destination,
+                self.rules.catalog.get(preview.kind).cost,
                 planning_tick + 1,
                 living,
             )?;
@@ -3959,17 +3957,46 @@ impl Battle {
         {
             return Err(OrderError::OutOfBounds);
         }
-        let mut known = self.sides[side.index()].clone();
-        let fits = |mobility| {
-            known
-                .grid(&self.world, self.authored_props)
-                .placement_fits(v2(destination[0], destination[1]), &mobility)
-        };
-        // An aircraft's destination is any point it can fly over.
-        if !units::ground_mobility(self.rules.catalog.get(kind), &self.rules).is_none_or(fits) {
-            return Err(OrderError::NoValidDestination);
-        }
+        let entry = skirmish
+            .setup
+            .sites
+            .entries
+            .iter()
+            .find(|entry| entry.side == side)
+            .ok_or(OrderError::NotSkirmish)?;
+        let (from, yaw) = (v2(entry.center[0], entry.center[1]), entry.yaw);
         let t = self.rules.catalog.get(kind);
+        // A ground unit is sent where a move there from its entry would end:
+        // the nearest ground to the point that it stands on, as its side knows
+        // the map. An aircraft's destination is any point it can fly over.
+        let destination = match units::ground_mobility(t, &self.rules) {
+            None => destination,
+            Some(mobility) => {
+                let mut known = self.sides[side.index()].clone();
+                let grid = known.grid(&self.world, self.authored_props);
+                let pockets = crate::navigation::Pockets::default();
+                let hull = t.hull().map(|h| crate::navigation::Parking {
+                    half: v2(h.half_extents_m[0], h.half_extents_m[1]),
+                    facing: None,
+                });
+                let member = crate::formation::Member {
+                    id: UnitId(self.units.len() as u32),
+                    position: from,
+                    radius: crate::formation::member_radius(&self.rules, t),
+                    yaw,
+                };
+                let plan = crate::formation::place(
+                    &[member],
+                    v2(destination[0], destination[1]),
+                    None,
+                    &self.rules.formation,
+                    libm::hypot(self.world.width(), self.world.depth()),
+                    |_, p| grid.destination_point(p, &mobility, hull, from, &pockets),
+                );
+                let placed = plan.slots[0].point.ok_or(OrderError::NoValidDestination)?;
+                [placed.x, placed.y]
+            }
+        };
         let soldiers = if t.hull().is_some() {
             0
         } else {
@@ -3978,6 +4005,7 @@ impl Battle {
         let next = self.units.len() as u32;
         Ok(contract::skirmish::PurchasePreview {
             kind,
+            destination,
             // A look while it is placed, not where its soldiers will stand: one
             // draw wherever it is put, so the ghost slides with the cursor.
             spots: self.arrival_spots(side, destination, soldiers, next, 0),
@@ -4058,10 +4086,7 @@ impl Battle {
                     id,
                     position: u.position.xy(),
                     yaw: u.yaw,
-                    radius: u.hull.map_or_else(
-                        || cover::area_radius(&self.rules, u),
-                        |half| half.xy().length(),
-                    ),
+                    radius: crate::formation::member_radius(&self.rules, u.unit_type(&self.rules)),
                 }
             })
             .collect();
@@ -4554,7 +4579,10 @@ impl Battle {
                             .collect(),
                         area: u.anchor.map(|a| SquadArea {
                             anchor: [a.at.x, a.at.y],
-                            radius: crate::cover::area_radius(&self.rules, u),
+                            radius: crate::cover::area_radius(
+                                &self.rules,
+                                u.unit_type(&self.rules),
+                            ),
                         }),
                         final_facing: movement::final_facing(u),
                         sees: knowledge.own_sensor(u.id),

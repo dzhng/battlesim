@@ -107,10 +107,7 @@ fn member(ctx: &MovementContext, u: &Unit) -> Member {
         id: u.id,
         position: u.position.xy(),
         yaw: u.yaw,
-        radius: u.hull.map_or_else(
-            || crate::cover::area_radius(ctx.rules, u),
-            |half| half.xy().length(),
-        ),
+        radius: crate::formation::member_radius(ctx.rules, u.unit_type(ctx.rules)),
     }
 }
 

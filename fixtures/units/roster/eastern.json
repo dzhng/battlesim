@@ -850,7 +850,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -960,7 +960,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -1415,7 +1415,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -1543,7 +1543,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -1976,7 +1976,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -2086,7 +2086,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -2214,7 +2214,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -2324,7 +2324,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": true,
@@ -2438,7 +2438,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,
@@ -2566,7 +2566,7 @@
           "fuel_capacity_s": 180,
           "flares": {
             "capacity": 4,
-            "reload_s": 20
+            "reload_s": 3
           },
           "afterburner": {},
           "sead": false,

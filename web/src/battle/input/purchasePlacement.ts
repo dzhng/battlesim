@@ -4,6 +4,8 @@ import type { SimClient } from "../sim/client";
 export const DEFAULT_PLACEMENT_FACING = -Math.PI / 2;
 export interface PurchaseGhost {
   variant: string;
+  /** Where the unit is sent: the cursor, snapped by the authority to the
+   *  nearest ground the unit stands on once a preview answers. */
   destination: [number, number];
   /** World bearing of the ghost; deployment defaults toward the opposing edge. */
   facing: number;
@@ -15,7 +17,12 @@ export interface PurchaseGhost {
 export class PurchasePlacementControl {
   variant: string | null = null;
   private ghost: PurchaseGhost | null = null;
-  private intent: { client: SimClient; key: string; ghost: PurchaseGhost } | null = null;
+  private intent: {
+    client: SimClient;
+    key: string;
+    cursor: [number, number];
+    ghost: PurchaseGhost;
+  } | null = null;
   private resolved: { key: string; placement: PurchasePlacement } | null = null;
   /** The chosen squad's soldiers about its destination, as the last preview
    *  spread them: the ghost keeps this shape while the next one is pending. */
@@ -55,17 +62,16 @@ export class PurchasePlacementControl {
     }
     // Admission depends on where the ghost stands, never on how it is turned.
     const key = JSON.stringify([this.generation, this.variant, destination, revision]);
+    const placement = this.resolved?.key === key ? this.resolved.placement : null;
+    const at = placement && "Ok" in placement ? placement.Ok.destination : destination;
     const ghost = {
       variant: this.variant,
-      destination,
+      destination: at,
       facing,
-      valid: this.resolved?.key === key ? "Ok" in this.resolved.placement : null,
-      spots: this.shape.map(([dx, dy]): [number, number] => [
-        destination[0] + dx,
-        destination[1] + dy,
-      ]),
+      valid: placement ? "Ok" in placement : null,
+      spots: this.shape.map(([dx, dy]): [number, number] => [at[0] + dx, at[1] + dy]),
     };
-    this.intent = { client, key, ghost };
+    this.intent = { client, key, cursor: destination, ghost };
     this.ghost = ghost;
     this.resolve();
     return ghost;
@@ -75,13 +81,13 @@ export class PurchasePlacementControl {
     if (!intent || this.inFlight || this.resolved?.key === intent.key) return;
     this.inFlight = true;
     void intent.client
-      .previewPurchase(intent.ghost.variant, intent.ghost.destination)
+      .previewPurchase(intent.ghost.variant, intent.cursor)
       .then(
         (placement) => {
           if (this.intent?.key !== intent.key) return;
           this.resolved = { key: intent.key, placement };
           if ("Ok" in placement) {
-            const [x, y] = intent.ghost.destination;
+            const [x, y] = placement.Ok.destination;
             this.shape = placement.Ok.spots.map(([sx, sy]) => [sx - x, sy - y]);
           }
         },

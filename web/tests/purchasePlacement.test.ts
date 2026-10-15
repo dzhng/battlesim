@@ -18,11 +18,11 @@ test("a changed variant/destination cannot reuse an earlier valid preview", asyn
   expect(control.at([20, 30], client, "1")?.valid).toBeNull();
   control.choose("test_scout");
   expect(control.at([40, 50], client, "1")?.valid).toBeNull();
-  resolve[0]({ Ok: { kind: 0, spots: [] } });
+  resolve[0]({ Ok: { kind: 0, destination: [20, 30], spots: [] } });
   await settle();
   expect(control.at([40, 50], client, "1")?.valid).toBeNull();
   expect(client.previewPurchase).toHaveBeenCalledTimes(2);
-  resolve[1]({ Ok: { kind: 1, spots: [] } });
+  resolve[1]({ Ok: { kind: 1, destination: [40, 50], spots: [] } });
   await settle();
   expect(control.at([40, 50], client, "1")?.valid).toBe(true);
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
@@ -47,7 +47,7 @@ test("a replaced authority cannot inherit a valid preview", async () => {
   control.choose("test_scout");
   control.at([10, 20], first, "1");
   control.at([10, 20], second, "1");
-  resolvers[0]({ Ok: { kind: 1, spots: [] } });
+  resolvers[0]({ Ok: { kind: 1, destination: [10, 20], spots: [] } });
   await settle();
   expect(control.at([10, 20], second, "1")?.valid).toBeNull();
   resolvers[1]({ Err: { reason: "wrong_faction" } });
@@ -67,7 +67,7 @@ test("a completed preview can confirm without another pointer movement", async (
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
   control.at([10, 20], client, "1");
-  reply({ Ok: { kind: 1, spots: [] } });
+  reply({ Ok: { kind: 1, destination: [10, 20], spots: [] } });
   await settle();
   const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
   expect(await control.confirm(send)).toBeTruthy();
@@ -80,7 +80,9 @@ test("a completed preview can confirm without another pointer movement", async (
 
 test("deployment ghosts face the opposing edge by default and track a drag bearing", () => {
   const client = {
-    previewPurchase: vi.fn(async () => ({ Ok: { kind: 1, spots: [] } })),
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 1, destination: at, spots: [] },
+    })),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
@@ -90,7 +92,9 @@ test("deployment ghosts face the opposing edge by default and track a drag beari
 
 test("turning a placed ghost keeps its preview, and confirming reports the ghost as placed", async () => {
   const client = {
-    previewPurchase: vi.fn(async () => ({ Ok: { kind: 1, spots: [] } })),
+    previewPurchase: vi.fn(async (_variant: string, at: [number, number]) => ({
+      Ok: { kind: 1, destination: at, spots: [] },
+    })),
   } as unknown as SimClient;
   const control = new PurchasePlacementControl();
   control.choose("test_scout");
@@ -114,6 +118,7 @@ test("a squad's ghost stands its soldiers where the preview spread them, and kee
     previewPurchase: vi.fn(async (_variant: string, [x, y]: [number, number]) => ({
       Ok: {
         kind: 1,
+        destination: [x, y] as [number, number],
         spots: [
           [x - 1, y],
           [x + 1, y + 2],
@@ -134,4 +139,37 @@ test("a squad's ghost stands its soldiers where the preview spread them, and kee
     [29, 40],
     [31, 42],
   ]);
+});
+
+test("a ghost over blocked ground stands where the authority will send it, and confirms there", async () => {
+  // The authority snaps the cursor at (10, 20) to open ground 6 m east.
+  const client = {
+    previewPurchase: vi.fn(async () => ({
+      Ok: {
+        kind: 1,
+        destination: [16, 20] as [number, number],
+        spots: [
+          [15, 20],
+          [17, 21],
+        ] as [number, number][],
+      },
+    })),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_squad");
+  control.at([10, 20], client, "1");
+  await settle();
+  const ghost = control.at([10, 20], client, "1");
+  expect(ghost?.destination).toEqual([16, 20]);
+  expect(ghost?.spots).toEqual([
+    [15, 20],
+    [17, 21],
+  ]);
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null }));
+  await control.confirm(send);
+  expect(send).toHaveBeenCalledExactlyOnceWith({
+    kind: "confirm_purchase",
+    variant: "test_squad",
+    destination: [16, 20],
+  });
 });
