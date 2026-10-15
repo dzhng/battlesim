@@ -3,7 +3,10 @@
 //! feed and the pose driver, against the browser's own poses of the same
 //! records (written by its TypeScript before that was deleted); the tank's
 //! articulation at fixed inputs; and a body's joint worlds sampled from its
-//! clip table. Values agree to the fixture's rounding (1e-6).
+//! clip table. Values agree to the fixture's rounding (1e-6). The
+//! TypeScript is gone, so the capture's frames now pin the crate's own
+//! poses: `BLESS_PARITY=1` re-records them from a refreshed capture, and only
+//! once the old capture still reproduces the old frames.
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -18,7 +21,7 @@ use presentation::units::interpolate::TickInterpolator;
 use presentation::units::pose::{Articulation, PoseFrame};
 use presentation::units::skin::joint_worlds;
 use presentation::world::{Appearance, UnitsSection, Vec3};
-use serde_json::Value;
+use serde_json::{json, Value};
 use sim::publication::reader::Reader;
 
 const FIXTURES: &str = concat!(
@@ -48,6 +51,61 @@ fn near(actual: f64, wanted: &Value, what: &str) {
         (actual - wanted).abs() <= 0.5e-6 + 1e-12,
         "{what} is {actual}, not {wanted}"
     );
+}
+
+fn round6(v: f64) -> Value {
+    Value::from((v * 1e6).round() / 1e6)
+}
+
+fn round6_all(v: &[f64]) -> Value {
+    v.iter().map(|&x| round6(x)).collect()
+}
+
+/// One frame in the fixture's terms, rounded as the browser wrote it.
+fn frame_record(at: &Value, poses: &PoseFrame, units: &UnitsSection) -> Value {
+    let soldiers: Vec<Value> = poses
+        .soldiers
+        .iter()
+        .map(|s| {
+            json!({
+                "soldier": round6(s.soldier), "unit": round6(s.unit), "clip": &*s.clip,
+                "phase": round6(s.phase), "facing": round6(s.facing),
+                "position": round6_all(&s.position),
+                "blend": s.blend.as_ref().map(|b| json!({
+                    "clip": &*b.clip, "phase": round6(b.phase), "weight": round6(b.weight)
+                })),
+                "operatorMount": index(s.operator_mount), "activeMount": index(s.active_mount),
+            })
+        })
+        .collect();
+    let vehicles: Vec<Value> = poses
+        .vehicles
+        .iter()
+        .map(|v| {
+            let articulation: serde_json::Map<String, Value> = articulation_fields(&v.articulation)
+                .into_iter()
+                .map(|(k, x)| (k.to_owned(), round6(x)))
+                .collect();
+            json!({
+                "unit": round6(v.unit), "position": round6_all(&v.position),
+                "yaw": round6(v.yaw), "articulation": articulation,
+            })
+        })
+        .collect();
+    let corpses: Vec<Value> = poses
+        .corpses
+        .iter()
+        .map(|c| {
+            json!({
+                "soldier": round6(c.soldier), "lies": c.lies,
+                "position": round6_all(&c.position), "yaw": round6(c.yaw),
+            })
+        })
+        .collect();
+    json!({
+        "index": at, "counts": counts(poses, units),
+        "soldiers": soldiers, "vehicles": vehicles, "corpses": corpses,
+    })
 }
 
 fn near_all(actual: &[f64], wanted: &Value, what: &str) {
@@ -140,7 +198,9 @@ fn articulation_fields(a: &Articulation) -> [(&'static str, f64); 10] {
 
 #[test]
 fn the_browser_s_poses_of_the_fixture_capture() {
-    let expected = read("poses/paris-corner-poses.json");
+    let mut expected = read("poses/paris-corner-poses.json");
+    let bless = std::env::var("BLESS_PARITY").as_deref() == Ok("1");
+    let mut blessed = vec![];
     let units: UnitsSection = serde_json::from_value(kicked_units()).unwrap();
     let capture = read(expected["capture"].as_str().unwrap());
     // The battle's effects, resolved from the repository as native resolves them.
@@ -167,7 +227,7 @@ fn the_browser_s_poses_of_the_fixture_capture() {
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut feed = ObservationFeed::new(capture["side"].as_str().unwrap());
     let mut interpolator = TickInterpolator::new(tick_hz);
-    let wanted = expected["frames"].as_array().unwrap();
+    let wanted = expected["frames"].as_array().unwrap().clone();
     let mut pushed = 0;
     let mut compared = 0;
     let mut last = PoseFrame::default();
@@ -188,6 +248,10 @@ fn the_browser_s_poses_of_the_fixture_capture() {
         let Some(want) = wanted.iter().find(|w| w["index"] == record["index"]) else {
             continue;
         };
+        if bless {
+            blessed.push(frame_record(&record["index"], poses, &units));
+            continue;
+        }
         compared += 1;
         let at = format!("frame {}", record["index"]);
         assert_eq!(counts(poses, &units), want["counts"], "{at}: counts");
@@ -251,10 +315,25 @@ fn the_browser_s_poses_of_the_fixture_capture() {
             near(c.yaw, &w["yaw"], &format!("{at} corpse yaw"));
         }
     }
+    if bless {
+        assert_eq!(
+            blessed.len(),
+            wanted.len(),
+            "every written frame was re-recorded"
+        );
+        expected["frames"] = blessed.into();
+        std::fs::write(
+            format!("{FIXTURES}poses/paris-corner-poses.json"),
+            serde_json::to_string(&expected).unwrap(),
+        )
+        .unwrap();
+        return;
+    }
     assert_eq!(compared, wanted.len(), "every written frame was compared");
 
     // The drawn muzzles sit on the drawn models: the tank's gun and each
-    // rifleman's weapon, as the effects ask after them (side keys, blue even).
+    // rifleman's weapon, as the effects ask after them (side keys, the
+    // presented side, blue, even).
     let tables: ClipTables = units
         .appearances
         .values()
@@ -268,7 +347,7 @@ fn the_browser_s_poses_of_the_fixture_capture() {
     let reach = |a: Vec3, b: Vec3| (a[0] - b[0]).hypot(a[1] - b[1]);
     for v in &last.vehicles {
         let muzzle = drawn
-            .muzzle(side_key(v.unit, true), 0, None)
+            .muzzle(side_key(v.unit, &*v.side == "blue"), 0, None)
             .expect("the gun's muzzle is drawn");
         assert!(
             reach(muzzle, v.position) < 8.0,
@@ -279,7 +358,7 @@ fn the_browser_s_poses_of_the_fixture_capture() {
     for s in last.soldiers.iter().filter(|s| s.active_mount.is_some()) {
         let muzzle = drawn
             .muzzle(
-                side_key(s.unit, true),
+                side_key(s.unit, &*s.side == "blue"),
                 s.active_mount.unwrap(),
                 Some(s.soldier),
             )
