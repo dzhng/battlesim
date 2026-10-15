@@ -1,6 +1,7 @@
 // The panel workbench, scripted: a contact sheet of every specimen at 2×
 // zoom (so it reads like the game at a close look). At 1×, 1.5× and 2× it
-// measures every row's icon against the centre of its slot, and checks every
+// measures every row's icon against the centre of its slot, and a marked
+// name (an unidentified report's) against its rows' columns, and checks every
 // panel is titled, that unlimited ammunition is the drawn ∞, and that no own
 // panel draws a warm (amber) colour outside a warning. Its approved pictures
 // (`_baseline.mjs`) pin every panel group, on the test units, and every
@@ -127,6 +128,48 @@ const rowCentres = (page) =>
     return { rows, ...worst, spread: Number(worst.spread.toFixed(3)) };
   });
 
+/** A name line that carries a mark (an unidentified report's) against the
+ *  rows under it: the gap between its mark's ink centre and the first row
+ *  icon's (an icon is centred on its ink, so that is its column), and between
+ *  its word's left edge and that row's word, in the page's own pixels; the
+ *  worst of each. */
+const markedNames = (page) =>
+  page.evaluate(() => {
+    const zoom = Number(getComputedStyle(document.querySelector(".pw")).zoom) || 1;
+    const centre = (svg) => {
+      const rs = [...svg.querySelectorAll("path, rect, circle")].map((e) =>
+        e.getBoundingClientRect(),
+      );
+      return (Math.min(...rs.map((r) => r.left)) + Math.max(...rs.map((r) => r.right))) / 2;
+    };
+    let names = 0;
+    const worst = { mark: 0, word: 0, at: null };
+    for (const body of document.querySelectorAll(".ro-body")) {
+      const mark = body.querySelector(
+        ":scope > .ro-name > :not(.ro-name-word, .ro-status-icons, .ro-pips) svg",
+      );
+      const row = body.querySelector(".ro-row");
+      if (!mark || !row || row.getClientRects().length === 0) continue;
+      names++;
+      const dm = Math.abs(centre(mark) - centre(row.querySelector(".ro-mark-icon svg"))) / zoom;
+      const dw =
+        Math.abs(
+          body.querySelector(".ro-name-word").getBoundingClientRect().left -
+            row.querySelector(".ro-word").getBoundingClientRect().left,
+        ) / zoom;
+      if (Math.max(dm, dw) > Math.max(worst.mark, worst.word))
+        worst.at = body.closest("[data-specimen]")?.dataset.specimen ?? "?";
+      worst.mark = Math.max(worst.mark, dm);
+      worst.word = Math.max(worst.word, dw);
+    }
+    return {
+      names,
+      mark: Number(worst.mark.toFixed(3)),
+      word: Number(worst.word.toFixed(3)),
+      at: worst.at,
+    };
+  });
+
 /** What the page shows, per panel. */
 const panels = (page) =>
   page.evaluate(() =>
@@ -221,6 +264,12 @@ export async function run(ctx) {
       `at ${scale}×: every row's icon, words, counts and pips share one centre line (within 0.5 px)`,
       line.rows > 50 && line.spread <= 0.5,
       JSON.stringify(line),
+    );
+    const named = await markedNames(page);
+    ctx.check(
+      `at ${scale}×: a marked name's mark and word stand in its rows' icon and word columns (within 0.5 px)`,
+      named.names > 5 && named.mark <= 0.5 && named.word <= 0.5,
+      JSON.stringify(named),
     );
   }
   // The rest reads the page at 2×, its last zoom, which the sheet shoots.
