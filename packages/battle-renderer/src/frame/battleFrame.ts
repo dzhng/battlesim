@@ -9,7 +9,9 @@
 //   resolved world and its mask) → fog mask pass (distances,
 //   then the unseen look, before post) → post (bloom, grade, AgX, into the
 //   canvas) → fog rim (display space) → overlays (display space, against the
-//   world's depth) → composite
+//   world's depth) → composite → the high-air plane (its models alone, lit
+//   as the world's, then post's look premultiplied, into the high target),
+//   when the caller gives one
 //
 // bracketed by two timestamp markers for the frame's GPU time. Rewritten here
 // from reading ~/dev/game battle-renderer/src/world/frame.ts;
@@ -207,7 +209,7 @@ export async function createBattleFrame(
         get staticGeneration() {
           return staticGeneration;
         },
-        render(output: GPUTextureView) {
+        render(output: GPUTextureView, high: GPUTextureView | null = null) {
           if (disposed || !framed) return;
           const width = cameraRecord[CameraAt.width];
           const height = cameraRecord[CameraAt.height];
@@ -217,6 +219,10 @@ export async function createBattleFrame(
             return;
           }
           camera.write(cameraRecord.buffer);
+          // The final look draws the high-air models on their own plane when
+          // given one; every other view keeps them in the world.
+          const apart = high !== null && view === "final";
+          models.setHighApart(apart);
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
           world.prepare(cameraRecord, viewRecord, sunShadow, casters, casterCount);
           models.prepare(viewRecord, viewRecord.join());
@@ -254,6 +260,18 @@ export async function createBattleFrame(
           // no overlay mesh is.
           if (view === "paint") overlay.encodePaint(raw, t.overlaySource, output);
           else if (!worldOnly) overlay.encode(raw, t, t.overlaySource, cameraGroup, output);
+          if (high && apart && models.hasHighMeshes) {
+            world.encodeHigh(encoder, t, cameraGroup);
+            t.post.encodeHighPlane(raw, high);
+          } else if (high)
+            raw
+              .beginRenderPass({
+                label: "high-air-clear",
+                colorAttachments: [
+                  { view: high, loadOp: "clear", storeOp: "store", clearValue: [0, 0, 0, 0] },
+                ],
+              })
+              .end();
           timer?.end(raw);
           encoder.submit();
           timer?.collect();

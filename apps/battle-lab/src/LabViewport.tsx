@@ -48,7 +48,7 @@ import type { ModelInstance } from "@packages/battle-renderer/src/models/modelIn
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import { focusStep, type FocusTarget } from "@web/battle/input/contactFocus";
 import { isGameKey } from "@web/battle/input/keyGuard";
-import type { Project } from "@web/battle/present/readouts";
+import { HIGH_PLANE_ATTR, type Project } from "@web/battle/present/readouts";
 import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
 import { gameFogGeometry, gameFogStyle } from "./gameFog";
@@ -760,6 +760,45 @@ export function LabViewport({
           }
         };
         syncSize();
+        // The high-air models' canvas, drawn by the same frame: laid over this
+        // one between the card planes when the page has them
+        // (`HIGH_PLANE_ATTR`), so a high-air model rises above every ground
+        // and low-air card. Without them, and for control plates (which a
+        // second client's single picture is held to), the models draw with
+        // the world.
+        const highCanvas = document.createElement("canvas");
+        const highContext = plates ? null : highCanvas.getContext("webgpu");
+        highContext?.configure({ device, format: info.format, alphaMode: "premultiplied" });
+        signal.addEventListener("abort", () => {
+          highContext?.unconfigure();
+          highCanvas.remove();
+        });
+        let highAt = "";
+        const highTarget = (): GPUTextureView | null => {
+          const host = highContext && document.querySelector(`[${HIGH_PLANE_ATTR}]`);
+          if (!host) {
+            highCanvas.remove();
+            return null;
+          }
+          if (highCanvas.parentElement !== host) host.appendChild(highCanvas);
+          if (highCanvas.width !== canvas.width || highCanvas.height !== canvas.height) {
+            highCanvas.width = canvas.width;
+            highCanvas.height = canvas.height;
+          }
+          const r = canvas.getBoundingClientRect();
+          const h = host.getBoundingClientRect();
+          const at = `${r.left - h.left} ${r.top - h.top} ${r.width} ${r.height}`;
+          if (at !== highAt) {
+            highAt = at;
+            Object.assign(highCanvas.style, {
+              left: `${r.left - h.left}px`,
+              top: `${r.top - h.top}px`,
+              width: `${r.width}px`,
+              height: `${r.height}px`,
+            });
+          }
+          return highContext!.getCurrentTexture().createView();
+        };
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
@@ -873,7 +912,7 @@ export function LabViewport({
         const draw = () => {
           // Cleared first: a frame may ask to be drawn again (`requestRedraw`).
           dirty = false;
-          scene.render(context.getCurrentTexture().createView());
+          scene.render(context.getCurrentTexture().createView(), highTarget());
         };
         /** Whether the lab took the grass away (`suppressGrass`). */
         let grassSuppressed = false;

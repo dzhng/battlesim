@@ -24,7 +24,7 @@ use crate::fog::sight::{
 use crate::light::LightSettings;
 use crate::records::{
     Appearance as Row, Batch, Camera as CameraRecord, CastLight, Counts, Effect, Emitter, Instance,
-    Joint, Pick, View as ViewRecord, GHOST_PASS, NONE,
+    Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{sun_shadow, SunShadowFrame};
@@ -172,9 +172,6 @@ struct Model {
     scroll: [f64; 2],
     /// How fog takes it (`Batch.fog`).
     fog: u32,
-    /// It casts into the sun's cascades as its tier and pass say; a
-    /// high-air aircraft casts nothing.
-    casts: bool,
 }
 
 /// What the buildings' known states were last derived from.
@@ -1536,7 +1533,6 @@ impl Loaded {
             palette,
             scroll,
             fog: model_fog(false, false, false),
-            casts: true,
         };
 
         // Soldiers, living and dying: a body's far bounds tier him.
@@ -1586,16 +1582,17 @@ impl Loaded {
                 [0.0; 2],
             ));
         }
-        // Where an aircraft's shadow lies, and whether it casts it: a low-air
-        // airframe's lands its height along the sun's fall; a high-air one
-        // casts none, and its shadow lies on the ground beneath it.
+        // Where an aircraft's shadow lies, and the pass that draws it: a
+        // low-air airframe's shadow lands its height along the sun's fall; a
+        // high-air one, drawn in its own pass, casts none, and its shadow
+        // lies on the ground beneath it.
         let aircraft_shadow_at = |kind: &str, p: Vec3| {
             let high = units.types.get(kind).is_some_and(|t| t.high_air());
             let ground_z = height(p[0], p[1]);
             if high {
-                ([p[0], p[1], ground_z], false)
+                ([p[0], p[1], ground_z], HIGH_PASS)
             } else {
-                (aircraft_shadow(p, ground_z, *shadow_fall), true)
+                (aircraft_shadow(p, ground_z, *shadow_fall), VIEW_PASS)
             }
         };
         // Vehicles and aircraft; an aircraft draws while it or its shadow
@@ -1610,11 +1607,11 @@ impl Loaded {
                 f.counts.vehicles += 1;
             }
             let far = bounds(units, name, 0);
-            let (shadow, casts) = if v.airborne {
-                let (at, casts) = aircraft_shadow_at(&v.kind, v.position);
-                (Some(at), casts)
+            let (shadow, pass) = if v.airborne {
+                let (at, pass) = aircraft_shadow_at(&v.kind, v.position);
+                (Some(at), pass)
             } else {
-                (None, true)
+                (None, VIEW_PASS)
             };
             let tier = model_detail(
                 &detail, view, v.position, far.size, far.radius, false, shadow,
@@ -1631,20 +1628,17 @@ impl Loaded {
                 &v.articulation,
                 v.motion.as_ref(),
             );
-            models.push(Model {
-                casts,
-                ..model(
-                    row(name, "", NONE),
-                    tier,
-                    0,
-                    v.position,
-                    v.yaw,
-                    tint(&v.side),
-                    colour_of(&v.side, v.unit),
-                    palette,
-                    scroll,
-                )
-            });
+            models.push(model(
+                row(name, "", NONE),
+                tier,
+                pass,
+                v.position,
+                v.yaw,
+                tint(&v.side),
+                colour_of(&v.side, v.unit),
+                palette,
+                scroll,
+            ));
         }
         // Edge transits use the same appearance, articulation and shadow as a
         // live aircraft, but have no unit identity for selection or cards.
@@ -1654,7 +1648,7 @@ impl Loaded {
             };
             f.counts.aircraft += 1;
             let far = bounds(units, name, 0);
-            let (shadow, casts) = aircraft_shadow_at(&t.kind, t.position);
+            let (shadow, pass) = aircraft_shadow_at(&t.kind, t.position);
             let tier = model_detail(
                 &detail,
                 view,
@@ -1676,20 +1670,17 @@ impl Loaded {
                 &Articulation::default(),
                 None,
             );
-            models.push(Model {
-                casts,
-                ..model(
-                    row(name, "", NONE),
-                    tier,
-                    0,
-                    t.position,
-                    t.heading,
-                    tint(side),
-                    [0.0; 4],
-                    palette,
-                    scroll,
-                )
-            });
+            models.push(model(
+                row(name, "", NONE),
+                tier,
+                pass,
+                t.position,
+                t.heading,
+                tint(side),
+                [0.0; 4],
+                palette,
+                scroll,
+            ));
         }
         // Corpses lying, and those the cap pushed out sinking away.
         let lying = poses
@@ -1866,9 +1857,9 @@ impl Loaded {
 
 /// The models as batches: one per drawable, tier and pass, in that order.
 /// A model in view casts a tier coarser; a card, a ghost and a high-air
-/// aircraft cast nothing.
+/// model cast nothing (`batch_caster`).
 fn batches(models: &mut [Model], f: &mut Frame) {
-    let run_of = |m: &Model| (m.row, m.tier, m.pass, m.casts);
+    let run_of = |m: &Model| (m.row, m.tier, m.pass);
     models.sort_by_key(run_of);
     for run in models.chunk_by(|a, b| run_of(a) == run_of(b)) {
         let m = &run[0];
@@ -1877,11 +1868,7 @@ fn batches(models: &mut [Model], f: &mut Frame) {
             appearance: m.row,
             tier: m.tier,
             pass: m.pass,
-            caster: if m.casts {
-                batch_caster(m.tier, m.pass)
-            } else {
-                NONE
-            },
+            caster: batch_caster(m.tier, m.pass),
             fog: m.fog,
             version: f.index,
             first: f.instances.len() as u32,

@@ -8,10 +8,14 @@
 pub const NONE: u32 = u32::MAX;
 
 /// What a batch draws for (`Batch.pass`): the view; the sun's cascades; a
-/// placement ghost, translucent (no shadow, no depth write).
+/// placement ghost, translucent (no shadow, no depth write); a high-air
+/// model in view, which casts nothing and which a client with cards over
+/// the world (the browser's) draws on its own plane above them, and any
+/// other client with the view.
 pub const VIEW_PASS: u32 = 0;
 pub const CAST_PASS: u32 = 1;
 pub const GHOST_PASS: u32 = 2;
+pub const HIGH_PASS: u32 = 3;
 
 /// How fog of war takes a batch (`Batch.fog`): a unit never (it is drawn
 /// only while identified); the world's faces one by one; remains lying on
@@ -195,11 +199,11 @@ records! {
         appearance: u32,
         /// Detail tier, 0 finest; 4 is the impostor card.
         tier: u32,
-        /// `VIEW_PASS`, `CAST_PASS` or `GHOST_PASS`.
+        /// `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`.
         pass: u32,
         /// The tier its instances cast into the sun's cascades with: a
         /// model in view one tier coarser, a caster batch its own, `NONE`
-        /// for none (an impostor card, a ghost, a high-air aircraft, a
+        /// for none (an impostor card, a ghost, a high-air model, a
         /// static world's view batch, which casts by its own caster batch).
         caster: u32,
         /// How fog of war takes it (`FOG_UNITS` and the rest).
@@ -595,7 +599,8 @@ pub fn typescript() -> String {
         "/** What a batch draws for (`Batch.pass`). */\n\
          export const VIEW_PASS = {VIEW_PASS};\n\
          export const CAST_PASS = {CAST_PASS};\n\
-         export const GHOST_PASS = {GHOST_PASS};\n",
+         export const GHOST_PASS = {GHOST_PASS};\n\
+         export const HIGH_PASS = {HIGH_PASS};\n",
     ));
     out.push_str(&format!(
         "/** How fog of war takes a batch (`Batch.fog`). */\n\

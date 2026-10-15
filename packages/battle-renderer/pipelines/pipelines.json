@@ -4558,6 +4558,24 @@
       }
     },
     {
+      "name": "postHighPlane",
+      "kind": "render",
+      "shader": "postHighPlane.wgsl",
+      "layout": [
+        "finalLayout"
+      ],
+      "vertex": {
+        "buffers": []
+      },
+      "fragment": {
+        "targets": [
+          {
+            "format": "bgra8unorm"
+          }
+        ]
+      }
+    },
+    {
       "name": "postUngraded",
       "kind": "render",
       "shader": "postUngraded.wgsl",

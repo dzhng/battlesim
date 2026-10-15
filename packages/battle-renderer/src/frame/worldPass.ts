@@ -566,7 +566,8 @@ export async function createWorldPass(
     bound: unknown,
     surface: Parameters<ModelLayer["draw"]>[1],
     fog?: Parameters<ModelLayer["draw"]>[2],
-  ) => models.draw(bound as Bound, surface, fog);
+    high?: boolean,
+  ) => models.draw(bound as Bound, surface, fog, high);
   const drawCards = (bound: unknown, fog: Parameters<ModelLayer["drawCards"]>[1]) =>
     models.drawCards(bound as Parameters<ModelLayer["drawCards"]>[0], fog);
 
@@ -1035,6 +1036,60 @@ export async function createWorldPass(
       }
       pass.end();
       return { encoder, raw };
+    },
+    /** The high-air models on their own plane (`ModelLayer.setHighApart`):
+     *  over a transparent clear, in a depth of their own, so they hide only
+     *  each other, lit as the world's models are; resolved into `hdr`, which
+     *  post has made its look from by now, for post's high-plane pass. The
+     *  world's multisampled colour, fog mask and depth are spent too, and
+     *  serve again. Nothing of the world's frame is read. */
+    encodeHigh(encoder: TgpuCommandEncoder, targets: FrameTargets, cameraGroup: CameraGroup) {
+      const depthView = targets.depth.createView();
+      const depth = encoder.beginRenderPass({
+        label: "high-air-depth",
+        colorAttachments: [],
+        depthStencilAttachment: {
+          view: depthView,
+          depthClearValue: BATTLE_DEPTH_ATTACHMENT.clearValue,
+          depthLoadOp: "clear",
+          depthStoreOp: "store",
+        },
+      });
+      drawModels(modelPrepass.with(depth).with(cameraGroup), "solid", undefined, true);
+      drawModels(modelPrepassCutout.with(depth).with(cameraGroup), "cutout", undefined, true);
+      depth.end();
+      const pass = encoder.beginRenderPass({
+        label: "high-air",
+        colorAttachments: [
+          {
+            view: targets.hdrMsaa.createView(),
+            resolveTarget: targets.hdr.createView(),
+            loadOp: "clear",
+            storeOp: "discard",
+            clearValue: [0, 0, 0, 0],
+          },
+          {
+            view: targets.fogMaskMsaa.createView(),
+            loadOp: "clear",
+            storeOp: "discard",
+            clearValue: [0, 0, 0, 0],
+          },
+        ],
+        depthStencilAttachment: { view: depthView, depthLoadOp: "load", depthStoreOp: "discard" },
+      });
+      const fogGroups = fog.groups();
+      const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
+      const cutoutsLit = modelCutout.with(pass).with(cameraGroup).with(environment.group);
+      const roomsShown = modelRooms.with(pass).with(cameraGroup).with(environment.group);
+      const glassLit = modelBlended.with(pass).with(cameraGroup).with(environment.group);
+      for (const fog of ["units", "faces", "ground", "paintedFaces"] as const) {
+        drawModels(modelsLit.with(fogGroups[fog]), "opaque", fog, true);
+        drawModels(cutoutsLit.with(fogGroups[fog]), "cutout", fog, true);
+        drawModels(roomsShown.with(fogGroups[fog]), "room", fog, true);
+      }
+      for (const fog of ["units", "faces", "ground", "paintedFaces"] as const)
+        drawModels(glassLit.with(fogGroups[fog]), "blended", fog, true);
+      pass.end();
     },
     /** Placement meshes over the fog-treated world, without changing its mask or depth. */
     encodeGhosts(encoder: TgpuCommandEncoder, targets: FrameTargets, cameraGroup: CameraGroup) {
