@@ -369,7 +369,8 @@ impl BalancedDoctrine {
                 } else {
                     // Helicopters reinforce, ordered like light vehicles (D35);
                     // fixed-wing aircraft are the next air category in the
-                    // same rotation. A deck without one buys the next role.
+                    // same rotation. A deck without one buys the next role;
+                    // an unaffordable one is saved for.
                     let roles = [
                         ("infantry", Category::Inf),
                         ("recon", Category::Rec),
@@ -398,12 +399,17 @@ impl BalancedDoctrine {
                             .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
                             .map(|k| (0, k))
                     } else {
-                        (0..roles.len()).find_map(|offset| {
-                            let index = (self.reinforcement + offset) % roles.len();
-                            pick(roles[index].0, roles[index].1, 0)
-                                .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
-                                .map(|k| (index, k))
-                        })
+                        // The next role in the rotation is a plan the AI
+                        // saves for: credits it can't yet spend on it wait,
+                        // so an expensive card is bought as surely as a
+                        // cheap one. Only a role the deck has no card for
+                        // is passed over.
+                        (0..roles.len())
+                            .find_map(|offset| {
+                                let index = (self.reinforcement + offset) % roles.len();
+                                pick(roles[index].0, roles[index].1, 0).map(|k| (index, k))
+                            })
+                            .filter(|&(_, k)| f64::from(rules.catalog.get(k).cost) <= view.credits)
                     };
                     selected.map(|(index, k)| {
                         self.reinforcement = (index + 1) % roles.len();
