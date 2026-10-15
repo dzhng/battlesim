@@ -77,6 +77,19 @@ export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture
   return vec4f(outputSrgb(agx(gradeColor(hdr.rgb,grade),grade.exposure)),clamp(hdr.a,0.0,1.0));
 }`;
 
+/** The high-air plane's look: a layer over the world's, so the same bloom,
+ *  grade and tone map as `postFinalWgsl` on its straight colour, kept
+ *  where it covers and premultiplied by that coverage for the page to lay
+ *  over the world's canvas. */
+export const postHighPlaneWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, linearSampler: sampler, grade: Grade) -> vec4f {
+  let hdr = textureSample(scene,linearSampler,uv);
+  let glow = textureSample(bloom,linearSampler,uv).rgb;
+  let alpha = clamp(hdr.a, 0.0, 1.0);
+  var straight = vec3f(0);
+  if (alpha > 0.0) { straight = hdr.rgb / alpha; }
+  return vec4f(outputSrgb(agx(gradeColor(straight+glow,grade),grade.exposure))*alpha,alpha);
+}`;
+
 /** Pinned Three RenderOutputNode alpha ordering, without authored grade or bloom.
  * MIT attribution: LICENSE.three in this directory. */
 export const postDirectWgsl = `(hdr:vec4f, exposure:f32)->vec4f {

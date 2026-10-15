@@ -116,6 +116,10 @@ lies on the ground straight beneath it instead, turned with its heading,
 fainter and softer the higher it flies (`presentation.effects.high_air_shadow`).
 It is an effect instance laid on the ground, under every other effect, and
 shades only the ground's own surface, never a unit standing in it.
+A high-air model is batched for its own pass (`HIGH_PASS`), which casts
+nothing: a client that lays cards over the world (the browser) draws those
+batches on a plane of their own above the ground and low-air cards, and any
+other client draws them with the view.
 
 A hull the side watched die cooks off: fireballs from its ring, its hull jolted
 and its turret thrown, both pieces of its own unit's wreck, until they lie where

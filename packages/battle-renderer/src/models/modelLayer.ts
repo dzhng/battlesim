@@ -84,6 +84,7 @@ import {
   Counts,
   FOG_UNITS,
   GHOST_PASS,
+  HIGH_PASS,
   INSTANCE_WORDS,
   Instance,
   JOINT_WORDS,
@@ -649,6 +650,9 @@ function tierCount(bundle: Exclude<Bundle, SkeletonClips>): number {
 /** A mesh draw: one drawable over a run of records, in one fog class. */
 interface DrawRun {
   ghost: boolean;
+  /** A high-air model (`HIGH_PASS`): drawn on its own plane when the frame
+   *  has one (`highApart`), with the world otherwise. */
+  high: boolean;
   drawable: Drawable;
   /** What it casts into the sun's cascades in its place, if anything. */
   caster: Drawable | null;
@@ -799,6 +803,8 @@ export async function createModelLayer(
   let frameCardCount = 0;
   const frameCardRuns: { fog: number; first: number; count: number }[] = [];
   let frameXray = false;
+  /** The high-air models draw on their own plane (`setHighApart`). */
+  let highApart = false;
   /** The frame's drawables by `World.appearances` row (`setWorld`). */
   let worldRows: readonly WorldAppearance[] = [];
   const frameStats = {
@@ -1164,6 +1170,7 @@ export async function createModelLayer(
         run: {
           drawable,
           ghost: false,
+          high: false,
           caster: casterOf(drawable, h.caster),
           fog: h.fog,
           firstInstance: 0,
@@ -1379,6 +1386,7 @@ export async function createModelLayer(
         runs[runCount] = run = {
           drawable,
           ghost: false,
+          high: false,
           caster: null,
           fog: 0,
           firstInstance: 0,
@@ -1542,12 +1550,14 @@ export async function createModelLayer(
       const drawable = drawableOf(gpu, pose, tier);
       if (!drawable) continue;
       const ghost = words[o + Batch.pass] === GHOST_PASS;
+      const high = words[o + Batch.pass] === HIGH_PASS;
       const caster = casterOf(drawable, casts);
       let run = frameRuns[frameRunCount];
       if (!run)
         frameRuns[frameRunCount] = run = {
           drawable,
           ghost,
+          high,
           caster,
           fog,
           firstInstance: 0,
@@ -1555,6 +1565,7 @@ export async function createModelLayer(
         };
       run.drawable = drawable;
       run.ghost = ghost;
+      run.high = high;
       run.caster = caster;
       run.fog = fog;
       run.firstInstance = first - base;
@@ -1768,13 +1779,26 @@ export async function createModelLayer(
           .drawIndexed(part.count, run.instances, part.first, 0, run.firstInstance);
       });
     },
-    /** Draw one surface class of the mesh runs, all of them or one fog class's. */
-    draw(bound: Drawable3, surface: SurfacePart, fog?: ModelFog) {
+    /** Whether the high-air models draw on their own plane this frame
+     *  (`draw` with `high`), not with the world. */
+    setHighApart(on: boolean) {
+      highApart = on;
+    },
+    /** Whether the current mesh runs hold a high-air model. */
+    get hasHighMeshes(): boolean {
+      let high = false;
+      eachRun((run) => (high ||= run.high));
+      return high;
+    },
+    /** Draw one surface class of the mesh runs, all of them or one fog
+     *  class's: the world's, or with `high` the high-air plane's. */
+    draw(bound: Drawable3, surface: SurfacePart, fog?: ModelFog, high = false) {
       if (!renderGroup || !drawn(surface)) return;
       const only = fogIndex(fog);
       const b = bound.with(modelLayout, renderGroup);
       eachRun((run, source) => {
         if (run.ghost || (only >= 0 && run.fog !== only)) return;
+        if (high ? !run.high : run.high && highApart) return;
         const part = partRange(run.drawable.parts, surface, hiddenSurfaces);
         if (!part.count) return;
         b.with(modelVertexLayout, run.drawable.mesh.vertices)

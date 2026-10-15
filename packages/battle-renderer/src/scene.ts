@@ -175,8 +175,12 @@ export interface BattleFrame {
   /** Draw one frame into `target` for the camera `setCamera` took, at its
    *  viewport. Before any camera, and while targets for a new size are still
    *  being built, the frame draws nothing (and asks for a redraw once they
-   *  exist). */
-  render(target: GPUTextureView): void;
+   *  exist). With `high` (a target of `target`'s size and format, laid
+   *  over it by the page, between the ground and low-air cards and the
+   *  high-air ones), the high-air models (`HIGH_PASS`) draw there alone,
+   *  over transparency, premultiplied, in the final view; it is cleared
+   *  when there are none. Without it they draw with the world. */
+  render(target: GPUTextureView, high?: GPUTextureView | null): void;
   /** The presentation frame's camera (`crates/presentation`'s `Frame`): its
    *  view, the camera uniform at the frame's clock (the wind's), and the
    *  sun's cascades fitted to it, uploaded as they are. Read at once: the

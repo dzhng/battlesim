@@ -12,6 +12,7 @@ import {
   agxWgsl,
   outputSrgbWgsl,
   postFinalWgsl,
+  postHighPlaneWgsl,
   postDirectWgsl,
 } from "../shaders/post";
 
@@ -277,6 +278,27 @@ export async function createTypegpuPost(
         finalLayout.$.grade,
       );
     });
+    const highPlaneAlgorithm = tgpu
+      .fn(
+        [d.vec2f, d.texture2d(), d.texture2d(), d.sampler(), Grade],
+        d.vec4f,
+      )(postHighPlaneWgsl)
+      .$uses({ gradeColor, agx, outputSrgb });
+    const highPlaneShader = tgpu.fn(
+      [d.vec2f],
+      d.vec4f,
+    )((uv) => {
+      "use gpu";
+      return highPlaneAlgorithm(
+        uv,
+        finalLayout.$.scene,
+        finalLayout.$.bloom,
+        finalLayout.$.linearSampler,
+        finalLayout.$.grade,
+      );
+    });
+    const highPlane = pipeline("postHighPlane", highPlaneShader, outputFormat);
+    init.push(highPlane.initAsync());
     const directAlgorithm = tgpu
       .fn(
         [d.vec4f, d.f32],
@@ -333,6 +355,17 @@ export async function createTypegpuPost(
         }
         for (const stage of stages) stage(encoder);
         final
+          .with(groups[1])
+          .with(encoder)
+          .withColorAttachment({ view: output, clearValue: [0, 0, 0, 0] })
+          .draw(3);
+      },
+      /** The high-air plane, drawn into the input since the look was made
+       *  from it, into `output` with its coverage premultiplied, under this
+       *  frame's bloom. Follows `encode`'s look. */
+      encodeHighPlane(encoder: GPUCommandEncoder, output: GPUTextureView) {
+        if (disposed) throw new Error("TypeGPU post is disposed");
+        highPlane
           .with(groups[1])
           .with(encoder)
           .withColorAttachment({ view: output, clearValue: [0, 0, 0, 0] })

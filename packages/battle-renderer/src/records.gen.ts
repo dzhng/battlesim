@@ -7,6 +7,7 @@ export const NONE = 0xffffffff;
 export const VIEW_PASS = 0;
 export const CAST_PASS = 1;
 export const GHOST_PASS = 2;
+export const HIGH_PASS = 3;
 /** How fog of war takes a batch (`Batch.fog`). */
 export const FOG_UNITS = 0;
 export const FOG_FACES = 1;
@@ -121,9 +122,9 @@ export const Batch = {
   appearance: 1,
   /** Detail tier, 0 finest; 4 is the impostor card. (u32) */
   tier: 2,
-  /** `VIEW_PASS`, `CAST_PASS` or `GHOST_PASS`. (u32) */
+  /** `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`. (u32) */
   pass: 3,
-  /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a high-air aircraft, a static world's view batch, which casts by its own caster batch). (u32) */
+  /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a high-air model, a static world's view batch, which casts by its own caster batch). (u32) */
   caster: 4,
   /** How fog of war takes it (`FOG_UNITS` and the rest). (u32) */
   fog: 5,

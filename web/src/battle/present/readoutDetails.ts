@@ -3,6 +3,8 @@ import { box2, type Box2 } from "math/shapes";
 
 export interface DetailCard {
   id: string;
+  /** Its unit's anchor, in page pixels. */
+  anchor: readonly [number, number];
   distanceSq: number;
   compact: Box2;
   full: Box2;
@@ -18,7 +20,9 @@ const originTravelSq = (a: Box2, b: Box2) =>
   vec2.squaredDistance(vec2.set(_details_from, a[0], a[1]), vec2.set(_details_to, b[0], b[1]));
 
 /** Closest 30% first, then opportunistic detail. Hover always takes priority.
- * Try no movement, compare one-card moves, and only then displace blockers. */
+ * Try no movement, compare one-card moves, and only then displace blockers.
+ * A card moves only where it lies nearer its own unit than any other card's
+ * unit, so it never reads as another unit's; staying put is always left. */
 export function layoutReadoutDetails(
   cards: readonly DetailCard[],
   obstacles: readonly Box2[],
@@ -60,12 +64,20 @@ export function layoutReadoutDetails(
     y = clamp(y, viewport[1], viewport[3] - h);
     return [x, y, x + w, y + h];
   };
-  const free = (shape: Box2, origin: Box2, others: readonly Box2[]) => {
+  /** From an anchor to a box's nearest point. */
+  const reach = ([x, y]: readonly [number, number], b: Box2) =>
+    Math.hypot(Math.max(b[0] - x, 0, x - b[2]), Math.max(b[1] - y, 0, y - b[3]));
+  const astray = (card: DetailCard, b: Box2) => {
+    const own = reach(card.anchor, b);
+    return cards.some((o) => o.id !== card.id && reach(o.anchor, b) < own);
+  };
+  const free = (card: DetailCard, shape: Box2, origin: Box2, others: readonly Box2[]) => {
     let best: Box2 | null = null;
     const consider = (x: number, y: number) => {
       const candidate = at(shape, x, y);
       if (
         fits(candidate, others) &&
+        !astray(card, candidate) &&
         (!best || originTravelSq(candidate, origin) < originTravelSq(best, origin))
       )
         best = candidate;
@@ -107,6 +119,7 @@ export function layoutReadoutDetails(
     if (!allowMoves) return;
     let best: Map<string, DetailPlacement> | null = null;
     const self = free(
+      c,
       wanted,
       c.compact,
       others.map(([, p]) => p.box),
@@ -127,10 +140,11 @@ export function layoutReadoutDetails(
       trial.set(c.id, { box: wanted, full: true });
       let okay = true;
       for (const [id, p] of blockers) {
-        const original = cards.find((c) => c.id === id)!.compact;
+        const blocker = cards.find((c) => c.id === id)!;
         const clear = free(
+          blocker,
           p.box,
-          original,
+          blocker.compact,
           [...trial].filter(([k]) => k !== id).map(([, p]) => p.box),
         );
         if (!clear) {

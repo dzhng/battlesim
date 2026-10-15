@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 
 use presentation::presentation::Presentation;
-use presentation::records::{Joint, CAST_PASS, GHOST_PASS, NONE, VIEW_PASS};
+use presentation::records::{Joint, CAST_PASS, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS};
 use presentation::static_world::props::{DRAWS_PROP, DRAWS_PROP_GROUND};
 use presentation::view::IMPOSTOR;
 use wgpu::*;
@@ -125,8 +125,8 @@ impl Row {
 struct Run {
     row: usize,
     tier: usize,
-    /// Drawn in view, cast into the sun's cascades, or a placement ghost
-    /// (`Batch.pass`).
+    /// Drawn in view, cast into the sun's cascades, a placement ghost, or a
+    /// high-air model in view (`Batch.pass`).
     pass: u32,
     /// The tier it casts with, if it casts (`Batch.caster`).
     caster: Option<usize>,
@@ -814,15 +814,16 @@ impl Models {
     }
 
     /// One surface class of every run but the ghosts, into a pass whose
-    /// pipeline and groups are set.
+    /// pipeline and groups are set. The high-air models draw with the view:
+    /// this client lays no cards over the world for them to rise above.
     pub fn draw(&self, pass: &mut RenderPass, surface: Surface) {
-        let view = |r: &Run| (r.pass == VIEW_PASS).then_some(r.tier);
+        let view = |r: &Run| in_view(r.pass).then_some(r.tier);
         self.each_run(pass, view, |d| d.part(surface));
     }
 
     /// As `draw`, the runs fog takes as `layer` only.
     pub fn draw_fogged(&self, pass: &mut RenderPass, surface: Surface, layer: Layer) {
-        let view = |r: &Run| (r.pass == VIEW_PASS && r.fog == layer).then_some(r.tier);
+        let view = |r: &Run| (in_view(r.pass) && r.fog == layer).then_some(r.tier);
         self.each_run(pass, view, |d| d.part(surface));
     }
 
@@ -844,4 +845,10 @@ impl Models {
     pub fn has_ghosts(&self) -> bool {
         self.runs.iter().any(|r| r.pass == GHOST_PASS)
     }
+}
+
+/// Whether a batch's pass draws into the view here: the view's own, and the
+/// high-air models' (`HIGH_PASS`).
+fn in_view(pass: u32) -> bool {
+    pass == VIEW_PASS || pass == HIGH_PASS
 }

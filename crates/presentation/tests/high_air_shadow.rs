@@ -2,14 +2,15 @@
 //! throw it hundreds of metres off, where nobody ties it to its aircraft.
 //! Instead a soft silhouette of it lies on the ground straight beneath it,
 //! turned with its heading. A low-air aircraft keeps its sun-cast shadow and
-//! shows none beneath it. The rule follows the unit's altitude layer, never
-//! what kind of aircraft it is.
+//! shows none beneath it. A high-air model is drawn in its own pass, above
+//! the world's cards where a client has them. The rule follows the unit's
+//! altitude layer, never what kind of aircraft it is.
 use contract::ids::Side;
 use presentation::effects::frame::SHAPE_NAMES;
 use presentation::effects::high_air_shadow::{high_air_ground_shadow, HighAirShadowStyle};
 use presentation::fielded;
 use presentation::presentation::{Presentation, Ui};
-use presentation::records::NONE;
+use presentation::records::{HIGH_PASS, NONE, VIEW_PASS};
 use presentation::view::Camera;
 use presentation::world::{BattleInput, SoldierBody, WorldInput, Xray};
 use serde_json::{json, Value};
@@ -97,14 +98,15 @@ fn framed() -> Presentation {
     p
 }
 
-/// Each drawn model's placement (x, y, z, yaw) and the tier it casts with.
-fn models(p: &Presentation) -> Vec<([f32; 4], u32)> {
+/// Each drawn model's placement (x, y, z, yaw), the tier it casts with and
+/// the pass that draws it.
+fn models(p: &Presentation) -> Vec<([f32; 4], u32, u32)> {
     let f = p.last_frame();
     f.batches
         .iter()
         .flat_map(|b| {
             let run = &f.instances[b.first as usize..(b.first + b.count) as usize];
-            run.iter().map(move |i| (i.placement, b.caster))
+            run.iter().map(move |i| (i.placement, b.caster, b.pass))
         })
         .collect()
 }
@@ -123,11 +125,19 @@ fn a_high_air_unit_lies_in_shadow_on_the_ground_beneath_it_and_casts_none() {
     let near = |at: [f64; 2]| {
         let found = models
             .iter()
-            .find(|(m, _)| (m[0] as f64 - at[0]).abs() < 1.0 && (m[1] as f64 - at[1]).abs() < 1.0);
+            .find(|(m, ..)| (m[0] as f64 - at[0]).abs() < 1.0 && (m[1] as f64 - at[1]).abs() < 1.0);
         *found.unwrap_or_else(|| panic!("a model drawn at {at:?}"))
     };
-    let (jet, jet_caster) = near(JET_AT);
-    let (heli, heli_caster) = near(HELI_AT);
+    let (jet, jet_caster, jet_pass) = near(JET_AT);
+    let (heli, heli_caster, heli_pass) = near(HELI_AT);
+    assert_eq!(
+        jet_pass, HIGH_PASS,
+        "the high-air jet draws in the high pass"
+    );
+    assert_eq!(
+        heli_pass, VIEW_PASS,
+        "the low-air helicopter draws with the world"
+    );
     assert!(jet[2] > heli[2], "the jet flies above the helicopter");
     assert_eq!(jet_caster, NONE, "the high-air jet casts no sun shadow");
     assert_ne!(

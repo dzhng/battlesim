@@ -248,7 +248,7 @@ export async function run(ctx) {
   await snapshot(ctx, page, "backing-world.png");
   const neutralField = await page.addStyleTag({
     content:
-      "div:has(> canvas) { background: rgb(100,100,100) !important; } canvas { visibility: hidden !important; }",
+      "div:has(> canvas):not([data-high-plane]) { background: rgb(100,100,100) !important; } canvas { visibility: hidden !important; }",
   });
   const atPanel = await page.locator('.ro-unit[data-unit="1"]').boundingBox();
   const backed = decode(await snapshot(ctx, page, "backing-on.png"));
