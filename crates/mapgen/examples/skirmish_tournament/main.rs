@@ -4,11 +4,19 @@
 //! the policy for ordinary orders, accepts them through Battle, and advances
 //! one authoritative tick. The JSONL report is deliberately evidence rather
 //! than a winner fixture.
+//!
+//! Balance probes shape a game without touching its rules: `--factions
+//! us,eastern` picks Blue's and Red's armies; `--buy-blue` / `--buy-red
+//! <card,…[|card,…]>` replace a side's own shopping with a list bought in
+//! order (cards before `|` once, the rest repeating); `--sticky-jets` lets a
+//! jet finish on its target instead of being re-aimed at the nearest one.
+//! The report's `air` block reads the referee's spawn and kill log.
 
 mod inputs;
 mod model;
 mod runner;
 
+use contract::catalog::Faction;
 use inputs::Inputs;
 use model::{Corpus, GeneratedMap, MapSource, Row};
 use runner::run_safe;
@@ -16,8 +24,30 @@ use runner::run_safe;
 const DEFAULT_MAX_BATTLE_SECONDS: u64 = 1_800;
 
 fn main() {
-    let inputs = Inputs::load().expect("load generation inputs");
     let args: Vec<String> = std::env::args().skip(1).collect();
+    let value = |flag: &str| {
+        args.iter()
+            .position(|arg| arg == flag)
+            .and_then(|index| args.get(index + 1))
+    };
+    let factions = value("--factions").map_or([Faction::Us, Faction::Europe], |pair| {
+        let names: Vec<Faction> = pair
+            .split(',')
+            .map(|name| serde_json::from_value(name.into()).expect("--factions us,europe|eastern"))
+            .collect();
+        [names[0], names[1]]
+    });
+    let mut inputs = Inputs::load().expect("load generation inputs");
+    inputs.factions = factions;
+    inputs.sticky_jets = args.iter().any(|arg| arg == "--sticky-jets");
+    for (side, flag) in ["--buy-blue", "--buy-red"].into_iter().enumerate() {
+        inputs.buy[side] = value(flag).map(|list| {
+            list.replace('|', ",|,")
+                .split(',')
+                .map(String::from)
+                .collect()
+        });
+    }
     if args.iter().any(|arg| arg == "--corpus") {
         let corpus: Corpus =
             serde_json::from_str(include_str!("../../../../fixtures/skirmish-corpus.json"))

@@ -15,6 +15,14 @@ pub(crate) struct Inputs {
     pub(crate) preset_revision: String,
     pub(crate) template_hash: String,
     pub(crate) limits: contract::generation::CompileLimits,
+    /// Blue's and Red's factions.
+    pub(crate) factions: [Faction; 2],
+    /// A side's scripted purchases, bought strictly in order as its wallet
+    /// allows, in place of its controller's own; None leaves it shopping.
+    pub(crate) buy: [Option<Vec<String>>; 2],
+    /// A jet keeps its attack target until the side loses sight of it, as a
+    /// player's would, instead of taking whatever target is nearest it now.
+    pub(crate) sticky_jets: bool,
 }
 
 impl Inputs {
@@ -39,6 +47,9 @@ impl Inputs {
             preset_revision,
             template_hash: catalog.hash().into(),
             limits: serde_json::from_value(config["limits"].clone())?,
+            factions: [Faction::Us, Faction::Europe],
+            buy: [None, None],
+            sticky_jets: false,
         })
     }
 }
@@ -117,7 +128,7 @@ pub(crate) fn prepare_row(
     };
     let setup = ScenarioDefinition {
         skirmish: Some(SkirmishSetup {
-            factions: [Faction::Us, Faction::Europe],
+            factions: inputs.factions,
             ai_side: None,
             rules: MatchRules {
                 credits_per_minute: 200,

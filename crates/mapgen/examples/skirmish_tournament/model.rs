@@ -72,6 +72,7 @@ pub(crate) struct Report {
     pub(crate) credit_spend: [u64; 2],
     pub(crate) living_cost: [u64; 2],
     pub(crate) recon_range_m: f64,
+    pub(crate) air: Option<[super::runner::AirSide; 2]>,
 }
 
 pub(crate) type MovementSignature = Vec<(u32, u64, u64, Option<(u64, u64)>)>;

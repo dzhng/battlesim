@@ -4698,6 +4698,12 @@ impl Battle {
         &self.observations[side.index()]
     }
 
+    /// The referee's match report so far, which sides see only once the
+    /// match finishes: for native reports, never for a controller.
+    pub fn match_report(&self) -> Option<&contract::skirmish::MatchReport> {
+        self.skirmish.as_ref().map(|skirmish| &skirmish.report)
+    }
+
     pub fn script_events(&self) -> &[contract::script::ScriptEvent] {
         &self.script_events
     }
