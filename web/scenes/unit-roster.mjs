@@ -127,17 +127,20 @@ export async function run(ctx) {
   const dragTo = [700, 360];
   await page.mouse.move(...dragFrom);
   await page.mouse.down();
+  // Where the press places it, once the authority has answered: a hull is
+  // sent to the nearest ground it parks on, as a move there would be.
+  await page.waitForFunction(() => window.__lab.route.purchaseGhost()?.valid === true);
   const dragPressGhost = await page.evaluate(() => window.__lab.route.purchaseGhost());
   await page.mouse.move(...dragTo, { steps: 12 });
   await page.waitForTimeout(100);
   const dragGhost = await page.evaluate(() => window.__lab.route.purchaseGhost());
-  check(
-    ctx,
+  ctx.check(
+    "drag placement keeps the press position and updates facing",
     dragGhost &&
       dragPressGhost &&
       dragGhost.destination.every((v, i) => Math.abs(v - dragPressGhost.destination[i]) < 0.01) &&
       Math.abs(dragGhost.facing - previewGhost.facing) > 0.01,
-    "drag placement keeps the press position and updates facing",
+    JSON.stringify({ press: dragPressGhost?.destination, drag: dragGhost?.destination }),
   );
   await page.mouse.up();
   await advance(page, 1);
