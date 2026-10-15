@@ -175,9 +175,10 @@ export interface OrderView {
    *  footprint's centre and half extents; null otherwise. The squad's circle
    *  encloses it, `building_marker_margin_m` past its corners. */
   building: { center: readonly [number, number]; half: readonly [number, number] } | null;
-  /** It flies in high air: it has no ground marker. */
-  highAir?: boolean;
-  /** Any airborne unit, including helicopters that retain their marker. */
+  /** It flies on wings: it never stops over a point, so it has no ground
+   *  marker, drop line or destination circle. */
+  fixedWing?: boolean;
+  /** Any airborne unit, including rotor aircraft that keep their marker. */
   airborne?: boolean;
   /** How high its ghost stands over where its orders end while one shows
    *  (an aircraft's cruise height, Space held): a drop line joins the ghost
@@ -603,7 +604,7 @@ export function unitCircle(
     | "yaw"
     | "selected"
     | "reveal"
-    | "highAir"
+    | "fixedWing"
     | "airborne"
   >,
   style: Pick<
@@ -614,9 +615,9 @@ export function unitCircle(
   const shown = (u.reveal ?? 0) > 0;
   const here: P2 = [u.position[0], u.position[1]];
   const moving = !!u.goal && u.state !== "route_blocked";
-  // High-air aircraft carry location and state in their floating cards;
-  // they never receive a ground unit marker.
-  if (u.highAir) return null;
+  // A winged aircraft never stops over a point: its card carries where it
+  // is, and it has no ground marker.
+  if (u.fixedWing) return null;
   if (u.building) {
     const { center, half } = u.building;
     const r = Math.hypot(half[0], half[1]) + style.building_marker_margin_m;
@@ -829,10 +830,10 @@ export function buildOrderOverlay(
     // its area, so a moving squad's is already the destination's), with
     // each soldier's spot in it; a vehicle's marker. Both point the final
     // facing.
-    // Fixed-wing aircraft carry destination state in their floating cards;
-    // never paint a ground circle for them.
+    // A winged aircraft circles its goal rather than stopping on it facing
+    // a bearing, so it has no destination circle.
     const dest: UnitCircle | null =
-      blocked || u.highAir ? null : destinationCircle(u, u.goal, style);
+      blocked || u.fixedWing ? null : destinationCircle(u, u.goal, style);
     routeBetween(paint, pen, circle, u.route, dest, color);
     if (blocked) {
       const warning: UnitCircle = { c: u.goal, r: BLOCKED_R, facing: null };
@@ -871,7 +872,7 @@ export interface AircraftView {
   position: readonly [number, number, number];
   yaw: number;
   hullHalfLength: number;
-  highAir?: boolean;
+  fixedWing?: boolean;
 }
 
 /** An identified aircraft's marker circle, on the ground under it: its
@@ -900,7 +901,7 @@ export function buildAircraftMarks(
   const paint = new MeshBuilder();
   const lines = new MeshBuilder();
   const glow = glowing(color, style.glow.order);
-  for (const a of aircraft.filter((a) => !a.highAir))
+  for (const a of aircraft.filter((a) => !a.fixedWing))
     aircraftMarker(paint, lines, pen, a.position, aircraftCircle(a, style), glow);
   return { ...paintOnly(paint.build()), opaque: lines.build() };
 }

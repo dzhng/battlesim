@@ -48,12 +48,14 @@ export type Mobility =
       };
     }
   | {
-      /** Flies in the low-air layer at the heights the rules' `air` section sets. */
+      /** Flies in its layer (low air when unnamed) at the heights the rules'
+       *  `air` section sets, by its flight model. */
       air: {
         cruise_kmh: number;
         turn_deg_s: number;
         climb_mps: number;
         layer?: "low_air" | "high_air";
+        flight: "rotor" | "fixed_wing";
       };
     };
 
@@ -61,13 +63,20 @@ export type Mobility =
  *  in the air, so it rolls on nothing and raises no dust. */
 export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in type.mobility;
 
-/** Fixed-wing/high-air units use cards instead of ground circles. */
+/** It flies in the high-air layer: its card sits on top, and its shadow lies
+ *  beneath it. */
 export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.layer === "high_air";
 
 /** A type's altitude layer, as the simulation names it. */
 export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" | "high_air" =>
   "air" in type.mobility ? (highAir(type) ? "high_air" : "low_air") : "ground";
+
+/** It flies on wings (`contract::catalog::FlightModel`): it never stops,
+ *  circles its goal and attacks in passes, so it has no ground marker, drop
+ *  line or destination circle. */
+export const fixedWing = (type: Pick<UnitType, "mobility">): boolean =>
+  "air" in type.mobility && type.mobility.air.flight === "fixed_wing";
 
 /** The air war's roles: short, medium and long air defence, SEAD, and the
  *  other fixed-wing. */
@@ -78,7 +87,7 @@ export type AirRole = (typeof AIR_ROLES)[number];
 export function airRole(type: Pick<UnitType, "mobility" | "capabilities">): AirRole | null {
   const caps = type.capabilities;
   if (caps.air_defense) return caps.air_defense.tier;
-  if (highAir(type)) return caps.air?.sead ? "sead" : "fixed_wing";
+  if (fixedWing(type)) return caps.air?.sead ? "sead" : "fixed_wing";
   return null;
 }
 

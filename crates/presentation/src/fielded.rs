@@ -17,7 +17,7 @@ use crate::sound::tables::inherit;
 use crate::units::drawn::ClipTables;
 use crate::units::skin::{joint_worlds, mul, node_worlds, Mat4};
 use crate::world::{bounds_size, Clip, EffectsSection, Node, Trs, UnitsSection, Vec3};
-use contract::catalog::{AltitudeLayer, Mobility};
+use contract::catalog::Mobility;
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::f64::consts::PI;
@@ -298,10 +298,9 @@ fn airborne(t: &Value) -> bool {
     t["mobility"].get("air").is_some()
 }
 
-/// The height band `t` occupies (`Mobility::layer`).
-fn layer(t: &Value) -> Result<AltitudeLayer, String> {
+/// `t`'s mobility, as the catalog parses it.
+fn mobility(t: &Value) -> Result<Mobility, String> {
     serde_json::from_value::<Mobility>(t["mobility"].clone())
-        .map(|m| m.layer())
         .map_err(|e| format!("a type's mobility: {e}"))
 }
 
@@ -885,7 +884,8 @@ fn unit_types(
                 "hull": hull.map(|h| json!({ "halfTrack": h["half_extents_m"][1].as_f64().unwrap_or(0.0) * gauge })),
                 "vehicleClass": class,
                 "airborne": airborne(t),
-                "layer": layer(t)?,
+                "layer": mobility(t)?.layer(),
+                "flight": mobility(t)?.flight(),
                 "roles": roles,
                 "mounts": mount_rows,
                 "draws": draws,

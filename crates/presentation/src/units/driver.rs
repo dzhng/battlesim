@@ -1261,8 +1261,8 @@ fn aircraft_attitude(
     if dt == 0.0 {
         return f.attitude;
     }
-    // High air is flown by wings, low air by rotors.
-    if ty.high_air() {
+    // The flight model, never the layer, decides how it tilts.
+    if ty.fixed_wing() {
         return fixed_wing_attitude(f, feel, was, unit, dt);
     }
     let k = 1.0 - libm::exp(-dt / feel.smoothing_s);

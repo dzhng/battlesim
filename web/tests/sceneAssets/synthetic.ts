@@ -154,7 +154,7 @@ export const HELI_AUTHORITY: Authority = {
         "heli",
         "heli",
         [4, 0.8, 1.2],
-        { air: { cruise_kmh: 1, turn_deg_s: 1, climb_mps: 1 } },
+        { air: { cruise_kmh: 1, turn_deg_s: 1, climb_mps: 1, flight: "rotor" } },
         "air_heavy",
       ),
     ],
