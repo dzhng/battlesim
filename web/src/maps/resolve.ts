@@ -192,13 +192,15 @@ export function resolveSavedMap(
 }
 
 /** A saved encounter (`contract::scenario::EncounterDefinition`): the forces,
- *  events and scripted orders a scenario lays on its map. */
+ *  events and scripted orders a scenario lays on its map, and what its rules
+ *  override. */
 export interface Encounter {
   units: unknown[];
   events?: unknown[];
   scripts?: unknown[];
   opponent?: unknown;
   encounter?: unknown;
+  overrides?: Record<string, unknown>;
 }
 
 /** A saved encounter's document, parsed. */

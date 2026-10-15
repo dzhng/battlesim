@@ -955,7 +955,7 @@ impl Rules {
                 false if section == "catalog" => None,
                 false => document.get_mut(section),
             }
-            .ok_or_else(|| format!("{section} is not a section of the rules"))?;
+            .ok_or_else(|| format!("{section} is not a section of the rules or the catalog"))?;
             if !in_catalog {
                 merge(base, patch);
                 continue;
