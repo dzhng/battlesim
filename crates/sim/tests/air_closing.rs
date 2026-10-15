@@ -86,10 +86,7 @@ fn the_apache_flies_in_from_the_edge_over_the_roofs_to_find_the_tank() {
     );
     let (b, beat) = play();
     let (_, height) = beat.tank_seen.expect("the Apache never saw the tank");
-    let cruise = b
-        .rules()
-        .air
-        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
+    let cruise = b.rules().air.low_air.cruise_agl_m;
     // At cruise it flies over the village's roofs, climbing only over the
     // tallest: it finds the tank from up there, not from the street.
     assert!(

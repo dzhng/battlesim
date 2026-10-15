@@ -167,6 +167,10 @@ fn a_limited_ground_weapon_is_chosen_before_the_gun() {
     assert_eq!(choose_weapon(&[PassWeapon::Gun]), Some(PassWeapon::Gun));
 }
 
+/// Every pass weapon flies a pass, and every fixed-wing row in the game's
+/// catalog lives the whole life a player buys it for (D44): it arrives
+/// through a purchase, already flying, within its authored wait, then turns
+/// for home on low fuel and leaves by its back edge, refunded.
 #[test]
 fn every_loadout_flies_a_pass() {
     for weapon in [PassWeapon::Gun, PassWeapon::GroundMissile, PassWeapon::Bomb] {
@@ -180,6 +184,123 @@ fn every_loadout_flies_a_pass() {
         );
         assert_eq!(p.weapon, weapon);
     }
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let catalog = &rules.catalog;
+    let rows: Vec<String> = catalog
+        .indices()
+        .filter(|&t| {
+            catalog.get(t).mobility.flight() == Some(contract::catalog::FlightModel::FixedWing)
+        })
+        .map(|t| catalog.id(t).to_string())
+        .collect();
+    assert!(!rows.is_empty(), "the game fields fixed-wing aircraft");
+    for row in &rows {
+        bought_jet_arrives_and_withdraws_on_low_fuel(row);
+    }
+}
+
+/// Blue buys `row` on an open 3 km field and the battle runs its life out.
+fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
+    let mut rules = sim::fixtures::game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        row,
+        json!({ "roster": { "factions": ["us"] } }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [3000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules, "units": [],
+        "skirmish": {
+            "factions": ["us", "eastern"],
+            "rules": { "credits_per_minute": 200, "starting_minutes": 20, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1 },
+            "sites": { "entries": [
+                { "side": "blue", "center": [1500, 10], "yaw": 1.5707963267948966 },
+                { "side": "red", "center": [1500, 2990], "yaw": -1.5707963267948966 }
+            ], "objectives": [
+                { "id": "center", "center": [1500, 1500], "radius_m": 50, "kind": "junction", "counterpart": null },
+                { "id": "south", "center": [800, 1000], "radius_m": 50, "kind": "field", "counterpart": "north" },
+                { "id": "north", "center": [2200, 2000], "radius_m": 50, "kind": "field", "counterpart": "south" }
+            ] }
+        }
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 4);
+    let t = battle.rules().catalog.by_id(row);
+    let wait_s = t.mobility.arrival().map_or(0.0, |a| a.delay_s[1]);
+    let fuel_s = t
+        .capabilities
+        .air
+        .as_ref()
+        .expect("a jet's tank")
+        .fuel_capacity_s;
+    let hz = battle.rules().tick_hz;
+    let envelope = |seq, order| CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq,
+        order,
+        queued: false,
+    };
+    let ack = battle.accept(envelope(
+        1,
+        Order::ConfirmPurchase {
+            variant: row.into(),
+            destination: [1500.0, 1500.0],
+        },
+    ));
+    assert!(ack.error.is_none(), "{row}: {ack:?}");
+    battle.accept(envelope(2, Order::Ready));
+    battle.accept(CommandEnvelope {
+        side: Side::Red,
+        ..envelope(1, Order::Ready)
+    });
+    let credits =
+        |b: &sim::battle::Battle| b.observe(Side::Blue).skirmish.as_ref().unwrap().credits;
+    let (mut arrived, mut withdrew, mut left, mut refund) = (None, None, false, 0.0);
+    let mut before = credits(&battle);
+    let limit = (wait_s + fuel_s + 120.0) as u32 * hz;
+    for _ in 0..limit {
+        battle.step();
+        let now = credits(&battle);
+        let frame = battle.observe(Side::Blue);
+        match frame.own.first() {
+            Some(jet) => {
+                arrived.get_or_insert((battle.tick(), jet.position));
+                if jet.withdrawing && withdrew.is_none() {
+                    withdrew = jet.fuel_s;
+                }
+            }
+            None if arrived.is_some() => {
+                left = frame
+                    .air_transits
+                    .iter()
+                    .any(|t| matches!(t.dir, contract::observation::AirTransitDirection::Out));
+                refund = now - before;
+                break;
+            }
+            None => {}
+        }
+        before = now;
+    }
+    let (tick, at) = arrived.unwrap_or_else(|| panic!("{row} never arrived"));
+    assert!(
+        tick as f64 <= (60.0 + wait_s + 1.0) * f64::from(hz),
+        "{row} arrived {:.1}s after its longest wait",
+        tick as f64 / f64::from(hz) - 60.0 - wait_s
+    );
+    assert!(
+        at[1].abs() < 50.0,
+        "{row} arrived at {at:?}, not at its back edge"
+    );
+    let fuel = withdrew.unwrap_or_else(|| panic!("{row} never turned for home on low fuel"));
+    assert!(fuel > 0.0, "{row} ran dry before turning home");
+    assert!(left, "{row} never left by its back edge");
+    // A tick's income is a fraction of a credit; a refund is many.
+    assert!(
+        refund > 1.0,
+        "{row} was not refunded as it left: {refund:.2}"
+    );
 }
 
 #[test]

@@ -217,7 +217,7 @@ const OBJECTIVE_FIELDS: [&str; 8] = [
     "captureProgress",
     "contested",
 ];
-const PENDING_FIELDS: [&str; 8] = [
+const PENDING_FIELDS: [&str; 10] = [
     "idLo",
     "idHi",
     "kind",
@@ -226,6 +226,8 @@ const PENDING_FIELDS: [&str; 8] = [
     "confirmedLo",
     "confirmedHi",
     "blocked",
+    "arrivalLo",
+    "arrivalHi",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
 const CONTACT_FIELDS: [&str; 15] = [
@@ -1356,6 +1358,13 @@ fn pack_record(
                     .try_into()
                     .map_err(|_| "purchase tick exceeds publication range")?,
             );
+            // An aircraft's arrival tick, 0 for a purchase that doesn't wait.
+            let [arrival_lo, arrival_hi] = limbs(
+                p.arrival_tick
+                    .unwrap_or(0)
+                    .try_into()
+                    .map_err(|_| "arrival tick exceeds publication range")?,
+            );
             out.extend([
                 lo,
                 hi,
@@ -1365,6 +1374,8 @@ fn pack_record(
                 tick_lo,
                 tick_hi,
                 p.blocked as u8 as f32,
+                arrival_lo,
+                arrival_hi,
             ]);
         }
     }

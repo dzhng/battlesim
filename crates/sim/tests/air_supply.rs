@@ -97,10 +97,7 @@ fn it_climbs_on_an_order() {
     let low = low_hover(&b);
     sink(&mut b, low);
     assert_eq!(b.accept(order(&[1], [400.0, 200.0])).error, None);
-    let cruise = b
-        .rules()
-        .air
-        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
+    let cruise = b.rules().air.low_air.cruise_agl_m;
     let mut highest = low;
     for _ in 0..10 * b.rules().tick_hz {
         b.step();
@@ -131,10 +128,7 @@ fn it_climbs_on_engagement() {
         queued: false,
     });
     assert_eq!(ack.error, None);
-    let cruise = b
-        .rules()
-        .air
-        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
+    let cruise = b.rules().air.low_air.cruise_agl_m;
     let mut engaged = false;
     let mut highest = low;
     for _ in 0..10 * b.rules().tick_hz {
@@ -153,10 +147,7 @@ fn it_climbs_on_engagement() {
 fn sinking_never_flips_service_to_moving() {
     let mut b = at_the_truck(&[]);
     let low = low_hover(&b);
-    let cruise = b
-        .rules()
-        .air
-        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
+    let cruise = b.rules().air.low_air.cruise_agl_m;
     let mut sank = false;
     for _ in 0..40 * b.rules().tick_hz {
         let before = heli_z(&b);

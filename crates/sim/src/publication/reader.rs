@@ -157,7 +157,9 @@ view!(PendingPurchase {
     kind: Name,
     destination: Point2,
     confirmed_tick: f64,
-    blocked: bool
+    blocked: bool,
+    // The tick a waiting aircraft reaches the map; 0 when it doesn't wait.
+    arrival_tick: f64
 });
 view!(Report { totals: Vec<ReportTotals>, events: Vec<ReportEvent> });
 view!(ReportTotals {
@@ -1135,6 +1137,7 @@ impl Reader {
             destination: [v!(f, "x"), v!(f, "y")],
             confirmed_tick: v!(f, "confirmedLo") + v!(f, "confirmedHi") * LIMB,
             blocked: v!(f, "blocked") != 0.0,
+            arrival_tick: v!(f, "arrivalLo") + v!(f, "arrivalHi") * LIMB,
         })
     }
 

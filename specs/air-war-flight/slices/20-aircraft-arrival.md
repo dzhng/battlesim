@@ -13,11 +13,13 @@
 - **UI:** the pending card reads "Arriving in N s" while an aircraft waits.
 
 ## Tests (red first)
-- A jet and a tank bought together: the tank spawns without waiting for the jet.
-- Two jets bought together wait in parallel.
-- Any aircraft spawns at the back-edge point nearest its entry site, whatever its destination.
-- A row without `arrival` appears at the edge at once, in flight.
-- A cruise override moves the flight height, the approach height and the order ghost. Below the high-air floor it flies at the floor. A low-air unit set above high air still flies.
+- [x] A jet and a tank bought together: the tank spawns without waiting for the jet (`skirmish::a_waiting_aircraft_leaves_the_queue_and_waits_on_its_own_clock`).
+- [x] Two jets bought together wait in parallel (the same test; it also pins the pending record's and the approach's arrival tick, through the packed publication).
+- [x] Any aircraft spawns at the back-edge point nearest its entry site, whatever its destination (`skirmish::any_aircraft_enters_flying_at_the_edge_point_nearest_its_entry_site`).
+- [x] A row without `arrival` appears at the edge at once, in flight (the same test).
+- [x] A cruise override moves the flight height (`air::a_cruise_override_is_the_flight_height_floored_in_high_air_and_uncapped_in_low_air`), the approach height (`AirTransit` is placed at the unit type's cruise height, by the same lookup) and the order ghost (`web/tests/unitGhosts.test.ts`). Below the high-air floor it flies at the floor. A low-air unit set above high air still flies.
+- [x] D44: `attack_passes::every_loadout_flies_a_pass` buys every fixed-wing row in the game catalog, which arrives within its wait at its back edge, turns home on low fuel, leaves by its edge and is refunded.
+- [x] The pending card counts down (`web/tests/armyDeck.test.tsx`; scene `air-ingress`).
 
 ## You see
 - The pending card counting down.

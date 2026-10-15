@@ -1,22 +1,30 @@
 // AWF-JETSCENES — paid jet ingress and edge withdrawal on air-jet.
 // Simulation contracts named here are pinned by crates/sim/tests/skirmish.rs:
 // confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation,
-// a_bought_jet_spawns_on_its_back_edge_at_cruise_heading_in_after_its_delay,
+// a_waiting_aircraft_leaves_the_queue_and_waits_on_its_own_clock,
+// any_aircraft_enters_flying_at_the_edge_point_nearest_its_entry_site,
 // inbound_transit_is_published_to_its_own_side_only, nothing_senses_or_targets_a_jet_before_it_arrives,
 // withdrawal_retires_and_refunds_on_crossing_the_nearest_back_edge_point, and fuel_return_uses_the_edge_distance.
 // Browser-only evidence: both purchases debit immediately; the delayed aircraft
-// has no unit/card before arrival; the approach pose is visible over the margin;
-// arrival is a cruise-height aircraft heading in; and the low-fuel aircraft's
+// has no unit before arrival, only its pending card counting down to the
+// published arrival tick (D42); the approach pose is visible over the margin;
+// arrival is a cruise-height aircraft at the back-edge point nearest blue's
+// entry site, heading for its destination (D39); and the low-fuel aircraft's
 // outbound pose leaves at the blue back edge before the refund appears.
 import { writeFile } from "node:fs/promises";
 import { gpuWarnings, obs, advance, aim } from "./_lab.mjs";
 import { openAir, command, HIGH_AIR_CRUISE, shoot } from "./_air.mjs";
-import { game } from "./_units.mjs";
+import { game, unitType } from "./_units.mjs";
 const JET = "f_16c_block_50";
 const DESTINATIONS = [
   [1500, 1500],
   [2500, 2400],
 ];
+/** Blue's entry site in the ingress skirmish (`apps/battle-lab/src/routes/airWar.tsx`):
+ *  its back edge is the west edge, and the point on it nearest the site is
+ *  where every bought aircraft arrives. */
+const BLUE_ENTRY = [10, 260];
+const ARRIVAL_POINT = [0, BLUE_ENTRY[1]];
 
 export async function run(ctx) {
   const page = await openAir(ctx);
@@ -42,6 +50,31 @@ export async function run(ctx) {
     o.own.filter((u) => u.kind === JET).length === 0,
     JSON.stringify(o.own),
   );
+
+  // While the jets wait off the map, each pending card counts down to the
+  // arrival tick its pending record publishes.
+  const waiting = o.skirmish.pending.filter((p) => p.kind === JET);
+  // The battle is paused: wait for the deck to draw this observation.
+  await page
+    .waitForFunction(
+      (n) => document.querySelectorAll(".hud-army-arriving").length === n,
+      waiting.length,
+      { timeout: 10_000 },
+    )
+    .catch(() => {});
+  const cards = await page.locator(".hud-army-arriving").allTextContents();
+  const due = waiting.map(
+    (p) => `Arriving in ${Math.ceil((p.arrivalTick - o.tick) / game.tick_hz)} s`,
+  );
+  ctx.check(
+    "each waiting jet's pending card counts down to its published arrival",
+    waiting.length === 2 &&
+      waiting.every((p) => p.arrivalTick > o.tick) &&
+      cards.map((c) => c.replace(/\s+/g, " ").trim()).join("|") === due.join("|"),
+    JSON.stringify({ cards, due, pending: o.skirmish.pending, tick: o.tick }),
+  );
+  const deck = page.locator(".hud-army-deck");
+  await writeFile(ctx.evidencePath("air-ingress-pending.png"), await deck.screenshot());
 
   let inbound = null;
   let approachShot = false;
@@ -81,7 +114,13 @@ export async function run(ctx) {
     const jet = o.own.find((u) => u.kind === JET);
     if (jet && !firstId) {
       firstId = jet.id;
-      entered = { tick: o.tick, position: jet.position, yaw: jet.yaw, fuel: jet.fuelS };
+      entered = {
+        tick: o.tick,
+        position: jet.position,
+        yaw: jet.yaw,
+        fuel: jet.fuelS,
+        goal: jet.goal,
+      };
       break;
     }
   }
@@ -90,13 +129,18 @@ export async function run(ctx) {
     !!inbound && !!entered && inbound.tick < entered.tick,
     JSON.stringify({ inbound, entered }),
   );
+  // One tick of flight past the edge point, at cruise speed.
+  const tickRun = unitType(JET).mobility.air.cruise_kmh / 3.6 / game.tick_hz;
+  const goal = entered?.goal ?? DESTINATIONS[0];
+  const bearing = Math.atan2(goal[1] - ARRIVAL_POINT[1], goal[0] - ARRIVAL_POINT[0]);
   ctx.check(
-    "the jet arrives on the blue back edge at cruise height heading in",
+    "the jet arrives at the back-edge point nearest blue's entry, at cruise height, heading for its destination",
     !!entered &&
-      entered.position[0] < 400 &&
+      Math.hypot(entered.position[0] - ARRIVAL_POINT[0], entered.position[1] - ARRIVAL_POINT[1]) <=
+        2 * tickRun + 1 &&
       Math.abs(entered.position[2] - HIGH_AIR_CRUISE) < 2 &&
-      Math.cos(entered.yaw) > 0,
-    JSON.stringify(entered),
+      Math.cos(entered.yaw - bearing) > Math.cos(0.1),
+    JSON.stringify({ entered, at: ARRIVAL_POINT, bearing }),
   );
   if (!entered) return;
 

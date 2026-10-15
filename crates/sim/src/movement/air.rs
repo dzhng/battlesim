@@ -285,9 +285,10 @@ fn height_target(
         )
     } else {
         (
-            air.cruise_agl_m(flight.layer),
+            flight.cruise_agl_m,
             air.rotor.clearance_m,
-            air.rotor.ceiling_agl_m,
+            // Its own cruise may lie above the rotor ceiling (D40).
+            air.rotor.ceiling_agl_m.max(flight.cruise_agl_m),
         )
     };
     let world = ctx.world;

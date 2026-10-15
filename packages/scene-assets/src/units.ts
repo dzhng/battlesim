@@ -56,6 +56,10 @@ export type Mobility =
         climb_mps: number;
         layer?: "low_air" | "high_air";
         flight: "rotor" | "fixed_wing";
+        /** A bought one's wait off the map, seconds (D38). */
+        arrival?: { delay_s: [number, number] };
+        /** Its own cruise height, overriding its layer's (D40). */
+        cruise_agl_m?: number;
       };
     };
 

@@ -12,7 +12,6 @@ use std::collections::VecDeque;
 pub struct Reservation {
     pub data: PendingPurchase,
     pub price: u32,
-    pub ingress_ready_tick: Option<Tick>,
 }
 
 /// Microcredits retain deterministic fractional rewards; passive remainder is exact.
@@ -130,13 +129,13 @@ impl Skirmish {
         self.next_purchase[index] += 1;
         self.reservations[index].push_back(Reservation {
             price,
-            ingress_ready_tick: None,
             data: PendingPurchase {
                 id,
                 kind,
                 destination,
                 confirmed_tick: tick,
                 blocked: false,
+                arrival_tick: None,
             },
         });
         Ok(())

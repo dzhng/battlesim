@@ -341,6 +341,7 @@ export function BattleView({
           onSelect={control.setSelected}
           rules={session.rules}
           pending={observation?.skirmish?.pending}
+          tick={observation?.tick}
           control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
           reinforcements={

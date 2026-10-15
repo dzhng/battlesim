@@ -493,6 +493,8 @@ export interface SkirmishView {
     destination: Point2;
     confirmedTick: number;
     blocked: boolean;
+    /** The tick a waiting aircraft reaches the map; 0 when it doesn't wait. */
+    arrivalTick: number;
   }[];
   report: MatchReportView | null;
 }

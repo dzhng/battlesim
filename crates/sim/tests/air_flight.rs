@@ -59,10 +59,7 @@ fn height_near(track: &[sim::math::V3], x: f64, reach: f64) -> f64 {
 fn cruises_at_its_height_to_its_goal() {
     let (b, track) = fly(map(json!([]), json!([])));
     assert!(arrived(&b) < 1.0, "{:.1} m short", arrived(&b));
-    let cruise = b
-        .rules()
-        .air
-        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
+    let cruise = b.rules().air.low_air.cruise_agl_m;
     for p in &track {
         assert!((p.z - cruise).abs() < 1e-6, "left cruise height: {p:?}");
     }

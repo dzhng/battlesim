@@ -42,7 +42,13 @@
           "turn_deg_s": 72,
           "climb_mps": 30,
           "layer": "high_air",
-          "flight": "fixed_wing"
+          "flight": "fixed_wing",
+          "arrival": {
+            "delay_s": [
+              15,
+              30
+            ]
+          }
         }
       },
       "sensors": {

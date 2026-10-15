@@ -238,7 +238,23 @@ pub enum Mobility {
         layer: AltitudeLayer,
         /// How it flies: always authored, never read off the layer.
         flight: FlightModel,
+        /// How long a bought one takes to reach the map (D38); it appears at
+        /// its back edge at once when absent.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        arrival: Option<Arrival>,
+        /// Its own cruise height over the ground, overriding its layer's
+        /// (D40). Read through `AirRules::cruise_agl_m`, never directly.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cruise_agl_m: Option<f64>,
     },
+}
+
+/// A bought aircraft's wait off the map (D38): seconds, drawn from the
+/// battle's seed between `delay_s[0]` and `delay_s[1]`.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Arrival {
+    pub delay_s: [f64; 2],
 }
 
 impl Mobility {
@@ -246,6 +262,15 @@ impl Mobility {
         match self {
             Mobility::Air { layer, .. } => *layer,
             _ => AltitudeLayer::Ground,
+        }
+    }
+
+    /// A bought aircraft's wait off the map; None for a ground mover and
+    /// for an aircraft that appears at once.
+    pub fn arrival(&self) -> Option<Arrival> {
+        match self {
+            Mobility::Air { arrival, .. } => *arrival,
+            _ => None,
         }
     }
 
@@ -1790,10 +1815,21 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         climb_mps,
         layer,
         flight,
+        arrival,
+        cruise_agl_m,
     } = t.mobility
     {
         if let Some(missing) = unflown(layer, flight) {
             return Some(missing);
+        }
+        if cruise_agl_m.is_some_and(|h| !positive(h)) {
+            return Some("mobility: an aircraft's cruise_agl_m must be positive");
+        }
+        if arrival.is_some_and(|a| {
+            let [min, max] = a.delay_s;
+            !(at_least_zero(min) && at_least_zero(max) && min <= max)
+        }) {
+            return Some("mobility: arrival.delay_s must be [min, max] with 0 <= min <= max");
         }
         let max_speed = match layer {
             AltitudeLayer::LowAir => MAX_AIR_SPEED_KMH,
