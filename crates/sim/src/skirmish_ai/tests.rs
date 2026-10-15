@@ -1,5 +1,5 @@
 use super::*;
-use serde_json::json;
+use serde_json::{json, Value};
 
 /// The test units as a U.S. deck: a card for each, in its category.
 fn deck() -> serde_json::Value {
@@ -554,6 +554,53 @@ fn every_ai_opening_includes_a_high_air_defender() {
             "{faction:?} opening has no HighAir defender: {orders:?}"
         );
     }
+
+    // The pick reads weapon reach, not a list: left as Europe's only air
+    // defender, the Gepard is the one the opening buys. Every other
+    // high-air-capable row leaves Europe's roster, and one Europe alone
+    // fielded leaves the catalog.
+    let gepard = "europe_gepard_1a2";
+    let defends = |id: &str| {
+        id != gepard
+            && rules
+                .catalog
+                .index(id)
+                .is_some_and(|k| unit_can_target_layer(&rules, k, AltitudeLayer::HighAir))
+    };
+    let mut authored = crate::fixtures::game();
+    for doc in authored["catalog"].as_array_mut().unwrap() {
+        let Some(units) = doc.get_mut("units").and_then(Value::as_object_mut) else {
+            continue;
+        };
+        units.retain(|id, unit| {
+            let Some(factions) = unit
+                .pointer_mut("/roster/factions")
+                .and_then(Value::as_array_mut)
+            else {
+                return true;
+            };
+            if defends(id) {
+                factions.retain(|f| f != "europe");
+            }
+            !factions.is_empty()
+        });
+    }
+    let only_gepard: Rules = serde_json::from_value(authored).unwrap();
+    let orders = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Europe,
+        &entry,
+        &frame,
+        &only_gepard,
+        |_, _| Some(1.0),
+    );
+    assert!(
+        orders.iter().any(|order| matches!(
+            order,
+            Order::ConfirmPurchase { variant, .. } if variant == gepard
+        )),
+        "Europe's opening skipped its only air defender: {orders:?}"
+    );
 }
 
 #[test]

@@ -24,7 +24,7 @@
 ## Tests
 - `every_faction_fields_a_ground_missile_jet_and_a_bomb_jet`
 - `no_jet_carries_bombs_and_ground_missiles`
-- `no_fixed_wing_row_is_planned`
+- `only_drones_are_planned`
 - The voice and asset checks.
 
 ## Delegated

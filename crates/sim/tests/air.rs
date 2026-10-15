@@ -335,6 +335,70 @@ fn air_defence_tiers_follow_the_target_layer_and_need_their_own_sight() {
     assert!(hidden_no_sight, "the hidden gun explains its hold");
 }
 
+/// The Gepard's twin 35 mm reaches as far as its weapon row says at each
+/// layer: a helicopter inside its low-air reach draws fire, and one past it
+/// does not though the Gepard sees it; a jet passing at cruise height is
+/// inside its high-air reach and draws fire.
+#[test]
+fn the_gepard_engages_air_within_its_guns_reach_at_each_layer() {
+    const GEPARD: &str = "europe_gepard_1a2";
+    let rules: Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let gun = rules.catalog.index(GEPARD).unwrap();
+    let weapon = &rules.weapons[&rules.catalog.mounts(gun)[0].def.weapons[0]];
+    let reach = |layer| weapon.against(layer).map_or(0.0, |fire| fire.range_m);
+    let (low_reach, high_reach) = (reach(AltitudeLayer::LowAir), reach(AltitudeLayer::HighAir));
+    let map = json!({ "size": [3000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 });
+    // The Gepard faces east; the aircraft starts east of it, and a mover flies
+    // west over it.
+    let duel = |kind: &str, offset_m: f64, pass: bool| {
+        let mut b = battle_with(
+            &sim::fixtures::game(),
+            map.clone(),
+            json!([
+                { "side": "red", "kind": GEPARD, "position": [1500, 1500], "yaw": 0 },
+                { "side": "blue", "kind": kind, "position": [1500.0 + offset_m, 1500.0],
+                  "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+            ]),
+        );
+        if pass {
+            b.step();
+            let ack = b.accept(order(&[1], [300.0, 1500.0]));
+            assert_eq!(ack.error, None, "{ack:?}");
+        }
+        let (mut farthest_shot_m, mut seen): (f64, bool) = (0.0, false);
+        for _ in 0..300 {
+            let before = shots(&b, UnitId(0));
+            b.step();
+            seen |= !b.observe(Side::Red).identified.is_empty();
+            if shots(&b, UnitId(0)) > before {
+                let (gun, target) = (b.unit(UnitId(0)).unwrap(), b.unit(UnitId(1)).unwrap());
+                farthest_shot_m = farthest_shot_m.max((target.position - gun.position).length());
+            }
+        }
+        (shots(&b, UnitId(0)), farthest_shot_m, seen)
+    };
+
+    let helicopter = "eastern_mi_8_hip_mi_8amtsh";
+    let (near, near_m, _) = duel(helicopter, 0.5 * low_reach, false);
+    assert!(
+        near > 0,
+        "a helicopter at half the low-air reach draws fire"
+    );
+    assert!(near_m <= low_reach, "fired at a helicopter {near_m} m away");
+    let (past, _, seen) = duel(helicopter, 1.5 * low_reach, false);
+    assert!(seen, "the Gepard sees the helicopter past its reach");
+    assert_eq!(past, 0, "a helicopter past the low-air reach draws no fire");
+
+    let cruise = rules.air.high_air.cruise_agl_m;
+    assert!(
+        cruise < high_reach,
+        "a jet at {cruise} m is inside the {high_reach} m high-air reach"
+    );
+    let (jet, jet_m, _) = duel("eastern_sukhoi_flanker_family_su_35s", 1200.0, true);
+    assert!(jet > 0, "a jet passing at cruise height draws fire");
+    assert!(jet_m <= high_reach, "fired at a jet {jet_m} m away");
+}
+
 #[test]
 fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
     let map = sim::maps::load("air").unwrap().definition;
