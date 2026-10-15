@@ -149,7 +149,7 @@
    "view": "side",
    "source": "photo",
    "page": "https://commons.wikimedia.org/wiki/File:Sukhoi_Su-34,_MAKS_2009.jpg",
-   "author": "\u0415\u0432\u0433\u0435\u043d\u0438\u0439 \u041f\u0443\u0440\u0435\u043b\u044c",
+   "author": "Евгений Пурель",
    "licence": "CC-BY-SA-3.0",
    "sha256": "4ad2673abe716ba4cc09109b591c8fd96ab8366ae7118b78b2db17ac625d77a5",
    "note": "Su-34 left side static: broad flattened nose, side-by-side cockpit, canards, long stinger, tandem main wheels"
@@ -175,11 +175,79 @@
    "licence": "CC-BY-SA-4.0",
    "sha256": "4483901bae1e382a6f2442b5a8920cf148c7b03a8f3f3cad070e05c42125e1a7",
    "note": "Su-34 from below in flight: planform, canards, stores"
+  },
+  {
+   "file": "eastern_sukhoi_flanker_family_su_30sm2-front.jpg",
+   "variant": "eastern_sukhoi_flanker_family_su_30sm2",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MAKS_Airshow_2013_(Ramenskoye_Airport,_Russia)_(526-30).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "note": "Su-30SM on the ground from the front: the canards, the two-seat canopy, the intakes under the wing roots, upright fins, the gear",
+   "sha256": "4af0eea6fcb1cf1b2d0747db7935cd93c3a2a19ba227b0f84d5241ac95ac87ab"
+  },
+  {
+   "file": "eastern_sukhoi_flanker_family_su_30sm2-rear.jpg",
+   "variant": "eastern_sukhoi_flanker_family_su_30sm2",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:FighterAviationExercise2018-12.jpg",
+   "author": "Евгений Половодов (Yevgeny Polovodov)",
+   "licence": "CC-BY-4.0",
+   "note": "Su-30SM from behind and low, close: the thrust-vectoring nozzles, the stinger between them, the fins, the main gear",
+   "sha256": "2717e8fa6b52f72386d1055aafc92bc0ac274177ca5e22c014179aacdc15135a"
+  },
+  {
+   "file": "eastern_sukhoi_flanker_family_su_30sm2-three_quarter_rear.jpg",
+   "variant": "eastern_sukhoi_flanker_family_su_30sm2",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:MAKS2015part3-26.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "note": "Su-27SM3 (the same bytes as eastern_sukhoi_flanker_family_su_27sm3-three_quarter_rear.jpg): the nozzles, stinger, fins and stabilators the Su-30SM shares; its canopy is the single seat and it has no canards",
+   "sha256": "d6501bfd626e45e03a0fbed0971b79ba9bf34a0ce7ce7e93aef0c5ea1899db37"
+  },
+  {
+   "file": "eastern_sukhoi_flanker_family_su_30sm2-front-generated.jpg",
+   "variant": "eastern_sukhoi_flanker_family_su_30sm2",
+   "view": "front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "note": "Generated head-on front view, from the MAKS photo beside it. Layout and proportions only: the canards' span, the intakes' spread, the fins upright over the engines, the gear track. The seed is not honoured by the gateway, so it does not reproduce.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "Sukhoi Su-30SM two-seat fighter of the Russian Aerospace Forces, exact head-on front view (camera on the aircraft's centreline at cockpit height, straight at the nose), standing on its landing gear on a concrete apron in daylight, photographic reference. Long drooped radome nose with the IRST ball ahead of the canopy, a long two-seat tandem bubble canopy, the canards on the leading-edge root extensions, the two widely spaced rectangular engine intakes under the wing roots, the two vertical fins standing upright over the engines, wingtip launch rails, the long single-wheel nose gear and the two main gear legs. Pale blue-grey two-tone camouflage with a white radome. Whole aircraft in frame and symmetric, no people, no text.",
+   "inputs": [
+    "eastern_sukhoi_flanker_family_su_30sm2-front.jpg"
+   ],
+   "seed": 2003,
+   "sha256": "3a2ebcc3369282e7d563aa409539c2e3b7f19d703224d64dabf64494727be9f1"
+  },
+  {
+   "file": "eastern_sukhoi_flanker_family_su_30sm2-three_quarter_rear-generated.jpg",
+   "variant": "eastern_sukhoi_flanker_family_su_30sm2",
+   "view": "three_quarter_rear",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "note": "Generated rear three-quarter (from the right, though asked for the left), from the Su-27SM3 rear three-quarter and the Su-30SM rear photo beside it. Layout and proportions only: the two-seat canopy against the tail, the nozzles and stinger, the fins. The canards are hidden behind the wing in it; the seed is not honoured by the gateway, so it does not reproduce.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "Sukhoi Su-30SM two-seat fighter of the Russian Aerospace Forces, three-quarter rear view from the left and slightly above, standing on its landing gear on a concrete apron in daylight, photographic reference. Flanker airframe: the two widely spaced engine nacelles ending in round thrust-vectoring nozzles, the long central tail boom (stinger) between them, the two upright vertical fins over the engines, the all-moving tailplanes, the big swept wing with wingtip launch rails, the long two-seat tandem canopy and the canards on the leading-edge root extensions ahead of the wing. Pale blue-grey two-tone camouflage, red star on the fins. Whole aircraft in frame, no people, no text.",
+   "inputs": [
+    "eastern_sukhoi_flanker_family_su_30sm2-three_quarter_rear.jpg",
+    "eastern_sukhoi_flanker_family_su_30sm2-rear.jpg"
+   ],
+   "seed": 2004,
+   "sha256": "6323f973c9e39c2fcd7b9ba960af15c21cf1de1f9cae877673cc38e234c1ee2b"
   }
  ],
  "gaps": [
   "eastern_sukhoi_flanker_family_su_27sm3: no straight top view; the planform is from an underside climb shot",
-  "eastern_sukhoi_flanker_family_su_30sm2: no front or rear view (shared with the Su-27SM3's); SM2 upgrade outwardly as SM",
+  "eastern_sukhoi_flanker_family_su_30sm2: the rear three-quarter photo is the Su-27SM3's (a generated Su-30SM view is from it); SM2 upgrade outwardly as SM",
   "eastern_sukhoi_flanker_family_su_34: no rear or front view; nozzle and stinger from the Su-35's",
   "Blender preview colours run darker than the game's shading (no colour_scale); the scheme is matched to the photos' blue-greys by value, not by these sheets",
   "eastern_sukhoi_flanker_family_su_27sm3: dimensions 21.9 x 14.7 x 5.92 m from Sukhoi's Su-27SK data as cited by https://en.wikipedia.org/wiki/Sukhoi_Su-27 (the SM3 keeps the airframe): match",

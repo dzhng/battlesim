@@ -841,13 +841,16 @@ def door_guns(v, rigged, mats, pitch_deg, inboard, gun="m2"):
 
 
 # ---------------------------------------------------------------- wreck
-def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, blades_broken=(), seed=0):
+def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, blades_broken=(), seed=0,
+          litter_reach=1.0):
     """The airframe after it came down and burnt, before `wreckage.burn`: gear
     torn away and the belly on the ground, the fuselage warped and dented,
     the tail behind `tail_x` broken and slewed by `tail_yaw`, the wing on
     `wing_side` folded down outboard of `wing_y`, the canopy glass gone, the
     rotor blades drooping to the ground and those named by `blades_broken`
-    (`(rotor, blade index)`) snapped off and lying beside it."""
+    (`(rotor, blade index)`) snapped off and lying beside it. `litter_reach`
+    scales how far out the torn panels lie, for a span so wide that the usual
+    reach would put them past the wreck's footprint."""
     import bpy
     from parts import rest_on_ground
     from wreckage import bend, densify, dent, heat, parts, plate, warp
@@ -888,7 +891,7 @@ def crash(v, tail_x, wing_y=None, wing_side=-1, tail_yaw=0.35, tail_drop=0.18, b
     for k, (dx, dy, size) in enumerate(((0.2, 1.1, 0.6), (-0.35, -1.3, 0.5), (-0.1, 0.8, 0.45))):
         plate(f"litter_{k}", [(-size, -size * 0.5), (size, -size * 0.6), (size * 0.8, size * 0.5),
                               (-size * 0.6, size * 0.7)], 0.03,
-              (v.length * dx, v.width * 0.5 * dy, 0.03), (0.04 * k, -0.03, 0.7 + k * 1.3), m["paint"], v.root,
+              (v.length * dx, v.width * 0.5 * dy * litter_reach, 0.03), (0.04 * k, -0.03, 0.7 + k * 1.3), m["paint"], v.root,
               curl=0.1, seed=seed + 71 + k)
     # Each rotor's blades lie in their own stretch beside the airframe (a
     # second rotor's further aft), so no two lie on one another.

@@ -54,10 +54,38 @@
    "licence": "CC-BY-SA-4.0",
    "sha256": "11784827cfdc58c7d9f960c477d797958c8e6774cc97382081a62a702b8cd62e",
    "note": "Su-57E tail and nozzle detail at Dubai"
+  },
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-front.jpg",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Su-57E_nose_at_Dubai_Airshow_2025.jpg",
+   "author": "Mztourist",
+   "licence": "CC-BY-SA-4.0",
+   "note": "Su-57E on the ground from the front right, about 35 degrees off the nose (the nearest to head-on on Commons): the radome, the canopy, the intake under the LEVCON, the nose gear",
+   "sha256": "7c307597c4e33da21ae84d6bb67618012a0e10f18666f0897cae6f1e01d04d1b"
+  },
+  {
+   "file": "eastern_su_57_felon_stealth_multirole_fighter-front-generated.jpg",
+   "variant": "eastern_su_57_felon_stealth_multirole_fighter",
+   "view": "front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "note": "Generated head-on front view, from the Dubai photo beside it (itself 35 degrees off the nose). Layout and proportions only: the nacelles' spread and the tunnel between them, the intakes' size, the fins' cant, the gear track. The seed is not honoured by the gateway, so it does not reproduce.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "Sukhoi Su-57 stealth fighter of the Russian Aerospace Forces, exact head-on front view (camera on the aircraft's centreline at cockpit height, straight at the nose), standing on its landing gear on a concrete apron in daylight, photographic reference. Pointed nose with a single-piece bubble canopy, the two widely spaced rectangular engine intakes under the leading-edge root extensions, the movable LEVCON leading-edge root surfaces, thin swept wings, the two small all-moving vertical fins canted outward, the two widely separated engine nacelles with a flat tunnel between them, tricycle landing gear. Grey digital camouflage. Whole aircraft in frame and symmetric, no people, no text.",
+   "inputs": [
+    "eastern_su_57_felon_stealth_multirole_fighter-front.jpg"
+   ],
+   "seed": 2002,
+   "sha256": "2420d5f8713e0bb7a6c43ffc088ed8d6897b5ce5328bb3720c4da1268caa6bc0"
   }
  ],
  "gaps": [
-  "eastern_su_57_felon_stealth_multirole_fighter: no front view; the top view is the T-50 prototype (same outline)",
+  "eastern_su_57_felon_stealth_multirole_fighter: no straight head-on photo (the front photo is 35 degrees off the nose; a generated head-on view is from it); the top view is the T-50 prototype (same outline)",
   "eastern_su_57_felon_stealth_multirole_fighter: dimensions 20.1 x 14.1 x 4.6 m from Rosoboronexport's Su-57E page as cited by https://en.wikipedia.org/wiki/Sukhoi_Su-57: match"
  ]
 }
