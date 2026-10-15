@@ -241,6 +241,23 @@
       }
     },
     {
+      "cost": 490,
+      "description": "Stealth fighter",
+      "disabled_reason": null,
+      "family": "j_20_mighty_dragon",
+      "id": "eastern_j_20_mighty_dragon_stealth_fighter",
+      "name": "J-20",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "J-20",
+        "variant": "Stealth fighter"
+      }
+    },
+    {
       "cost": 360,
       "description": "Ka-52M",
       "disabled_reason": null,
@@ -357,6 +374,40 @@
         ],
         "family_name": "Mi-8 Hip",
         "variant": "Mi-8AMTSh"
+      }
+    },
+    {
+      "cost": 280,
+      "description": "MiG-29SMT",
+      "disabled_reason": null,
+      "family": "mig_29_fulcrum",
+      "id": "eastern_mig_29_fulcrum_mig_29smt",
+      "name": "MiG-29SMT",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "MiG-29 Fulcrum",
+        "variant": "MiG-29SMT"
+      }
+    },
+    {
+      "cost": 350,
+      "description": "MiG-31BM",
+      "disabled_reason": null,
+      "family": "mig_31_foxhound",
+      "id": "eastern_mig_31_foxhound_mig_31bm",
+      "name": "MiG-31BM",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "MiG-31 Foxhound",
+        "variant": "MiG-31BM"
       }
     },
     {
@@ -513,6 +564,74 @@
       }
     },
     {
+      "cost": 270,
+      "description": "Su-25SM3",
+      "disabled_reason": null,
+      "family": "su_25_frogfoot",
+      "id": "eastern_su_25_frogfoot_su_25sm3",
+      "name": "Su-25SM3",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Su-25 Frogfoot",
+        "variant": "Su-25SM3"
+      }
+    },
+    {
+      "cost": 480,
+      "description": "Stealth multirole fighter",
+      "disabled_reason": null,
+      "family": "su_57_felon",
+      "id": "eastern_su_57_felon_stealth_multirole_fighter",
+      "name": "Su-57",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Su-57 Felon",
+        "variant": "Stealth multirole fighter"
+      }
+    },
+    {
+      "cost": 310,
+      "description": "Su-27SM3",
+      "disabled_reason": null,
+      "family": "sukhoi_flanker_family",
+      "id": "eastern_sukhoi_flanker_family_su_27sm3",
+      "name": "Su-27SM3",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Flanker",
+        "variant": "Su-27SM3"
+      }
+    },
+    {
+      "cost": 370,
+      "description": "Su-30SM2",
+      "disabled_reason": null,
+      "family": "sukhoi_flanker_family",
+      "id": "eastern_sukhoi_flanker_family_su_30sm2",
+      "name": "Su-30SM2",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Flanker",
+        "variant": "Su-30SM2"
+      }
+    },
+    {
       "cost": 390,
       "description": "Su-34",
       "disabled_reason": null,
@@ -527,6 +646,23 @@
         ],
         "family_name": "Flanker",
         "variant": "Su-34"
+      }
+    },
+    {
+      "cost": 410,
+      "description": "Su-35S",
+      "disabled_reason": null,
+      "family": "sukhoi_flanker_family",
+      "id": "eastern_sukhoi_flanker_family_su_35s",
+      "name": "Su-35S",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Flanker",
+        "variant": "Su-35S"
       }
     },
     {
@@ -1091,6 +1227,23 @@
       }
     },
     {
+      "cost": 350,
+      "description": "E",
+      "disabled_reason": null,
+      "family": "jas_39_gripen",
+      "id": "europe_jas_39_gripen_e",
+      "name": "Gripen E",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "JAS 39 Gripen",
+        "variant": "E"
+      }
+    },
+    {
       "cost": 460,
       "description": "Prototype main battle tank",
       "disabled_reason": null,
@@ -1261,6 +1414,23 @@
       }
     },
     {
+      "cost": 290,
+      "description": "2000D RMV",
+      "disabled_reason": null,
+      "family": "mirage_2000",
+      "id": "europe_mirage_2000_2000d_rmv",
+      "name": "Mirage 2000D RMV",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Mirage 2000",
+        "variant": "2000D RMV"
+      }
+    },
+    {
       "cost": 360,
       "description": "NASAMS 3 Long long-range air defence.",
       "disabled_reason": null,
@@ -1346,6 +1516,23 @@
       }
     },
     {
+      "cost": 420,
+      "description": "C F4",
+      "disabled_reason": null,
+      "family": "rafale",
+      "id": "europe_rafale_c_f4",
+      "name": "Rafale F4",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Rafale",
+        "variant": "C F4"
+      }
+    },
+    {
       "cost": 80,
       "description": "Light patrol",
       "disabled_reason": null,
@@ -1394,6 +1581,23 @@
         ],
         "family_name": "Tornado",
         "variant": "ECR"
+      }
+    },
+    {
+      "cost": 310,
+      "description": "IDS",
+      "disabled_reason": null,
+      "family": "tornado",
+      "id": "europe_tornado_ids",
+      "name": "Tornado IDS",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Tornado",
+        "variant": "IDS"
       }
     },
     {
@@ -1449,6 +1653,24 @@
       }
     },
     {
+      "cost": 470,
+      "description": "F-35A",
+      "disabled_reason": null,
+      "family": "f_35_lightning_ii",
+      "id": "f_35a",
+      "name": "F-35A",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "F-35 Lightning II",
+        "variant": "F-35A"
+      }
+    },
+    {
       "cost": 150,
       "description": "FGM-148 Javelin; top attack, the gunner must keep sight",
       "disabled_reason": null,
@@ -1501,6 +1723,23 @@
         ],
         "family_name": "Rifle Squad",
         "variant": "Standard infantry"
+      }
+    },
+    {
+      "cost": 300,
+      "description": "A-10C",
+      "disabled_reason": null,
+      "family": "a_10_warthog",
+      "id": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+      "name": "A-10C Warthog",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "A-10 Warthog",
+        "variant": "A-10C"
       }
     },
     {
@@ -1637,6 +1876,91 @@
         ],
         "family_name": "EA-18G Growler",
         "variant": "Electronic-warfare aircraft"
+      }
+    },
+    {
+      "cost": 400,
+      "description": "F-15E Strike Eagle",
+      "disabled_reason": null,
+      "family": "f_15_eagle",
+      "id": "us_f_15_eagle_f_15e_strike_eagle",
+      "name": "F-15E Strike Eagle",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-15 Eagle",
+        "variant": "F-15E Strike Eagle"
+      }
+    },
+    {
+      "cost": 430,
+      "description": "F-15EX Eagle II",
+      "disabled_reason": null,
+      "family": "f_15_eagle",
+      "id": "us_f_15_eagle_f_15ex_eagle_ii",
+      "name": "F-15EX Eagle II",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-15 Eagle",
+        "variant": "F-15EX Eagle II"
+      }
+    },
+    {
+      "cost": 500,
+      "description": "F-22A",
+      "disabled_reason": null,
+      "family": "f_22_raptor",
+      "id": "us_f_22_raptor_f_22a",
+      "name": "F-22A Raptor",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-22 Raptor",
+        "variant": "F-22A"
+      }
+    },
+    {
+      "cost": 490,
+      "description": "F-35B",
+      "disabled_reason": null,
+      "family": "f_35_lightning_ii",
+      "id": "us_f_35_lightning_ii_f_35b",
+      "name": "F-35B",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-35 Lightning II",
+        "variant": "F-35B"
+      }
+    },
+    {
+      "cost": 370,
+      "description": "F/A-18E",
+      "disabled_reason": null,
+      "family": "f_a_18_super_hornet",
+      "id": "us_f_a_18_super_hornet_f_a_18e",
+      "name": "F/A-18E",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Super Hornet",
+        "variant": "F/A-18E"
       }
     },
     {
@@ -2184,28 +2508,6 @@
       }
     },
     {
-      "cost": 490,
-      "description": "Stealth fighter",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "j_20_mighty_dragon",
-      "id": "eastern_j_20_mighty_dragon_stealth_fighter",
-      "name": "J-20",
-      "planned_weapons": [
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "J-20",
-        "variant": "Stealth fighter"
-      }
-    },
-    {
       "cost": 90,
       "description": "Anti-armor",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
@@ -2250,62 +2552,6 @@
       }
     },
     {
-      "cost": 280,
-      "description": "MiG-29SMT",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "mig_29_fulcrum",
-      "id": "eastern_mig_29_fulcrum_mig_29smt",
-      "name": "MiG-29SMT",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Cluster bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "MiG-29 Fulcrum",
-        "variant": "MiG-29SMT"
-      }
-    },
-    {
-      "cost": 350,
-      "description": "MiG-31BM",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "mig_31_foxhound",
-      "id": "eastern_mig_31_foxhound_mig_31bm",
-      "name": "MiG-31BM",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "MiG-31 Foxhound",
-        "variant": "MiG-31BM"
-      }
-    },
-    {
       "cost": 80,
       "description": "Reconnaissance drone",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
@@ -2340,140 +2586,6 @@
       }
     },
     {
-      "cost": 270,
-      "description": "Su-25SM3",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "su_25_frogfoot",
-      "id": "eastern_su_25_frogfoot_su_25sm3",
-      "name": "Su-25SM3",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Su-25 Frogfoot",
-        "variant": "Su-25SM3"
-      }
-    },
-    {
-      "cost": 480,
-      "description": "Stealth multirole fighter",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "su_57_felon",
-      "id": "eastern_su_57_felon_stealth_multirole_fighter",
-      "name": "Su-57",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Su-57 Felon",
-        "variant": "Stealth multirole fighter"
-      }
-    },
-    {
-      "cost": 310,
-      "description": "Su-27SM3",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "sukhoi_flanker_family",
-      "id": "eastern_sukhoi_flanker_family_su_27sm3",
-      "name": "Su-27SM3",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Flanker",
-        "variant": "Su-27SM3"
-      }
-    },
-    {
-      "cost": 370,
-      "description": "Su-30SM2",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "sukhoi_flanker_family",
-      "id": "eastern_sukhoi_flanker_family_su_30sm2",
-      "name": "Su-30SM2",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "SEAD Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Flanker",
-        "variant": "Su-30SM2"
-      }
-    },
-    {
-      "cost": 410,
-      "description": "Su-35S",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "sukhoi_flanker_family",
-      "id": "eastern_sukhoi_flanker_family_su_35s",
-      "name": "Su-35S",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "eastern"
-        ],
-        "family_name": "Flanker",
-        "variant": "Su-35S"
-      }
-    },
-    {
       "cost": 200,
       "description": "1A2",
       "disabled_reason": "Air-defense targeting and airborne targets deferred",
@@ -2493,36 +2605,6 @@
         ],
         "family_name": "Gepard",
         "variant": "1A2"
-      }
-    },
-    {
-      "cost": 350,
-      "description": "E",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "jas_39_gripen",
-      "id": "europe_jas_39_gripen_e",
-      "name": "Gripen E",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Cluster bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "JAS 39 Gripen",
-        "variant": "E"
       }
     },
     {
@@ -2570,62 +2652,6 @@
       }
     },
     {
-      "cost": 290,
-      "description": "2000D RMV",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "mirage_2000",
-      "id": "europe_mirage_2000_2000d_rmv",
-      "name": "Mirage 2000D RMV",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Mirage 2000",
-        "variant": "2000D RMV"
-      }
-    },
-    {
-      "cost": 420,
-      "description": "C F4",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "rafale",
-      "id": "europe_rafale_c_f4",
-      "name": "Rafale F4",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Rafale",
-        "variant": "C F4"
-      }
-    },
-    {
       "cost": 60,
       "description": "Standard",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
@@ -2657,231 +2683,6 @@
         ],
         "family_name": "Scout Drone",
         "variant": "Thermal"
-      }
-    },
-    {
-      "cost": 310,
-      "description": "IDS",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "tornado",
-      "id": "europe_tornado_ids",
-      "name": "Tornado IDS",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Tornado",
-        "variant": "IDS"
-      }
-    },
-    {
-      "cost": 470,
-      "description": "F-35A",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "f_35_lightning_ii",
-      "id": "f_35a",
-      "name": "F-35A",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us",
-          "europe"
-        ],
-        "family_name": "F-35 Lightning II",
-        "variant": "F-35A"
-      }
-    },
-    {
-      "cost": 300,
-      "description": "A-10C",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "a_10_warthog",
-      "id": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
-      "name": "A-10C Warthog",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "A-10 Warthog",
-        "variant": "A-10C"
-      }
-    },
-    {
-      "cost": 400,
-      "description": "F-15E Strike Eagle",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "f_15_eagle",
-      "id": "us_f_15_eagle_f_15e_strike_eagle",
-      "name": "F-15E Strike Eagle",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "F-15 Eagle",
-        "variant": "F-15E Strike Eagle"
-      }
-    },
-    {
-      "cost": 430,
-      "description": "F-15EX Eagle II",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "f_15_eagle",
-      "id": "us_f_15_eagle_f_15ex_eagle_ii",
-      "name": "F-15EX Eagle II",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "F-15 Eagle",
-        "variant": "F-15EX Eagle II"
-      }
-    },
-    {
-      "cost": 500,
-      "description": "F-22A",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "f_22_raptor",
-      "id": "us_f_22_raptor_f_22a",
-      "name": "F-22A Raptor",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "F-22 Raptor",
-        "variant": "F-22A"
-      }
-    },
-    {
-      "cost": 490,
-      "description": "F-35B",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "f_35_lightning_ii",
-      "id": "us_f_35_lightning_ii_f_35b",
-      "name": "F-35B",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Cluster bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "F-35 Lightning II",
-        "variant": "F-35B"
-      }
-    },
-    {
-      "cost": 370,
-      "description": "F/A-18E",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "f_a_18_super_hornet",
-      "id": "us_f_a_18_super_hornet_f_a_18e",
-      "name": "F/A-18E",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "us"
-        ],
-        "family_name": "Super Hornet",
-        "variant": "F/A-18E"
       }
     },
     {
@@ -8089,22 +7890,92 @@
           }
         },
         "eastern_j_20_mighty_dragon_stealth_fighter": {
+          "appearance": "eastern_j_20_mighty_dragon_stealth_fighter",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                10.41,
+                6.51,
+                2.29
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 490,
           "description": "Stealth fighter",
           "faction": "eastern",
           "family": "j_20_mighty_dragon",
-          "name": "J-20",
-          "planned": {
-            "profile": "stealth-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            }
+          ],
+          "name": "J-20",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -8112,6 +7983,20 @@
             ],
             "family_name": "J-20",
             "variant": "Stealth fighter"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_ka_52_alligator_ka_52m": {
@@ -8878,30 +8763,134 @@
           }
         },
         "eastern_mig_29_fulcrum_mig_29smt": {
+          "appearance": "eastern_mig_29_fulcrum_mig_29smt",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                8.58,
+                5.67,
+                2.36
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 280,
           "description": "MiG-29SMT",
           "faction": "eastern",
           "family": "mig_29_fulcrum",
-          "name": "MiG-29SMT",
-          "planned": {
-            "profile": "fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Cluster bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cluster bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb_cluster"
+              ]
+            }
+          ],
+          "name": "MiG-29SMT",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -8909,29 +8898,130 @@
             ],
             "family_name": "MiG-29 Fulcrum",
             "variant": "MiG-29SMT"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_mig_31_foxhound_mig_31bm": {
+          "appearance": "eastern_mig_31_foxhound_mig_31bm",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                11.35,
+                6.74,
+                3.08
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 350,
           "description": "MiG-31BM",
           "faction": "eastern",
           "family": "mig_31_foxhound",
-          "name": "MiG-31BM",
-          "planned": {
-            "profile": "heavy-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            }
+          ],
+          "name": "MiG-31BM",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -8939,6 +9029,20 @@
             ],
             "family_name": "MiG-31 Foxhound",
             "variant": "MiG-31BM"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_orlan_10_reconnaissance_drone": {
@@ -9668,26 +9772,113 @@
           }
         },
         "eastern_su_25_frogfoot_su_25sm3": {
+          "appearance": "eastern_su_25_frogfoot_su_25sm3",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                8.11,
+                7.32,
+                2.4
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 270,
           "description": "Su-25SM3",
           "faction": "eastern",
           "family": "su_25_frogfoot",
-          "name": "Su-25SM3",
-          "planned": {
-            "profile": "attack-aircraft",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "Su-25SM3",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -9695,33 +9886,151 @@
             ],
             "family_name": "Su-25 Frogfoot",
             "variant": "Su-25SM3"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_su_57_felon_stealth_multirole_fighter": {
+          "appearance": "eastern_su_57_felon_stealth_multirole_fighter",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                10.0,
+                7.06,
+                2.31
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 480,
           "description": "Stealth multirole fighter",
           "faction": "eastern",
           "family": "su_57_felon",
-          "name": "Su-57",
-          "planned": {
-            "profile": "stealth-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "Su-57",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -9729,29 +10038,130 @@
             ],
             "family_name": "Su-57 Felon",
             "variant": "Stealth multirole fighter"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_sukhoi_flanker_family_su_27sm3": {
+          "appearance": "eastern_sukhoi_flanker_family_su_27sm3",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                10.9,
+                7.39,
+                2.96
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 310,
           "description": "Su-27SM3",
           "faction": "eastern",
           "family": "sukhoi_flanker_family",
-          "name": "Su-27SM3",
-          "planned": {
-            "profile": "fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            }
+          ],
+          "name": "Su-27SM3",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -9759,29 +10169,134 @@
             ],
             "family_name": "Flanker",
             "variant": "Su-27SM3"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_sukhoi_flanker_family_su_30sm2": {
+          "appearance": "eastern_sukhoi_flanker_family_su_30sm2",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                10.92,
+                7.39,
+                3.18
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "radar": {
+                "detection_m": 7000.0,
+                "emits": false
+              },
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": true
+            }
+          },
           "cost": 370,
           "description": "Su-30SM2",
           "faction": "eastern",
           "family": "sukhoi_flanker_family",
-          "name": "Su-30SM2",
-          "planned": {
-            "profile": "strike-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "SEAD Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "SEAD missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "sead_missile"
+              ]
+            }
+          ],
+          "name": "Su-30SM2",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -9789,6 +10304,20 @@
             ],
             "family_name": "Flanker",
             "variant": "Su-30SM2"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_sukhoi_flanker_family_su_34": {
@@ -9830,16 +10359,12 @@
                 "reload_s": 20.0
               },
               "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 7000.0,
-                "emits": false
-              },
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               },
-              "sead": true
+              "sead": false
             }
           },
           "cost": 390,
@@ -9918,27 +10443,6 @@
               "weapons": [
                 "air_bomb"
               ]
-            },
-            {
-              "id": "sead",
-              "muzzle_m": [
-                4.0,
-                0.0,
-                0.0
-              ],
-              "name": "SEAD missiles",
-              "on": null,
-              "pivot_m": [
-                0.0,
-                0.0,
-                1.2
-              ],
-              "special": false,
-              "squad": false,
-              "turret": false,
-              "weapons": [
-                "sead_missile"
-              ]
             }
           ],
           "name": "Su-34",
@@ -9969,26 +10473,113 @@
           }
         },
         "eastern_sukhoi_flanker_family_su_35s": {
+          "appearance": "eastern_sukhoi_flanker_family_su_35s",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                10.9,
+                7.65,
+                2.95
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 410,
           "description": "Su-35S",
           "faction": "eastern",
           "family": "sukhoi_flanker_family",
-          "name": "Su-35S",
-          "planned": {
-            "profile": "heavy-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            }
+          ],
+          "name": "Su-35S",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -9996,6 +10587,20 @@
             ],
             "family_name": "Flanker",
             "variant": "Su-35S"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "eastern_t_14_armata_main_battle_tank": {
@@ -13496,30 +14101,134 @@
           }
         },
         "europe_jas_39_gripen_e": {
+          "appearance": "europe_jas_39_gripen_e",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.6,
+                4.28,
+                2.25
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 350,
           "description": "E",
           "faction": "europe",
           "family": "jas_39_gripen",
-          "name": "Gripen E",
-          "planned": {
-            "profile": "fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Cluster bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cluster bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb_cluster"
+              ]
+            }
+          ],
+          "name": "Gripen E",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -13527,6 +14236,20 @@
             ],
             "family_name": "JAS 39 Gripen",
             "variant": "E"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_kamikaze_drone_anti_armor": {
@@ -14584,26 +15307,113 @@
           }
         },
         "europe_mirage_2000_2000d_rmv": {
+          "appearance": "europe_mirage_2000_2000d_rmv",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.2,
+                4.57,
+                2.6
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 290,
           "description": "2000D RMV",
           "faction": "europe",
           "family": "mirage_2000",
-          "name": "Mirage 2000D RMV",
-          "planned": {
-            "profile": "strike-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Iron bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb"
+              ]
+            }
+          ],
+          "name": "Mirage 2000D RMV",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -14611,6 +15421,20 @@
             ],
             "family_name": "Mirage 2000",
             "variant": "2000D RMV"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_nasams_long": {
@@ -15139,30 +15963,134 @@
           }
         },
         "europe_rafale_c_f4": {
+          "appearance": "europe_rafale_c_f4",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.63,
+                5.46,
+                2.67
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 420,
           "description": "C F4",
           "faction": "europe",
           "family": "rafale",
-          "name": "Rafale F4",
-          "planned": {
-            "profile": "fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "Rafale F4",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -15170,6 +16098,20 @@
             ],
             "family_name": "Rafale",
             "variant": "C F4"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_recon_patrol_light_patrol": {
@@ -15500,26 +16442,113 @@
           }
         },
         "europe_tornado_ids": {
+          "appearance": "europe_tornado_ids",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                8.38,
+                6.89,
+                2.98
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 310,
           "description": "IDS",
           "faction": "europe",
           "family": "tornado",
-          "name": "Tornado IDS",
-          "planned": {
-            "profile": "strike-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "Tornado IDS",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -15527,6 +16556,20 @@
             ],
             "family_name": "Tornado",
             "variant": "IDS"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_vbci_infantry_fighting_vehicle": {
@@ -15869,30 +16912,134 @@
           }
         },
         "f_35a": {
+          "appearance": "f_35a",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.82,
+                5.36,
+                2.2
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 470,
           "description": "F-35A",
           "faction": "us",
           "family": "f_35_lightning_ii",
-          "name": "F-35A",
-          "planned": {
-            "profile": "stealth-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Iron bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb"
+              ]
+            }
+          ],
+          "name": "F-35A",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -15901,6 +17048,20 @@
             ],
             "family_name": "F-35 Lightning II",
             "variant": "F-35A"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "fgm_148_javelin_team": {
@@ -16057,26 +17218,113 @@
           }
         },
         "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
+          "appearance": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                8.26,
+                8.77,
+                2.23
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 300,
           "description": "A-10C",
           "faction": "us",
           "family": "a_10_warthog",
-          "name": "A-10C Warthog",
-          "planned": {
-            "profile": "attack-aircraft",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "A-10C Warthog",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -16084,6 +17332,20 @@
             ],
             "family_name": "A-10 Warthog",
             "variant": "A-10C"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "us_acv_acv_p": {
@@ -16881,30 +18143,134 @@
           }
         },
         "us_f_15_eagle_f_15e_strike_eagle": {
+          "appearance": "us_f_15_eagle_f_15e_strike_eagle",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                9.75,
+                6.55,
+                2.82
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 400,
           "description": "F-15E Strike Eagle",
           "faction": "us",
           "family": "f_15_eagle",
-          "name": "F-15E Strike Eagle",
-          "planned": {
-            "profile": "strike-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Iron bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb"
+              ]
+            }
+          ],
+          "name": "F-15E Strike Eagle",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -16912,29 +18278,130 @@
             ],
             "family_name": "F-15 Eagle",
             "variant": "F-15E Strike Eagle"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "us_f_15_eagle_f_15ex_eagle_ii": {
+          "appearance": "us_f_15_eagle_f_15ex_eagle_ii",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                9.75,
+                6.55,
+                2.82
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 430,
           "description": "F-15EX Eagle II",
           "faction": "us",
           "family": "f_15_eagle",
-          "name": "F-15EX Eagle II",
-          "planned": {
-            "profile": "heavy-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            }
+          ],
+          "name": "F-15EX Eagle II",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -16942,29 +18409,130 @@
             ],
             "family_name": "F-15 Eagle",
             "variant": "F-15EX Eagle II"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "us_f_22_raptor_f_22a": {
+          "appearance": "us_f_22_raptor_f_22a",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                9.46,
+                6.79,
+                2.56
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 500,
           "description": "F-22A",
           "faction": "us",
           "family": "f_22_raptor",
-          "name": "F-22A Raptor",
-          "planned": {
-            "profile": "stealth-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            }
+          ],
+          "name": "F-22A Raptor",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -16972,33 +18540,151 @@
             ],
             "family_name": "F-22 Raptor",
             "variant": "F-22A"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "us_f_35_lightning_ii_f_35b": {
+          "appearance": "us_f_35_lightning_ii_f_35b",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.82,
+                5.36,
+                2.19
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 490,
           "description": "F-35B",
           "faction": "us",
           "family": "f_35_lightning_ii",
-          "name": "F-35B",
-          "planned": {
-            "profile": "stealth-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Cluster bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cluster bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb_cluster"
+              ]
+            }
+          ],
+          "name": "F-35B",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -17006,33 +18692,151 @@
             ],
             "family_name": "F-35 Lightning II",
             "variant": "F-35B"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "us_f_a_18_super_hornet_f_a_18e": {
+          "appearance": "us_f_a_18_super_hornet_f_a_18e",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                9.09,
+                6.84,
+                2.43
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 370,
           "description": "F/A-18E",
           "faction": "us",
           "family": "f_a_18_super_hornet",
-          "name": "F/A-18E",
-          "planned": {
-            "profile": "fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "F/A-18E",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -17040,6 +18844,20 @@
             ],
             "family_name": "Super Hornet",
             "variant": "F/A-18E"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "us_force_recon_recon_patrol": {
@@ -25693,6 +27511,119 @@
       "vehicle_class": "high_air_light"
     },
     {
+      "appearance": "eastern_j_20_mighty_dragon_stealth_fighter",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            10.41,
+            6.51,
+            2.29
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 490,
+      "description": "Stealth fighter",
+      "faction": "eastern",
+      "family": "j_20_mighty_dragon",
+      "id": "eastern_j_20_mighty_dragon_stealth_fighter",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        }
+      ],
+      "name": "J-20",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "J-20",
+        "variant": "Stealth fighter"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "appearance": "eastern_ka_52_alligator_ka_52m",
       "body": {
         "hull": {
@@ -26569,6 +28500,298 @@
         "profile": "vehicle"
       },
       "vehicle_class": "air_light"
+    },
+    {
+      "appearance": "eastern_mig_29_fulcrum_mig_29smt",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            8.58,
+            5.67,
+            2.36
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 280,
+      "description": "MiG-29SMT",
+      "faction": "eastern",
+      "family": "mig_29_fulcrum",
+      "id": "eastern_mig_29_fulcrum_mig_29smt",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cluster bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb_cluster"
+          ]
+        }
+      ],
+      "name": "MiG-29SMT",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "MiG-29 Fulcrum",
+        "variant": "MiG-29SMT"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "eastern_mig_31_foxhound_mig_31bm",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            11.35,
+            6.74,
+            3.08
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 350,
+      "description": "MiG-31BM",
+      "faction": "eastern",
+      "family": "mig_31_foxhound",
+      "id": "eastern_mig_31_foxhound_mig_31bm",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        }
+      ],
+      "name": "MiG-31BM",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "MiG-31 Foxhound",
+        "variant": "MiG-31BM"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "eastern_pantsir_pantsir_sm",
@@ -27510,6 +29733,572 @@
       "vehicle_class": null
     },
     {
+      "appearance": "eastern_su_25_frogfoot_su_25sm3",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            8.11,
+            7.32,
+            2.4
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 270,
+      "description": "Su-25SM3",
+      "faction": "eastern",
+      "family": "su_25_frogfoot",
+      "id": "eastern_su_25_frogfoot_su_25sm3",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "Su-25SM3",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Su-25 Frogfoot",
+        "variant": "Su-25SM3"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "eastern_su_57_felon_stealth_multirole_fighter",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            10.0,
+            7.06,
+            2.31
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 480,
+      "description": "Stealth multirole fighter",
+      "faction": "eastern",
+      "family": "su_57_felon",
+      "id": "eastern_su_57_felon_stealth_multirole_fighter",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "Su-57",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Su-57 Felon",
+        "variant": "Stealth multirole fighter"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "eastern_sukhoi_flanker_family_su_27sm3",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            10.9,
+            7.39,
+            2.96
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 310,
+      "description": "Su-27SM3",
+      "faction": "eastern",
+      "family": "sukhoi_flanker_family",
+      "id": "eastern_sukhoi_flanker_family_su_27sm3",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        }
+      ],
+      "name": "Su-27SM3",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Flanker",
+        "variant": "Su-27SM3"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "eastern_sukhoi_flanker_family_su_30sm2",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            10.92,
+            7.39,
+            3.18
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "radar": {
+            "detection_m": 7000.0,
+            "emits": false
+          },
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": true
+        }
+      },
+      "cost": 370,
+      "description": "Su-30SM2",
+      "faction": "eastern",
+      "family": "sukhoi_flanker_family",
+      "id": "eastern_sukhoi_flanker_family_su_30sm2",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "SEAD missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "sead_missile"
+          ]
+        }
+      ],
+      "name": "Su-30SM2",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Flanker",
+        "variant": "Su-30SM2"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "appearance": "eastern_sukhoi_flanker_family_su_34",
       "body": {
         "hull": {
@@ -27548,16 +30337,12 @@
             "reload_s": 20.0
           },
           "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 7000.0,
-            "emits": false
-          },
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           },
-          "sead": true
+          "sead": false
         }
       },
       "cost": 390,
@@ -27640,28 +30425,6 @@
           "weapons": [
             "air_bomb"
           ]
-        },
-        {
-          "carriers": [],
-          "id": "sead",
-          "muzzle_m": [
-            4.0,
-            0.0,
-            0.0
-          ],
-          "name": "SEAD missiles",
-          "on": null,
-          "pivot_m": [
-            0.0,
-            0.0,
-            1.2
-          ],
-          "special": false,
-          "squad": false,
-          "turret": false,
-          "weapons": [
-            "sead_missile"
-          ]
         }
       ],
       "name": "Su-34",
@@ -27675,6 +30438,141 @@
         ],
         "family_name": "Flanker",
         "variant": "Su-34"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "eastern_sukhoi_flanker_family_su_35s",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            10.9,
+            7.65,
+            2.95
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 410,
+      "description": "Su-35S",
+      "faction": "eastern",
+      "family": "sukhoi_flanker_family",
+      "id": "eastern_sukhoi_flanker_family_su_35s",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        }
+      ],
+      "name": "Su-35S",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Flanker",
+        "variant": "Su-35S"
       },
       "sensors": {
         "ground_m": 1.0,
@@ -31341,6 +34239,163 @@
       "vehicle_class": "wheeled_medium"
     },
     {
+      "appearance": "europe_jas_39_gripen_e",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.6,
+            4.28,
+            2.25
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 350,
+      "description": "E",
+      "faction": "europe",
+      "family": "jas_39_gripen",
+      "id": "europe_jas_39_gripen_e",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cluster bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb_cluster"
+          ]
+        }
+      ],
+      "name": "Gripen E",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "JAS 39 Gripen",
+        "variant": "E"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "appearance": "europe_kf51_panther_prototype_main_battle_tank",
       "body": {
         "hull": {
@@ -32520,6 +35575,141 @@
       "vehicle_class": "wheeled_medium"
     },
     {
+      "appearance": "europe_mirage_2000_2000d_rmv",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.2,
+            4.57,
+            2.6
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 290,
+      "description": "2000D RMV",
+      "faction": "europe",
+      "family": "mirage_2000",
+      "id": "europe_mirage_2000_2000d_rmv",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Iron bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb"
+          ]
+        }
+      ],
+      "name": "Mirage 2000D RMV",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Mirage 2000",
+        "variant": "2000D RMV"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "appearance": "us_stryker_m1296_dragoon",
       "body": {
         "hull": {
@@ -33062,6 +36252,163 @@
       "vehicle_class": "tracked_heavy"
     },
     {
+      "appearance": "europe_rafale_c_f4",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.63,
+            5.46,
+            2.67
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 420,
+      "description": "C F4",
+      "faction": "europe",
+      "family": "rafale",
+      "id": "europe_rafale_c_f4",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "Rafale F4",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Rafale",
+        "variant": "C F4"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "body": {
         "squad": {
           "slots": [
@@ -33413,6 +36760,141 @@
       "vehicle_class": "high_air_light"
     },
     {
+      "appearance": "europe_tornado_ids",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            8.38,
+            6.89,
+            2.98
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 310,
+      "description": "IDS",
+      "faction": "europe",
+      "family": "tornado",
+      "id": "europe_tornado_ids",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "Tornado IDS",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Tornado",
+        "variant": "IDS"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "appearance": "europe_vbci_infantry_fighting_vehicle",
       "body": {
         "hull": {
@@ -33745,6 +37227,164 @@
         ],
         "family_name": "F-16",
         "variant": "F-16C Block 50"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "f_35a",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.82,
+            5.36,
+            2.2
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 470,
+      "description": "F-35A",
+      "faction": "us",
+      "family": "f_35_lightning_ii",
+      "id": "f_35a",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Iron bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb"
+          ]
+        }
+      ],
+      "name": "F-35A",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us",
+          "europe"
+        ],
+        "family_name": "F-35 Lightning II",
+        "variant": "F-35A"
       },
       "sensors": {
         "ground_m": 1.0,
@@ -34153,6 +37793,141 @@
         "profile": "infantry"
       },
       "vehicle_class": null
+    },
+    {
+      "appearance": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            8.26,
+            8.77,
+            2.23
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 300,
+      "description": "A-10C",
+      "faction": "us",
+      "family": "a_10_warthog",
+      "id": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "A-10C Warthog",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "A-10 Warthog",
+        "variant": "A-10C"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
     },
     {
       "appearance": "us_acv_acv_p",
@@ -35079,6 +38854,747 @@
         ],
         "family_name": "EA-18G Growler",
         "variant": "Electronic-warfare aircraft"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "us_f_15_eagle_f_15e_strike_eagle",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            9.75,
+            6.55,
+            2.82
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 400,
+      "description": "F-15E Strike Eagle",
+      "faction": "us",
+      "family": "f_15_eagle",
+      "id": "us_f_15_eagle_f_15e_strike_eagle",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Iron bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb"
+          ]
+        }
+      ],
+      "name": "F-15E Strike Eagle",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-15 Eagle",
+        "variant": "F-15E Strike Eagle"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "us_f_15_eagle_f_15ex_eagle_ii",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            9.75,
+            6.55,
+            2.82
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 430,
+      "description": "F-15EX Eagle II",
+      "faction": "us",
+      "family": "f_15_eagle",
+      "id": "us_f_15_eagle_f_15ex_eagle_ii",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        }
+      ],
+      "name": "F-15EX Eagle II",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-15 Eagle",
+        "variant": "F-15EX Eagle II"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "us_f_22_raptor_f_22a",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            9.46,
+            6.79,
+            2.56
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 500,
+      "description": "F-22A",
+      "faction": "us",
+      "family": "f_22_raptor",
+      "id": "us_f_22_raptor_f_22a",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        }
+      ],
+      "name": "F-22A Raptor",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-22 Raptor",
+        "variant": "F-22A"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "us_f_35_lightning_ii_f_35b",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.82,
+            5.36,
+            2.19
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 490,
+      "description": "F-35B",
+      "faction": "us",
+      "family": "f_35_lightning_ii",
+      "id": "us_f_35_lightning_ii_f_35b",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cluster bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb_cluster"
+          ]
+        }
+      ],
+      "name": "F-35B",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "F-35 Lightning II",
+        "variant": "F-35B"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "us_f_a_18_super_hornet_f_a_18e",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            9.09,
+            6.84,
+            2.43
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 370,
+      "description": "F/A-18E",
+      "faction": "us",
+      "family": "f_a_18_super_hornet",
+      "id": "us_f_a_18_super_hornet_f_a_18e",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "F/A-18E",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "us"
+        ],
+        "family_name": "Super Hornet",
+        "variant": "F/A-18E"
       },
       "sensors": {
         "ground_m": 1.0,
