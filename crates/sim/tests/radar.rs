@@ -327,28 +327,46 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
     }
 }
 
+/// The test rules with `test_heli` flying as a SEAD jet whose radar reaches
+/// `reach_m`, and `test_jeep` carrying a radar that emits or not.
+fn sead_rules(reach_m: f64, jeep_emits: bool) -> serde_json::Value {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_heli",
+        json!({
+            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
+            "capabilities": { "air": {
+                "fuel_capacity_s": 180.0,
+                "sead": true,
+                "radar": { "emits": false, "detection_m": reach_m },
+                "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
+            }}
+        }),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "capabilities": {
+            "air_defense": { "tier": "short" },
+            "radar": { "emits": jeep_emits, "detection_m": if jeep_emits { reach_m } else { 0.0 } }
+        }}),
+    );
+    rules
+}
+
 #[test]
-fn a_sead_jet_finds_the_gepard_by_its_radar_but_not_a_silent_skyranger() {
-    // The Gepard's search radar emits; the Skyranger beside it in the short
-    // tier does not, so only the Gepard shows up on a SEAD jet's radar.
-    const SEAD: &str = "eastern_sukhoi_flanker_family_su_30sm2";
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    let jet = rules.catalog.get(rules.catalog.index(SEAD).unwrap());
-    let reach = jet
-        .capabilities
-        .air
-        .as_ref()
-        .unwrap()
-        .radar
-        .unwrap()
-        .detection_m;
-    let radar_contacts = |emitter: &str| {
+fn a_sead_jet_finds_an_emitting_radar_but_not_a_silent_one() {
+    let reach = 1000.0;
+    let radar_contacts = |emits: bool| {
         let setup = serde_json::from_value(json!({
-            "map": { "size": [3000, 1000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-            "rules": sim::fixtures::game(),
+            "map": { "size": [2.0 * reach, reach], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": sead_rules(reach, emits),
             "units": [
-                { "side": "red", "kind": SEAD, "position": [200, 500], "yaw": 0.0 },
-                { "side": "blue", "kind": emitter, "position": [200.0 + 0.5 * reach.min(2600.0), 500.0] }
+                { "side": "red", "kind": "test_heli", "position": [0.5 * reach, 0.5 * reach], "yaw": 0.0 },
+                { "side": "blue", "kind": "test_jeep", "position": [reach, 0.5 * reach] }
             ],
             "events": [], "scripts": []
         }))
@@ -361,37 +379,71 @@ fn a_sead_jet_finds_the_gepard_by_its_radar_but_not_a_silent_skyranger() {
             .filter(|c| c.source == ContactSource::Radar)
             .count()
     };
-    assert_eq!(
-        radar_contacts("europe_gepard_1a2"),
-        1,
-        "the Gepard's radar is found"
-    );
-    assert_eq!(
-        radar_contacts("europe_boxer_skyranger_30_gun_and_missile_air_defense"),
-        0,
-        "a silent short-range gun is not"
-    );
+    assert_eq!(radar_contacts(true), 1, "an emitting radar is found");
+    assert_eq!(radar_contacts(false), 0, "a silent one is not");
 }
 
 #[test]
-fn an_emitting_radar_sees_high_air_out_to_its_detection_range() {
-    // Emitting is the cost of a radar; its reach is the payoff. The Gepard's
-    // radar picks up a jet 2 km out that its optics never would.
-    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    let gepard = rules
-        .catalog
-        .get(rules.catalog.index("europe_gepard_1a2").unwrap());
-    let radar = gepard.capabilities.radar.unwrap();
-    assert!(radar.emits);
-    let out_m = 0.65 * radar.detection_m;
-    assert!(out_m > 1500.0, "the radar reaches past the gun's 1.5 km");
+fn an_emitting_radar_sees_high_air_to_its_detection_range() {
+    // Emitting is the cost of a radar; its reach is the payoff: a jet half
+    // its reach out is seen, one past it is not.
+    let reach = 1000.0;
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "capabilities": {
+            "air_defense": { "tier": "short" },
+            "radar": { "emits": true, "detection_m": reach }
+        }}),
+    );
+    let seen = |across_m: f64| {
+        let setup = serde_json::from_value(json!({
+            "map": { "size": [3.0 * reach, reach], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": rules.clone(),
+            "units": [
+                { "side": "blue", "kind": "test_jeep", "position": [0.5 * reach, 0.5 * reach], "yaw": 0.0 },
+                { "side": "red", "kind": "test_jet", "position": [0.5 * reach + across_m, 0.5 * reach],
+                  "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        b.step();
+        b.step();
+        !b.observe(Side::Blue).identified.is_empty()
+    };
+    assert!(
+        seen(0.5 * reach),
+        "a jet half the radar's reach out is seen"
+    );
+    assert!(!seen(1.5 * reach), "one past its reach is not");
+}
+
+/// Whether `spotter` of the test rules, with `unaided` as the rules' high-air
+/// sight without radar and `patch` applied to it, identifies the test jet
+/// cruising in high air `across_m` away across the ground. The spotter faces
+/// the jet, which flies abeam, so it stays about that far off.
+fn spots_jet(
+    spotter: &str,
+    patch: serde_json::Value,
+    unaided: serde_json::Value,
+    across_m: f64,
+) -> bool {
+    let mut rules = sim::fixtures::test_game();
+    rules["sensors"]["unaided_high_air_m"] = unaided;
+    sim::fixtures::patch_catalog(&mut rules, "units", spotter, patch);
+    let size = 2.0 * across_m + 400.0;
     let setup = serde_json::from_value(json!({
-        "map": { "size": [4000, 1000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-        "rules": sim::fixtures::game(),
+        "map": { "size": [size, 400.0], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
         "units": [
-            { "side": "blue", "kind": "europe_gepard_1a2", "position": [200, 500], "yaw": 0.0 },
-            { "side": "red", "kind": "f_16c_block_50", "position": [200.0 + out_m, 500.0],
-              "yaw": 0.0, "engagement": "return_fire_only" }
+            { "side": "blue", "kind": spotter, "position": [200, 200], "yaw": 0.0,
+              "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_jet", "position": [200.0 + across_m, 200.0],
+              "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
         ],
         "events": [], "scripts": []
     }))
@@ -399,9 +451,43 @@ fn an_emitting_radar_sees_high_air_out_to_its_detection_range() {
     let mut b = Battle::new(&setup, 1);
     b.step();
     b.step();
-    assert_eq!(
-        b.observe(Side::Blue).identified.len(),
-        1,
-        "the jet {out_m:.0} m out is on the Gepard's radar"
+    !b.observe(Side::Blue).identified.is_empty()
+}
+
+#[test]
+fn without_radar_a_unit_sees_a_cruising_jet_as_far_as_its_body_looks_up() {
+    // Soldiers on foot, an aircraft's crew and a ground vehicle's crew each
+    // see high air as far as the rules' unaided row for them says (slant
+    // range to a jet at cruise height): within half that reach across the
+    // ground, never past one and a half times it. A unit authoring 0 is
+    // blind even directly beneath the jet.
+    let unaided = json!({ "on_foot": 900.0, "aircraft": 800.0, "ground_vehicle": 700.0 });
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let cruise = rules.air.high_air.cruise_agl_m;
+    for (spotter, reach) in [
+        ("test_rifle", 900.0),
+        ("test_heli", 800.0),
+        ("test_supply", 700.0),
+    ] {
+        assert!(
+            (0.25 * reach * reach + cruise * cruise).sqrt() < reach,
+            "half of {reach} m across is inside the slant reach to {cruise} m up"
+        );
+        assert!(
+            spots_jet(spotter, json!({}), unaided.clone(), 0.5 * reach),
+            "{spotter} sees it {} m off",
+            0.5 * reach
+        );
+        assert!(
+            !spots_jet(spotter, json!({}), unaided.clone(), 1.5 * reach),
+            "{spotter} does not see it {} m off",
+            1.5 * reach
+        );
+    }
+    let blind = json!({ "sensors": { "high_air_m": 0.0 } });
+    assert!(
+        !spots_jet("test_tank", blind, unaided, 0.0),
+        "a unit authoring 0 never sees it, even directly beneath"
     );
 }

@@ -838,7 +838,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -948,7 +948,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -1403,7 +1403,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -1531,7 +1531,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -1964,7 +1964,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -2074,7 +2074,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -2202,7 +2202,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -2312,7 +2312,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -2330,7 +2330,7 @@
           "sead": true,
           "radar": {
             "emits": false,
-            "detection_m": 7000
+            "detection_m": 5000
           },
           "refund": {
             "health": 0.4,
@@ -2426,7 +2426,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -2554,7 +2554,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -3297,6 +3297,7 @@
       ],
       "appearance": "eastern_type_15_ztq_15_light_tank",
       "sensors": {
+        "high_air_m": 0,
         "on": "cannon"
       }
     },

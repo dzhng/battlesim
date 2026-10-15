@@ -25,7 +25,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::observation::SoundCategory;
-use crate::scenario::{Armor, Blocks, CoverTier, PushClass, SightShape, WeightClass};
+use crate::scenario::{
+    Armor, Blocks, CoverTier, PushClass, SightShape, UnaidedHighAirSight, WeightClass,
+};
 use crate::weapons::MountDefinition;
 
 /// A unit type's place in the catalog: its rank among the ids in sorted order.
@@ -324,12 +326,13 @@ pub struct Sensors {
     /// author an air reach (legacy ground rows leave it absent).
     #[serde(default)]
     pub low_air_m: f64,
-    /// Detection reach for the high-air band. Zero means this sensor does not
-    /// author an air reach (legacy ground rows leave it absent). A unit whose
-    /// radar emits never authors it: the radar's reach is its high-air sight
+    /// Its own reach into the high-air band; absent, it sees high air
+    /// unaided, by its body (the rules' `sensors.unaided_high_air_m`), and
+    /// an authored 0 is blind to it. A unit whose radar emits never authors
+    /// it: the radar's reach is its high-air sight
     /// ([`UnitType::high_air_sight_m`]).
-    #[serde(default)]
-    pub high_air_m: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high_air_m: Option<f64>,
     /// Reach by direction as multipliers of `ground_m`; 1/1/1 sees evenly.
     pub sight_shape: SightShape,
     /// Bonus to concealed-target detection reach (at least 1), capped at ordinary sight reach.
@@ -939,12 +942,18 @@ impl Catalog {
 impl UnitType {
     /// How far the unit sees the high-air band: an emitting radar's reach,
     /// since emitting is what a radar costs and seeing far is what it buys;
-    /// else its authored high-air sight; else its ground sight.
-    pub fn high_air_sight_m(&self) -> f64 {
-        match self.capabilities.radar {
-            Some(radar) if radar.emits => radar.detection_m,
-            _ if self.sensors.high_air_m > 0.0 => self.sensors.high_air_m,
-            _ => self.sensors.ground_m,
+    /// else its own authored high-air sight; else what it sees unaided
+    /// (D48): soldiers on foot and aircrew look up, while a ground vehicle's
+    /// crew sees little overhead.
+    pub fn high_air_sight_m(&self, unaided: &UnaidedHighAirSight) -> f64 {
+        match (self.capabilities.radar, self.sensors.high_air_m) {
+            (Some(radar), _) if radar.emits => radar.detection_m,
+            (_, Some(authored)) => authored,
+            _ => match (&self.body, &self.mobility) {
+                (Body::Squad { .. }, _) => unaided.on_foot,
+                (Body::Hull(_), Mobility::Air { .. }) => unaided.aircraft,
+                (Body::Hull(_), _) => unaided.ground_vehicle,
+            },
         }
     }
 
@@ -1797,7 +1806,7 @@ fn check(
         if radar.emits && !positive(radar.detection_m) {
             return rule("capabilities.radar detection_m must be positive when it emits");
         }
-        if radar.emits && t.sensors.high_air_m > 0.0 {
+        if radar.emits && t.sensors.high_air_m.is_some() {
             return rule(
                 "sensors.high_air_m: a unit whose radar emits sees high air by its radar's detection_m; drop the sensor reach",
             );
@@ -1902,7 +1911,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
             .then_some("sensors.concealed_range_multiplier must be finite and at least 1")
     })
     .or_else(|| {
-        (![t.sensors.low_air_m, t.sensors.high_air_m]
+        (![t.sensors.low_air_m, t.sensors.high_air_m.unwrap_or(0.0)]
             .into_iter()
             .all(at_least_zero))
         .then_some("sensors air ranges must be finite and nonnegative")

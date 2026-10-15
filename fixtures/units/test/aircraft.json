@@ -25,7 +25,7 @@
         }
       },
       "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air", "flight": "fixed_wing", "arrival": { "delay_s": [15, 30] } } },
-      "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
+      "sensors": { "ground_m": 700, "high_air_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "capabilities": { "air": {
         "fuel_capacity_s": 180,
         "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
