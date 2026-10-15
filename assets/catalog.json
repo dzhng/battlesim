@@ -6411,6 +6411,196 @@
         "footprint_m": 2.4
       }
     },
+    "eastern_j_20_mighty_dragon_stealth_fighter": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_j_20_mighty_dragon_stealth_fighter_wreck",
+      "tolerances": {
+        "hull_extent_m": 0.2
+      }
+    },
+    "eastern_j_20_mighty_dragon_stealth_fighter_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        10.41,
+        6.51,
+        2.29
+      ],
+      "tolerances": {
+        "footprint_m": 2.4
+      }
+    },
+    "eastern_mig_29_fulcrum_mig_29smt": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_mig_29_fulcrum_mig_29smt_wreck"
+    },
+    "eastern_mig_29_fulcrum_mig_29smt_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.58,
+        5.67,
+        2.36
+      ],
+      "tolerances": {
+        "footprint_m": 2.2
+      }
+    },
+    "eastern_mig_31_foxhound_mig_31bm": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_mig_31_foxhound_mig_31bm_wreck"
+    },
+    "eastern_mig_31_foxhound_mig_31bm_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        11.35,
+        6.74,
+        3.08
+      ],
+      "tolerances": {
+        "footprint_m": 2.5
+      }
+    },
+    "eastern_su_25_frogfoot_su_25sm3": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_su_25_frogfoot_su_25sm3_wreck",
+      "tolerances": {
+        "hull_extent_m": 0.3
+      }
+    },
+    "eastern_su_25_frogfoot_su_25sm3_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.11,
+        7.32,
+        2.4
+      ],
+      "tolerances": {
+        "footprint_m": 2.5
+      }
+    },
+    "eastern_su_57_felon_stealth_multirole_fighter": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_su_57_felon_stealth_multirole_fighter_wreck"
+    },
+    "eastern_su_57_felon_stealth_multirole_fighter_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        10,
+        7.06,
+        2.31
+      ],
+      "tolerances": {
+        "footprint_m": 2.6
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_27sm3": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_sukhoi_flanker_family_su_27sm3_wreck"
+    },
+    "eastern_sukhoi_flanker_family_su_27sm3_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        10.9,
+        7.39,
+        2.96
+      ],
+      "tolerances": {
+        "footprint_m": 1.7
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_30sm2": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_sukhoi_flanker_family_su_30sm2_wreck"
+    },
+    "eastern_sukhoi_flanker_family_su_30sm2_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        10.92,
+        7.39,
+        3.18
+      ],
+      "tolerances": {
+        "footprint_m": 1.7
+      }
+    },
+    "eastern_sukhoi_flanker_family_su_35s": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "eastern_sukhoi_flanker_family_su_35s_wreck"
+    },
+    "eastern_sukhoi_flanker_family_su_35s_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s_wreck.glb",
+        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        10.9,
+        7.65,
+        2.95
+      ],
+      "tolerances": {
+        "footprint_m": 1.8
+      }
+    },
     "europe_jas_39_gripen_e": {
       "unit": "vehicle",
       "source": "assets/source/roster/disabled/europe_jas_39_gripen_e.glb",

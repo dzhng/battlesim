@@ -6,16 +6,6 @@
   },
   "entries": [
     {
-      "id": "eastern_j_20_mighty_dragon_stealth_fighter",
-      "family": "j_20_mighty_dragon",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "j_20_mighty_dragon",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter.glb"
-    },
-    {
       "id": "eastern_kamikaze_drone_anti_armor",
       "family": "kamikaze_drone",
       "category": "sup",
@@ -36,26 +26,6 @@
       "source_path": "assets/source/roster/kamikaze_drone/eastern_kamikaze_drone_anti_personnel.glb"
     },
     {
-      "id": "eastern_mig_29_fulcrum_mig_29smt",
-      "family": "mig_29_fulcrum",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "mig_29_fulcrum",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt.glb"
-    },
-    {
-      "id": "eastern_mig_31_foxhound_mig_31bm",
-      "family": "mig_31_foxhound",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "mig_31_foxhound",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm.glb"
-    },
-    {
       "id": "eastern_orlan_10_reconnaissance_drone",
       "family": "orlan_10",
       "category": "rec",
@@ -74,56 +44,6 @@
       "source_kind": "ground_vehicle",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
       "source_path": "assets/source/roster/scout_drone/eastern_scout_drone_thermal.glb"
-    },
-    {
-      "id": "eastern_su_25_frogfoot_su_25sm3",
-      "family": "su_25_frogfoot",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "su_25_frogfoot",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3.glb"
-    },
-    {
-      "id": "eastern_su_57_felon_stealth_multirole_fighter",
-      "family": "su_57_felon",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "su_57_felon",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter.glb"
-    },
-    {
-      "id": "eastern_sukhoi_flanker_family_su_27sm3",
-      "family": "sukhoi_flanker_family",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "sukhoi_flanker_family",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3.glb"
-    },
-    {
-      "id": "eastern_sukhoi_flanker_family_su_30sm2",
-      "family": "sukhoi_flanker_family",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "sukhoi_flanker_family",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2.glb"
-    },
-    {
-      "id": "eastern_sukhoi_flanker_family_su_35s",
-      "family": "sukhoi_flanker_family",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "sukhoi_flanker_family",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb"
     },
     {
       "id": "europe_gepard_1a2",
