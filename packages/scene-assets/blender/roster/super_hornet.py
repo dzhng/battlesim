@@ -47,7 +47,7 @@ def spec(variant):
         bodies=[("fuselage_spine", [(2.2 if growler else 3.1, 0.36, 2.8, 3.32, 2.9, 2.4),
                                     (0.0, 0.4, 2.8, 3.06, 2.9, 2.6), (-3.6, 0.0, 2.6, 2.6)])],
         wing_hinge=(0.12, 0.76),
-        strake=[(6.4, 0.55, 2.52, 5.0, 0.1), (1.7, 1.45, WING_Z + 0.02, 0.9, 0.08)],
+        strake=[(6.4, 0.55, 2.55, 5.0, 0.1), (1.95, 2.05, WING_Z + 0.04, 0.95, 0.07)],
         wing=[(1.75, 1.1, WING_Z, 4.7, 0.28), (-1.45, TIP_Y - 0.08, WING_Z - 0.02, 1.6, 0.06)],
         stab=[(-5.65, 0.9, 2.02, 2.7, 0.12), (-7.65, 3.45, 1.96, 1.25, 0.05)],
         fins=[dict(root_x=-3.55, root_z=2.5, height=2.5, root_chord=3.2, tip_chord=1.3, sweep_m=2.15, y=0.78,
@@ -69,7 +69,7 @@ def spec(variant):
     )
     if growler:
         s["stores"] += [("pod", (-0.9, 4.0, 1.66), 4.6, 0.36), ("pod", (-1.0, 0.0, 0.98), 4.6, 0.36),
-                        ("pod", (-1.6, TIP_Y, WING_Z), 2.6, 0.17)]
+                        ("pod", (-1.6, TIP_Y, WING_Z), 3.0, 0.23)]
     else:
         s["stores"] += [("missile", (-1.0, 4.0, 1.9), 3.65, 0.09), ("missile", (-1.6, TIP_Y, WING_Z), 3.0, 0.065)]
     return s
@@ -124,4 +124,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.0, wing_y=3.6, wing_side=-1, tail_yaw=-0.3, seed=18)
 
 
-run_disabled("super_hornet", CARDS, "us_compass_grey", build, wreck)
+run_disabled("super_hornet", CARDS, "us_compass_grey", build, wreck, references="ea_18g_growler")
