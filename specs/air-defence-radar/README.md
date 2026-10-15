@@ -25,7 +25,7 @@ Most of it is data, because the sim already shares every sighting across the sid
 ## What the sim does today (2026-10-15)
 
 - **Seeing aircraft** is per-layer sight on each unit type (`sensors.low_air_m` and `sensors.high_air_m`; `crates/sim/src/sight.rs`, `of_layer`). Air-defence rows carry long air sight: short-range AA about 900 m, medium 3,200 m, long-range 7,000 m against high air. Every other unit sees aircraft at its ground sight range, in 3D.
-- **Emitting** (`capabilities.radar.emits`) only makes a ground unit findable by SEAD aircraft. Their own `radar.detection_m` decides the reach (`crates/sim/src/knowledge.rs`, `update_radar`). Medium and long-range AA emit. In the short tier only the Gepard emits: it gained its search radar on 2026-10-15.
+- **Emitting** (`capabilities.radar.emits`): radar emitters that SEAD finds are any ground unit whose radar emits. Their own `radar.detection_m` decides the reach (`crates/sim/src/knowledge.rs`, `update_radar`). The SAM vehicles emit; of the gun vehicles only the Gepard does: it gained its search radar on 2026-10-15. There is no air-defence tier or flag (D52).
 - **Sightings are shared by the side**, so any unit may fire at a target another unit sees, within its weapon's reach.
 
 ## Open questions
