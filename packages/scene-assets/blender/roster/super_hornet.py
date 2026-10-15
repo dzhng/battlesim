@@ -29,6 +29,8 @@ E, G = "us_f_a_18_super_hornet_f_a_18e", "us_ea_18g_growler_electronic_warfare_a
 CARDS = {E: (18.31, 13.62, 4.88), G: (18.31, 13.62, 4.88)}
 
 WING_Z = 2.45
+# The nose's tip and the tail's last point (the nozzles' and fins' trailing edges).
+NOSE_X, TAIL_X = 9.28, -8.9
 TIP_Y = 6.72
 
 
@@ -118,10 +120,14 @@ def build(variant, v):
         ("text", dict(text=code, height=0.6, centre=(-5.4, 0.78 + 1.5 * fin_up[1] + 0.3, 2.5 + 1.5 * fin_up[2]),
                       normal=fin_n, up=fin_up, onto=("tail_fin_",))),
     ])
+    # The stations run from the nose at 9.28 m to the tail at -8.9 m: the
+    # airframe stands centred on its length, as its frame's hull is.
+    hull.location.x = -(NOSE_X + TAIL_X) / 2
 
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-5.0, wing_y=3.6, wing_side=-1, tail_yaw=-0.3, seed=18)
+    # Its litter kept within the wreck's footprint on this wide a span.
+    A.crash(v, tail_x=-5.0, wing_y=3.6, wing_side=-1, tail_yaw=-0.3, seed=18, litter_reach=0.95)
 
 
 run_disabled("super_hornet", CARDS, "us_compass_grey", build, wreck, references="ea_18g_growler")
