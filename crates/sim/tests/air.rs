@@ -1001,3 +1001,31 @@ fn a_downed_jet_crossing_the_edge_just_ends() {
     );
     assert_eq!(fell, sim::crash::Fall::LeftMap);
 }
+
+#[test]
+fn a_high_air_unit_lights_no_ground_fog_in_its_sides_picture() {
+    // High air never sees the ground, so its own side's drawn fog gets no
+    // eye from it; a helicopter, low over the ground, still gives one.
+    let fixture = fixture();
+    let b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_jet", "position": [300, 200], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_heli", "position": [200, 200], "yaw": 0.0 },
+        ]),
+    );
+    let frame = b.observe(Side::Blue);
+    let eyes = |id: u32| {
+        frame
+            .own
+            .iter()
+            .find(|u| u.id == UnitId(id))
+            .unwrap_or_else(|| panic!("unit {id} is fielded"))
+            .sight
+            .eyes
+            .len()
+    };
+    assert_eq!(eyes(0), 0, "a high-air unit lights no ground fog");
+    assert!(eyes(1) > 0, "a low-air unit still does");
+}

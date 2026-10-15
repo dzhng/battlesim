@@ -78,6 +78,13 @@ pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
 /// [`crate::garrison::facade_eyes`]). The fog sweep, identification and the
 /// published `UnitSight::eyes` the renderer's fog draws all read this one
 /// list. There is no extra all-round roof sensor.
+/// Whether `unit` sees the ground at all. High air never does: it flies
+/// lowered for play but still as far above the battle as a real jet, so the
+/// ground and its fog are out of its sight (air-to-air sight is unaffected).
+pub fn sees_ground(unit: &Unit) -> bool {
+    unit.layer() != AltitudeLayer::HighAir
+}
+
 pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
     let facades = crate::garrison::facade_eyes(unit, rules);
     if facades.is_empty() {
@@ -213,10 +220,10 @@ pub fn evaluate(
         .iter()
         .filter(|u| u.side == side && u.alive() && due(u))
     {
-        // Nothing in HighAir sees the ground. It still runs the same
-        // optical pass for LowAir and HighAir targets, so air-to-air sensing
-        // remains authoritative here.
-        let observer_layer = observer.layer();
+        // An observer that doesn't see the ground still runs the same
+        // optical pass for air targets, so air-to-air sensing remains
+        // authoritative here.
+        let sees_ground = sees_ground(observer);
         let from = eyes(observer, rules);
         let concealed_range_multiplier =
             observer.unit_type(rules).sensors.concealed_range_multiplier;
@@ -224,7 +231,7 @@ pub fn evaluate(
         for (target, target_radius, samples) in &targets {
             let (target, target_radius) = (*target, *target_radius);
             let sight = crate::sight::of_layer(observer, rules, target.layer());
-            if observer_layer == AltitudeLayer::HighAir && target.layer() == AltitudeLayer::Ground {
+            if !sees_ground && target.layer() == AltitudeLayer::Ground {
                 continue;
             }
             // Every eye and sample lies within `spread` of the two centres, so
