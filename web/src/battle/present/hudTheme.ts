@@ -28,6 +28,8 @@ export interface HudTheme {
   /** The one "can't" colour: a rejected order, a route the unit can't take,
    *  a range ruler past its last reach. Told from the enemy's red by form. */
   bad: Readonly<Vec3>;
+  /** Money: the credits and every price that can be paid. */
+  credits: Readonly<Vec3>;
   /** The main menu's backdrop film, graded to one military amber that the
    *  menu plate's blue reads against. Never a mark or readout. */
   film: Readonly<Vec3>;
@@ -62,6 +64,7 @@ const COLOURS = [
   "pinned",
   "good",
   "bad",
+  "credits",
   "film",
 ] as const;
 
