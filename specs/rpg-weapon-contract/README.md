@@ -4,7 +4,7 @@ Status: planned, not implemented. Last updated 2026-10-15 (reconciled with air-w
 
 ## Goal
 
-Make weapon behavior data-owned and explicit while adding an Eastern-only multipurpose RPG for the base infantry squad. The change removes opaque air-defense role flags, keeps Hollywood direct-fire behavior, and makes launcher-side obstructions visible and actionable for the artillery and AA weapons that should hold fire rather than waste ammunition.
+Make weapon behavior data-owned and explicit while adding an Eastern-only multipurpose RPG for the base infantry squad. The change removes opaque air-defense role flags, keeps Hollywood direct-fire behavior, and makes launcher-side obstructions visible and actionable for the artillery and long-range SAM weapons that should hold fire rather than waste ammunition.
 
 ## Contracts
 
@@ -20,7 +20,7 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 
 1. **Contract hard cutover** — target classes (replacing `anti_armor`), explosive stat authoring, and fixture validation. The AA-field deletion and the `interception` → `can_intercept` rename already landed (D52).
 2. **Immutable projectile layer** — launch-layer storage and interceptor range selection from it. Interception eligibility from weapon mounts already landed (D52).
-3. **Opt-in launcher clearance** — physical muzzle/initial-trajectory obstruction for all artillery and AA/interceptor rows; preserve ordinary direct-fire behavior and expose `BlockedTrajectory`.
+3. **Opt-in launcher clearance** — physical muzzle/initial-trajectory obstruction for artillery and the long-range SAM only; preserve ordinary direct-fire behavior and expose `BlockedTrajectory`.
 4. **Eastern RPG and roster data** — new three-round general-purpose RPG, dedicated AT row renames, Eastern squad loadout, and deterministic armour calibration.
 5. **Presentation/catalog closeout** — regenerate derived catalogs, remove AA-tier developer surfaces, and verify full/compact warning rows/icons.
 
