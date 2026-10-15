@@ -1,0 +1,65 @@
+# Map: flight model, aircraft arrival, closeout (2026-10-15)
+
+The four-quadrant map from an explore-unknowns walk with the user. [Slice 20](slices/20-aircraft-arrival.md) builds it, and slice 19 closes the spec. D-numbers continue [the main map](map.md).
+
+## Known knowns
+- **High air is an elevation layer.** Layer treatments key on the layer:
+  - it can't see the ground;
+  - its shadow lies beneath it;
+  - its cards draw on top;
+  - its cruise height is 250 m, with a 100 m floor.
+
+  See the README invariants.
+- **The flight model is its own data:** `mobility.air.flight`, either `rotor` or `fixed_wing` (branch `awf/flight-model`). Wing behaviour keys on it:
+  - which flight law steps the unit;
+  - arriving and leaving by the back edge;
+  - attack passes;
+  - nose-on fixed guns;
+  - banking;
+  - the destination circle.
+- **Only rotor aircraft get a ground marker and drop line** (`aircraftMarks.test.ts`).
+- **The back edge** is the map edge nearest the side's ground entry site (`crates/sim/src/air/edge.rs:14`).
+- **Today's arrival wait** is a constant in code: 15–30 s, seeded, high air only (`crates/sim/src/battle.rs`, `dispatch_reinforcements`).
+- **Enabled jets already have pilot voices** (`fixtures/voices.json`). Enabling the planned jets means assigning existing sets.
+- **The tallest roofs are about 60 m.** The 20-floor towers top out at 57 m (`fixtures/prototype-building-templates.json`).
+
+## Known unknowns: decision ledger
+| # | Decision | Why | Closed by |
+|---|---|---|---|
+| D29d | A dogfight forms only between **two fixed-wing aircraft in the same layer**. Any other target, including a rotor aircraft in the pursuer's own layer, gets attack passes: line up, dive, fire nose-on, pull out, come around. Rotors never dogfight. | A turning fight needs two turning aircraft. Against a hovering target the pursuer would only circle a point. | user (A) |
+| D37 | Drones are **low air, fixed-wing, at about 100 m**, with no building avoidance. Low-air fixed-wing stays refused at validation until the drone spec gives low air its fixed-wing floor and pass ceilings. | 100 m clears every roof. Today's pass and dogfight heights are high-air values. | user, territory |
+| D38 | **Arrival wait:** `mobility.air.arrival.delay_s: [min, max]`, optional on any aircraft. It is seeded from the battle. When absent, the aircraft appears at the edge at once. Jets keep 15–30 s through their profile; helicopters have none. | Data over constants, and usable by any aircraft. | user (A) |
+| D39 | **Every aircraft spawns at the back-edge point nearest its side's ground entry site** (the highway), already in flight at its cruise height, then flies to its destination. The approach drawing uses the same point. | Arrivals come from your own side's entry, not from wherever the destination happens to be. | user |
+| D40 | **Per-unit cruise height:** any air unit may set `mobility.air.cruise_agl_m`; otherwise it takes its layer's height. A single lookup answers "how high does this unit cruise". Strange values (low air above high air) must behave without crashing. High air's 100 m floor stays hard: a lower override flies at the floor. | An override to a default. Layer rules never read height. | user |
+| D41 | **A waiting aircraft leaves the purchase queue** and waits on its own clock. Purchases behind it keep spawning, and several aircraft wait in parallel. | Today the queue front blocks everything behind it (landmine 1). | user (1A) |
+| D42 | **The pending card counts down:** "Arriving in N s", from an arrival tick published on the pending-purchase record, in the existing card style. The approach is still drawn over the edge. | The countdown didn't exist (landmine 2). | user (2A) |
+| D43 | **`test_jet` gets its own model:** a generic, unmarked, neutral-grey fighter from the shared aircraft parts (single fin, swept wing, one nozzle). | It shouldn't read as a real roster jet. | user (A) |
+| D44 | **Closeout proof stays lean.** Extend `every_loadout_flies_a_pass` so every fixed-wing row also arrives and withdraws on low fuel; no new test file or scene. Record three AI-vs-AI skirmishes, one per faction pair, as GIFs in the scratch folder. | The user just deleted duplicate verify scenes. | user (A) |
+| D45 | **The AI follows the same arrival rules as a player.** No special timing logic. | One rule for both. | user |
+| D46 | **"Done"** is slice 19 as written, ending with the full `verify` run. | | user |
+
+**Settled unless the user objects:**
+- At the edge, an aircraft heads toward its destination if that points into the map; otherwise it heads straight in.
+- Withdrawal is unchanged: jets leave by the back-edge point nearest them, and helicopters fly home to base.
+- `flight` is required, with no fallback from the layer.
+
+## Unknown knowns: what the walk extracted
+- **Drones are the coming consumer** of the flight-model split. The user expects low air to hold rotor and fixed-wing units side by side, and per-unit heights.
+- **One rule for AI and humans.** Never a special case for the AI.
+- **Fewer, bigger proofs.** Verify scripts were just pruned for duplication, so proof goes into existing tests.
+
+## Unknown unknowns: landmines
+1. **Decided (D41).** A waiting jet blocks every purchase behind it. `dispatch_reinforcements` only handles `reservations[side].front_mut()`.
+2. **Decided (D42).** No countdown exists. The pending card says only "Will be deployed" (`web/src/battle/present/armyDeck.tsx`), and `PENDING_FIELDS` carries no arrival time.
+3. **Sharp edge.** The per-unit height must reach every caller:
+   - sim: the flight law, the spawn and approach height;
+   - presentation;
+   - web: the `ghostAloft` order preview.
+
+   Any caller left asking by layer draws an overridden unit at the wrong height.
+4. **Sharp edge.** `air-roster` timed out (60 s) under overlapped verify and passes alone (50 s), and enabling the planned jets makes it heavier. Measure it after enabling; mark it `serial` if it's still over.
+5. **Merge order.** The flight-model branch, with D29d applied, merges before slice 20 starts.
+
+## Confirm before coding
+- The skirmish AI's purchase logic doesn't assume purchases spawn in order. Check `crates/sim/src/skirmish_ai`.
+- The approach record (`AirTransit`) and the pending record can carry the same arrival tick, so the card and the drawing never disagree.

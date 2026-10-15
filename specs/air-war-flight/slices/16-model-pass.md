@@ -14,7 +14,7 @@
 At the end of each batch, make an all-jets contact sheet and open it with `preview-shots`, non-blocking.
 
 ## Also
-Give the test catalog a `test_jet` model of its own; `test_jet` borrows the F-16 art until then (choices.md).
+`test_jet`'s own model moved to [slice 20](20-aircraft-arrival.md) (D43).
 
 ## Visual gate
 - **Variable:** silhouette fidelity. **Crop:** one three-quarter view per family.

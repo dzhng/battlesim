@@ -1,7 +1,7 @@
 # 19 — Closeout
 
 1. **Air lab scenes.** Every air scene's header names the sim test behind its claim, and no gap lines remain that this spec should have closed. Delete `CRUISE` in `_air.mjs`.
-2. **A played skirmish:** `/labs/air-skirmish`, or a played game against the skirmish AI. Every jet is bought, flies, attacks and withdraws. Record GIFs.
+2. **Every jet plays (D44).** Extend `every_loadout_flies_a_pass` so every fixed-wing row also arrives and withdraws on low fuel. Record three AI-vs-AI skirmishes, one per faction pair, as GIFs in the scratch folder. Add no new scene or test file.
 3. **The full test and scene run,** once. It includes the native client's own tests (`native/client`), which the sim run doesn't reach. A capture fixture re-blessed without its manifest went unseen there for three slices.
 4. **The balance report and the price pass.** Prices only, not rules. Tuning target (user): jets punish a side that skipped AA, doing heavy damage before it recovers, while one AA unit is enough insurance to blunt them. Judge it in sample runs, never as a test.
 5. **Visual findings carried from earlier slices.** Judge each with `screenshot-critique` at the game camera and fix what still reads wrong:

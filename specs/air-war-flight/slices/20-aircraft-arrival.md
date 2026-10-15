@@ -1,0 +1,32 @@
+# 20 — Aircraft arrival, per-unit height, `test_jet` model
+
+**Delivers:** D38–D43 ([flight-model map](../flight-model-map.md)). Starts after `awf/flight-model` merges with D29d.
+
+## Contract
+- **Catalog:** `mobility.air.arrival.delay_s: [min, max]` (optional) and `mobility.air.cruise_agl_m` (optional override), on any aircraft. The jet profile sets `arrival.delay_s: [15, 30]`; helicopter profiles set nothing.
+- **Sim:**
+  - One cruise-height lookup per unit type: the override, else the layer's height. High air's floor stays hard.
+  - A purchased aircraft with a wait leaves the purchase queue and waits on its own seeded clock; the queue keeps spawning behind it.
+  - Every aircraft spawns at the back-edge point nearest its side's entry site.
+  - The hard-coded 15–30 s in `dispatch_reinforcements` is deleted.
+- **Publication:** the pending-purchase record carries the arrival tick, 0 when there is none. `AirTransit` uses the same tick.
+- **UI:** the pending card reads "Arriving in N s" while an aircraft waits.
+
+## Tests (red first)
+- A jet and a tank bought together: the tank spawns without waiting for the jet.
+- Two jets bought together wait in parallel.
+- Any aircraft spawns at the back-edge point nearest its entry site, whatever its destination.
+- A row without `arrival` appears at the edge at once, in flight.
+- A cruise override moves the flight height, the approach height and the order ghost. Below the high-air floor it flies at the floor. A low-air unit set above high air still flies.
+
+## You see
+- The pending card counting down.
+- The approach drawn at the entry side of the back edge.
+- `test_jet` in its own grey model on its sheet.
+
+## Delegated
+- Countdown wording and placement, within the existing card style (load `game-ui`).
+- The exact shape of `test_jet`, within D43. Run `screenshot-critique` on its sheet.
+
+## Stays green
+Digests for every battle without purchased aircraft. Scenes `air-ingress`, `air-hud` and `supply`.

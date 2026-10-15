@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec`. Opus subagents write the code and do all 3D modelling and visual work; Codex (`codex exec`, `gpt-6.1-sol`, high) only takes short, non-visual tasks. You orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** merge `awf/materials` once its sheets are reviewed. Then do slice 15 pass 3: enable all 19 planned jets now that their models are accepted. Then give `test_jet` its own model (slice 16), merge `awf/high-air-rename`, and do the rest of slice 19.
+- **Pickup:** merge `awf/flight-model` once D29d (dogfights only between two fixed-wing aircraft in the same layer) lands on it. Then do slice 20, then slice 15 pass 3 (enable the 19 planned jets; every model has been accepted and baked), then slice 19.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Merging a worktree:** commit its work on its branch first, and check `git log` shows the merge brought commits in. Merging an uncommitted branch is an empty, silent no-op.
 - **Clean up merged worktrees:** after a branch merges, `git worktree remove` it and delete the branch. Each worktree carries its own multi-gigabyte Cargo `target/`, and leaving them filled the disk once.
@@ -32,9 +32,10 @@ You are implementing this spec with `implement-spec`. Opus subagents write the c
 - [x] 13 [approach and departure effect](slices/13-transit-effect.md)
 - [x] 14 [jet attitude](slices/14-jet-attitude.md)
 - [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
-- [ ] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
+- [x] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
 - [x] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
+- [ ] 20 [aircraft arrival, per-unit height, `test_jet` model](slices/20-aircraft-arrival.md) ([flight-model map](flight-model-map.md))
 - [ ] 19 [closeout](slices/19-closeout.md)
 
 ## User decisions made during the build
