@@ -78,7 +78,7 @@ export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture
 }`;
 
 /** The high-air plane's look: a layer over the world's, so the same bloom,
- *  grade and tone map as \`postFinalWgsl\` on its straight colour, kept
+ *  grade and tone map as `postFinalWgsl` on its straight colour, kept
  *  where it covers and premultiplied by that coverage for the page to lay
  *  over the world's canvas. */
 export const postHighPlaneWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, linearSampler: sampler, grade: Grade) -> vec4f {

@@ -5,8 +5,7 @@
 // platform. The battle parks each of those types on the air field, and each
 // is drawn; a contact sheet of them is left for review. High air is its own
 // screen plane: a ground card laid under a jet's model never covers it, and
-// crops of the line-up show the report's three cases (a jet over a SAM's
-// card, two jets' cards, cards by the top edge).
+// crops of the line-up show two jets' cards and the cards by the top edge.
 import { gpuWarnings, aim, lab, hideHud, advance } from "./_lab.mjs";
 import { encounter, openAir, shoot, drawnVehicles } from "./_air.mjs";
 import { writeSheet } from "./_sheet.mjs";
@@ -170,25 +169,16 @@ const aloft = (u) => layerOf(unitType(u.kind)) === "high_air";
 const anchorOf = (page, u) =>
   lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2] + 2), u.position);
 
-/** The line-up's crops of the report's three cases, chosen by where the
- *  units stand (not where their cards went), so a run before and after a
- *  change crops the same places. */
+/** The line-up's crops of two of the report's cases (two jets' cards, cards
+ *  by the top edge; `plane-order.png` shows the third, a jet over a ground
+ *  card), chosen by where the units stand, not where their cards went, so a
+ *  run before and after a change crops the same places. */
 async function reportCrops(ctx, page, o, png) {
   const at = await Promise.all(o.own.map((u) => anchorOf(page, u)));
   const units = o.own.map((u, i) => ({ u, at: at[i] })).filter((p) => p.at);
   const jets = units.filter((p) => aloft(p.u));
-  const ground = units.filter((p) => !aloft(p.u));
   const crop = (name, [x, y], hw, hh) =>
     writeCrop(png, ctx.evidencePath(`${name}.png`), x, y, hw, hh, 2);
-  // A jet over a SAM's card: the jet nearest a ground unit's card spot, up
-  // and to the side of that unit.
-  let over = null;
-  for (const j of jets)
-    for (const g of ground) {
-      const d = Math.hypot(j.at[0] - (g.at[0] + 70), j.at[1] - (g.at[1] - 40));
-      if (!over || d < over.d) over = { d, at: j.at };
-    }
-  if (over) await crop("report-jet-over-card", over.at, 160, 80);
   // Two jets' cards on one spot: the two jets nearest each other.
   let pair = null;
   for (const [i, a] of jets.entries())
