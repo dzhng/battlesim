@@ -326,3 +326,49 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
         assert!(c.range_m.is_some_and(|r| r > 0.0 && r % 100.0 == 0.0));
     }
 }
+
+#[test]
+fn a_sead_jet_finds_the_gepard_by_its_radar_but_not_a_silent_skyranger() {
+    // The Gepard's search radar emits; the Skyranger beside it in the short
+    // tier does not, so only the Gepard shows up on a SEAD jet's radar.
+    const SEAD: &str = "eastern_sukhoi_flanker_family_su_30sm2";
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let jet = rules.catalog.get(rules.catalog.index(SEAD).unwrap());
+    let reach = jet
+        .capabilities
+        .air
+        .as_ref()
+        .unwrap()
+        .radar
+        .unwrap()
+        .detection_m;
+    let radar_contacts = |emitter: &str| {
+        let setup = serde_json::from_value(json!({
+            "map": { "size": [3000, 1000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": sim::fixtures::game(),
+            "units": [
+                { "side": "red", "kind": SEAD, "position": [200, 500], "yaw": 0.0 },
+                { "side": "blue", "kind": emitter, "position": [200.0 + 0.5 * reach.min(2600.0), 500.0] }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        b.step();
+        b.observe(Side::Red)
+            .contacts
+            .iter()
+            .filter(|c| c.source == ContactSource::Radar)
+            .count()
+    };
+    assert_eq!(
+        radar_contacts("europe_gepard_1a2"),
+        1,
+        "the Gepard's radar is found"
+    );
+    assert_eq!(
+        radar_contacts("europe_boxer_skyranger_30_gun_and_missile_air_defense"),
+        0,
+        "a silent short-range gun is not"
+    );
+}

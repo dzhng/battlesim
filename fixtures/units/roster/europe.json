@@ -1655,8 +1655,8 @@
           "tier": "short"
         },
         "radar": {
-          "emits": false,
-          "detection_m": 0
+          "emits": true,
+          "detection_m": 900
         }
       },
       "mounts": [

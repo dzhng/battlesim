@@ -14068,8 +14068,8 @@
               "tier": "short"
             },
             "radar": {
-              "detection_m": 0.0,
-              "emits": false
+              "detection_m": 900.0,
+              "emits": true
             }
           },
           "cost": 200,
@@ -34452,8 +34452,8 @@
           "tier": "short"
         },
         "radar": {
-          "detection_m": 0.0,
-          "emits": false
+          "detection_m": 900.0,
+          "emits": true
         }
       },
       "cost": 200,
