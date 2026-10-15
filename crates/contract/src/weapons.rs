@@ -88,6 +88,13 @@ pub struct WeaponDefinition {
     /// authored weapon property, never inferred from penetration or guidance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub can_intercept: Option<InterceptionTargetClass>,
+    /// The launcher holds fire while anything stands in its round's first
+    /// flight from the muzzle (`launch.clearance_m`): the ground, a
+    /// body that stops rounds, or tree crowns. A launcher that would not fire
+    /// into branches or a wall at its own muzzle, as a gun firing through
+    /// what it can break does.
+    #[serde(default)]
+    pub requires_clear_launch_path: bool,
     /// Armour-piercing: preferred against identified vehicles, never at contacts.
     #[serde(default)]
     pub armor_piercing: bool,

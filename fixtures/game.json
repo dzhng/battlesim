@@ -88,6 +88,7 @@
   "guided": {
     "release_coast_s": 0.5
   },
+  "launch": { "clearance_m": 30 },
   "weapons": {
     "rifle": {
       "targets": { "ground": { "classes": ["infantry", "vehicle"] }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 100, "scatter_mrad": 40 } },
@@ -541,6 +542,7 @@
             "description": "Long-range aircraft-only missile.",
             "icon": "aa_missile",
             "stationary": true,
+            "requires_clear_launch_path": true,
             "range_m": 5200,
             "min_range_m": 50,
             "speed_mps": 100,
@@ -847,6 +849,7 @@
       "description": "Indirect-fire howitzer shell for long-range support.",
       "icon": "howitzer",
       "stationary": true,
+      "requires_clear_launch_path": true,
       "range_m": 2500,
       "min_range_m": 350,
       "speed_mps": 160,
@@ -873,6 +876,7 @@
       "description": "High-angle mortar bomb for close indirect support.",
       "icon": "mortar",
       "stationary": true,
+      "requires_clear_launch_path": true,
       "range_m": 1800,
       "min_range_m": 180,
       "speed_mps": 145,
@@ -899,6 +903,7 @@
       "description": "Unguided rocket salvo for deep area fire.",
       "icon": "rockets",
       "stationary": true,
+      "requires_clear_launch_path": true,
       "range_m": 2200,
       "min_range_m": 500,
       "speed_mps": 160,
@@ -929,6 +934,7 @@
       "description": "Heavy rocket salvo for deep area fire.",
       "icon": "rockets",
       "stationary": true,
+      "requires_clear_launch_path": true,
       "range_m": 2500,
       "min_range_m": 700,
       "speed_mps": 160,
@@ -959,6 +965,7 @@
       "description": "Long-range unguided strike missile for deep area fire.",
       "icon": "rockets",
       "stationary": true,
+      "requires_clear_launch_path": true,
       "range_m": 2500,
       "min_range_m": 900,
       "speed_mps": 160,

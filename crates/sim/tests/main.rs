@@ -44,6 +44,7 @@ mod ground_delivery;
 mod guidance;
 mod hull_guns;
 mod kerbside;
+mod launch_clearance;
 mod lean;
 mod maps;
 mod menu_reel;

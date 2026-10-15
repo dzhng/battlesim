@@ -15,7 +15,7 @@ The Eastern base rifle squad gets a three-round, general-purpose RPG in place of
 - `partial_from: 0.08`
 - ground classes: `infantry`, `vehicle`
 
-Tune against deterministic side hits on a representative heavy tank so three good hits are sufficient. That is a tuning sample judged in a sample run, not a test. The grenade keeps its penetration and receives explicit `partial_from: 0.08`, so it can chip light vehicles and MBTs for very small damage.
+Tune against deterministic side hits on a representative heavy tank so three good hits are sufficient. That is a tuning sample judged in a sample run, not a test. The grenade keeps its penetration; its explicit `partial_from: 0.08` landed with slice 1, so it already chips light vehicles and MBTs for very small damage.
 
 ## Data migration
 

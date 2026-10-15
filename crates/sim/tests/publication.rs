@@ -1174,6 +1174,50 @@ fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
     );
 }
 
+/// A launcher holding for want of a clear launch path is published as such,
+/// read back by the layout alone: its weapon row, the blocked-trajectory
+/// reason, and every round still in it.
+#[test]
+fn a_launcher_held_for_its_launch_path_publishes_the_blocked_reason() {
+    let mut b = crate::launch_clearance::held_under_trees();
+    for _ in 0..300 {
+        b.step();
+    }
+    let frame = b.observe(Side::Blue).clone();
+    let layout: Value = serde_json::from_str(&publication::layout_json(&b)).unwrap();
+    let patch = publication::GroundHeader {
+        epoch: 1,
+        side: Side::Blue,
+        base: 0,
+        revision: 0,
+        full: false,
+        count: 0,
+    };
+    let mut data = Vec::new();
+    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    let own = &decode(&layout, &data)["own"];
+    let mount = own[0].sections["mounts"]
+        .iter()
+        .find(|m| m["mount"] == 1.0)
+        .expect("the launcher's row is published");
+    let reason = layout["actionReasons"][mount["reason"] as usize].as_str();
+    assert_eq!(reason, Some("blocked_trajectory"));
+    let full = b
+        .arsenal()
+        .weapons
+        .iter()
+        .find(|w| w.id == "test_launcher")
+        .unwrap();
+    assert_eq!(
+        Some(mount["ammo0"] as u32),
+        match full.def.ammo {
+            contract::weapons::AmmoCapacity::Rounds(n) => Some(n),
+            _ => None,
+        },
+        "no round spent"
+    );
+}
+
 #[test]
 fn visible_members_publish_the_weapon_they_are_using() {
     let setup = common::scenario_with(

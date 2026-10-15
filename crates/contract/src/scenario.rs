@@ -407,6 +407,15 @@ fn middle_aim() -> f64 {
     0.5
 }
 
+/// What a launcher needing a clear launch path (a weapon row's
+/// `requires_clear_launch_path`) holds for.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LaunchRules {
+    /// How far along its arc from the muzzle its round must meet nothing.
+    pub clearance_m: f64,
+}
+
 /// Armour by impacted face (P10).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -611,6 +620,7 @@ pub struct Rules {
     pub penetration: PenetrationRules,
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
+    pub launch: LaunchRules,
     pub sensors: SensorRules,
     /// The one forest rule (Q16, Q-G8b).
     pub forests: ForestRules,
@@ -861,6 +871,7 @@ struct UncheckedRules {
     penetration: PenetrationRules,
     ricochet: RicochetRules,
     guided: crate::ballistics::GuidedRules,
+    launch: LaunchRules,
     sensors: SensorRules,
     forests: ForestRules,
     #[serde(deserialize_with = "surface_table")]
@@ -912,6 +923,7 @@ impl TryFrom<UncheckedRules> for Rules {
             penetration: r.penetration,
             ricochet: r.ricochet,
             guided: r.guided,
+            launch: r.launch,
             sensors: r.sensors,
             forests: r.forests,
             surfaces: r.surfaces,

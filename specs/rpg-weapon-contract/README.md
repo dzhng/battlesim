@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: planned, not implemented. Last updated 2026-10-15 (reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps).
+Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the air-war-flight closeout, air-war-flight D53); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
 
 ## Goal
 
@@ -9,8 +9,10 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 ## Contracts
 
 - `LayerFire` owns per-layer range, scatter, and target classes: `infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`. The air classes read the aircraft's existing flight model, `mobility.air.flight` (`rotor` | `fixed_wing`, air-war-flight), never a second movement-mode field, a name or a faction.
-- `WeaponDefinition` owns `can_intercept`, `interceptable`, and opt-in `requires_clear_launch_path`.
-- Projectile semantic layer is copied from the firing unit at launch and never inferred from live height.
+- `WeaponDefinition` owns `can_intercept`, `interceptable`, and opt-in `requires_clear_launch_path`. The corridor it checks is the rules' `launch.clearance_m` (30 m) of the round's arc from the muzzle.
+- `WeaponDefinition::engages(layer, class)` is the one class match; a ground point, an area or a round passes `None` and no class bars it. A unit's class is `UnitType::target_class` (body and `mobility.air.flight`). Area fire stays general-purpose ammunition only: a row whose ground layer lists `infantry` and is not armour-piercing (W10), which is what `anti_armor: true` used to forbid.
+- Weapon rows refuse any field they do not have, by name: `anti_armor`, `interception`, `aa_tier` and the old `fov_deg` alias fail at load.
+- Projectile semantic layer is copied from the firing unit at launch (`Round.layer`) and never inferred from live height. It is not folded into the digest: it is a function of the round's digested shooter.
 - `radar` owns radar detection/emission. Unit `air_defense`, unit/weapon `aa_tier` and their developer display are already deleted (air-war-flight D52, 2026-10-15): interceptors arm from their weapon, SEAD finds any ground unit whose radar emits, and any unit firing at an air target needs its own view of it.
 - Existing direct-fire weapons keep firing through destructible trees/buildings for the Hollywood effect. Only authored weapons with `requires_clear_launch_path` hold when the launcher-side path is blocked.
 - `BlockedTrajectory` is the player-facing reason. Existing full and compact weapon rows must show its warning mark.
@@ -45,14 +47,20 @@ Each slice runs its narrow Rust/web checks. Closeout runs the full repository ch
 
 The plan gives one owner to each concept: `LayerFire` for per-layer target eligibility, `WeaponDefinition` for weapon mechanics, `Round`/`Projectile` for immutable launch layer, `RadarCapability` for radar behavior, the existing `BlockedTrajectory` publication path for player readout, and roster family labels only for grouping. It deletes the overloaded `air_defense`/`aa_tier` path rather than carrying an adapter or duplicate flag. The launch-clearance helper is deliberately separate from target LOS and from the ordinary destructive fire-through solver.
 
+## What slices 1–3 left open
+
+- **Guided interceptors never launch at a round.** Interception locks follow the round's launch layer, and a round is no area (only a `can_intercept` row is worth firing at it), but a guided row fires only at a unit (`assess`'s guided sight rule), so `aa_long` acquires an incoming missile and never launches at it. Ballistic interceptors (`aa_ballistic`) do fire. Allowing guided fire at a round needs the missile's support to follow a moving round; it is a decision, not part of this contract.
+- **`partial_from: 0.08` on every explosive row is a balance change** (user, through the coordinator, 2026-10-15): grenades, RPGs, ATGMs, SAMs, autocannon rounds, bombs and artillery now chip armour they cannot pierce. Retune in slice 4's sample run if it reads wrong.
+- The kamikaze drones' unit ids still end `_anti_armor`; they name models, not the removed field.
+
 ## Next Agent Prompt
 
-Implement slice 1 in `slices/01-contract.md`. Start with red contract tests, then make the hard-cut schema and fixture changes. Do not implement simulation behavior or the RPG roster yet. Update this README's status, checklist, and next prompt before ending your pass.
+Implement slice 4 in `slices/04-eastern-rpg.md` on top of the landed contract (target classes, explicit `partial_from` on every explosive row, `requires_clear_launch_path`). The grenade's explicit `partial_from: 0.08` has already landed. Start with red tests on `test_*` units, then the roster data; judge the three-hit calibration in a sample run. Then slice 5. Update this README's status, checklist and next prompt before ending your pass.
 
 ## Checklist
 
-- [ ] Slice 1: contract hard cutover (`slices/01-contract.md`)
-- [ ] Slice 2: projectile layer/interception (`slices/02-projectile-layer.md`)
-- [ ] Slice 3: launcher clearance and blocked readout (`slices/03-launch-clearance.md`)
+- [x] Slice 1: contract hard cutover (`slices/01-contract.md`)
+- [x] Slice 2: projectile layer/interception (`slices/02-projectile-layer.md`)
+- [x] Slice 3: launcher clearance and blocked readout (`slices/03-launch-clearance.md`)
 - [ ] Slice 4: Eastern RPG and loadout (`slices/04-eastern-rpg.md`)
 - [ ] Slice 5: catalog/UI closeout (`slices/05-closeout.md`)

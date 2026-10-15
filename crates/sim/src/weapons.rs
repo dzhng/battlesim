@@ -796,6 +796,45 @@ fn friendly_in_line(
         })
 }
 
+/// Whether a launcher that needs a clear launch path has one: the first
+/// `launch.clearance_m` of its round's arc from the muzzle meets
+/// neither the ground, nor a body that stops rounds (whether fire could
+/// break it or not), nor tree crowns. Only the launcher's end is judged: a
+/// high arc clears a low wall beside it, and a target in a wood or past a
+/// hill is still fair. This is not the target line ([`guidance_clear`]).
+fn launch_clear(
+    ctx: &FireContext,
+    origin: V3,
+    s: &FiringSolution,
+    weapon: &Weapon,
+    carrier: V3,
+) -> bool {
+    let path = predicted_path(
+        &ctx.arsenal.config,
+        &weapon.profile,
+        origin,
+        s.velocity + carrier,
+        s.time_of_flight_s,
+    );
+    let mut left = ctx.rules.launch.clearance_m;
+    for w in path.windows(2) {
+        let chord = w[1] - w[0];
+        let len = chord.length();
+        if left <= 0.0 {
+            break;
+        }
+        if len == 0.0 {
+            continue;
+        }
+        let end = w[0] + chord * (left.min(len) / len);
+        if !ctx.world.segment_clear(w[0], end) || ctx.world.foliage_depth(w[0], end) > 0.0 {
+            return false;
+        }
+        left -= len;
+    }
+    true
+}
+
 /// A gun holds fire only for what its rounds cannot break. It
 /// fires into the first body on its arc when that body is what it was
 /// ordered to hit (the ground point lies in it), or when the body can be
@@ -881,6 +920,12 @@ fn engage(
         ) {
             Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
             Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
+            Ok((s, _))
+                if weapon.def.requires_clear_launch_path
+                    && !launch_clear(ctx, origin, &s, weapon, carrier) =>
+            {
+                Err(ActionReason::BlockedTrajectory)
+            }
             Ok((s, burst))
                 if friendly_in_line(
                     ctx,

@@ -390,6 +390,43 @@ export async function run(ctx) {
       farWeapons[1].y < farWeapons[2].y,
     JSON.stringify(farWeapons),
   );
+  // A weapon held for a blocked trajectory (a launcher with no clear launch
+  // path) keeps its row, in the full card and in the far card's compact
+  // line, and wears the blocked-shot mark in the warning colour. The far
+  // card is the battle's own attribute on the same panel.
+  const blocked = await page
+    .locator('[data-specimen="why it can\'t fire/blocked_trajectory"]')
+    .evaluate((card) => {
+      const body = card.querySelector(".ro-body");
+      // The warning colour as the page resolves it, read off a probe.
+      const probe = document.createElement("span");
+      probe.style.color = "rgb(var(--hud-warn))";
+      body.append(probe);
+      const warn = getComputedStyle(probe).color;
+      probe.remove();
+      const read = () =>
+        [...card.querySelectorAll('.ro-weapon[data-reason="blocked_trajectory"]')].map((row) => {
+          const badge = row.querySelector(":scope > .ro-badge");
+          const box = badge?.getBoundingClientRect();
+          return {
+            badge: !!badge && box.width > 0 && box.height > 0,
+            warn: !!badge && getComputedStyle(badge).color === warn,
+          };
+        });
+      const zoom = body.dataset.zoom;
+      const full = read();
+      body.dataset.zoom = "far";
+      const far = read();
+      body.dataset.zoom = zoom;
+      return { full, far, warn };
+    });
+  ctx.check(
+    "a blocked trajectory keeps its rows, full and far, with the blocked-shot mark in the warning colour",
+    [blocked.full, blocked.far].every(
+      (rows) => rows.length === 2 && rows.every((r) => r.badge && r.warn),
+    ),
+    JSON.stringify(blocked),
+  );
   await sheet(ctx, page, "sheet.png");
   for (const [id, file] of [
     ["own states/hidden in foliage", "hidden-expanded.png"],
