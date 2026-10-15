@@ -2,11 +2,15 @@
 // the air field over the village, the tower and the wood. Blue's fog never
 // clears (HighAir never reveals Ground) and the T-72 in the village is never
 // identified, though the jet identifies the enemy Mi-8 (LowAir) and J-10
-// (HighAir); it holds the air height and stays on the map.
-//
-// Not shown, because the simulation does not do it: fixed-wing aircraft fly
-// at the high-air cruise height (`air.high_air.cruise_agl_m`), and stop and hover at a move's goal instead of
-// circling it.
+// (HighAir); it holds the high-air cruise height over the ground, stays on
+// the map, and reaches its goal, which it circles rather than stops on.
+// The simulation's tests behind these claims:
+//   crates/sim/tests/air.rs::high_air_has_no_ground_vision_but_can_identify_low_air
+//   crates/sim/tests/fixed_wing_flight.rs::a_jet_holds_cruise_over_rolling_ground_without_steps
+//   crates/sim/tests/fixed_wing_flight.rs::a_move_goal_is_circled_at_speed_over_turn_rate
+//   crates/sim/tests/fixed_wing_flight.rs::a_circle_by_the_edge_turns_back_inside_the_square
+// Browser-only evidence: the same flight on the real field and catalog, and
+// a shot of the jet over the wood at its goal.
 import { gpuWarnings, aim } from "./_lab.mjs";
 import { unitType } from "./_units.mjs";
 import {

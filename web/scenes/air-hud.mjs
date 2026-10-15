@@ -1,7 +1,10 @@
-// AWF-JETSCENES — jet/rotor overlays and order cards on air-jet.
-// Simulation contracts named here are pinned by crates/sim/tests/jet_flight.rs::a_move_goal_is_circled_at_speed
-// and crates/sim/tests/air.rs::a_jet_spawns_at_the_jet_cruise_height; the
-// observation/publication contract is crates/contract/src/observation.rs::AirTransit.
+// Aircraft overlays and order cards on air-jet. The tests behind its claims:
+//   web/tests/aircraftMarks.test.ts (a fixed-wing aircraft has no ground
+//     marker or drop line, a rotor aircraft has both)
+//   web/tests/unitGhosts.test.ts (the Space ghost card at the kind's cruise height)
+//   crates/sim/tests/fixed_wing_flight.rs::a_move_goal_is_circled_at_speed_over_turn_rate
+//   crates/sim/tests/air.rs::a_jet_spawns_at_the_jet_cruise_height
+//   crates/sim/tests/radar.rs::every_radar_contact_reaches_the_reader_with_its_bearing_and_range
 // Browser-only evidence: the jet has no ground marker/drop line while the
 // Apache has both, the jet card exposes fuel/flares, and Space shows the jet's
 // order ghost card at the aircraft's cruise-height treatment; the radar card
@@ -57,7 +60,8 @@ export async function run(ctx) {
   const under = async (u) =>
     css(page, [u.position[0], u.position[1], await surface(page, u.position)]);
   const frame = async () => (
-    await page.evaluate(() => window.__lab.frame()), decode(await page.screenshot())
+    await page.evaluate(() => window.__lab.frame()),
+    decode(await page.screenshot())
   );
   const plain = await frame();
   await lab(page, (ids) => window.__lab.route.select(ids), [jet.id, heli.id]);

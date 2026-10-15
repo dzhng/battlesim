@@ -1,5 +1,5 @@
-// AWF-JETSCENES — 2v2 turning fight, then a third jet joins, on air-jet.
-// Simulation contracts named here are pinned by crates/sim/tests/jet_dogfight.rs:
+// A 2v2 turning fight on air-jet, then a third jet joins.
+// The simulation's tests behind it, in crates/sim/tests/dogfight.rs:
 // firing_makes_it_your_target_and_it_adopts_you_only_if_free,
 // a_third_jet_joins_by_targeting_an_engaged_one, the_link_breaks_past_the_rule_distance_in_3d,
 // pursuit_aims_where_the_target_was, and dogfight_height_stays_in_its_band.
@@ -17,7 +17,8 @@ export async function run(ctx) {
   await play(page, 900, (o) => {
     const jets = own(o, JET);
     const locked = jets.filter((u) => u.inDogfight);
-    if (!first && locked.length >= 2) first = { tick: o.tick, ids: locked.slice(0, 2).map((u) => u.id) };
+    if (!first && locked.length >= 2)
+      first = { tick: o.tick, ids: locked.slice(0, 2).map((u) => u.id) };
     if (first && locked.length >= 3) joined = { tick: o.tick, ids: locked.map((u) => u.id) };
     return !!joined;
   });
@@ -32,7 +33,11 @@ export async function run(ctx) {
   const wingman = joined.ids.find((id) => id !== mover);
   await lab(page, (id) => window.__lab.route.select([id]), mover);
   const card = await cardText(page, `[data-unit="${mover}"]`);
-  ctx.check("the selected aircraft card says DOGFIGHT", !!card && card.includes("DOGFIGHT"), card ?? "no card");
+  ctx.check(
+    "the selected aircraft card says DOGFIGHT",
+    !!card && card.includes("DOGFIGHT"),
+    card ?? "no card",
+  );
   await shoot(ctx, page, "dogfight-turning-fight");
 
   const ack = await command(page, {
@@ -52,6 +57,10 @@ export async function run(ctx) {
     return false;
   });
   await trace(page, 300, joined.ids, ctx.evidencePath("dogfight-trace.png"));
-  ctx.check("the selected aircraft leaves a DOGFIGHT card after its move", (await cardText(page, `[data-unit="${mover}"]`))?.includes("DOGFIGHT") === false, JSON.stringify({ ack, broke, wingStayed }));
+  ctx.check(
+    "the selected aircraft leaves a DOGFIGHT card after its move",
+    (await cardText(page, `[data-unit="${mover}"]`))?.includes("DOGFIGHT") === false,
+    JSON.stringify({ ack, broke, wingStayed }),
+  );
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
 }

@@ -1,7 +1,8 @@
-// AWF-JETSCENES — a decoyable 290 m/s proximity-fused air missile on air-jet.
-// Simulation contracts named here are pinned by crates/sim/tests/air_missiles.rs::a_missile_bursts_within_its_blast_radius_of_a_passing_jet,
-// crates/sim/tests/guidance.rs::a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives,
-// and crates/sim/tests/air.rs::air_defence_tiers_follow_the_target_layer_and_need_their_own_sight.
+// A decoyable 290 m/s proximity-fused air missile on air-jet.
+// The simulation's tests behind it:
+//   crates/sim/tests/air_missiles.rs::a_missile_bursts_within_its_blast_radius_of_a_passing_jet
+//   crates/sim/tests/guidance.rs::a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives
+//   crates/sim/tests/air.rs::air_defence_tiers_follow_the_target_layer_and_need_their_own_sight
 // Browser-only evidence: the flared F-16 spends a charge and survives, the
 // Apache without flares is hit, and the shot/flare tracks are visible together.
 import { gpuWarnings } from "./_lab.mjs";
@@ -22,11 +23,18 @@ export async function run(ctx) {
   await play(page, 1500, (o) => {
     const heli = own(o, HELI)[0];
     const jet = own(o, JET)[0];
-    if (heli && heli.hp < hull(HELI).hp && !heliHit) heliHit = { tick: o.tick, hp: heli.hp, flares: heli.flares };
+    if (heli && heli.hp < hull(HELI).hp && !heliHit)
+      heliHit = { tick: o.tick, hp: heli.hp, flares: heli.flares };
     if (!heli && !heliLost) heliLost = o.tick;
     if (jet && jet.flares.charges < FLARES && !flare)
-      flare = { tick: o.tick, hp: jet.hp, charges: jet.flares.charges, cooldown: jet.flares.cooldown };
-    if (flare && !afterFlare && o.tick >= flare.tick + 60) afterFlare = jet ? { hp: jet.hp, charges: jet.flares.charges } : { lost: true };
+      flare = {
+        tick: o.tick,
+        hp: jet.hp,
+        charges: jet.flares.charges,
+        cooldown: jet.flares.cooldown,
+      };
+    if (flare && !afterFlare && o.tick >= flare.tick + 60)
+      afterFlare = jet ? { hp: jet.hp, charges: jet.flares.charges } : { lost: true };
     return !!afterFlare && !!heliLost;
   });
   await shoot(ctx, page, "survivability");

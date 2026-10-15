@@ -2,9 +2,14 @@
 // from frame to frame, shadow on the ground below and off along the sun, and
 // where each is over the ground read from its ground marker and drop line
 // (D18): over open ground, over a roof, an identified enemy's, selected and
-// not, and from the map's zoom. The pose driver's and model detail's tests
-// own the rotor arithmetic and the shadow's culling, the overlay's tests the
-// marks' geometry; this judges the drawn frame.
+// not, and from the map's zoom. The tests behind the arithmetic:
+//   crates/sim/tests/air.rs::a_helicopter_enters_the_battle_at_cruise_height
+//   crates/presentation/tests/pose_behaviour.rs::an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls
+//   crates/presentation/tests/effect_behaviour.rs::a_still_rotor_shows_its_blades_and_a_fast_one_smears_them_never_past_a_turn
+//   crates/presentation/tests/shadow.rs::a_shadow_lies_on_the_ground_with_offset_proportional_to_actual_height
+//   crates/presentation/src/view.rs::an_airframe_off_screen_draws_while_its_shadow_is_in_view_at_its_own_tier
+//   web/tests/aircraftMarks.test.ts (a rotor aircraft has a ground marker and drop line)
+// This judges the drawn frame.
 import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, pixel, around, anyNear, writeCrop } from "./_png.mjs";
 import {

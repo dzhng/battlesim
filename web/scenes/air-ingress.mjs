@@ -1,10 +1,11 @@
-// AWF-JETSCENES — paid jet ingress and edge withdrawal on air-jet.
-// Simulation contracts named here are pinned by crates/sim/tests/skirmish.rs:
+// Paid jet ingress and edge withdrawal on air-jet.
+// The simulation's tests behind it, in crates/sim/tests/skirmish.rs:
 // confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation,
 // a_waiting_aircraft_leaves_the_queue_and_waits_on_its_own_clock,
 // any_aircraft_enters_flying_at_the_edge_point_nearest_its_entry_site,
 // inbound_transit_is_published_to_its_own_side_only, nothing_senses_or_targets_a_jet_before_it_arrives,
-// withdrawal_retires_and_refunds_on_crossing_the_nearest_back_edge_point, and fuel_return_uses_the_edge_distance.
+// withdrawal_retires_and_refunds_on_crossing_the_nearest_back_edge_point, and fuel_return_uses_the_edge_distance;
+// the drawn approach and exit tracks by crates/presentation/tests/transit.rs.
 // Browser-only evidence: both purchases debit immediately; the delayed aircraft
 // has no unit before arrival, only its pending card counting down to the
 // published arrival tick (D42); the approach pose is visible over the margin;

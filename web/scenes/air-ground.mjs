@@ -1,8 +1,9 @@
-// AWF-JETSCENES — the large air-to-ground run on the 3 km jet field.
-// Simulation contracts named here are already pinned by:
-//   crates/sim/tests/jet_runs.rs::a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back
-//   crates/sim/tests/jet_runs.rs::a_missile_pass_fires_the_gun_when_nose_on
-//   crates/sim/tests/jet_runs.rs::a_bombing_pass_never_fires_the_gun
+// The large air-to-ground run on the 3 km air-jet field.
+// The simulation's tests behind it:
+//   crates/sim/tests/attack_passes.rs::a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back
+//   crates/sim/tests/attack_passes.rs::a_missile_pass_fires_the_gun_when_nose_on
+//   crates/sim/tests/attack_passes.rs::a_bombing_pass_never_fires_the_gun
+//   crates/sim/tests/radar.rs::anti_radiation_weapon_can_fire_at_radar_contact_without_unit_los
 //   crates/sim/tests/air.rs::an_attack_on_a_target_the_side_has_never_identified_is_refused
 //   crates/sim/tests/air.rs::high_air_has_no_ground_vision_but_can_identify_low_air
 // Browser-only evidence: the bomber's moving pass and near-target blast, the
@@ -21,8 +22,18 @@ export async function run(ctx) {
     return !!radar;
   });
   const sead = own(await obs(page), SEAD)[0];
-  if (sead && radar) await command(page, { kind: "attack", units: [sead.id], target: { kind: "contact", id: radar.id } });
-  if (sead) await command(page, { kind: "attack", units: [sead.id], target: { kind: "identified", id: 9999 } });
+  if (sead && radar)
+    await command(page, {
+      kind: "attack",
+      units: [sead.id],
+      target: { kind: "contact", id: radar.id },
+    });
+  if (sead)
+    await command(page, {
+      kind: "attack",
+      units: [sead.id],
+      target: { kind: "identified", id: 9999 },
+    });
 
   // The sim tests own release, nose-on fire, SEAD guidance, refusal and fog.
   // The browser contract is the pass evidence: moving aircraft, the release

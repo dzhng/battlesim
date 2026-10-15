@@ -2,10 +2,13 @@
 // for each faction, the roster's short, medium and long air defence, its
 // SEAD jets and its other fixed-wing aircraft, read from the cards as the
 // catalog resolves them; every faction has all three AA tiers and a SEAD
-// platform. The battle parks each of those types on the air field, and each
-// is drawn; a contact sheet of them is left for review. High air is its own
-// screen plane: a ground card laid under a jet's model never covers it, and
-// crops of the line-up show two jets' cards and the cards by the top edge.
+// platform (crates/sim/tests/catalog.rs::every_faction_has_short_medium_and_long_air_defence,
+// every_faction_has_a_dedicated_sead_aircraft). The battle parks each of
+// those types on the air field, and each is drawn; a contact sheet of them is
+// left for review. High air is its own screen plane: a ground card laid under
+// a jet's model never covers it, and crops of the line-up show two jets'
+// cards and the cards by the top edge. The screen plane has no test below
+// the browser; this scene is its proof.
 import { gpuWarnings, aim, lab, hideHud, advance } from "./_lab.mjs";
 import { encounter, openAir, shoot, drawnVehicles } from "./_air.mjs";
 import { writeSheet } from "./_sheet.mjs";

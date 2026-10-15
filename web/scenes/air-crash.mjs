@@ -1,9 +1,13 @@
 // A helicopter shot down: the side sees it fall from where it was hit, along
 // its spinning arc, to the ground where its wreck then lies, and the
 // airframe is drawn all the way down, trailing smoke as it did while it flew
-// damaged. The simulation's tests own the arc and the publication's tests its
-// fields; this judges the drawn fall and trail, and leaves a contact sheet
-// from the hit to the wreck at rest and a crop of the trail.
+// damaged. The tests behind the arc and the published fields:
+//   crates/sim/tests/air_crash.rs::a_shot_down_helicopter_falls_forward_spinning_onto_the_ground
+//   crates/sim/tests/air_crash.rs::both_sides_that_saw_it_go_down_see_it_fall_to_its_wreck
+//   crates/sim/tests/publication.rs::a_falling_airframe_publishes_its_place_and_attitude
+//   crates/sim/tests/air.rs::an_identified_enemy_helicopter_below_half_hp_publishes_smoking
+// This judges the drawn fall and trail, and leaves a contact sheet from the
+// hit to the wreck at rest and a crop of the trail.
 import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, presented, openBattle, gpuWarnings, hideHud, aim } from "./_lab.mjs";

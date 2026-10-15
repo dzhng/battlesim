@@ -2,12 +2,14 @@
 // the medium Buk and the short gun engage them, the long S-300, whose rows
 // target only HighAir, never fires. A jet (HighAir): all three tiers fire,
 // and the short gun the tower hides from it never does, for want of its
-// own line of sight.
+// own line of sight. The simulation's test behind this:
+//   crates/sim/tests/air.rs::air_defence_tiers_follow_the_target_layer_and_need_their_own_sight
 //
-// Not shown here: projectile interception of an incoming SEAD missile (the
-// SEAD missile flies to its radar contact's approximate centre; no
-// interception was observed on this field), seeker turn/lifetime misses
-// and near-field splash on the battle view.
+// Not shown here, held by the simulation's tests instead: interception of an
+// incoming missile (crates/sim/tests/distances_3d.rs::an_interceptor_engages_an_incoming_missile_at_any_height),
+// seeker turn and lifetime misses (guidance.rs::steering_is_bounded_by_the_turn_rate,
+// air_missiles.rs::an_air_missile_ends_at_its_lifetime) and the proximity
+// burst (air_missiles.rs::a_missile_bursts_within_its_blast_radius_of_a_passing_jet).
 import { gpuWarnings } from "./_lab.mjs";
 import { encounter, openAir, play, shots, shoot } from "./_air.mjs";
 
