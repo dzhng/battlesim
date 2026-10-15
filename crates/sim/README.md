@@ -120,7 +120,7 @@ and what follows from flying there (its cruise height and hard floor, no sight
 of the ground) keys on the layer (`Unit::layer`), never on a kind of aircraft.
 How an airframe flies is its row's flight model (`Unit::fixed_wing`), never
 read off the layer: rotors hover (`movement::air`); wings never stop, attack
-in passes, dogfight only within their own layer, and arrive and leave by the
+in passes, dogfight only another winged aircraft in their own layer, and arrive and leave by the
 back edge, since they can't land at the base (`air`). Loading refuses a pair
 no flight law flies yet.
 

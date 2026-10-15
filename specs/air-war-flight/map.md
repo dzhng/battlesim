@@ -91,7 +91,7 @@ The `explore-unknowns` walk on 2026-10-14, held with the user. It has been slice
 | D8′ | **One target per jet; links don't have to be mutual.** Firing on an aircraft makes it your dogfight target. It adopts you only if it has none. Others join by targeting someone already engaged. The 1200 m break becomes one number in the air rules. | Simple, and nobody is shut out. | user |
 | D11 | **Organic look.** Lag pursuit, so jets chase where the target was. On a head-on merge both break away and come round. Height wanders within about 150–350 m, seeded per jet. | A turning fight, not a charge. | user |
 | D29b | ~~**Dogfights form only between jets.** A jet attacks a helicopter with runs.~~ Superseded by D29c. | Helicopters fly below the floor. | user |
-| D29c | **A dogfight forms only between aircraft of the same layer, and the pursuer flies fixed-wing.** Against a target in another layer, or on the ground, a fixed-wing aircraft attacks in passes; a rotor aircraft never dogfights, it hovers and shoots. Read from the layers, never from height. | The flight model is data apart from the layer; for today's catalog the outcome is D29b's. | user, 2026-10-15 |
+| D29c | **A dogfight forms only between two fixed-wing aircraft in the same layer.** Against a rotor aircraft in any layer (its own included), a target in another layer, or the ground, a fixed-wing aircraft attacks in passes; a rotor aircraft never dogfights, it hovers and shoots. Read from what the side saw or heard of the target (its layer and flight model), never from height. | The flight model is data apart from the layer; for today's catalog the outcome is D29b's. | user, 2026-10-15 |
 
 ### Arriving, leaving and the edge
 | # | Decision | Why | Closed by |

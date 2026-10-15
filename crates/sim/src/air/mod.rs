@@ -141,7 +141,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         orders::AirTask::Attack { target, explicit } => {
             let point =
                 pass_before.map_or_else(|| target_point(ctx, unit, target), |pass| pass.aim);
-            if target_in_layer(&ctx.knowledge[unit.side.index()], target, unit.layer()) {
+            if dogfightable(&ctx.knowledge[unit.side.index()], target, unit.layer()) {
                 if linked_target.is_none() {
                     if let Target::Unit(target) = target {
                         dogfight::set_target(unit, target);
@@ -274,21 +274,21 @@ fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
     }
 }
 
-/// Whether the side knows `target` as an aircraft in `layer`, the pursuer's
-/// own: the only kind a fixed-wing aircraft dogfights (D29c); anything else
-/// it attacks in passes. Read from the layer of what was seen or heard,
-/// never from height.
-pub(crate) fn target_in_layer(
+/// Whether the side knows `target` as a winged aircraft in `layer`, the
+/// pursuer's own: the only kind a fixed-wing aircraft dogfights (D29c);
+/// anything else it attacks in passes. Read from what was seen or heard of
+/// it, never from height.
+pub(crate) fn dogfightable(
     knowledge: &SideKnowledge,
     target: Target,
     layer: AltitudeLayer,
 ) -> bool {
     let seen = match target {
-        Target::Unit(id) => knowledge.track(id).map(|track| track.layer),
-        Target::Contact(id) => knowledge.contact(id).map(|contact| contact.layer),
+        Target::Unit(id) => knowledge.track(id).map(|t| (t.layer, t.fixed_wing)),
+        Target::Contact(id) => knowledge.contact(id).map(|c| (c.layer, c.fixed_wing)),
         _ => None,
     };
-    seen == Some(layer)
+    seen == Some((layer, true))
 }
 
 fn pass_weapons(ctx: &MovementContext, unit: &Unit) -> Vec<pass::PassWeapon> {

@@ -29,6 +29,9 @@ pub struct Track {
     /// The height band of the unit seen, from its type: never guessed from
     /// where it stands.
     pub layer: AltitudeLayer,
+    /// It flies on wings, from its type, as a viewer tells a jet from a
+    /// helicopter.
+    pub fixed_wing: bool,
 }
 
 /// An uncertain area the side holds. `emitter` links it to its source
@@ -41,6 +44,9 @@ pub struct Contact {
     pub center: V3,
     /// The height band its cause occupied (`ApproximateContact::layer`).
     pub layer: AltitudeLayer,
+    /// Its cause flies on wings: a jet is told from a helicopter by its
+    /// sound as well as its sight. Never published.
+    pub fixed_wing: bool,
     /// The area's radius: its cause's footprint scaled (see
     /// [`Unit::contact_radius`]).
     pub radius: f64,
@@ -193,6 +199,7 @@ impl SideKnowledge {
             source,
             center,
             layer,
+            fixed_wing: units[emitter.0 as usize].fixed_wing(),
             radius: radius(emitter),
             evidence_tick: tick,
             expires_tick: tick + lifetime,
@@ -358,6 +365,7 @@ impl SideKnowledge {
                 source: ContactSource::Radar,
                 center,
                 layer: AltitudeLayer::Ground,
+                fixed_wing: emitter.fixed_wing(),
                 radius,
                 evidence_tick: tick,
                 expires_tick: tick + lifetime,
@@ -507,6 +515,7 @@ impl SideKnowledge {
                             velocity: v2(0.0, 0.0),
                             members,
                             layer: unit.layer(),
+                            fixed_wing: unit.fixed_wing(),
                         },
                     );
                 }

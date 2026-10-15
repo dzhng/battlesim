@@ -15,6 +15,7 @@ fn track(position: [f64; 3], velocity: [f64; 2], yaw: f64) -> Track {
         velocity: v2(velocity[0], velocity[1]),
         members: Vec::new(),
         layer: contract::catalog::AltitudeLayer::HighAir,
+        fixed_wing: true,
     }
 }
 

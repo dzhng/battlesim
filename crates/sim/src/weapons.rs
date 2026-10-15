@@ -2763,6 +2763,7 @@ mod target_priority_tests {
             velocity: v2(0.0, 0.0),
             members: vec![],
             layer: contract::catalog::AltitudeLayer::Ground,
+            fixed_wing: false,
         };
         // The declared bore points west: 180m to us is inside its minimum.
         // Using its observed carrier yaw would point east (220m), and using
@@ -2815,6 +2816,7 @@ mod target_priority_tests {
                 velocity: v2(0.0, 0.0),
                 members: vec![],
                 layer: contract::catalog::AltitudeLayer::Ground,
+                fixed_wing: false,
             };
             assert_eq!(
                 return_fire_threat(&ctx, battle.unit(UnitId(0)).unwrap(), enemy.kind, &track),

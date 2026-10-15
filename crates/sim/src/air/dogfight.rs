@@ -17,17 +17,20 @@ pub fn breaks(distance_3d: f64, air: &FixedWingFlight) -> bool {
     distance_3d > air.dogfight_break_m
 }
 
-/// Whether `pursuer` may fly a dogfight against `target` (D29c): it flies
-/// on wings, and the target is a living aircraft in its own layer. Read from
-/// the layers rather than the current heights; against anything in another
-/// layer, or on the ground, a winged aircraft attacks in passes, and a rotor
-/// aircraft never dogfights.
+/// Whether `pursuer` may fly a dogfight against `target` (D29c): both fly
+/// on wings, and the target is alive in the pursuer's own layer. Read from
+/// the layers rather than the current heights; against a rotor aircraft in
+/// any layer, anything in another layer, or the ground, a winged aircraft
+/// attacks in passes, and a rotor aircraft never dogfights.
 pub(crate) fn can_dogfight(pursuer: &Unit, target: &Unit) -> bool {
-    pursuer.fixed_wing() && target.alive() && target.layer() == pursuer.layer()
+    pursuer.fixed_wing()
+        && target.fixed_wing()
+        && target.alive()
+        && target.layer() == pursuer.layer()
 }
 
-/// Link a firing winged aircraft to its target and let an unengaged winged
-/// target answer it.
+/// Link a firing winged aircraft to its winged target and let the target
+/// answer it if unengaged.
 pub(crate) fn on_fire(units: &mut [Unit], shooter: UnitId, target: UnitId) {
     let (Some(s), Some(t)) = (units.get(shooter.0 as usize), units.get(target.0 as usize)) else {
         return;
@@ -127,12 +130,13 @@ mod tests {
     use contract::catalog::AltitudeLayer;
     use contract::ids::UnitId;
 
-    /// A dogfight forms only between aircraft of one layer, with a winged
-    /// pursuer: the layer it shares, not high air, decides. A winged
-    /// aircraft moved into low air (no row flies one yet) would dogfight a
-    /// helicopter there, and never a jet above it.
+    /// A dogfight forms only between two winged aircraft in one layer: the
+    /// layer they share, not high air, decides, and a rotor target in any
+    /// layer, the pursuer's own included, gets passes. Rows that fly no law
+    /// yet (a winged aircraft in low air, a rotor in high air) stand in for
+    /// the pairs the catalog doesn't field.
     #[test]
-    fn a_winged_pursuer_dogfights_only_its_own_layer() {
+    fn only_two_winged_aircraft_in_one_layer_dogfight() {
         let setup = serde_json::from_value(serde_json::json!({
             "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
             "rules": crate::fixtures::test_game(),
@@ -151,10 +155,22 @@ mod tests {
             unreachable!("a jet flies")
         };
         flight.layer = AltitudeLayer::LowAir;
-        let pairs: [(&str, &Unit, &Unit, bool); 6] = [
+        let mut high_heli = heli.clone();
+        let Motion::Air(flight) = &mut high_heli.motion else {
+            unreachable!("a helicopter flies")
+        };
+        flight.layer = AltitudeLayer::HighAir;
+        let pairs: [(&str, &Unit, &Unit, bool); 8] = [
             ("jet on jet", &jet, &jet, true),
+            ("low-air jet on low-air jet", &low_jet, &low_jet, true),
             ("jet on helicopter", &jet, &heli, false),
-            ("low-air jet on helicopter", &low_jet, &heli, true),
+            ("low-air jet on helicopter", &low_jet, &heli, false),
+            (
+                "jet on a rotor aircraft in high air",
+                &jet,
+                &high_heli,
+                false,
+            ),
             ("low-air jet on jet", &low_jet, &jet, false),
             ("helicopter on helicopter", &heli, &heli, false),
             ("helicopter on low-air jet", &heli, &low_jet, false),

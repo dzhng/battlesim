@@ -75,7 +75,7 @@ pub fn task(unit: &Unit, knowledge: &Knowledge, pass: Option<&PassPlan>) -> AirT
         Some(UnitOrder::Attack { target, .. }) => {
             if target_is_destroyed(*target, knowledge) {
                 AirTask::Hold
-            } else if super::target_in_layer(knowledge, *target, unit.layer()) {
+            } else if super::dogfightable(knowledge, *target, unit.layer()) {
                 AirTask::Dogfight
             } else {
                 AirTask::Attack {
