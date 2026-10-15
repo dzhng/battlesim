@@ -1,6 +1,6 @@
 # Air-war flight
 
-**Status:** slices 00–14, 17 and 18 landed; 15 passes 1–2 landed. Slice 16's three faction model passes (US, Europe, Eastern) are merged as source models, not yet baked. The info-card layout (high-air cards on top, uncrossed leaders) and the high-air beneath-shadow are merged. Running: the shared-materials pass (branch `awf/materials`; it ends with the one bake) and the high-air rename, slice 19 item 7 (branch `awf/high-air-rename`).
+**Status:** slices 00–14, 17 and 18 landed; 15 landed (pass 3, branch `awf/enable`: all 19 planned jets enabled, the Su-30SM2 is the Eastern SEAD jet), except that every unit's art now loads 527.1 MiB against the 512 MiB catalog-load limit, so `asset check` fails until the user picks a fix. Slice 16's three faction model passes (US, Europe, Eastern) are merged as source models, not yet baked. The info-card layout (high-air cards on top, uncrossed leaders) and the high-air beneath-shadow are merged. Running: the shared-materials pass (branch `awf/materials`; it ends with the one bake) and the high-air rename, slice 19 item 7 (branch `awf/high-air-rename`).
 **Updated:** 2026-10-15.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec`. Opus subagents write the code and do all 3D modelling and visual work; Codex (`codex exec`, `gpt-6.1-sol`, high) only takes short, non-visual tasks. You orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** merge `awf/flight-model` once D29c (dogfights only between two fixed-wing aircraft in the same layer) lands on it. Then do slice 20, then slice 15 pass 3 (enable the 19 planned jets; every model has been accepted and baked), then slice 19.
+- **Pickup:** merge `awf/flight-model` once D29c (dogfights only between two fixed-wing aircraft in the same layer) lands on it. Then do slice 20, then settle the catalog-load limit with the user (raise it, or trim the jets' art), then slice 19.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Merging a worktree:** commit its work on its branch first, and check `git log` shows the merge brought commits in. Merging an uncommitted branch is an empty, silent no-op.
 - **Clean up merged worktrees:** after a branch merges, `git worktree remove` it and delete the branch. Each worktree carries its own multi-gigabyte Cargo `target/`, and leaving them filled the disk once.
@@ -31,7 +31,7 @@ You are implementing this spec with `implement-spec`. Opus subagents write the c
 - [x] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
 - [x] 13 [approach and departure effect](slices/13-transit-effect.md)
 - [x] 14 [jet attitude](slices/14-jet-attitude.md)
-- [ ] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md)
+- [x] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md) (open: the catalog-load limit, see Status)
 - [x] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
 - [x] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)

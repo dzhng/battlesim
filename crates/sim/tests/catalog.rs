@@ -169,8 +169,8 @@ fn every_faction_has_a_dedicated_sead_aircraft() {
 
 #[test]
 fn every_faction_fields_a_ground_missile_jet_and_a_bomb_jet() {
-    // Europe and Eastern receive their dedicated ground-missile jets in pass 3;
-    // this slice proves the roster contract across enabled and planned cards.
+    // Read across enabled and planned cards: a planned card's weapons are its
+    // icons, so the contract holds while a row waits on the bench.
     let view: Value = serde_json::from_str(
         &std::fs::read_to_string(sim::fixtures::dir().join("catalog.json")).unwrap(),
     )
@@ -277,6 +277,28 @@ fn no_jet_carries_bombs_and_ground_missiles() {
             card["id"]
         );
     }
+}
+
+/// D25: every crewed fixed-wing jet is a full row the battle flies. The only
+/// air cards still planned are drones, which wait for their own spec (D37);
+/// a planned row names what it would become in its `planned.profile`.
+#[test]
+fn no_fixed_wing_row_is_planned() {
+    let planned_jets: Vec<String> =
+        sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game)
+            .iter()
+            .filter_map(|doc| doc["units"].as_object())
+            .flatten()
+            .filter(|(_, unit)| unit["roster"]["category"] == "air")
+            .filter_map(|(id, unit)| {
+                let profile = unit["planned"]["profile"].as_str()?;
+                (!profile.ends_with("drone")).then(|| format!("{id} ({profile})"))
+            })
+            .collect();
+    assert!(
+        planned_jets.is_empty(),
+        "fixed-wing rows still planned: {planned_jets:?}"
+    );
 }
 
 /// A disabled card's source model: present at its `source_path`, and a
