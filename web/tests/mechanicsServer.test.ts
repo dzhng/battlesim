@@ -312,7 +312,12 @@ test("save publishes the Rust catalog generator’s exact canonical bytes of the
   const native = spawnSync(
     resolve("..", process.env.CARGO_TARGET_DIR ?? "target", "debug/examples/mechanics_validate"),
     [],
-    { input: `{"game":${game},"catalog":[${texts.join(",")}]}`, encoding: "utf8" },
+    {
+      input: `{"game":${game},"catalog":[${texts.join(",")}]}`,
+      encoding: "utf8",
+      // The generated catalog is several MiB; Node's default buffer is 1 MiB.
+      maxBuffer: 64 * 1024 * 1024,
+    },
   );
   expect(native.status, native.stderr).toBe(0);
   expect(await readFile(join(root, "fixtures/catalog.json"), "utf8")).toBe(native.stdout);
