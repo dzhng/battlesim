@@ -78,4 +78,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.4, wing_y=3.0, wing_side=1, tail_yaw=0.3, seed=10)
 
 
-run_disabled("j10", CARDS, "chinese_air_grey", build, wreck, references="j_10_vigorous_dragon")
+run_disabled("j10", CARDS, "chinese_air_light_grey", build, wreck, references="j_10_vigorous_dragon")
