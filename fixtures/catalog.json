@@ -8760,7 +8760,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_medium"
+                "pantsir_missile"
               ]
             }
           ],
@@ -20239,7 +20239,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "patriot_pac3"
               ]
             }
           ],
@@ -27582,7 +27582,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_medium"
+            "pantsir_missile"
           ]
         }
       ],
@@ -40442,7 +40442,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "patriot_pac3"
           ]
         }
       ],
@@ -42863,6 +42863,103 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "pantsir_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 8,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 120.0,
+      "decoyable": true,
+      "default": false,
+      "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
+      "gravity_scale": 1.0,
+      "guidance": "on_the_move",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 10.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "57E6",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 300.0,
+      "range_m": 2600.0,
+      "reload_s": 4.0,
+      "requires_clear_launch_path": false,
+      "scatter_mrad": 0.5,
+      "seeker": "radar",
+      "seeker_fov_deg": 120.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing",
+            "missile"
+          ]
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing",
+            "missile"
+          ]
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
+    "patriot_pac3": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 6,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 260.0,
+      "decoyable": true,
+      "default": false,
+      "description": "Long-range missile that also shoots down missiles fired from aircraft.",
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "PAC-3 MSE",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 300.0,
+      "range_m": 5200.0,
+      "reload_s": 9.0,
+      "requires_clear_launch_path": true,
+      "scatter_mrad": 0.5,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing",
+            "missile"
+          ]
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
     "rifle": {
       "accel_mps2": null,
       "aim_s": 0.8,
@@ -42932,7 +43029,7 @@
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "gravity_scale": 1.0,
       "icon": "rockets",
-      "interceptable": true,
+      "interceptable": false,
       "lifetime_s": null,
       "magazine": {
         "burst": null,

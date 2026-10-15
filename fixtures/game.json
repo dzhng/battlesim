@@ -534,6 +534,23 @@
             "seeker_fov_deg": 100,
             "decoyable": true
         },
+        "patriot_pac3": {
+            "extends": "aa_long",
+            "name": "PAC-3 MSE",
+            "description": "Long-range missile that also shoots down missiles fired from aircraft.",
+            "targets": {
+                "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] }
+            }
+        },
+        "pantsir_missile": {
+            "extends": "aa_medium",
+            "name": "57E6",
+            "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
+            "targets": {
+                "low_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] },
+                "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] }
+            }
+        },
         "air_gun": {
             "extends": "hmg",
             "name": "Aircraft cannon",
@@ -736,7 +753,7 @@
       "name": "Rocket Pod",
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "icon": "rockets",
-      "interceptable": true,
+      "interceptable": false,
       "range_m": 900,
       "speed_mps": 450,
       "gravity_scale": 1.0,
@@ -1015,6 +1032,8 @@
       "aa_ballistic": 1,
       "aa_medium": 30,
       "aa_long": 45,
+      "patriot_pac3": 45,
+      "pantsir_missile": 30,
       "air_gun": 1,
       "air_missile": 25,
       "air_bomb": 25,
