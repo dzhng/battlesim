@@ -29,22 +29,22 @@ SPEC = dict(
     # The long radome and the nose ahead of the windscreen (2.7 m back from
     # the tip in the side photo), the cockpit's sill low under the bubble.
     fuselage=[(7.16, 0.0, 1.98, 1.98), (6.75, 0.3, 1.72, 2.2, 1.96), (6.0, 0.5, 1.52, 2.36, 1.94),
-              (4.8, 0.6, 1.38, 2.42, 1.9, 2.4), (3.3, 0.68, 1.26, 2.44, 1.85, 2.6), (1.8, 0.84, 1.2, 2.56, 1.82, 2.8),
-              (-0.5, 0.9, 1.2, 2.62, 1.8, 2.8), (-3.2, 0.86, 1.25, 2.44, 1.8, 2.6), (-5.4, 0.66, 1.4, 2.26, 1.82, 2.4),
+              (4.8, 0.6, 1.2, 2.42, 1.85, 2.4), (3.3, 0.68, 0.96, 2.44, 1.75, 2.6), (1.8, 0.84, 0.96, 2.56, 1.75, 2.8),
+              (-0.5, 0.9, 1.1, 2.62, 1.78, 2.8), (-3.2, 0.86, 1.25, 2.44, 1.8, 2.6), (-5.4, 0.66, 1.4, 2.26, 1.82, 2.4),
               (-6.82, 0.56, 1.5, 2.12, 1.82)],
     bodies=[
         # The chin intake's duct under the forward fuselage, back into the body.
-        ("fuselage_intake", [(4.62, 0.52, 0.66, 1.3, 0.98, 2.6), (3.4, 0.56, 0.7, 1.45, 1.05, 2.6),
-                             (1.6, 0.6, 0.86, 1.55, 1.2, 2.6), (0.0, 0.5, 1.1, 1.6, 1.3, 2.4)]),
+        ("fuselage_intake", [(4.62, 0.58, 0.66, 1.8, 1.12, 2.6), (3.4, 0.68, 0.7, 1.8, 1.2, 2.6),
+                             (1.6, 0.84, 0.86, 1.8, 1.3, 2.6), (0.0, 0.88, 1.08, 1.8, 1.45, 2.4)]),
         # The dorsal spine the canopy fairs into, back to the fin.
         ("fuselage_spine", [(1.9, 0.0, 2.5, 2.5), (1.35, 0.36, 2.4, 2.9, 2.5, 2.4), (-0.5, 0.42, 2.4, 2.84, 2.5, 2.4),
                             (-3.0, 0.36, 2.3, 2.62, 2.4, 2.4), (-4.4, 0.2, 2.3, 2.46, 2.36)]),
         # The brake-chute fairing at the fin's root.
-        ("tail_chute", [(-4.6, 0.0, 2.36, 2.36), (-5.4, 0.26, 2.2, 2.62, 2.4), (-7.0, 0.24, 2.2, 2.64, 2.42),
-                        (-7.42, 0.12, 2.3, 2.5)]),
+        ("tail_chute", [(-5.7, 0.0, 2.4, 2.4), (-6.05, 0.2, 2.26, 2.56, 2.4), (-6.95, 0.19, 2.27, 2.55, 2.4),
+                        (-7.25, 0.1, 2.33, 2.48)]),
     ],
     canopy=dict(x_front=4.5, x_back=1.35, sill=2.3, top=3.06, half_width=0.46, bows=(2.15,), peak=0.45, tail=0.8),
-    strake=[(4.4, 0.5, 1.82, 3.9, 0.12), (1.2, 0.9, WING_Z, 1.0, 0.1)],
+    strake=[(4.5, 0.5, 1.84, 4.1, 0.12), (0.5, 1.45, WING_Z, 1.0, 0.08)],
     wing=[(0.9, 0.86, WING_Z, 4.7, 0.2), (-2.6, 4.72, WING_Z, 1.12, 0.05)],
     stab=[(-4.85, 0.72, 1.72, 2.25, 0.12), (-6.3, 2.79, 1.4, 0.95, 0.05)],
     fins=[dict(root_x=-3.35, root_z=2.42, height=2.46, root_chord=3.5, tip_chord=1.15, sweep_m=2.62),
@@ -52,8 +52,7 @@ SPEC = dict(
                cant=2.88, rudder=False),
           dict(root_x=-4.1, root_z=1.42, height=0.62, root_chord=1.25, tip_chord=0.7, sweep_m=0.45, y=-0.5,
                cant=2.88, rudder=False)],
-    intakes=[("rect", (4.6, 0.0, 0.98), 0.98, 0.62, 0.22, (0, -0.12, 0))],
-    nozzles=[dict(loc=(-6.8, 0.0, 1.82), r_front=0.56, r_exit=0.5, length=0.74, petals=15)],
+        nozzles=[dict(loc=(-6.8, 0.0, 1.82), r_front=0.56, r_exit=0.5, length=0.74, petals=15)],
     wing_hinge=(0.15, 0.78),
     gear=[dict(name="nose", x=3.75, y=0.0, top=0.92, radius=0.3, width=0.17, door=(0.7, 0.4), light=True),
           dict(name="main_L", x=-0.55, y=1.18, top=1.25, radius=0.38, width=0.2, door=(1.0, 0.55), rake=0.1),
@@ -62,7 +61,7 @@ SPEC = dict(
     stores=[("tank", (-0.5, 2.1, 0.98), 4.6, 0.41), ("missile", (-1.2, 3.35, 1.38), 3.0, 0.09),
             ("missile", (-1.35, 4.86, WING_Z), 3.65, 0.09)],
     nose_probe=((7.15, 0.0, 2.0), 0.38),
-    nav=dict(left=(2.6, 0.64, 1.2), right=(2.6, -0.64, 1.2), tail=(-7.35, 0.0, 2.62)),
+    nav=dict(left=(2.6, 0.64, 1.2), right=(2.6, -0.64, 1.2), tail=(-7.27, 0.0, 2.4)),
 )
 # Shaw's 20th Fighter Wing, as the side photo: low-visibility star-and-bar on
 # the fuselage and the wings (upper left, lower right), "SW" and the serial on the fin.
@@ -85,6 +84,9 @@ MARKINGS = [
 def build(variant, v):
     m = A.jet(v, SPEC)
     hull = v.hull
+    # The chin intake's mouth: the duct's rounded lip, dark inside.
+    A.body("intake_mouth", [(4.645, 0.5, 0.72, 1.4, 1.08, 2.6), (4.625, 0.5, 0.72, 1.4, 1.08, 2.6)], m["black"],
+           hull, seg=20, steps=(1, 1, 1, 1))
     # Wing-tip rails under their AIM-120s.
     A.mirrored(lambda side, s: box(f"wing_tip_rail_{s}", (2.4, 0.08, 0.1), (-1.4, side * 4.8, WING_Z - 0.02),
                                    m["dark"], hull, bevel=0.01))
@@ -107,4 +109,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-4.2, wing_y=2.8, wing_side=-1, seed=16)
 
 
-run_disabled("f16", CARDS, "us_compass_grey", build, wreck)
+run_disabled("f16", CARDS, "us_compass_grey", build, wreck, references="f_16_fighting_falcon")
