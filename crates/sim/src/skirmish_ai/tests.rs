@@ -1091,3 +1091,91 @@ fn artillery_final_aim_is_in_one_weapon_envelope_and_return_fire_holds() {
         "policy must not override hold-fire: {orders:?}"
     );
 }
+
+fn identified(
+    id: u32,
+    kind: TypeIndex,
+    position: [f64; 3],
+) -> contract::observation::IdentifiedUnit {
+    contract::observation::IdentifiedUnit {
+        id: ObservedTargetId(id),
+        kind,
+        cost: 100,
+        position,
+        yaw: 0.0,
+        velocity: [0.0, 0.0],
+        members: vec![],
+        member_ids: vec![],
+        member_slots: vec![],
+        member_active_mounts: vec![],
+        weapon_poses: vec![],
+        reversing: false,
+        smoking: false,
+        member_leans: vec![],
+    }
+}
+
+fn attack_targets(orders: &[Order], unit: UnitId) -> Vec<ObservedTargetId> {
+    orders
+        .iter()
+        .filter_map(|order| match order {
+            Order::Attack {
+                units,
+                target: TargetRef::Identified { id },
+            } if units == &vec![unit] => Some(*id),
+            _ => None,
+        })
+        .collect()
+}
+
+/// A player who sends a jet at a tank lets it keep making passes at that
+/// tank while it is still there, rather than re-aiming it at whatever is
+/// nearest each time they look. A jet's target changes only once the side
+/// can no longer see it (destroyed or lost).
+#[test]
+fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
+    let (rules, mut frame, entry) = empty_match();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":deck(),"units":[{"side":"red","kind":"test_jet","position":[500,100]}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    frame.own = battle.observe(Side::Red).own.clone();
+    let jet = frame.own[0].id;
+    let view = frame.skirmish.as_mut().unwrap();
+    view.phase = Phase::Active;
+    view.credits = 0.0;
+    let tank = rules.catalog.index("test_tank").unwrap();
+    frame.identified = vec![identified(1, tank, [500.0, 600.0, 0.0])];
+    let mut ai = BalancedDoctrine::default();
+    let decide = |ai: &mut BalancedDoctrine, frame: &ObservationFrame| {
+        ai.decide(Side::Red, Faction::Us, &entry, frame, &rules, |_, _| {
+            Some(1.0)
+        })
+    };
+    assert_eq!(
+        attack_targets(&decide(&mut ai, &frame), jet),
+        vec![ObservedTargetId(1)]
+    );
+
+    // A second tank turns up right under the jet, at the next decision.
+    frame.tick += 10 * u64::from(rules.tick_hz);
+    frame
+        .identified
+        .push(identified(2, tank, [500.0, 120.0, 0.0]));
+    let kept = attack_targets(&decide(&mut ai, &frame), jet);
+    assert!(
+        kept.iter().all(|&id| id == ObservedTargetId(1)),
+        "the jet was re-aimed off a target it still sees: {kept:?}"
+    );
+
+    // The first tank is gone from the side's picture: now the jet re-aims.
+    frame.tick += 10 * u64::from(rules.tick_hz);
+    frame.identified.retain(|t| t.id != ObservedTargetId(1));
+    assert_eq!(
+        attack_targets(&decide(&mut ai, &frame), jet),
+        vec![ObservedTargetId(2)]
+    );
+}

@@ -85,7 +85,6 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     ];
     let mut seq = [1u64, 1u64];
     let mut next_buy = [0usize; 2];
-    let mut jet_targets = BTreeMap::new();
     let mut stagnant = 0;
     let mut previous: Option<ProgressSignature> = None;
     while report.ticks < row.horizon_ticks {
@@ -101,11 +100,6 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 &mut |id, goal| battle.route_time(side, id, goal),
             );
             let mut orders = orders;
-            if inputs.sticky_jets {
-                orders.retain(|order| {
-                    keeps_jet_target(&setup.rules, &frame, order, &mut jet_targets)
-                });
-            }
             if let Some(list) = &inputs.buy[side.index()] {
                 orders.retain(|order| !matches!(order, Order::ConfirmPurchase { .. }));
                 orders.extend(scripted_purchases(
@@ -268,35 +262,6 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 replayed.digest() == report.battle_digest
             });
     report
-}
-
-/// Whether to pass on `order`: a jet's new attack target waits until the side
-/// has lost sight of its last one, as a player lets a run finish, instead of
-/// switching to whatever is nearest the jet now (which restarts its pass).
-fn keeps_jet_target(
-    rules: &Rules,
-    frame: &ObservationFrame,
-    order: &Order,
-    targets: &mut BTreeMap<UnitId, TargetRef>,
-) -> bool {
-    let Order::Attack { units, target } = order else {
-        return true;
-    };
-    let [unit] = units.as_slice() else {
-        return true;
-    };
-    let jet = frame.own.iter().find(|u| u.id == *unit).is_some_and(|u| {
-        rules.catalog.get(u.kind).mobility.flight()
-            == Some(contract::catalog::FlightModel::FixedWing)
-    });
-    let held = jet
-        && targets.get(unit).is_some_and(|old| {
-            matches!(old, TargetRef::Identified { id } if frame.identified.iter().any(|t| t.id == *id))
-        });
-    if jet && !held {
-        targets.insert(*unit, *target);
-    }
-    !held
 }
 
 /// The next cards of `list` the wallet affords, strictly in order, so a side

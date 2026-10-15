@@ -20,9 +20,6 @@ pub(crate) struct Inputs {
     /// A side's scripted purchases, bought strictly in order as its wallet
     /// allows, in place of its controller's own; None leaves it shopping.
     pub(crate) buy: [Option<Vec<String>>; 2],
-    /// A jet keeps its attack target until the side loses sight of it, as a
-    /// player's would, instead of taking whatever target is nearest it now.
-    pub(crate) sticky_jets: bool,
 }
 
 impl Inputs {
@@ -49,7 +46,6 @@ impl Inputs {
             limits: serde_json::from_value(config["limits"].clone())?,
             factions: [Faction::Us, Faction::Europe],
             buy: [None, None],
-            sticky_jets: false,
         })
     }
 }

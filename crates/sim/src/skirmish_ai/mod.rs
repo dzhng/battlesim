@@ -38,6 +38,10 @@ pub enum Doctrine {
 pub struct BalancedDoctrine {
     next_decision: Tick,
     assigned: BTreeMap<UnitId, String>,
+    /// The target each own jet was last sent at. A jet keeps it while the
+    /// side still identifies it, as a player's would, so a pass at it is not
+    /// restarted at whatever is nearest at the next decision.
+    jet_targets: BTreeMap<UnitId, ObservedTargetId>,
     reinforcement: usize,
     doctrine: Doctrine,
     started: bool,
@@ -62,6 +66,7 @@ impl Default for BalancedDoctrine {
         Self {
             next_decision: 0,
             assigned: BTreeMap::new(),
+            jet_targets: BTreeMap::new(),
             reinforcement: 0,
             doctrine: Doctrine::BalancedOpening,
             started: false,
@@ -200,6 +205,10 @@ impl BalancedDoctrine {
         self.update_doctrine(frame, rules, draw_unit);
         self.assigned
             .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
+        self.jet_targets.retain(|id, target| {
+            frame.own.iter().any(|u| u.id == *id)
+                && frame.identified.iter().any(|t| t.id == *target)
+        });
         let eligible: Vec<_> = rules
             .catalog
             .indices()
@@ -453,6 +462,11 @@ impl BalancedDoctrine {
                     continue;
                 }
                 if unit.engagement == contract::command::Engagement::FireAtWill {
+                    let jet = rules.catalog.get(unit.kind).mobility.flight()
+                        == Some(contract::catalog::FlightModel::FixedWing);
+                    if jet && self.jet_targets.contains_key(&unit.id) {
+                        continue;
+                    }
                     if let Some(target) = frame
                         .identified
                         .iter()
@@ -463,6 +477,9 @@ impl BalancedDoctrine {
                                 .then(a.id.cmp(&b.id))
                         })
                     {
+                        if jet {
+                            self.jet_targets.insert(unit.id, target.id);
+                        }
                         orders.push(Order::Attack {
                             units: vec![unit.id],
                             target: TargetRef::Identified { id: target.id },

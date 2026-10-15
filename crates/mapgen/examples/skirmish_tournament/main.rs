@@ -8,9 +8,8 @@
 //! Balance probes shape a game without touching its rules: `--factions
 //! us,eastern` picks Blue's and Red's armies; `--buy-blue` / `--buy-red
 //! <card,…[|card,…]>` replace a side's own shopping with a list bought in
-//! order (cards before `|` once, the rest repeating); `--sticky-jets` lets a
-//! jet finish on its target instead of being re-aimed at the nearest one.
-//! The report's `air` block reads the referee's spawn and kill log.
+//! order (cards before `|` once, the rest repeating). The report's `air`
+//! block reads the referee's spawn and kill log.
 
 mod inputs;
 mod model;
@@ -39,7 +38,6 @@ fn main() {
     });
     let mut inputs = Inputs::load().expect("load generation inputs");
     inputs.factions = factions;
-    inputs.sticky_jets = args.iter().any(|arg| arg == "--sticky-jets");
     for (side, flag) in ["--buy-blue", "--buy-red"].into_iter().enumerate() {
         inputs.buy[side] = value(flag).map(|list| {
             list.replace('|', ",|,")
