@@ -40,8 +40,12 @@ each scene's battle to the event log recorded from the approved reel, and no sho
 may open on a unit it follows that has already fallen. A battle this chaotic can
 only keep its log if its physics stays the same, so a menu unit extends the test
 unit whose part it plays, hull and all, and changes its look; one shared random
-stream means any physical difference retimes the whole scene. Re-record a log
-only for a reel the user has approved.
+stream means any physical difference retimes the whole scene. So each scene's
+encounter pins, in its `overrides`, every stat of every weapon its cast fires, at
+the values the approved reel was filmed with: the game's weapons are retuned all
+the time, and none of that retuning reaches the reel. A change to a rule the pins
+do not cover (a rules section, a test unit) still retimes it. Re-record a log only
+for a reel the user has approved; a stat change never forces one.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence
