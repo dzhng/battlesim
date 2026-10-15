@@ -33,44 +33,51 @@ WING_Z = 2.0
 def spec(variant):
     b = variant["id"] == FB
     tip = 2.36 - (0.02 if b else 0.0)
-    fin = dict(root_x=-3.55, root_z=2.45, height=(4.36 if b else 4.38) - 2.45, root_chord=2.9, tip_chord=1.2,
-               sweep_m=1.6, cant=0.44)
+    fin = dict(root_x=-3.65, root_z=2.45, height=(4.36 if b else 4.38) - 2.45, root_chord=2.6, tip_chord=1.15,
+               sweep_m=2.4, cant=0.44)
     fin["height"] /= 0.905
     return dict(
         # The deep body of the side photo: its spine 3 m up behind the
         # canopy, its belly 1.2 m off the ground, the fins on its flanks.
-        fuselage=[(7.82, 0.0, 1.95, 1.95), (7.1, 0.42, 1.7, 2.26, 1.95, 1.4), (5.9, 0.76, 1.48, 2.6, 1.95, 1.6),
-                  (4.4, 1.0, 1.3, 2.7, 1.98, 2.0), (2.8, 1.56, 1.2, 2.92, 2.0, 2.6), (0.0, 1.76, 1.18, 2.98, 2.0, 3.2),
-                  (-3.0, 1.62, 1.3, 2.8, 2.0, 3.0), (-5.3, 1.06, 1.5, tip + 0.1, 1.95, 2.6),
-                  (-6.2, 0.76, 1.56, 2.3, 1.92, 2.2)],
-        canopy=dict(x_front=5.8, x_back=3.4 if b else 3.2, sill=2.62, top=3.36, half_width=0.5, bows=(4.15,),
+        fuselage=[(7.82, 0.0, 2.12, 2.12), (7.1, 0.42, 1.84, 2.4, 2.08, 1.4), (5.9, 0.76, 1.56, 2.68, 2.05, 1.6),
+                  (4.4, 0.86, 1.24, 2.76, 2.02, 2.0), (2.8, 1.3, 1.06, 2.92, 2.0, 2.6), (0.0, 1.76, 1.04, 2.98, 2.0, 3.2),
+                  (-3.0, 1.62, 1.2, 2.8, 2.0, 3.0), (-5.0, 1.12, 1.48, tip + 0.1, 1.95, 2.6),
+                  (-5.75, 0.8, 1.54, 2.3, 1.92, 2.2)],
+        canopy=dict(x_front=5.8, x_back=3.4 if b else 3.2, sill=2.62, top=3.36, half_width=0.5, bows=(),
                     peak=0.42, tail=0.75),
         bodies=[("fuselage_spine", [(3.35, 0.4, 2.8, 3.22, 2.9, 2.4), (0.6, 0.5, 2.8, 3.08, 2.9, 2.6),
-                                    (-3.4, 0.0, 2.7, 2.7)])],
+                                    (-3.4, 0.0, 2.7, 2.7)]),
+                # The caret intakes' trunks, from their mouths back into the body.
+                *[(f"fuselage_intake_{k}", [(3.64, 0.44, 1.46, 2.48, 1.96, 4.0), (2.2, 0.46, 1.4, 2.54, 1.96, 3.5),
+                                            (0.2, 0.26, 1.6, 2.4, 1.96, 3.0)], side * 1.22)
+                  for side, k in ((1, "L"), (-1, "R"))]],
         wing_hinge=(0.1, (0.8, 0, 1)),
-        nav=dict(left=(-1.9, 5.15, WING_Z - 0.04), right=(-1.9, -5.15, WING_Z - 0.04)),
-        wing=[(1.2, 1.62, WING_Z, 5.4, 0.3), (-2.2, 5.35, WING_Z - 0.06, 1.4, 0.06)],
-        stab=[(-4.8, 1.0, 1.96, 2.4, 0.1), (-6.4, 3.3, 1.94, 1.0, 0.04)],
+        nav=dict(left=(-2.9, 5.2, WING_Z - 0.04), right=(-2.9, -5.2, WING_Z - 0.04)),
+        wing=[(0.7, 1.7, WING_Z, 5.65, 0.3), (-2.3, 5.35, WING_Z - 0.06, 1.7, 0.06)],
+        stab=[(-4.1, 1.0, 1.96, 3.72, 0.12), (-5.85, 3.55, 1.94, 1.1, 0.04)],
         fins=[dict(fin, y=1.05), dict(fin, y=-1.05)],
-        intakes=[("rect", (3.65, 1.26, 1.96), 0.55, 0.8, 0.22, (0.22, 0.25, -0.15)),
-                 ("rect", (3.65, -1.26, 1.96), 0.55, 0.8, 0.22, (-0.22, 0.25, 0.15))],
-        nozzles=[] if b else [dict(loc=(-6.2, 0.0, 1.9), r_front=0.6, r_exit=0.54, length=1.6, petals=14)],
-        gear=[dict(name="nose", x=3.6, y=0.0, top=1.3, radius=0.3, width=0.17, door=(0.9, 0.45), light=True),
-              dict(name="main_L", x=-2.0, y=1.32, top=1.3, radius=0.45, width=0.22, door=(1.2, 0.5), rake=0.1),
-              dict(name="main_R", x=-2.0, y=-1.32, top=1.3, radius=0.45, width=0.22, door=(1.2, 0.5), rake=0.1)],
+        intakes=[("rect", (3.64, 1.22, 1.96), 0.76, 0.98, 0.22, (0.22, 0.25, -0.15)),
+                 ("rect", (3.64, -1.22, 1.96), 0.76, 0.98, 0.22, (-0.22, 0.25, 0.15))],
+        nozzles=[] if b else [dict(loc=(-5.7, 0.0, 1.9), r_front=0.66, r_exit=0.56, length=0.8, petals=14)],
+        gear=[dict(name="nose", x=3.8, y=0.0, top=1.2, radius=0.3, width=0.17, door=(0.9, 0.45), light=True),
+              dict(name="main_L", x=-2.35, y=1.32, top=1.15, radius=0.4, width=0.22, door=(1.2, 0.5), rake=0.1),
+              dict(name="main_R", x=-2.35, y=-1.32, top=1.15, radius=0.4, width=0.22, door=(1.2, 0.5), rake=0.1)],
     )
 
 
 def build(variant, v):
     m = A.jet(v, spec(variant))
     hull = v.hull
+    # Each intake's dark mouth on its raked lip.
+    for k, (_, loc, w, h, d, rot) in enumerate(spec(variant)["intakes"]):
+        A.intake_mouth(f"intake_{k}", loc, w, h, d, m, hull, rot=rot)
     # The electro-optical targeting window under the chin, the distributed
     # aperture windows round the nose.
-    box("eots_window", (0.5, 0.36, 0.14), (6.4, 0, 1.6), m["glass"], hull, rot=(0, 0.3, 0), lods=MID)
+    box("eots_window", (0.5, 0.36, 0.14), (6.4, 0, 1.66), m["glass"], hull, rot=(0, 0.3, 0), lods=MID)
     A.mirrored(lambda side, k: box(f"das_window_{k}", (0.18, 0.03, 0.14), (5.2, side * 0.92, 2.2), m["glass"], hull,
                                    lods=NEAR))
-    box("antiglare", (0.9, 0.5, 0.03), (6.4, 0, 2.62), m["dark"], hull, rot=(0, 0.2, 0), lods=MID)
-    A.mirrored(lambda side, k: box(f"bay_seam_{k}", (3.4, 0.03, 0.03), (0.4, side * 0.5, 1.19), m["dark"], hull,
+    box("antiglare", (0.9, 0.5, 0.03), (6.4, 0, 2.56), m["dark"], hull, rot=(0, 0.2, 0), lods=MID)
+    A.mirrored(lambda side, k: box(f"bay_seam_{k}", (3.4, 0.03, 0.03), (0.4, side * 0.5, 1.05), m["dark"], hull,
                                    lods=NEAR))
     # Eielson's AK (the side photo) on the A, the Marines' VK on the B, in
     # the low-visibility grey both wear.
@@ -101,10 +108,10 @@ def build(variant, v):
         box("lift_fan_door", (1.6, 0.8, 0.05), (2.6, 0, 3.2), m["paint"], hull, bevel=0.02, lods=MID)
         A.mirrored(lambda side, k: box(f"aux_inlet_{k}", (0.9, 0.3, 0.04), (0.9, side * 0.3, 3.12), m["dark"], hull,
                                        lods=MID))
-        for k, (x, r, l) in enumerate(((-6.2, 0.6, 0.5), (-6.7, 0.57, 0.5), (-7.2, 0.54, 0.5))):
+        for k, (x, r, l) in enumerate(((-5.7, 0.62, 0.45), (-6.15, 0.59, 0.45), (-6.6, 0.56, 0.45))):
             cyl(f"swivel_duct_{k}", r, l, (x - l / 2, 0, 1.9), "X", m["nozzle"], hull, seg=22, r2=r * 1.03)
-            box(f"swivel_seam_{k}", (0.03, r * 2.05, r * 2.05), (x - l, 0, 1.9), m["dark"], hull, lods=NEAR)
-        cyl("swivel_bore", 0.48, 0.04, (-7.67, 0, 1.9), "X", m["black"], hull, seg=18, lods=MID)
+            cyl(f"swivel_seam_{k}", r * 1.05, 0.03, (x - l, 0, 1.9), "X", m["dark"], hull, seg=22, lods=NEAR)
+        cyl("swivel_bore", 0.48, 0.04, (-7.03, 0, 1.9), "X", m["black"], hull, seg=18, lods=MID)
     else:
         A.body("gun_bulge", [(3.2, 0.0, 2.88, 2.88), (2.8, 0.14, 2.8, 3.02), (0.6, 0.14, 2.8, 3.02),
                              (0.2, 0.0, 2.9, 2.9)], m["paint"], hull, seg=10, loc=(0, 0.95, 0), lods=MID)

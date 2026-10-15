@@ -65,11 +65,100 @@
    "licence": "public-domain",
    "sha256": "a8151d3fc1994919a81feb7520e5506912d134aa2c1949947439a74d3f2d5b10",
    "note": "F-35B left side taxiing (USMC): chined nose, shorter canopy, canted fins, gear"
+  },
+  {
+   "file": "f_35a-top.jpg",
+   "variant": "f_35a",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35A_Top.jpg",
+   "author": "www.jsf.mil (JSF Program Office media kit)",
+   "licence": "public-domain",
+   "sha256": "391b4c63f5e366ae59a3912dc6c0e58a0d876c8d376850cd8d68fff4ac433d51",
+   "note": "F-35A planform, a rendered top view from the JSF Program Office media kit: the trapezoidal wing, the chined forebody and its caret intakes' outline, the stabilators' sawtooth, the canted fins in plan, the single nozzle, the canopy's length."
+  },
+  {
+   "file": "f_35a-three_quarter_rear.jpg",
+   "variant": "f_35a",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:JASDF_F-35A_(09-8718)_left_rear_view_at_Komatsu_Air_Base_October_7,_2023_01.jpg",
+   "author": "Hunini",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "e96fc9a636c47000f0c16199e461c129f0904a7b1e20dae0b8751a6c8ca25095",
+   "note": "JASDF F-35A 09-8718 at Komatsu, left rear three-quarter (the airframe the USAF flies; markings Japanese): the canted fins over the stabilators, the nozzle's serrated shroud, the wing's trailing edge, the chine line and gear."
+  },
+  {
+   "file": "f_35a-three_quarter_rear-generated.jpg",
+   "variant": "f_35a",
+   "view": "three_quarter_rear",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "cb5a8aeaedb4e66650430f43ff299d15c84e6b35d955a00d59dcd9336ae8a39d",
+   "note": "Generated: a USAF F-35A from the left rear without the crowd and ground equipment of the photo beside it. Trusted for layout and proportions only: the fins' cant and placement, the stabilators against the nozzle, the nozzle's size. The star-and-bar on the fin is wrong (USAF F-35s carry it on the body). The gateway ignored the seed, so it does not reproduce.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "US Air Force Lockheed Martin F-35A Lightning II, three-quarter rear view from the left, parked on an airfield apron in daylight, photographic reference. Stealth-shaped body with sharp chines, a single large F135 engine nozzle with serrated edges between the twin canted vertical tails, all-moving horizontal stabilators with sawtooth edges level with the nozzle, trapezoidal wing with straight leading and trailing edges, the frameless one-piece canopy, tricycle landing gear, internal weapons bay doors closed, no external stores, uniform dark grey radar-absorbent coating with low-visibility USAF markings. Whole aircraft in frame, no people, no ground equipment, no text.",
+   "inputs": [
+    "f_35a-three_quarter_rear.jpg"
+   ],
+   "seed": 16102
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-front.jpg",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:U.S._Marine_Corps_F-35B_Lightning_II(169164)_of_VMFA-121_front_view_at_MCAS_Iwakuni_May_5,_2018.jpg",
+   "author": "Hunini",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "6cedf846dbbdd5d557fbfc6b26cbeae4e08cd596eb729e4c81e41721ecf28096",
+   "note": "USMC F-35B 169164 (VMFA-121) head-on at Iwakuni, intake covers fitted: the chined nose, the canopy, the caret intakes' outline, the fins' cant, the level wing, the gear track."
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-three_quarter_rear.jpg",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:U.S._Marine_Corps_F-35B_Lightning_II(169164)_of_VMFA-_121_right_rear_view_at_MCAS_Iwakuni_May_5,_2018.jpg",
+   "author": "Hunini",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "93c81eb4ff77f3aa8363a8503f1cd80a3cfb9f4dd08e874e4afc49e39cd5be05",
+   "note": "USMC F-35B 169164 (VMFA-121) right rear three-quarter: the B's shorter tail cone and its three-bearing nozzle, the fins and stabilators, the roll-post door under the wing root."
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-top.png",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "top",
+   "source": "drawing",
+   "page": "https://commons.wikimedia.org/wiki/File:F-35B_three-view.PNG",
+   "author": "www.jsf.mil; derivative work: The High Fin Sperm Whale",
+   "licence": "public-domain",
+   "sha256": "319d2f2f85306aa8801072bb95d95707fb9bcd2d2249760dbfdbfae8eca334a1",
+   "note": "F-35B planform, the top view cropped from the Commons three-view (renders from the JSF Program Office), a corner of its side view blanked: the wing and tail in plan, the lift-fan door behind the canopy, the shorter tail cone than the A's."
+  },
+  {
+   "file": "us_f_35_lightning_ii_f_35b-front-generated.jpg",
+   "variant": "us_f_35_lightning_ii_f_35b",
+   "view": "front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "12cfde338ae5d64225f92fa8921cd8bf78f37226d383dd7b910026f2c370a459",
+   "note": "Generated: the head-on F-35B of the photo beside it with the intake covers off. Trusted for layout and proportions only: the caret intakes' mouths, the nose and canopy against the wing, the fins' cant, the gear track. The gateway ignored the seed, so it does not reproduce.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "US Marine Corps Lockheed Martin F-35B Lightning II, straight head-on front view at eye level on an airfield apron in daylight, photographic reference. Pointed chined radome, the frameless bubble canopy with the lift-fan door hump behind it, two caret (diverterless bump) intakes either side of the nose with their mouths open and dark (no intake covers), trapezoidal wing level, twin vertical tails canted outward, tricycle landing gear with the nose gear centred, no external stores, uniform dark grey coating. Whole aircraft in frame, symmetric, no people, no covers, no text.",
+   "inputs": [
+    "us_f_35_lightning_ii_f_35b-front.jpg"
+   ],
+   "seed": 16103
   }
  ],
  "gaps": [
-  "f_35a: no rear or top view (planform and nozzle from published figures and the B's rear shots)",
-  "us_f_35_lightning_ii_f_35b: no top view; lift-fan and auxiliary inlet doors drawn closed from the in-flight side shot",
+  "f_35a: no straight rear view (the nozzle from the three-quarter rear photo); the top view is a manufacturer render",
+  "us_f_35_lightning_ii_f_35b: the top view is a manufacturer render; lift-fan and auxiliary inlet doors drawn closed from the in-flight side shot; no straight rear view",
   "f_35a: dimensions 15.7 x 10.7 x 4.38 m against Lockheed Martin's F-35A page as cited by https://en.wikipedia.org/wiki/Lockheed_Martin_F-35_Lightning_II (51.4 x 35 x 14.4 ft = 15.67 x 10.67 x 4.39): within 0.3%",
   "us_f_35_lightning_ii_f_35b: dimensions 15.6 x 10.7 x 4.36 m from Lockheed Martin's F-35B sheet (https://www.lockheedmartin.com/content/dam/lockheed-martin/aero/documents/F-35/f35B.pdf: 15.6 m, 10.7 m) and the RAF (https://www.raf.mod.uk/aircraft/current-aircraft/lightning-f35b/: height 4.36 m): match"
  ]
