@@ -742,6 +742,114 @@ fn the_ai_sends_bought_jets_on_attack_move() {
     )));
 }
 
+/// Credit a wallet's purchases to the frame the way the match does: price
+/// out, slot taken, card pending. Returns the kinds bought.
+fn confirm_purchases(
+    rules: &Rules,
+    frame: &mut ObservationFrame,
+    orders: &[Order],
+) -> Vec<TypeIndex> {
+    let tick = frame.tick;
+    let view = frame.skirmish.as_mut().unwrap();
+    let mut bought = Vec::new();
+    for order in orders {
+        let Order::ConfirmPurchase {
+            variant,
+            destination,
+        } = order
+        else {
+            continue;
+        };
+        let kind = rules.catalog.index(variant).unwrap();
+        let price = f64::from(rules.catalog.get(kind).cost);
+        assert!(price <= view.credits && view.occupied_slots < view.max_units);
+        view.credits -= price;
+        view.occupied_slots += 1;
+        view.pending.push(contract::skirmish::PendingPurchase {
+            id: contract::skirmish::PurchaseId(view.pending.len() as u32),
+            kind,
+            destination: *destination,
+            confirmed_tick: tick,
+            blocked: false,
+            arrival_tick: None,
+        });
+        bought.push(kind);
+    }
+    bought
+}
+
+#[test]
+fn with_steady_income_the_ai_saves_for_an_expensive_jet_and_keeps_its_aa() {
+    // Prices are the test's own: a jet costs as much as a dozen cheap cards,
+    // far more than one decision's income, and the AA card fits the opening.
+    let mut authored = deck();
+    for (id, cost) in [
+        ("test_rifle", 50),
+        ("test_at", 50),
+        ("test_recon", 50),
+        ("test_tank", 50),
+        ("test_supply", 50),
+        ("test_jeep", 150),
+    ] {
+        crate::fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": cost }));
+    }
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }] }),
+    );
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jet",
+        json!({
+            "cost": 600,
+            "roster": { "factions": ["us"], "category": "air", "family_name": "Test jet", "variant": "Test" }
+        }),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let jet = rules.catalog.index("test_jet").unwrap();
+    let aa = rules.catalog.index("test_jeep").unwrap();
+    let (_, mut frame, entry) = empty_match();
+    let view = frame.skirmish.as_mut().unwrap();
+    view.credits = 200.0;
+    view.max_units = 1_000;
+    let mut ai = BalancedDoctrine::new(3);
+    let decide = |ai: &mut BalancedDoctrine, frame: &ObservationFrame| {
+        ai.decide(Side::Red, Faction::Us, &entry, frame, &rules, |_, _| {
+            Some(1.0)
+        })
+    };
+    let orders = decide(&mut ai, &frame);
+    let opening = confirm_purchases(&rules, &mut frame, &orders);
+    assert!(opening.contains(&aa), "the opening carries its AA card");
+
+    // Twenty credits a decision: a jet takes thirty decisions of saving.
+    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+    let mut reinforcements = Vec::new();
+    for decision in 1..=150 {
+        frame.tick = decision * 5 * u64::from(rules.tick_hz);
+        frame.skirmish.as_mut().unwrap().credits += 20.0;
+        let orders = decide(&mut ai, &frame);
+        reinforcements.extend(confirm_purchases(&rules, &mut frame, &orders));
+    }
+    let names: Vec<_> = reinforcements
+        .iter()
+        .map(|k| rules.catalog.id(*k))
+        .collect();
+    let first_jet = reinforcements
+        .iter()
+        .position(|&k| k == jet)
+        .unwrap_or_else(|| panic!("steady income never bought the jet: {names:?}"));
+    assert!(
+        reinforcements[first_jet + 1..]
+            .iter()
+            .any(|&k| k != jet && !rules.catalog.get(k).has_role("logistics")),
+        "after the jet the AI buys ground units again: {names:?}"
+    );
+}
+
 #[test]
 fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
     let (rules, mut frame, entry) = empty_match();
