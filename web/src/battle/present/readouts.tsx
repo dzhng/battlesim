@@ -402,6 +402,7 @@ export function ReadoutLayer({
               const size = fullSizes.get(b.id)!;
               return {
                 id: b.id,
+                anchor: [b.x, b.y],
                 distanceSq: b.distanceSq,
                 compact: [box.x0, box.y0, box.x1, box.y1],
                 full: [box.x0, box.y0, box.x0 + size.w, box.y0 + size.h],

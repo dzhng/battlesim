@@ -130,11 +130,13 @@ export interface ReadoutSpacing {
  *  to), each at the cheapest spot within reach whose box keeps off the edge
  *  margin and clears the HUD panels, its plane's other units and the cards
  *  placed before it, and whose leader crosses no placed leader or card of
- *  its plane; with none, it hides. The high-air plane draws above, so a
- *  ground or low-air card takes a spot over a high-air card or its unit's
- *  ring only when no clear one is within reach. `overlap` (a far view) puts
- *  every card at its natural spot, clear of the panels, and lets them
- *  overprint. */
+ *  its plane; with none, it hides. A spot whose box lies nearer another of
+ *  the plane's units than its own reads as that unit's card, so it is taken
+ *  only when no other spot is within reach. The high-air plane draws above,
+ *  so a ground or low-air card takes a spot over a high-air card or its
+ *  unit's ring only when no clear one is within reach. `overlap` (a far
+ *  view) puts every card at its natural spot, clear of the panels, and lets
+ *  them overprint. */
 export function layoutReadouts(
   cards: readonly LayoutCard[],
   panels: readonly ReadoutRect[],
@@ -166,6 +168,15 @@ export function layoutReadouts(
 
   /** Lay out one plane's cards; `soft` is what they keep off when they can. */
   const place = (plane: readonly LayoutCard[], soft: (box: ReadoutRect) => boolean) => {
+    /** From a unit's anchor to a box's nearest point. */
+    const reach = (b: LayoutCard, box: ReadoutRect) =>
+      Math.hypot(Math.max(box.x0 - b.x, 0, b.x - box.x1), Math.max(box.y0 - b.y, 0, b.y - box.y1));
+    /** Whether a box lies nearer another of the plane's units than its own,
+     *  so it reads as that unit's card. */
+    const astray = (b: LayoutCard, box: ReadoutRect) => {
+      const own = reach(b, box);
+      return plane.some((o) => o.id !== b.id && reach(o, box) < own);
+    };
     // Kept clear by a card's box, padded by the gap: the panels and the
     // plane's cards placed so far; by its box alone: the plane's other units.
     const taken: ReadoutRect[] = [...panels];
@@ -190,7 +201,10 @@ export function layoutReadouts(
       );
     for (const b of [...plane].sort((m, n) => n.x - m.x)) {
       const natural = naturalOf(b);
-      let found: { box: ReadoutRect; rise: Segment; foot: Segment } | null = null;
+      // Each free spot's penalty: lying nearer another unit than its own
+      // outweighs lying over a soft obstacle. The cheapest spot of the
+      // least penalty within reach wins.
+      let found: { box: ReadoutRect; rise: Segment; foot: Segment; penalty: number } | null = null;
       for (const s of SPOTS) {
         const hangLeft = s.swap !== natural.x0 < b.x;
         const x0 = hangLeft ? b.x - s.dx - b.w : b.x + s.dx;
@@ -201,12 +215,9 @@ export function layoutReadouts(
         const rise: Segment = [from, corner];
         const foot: Segment = [corner, end];
         if (!free(b, box, rise, foot)) continue;
-        if (soft(box)) {
-          found ??= { box, rise, foot };
-          continue;
-        }
-        found = { box, rise, foot };
-        break;
+        const penalty = (astray(b, box) ? 2 : 0) + (soft(box) ? 1 : 0);
+        if (!found || penalty < found.penalty) found = { box, rise, foot, penalty };
+        if (penalty === 0) break;
       }
       if (!found) continue;
       taken.push(found.box);

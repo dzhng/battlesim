@@ -14,6 +14,7 @@ import {
   type LayoutCard,
   type ReadoutRect,
 } from "../src/battle/present/readoutLayout";
+import { layoutReadoutDetails, type DetailCard } from "../src/battle/present/readoutDetails";
 
 const GAP = 14;
 /** The edge margin no card sits within. */
@@ -299,4 +300,93 @@ test("high-air cards draw above every ground and low-air card, the selected one 
     const aloft = readoutPaintOrder(cards, "jet", far);
     expect(Math.max(...aloft.values())).toBe(aloft.get("jet"));
   }
+});
+
+test("a card lies nearer its own unit than any other unit of its plane", () => {
+  // The air-roster line-up at tick 40 (the critique's report): the F/A-18E
+  // and A-10C cards each ended beside the other jet.
+  const viewport = { width: 1280, height: 800 };
+  const panels = [
+    [429, 10, 851, 47],
+    [1224, 10, 1268, 54],
+    [0, 475, 1280, 800],
+    [808, 380, 1268, 788],
+  ].map(rect);
+  const jet = (id: string, x: number, y: number, w: number): LayoutCard => ({
+    id,
+    x,
+    y,
+    w,
+    h: 12,
+    highAir: true,
+  });
+  const cards = [
+    jet("f35a", 380, 92, 72),
+    jet("a10c", 545, 89, 131),
+    jet("fa18e", 660, 84, 87),
+    jet("f15e", 697, 68, 146),
+    jet("ea18g", 715, 125, 139),
+    jet("f16c", 855, 157, 139),
+  ];
+  const placed = layoutReadouts(cards, panels, viewport, SPACING, false);
+  expect(placed.has("fa18e") && placed.has("a10c"), "both cluster cards show").toBe(true);
+  // The units whose cards were not hidden by the edge.
+  const shown = cards.filter(
+    (c) => c.y - 34 - c.h >= EDGE && c.x >= EDGE && c.x <= viewport.width - EDGE,
+  );
+  const wrong: string[] = [];
+  for (const [id, { box }] of placed) {
+    const own = cards.find((c) => c.id === id)!;
+    // From a unit's anchor to the card's nearest point.
+    const d = (c: LayoutCard) =>
+      Math.hypot(Math.max(box.x0 - c.x, 0, c.x - box.x1), Math.max(box.y0 - c.y, 0, c.y - box.y1));
+    const nearer = shown.filter((c) => c.id !== id && d(c) < d(own));
+    if (nearer.length) wrong.push(`${id} nearer ${nearer.map((c) => c.id).join(",")}`);
+  }
+  expect(wrong).toEqual([]);
+});
+
+test("a card opening into its detail moves only where it stays nearer its own unit", () => {
+  // The readouts lab at 900×600 with the AT team's card hovered: its detail
+  // pushes the tank's card, which used to leap above the AT team's.
+  const card = (
+    id: string,
+    anchor: [number, number],
+    [x0, y0, w0]: number[],
+    [w, h]: number[],
+    distanceSq: number,
+  ): DetailCard => ({
+    id,
+    anchor,
+    distanceSq,
+    compact: [x0, y0, x0 + w0, y0 + 12],
+    full: [x0, y0, x0 + w, y0 + h],
+  });
+  const cards = [
+    // Nearest the eye first: the rifle section, low on the screen.
+    card("tank", [423, 313], [453, 291, 60], [287, 78], 2),
+    card("at", [449, 245], [479, 194, 80], [132, 83], 4),
+    card("rifle", [391, 393], [421, 359, 110], [145, 78], 1),
+    card("supply", [316, 298], [162, 252, 110], [130, 75], 3),
+  ];
+  const obstacles: [number, number, number, number][] = [
+    [12, 12, 392, 188],
+    [292, 459, 608, 600],
+    ...cards.map((c): [number, number, number, number] => [
+      c.anchor[0] - 6,
+      c.anchor[1] - 6,
+      c.anchor[0] + 6,
+      c.anchor[1] + 6,
+    ]),
+  ];
+  const plan = layoutReadoutDetails(cards, obstacles, [36, 36, 864, 564], GAP, true, "at");
+  const wrong: string[] = [];
+  for (const c of cards) {
+    const [x0, y0, x1, y1] = plan.get(c.id)!.box;
+    const d = ([x, y]: readonly [number, number]) =>
+      Math.hypot(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1));
+    const nearer = cards.filter((o) => o.id !== c.id && d(o.anchor) < d(c.anchor));
+    if (nearer.length) wrong.push(`${c.id} nearer ${nearer.map((o) => o.id).join(",")}`);
+  }
+  expect(wrong).toEqual([]);
 });
