@@ -509,6 +509,14 @@ def intake(name, loc, width, height, depth, mats, parent, rot=(0, 0, 0), lods=MI
         lods=lods)
 
 
+def intake_mouth(name, loc, width, height, depth, mats, parent, rot=(0, 0, 0), lods=MID):
+    """The dark mouth on the front face of an `intake` lip at `loc` turned by
+    `rot`, so a raked or canted intake reads open from ahead."""
+    from mathutils import Euler
+    face = Vector(loc) + Euler(rot).to_matrix() @ Vector((depth / 2 + 0.012, 0, 0))
+    box(f"{name}_mouth", (0.02, width, height), tuple(face), mats["black"], parent, rot=rot, lods=lods)
+
+
 def round_intake(name, loc, radius, depth, mats, parent, lods=MID):
     """A round intake facing +X: a lip ring in the paint and the dark duct."""
     cyl(f"{name}_lip", radius + 0.05, depth, loc, "X", mats["paint"], parent, seg=20, bevel=0.02)
