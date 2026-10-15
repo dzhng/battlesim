@@ -16,7 +16,8 @@ ladder with parallel named-model production.
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield
 contract. [Air-war flight](air-war-flight/README.md) (active) makes jets fly as jets:
 their own altitude, circling, attack runs, organic dogfights, edge arrival and
-departure, and every planned jet enabled with a reviewed model.
+departure, and every planned jet enabled with a reviewed model. [Air-defence radar networks](air-defence-radar/README.md) is a placeholder
+for launchers that see far only through separate radar units.
 
 [Battle voices and music](done/battle-voices-music/README.md) (shipped) gave units RTS-style voice lines (answers to their owner and simulation-emitted barks) and battles an adaptive background score, generated with ElevenLabs and reviewed in the sound workbench.
 
