@@ -665,14 +665,15 @@ impl Battle {
             else {
                 continue;
             };
-            let broken = !crate::air::dogfight::valid_target(&self.units, target)
-                || crate::air::dogfight::breaks(
-                    body_distance(
-                        self.units[i].position,
-                        self.units[target.0 as usize].position,
-                    ),
-                    &self.rules.air.fixed_wing,
-                );
+            let broken =
+                !crate::air::dogfight::can_dogfight(&self.units[i], &self.units[target.0 as usize])
+                    || crate::air::dogfight::breaks(
+                        body_distance(
+                            self.units[i].position,
+                            self.units[target.0 as usize].position,
+                        ),
+                        &self.rules.air.fixed_wing,
+                    );
             if broken {
                 crate::air::dogfight::clear(&mut self.units[i]);
             }
@@ -694,7 +695,7 @@ impl Battle {
             let Some(air_state) = unit
                 .air
                 .as_ref()
-                .filter(|air| !air.traversing || unit.layer() == AltitudeLayer::HighAir)
+                .filter(|air| !air.traversing || unit.fixed_wing())
             else {
                 continue;
             };
@@ -702,7 +703,7 @@ impl Battle {
                 continue;
             };
             let edge = crate::air::edge::back_edge(unit.side, &skirmish.setup.sites, &self.world);
-            let entry = if unit.layer() == AltitudeLayer::HighAir {
+            let entry = if unit.fixed_wing() {
                 crate::air::edge::nearest_exit(&edge, unit.position.xy())
             } else {
                 skirmish
@@ -872,8 +873,10 @@ impl Battle {
             );
             let t = self.rules.catalog.get(reservation.data.kind);
             let aircraft = units::ground_mobility(t, &self.rules).is_none();
-            let high_air = t.mobility.layer() == AltitudeLayer::HighAir;
-            if high_air {
+            // A winged aircraft can't land at the base: it arrives by its
+            // back edge, where a rotor aircraft lifts off the entry site.
+            let fixed_wing = t.mobility.flight() == Some(contract::catalog::FlightModel::FixedWing);
+            if fixed_wing {
                 if reservation.ingress_ready_tick.is_none() {
                     let mut rng = contract::random::Rng::new(contract::random::mix(
                         self.seed ^ u64::from(reservation.data.id.0),
@@ -888,7 +891,7 @@ impl Battle {
                         crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
                     let (point, heading) = crate::air::edge::entry(&edge, destination);
                     let units::Motion::Air(flight) = units::motion(t, &self.rules) else {
-                        unreachable!("a high-air unit flies")
+                        unreachable!("a fixed-wing unit flies")
                     };
                     let z = self.world.height_at(point.x, point.y).unwrap_or(0.0)
                         + self.rules.air.cruise_agl_m(flight.layer);
@@ -966,7 +969,7 @@ impl Battle {
                 &mut self.last_soldier,
                 self.seed,
             );
-            if aircraft && !high_air {
+            if aircraft && !fixed_wing {
                 let mut rng = contract::random::Rng::new(contract::random::mix(
                     self.seed ^ u64::from(unit.id.0),
                 ));
@@ -977,11 +980,11 @@ impl Battle {
                         (delay_s * f64::from(self.rules.tick_hz)).round() as u64;
                 }
             }
-            if high_air {
+            if fixed_wing {
                 let edge = crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
                 let (point, heading) = crate::air::edge::entry(&edge, destination);
                 let units::Motion::Air(flight) = unit.motion else {
-                    unreachable!("a high-air unit flies")
+                    unreachable!("a fixed-wing unit flies")
                 };
                 let speed = flight.cruise_mps;
                 unit.position = point.with_z(
@@ -1028,7 +1031,7 @@ impl Battle {
             if !unit.alive() || !unit.withdrawing {
                 continue;
             }
-            if unit.layer() == AltitudeLayer::HighAir {
+            if unit.fixed_wing() {
                 let edge =
                     crate::air::edge::back_edge(unit.side, &skirmish.setup.sites, &self.world);
                 let dt = 1.0 / f64::from(self.rules.tick_hz);
@@ -1057,7 +1060,7 @@ impl Battle {
                 .unwrap();
             // Helicopter retirement follows completed ordinary movement at the admitted base.
             let half = unit.hull.map_or(2.0, |half| half.x.max(half.y));
-            if unit.layer() != AltitudeLayer::HighAir
+            if !unit.fixed_wing()
                 && (unit.position.xy() - v2(entry.center[0], entry.center[1])).length() > half * 2.0
             {
                 continue;
@@ -3049,7 +3052,7 @@ impl Battle {
             }
             // Fixed-wing attacks are planned as passes by `air::step_fixed_wing`;
             // they never enter the generic ground-style hover pursuit.
-            if unit.layer() == AltitudeLayer::HighAir {
+            if unit.fixed_wing() {
                 continue;
             }
             let knowledge = &self.knowledge[unit.side.index()];
@@ -3552,21 +3555,20 @@ impl Battle {
                                 .iter()
                                 .find(|entry| entry.side == command.side)
                                 .unwrap();
-                            let (goal, facing) =
-                                if self.units[unit.0 as usize].layer() == AltitudeLayer::HighAir {
-                                    let edge = crate::air::edge::back_edge(
-                                        command.side,
-                                        &skirmish.setup.sites,
-                                        &self.world,
-                                    );
-                                    let (point, heading) = crate::air::edge::entry(
-                                        &edge,
-                                        self.units[unit.0 as usize].position.xy(),
-                                    );
-                                    ([point.x, point.y], heading)
-                                } else {
-                                    (entry.center, entry.yaw)
-                                };
+                            let (goal, facing) = if self.units[unit.0 as usize].fixed_wing() {
+                                let edge = crate::air::edge::back_edge(
+                                    command.side,
+                                    &skirmish.setup.sites,
+                                    &self.world,
+                                );
+                                let (point, heading) = crate::air::edge::entry(
+                                    &edge,
+                                    self.units[unit.0 as usize].position.xy(),
+                                );
+                                ([point.x, point.y], heading)
+                            } else {
+                                (entry.center, entry.yaw)
+                            };
                             contract::command::MoveDestination {
                                 unit: *unit,
                                 goal,
@@ -3804,11 +3806,12 @@ impl Battle {
                     return;
                 };
                 for id in units {
-                    let is_high_air = movers[id.0 as usize].layer() == AltitudeLayer::HighAir;
                     let dogfight = match target {
                         Target::Unit(other)
-                            if movers[other.0 as usize].layer() == AltitudeLayer::HighAir
-                                && is_high_air =>
+                            if crate::air::dogfight::can_dogfight(
+                                &movers[id.0 as usize],
+                                &movers[other.0 as usize],
+                            ) =>
                         {
                             Some(other)
                         }
@@ -4870,6 +4873,47 @@ struct PreparedCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Two idle aircraft in high air, one flown by wings and one, against
+    /// its row, by rotors: the wings keep it flying, the rotors hold it in a
+    /// hover. The flight model picks the law, never the layer.
+    #[test]
+    fn the_flight_model_not_the_layer_picks_the_flight_law() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [3000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_jet", "position": [1000, 1000] },
+                { "side": "blue", "kind": "test_jet", "position": [2000, 2000] }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 3);
+        let units::Motion::Air(flight) = &mut battle.units[1].motion else {
+            unreachable!("a jet flies")
+        };
+        flight.model = contract::catalog::FlightModel::Rotor;
+        assert_eq!(battle.units[1].layer(), AltitudeLayer::HighAir);
+        // Path flown, not displacement: an idle jet circles where it is.
+        let mut flown = [0.0; 2];
+        for _ in 0..5 * battle.rules.tick_hz {
+            let before = [battle.units[0].position.xy(), battle.units[1].position.xy()];
+            battle.step();
+            for (i, at) in before.into_iter().enumerate() {
+                flown[i] += (battle.units[i].position.xy() - at).length();
+            }
+        }
+        let units::Motion::Air(flight) = battle.units[0].motion else {
+            unreachable!("a jet flies")
+        };
+        assert!(
+            flown[0] > 4.0 * flight.cruise_mps,
+            "the winged jet keeps flying: {:.1} m",
+            flown[0]
+        );
+        assert!(flown[1] < 1.0, "the rotor jet hovers: {:.1} m", flown[1]);
+    }
 
     #[test]
     fn idle_air_defence_mount_acquires_an_incoming_interceptable_round() {

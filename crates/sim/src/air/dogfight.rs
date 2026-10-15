@@ -1,7 +1,6 @@
 //! Fixed-wing close air combat. This module owns every write to a jet's
 //! `dogfight_target`; movement only observes the resulting link.
 
-use contract::catalog::AltitudeLayer;
 use contract::ids::UnitId;
 use contract::random::{mix, Rng};
 use contract::scenario::FixedWingFlight;
@@ -18,27 +17,35 @@ pub fn breaks(distance_3d: f64, air: &FixedWingFlight) -> bool {
     distance_3d > air.dogfight_break_m
 }
 
-/// Set a firing high-air aircraft's link and let an unengaged one answer it.
-///
-/// The check is deliberately on the altitude layer rather than the current
-/// height: a helicopter is an air target for weapons, but never a dogfight
-/// opponent (D29b).
+/// Whether `pursuer` may fly a dogfight against `target` (D29c): it flies
+/// on wings, and the target is a living aircraft in its own layer. Read from
+/// the layers rather than the current heights; against anything in another
+/// layer, or on the ground, a winged aircraft attacks in passes, and a rotor
+/// aircraft never dogfights.
+pub(crate) fn can_dogfight(pursuer: &Unit, target: &Unit) -> bool {
+    pursuer.fixed_wing() && target.alive() && target.layer() == pursuer.layer()
+}
+
+/// Link a firing winged aircraft to its target and let an unengaged winged
+/// target answer it.
 pub(crate) fn on_fire(units: &mut [Unit], shooter: UnitId, target: UnitId) {
-    if shooter == target
-        || !units.get(shooter.0 as usize).is_some_and(in_high_air)
-        || !units.get(target.0 as usize).is_some_and(in_high_air)
-    {
+    let (Some(s), Some(t)) = (units.get(shooter.0 as usize), units.get(target.0 as usize)) else {
+        return;
+    };
+    if shooter == target || !s.alive() || !can_dogfight(s, t) {
         return;
     }
+    let answers = can_dogfight(t, s);
     units[shooter.0 as usize]
         .air
         .as_mut()
         .expect("an aircraft's flight state")
         .dogfight_target = Some(target);
-    if units[target.0 as usize]
-        .air
-        .as_ref()
-        .is_some_and(|air| air.dogfight_target.is_none())
+    if answers
+        && units[target.0 as usize]
+            .air
+            .as_ref()
+            .is_some_and(|air| air.dogfight_target.is_none())
     {
         units[target.0 as usize]
             .air
@@ -48,9 +55,10 @@ pub(crate) fn on_fire(units: &mut [Unit], shooter: UnitId, target: UnitId) {
     }
 }
 
-/// Install a target selected by an explicit air order.
+/// Install a target an explicit air order selected; its caller has judged
+/// the pair (`can_dogfight`).
 pub(crate) fn set_target(unit: &mut Unit, target: UnitId) {
-    if in_high_air(unit) {
+    if unit.alive() && unit.fixed_wing() {
         unit.air
             .as_mut()
             .expect("an aircraft's flight state")
@@ -112,12 +120,47 @@ pub fn intent(
     }
 }
 
-fn in_high_air(unit: &Unit) -> bool {
-    unit.alive() && unit.layer() == AltitudeLayer::HighAir
-}
+#[cfg(test)]
+mod tests {
+    use super::can_dogfight;
+    use crate::units::{Motion, Unit};
+    use contract::catalog::AltitudeLayer;
+    use contract::ids::UnitId;
 
-/// True when a link's target is alive in high air. Kept here so the battle's break
-/// maintenance cannot accidentally turn a helicopter into a dogfight.
-pub(crate) fn valid_target(units: &[Unit], target: UnitId) -> bool {
-    units.get(target.0 as usize).is_some_and(in_high_air)
+    /// A dogfight forms only between aircraft of one layer, with a winged
+    /// pursuer: the layer it shares, not high air, decides. A winged
+    /// aircraft moved into low air (no row flies one yet) would dogfight a
+    /// helicopter there, and never a jet above it.
+    #[test]
+    fn a_winged_pursuer_dogfights_only_its_own_layer() {
+        let setup = serde_json::from_value(serde_json::json!({
+            "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_jet", "position": [500, 500] },
+                { "side": "red", "kind": "test_heli", "position": [900, 500] }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let battle = crate::battle::Battle::new(&setup, 1);
+        let unit = |id| battle.unit(UnitId(id)).unwrap().clone();
+        let (jet, heli) = (unit(0), unit(1));
+        let mut low_jet = jet.clone();
+        let Motion::Air(flight) = &mut low_jet.motion else {
+            unreachable!("a jet flies")
+        };
+        flight.layer = AltitudeLayer::LowAir;
+        let pairs: [(&str, &Unit, &Unit, bool); 6] = [
+            ("jet on jet", &jet, &jet, true),
+            ("jet on helicopter", &jet, &heli, false),
+            ("low-air jet on helicopter", &low_jet, &heli, true),
+            ("low-air jet on jet", &low_jet, &jet, false),
+            ("helicopter on helicopter", &heli, &heli, false),
+            ("helicopter on low-air jet", &heli, &low_jet, false),
+        ];
+        for (what, pursuer, target, expected) in pairs {
+            assert_eq!(can_dogfight(pursuer, target), expected, "{what}");
+        }
+    }
 }

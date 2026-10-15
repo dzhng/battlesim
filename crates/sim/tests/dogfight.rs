@@ -33,7 +33,10 @@ fn air() -> contract::scenario::FixedWingFlight {
 }
 
 fn air_battle(units: serde_json::Value) -> sim::battle::Battle {
-    let mut rules = sim::fixtures::test_game();
+    air_battle_with(sim::fixtures::test_game(), units)
+}
+
+fn air_battle_with(mut rules: serde_json::Value, units: serde_json::Value) -> sim::battle::Battle {
     sim::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -96,22 +99,41 @@ fn the_link_breaks_past_the_rule_distance_in_3d() {
     ));
 }
 
+/// A dogfight forms only within one layer (D29c): a jet attacks a
+/// helicopter below it in passes, and a helicopter firing up at the jet
+/// hovers and shoots; neither links.
 #[test]
-fn a_jet_never_dogfights_a_helicopter() {
-    let mut battle = air_battle(json!([
-        {"side":"blue", "kind":"test_jet", "position":[500,500], "yaw":0.0, "engagement":"fire_at_will"},
-        {"side":"red", "kind":"test_heli", "position":[900,500], "yaw":std::f64::consts::PI, "engagement":"return_fire_only"}
-    ]));
-    for _ in 0..120 {
-        battle.step();
-    }
-    assert_eq!(
-        battle.unit(UnitId(0)).unwrap().air.unwrap().dogfight_target,
-        None
+fn a_jet_makes_passes_at_a_helicopter_and_neither_dogfights() {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_heli",
+        json!({"mounts": [{
+            "id": "air missiles", "name": "Air Missiles", "weapons": ["air_missile"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
+        }], "body": {"hull": {"hp": 10000}}}),
     );
-    assert_eq!(
-        battle.unit(UnitId(1)).unwrap().air.unwrap().dogfight_target,
-        None
+    let mut battle = air_battle_with(
+        rules,
+        json!([
+            {"side":"blue", "kind":"test_jet", "position":[500,500], "yaw":0.0, "engagement":"fire_at_will"},
+            {"side":"red", "kind":"test_heli", "position":[1400,500], "yaw":std::f64::consts::PI, "engagement":"fire_at_will"}
+        ]),
+    );
+    let (jet, heli) = (UnitId(0), UnitId(1));
+    let mut passes = false;
+    for _ in 0..600 {
+        battle.step();
+        let air = |id| battle.unit(id).unwrap().air.unwrap();
+        assert_eq!(air(jet).dogfight_target, None);
+        assert_eq!(air(heli).dogfight_target, None);
+        passes |= air(jet).pass.is_some();
+    }
+    assert!(passes, "the jet attacks the helicopter in passes");
+    assert!(
+        battle.unit(jet).unwrap().attackers.contains(&heli),
+        "the helicopter fired on the jet"
     );
 }
 

@@ -1050,8 +1050,9 @@ fn assess(
             return Err(ActionReason::NoFacingSlot);
         }
     }
-    if unit.airborne()
-        && unit.layer() == AltitudeLayer::HighAir
+    // A winged aircraft's fixed gun fires only nose-on: its flight, never a
+    // weapon, points the airframe.
+    if unit.fixed_wing()
         && weapon.default
         && !spec.turret
         && !weapon
@@ -1838,12 +1839,11 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             // every aim, burst and reload, not only while it turns onto it.
             // A turret whose arc can't reach its target turns the body to
             // bring the arc's middle onto it, unless a gun with the same
-            // weapons already bears on it.
+            // weapons already bears on it. A winged aircraft's flight alone
+            // points its airframe.
             if let (Some(_), Some(r), Some(Ok(_))) = (&mount.lock, &resolved, assessment) {
                 let bearing = bearing_from(unit, r.point);
-                if hull_fixed(unit, spec)
-                    && (!unit.airborne() || unit.layer() != AltitudeLayer::HighAir)
-                {
+                if hull_fixed(unit, spec) && !unit.fixed_wing() {
                     face.get_or_insert(bearing);
                 } else if let Some(arc) = spec.arc {
                     let bears = |s: &MountSpec| s.arc.is_none_or(|a| a.holds(unit.yaw, bearing));
@@ -1877,9 +1877,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         .any(|c| active(c) && c.ready() == Some(k))
                     {
                         ActionReason::Reloading
-                    } else if (spec.turret
-                        || (hull_fixed(unit, spec)
-                            && (!unit.airborne() || unit.layer() != AltitudeLayer::HighAir)))
+                    } else if (spec.turret || (hull_fixed(unit, spec) && !unit.fixed_wing()))
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
                     {
                         ActionReason::TurretTraversing
