@@ -193,25 +193,42 @@ async function picker(ctx, page, shot) {
     (await opacity("Tank")) < 1 === short && (await opacity("Jeep")) === 1,
     JSON.stringify({ tank: await opacity("Tank"), jeep: await opacity("Jeep") }),
   );
-  // A price the player can't pay is the warning that says why, on the
-  // family and on its variant alike; one they can pay is not.
-  const warned = (locator) =>
-    locator.locator(".hud-purchase-price").evaluate((price) => {
+  // A price the player can't pay is the "can't" red that says why, on the
+  // family and on its variant alike; one they can pay is the credits gold;
+  // what is never sold is plain text.
+  const priced = (locator, role) =>
+    locator.locator(".hud-purchase-price").evaluate((price, role) => {
       const probe = document.createElement("span");
-      probe.style.color = "rgb(var(--hud-warn))";
+      probe.style.color = `rgb(var(--hud-${role}))`;
       price.parentElement.append(probe);
-      const warn = getComputedStyle(probe).color;
+      const colour = getComputedStyle(probe).color;
       probe.remove();
-      return getComputedStyle(price).color === warn;
-    });
-  const tankWarned = await warned(page.getByRole("button", { name: "Tank", exact: true }));
-  const baseWarned = await warned(page.getByRole("button", { name: /^Base — / }));
-  const jeepWarned = await warned(page.getByRole("button", { name: "Jeep", exact: true }));
-  ctx.check(
-    `${shot}: a price is the warning colour exactly when it can't be paid`,
-    tankWarned === short && baseWarned === short && !jeepWarned,
-    JSON.stringify({ tankWarned, baseWarned, jeepWarned }),
-  );
+      return getComputedStyle(price).color === colour;
+    }, role);
+  {
+    const base = page.getByRole("button", { name: /^Base — / });
+    const jeep = page.getByRole("button", { name: "Jeep", exact: true });
+    const refused = {
+      tank: await priced(tank, "bad"),
+      base: await priced(base, "bad"),
+      jeep: await priced(jeep, "bad"),
+    };
+    const gold = { tank: await priced(tank, "credits"), jeep: await priced(jeep, "credits") };
+    const unsold = page.getByRole("button", { name: / — Unavailable$/ }).first();
+    const plain =
+      (await unsold.count()) === 0 ||
+      (!(await priced(unsold, "bad")) && !(await priced(unsold, "credits")));
+    ctx.check(
+      `${shot}: a price is the "can't" colour exactly when it can't be paid, gold when it can, plain when never sold`,
+      refused.tank === short &&
+        refused.base === short &&
+        !refused.jeep &&
+        gold.jeep &&
+        gold.tank === !short &&
+        plain,
+      JSON.stringify({ refused, gold, plain }),
+    );
+  }
   await contained(ctx, page, `${shot} variants`);
   await ctx.matchBaseline(page, `${shot}-veh-variants`);
   // The pointer travels up from the card into the menu without closing it,

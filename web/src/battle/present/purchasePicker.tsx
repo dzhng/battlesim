@@ -13,13 +13,11 @@ interface PickerProps {
   /** What a purchase's info card is built with, as the deck's are. */
   rules: PanelRules;
 }
-/** A price, in the warning colour when the credits can't pay it. */
-function Price({ cost, credits }: { cost: number; credits: number }) {
-  return (
-    <span className={cost > credits ? "hud-purchase-price too-dear" : "hud-purchase-price"}>
-      {cost} CR
-    </span>
-  );
+/** A price: gold when the credits can pay it, the "can't" red when they
+ *  can't, and plain text for what is never sold, since no credits buy it. */
+function Price({ cost, credits, unsold }: { cost: number; credits: number; unsold: boolean }) {
+  const state = unsold ? " unsold" : cost > credits ? " too-dear" : "";
+  return <span className={`hud-purchase-price${state}`}>{cost} CR</span>;
 }
 
 /** How long the pointer rests on another family, while a menu is open,
@@ -147,7 +145,11 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
               }}
             >
               <UnitFace kind={shown.id}>
-                <Price cost={Math.min(...variants.map((v) => v.cost))} credits={match.credits} />
+                <Price
+                  cost={Math.min(...variants.map((v) => v.cost))}
+                  credits={match.credits}
+                  unsold={unavailable}
+                />
               </UnitFace>
             </button>
           );
@@ -204,7 +206,11 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
                   <InfoPanel panel={purchasePanel(catalog, card, rules)} />
                   <span className="hud-purchase-info-foot">
                     {card.disabled_reason !== null && <small>Unavailable</small>}
-                    <Price cost={card.cost} credits={match.credits} />
+                    <Price
+                      cost={card.cost}
+                      credits={match.credits}
+                      unsold={card.disabled_reason !== null}
+                    />
                   </span>
                 </button>
               ))}
