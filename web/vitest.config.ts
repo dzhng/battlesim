@@ -15,6 +15,7 @@ export default mergeConfig(
       ],
       globals: false,
       setupFiles: ["tests/support/jsdom.ts"],
+      globalSetup: ["tests/support/nativeTools.mjs"],
       // A test judges what happened, not how long this machine took: the
       // limit only catches a hang, and holds when every core is busy.
       testTimeout: 30_000,
