@@ -74,6 +74,7 @@ These were all built and then deleted, because each stood in for a property some
 - **"High air" standing in for "flies on wings".** The flight model (`rotor` or `fixed_wing`) is its own data; the layer only sets height and what can be seen.
 - **Air targets judged by their height.** A target's layer comes from what was seen or heard, and a round keeps the layer it was fired from.
 - **Lane width sized from the widest hull of any unit,** aircraft included. Only ground hulls drive streets.
+- **A `sead` unit flag and a second radar block on aircraft.** Finding emitting radars is a sensor a unit has, shown on its card; firing at a radar contact belongs to the weapon's `anti_radiation`. A unit may have either without the other.
 
 If a rule asks "is this an X unit?" or "is this target an aircraft?", the question is usually one of these again.
 
@@ -83,7 +84,11 @@ It's a game, not a physics simulation. The target is **Hollywood realism**: the 
 
 - cover only helps infantry, and crouching is an animation;
 - garrisons are a named fighting-position mechanic;
-- a soldier's own rounds pass untouched through the tall cover he leans round to fire (he steps out past its edge, fires a burst and tucks back in); everyone else's rounds still hit it.
+- a soldier's own rounds pass untouched through the tall cover he leans round to fire (he steps out past its edge, fires a burst and tucks back in); everyone else's rounds still hit it;
+- suppression pins squads only; a vehicle's crew isn't suppressed;
+- active protection (a Trophy) is a simple capability, not an interceptor weapon: while it has charges, any interceptable missile that comes within its standoff is destroyed, with no sight, cone or range of its own;
+- who can hold an objective follows the unit card's category (recon, infantry and vehicles), a game rule rather than a physical one;
+- the skirmish AI and the scripted encounter defender choose their behaviour by role tags (logistics, artillery, recon, AT, MBT). They're opponents' playbooks, not rules of the battle.
 
 ## Running it
 
