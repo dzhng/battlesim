@@ -371,22 +371,9 @@ pub struct Capabilities {
     /// fixture prose readable while the contract uses one stable key.
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "aircraft")]
     pub air: Option<AirCapability>,
-    /// A ground air-defence capability and its tier. Weapon rows still own
-    /// the exact targets and interception behaviour.
-    #[serde(default, skip_serializing_if = "Option::is_none", alias = "aa")]
-    pub air_defense: Option<AirDefenseCapability>,
     /// Radar emission/detection is separate from optical sensors.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radar: Option<RadarCapability>,
-}
-
-/// The three air-defence ranges used by the roster contract.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AirDefenseTier {
-    Short,
-    Medium,
-    Long,
 }
 
 /// A radar's authored emission and detection contract.
@@ -397,14 +384,6 @@ pub struct RadarCapability {
     pub emits: bool,
     #[serde(default)]
     pub detection_m: f64,
-}
-
-/// A ground unit's air-defence role. The tier is data, while each mount's
-/// weapon rows decide the actual layer and missile targets.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AirDefenseCapability {
-    pub tier: AirDefenseTier,
 }
 
 /// Finite flare stores and their reload interval.
@@ -455,8 +434,6 @@ pub struct AirCapability {
     pub flares: Option<FlareCapability>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub afterburner: Option<AfterburnerCapability>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub aa_tier: Option<AirDefenseTier>,
     /// Anti-radiation mission capability; only these aircraft may engage radar contacts.
     #[serde(default)]
     pub sead: bool,
@@ -1803,14 +1780,6 @@ fn check(
         if rows.len() > 4 {
             return rule("an aircraft may carry at most four distinct weapon rows");
         }
-    }
-    if let Some(aa) = &t.capabilities.air_defense {
-        if matches!(t.mobility, Mobility::Air { .. }) {
-            return rule("capabilities.air_defense is for ground air-defence units");
-        }
-        // Keep tier values typed and reject an accidental empty/unknown row at
-        // serde time; this branch documents the owner of the combination.
-        let _ = aa.tier;
     }
     if let Some(radar) = t.capabilities.radar {
         if radar.emits && !positive(radar.detection_m) {

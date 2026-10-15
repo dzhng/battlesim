@@ -110,7 +110,7 @@
   {
     "id": "air-defense",
     "route": "/labs/air-defense",
-    "describe": "Layered air defence from red's side: ?variant=helicopter, an Apache and a Mi-8 fly in: the Buk and the short gun engage them, the long S-300 never does; ?variant=jet, an F-16 flies in: every tier fires at it, and the short gun the tower hides from it never fires.",
+    "describe": "Layered air defence from red's side: ?variant=helicopter, an Apache and a Mi-8 fly in: the Buk and the short gun engage them, the long S-300 never does; ?variant=jet, an F-16 flies in: the short gun, the Buk and the S-300 fire at it, and the short gun the tower hides from it is direct fire like any other, with no air-only sight rule.",
     "map": "air"
   },
   {

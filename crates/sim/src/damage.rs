@@ -293,7 +293,7 @@ impl ImpactResolver for HullResolver<'_> {
         // projectile interception is a proximity fuse, so using the weapon's
         // full engagement range would erase rounds at a visibly impossible
         // distance.
-        if def.interception.is_some() {
+        if def.can_intercept.is_some() {
             def.blast_radius_m.max(5.0)
         } else {
             0.0
@@ -324,7 +324,7 @@ impl ImpactResolver for HullResolver<'_> {
         let interceptor_def = &self.arsenal.weapons[attacker.weapon].def;
         let incoming_def = &self.arsenal.weapons[incoming.weapon].def;
         attacker.side != incoming.side
-            && interceptor_def.interception.is_some()
+            && interceptor_def.can_intercept.is_some()
             && incoming_def.interceptable
     }
     fn resolve(&mut self, hit: &ImpactContext) -> ImpactDecision {

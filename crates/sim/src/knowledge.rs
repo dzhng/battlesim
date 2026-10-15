@@ -320,7 +320,6 @@ impl SideKnowledge {
                     && u.side != side
                     && !self.identifies(u.id, tick)
                     && !u.airborne()
-                    && u.unit_type(rules).capabilities.air_defense.is_some()
                     && u.unit_type(rules)
                         .capabilities
                         .radar

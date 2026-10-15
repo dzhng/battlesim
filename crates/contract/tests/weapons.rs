@@ -165,30 +165,6 @@ fn seeker_fov_is_typed_and_bounded() {
 }
 
 #[test]
-fn short_air_defence_missiles_cannot_be_interceptors() {
-    let mut game: Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
-    game["weapons"]["stinger"]["aa_tier"] = json!("short");
-    game["weapons"]["stinger"]["interception"] = json!("missile");
-    let error = contract::weapons::resolve_weapons(game["weapons"].clone())
-        .unwrap_err()
-        .to_string();
-    assert!(
-        error.contains("short air-defence") && error.contains("intercept"),
-        "{error}"
-    );
-}
-
-#[test]
-fn a_short_ballistic_air_defence_row_may_intercept_missiles() {
-    let mut game: Value =
-        serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
-    game["weapons"]["aa_ballistic"]["aa_tier"] = json!("short");
-    game["weapons"]["aa_ballistic"]["interception"] = json!("missile");
-    contract::weapons::resolve_weapons(game["weapons"].clone()).unwrap();
-}
-
-#[test]
 fn anti_radiation_is_distinct_from_a_radar_seeker() {
     let mut game: Value =
         serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();

@@ -723,8 +723,8 @@ impl Battle {
         }
     }
 
-    /// Give authored anti-missile weapons a physical lock on an incoming
-    /// round before ordinary target selection. The round target carries its
+    /// Give any ground mount carrying an interception row a physical lock on
+    /// an incoming round before ordinary target selection. The round target carries its
     /// current point and selected interceptor row, so the existing launch
     /// solver, seeker FOV and LOS rules still decide whether the interceptor
     /// can actually leave the mount. Explicit orders retain ownership of a
@@ -744,15 +744,7 @@ impl Battle {
             })
             .collect();
         for unit in &mut self.units {
-            if !unit.alive()
-                || unit.retired
-                || unit.airborne()
-                || unit
-                    .unit_type(&self.rules)
-                    .capabilities
-                    .air_defense
-                    .is_none()
-            {
+            if !unit.alive() || unit.retired || unit.airborne() {
                 continue;
             }
             let explicit = unit.attack_target().is_some();
@@ -786,7 +778,7 @@ impl Battle {
                             .filter_map(|(slot, kind)| {
                                 let loaded = mount.ammo[slot].is_none_or(|n| n > 0);
                                 let def = &self.arsenal.weapons[*kind].def;
-                                if !loaded || def.interception.is_none() {
+                                if !loaded || def.can_intercept.is_none() {
                                     return None;
                                 }
                                 [AltitudeLayer::LowAir, AltitudeLayer::HighAir]
@@ -3298,7 +3290,10 @@ impl Battle {
                     });
                 }
             }
-            if self.arsenal.weapons[shot.weapon].def.interception.is_some()
+            if self.arsenal.weapons[shot.weapon]
+                .def
+                .can_intercept
+                .is_some()
                 && matches!(shot.target, Target::Ground(_) | Target::Round(_))
             {
                 self.units[shot.unit.0 as usize].mounts[shot.mount].lock = None;
@@ -4936,16 +4931,17 @@ mod tests {
         assert!(flown[1] < 1.0, "the rotor jet hovers: {:.1} m", flown[1]);
     }
 
+    /// Any mount carrying an interception row locks on to an incoming round:
+    /// the jeep here is no air-defence unit, only a jeep with such a gun.
     #[test]
-    fn idle_air_defence_mount_acquires_an_incoming_interceptable_round() {
+    fn an_idle_mount_with_an_interception_row_acquires_an_incoming_round() {
         let mut rules = crate::fixtures::test_game();
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",
             "test_jeep",
             serde_json::json!({
-                "name": "AA Jeep",
-                "capabilities": { "air_defense": { "tier": "short" } },
+                "name": "Gun Jeep",
                 "mounts": [{ "id": "AA", "name": "AA", "weapons": ["aa_ballistic"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
             }),
         );

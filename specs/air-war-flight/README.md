@@ -81,7 +81,7 @@ Every slice inherits these:
 - **`air/pass.rs`** owns pass phases and pass-weapon choice. **`flight/release.rs`** owns where an unpowered round lands.
 - **`air/dogfight.rs`** is the only place that writes `dogfight_target`. The break distance lives in the rules.
 - **`air/edge.rs`** owns back edges, entry and exit. The sim never holds a position off the map: off-map flight exists only as the published `AirTransit` record and the presentation effect drawn from it, for its own side only.
-- **Distance between two bodies is 3D,** through one helper. The layer, from the catalog or `interception`, chooses the rule row. Height never chooses a layer.
+- **Distance between two bodies is 3D,** through one helper. The layer, from the catalog or `can_intercept`, chooses the rule row. Height never chooses a layer.
 - **A round's starting velocity is set in one place,** at launch.
 - **One row per airframe.** No generic or duplicate rows, and no fixed-wing entries in the model manifest.
 - **Every mechanism this spec replaces is deleted in the slice that replaces it:** the weave, the jets' `traversing`, snap and four-sides spawn, the entry-centre retirement, the crash clamp, the strafe ban, bomb-first, the height thresholds and `air_bomb_guided`. No compatibility layer. Fixtures and digests are re-recorded.

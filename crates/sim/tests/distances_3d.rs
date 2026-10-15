@@ -35,7 +35,6 @@ fn high_air_fixture() -> Value {
         json!({
             "sensors": { "ground_m": 1000, "low_air_m": 3000 },
             "capabilities": {
-                "air_defense": { "tier": "short" },
                 "radar": { "emits": true, "detection_m": 3000 }
             },
             "mounts": [{
@@ -155,7 +154,6 @@ fn interceptor_case(high: bool) -> Battle {
         "units",
         "test_aa",
         json!({ "capabilities": {
-            "air_defense": { "tier": "short" },
             "radar": { "emits": true, "detection_m": 1200 }
         } }),
     );
@@ -252,7 +250,6 @@ fn radar_detection_range_is_3d() {
         "test_jeep",
         json!({
             "capabilities": {
-                "air_defense": { "tier": "long" },
                 "radar": { "emits": true, "detection_m": 1200 }
             }
         }),

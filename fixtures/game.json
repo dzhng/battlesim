@@ -486,8 +486,7 @@
                     "aim_max_s": 1
                 }
             },
-            "aa_tier": "short",
-            "interception": "missile"
+            "can_intercept": "missile"
         },
         "aa_medium": {
             "targets": {
@@ -520,8 +519,7 @@
             "anti_armor": true,
             "seeker": "radar",
             "seeker_fov_deg": 120,
-            "decoyable": true,
-            "aa_tier": "medium"
+            "decoyable": true
         },
         "aa_long": {
             "targets": {
@@ -554,8 +552,7 @@
             "seeker": "radar",
             "seeker_fov_deg": 100,
             "decoyable": true,
-            "aa_tier": "long",
-            "interception": "missile"
+            "can_intercept": "missile"
         },
         "air_gun": {
             "extends": "hmg",
