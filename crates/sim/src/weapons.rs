@@ -1040,14 +1040,6 @@ fn assess(
             _ => {}
         }
     }
-    // Any crew firing at an airborne target needs its own view of it, even
-    // with a ballistic mount: a forest can hide the gun, but it cannot turn
-    // foliage into a free firing lane.
-    if matches!(r.layer, AltitudeLayer::LowAir | AltitudeLayer::HighAir)
-        && !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point)
-    {
-        return Err(ActionReason::NoOwnSight);
-    }
     // A seeker only acquires inside its authored forward cone.  Once the
     // round is launched, its existing guidance contract takes over.
     if let Some(fov) = weapon.seeker_fov_deg {

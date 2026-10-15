@@ -283,9 +283,9 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
 
 /// Red's layered air defence on the air lab's ground, against `blue`: a
 /// short gun, a medium SAM and a long SAM (test jeeps carrying the game's
-/// three air-defence weapon rows), and with `hidden_gun` a second short gun
-/// that a tower hides from blue's approach.
-fn air_defence_battle(blue: Value, hidden_gun: bool) -> Battle {
+/// three air-defence weapon rows), and with `hidden` a second gun and a
+/// second medium SAM that a tower hides from blue's approach.
+fn air_defence_battle(blue: Value, hidden: bool) -> Battle {
     let mut fixture = fixture();
     let aa = |name: &str, weapon: &str, radar_m: u32| {
         json!({
@@ -313,8 +313,9 @@ fn air_defence_battle(blue: Value, hidden_gun: bool) -> Battle {
         red("test_aa_medium", [540.0, 200.0]),
         red("test_aa_long", [560.0, 320.0]),
     ];
-    if hidden_gun {
+    if hidden {
         units.push(red("test_aa_short", [385.0, 460.0]));
+        units.push(red("test_aa_medium", [385.0, 452.0]));
     }
     units.extend(blue.as_array().unwrap().iter().cloned());
     let map = sim::maps::load("air").unwrap().definition;
@@ -331,9 +332,11 @@ fn shots(b: &Battle, id: UnitId) -> u32 {
 }
 
 /// Jeeps carrying the game's air-reaching rows fire at the layers each row
-/// reaches, and like any unit firing at the air, need their own view of it.
+/// reaches. Behind a tower, a guided SAM holds without its own line to the
+/// jet, as a guided missile does at any target; a ballistic gun is direct
+/// fire like any other, with no rule of its own for the air.
 #[test]
-fn air_defence_follows_the_target_layer_and_needs_its_own_sight() {
+fn air_defence_follows_the_target_layer_and_only_guided_fire_needs_its_own_sight() {
     let mut helicopters = air_defence_battle(
         json!([
             { "side": "blue", "kind": "test_heli", "position": [250, 200], "engagement": "return_fire_only" },
@@ -358,30 +361,31 @@ fn air_defence_follows_the_target_layer_and_needs_its_own_sight() {
         "long AA never fires at LowAir"
     );
 
-    // The hidden gun may see the circling jet at times; the rule is that it
-    // never fires on a tick it has no sight of its own.
+    // The hidden pair may see the circling jet at times. The SAM never
+    // launches on a tick it has no line of its own; the gun never holds for
+    // want of one.
     let mut jet = air_defence_battle(
         json!([{ "side": "blue", "kind": "test_jet", "position": [20, 300], "engagement": "return_fire_only" }]),
         true,
     );
-    let mut hidden_no_sight = false;
+    let (gun, sam) = (UnitId(3), UnitId(4));
+    let (mut sam_blind, mut gun_blind) = (false, false);
     for _ in 0..300 {
-        let before = shots(&jet, UnitId(3));
+        let before = shots(&jet, sam);
         jet.step();
-        let blind = jet.observe(Side::Red).own[3].mounts[0].reason == ActionReason::NoOwnSight;
-        hidden_no_sight |= blind;
-        if blind {
-            assert_eq!(
-                shots(&jet, UnitId(3)),
-                before,
-                "AA without sight holds fire"
-            );
+        let own = &jet.observe(Side::Red).own;
+        let blind = |id: UnitId| own[id.0 as usize].mounts[0].reason == ActionReason::NoOwnSight;
+        gun_blind |= blind(gun);
+        if blind(sam) {
+            sam_blind = true;
+            assert_eq!(shots(&jet, sam), before, "a SAM without its own line holds");
         }
     }
     for id in [UnitId(0), UnitId(1), UnitId(2)] {
         assert!(shots(&jet, id) > 0, "AA {id:?} fires at HighAir");
     }
-    assert!(hidden_no_sight, "the hidden gun explains its hold");
+    assert!(sam_blind, "the hidden SAM explains its hold");
+    assert!(!gun_blind, "a ballistic gun has no air-only sight rule");
 }
 
 /// An air-defence gun reaches as far as its weapon row says at each layer: a
