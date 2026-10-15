@@ -714,13 +714,24 @@ impl AirRules {
         }
     }
 
-    /// The one height lookup shared by simulation and presentation readers.
-    pub fn cruise_agl_m(&self, layer: crate::catalog::AltitudeLayer) -> f64 {
-        match layer {
-            crate::catalog::AltitudeLayer::Ground => 0.0,
-            crate::catalog::AltitudeLayer::LowAir => self.low_air.cruise_agl_m,
-            crate::catalog::AltitudeLayer::HighAir => self.high_air.cruise_agl_m,
-        }
+    /// How high `mobility` cruises over the ground: its own override, else
+    /// its layer's height, never under its layer's floor (D40). The one
+    /// height lookup shared by simulation and presentation readers.
+    pub fn cruise_agl_m(&self, mobility: &crate::catalog::Mobility) -> f64 {
+        let layer = mobility.layer();
+        let authored = match (mobility, layer) {
+            (_, crate::catalog::AltitudeLayer::Ground) => return 0.0,
+            (
+                crate::catalog::Mobility::Air {
+                    cruise_agl_m: Some(own),
+                    ..
+                },
+                _,
+            ) => *own,
+            (_, crate::catalog::AltitudeLayer::LowAir) => self.low_air.cruise_agl_m,
+            (_, crate::catalog::AltitudeLayer::HighAir) => self.high_air.cruise_agl_m,
+        };
+        authored.max(self.floor_agl_m(layer).unwrap_or(0.0))
     }
 
     /// The hard floor nothing in `layer` flies below (D20); None for a layer

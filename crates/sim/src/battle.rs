@@ -514,7 +514,7 @@ fn spawn_unit(
     let motion = units::motion(t, rules);
     let airborne = matches!(motion, units::Motion::Air(_));
     let lift = if airborne {
-        rules.air.cruise_agl_m(t.mobility.layer())
+        rules.air.cruise_agl_m(&t.mobility)
     } else {
         0.0
     };
@@ -654,7 +654,11 @@ impl Battle {
                     .height_at(unit.position.x, unit.position.y)
                     .unwrap_or(0.0);
                 air.fuel_s = fuel_s;
-                unit.position.z = ground + self.rules.air.cruise_agl_m(unit.layer());
+                unit.position.z = ground
+                    + self
+                        .rules
+                        .air
+                        .cruise_agl_m(&unit.unit_type(&self.rules).mobility);
             }
         }
         for i in 0..self.units.len() {
@@ -893,8 +897,8 @@ impl Battle {
                     let units::Motion::Air(flight) = units::motion(t, &self.rules) else {
                         unreachable!("a fixed-wing unit flies")
                     };
-                    let z = self.world.height_at(point.x, point.y).unwrap_or(0.0)
-                        + self.rules.air.cruise_agl_m(flight.layer);
+                    let z =
+                        self.world.height_at(point.x, point.y).unwrap_or(0.0) + flight.cruise_agl_m;
                     self.air_transits[side.index()].push(AirTransit {
                         kind: reservation.data.kind,
                         point: [point.x, point.y, z],
@@ -988,8 +992,7 @@ impl Battle {
                 };
                 let speed = flight.cruise_mps;
                 unit.position = point.with_z(
-                    self.world.height_at(point.x, point.y).unwrap_or(0.0)
-                        + self.rules.air.cruise_agl_m(unit.layer()),
+                    self.world.height_at(point.x, point.y).unwrap_or(0.0) + flight.cruise_agl_m,
                 );
                 unit.yaw = heading;
                 if let Some(air) = unit.air.as_mut() {

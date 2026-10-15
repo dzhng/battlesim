@@ -135,7 +135,14 @@ test("Space aircraft cards follow the final order at flight altitude with the ac
   expect(cards[0].unit).toBe(jet);
 });
 
-test("the ghost reads the layer height", () => {
+test("the ghost stands at its kind's cruise height: its own, else its layer's, never under the floor", () => {
+  const rows: Record<string, { layer: "low_air" | "high_air"; cruise_agl_m?: number }> = {
+    heli: { layer: "low_air" },
+    jet: { layer: "high_air" },
+    low_jet: { layer: "high_air", cruise_agl_m: 60 },
+    high_jet: { layer: "high_air", cruise_agl_m: 400 },
+    tall_heli: { layer: "low_air", cruise_agl_m: 300 },
+  };
   const units = {
     type: (kind: string) => ({
       mobility: {
@@ -143,17 +150,20 @@ test("the ghost reads the layer height", () => {
           cruise_kmh: 200,
           turn_deg_s: 30,
           climb_mps: 8,
-          layer: kind === "jet" ? "high_air" : "low_air",
-          flight: kind === "jet" ? "fixed_wing" : "rotor",
+          flight: rows[kind].layer === "high_air" ? "fixed_wing" : "rotor",
+          ...rows[kind],
         },
       },
     }),
   } as any;
   const air = {
     low_air: { cruise_agl_m: 30 },
-    high_air: { cruise_agl_m: 250 },
+    high_air: { cruise_agl_m: 250, floor_agl_m: 100 },
   };
   const altitude = ghostAloft(units, air);
   expect(altitude("heli")).toBe(30);
   expect(altitude("jet")).toBe(250);
+  expect(altitude("high_jet")).toBe(400);
+  expect(altitude("low_jet")).toBe(100);
+  expect(altitude("tall_heli")).toBe(300);
 });

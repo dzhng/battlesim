@@ -14,17 +14,24 @@ export const GHOST_OWN = 0;
 export const GHOST_SELECTED = 1;
 export const GHOST_BLOCKED = 2;
 
-/** The rules' air layers, each with its cruise height. */
-export type AirLayers = Record<"low_air" | "high_air", { cruise_agl_m: number }>;
+/** The rules' air layers, each with its cruise height, and high air's
+ *  floor (`contract::scenario::AirRules`). */
+export type AirLayers = {
+  low_air: { cruise_agl_m: number };
+  high_air: { cruise_agl_m: number; floor_agl_m: number };
+};
 
-/** How high over the ground a kind's ghost stands: an aircraft's at its
- *  layer's cruise height, flying where it will be, anything else on the
- *  ground. */
+/** How high over the ground a kind's ghost stands, flying where it will be:
+ *  an aircraft's own cruise height, else its layer's, never under its
+ *  layer's floor (`AirRules::cruise_agl_m`); anything else on the ground. */
 export const ghostAloft =
   (units: UnitCatalog, air: AirLayers) =>
   (kind: string): number => {
-    const layer = layerOf(units.type(kind));
-    return layer === "ground" ? 0 : air[layer].cruise_agl_m;
+    const type = units.type(kind);
+    const layer = layerOf(type);
+    if (layer === "ground" || !("air" in type.mobility)) return 0;
+    const height = type.mobility.air.cruise_agl_m ?? air[layer].cruise_agl_m;
+    return layer === "high_air" ? Math.max(height, air.high_air.floor_agl_m) : height;
   };
 
 /** Cards accompany only revealed HighAir order ghosts while Space is held.

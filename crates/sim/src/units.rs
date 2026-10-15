@@ -368,6 +368,8 @@ pub struct Flight {
     pub layer: AltitudeLayer,
     /// How it flies: on rotors (`movement::air`) or wings (`air`).
     pub model: FlightModel,
+    /// Its cruise height over the ground (`AirRules::cruise_agl_m`).
+    pub cruise_agl_m: f64,
 }
 
 /// How a unit of type `t` moves.
@@ -379,12 +381,14 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
             climb_mps,
             layer,
             flight,
+            ..
         } => Motion::Air(Flight {
             cruise_mps: cruise_kmh / 3.6,
             turn_rad_s: turn_deg_s.to_radians(),
             climb_mps,
             layer,
             model: flight,
+            cruise_agl_m: rules.air.cruise_agl_m(&t.mobility),
         }),
         _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
     }

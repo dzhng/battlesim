@@ -92,7 +92,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
             .floor_agl_m(unit.layer())
             .expect("the catalog admits fixed-wing flight only in a layer with a floor"),
         edge_margin_m: ctx.rules.air.fixed_wing.edge_margin_m,
-        cruise_agl_m: ctx.rules.air.cruise_agl_m(unit.layer()),
+        cruise_agl_m: flight.cruise_agl_m,
     };
     let mut pass_release_now = false;
     let pass_before = unit.air.as_ref().and_then(|air| air.pass);

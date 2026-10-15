@@ -62,10 +62,7 @@ fn a_helicopter_enters_the_battle_at_cruise_height() {
     let heli = b.unit(UnitId(0)).unwrap();
     assert!(heli.airborne());
     assert!(heli.ground_footprint().is_none());
-    let cruise = b
-        .rules()
-        .air
-        .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir);
+    let cruise = b.rules().air.low_air.cruise_agl_m;
     assert!(
         (heli.position.z - cruise).abs() < 1e-9,
         "z {}",
@@ -145,11 +142,56 @@ fn a_jet_spawns_at_the_jet_cruise_height() {
         json!([{ "side": "blue", "kind": "test_heli", "position": [300, 200] }]),
     );
     let jet = b.unit(UnitId(0)).unwrap();
-    let cruise = b.rules().air.cruise_agl_m(AltitudeLayer::HighAir);
+    let cruise = b.rules().air.high_air.cruise_agl_m;
     assert!(
         (jet.position.z - cruise).abs() < 1e-9,
         "z {}",
         jet.position.z
+    );
+}
+
+/// D40: a row's own `cruise_agl_m` is where it flies. In high air it never
+/// flies under the floor; in low air nothing caps it, even above high air,
+/// and its layer still decides who can see and shoot it.
+#[test]
+fn a_cruise_override_is_the_flight_height_floored_in_high_air_and_uncapped_in_low_air() {
+    let mut fixture = fixture();
+    fixture["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "units": {
+            "test_jet_180": { "extends": "test_jet", "mobility": { "air": { "cruise_agl_m": 180 } } },
+            "test_jet_50": { "extends": "test_jet", "mobility": { "air": { "cruise_agl_m": 50 } } },
+            "test_heli_400": { "extends": "test_heli", "mobility": { "air": { "cruise_agl_m": 400 } } }
+        } }));
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_jet_180", "position": [300, 200] },
+            { "side": "blue", "kind": "test_jet_50", "position": [300, 200] },
+            { "side": "blue", "kind": "test_heli_400", "position": [100, 100] }
+        ]),
+    );
+    let floor = b.rules().air.high_air.floor_agl_m;
+    assert!(50.0 < floor, "the low override must lie under the floor");
+    let heights = |b: &Battle| [0, 1, 2].map(|i| b.unit(UnitId(i)).unwrap().position.z);
+    for (z, want) in heights(&b).into_iter().zip([180.0, floor, 400.0]) {
+        assert!((z - want).abs() < 1e-9, "spawned at {z}, not {want}");
+    }
+    assert_eq!(b.accept(order(&[2], [500.0, 300.0])).error, None);
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+    }
+    for (z, want) in heights(&b).into_iter().zip([180.0, floor, 400.0]) {
+        assert!((z - want).abs() < 1.0, "flies at {z:.1}, not {want}");
+    }
+    let heli = b.unit(UnitId(2)).unwrap();
+    assert_eq!(heli.layer(), AltitudeLayer::LowAir);
+    let at = heli.position.xy();
+    assert!(
+        (at.x - 500.0).hypot(at.y - 300.0) < 2.0,
+        "the high-flying helicopter reached its goal: {at:?}"
     );
 }
 
@@ -770,11 +812,7 @@ fn a_report_from_the_low_hover_lies_on_the_ground() {
     }
     let heli = b.unit(UnitId(2)).unwrap().position;
     assert!(
-        heli.z
-            < b.rules()
-                .air
-                .cruise_agl_m(contract::catalog::AltitudeLayer::LowAir)
-                / 2.0,
+        heli.z < b.rules().air.low_air.cruise_agl_m / 2.0,
         "sank to the low hover before firing: {:.1} m",
         heli.z
     );
