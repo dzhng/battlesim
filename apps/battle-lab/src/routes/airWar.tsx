@@ -162,23 +162,42 @@ function rosterMatrix(catalog: SessionCatalog) {
   }));
 }
 
+/** The line-up's spacing and its margin from the field's edges, in metres. */
+const LINEUP_COLUMN_M = 75;
+const LINEUP_ROW_M = 70;
+const LINEUP_MARGIN_M = 40;
+
 /** Every enabled roster type with an air role, faction by faction, parked
- *  in rows of eight across the open field north of the village. */
-function lineupEncounter(catalog: SessionCatalog) {
-  const kinds = new Set(
-    rosterMatrix(catalog).flatMap((row) =>
-      AIR_ROLES.flatMap((role) => row.roles[role].map((c) => c.id)),
+ *  in rows wrapped to the field's width. The high-air types take the
+ *  southern rows, nearest the camera, flying north into the field (a jet
+ *  never stops, and its own altitude lifts it up the picture); the ground
+ *  types park on the rows north of them. */
+function lineupEncounter(catalog: SessionCatalog, [width]: [number, number]) {
+  const kinds = [
+    ...new Set(
+      rosterMatrix(catalog).flatMap((row) =>
+        AIR_ROLES.flatMap((role) => row.roles[role].map((c) => c.id)),
+      ),
     ),
-  );
-  return {
-    units: [...kinds].map((kind, i) => ({
+  ];
+  const aloft = (kind: string) => layerOf(catalog.units.type(kind)) === "high_air";
+  const columns = Math.floor((width - 2 * LINEUP_MARGIN_M) / LINEUP_COLUMN_M) + 1;
+  let row = 0;
+  const units = [kinds.filter(aloft), kinds.filter((k) => !aloft(k))].flatMap((group) => {
+    const parked = group.map((kind, i) => ({
       side: "blue",
       kind,
-      position: [40 + (i % 8) * 75, 40 + Math.floor(i / 8) * 70],
+      position: [
+        LINEUP_MARGIN_M + (i % columns) * LINEUP_COLUMN_M,
+        LINEUP_MARGIN_M + (row + Math.floor(i / columns)) * LINEUP_ROW_M,
+      ],
       yaw: Math.PI / 2,
       engagement: "return_fire_only",
-    })),
-  };
+    }));
+    row += Math.ceil(group.length / columns);
+    return parked;
+  });
+  return { units };
 }
 
 export default function AirWar() {
@@ -271,7 +290,7 @@ function BuiltScenario({
   const scenario = useMemo(
     () =>
       "lineup" in source
-        ? savedScenario(map, lineupEncounter(catalog), catalog.rules)
+        ? savedScenario(map, lineupEncounter(catalog, map.size), catalog.rules)
         : JSON.stringify({
             map,
             rules: catalog.rules,

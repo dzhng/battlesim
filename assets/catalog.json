@@ -500,6 +500,29 @@
       },
       "wreck": "test_jeep_wreck"
     },
+    "test_jet": {
+      "unit": "vehicle",
+      "source": "assets/source/test/jet.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "test_jet_wreck"
+    },
+    "test_jet_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/test/jet_wreck.glb",
+        "debris": "assets/source/test/jet_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.54,
+        5.02,
+        2.44
+      ],
+      "tolerances": {
+        "footprint_m": 1.9
+      }
+    },
     "test_heli": {
       "unit": "vehicle",
       "source": "assets/source/test/heli.glb",

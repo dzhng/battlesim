@@ -1,6 +1,6 @@
 # Air-war flight
 
-**Status:** slices 00–18 and 20 landed, except slice 20's `test_jet` model (D43). Every row but the drones is enabled, the Gepard included. High air is its own screen plane (models above the lower cards, its own card layout), and cards hide near the screen edge. Credits are gold. Next: the `test_jet` model, then slice 19.
+**Status:** slices 00–18 and 20 landed. Every row but the drones is enabled. Next: slice 19, the closeout.
 **Updated:** 2026-10-15.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec`. Opus subagents write the code and do all 3D modelling and visual work; Codex (`codex exec`, `gpt-6.1-sol`, high) only takes short, non-visual tasks. You orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** build `test_jet`'s generic grey fighter (D43, slice 20), then slice 19 in order. Also on the closeout list: fix the air-roster lab parking jets off its field; pull every source and get a clean `asset check`; re-approve the `panels` scene's `army-*` baselines, which differ from today's page only in the reinforcements credit figure (about 99 px each, not from this spec's cleanup). The dead helicopter-traversing code is deleted and the capture files are re-recorded from browser runs (choices.md, row 20).
+- **Pickup:** slice 19 in order. Every other slice has landed: `test_jet` has its own model, the air-roster lab parks every type on its field, the dead helicopter-traversing code is gone, the captures are re-recorded from browser runs, and the `panels` and `ui` pictures are re-approved for the gold credits. `asset check` passes once every source and reference photo is pulled.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Merging a worktree:** commit its work on its branch first, and check `git log` shows the merge brought commits in. Merging an uncommitted branch is an empty, silent no-op.
 - **Clean up merged worktrees:** after a branch merges, `git worktree remove` it and delete the branch. Each worktree carries its own multi-gigabyte Cargo `target/`, and leaving them filled the disk once.
@@ -35,7 +35,7 @@ You are implementing this spec with `implement-spec`. Opus subagents write the c
 - [x] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
 - [x] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
-- [ ] 20 [aircraft arrival, per-unit height, `test_jet` model](slices/20-aircraft-arrival.md) ([flight-model map](flight-model-map.md)): arrival, per-unit height and the countdown landed (branch `awf/arrival`); the `test_jet` model (D43) is still to do
+- [x] 20 [aircraft arrival, per-unit height, `test_jet` model](slices/20-aircraft-arrival.md) ([flight-model map](flight-model-map.md)): arrival, per-unit height and the countdown (branch `awf/arrival`); `test_jet`'s own generic grey fighter (D43, branch `awf/testjet`)
 - [ ] 19 [closeout](slices/19-closeout.md)
 
 ## User decisions made during the build

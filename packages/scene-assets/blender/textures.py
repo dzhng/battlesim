@@ -317,6 +317,7 @@ SCHEMES = {
     "nato_air_grey": "nato_air_grey",
     "nato_helicopter_green": "nato_helicopter_green",
     "french_air_camo": "french_air_camo",
+    "neutral_grey": "neutral_grey",
 }
 
 
@@ -483,6 +484,13 @@ def chinese_air_light_grey():
     """The PLA's light fighter grey (the J-10C): one pale grey, a little
     mottled, a shade bluer in broad patches."""
     return _air(((0.21, 0.23, 0.26), (0.19, 0.21, 0.24)), (0.62,), 1765)
+
+
+@recipe("neutral_grey", tile=6.0, wear=(0.3, 0.315, 0.335, 0.8))
+def neutral_grey():
+    """A light grey of no air arm's hue (the test jet's): one grey, a little
+    mottled, a shade cool so the battle's warm sun leaves it grey."""
+    return _air(((0.2, 0.214, 0.232), (0.186, 0.199, 0.216)), (0.6,), 1797)
 
 
 @recipe("store_grey", tile=3.0, wear=(0.3, 0.3, 0.3, 0.8))

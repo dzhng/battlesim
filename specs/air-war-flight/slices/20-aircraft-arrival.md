@@ -24,7 +24,7 @@
 ## You see
 - The pending card counting down.
 - The approach drawn at the entry side of the back edge.
-- `test_jet` in its own grey model on its sheet.
+- [x] `test_jet` in its own grey model on its sheet (D43): the `test_jet` appearance, built by `packages/scene-assets/blender/test_jet.py` in the `neutral_grey` scheme, unmarked, to the row's hull; its sheet passed two `screenshot-critique` rounds.
 
 ## Delegated
 - Countdown wording and placement, within the existing card style (load `game-ui`).
