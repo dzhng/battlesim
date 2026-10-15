@@ -92,6 +92,9 @@ pub struct PendingPurchase {
     pub destination: [f64; 2],
     pub confirmed_tick: Tick,
     pub blocked: bool,
+    /// The tick a bought aircraft reaches the map, once its wait off the
+    /// map has begun (D41); None for anything that enters through the queue.
+    pub arrival_tick: Option<Tick>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

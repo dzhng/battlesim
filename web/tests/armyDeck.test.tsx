@@ -21,6 +21,9 @@ afterAll(() => {
 });
 afterEach(cleanup);
 
+/** What a card says on its face, whitespace collapsed. */
+const words = (node: HTMLElement) => (node.textContent ?? "").replace(/\s+/g, " ").trim();
+
 test("the army row includes unselected own units and stays visible without a selection", () => {
   const own = [
     specimenUnit(TEST_CATALOG, "test_tank", { id: 11 }),
@@ -238,6 +241,7 @@ test("pending reinforcements reuse dimmed vertical cards with deployment hover t
           destination: [10, 12],
           confirmedTick: 0,
           blocked: false,
+          arrivalTick: 0,
         },
       ]}
     />,
@@ -246,6 +250,36 @@ test("pending reinforcements reuse dimmed vertical cards with deployment hover t
   expect(card.className).toContain("hud-army-pending");
   expect(card.getAttribute("title")).toContain("Will be deployed");
   expect(card.hasAttribute("disabled")).toBe(true);
+  expect(words(card)).toBe("");
+});
+
+test("a waiting aircraft's pending card counts down to its arrival, whole seconds rounded up", () => {
+  const hz = game.tick_hz;
+  const jet = {
+    id: 42,
+    kind: "test_jet",
+    destination: [10, 12] as [number, number],
+    confirmedTick: 0,
+    blocked: false,
+    arrivalTick: 20 * hz,
+  };
+  const deck = (tick: number) => (
+    <ArmyDeck
+      own={[]}
+      selected={[]}
+      onSelect={vi.fn()}
+      rules={game as unknown as PanelRules}
+      captions={null}
+      tick={tick}
+      pending={[jet]}
+    />
+  );
+  const view = render(deck(2 * hz + 1));
+  const card = view.getByRole("button", { name: "Test Jet — Arriving in 18 s" });
+  expect(card.className).toContain("hud-army-pending");
+  expect(words(card)).toBe("Arriving in 18 s");
+  view.rerender(deck(19 * hz));
+  expect(view.getByRole("button", { name: "Test Jet — Arriving in 1 s" })).toBeTruthy();
 });
 
 test("the command row exposes refund for a selected skirmish unit", () => {

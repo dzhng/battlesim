@@ -24,7 +24,7 @@
           "wreck": "light_wreck"
         }
       },
-      "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air", "flight": "fixed_wing" } },
+      "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air", "flight": "fixed_wing", "arrival": { "delay_s": [15, 30] } } },
       "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "capabilities": { "air": {
         "fuel_capacity_s": 180,

@@ -163,6 +163,7 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
             destination: *destination,
             confirmed_tick: 0,
             blocked: false,
+            arrival_tick: None,
         });
     assert!(ai
         .decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| Some(
@@ -206,6 +207,7 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
                         destination,
                         confirmed_tick: frame.tick,
                         blocked: false,
+                        arrival_tick: None,
                     });
                 }
                 Order::Ready => {
@@ -342,6 +344,7 @@ fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality()
             destination: entry.center,
             confirmed_tick: 0,
             blocked: false,
+            arrival_tick: None,
         });
     let mut variants = std::collections::BTreeSet::new();
     for seed in 0..32 {
@@ -410,6 +413,7 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
             destination: entry.center,
             confirmed_tick: 0,
             blocked: false,
+            arrival_tick: None,
         });
     frame.own.clear();
     frame
@@ -583,6 +587,7 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
         destination: entry.center,
         confirmed_tick: 0,
         blocked: false,
+        arrival_tick: None,
     });
     let ordinary = BalancedDoctrine::default().decide(
         Side::Red,
@@ -669,6 +674,7 @@ fn the_ai_sends_bought_jets_on_attack_move() {
         destination: entry.center,
         confirmed_tick: 0,
         blocked: false,
+        arrival_tick: None,
     });
     let jet = rules.catalog.index("test_jet").unwrap();
     assert_eq!(frame.own[0].kind, jet);

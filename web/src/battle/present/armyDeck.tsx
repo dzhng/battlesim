@@ -16,6 +16,7 @@ export function ArmyDeck({
   captions,
   reinforcements,
   pending = [],
+  tick = 0,
 }: {
   own: readonly OwnUnitView[];
   selected: readonly number[];
@@ -25,6 +26,8 @@ export function ArmyDeck({
   captions: ReactNode;
   reinforcements?: ReactNode;
   pending?: SkirmishView["pending"];
+  /** The observed tick, which a waiting aircraft's countdown runs from. */
+  tick?: number;
 }) {
   const lower = useRef<HTMLDivElement>(null);
   const deck = useRef<HTMLElement>(null);
@@ -168,18 +171,36 @@ export function ArmyDeck({
             })}
             {pending.map((unit, index) => {
               const name = units.type(unit.kind).name;
+              // A bought aircraft waiting off the map counts down to its
+              // arrival (D42); anything else waits on the queue.
+              const eta =
+                unit.arrivalTick > 0
+                  ? Math.max(0, Math.ceil((unit.arrivalTick - tick) / rules.tick_hz))
+                  : null;
+              const state =
+                eta !== null
+                  ? `Arriving in ${eta} s`
+                  : unit.blocked
+                    ? "Entry blocked"
+                    : "Will be deployed";
               return (
                 <button
                   key={`pending-${unit.id}`}
                   type="button"
-                  className="hud-army-card hud-army-pending"
+                  className={`hud-army-card hud-army-pending${eta !== null ? " hud-army-arriving" : ""}`}
                   style={cardOffset(own.length + index)}
                   disabled
-                  aria-label={`${name} — Will be deployed`}
-                  title={`${name} — ${unit.blocked ? "Entry blocked" : "Will be deployed"}`}
+                  aria-label={`${name} — ${eta !== null ? state : "Will be deployed"}`}
+                  title={`${name} — ${state}`}
                 >
                   <UnitFace kind={unit.kind}>
-                    <StrengthMeter name={name} strength={1} />
+                    {eta !== null ? (
+                      <span className="hud-army-eta">
+                        <span>Arriving in</span> <b>{`${eta}\u2009s`}</b>
+                      </span>
+                    ) : (
+                      <StrengthMeter name={name} strength={1} />
+                    )}
                   </UnitFace>
                 </button>
               );

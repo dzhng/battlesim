@@ -1166,6 +1166,220 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
 /// The player buys a helicopter as a reinforcement: the preview places it,
 /// it enters at its base, and the battle plays on while it flies to the
 /// destination the player chose.
+/// The test deck with `test_jet` and `test_heli` on the U.S. roster, the
+/// jet waiting `arrival` off the map (null: none).
+fn air_deck(arrival: serde_json::Value) -> serde_json::Value {
+    let mut rules = deck();
+    for (id, category, family) in [
+        ("test_jet", "veh", "Test jet"),
+        ("test_heli", "hel", "Test heli"),
+    ] {
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            id,
+            json!({
+                "roster": { "factions": ["us"], "category": category, "family_name": family, "variant": "Test" }
+            }),
+        );
+    }
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mobility": { "air": { "arrival": arrival } } }),
+    );
+    rules
+}
+
+/// Blue buys `purchases` in order and both sides ready up; the battle runs
+/// until it is active. Returns the tick combat began.
+fn bought(battle: &mut Battle, purchases: &[(&str, [f64; 2])]) -> u64 {
+    for (seq, (variant, destination)) in purchases.iter().enumerate() {
+        let ack = battle.accept(command(
+            Side::Blue,
+            seq as u64 + 1,
+            Order::ConfirmPurchase {
+                variant: (*variant).into(),
+                destination: *destination,
+            },
+        ));
+        assert!(ack.error.is_none(), "{variant}: {ack:?}");
+    }
+    battle.accept(command(Side::Blue, 100, Order::Ready));
+    battle.accept(command(Side::Red, 100, Order::Ready));
+    loop {
+        battle.step();
+        let phase = battle.observe(Side::Blue).skirmish.as_ref().unwrap().phase;
+        if phase == contract::skirmish::Phase::Active {
+            return battle.tick();
+        }
+    }
+}
+
+/// The tick each of Blue's units first appears, by unit id, and how it
+/// looked then, stepping for `seconds`.
+fn arrivals(battle: &mut Battle, seconds: u32) -> Vec<(u64, contract::observation::OwnUnit)> {
+    let mut seen: Vec<(u64, contract::observation::OwnUnit)> = Vec::new();
+    for _ in 0..seconds * battle.rules().tick_hz {
+        battle.step();
+        for unit in &battle.observe(Side::Blue).own {
+            if !seen.iter().any(|(_, u)| u.id == unit.id) {
+                seen.push((battle.tick(), unit.clone()));
+            }
+        }
+    }
+    seen
+}
+
+/// D41: an aircraft's wait is its own. A tank bought behind a jet enters at
+/// once, and two jets bought together wait side by side, each arriving when
+/// its pending record and its approach said it would.
+#[test]
+fn a_waiting_aircraft_leaves_the_queue_and_waits_on_its_own_clock() {
+    // Flying its own cruise height, which its approach is drawn at too.
+    let mut rules = air_deck(json!({ "delay_s": [20, 20] }));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mobility": { "air": { "cruise_agl_m": 180 } } }),
+    );
+    let mut battle = Battle::new(&match_on(rules), 6);
+    let start = bought(
+        &mut battle,
+        &[
+            ("test_jet", [300.0, 300.0]),
+            ("test_jet", [500.0, 300.0]),
+            ("test_tank", [400.0, 300.0]),
+        ],
+    );
+    let hz = u64::from(battle.rules().tick_hz);
+    let due = start + 20 * hz;
+    battle.step();
+    let frame = battle.observe(Side::Blue);
+    let pending = &frame.skirmish.as_ref().unwrap().pending;
+    let jet = battle.rules().catalog.index("test_jet").unwrap();
+    let waiting: Vec<_> = pending.iter().filter(|p| p.kind == jet).collect();
+    assert_eq!(waiting.len(), 2, "both jets stay pending: {pending:?}");
+    for p in &waiting {
+        assert_eq!(p.arrival_tick, Some(due), "{p:?}");
+    }
+    let approaches: Vec<_> = frame.air_transits.iter().map(|t| t.edge_tick).collect();
+    assert_eq!(
+        approaches,
+        vec![due, due],
+        "each approach meets its arrival"
+    );
+    // The packed publication carries the same tick to the pending cards.
+    let layout = sim::publication::layout_json(&battle);
+    let mut reader = sim::publication::reader::Reader::new(&layout).unwrap();
+    let words: Vec<u32> = sim::publication::Publisher::new()
+        .publish(&battle, Side::Blue)
+        .unwrap()
+        .iter()
+        .map(|w| w.to_bits())
+        .collect();
+    let published = reader.decode(&words).unwrap().unwrap();
+    let cards: Vec<f64> = published
+        .skirmish
+        .unwrap()
+        .pending
+        .iter()
+        .filter(|p| &*p.kind == "test_jet")
+        .map(|p| p.arrival_tick)
+        .collect();
+    assert_eq!(cards, vec![due as f64, due as f64]);
+
+    let seen = arrivals(&mut battle, 25);
+    let tank = battle.rules().catalog.index("test_tank").unwrap();
+    let tank_at = seen
+        .iter()
+        .find(|(_, u)| u.kind == tank)
+        .expect("the tank entered")
+        .0;
+    assert!(
+        tank_at <= start + 2 * hz,
+        "the tank waited for the jets: entered {}s in",
+        (tank_at - start) / hz
+    );
+    let jets: Vec<u64> = seen
+        .iter()
+        .filter(|(_, u)| u.kind == jet)
+        .map(|(t, _)| *t)
+        .collect();
+    for (_, u) in seen.iter().filter(|(_, u)| u.kind == jet) {
+        assert!(
+            (u.position[2] - 180.0).abs() < 1.0,
+            "arrived at {:?}",
+            u.position
+        );
+    }
+    assert_eq!(jets, vec![due, due], "the jets arrive together, on time");
+}
+
+/// D38, D39: every aircraft enters at its side's back-edge point nearest
+/// the side's entry site, whatever its destination, already flying at its
+/// cruise height and pointed at its destination. A row with no `arrival`
+/// is there at once and flies straight in.
+#[test]
+fn any_aircraft_enters_flying_at_the_edge_point_nearest_its_entry_site() {
+    let mut battle = Battle::new(&match_on(air_deck(serde_json::Value::Null)), 6);
+    let destination = [100.0, 300.0];
+    let start = bought(
+        &mut battle,
+        &[("test_jet", destination), ("test_heli", destination)],
+    );
+    let hz = u64::from(battle.rules().tick_hz);
+    let seen = arrivals(&mut battle, 3);
+    assert_eq!(seen.len(), 2, "both aircraft are on the map: {seen:?}");
+    // Blue's entry site is at (400, 10): its back edge is y = 0.
+    let edge = [400.0, 0.0];
+    let bearing = libm::atan2(destination[1] - edge[1], destination[0] - edge[0]);
+    for (tick, unit) in &seen {
+        let id = battle.rules().catalog.id(unit.kind);
+        let cruise = battle
+            .rules()
+            .air
+            .cruise_agl_m(&battle.rules().catalog.get(unit.kind).mobility);
+        assert!(
+            *tick <= start + 2 * hz,
+            "{id} waited {}s",
+            (tick - start) / hz
+        );
+        let [x, y, z] = unit.position;
+        let dt = 1.0 / hz as f64;
+        let speed = battle
+            .rules()
+            .catalog
+            .get(unit.kind)
+            .mobility
+            .speeds_mps()
+            .0;
+        assert!(
+            (x - edge[0]).hypot(y - edge[1]) < speed * dt * 2.0 + 0.5,
+            "{id} entered at ({x:.1}, {y:.1}), not at the edge point nearest the entry"
+        );
+        assert!(
+            (z - cruise).abs() < 1.0,
+            "{id} entered at {z:.1} m, not cruising at {cruise}"
+        );
+        let off = sim::math::wrap_angle(unit.yaw - bearing).abs();
+        assert!(
+            off < 0.1,
+            "{id} entered facing {:.2}, not its destination {bearing:.2}",
+            unit.yaw
+        );
+    }
+    let now = battle.observe(Side::Blue);
+    let heli = battle.rules().catalog.index("test_heli").unwrap();
+    let flown = now.own.iter().find(|u| u.kind == heli).unwrap().position;
+    assert!(
+        (flown[0] - edge[0]).hypot(flown[1] - edge[1]) > 50.0,
+        "the helicopter is flying in, not held at the edge: {flown:?}"
+    );
+}
+
 #[test]
 fn a_helicopter_the_player_buys_enters_and_flies_to_its_destination() {
     let mut rules = deck();
@@ -1201,111 +1415,6 @@ fn a_helicopter_the_player_buys_enters_and_flies_to_its_destination() {
         (p[0] - 400.0).hypot(p[1] - 300.0) < 5.0,
         "it ended at {p:?}"
     );
-}
-
-#[test]
-fn a_bought_helicopter_is_paid_immediately_and_waits_at_the_nearest_edge() {
-    const HELI: &str = "ah_64e_guardian";
-    let setup = match_on(sim::fixtures::game());
-    let mut battle = Battle::new(&setup, 6);
-    let price = battle.rules().catalog.by_id(HELI).cost;
-    let before = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
-    assert!(battle
-        .accept(command(
-            Side::Blue,
-            1,
-            Order::ConfirmPurchase {
-                variant: HELI.into(),
-                destination: [300.0, 200.0],
-            },
-        ))
-        .error
-        .is_none());
-    battle.accept(command(Side::Blue, 2, Order::Ready));
-    battle.accept(command(Side::Red, 1, Order::Ready));
-    battle.step();
-    let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
-    assert_eq!(before - status.credits, f64::from(price));
-
-    let mut entered = None;
-    let mut waited = false;
-    for _ in 0..(31 * battle.rules().tick_hz) {
-        battle.step();
-        let Some(aircraft) = battle
-            .observe(Side::Blue)
-            .own
-            .iter()
-            .find(|u| u.kind == battle.rules().catalog.index(HELI).unwrap())
-        else {
-            continue;
-        };
-        if aircraft.traversing {
-            waited = true;
-            assert!(
-                (aircraft.position[1]).abs() < 1.0,
-                "it waits at the nearest map edge"
-            );
-            assert!((aircraft.position[0] - 300.0).abs() < 1.0);
-        }
-        if waited && !aircraft.traversing {
-            entered = Some(battle.tick());
-            break;
-        }
-    }
-    assert!(waited, "the purchased helicopter enters through traversal");
-    let entered = entered.expect("the helicopter enters after its seeded delay");
-    let spawned = battle
-        .replay()
-        .accepted
-        .iter()
-        .find_map(|(tick, command)| {
-            matches!(command.order, Order::ConfirmPurchase { .. }).then_some(*tick)
-        })
-        .unwrap();
-    let delay_s = (entered - spawned) as f64 / f64::from(battle.rules().tick_hz);
-    assert!(
-        (15.0..=30.1).contains(&delay_s),
-        "seeded ingress delay {delay_s:.2}s"
-    );
-}
-
-#[test]
-fn a_bought_jet_spawns_on_its_back_edge_at_cruise_heading_in_after_its_delay() {
-    let rules = test_jet_rules(180.0);
-    let mut battle = Battle::new(&match_on(rules), 6);
-    assert!(battle
-        .accept(command(
-            Side::Blue,
-            1,
-            Order::ConfirmPurchase {
-                variant: "test_jet".into(),
-                destination: [300.0, 300.0]
-            }
-        ))
-        .error
-        .is_none());
-    battle.accept(command(Side::Blue, 2, Order::Ready));
-    battle.accept(command(Side::Red, 1, Order::Ready));
-    let mut found = false;
-    for _ in 0..1000 {
-        battle.step();
-        if let Some(u) = battle
-            .observe(Side::Blue)
-            .own
-            .iter()
-            .find(|u| battle.rules().catalog.id(u.kind) == "test_jet")
-        {
-            found = true;
-            assert!(u.position[1] < 20.0);
-            break;
-        }
-    }
-    assert!(found);
 }
 
 #[test]

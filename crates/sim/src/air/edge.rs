@@ -56,3 +56,17 @@ pub fn crossed(edge: &BackEdge, prev: V2, next: V2) -> bool {
     let b = (next - edge.a).dot(edge.inward);
     a >= 0.0 && b < 0.0
 }
+
+/// Where and which way an arriving aircraft enters (D39): at the back-edge
+/// point nearest its side's entry site, heading for `destination` when that
+/// lies into the map, else straight in.
+pub fn arrival(edge: &BackEdge, entry_site: V2, destination: V2) -> (V2, f64) {
+    let (point, inward) = entry(edge, entry_site);
+    let toward = destination - point;
+    let heading = if toward.dot(edge.inward) > 0.0 {
+        libm::atan2(toward.y, toward.x)
+    } else {
+        inward
+    };
+    (point, heading)
+}

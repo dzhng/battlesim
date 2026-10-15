@@ -8010,6 +8010,12 @@
           "family": "j_10_vigorous_dragon",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -9848,6 +9854,12 @@
           "family": "sukhoi_flanker_family",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -13197,6 +13209,12 @@
           "family": "eurofighter_typhoon",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -15421,6 +15439,12 @@
           "family": "tornado",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -15768,6 +15792,12 @@
           "family": "f_16_fighting_falcon",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -16802,6 +16832,12 @@
           "family": "ea_18g_growler",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -25611,6 +25647,12 @@
       "id": "eastern_j_10_vigorous_dragon_j_10c",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -27567,6 +27609,12 @@
       "id": "eastern_sukhoi_flanker_family_su_34",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -31059,6 +31107,12 @@
       "id": "europe_eurofighter_typhoon_tranche_3",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -33331,6 +33385,12 @@
       "id": "europe_tornado_ecr",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -33658,6 +33718,12 @@
       "id": "f_16c_block_50",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -35015,6 +35081,12 @@
       "id": "us_ea_18g_growler_electronic_warfare_aircraft",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
