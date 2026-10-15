@@ -27,7 +27,7 @@ CARDS = {"us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": (16.
 # The side photo stands the A-10 tall on its gear: its low wing 1.6 m up,
 # its forward body 1.4-3.2 m, the canopy's top 3.6 m.
 WING_Z = 1.6
-FIN = dict(root_x=-6.1, root_z=1.92, height=2.55, root_chord=2.0, tip_chord=1.45, sweep_m=0.45)
+FIN = dict(root_x=-6.08, root_z=1.5, height=2.97, root_chord=2.0, tip_chord=1.45, sweep_m=0.45)
 SPEC = dict(
     fuselage=[(7.72, 0.0, 2.15, 2.15), (7.35, 0.46, 1.7, 2.6, 2.15), (6.3, 0.72, 1.55, 2.95, 2.2, 2.4),
               (4.6, 0.8, 1.45, 3.15, 2.25, 2.6), (2.5, 0.82, 1.4, 3.1, 2.2, 2.6), (0.0, 0.76, 1.42, 2.85, 2.1, 2.4),
@@ -37,14 +37,14 @@ SPEC = dict(
             # The spine behind the canopy, falling to the engines.
             ("fuselage_spine", [(3.4, 0.42, 3.0, 3.4, 3.1, 2.4), (1.0, 0.42, 2.9, 3.1, 3.0, 2.4),
                                 (-1.6, 0.0, 2.8, 2.8)])],
-    canopy=dict(x_front=6.1, x_back=3.3, sill=3.02, top=3.62, half_width=0.56, bows=(5.6,), peak=0.5, tail=0.6),
+    canopy=dict(x_front=6.1, x_back=3.3, sill=3.02, top=3.78, half_width=0.56, bows=(5.6,), peak=0.5, tail=0.6),
     wing=[(1.48, 0.72, WING_Z, 3.1, 0.46), (1.42, 2.7, WING_Z, 3.0, 0.4), (0.92, 8.38, WING_Z + 0.4, 1.7, 0.16),
           (0.86, 8.76, WING_Z + 0.3, 1.6, 0.1)],
     wing_hinge=((0.78, 0, 3),),
     nav=dict(left=(0.4, 8.7, WING_Z + 0.32), right=(0.4, -8.7, WING_Z + 0.32)),
     stab=[(-6.25, 0.2, 1.92, 1.95, 0.16), (-6.4, 2.86, 1.92, 1.65, 0.12)],
     fins=[dict(FIN, y=2.86), dict(FIN, y=-2.86)],
-    gear=[dict(name="nose", x=5.0, y=-0.36, top=1.55, radius=0.33, width=0.2, door=(0.8, 0.4), light=True),
+    gear=[dict(name="nose", x=5.0, y=-0.46, top=1.55, radius=0.33, width=0.2, door=(0.8, 0.4), light=True),
           dict(name="main_L", x=-0.3, y=2.1, top=1.2, radius=0.5, width=0.3),
           dict(name="main_R", x=-0.3, y=-2.1, top=1.2, radius=0.5, width=0.3)],
     pylons=[((0.9, 3.4, WING_Z - 0.18), 1.2, 0.26), ((0.9, 4.6, WING_Z - 0.08), 1.1, 0.24),
@@ -66,16 +66,18 @@ def build(variant, v):
     cyl("gun_muzzle", 0.17, 0.04, (8.24, 0.06, 1.85), "X", m["black"], hull, seg=14, lods=MID)
     # The engines: round nacelles on pylons over the rear fuselage.
     for side, s_ in ((1, "L"), (-1, "R")):
-        y = side * 1.38
-        A.body(f"nacelle_engine_{s_}", [(-1.6, 0.0, 3.05, 3.05), (-1.8, 0.62, 2.43, 3.67, 3.05),
-                                        (-4.4, 0.62, 2.43, 3.67, 3.05), (-5.15, 0.44, 2.61, 3.49, 3.05)],
+        y, z = side * 1.5, 3.28
+        A.body(f"nacelle_engine_{s_}", [(-0.8, 0.6, z - 0.6, z + 0.6, z), (-1.1, 0.68, z - 0.68, z + 0.68, z),
+                                        (-4.1, 0.68, z - 0.68, z + 0.68, z), (-4.85, 0.46, z - 0.46, z + 0.46, z)],
                m["paint"], hull, seg=20, loc=(0, y, 0))
-        cyl(f"nacelle_engine_{s_}_fan", 0.52, 0.04, (-1.8, y, 3.05), "X", m["dark"], hull, seg=20, lods=MID)
-        cyl(f"nacelle_engine_{s_}_spinner", 0.14, 0.2, (-1.72, y, 3.05), "X", m["steel"], hull, seg=10,
+        cyl(f"nacelle_engine_{s_}_fan", 0.52, 0.04, (-0.79, y, z), "X", m["dark"], hull, seg=20, lods=MID)
+        cyl(f"nacelle_engine_{s_}_spinner", 0.14, 0.2, (-0.7, y, z), "X", m["steel"], hull, seg=10,
             r2=0.03, lods=NEAR)
-        cyl(f"nacelle_engine_{s_}_exhaust", 0.36, 0.05, (-5.17, y, 3.05), "X", m["black"], hull, seg=16, lods=MID)
-        box(f"nacelle_pylon_{s_}", (2.2, 0.16, 0.8), (-3.3, side * 0.95, 2.5), m["paint"], hull, bevel=0.03,
-            rot=(side * 0.6, 0, 0))
+        cyl(f"nacelle_engine_{s_}_exhaust", 0.38, 0.05, (-4.87, y, z), "X", m["black"], hull, seg=16, lods=MID)
+        # The short pylon from the fuselage's shoulder up to the nacelle's
+        # underside, the gap under the nacelle open either side of it.
+        box(f"nacelle_pylon_{s_}", (2.4, 0.8, 0.14), (-2.6, side * 0.84, 2.7), m["paint"], hull, bevel=0.03,
+            rot=(side * 0.5, 0, 0))
     box("antiglare", (1.1, 0.7, 0.03), (6.5, 0, 2.86), m["dark"], hull, rot=(0, 0.25, 0), lods=MID)
     box("refuel_door", (0.5, 0.3, 0.03), (7.0, 0, 2.6), m["dark"], hull, rot=(0, 0.35, 0), lods=NEAR)
     for side, s_ in ((1, "L"), (-1, "R")):
