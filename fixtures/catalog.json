@@ -1210,6 +1210,23 @@
       }
     },
     {
+      "cost": 200,
+      "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
+      "disabled_reason": null,
+      "family": "gepard",
+      "id": "europe_gepard_1a2",
+      "name": "Gepard 1A2",
+      "planned_weapons": [],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Gepard",
+        "variant": "1A2"
+      }
+    },
+    {
       "cost": 360,
       "description": "IRIS-T SLM long-range air defence.",
       "disabled_reason": null,
@@ -2583,28 +2600,6 @@
         ],
         "family_name": "Scout Drone",
         "variant": "Thermal"
-      }
-    },
-    {
-      "cost": 200,
-      "description": "1A2",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "family": "gepard",
-      "id": "europe_gepard_1a2",
-      "name": "Gepard 1A2",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "AA Gun"
-        }
-      ],
-      "roster": {
-        "category": "sup",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Gepard",
-        "variant": "1A2"
       }
     },
     {
@@ -14041,22 +14036,81 @@
           }
         },
         "europe_gepard_1a2": {
+          "appearance": "europe_gepard_1a2",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 70.0,
+                "rear": 25.0,
+                "ricochet": {
+                  "front": 0.2,
+                  "rear": 0.1,
+                  "roof": 0.25,
+                  "side": 0.15
+                },
+                "roof": 15.0,
+                "side": 35.0
+              },
+              "eye_m": 2.5,
+              "half_extents_m": [
+                3.556,
+                1.685,
+                1.645
+              ],
+              "hp": 110.0,
+              "push_class": "heavy",
+              "weight_class": "heavy",
+              "wreck": "heavy_wreck"
+            }
+          },
+          "capabilities": {
+            "air_defense": {
+              "tier": "short"
+            },
+            "radar": {
+              "detection_m": 0.0,
+              "emits": false
+            }
+          },
           "cost": 200,
-          "description": "1A2",
+          "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
           "faction": "europe",
           "family": "gepard",
-          "name": "Gepard 1A2",
-          "planned": {
-            "profile": "aa-tracked",
-            "reason": "Air-defense targeting and airborne targets deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "AA Gun"
-              }
-            ]
+          "mobility": {
+            "tracked": {
+              "offroad_kmh": 28.0,
+              "reverse_fraction": 0.4,
+              "road_kmh": 65.0,
+              "turn_deg_s": 45.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                3.56,
+                1.28,
+                0.0
+              ],
+              "name": "Twin 35 mm",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                2.11
+              ],
+              "special": false,
+              "squad": false,
+              "turret": true,
+              "weapons": [
+                "aa_ballistic"
+              ]
+            }
+          ],
+          "name": "Gepard 1A2",
+          "roles": [
+            "air_defense"
+          ],
           "roster": {
             "category": "sup",
             "factions": [
@@ -14064,6 +14118,20 @@
             ],
             "family_name": "Gepard",
             "variant": "1A2"
+          },
+          "sensors": {
+            "ground_m": 550.0,
+            "high_air_m": 900.0,
+            "low_air_m": 900.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.3,
+              "side": 0.5
+            }
+          },
+          "sound": {
+            "loudness_m": 650.0,
+            "profile": "vehicle"
           }
         },
         "europe_iris_t_medium": {
@@ -34350,6 +34418,108 @@
         "profile": "vehicle"
       },
       "vehicle_class": "wheeled_medium"
+    },
+    {
+      "appearance": "europe_gepard_1a2",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 70.0,
+            "rear": 25.0,
+            "ricochet": {
+              "front": 0.2,
+              "rear": 0.1,
+              "roof": 0.25,
+              "side": 0.15
+            },
+            "roof": 15.0,
+            "side": 35.0
+          },
+          "eye_m": 2.5,
+          "half_extents_m": [
+            3.556,
+            1.685,
+            1.645
+          ],
+          "hp": 110.0,
+          "push_class": "heavy",
+          "weight_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "capabilities": {
+        "air_defense": {
+          "tier": "short"
+        },
+        "radar": {
+          "detection_m": 0.0,
+          "emits": false
+        }
+      },
+      "cost": 200,
+      "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
+      "faction": "europe",
+      "family": "gepard",
+      "id": "europe_gepard_1a2",
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28.0,
+          "reverse_fraction": 0.4,
+          "road_kmh": 65.0,
+          "turn_deg_s": 45.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            3.56,
+            1.28,
+            0.0
+          ],
+          "name": "Twin 35 mm",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            2.11
+          ],
+          "special": false,
+          "squad": false,
+          "turret": true,
+          "weapons": [
+            "aa_ballistic"
+          ]
+        }
+      ],
+      "name": "Gepard 1A2",
+      "roles": [
+        "air_defense"
+      ],
+      "roster": {
+        "category": "sup",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Gepard",
+        "variant": "1A2"
+      },
+      "sensors": {
+        "ground_m": 550.0,
+        "high_air_m": 900.0,
+        "low_air_m": 900.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.3,
+          "side": 0.5
+        }
+      },
+      "sound": {
+        "loudness_m": 650.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "tracked_heavy"
     },
     {
       "appearance": "us_stryker_m1296_dragoon",

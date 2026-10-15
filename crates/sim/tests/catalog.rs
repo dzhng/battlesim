@@ -279,25 +279,31 @@ fn no_jet_carries_bombs_and_ground_missiles() {
     }
 }
 
-/// D25: every crewed fixed-wing jet is a full row the battle flies. The only
-/// air cards still planned are drones, which wait for their own spec (D37);
-/// a planned row names what it would become in its `planned.profile`.
+/// D25: every unit the roster fields is a full row the battle plays, in every
+/// category. The only cards still planned are drones, which wait for their own
+/// spec (D37). A planned row names what it would become in its
+/// `planned.profile`; the drone profiles are the one place drones are named.
 #[test]
-fn no_fixed_wing_row_is_planned() {
-    let planned_jets: Vec<String> =
-        sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game)
-            .iter()
-            .filter_map(|doc| doc["units"].as_object())
-            .flatten()
-            .filter(|(_, unit)| unit["roster"]["category"] == "air")
-            .filter_map(|(id, unit)| {
-                let profile = unit["planned"]["profile"].as_str()?;
-                (!profile.ends_with("drone")).then(|| format!("{id} ({profile})"))
-            })
-            .collect();
+fn only_drones_are_planned() {
+    const DRONE_PROFILES: [&str; 5] = [
+        "armed-drone",
+        "kamikaze-armor",
+        "kamikaze-personnel",
+        "scout-drone",
+        "thermal-drone",
+    ];
+    let planned: Vec<String> = sim::fixtures::catalog_documents(sim::fixtures::CatalogSet::Game)
+        .iter()
+        .filter_map(|doc| doc["units"].as_object())
+        .flatten()
+        .filter_map(|(id, unit)| {
+            let profile = unit["planned"]["profile"].as_str()?;
+            (!DRONE_PROFILES.contains(&profile)).then(|| format!("{id} ({profile})"))
+        })
+        .collect();
     assert!(
-        planned_jets.is_empty(),
-        "fixed-wing rows still planned: {planned_jets:?}"
+        planned.is_empty(),
+        "non-drone rows still planned: {planned:?}"
     );
 }
 

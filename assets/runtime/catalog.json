@@ -1791,6 +1791,26 @@
       "scenery": "wreck",
       "unit": "scenery"
     },
+    "europe_gepard_1a2": {
+      "bundle": "551228d238d43fb1112ac15d4011bc5a1e8b81dce8680dedf76831c2c960e2a2",
+      "kind": "articulated",
+      "mounts": {
+        "gun": "hull"
+      },
+      "unit": "vehicle",
+      "wreck": "europe_gepard_1a2_wreck"
+    },
+    "europe_gepard_1a2_wreck": {
+      "bundle": "0ea27229104d06b02ac052e21fa19d9228a5f56ed6913aa95cd7a9255d868065",
+      "footprint_half_m": [
+        3.556,
+        1.685,
+        1.645
+      ],
+      "kind": "static",
+      "scenery": "wreck",
+      "unit": "scenery"
+    },
     "europe_jas_39_gripen_e": {
       "bundle": "20a9a51bc5acc4e874c81702ad70aec5ba6496c0b7e69bb64230ff0900b1c8ad",
       "kind": "articulated",
@@ -4401,6 +4421,11 @@
       "hash": "7cf0ca44eed8245a04886b1cf429f2f97b4745f9082abf7abbed18bf3c3ee336",
       "raw_bytes": 66344
     },
+    "0ea27229104d06b02ac052e21fa19d9228a5f56ed6913aa95cd7a9255d868065": {
+      "bytes": 1486110,
+      "hash": "d5f3b599b55932c2ee2f696b43a42aa6289ad4bf8805c5c77009b4373e516c1f",
+      "raw_bytes": 4452520
+    },
     "0ef84c544d1ab10fd89e476d7e697fbbeba5289c54fb60dcc6a944ed9cfd2a3c": {
       "bytes": 629658,
       "hash": "18c0f2222d68d10dd7eed802cb04637730e2e2ae3c003cf448c0af35fbeaa49a",
@@ -5515,6 +5540,11 @@
       "bytes": 45261,
       "hash": "726227c38da5d1bf76216b370415c008b526ae88a565ef907056fdb03608d4fd",
       "raw_bytes": 184644
+    },
+    "551228d238d43fb1112ac15d4011bc5a1e8b81dce8680dedf76831c2c960e2a2": {
+      "bytes": 869064,
+      "hash": "6f9e5f66e73610830698b26e32eaf624089693cf8ca71230c5ca69d69a705be9",
+      "raw_bytes": 3302460
     },
     "552fee8f225b6897bd9c3df1b72c499a0fcb295956ba75845b667e448999a551": {
       "bytes": 1222665,
@@ -9044,6 +9074,11 @@
       "a17d04559e4eef6345a0520e76c32615ab2f2853dfa2f72d04f5362e552d5bc6",
       "d51f7a3aa898dd9eb62f8343b2f7787aab391fbc85b57f076d27bdeb1a1f2026"
     ],
+    "0ea27229104d06b02ac052e21fa19d9228a5f56ed6913aa95cd7a9255d868065": [
+      "3e7541badb88d4024f735ede729a604b0e354a6f55becb300f78259c0fe7fa32",
+      "5d654d5b70f78056a9c0a0801decd296f43e0eecd2e2541a1894977562723ed0",
+      "0342cd8bad2bc7b6010152d51d20dcd69ad42b48aad28ec93e99f1ef7a10984f"
+    ],
     "0ef84c544d1ab10fd89e476d7e697fbbeba5289c54fb60dcc6a944ed9cfd2a3c": [
       "7745e08d0a0c9264ae2b31193383a3a2055143d7fee49163d062accd92207fe5",
       "9d317b300663e15ca727661967963945d97b4bfb348fd98bb62e05de613a6731",
@@ -10953,6 +10988,26 @@
       "799ce39ab400d445b07ef461ef1fc867af6ac8196d0ad627a069f0f205918ad6",
       "1a2de2977c3e137f92aa05de1eedb7963b085df652d4f96f1cdd16edb9d0f17a",
       "8d0c56a841d1bf6b5d0e17be28f8aea6d37aa8a277b96197065e4cf203aa2817"
+    ],
+    "551228d238d43fb1112ac15d4011bc5a1e8b81dce8680dedf76831c2c960e2a2": [
+      "bda6348194f75d57f6e89c9ca61cc0c6962b66e41411638127160c12d2ff2b3a",
+      "9bb315c724ce8ba27b69048c6ec8db54bc983d1d0c6e81ebf357973d11f3f9fe",
+      "a5a7a113afb0b26bf00eb8a65a9cd097971bb54c346115bb1aeb47827aceac17",
+      "fddec6a58146cf10a591a6334897a5883b62347137a18527ed768bce2f201eb5",
+      "a709cdfa5560c3c67fafe25b84a28ea82a647555b6fe901e407a4a4a4a8a8050",
+      "8bf93135986ef9934a48839bbbee7f82616707f39af89f6bd750da0f169dbb42",
+      "7745e08d0a0c9264ae2b31193383a3a2055143d7fee49163d062accd92207fe5",
+      "9d317b300663e15ca727661967963945d97b4bfb348fd98bb62e05de613a6731",
+      "af14b08eb7a44841662da908915bdedeb53d8d80791bc945b8661c5b2cf4841a",
+      "2a9fcbdc85487c46eafafe5f96f7cd873b8eab89e4ab645838b7e00361463a37",
+      "19db117c522c11f9faf22d2069e91c667e006c3660d752ee040066a3ccbd7af8",
+      "7244c58873887ced8a950572331849ed29d2e230c2548c22f64c0bd2fbf7e21a",
+      "05ec6d4be6dd148600f3c961a4836b20edab876800b0a56cf42e26ed3553b867",
+      "7b15df61a70b6511169062d073d5fc36ad0d233bfe85436d704aa00295c7cab2",
+      "9b653ab49bea90d5f8fabbcb2cfff8d5ee9fe7110d8a135f3f9dcdb657441656",
+      "d80275a3741e14d16c14051bd87625757afa5f7aaffd39945608e7b37eab0869",
+      "dfeb7007009b0d5d9677d9b766395e57b0a97782537a47d40545f00e11acef5d",
+      "7206f987efe738d86374ab7cc4bbf91fe2c157eb95c09b0edd5dadd136410bbf"
     ],
     "552fee8f225b6897bd9c3df1b72c499a0fcb295956ba75845b667e448999a551": [
       "99e72fa5e816eeba222cef10032b608c9601750bfbb671cdd5e87ba507678df2",

@@ -46,16 +46,6 @@
       "source_path": "assets/source/roster/scout_drone/eastern_scout_drone_thermal.glb"
     },
     {
-      "id": "europe_gepard_1a2",
-      "family": "gepard",
-      "category": "sup",
-      "model_status": "reference_built",
-      "source_family": "gepard",
-      "source_kind": "support",
-      "disabled_reason": "Air-defense targeting and airborne targets deferred",
-      "source_path": "assets/source/roster/gepard/europe_gepard_1a2.glb"
-    },
-    {
       "id": "europe_kamikaze_drone_anti_armor",
       "family": "kamikaze_drone",
       "category": "sup",

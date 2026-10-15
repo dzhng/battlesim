@@ -6201,6 +6201,32 @@
         1.69
       ]
     },
+    "europe_gepard_1a2": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/gepard/europe_gepard_1a2.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "gun": "hull"
+      },
+      "wreck": "europe_gepard_1a2_wreck"
+    },
+    "europe_gepard_1a2_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/gepard/europe_gepard_1a2_wreck.glb",
+        "debris": "assets/source/roster/gepard/europe_gepard_1a2_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.556,
+        1.685,
+        1.645
+      ],
+      "tolerances": {
+        "footprint_m": 0.7
+      }
+    },
     "europe_nasams_nasams_3": {
       "unit": "vehicle",
       "source": "assets/source/roster/nasams/europe_nasams_nasams_3.glb",
