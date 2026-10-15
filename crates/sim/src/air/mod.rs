@@ -199,7 +199,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         .as_mut()
                         .unwrap();
                     let was_pull_out = pass.phase == pass::PassPhase::PullOut;
-                    let (intent, cue) = pass::advance(pass, &state, point, &release);
+                    let (intent, cue) = pass::advance(pass, &state, &limits, point, &release);
                     pass_release_now = cue.is_some();
                     if was_pull_out && pass.phase == pass::PassPhase::LineUp {
                         let finished_target = pass.target;

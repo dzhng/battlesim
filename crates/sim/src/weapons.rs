@@ -35,7 +35,14 @@ pub fn nose_on(unit: &Unit, target: V3, range: f64) -> bool {
     range.is_finite()
         && range >= 0.0
         && delta.length() <= range
-        && wrap_angle(libm::atan2(delta.y, delta.x) - unit.yaw).abs() <= 2.0_f64.to_radians()
+        && nose_on_bearing(unit.yaw, libm::atan2(delta.y, delta.x))
+}
+
+/// Whether a winged aircraft heading along `yaw` has its nose on `bearing`:
+/// what its fixed gun needs to fire, and what an attack pass needs before
+/// its dive begins.
+pub fn nose_on_bearing(yaw: f64, bearing: f64) -> bool {
+    wrap_angle(bearing - yaw).abs() <= 2.0_f64.to_radians()
 }
 
 /// A weapon row with its validated flight profile.
@@ -1020,13 +1027,15 @@ fn assess(
     }
     if unit.airborne() && r.layer == AltitudeLayer::Ground {
         let pass = unit.air.as_ref().and_then(|air| air.pass);
-        match (pass.map(|p| p.weapon), weapon.ground_attack) {
-            (Some(crate::air::pass::PassWeapon::Bomb), Some(GroundAttackKind::Bomb))
-                if !unit.air.as_ref().is_some_and(|air| air.pass_release) =>
-            {
+        let bomb_pass = pass.is_some_and(|p| p.weapon == crate::air::pass::PassWeapon::Bomb);
+        // A winged aircraft's bombs leave only on its bombing pass's release
+        // cue, never between passes.
+        let release_cue = bomb_pass && unit.air.as_ref().is_some_and(|air| air.pass_release);
+        match weapon.ground_attack {
+            Some(GroundAttackKind::Bomb) if unit.fixed_wing() && !release_cue => {
                 return Err(ActionReason::HoldingFire);
             }
-            (Some(crate::air::pass::PassWeapon::Bomb), Some(GroundAttackKind::Strafe)) => {
+            Some(GroundAttackKind::Strafe) if bomb_pass => {
                 return Err(ActionReason::NoCompatibleTarget);
             }
             _ => {}

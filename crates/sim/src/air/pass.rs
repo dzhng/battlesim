@@ -5,7 +5,8 @@ use contract::random::Rng;
 use contract::scenario::FixedWingFlight;
 
 use crate::flight::Release;
-use crate::math::{v2, V2, V3};
+use crate::math::{v2, wrap_angle, V2, V3};
+use crate::weapons::nose_on_bearing;
 
 use super::fixed_wing::{FixedWingLimits, FixedWingState};
 use super::steer::Intent;
@@ -20,7 +21,10 @@ pub enum PassWeapon {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PassPhase {
+    /// Flying straight on until a turn in on the aim leaves a full run-in.
     LineUp,
+    /// Turning in on the aim, then flying at it until the dive.
+    TurnIn,
     Dive,
     Release,
     PullOut,
@@ -102,20 +106,63 @@ fn line(plan: &PassPlan, aim: V3, agl: f64) -> Intent {
     }
 }
 
+/// The circle a full-rate turn toward `aim` flies, on the side it lies:
+/// its centre and radius.
+fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2, f64) {
+    let to_aim = aim - state.pos.xy();
+    let side = wrap_angle(libm::atan2(to_aim.y, to_aim.x) - state.heading).signum();
+    let radius = state.speed_mps / limits.turn_rad_s.max(f64::MIN_POSITIVE);
+    let left = v2(-libm::sin(state.heading), libm::cos(state.heading));
+    (state.pos.xy() + left * (radius * side), radius)
+}
+
 /// Advance the run and return the steering intent plus a one-tick release cue.
+///
+/// The line-up is flown from where the jet is. It flies straight on until
+/// turning in on the aim would leave it pointed at the aim a full run-in
+/// out (the aim lies that far along a tangent from the turn's circle), then
+/// turns in and holds the turn until its nose is on. The dive begins only
+/// nose-on and within the run-in, so every pass, the first or a repeat,
+/// dives in from the approach side.
 pub fn advance(
     plan: &mut PassPlan,
     state: &FixedWingState,
+    limits: &FixedWingLimits,
     aim: V3,
     release: &Release,
 ) -> (Intent, Option<ReleaseCue>) {
-    let distance = (state.pos.xy() - aim.xy()).length();
+    let to_aim = aim.xy() - state.pos.xy();
+    let distance = to_aim.length();
+    let bearing = libm::atan2(to_aim.y, to_aim.x);
     let release_distance = (state.pos.xy() - release.at).length();
     let speed = state.speed_mps.max(1.0);
+    // The straight, nose-on leg a dive is flown along.
+    let run_in = speed * 2.0;
+    let nose_on = nose_on_bearing(state.heading, bearing);
+    let (centre, radius) = turn_circle(state, limits, aim.xy());
     match plan.phase {
         PassPhase::LineUp => {
-            if distance <= speed * 2.0 {
+            if nose_on || (aim.xy() - centre).at_least_radius(libm::hypot(radius, run_in)) {
+                plan.phase = PassPhase::TurnIn;
+                plan.heading = bearing;
+                (line(plan, aim, plan.agl), None)
+            } else {
+                let straight_on = Intent::Line {
+                    through: state.pos.xy(),
+                    heading: state.heading,
+                    agl: plan.agl,
+                };
+                (straight_on, None)
+            }
+        }
+        PassPhase::TurnIn => {
+            plan.heading = bearing;
+            if nose_on && distance <= run_in {
                 plan.phase = PassPhase::Dive;
+            } else if !nose_on && (aim.xy() - centre).inside_radius(radius) {
+                // Pushed inside its own turn (by the edge guard): no turn
+                // brings the nose on from here, so it lines up again.
+                plan.phase = PassPhase::LineUp;
             }
             (line(plan, aim, plan.agl), None)
         }

@@ -125,7 +125,7 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
     for step in 0..20 {
         let mut current = state(plan.agl);
         current.pos.x = step as f64 * 60.0;
-        let (intent, cue) = advance(&mut plan, &current, aim, &release);
+        let (intent, cue) = advance(&mut plan, &current, &wing_limits(), aim, &release);
         saw_release |= cue.is_some();
         let _ = intent;
     }
@@ -751,4 +751,116 @@ fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
         passed |= air.pass.is_some();
     }
     assert!(passed, "the jet flies an attack run at the tank");
+}
+
+/// The jet's own numbers for the repeated-pass test: every bound it asserts
+/// is derived from them, not from the shipped catalog.
+const REPEAT_CRUISE_KMH: f64 = 540.0;
+const REPEAT_TURN_DEG_S: f64 = 60.0;
+const REPEAT_PASSES: usize = 4;
+
+/// A test jet carrying only `weapon` (in place of its gun), 1 km west of a ground aim point in the
+/// middle of a 4 km field (far inside the edge guard), heading east at it
+/// under an explicit attack order.
+fn repeated_pass_battle(weapon: &str) -> sim::battle::Battle {
+    let mut rules = sim::fixtures::test_game();
+    rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
+    rules["weapons"]["air_bomb"]["ammo"] = json!(REPEAT_PASSES);
+    rules["weapons"]["air_bomb"]["aim_s"] = json!(0.1);
+    // Rearming between passes is not this test's subject.
+    rules["weapons"]["air_bomb"]["reload_s"] = json!(1.0);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({
+            "mobility": { "air": { "cruise_kmh": REPEAT_CRUISE_KMH, "turn_deg_s": REPEAT_TURN_DEG_S } },
+            "mounts": [{
+                "id": "gun", "name": "Stores", "weapons": [weapon],
+                "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [7, 0, 0]
+            }]
+        }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [{ "side": "blue", "kind": "test_jet", "position": [1000, 2000], "yaw": 0.0 }],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [2000.0, 2000.0, 0.0],
+            },
+        },
+    });
+    assert_eq!(ack.error, None);
+    battle
+}
+
+/// Strafing or bombing a ground target is back and forth: line up, dive
+/// nose-on from the approach side, fire or release, pull out, come round and
+/// go again. Every pass after the first must line up as well as the first.
+#[test]
+fn repeated_passes_each_dive_in_nose_on_and_fire() {
+    let speed = REPEAT_CRUISE_KMH / 3.6;
+    let turn = REPEAT_TURN_DEG_S.to_radians();
+    let lap_s = std::f64::consts::TAU / turn;
+    // Reaching the target, then each pass: a turn-around and straight legs
+    // out and back, well inside two full laps of flying.
+    let bound_s = 1000.0 / speed + REPEAT_PASSES as f64 * 2.0 * lap_s;
+    let tolerance = 10_f64.to_radians();
+    let aim = sim::math::v2(2000.0, 2000.0);
+    for weapon in ["air_bomb", "air_gun"] {
+        let mut battle = repeated_pass_battle(weapon);
+        let hz = f64::from(battle.rules().tick_hz);
+        let mut previous = None;
+        let mut dives = Vec::new();
+        let mut fired_per_pass = Vec::new();
+        let mut shots_before = 0;
+        for tick in 0..(bound_s * hz) as u64 {
+            battle.step();
+            let jet = battle.unit(UnitId(0)).unwrap();
+            let phase = jet.air.unwrap().pass.map(|p| p.phase);
+            let to_aim = aim - jet.position.xy();
+            if phase == Some(PassPhase::Dive) && previous != Some(PassPhase::Dive) {
+                let off = sim::math::wrap_angle(libm::atan2(to_aim.y, to_aim.x) - jet.yaw);
+                dives.push((tick as f64 / hz, off.to_degrees(), to_aim.length()));
+                assert!(
+                    off.abs() <= tolerance,
+                    "{weapon}: dive {} began {:.0} deg off the target, {:.0} m out, at {:.1}s",
+                    dives.len(),
+                    off.to_degrees(),
+                    to_aim.length(),
+                    tick as f64 / hz
+                );
+            }
+            if previous == Some(PassPhase::PullOut) && phase != Some(PassPhase::PullOut) {
+                let shots = jet.mounts[0].shots;
+                fired_per_pass.push(shots - shots_before);
+                shots_before = shots;
+            }
+            previous = phase;
+            if fired_per_pass.len() == REPEAT_PASSES {
+                break;
+            }
+        }
+        assert_eq!(
+            fired_per_pass.len(),
+            REPEAT_PASSES,
+            "{weapon}: only {} of {REPEAT_PASSES} passes finished within {bound_s:.0}s; dives {dives:.0?}",
+            fired_per_pass.len()
+        );
+        assert!(
+            fired_per_pass.iter().all(|&n| n > 0),
+            "{weapon}: a pass went by without firing: rounds per pass {fired_per_pass:?}"
+        );
+    }
 }
