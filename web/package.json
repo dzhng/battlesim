@@ -13,6 +13,7 @@
     "asset": "node asset.mjs",
     "tutorial-shots": "node tutorial-shots.mjs",
     "install-browsers": "playwright install chromium",
+    "check-prerequisites": "node check-prerequisites.mjs",
     "verify": "node scene.mjs",
     "visual": "node scene.mjs --visual"
   },
