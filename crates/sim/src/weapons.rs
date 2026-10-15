@@ -527,7 +527,6 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
                 radar_contact: unit.layer() == AltitudeLayer::Ground
-                    && unit.unit_type(ctx.rules).capabilities.air_defense.is_some()
                     && unit
                         .unit_type(ctx.rules)
                         .capabilities
@@ -1041,11 +1040,10 @@ fn assess(
             _ => {}
         }
     }
-    // Air-defence crews need a physical view of an airborne target even for
-    // ballistic mounts.  A forest can hide the launcher, but it cannot turn
+    // Any crew firing at an airborne target needs its own view of it, even
+    // with a ballistic mount: a forest can hide the gun, but it cannot turn
     // foliage into a free firing lane.
     if matches!(r.layer, AltitudeLayer::LowAir | AltitudeLayer::HighAir)
-        && unit.unit_type(ctx.rules).capabilities.air_defense.is_some()
         && !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point)
     {
         return Err(ActionReason::NoOwnSight);

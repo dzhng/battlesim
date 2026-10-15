@@ -287,26 +287,25 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
 /// that a tower hides from blue's approach.
 fn air_defence_battle(blue: Value, hidden_gun: bool) -> Battle {
     let mut fixture = fixture();
-    let aa = |name: &str, weapon: &str, tier: &str, radar_m: u32| {
+    let aa = |name: &str, weapon: &str, radar_m: u32| {
         json!({
             "extends": "test_jeep", "name": name,
             "mounts": [{ "id": "HMG", "weapons": [weapon] }],
             "sensors": { "low_air_m": 900 },
             "capabilities": {
-                "air_defense": { "tier": tier },
                 "radar": { "emits": radar_m > 0, "detection_m": radar_m }
             }
         })
     };
-    let mut short = aa("Short AA", "aa_ballistic", "short", 0);
+    let mut short = aa("Short AA", "aa_ballistic", 0);
     short["sensors"]["high_air_m"] = json!(900);
     fixture["catalog"]
         .as_array_mut()
         .unwrap()
         .push(json!({ "units": {
             "test_aa_short": short,
-            "test_aa_medium": aa("Medium SAM", "aa_medium", "medium", 3200),
-            "test_aa_long": aa("Long SAM", "aa_long", "long", 7000),
+            "test_aa_medium": aa("Medium SAM", "aa_medium", 3200),
+            "test_aa_long": aa("Long SAM", "aa_long", 7000),
         }}));
     let red = |kind: &str, at: [f64; 2]| json!({ "side": "red", "kind": kind, "position": at, "yaw": std::f64::consts::PI });
     let mut units = vec![
@@ -331,8 +330,10 @@ fn shots(b: &Battle, id: UnitId) -> u32 {
     b.unit(id).unwrap().mounts.iter().map(|m| m.shots).sum()
 }
 
+/// Jeeps carrying the game's air-reaching rows fire at the layers each row
+/// reaches, and like any unit firing at the air, need their own view of it.
 #[test]
-fn air_defence_tiers_follow_the_target_layer_and_need_their_own_sight() {
+fn air_defence_follows_the_target_layer_and_needs_its_own_sight() {
     let mut helicopters = air_defence_battle(
         json!([
             { "side": "blue", "kind": "test_heli", "position": [250, 200], "engagement": "return_fire_only" },
@@ -378,7 +379,7 @@ fn air_defence_tiers_follow_the_target_layer_and_need_their_own_sight() {
         }
     }
     for id in [UnitId(0), UnitId(1), UnitId(2)] {
-        assert!(shots(&jet, id) > 0, "AA tier {id:?} fires at HighAir");
+        assert!(shots(&jet, id) > 0, "AA {id:?} fires at HighAir");
     }
     assert!(hidden_no_sight, "the hidden gun explains its hold");
 }
@@ -407,8 +408,7 @@ fn an_air_defence_gun_engages_air_within_its_rows_reach_at_each_layer() {
         "test_jeep",
         json!({
             "mounts": [{ "id": "HMG", "weapons": ["test_aa_gun"] }],
-            "sensors": { "low_air_m": 4.0 * low_reach, "high_air_m": 4.0 * high_reach },
-            "capabilities": { "air_defense": { "tier": "short" } }
+            "sensors": { "low_air_m": 4.0 * low_reach, "high_air_m": 4.0 * high_reach }
         }),
     );
     let cruise = serde_json::from_value::<Rules>(rules.clone())

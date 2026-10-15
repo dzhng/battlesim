@@ -31,7 +31,6 @@ fn battle() -> Battle {
         "test_jeep",
         json!({
             "capabilities": {
-                "air_defense": { "tier": "long" },
                 "radar": { "emits": true, "detection_m": 1200.0 }
             }
         }),
@@ -109,7 +108,6 @@ fn anti_radiation_weapon_can_fire_at_radar_contact_without_unit_los() {
         "test_jeep",
         json!({
             "capabilities": {
-                "air_defense": { "tier": "long" },
                 "radar": { "emits": true, "detection_m": 1200.0 }
             }
         }),
@@ -280,7 +278,6 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
         "units",
         "test_jeep",
         json!({ "capabilities": {
-            "air_defense": { "tier": "long" },
             "radar": { "emits": true, "detection_m": 1200.0 }
         }}),
     );
@@ -350,7 +347,6 @@ fn sead_rules(reach_m: f64, jeep_emits: bool) -> serde_json::Value {
         "units",
         "test_jeep",
         json!({ "capabilities": {
-            "air_defense": { "tier": "short" },
             "radar": { "emits": jeep_emits, "detection_m": if jeep_emits { reach_m } else { 0.0 } }
         }}),
     );
@@ -394,7 +390,6 @@ fn an_emitting_radar_sees_high_air_to_its_detection_range() {
         "units",
         "test_jeep",
         json!({ "capabilities": {
-            "air_defense": { "tier": "short" },
             "radar": { "emits": true, "detection_m": reach }
         }}),
     );
