@@ -842,12 +842,14 @@ fn the_default_gun_fires_at_what_it_cannot_hurt_but_specialists_do_not() {
 fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     // The same squad and tank as above, but the rifles carry a counted supply.
     let mut rules = rules();
-    rules["weapons"]["rifle"]["ammo"] = json!(200);
-    rules["service"]["round_costs"]["rifle"] = json!(1);
-    // The other squad guns inherit this finite supply and need the same service admission.
-    for row in ["carbine", "smg", "shotgun"] {
-        rules["service"]["round_costs"][row] = json!(1);
-    }
+    rules["weapons"]["test_counted_rifle"] = json!({ "extends": "rifle", "ammo": 200 });
+    rules["service"]["round_costs"]["test_counted_rifle"] = json!(1);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "mounts": [{ "id": "rifles", "weapons": ["test_counted_rifle"] }] }),
+    );
     let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
     let setup = serde_json::from_value(json!({
         "map": map,
@@ -863,7 +865,7 @@ fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     let mut b = Battle::new(&setup, 5);
     let shots = run(&mut b, 120);
     assert!(
-        shots_by(&shots, 0, "rifle").is_empty(),
+        shots_by(&shots, 0, "test_counted_rifle").is_empty(),
         "no counted round spent on a tank it cannot hurt"
     );
     assert_eq!(
