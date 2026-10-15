@@ -16,6 +16,6 @@ Every projectile carries the firing unit's `AltitudeLayer` from launch for its e
 - Ground ATGM stays ground-layer while physically above air thresholds.
 - Low/high-air launches retain their source layer while descending/ascending.
 - Interceptor range selection follows stored layer.
-- Any interceptable projectile can be acquired by a compatible `can_intercept` mount.
+- An interceptable projectile can be acquired by a mount whose row lists `missile` at its launch layer (D54).
 - Replay/digest parity covers the stored layer.
 - Existing guided seeker/proximity-fuse tests remain green.

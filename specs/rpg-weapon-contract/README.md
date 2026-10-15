@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the air-war-flight closeout, air-war-flight D53); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
+Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the air-war-flight closeout, air-war-flight D53); interception became the `missile` target class per layer and guided rows may intercept (air-war-flight D54, branch `awf/intercept-layers`); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
 
 ## Goal
 
@@ -8,10 +8,10 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 
 ## Contracts
 
-- `LayerFire` owns per-layer range, scatter, and target classes: `infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`. The air classes read the aircraft's existing flight model, `mobility.air.flight` (`rotor` | `fixed_wing`, air-war-flight), never a second movement-mode field, a name or a faction.
-- `WeaponDefinition` owns `can_intercept`, `interceptable`, and opt-in `requires_clear_launch_path`. The corridor it checks is the rules' `launch.clearance_m` (30 m) of the round's arc from the muzzle.
-- `WeaponDefinition::engages(layer, class)` is the one class match; a ground point, an area or a round passes `None` and no class bars it. A unit's class is `UnitType::target_class` (body and `mobility.air.flight`). Area fire stays general-purpose ammunition only: a row whose ground layer lists `infantry` and is not armour-piercing (W10), which is what `anti_armor: true` used to forbid.
-- Weapon rows refuse any field they do not have, by name: `anti_armor`, `interception`, `aa_tier` and the old `fov_deg` alias fail at load.
+- `LayerFire` owns per-layer range, scatter, and target classes: `infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`, and `missile`, an interceptable round fired from that layer (air-war-flight D54). The air classes read the aircraft's existing flight model, `mobility.air.flight` (`rotor` | `fixed_wing`, air-war-flight), never a second movement-mode field, a name or a faction.
+- `WeaponDefinition` owns `interceptable` and opt-in `requires_clear_launch_path`; whether it intercepts is its `targets` listing `missile` (D54, `can_intercept` is gone). The corridor it checks is the rules' `launch.clearance_m` (30 m) of the round's arc from the muzzle.
+- `WeaponDefinition::engages(layer, class)` is the one class match; a ground point or an area passes `None` and no class bars it; a round passes `missile` at its launch layer. A unit's class is `UnitType::target_class` (body and `mobility.air.flight`). Area fire stays general-purpose ammunition only: a row whose ground layer lists `infantry` and is not armour-piercing (W10), which is what `anti_armor: true` used to forbid.
+- Weapon rows refuse any field they do not have, by name: `anti_armor`, `interception`, `can_intercept`, `aa_tier` and the old `fov_deg` alias fail at load.
 - Projectile semantic layer is copied from the firing unit at launch (`Round.layer`) and never inferred from live height. It is not folded into the digest: it is a function of the round's digested shooter.
 - `radar` owns radar detection/emission. Unit `air_defense`, unit/weapon `aa_tier` and their developer display are already deleted (air-war-flight D52, 2026-10-15): interceptors arm from their weapon, SEAD finds any ground unit whose radar emits, and any unit firing at an air target needs its own view of it.
 - Existing direct-fire weapons keep firing through destructible trees/buildings for the Hollywood effect. Only authored weapons with `requires_clear_launch_path` hold when the launcher-side path is blocked.
@@ -37,7 +37,7 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 - Do not add a hover/winged mobility field: `mobility.air.flight` is the one owner of how an aircraft flies.
 - Weapon timings follow the game-wide caps: reload about 5 s at most (artillery and the long-range SAM up to 15 s), aim 3 s at most (air-war-flight D50).
 - Tests use `test_*` units and numbers written in the test (write-tests: a test sets the bounds it depends on). Roster content (the Eastern squad's loadout, the RPG's numbers) is validated where it loads or judged in sample runs, never pinned by a test.
-- Do not add interception target classes; every `interceptable` projectile is eligible.
+- Interception is per layer (superseded firewall, user 2026-10-15, air-war-flight D54): a layer listing `missile` shoots down interceptable rounds fired from that layer, and no other path matches a round. No row lists it on the ground today, so ATGMs and RPGs are never intercepted.
 
 ## Verification
 
@@ -49,7 +49,8 @@ The plan gives one owner to each concept: `LayerFire` for per-layer target eligi
 
 ## What slices 1–3 left open
 
-- **Guided interceptors never launch at a round.** Interception locks follow the round's launch layer, and a round is no area (only a `can_intercept` row is worth firing at it), but a guided row fires only at a unit (`assess`'s guided sight rule), so `aa_long` acquires an incoming missile and never launches at it. Ballistic interceptors (`aa_ballistic`) do fire. Allowing guided fire at a round needs the missile's support to follow a moving round; it is a decision, not part of this contract.
+- ~~Guided interceptors never launch at a round.~~ Resolved by D54: a guided row listing `missile` launches at a round and homes on it; `aa_long` lists no `missile`, so it no longer wastes its lock on one.
+- The skirmish AI moves a launcher its cover keeps holding (D54, `launch.relocate_after_s` / `relocate_m`); a player's own units are theirs to move.
 - **`partial_from: 0.08` on every explosive row is a balance change** (user, through the coordinator, 2026-10-15): grenades, RPGs, ATGMs, SAMs, autocannon rounds, bombs and artillery now chip armour they cannot pierce. Retune in slice 4's sample run if it reads wrong.
 - The kamikaze drones' unit ids still end `_anti_armor`; they name models, not the removed field.
 
