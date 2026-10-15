@@ -2,8 +2,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::math::{v2, Rotation, V2};
+use contract::catalog::UnitType;
 use contract::ids::UnitId;
-use contract::scenario::FormationRules;
+use contract::scenario::{FormationRules, Rules};
 
 pub struct Member {
     pub id: UnitId,
@@ -11,6 +12,15 @@ pub struct Member {
     /// Settled footprint, independent of the unit's currently scattered pose.
     pub radius: f64,
     pub yaw: f64,
+}
+
+/// The footprint a unit of type `t` is placed by: a hull's half-diagonal,
+/// or a squad's area.
+pub fn member_radius(rules: &Rules, t: &UnitType) -> f64 {
+    t.hull().map_or_else(
+        || crate::cover::area_radius(rules, t),
+        |h| v2(h.half_extents_m[0], h.half_extents_m[1]).length(),
+    )
 }
 
 pub struct Slot {

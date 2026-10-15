@@ -307,7 +307,7 @@ impl Area {
     fn of(ctx: &MovementContext, unit: &Unit, centre: V2) -> Area {
         Area {
             centre,
-            radius: cover::area_radius(ctx.rules, unit),
+            radius: cover::area_radius(ctx.rules, unit.unit_type(ctx.rules)),
         }
     }
 

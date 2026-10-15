@@ -636,7 +636,7 @@ fn frame(
         // The squad's area round its anchor.
         if let Some(a) = u.anchor {
             let c = view.px(a.at);
-            let r = sim::cover::area_radius(b.rules(), u) * m;
+            let r = sim::cover::area_radius(b.rules(), u.unit_type(b.rules())) * m;
             cv.ring(c.x, c.y, r, 1.0, AREA);
             cv.ring(c.x, c.y, 3.0, 1.5, AREA);
         }

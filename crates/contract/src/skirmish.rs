@@ -76,12 +76,14 @@ pub enum Phase {
 /// Side-scoped reservation handle, independent of physical unit IDs.
 pub struct PurchaseId(pub u32);
 
-/// An admitted purchase placement: the unit type, and where a squad's
-/// soldiers would stand round the destination (empty for a vehicle), as
-/// [`crate::command::MoveDestination::spots`] lays them out.
+/// An admitted purchase placement: the unit type, where it will be sent
+/// (a ground unit's point snapped to the nearest ground it stands on, as a
+/// move's is), and where a squad's soldiers would stand round it (empty for
+/// a vehicle), as [`crate::command::MoveDestination::spots`] lays them out.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PurchasePreview {
     pub kind: TypeIndex,
+    pub destination: [f64; 2],
     pub spots: Vec<[f64; 2]>,
 }
 

@@ -112,7 +112,7 @@ export interface MoveDestination {
 /** An admitted placement's unit type, and where a squad's soldiers would
  *  stand round its destination, in slot order (empty for a vehicle). */
 export type PurchasePlacement =
-  | { Ok: { kind: number; spots: [number, number][] } }
+  | { Ok: { kind: number; destination: [number, number]; spots: [number, number][] } }
   | { Err: OrderError };
 
 export interface OrderError {
