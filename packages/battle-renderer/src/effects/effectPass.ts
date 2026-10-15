@@ -329,21 +329,26 @@ fn smokeLight(f: Out, o: vec2f) -> vec3f {
 
 /** How far (m) a point \`p\` (along the nose, across) lies outside an
  *  aircraft's plan seen from above, \`half\` its half length and half span;
- *  negative inside. A fuselage the plan's length, swept wings its span and a
- *  tailplane, in proportion to the plan: the soft shape of a jet's shadow. */
+ *  negative inside. A fighter's arrowhead in proportion to the plan: a broad,
+ *  strongly swept near-delta wing spanning the plan's width with its root
+ *  along most of the rear half, a short tapered nose ahead of it, and small
+ *  tailplanes merging into the wing's trailing corners. */
 fn planDistance(p: vec2f, half: vec2f) -> f32 {
+  // Along the nose in half lengths (+1 its tip, −1 its tail).
   let x = p.x / half.x;
   let y = abs(p.y);
-  let bodyHalf = max(0.12 * half.x, 0.5);
-  let body = (length(vec2f(x, y / bodyHalf)) - 1.0) * bodyHalf;
-  // A wing's leading and trailing edges along the nose (in half lengths), at
-  // a share \`t\` of its reach out from the root: swept back over a straight
-  // trailing edge, as a fighter's are, and the tailplane close behind.
+  // The fuselage: as wide as \`bodyHalf\` behind the wing's root, tapering
+  // to a point at the nose.
+  let bodyHalf = max(0.1 * half.x, 0.5);
+  let width = bodyHalf * clamp((1.0 - x) / 0.7, 0.0, 1.0);
+  let body = max(y - width, (abs(x) - 1.0) * half.x);
+  // A wing's leading and trailing edges (half lengths) a share \`t\` of its
+  // reach out from the root.
   let t = y / half.y;
-  let wing = max(y - half.y, max(-0.45 - x, x - (0.15 - 0.45 * t)) * half.x);
-  let tailHalf = 0.38 * half.y;
+  let wing = max(y - half.y, max(-0.8 + 0.1 * t - x, x - (0.25 - 0.8 * t)) * half.x);
+  let tailHalf = 0.5 * half.y;
   let u = y / tailHalf;
-  let tail = max(y - tailHalf, max(-0.98 - x, x - (-0.55 - 0.3 * u)) * half.x);
+  let tail = max(y - tailHalf, max(-1.0 - x, x - (-0.55 - 0.35 * u)) * half.x);
   return min(body, min(wing, tail));
 }
 
