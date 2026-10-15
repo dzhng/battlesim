@@ -1,6 +1,6 @@
 # Air-defence radar networks (placeholder)
 
-**Status:** placeholder. Nothing is sliced or implemented yet.
+**Status:** deferred by the user (2026-10-15): it would complicate the game too much for now. Don't start it unless the user asks.
 **Updated:** 2026-10-15.
 
 ## Next Agent Prompt
