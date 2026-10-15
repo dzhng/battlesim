@@ -1,9 +1,13 @@
 use super::inputs::{prepare_row, Inputs};
 use super::model::{ProgressSignature, Report, Row, Status};
 use contract::catalog::Faction;
-use contract::command::{CommandEnvelope, Order};
+use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::Side;
+use contract::ids::UnitId;
+use contract::observation::ObservationFrame;
+use contract::scenario::Rules;
 use sim::skirmish_ai::BalancedDoctrine;
+use std::collections::BTreeMap;
 
 pub(crate) fn run_safe(inputs: &Inputs, row: Row) -> Report {
     let fallback_id = row.id.clone();
@@ -52,11 +56,13 @@ fn empty_report(id: String) -> Report {
         credit_spend: [0, 0],
         living_cost: [0, 0],
         recon_range_m: 0.0,
+        air: None,
     }
 }
 
 pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     let mut report = empty_report(row.id.clone());
+    report.factions = inputs.factions;
     report.seed = row.seed;
     report.max_battle_seconds = row.horizon_ticks / u64::from(inputs.rules.tick_hz);
     let (setup, prepared, map_identity) = match prepare_row(inputs, &row) {
@@ -78,6 +84,8 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         BalancedDoctrine::new(contract::random::mix(row.seed ^ 0xB2)),
     ];
     let mut seq = [1u64, 1u64];
+    let mut next_buy = [0usize; 2];
+    let mut jet_targets = BTreeMap::new();
     let mut stagnant = 0;
     let mut previous: Option<ProgressSignature> = None;
     while report.ticks < row.horizon_ticks {
@@ -92,6 +100,21 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 &setup.rules,
                 &mut |id, goal| battle.route_time(side, id, goal),
             );
+            let mut orders = orders;
+            if inputs.sticky_jets {
+                orders.retain(|order| {
+                    keeps_jet_target(&setup.rules, &frame, order, &mut jet_targets)
+                });
+            }
+            if let Some(list) = &inputs.buy[side.index()] {
+                orders.retain(|order| !matches!(order, Order::ConfirmPurchase { .. }));
+                orders.extend(scripted_purchases(
+                    &setup.rules,
+                    &frame,
+                    list,
+                    &mut next_buy[side.index()],
+                ));
+            }
             for order in orders {
                 let purchase_cost = match &order {
                     Order::ConfirmPurchase { variant, .. } => {
@@ -229,6 +252,9 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         .skirmish
         .as_ref()
         .and_then(|view| view.result);
+    report.air = battle
+        .match_report()
+        .map(|match_report| air_summary(&setup.rules, match_report));
     report.doctrine_pivots = [policies[0].pivot_count(), policies[1].pivot_count()];
     report.replay_digest = contract::identity::json_hash(&battle.replay()).ok();
     let replay = battle.replay();
@@ -242,4 +268,176 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 replayed.digest() == report.battle_digest
             });
     report
+}
+
+/// Whether to pass on `order`: a jet's new attack target waits until the side
+/// has lost sight of its last one, as a player lets a run finish, instead of
+/// switching to whatever is nearest the jet now (which restarts its pass).
+fn keeps_jet_target(
+    rules: &Rules,
+    frame: &ObservationFrame,
+    order: &Order,
+    targets: &mut BTreeMap<UnitId, TargetRef>,
+) -> bool {
+    let Order::Attack { units, target } = order else {
+        return true;
+    };
+    let [unit] = units.as_slice() else {
+        return true;
+    };
+    let jet = frame.own.iter().find(|u| u.id == *unit).is_some_and(|u| {
+        rules.catalog.get(u.kind).mobility.flight()
+            == Some(contract::catalog::FlightModel::FixedWing)
+    });
+    let held = jet
+        && targets.get(unit).is_some_and(|old| {
+            matches!(old, TargetRef::Identified { id } if frame.identified.iter().any(|t| t.id == *id))
+        });
+    if jet && !held {
+        targets.insert(*unit, *target);
+    }
+    !held
+}
+
+/// The next cards of `list` the wallet affords, strictly in order, so a side
+/// saves for an expensive card rather than skipping it. Cards before a `|`
+/// are bought once; the rest repeat. Each goes to the objective nearest the
+/// middle of them all.
+fn scripted_purchases(
+    rules: &Rules,
+    frame: &ObservationFrame,
+    list: &[String],
+    next: &mut usize,
+) -> Vec<Order> {
+    let Some(view) = frame.skirmish.as_ref() else {
+        return vec![];
+    };
+    let n = view.objectives.len().max(1) as f64;
+    let middle = view.objectives.iter().fold([0.0, 0.0], |m, o| {
+        [m[0] + o.center[0] / n, m[1] + o.center[1] / n]
+    });
+    let destination = view
+        .objectives
+        .iter()
+        .map(|o| o.center)
+        .min_by(|a, b| {
+            let d = |p: [f64; 2]| (p[0] - middle[0]).hypot(p[1] - middle[1]);
+            d(*a).total_cmp(&d(*b))
+        })
+        .unwrap_or(middle);
+    let bar = list.iter().position(|card| card == "|");
+    let (mut credits, mut slots) = (view.credits, view.occupied_slots);
+    let mut orders = Vec::new();
+    while view.phase != contract::skirmish::Phase::Finished && slots < view.max_units {
+        let index = match bar {
+            Some(bar) if *next >= bar => bar + 1 + (*next - bar) % (list.len() - bar - 1).max(1),
+            Some(_) => *next,
+            None => *next % list.len(),
+        };
+        let Some(variant) = list.get(index) else {
+            break;
+        };
+        let cost = f64::from(rules.catalog.by_id(variant).cost);
+        if cost > credits {
+            break;
+        }
+        credits -= cost;
+        slots += 1;
+        *next += 1;
+        orders.push(Order::ConfirmPurchase {
+            variant: variant.clone(),
+            destination,
+        });
+    }
+    orders
+}
+
+/// Per side: what its jets did and what its ground AA did to the enemy's,
+/// read from the match report's spawn and kill events.
+fn air_summary(rules: &Rules, report: &contract::skirmish::MatchReport) -> [AirSide; 2] {
+    use contract::catalog::AltitudeLayer;
+    use contract::skirmish::MatchEvent;
+    let layer = |kind| rules.catalog.get(kind).mobility.layer();
+    let ground_aa = |kind| {
+        layer(kind) == AltitudeLayer::Ground
+            && rules.catalog.mounts(kind).iter().any(|mount| {
+                mount
+                    .def
+                    .weapons
+                    .iter()
+                    .filter_map(|weapon| rules.weapons.get(weapon))
+                    .any(|weapon| weapon.targets.contains_key(&AltitudeLayer::HighAir))
+            })
+    };
+    let mut sides = [AirSide::default(), AirSide::default()];
+    for event in &report.events {
+        match event {
+            MatchEvent::Spawn { tick, unit, cost } => {
+                let side = &mut sides[unit.side.index()];
+                if layer(unit.kind) == AltitudeLayer::HighAir {
+                    side.jets_bought += 1;
+                    side.jet_spend += cost;
+                    side.first_jet_tick.get_or_insert(*tick);
+                } else if ground_aa(unit.kind) {
+                    side.aa_bought += 1;
+                }
+                side.spent += cost;
+            }
+            MatchEvent::Kill {
+                tick,
+                victim,
+                victim_cost,
+                killer,
+                ..
+            } => {
+                sides[victim.side.index()].lost_value += victim_cost;
+                let Some(killer) = killer.filter(|k| k.side != victim.side) else {
+                    continue;
+                };
+                let by = &mut sides[killer.side.index()];
+                let jet_victim = layer(victim.kind) == AltitudeLayer::HighAir;
+                if layer(killer.kind) == AltitudeLayer::HighAir {
+                    by.jet_kills += 1;
+                    by.jet_kill_value += victim_cost;
+                    if jet_victim {
+                        by.jet_air_kills += 1;
+                    }
+                }
+                if jet_victim && ground_aa(killer.kind) {
+                    by.aa_jet_kills += 1;
+                    by.first_aa_jet_kill_tick.get_or_insert(*tick);
+                }
+                if jet_victim {
+                    sides[victim.side.index()].jets_lost += 1;
+                }
+            }
+            MatchEvent::Refund { unit, credits, .. } => {
+                if layer(unit.kind) == AltitudeLayer::HighAir {
+                    sides[unit.side.index()].jet_refunds += credits;
+                }
+            }
+        }
+    }
+    sides
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+pub(crate) struct AirSide {
+    spent: u32,
+    lost_value: u32,
+    jets_bought: u32,
+    jet_spend: u32,
+    /// Credits returned by jets that withdrew.
+    jet_refunds: f64,
+    first_jet_tick: Option<u64>,
+    /// Enemy units this side's jets destroyed, and their price.
+    jet_kills: u32,
+    jet_kill_value: u32,
+    /// Of those, enemy jets.
+    jet_air_kills: u32,
+    jets_lost: u32,
+    aa_bought: u32,
+    /// Enemy jets this side's ground AA destroyed.
+    aa_jet_kills: u32,
+    first_aa_jet_kill_tick: Option<u64>,
 }

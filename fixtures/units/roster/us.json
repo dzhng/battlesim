@@ -3191,7 +3191,7 @@
       "roles": [
         "air_defense"
       ],
-      "cost": 240,
+      "cost": 180,
       "roster": {
         "factions": [
           "us"
