@@ -752,6 +752,24 @@ pub fn resolve_catalog(documents_json: &str) -> Result<String, JsError> {
     Ok(catalog.view().to_string())
 }
 
+/// The scenario a saved encounter (`encounter_json`, its file's text) makes on
+/// its resolved map under `rules_json`, its overrides merged in, as
+/// `EncounterDefinition::on` makes it natively; or the refusal naming the
+/// encounter's field at fault.
+#[wasm_bindgen]
+pub fn encounter_scenario(
+    map_json: &str,
+    encounter_json: &str,
+    rules_json: &str,
+) -> Result<String, JsError> {
+    let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+    let encounter: contract::scenario::EncounterDefinition =
+        serde_json::from_str(encounter_json).map_err(js_error)?;
+    let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+    let setup = encounter.on(map, rules).map_err(js_error)?;
+    serde_json::to_string(&setup).map_err(js_error)
+}
+
 /// The synthetic endurance battle for `seed` on its resolved field
 /// (`map_json`, the catalogue's `endurance`), with the late state's remains
 /// when `late`; rules from the one fixture.

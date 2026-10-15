@@ -6,8 +6,8 @@
 import { fixtureMap } from "./fixtures";
 import type { ReactNode } from "react";
 import { loadEncounter, loadMap } from "@web/maps/browser";
-import type { Encounter, MapDefinition } from "@web/maps/resolve";
-import type { Wasm } from "@web/battle/sim/module";
+import { MapResolveError, type Encounter, type MapDefinition } from "@web/maps/resolve";
+import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import type { GameRules } from "@web/battle/catalog/compose";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import type { LabEncounter, LabEvent, LabScript, LabUnit } from "./scenarios";
@@ -39,39 +39,43 @@ export async function enduranceScenario(
   );
 }
 
-/** The scenario a saved encounter makes on `map` under `rules`: the whole
- *  encounter, its opponent and completion rules included, as the native
- *  `EncounterDefinition::on` builds it, so a battle runs the same here. */
-export function savedScenario(map: unknown, saved: Encounter, rules: unknown): string {
-  return JSON.stringify({
-    map,
-    rules,
-    units: saved.units,
-    events: saved.events ?? [],
-    scripts: saved.scripts ?? [],
-    ...(saved.opponent != null && { opponent: saved.opponent }),
-    ...(saved.encounter != null && { encounter: saved.encounter }),
-  });
+/** The scenario a saved encounter makes on its map under `rules`, made by
+ *  the simulation's own `EncounterDefinition::on`: the whole encounter, its
+ *  opponent, completion rules and `overrides` included, so a battle runs the
+ *  same here as natively. `map` is the resolver's text (`ResolvedMap.json`). */
+export function savedScenario(
+  wasm: Pick<Wasm, "encounter_scenario">,
+  map: string,
+  saved: Encounter,
+  rules: unknown,
+): string {
+  return wasm.encounter_scenario(map, JSON.stringify(saved), JSON.stringify(rules));
 }
 
 /** The saved encounter `name` of the saved map `id`, as a battle under
- *  `rules`. */
+ *  `rules`, or the refusal naming the encounter. */
 export async function savedBattle(
   id: string,
   name: string,
   rules: GameRules,
 ): Promise<SavedBattle> {
-  const [{ definition }, saved] = await Promise.all([loadMap(id), loadEncounter(id, name)]);
+  const [wasm, map, saved] = await Promise.all([loadWasm(), loadMap(id), loadEncounter(id, name)]);
   const encounter: LabEncounter = {
     units: saved.units as LabUnit[],
     events: (saved.events ?? []) as LabEvent[],
     scripts: (saved.scripts ?? []) as LabScript[],
   };
-  return {
-    map: definition,
-    encounter,
-    scenario: savedScenario(definition, saved, rules),
-  };
+  let scenario: string;
+  try {
+    scenario = savedScenario(wasm, map.json, saved, rules);
+  } catch (e) {
+    throw new MapResolveError(
+      "invalid_encounter",
+      `${id}/encounters/${name}.json`,
+      (e as Error).message,
+    );
+  }
+  return { map: map.definition, encounter, scenario };
 }
 
 /** Render loading and refusal without passing the large result through

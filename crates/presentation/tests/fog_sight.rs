@@ -175,11 +175,7 @@ fn bless_street(vectors: &mut Value) {
     let (ticks, _) = street_fixture();
     let rules: contract::scenario::Rules =
         serde_json::from_value(sim::fixtures::test_game()).unwrap();
-    let map = sim::maps::Catalogue::shipped().load("street").unwrap();
-    let encounter = sim::maps::Catalogue::shipped()
-        .encounter("street", "street")
-        .unwrap();
-    let scenario = encounter.on(map.definition, rules);
+    let scenario = sim::maps::scenario("street", "street", rules).unwrap();
     // Matches STREET_SEED in apps/battle-lab/src/streetScenario.ts.
     let mut battle = Battle::new(&scenario, 20_260_925);
     let layout = publication::layout_json(&battle);

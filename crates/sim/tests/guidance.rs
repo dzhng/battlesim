@@ -1533,13 +1533,14 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
 
 #[test]
 fn a_prompt_escape_is_beaten_by_a_second_launcher_in_crossfire() {
-    let map = sim::maps::load("ambush").unwrap().definition;
-    let encounter = sim::maps::encounter("ambush", "crossfire").unwrap();
     let mut rules = sim::fixtures::test_game();
     rules["movement"]["drive"]["acceleration_s"] = json!(1e-6);
     rules["movement"]["drive"]["braking_s"] = json!(1e-6);
     let rules = serde_json::from_value(rules).unwrap();
-    let mut b = Battle::new(&encounter.on(map, rules), 10);
+    let mut b = Battle::new(
+        &sim::maps::scenario("ambush", "crossfire", rules).unwrap(),
+        10,
+    );
     let full = b.unit(UnitId(0)).unwrap().hp;
     let mut saw_crossfire = false;
     for _ in 0..600 {

@@ -159,10 +159,11 @@ fn dist(a: [f64; 2], b: [f64; 2]) -> f64 {
 }
 
 fn movement_battle() -> Battle {
-    let map = sim::maps::load("movement").unwrap().definition;
-    let encounter = sim::maps::encounter("movement", "movement").unwrap();
     let rules = serde_json::from_value(sim::fixtures::test_game()).unwrap();
-    Battle::new(&encounter.on(map, rules), 4)
+    Battle::new(
+        &sim::maps::scenario("movement", "movement", rules).unwrap(),
+        4,
+    )
 }
 
 /// Step until every listed unit is idle or `limit` ticks pass; checks `each` every tick.

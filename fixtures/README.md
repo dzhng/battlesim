@@ -40,8 +40,12 @@ each scene's battle to the event log recorded from the approved reel, and no sho
 may open on a unit it follows that has already fallen. A battle this chaotic can
 only keep its log if its physics stays the same, so a menu unit extends the test
 unit whose part it plays, hull and all, and changes its look; one shared random
-stream means any physical difference retimes the whole scene. Re-record a log
-only for a reel the user has approved.
+stream means any physical difference retimes the whole scene. So each scene's
+encounter pins, in its `overrides`, every stat of every weapon its cast fires, at
+the values the approved reel was filmed with: the game's weapons are retuned all
+the time, and none of that retuning reaches the reel. A change to a rule the pins
+do not cover (a rules section, a test unit) still retimes it. Re-record a log only
+for a reel the user has approved; a stat change never forces one.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence
@@ -56,7 +60,9 @@ A saved map is one folder, `maps/<id>/`, under [the saved-map catalog](maps/), a
 - **`meta.json`** is what a listing shows without loading the map: category, status, label, character, biome, size, feature tags, source, seed, and the names of its encounters and benchmarks. [`web/src/maps/catalogue.ts`](../web/src/maps/catalogue.ts) owns the schema, the validator and `listMaps`. Every field the map itself also states is checked against the map, so a listing cannot drift from what loads.
 - **The category says what a saved map is for** (`contract::maps::MapCategory`): `test` (a test's, a lab's or a benchmark's ground) or `menu` (a battlefield the menu backdrop films); anything else is refused by both readers. No saved map is the game's: player battles are generated and never name one. The menu backdrop takes only `menu` maps, and labs and native tests only `test` maps (`fixtureMap`, `sim::fixtures::with_map`), so a test needing content another owner has gets its own copy of the map rather than borrowing that owner's.
 
-- **`encounters/<name>.json`** is an encounter laid on the map (`contract::scenario::EncounterDefinition`): units, events and scripted orders, and optionally an opponent and a completion rule. A scenario is the resolved map, the rules and one encounter. The endurance battle is not a file: the simulation builds it from the rules and the resolved map (`sim::endurance`).
+- **`encounters/<name>.json`** is an encounter laid on the map (`contract::scenario::EncounterDefinition`): units, events and scripted orders, and optionally an opponent, a completion rule and `overrides`. A scenario is the resolved map, the rules and one encounter. The endurance battle is not a file: the simulation builds it from the rules and the resolved map (`sim::endurance`).
+
+**A scenario may override any rules entity.** An encounter's `overrides` is shaped like the authored rules: any section of `game.json` (`weapons`, `sensors`, `air` and the rest) or of a catalog document (`units`, `soldiers`, `parts`, `roles`, `props`). It patches the rows it names field by field, by the merge an `extends` child uses, and a row the rules lack is added for this scenario alone; it may `extends` any row of its section, and the encounter's units may field it. The merged rules are read and checked again exactly as the shipped ones are, so a bad override is refused naming the encounter, the row and the field. The one owner is `EncounterDefinition::on` (`Rules::overridden`): native readers reach it through `sim::maps::scenario`, and the browser through the WebAssembly `encounter_scenario`, so a scenario's rules never differ between them. The shared rules it was laid on are untouched.
 
 Scripted group orders address the formation's surviving own units when their tick arrives. Fallen own actors are removed before ordinary command validation, so one casualty cannot cancel a reserve wave; an all-fallen group has no effect. Unknown or foreign actors still refuse the script, and player commands validate their exact submitted selection. Script execution follows the same rule during live play and replay in [the battle authority](../crates/sim/src/battle.rs).
 

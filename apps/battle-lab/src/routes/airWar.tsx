@@ -16,7 +16,7 @@ import { BattleView } from "../BattleView";
 import { LAB_FIXTURES, fixtureMap } from "../fixtures";
 import { gameCamera } from "../gameCamera";
 import { listMaps } from "@web/maps/catalogue";
-import { SavedEncounter, SavedMap, savedScenario } from "../savedMaps";
+import { SavedEncounter, SavedMap } from "../savedMaps";
 import { TickStatus } from "../TickStatus";
 
 // The air-war checkpoints (specs/done/air-war), each played on the air test
@@ -289,16 +289,15 @@ function BuiltScenario({
   const catalog = useSessionCatalog();
   const scenario = useMemo(
     () =>
-      "lineup" in source
-        ? savedScenario(map, lineupEncounter(catalog, map.size), catalog.rules)
-        : JSON.stringify({
-            map,
-            rules: catalog.rules,
-            units: [],
-            events: [],
-            scripts: [],
-            skirmish: INGRESS_SKIRMISH,
-          }),
+      JSON.stringify({
+        map,
+        rules: catalog.rules,
+        events: [],
+        scripts: [],
+        ...("lineup" in source
+          ? lineupEncounter(catalog, map.size)
+          : { units: [], skirmish: INGRESS_SKIRMISH }),
+      }),
     [map, source, catalog],
   );
   return children(scenario);

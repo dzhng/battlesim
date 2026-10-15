@@ -70,9 +70,8 @@ fn a_side_switched_back_to_smokes_at_once_over_what_it_saw_destroyed() {
     let game: Value =
         serde_json::from_slice(&std::fs::read(root.join("fixtures/game.json")).unwrap()).unwrap();
     let rules = presentation::static_world::files::rules(&root, MAP).unwrap();
-    let map = sim::maps::load(MAP).unwrap().definition;
-    let encounter = sim::maps::encounter(MAP, ENCOUNTER).unwrap();
-    let mut battle = Battle::new(&encounter.on(map, rules), SEED);
+    let scenario = sim::maps::scenario(MAP, ENCOUNTER, rules).unwrap();
+    let mut battle = Battle::new(&scenario, SEED);
     for _ in 0..SHELLED_TICKS {
         battle.step();
     }

@@ -107,11 +107,10 @@ fn menu_rules() -> Rules {
 /// ground, a prop, a hull or a soldier, `fell <unit> soldier <slot>` and
 /// `died <unit>`.
 fn event_log(scene: &Scene) -> String {
-    let map = sim::maps::load(&scene.map).unwrap().definition;
-    let encounter = sim::maps::encounter(&scene.map, &scene.encounter).unwrap();
     let rules = menu_rules();
     let end = scene.windows(rules.tick_hz as f64).last().unwrap().1;
-    let mut battle = Battle::new(&encounter.on(map, rules), scene.seed);
+    let scenario = sim::maps::scenario(&scene.map, &scene.encounter, rules).unwrap();
+    let mut battle = Battle::new(&scenario, scene.seed);
     let count = (0..)
         .take_while(|&i| battle.unit(UnitId(i)).is_some())
         .count() as u32;
