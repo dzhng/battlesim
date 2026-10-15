@@ -3,7 +3,7 @@
     {"side":"red","kind":"us_stryker_m_shorad_gun_and_missile_air_defense_vehicle","position":[470,260],"yaw":3.14159},
     {"side":"red","kind":"eastern_buk_buk_m3_medium_range_air_defense","position":[540,200],"yaw":3.14159},
     {"side":"red","kind":"eastern_s300_long","position":[560,320],"yaw":3.14159},
-    {"side":"red","kind":"us_stryker_m_shorad_gun_and_missile_air_defense_vehicle","position":[385,460],"yaw":3.14159},
+    {"side":"red","kind":"us_stryker_m_shorad_gun_and_missile_air_defense_vehicle","position":[360,480],"yaw":3.14159},
     {"side":"blue","kind":"f_16c_block_50","position":[20,300],"engagement":"return_fire_only"}
   ],
   "scripts": [
