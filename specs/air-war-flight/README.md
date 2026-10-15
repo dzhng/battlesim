@@ -70,6 +70,7 @@ Slices that share a seam stay on one lane. These pairs can run concurrently:
 ## Single-owner invariants
 
 Every slice inherits these:
+- **High air is an elevation layer.** It is the one layer that bends physics (altitude lowered from about 1,000 m to about 250 m for play), so its special treatments (the shadow beneath, cards drawn on top, ...) key on the HighAir layer, never on "jet" or a unit type.
 - **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A helicopter's shadow is cast along the sun from its actual height; a jet at altitude casts none, and instead shows a soft silhouette shadow on the ground directly beneath it (choices.md).
 - **`crates/sim/src/air/`** owns fixed-wing behaviour:
   - `jet.rs` is the only flight law; nothing else writes a jet's position, heading or speed.
