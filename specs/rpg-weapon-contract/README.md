@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: planned, not implemented. Last updated 2026-10-15.
+Status: planned, not implemented. Last updated 2026-10-15 (reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps).
 
 ## Goal
 
@@ -8,18 +8,18 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 
 ## Contracts
 
-- `LayerFire` owns per-layer range, scatter, and target classes: `infantry`, `vehicle`, `air_hover`, `air_winged`. Air units need an explicit hover/winged movement mode; do not infer it from names or faction.
+- `LayerFire` owns per-layer range, scatter, and target classes: `infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`. The air classes read the aircraft's existing flight model, `mobility.air.flight` (`rotor` | `fixed_wing`, air-war-flight), never a second movement-mode field, a name or a faction.
 - `WeaponDefinition` owns `can_intercept`, `interceptable`, and opt-in `requires_clear_launch_path`.
 - Projectile semantic layer is copied from the firing unit at launch and never inferred from live height.
-- `radar` owns radar detection/emission. Delete unit `air_defense`, unit/weapon `aa_tier`, and their developer display.
+- `radar` owns radar detection/emission. Unit `air_defense`, unit/weapon `aa_tier` and their developer display are already deleted (air-war-flight D52, 2026-10-15): interceptors arm from their weapon, SEAD finds any ground unit whose radar emits, and any unit firing at an air target needs its own view of it.
 - Existing direct-fire weapons keep firing through destructible trees/buildings for the Hollywood effect. Only authored weapons with `requires_clear_launch_path` hold when the launcher-side path is blocked.
 - `BlockedTrajectory` is the player-facing reason. Existing full and compact weapon rows must show its warning mark.
 - `partial_from: 0.08` is authored on every explosive weapon row/family. No engine inference from blast radius.
 
 ## Slice graph
 
-1. **Contract hard cutover** — target classes, `can_intercept`, deletion of opaque AA fields, explosive stat authoring, and fixture validation.
-2. **Immutable projectile layer and interception** — launch-layer storage, interception eligibility from weapon mounts, and regression tests.
+1. **Contract hard cutover** — target classes, `can_intercept` (renaming `interception`), explosive stat authoring, and fixture validation. The AA-field deletion already landed (D52).
+2. **Immutable projectile layer** — launch-layer storage and interceptor range selection from it. Interception eligibility from weapon mounts already landed (D52).
 3. **Opt-in launcher clearance** — physical muzzle/initial-trajectory obstruction for all artillery and AA/interceptor rows; preserve ordinary direct-fire behavior and expose `BlockedTrajectory`.
 4. **Eastern RPG and roster data** — new three-round general-purpose RPG, dedicated AT row renames, Eastern squad loadout, and deterministic armour calibration.
 5. **Presentation/catalog closeout** — regenerate derived catalogs, remove AA-tier developer surfaces, and verify full/compact warning rows/icons.
@@ -31,7 +31,10 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 - Do not reuse target LOS (`guidance_clear`) for launcher clearance; target-area forest is allowed.
 - Do not make all direct-fire guns hold for blockers; their existing destructive fire-through behavior is intentional.
 - Do not call launcher clearance “clear sight”: it checks the muzzle-side initial flight corridor. Target-area forests/buildings remain valid fire destinations.
-- Do not retain compatibility aliases for `anti_armor`, `interception`, `air_defense`, or `aa_tier`; this is a hard cutover.
+- Do not retain compatibility aliases for `anti_armor` or `interception`; this is a hard cutover (`air_defense` and `aa_tier` are already gone).
+- Do not add a hover/winged mobility field: `mobility.air.flight` is the one owner of how an aircraft flies.
+- Weapon timings follow the game-wide caps: reload about 5 s at most (artillery and the long-range SAM up to 15 s), aim 3 s at most (air-war-flight D50).
+- Tests use `test_*` units and numbers written in the test (write-tests: a test sets the bounds it depends on). Roster content (the Eastern squad's loadout, the RPG's numbers) is validated where it loads or judged in sample runs, never pinned by a test.
 - Do not add interception target classes; every `interceptable` projectile is eligible.
 
 ## Verification

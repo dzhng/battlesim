@@ -8,8 +8,8 @@ Every projectile carries the firing unit's `AltitudeLayer` from launch for its e
 
 - Add layer to `flight::Launch`/`Projectile` and the battle round/replay state as needed.
 - `Battle::fire` copies `shooter.layer()` at launch.
-- `arm_missile_interceptors` selects loaded mounts containing `can_intercept` weapons; no unit `air_defense` gate and no z-derived layer.
-- Radar contact logic reads `radar`, never AA role metadata.
+- `arm_missile_interceptors` already selects mounts by their weapon and has no unit gate (D52); this slice only replaces its "longest air reach" range choice with the stored launch layer.
+- Radar contact logic already reads `radar` alone (D52).
 
 ## Tests and gates
 
