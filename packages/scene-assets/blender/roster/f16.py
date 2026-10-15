@@ -106,7 +106,8 @@ def build(variant, v):
 
 
 def wreck(variant, v):
-    A.crash(v, tail_x=-4.2, wing_y=2.8, wing_side=-1, seed=16)
+    # Its litter kept within the wreck's footprint (the frame `test_jet` borrows).
+    A.crash(v, tail_x=-4.2, wing_y=2.8, wing_side=-1, seed=16, litter_reach=0.95)
 
 
 run_disabled("f16", CARDS, "us_compass_grey", build, wreck, references="f_16_fighting_falcon")

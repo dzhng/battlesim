@@ -235,13 +235,14 @@ def bare_steel(name="steel", chip=0.15, dirt=0.2):
     return textured(name, "bare_steel", chip=chip, dirt=dirt, role="steel")
 
 
-def paint(scheme, name="paint", chip=0.3, dirt=0.45, rise=1.0):
+def paint(scheme, name="paint", chip=0.3, dirt=0.45, rise=1.0, streak=0.3):
     """A vehicle's paint in its nation's scheme (`textures.SCHEMES`), chipped on its
-    edges in a lighter tone of itself and dusty low down. It takes its side's tint,
-    which nothing else on a vehicle does."""
+    edges in a lighter tone of itself, dusty low down and rain-streaked on its sides
+    (`streak`). It takes its side's tint, which nothing else on a vehicle does."""
     if scheme not in textures.SCHEMES:
         raise ValueError(f"{name}: scheme is one of {', '.join(textures.SCHEMES)}")
-    return textured(name, textures.SCHEMES[scheme], tint=1.0, chip=chip, dirt=dirt, rise=rise, role="paint")
+    return textured(name, textures.SCHEMES[scheme], tint=1.0, chip=chip, dirt=dirt, rise=rise, streak=streak,
+                    role="paint")
 
 
 # NATO three-colour camouflage, linear albedo: the spike's hues, darkened and

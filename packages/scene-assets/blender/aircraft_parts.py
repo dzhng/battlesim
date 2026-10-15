@@ -22,8 +22,15 @@ rest on the ground; nothing rolls on them.
 Roles the parts read, beyond `vehicle_parts`' ('paint', 'dark', 'steel',
 'black', 'rubber', 'glass', 'lamp'), which `fit` adds to a vehicle's set:
 'gear' (gear legs and bays, in the light enamel they are painted), 'nozzle'
-(heat-stained engine metal), 'store' (missiles, bombs and pods in their own
-greys), 'blade' (rotor blades, dark painted composite).
+(engine metal) and 'nozzle_hot' (the same metal heat-tinted toward the exit),
+'store' (missiles, bombs and pods in their own flat grey; a drop tank wears
+the airframe's paint), 'blade' (rotor blades, dark painted composite),
+'canopy' (the canopy's tinted glass, seen through) and 'cockpit' (the dark
+cockpit behind it).
+
+An airframe is not a ground vehicle: its paint is flat and stays clean of
+field dust (`AIR_DIRT`), its stores take no mud, and its chipped edges are
+few (`AIR_CHIP`), so a jet keeps one grey from nose to tail.
 """
 import math
 import os
@@ -33,7 +40,7 @@ import bmesh
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from parts import SEG_SCALE, box, cyl, empty, flat_paint, mesh_part, textured  # noqa: E402
+from parts import SEG_SCALE, box, cyl, empty, flat_paint, mesh_part, paint, textured  # noqa: E402
 from vehicle_parts import ALL, FINE, MID, NEAR, tube_part, wheel_node  # noqa: E402
 
 # Interpolated rings per station interval, per tier: a fuselage keeps its
@@ -46,15 +53,36 @@ CHORD = ((0.0, 0.03, 0.1, 0.22, 0.38, 0.55, 0.72, 0.88, 1.0),
          (0.0, 0.3, 1.0))
 
 
-def fit(v, gear=(0.42, 0.42, 0.41), store=(0.3, 0.31, 0.3), fittings=(0.05, 0.052, 0.055)):
-    """Add the aircraft roles to `v.mats` and make its fittings a dark grey,
-    not a ground vehicle's olive. `gear` is the gear and bay enamel, `store`
-    the stores' grey."""
+# An airframe's paint: the field dust it takes (a jet stands on a hard
+# stand, and its belly is a metre or more up) and how much its convex edges
+# chip (a thin wing is all edge: a vehicle's chipping would grey it whole).
+# Nor does it streak: rain runs off a skin that flies, so its sides keep the
+# grey its wings have.
+AIR_DIRT, AIR_RISE, AIR_CHIP = 0.08, 0.5, 0.12
+# The canopy's glass: a smoky, faintly blue tint held as dark as sight glass
+# (`parts.glass`), smoother than it, and partly seen through.
+CANOPY_TINT, CANOPY_ROUGH, CANOPY_OPACITY = (0.016, 0.019, 0.023), 0.04, 0.6
+
+
+def fit(v, gear=(0.42, 0.42, 0.41), store=(0.2, 0.205, 0.21), fittings=(0.05, 0.052, 0.055)):
+    """Add the aircraft roles to `v.mats`, repaint the airframe in its scheme
+    as an airframe is painted (`AIR_DIRT`, `AIR_CHIP`), and make its fittings
+    a dark grey, not a ground vehicle's olive. `gear` is the gear and bay
+    enamel, `store` the stores' grey."""
     v.mats.update(
-        dark=textured("fittings_grey", "olive_paint", colour=fittings, chip=0.3, dirt=0.3, role="paint"),
-        gear=textured("gear_enamel", "enamel", colour=gear, chip=0.4, dirt=0.5, role="paint"),
-        nozzle=textured("nozzle_metal", "bare_steel", colour=(0.07, 0.065, 0.06), chip=0.2, dirt=0.1, role="steel"),
-        store=textured("store_paint", "enamel", colour=store, chip=0.3, dirt=0.2, role="paint"),
+        paint=paint(v.scheme, "armor_paint", chip=AIR_CHIP, dirt=AIR_DIRT, rise=AIR_RISE, streak=0),
+        dark=textured("fittings_grey", "olive_paint", colour=fittings, chip=0.15, dirt=AIR_DIRT, rise=AIR_RISE,
+                      streak=0, role="paint"),
+        gear=textured("gear_enamel", "enamel", colour=gear, chip=0.2, dirt=0.3, role="paint"),
+        nozzle=textured("nozzle_metal", "jet_pipe", chip=0, dirt=0, streak=0,
+                        role="steel"),
+        # The exit's metal, burnt a darker bronze-blue by the exhaust.
+        nozzle_hot=textured("nozzle_hot", "jet_pipe", colour=(0.045, 0.046, 0.055), chip=0, dirt=0, streak=0,
+                            role="steel"),
+        store=textured("store_paint", "store_grey", colour=store, chip=0.1, dirt=0, streak=0, role="paint"),
+        canopy=flat_paint("canopy_glass", CANOPY_TINT, rough=CANOPY_ROUGH, grime=0, coverage=("blended", CANOPY_OPACITY),
+                          role="glass"),
+        cockpit=flat_paint("cockpit", (0.05, 0.052, 0.056), rough=0.7, grime=0),
         blade=textured("blade_paint", "olive_paint", colour=(0.03, 0.032, 0.033), chip=0.2, dirt=0.1, role="paint"),
         nav_red=flat_paint("nav_red", (0.42, 0.02, 0.015), rough=0.25, grime=0.05),
         nav_green=flat_paint("nav_green", (0.02, 0.3, 0.06), rough=0.25, grime=0.05),
@@ -470,17 +498,35 @@ def fin(name, root_x, root_z, height, root_chord, tip_chord, sweep_m, mats, pare
 def canopy(name, x_front, x_back, sill, top, half_width, mats, parent, bows=(), peak=0.45, lods=ALL, frame="paint",
            tail=0.45, nose=0.05):
     """A bubble canopy on the sill line from `x_front` to `x_back`, highest
-    (`top`) at `peak` of the way back, in dark glass, with frame bows (in the
-    `frame` role, the airframe's paint unless named) at the X positions
-    `bows` (the windscreen's arch and the canopy's bows) and a frame along
-    each sill. `nose` and `tail` are the glass's height at its ends, as
-    fractions of its rise: a canopy faired into a spine ends tall."""
+    (`top`) at `peak` of the way back, in tinted glass seen through (the
+    `canopy` role) to the dark cockpit under it: its floor and coaming, and
+    the seat's back and headrest under the peak. Frame bows (in the `frame`
+    role, the airframe's paint unless named) stand at the X positions `bows`
+    (the windscreen's arch and the canopy's bows) and a frame runs along each
+    sill. `nose` and `tail` are the glass's height at its ends, as fractions
+    of its rise: a canopy faired into a spine ends tall."""
     length = x_front - x_back
     rise = top - sill
     prof = ((0.0, nose, 0.35), (0.12, 0.45, 0.7), (0.3, 0.85, 0.95), (peak, 1.0, 1.0), (0.75, 0.86, 0.94),
             (1.0, tail, 0.7))
     st = [(x_front - f * length, half_width * wf, sill - 0.04, sill + rise * hf, sill) for f, hf, wf in prof]
-    made = body(f"{name}_glass", st, mats["glass"], parent, seg=20, lods=lods)
+    made = body(f"{name}_glass", st, mats["canopy"], parent, seg=20, lods=lods)
+    # The cockpit under the glass, opaque so the glass's own floor never
+    # shows through it: a tub filling the sill, the coaming humped under the
+    # windscreen, the seat's back and headrest under the peak.
+    tub = [(x_front - f * length, half_width * wf * 0.94, sill - 0.03, sill + rise * min(hf * 0.9, 0.18), sill)
+           for f, hf, wf in prof]
+    body(f"{name}_cockpit", tub, mats["cockpit"], parent, seg=12, lods=MID, steps=(1, 1, 1, 1))
+    body(f"{name}_coaming", [(x_front - length * 0.1, 0.0, sill, sill), (x_front - length * 0.16,
+                                                                         half_width * 0.62, sill, sill + rise * 0.42),
+                             (x_front - length * 0.26, half_width * 0.72, sill, sill + rise * 0.4)],
+         mats["cockpit"], parent, seg=10, lods=MID, steps=(1, 1, 1, 1))
+    seat_x = x_front - length * min(peak + 0.12, 0.85)
+    back = rise * 0.62
+    box(f"{name}_seat", (0.14, half_width * 0.95, back), (seat_x, 0, sill + back / 2), mats["cockpit"], parent,
+        bevel=0.02, rot=(0, -0.2, 0), lods=MID)
+    box(f"{name}_headrest", (0.2, half_width * 0.62, rise * 0.2), (seat_x - 0.04, 0, sill + back + rise * 0.06),
+        mats["black"], parent, bevel=0.02, lods=NEAR)
     for k, bx in enumerate(bows):
         f = (x_front - bx) / length
         # The canopy's height and width at the bow, from its profile.
@@ -525,13 +571,27 @@ def round_intake(name, loc, radius, depth, mats, parent, lods=MID):
 
 
 def nozzle(name, loc, r_front, r_exit, length, mats, parent, petals=0):
-    """A jet pipe from `loc` aft along -X, `r_front` to `r_exit`: heat-stained
-    metal, the dark pipe inside and, given `petals`, the exhaust petals'
-    seams round the exit."""
+    """A jet pipe from `loc` aft along -X, `r_front` to `r_exit`: engine
+    metal, heat-tinted over its aft part, a raised ring round its lip; inside
+    it a sooty liner running in to the metal turbine face and its cone and,
+    given `petals`, the exhaust petals' seams round the exit."""
     x, y, z = loc
-    cyl(f"{name}_pipe", r_exit, length, (x - length / 2, y, z), "X", mats["nozzle"], parent, seg=24, r2=r_front,
-        caps=False, min_seg=8)
-    cyl(f"{name}_bore", r_exit * 0.88, 0.05, (x - length + 0.04, y, z), "X", mats["black"], parent, seg=20, lods=MID)
+    hot = length * 0.42
+    r_hot = r_exit + (r_front - r_exit) * hot / length
+    cyl(f"{name}_pipe", r_hot, length - hot, (x - (length - hot) / 2, y, z), "X", mats["nozzle"], parent, seg=24,
+        r2=r_front, caps=False, min_seg=8)
+    cyl(f"{name}_pipe_hot", r_exit, hot, (x - length + hot / 2, y, z), "X", mats["nozzle_hot"], parent, seg=24,
+        r2=r_hot, caps=False, min_seg=8)
+    cyl(f"{name}_lip", r_exit * 1.02, 0.05, (x - length + 0.03, y, z), "X", mats["dark"], parent, seg=24, r2=r_exit * 1.02,
+        caps=False, lods=MID)
+    # The liner seen down the pipe: open, so its far end is the turbine face.
+    deep = length * 0.7
+    cyl(f"{name}_liner", r_exit * 0.9, deep, (x - length + 0.02 + deep / 2, y, z), "X", mats["black"], parent, seg=16,
+        caps=False, lods=MID)
+    cyl(f"{name}_bore", r_exit * 0.9, 0.03, (x - length + 0.02 + deep, y, z), "X", mats["nozzle_hot"], parent, seg=16,
+        lods=MID)
+    cyl(f"{name}_cone", r_exit * 0.32, length * 0.25, (x - length + deep - length * 0.1, y, z), "X", mats["nozzle"],
+        parent, seg=12, r2=0.0, rot=(0, 0, math.pi), lods=NEAR)
     for k in range(petals):
         a = math.tau * k / petals
         box(f"{name}_petal_{k}", (length * 0.45, 0.025, 0.02),
@@ -642,10 +702,11 @@ def pylon(name, loc, length, depth, mats, parent):
 def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     """A store hung with its nose at +X, centred on `loc`: `missile` (a slim
     body, a pointed seeker, canards and tail fins, its live bands), `bomb`
-    (a fat body, its fuze and tail fins), `tank` (a drop tank), `pod` (a
-    sensor pod with its window) or `rockets` (a blunt rocket launcher, its
-    tubes' mouths in its dark front face). `rail` hangs it from a launch
-    rail."""
+    (a fat body, its fuze and tail fins), `tank` (a drop tank, in the
+    airframe's paint as an air arm paints its tanks), `pod` (a sensor pod
+    with its window) or `rockets` (a blunt rocket launcher, its tubes' mouths
+    in its dark front face); all but the tank in the stores' grey. `rail`
+    hangs it from a launch rail."""
     x, y, z = loc
     h = length / 2
     nose = {"missile": 0.12, "bomb": 0.25, "tank": 0.3, "pod": 0.15, "rockets": 0.04}[kind]
@@ -653,7 +714,8 @@ def store(name, kind, loc, length, radius, mats, parent, fins=True, rail=False):
     st = [(x + h, 0.0, z, z), (x + h - length * nose, radius, z - radius, z + radius),
           (x - h + length * (1 - tail), radius, z - radius, z + radius),
           (x - h, radius * (0.4 if kind != "missile" else 0.95), z - radius * 0.5, z + radius * 0.5)]
-    body(f"{name}_body", st, mats["store"], parent, seg=12, lods=MID if kind == "missile" else ALL,
+    body(f"{name}_body", st, mats["paint" if kind == "tank" else "store"], parent, seg=12,
+         lods=MID if kind == "missile" else ALL,
          loc=(0, y, 0), steps=(2, 1, 1, 1))
     if kind == "missile":
         cyl(f"{name}_seeker", radius * 0.7, 0.02, (x + h - 0.03, y, z), "X", mats["glass"], parent, seg=8, lods=FINE)

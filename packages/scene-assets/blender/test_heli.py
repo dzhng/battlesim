@@ -110,7 +110,7 @@ def wreck(v):
 reset()
 P.SCORCH.clear()
 variant = dict(id="test_heli", frame=dict(body_dimensions_m=[2 * h for h in HALF], mounts=[HMG]))
-v = Vehicle(variant, materials("nato_helicopter_green"))
+v = Vehicle(variant, materials("nato_helicopter_green"), "nato_helicopter_green")
 v.wreck = WRECK
 build(v)
 if WRECK:

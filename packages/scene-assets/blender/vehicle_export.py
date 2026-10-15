@@ -91,11 +91,13 @@ def rig(frame, root, trunnion=None):
 
 class Vehicle:
     """What a family's build places its parts on: `root`, `hull` (the static
-    body), `mats`, the frame and its sizes, and `crew`, the crewmen to pose
-    (`vehicle_crew.crew` arguments after the source)."""
+    body), `mats`, the `scheme` they are painted in, the frame and its sizes,
+    and `crew`, the crewmen to pose (`vehicle_crew.crew` arguments after the
+    source)."""
 
-    def __init__(self, variant, mats):
+    def __init__(self, variant, mats, scheme=None):
         self.variant = variant
+        self.scheme = scheme
         self.frame = variant["frame"]
         self.length, self.width, self.height = self.frame["body_dimensions_m"]
         self.mats = mats
@@ -140,7 +142,7 @@ def _export(variants, scheme, build, wreck, ao_distance, ao_rays, check=None, lo
         reset()
         P.SCORCH.clear()
         own = scheme[variant["id"]] if isinstance(scheme, dict) else scheme
-        v = Vehicle(variant, materials(own, **(looks or {})))
+        v = Vehicle(variant, materials(own, **(looks or {})), own)
         v.wreck = wrecking
         build(variant, v)
         if check is not None and not wrecking:

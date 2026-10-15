@@ -313,15 +313,16 @@ SCHEMES = {
     "russian_air_grey": "russian_air_grey",
     "russian_helicopter_camo": "russian_helicopter_camo",
     "chinese_air_grey": "chinese_air_grey",
+    "chinese_air_light_grey": "chinese_air_light_grey",
     "nato_air_grey": "nato_air_grey",
     "nato_helicopter_green": "nato_helicopter_green",
     "french_air_camo": "french_air_camo",
 }
 
 
-def _sprayed(col, seed):
+def _sprayed(col, seed, rough=0.5):
     """Finish a scheme's colours as sprayed enamel: mottled and sun-faded, dust in
-    patches, fine scratches over an orange peel. -> Baked."""
+    patches, fine scratches over an orange peel, `rough` where it is clean. -> Baked."""
     mottle = fbm(24, seed, 4)
     col = col * (0.92 + 0.16 * mottle)[..., None]
     dust = smoothstep(0.5, 0.9, fbm(8, seed + 10, 4))
@@ -329,7 +330,7 @@ def _sprayed(col, seed):
     lines = scratches(seed + 50)
     col = mix(col, col * 1.6, lines * 0.5)
     h = fbm(96, seed + 20, 2) * 0.2 - lines * 0.6
-    rough = 0.5 + 0.3 * dust + 0.08 * (mottle - 0.5)
+    rough = rough + 0.3 * dust + 0.08 * (mottle - 0.5)
     return Baked(col, chips(seed + 40, 14), normals_from_height(blur(h), 1.0), 0.86 - 0.1 * dust, rough)
 
 
@@ -417,23 +418,29 @@ def chinese_digital():
 # Aircraft and rotorcraft schemes: the air arms' greys and the army aviation
 # greens, from each family's references. Lighter than ground paint (a grey jet
 # is a light thing on screen) but kept off white so the battle's sun can't
-# blow them out; chipped edges in a paler tone of the same grey.
+# blow them out, and a shade cooler than they would be under a white sun (the
+# battle's is warm); chipped edges in a paler tone of the same grey. Tactical
+# paint is flat: it scatters the sky and the ground at a grazing angle rather
+# than mirroring them, so a curved skin keeps its grey to the silhouette.
+AIR_ROUGH = 0.68
+
+
 def _air(colours, levels, seed, cells=(2, 3)):
-    return _sprayed(_bands(colours, levels, seed, cells, edge=0.03, warp_px=18), seed + 2)
+    return _sprayed(_bands(colours, levels, seed, cells, edge=0.03, warp_px=18), seed + 2, rough=AIR_ROUGH)
 
 
 @recipe("us_compass_grey", tile=6.0, wear=(0.3, 0.31, 0.32, 0.8))
 def us_compass_grey():
     """US Navy, Marine and Air Force tactical greys (FS 36375 over 36320): two
     close greys in broad soft patches."""
-    return _air(((0.24, 0.25, 0.26), (0.16, 0.17, 0.18)), (0.6,), 1701)
+    return _air(((0.23, 0.25, 0.275), (0.155, 0.17, 0.19)), (0.6,), 1701)
 
 
 @recipe("us_gunship_grey", tile=6.0, wear=(0.2, 0.2, 0.21, 0.8))
 def us_gunship_grey():
     """US dark greys: the Strike Eagle's gunship grey (FS 36118), the F-35's
     and the A-10's darker tones; one grey, a little mottled."""
-    return _air(((0.085, 0.09, 0.096), (0.1, 0.105, 0.11)), (0.66,), 1711)
+    return _air(((0.082, 0.09, 0.1), (0.096, 0.105, 0.116)), (0.66,), 1711)
 
 
 @recipe("us_army_aviation", tile=4.0, wear=(0.08, 0.085, 0.07, 0.85))
@@ -447,14 +454,14 @@ def us_army_aviation():
 def russian_air_blue():
     """Russian Flanker blue-greys: a pale blue-grey ground under darker
     grey-blue patches (the Su-27/30/35 and Su-34 schemes)."""
-    return _air(((0.19, 0.21, 0.23), (0.11, 0.14, 0.18), (0.15, 0.17, 0.19)), (0.56, 0.7), 1731)
+    return _air(((0.18, 0.21, 0.245), (0.1, 0.14, 0.2), (0.14, 0.17, 0.205)), (0.56, 0.7), 1731)
 
 
 @recipe("russian_air_grey", tile=6.0, wear=(0.24, 0.25, 0.26, 0.8))
 def russian_air_grey():
     """Russian greys: the MiG-29SMT's and MiG-31BM's light greys, the Su-57's
     splinter greys and the gunships' dark grey, as two greys in patches."""
-    return _air(((0.14, 0.15, 0.16), (0.085, 0.092, 0.1)), (0.6,), 1741)
+    return _air(((0.135, 0.15, 0.168), (0.082, 0.092, 0.106)), (0.6,), 1741)
 
 
 @recipe("russian_helicopter_camo", tile=6.0, wear=(0.17, 0.17, 0.13, 0.85))
@@ -466,16 +473,30 @@ def russian_helicopter_camo():
 
 @recipe("chinese_air_grey", tile=6.0, wear=(0.22, 0.23, 0.24, 0.8))
 def chinese_air_grey():
-    """PLA air and army aviation greys: the J-10C's and Z-20's light grey, the
-    J-20's and Z-10's darker grey, as two greys in patches."""
-    return _air(((0.12, 0.13, 0.14), (0.08, 0.087, 0.095)), (0.62,), 1761)
+    """PLA air and army aviation greys: the Z-20's grey, the J-20's and Z-10's
+    darker grey, as two greys in patches."""
+    return _air(((0.115, 0.13, 0.147), (0.077, 0.087, 0.1)), (0.62,), 1761)
+
+
+@recipe("chinese_air_light_grey", tile=6.0, wear=(0.3, 0.31, 0.32, 0.8))
+def chinese_air_light_grey():
+    """The PLA's light fighter grey (the J-10C): one pale grey, a little
+    mottled, a shade bluer in broad patches."""
+    return _air(((0.21, 0.23, 0.26), (0.19, 0.21, 0.24)), (0.62,), 1765)
+
+
+@recipe("store_grey", tile=3.0, wear=(0.3, 0.3, 0.3, 0.8))
+def store_grey():
+    """The flat neutral grey missiles, bombs and pods are painted: one grey,
+    a little mottled; a store's own colour tints it."""
+    return _air(((0.2, 0.2, 0.2), (0.19, 0.19, 0.19)), (0.6,), 1795)
 
 
 @recipe("nato_air_grey", tile=6.0, wear=(0.27, 0.28, 0.29, 0.8))
 def nato_air_grey():
     """European air force greys: the Typhoon's and Gripen's light greys, the
     Rafale's, Mirage 2000D's and Tornado's mid greys."""
-    return _air(((0.16, 0.17, 0.18), (0.11, 0.12, 0.13)), (0.62,), 1771)
+    return _air(((0.155, 0.17, 0.19), (0.106, 0.12, 0.137)), (0.62,), 1771)
 
 
 @recipe("french_air_camo", tile=6.0, wear=(0.2, 0.21, 0.19, 0.8))
@@ -490,6 +511,18 @@ def nato_helicopter_green():
     """European army aviation: the British and French dark green-greys
     (Wildcat, Merlin, Chinook HC6, Tiger, NH90)."""
     return _air(((0.042, 0.05, 0.038), (0.05, 0.055, 0.046)), (0.6,), 1781)
+
+
+@recipe("jet_pipe", tile=1.0, wear=(0.12, 0.12, 0.125, 0.6))
+def jet_pipe():
+    """An engine's exhaust pipe and petals: dull grey alloy, satin rather than
+    bright, mottled and streaked aft by the heat; never rusty."""
+    n = fbm(16, 1801, 4)
+    streak = fbm((2, 24), 1803, 3)
+    col = mix((0.075, 0.075, 0.08), (0.11, 0.11, 0.115), n)
+    col = col * (0.85 + 0.3 * streak)[..., None]
+    h = n * 0.2 + streak * 0.15
+    return Baked(col, 0.4 + 0.6 * fbm(12, 1805, 3), normals_from_height(blur(h), 0.8), 1.0, 0.55 + 0.15 * n, 0.6)
 
 
 @recipe("rubber", tile=0.6, wear=(0.12, 0.105, 0.085, 1.0))
