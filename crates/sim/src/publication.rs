@@ -2150,8 +2150,9 @@ mod tests {
         let record = |rows: &[[f32; 9]]| {
             let mut data = vec![0.0; HEADER.len()];
             data.extend(rows.iter().flatten());
-            let mut ends = vec![HEADER.len(); 7];
-            ends.extend([data.len(), data.len()]);
+            let mut ends = vec![HEADER.len(); nine_wide()];
+            ends.push(data.len());
+            ends.resize(GROUPS, data.len());
             (data, ends)
         };
         let (old, old_ends) = record(&old_rows);
@@ -2202,11 +2203,20 @@ mod tests {
     mod codec {
         include!("../tests/common/publication_codec.rs");
     }
+    /// The first group of fixed nine-word rows, the shape these tests' rows
+    /// take; the groups before it travel empty.
+    fn nine_wide() -> usize {
+        (0..GROUPS).find(|&g| fixed_row_width(g) == 9).unwrap()
+    }
     fn decode_group(encoded: &[f32], old: &[f32]) -> Vec<u32> {
-        codec::group(encoded, HEADER.len() + 7 * 3, &old[HEADER.len()..])
-            .iter()
-            .map(|v| v.to_bits())
-            .collect()
+        codec::group(
+            encoded,
+            HEADER.len() + nine_wide() * 3,
+            &old[HEADER.len()..],
+        )
+        .iter()
+        .map(|v| v.to_bits())
+        .collect()
     }
 
     #[test]
@@ -2225,16 +2235,16 @@ mod tests {
                 f32::from_bits(0x7fc0_0001),
             ]);
         }
-        let mut old_ends = vec![HEADER.len(); 7];
-        old_ends.extend([old.len(), old.len()]);
+        let mut old_ends = vec![HEADER.len(); nine_wide()];
+        old_ends.resize(GROUPS, old.len());
         for reverse in [false, true] {
             let mut logical = vec![0.0; HEADER.len()];
             for offset in 0..80 {
                 let i = if reverse { 89 - offset } else { 10 + offset };
                 logical.extend_from_slice(&old[HEADER.len() + i * 9..HEADER.len() + (i + 1) * 9]);
             }
-            let mut ends = vec![HEADER.len(); 7];
-            ends.extend([logical.len(), logical.len()]);
+            let mut ends = vec![HEADER.len(); nine_wide()];
+            ends.resize(GROUPS, logical.len());
             let mut encoded = Vec::new();
             encode_delivery(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
             assert!(
