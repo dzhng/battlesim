@@ -1208,7 +1208,7 @@ impl PoseDriver {
     }
 }
 
-/// How a HighAir aircraft follows its published flight path: pitch is the
+/// How a high-air aircraft follows its published flight path: pitch is the
 /// path angle and roll is the bank needed to turn at its published yaw rate.
 fn jet_attitude(
     f: &mut Flight,
@@ -1263,11 +1263,7 @@ fn aircraft_attitude(
     if dt == 0.0 {
         return f.attitude;
     }
-    if ty
-        .vehicle_class
-        .as_deref()
-        .is_some_and(|class| class.starts_with("high_air_"))
-    {
+    if ty.high_air() {
         return jet_attitude(f, feel, was, unit, dt);
     }
     let k = 1.0 - libm::exp(-dt / feel.smoothing_s);

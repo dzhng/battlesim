@@ -108,6 +108,15 @@ same drawn pose, as a film camera's shutter sees it: each blade smeared over the
 angle it turned while the shutter was open, so a fast rotor blurs at any frame
 rate and a paused one shows its blades.
 
+An aircraft's shadow follows its altitude layer, never what kind of aircraft
+it is. A low-air one casts its real shadow along the sun. From the high-air
+layer's height the sun would throw a shadow hundreds of metres off, where it
+reads as nobody's, so a high-air one casts none: a soft silhouette of its plan
+lies on the ground straight beneath it instead, turned with its heading,
+fainter and softer the higher it flies (`presentation.effects.high_air_shadow`).
+It is an effect instance laid on the ground, under every other effect, and
+shades only the ground's own surface, never a unit standing in it.
+
 A hull the side watched die cooks off: fireballs from its ring, its hull jolted
 and its turret thrown, both pieces of its own unit's wreck, until they lie where
 the wreck has them and the whole wreck takes over without a seam. A wreck without

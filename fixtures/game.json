@@ -2061,6 +2061,7 @@
         }
       },
       "rotor_blur": { "albedo": 0.03, "shutter": 0.2, "hub_share": 0.07, "min_chord_px": 2.5, "disc": 0.1 },
+      "high_air_shadow": { "opacity": 0.7, "fade_half_m": 400, "blur_m": 0.5, "blur_per_m": 0.01, "ground_band_m": 0.6 },
       "damage_smoke": {
         "albedo": [0.08, 0.078, 0.075],
         "opacity": 0.45,

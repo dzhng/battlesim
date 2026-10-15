@@ -50,7 +50,7 @@ fn publ(tick: f64, fields: Value) -> EffectPublication {
 /// What `f` draws at `clock`: each instance's sixteen floats.
 fn drawn(f: &mut EffectFrame, clock: f64) -> Vec<Vec<f32>> {
     let mut batch = EffectBatch::new(f.presentation().capacity);
-    f.build(clock, &mut batch, None, &[]);
+    f.build(clock, &mut batch, None, &[], &[]);
     assert_eq!(batch.dropped, 0, "a frame never exceeds capacity");
     batch.data[..batch.count * EFFECT_FLOATS]
         .chunks(EFFECT_FLOATS)
@@ -188,7 +188,7 @@ fn a_known_wreck_burns_then_smoulders_then_is_out() {
         smoke.len() > 20 && smoke.iter().any(|i| i[2] > 15.0),
         "a column of smoke"
     );
-    f.build(f64::from(burning) * DT, &mut batch, None, &[]);
+    f.build(f64::from(burning) * DT, &mut batch, None, &[], &[]);
     assert!(batch.lights.count > 0, "the fire lights the ground");
     assert_eq!(f.stats().sources, 1);
 
@@ -198,7 +198,7 @@ fn a_known_wreck_burns_then_smoulders_then_is_out() {
     assert!(layer(&d, 0.0).is_empty(), "no fire left");
     let thin = layer(&d, 1.0).len();
     assert!(thin > 0 && thin < smoke.len(), "thinner smoke: {thin}");
-    f.build(f64::from(smouldering) * DT, &mut batch, None, &[]);
+    f.build(f64::from(smouldering) * DT, &mut batch, None, &[], &[]);
     assert_eq!(batch.lights.count, 0);
 
     // Out, though the wreck is still known: nothing left.
@@ -292,7 +292,7 @@ fn a_still_rotor_shows_its_blades_and_a_fast_one_smears_them_never_past_a_turn()
         let r: DrawnRotor = serde_json::from_value(r).unwrap();
         let mut f = frame();
         let mut batch = EffectBatch::new(f.presentation().capacity);
-        f.build(0.0, &mut batch, None, &[r]);
+        f.build(0.0, &mut batch, None, &[r], &[]);
         let d = batch.data[..batch.count * EFFECT_FLOATS].to_vec();
         d.chunks(EFFECT_FLOATS)
             .map(<[f32]>::to_vec)

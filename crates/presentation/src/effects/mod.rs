@@ -4,6 +4,7 @@
 pub mod cook_off;
 pub mod cook_offs;
 pub mod frame;
+pub mod high_air_shadow;
 pub mod launches;
 pub mod lights;
 pub mod publication;

@@ -2,8 +2,8 @@
 // `crates/presentation/src/effects`) into the lit world, after
 // the world pass has resolved it and before the fog mask pass gives unseen
 // pixels their look, so effects take bloom, grade and tone map like any
-// light. Four shapes (`SHAPE`): three camera-facing quads, and a disc lying
-// in its own plane:
+// light. Five shapes (`SHAPE`): three camera-facing quads, a disc lying in
+// its own plane, and a shadow lying on the ground:
 //
 // - a streak between two points (tracers, flash tongues, sparks), at least
 //   `min_px` wide, dimmed rather than drawn thinner; or a smoke ribbon (a
@@ -24,7 +24,14 @@
 // - a rotor as a film camera's shutter sees it: in the plane its blades
 //   turn in, about its hub, each blade smeared over the angle it swept while
 //   the shutter was open (its colour spread over that wedge, so thin at the
-//   tips), lit as smoke; with no blades, a solid disc (its hub).
+//   tips), lit as smoke; with no blades, a solid disc (its hub);
+// - a high-air aircraft's shadow on the ground beneath it
+//   (`presentation::effects::high_air_shadow`): a soft silhouette of its
+//   plan, darkening the ground it lies on. It is ground, not light: each
+//   pixel finds the surface it shows along its view ray and is shaded only
+//   where that surface lies within the shadow's band of the ground's plane,
+//   so a unit standing in it (taller than the band) is never shaded, and it
+//   leaves the fog mask as it is (the ground under it is fogged as ground).
 //
 // Glows and light streaks add light; ribbons, discs, rotor blurs and flipbooks blend
 // over. Single-sampled into the resolved `lit` target, they test against the
@@ -92,6 +99,9 @@ struct Out {
   @location(7) offset: vec2f,
   /** A lit sprite's cast light (castAt), along a ribbon from end to end. */
   @location(10) castLit: vec3f,
+  /** A ground shadow's view ray (from the eye to its quad), in the shadow's
+   *  own frame: along its nose, across it, and up from its ground. */
+  @location(11) ray: vec3f,
 };
 
 const NEAR_W = 0.05;
@@ -150,6 +160,7 @@ fn projScale() -> vec2f {
   out.skyTop = vec3f(0.0);
   out.skySide = vec3f(0.0);
   out.castLit = vec3f(0.0);
+  out.ray = vec3f(0.0);
   out.offset = c;
   let shape = u32(v.misc.x);
   if (shape == 0u) {
@@ -237,6 +248,30 @@ fn projScale() -> vec2f {
     out.castLit = castAt(v.a.xyz);
     return out;
   }
+  if (shape == 4u) {
+    // A high-air aircraft's shadow: a quad in the ground's plane round the
+    // middle of its plan, along its nose, reaching its blur past its plan.
+    let up = v.b.xyz;
+    let along = v.color.xyz;
+    let across = cross(up, along);
+    let blur = v.misc.y;
+    let local = c * vec2f(v.a.w + blur, v.b.w + blur);
+    let p = v.a.xyz + along * local.x + across * local.y;
+    let clip = cam.viewProj * vec4f(p, 1.0);
+    if (clip.w < NEAR_W) {
+      out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
+      return out;
+    }
+    out.pos = clip;
+    out.viewDepth = clip.w;
+    out.offset = local;
+    let toward = p - cam.eye;
+    out.ray = vec3f(dot(toward, along), dot(toward, across), dot(toward, up));
+    // Its half length and half span, its blur, and its ground's band.
+    out.extra = vec4f(v.a.w, v.b.w, blur, v.misc.z);
+    out.color = vec4f(0.0, 0.0, 0.0, v.color.w);
+    return out;
+  }
   let clip = cam.viewProj * vec4f(v.a.xyz, 1.0);
   if (clip.w < NEAR_W) {
     out.pos = vec4f(0.0, 0.0, -2.0, 1.0);
@@ -292,6 +327,26 @@ fn smokeLight(f: Out, o: vec2f) -> vec3f {
   return light.sunRadiance.rgb * ((0.6 * wrap + 0.4 * forward) / PI) + sky + f.castLit;
 }
 
+/** How far (m) a point \`p\` (along the nose, across) lies outside an
+ *  aircraft's plan seen from above, \`half\` its half length and half span;
+ *  negative inside. A fuselage the plan's length, swept wings its span and a
+ *  tailplane, in proportion to the plan: the soft shape of a jet's shadow. */
+fn planDistance(p: vec2f, half: vec2f) -> f32 {
+  let x = p.x / half.x;
+  let y = abs(p.y);
+  let bodyHalf = max(0.12 * half.x, 0.5);
+  let body = (length(vec2f(x, y / bodyHalf)) - 1.0) * bodyHalf;
+  // A wing's leading and trailing edges along the nose (in half lengths), at
+  // a share \`t\` of its reach out from the root: swept back over a straight
+  // trailing edge, as a fighter's are, and the tailplane close behind.
+  let t = y / half.y;
+  let wing = max(y - half.y, max(-0.45 - x, x - (0.15 - 0.45 * t)) * half.x);
+  let tailHalf = 0.38 * half.y;
+  let u = y / tailHalf;
+  let tail = max(y - tailHalf, max(-0.98 - x, x - (-0.55 - 0.3 * u)) * half.x);
+  return min(body, min(wing, tail));
+}
+
 fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
   let at = vec2f(frame % cols, floor(frame / cols));
   return (at + tuv) / cols;
@@ -307,7 +362,8 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
   let raw = textureLoad(sceneDepth, vec2i(f.pos.xy), 0);
   let scene = select(1e9, cam.znear / raw, raw > 0.0);
   let gap = scene - f.viewDepth;
-  if (gap < 0.0) {
+  // A ground shadow finds its own surface, in front of its quad or behind.
+  if (gap < 0.0 && shape != 4u) {
     discard;
   }
   var rgb = vec3f(0.0);
@@ -360,6 +416,17 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
     cover = min(cover, 1.0) * edge * clamp(gap / f.extra.w, 0.0, 1.0);
     alpha = cover;
     rgb = f.color.rgb * smokeLight(f, vec2f(0.0)) * alpha;
+  } else if (shape == 4u) {
+    // The surface this pixel shows, in the shadow's frame: its quad's point
+    // carried along the view ray to the scene's depth. Shaded within the
+    // band of the ground's plane, by how far inside the plan it lies.
+    let k = scene / f.viewDepth - 1.0;
+    let at = f.offset + f.ray.xy * k;
+    let off = abs(f.ray.z * k);
+    let band = 1.0 - smoothstep(0.5 * f.extra.w, f.extra.w, off);
+    let blur = max(f.extra.z, 1e-3);
+    let cover = 1.0 - smoothstep(-0.5 * blur, 0.5 * blur, planDistance(at, f.extra.xy));
+    alpha = f.color.a * cover * band;
   } else if (shape == 1u) {
     let r = length(f.uv);
     let ang = atan2(f.uv.y, f.uv.x);
@@ -391,7 +458,8 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
     }
     alpha = tex.a * opacity;
   }
-  let strength = clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0);
+  // A shadow is ground: it leaves the fog mask as it is.
+  let strength = select(clamp(alpha + max(rgb.r, max(rgb.g, rgb.b)) * 0.25, 0.0, 1.0), 0.0, shape == 4u);
   var out: Frag;
   out.color = vec4f(rgb, alpha);
   out.fog = vec4f(0.0, 0.0, 0.0, strength);
