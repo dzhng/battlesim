@@ -28,7 +28,7 @@
 // The browser is browser.mjs's: WEBGPU_BROWSER chooses it.
 //
 //   UPDATE_BASELINES=panels bun run --cwd web scene -- panels
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
@@ -71,24 +71,21 @@ export function nativeToolPath(relativePath) {
   return resolve(ROOT, target, relativePath);
 }
 
-/** Browser scenes may be run directly. Build native fixture helpers on demand
- * so a clean checkout never fails later as an opaque Vite `/__mechanics` 500. */
+/** Browser scenes may be run directly. Build the native fixture helpers every
+ * run: cargo rebuilds them only when their sources changed (a no-op costs about
+ * a tenth of a second), so a rules or catalog change never leaves a stale tool
+ * to fail later as an opaque Vite `/__mechanics` 500. */
 export async function ensureNativeTools() {
   for (const tool of nativeTools) {
     try {
-      await stat(nativeToolPath(tool.path));
-    } catch {
-      console.log(`building ${tool.name} (${tool.build})`);
-      try {
-        await execFileAsync("bun", ["run", tool.build], {
-          cwd: ROOT,
-          env: process.env,
-          maxBuffer: 8 * 1024 * 1024,
-        });
-      } catch (error) {
-        const detail = error?.stderr?.trim() || error?.message || String(error);
-        throw new Error(`Could not prepare ${tool.name}. bun run ${tool.build} failed: ${detail}`);
-      }
+      await execFileAsync("bun", ["run", tool.build], {
+        cwd: ROOT,
+        env: process.env,
+        maxBuffer: 8 * 1024 * 1024,
+      });
+    } catch (error) {
+      const detail = error?.stderr?.trim() || error?.message || String(error);
+      throw new Error(`Could not prepare ${tool.name}. bun run ${tool.build} failed: ${detail}`);
     }
   }
 }
