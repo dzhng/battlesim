@@ -1596,10 +1596,12 @@
     },
     "europe_gepard_1a2": {
       "name": "Gepard 1A2",
-      "description": "1A2",
+      "description": "Twin 35 mm radar-directed anti-aircraft gun on a Leopard 1 hull",
       "faction": "europe",
       "family": "gepard",
-      "roles": [],
+      "roles": [
+        "air_defense"
+      ],
       "cost": 200,
       "roster": {
         "factions": [
@@ -1609,16 +1611,75 @@
         "variant": "1A2",
         "family_name": "Gepard"
       },
-      "planned": {
-        "reason": "Air-defense targeting and airborne targets deferred",
-        "profile": "aa-tracked",
-        "weapons": [
-          {
-            "name": "AA Gun",
-            "icon": "autocannon"
-          }
-        ]
-      }
+      "extends": "roster_profile_ifv",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.556,
+            1.685,
+            1.645
+          ],
+          "eye_m": 2.5,
+          "hp": 110,
+          "armor": {
+            "front": 70,
+            "side": 35,
+            "rear": 25,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.2,
+              "side": 0.15,
+              "rear": 0.1,
+              "roof": 0.25
+            }
+          },
+          "weight_class": "heavy",
+          "push_class": "heavy",
+          "wreck": "heavy_wreck"
+        }
+      },
+      "mobility": {
+        "tracked": {
+          "offroad_kmh": 28,
+          "road_kmh": 65,
+          "turn_deg_s": 45,
+          "reverse_fraction": 0.4
+        }
+      },
+      "sensors": {
+        "low_air_m": 900,
+        "high_air_m": 900
+      },
+      "capabilities": {
+        "air_defense": {
+          "tier": "short"
+        },
+        "radar": {
+          "emits": false,
+          "detection_m": 0
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Twin 35 mm",
+          "weapons": [
+            "aa_ballistic"
+          ],
+          "turret": true,
+          "pivot_m": [
+            0,
+            0,
+            2.11
+          ],
+          "muzzle_m": [
+            3.56,
+            1.28,
+            0
+          ]
+        }
+      ],
+      "appearance": "europe_gepard_1a2"
     },
     "europe_jas_39_gripen_e": {
       "name": "Gripen E",
