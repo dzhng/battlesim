@@ -136,16 +136,6 @@
       "source_path": "assets/source/roster/gepard/europe_gepard_1a2.glb"
     },
     {
-      "id": "europe_jas_39_gripen_e",
-      "family": "jas_39_gripen",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "jas_39_gripen",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_jas_39_gripen_e.glb"
-    },
-    {
       "id": "europe_kamikaze_drone_anti_armor",
       "family": "kamikaze_drone",
       "category": "sup",
@@ -166,26 +156,6 @@
       "source_path": "assets/source/roster/kamikaze_drone/europe_kamikaze_drone_anti_personnel.glb"
     },
     {
-      "id": "europe_mirage_2000_2000d_rmv",
-      "family": "mirage_2000",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "mirage_2000",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv.glb"
-    },
-    {
-      "id": "europe_rafale_c_f4",
-      "family": "rafale",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "rafale",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_rafale_c_f4.glb"
-    },
-    {
       "id": "europe_scout_drone_standard",
       "family": "scout_drone",
       "category": "rec",
@@ -204,16 +174,6 @@
       "source_kind": "ground_vehicle",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
       "source_path": "assets/source/roster/scout_drone/europe_scout_drone_thermal.glb"
-    },
-    {
-      "id": "europe_tornado_ids",
-      "family": "tornado",
-      "category": "air",
-      "model_status": "reference_built",
-      "source_family": "tornado",
-      "source_kind": "aircraft",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "source_path": "assets/source/roster/disabled/europe_tornado_ids.glb"
     },
     {
       "id": "us_kamikaze_drone_anti_armor",

@@ -5993,12 +5993,16 @@
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": "de_air_defense_crew",
     "europe_eurofighter_typhoon_tranche_3": "de_fighter_pilot",
     "europe_iris_t_medium": "de_air_defense_crew",
+    "europe_jas_39_gripen_e": "de_fighter_pilot",
     "europe_long_aa": "de_air_defense_crew",
     "europe_medium_aa": "de_air_defense_crew",
+    "europe_mirage_2000_2000d_rmv": "de_fighter_pilot",
     "europe_nasams_long": "de_air_defense_crew",
     "europe_nasams_nasams_3": "de_air_defense_crew",
+    "europe_rafale_c_f4": "de_fighter_pilot",
     "europe_short_aa": "de_air_defense_crew",
     "europe_tornado_ecr": "de_fighter_pilot",
+    "europe_tornado_ids": "de_fighter_pilot",
     "f_16c_block_50": {
       "us": "us_fighter_pilot",
       "europe": "de_fighter_pilot"

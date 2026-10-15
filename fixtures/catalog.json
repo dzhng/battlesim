@@ -1091,6 +1091,23 @@
       }
     },
     {
+      "cost": 350,
+      "description": "E",
+      "disabled_reason": null,
+      "family": "jas_39_gripen",
+      "id": "europe_jas_39_gripen_e",
+      "name": "Gripen E",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "JAS 39 Gripen",
+        "variant": "E"
+      }
+    },
+    {
       "cost": 460,
       "description": "Prototype main battle tank",
       "disabled_reason": null,
@@ -1261,6 +1278,23 @@
       }
     },
     {
+      "cost": 290,
+      "description": "2000D RMV",
+      "disabled_reason": null,
+      "family": "mirage_2000",
+      "id": "europe_mirage_2000_2000d_rmv",
+      "name": "Mirage 2000D RMV",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Mirage 2000",
+        "variant": "2000D RMV"
+      }
+    },
+    {
       "cost": 360,
       "description": "NASAMS 3 Long long-range air defence.",
       "disabled_reason": null,
@@ -1346,6 +1380,23 @@
       }
     },
     {
+      "cost": 420,
+      "description": "C F4",
+      "disabled_reason": null,
+      "family": "rafale",
+      "id": "europe_rafale_c_f4",
+      "name": "Rafale F4",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Rafale",
+        "variant": "C F4"
+      }
+    },
+    {
       "cost": 80,
       "description": "Light patrol",
       "disabled_reason": null,
@@ -1394,6 +1445,23 @@
         ],
         "family_name": "Tornado",
         "variant": "ECR"
+      }
+    },
+    {
+      "cost": 310,
+      "description": "IDS",
+      "disabled_reason": null,
+      "family": "tornado",
+      "id": "europe_tornado_ids",
+      "name": "Tornado IDS",
+      "planned_weapons": [],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Tornado",
+        "variant": "IDS"
       }
     },
     {
@@ -2616,36 +2684,6 @@
       }
     },
     {
-      "cost": 350,
-      "description": "E",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "jas_39_gripen",
-      "id": "europe_jas_39_gripen_e",
-      "name": "Gripen E",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "bomb",
-          "name": "Cluster bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "JAS 39 Gripen",
-        "variant": "E"
-      }
-    },
-    {
       "cost": 90,
       "description": "Anti-armor",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
@@ -2690,62 +2728,6 @@
       }
     },
     {
-      "cost": 290,
-      "description": "2000D RMV",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "mirage_2000",
-      "id": "europe_mirage_2000_2000d_rmv",
-      "name": "Mirage 2000D RMV",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "bomb",
-          "name": "Bombs"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Mirage 2000",
-        "variant": "2000D RMV"
-      }
-    },
-    {
-      "cost": 420,
-      "description": "C F4",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "rafale",
-      "id": "europe_rafale_c_f4",
-      "name": "Rafale F4",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "aa_missile",
-          "name": "AA Missile"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Rafale",
-        "variant": "C F4"
-      }
-    },
-    {
       "cost": 60,
       "description": "Standard",
       "disabled_reason": "Drone movement, sensing and mission mechanics deferred",
@@ -2777,32 +2759,6 @@
         ],
         "family_name": "Scout Drone",
         "variant": "Thermal"
-      }
-    },
-    {
-      "cost": 310,
-      "description": "IDS",
-      "disabled_reason": "Aircraft movement and air-combat mechanics deferred",
-      "family": "tornado",
-      "id": "europe_tornado_ids",
-      "name": "Tornado IDS",
-      "planned_weapons": [
-        {
-          "icon": "autocannon",
-          "name": "Cannon"
-        },
-        {
-          "icon": "atgm",
-          "name": "Ground Missile"
-        }
-      ],
-      "roster": {
-        "category": "air",
-        "factions": [
-          "europe"
-        ],
-        "family_name": "Tornado",
-        "variant": "IDS"
       }
     },
     {
@@ -13417,30 +13373,134 @@
           }
         },
         "europe_jas_39_gripen_e": {
+          "appearance": "europe_jas_39_gripen_e",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.6,
+                4.28,
+                2.25
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 350,
           "description": "E",
           "faction": "europe",
           "family": "jas_39_gripen",
-          "name": "Gripen E",
-          "planned": {
-            "profile": "fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "bomb",
-                "name": "Cluster bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cluster bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb_cluster"
+              ]
+            }
+          ],
+          "name": "Gripen E",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -13448,6 +13508,20 @@
             ],
             "family_name": "JAS 39 Gripen",
             "variant": "E"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_kamikaze_drone_anti_armor": {
@@ -14505,26 +14579,113 @@
           }
         },
         "europe_mirage_2000_2000d_rmv": {
+          "appearance": "europe_mirage_2000_2000d_rmv",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.2,
+                4.57,
+                2.6
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 290,
           "description": "2000D RMV",
           "faction": "europe",
           "family": "mirage_2000",
-          "name": "Mirage 2000D RMV",
-          "planned": {
-            "profile": "strike-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "bomb",
-                "name": "Bombs"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "bombs",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Iron bombs",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_bomb"
+              ]
+            }
+          ],
+          "name": "Mirage 2000D RMV",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -14532,6 +14693,20 @@
             ],
             "family_name": "Mirage 2000",
             "variant": "2000D RMV"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_nasams_long": {
@@ -15060,30 +15235,134 @@
           }
         },
         "europe_rafale_c_f4": {
+          "appearance": "europe_rafale_c_f4",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                7.63,
+                5.46,
+                2.67
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 420,
           "description": "C F4",
           "faction": "europe",
           "family": "rafale",
-          "name": "Rafale F4",
-          "planned": {
-            "profile": "fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "aa_missile",
-                "name": "AA Missile"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "missiles",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "AA missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_missile"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "Rafale F4",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -15091,6 +15370,20 @@
             ],
             "family_name": "Rafale",
             "variant": "C F4"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_recon_patrol_light_patrol": {
@@ -15421,26 +15714,113 @@
           }
         },
         "europe_tornado_ids": {
+          "appearance": "europe_tornado_ids",
+          "body": {
+            "hull": {
+              "armor": {
+                "front": 20.0,
+                "rear": 10.0,
+                "ricochet": {
+                  "front": 0.0,
+                  "rear": 0.0,
+                  "roof": 0.0,
+                  "side": 0.0
+                },
+                "roof": 8.0,
+                "side": 12.0
+              },
+              "eye_m": 2.0,
+              "half_extents_m": [
+                8.38,
+                6.89,
+                2.98
+              ],
+              "hp": 100.0,
+              "push_class": "none",
+              "weight_class": "light",
+              "wreck": "light_wreck"
+            }
+          },
+          "capabilities": {
+            "air": {
+              "afterburner": {
+                "fuel_multiplier": 2.0,
+                "speed_multiplier": 1.5
+              },
+              "flares": {
+                "capacity": 4,
+                "reload_s": 20.0
+              },
+              "fuel_capacity_s": 180.0,
+              "refund": {
+                "ammunition": 0.3,
+                "fuel": 0.3,
+                "health": 0.4
+              },
+              "sead": false
+            }
+          },
           "cost": 310,
           "description": "IDS",
           "faction": "europe",
           "family": "tornado",
-          "name": "Tornado IDS",
-          "planned": {
-            "profile": "strike-fighter",
-            "reason": "Aircraft movement and air-combat mechanics deferred",
-            "weapons": [
-              {
-                "icon": "autocannon",
-                "name": "Cannon"
-              },
-              {
-                "icon": "atgm",
-                "name": "Ground Missile"
-              }
-            ]
+          "mobility": {
+            "air": {
+              "climb_mps": 30.0,
+              "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
+              "layer": "high_air",
+              "turn_deg_s": 72.0
+            }
           },
-          "roles": [],
+          "mounts": [
+            {
+              "id": "gun",
+              "muzzle_m": [
+                7.0,
+                0.0,
+                0.0
+              ],
+              "name": "Cannon",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.8
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_gun"
+              ]
+            },
+            {
+              "id": "ground",
+              "muzzle_m": [
+                4.0,
+                0.0,
+                0.0
+              ],
+              "name": "Ground missiles",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                1.2
+              ],
+              "special": false,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "air_ground_missile"
+              ]
+            }
+          ],
+          "name": "Tornado IDS",
+          "roles": [
+            "recon"
+          ],
           "roster": {
             "category": "air",
             "factions": [
@@ -15448,6 +15828,20 @@
             ],
             "family_name": "Tornado",
             "variant": "IDS"
+          },
+          "sensors": {
+            "ground_m": 1.0,
+            "high_air_m": 5000.0,
+            "low_air_m": 1800.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 0.5,
+              "side": 0.8
+            }
+          },
+          "sound": {
+            "loudness_m": 1400.0,
+            "profile": "vehicle"
           }
         },
         "europe_vbci_infantry_fighting_vehicle": {
@@ -32037,6 +32431,163 @@
       "vehicle_class": "wheeled_medium"
     },
     {
+      "appearance": "europe_jas_39_gripen_e",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.6,
+            4.28,
+            2.25
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 350,
+      "description": "E",
+      "faction": "europe",
+      "family": "jas_39_gripen",
+      "id": "europe_jas_39_gripen_e",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cluster bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb_cluster"
+          ]
+        }
+      ],
+      "name": "Gripen E",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "JAS 39 Gripen",
+        "variant": "E"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "appearance": "europe_kf51_panther_prototype_main_battle_tank",
       "body": {
         "hull": {
@@ -33216,6 +33767,141 @@
       "vehicle_class": "wheeled_medium"
     },
     {
+      "appearance": "europe_mirage_2000_2000d_rmv",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.2,
+            4.57,
+            2.6
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 290,
+      "description": "2000D RMV",
+      "faction": "europe",
+      "family": "mirage_2000",
+      "id": "europe_mirage_2000_2000d_rmv",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "bombs",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Iron bombs",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_bomb"
+          ]
+        }
+      ],
+      "name": "Mirage 2000D RMV",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Mirage 2000",
+        "variant": "2000D RMV"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "appearance": "us_stryker_m1296_dragoon",
       "body": {
         "hull": {
@@ -33758,6 +34444,163 @@
       "vehicle_class": "tracked_heavy"
     },
     {
+      "appearance": "europe_rafale_c_f4",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            7.63,
+            5.46,
+            2.67
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 420,
+      "description": "C F4",
+      "faction": "europe",
+      "family": "rafale",
+      "id": "europe_rafale_c_f4",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "missiles",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "AA missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_missile"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "Rafale F4",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Rafale",
+        "variant": "C F4"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
       "body": {
         "squad": {
           "slots": [
@@ -34091,6 +34934,141 @@
         ],
         "family_name": "Tornado",
         "variant": "ECR"
+      },
+      "sensors": {
+        "ground_m": 1.0,
+        "high_air_m": 5000.0,
+        "low_air_m": 1800.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 0.5,
+          "side": 0.8
+        }
+      },
+      "sound": {
+        "loudness_m": 1400.0,
+        "profile": "vehicle"
+      },
+      "vehicle_class": "high_air_light"
+    },
+    {
+      "appearance": "europe_tornado_ids",
+      "body": {
+        "hull": {
+          "armor": {
+            "front": 20.0,
+            "rear": 10.0,
+            "ricochet": {
+              "front": 0.0,
+              "rear": 0.0,
+              "roof": 0.0,
+              "side": 0.0
+            },
+            "roof": 8.0,
+            "side": 12.0
+          },
+          "eye_m": 2.0,
+          "half_extents_m": [
+            8.38,
+            6.89,
+            2.98
+          ],
+          "hp": 100.0,
+          "push_class": "none",
+          "weight_class": "light",
+          "wreck": "light_wreck"
+        }
+      },
+      "capabilities": {
+        "air": {
+          "afterburner": {
+            "fuel_multiplier": 2.0,
+            "speed_multiplier": 1.5
+          },
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20.0
+          },
+          "fuel_capacity_s": 180.0,
+          "refund": {
+            "ammunition": 0.3,
+            "fuel": 0.3,
+            "health": 0.4
+          },
+          "sead": false
+        }
+      },
+      "cost": 310,
+      "description": "IDS",
+      "faction": "europe",
+      "family": "tornado",
+      "id": "europe_tornado_ids",
+      "mobility": {
+        "air": {
+          "climb_mps": 30.0,
+          "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
+          "layer": "high_air",
+          "turn_deg_s": 72.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [],
+          "id": "gun",
+          "muzzle_m": [
+            7.0,
+            0.0,
+            0.0
+          ],
+          "name": "Cannon",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.8
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_gun"
+          ]
+        },
+        {
+          "carriers": [],
+          "id": "ground",
+          "muzzle_m": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "name": "Ground missiles",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            1.2
+          ],
+          "special": false,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "air_ground_missile"
+          ]
+        }
+      ],
+      "name": "Tornado IDS",
+      "roles": [
+        "recon"
+      ],
+      "roster": {
+        "category": "air",
+        "factions": [
+          "europe"
+        ],
+        "family_name": "Tornado",
+        "variant": "IDS"
       },
       "sensors": {
         "ground_m": 1.0,

@@ -6411,6 +6411,75 @@
         "footprint_m": 2.4
       }
     },
+    "europe_jas_39_gripen_e": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/europe_jas_39_gripen_e.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_jas_39_gripen_e_wreck"
+    },
+    "europe_jas_39_gripen_e_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/europe_jas_39_gripen_e_wreck.glb",
+        "debris": "assets/source/roster/disabled/europe_jas_39_gripen_e_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.6,
+        4.28,
+        2.25
+      ],
+      "tolerances": {
+        "footprint_m": 1.8
+      }
+    },
+    "europe_mirage_2000_2000d_rmv": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_mirage_2000_2000d_rmv_wreck"
+    },
+    "europe_mirage_2000_2000d_rmv_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv_wreck.glb",
+        "debris": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.2,
+        4.57,
+        2.6
+      ],
+      "tolerances": {
+        "footprint_m": 1.8
+      }
+    },
+    "europe_rafale_c_f4": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/europe_rafale_c_f4.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "europe_rafale_c_f4_wreck"
+    },
+    "europe_rafale_c_f4_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/europe_rafale_c_f4_wreck.glb",
+        "debris": "assets/source/roster/disabled/europe_rafale_c_f4_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.63,
+        5.46,
+        2.67
+      ],
+      "tolerances": {
+        "footprint_m": 2.0
+      }
+    },
     "f_35a": {
       "unit": "vehicle",
       "source": "assets/source/roster/disabled/f_35a.glb",
