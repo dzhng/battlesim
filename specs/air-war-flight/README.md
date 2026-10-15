@@ -35,14 +35,14 @@ You are implementing this spec with `implement-spec`. Opus subagents write the c
 - [x] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
 - [x] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
-- [ ] 20 [aircraft arrival, per-unit height, `test_jet` model](slices/20-aircraft-arrival.md) ([flight-model map](flight-model-map.md))
+- [ ] 20 [aircraft arrival, per-unit height, `test_jet` model](slices/20-aircraft-arrival.md) ([flight-model map](flight-model-map.md)): arrival, per-unit height and the countdown landed (branch `awf/arrival`); the `test_jet` model (D43) is still to do
 - [ ] 19 [closeout](slices/19-closeout.md)
 
 ## User decisions made during the build
 
 | Question | Answer (user, 2026-10-14) |
 |---|---|
-| **Q13:** Bought helicopters share today's four-sides spawn. Should they arrive the way jets will? | **No.** Helicopters keep their current arrival: the four-sides spawn, the off-map wait and `traversing`. Only jets change (slice 12). |
+| **Q13:** Bought helicopters share today's four-sides spawn. Should they arrive the way jets will? | **No.** Helicopters keep their current arrival: the four-sides spawn, the off-map wait and `traversing`. Only jets change (slice 12). Superseded by D38 and D39 (slice 20): every aircraft now enters flying at its side's back edge, and only a row with `arrival` waits. |
 | **Q14:** Should the skirmish AI buy jets and answer enemy jets? | **Yes:** it buys high-air-capable units when it sees enemy `HighAir`, and jets join its reinforcement rotation under attack-move (slice 17). |
 | **AA is standard (follow-up):** | Every standard opening includes at least one AA unit that can reach jets. Jets are tuned so that **a side without AA takes heavy damage before it recovers**: that is the balance target for slice 19, and the AI's opening models the habit (slice 17). |
 
@@ -72,7 +72,7 @@ Slices that share a seam stay on one lane. These pairs can run concurrently:
 
 Every slice inherits these:
 - **High air is an elevation layer.** It is the one layer that bends physics (altitude lowered from about 1,000 m to about 250 m for play), so its special treatments (the shadow beneath, cards drawn on top, ...) key on the HighAir layer, never on "jet" or a unit type.
-- **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A helicopter's shadow is cast along the sun from its actual height; a jet at altitude casts none, and instead shows a soft silhouette shadow on the ground directly beneath it (choices.md).
+- **`AirRules::cruise_agl_m(mobility)`** is the only answer to "how high": a row's own `mobility.air.cruise_agl_m`, else its layer's height, never under the layer's floor (D40). The sim carries it as `Flight::cruise_agl_m`; the web's `ghostAloft` mirrors it. The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A helicopter's shadow is cast along the sun from its actual height; a jet at altitude casts none, and instead shows a soft silhouette shadow on the ground directly beneath it (choices.md).
 - **The layer and the flight model are separate owners.** Layer treatments (no sight of the ground, the shadow beneath, cards on top, cruise height and floor) read the unit's layer (`Unit::layer` in the sim, `UnitType::high_air` in presentation, `highAir` in the web) and the layer's heights in `air.high_air`. How an airframe flies is its row's authored flight model (`mobility.air.flight`: `rotor` or `fixed_wing`), read through `Unit::fixed_wing`, `UnitType::fixed_wing` and `fixedWing`. Wing behaviour keys on it: the flight law, passes, dogfights (only between two fixed-wing aircraft in the same layer, D29c), arrival and exit by the back edge, nose-on guns, banking, and no ground marker, drop line or destination circle. Its rules live in `air.fixed_wing` and `crates/sim/src/air/`, flown at its own layer's heights. The catalog refuses a pair no flight law flies yet: a rotor in high air, or fixed-wing in low air (D37).
 - **`crates/sim/src/air/`** owns fixed-wing behaviour:
   - `fixed_wing.rs` is the only flight law; nothing else writes a winged aircraft's position, heading or speed.
