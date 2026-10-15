@@ -88,7 +88,7 @@
   "guided": {
     "release_coast_s": 0.5
   },
-  "launch": { "clearance_m": 30 },
+  "launch": { "clearance_m": 30, "relocate_after_s": 10, "relocate_m": 50 },
   "weapons": {
     "rifle": {
       "targets": { "ground": { "classes": ["infantry", "vehicle"] }, "low_air": { "classes": ["air_rotor", "air_fixed_wing"], "range_m": 100, "scatter_mrad": 40 } },

@@ -52,6 +52,27 @@ pub struct BalancedDoctrine {
     response_delay_ticks: Option<Tick>,
     random: contract::random::Rng,
     sightings: BTreeMap<ObservedTargetId, ArtillerySighting>,
+    /// Own units their weapons' own cover holds (`BlockedTrajectory`).
+    held: BTreeMap<UnitId, Held>,
+}
+
+/// A unit its own cover holds from firing: since when (while it stands
+/// held), how often it has been moved for it, and whether it is on its way.
+#[derive(Clone, Debug, Default)]
+struct Held {
+    since: Option<Tick>,
+    moves: usize,
+    driving: bool,
+}
+
+/// What a held unit is to do at this decision.
+enum Relocation {
+    /// Nothing yet: it has not been held long enough, or it is not held.
+    Stay,
+    /// Already on its way to other ground: leave its move alone.
+    Driving,
+    /// Drive to this ground.
+    To([f64; 2]),
 }
 
 #[derive(Clone, Debug)]
@@ -77,6 +98,7 @@ impl Default for BalancedDoctrine {
             response_delay_ticks: None,
             random: contract::random::Rng::new(0),
             sightings: BTreeMap::new(),
+            held: BTreeMap::new(),
         }
     }
 }
@@ -97,6 +119,61 @@ impl BalancedDoctrine {
 
     pub fn pivot_count(&self) -> u32 {
         self.pivot_count
+    }
+
+    /// A unit its own cover keeps from firing (`BlockedTrajectory` on a
+    /// weapon at every decision while it stands, for
+    /// `launch.relocate_after_s`) is driven to other ground
+    /// `launch.relocate_m` off, as a player would move it: the first of
+    /// eight bearings a route reaches, starting from its heading, one
+    /// bearing further round for each earlier move. Arriving, it is watched
+    /// afresh, and moved again if it is still held.
+    fn relocation(
+        &mut self,
+        unit: &contract::observation::OwnUnit,
+        tick: Tick,
+        rules: &Rules,
+        route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
+    ) -> Relocation {
+        let held = self.held.entry(unit.id).or_default();
+        if held.driving {
+            // A route that failed on the way ends the move as arriving does.
+            if unit.goal.is_some() && unit.state != contract::observation::MoveState::RouteBlocked {
+                return Relocation::Driving;
+            }
+            held.driving = false;
+        }
+        let blocked = unit.state == contract::observation::MoveState::Idle
+            && unit
+                .mounts
+                .iter()
+                .any(|m| m.reason == contract::observation::ActionReason::BlockedTrajectory);
+        if !blocked {
+            held.since = None;
+            return Relocation::Stay;
+        }
+        let since = *held.since.get_or_insert(tick);
+        let after = (rules.launch.relocate_after_s * f64::from(rules.tick_hz)) as Tick;
+        if tick.saturating_sub(since) < after {
+            return Relocation::Stay;
+        }
+        let step = std::f64::consts::FRAC_PI_4;
+        let goal = (0..8)
+            .map(|k| unit.yaw + step * (held.moves + k) as f64)
+            .map(|bearing| {
+                [
+                    unit.position[0] + libm::cos(bearing) * rules.launch.relocate_m,
+                    unit.position[1] + libm::sin(bearing) * rules.launch.relocate_m,
+                ]
+            })
+            .find(|&goal| route_time(unit.id, goal).is_some_and(|t| t.is_finite() && t >= 0.0));
+        let Some(goal) = goal else {
+            return Relocation::Stay;
+        };
+        held.since = None;
+        held.moves += 1;
+        held.driving = true;
+        Relocation::To(goal)
     }
 
     fn update_doctrine(&mut self, frame: &ObservationFrame, rules: &Rules, draw_unit: f64) {
@@ -204,6 +281,8 @@ impl BalancedDoctrine {
         self.next_decision = frame.tick.saturating_add(5 * u64::from(rules.tick_hz));
         self.update_doctrine(frame, rules, draw_unit);
         self.assigned
+            .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
+        self.held
             .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
         self.jet_targets.retain(|id, target| {
             frame.own.iter().any(|u| u.id == *id)
@@ -466,6 +545,21 @@ impl BalancedDoctrine {
             for unit in &own {
                 if rules.catalog.get(unit.kind).has_role("logistics") {
                     continue;
+                }
+                match self.relocation(unit, frame.tick, rules, route_time) {
+                    Relocation::Stay => {}
+                    Relocation::Driving => continue,
+                    Relocation::To(goal) => {
+                        orders.push(Order::Move {
+                            units: vec![unit.id],
+                            gesture: frame.tick,
+                            goal,
+                            route: contract::command::RoutePolicy::Fastest,
+                            direction: contract::command::MoveDirection::Forward,
+                            facing: None,
+                        });
+                        continue;
+                    }
                 }
                 if unit.engagement == contract::command::Engagement::FireAtWill {
                     let jet = rules.catalog.get(unit.kind).mobility.flight()

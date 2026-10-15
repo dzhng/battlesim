@@ -1287,3 +1287,94 @@ fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
         vec![ObservedTargetId(2)]
     );
 }
+
+/// A launcher its own cover holds is driven out by the AI that owns it, as
+/// a player would drive it out: a red mortar jeep standing behind a high
+/// wall is sent by the AI to shell the approach to an objective blue holds,
+/// over the wall, and holds for a clear launch path (`BlockedTrajectory`);
+/// a ground point is no target to close on, so nothing else moves it.
+/// After `launch.relocate_after_s` of that, the AI orders it about
+/// `launch.relocate_m` off, clear of the wall, and from there it fires. The
+/// policy reads the battle's own frames and its orders go through the
+/// ordinary admission, as the skirmish host plays it.
+#[test]
+fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
+    let mut rules = deck();
+    rules["weapons"]["test_launcher"] = json!({
+        "extends": "artillery_mortar", "speed_mps": 80, "range_m": 650,
+        "requires_clear_launch_path": true,
+    });
+    rules["service"]["round_costs"]["test_launcher"] = json!(1);
+    rules["launch"]["relocate_after_s"] = json!(10);
+    rules["launch"]["relocate_m"] = json!(90);
+    crate::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({
+            "roles": ["artillery"],
+            "mounts": [{ "id": "HMG", "weapons": ["test_launcher"] }],
+        }),
+    );
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "props": [{ "kind": "wall", "center": [400, 446], "yaw": 0,
+                "half_extents": [5.0, 0.5, 7.0] }] },
+        "rules": rules,
+        "units": [{ "side": "red", "kind": "test_jeep", "position": [400, 450], "yaw": -1.5707963267948966 }],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = crate::battle::Battle::new(&setup, 3);
+    let (_, empty, _) = empty_match();
+    let mut view = empty.skirmish.unwrap();
+    view.phase = Phase::Active;
+    view.credits = 0.0;
+    view.objectives[0].center = [400.0, 150.0];
+    view.objectives[0].owner = Some(Side::Blue);
+    let entry = entry_from([400.0, 590.0]);
+    let mut ai = BalancedDoctrine::new(3);
+    let mut seq = 0;
+    let jeep = UnitId(0);
+    let start = battle.unit(jeep).unwrap().position;
+    let mut held = false;
+    let mut fired_from = None;
+    for _ in 0..120 * battle.rules().tick_hz {
+        let mut frame = battle.observe(Side::Red).clone();
+        frame.skirmish = Some(view.clone());
+        let rules = battle.rules().clone();
+        let orders = ai.decide(
+            Side::Red,
+            Faction::Us,
+            &entry,
+            &frame,
+            &rules,
+            |id, goal| battle.route_time(Side::Red, id, goal),
+        );
+        for order in orders {
+            seq += 1;
+            let ack = battle.accept(contract::command::CommandEnvelope {
+                side: Side::Red,
+                slot: None,
+                seq,
+                order,
+                queued: false,
+            });
+            assert_eq!(ack.error, None, "the AI's order {seq} was refused");
+        }
+        battle.step();
+        let shown = battle.observe(Side::Red).own[0].mounts[0].reason;
+        held |= shown == contract::observation::ActionReason::BlockedTrajectory;
+        if battle.rounds().any(|(_, r)| r.unit == jeep) {
+            fired_from = Some(battle.unit(jeep).unwrap().position);
+            break;
+        }
+    }
+    assert!(held, "the launcher was never held by the wall");
+    let at = fired_from.expect("the launcher never fired");
+    let moved = (at - start).xy().length();
+    assert!(
+        (70.0..=110.0).contains(&moved),
+        "it fired {moved:.0} m from where it was held"
+    );
+}
