@@ -758,8 +758,7 @@
         }
       },
       "sensors": {
-        "low_air_m": 3200,
-        "high_air_m": 3200
+        "low_air_m": 3200
       },
       "capabilities": {
         "air_defense": {
@@ -767,7 +766,7 @@
         },
         "radar": {
           "emits": true,
-          "detection_m": 7000
+          "detection_m": 3200
         }
       },
       "mounts": [
@@ -1670,8 +1669,7 @@
         }
       },
       "sensors": {
-        "low_air_m": 3200,
-        "high_air_m": 3200
+        "low_air_m": 3200
       },
       "capabilities": {
         "air_defense": {
@@ -1679,7 +1677,7 @@
         },
         "radar": {
           "emits": true,
-          "detection_m": 7000
+          "detection_m": 3200
         }
       },
       "mounts": [

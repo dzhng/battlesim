@@ -372,3 +372,36 @@ fn a_sead_jet_finds_the_gepard_by_its_radar_but_not_a_silent_skyranger() {
         "a silent short-range gun is not"
     );
 }
+
+#[test]
+fn an_emitting_radar_sees_high_air_out_to_its_detection_range() {
+    // Emitting is the cost of a radar; its reach is the payoff. The Gepard's
+    // radar picks up a jet 2 km out that its optics never would.
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let gepard = rules
+        .catalog
+        .get(rules.catalog.index("europe_gepard_1a2").unwrap());
+    let radar = gepard.capabilities.radar.unwrap();
+    assert!(radar.emits);
+    let out_m = 0.65 * radar.detection_m;
+    assert!(out_m > 1500.0, "the radar reaches past the gun's 1.5 km");
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [4000, 1000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": sim::fixtures::game(),
+        "units": [
+            { "side": "blue", "kind": "europe_gepard_1a2", "position": [200, 500], "yaw": 0.0 },
+            { "side": "red", "kind": "f_16c_block_50", "position": [200.0 + out_m, 500.0],
+              "yaw": 0.0, "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    b.step();
+    b.step();
+    assert_eq!(
+        b.observe(Side::Blue).identified.len(),
+        1,
+        "the jet {out_m:.0} m out is on the Gepard's radar"
+    );
+}

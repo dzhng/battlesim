@@ -72,6 +72,14 @@ export const airborne = (type: Pick<UnitType, "mobility">): boolean => "air" in 
 export const highAir = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.layer === "high_air";
 
+/** How far a type sees the high-air layer: an emitting radar's reach, else
+ *  its own high-air sight, else its ground sight (the simulation's
+ *  `UnitType::high_air_sight_m`). */
+export const highAirSight = (type: Pick<UnitType, "sensors" | "capabilities">): number =>
+  type.capabilities.radar?.emits
+    ? type.capabilities.radar.detection_m
+    : type.sensors.high_air_m || type.sensors.ground_m;
+
 /** A type's altitude layer, as the simulation names it. */
 export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" | "high_air" =>
   "air" in type.mobility ? (highAir(type) ? "high_air" : "low_air") : "ground";

@@ -963,3 +963,31 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
         want.iter().map(|(id, c)| (*id, c)).collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn an_emitting_radar_is_the_units_high_air_sight() {
+    let mut site = base_tank();
+    site["abstract"] = json!(false);
+    site["capabilities"] = json!({ "radar": { "emits": true, "detection_m": 3200 } });
+    let mut silent = site.clone();
+    silent["capabilities"]["radar"] = json!({ "emits": false, "detection_m": 0 });
+    silent["sensors"]["high_air_m"] = json!(900);
+    let catalog = resolve(&units(json!({ "site": site.clone(), "silent": silent }))).unwrap();
+    assert_eq!(
+        catalog.by_id("site").high_air_sight_m(),
+        3200.0,
+        "the radar's reach"
+    );
+    assert_eq!(
+        catalog.by_id("silent").high_air_sight_m(),
+        900.0,
+        "its own optics"
+    );
+
+    // One owner: an emitter never also authors a high-air sensor reach.
+    site["sensors"]["high_air_m"] = json!(900);
+    let error = resolve(&units(json!({ "site": site })))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("high_air_m"), "{error}");
+}

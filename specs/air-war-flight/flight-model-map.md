@@ -37,6 +37,7 @@ The four-quadrant map from an explore-unknowns walk with the user. [Slice 20](sl
 | D44 | **Closeout proof stays lean.** Extend `every_loadout_flies_a_pass` so every fixed-wing row also arrives and withdraws on low fuel; no new test file or scene. Record three AI-vs-AI skirmishes, one per faction pair, as GIFs in the scratch folder. | The user just deleted duplicate verify scenes. | user (A) |
 | D45 | **The AI follows the same arrival rules as a player.** No special timing logic. | One rule for both. | user |
 | D46 | **"Done"** is slice 19 as written, ending with the full `verify` run. | | user |
+| D47 | **An emitting radar is the unit's high-air sight.** `capabilities.radar.detection_m` is how far it sees high air, and an emitter never also authors `sensors.high_air_m`. Every emitter's reach was set to its old high-air sight; the Gepard's search radar gives it 3,200 m. | Emitting is what a radar costs (SEAD jets find it); seeing far is what it buys. | user |
 
 **Settled unless the user objects:**
 - At the edge, an aircraft heads toward its destination if that points into the map; otherwise it heads straight in.

@@ -115,14 +115,14 @@
         "family_name": "Us Medium SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
+      "sensors": { "low_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
         },
         "radar": {
           "emits": true,
-          "detection_m": 7000
+          "detection_m": 3200
         }
       },
       "mounts": [
@@ -200,7 +200,7 @@
         "family_name": "Us Long SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
+      "sensors": { "low_air_m": 1800 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -370,14 +370,14 @@
         "family_name": "Europe Medium SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
+      "sensors": { "low_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
         },
         "radar": {
           "emits": true,
-          "detection_m": 7000
+          "detection_m": 3200
         }
       },
       "mounts": [
@@ -455,7 +455,7 @@
         "family_name": "Europe Long SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
+      "sensors": { "low_air_m": 1800 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -625,14 +625,14 @@
         "family_name": "Eastern Medium SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
+      "sensors": { "low_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
         },
         "radar": {
           "emits": true,
-          "detection_m": 7000
+          "detection_m": 3200
         }
       },
       "mounts": [
@@ -710,7 +710,7 @@
         "family_name": "Eastern Long SAM"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
+      "sensors": { "low_air_m": 1800 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -795,7 +795,7 @@
         "family_name": "Patriot PAC-3"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
+      "sensors": { "low_air_m": 1800 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -880,14 +880,14 @@
         "family_name": "NASAMS 3"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
+      "sensors": { "low_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
         },
         "radar": {
           "emits": true,
-          "detection_m": 7000
+          "detection_m": 3200
         }
       },
       "mounts": [
@@ -965,14 +965,14 @@
         "family_name": "IRIS-T SLM"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 3200, "high_air_m": 3200 },
+      "sensors": { "low_air_m": 3200 },
       "capabilities": {
         "air_defense": {
           "tier": "medium"
         },
         "radar": {
           "emits": true,
-          "detection_m": 7000
+          "detection_m": 3200
         }
       },
       "mounts": [
@@ -1050,7 +1050,7 @@
         "family_name": "NASAMS 3 Long"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
+      "sensors": { "low_air_m": 1800 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -1135,7 +1135,7 @@
         "family_name": "S-300V4"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
+      "sensors": { "low_air_m": 1800 },
       "capabilities": {
         "air_defense": {
           "tier": "long"
@@ -1220,7 +1220,7 @@
         "family_name": "S-350"
       },
       "extends": "roster_profile_wheeled_ifv",
-      "sensors": { "low_air_m": 1800, "high_air_m": 7000 },
+      "sensors": { "low_air_m": 1800 },
       "capabilities": {
         "air_defense": {
           "tier": "long"

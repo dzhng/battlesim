@@ -5,6 +5,7 @@ import {
   AIR_ROLES,
   airRole,
   FACTIONS,
+  highAirSight,
   layerOf,
   type AirRole,
 } from "@packages/scene-assets/src/units";
@@ -317,7 +318,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
   const fields: [string, string][] = [
     ["layer", layerOf(t)],
     ["flight", "air" in t.mobility ? t.mobility.air.flight : "—"],
-    ["sensors", `${sensors.ground_m}/${sensors.low_air_m ?? 0}/${sensors.high_air_m ?? 0}`],
+    ["sensors", `${sensors.ground_m}/${sensors.low_air_m ?? 0}/${highAirSight(t)}`],
     ["fuel", caps.air ? String(caps.air.fuel_capacity_s) : "—"],
     ["flares", caps.air?.flares ? `${caps.air.flares.capacity}/${caps.air.flares.reload_s}` : "—"],
     ["aa_tier", caps.air_defense?.tier ?? "—"],

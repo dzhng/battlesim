@@ -325,7 +325,9 @@ pub struct Sensors {
     #[serde(default)]
     pub low_air_m: f64,
     /// Detection reach for the high-air band. Zero means this sensor does not
-    /// author an air reach (legacy ground rows leave it absent).
+    /// author an air reach (legacy ground rows leave it absent). A unit whose
+    /// radar emits never authors it: the radar's reach is its high-air sight
+    /// ([`UnitType::high_air_sight_m`]).
     #[serde(default)]
     pub high_air_m: f64,
     /// Reach by direction as multipliers of `ground_m`; 1/1/1 sees evenly.
@@ -935,6 +937,17 @@ impl Catalog {
 }
 
 impl UnitType {
+    /// How far the unit sees the high-air band: an emitting radar's reach,
+    /// since emitting is what a radar costs and seeing far is what it buys;
+    /// else its authored high-air sight; else its ground sight.
+    pub fn high_air_sight_m(&self) -> f64 {
+        match self.capabilities.radar {
+            Some(radar) if radar.emits => radar.detection_m,
+            _ if self.sensors.high_air_m > 0.0 => self.sensors.high_air_m,
+            _ => self.sensors.ground_m,
+        }
+    }
+
     /// A vehicle: it has a hull.
     pub fn hull(&self) -> Option<&Hull> {
         match &self.body {
@@ -1783,6 +1796,11 @@ fn check(
     if let Some(radar) = t.capabilities.radar {
         if radar.emits && !positive(radar.detection_m) {
             return rule("capabilities.radar detection_m must be positive when it emits");
+        }
+        if radar.emits && t.sensors.high_air_m > 0.0 {
+            return rule(
+                "sensors.high_air_m: a unit whose radar emits sees high air by its radar's detection_m; drop the sensor reach",
+            );
         }
         if !at_least_zero(radar.detection_m) {
             return rule("capabilities.radar detection_m must be finite and nonnegative");

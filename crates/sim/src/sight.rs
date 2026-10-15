@@ -86,13 +86,7 @@ pub fn of_layer(unit: &Unit, rules: &Rules, layer: AltitudeLayer) -> Sight {
                 sensors.ground_m
             }
         }
-        AltitudeLayer::HighAir => {
-            if sensors.high_air_m > 0.0 {
-                sensors.high_air_m
-            } else {
-                sensors.ground_m
-            }
-        }
+        AltitudeLayer::HighAir => unit.unit_type(rules).high_air_sight_m(),
     };
     Sight {
         forward: unit.sight_forward,

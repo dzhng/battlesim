@@ -33,10 +33,10 @@ fn high_air_fixture() -> Value {
         "units",
         "test_jeep",
         json!({
-            "sensors": { "ground_m": 1000, "low_air_m": 3000, "high_air_m": 3000 },
+            "sensors": { "ground_m": 1000, "low_air_m": 3000 },
             "capabilities": {
                 "air_defense": { "tier": "short" },
-                "radar": { "emits": true, "detection_m": 1200 }
+                "radar": { "emits": true, "detection_m": 3000 }
             },
             "mounts": [{
                 "id": "AA", "name": "AA", "weapons": ["aa_ballistic"],
