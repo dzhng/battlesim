@@ -480,11 +480,11 @@
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 6px rgb(var(--tone) / calc(0.7 * var(--hud-callout-glow)));
 }
-.ro-name-icon svg {
-  width: 10px;
-  height: 10px;
-  margin-right: 3px;
-  vertical-align: -1px;
+/* An unidentified report's mark stands in the rows' icon slot, and its word
+   starts where theirs do (the slot's margin and the rows' gap). The slot
+   overhangs the line, so a marked name is as tall as a plain one. */
+.ro-name > .ro-mark {
+  margin: -3px 7px -3px 2px;
 }
 .ro-status-icons {
   display: inline-flex;

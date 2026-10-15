@@ -214,7 +214,7 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   return (
     <div className="ro-body" data-zoom={zoom}>
       <span className="ro-name">
-        {panel.mark && <Icon path={panel.mark} className="ro-name-icon" />}
+        {panel.mark && <Mark icon={panel.mark} timer={null} className="ro-state-mark" />}
         <span className="ro-name-word">{panel.name}</span>
         {statusIcons.length > 0 && (
           <span className="ro-status-icons" aria-label="unit status">

@@ -673,19 +673,27 @@ async function sheet(args) {
  *  `assets/source/roster/infantry/<kit>/`), or why there is no panel. */
 /** A source's reference family: its roster folder, or for a disabled card
  *  (`assets/source/roster/disabled/`) its manifest entry's `source_family`,
- *  or, for a card promoted onto the roster bar, its roster unit's `family`. */
+ *  else the library its family's receipt names (an enabled jet has no
+ *  manifest entry). */
 function referenceFamily(source) {
   const folder = source?.match(/^assets\/source\/roster\/(?:infantry\/)?([^/]+)\//)?.[1];
   if (folder !== "disabled") return folder;
-  const live = source.replace(/_wreck\.glb$/, ".glb");
+  const body = source.replace(/_wreck\.glb$/, ".glb");
   const manifest = readJson(join(ROOT, "fixtures/units/model-manifest.json"));
-  const entry = manifest.entries.find((e) => e.source_path === live);
+  const entry = manifest.entries.find((e) => e.source_path === body);
   if (entry) return entry.source_family;
-  const look = Object.entries(catalog().appearances).find(([, a]) => a.source === live)?.[0];
-  const rosters = join(ROOT, "fixtures/units/roster");
-  for (const file of readdirSync(rosters).filter((f) => f.endsWith(".json")))
-    for (const unit of Object.values(readJson(join(rosters, file)).units ?? {}))
-      if (look && unit.appearance === look) return unit.family;
+  const dir = join(ROOT, "assets/source/roster/disabled");
+  const id = basename(body, ".glb");
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".source-receipt.json"))) {
+    let receipt;
+    try {
+      receipt = readJson(join(dir, file));
+    } catch {
+      continue; // an unpulled LFS pointer
+    }
+    if (receipt.variants?.some((v) => v.id === id))
+      return receipt.references?.[0]?.match(/^assets\/references\/([^/]+)\//)?.[1];
+  }
 }
 
 function referenceRows(source, variant) {

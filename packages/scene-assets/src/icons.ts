@@ -108,15 +108,19 @@ const STATE_ICONS = {
   afterburner:
     '<path d="M12 2c4 5 6 8 6 12a6 6 0 0 1-12 0c0-4 2-7 6-12z"/><path d="M12 12c1.5 2 2.5 3.5 2.5 5a2.5 2.5 0 0 1-5 0c0-1.5 1-3 2.5-5z"/>',
   traversing: '<path d="M4 12h14M13 7l5 5-5 5"/><path d="M4 5v14"/>',
-  // Two solid jet chevrons meeting nose to nose: the merge. At panel size
-  // line marks read as letters (a zigzag as "2", crossed arrows as "X"), and
-  // two whole aircraft silhouettes blur into one shape.
+  // A fighter on an enemy's tail, as a gun camera sees it: the near plane
+  // large, the one it chases small, ahead and clear of its nose, each a
+  // solid plan view with its wings. At panel size two planes of one size
+  // blur into one smudge or read as sort arrows, and two chevrons nose to
+  // nose read as a bow tie.
   dogfight:
-    '<path d="M11 12L2 5l2.5 7L2 19z" fill="currentColor"/><path d="M13 12l9-7-2.5 7 2.5 7z" fill="currentColor"/>',
-  // A radar dish sending its waves (a dial with hands read as a clock, and
-  // a sweep wedge blurred at panel size).
+    '<path d="M13.1 10.9L9.5 12.4 3.4 10.4 1.4 12.4 5.5 16.5 3.7 18.3 1.1 17.3-.1 18.5 2.9 21.1 5.5 24.1 6.7 22.9 5.7 20.3 7.5 18.5 11.6 22.6 13.6 20.6 11.6 14.5z" fill="currentColor" stroke-width="1.2"/>' +
+    '<path d="M22.5 1.5L19 3.2 15.1 1.5 13.8 2.8 16.8 5.4 13.3 6.3 15.1 8.9 17.7 10.7 18.6 7.2 21.2 10.2 22.5 8.9 20.8 5z" fill="currentColor" stroke-width="1.2"/>',
+  // A radar dish sending its wave: one wide bowl, its feed, and one arc
+  // clear of both (a dial with hands read as a clock, a sweep wedge
+  // blurred, and a small bowl with two close waves read as a blob).
   radar:
-    '<path d="M4 8a10 10 0 0 0 12 12z" fill="currentColor"/><path d="M10 14l5-5"/><path d="M16 5a3 3 0 0 1 3 3"/><path d="M16 1.5a6.5 6.5 0 0 1 6.5 6.5"/>',
+    '<path d="M2 8a9.2 9.2 0 0 0 13 13z" fill="currentColor"/><path d="M8.5 14.5l6-6"/><path d="M14.5 1.5a7 7 0 0 1 7 7"/>',
   // Twin decoys shed from one point, their trails bending apart as they
   // fall, each ending in its burning head.
   flares:

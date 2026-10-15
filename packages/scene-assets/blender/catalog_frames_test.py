@@ -125,6 +125,9 @@ class DisabledFramesTest(unittest.TestCase):
         (self.repo / "fixtures/units/model-manifest.json").write_text(json.dumps(dict(entries=entries)))
         cards = dict(units=dict(tank_x=dict(name="Tank X", faction="eastern")))
         (self.repo / "fixtures/units/roster/cards.json").write_text(json.dumps(cards))
+        (self.repo / "fixtures/catalog.json").write_text(json.dumps(dict(units=[])))
+        (self.repo / "assets").mkdir()
+        (self.repo / "assets/catalog.json").write_text(json.dumps(dict(appearances={})))
 
     def test_a_card_takes_the_frame_its_exporter_states(self):
         v = disabled_variant("tank_x", [8.0, 3.4, 3.0], repo=self.repo)
@@ -134,25 +137,21 @@ class DisabledFramesTest(unittest.TestCase):
         self.assertEqual(v["frame_source"], "references")
         self.assertEqual((v["faction"], v["export"]), ("eastern", "assets/source/roster/disabled/tank_x.glb"))
 
-    def test_a_promoted_card_keeps_its_art_where_its_appearance_names_it(self):
-        # A card promoted onto the roster bar leaves the manifest; its art is
-        # still built to the frame its exporter states, written where its
-        # appearance's source is.
-        cards = dict(units=dict(tank_x=dict(name="Tank X", faction="eastern"),
-                                jet_y=dict(name="Jet Y", faction="us", family="jet_family",
-                                           roster=dict(category="air"), appearance="jet_y")))
-        (self.repo / "fixtures/units/roster/cards.json").write_text(json.dumps(cards))
-        (self.repo / "assets").mkdir()
-        looks = dict(jet_y=dict(source="assets/source/roster/disabled/jet_y.glb"))
-        (self.repo / "assets/catalog.json").write_text(json.dumps(dict(appearances=looks)))
-        v = disabled_variant("jet_y", [15.0, 10.0, 4.9], repo=self.repo)
-        self.assertEqual(v["frame"]["body_dimensions_m"], [15.0, 10.0, 4.9])
-        self.assertEqual((v["faction"], v["category"], v["export"], v["family"]),
-                         ("us", "air", "assets/source/roster/disabled/jet_y.glb", "jet_family"))
-
     def test_a_card_the_manifest_lacks_is_refused_by_name(self):
         with self.assertRaisesRegex(LookupError, "nope"):
             disabled_variant("nope", [1.0, 1.0, 1.0], repo=self.repo)
+
+    def test_an_enabled_card_takes_its_unit_types_frame(self):
+        # A card promoted to a unit type leaves the manifest; its unit's hull is its frame.
+        (self.repo / "fixtures/catalog.json").write_text(json.dumps(dict(
+            units=[unit("jet_y", "jet_y", [8.0, 5.5, 2.6], 2.0, [GUN])])))
+        (self.repo / "assets/catalog.json").write_text(json.dumps(dict(appearances=dict(
+            jet_y=dict(source="assets/source/roster/disabled/jet_y.glb")))))
+        v = disabled_variant("jet_y", [15.9, 10.9, 5.3], repo=self.repo)
+        self.assertEqual(v["frame"]["body_dimensions_m"], [16.0, 11.0, 5.2])
+        self.assertEqual(v["frame_source"], "catalog")
+        self.assertEqual([m["role"] for m in v["frame"]["mounts"]], [None])
+        self.assertEqual(v["export"], "assets/source/roster/disabled/jet_y.glb")
 
 
 if __name__ == "__main__":

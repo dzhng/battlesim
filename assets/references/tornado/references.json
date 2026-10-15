@@ -65,10 +65,88 @@
    "licence": "CC-BY-2.0",
    "sha256": "c12b9352626131ba2a2946d7e32ddc79ef661ee39414cc30e6248708f32e2a23",
    "note": "Tornado ECR rear three-quarter taking off: twin RB199 nozzles, thrust-reverser buckets, tailerons"
+  },
+  {
+   "file": "europe_tornado_ids-front.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:2007,_front,_Germany,_Kleine-Brogel,_Tornado_IDS_-_1020280_(54041944056).jpg",
+   "author": "Jim van de Burgt from Wijk bij Duurstede, Netherlands",
+   "licence": "CC0-1.0",
+   "sha256": "bb4b193cd9785d8491c84ff96593282ef5288672730bdc3e55304644e0045eb6",
+   "note": "Tornado IDS (Luftwaffe) head-on, parked at Kleine-Brogel: the tall fin over the tandem canopy, the box intakes either side of the radome, wings spread with tanks on the swivel pylons, the shoulder pylons, gear track; resized to 1600 px"
+  },
+  {
+   "file": "europe_tornado_ids-three_quarter_rear.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Panavia_Tornado_IDS_44%2B97_Einsatzgeschwader_Mazar-i-Sharif_LSideRear_DMFO_10June2013_(14400435077).jpg",
+   "author": "Valder137",
+   "licence": "CC-BY-2.0",
+   "sha256": "b60f750953f0f86c55566dccf5b64875c40447e01a66f35142681b845fe91d00",
+   "note": "Tornado IDS 44+97 (museum, Oberschleissheim) left rear three-quarter with its wings fully swept: the fin and its root fairing, the reverser buckets, the taileron, a tank under the fuselage"
+  },
+  {
+   "file": "europe_tornado_ids-rear.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Fliegerhorst_B%C3%BCchel_-_Tornado_rear_view.jpg",
+   "author": "Neuwieser",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "e09054abc3a5a9fbcbd6083e0a2fd041f0f28f9f5f91f01e9a2bd2bca85f1186",
+   "note": "Tornado IDS at Büchel straight from behind, close: the two RB199 nozzles side by side with the reverser buckets around them, the fin's base between them, the main gear track"
+  },
+  {
+   "file": "europe_tornado_ids-top.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "top",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:A_Royal_Air_Force_(RAF)_Voyager_KC3_ZZ334_refuels_two_RAF_Tornado_GR4_during_Operation_Shader,_4_March_2015,_over_Iraq_(cropped).jpg",
+   "author": "U.S. Air Force photo by Staff Sgt. Perry Aston",
+   "licence": "public-domain",
+   "sha256": "b0314969234c9f32248a516db4e2483c528c938c77b26e26e5d8848510e4e2b3",
+   "note": "An RAF Tornado GR4 (the RAF's IDS) from above and behind as it refuels, cropped from the lower one of the pair: the planform at mid sweep, the gloves, the tailerons, big tanks under the wings. Small and oblique; for the wing and taileron layout only"
+  },
+  {
+   "file": "europe_tornado_ids-top-generated.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "top",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "4f4683b2073071d9555a8a7bd3c2ef450cbff1bcce77ce2225108fc743a75a29",
+   "note": "Generated planform: layout and proportions only (wings at 25 degrees outboard of the gloves, the taileron's span and sweep against the wing, the intakes' boxes beside the cockpit, the tanks on the swivel pylons). The fin is drawn lying flat to the left, which is wrong: it stands upright on the centreline. The gateway ignored the seed, so it does not reproduce. Its input is the GR4 photo beside it.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "German Air Force Panavia Tornado IDS strike aircraft, exact top-down planform view from directly above, nose pointing right, on plain light grey ground, photographic reference. Swing wings spread at 25 degrees sweep outboard of the fixed triangular wing gloves, long slim fuselage with the pointed black radome, tandem two-seat canopy, the box-shaped intakes either side behind the cockpit, the very tall swept fin seen edge-on along the centreline, all-moving tailerons swept back either side of the twin engine tail, two drop tanks on the swivelling wing pylons, Luftwaffe light grey paint with Iron Cross on each wing. Whole aircraft in frame, symmetrical, no shadows across it, no people, no text.",
+   "inputs": [
+    "europe_tornado_ids-top.jpg"
+   ],
+   "seed": 2401
+  },
+  {
+   "file": "europe_tornado_ids-three_quarter_rear-generated.jpg",
+   "variant": "europe_tornado_ids",
+   "view": "three_quarter_rear",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "33499d69eebba2f14c7bfb8d01a3b5c4ec3f307fe8863c7e83ea4244b0895687",
+   "note": "Generated rear three-quarter with the wings spread as parked: layout and proportions only (the fin's height and root fairing against the body, the tailerons, the two nozzles, the gear stations). Its tanks sit on the wing pylons; its reverser buckets are only hinted. The gateway ignored the seed, so it does not reproduce. Its input is the museum photo beside it.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "German Air Force Panavia Tornado IDS strike aircraft parked on a concrete apron in daylight, three-quarter rear view from the left at eye height, photographic reference. Swing wings spread at 25 degrees sweep with two drop tanks on the swivelling pylons, the very tall swept fin with its root fairing, all-moving tailerons with anhedral either side, two RB199 engine nozzles side by side with the thrust-reverser buckets stowed above them, the long slim fuselage running forward to the tandem two-seat canopy and the black radome, the box intakes behind the cockpit, main gear under the wing gloves, Luftwaffe light grey. Whole aircraft in frame, no people, no text.",
+   "inputs": [
+    "europe_tornado_ids-three_quarter_rear.jpg"
+   ],
+   "seed": 2402
   }
  ],
  "gaps": [
-  "europe_tornado_ids: no rear view (the ECR's serves)",
+  "europe_tornado_ids: the only real top view is a small oblique GR4 from a tanker at mid sweep; the generated planform at 25 degrees settles the layout but draws the fin lying flat",
   "europe_tornado_ecr: no top view; wings drawn at the 25-degree spread they park and taxi at",
   "europe_tornado_ids: dimensions 16.72 x 13.91 x 5.95 m (span at 25 degrees sweep) as cited by https://en.wikipedia.org/wiki/Panavia_Tornado (Frédriksen 2001; Richardson 1986): match",
   "europe_tornado_ecr: dimensions 16.72 x 13.91 x 5.95 m (span at 25 degrees sweep) as cited by https://en.wikipedia.org/wiki/Panavia_Tornado (the ECR keeps the IDS airframe): match"
