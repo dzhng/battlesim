@@ -20,6 +20,7 @@ import {
 } from "@web/battle/present/panelRows";
 import { REASON_MARK, type PanelOwner, type PanelZoom } from "@web/battle/present/infoPanel";
 import type { MountView, OwnUnitView } from "@web/battle/sim/observationView";
+import { UnitCatalog } from "@packages/scene-assets/src/units";
 
 export interface Specimen {
   /** Unique; the scene's key. */
@@ -418,7 +419,20 @@ export function panelSpecimens(
       flares: { charges: 0, cooldown: 0.25 },
     }),
   );
-  // What a SEAD aircraft's radar warning shows of an emitter: the warning
+  // A type that carries a radar receiver says so, as a lasting row; no
+  // stand-in carries one, so the jeep's type is given one here.
+  const view = catalog.units.view;
+  const receiving = new UnitCatalog({
+    ...view,
+    units: view.units.map((t) =>
+      t.id === "test_jeep"
+        ? { ...t, capabilities: { ...t.capabilities, radar_receiver: { range_m: 5000 } } }
+        : t,
+    ),
+  });
+  const receiver = specimenUnit(catalog, "test_jeep");
+  add(a, "finds radars", ownPanel(receiving, receiver, [receiver], rules));
+  // What a radar receiver shows of an emitter: the warning
   // alone, and with the bearing and range it measured.
   const radar = (bearingDeg: number | null, rangeM: number | null) =>
     contactPanel(

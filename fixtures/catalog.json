@@ -7610,8 +7610,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 340,
@@ -7747,8 +7746,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 490,
@@ -8421,8 +8419,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 280,
@@ -8579,8 +8576,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 350,
@@ -9325,8 +9321,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 270,
@@ -9462,8 +9457,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 480,
@@ -9620,8 +9614,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 310,
@@ -9753,16 +9746,14 @@
                 "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 5000.0,
-                "emits": false
-              },
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": true
+              }
+            },
+            "radar_receiver": {
+              "range_m": 5000.0
             }
           },
           "cost": 370,
@@ -9898,8 +9889,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 390,
@@ -10056,8 +10046,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 410,
@@ -13317,8 +13306,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 410,
@@ -13738,8 +13726,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 350,
@@ -14747,8 +14734,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 290,
@@ -15302,8 +15288,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 420,
@@ -15547,16 +15532,14 @@
                 "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 5000.0,
-                "emits": false
-              },
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": true
+              }
+            },
+            "radar_receiver": {
+              "range_m": 5000.0
             }
           },
           "cost": 340,
@@ -15692,8 +15675,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 310,
@@ -16013,8 +15995,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 350,
@@ -16172,8 +16153,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 470,
@@ -16481,8 +16461,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 300,
@@ -17266,16 +17245,14 @@
                 "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 5000.0,
-                "emits": false
-              },
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": true
+              }
+            },
+            "radar_receiver": {
+              "range_m": 5000.0
             }
           },
           "cost": 380,
@@ -17411,8 +17388,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 400,
@@ -17569,8 +17545,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 430,
@@ -17706,8 +17681,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 500,
@@ -17843,8 +17817,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 490,
@@ -18001,8 +17974,7 @@
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
             }
           },
           "cost": 370,
@@ -26326,8 +26298,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 340,
@@ -26467,8 +26438,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 490,
@@ -27253,8 +27223,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 280,
@@ -27416,8 +27385,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 350,
@@ -28376,8 +28344,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 270,
@@ -28517,8 +28484,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 480,
@@ -28680,8 +28646,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 310,
@@ -28817,16 +28782,14 @@
             "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 5000.0,
-            "emits": false
-          },
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": true
+          }
+        },
+        "radar_receiver": {
+          "range_m": 5000.0
         }
       },
       "cost": 370,
@@ -28966,8 +28929,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 390,
@@ -29129,8 +29091,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 410,
@@ -32561,8 +32522,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 410,
@@ -32995,8 +32955,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 350,
@@ -34128,8 +34087,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 290,
@@ -34701,8 +34659,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 420,
@@ -34968,16 +34925,14 @@
             "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 5000.0,
-            "emits": false
-          },
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": true
+          }
+        },
+        "radar_receiver": {
+          "range_m": 5000.0
         }
       },
       "cost": 340,
@@ -35117,8 +35072,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 310,
@@ -35448,8 +35402,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 350,
@@ -35612,8 +35565,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 470,
@@ -36165,8 +36117,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 300,
@@ -37098,16 +37049,14 @@
             "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 5000.0,
-            "emits": false
-          },
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": true
+          }
+        },
+        "radar_receiver": {
+          "range_m": 5000.0
         }
       },
       "cost": 380,
@@ -37247,8 +37196,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 400,
@@ -37410,8 +37358,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 430,
@@ -37551,8 +37498,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 500,
@@ -37692,8 +37638,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 490,
@@ -37855,8 +37800,7 @@
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
         }
       },
       "cost": 370,

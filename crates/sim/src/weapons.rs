@@ -992,22 +992,9 @@ fn engage(
 /// Whether the unit's engagement policy allows firing at this target (W12–W13).
 fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
     match unit.engagement {
-        Engagement::FireAtWill => match target {
-            Target::Contact(c) => {
-                ctx.knowledge[unit.side.index()]
-                    .contact(c)
-                    .is_none_or(|contact| {
-                        contact.source != contract::observation::ContactSource::Radar
-                            || unit
-                                .unit_type(ctx.rules)
-                                .capabilities
-                                .air
-                                .as_ref()
-                                .is_some_and(|air| air.sead)
-                    })
-            }
-            _ => true,
-        },
+        // Which weapons fire at a radar contact is theirs to say
+        // (`anti_radiation`, [`preferred_kind`]).
+        Engagement::FireAtWill => true,
         Engagement::ReturnFireOnly => match target {
             Target::Unit(u) => unit.attackers.contains(&u),
             Target::Contact(c) => ctx.knowledge[unit.side.index()]

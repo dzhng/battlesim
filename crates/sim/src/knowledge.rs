@@ -286,31 +286,21 @@ impl SideKnowledge {
         identified
     }
 
-    /// Fold the radar-only evidence supplied by SEAD aircraft into this
-    /// side's knowledge. Radar is intentionally a separate sensor pass: it
-    /// has no terrain/foliage interaction and never identifies the emitter.
+    /// Fold what this side's radar receivers find into its knowledge: an
+    /// enemy radar that emits, within a receiver's reach. Radar is a
+    /// separate sensor pass: it has no terrain/foliage interaction and never
+    /// identifies the emitter.
     pub fn update_radar(&mut self, tick: Tick, side: Side, units: &[Unit], rules: &Rules) {
         let lifetime = (rules.sensors.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
-        let detectors: Vec<&Unit> = units
+        let receivers: Vec<(&Unit, f64)> = units
             .iter()
-            .filter(|u| {
-                u.side == side
-                    && u.alive()
-                    && u.layer() == AltitudeLayer::HighAir
-                    && u.unit_type(rules)
-                        .capabilities
-                        .air
-                        .as_ref()
-                        .is_some_and(|air| air.sead)
-                    && u.unit_type(rules)
-                        .capabilities
-                        .air
-                        .as_ref()
-                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
-                        .is_some_and(|(sead, radar)| sead && radar.detection_m > 0.0)
+            .filter(|u| u.side == side && u.alive())
+            .filter_map(|u| {
+                let receiver = u.unit_type(rules).capabilities.radar_receiver?;
+                Some((u, receiver.range_m))
             })
             .collect();
-        if detectors.is_empty() {
+        if receivers.is_empty() {
             return;
         }
         let emitters: Vec<UnitId> = units
@@ -329,22 +319,10 @@ impl SideKnowledge {
             .collect();
         for emitter_id in emitters {
             let emitter = &units[emitter_id.0 as usize];
-            let Some((detector, distance)) = detectors
-                .iter()
-                .map(|detector| {
-                    let distance = body_distance(emitter.position, detector.position);
-                    (detector, distance)
-                })
-                .find(|(detector, distance)| {
-                    detector
-                        .unit_type(rules)
-                        .capabilities
-                        .air
-                        .as_ref()
-                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
-                        .is_some_and(|(sead, radar)| sead && *distance <= radar.detection_m)
-                })
-            else {
+            let Some((detector, distance)) = receivers.iter().find_map(|&(detector, range_m)| {
+                let distance = body_distance(emitter.position, detector.position);
+                (distance <= range_m).then_some((detector, distance))
+            }) else {
                 continue;
             };
             let delta = emitter.position.xy() - detector.position.xy();
@@ -375,10 +353,9 @@ impl SideKnowledge {
                 emitter: emitter.id,
                 live: true,
             };
+            // The first receiver in unit order reports it; one report is
+            // enough for a shared team contact.
             self.new_contact(contact);
-            // Keep the detector selection stable in the deterministic unit
-            // ordering; one report is enough for a shared team contact.
-            let _ = detector;
         }
     }
 

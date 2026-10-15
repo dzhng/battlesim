@@ -342,7 +342,7 @@ function AirPanel({ kind, scenario }: { kind: "records" | "matrix"; scenario: st
 function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
   const t = catalog.units.type(id);
   const { sensors, capabilities: caps } = t;
-  const radar = caps.air?.radar ?? caps.radar;
+  const radar = caps.radar;
   const reach = airReach(t, catalog.weapons);
   const fields: [string, string][] = [
     ["layer", layerOf(t)],
@@ -355,7 +355,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
     ["flares", caps.air?.flares ? `${caps.air.flares.capacity}/${caps.air.flares.reload_s}` : "—"],
     ["air_reach", `${reach.low_air}/${reach.high_air}`],
     ["radar", radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—"],
-    ["sead", caps.air?.sead ? "yes" : "no"],
+    ["radar_receiver", caps.radar_receiver ? String(caps.radar_receiver.range_m) : "—"],
   ];
   const weapons = t.mounts.flatMap((m) => m.weapons);
   return (

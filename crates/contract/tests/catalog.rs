@@ -132,7 +132,7 @@ fn air_mobility_names_its_layer_and_its_flight_model() {
 }
 
 #[test]
-fn aircraft_capability_carries_air_ranges_flares_afterburner_radar_and_refund() {
+fn aircraft_capability_carries_air_ranges_flares_afterburner_and_refund() {
     let mut aircraft = base_tank();
     aircraft["abstract"] = json!(false);
     aircraft["mobility"] = json!({
@@ -146,7 +146,6 @@ fn aircraft_capability_carries_air_ranges_flares_afterburner_radar_and_refund() 
         "fuel_capacity_s": 180,
         "flares": { "capacity": 6, "reload_s": 18 },
         "afterburner": {},
-        "radar": { "emits": false, "detection_m": 0 },
         "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
     }});
     let catalog = resolve(&units(json!({ "aircraft": aircraft }))).unwrap();

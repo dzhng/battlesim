@@ -374,6 +374,17 @@ pub struct Capabilities {
     /// Radar emission/detection is separate from optical sensors.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radar: Option<RadarCapability>,
+    /// A radar warning receiver: it finds enemy radars that emit, by
+    /// bearing and range, never identifying them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radar_receiver: Option<RadarReceiver>,
+}
+
+/// How far a radar warning receiver finds an emitting radar.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RadarReceiver {
+    pub range_m: f64,
 }
 
 /// A radar's authored emission and detection contract.
@@ -434,11 +445,6 @@ pub struct AirCapability {
     pub flares: Option<FlareCapability>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub afterburner: Option<AfterburnerCapability>,
-    /// Anti-radiation mission capability; only these aircraft may engage radar contacts.
-    #[serde(default)]
-    pub sead: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub radar: Option<RadarCapability>,
     pub refund: RefundWeights,
 }
 
@@ -1766,14 +1772,6 @@ fn check(
                 );
             }
         }
-        if let Some(radar) = air.radar {
-            if radar.emits && !positive(radar.detection_m) {
-                return rule("capabilities.air.radar detection_m must be positive when it emits");
-            }
-            if !at_least_zero(radar.detection_m) {
-                return rule("capabilities.air.radar detection_m must be finite and nonnegative");
-            }
-        }
         let refund = air.refund;
         if ![refund.health, refund.ammunition, refund.fuel]
             .into_iter()
@@ -1792,6 +1790,12 @@ fn check(
         if rows.len() > 4 {
             return rule("an aircraft may carry at most four distinct weapon rows");
         }
+    }
+    if t.capabilities
+        .radar_receiver
+        .is_some_and(|receiver| !positive(receiver.range_m))
+    {
+        return rule("capabilities.radar_receiver range_m must be positive");
     }
     if let Some(radar) = t.capabilities.radar {
         if radar.emits && !positive(radar.detection_m) {

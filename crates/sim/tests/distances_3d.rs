@@ -164,8 +164,6 @@ fn interceptor_case(high: bool) -> Battle {
         json!({
             "capabilities": { "air": {
                 "fuel_capacity_s": 180,
-                "sead": true,
-                "radar": { "emits": false, "detection_m": 1200 },
                 "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
             }},
             "mounts": [{
@@ -235,14 +233,7 @@ fn radar_detection_range_is_3d() {
         "units",
         "test_heli",
         json!({
-            "capabilities": {
-                "air": {
-                    "fuel_capacity_s": 180,
-                    "sead": true,
-                    "radar": { "emits": false, "detection_m": 450 },
-                    "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
-                }
-            }
+            "capabilities": { "radar_receiver": { "range_m": 450 } }
         }),
     );
     sim::fixtures::patch_catalog(

@@ -184,7 +184,6 @@
             "reload_s": 3
           },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -313,7 +312,6 @@
             "reload_s": 3
           },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
