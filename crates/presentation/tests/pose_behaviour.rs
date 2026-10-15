@@ -374,7 +374,7 @@ fn a_diving_jet_pitches_nose_down() {
     let units = units_with(|v| {
         let mut jet = v["types"]["menu_us_tank"].clone();
         jet["airborne"] = true.into();
-        jet["layer"] = "high_air".into();
+        jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
         v["pose"]["attitude"]["fixed_wing"] = json!({
             "gain": 1,
@@ -409,7 +409,7 @@ fn a_climbing_jet_pitches_nose_up() {
     let units = units_with(|v| {
         let mut jet = v["types"]["menu_us_tank"].clone();
         jet["airborne"] = true.into();
-        jet["layer"] = "high_air".into();
+        jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
         v["pose"]["attitude"]["fixed_wing"] = json!({
             "gain": 1,
@@ -444,7 +444,7 @@ fn a_turning_jet_banks_into_the_turn() {
     let units = units_with(|v| {
         let mut jet = v["types"]["menu_us_tank"].clone();
         jet["airborne"] = true.into();
-        jet["layer"] = "high_air".into();
+        jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
         v["pose"]["attitude"]["fixed_wing"] = json!({
             "gain": 1,

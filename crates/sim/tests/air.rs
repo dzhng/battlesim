@@ -99,7 +99,7 @@ fn high_air_admission_uses_the_high_air_hull_limit() {
         "units",
         "test_heli",
         json!({
-            "mobility": { "air": { "layer": "high_air" } },
+            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "body": { "hull": { "half_extents_m": [10.0, 4.0, 1.6] } }
         }),
     );
@@ -117,6 +117,7 @@ fn authored_high_air_is_retained_in_runtime_layer() {
         .find(|doc| doc["units"].get("test_heli").is_some())
         .unwrap();
     doc["units"]["test_heli"]["mobility"]["air"]["layer"] = json!("high_air");
+    doc["units"]["test_heli"]["mobility"]["air"]["flight"] = json!("fixed_wing");
     let b = battle_with(
         &fixture,
         open_map(),
@@ -137,6 +138,7 @@ fn a_jet_spawns_at_the_jet_cruise_height() {
         .find(|doc| doc["units"].get("test_heli").is_some())
         .unwrap();
     doc["units"]["test_heli"]["mobility"]["air"]["layer"] = json!("high_air");
+    doc["units"]["test_heli"]["mobility"]["air"]["flight"] = json!("fixed_wing");
     let b = battle_with(
         &fixture,
         open_map(),
@@ -162,6 +164,7 @@ fn air_sensor_ranges_use_the_target_layer_without_extending_ground_vision() {
         .unwrap();
     let mut high = doc["units"]["test_heli"].clone();
     high["mobility"]["air"]["layer"] = json!("high_air");
+    high["mobility"]["air"]["flight"] = json!("fixed_wing");
     doc["units"]["test_high_air"] = high;
     sim::fixtures::patch_catalog(
         &mut fixture,
@@ -204,6 +207,7 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
         .unwrap();
     let mut high = doc["units"]["test_heli"].clone();
     high["mobility"]["air"]["layer"] = json!("high_air");
+    high["mobility"]["air"]["flight"] = json!("fixed_wing");
     doc["units"]["test_high_air"] = high;
     let b = battle_with(
         &fixture,

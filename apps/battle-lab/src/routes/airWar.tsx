@@ -316,6 +316,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
   const radar = caps.air?.radar ?? caps.radar;
   const fields: [string, string][] = [
     ["layer", layerOf(t)],
+    ["flight", "air" in t.mobility ? t.mobility.air.flight : "—"],
     ["sensors", `${sensors.ground_m}/${sensors.low_air_m ?? 0}/${sensors.high_air_m ?? 0}`],
     ["fuel", caps.air ? String(caps.air.fuel_capacity_s) : "—"],
     ["flares", caps.air?.flares ? `${caps.air.flares.capacity}/${caps.air.flares.reload_s}` : "—"],

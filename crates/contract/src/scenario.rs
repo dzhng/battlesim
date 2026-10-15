@@ -722,6 +722,15 @@ impl AirRules {
             crate::catalog::AltitudeLayer::HighAir => self.high_air.cruise_agl_m,
         }
     }
+
+    /// The hard floor nothing in `layer` flies below (D20); None for a layer
+    /// that has none, where no fixed-wing flight is admitted.
+    pub fn floor_agl_m(&self, layer: crate::catalog::AltitudeLayer) -> Option<f64> {
+        match layer {
+            crate::catalog::AltitudeLayer::HighAir => Some(self.high_air.floor_agl_m),
+            _ => None,
+        }
+    }
 }
 
 /// The largest hull each drive may have: what the map generator and the

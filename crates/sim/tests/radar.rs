@@ -15,7 +15,7 @@ fn battle() -> Battle {
         "units",
         "test_heli",
         json!({
-            "mobility": { "air": { "layer": "high_air" } },
+            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
                 "sead": true,
@@ -93,7 +93,7 @@ fn anti_radiation_weapon_can_fire_at_radar_contact_without_unit_los() {
         "units",
         "test_heli",
         json!({
-            "mobility": { "air": { "layer": "high_air" } },
+            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
                 "sead": true,
@@ -152,7 +152,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
         "units",
         "test_heli",
         json!({
-            "mobility": { "air": { "layer": "high_air" } },
+            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "sensors": { "ground_m": 1200.0 },
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
@@ -266,7 +266,7 @@ fn every_radar_contact_reaches_the_reader_with_its_bearing_and_range() {
         "units",
         "test_heli",
         json!({
-            "mobility": { "air": { "layer": "high_air" } },
+            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
                 "sead": true,

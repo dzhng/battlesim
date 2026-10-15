@@ -1,6 +1,6 @@
 //! Fixed-wing flight: the flight law, steering, attack passes, dogfights and
-//! edge transit. It flies the high-air layer, the only layer flown by wings;
-//! helicopters fly low air in [`crate::movement::air`].
+//! edge transit, for every aircraft whose flight model is `fixed_wing`, at
+//! its own layer's heights. Rotor aircraft fly in [`crate::movement::air`].
 
 pub mod dogfight;
 pub mod edge;
@@ -21,8 +21,8 @@ use contract::catalog::AltitudeLayer;
 use contract::random::{mix, Rng};
 use contract::weapons::GroundAttackKind;
 
-/// Advance one high-air unit by the fixed-wing flight law, without
-/// consulting the helicopter air grid.
+/// Advance one winged aircraft by the fixed-wing flight law, without
+/// consulting the rotor air grid.
 pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     let Motion::Air(flight) = unit.motion else {
         unreachable!("only aircraft fly");
@@ -86,7 +86,11 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         turn_rad_s: flight.turn_rad_s,
         climb_mps: flight.climb_mps,
         ramp_s: ctx.rules.air.fixed_wing.afterburner_ramp_s,
-        floor_agl_m: ctx.rules.air.high_air.floor_agl_m,
+        floor_agl_m: ctx
+            .rules
+            .air
+            .floor_agl_m(unit.layer())
+            .expect("the catalog admits fixed-wing flight only in a layer with a floor"),
         edge_margin_m: ctx.rules.air.fixed_wing.edge_margin_m,
         cruise_agl_m: ctx.rules.air.cruise_agl_m(unit.layer()),
     };
@@ -137,7 +141,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         orders::AirTask::Attack { target, explicit } => {
             let point =
                 pass_before.map_or_else(|| target_point(ctx, unit, target), |pass| pass.aim);
-            if target_in_high_air(&ctx.knowledge[unit.side.index()], target) {
+            if dogfightable(&ctx.knowledge[unit.side.index()], target, unit.layer()) {
                 if linked_target.is_none() {
                     if let Target::Unit(target) = target {
                         dogfight::set_target(unit, target);
@@ -270,16 +274,21 @@ fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
     }
 }
 
-/// Whether the side knows `target` as a high-air unit: the only kind a
-/// fixed-wing aircraft dogfights (D29b). Read from the layer of what was seen
-/// or heard, never from height.
-pub(crate) fn target_in_high_air(knowledge: &SideKnowledge, target: Target) -> bool {
-    let layer = match target {
-        Target::Unit(id) => knowledge.track(id).map(|track| track.layer),
-        Target::Contact(id) => knowledge.contact(id).map(|contact| contact.layer),
+/// Whether the side knows `target` as a winged aircraft in `layer`, the
+/// pursuer's own: the only kind a fixed-wing aircraft dogfights (D29c);
+/// anything else it attacks in passes. Read from what was seen or heard of
+/// it, never from height.
+pub(crate) fn dogfightable(
+    knowledge: &SideKnowledge,
+    target: Target,
+    layer: AltitudeLayer,
+) -> bool {
+    let seen = match target {
+        Target::Unit(id) => knowledge.track(id).map(|t| (t.layer, t.fixed_wing)),
+        Target::Contact(id) => knowledge.contact(id).map(|c| (c.layer, c.fixed_wing)),
         _ => None,
     };
-    layer == Some(AltitudeLayer::HighAir)
+    seen == Some((layer, true))
 }
 
 fn pass_weapons(ctx: &MovementContext, unit: &Unit) -> Vec<pass::PassWeapon> {

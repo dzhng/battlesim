@@ -24,7 +24,7 @@
           "wreck": "light_wreck"
         }
       },
-      "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air" } },
+      "mobility": { "air": { "cruise_kmh": 650, "turn_deg_s": 72, "climb_mps": 30, "layer": "high_air", "flight": "fixed_wing" } },
       "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "capabilities": { "air": {
         "fuel_capacity_s": 180,
@@ -61,7 +61,7 @@
           "wreck": "light_wreck"
         }
       },
-      "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6 } },
+      "mobility": { "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor" } },
       "sensors": { "ground_m": 700, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "mounts": [
         { "id": "HMG", "name": "Door HMG", "weapons": ["hmg"], "turret": true, "pivot_m": [1.6, 1.12, 1.25], "muzzle_m": [1.2, 0, 0] }

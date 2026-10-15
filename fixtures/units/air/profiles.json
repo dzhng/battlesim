@@ -26,7 +26,8 @@
         "air": {
           "cruise_kmh": 180,
           "turn_deg_s": 100,
-          "climb_mps": 9
+          "climb_mps": 9,
+          "flight": "rotor"
         }
       },
       "sensors": {
@@ -68,7 +69,8 @@
         "air": {
           "cruise_kmh": 220,
           "turn_deg_s": 70,
-          "climb_mps": 7
+          "climb_mps": 7,
+          "flight": "rotor"
         }
       },
       "sensors": {
@@ -110,7 +112,8 @@
         "air": {
           "cruise_kmh": 230,
           "turn_deg_s": 50,
-          "climb_mps": 6
+          "climb_mps": 6,
+          "flight": "rotor"
         }
       },
       "sensors": {
@@ -152,7 +155,8 @@
         "air": {
           "cruise_kmh": 240,
           "turn_deg_s": 80,
-          "climb_mps": 8
+          "climb_mps": 8,
+          "flight": "rotor"
         }
       },
       "sensors": {
@@ -194,7 +198,8 @@
         "air": {
           "cruise_kmh": 220,
           "turn_deg_s": 70,
-          "climb_mps": 7
+          "climb_mps": 7,
+          "flight": "rotor"
         }
       },
       "sensors": {

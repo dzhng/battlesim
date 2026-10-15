@@ -507,8 +507,8 @@ pub(crate) fn advance(
             if units[i].air.is_some_and(|air| air.traversing) {
                 continue;
             }
-            // High air is flown by wings, low air by rotors.
-            if units[i].layer() == contract::catalog::AltitudeLayer::HighAir {
+            // The flight model picks the flight law, never the layer.
+            if units[i].fixed_wing() {
                 crate::air::step_fixed_wing(ctx, &mut units[i]);
             } else {
                 air::step_aircraft(ctx, units, i, sides);

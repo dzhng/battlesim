@@ -6868,6 +6868,7 @@
             "air": {
               "climb_mps": 8.0,
               "cruise_kmh": 240.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 80.0
             }
@@ -8011,6 +8012,7 @@
             "air": {
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
               "layer": "high_air",
               "turn_deg_s": 72.0
             }
@@ -8149,6 +8151,7 @@
             "air": {
               "climb_mps": 8.0,
               "cruise_kmh": 240.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 80.0
             }
@@ -8564,6 +8567,7 @@
             "air": {
               "climb_mps": 7.0,
               "cruise_kmh": 220.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 70.0
             }
@@ -8676,6 +8680,7 @@
             "air": {
               "climb_mps": 7.0,
               "cruise_kmh": 220.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 70.0
             }
@@ -8788,6 +8793,7 @@
             "air": {
               "climb_mps": 7.0,
               "cruise_kmh": 220.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 70.0
             }
@@ -9844,6 +9850,7 @@
             "air": {
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
               "layer": "high_air",
               "turn_deg_s": 72.0
             }
@@ -10995,6 +11002,7 @@
             "air": {
               "climb_mps": 8.0,
               "cruise_kmh": 240.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 80.0
             }
@@ -11107,6 +11115,7 @@
             "air": {
               "climb_mps": 7.0,
               "cruise_kmh": 220.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 70.0
             }
@@ -11461,6 +11470,7 @@
             "air": {
               "climb_mps": 6.0,
               "cruise_kmh": 230.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 50.0
             }
@@ -11581,6 +11591,7 @@
             "air": {
               "climb_mps": 9.0,
               "cruise_kmh": 180.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 100.0
             }
@@ -12169,6 +12180,7 @@
             "air": {
               "climb_mps": 6.0,
               "cruise_kmh": 230.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 50.0
             }
@@ -12943,6 +12955,7 @@
             "air": {
               "climb_mps": 8.0,
               "cruise_kmh": 240.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 80.0
             }
@@ -13055,6 +13068,7 @@
             "air": {
               "climb_mps": 8.0,
               "cruise_kmh": 240.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 80.0
             }
@@ -13185,6 +13199,7 @@
             "air": {
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
               "layer": "high_air",
               "turn_deg_s": 72.0
             }
@@ -14835,6 +14850,7 @@
             "air": {
               "climb_mps": 7.0,
               "cruise_kmh": 220.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 70.0
             }
@@ -15407,6 +15423,7 @@
             "air": {
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
               "layer": "high_air",
               "turn_deg_s": 72.0
             }
@@ -15753,6 +15770,7 @@
             "air": {
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
               "layer": "high_air",
               "turn_deg_s": 72.0
             }
@@ -16198,6 +16216,7 @@
             "air": {
               "climb_mps": 8.0,
               "cruise_kmh": 240.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 80.0
             }
@@ -16310,6 +16329,7 @@
             "air": {
               "climb_mps": 9.0,
               "cruise_kmh": 180.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 100.0
             }
@@ -16422,6 +16442,7 @@
             "air": {
               "climb_mps": 9.0,
               "cruise_kmh": 180.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 100.0
             }
@@ -16640,6 +16661,7 @@
             "air": {
               "climb_mps": 6.0,
               "cruise_kmh": 230.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 50.0
             }
@@ -16782,6 +16804,7 @@
             "air": {
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
+              "flight": "fixed_wing",
               "layer": "high_air",
               "turn_deg_s": 72.0
             }
@@ -20000,6 +20023,7 @@
             "air": {
               "climb_mps": 7.0,
               "cruise_kmh": 220.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 70.0
             }
@@ -20120,6 +20144,7 @@
             "air": {
               "climb_mps": 7.0,
               "cruise_kmh": 220.0,
+              "flight": "rotor",
               "layer": "low_air",
               "turn_deg_s": 70.0
             }
@@ -24088,6 +24113,7 @@
         "air": {
           "climb_mps": 8.0,
           "cruise_kmh": 240.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 80.0
         }
@@ -25587,6 +25613,7 @@
         "air": {
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
           "layer": "high_air",
           "turn_deg_s": 72.0
         }
@@ -25703,6 +25730,7 @@
         "air": {
           "climb_mps": 8.0,
           "cruise_kmh": 240.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 80.0
         }
@@ -26221,6 +26249,7 @@
         "air": {
           "climb_mps": 7.0,
           "cruise_kmh": 220.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 70.0
         }
@@ -26337,6 +26366,7 @@
         "air": {
           "climb_mps": 7.0,
           "cruise_kmh": 220.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 70.0
         }
@@ -26453,6 +26483,7 @@
         "air": {
           "climb_mps": 7.0,
           "cruise_kmh": 220.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 70.0
         }
@@ -27538,6 +27569,7 @@
         "air": {
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
           "layer": "high_air",
           "turn_deg_s": 72.0
         }
@@ -28699,6 +28731,7 @@
         "air": {
           "climb_mps": 8.0,
           "cruise_kmh": 240.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 80.0
         }
@@ -28815,6 +28848,7 @@
         "air": {
           "climb_mps": 7.0,
           "cruise_kmh": 220.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 70.0
         }
@@ -29241,6 +29275,7 @@
         "air": {
           "climb_mps": 6.0,
           "cruise_kmh": 230.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 50.0
         }
@@ -29365,6 +29400,7 @@
         "air": {
           "climb_mps": 9.0,
           "cruise_kmh": 180.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 100.0
         }
@@ -29972,6 +30008,7 @@
         "air": {
           "climb_mps": 6.0,
           "cruise_kmh": 230.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 50.0
         }
@@ -30772,6 +30809,7 @@
         "air": {
           "climb_mps": 8.0,
           "cruise_kmh": 240.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 80.0
         }
@@ -30888,6 +30926,7 @@
         "air": {
           "climb_mps": 8.0,
           "cruise_kmh": 240.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 80.0
         }
@@ -31022,6 +31061,7 @@
         "air": {
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
           "layer": "high_air",
           "turn_deg_s": 72.0
         }
@@ -32723,6 +32763,7 @@
         "air": {
           "climb_mps": 7.0,
           "cruise_kmh": 220.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 70.0
         }
@@ -33292,6 +33333,7 @@
         "air": {
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
           "layer": "high_air",
           "turn_deg_s": 72.0
         }
@@ -33618,6 +33660,7 @@
         "air": {
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
           "layer": "high_air",
           "turn_deg_s": 72.0
         }
@@ -34245,6 +34288,7 @@
         "air": {
           "climb_mps": 8.0,
           "cruise_kmh": 240.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 80.0
         }
@@ -34361,6 +34405,7 @@
         "air": {
           "climb_mps": 9.0,
           "cruise_kmh": 180.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 100.0
         }
@@ -34477,6 +34522,7 @@
         "air": {
           "climb_mps": 9.0,
           "cruise_kmh": 180.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 100.0
         }
@@ -34824,6 +34870,7 @@
         "air": {
           "climb_mps": 6.0,
           "cruise_kmh": 230.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 50.0
         }
@@ -34970,6 +35017,7 @@
         "air": {
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
+          "flight": "fixed_wing",
           "layer": "high_air",
           "turn_deg_s": 72.0
         }
@@ -38411,6 +38459,7 @@
         "air": {
           "climb_mps": 7.0,
           "cruise_kmh": 220.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 70.0
         }
@@ -38535,6 +38584,7 @@
         "air": {
           "climb_mps": 7.0,
           "cruise_kmh": 220.0,
+          "flight": "rotor",
           "layer": "low_air",
           "turn_deg_s": 70.0
         }

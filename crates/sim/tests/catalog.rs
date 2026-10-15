@@ -757,13 +757,8 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             .flat_map(|m| &m.def.weapons)
             .map(|w| rules.weapons[w].ballistics.range_m)
             .fold(f64::INFINITY, f64::min);
-        let never_stops = matches!(
-            rules.catalog.get(t).mobility,
-            contract::catalog::Mobility::Air {
-                layer: AltitudeLayer::HighAir,
-                ..
-            }
-        );
+        let never_stops = rules.catalog.get(t).mobility.flight()
+            == Some(contract::catalog::FlightModel::FixedWing);
         let mut others = if never_stops {
             json!([
                 { "side": "red", "kind": "test_rifle", "position": [1100, 995], "engagement": "return_fire_only" },
@@ -839,7 +834,9 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         // A jet never stops and cannot turn inside its turning circle, so it
         // has arrived once it comes within one turning radius of its goal.
         let turning_radius = match b.unit(UnitId(0)).unwrap().motion {
-            sim::units::Motion::Air(flight) if flight.layer == AltitudeLayer::HighAir => {
+            sim::units::Motion::Air(flight)
+                if flight.model == contract::catalog::FlightModel::FixedWing =>
+            {
                 Some(flight.cruise_mps / flight.turn_rad_s)
             }
             _ => None,

@@ -144,6 +144,7 @@ test("the ghost reads the layer height", () => {
           turn_deg_s: 30,
           climb_mps: 8,
           layer: kind === "jet" ? "high_air" : "low_air",
+          flight: kind === "jet" ? "fixed_wing" : "rotor",
         },
       },
     }),

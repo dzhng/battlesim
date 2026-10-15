@@ -183,10 +183,20 @@ pub const MAX_HIGH_AIR_SPEED_KMH: f64 = 1000.0;
 #[serde(rename_all = "snake_case")]
 pub enum AltitudeLayer {
     Ground,
-    /// Helicopters: below every building's obstacle height plus clearance.
+    /// Below every building's obstacle height plus clearance.
     LowAir,
-    /// Fixed-wing aircraft: the shared high-air combat layer.
+    /// The one layer that bends physics: its heights are lowered from a
+    /// real jet's for play, and nothing in it sees the ground.
     HighAir,
+}
+
+/// How an airframe flies, apart from the layer it flies in: on rotors,
+/// which hover, or on wings, which never stop and attack in passes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FlightModel {
+    Rotor,
+    FixedWing,
 }
 
 /// How a unit moves (Q29, Q30). A ground mover has its own two top speeds,
@@ -217,16 +227,17 @@ pub enum Mobility {
         turning_radius_m: f64,
         reverse_fraction: f64,
     },
-    /// Flies in an authored air layer and turns on the spot when hovering.
+    /// Flies in an authored air layer, by its authored flight model.
     Air {
         cruise_kmh: f64,
         turn_deg_s: f64,
         /// How fast it climbs or sinks toward its target height.
         climb_mps: f64,
-        /// The altitude layer this aircraft occupies. Existing helicopter
-        /// rows default to LowAir; fixed-wing rows opt into HighAir.
+        /// The altitude layer this aircraft occupies; LowAir when unnamed.
         #[serde(default = "default_air_layer")]
         layer: AltitudeLayer,
+        /// How it flies: always authored, never read off the layer.
+        flight: FlightModel,
     },
 }
 
@@ -235,6 +246,14 @@ impl Mobility {
         match self {
             Mobility::Air { layer, .. } => *layer,
             _ => AltitudeLayer::Ground,
+        }
+    }
+
+    /// How an aircraft flies; None for a ground mover.
+    pub fn flight(&self) -> Option<FlightModel> {
+        match self {
+            Mobility::Air { flight, .. } => Some(*flight),
+            _ => None,
         }
     }
 
@@ -917,7 +936,7 @@ impl UnitType {
     }
 
     /// A vehicle's presentation class, from its physics: how it moves
-    /// (tracked, wheeled, `air`, or `high_air` for a fixed-wing aircraft),
+    /// (tracked, wheeled, `air`, or `high_air` for an aircraft in high air),
     /// its hull's weight class, and `_logistics` for a supply hauler, as
     /// `tracked_heavy`, `air_light` or `wheeled_medium_logistics`. Vehicle
     /// sound, running gear and art rules are keyed by it, never by unit id.
@@ -1747,6 +1766,20 @@ fn check(
     ranges(t).map_or(Ok(()), rule)
 }
 
+/// Why no flight law flies `flight` in `layer` yet, naming the data it
+/// lacks; None for a pair the simulation flies.
+fn unflown(layer: AltitudeLayer, flight: FlightModel) -> Option<&'static str> {
+    match (layer, flight) {
+        (AltitudeLayer::HighAir, FlightModel::Rotor) => Some(
+            "mobility: a rotor aircraft in high air has no flight law yet (rotors fly low air)",
+        ),
+        (AltitudeLayer::LowAir, FlightModel::FixedWing) => Some(
+            "mobility: a fixed-wing aircraft in low air has no flight law yet: low air has no fixed-wing cruise height, floor or pass ceilings (air.low_air)",
+        ),
+        _ => None,
+    }
+}
+
 /// A type's numbers in the ranges the simulation divides and eases by.
 fn ranges(t: &UnitType) -> Option<&'static str> {
     let s = t.sensors.sight_shape;
@@ -1756,8 +1789,12 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         turn_deg_s,
         climb_mps,
         layer,
+        flight,
     } = t.mobility
     {
+        if let Some(missing) = unflown(layer, flight) {
+            return Some(missing);
+        }
         let max_speed = match layer {
             AltitudeLayer::LowAir => MAX_AIR_SPEED_KMH,
             AltitudeLayer::HighAir => MAX_HIGH_AIR_SPEED_KMH,

@@ -212,9 +212,9 @@ pub fn evaluate(
     for observer in units.iter().filter(|u| {
         u.side == side && u.alive() && !u.air.is_some_and(|air| air.traversing) && due(u)
     }) {
-        // Fixed-wing aircraft fly in HighAir and have no ground-facing
-        // vision. They still run the same optical pass for LowAir and
-        // HighAir targets, so air-to-air sensing remains authoritative here.
+        // Nothing in HighAir sees the ground. It still runs the same
+        // optical pass for LowAir and HighAir targets, so air-to-air sensing
+        // remains authoritative here.
         let observer_layer = observer.layer();
         let from = eyes(observer, rules);
         let concealed_range_multiplier =

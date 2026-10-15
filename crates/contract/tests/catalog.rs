@@ -81,26 +81,52 @@ fn planned_aircraft_is_a_visible_card_but_not_a_physical_type() {
 }
 
 #[test]
-fn air_mobility_defaults_to_low_air_and_can_author_high_air() {
-    let mut low = base_tank();
-    low["abstract"] = json!(false);
-    low["mobility"] = json!({
-        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8 }
+fn air_mobility_names_its_layer_and_its_flight_model() {
+    use contract::catalog::{AltitudeLayer, FlightModel};
+    let mut rotor = base_tank();
+    rotor["abstract"] = json!(false);
+    rotor["mobility"] = json!({
+        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8, "flight": "rotor" }
     });
-    let mut high = low.clone();
-    high["mobility"]["air"]["layer"] = json!("high_air");
-    let catalog = resolve(&units(json!({
-        "low": low,
-        "high": high
-    })))
-    .unwrap();
-    assert_eq!(
-        catalog.by_id("low").mobility.layer(),
-        contract::catalog::AltitudeLayer::LowAir
+    let mut wing = rotor.clone();
+    wing["mobility"]["air"]["layer"] = json!("high_air");
+    wing["mobility"]["air"]["flight"] = json!("fixed_wing");
+    let catalog = resolve(&units(json!({ "rotor": rotor, "wing": wing }))).unwrap();
+    let mobility = |id| catalog.by_id(id).mobility;
+    assert_eq!(mobility("rotor").layer(), AltitudeLayer::LowAir);
+    assert_eq!(mobility("rotor").flight(), Some(FlightModel::Rotor));
+    assert_eq!(mobility("wing").layer(), AltitudeLayer::HighAir);
+    assert_eq!(mobility("wing").flight(), Some(FlightModel::FixedWing));
+
+    // The flight model is authored, never derived from the layer.
+    let mut unnamed = rotor.clone();
+    unnamed["mobility"]["air"]
+        .as_object_mut()
+        .unwrap()
+        .remove("flight");
+    let error = resolve(&units(json!({ "unnamed": unnamed })))
+        .unwrap_err()
+        .to_string();
+    assert!(error.contains("flight"), "{error}");
+
+    // A pair no flight law flies yet is refused, naming what is missing.
+    let mut blimp = rotor.clone();
+    blimp["mobility"]["air"]["layer"] = json!("high_air");
+    let error = resolve(&units(json!({ "blimp": blimp })))
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("blimp") && error.contains("rotor") && error.contains("high air"),
+        "{error}"
     );
-    assert_eq!(
-        catalog.by_id("high").mobility.layer(),
-        contract::catalog::AltitudeLayer::HighAir
+    let mut drone = wing.clone();
+    drone["mobility"]["air"]["layer"] = json!("low_air");
+    let error = resolve(&units(json!({ "drone": drone })))
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("drone") && error.contains("fixed-wing") && error.contains("low air"),
+        "{error}"
     );
 }
 
@@ -109,7 +135,7 @@ fn aircraft_capability_carries_air_ranges_flares_afterburner_radar_and_refund() 
     let mut aircraft = base_tank();
     aircraft["abstract"] = json!(false);
     aircraft["mobility"] = json!({
-        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air" }
+        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air", "flight": "fixed_wing" }
     });
     aircraft["sensors"] = json!({
         "ground_m": 500, "low_air_m": 1500, "high_air_m": 3000,
@@ -142,7 +168,7 @@ fn aircraft_refund_weights_must_sum_to_one() {
     let mut aircraft = base_tank();
     aircraft["abstract"] = json!(false);
     aircraft["mobility"] = json!({
-        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air" }
+        "air": { "cruise_kmh": 280, "turn_deg_s": 60, "climb_mps": 12, "layer": "high_air", "flight": "fixed_wing" }
     });
     aircraft["capabilities"] = json!({ "air": {
         "fuel_capacity_s": 180,
@@ -884,10 +910,11 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
     heli["abstract"] = json!(false);
     heli["body"]["hull"]["weight_class"] = json!("light");
     heli["body"]["hull"]["wreck"] = json!("light_wreck");
-    heli["mobility"] = json!({ "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6 } });
+    heli["mobility"] = json!({ "air": { "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor" } });
     let mut fighter = heli.clone();
     fighter["mobility"]["air"]["cruise_kmh"] = json!(300);
     fighter["mobility"]["air"]["layer"] = json!("high_air");
+    fighter["mobility"]["air"]["flight"] = json!("fixed_wing");
     let mut docs = units(json!({
         "base": base_tank(),
         "tank": { "extends": "base" },

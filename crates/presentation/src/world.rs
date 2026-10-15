@@ -5,7 +5,7 @@
 //! placed buildings come beside it as bytes. Static per battle.
 use std::collections::BTreeMap;
 
-use contract::catalog::AltitudeLayer;
+use contract::catalog::{AltitudeLayer, FlightModel};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -124,6 +124,9 @@ pub struct UnitType {
     /// names none stands on the ground.
     #[serde(default = "ground_layer")]
     pub layer: AltitudeLayer,
+    /// How it flies (its mobility's `flight`); none on the ground.
+    #[serde(default)]
+    pub flight: Option<FlightModel>,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,
     pub draws: BTreeMap<String, Draws>,
@@ -134,10 +137,15 @@ fn ground_layer() -> AltitudeLayer {
 }
 
 impl UnitType {
-    /// It flies in the high-air layer: it flies its published path, and from
-    /// its height casts no sun shadow but shows one on the ground beneath it.
+    /// It flies in the high-air layer: from its height it casts no sun
+    /// shadow but shows one on the ground beneath it.
     pub fn high_air(&self) -> bool {
         self.layer == AltitudeLayer::HighAir
+    }
+
+    /// It flies on wings: it banks into its turns and never hovers.
+    pub fn fixed_wing(&self) -> bool {
+        self.flight == Some(FlightModel::FixedWing)
     }
 }
 
