@@ -223,6 +223,8 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 `BLESS_PARITY=1` on the Rust test that reads a record re-records its native half, for a named behaviour change; the web test then holds Wasm to it.
 
+The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`game.json` with the menu catalog), and they match the run's own samples except for the fog revision counters.
+
 The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json) as well as its requests. Changes to shipped unit vision can change the sight certificate and forest placement; they must not silently change the inputs behind a frozen output. Current-rule generation and preparation remain covered separately.
 
 A record belongs here only if both sides read it, and it stores a hash of the output unless a reader needs the bytes. A snapshot of one implementation's own output, read by that implementation alone, is not a paired record: state the rule in a test instead.
