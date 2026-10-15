@@ -965,6 +965,15 @@ impl UnitType {
         }
     }
 
+    /// A vehicle that drives on the ground: its hull. None for a squad and
+    /// for an aircraft, which has a hull but never drives a road.
+    pub fn ground_hull(&self) -> Option<&Hull> {
+        match self.mobility {
+            Mobility::Air { .. } => None,
+            _ => self.hull(),
+        }
+    }
+
     /// Infantry: it has soldier slots.
     pub fn slots(&self) -> Option<&[String]> {
         match &self.body {

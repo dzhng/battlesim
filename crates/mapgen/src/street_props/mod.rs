@@ -229,7 +229,7 @@ struct Pass<'a> {
 /// Place street furniture on a plan the parcel pass has built: parked cars
 /// beside the streets, lamps, trees and small furniture on the verges, loose
 /// stock in the yards and a construction site on an open parcel now and
-/// then. `catalog` is the unit and prop catalog: its widest hull sets the
+/// then. `catalog` is the unit and prop catalog: its widest ground hull sets the
 /// lane every body keeps clear, and every placed kind is one of its prop
 /// types. The answer is the bodies to add to the plan's `props`, in the
 /// order they were placed; none carries an id, so they take the ids after
@@ -278,17 +278,17 @@ pub fn place_courts_and_gardens(
     Ok(pass.field.placed)
 }
 
-/// The width of `catalog`'s widest hull.
+/// The width of `catalog`'s widest ground hull: an aircraft drives no street.
 fn widest_hull(catalog: &Catalog) -> f64 {
     catalog
         .indices()
-        .filter_map(|unit| catalog.get(unit).hull())
+        .filter_map(|unit| catalog.get(unit).ground_hull())
         .map(|hull| 2.0 * hull.half_extents_m[1])
         .fold(0.0, f64::max)
 }
 
 /// The way a body of prop `kind` abandoned in the road leaves open: the
-/// widest of `catalog`'s hulls that cannot shove it, with the presets'
+/// widest of `catalog`'s ground hulls that cannot shove it, with the presets'
 /// vehicle margin, and the longest such hull's length; none where every
 /// hull shoves it.
 fn left_open(catalog: &Catalog, presets: &PresetDefinitions, kind: &str) -> [f64; 2] {
@@ -299,7 +299,7 @@ fn left_open(catalog: &Catalog, presets: &PresetDefinitions, kind: &str) -> [f64
         .weight_class;
     let [wide, long] = catalog
         .indices()
-        .filter_map(|unit| catalog.get(unit).hull())
+        .filter_map(|unit| catalog.get(unit).ground_hull())
         .filter(|hull| !hull.push_class.pushes(weight))
         .fold([0.0_f64, 0.0_f64], |[w, l], hull| {
             [

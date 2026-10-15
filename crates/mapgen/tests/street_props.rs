@@ -104,11 +104,11 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
     }
 }
 
-/// The widest hull of the catalog: what the lane is sized to.
+/// The widest ground hull of the catalog: what the lane is sized to.
 fn widest_hull(catalog: &Catalog) -> f64 {
     catalog
         .indices()
-        .filter_map(|unit| catalog.get(unit).hull())
+        .filter_map(|unit| catalog.get(unit).ground_hull())
         .map(|hull| 2.0 * hull.half_extents_m[1])
         .fold(0.0, f64::max)
 }
@@ -477,7 +477,7 @@ fn the_driven_lane_stays_clear_and_a_narrow_street_parks_one_side() {
     let mut fixture = game();
     let wide = catalog
         .indices()
-        .filter_map(|unit| catalog.get(unit).hull())
+        .filter_map(|unit| catalog.get(unit).ground_hull())
         .map(|h| h.half_extents_m[1])
         .fold(0.0, f64::max)
         + 1.1;
@@ -488,7 +488,7 @@ fn the_driven_lane_stays_clear_and_a_narrow_street_parks_one_side() {
                 let width = |unit| {
                     catalog
                         .get(unit)
-                        .hull()
+                        .ground_hull()
                         .map_or(0.0, |h| h.half_extents_m[1])
                 };
                 width(*a).total_cmp(&width(*b))

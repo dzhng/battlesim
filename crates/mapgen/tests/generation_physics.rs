@@ -79,3 +79,75 @@ fn generation_refuses_circular_sight_that_cannot_be_represented() {
         "generation admitted a circular range that overflows finite sight geometry"
     );
 }
+
+/// An aircraft never drives a street, so no aircraft row of the catalog may
+/// move what the generator builds. The test adds a fake aircraft far wider
+/// than any ground hull (raising the airframe limits it sets for itself),
+/// and the map must come out byte for byte the same; only its input
+/// identity, which pins the whole catalog, may differ.
+#[test]
+fn an_aircraft_row_moves_nothing_on_the_ground() {
+    let presets = include_str!("../../../fixtures/map-presets.json");
+    let descriptors = include_str!("../../../fixtures/prototype-building-templates.json");
+    let catalogue =
+        TemplateGeometryCatalog::new(serde_json::from_str(descriptors).unwrap()).unwrap();
+    let definitions = mapgen::layout::PresetDefinitions::from_json(presets).unwrap();
+    let request = serde_json::to_string(&GenerationRequest {
+        generator_version: mapgen::layout::GENERATOR_VERSION.into(),
+        preset_revision: definitions.revision,
+        seed: 1.into(),
+        template_catalog_hash: catalogue.hash().into(),
+        map_type: MapType::Mixed,
+        size: MapSize::Small,
+        profile: contract::generation::GenerationProfile::Standard,
+        region: None,
+        limits: limits::game_limits(),
+    })
+    .unwrap();
+    let build = |rules: &serde_json::Value| match generate_map(
+        &request,
+        presets,
+        descriptors,
+        &rules.to_string(),
+    ) {
+        CompileOutcome::Ok { result } => result,
+        CompileOutcome::Error { diagnostics } => panic!("generation refused: {diagnostics:?}"),
+    };
+    // Airframes may be far wider than anything that drives.
+    const WIDE_M: f64 = 40.0;
+    let mut rules = sim::fixtures::test_game();
+    for layer in ["low_air", "high_air"] {
+        rules["hull_limits"][layer] = serde_json::json!({
+            "half_width_m": WIDE_M, "half_length_m": WIDE_M
+        });
+    }
+    let before = build(&rules);
+    let aircraft = rules["catalog"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|document| document["units"].as_object().into_iter().flatten())
+        .find(|(_, unit)| unit["mobility"].get("air").is_some())
+        .map(|(id, _)| id.clone())
+        .expect("the test catalog has an aircraft");
+    rules["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({ "units": {
+        "test_wide_aircraft": {
+            "extends": aircraft,
+            "name": "Wide Test Aircraft",
+            "body": { "hull": { "half_extents_m": [WIDE_M, WIDE_M, 2.0] } }
+        }
+    } }));
+    let after = build(&rules);
+    assert_ne!(
+        before.identity.config_hash, after.identity.config_hash,
+        "the fake aircraft did not reach the catalog"
+    );
+    assert!(
+        serde_json::to_string(&before.map).unwrap() == serde_json::to_string(&after.map).unwrap(),
+        "an aircraft row moved the generated map"
+    );
+    assert_eq!(before.identity.map_hash, after.identity.map_hash);
+}
