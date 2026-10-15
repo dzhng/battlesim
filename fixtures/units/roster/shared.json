@@ -169,7 +169,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
@@ -298,7 +298,7 @@
       "sensors": {
         "ground_m": 1,
         "low_air_m": 1800,
-        "high_air_m": 5000,
+        "high_air_m": 3000,
         "sight_shape": {
           "front": 1,
           "side": 0.8,
