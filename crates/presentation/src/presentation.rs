@@ -11,6 +11,7 @@ use sim::publication::reader::{FallenBody, KnownProp, Observation, Reader, Share
 
 use crate::effects::cook_offs::{CookOffs, PlacedModel};
 use crate::effects::frame::{EffectBatch, EffectFrame, EFFECT_FLOATS};
+use crate::effects::high_air_shadow::{high_air_ground_shadow, GroundShadow};
 use crate::effects::launches::Launch;
 use crate::effects::lights::CastLights;
 use crate::effects::publication::{EffectFeed, EffectPublication};
@@ -171,6 +172,9 @@ struct Model {
     scroll: [f64; 2],
     /// How fog takes it (`Batch.fog`).
     fog: u32,
+    /// It casts into the sun's cascades as its tier and pass say; a
+    /// high-air aircraft casts nothing.
+    casts: bool,
 }
 
 /// What the buildings' known states were last derived from.
@@ -1450,7 +1454,34 @@ impl Loaded {
         let poses = driver.update(feed.frame(sample, units, &input.effects), units);
         drawn.update(poses);
         let rotors = drawn.rotors();
-        effects.build(time, batch, Some(drawn), &rotors);
+        let side: &str = &input.side;
+        let height = |x: f64, y: f64| ground.map_or(0.0, |g| g.source.grid.height(x, y));
+        // Edge transits are own-side aircraft records reconstructed from the
+        // publication, drawn as a live aircraft of their kind is.
+        let transit_poses = transits.tracks(time * input.tick_hz, input.tick_hz, &units.transit);
+        let flying = poses
+            .vehicles
+            .iter()
+            .filter(|v| v.airborne)
+            .map(|v| (&*v.kind, &*v.side, v.unit, v.position, v.yaw))
+            .chain(
+                transit_poses
+                    .iter()
+                    .map(|t| (&*t.kind, side, 0.0, t.position, t.heading)),
+            );
+        // A high-air aircraft's shadow lies on the ground beneath it.
+        let style = effects.presentation().high_air_shadow;
+        let shadows: Vec<GroundShadow> = flying
+            .filter(|(kind, ..)| units.types.get(*kind).is_some_and(|t| t.high_air()))
+            .filter_map(|(kind, on, unit, at, yaw)| {
+                let name = units.resolve(kind, on, unit, 0, None, None)?;
+                let Some(Appearance::Articulated { plan, .. }) = units.appearances.get(name) else {
+                    return None;
+                };
+                Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
+            })
+            .collect();
+        effects.build(time, batch, Some(drawn), &rotors, &shadows);
         let counts = effects.counts(time, batch);
         f.light_wrap = batch.lights.wrap as f32;
         lights.pack(&batch.lights, view);
@@ -1458,7 +1489,6 @@ impl Loaded {
         f.counts.lights = counts.lights as u32;
         f.counts.dropped = batch.dropped as u32;
 
-        let side: &str = &input.side;
         let mut detail = units.detail;
         detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
         let xray = input.xray;
@@ -1506,6 +1536,7 @@ impl Loaded {
             palette,
             scroll,
             fog: model_fog(false, false, false),
+            casts: true,
         };
 
         // Soldiers, living and dying: a body's far bounds tier him.
@@ -1555,8 +1586,20 @@ impl Loaded {
                 [0.0; 2],
             ));
         }
-        // Vehicles and aircraft; an airframe's shadow lands its height along
-        // the sun's fall, and it draws while either is in view.
+        // Where an aircraft's shadow lies, and whether it casts it: a low-air
+        // airframe's lands its height along the sun's fall; a high-air one
+        // casts none, and its shadow lies on the ground beneath it.
+        let aircraft_shadow_at = |kind: &str, p: Vec3| {
+            let high = units.types.get(kind).is_some_and(|t| t.high_air());
+            let ground_z = height(p[0], p[1]);
+            if high {
+                ([p[0], p[1], ground_z], false)
+            } else {
+                (aircraft_shadow(p, ground_z, *shadow_fall), true)
+            }
+        };
+        // Vehicles and aircraft; an aircraft draws while it or its shadow
+        // is in view.
         for v in &poses.vehicles {
             let Some(name) = units.resolve(&v.kind, &v.side, v.unit, 0, None, None) else {
                 continue;
@@ -1567,11 +1610,12 @@ impl Loaded {
                 f.counts.vehicles += 1;
             }
             let far = bounds(units, name, 0);
-            let shadow = v.airborne.then(|| {
-                let p = v.position;
-                let ground_z = ground.map_or(0.0, |g| g.source.grid.height(p[0], p[1]));
-                aircraft_shadow(p, ground_z, *shadow_fall)
-            });
+            let (shadow, casts) = if v.airborne {
+                let (at, casts) = aircraft_shadow_at(&v.kind, v.position);
+                (Some(at), casts)
+            } else {
+                (None, true)
+            };
             let tier = model_detail(
                 &detail, view, v.position, far.size, far.radius, false, shadow,
             );
@@ -1587,33 +1631,30 @@ impl Loaded {
                 &v.articulation,
                 v.motion.as_ref(),
             );
-            models.push(model(
-                row(name, "", NONE),
-                tier,
-                0,
-                v.position,
-                v.yaw,
-                tint(&v.side),
-                colour_of(&v.side, v.unit),
-                palette,
-                scroll,
-            ));
+            models.push(Model {
+                casts,
+                ..model(
+                    row(name, "", NONE),
+                    tier,
+                    0,
+                    v.position,
+                    v.yaw,
+                    tint(&v.side),
+                    colour_of(&v.side, v.unit),
+                    palette,
+                    scroll,
+                )
+            });
         }
-        // Edge transits are own-side aircraft records reconstructed from the
-        // publication. They use the same appearance, articulation and shadow
-        // path as a live aircraft, but have no unit identity for selection or
-        // cards.
-        for t in transits.tracks(time * input.tick_hz, input.tick_hz, &units.transit) {
+        // Edge transits use the same appearance, articulation and shadow as a
+        // live aircraft, but have no unit identity for selection or cards.
+        for t in &transit_poses {
             let Some(name) = units.resolve(&t.kind, side, 0.0, 0, None, None) else {
                 continue;
             };
             f.counts.aircraft += 1;
             let far = bounds(units, name, 0);
-            let shadow = {
-                let p = t.position;
-                let ground_z = ground.map_or(0.0, |g| g.source.grid.height(p[0], p[1]));
-                aircraft_shadow(p, ground_z, *shadow_fall)
-            };
+            let (shadow, casts) = aircraft_shadow_at(&t.kind, t.position);
             let tier = model_detail(
                 &detail,
                 view,
@@ -1635,17 +1676,20 @@ impl Loaded {
                 &Articulation::default(),
                 None,
             );
-            models.push(model(
-                row(name, "", NONE),
-                tier,
-                0,
-                t.position,
-                t.heading,
-                tint(side),
-                [0.0; 4],
-                palette,
-                scroll,
-            ));
+            models.push(Model {
+                casts,
+                ..model(
+                    row(name, "", NONE),
+                    tier,
+                    0,
+                    t.position,
+                    t.heading,
+                    tint(side),
+                    [0.0; 4],
+                    palette,
+                    scroll,
+                )
+            });
         }
         // Corpses lying, and those the cap pushed out sinking away.
         let lying = poses
@@ -1821,17 +1865,23 @@ impl Loaded {
 }
 
 /// The models as batches: one per drawable, tier and pass, in that order.
-/// A model in view casts a tier coarser; a card and a ghost cast nothing.
+/// A model in view casts a tier coarser; a card, a ghost and a high-air
+/// aircraft cast nothing.
 fn batches(models: &mut [Model], f: &mut Frame) {
-    models.sort_by_key(|m| (m.row, m.tier, m.pass));
-    for run in models.chunk_by(|a, b| (a.row, a.tier, a.pass) == (b.row, b.tier, b.pass)) {
+    let run_of = |m: &Model| (m.row, m.tier, m.pass, m.casts);
+    models.sort_by_key(run_of);
+    for run in models.chunk_by(|a, b| run_of(a) == run_of(b)) {
         let m = &run[0];
         f.batches.push(Batch {
             key: (m.row << 8) | (m.tier << 4) | m.pass,
             appearance: m.row,
             tier: m.tier,
             pass: m.pass,
-            caster: batch_caster(m.tier, m.pass),
+            caster: if m.casts {
+                batch_caster(m.tier, m.pass)
+            } else {
+                NONE
+            },
             fog: m.fog,
             version: f.index,
             first: f.instances.len() as u32,

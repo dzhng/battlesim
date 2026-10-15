@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::cook_off::CookOffFeel;
+use super::high_air_shadow::HighAirShadowStyle;
 use crate::world::Vec3;
 
 /// A tracer on a very short stretch lives at most this past its tick, s.
@@ -40,6 +41,8 @@ pub struct EffectPresentation {
     pub shot_dust: Option<ShotDustStyle>,
     pub damage_smoke: DamageSmokeStyle,
     pub rotor_blur: RotorBlurStyle,
+    /// The shadow beneath a high-air aircraft.
+    pub high_air_shadow: HighAirShadowStyle,
     /// Smoke sources' looks by kind; a kind without one draws nothing.
     pub smoke: HashMap<String, Arc<SmokeSourceStyle>>,
     /// Instances every smoke source together may hold; past it each thins alike.
@@ -390,6 +393,9 @@ impl EffectPresentation {
                 "rotor_blur: albedo in [0, 1], shutter in (0, 1], hub_share in (0, 1), min_chord_px ≥ 0, disc in [0, 1)".into()
             },
         )?;
+        ensure(self.high_air_shadow.valid(), || {
+            "high_air_shadow: opacity in [0, 1], fade_half_m > 0, blur_m ≥ 0, blur_per_m ≥ 0, ground_band_m > 0".into()
+        })?;
         ensure(self.max_lifetime().is_finite(), || {
             "every life must be finite".into()
         })

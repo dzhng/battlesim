@@ -199,8 +199,8 @@ records! {
         pass: u32,
         /// The tier its instances cast into the sun's cascades with: a
         /// model in view one tier coarser, a caster batch its own, `NONE`
-        /// for none (an impostor card, a ghost, a static world's view batch,
-        /// which casts by its own caster batch).
+        /// for none (an impostor card, a ghost, a high-air aircraft, a
+        /// static world's view batch, which casts by its own caster batch).
         caster: u32,
         /// How fog of war takes it (`FOG_UNITS` and the rest).
         fog: u32,
@@ -236,7 +236,7 @@ records! {
     }
 
     /// One effect instance: four vec4 whose meaning depends on `misc.x`
-    /// (0 streak, 1 glow, 2 flipbook, 3 rotor), in draw order.
+    /// (0 streak, 1 glow, 2 flipbook, 3 rotor, 4 shadow), in draw order.
     Vertex Effect {
         a: [f32; 4],
         b: [f32; 4],

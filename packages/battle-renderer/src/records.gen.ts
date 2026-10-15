@@ -34,7 +34,7 @@ export const EFFECT_KINDS = [
   "flame",
   "trail",
 ] as const;
-export const SHAPE_NAMES = ["streak", "glow", "flipbook", "rotor"] as const;
+export const SHAPE_NAMES = ["streak", "glow", "flipbook", "rotor", "shadow"] as const;
 /** The scar cache's directory flags over a tile key + 1, its pool texture
  *  and the normalization table at the pool's start, and `ScarParams`' words
  *  before the biome's look (`scars/mod.rs`). */
@@ -123,7 +123,7 @@ export const Batch = {
   tier: 2,
   /** `VIEW_PASS`, `CAST_PASS` or `GHOST_PASS`. (u32) */
   pass: 3,
-  /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a static world's view batch, which casts by its own caster batch). (u32) */
+  /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a high-air aircraft, a static world's view batch, which casts by its own caster batch). (u32) */
   caster: 4,
   /** How fog of war takes it (`FOG_UNITS` and the rest). (u32) */
   fog: 5,
@@ -170,7 +170,7 @@ export const JointAt = {
 } as const;
 export const JOINT_WORDS = 12;
 
-/** One effect instance: four vec4 whose meaning depends on `misc.x` (0 streak, 1 glow, 2 flipbook, 3 rotor), in draw order. */
+/** One effect instance: four vec4 whose meaning depends on `misc.x` (0 streak, 1 glow, 2 flipbook, 3 rotor, 4 shadow), in draw order. */
 export const Effect = d.unstruct({
   /**  */
   a: d.float32x4,

@@ -17,6 +17,7 @@ use crate::sound::tables::inherit;
 use crate::units::drawn::ClipTables;
 use crate::units::skin::{joint_worlds, mul, node_worlds, Mat4};
 use crate::world::{bounds_size, Clip, EffectsSection, Node, Trs, UnitsSection, Vec3};
+use contract::catalog::{AltitudeLayer, Mobility};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::f64::consts::PI;
@@ -295,6 +296,13 @@ fn names(list: &Value) -> impl Iterator<Item = String> + '_ {
 /// Whether `t` flies (`airborne`).
 fn airborne(t: &Value) -> bool {
     t["mobility"].get("air").is_some()
+}
+
+/// The height band `t` occupies (`Mobility::layer`).
+fn layer(t: &Value) -> Result<AltitudeLayer, String> {
+    serde_json::from_value::<Mobility>(t["mobility"].clone())
+        .map(|m| m.layer())
+        .map_err(|e| format!("a type's mobility: {e}"))
 }
 
 /// A mover's top speed, km/h: its road speed, or an aircraft's cruise.
@@ -759,12 +767,14 @@ fn articulated(bundle: &Container<Value>) -> Result<Value, String> {
             placed.push(transform(world, p.map(f64::from)).map(|v| v as f32));
         }
     }
+    let box_ = positions_bounds(placed.into_iter());
     Ok(json!({
         "kind": "articulated",
         "nodes": nodes,
         "rig": rig,
         "tiers": list.first().and_then(|n| n["tiers"].as_array()).map_or(0, Vec::len),
-        "bounds": [size_json(positions_bounds(placed.into_iter()))],
+        "bounds": [size_json(box_)],
+        "plan": [box_[0][0], box_[0][1], box_[1][0], box_[1][1]],
     }))
 }
 
@@ -875,6 +885,7 @@ fn unit_types(
                 "hull": hull.map(|h| json!({ "halfTrack": h["half_extents_m"][1].as_f64().unwrap_or(0.0) * gauge })),
                 "vehicleClass": class,
                 "airborne": airborne(t),
+                "layer": layer(t)?,
                 "roles": roles,
                 "mounts": mount_rows,
                 "draws": draws,

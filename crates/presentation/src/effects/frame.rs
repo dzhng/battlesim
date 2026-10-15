@@ -19,7 +19,9 @@
 //!   burning, then smouldering, then out, all thinned alike past `smoke_budget`;
 //! - a watched hull's cook-off: fireballs out of its ring, then sparks and
 //!   dust where its thrown turret lands;
-//! - every drawn rotor as a film camera's shutter sees it turn.
+//! - every drawn rotor as a film camera's shutter sees it turn;
+//! - a high-air aircraft's shadow on the ground beneath it
+//!   ([`high_air_shadow`](super::high_air_shadow)), under everything else.
 //!
 //! Every effect has a published cause and a bounded life, and runs on the
 //! presentation clock, so a pause holds them and a jump of the clock makes
@@ -31,6 +33,7 @@ use std::f64::consts::PI;
 use std::sync::Arc;
 
 use super::cook_off::GRAVITY;
+use super::high_air_shadow::GroundShadow;
 use super::launches::{Launch, LaunchTracker};
 use super::lights::CastLightList;
 use super::publication::{CookOff, EffectPublication, Segment, Shooter};
@@ -49,12 +52,14 @@ use crate::world::Vec3;
 pub const EFFECT_FLOATS: usize = 16;
 /// Instance shapes (misc.x): a streak from a to b (a lit smoke ribbon when
 /// its colour carries an opacity), a glow at a (a solid disc when its colour
-/// carries an opacity), a flipbook sprite at a, a rotor's blur.
-pub const SHAPE_NAMES: [&str; 4] = ["streak", "glow", "flipbook", "rotor"];
+/// carries an opacity), a flipbook sprite at a, a rotor's blur, a high-air
+/// aircraft's shadow on the ground beneath it.
+pub const SHAPE_NAMES: [&str; 5] = ["streak", "glow", "flipbook", "rotor", "shadow"];
 const STREAK: f64 = 0.0;
 const GLOW: f64 = 1.0;
 const FLIPBOOK: f64 = 2.0;
 const ROTOR: f64 = 3.0;
+const SHADOW: f64 = 4.0;
 /// Flipbook layers in the effect atlas, and each one's frames.
 const FIRE: f64 = 0.0;
 const DUST: f64 = 1.0;
@@ -173,6 +178,21 @@ impl EffectBatch {
     }
 }
 
+impl EffectBatch {
+    /// A high-air aircraft's shadow on the ground beneath it: its plan's
+    /// middle and half length, the ground's up and half span, its nose's
+    /// way and opacity, its blur and how far off the ground under its
+    /// middle a surface may lie and still take it (`band_m`).
+    fn ground_shadow(&mut self, s: &GroundShadow, band_m: f64) {
+        self.put([
+            v4(s.centre, s.half[0]),
+            v4(s.normal, s.half[1]),
+            v4(s.along, s.opacity),
+            [SHADOW, s.blur_m, band_m, 0.0],
+        ]);
+    }
+}
+
 /// `v` with `w` as its fourth.
 fn v4(v: Vec3, w: f64) -> [f64; 4] {
     [v[0], v[1], v[2], w]
@@ -194,7 +214,7 @@ pub const EFFECT_KINDS: [&str; 8] = [
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EffectCounts {
     pub running: [usize; 8],
-    pub instances: [usize; 4],
+    pub instances: [usize; 5],
     pub lights: usize,
 }
 
@@ -1134,11 +1154,16 @@ impl EffectFrame {
         batch: &mut EffectBatch,
         mut muzzles: Option<&mut dyn MuzzleSource>,
         rotors: &[DrawnRotor],
+        shadows: &[GroundShadow],
     ) {
         batch.count = 0;
         batch.dropped = 0;
         batch.lights.clear(self.p.cast_wrap);
         let p = &self.p;
+        // High-air shadows first: they lie on the ground, under everything.
+        for s in shadows {
+            batch.ground_shadow(s, p.high_air_shadow.ground_band_m);
+        }
         // Rotor blurs first, under every puff: smoke drifts across them.
         draw_rotors(&p.rotor_blur, rotors, batch);
         let dt = self.pool.dt;

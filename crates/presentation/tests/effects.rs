@@ -82,6 +82,7 @@ fn effects_match_the_recorded_vectors() {
             &mut batch,
             Some(&mut muzzles),
             std::slice::from_ref(&rotor),
+            &[],
         );
         let instances: Vec<f64> = serde_json::from_value(want["instances"].clone()).unwrap();
         assert_eq!(
@@ -162,7 +163,7 @@ fn a_fixture_runs_plate_counts_are_the_pages_replay_of_its_capture() {
             continue;
         };
         let clock = f["simTime"].as_f64().unwrap();
-        frame.build(clock, &mut batch, None, &[]);
+        frame.build(clock, &mut batch, None, &[], &[]);
         counts.push((plate.to_owned(), frame.counts(clock, &batch)));
     }
     let want = manifest["effectCounts"].as_array().unwrap();

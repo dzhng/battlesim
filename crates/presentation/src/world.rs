@@ -5,6 +5,7 @@
 //! placed buildings come beside it as bytes. Static per battle.
 use std::collections::BTreeMap;
 
+use contract::catalog::AltitudeLayer;
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -119,9 +120,25 @@ pub struct UnitType {
     #[serde(default)]
     pub vehicle_class: Option<String>,
     pub airborne: bool,
+    /// The height band it occupies (its mobility's `layer`); a type that
+    /// names none stands on the ground.
+    #[serde(default = "ground_layer")]
+    pub layer: AltitudeLayer,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,
     pub draws: BTreeMap<String, Draws>,
+}
+
+fn ground_layer() -> AltitudeLayer {
+    AltitudeLayer::Ground
+}
+
+impl UnitType {
+    /// It flies in the high-air layer: it flies its published path, and from
+    /// its height casts no sun shadow but shows one on the ground beneath it.
+    pub fn high_air(&self) -> bool {
+        self.layer == AltitudeLayer::HighAir
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -242,6 +259,10 @@ pub enum Appearance {
         tiers: u32,
         #[serde(default)]
         bounds: Vec<Bounds>,
+        /// Its box seen from above at rest, in its own frame: least x,
+        /// least y, greatest x, greatest y (m).
+        #[serde(default)]
+        plan: [f64; 4],
     },
 }
 
