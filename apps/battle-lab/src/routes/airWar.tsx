@@ -3,6 +3,7 @@ import { useLocation } from "react-router";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   AIR_ROLES,
+  airReach,
   airRole,
   FACTIONS,
   highAirSight,
@@ -144,19 +145,28 @@ const INGRESS_SKIRMISH = {
   },
 };
 
+/** Each faction's enabled roster types by air role. Air defence is listed
+ *  by how far it reaches into the air, nearest first: how short- or
+ *  long-range a type is follows from its weapons alone. */
 function rosterMatrix(catalog: SessionCatalog) {
+  const farthest = (id: string) => {
+    const reach = airReach(catalog.units.type(id), catalog.weapons);
+    return Math.max(reach.low_air, reach.high_air);
+  };
   return FACTIONS.map((faction) => ({
     faction,
     roles: Object.fromEntries(
       AIR_ROLES.map((role) => [
         role,
-        catalog.units.cards.filter(
-          (c) =>
-            !c.disabled_reason &&
-            c.roster.factions.includes(faction) &&
-            catalog.units.has(c.id) &&
-            airRole(catalog.units.type(c.id)) === role,
-        ),
+        catalog.units.cards
+          .filter(
+            (c) =>
+              !c.disabled_reason &&
+              c.roster.factions.includes(faction) &&
+              catalog.units.has(c.id) &&
+              airRole(catalog.units.type(c.id), catalog.weapons) === role,
+          )
+          .sort((a, b) => (role === "air_defense" ? farthest(a.id) - farthest(b.id) : 0)),
       ]),
     ) as Record<AirRole, SessionCatalog["units"]["cards"][number][]>,
   }));
@@ -334,6 +344,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
   const t = catalog.units.type(id);
   const { sensors, capabilities: caps } = t;
   const radar = caps.air?.radar ?? caps.radar;
+  const reach = airReach(t, catalog.weapons);
   const fields: [string, string][] = [
     ["layer", layerOf(t)],
     ["flight", "air" in t.mobility ? t.mobility.air.flight : "—"],
@@ -343,7 +354,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
     ],
     ["fuel", caps.air ? String(caps.air.fuel_capacity_s) : "—"],
     ["flares", caps.air?.flares ? `${caps.air.flares.capacity}/${caps.air.flares.reload_s}` : "—"],
-    ["aa_tier", caps.air_defense?.tier ?? "—"],
+    ["air_reach", `${reach.low_air}/${reach.high_air}`],
     ["radar", radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—"],
     ["sead", caps.air?.sead ? "yes" : "no"],
   ];
@@ -364,7 +375,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
         return (
           <div key={name} data-weapon={name}>
             {w.name}: <span data-field="targets">{targets}</span> {w.range_m} m
-            {w.interception ? ` · intercepts ${String(w.interception)}` : ""}
+            {w.can_intercept ? ` · intercepts ${String(w.can_intercept)}` : ""}
             {w.decoyable ? " · decoyable" : ""}
             {w.seeker ? ` · ${String(w.seeker)} seeker` : ""}
           </div>
@@ -375,6 +386,12 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
 }
 
 function AirMatrix({ catalog }: { catalog: SessionCatalog }) {
+  // An air-defence type reads its low- and high-air reach, metres.
+  const entry = (c: { id: string; name: string }, role: AirRole) => {
+    if (role !== "air_defense") return c.name;
+    const reach = airReach(catalog.units.type(c.id), catalog.weapons);
+    return `${c.name} ${reach.low_air}/${reach.high_air} m`;
+  };
   return (
     <>
       {rosterMatrix(catalog).map(({ faction, roles }) => (
@@ -382,7 +399,8 @@ function AirMatrix({ catalog }: { catalog: SessionCatalog }) {
           <strong>{faction}</strong>
           {AIR_ROLES.map((role) => (
             <div key={role} data-role={role}>
-              {role.replace("_", " ")}: {roles[role].map((c) => c.name).join(", ") || "—"}
+              {role === "air_defense" ? "air defence, low/high-air reach" : role.replace("_", " ")}:{" "}
+              {roles[role].map((c) => entry(c, role)).join(", ") || "—"}
             </div>
           ))}
         </section>

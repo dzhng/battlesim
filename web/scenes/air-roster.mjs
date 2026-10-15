@@ -1,9 +1,11 @@
 // The faction air matrix and the runtime models (slice 09). The panel lists,
-// for each faction, the roster's short, medium and long air defence, its
+// for each faction, the roster's air defence (ground types whose weapons
+// reach high air) nearest reach first with its low- and high-air reach, its
 // SEAD jets and its other fixed-wing aircraft, read from the cards as the
-// catalog resolves them; every faction has all three AA tiers and a SEAD
-// platform (crates/sim/tests/catalog.rs::every_faction_has_short_medium_and_long_air_defence,
-// every_faction_has_a_dedicated_sead_aircraft). The battle parks each of
+// catalog resolves them; every faction has air defence and a SEAD platform
+// (crates/sim/tests/catalog.rs::every_faction_has_a_dedicated_sead_aircraft).
+// How short- or long-range each air defence is follows from its weapons; the
+// reach column is where a roster's spread shows (D52). The battle parks each of
 // those types on the air field, and each is drawn; a contact sheet of them is
 // left for review. High air is its own screen plane: a ground card laid under
 // a jet's model never covers it, and crops of the line-up show two jets'
@@ -16,8 +18,11 @@ import { decode, mostChanged, writeCrop } from "./_png.mjs";
 import { layerOf } from "../../packages/scene-assets/src/units.ts";
 import { unitType, weapons } from "./_units.mjs";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
-import { AIR_ROLES, airRole, FACTIONS } from "../../packages/scene-assets/src/units.ts";
+import { AIR_ROLES, airReach, airRole, FACTIONS } from "../../packages/scene-assets/src/units.ts";
 const cards = (await nodeCatalogSet("test")).units.view.cards.filter((c) => !c.disabled_reason);
+const role = (id) => airRole(unitType(id), weapons);
+const reach = (id) => airReach(unitType(id), weapons);
+const farthest = (id) => Math.max(reach(id).low_air, reach(id).high_air);
 const matrix = Object.fromEntries(
   FACTIONS.map((f) => [
     f,
@@ -25,8 +30,13 @@ const matrix = Object.fromEntries(
       AIR_ROLES.map((r) => [
         r,
         cards
-          .filter((c) => c.roster.factions.includes(f) && airRole(unitType(c.id)) === r)
-          .map((c) => c.name),
+          .filter((c) => c.roster.factions.includes(f) && role(c.id) === r)
+          .sort((a, b) => (r === "air_defense" ? farthest(a.id) - farthest(b.id) : 0))
+          .map((c) =>
+            r === "air_defense"
+              ? `${c.name} ${reach(c.id).low_air}/${reach(c.id).high_air} m`
+              : c.name,
+          ),
       ]),
     ),
   ]),
@@ -60,8 +70,8 @@ export async function run(ctx) {
       JSON.stringify({ shown: shown[f], want }),
     );
     ctx.check(
-      `${f}: short, medium and long air defence and a SEAD platform`,
-      ["short", "medium", "long", "sead"].every((r) => matrix[f][r].length > 0),
+      `${f}: air defence and a SEAD platform`,
+      ["air_defense", "sead"].every((r) => matrix[f][r].length > 0),
       JSON.stringify(matrix[f]),
     );
   }
@@ -70,7 +80,7 @@ export async function run(ctx) {
   // tick whenever the page paused, so its crops compare across runs.
   await advance(page, LINEUP_TICK - (await lab(page, () => window.__lab.route.tick())));
   const o = await lab(page, () => window.__lab.route.observation());
-  const kinds = new Set(cards.filter((c) => airRole(unitType(c.id))).map((c) => c.id));
+  const kinds = new Set(cards.filter((c) => role(c.id)).map((c) => c.id));
   ctx.check(
     "the battle parks each type of the matrix once",
     o.own.length === kinds.size && o.own.every((u) => kinds.has(u.kind)),
@@ -146,7 +156,7 @@ async function recordsPanel(ctx) {
     const want = {
       layer: layerOf(t),
       fuel: caps.air ? String(caps.air.fuel_capacity_s) : "—",
-      aa_tier: caps.air_defense?.tier ?? "—",
+      air_reach: `${reach(kind).low_air}/${reach(kind).high_air}`,
       radar: radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—",
       sead: caps.air?.sead ? "yes" : "no",
     };
@@ -156,7 +166,7 @@ async function recordsPanel(ctx) {
         .map((w) => [w, Object.keys(weapons[w].targets ?? { ground: {} }).join("+")]),
     );
     ctx.check(
-      `${kind}: its record reads the catalog's layer, fuel, tier, radar and weapon layers`,
+      `${kind}: its record reads the catalog's layer, fuel, air reach, radar and weapon layers`,
       !!rec &&
         Object.entries(want).every(([k, v]) => rec.fields[k] === v) &&
         JSON.stringify(rec.weapons) === JSON.stringify(targets),

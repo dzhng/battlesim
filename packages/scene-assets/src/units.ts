@@ -106,17 +106,36 @@ export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" 
 export const fixedWing = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.flight === "fixed_wing";
 
-/** The air war's roles: short, medium and long air defence, SEAD, and the
- *  other fixed-wing. */
-export const AIR_ROLES = ["short", "medium", "long", "sead", "fixed_wing"] as const;
+/** The air war's roles: ground air defence, SEAD, and the other fixed-wing. */
+export const AIR_ROLES = ["air_defense", "sead", "fixed_wing"] as const;
 export type AirRole = (typeof AIR_ROLES)[number];
 
-/** A type's air-war role, or null for one with none. */
-export function airRole(type: Pick<UnitType, "mobility" | "capabilities">): AirRole | null {
-  const caps = type.capabilities;
-  if (caps.air_defense) return caps.air_defense.tier;
-  if (fixedWing(type)) return caps.air?.sead ? "sead" : "fixed_wing";
+/** A type's air-war role, or null for one with none. Air defence is a
+ *  ground type whose weapons reach high air; how short- or long-range it is
+ *  is its `airReach`, not a role. */
+export function airRole(
+  type: Pick<UnitType, "mobility" | "capabilities" | "mounts">,
+  weapons: Record<string, WeaponRow>,
+): AirRole | null {
+  if (fixedWing(type)) return type.capabilities.air?.sead ? "sead" : "fixed_wing";
+  if (layerOf(type) === "ground" && airReach(type, weapons).high_air > 0) return "air_defense";
   return null;
+}
+
+/** How far a type's weapons reach into each air layer, metres: the farthest
+ *  of its rows' `targets.<layer>.range_m`, a row's own `range_m` where the
+ *  layer doesn't say (`WeaponDefinition::against`), and 0 where none reaches. */
+export function airReach(
+  type: Pick<UnitType, "mounts">,
+  weapons: Record<string, WeaponRow>,
+): { low_air: number; high_air: number } {
+  const reach = { low_air: 0, high_air: 0 };
+  for (const w of type.mounts.flatMap((m) => m.weapons).map((id) => weapons[id]))
+    for (const layer of ["low_air", "high_air"] as const) {
+      const fire = w?.targets?.[layer];
+      if (fire) reach[layer] = Math.max(reach[layer], fire.range_m ?? w.range_m);
+    }
+  return reach;
 }
 
 /** A mount row, as a hull lists it or a soldier kind carries it. */
@@ -214,7 +233,6 @@ export interface UnitType {
       afterburner?: { speed_multiplier: number; fuel_multiplier: number };
       radar?: { emits: boolean; detection_m: number };
     };
-    air_defense?: { tier: "short" | "medium" | "long" };
     radar?: { emits: boolean; detection_m: number };
   };
   sound: { profile: "infantry" | "vehicle"; loudness_m: number };
@@ -298,6 +316,8 @@ export interface WeaponRow {
   reload_s: number;
   ammo: number | "unlimited";
   penetration: number;
+  /** The layers it engages and how far at each; absent, the ground only. */
+  targets?: Partial<Record<"ground" | "low_air" | "high_air", { range_m?: number }>>;
   [field: string]: unknown;
 }
 
