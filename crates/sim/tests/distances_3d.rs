@@ -24,7 +24,7 @@ fn high_air_fixture() -> Value {
         "units",
         "test_heli",
         json!({
-            "mobility": { "air": { "layer": "high_air" } },
+            "mobility": { "air": { "layer": "high_air", "flight": "fixed_wing" } },
             "sensors": { "ground_m": 700, "high_air_m": 3000 }
         }),
     );
@@ -189,7 +189,7 @@ fn interceptor_case(high: bool) -> Battle {
             &mut fixture,
             "units",
             "test_heli",
-            json!({ "mobility": { "air": { "layer": "low_air" } } }),
+            json!({ "mobility": { "air": { "layer": "low_air", "flight": "rotor" } } }),
         );
     }
     let units = json!([

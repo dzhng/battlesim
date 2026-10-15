@@ -1,7 +1,7 @@
 //! Units as the authority holds them: bodies, squads, orders and movement state.
 use std::collections::{BTreeSet, VecDeque};
 
-use contract::catalog::{AltitudeLayer, Mobility as Moves, TypeIndex, UnitType};
+use contract::catalog::{AltitudeLayer, FlightModel, Mobility as Moves, TypeIndex, UnitType};
 use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
@@ -366,6 +366,8 @@ pub struct Flight {
     pub climb_mps: f64,
     /// Authored altitude band copied into runtime state at spawn.
     pub layer: AltitudeLayer,
+    /// How it flies: on rotors (`movement::air`) or wings (`air`).
+    pub model: FlightModel,
 }
 
 /// How a unit of type `t` moves.
@@ -376,11 +378,13 @@ pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
             turn_deg_s,
             climb_mps,
             layer,
+            flight,
         } => Motion::Air(Flight {
             cruise_mps: cruise_kmh / 3.6,
             turn_rad_s: turn_deg_s.to_radians(),
             climb_mps,
             layer,
+            model: flight,
         }),
         _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
     }
@@ -526,6 +530,18 @@ impl Unit {
         } else {
             AltitudeLayer::Ground
         }
+    }
+
+    /// It flies on wings: never stopping, attacking in passes, arriving and
+    /// leaving by its back edge. False for a rotor aircraft and on the ground.
+    pub fn fixed_wing(&self) -> bool {
+        matches!(
+            self.motion,
+            Motion::Air(Flight {
+                model: FlightModel::FixedWing,
+                ..
+            })
+        )
     }
 
     /// How it moves over the ground. Only ground movement, routing and
