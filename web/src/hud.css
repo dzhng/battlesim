@@ -358,6 +358,23 @@
   overflow: hidden;
   font-family: var(--hud-font);
 }
+/* Back to front: the ground and low-air cards, the high-air models' canvas,
+   the high-air cards. Each card plane stacks its own cards. */
+.ro-plane {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+}
+/* The models are the world's, not cards: they stay when the cards are hidden. */
+.ro-high-models {
+  position: absolute;
+  inset: 0;
+  visibility: visible;
+}
+.ro-high-models > canvas {
+  position: absolute;
+  pointer-events: none;
+}
 .ro-callout {
   position: absolute;
   inset: 0;

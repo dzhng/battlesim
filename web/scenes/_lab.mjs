@@ -6,13 +6,14 @@ import { capture } from "./_png.mjs";
 /** Run `fn(arg)` in the page. */
 export const lab = (page, fn, arg) => page.evaluate(fn, arg);
 
-/** Hide everything drawn over the canvas (panels, callouts and their DOM
+/** Hide everything drawn over the world (panels, callouts and their DOM
  *  leader lines, the frame rate, whose number changes shot to shot), so a
- *  capture is the world's pixels. Removing the returned style shows it again. */
+ *  capture is the world's pixels: the high-air models' canvas stays.
+ *  Removing the returned style shows it again. */
 export const hideHud = (page) =>
   page.addStyleTag({
     content:
-      "[data-testid=battle-panel], .ro-layer, .lab-panel, .frame-rate { display: none !important; }",
+      "[data-testid=battle-panel], .ro-plane, .lab-panel, .frame-rate { display: none !important; }",
   });
 
 /** The newest decoded observation. */

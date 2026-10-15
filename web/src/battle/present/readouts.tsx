@@ -25,9 +25,8 @@ import { reach, type ReachCommand } from "../input/commandReach";
 import { hudIcon, stateIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { gameHud } from "./hudTheme";
-import { layoutReadoutDetails, type DetailCard } from "./readoutDetails";
+import { layoutReadoutDetails, type DetailCard, type DetailPlacement } from "./readoutDetails";
 import {
-  EDGE_PX,
   layoutReadouts,
   leaderOf,
   overlaps,
@@ -39,6 +38,11 @@ import { clamp, vec3 } from "math";
 import type { Box2 } from "math/shapes";
 import { InfoPanel, PanelCallout, type PanelOwner } from "./infoPanel";
 import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
+
+/** The element the high-air models' canvas lies in, between the two card
+ *  planes: a battle view draws its high-air models there when the page has
+ *  one (`BattleFrame.render`'s high target), and with the world otherwise. */
+export const HIGH_PLANE_ATTR = "data-high-plane";
 
 /** World point → page CSS pixel, or null when behind the eye. */
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
@@ -118,8 +122,8 @@ interface Callout {
   /** Hang from the drawn ground under `at` (a contact not aloft), not its z. */
   onGround?: boolean;
   selected: boolean;
-  /** Its unit flies in the high-air layer: its card sits at its own spot,
-   *  makes no room and draws above the ground and low-air cards. */
+  /** Its unit flies in the high-air layer: its card is laid out in the high
+   *  plane, above the ground and low-air cards and the high-air models. */
   highAir: boolean;
   content: ReactNode;
   opacity?: number;
@@ -131,10 +135,13 @@ interface Callout {
 const HEAD_M = 2;
 
 /** Observation-only panels, positioned each frame beside their units by
- *  `layoutReadouts`: high-air cards at their own spot, drawn above; ground
- *  and low-air cards making room for each other on short, uncrossed leaders.
- *  Selected panels paint above the others of their layer. Far views allow
- *  overlap in camera-depth order. Nudges ease on the presentation clock. */
+ *  `layoutReadouts`, in two planes back to front: the ground and low-air
+ *  cards; the high-air models' canvas (`HIGH_PLANE_ATTR`, which the battle
+ *  view draws into); the high-air cards. In each plane cards make room for
+ *  each other on short, uncrossed leaders, and a selected or hovered panel
+ *  paints above the others. A card near the viewport's edge hides. Far
+ *  views allow overlap in camera-depth order. Nudges ease on the
+ *  presentation clock. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -292,7 +299,6 @@ export function ReadoutLayer({
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
         if (!node) continue;
-        const hovering = c.key === hoveredCard.current;
         const p: Point3 = c.ghost
           ? c.at
           : c.owner === "own"
@@ -302,20 +308,9 @@ export function ReadoutLayer({
               : c.onGround
                 ? [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0]
                 : c.at;
-        // A panel hangs off a unit in view; one whose anchor is off screen hides.
-        const q = project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M));
-        const edge = gameHud.panel_edge_hide_px;
-        // Hover overrides edge hiding; keep its card inside the viewport.
-        const at: [number, number] | null =
-          hovering && q
-            ? [clamp(q[0], 0, window.innerWidth), clamp(q[1], 0, window.innerHeight)]
-            : q &&
-                q[0] >= edge &&
-                q[1] >= edge &&
-                q[0] <= window.innerWidth - edge &&
-                q[1] <= window.innerHeight - edge
-              ? q
-              : null;
+        // A panel hangs off a unit in front of the eye; the layout hides one
+        // near the viewport's edge.
+        const at = project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M));
         node.style.display = at ? "flex" : "none";
         if (at)
           anchored.push({
@@ -362,12 +357,14 @@ export function ReadoutLayer({
         h: a.node.offsetHeight,
       }));
       const gap = gameHud.panel_gap_px;
-      const right = window.innerWidth - EDGE_PX;
+      const edge = gameHud.panel_edge_hide_px;
+      const right = window.innerWidth - edge;
+      const bottom = window.innerHeight - edge;
       const layout = layoutReadouts(
         callouts,
         panels,
         { width: window.innerWidth, height: window.innerHeight },
-        gap,
+        { gap, edge },
         overlap,
       );
       for (const b of callouts) {
@@ -392,38 +389,40 @@ export function ReadoutLayer({
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
         situated.push({ b, box });
       }
-      const viewport: Box2 = [EDGE_PX, EDGE_PX, right, window.innerHeight - EDGE_PX];
+      const viewport: Box2 = [edge, edge, right, bottom];
       compactBoxes.current.clear();
       for (const { b, box } of situated) compactBoxes.current.set(b.id, box);
-      let details: ReturnType<typeof layoutReadoutDetails> | null = null;
-      if (detailing && !overlap) {
-        // High-air cards make no room, so they take no part in it here either.
-        const detailCards: DetailCard[] = situated
-          .filter(({ b }) => !b.highAir)
-          .map(({ b, box }) => {
-            const size = fullSizes.get(b.id)!;
-            return {
-              id: b.id,
-              distanceSq: b.distanceSq,
-              compact: [box.x0, box.y0, box.x1, box.y1],
-              full: [box.x0, box.y0, box.x0 + size.w, box.y0 + size.h],
-            };
-          });
-        const obstacles: Box2[] = [
-          ...panels.map((r): Box2 => [r.x0, r.y0, r.x1, r.y1]),
-          ...callouts
-            .filter((b) => !b.highAir)
-            .map((b): Box2 => [b.x - 6, b.y - 6, b.x + 6, b.y + 6]),
-        ];
-        details = layoutReadoutDetails(
-          detailCards,
-          obstacles,
-          viewport,
-          gap,
-          expanded,
-          hoveredCard.current,
-        );
-      }
+      const details = new Map<string, DetailPlacement>();
+      // Each plane's cards open into their full detail among themselves.
+      if (detailing && !overlap)
+        for (const high of [false, true]) {
+          const detailCards: DetailCard[] = situated
+            .filter(({ b }) => b.highAir === high)
+            .map(({ b, box }) => {
+              const size = fullSizes.get(b.id)!;
+              return {
+                id: b.id,
+                distanceSq: b.distanceSq,
+                compact: [box.x0, box.y0, box.x1, box.y1],
+                full: [box.x0, box.y0, box.x0 + size.w, box.y0 + size.h],
+              };
+            });
+          const obstacles: Box2[] = [
+            ...panels.map((r): Box2 => [r.x0, r.y0, r.x1, r.y1]),
+            ...callouts
+              .filter((b) => b.highAir === high)
+              .map((b): Box2 => [b.x - 6, b.y - 6, b.x + 6, b.y + 6]),
+          ];
+          const plane = layoutReadoutDetails(
+            detailCards,
+            obstacles,
+            viewport,
+            gap,
+            expanded,
+            hoveredCard.current,
+          );
+          for (const [id, at] of plane) details.set(id, at);
+        }
       paintOrder.current = readoutPaintOrder(
         situated.map(({ b }) => b),
         hoveredCard.current,
@@ -434,20 +433,18 @@ export function ReadoutLayer({
       const near = [...situated].sort((a, b) => a.b.distanceSq - b.b.distanceSq);
       const drawnBoxes = new Map<string, ReadoutRect>();
       for (const { b, box: compact } of situated) {
-        const detail = details?.get(b.id);
+        const detail = details.get(b.id);
         let box = detail
           ? { x0: detail.box[0], y0: detail.box[1], x1: detail.box[2], y1: detail.box[3] }
           : compact;
-        // In a far view every card, and always a high-air card, opens where it
-        // stands, kept on screen.
-        const inPlace = overlap || b.highAir;
-        b.node.dataset.zoom = (inPlace ? expanded || b.id === hoveredCard.current : detail?.full)
+        // In a far view every card opens where it stands, off the edge.
+        b.node.dataset.zoom = (overlap ? expanded || b.id === hoveredCard.current : detail?.full)
           ? "default"
           : "compressed";
-        if (inPlace && b.node.dataset.zoom === "default") {
+        if (overlap && b.node.dataset.zoom === "default") {
           const size = fullSizes.get(b.id)!;
-          const x0 = clamp(box.x0, EDGE_PX, right - size.w);
-          const y0 = clamp(box.y0, EDGE_PX, window.innerHeight - EDGE_PX - size.h);
+          const x0 = clamp(box.x0, edge, right - size.w);
+          const y0 = clamp(box.y0, edge, bottom - size.h);
           box = { x0, y0, x1: x0 + size.w, y1: y0 + size.h };
         }
         drawnBoxes.set(b.id, box);
@@ -501,35 +498,40 @@ export function ReadoutLayer({
       },
     [],
   );
+  const card = (c: Callout) => (
+    <div
+      key={c.key}
+      className={`ro-callout${c.selected ? " ro-selected" : ""}`}
+      style={{ opacity: c.opacity }}
+      data-retiring={c.retiring || undefined}
+      data-ghost={c.ghost || undefined}
+    >
+      <PanelCallout
+        ref={bind(nodes.current, c.key)}
+        owner={c.owner}
+        selected={c.selected}
+        data-zoom="compressed"
+        data-unit={c.owner === "own" && !c.ghost ? c.id : undefined}
+        data-enemy={c.owner === "enemy" ? c.id : undefined}
+        data-contact={c.owner === "contact" ? c.id : undefined}
+      >
+        {c.content}
+      </PanelCallout>
+      <svg className={`ro-leaders${c.owner !== "own" ? " ro-enemy" : ""}`} aria-hidden="true">
+        <path
+          ref={bind(leaders.current, c.key)}
+          className={`ro-leader ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
+        />
+      </svg>
+    </div>
+  );
   return (
     <div ref={layer} className="ro-layer" data-testid="readouts" data-zoom="compressed">
-      {callouts.map((c) => (
-        <div
-          key={c.key}
-          className={`ro-callout${c.selected ? " ro-selected" : ""}`}
-          style={{ opacity: c.opacity }}
-          data-retiring={c.retiring || undefined}
-          data-ghost={c.ghost || undefined}
-        >
-          <PanelCallout
-            ref={bind(nodes.current, c.key)}
-            owner={c.owner}
-            selected={c.selected}
-            data-zoom="compressed"
-            data-unit={c.owner === "own" && !c.ghost ? c.id : undefined}
-            data-enemy={c.owner === "enemy" ? c.id : undefined}
-            data-contact={c.owner === "contact" ? c.id : undefined}
-          >
-            {c.content}
-          </PanelCallout>
-          <svg className={`ro-leaders${c.owner !== "own" ? " ro-enemy" : ""}`} aria-hidden="true">
-            <path
-              ref={bind(leaders.current, c.key)}
-              className={`ro-leader ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
-            />
-          </svg>
-        </div>
-      ))}
+      <div className="ro-plane">{callouts.filter((c) => !c.highAir).map(card)}</div>
+      <div className="ro-high-models" {...{ [HIGH_PLANE_ATTR]: "" }} />
+      <div className="ro-plane" data-high-air>
+        {callouts.filter((c) => c.highAir).map(card)}
+      </div>
     </div>
   );
 }
