@@ -571,8 +571,8 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "targets.ground.classes",
       "Ground targets",
       "Impact & suppression",
-      "What it is fired at on the ground: infantry, vehicle, or both. A dedicated anti-tank weapon lists vehicle alone, and is never spent on an area.",
-      { kind: "strings", choices: ["infantry", "vehicle"] },
+      "What it is fired at on the ground: infantry, vehicle, or both. A dedicated anti-tank weapon lists vehicle alone, and is never spent on an area. Missile shoots down rounds fired from the ground.",
+      { kind: "strings", choices: ["infantry", "vehicle", "missile"] },
     ),
     field(
       "targets.low_air",
@@ -585,8 +585,8 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "targets.low_air.classes",
       "Low-air targets",
       "Impact & suppression",
-      "Which aircraft it is fired at in low air, by how they fly: air_rotor, air_fixed_wing, or both.",
-      { kind: "strings", choices: ["air_rotor", "air_fixed_wing"] },
+      "Which aircraft it is fired at in low air, by how they fly: air_rotor, air_fixed_wing, or both. Missile shoots down rounds fired from low air.",
+      { kind: "strings", choices: ["air_rotor", "air_fixed_wing", "missile"] },
     ),
     field(
       "targets.low_air.range_m",

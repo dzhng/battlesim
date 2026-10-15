@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 use contract::ids::{Tick, UnitId};
 use contract::scenario::{Armor, Face, RicochetRules, Rules};
-use contract::weapons::WeaponDefinition;
+use contract::weapons::{TargetClass, WeaponDefinition};
 
 use crate::battle::Round;
 use crate::flight::{
@@ -287,13 +287,13 @@ impl ImpactResolver for HullResolver<'_> {
             return 0.0;
         };
         let def = &self.arsenal.weapons[round.weapon].def;
-        // Only an explicitly authored interception row may destroy another
-        // projectile.  `interceptable` remains the incoming missile flag.
+        // Only a row listing `missile` may destroy another projectile;
+        // `interceptable` remains the incoming round's own flag.
         // Range decides whether the mount may launch.  Once launched,
         // projectile interception is a proximity fuse, so using the weapon's
         // full engagement range would erase rounds at a visibly impossible
         // distance.
-        if def.can_intercept.is_some() {
+        if def.intercepts() {
             def.blast_radius_m.max(5.0)
         } else {
             0.0
@@ -324,8 +324,10 @@ impl ImpactResolver for HullResolver<'_> {
         let interceptor_def = &self.arsenal.weapons[attacker.weapon].def;
         let incoming_def = &self.arsenal.weapons[incoming.weapon].def;
         attacker.side != incoming.side
-            && interceptor_def.can_intercept.is_some()
             && incoming_def.interceptable
+            && interceptor_def
+                .engages(incoming.layer, Some(TargetClass::Missile))
+                .is_some()
     }
     fn resolve(&mut self, hit: &ImpactContext) -> ImpactDecision {
         let Some(round) = self.rounds.get(&hit.projectile) else {

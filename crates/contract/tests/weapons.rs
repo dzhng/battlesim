@@ -290,6 +290,7 @@ fn a_removed_or_unknown_weapon_field_is_refused_by_name() {
     for (field, value) in [
         ("anti_armor", json!(true)),
         ("interception", json!("missile")),
+        ("can_intercept", json!("missile")),
         ("aa_tier", json!("short")),
         ("fov_deg", json!(60)),
     ] {
@@ -302,6 +303,37 @@ fn a_removed_or_unknown_weapon_field_is_refused_by_name() {
         assert!(
             error.contains("weapons.test_gun") && error.contains(field),
             "{field}: {error}"
+        );
+    }
+}
+
+/// Interception is a target class like any other: `missile`, a round fired
+/// from that layer, may be listed in any layer, guided or not, and is
+/// matched by the one `engages`.
+#[test]
+fn any_layer_may_list_missile() {
+    use contract::catalog::AltitudeLayer::{Ground, HighAir, LowAir};
+    use contract::weapons::TargetClass::{AirFixedWing, Missile};
+    let targets = json!({
+        "ground": { "classes": ["missile"], "range_m": 100 },
+        "high_air": { "classes": ["air_fixed_wing", "missile"], "range_m": 200 }
+    });
+    for guided in [false, true] {
+        let mut rows = test_rows(targets.clone());
+        if guided {
+            rows["test_gun"]["turn_deg_s"] = json!(180);
+            rows["test_gun"]["guidance"] = json!("stationary");
+        }
+        let rows = contract::weapons::resolve_weapons(rows).unwrap();
+        let gun = &rows["test_gun"];
+        let reach = |layer, class| gun.engages(layer, class).map(|fire| fire.range_m);
+        assert_eq!(reach(Ground, Some(Missile)), Some(100.0));
+        assert_eq!(reach(HighAir, Some(Missile)), Some(200.0));
+        assert_eq!(reach(HighAir, Some(AirFixedWing)), Some(200.0));
+        assert_eq!(
+            reach(LowAir, Some(Missile)),
+            None,
+            "a layer it does not list"
         );
     }
 }

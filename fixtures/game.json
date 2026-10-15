@@ -470,11 +470,12 @@
             "targets": {
                 "ground": {},
                 "low_air": {
+                    "classes": ["air_rotor", "air_fixed_wing", "missile"],
                     "range_m": 350,
                     "scatter_mrad": 28
                 },
                 "high_air": {
-                    "classes": ["air_rotor", "air_fixed_wing"],
+                    "classes": ["air_rotor", "air_fixed_wing", "missile"],
                     "range_m": 1500,
                     "scatter_mrad": 42
                 }
@@ -497,8 +498,7 @@
                     "rounds": 3,
                     "aim_max_s": 1
                 }
-            },
-            "can_intercept": "missile"
+            }
         },
         "aa_medium": {
             "targets": {
@@ -564,8 +564,7 @@
             "structural_damage": 20,
             "seeker": "radar",
             "seeker_fov_deg": 100,
-            "decoyable": true,
-            "can_intercept": "missile"
+            "decoyable": true
         },
         "air_gun": {
             "extends": "hmg",

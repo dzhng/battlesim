@@ -414,11 +414,9 @@ struct Resolved {
     armor: Option<Option<Armor>>,
     /// The height band it is in; an area or a ground point is on the ground.
     layer: AltitudeLayer,
-    /// What an identified unit is to a weapon; `None` for an area, a ground
-    /// point or a round, which no unit class bars.
+    /// What an identified unit or a round in flight is to a weapon; `None`
+    /// for an area or a ground point, which no class bars.
     class: Option<TargetClass>,
-    /// A round in flight: only an interception row is fired at it.
-    round: bool,
     radar_contact: bool,
 }
 
@@ -430,11 +428,12 @@ impl Resolved {
         def.engages(self.layer, self.class)
     }
 
-    /// Whether `def` is worth firing at it: at a round, an interception row;
-    /// otherwise what [`effective`] says.
+    /// Whether `def` is worth firing at it: at a round, a row listing
+    /// `missile` in the round's layer (a round is no area, W10); otherwise
+    /// what [`effective`] says.
     fn worth(&self, def: &WeaponDefinition, rules: &Rules) -> bool {
-        if self.round {
-            def.can_intercept.is_some()
+        if self.class == Some(TargetClass::Missile) {
+            self.fire(def).is_some()
         } else {
             effective(def, self.armor, rules)
         }
@@ -551,7 +550,6 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
                 class: Some(unit.unit_type(ctx.rules).target_class()),
-                round: false,
                 radar_contact: unit.layer() == AltitudeLayer::Ground
                     && unit
                         .unit_type(ctx.rules)
@@ -573,7 +571,6 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: None,
                 layer: AltitudeLayer::Ground,
                 class: None,
-                round: false,
                 radar_contact: contact.source == contract::observation::ContactSource::Radar,
             })
         }
@@ -583,10 +580,9 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             current: true,
             armor: None,
             // Ground orders always remain Ground; only a round target carries
-            // an air interception row.
+            // the layer it was fired from.
             layer: AltitudeLayer::Ground,
             class: None,
-            round: false,
             radar_contact: false,
         }),
         Target::Round(round) => Some(Resolved {
@@ -595,8 +591,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             current: true,
             armor: None,
             layer: round.layer,
-            class: None,
-            round: true,
+            class: Some(TargetClass::Missile),
             radar_contact: false,
         }),
     }

@@ -370,11 +370,16 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
       </div>
       {weapons.map((name) => {
         const w = catalog.weapons[name] as { name: string; range_m: number; [f: string]: unknown };
-        const targets = Object.keys((w.targets as object | undefined) ?? { ground: {} }).join("+");
+        const layers = w.targets as Record<string, { classes: string[] }>;
+        const targets = Object.keys(layers).join("+");
+        const intercepts = Object.entries(layers)
+          .filter(([, fire]) => fire.classes.includes("missile"))
+          .map(([layer]) => layer)
+          .join("+");
         return (
           <div key={name} data-weapon={name}>
             {w.name}: <span data-field="targets">{targets}</span> {w.range_m} m
-            {w.can_intercept ? ` · intercepts ${String(w.can_intercept)}` : ""}
+            {intercepts ? ` · intercepts missiles from ${intercepts}` : ""}
             {w.decoyable ? " · decoyable" : ""}
             {w.seeker ? ` · ${String(w.seeker)} seeker` : ""}
           </div>

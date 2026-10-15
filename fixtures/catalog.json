@@ -41218,7 +41218,6 @@
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 2.0,
-      "can_intercept": "missile",
       "damage": 100.0,
       "decoyable": false,
       "default": true,
@@ -41258,7 +41257,8 @@
         "high_air": {
           "classes": [
             "air_rotor",
-            "air_fixed_wing"
+            "air_fixed_wing",
+            "missile"
           ],
           "range_m": 1500.0,
           "scatter_mrad": 42.0
@@ -41266,7 +41266,8 @@
         "low_air": {
           "classes": [
             "air_rotor",
-            "air_fixed_wing"
+            "air_fixed_wing",
+            "missile"
           ],
           "range_m": 350.0,
           "scatter_mrad": 28.0
@@ -41283,7 +41284,6 @@
       "anti_radiation": false,
       "armor_piercing": false,
       "blast_radius_m": 3.0,
-      "can_intercept": "missile",
       "damage": 260.0,
       "decoyable": true,
       "default": false,

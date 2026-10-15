@@ -20,6 +20,7 @@ use contract::scenario::{
     UnitCondition,
 };
 use contract::script::{CompiledScript, ScriptInput};
+use contract::weapons::TargetClass;
 use serde::{Deserialize, Serialize};
 
 use crate::arrangement;
@@ -726,8 +727,9 @@ impl Battle {
         }
     }
 
-    /// Give any ground mount carrying an interception row a physical lock on
-    /// an incoming round before ordinary target selection. The round target carries its
+    /// Give any ground mount carrying a row that lists `missile` at the
+    /// band an incoming round was fired from a physical lock on that round
+    /// before ordinary target selection. The round target carries its
     /// current point and selected interceptor row, so the existing launch
     /// solver, seeker FOV and LOS rules still decide whether the interceptor
     /// can actually leave the mount. Explicit orders retain ownership of a
@@ -777,18 +779,17 @@ impl Battle {
                 let Some((projectile, point, layer)) = incoming
                     .iter()
                     .filter_map(|&(side, projectile, point, layer)| {
-                        // Reached at the band it was fired from: a round is
-                        // no unit, so no target class bars it.
+                        // Reached by a row listing `missile` at the band it
+                        // was fired from.
                         let reach = specs[mount.spec]
                             .kinds
                             .iter()
                             .enumerate()
-                            .filter(|&(slot, kind)| {
-                                mount.ammo[slot].is_none_or(|n| n > 0)
-                                    && self.arsenal.weapons[*kind].def.can_intercept.is_some()
-                            })
+                            .filter(|&(slot, _)| mount.ammo[slot].is_none_or(|n| n > 0))
                             .filter_map(|(_, kind)| {
-                                self.arsenal.weapons[*kind].def.engages(layer, None)
+                                self.arsenal.weapons[*kind]
+                                    .def
+                                    .engages(layer, Some(TargetClass::Missile))
                             })
                             .map(|fire| fire.range_m)
                             .fold(0.0, f64::max);
@@ -3294,10 +3295,7 @@ impl Battle {
                     });
                 }
             }
-            if self.arsenal.weapons[shot.weapon]
-                .def
-                .can_intercept
-                .is_some()
+            if self.arsenal.weapons[shot.weapon].def.intercepts()
                 && matches!(shot.target, Target::Ground(_) | Target::Round(_))
             {
                 self.units[shot.unit.0 as usize].mounts[shot.mount].lock = None;
@@ -4935,69 +4933,6 @@ mod tests {
         assert!(flown[1] < 1.0, "the rotor jet hovers: {:.1} m", flown[1]);
     }
 
-    /// Any mount carrying an interception row locks on to an incoming round:
-    /// the jeep here is no air-defence unit, only a jeep with such a gun.
-    #[test]
-    fn an_idle_mount_with_an_interception_row_acquires_an_incoming_round() {
-        let mut rules = crate::fixtures::test_game();
-        crate::fixtures::patch_catalog(
-            &mut rules,
-            "units",
-            "test_jeep",
-            serde_json::json!({
-                "name": "Gun Jeep",
-                "mounts": [{ "id": "AA", "name": "AA", "weapons": ["aa_ballistic"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
-            }),
-        );
-        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
-            "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
-            "rules": rules,
-            "units": [
-                { "side": "blue", "kind": "test_jeep", "position": [100, 200] },
-                { "side": "red", "kind": "test_tank", "position": [500, 200] }
-            ],
-            "events": [], "scripts": []
-        }))
-        .expect("interceptor scenario");
-        let mut battle = Battle::new(&setup, 17);
-        let incoming_weapon = battle
-            .arsenal
-            .weapons
-            .iter()
-            .position(|weapon| weapon.id == "sead_missile")
-            .expect("SEAD row");
-        let projectile = battle.projectiles.launch(crate::flight::Launch {
-            origin: v3(300.0, 200.0, 500.0),
-            carrier: v3(0.0, 0.0, 0.0),
-            velocity: v3(-100.0, 0.0, 0.0),
-            gravity_scale: 0.0,
-            lifetime_s: 5.0,
-            suppression_radius_m: 0.0,
-            shooter: None,
-            guidance: None,
-            motor: None,
-            fall: None,
-        });
-        battle.rounds.insert(
-            projectile,
-            Round {
-                weapon: incoming_weapon,
-                unit: UnitId(1),
-                side: Side::Red,
-                seeker_target: None,
-                air_target: None,
-                layer: AltitudeLayer::Ground,
-            },
-        );
-        battle.arm_missile_interceptors();
-        assert!(matches!(
-            battle.units[0].mounts[1].lock.as_ref().map(|lock| lock.target),
-            Some(Target::Round(round))
-                if round.id == projectile
-                    && (round.point - v3(300.0, 200.0, 500.0)).length() < 1e-9
-        ));
-    }
-
     /// A blue jeep at (100, 200) mounting `row` (patched into the rules as
     /// `test_interceptor`), and a still, interceptable red round hanging at
     /// `at`, fired from `layer`.
@@ -5056,21 +4991,29 @@ mod tests {
         battle
     }
 
+    /// A ballistic gun that `targets` as given: 1,500 m, 40 rounds.
+    fn test_interceptor(targets: serde_json::Value) -> serde_json::Value {
+        serde_json::json!({
+            "name": "Test AA", "description": "A test row.", "icon": "autocannon",
+            "stationary": false, "range_m": 1500, "speed_mps": 600, "gravity_scale": 0.5,
+            "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
+            "damage": 100, "scatter_mrad": 5, "near_miss_suppression": 0.1,
+            "suppression_radius_m": 6, "blast_radius_m": 2, "structural_damage": 8,
+            "targets": targets
+        })
+    }
+
     /// An interceptor reaches a round as far as its row reaches the band the
     /// round was fired from, whatever height the round flies at: 300 m off,
     /// a round fired from the ground or low air is past this gun's 150 m,
     /// and one fired from high air is inside its 400 m.
     #[test]
     fn an_interceptor_reaches_a_round_by_the_band_it_was_fired_from() {
-        let row = serde_json::json!({
-            "extends": "aa_ballistic",
-            "range_m": 400,
-            "targets": {
-                "ground": { "range_m": 150 },
-                "low_air": { "range_m": 150 },
-                "high_air": { "range_m": 400 }
-            }
-        });
+        let row = test_interceptor(serde_json::json!({
+            "ground": { "classes": ["missile"], "range_m": 150 },
+            "low_air": { "classes": ["missile"], "range_m": 150 },
+            "high_air": { "classes": ["missile"], "range_m": 400 }
+        }));
         for (layer, reached) in [
             (AltitudeLayer::Ground, false),
             (AltitudeLayer::LowAir, false),
@@ -5090,41 +5033,51 @@ mod tests {
         }
     }
 
-    /// A round is no area: an interception row is fired at one though the
-    /// row engages only aircraft, and so is never fired at an area (W10). The
-    /// gun fires on the round and spends its ammunition.
+    /// A gun shoots down a round only when the layer the round was fired
+    /// from lists `missile`. A gun that fires at men and vehicles on the
+    /// ground but lists `missile` in high air alone fires at a round fired
+    /// from high air and lets an identical one fired from the ground fly
+    /// by. A gun listing `missile` on the ground fires at the ground round,
+    /// though it lists no soldier there: a round is no area (W10).
     #[test]
-    fn an_aircraft_only_interception_gun_fires_at_an_incoming_round() {
-        let row = serde_json::json!({
-            "name": "Test AA", "description": "A test row.", "icon": "autocannon",
-            "stationary": false, "range_m": 1500, "speed_mps": 600, "gravity_scale": 0.5,
-            "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
-            "damage": 100, "scatter_mrad": 5, "near_miss_suppression": 0.1,
-            "suppression_radius_m": 6, "blast_radius_m": 2, "structural_damage": 8,
-            "can_intercept": "missile",
-            "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing"] } }
-        });
-        let mut battle =
-            interceptor_and_round(row, v3(500.0, 200.0, 300.0), AltitudeLayer::HighAir);
-        let interceptor = battle
-            .arsenal
-            .weapons
-            .iter()
-            .position(|weapon| weapon.id == "test_interceptor")
-            .unwrap();
-        let mut fired = false;
-        for _ in 0..90 {
-            battle.step();
-            fired |= battle
-                .rounds
-                .values()
-                .any(|r| r.weapon == interceptor && r.unit == UnitId(0));
+    fn a_gun_shoots_down_rounds_fired_from_the_layers_that_list_missile() {
+        let high_air = serde_json::json!({ "classes": ["air_rotor", "air_fixed_wing", "missile"] });
+        let only_high = test_interceptor(serde_json::json!({
+            "ground": { "classes": ["infantry", "vehicle"] },
+            "high_air": high_air
+        }));
+        let ground_too = test_interceptor(serde_json::json!({
+            "ground": { "classes": ["missile"] },
+            "high_air": high_air
+        }));
+        for (row, layer, shoots) in [
+            (&only_high, AltitudeLayer::HighAir, true),
+            (&only_high, AltitudeLayer::Ground, false),
+            (&ground_too, AltitudeLayer::Ground, true),
+        ] {
+            let mut battle = interceptor_and_round(row.clone(), v3(500.0, 200.0, 300.0), layer);
+            let interceptor = battle
+                .arsenal
+                .weapons
+                .iter()
+                .position(|weapon| weapon.id == "test_interceptor")
+                .unwrap();
+            let mut fired = false;
+            for _ in 0..90 {
+                battle.step();
+                fired |= battle
+                    .rounds
+                    .values()
+                    .any(|r| r.weapon == interceptor && r.unit == UnitId(0));
+            }
+            let spent = battle.units[0].mounts[1].ammo[0] < Some(40);
+            let ground = &row["targets"]["ground"]["classes"];
+            assert_eq!(
+                (fired, spent),
+                (shoots, shoots),
+                "a round fired from {layer:?}, the ground listing {ground}"
+            );
         }
-        assert!(fired, "the gun fired at the round");
-        assert!(
-            battle.units[0].mounts[1].ammo[0] < Some(40),
-            "and spent its rounds"
-        );
     }
 
     /// A battle that changes what each side knows in every way a battle

@@ -84,10 +84,6 @@ pub struct WeaponDefinition {
     /// Whether a seeker can be diverted by an aircraft flare.
     #[serde(default)]
     pub decoyable: bool,
-    /// A missile target class this row may intercept. Interception is an
-    /// authored weapon property, never inferred from penetration or guidance.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub can_intercept: Option<InterceptionTargetClass>,
     /// The launcher holds fire while anything stands in its round's first
     /// flight from the muzzle (`launch.clearance_m`): the ground, a
     /// body that stops rounds, or tree crowns. A launcher that would not fire
@@ -121,12 +117,6 @@ pub enum SeekerSupport {
     Optical,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum InterceptionTargetClass {
-    Missile,
-}
-
 /// How a weapon fires at one altitude layer. Each value it leaves out is
 /// the row's own. Only what changes with the target's height lives here:
 /// the gun, its magazine and its round are the same whatever it aims at.
@@ -141,15 +131,16 @@ pub struct LayerFire {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scatter_mrad: Option<f64>,
     /// The kinds of target it engages at this layer: `infantry` and
-    /// `vehicle` on the ground, `air_rotor` and `air_fixed_wing` in the air.
+    /// `vehicle` on the ground, `air_rotor` and `air_fixed_wing` in the air,
+    /// and `missile` in any layer, an interceptable round fired from it.
     /// A dedicated anti-tank row lists `vehicle` alone.
     pub classes: Vec<TargetClass>,
 }
 
 /// What a target is, for what may be fired at it: soldiers on foot, a hull
-/// on the ground, or an aircraft by how it flies (its
-/// `mobility.air.flight`). Read from the unit's body and mobility, never its
-/// name ([`crate::catalog::UnitType::target_class`]).
+/// on the ground, an aircraft by how it flies (its `mobility.air.flight`),
+/// or a round in flight. A unit's is read from its body and mobility, never
+/// its name ([`crate::catalog::UnitType::target_class`]).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TargetClass {
@@ -157,14 +148,21 @@ pub enum TargetClass {
     Vehicle,
     AirRotor,
     AirFixedWing,
+    /// An interceptable round, in the layer it was fired from (`Round.layer`
+    /// in the simulation): a row listing it shoots such rounds down.
+    Missile,
 }
 
 impl TargetClass {
-    /// The classes found in `layer`: aircraft fly, everything else stands
-    /// on the ground.
+    /// The classes found in `layer`: aircraft fly, soldiers and hulls stand
+    /// on the ground, and a round may be fired from any layer.
     pub fn found_in(self, layer: crate::catalog::AltitudeLayer) -> bool {
-        let airborne = matches!(self, TargetClass::AirRotor | TargetClass::AirFixedWing);
-        airborne == (layer != crate::catalog::AltitudeLayer::Ground)
+        let ground = layer == crate::catalog::AltitudeLayer::Ground;
+        match self {
+            TargetClass::Infantry | TargetClass::Vehicle => ground,
+            TargetClass::AirRotor | TargetClass::AirFixedWing => !ground,
+            TargetClass::Missile => true,
+        }
     }
 }
 
@@ -186,8 +184,8 @@ impl WeaponDefinition {
     }
 
     /// How it fires at a target of `class` in `layer`, or `None` when that
-    /// layer does not list the class. `None` for `class` is a point, an area
-    /// or a round rather than a unit: no unit class bars it. The one place a
+    /// layer does not list the class. `None` for `class` is a point or an
+    /// area rather than a unit or a round: no class bars it. The one place a
     /// target's class is matched.
     pub fn engages(
         &self,
@@ -198,6 +196,13 @@ impl WeaponDefinition {
         class
             .is_none_or(|class| listed.classes.contains(&class))
             .then(|| self.against(layer))?
+    }
+
+    /// Whether it shoots down rounds fired from some layer (`missile`).
+    pub fn intercepts(&self) -> bool {
+        self.targets
+            .keys()
+            .any(|&layer| self.engages(layer, Some(TargetClass::Missile)).is_some())
     }
 }
 
@@ -468,10 +473,7 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "seeker_fov_deg must be finite and in (0, 360]",
                         ));
                     }
-                    if def.can_intercept.is_some()
-                        && def.ballistics.guidance.is_none()
-                        && def.seeker.is_some()
-                    {
+                    if def.intercepts() && def.ballistics.guidance.is_none() && def.seeker.is_some() {
                         return Err(serde::de::Error::custom(
                             "a seeker interception row must be guided",
                         ));
