@@ -7776,7 +7776,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -7913,7 +7913,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -8785,7 +8785,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -8943,7 +8943,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -9798,7 +9798,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -9935,7 +9935,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -10093,7 +10093,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -10230,7 +10230,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "radar": {
@@ -10371,7 +10371,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -10529,7 +10529,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -13793,7 +13793,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -14220,7 +14220,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -15427,7 +15427,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -16084,7 +16084,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -16433,7 +16433,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "radar": {
@@ -16574,7 +16574,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -16895,7 +16895,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -17054,7 +17054,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -17363,7 +17363,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -18152,7 +18152,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "radar": {
@@ -18293,7 +18293,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -18451,7 +18451,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -18588,7 +18588,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -18725,7 +18725,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -18883,7 +18883,7 @@
               },
               "flares": {
                 "capacity": 4,
-                "reload_s": 20.0
+                "reload_s": 3.0
               },
               "fuel_capacity_s": 180.0,
               "refund": {
@@ -27518,7 +27518,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -27659,7 +27659,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -28649,7 +28649,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -28812,7 +28812,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -29884,7 +29884,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -30025,7 +30025,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -30188,7 +30188,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -30329,7 +30329,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "radar": {
@@ -30474,7 +30474,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -30637,7 +30637,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -34072,7 +34072,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -34512,7 +34512,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -35849,7 +35849,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -36527,7 +36527,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -36901,7 +36901,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "radar": {
@@ -37046,7 +37046,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -37377,7 +37377,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -37541,7 +37541,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -38094,7 +38094,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -39031,7 +39031,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "radar": {
@@ -39176,7 +39176,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -39339,7 +39339,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -39480,7 +39480,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -39621,7 +39621,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -39784,7 +39784,7 @@
           },
           "flares": {
             "capacity": 4,
-            "reload_s": 20.0
+            "reload_s": 3.0
           },
           "fuel_capacity_s": 180.0,
           "refund": {
@@ -43495,7 +43495,7 @@
       "partial_from": null,
       "penetration": 65.0,
       "range_m": 1500.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 6.0,
       "speed_mps": 600.0,
       "stationary": false,
@@ -43542,7 +43542,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 5200.0,
-      "reload_s": 20.0,
+      "reload_s": 9.0,
       "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 100.0,
@@ -43582,7 +43582,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 2600.0,
-      "reload_s": 8.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 120.0,
@@ -43621,7 +43621,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 900.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -43657,7 +43657,7 @@
       "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 900.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -43695,7 +43695,7 @@
       "partial_from": null,
       "penetration": 40.0,
       "range_m": 0.0,
-      "reload_s": 10.0,
+      "reload_s": 3.0,
       "scatter_mrad": 4.0,
       "speed_mps": 0.0,
       "stationary": false,
@@ -43737,7 +43737,7 @@
       "partial_from": null,
       "penetration": 20.0,
       "range_m": 0.0,
-      "reload_s": 12.0,
+      "reload_s": 4.5,
       "scatter_mrad": 28.0,
       "speed_mps": 0.0,
       "stationary": false,
@@ -43774,7 +43774,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 2000.0,
-      "reload_s": 9.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": false,
@@ -43818,7 +43818,7 @@
       "partial_from": null,
       "penetration": 65.0,
       "range_m": 900.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 6.0,
       "speed_mps": 600.0,
       "stationary": false,
@@ -43863,7 +43863,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 3000.0,
-      "reload_s": 8.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "seeker": "infrared",
       "seeker_fov_deg": 70.0,
@@ -43903,7 +43903,7 @@
       "partial_from": null,
       "penetration": 200.0,
       "range_m": 900.0,
-      "reload_s": 9.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
@@ -43922,7 +43922,7 @@
     },
     "artillery_howitzer": {
       "accel_mps2": null,
-      "aim_s": 4.0,
+      "aim_s": 2.5,
       "ammo": 24,
       "anti_armor": false,
       "anti_radiation": false,
@@ -43943,7 +43943,7 @@
       "partial_from": null,
       "penetration": 45.0,
       "range_m": 2500.0,
-      "reload_s": 14.0,
+      "reload_s": 7.0,
       "scatter_mrad": 18.0,
       "speed_mps": 160.0,
       "stationary": true,
@@ -43979,7 +43979,7 @@
       "partial_from": null,
       "penetration": 25.0,
       "range_m": 1800.0,
-      "reload_s": 9.0,
+      "reload_s": 5.0,
       "scatter_mrad": 26.0,
       "speed_mps": 145.0,
       "stationary": true,
@@ -43994,7 +43994,7 @@
     },
     "artillery_rocket_heavy": {
       "accel_mps2": null,
-      "aim_s": 5.0,
+      "aim_s": 3.0,
       "ammo": 12,
       "anti_armor": false,
       "anti_radiation": false,
@@ -44019,7 +44019,7 @@
       "partial_from": null,
       "penetration": 45.0,
       "range_m": 2500.0,
-      "reload_s": 28.0,
+      "reload_s": 12.0,
       "scatter_mrad": 22.0,
       "speed_mps": 160.0,
       "stationary": true,
@@ -44034,7 +44034,7 @@
     },
     "artillery_rocket_light": {
       "accel_mps2": null,
-      "aim_s": 4.0,
+      "aim_s": 2.5,
       "ammo": 18,
       "anti_armor": false,
       "anti_radiation": false,
@@ -44059,7 +44059,7 @@
       "partial_from": null,
       "penetration": 30.0,
       "range_m": 2200.0,
-      "reload_s": 20.0,
+      "reload_s": 9.0,
       "scatter_mrad": 24.0,
       "speed_mps": 160.0,
       "stationary": true,
@@ -44074,7 +44074,7 @@
     },
     "artillery_strike_missile": {
       "accel_mps2": null,
-      "aim_s": 5.0,
+      "aim_s": 3.0,
       "ammo": 6,
       "anti_armor": false,
       "anti_radiation": false,
@@ -44095,7 +44095,7 @@
       "partial_from": null,
       "penetration": 80.0,
       "range_m": 2500.0,
-      "reload_s": 35.0,
+      "reload_s": 15.0,
       "scatter_mrad": 14.0,
       "speed_mps": 160.0,
       "stationary": true,
@@ -44132,7 +44132,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 900.0,
-      "reload_s": 9.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
@@ -44175,7 +44175,7 @@
       "partial_from": null,
       "penetration": 65.0,
       "range_m": 650.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 6.0,
       "speed_mps": 600.0,
       "stationary": false,
@@ -44216,7 +44216,7 @@
       "partial_from": null,
       "penetration": 320.0,
       "range_m": 650.0,
-      "reload_s": 10.0,
+      "reload_s": 4.5,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
@@ -44300,7 +44300,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 1500.0,
-      "reload_s": 8.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 100.0,
       "stationary": true,
@@ -44372,7 +44372,7 @@
       "partial_from": null,
       "penetration": 250.0,
       "range_m": 850.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -44408,7 +44408,7 @@
       "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 850.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -44485,7 +44485,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 1200.0,
-      "reload_s": 9.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": false,
@@ -44521,7 +44521,7 @@
       "partial_from": 0.08,
       "penetration": 25.0,
       "range_m": 800.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -44604,7 +44604,7 @@
       "partial_from": 0.08,
       "penetration": 25.0,
       "range_m": 650.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 4.0,
       "speed_mps": 400.0,
       "stationary": false,
@@ -44641,7 +44641,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 1500.0,
-      "reload_s": 8.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 100.0,
       "stationary": true,
@@ -44678,7 +44678,7 @@
       "partial_from": null,
       "penetration": 200.0,
       "range_m": 800.0,
-      "reload_s": 9.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
@@ -44719,7 +44719,7 @@
       "partial_from": null,
       "penetration": 320.0,
       "range_m": 950.0,
-      "reload_s": 10.0,
+      "reload_s": 4.5,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
@@ -44755,7 +44755,7 @@
       "partial_from": null,
       "penetration": 170.0,
       "range_m": 750.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -44791,7 +44791,7 @@
       "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 750.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -44834,7 +44834,7 @@
       "partial_from": null,
       "penetration": 8.0,
       "range_m": 400.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 9.0,
       "speed_mps": 800.0,
       "stationary": false,
@@ -44969,7 +44969,7 @@
       "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 900.0,
-      "reload_s": 12.0,
+      "reload_s": 4.5,
       "scatter_mrad": 12.0,
       "speed_mps": 450.0,
       "stationary": false,
@@ -45005,7 +45005,7 @@
       "partial_from": null,
       "penetration": 240.0,
       "range_m": 400.0,
-      "reload_s": 9.0,
+      "reload_s": 4.0,
       "scatter_mrad": 8.0,
       "speed_mps": 400.0,
       "stationary": false,
@@ -45041,7 +45041,7 @@
       "partial_from": null,
       "penetration": 160.0,
       "range_m": 300.0,
-      "reload_s": 8.0,
+      "reload_s": 4.0,
       "scatter_mrad": 8.0,
       "speed_mps": 400.0,
       "stationary": false,
@@ -45078,7 +45078,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 6500.0,
-      "reload_s": 8.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "seeker": "radar",
       "seeker_fov_deg": 90.0,
@@ -45208,7 +45208,7 @@
       "partial_from": null,
       "penetration": 320.0,
       "range_m": 900.0,
-      "reload_s": 10.0,
+      "reload_s": 4.5,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,
@@ -45245,7 +45245,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 1500.0,
-      "reload_s": 8.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 100.0,
       "stationary": true,
@@ -45281,7 +45281,7 @@
       "partial_from": null,
       "penetration": 180.0,
       "range_m": 800.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -45317,7 +45317,7 @@
       "partial_from": 0.08,
       "penetration": 30.0,
       "range_m": 800.0,
-      "reload_s": 6.0,
+      "reload_s": 3.5,
       "scatter_mrad": 3.43,
       "speed_mps": 400.0,
       "stationary": false,
@@ -45354,7 +45354,7 @@
       "partial_from": null,
       "penetration": 300.0,
       "range_m": 900.0,
-      "reload_s": 9.0,
+      "reload_s": 4.0,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
       "stationary": true,

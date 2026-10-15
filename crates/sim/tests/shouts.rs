@@ -1195,14 +1195,18 @@ fn on_hull(unit: &Unit, point: V3) -> bool {
     local[0].abs() <= half.x && local[1].abs() <= half.y
 }
 
-/// A blue AT team that cannot die and `red` units, 350 m off.
+/// A blue AT team that cannot die and `red` units, 350 m off. It fires one
+/// missile: its launcher reloads for longer than the run.
 fn missile_at(red: Value, seconds: f64) -> Run {
     let mut units = vec![
         json!({ "side": "blue", "kind": "test_at", "position": [100, 300],
         "condition": { "soldier_hp": 1.0e6 } }),
     ];
     units.extend(red.as_array().unwrap().iter().cloned());
-    let s = setup([1200.0, 600.0], Value::Array(units), chatty);
+    let s = setup([1200.0, 600.0], Value::Array(units), |rules| {
+        chatty(rules);
+        rules["weapons"]["atgm"]["reload_s"] = json!(seconds + 1.0);
+    });
     play(&s, 8, seconds, &[])
 }
 
