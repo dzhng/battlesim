@@ -74,6 +74,11 @@ marching stops at that boundary because the margin carries no gameplay sight.
 
 World paint belongs to the lit ground. Display overlays compose after the world's
 postprocessing, so grading and fog cannot change their information colors.
+High-air models (`HIGH_PASS` batches) can be drawn apart: given a second
+target, the frame draws them there alone after the world, lit by the same
+pipelines and graded by the same look, premultiplied for the page to lay
+over the world's canvas between its card planes. Without one they draw with
+the world.
 [Surface classification](src/models/surfaceParts.ts) separates opaque, cutout,
 room and glass geometry; alpha cannot silently acquire a second meaning in a pass.
 Numeric layouts and pipeline formats belong to their source owners, not this guide.
