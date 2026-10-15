@@ -175,7 +175,7 @@ test("every ground or low-air card whose unit stands in the open view is shown",
   }
 });
 
-test("a high-air card keeps its own spot however crowded, and makes no room", () => {
+test("a high-air card keeps its own spot however crowded", () => {
   for (const crowd of CROWDS) {
     const cards = cardsOf(crowd);
     const placed = lay(crowd, cards);
@@ -183,14 +183,41 @@ test("a high-air card keeps its own spot however crowded, and makes no room", ()
       const alone = layoutReadouts([c], crowd.panels, crowd.viewport, GAP, false).get(c.id);
       expect(placed.get(c.id)?.box, `${crowd.name} ${c.id}`).toEqual(alone?.box);
     }
-    // The ground and low-air cards are placed as if no high-air card were there.
-    const without = lay(
-      crowd,
-      cards.filter((c) => !c.highAir),
-    );
-    for (const c of cards.filter((c) => !c.highAir))
-      expect(placed.get(c.id)?.box, `${crowd.name} ${c.id}`).toEqual(without.get(c.id)?.box);
   }
+});
+
+test("a ground card steps clear of a high-air card when there is room beside it", () => {
+  // A jet passes just over a parked vehicle: their cards' natural spots
+  // coincide, and the open field around has room to spare.
+  const viewport = { width: 1280, height: 800 };
+  const cards: LayoutCard[] = [
+    { id: "jet", x: 600, y: 400, w: 140, h: 12, highAir: true },
+    { id: "sam", x: 610, y: 404, w: 110, h: 12, highAir: false },
+  ];
+  const placed = layoutReadouts(cards, [], viewport, GAP, false);
+  const jet = placed.get("jet")!.box;
+  const sam = placed.get("sam")?.box;
+  expect(sam, "the ground card is shown").toBeDefined();
+  expect(overlaps(sam!, jet), JSON.stringify({ jet, sam })).toBe(false);
+  // Stepping aside still keeps it near its unit.
+  const [from, corner] = leaderOf(cards[1]!, sam!);
+  expect(Math.hypot(corner[0] - from[0], corner[1] - from[1])).toBeLessThanOrEqual(REACH_PX);
+});
+
+test("a ground card lies under a high-air card only when nothing clear is in reach", () => {
+  // Hemmed in by the screen's edges, the ground card's only spots are under
+  // the jet's card: it still shows, and the jet's card stays put.
+  const viewport = { width: 260, height: 120 };
+  const cards: LayoutCard[] = [
+    { id: "jet", x: 60, y: 80, w: 150, h: 40, highAir: true },
+    { id: "sam", x: 70, y: 82, w: 150, h: 40, highAir: false },
+  ];
+  const placed = layoutReadouts(cards, [], viewport, GAP, false);
+  expect(placed.get("sam"), "the ground card is shown").toBeDefined();
+  expect(overlaps(placed.get("sam")!.box, placed.get("jet")!.box), "it lies under").toBe(true);
+  expect(placed.get("jet")?.box).toEqual(
+    layoutReadouts([cards[0]!], [], viewport, GAP, false).get("jet")?.box,
+  );
 });
 
 test("high-air cards draw above every ground and low-air card, the selected one too", () => {

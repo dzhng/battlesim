@@ -123,7 +123,8 @@ function crossesBox(p: [number, number], q: [number, number], r: ReadoutRect, m:
  *  in their units' screen order from the right (the side cards hang to), each
  *  at the cheapest spot within reach whose box clears the panels, the other
  *  units and the cards placed before it, and whose leader crosses no placed
- *  leader or card; with none, it hides. `overlap` (a far view) puts every card
+ *  leader or card; with none, it hides. A spot over a high-air card or its
+ *  unit's ring is taken only when no clear one is within reach. `overlap` (a far view) puts every card
  *  at its natural spot and lets them overprint. */
 export function layoutReadouts(
   cards: readonly LayoutCard[],
@@ -199,8 +200,18 @@ export function layoutReadouts(
         segment2.intersects(p, q, rise[0], rise[1]) ||
         segment2.intersects(p, q, foot[0], foot[1]),
     );
+  // High-air cards and their units' rings are a soft obstacle: a spot over
+  // one is taken only when no clear spot is within reach.
+  const aloft = cards.filter((b) => b.highAir && out.has(b.id));
+  const clearOfAloft = (box: ReadoutRect) =>
+    !aloft.some(
+      (b) =>
+        overlapsBy(box, out.get(b.id)!.box, gap) ||
+        overlapsBy(box, { x0: b.x, x1: b.x, y0: b.y, y1: b.y }, ANCHOR_PX),
+    );
   for (const b of [...grounded].sort((m, n) => n.x - m.x)) {
     const natural = naturalOf(b);
+    let under: { box: ReadoutRect; rise: Segment; foot: Segment } | null = null;
     for (const s of SPOTS) {
       const hangLeft = s.swap !== natural.x0 < b.x;
       const x0 = hangLeft ? b.x - s.dx - b.w : b.x + s.dx;
@@ -211,12 +222,18 @@ export function layoutReadouts(
       const rise: Segment = [from, corner];
       const foot: Segment = [corner, end];
       if (!free(b, box, rise, foot)) continue;
-      taken.push(box);
-      boxes.push(box);
-      leaders.push(rise, foot);
-      out.set(b.id, { natural, box });
+      if (!clearOfAloft(box)) {
+        under ??= { box, rise, foot };
+        continue;
+      }
+      under = { box, rise, foot };
       break;
     }
+    if (!under) continue;
+    taken.push(under.box);
+    boxes.push(under.box);
+    leaders.push(under.rise, under.foot);
+    out.set(b.id, { natural, box: under.box });
   }
   return out;
 }
