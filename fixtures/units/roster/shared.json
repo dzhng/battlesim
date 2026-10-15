@@ -255,7 +255,9 @@
       "description": "F-35A",
       "faction": "us",
       "family": "f_35_lightning_ii",
-      "roles": [],
+      "roles": [
+        "recon"
+      ],
       "cost": 470,
       "roster": {
         "factions": [
@@ -266,24 +268,116 @@
         "variant": "F-35A",
         "family_name": "F-35 Lightning II"
       },
-      "planned": {
-        "reason": "Aircraft movement and air-combat mechanics deferred",
-        "profile": "stealth-fighter",
-        "weapons": [
-          {
-            "name": "Cannon",
-            "icon": "autocannon"
+      "extends": "roster_profile_fixed_wing",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            7.82,
+            5.36,
+            2.2
+          ],
+          "eye_m": 2.0,
+          "hp": 100,
+          "armor": {
+            "front": 20,
+            "side": 12,
+            "rear": 10,
+            "roof": 8,
+            "ricochet": {
+              "front": 0,
+              "side": 0,
+              "rear": 0,
+              "roof": 0
+            }
           },
-          {
-            "name": "AA Missile",
-            "icon": "aa_missile"
+          "weight_class": "light",
+          "push_class": "none",
+          "wreck": "light_wreck"
+        }
+      },
+      "sensors": {
+        "ground_m": 1,
+        "low_air_m": 1800,
+        "high_air_m": 5000,
+        "sight_shape": {
+          "front": 1,
+          "side": 0.8,
+          "rear": 0.5
+        }
+      },
+      "capabilities": {
+        "air": {
+          "fuel_capacity_s": 180,
+          "flares": {
+            "capacity": 4,
+            "reload_s": 20
           },
-          {
-            "name": "Bombs",
-            "icon": "bomb"
+          "afterburner": {},
+          "sead": false,
+          "refund": {
+            "health": 0.4,
+            "ammunition": 0.3,
+            "fuel": 0.3
           }
-        ]
-      }
+        }
+      },
+      "mounts": [
+        {
+          "id": "gun",
+          "name": "Cannon",
+          "weapons": [
+            "air_gun"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.8
+          ],
+          "muzzle_m": [
+            7,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "missiles",
+          "name": "AA missiles",
+          "weapons": [
+            "air_missile"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "id": "bombs",
+          "name": "Iron bombs",
+          "weapons": [
+            "air_bomb"
+          ],
+          "turret": false,
+          "pivot_m": [
+            0,
+            0,
+            1.2
+          ],
+          "muzzle_m": [
+            4,
+            0,
+            0
+          ]
+        }
+      ],
+      "appearance": "f_35a"
     },
     "fgm_148_javelin_team": {
       "name": "Javelin Team",

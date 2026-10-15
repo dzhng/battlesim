@@ -6410,6 +6410,167 @@
       "tolerances": {
         "footprint_m": 2.4
       }
+    },
+    "f_35a": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/f_35a.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "f_35a_wreck"
+    },
+    "f_35a_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/f_35a_wreck.glb",
+        "debris": "assets/source/roster/disabled/f_35a_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.82,
+        5.36,
+        2.2
+      ],
+      "tolerances": {
+        "footprint_m": 2.1
+      }
+    },
+    "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck"
+    },
+    "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck.glb",
+        "debris": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        8.26,
+        8.77,
+        2.23
+      ],
+      "tolerances": {
+        "footprint_m": 3.1
+      }
+    },
+    "us_f_15_eagle_f_15e_strike_eagle": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/us_f_15_eagle_f_15e_strike_eagle.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_f_15_eagle_f_15e_strike_eagle_wreck"
+    },
+    "us_f_15_eagle_f_15e_strike_eagle_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/us_f_15_eagle_f_15e_strike_eagle_wreck.glb",
+        "debris": "assets/source/roster/disabled/us_f_15_eagle_f_15e_strike_eagle_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.75,
+        6.55,
+        2.82
+      ],
+      "tolerances": {
+        "footprint_m": 2.4
+      }
+    },
+    "us_f_15_eagle_f_15ex_eagle_ii": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/us_f_15_eagle_f_15ex_eagle_ii.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_f_15_eagle_f_15ex_eagle_ii_wreck"
+    },
+    "us_f_15_eagle_f_15ex_eagle_ii_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/us_f_15_eagle_f_15ex_eagle_ii_wreck.glb",
+        "debris": "assets/source/roster/disabled/us_f_15_eagle_f_15ex_eagle_ii_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.75,
+        6.55,
+        2.82
+      ],
+      "tolerances": {
+        "footprint_m": 2.4
+      }
+    },
+    "us_f_22_raptor_f_22a": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/us_f_22_raptor_f_22a.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_f_22_raptor_f_22a_wreck"
+    },
+    "us_f_22_raptor_f_22a_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/us_f_22_raptor_f_22a_wreck.glb",
+        "debris": "assets/source/roster/disabled/us_f_22_raptor_f_22a_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.46,
+        6.79,
+        2.56
+      ],
+      "tolerances": {
+        "footprint_m": 2.5
+      }
+    },
+    "us_f_35_lightning_ii_f_35b": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/us_f_35_lightning_ii_f_35b.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_f_35_lightning_ii_f_35b_wreck"
+    },
+    "us_f_35_lightning_ii_f_35b_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/us_f_35_lightning_ii_f_35b_wreck.glb",
+        "debris": "assets/source/roster/disabled/us_f_35_lightning_ii_f_35b_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        7.82,
+        5.36,
+        2.19
+      ],
+      "tolerances": {
+        "footprint_m": 2.1
+      }
+    },
+    "us_f_a_18_super_hornet_f_a_18e": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/disabled/us_f_a_18_super_hornet_f_a_18e.glb",
+      "basis_yaw_deg": 0,
+      "wreck": "us_f_a_18_super_hornet_f_a_18e_wreck"
+    },
+    "us_f_a_18_super_hornet_f_a_18e_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/disabled/us_f_a_18_super_hornet_f_a_18e_wreck.glb",
+        "debris": "assets/source/roster/disabled/us_f_a_18_super_hornet_f_a_18e_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        9.09,
+        6.84,
+        2.43
+      ],
+      "tolerances": {
+        "footprint_m": 2.0
+      }
     }
   }
 }

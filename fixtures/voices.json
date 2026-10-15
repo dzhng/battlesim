@@ -6003,7 +6003,17 @@
       "us": "us_fighter_pilot",
       "europe": "de_fighter_pilot"
     },
+    "f_35a": {
+      "us": "us_fighter_pilot",
+      "europe": "de_fighter_pilot"
+    },
+    "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": "us_fighter_pilot",
     "us_ea_18g_growler_electronic_warfare_aircraft": "us_fighter_pilot",
+    "us_f_15_eagle_f_15e_strike_eagle": "us_fighter_pilot",
+    "us_f_15_eagle_f_15ex_eagle_ii": "us_fighter_pilot",
+    "us_f_22_raptor_f_22a": "us_fighter_pilot",
+    "us_f_35_lightning_ii_f_35b": "us_fighter_pilot",
+    "us_f_a_18_super_hornet_f_a_18e": "us_fighter_pilot",
     "us_long_aa": "us_air_defense_crew",
     "us_medium_aa": "us_air_defense_crew",
     "us_nasams_medium": "us_air_defense_crew",
