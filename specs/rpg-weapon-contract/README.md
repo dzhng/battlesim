@@ -18,7 +18,7 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 
 ## Slice graph
 
-1. **Contract hard cutover** — target classes, `can_intercept` (renaming `interception`), explosive stat authoring, and fixture validation. The AA-field deletion already landed (D52).
+1. **Contract hard cutover** — target classes (replacing `anti_armor`), explosive stat authoring, and fixture validation. The AA-field deletion and the `interception` → `can_intercept` rename already landed (D52).
 2. **Immutable projectile layer** — launch-layer storage and interceptor range selection from it. Interception eligibility from weapon mounts already landed (D52).
 3. **Opt-in launcher clearance** — physical muzzle/initial-trajectory obstruction for all artillery and AA/interceptor rows; preserve ordinary direct-fire behavior and expose `BlockedTrajectory`.
 4. **Eastern RPG and roster data** — new three-round general-purpose RPG, dedicated AT row renames, Eastern squad loadout, and deterministic armour calibration.

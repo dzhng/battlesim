@@ -6,7 +6,7 @@ Weapon rows explicitly state what they can target in each altitude layer. Dedica
 
 ## Seam and ownership
 
-- `crates/contract/src/weapons.rs`: add target-class enum/list to `LayerFire`; replace `anti_armor` with `classes: ["vehicle"]` and `interception` with `can_intercept`. (`aa_tier`, `Capabilities.air_defense` and `AirDefenseTier` are already deleted, air-war-flight D52.)
+- `crates/contract/src/weapons.rs`: add target-class enum/list to `LayerFire`; replace `anti_armor` with `classes: ["vehicle"]`. (`interception` is already `can_intercept`, and `aa_tier`, `Capabilities.air_defense` and `AirDefenseTier` are already deleted, air-war-flight D52.)
 - `air_rotor` and `air_fixed_wing` match the target's existing `mobility.air.flight` (`rotor` | `fixed_wing`); add no new mobility field.
 - Contract validation owns class/layer shape and rejects empty/unknown class lists.
 - Hard-cut every fixture, test, catalog, and publication schema reference; no aliases.
