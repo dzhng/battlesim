@@ -1371,6 +1371,11 @@
 .hud-purchase-family.unavailable > .ro-icon {
   opacity: 0.55;
 }
+/* A family never sold costs nothing the player can spend: its price stays
+   plain text, not money. */
+.hud-purchase-family.unavailable .hud-purchase-price {
+  color: rgb(var(--hud-text) / 0.7);
+}
 /* A price the player can't pay is the "can't" that says why. */
 .hud-purchase-price.too-dear {
   color: rgb(var(--hud-bad));
