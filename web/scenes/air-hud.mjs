@@ -8,7 +8,7 @@
 // remains a contact card with bearing and range.
 import { decode, mostChanged, pixel, around } from "./_png.mjs";
 import { gpuWarnings, lab, obs, hideHud, presented, aim } from "./_lab.mjs";
-import { openAir, own, play, surface, command, cardText, JET_CRUISE } from "./_air.mjs";
+import { openAir, own, play, surface, command, cardText, HIGH_AIR_CRUISE } from "./_air.mjs";
 import { unitType } from "./_units.mjs";
 
 const JET = "f_16c_block_50";
@@ -37,7 +37,10 @@ export async function run(ctx) {
   const segment = async (u) => {
     const ground = await surface(page, u.position);
     const lift = u.position[2] - ground;
-    return [await css(page, [u.position[0], u.position[1], ground + lift * 0.1]), await css(page, [u.position[0], u.position[1], ground + lift * 0.5])];
+    return [
+      await css(page, [u.position[0], u.position[1], ground + lift * 0.1]),
+      await css(page, [u.position[0], u.position[1], ground + lift * 0.5]),
+    ];
   };
   await presented(page);
   await page.evaluate(() => window.__lab.setFrameView("overlays-on-black"));
@@ -46,19 +49,35 @@ export async function run(ctx) {
   await page.evaluate(() => window.__lab.setFrameView("final"));
   const heliLine = brightestAlong(overlays, ...(await segment(heli)));
   const jetLine = brightestAlong(overlays, ...(await segment(jet)));
-  ctx.check("the Apache has a drop line and the jet has none", heliLine > 150 && jetLine < 60, JSON.stringify({ heliLine, jetLine }));
-  const under = async (u) => css(page, [u.position[0], u.position[1], await surface(page, u.position)]);
-  const frame = async () => (await page.evaluate(() => window.__lab.frame()), decode(await page.screenshot()));
+  ctx.check(
+    "the Apache has a drop line and the jet has none",
+    heliLine > 150 && jetLine < 60,
+    JSON.stringify({ heliLine, jetLine }),
+  );
+  const under = async (u) =>
+    css(page, [u.position[0], u.position[1], await surface(page, u.position)]);
+  const frame = async () => (
+    await page.evaluate(() => window.__lab.frame()), decode(await page.screenshot())
+  );
   const plain = await frame();
   await lab(page, (ids) => window.__lab.route.select(ids), [jet.id, heli.id]);
   const selected = await frame();
-  ctx.check("selection changes only the helicopter ground marker", mostChanged(plain, selected, await under(heli), 14) > 60 && mostChanged(plain, selected, await under(jet), 14) < 30, "marker pixels");
+  ctx.check(
+    "selection changes only the helicopter ground marker",
+    mostChanged(plain, selected, await under(heli), 14) > 60 &&
+      mostChanged(plain, selected, await under(jet), 14) < 30,
+    "marker pixels",
+  );
   await style.evaluate((el) => el.remove());
 
   await lab(page, (id) => window.__lab.route.select([id]), jet.id);
   const card = await cardText(page, `[data-unit="${jet.id}"]`);
   const flares = unitType(JET).capabilities.air.flares.capacity;
-  ctx.check("the jet card shows fuel and flares", !!card && /FUEL \d+ s/.test(card) && card.includes(`FLARES ${flares}`), card ?? "no card");
+  ctx.check(
+    "the jet card shows fuel and flares",
+    !!card && /FUEL \d+ s/.test(card) && card.includes(`FLARES ${flares}`),
+    card ?? "no card",
+  );
   await command(page, { kind: "move", units: [jet.id], gesture: 1, goal: GOAL, route: "fastest" });
   await aim(page, GOAL, { distance: 600, pitch: 0.6 });
   await play(page, 2);
@@ -67,12 +86,20 @@ export async function run(ctx) {
   const ghostHeight = await lab(page, () => window.__lab.route.movePreview?.()?.ghostAloft ?? null);
   await page.screenshot({ path: ctx.evidencePath("space-ghost.png") });
   await page.keyboard.up("Space");
-  ctx.check("Space shows the jet order ghost card at cruise-height treatment", ghost !== null && (ghostHeight === null || ghostHeight >= JET_CRUISE), JSON.stringify({ ghost, ghostHeight }));
+  ctx.check(
+    "Space shows the jet order ghost card at cruise-height treatment",
+    ghost !== null && (ghostHeight === null || ghostHeight >= HIGH_AIR_CRUISE),
+    JSON.stringify({ ghost, ghostHeight }),
+  );
 
   const radar = (await obs(page)).contacts.find((c) => c.source === "radar");
   if (radar) await aim(page, radar.center, { distance: 500, pitch: 0.8 });
   const text = radar ? await cardText(page, "") : null;
-  ctx.check("the radar contact card has bearing and range", !!text && text.includes("RADAR CONTACT") && /BEARING -?\d+° · RANGE [\d,]+ m/.test(text), text ?? "no radar contact card");
+  ctx.check(
+    "the radar contact card has bearing and range",
+    !!text && text.includes("RADAR CONTACT") && /BEARING -?\d+° · RANGE [\d,]+ m/.test(text),
+    text ?? "no radar contact card",
+  );
   await page.screenshot({ path: ctx.evidencePath("hud.png") });
   ctx.check("no GPU validation warnings", warnings.length === 0, warnings.join("\n"));
 }

@@ -1378,6 +1378,8 @@ impl Sound {
         let tables = self.tables.clone();
         let p = &tables.audio;
         let mut wants: Vec<LoopWant> = Vec::new();
+        // The catalog derives a vehicle class from the type's altitude layer,
+        // so `high_air_` names the layer (`contract::catalog::UnitType::vehicle_class`).
         let current_high_air: BTreeSet<u64> = motion
             .vehicles
             .iter()

@@ -5,7 +5,7 @@
 // (HighAir); it holds the air height and stays on the map.
 //
 // Not shown, because the simulation does not do it: fixed-wing aircraft fly
-// at the jet cruise height (`air.jet.cruise_agl_m`), and stop and hover at a move's goal instead of
+// at the high-air cruise height (`air.high_air.cruise_agl_m`), and stop and hover at a move's goal instead of
 // circling it.
 import { gpuWarnings, aim } from "./_lab.mjs";
 import { unitType } from "./_units.mjs";
@@ -16,7 +16,7 @@ import {
   own,
   onMap,
   surface,
-  JET_CRUISE,
+  HIGH_AIR_CRUISE,
   shoot,
   visibleCells,
   field,
@@ -61,7 +61,7 @@ export async function run(ctx) {
   for (const p of heights) lifts.push(p[2] - (await surface(page, p)));
   ctx.check(
     "it holds the air height over the ground all the way",
-    lifts.length > 5 && lifts.every((l) => Math.abs(l - JET_CRUISE) < 3),
+    lifts.length > 5 && lifts.every((l) => Math.abs(l - HIGH_AIR_CRUISE) < 3),
     JSON.stringify(lifts.map((l) => l.toFixed(1))),
   );
   const jet = own(last, JET)[0];

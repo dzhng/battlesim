@@ -94,7 +94,7 @@ export async function run(ctx) {
   const jeep = o.own.find((u) => u.kind === "test_jeep");
   const surface = (p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
   const ground = await surface(heli.position);
-  const cruise = game.air.rotor.cruise_agl_m;
+  const cruise = game.air.low_air.cruise_agl_m;
   ctx.check(
     "the helicopter hovers at cruise height over the ground",
     Math.abs(heli.position[2] - ground - cruise) < 0.5,
@@ -435,7 +435,7 @@ async function apache(ctx, page, css, surface) {
   const ground = await surface(heli.position);
   ctx.check(
     "the Apache hovers at cruise height",
-    Math.abs(heli.position[2] - ground - game.air.rotor.cruise_agl_m) < 1,
+    Math.abs(heli.position[2] - ground - game.air.low_air.cruise_agl_m) < 1,
     JSON.stringify({ at: heli.position, ground }),
   );
   const pose = heli.weaponPoses.find((w) => w.mount === CHIN);
@@ -555,7 +555,7 @@ async function lostSign(ctx, page, surface, css) {
     "the lost helicopter leaves an aloft contact at its height, out of sight",
     !!sign &&
       sign.layer === "low_air" &&
-      Math.abs(sign.center[2] - (await surface(sign.center)) - game.air.rotor.cruise_agl_m) < 1 &&
+      Math.abs(sign.center[2] - (await surface(sign.center)) - game.air.low_air.cruise_agl_m) < 1 &&
       !o.identified.some((u) => u.kind === "test_heli"),
     JSON.stringify({ contacts: o.contacts, identified: o.identified.map((u) => u.kind) }),
   );

@@ -314,7 +314,7 @@ pub struct AirState {
     pub velocity: V3,
     /// Afterburner ramp state, from zero to one.
     pub burner: f64,
-    /// Last non-zero turn direction, retained by the jet law.
+    /// Last non-zero turn direction, retained by the fixed-wing flight law.
     pub turn_sign: i8,
     /// Where the last explicit goal was lost; idle jets orbit this point.
     pub last_goal: Option<V2>,

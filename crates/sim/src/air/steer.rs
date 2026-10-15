@@ -1,6 +1,6 @@
 use crate::math::{wrap_angle, V2, V3};
 
-use super::jet::{JetLimits, JetState, Steer};
+use super::fixed_wing::{FixedWingLimits, FixedWingState, Steer};
 
 /// The rectangle in which a fighting jet must remain.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -28,12 +28,12 @@ pub enum Intent {
     Exit { to: V2 },
 }
 
-fn turn_toward(current: f64, wanted: f64, limits: &JetLimits, dt_s: f64) -> f64 {
+fn turn_toward(current: f64, wanted: f64, limits: &FixedWingLimits, dt_s: f64) -> f64 {
     let error = wrap_angle(wanted - current);
     (error / (limits.turn_rad_s * dt_s).max(f64::MIN_POSITIVE)).clamp(-1.0, 1.0)
 }
 
-fn orbit_turn(state: &JetState, limits: &JetLimits, centre: V2, dt_s: f64) -> f64 {
+fn orbit_turn(state: &FixedWingState, limits: &FixedWingLimits, centre: V2, dt_s: f64) -> f64 {
     let sign = if state.turn_sign < 0 { -1.0 } else { 1.0 };
     let radius = (state.speed_mps / limits.turn_rad_s.max(f64::MIN_POSITIVE)).max(1e-6);
     let offset = state.pos.xy() - centre;
@@ -63,8 +63,8 @@ fn orbit_turn(state: &JetState, limits: &JetLimits, centre: V2, dt_s: f64) -> f6
 }
 
 fn edge_guard(
-    state: &JetState,
-    limits: &JetLimits,
+    state: &FixedWingState,
+    limits: &FixedWingLimits,
     bounds: Bounds,
     margin: f64,
     dt_s: f64,
@@ -86,7 +86,12 @@ fn edge_guard(
     })
 }
 
-fn intent_turn(intent: &Intent, state: &JetState, limits: &JetLimits, dt_s: f64) -> (f64, f64) {
+fn intent_turn(
+    intent: &Intent,
+    state: &FixedWingState,
+    limits: &FixedWingLimits,
+    dt_s: f64,
+) -> (f64, f64) {
     match *intent {
         Intent::Orbit { centre } => (orbit_turn(state, limits, centre, dt_s), limits.cruise_agl_m),
         Intent::Line {
@@ -126,11 +131,11 @@ fn intent_turn(intent: &Intent, state: &JetState, limits: &JetLimits, dt_s: f64)
     }
 }
 
-/// Convert an intent into the bounded turn command consumed by [`super::jet::fly`].
+/// Convert an intent into the bounded turn command consumed by [`super::fixed_wing::fly`].
 pub fn steer(
     intent: &Intent,
-    state: &JetState,
-    limits: &JetLimits,
+    state: &FixedWingState,
+    limits: &FixedWingLimits,
     bounds: &Bounds,
     dt_s: f64,
 ) -> Steer {

@@ -1,7 +1,11 @@
+//! The fixed-wing flight law, the only writer of a winged aircraft's position,
+//! heading and speed: it never stops, turns at its rate, ramps its
+//! afterburner, and holds its layer's height, never below the layer's floor.
+
 use crate::math::{v2, v3, wrap_angle, V2, V3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct JetState {
+pub struct FixedWingState {
     pub pos: V3,
     pub heading: f64,
     pub speed_mps: f64,
@@ -10,7 +14,7 @@ pub struct JetState {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct JetLimits {
+pub struct FixedWingLimits {
     pub cruise_mps: f64,
     pub burner_mult: f64,
     pub turn_rad_s: f64,
@@ -28,14 +32,14 @@ pub struct Steer {
     pub burner: bool,
 }
 
-/// Advance a jet by `dt` seconds over the supplied ground surface.
+/// Advance a fixed-wing aircraft by `dt` seconds over the supplied ground surface.
 pub fn fly(
-    mut state: JetState,
+    mut state: FixedWingState,
     steer: Steer,
-    limits: &JetLimits,
+    limits: &FixedWingLimits,
     ground: &impl Fn(V2) -> f64,
     dt: f64,
-) -> JetState {
+) -> FixedWingState {
     if dt <= 0.0 {
         return state;
     }
@@ -64,8 +68,8 @@ pub fn fly(
     state
 }
 
-/// The velocity along the jet's nose. Height changes are applied by `fly`.
-pub fn velocity(state: &JetState) -> V3 {
+/// The velocity along the aircraft's nose. Height changes are applied by `fly`.
+pub fn velocity(state: &FixedWingState) -> V3 {
     v3(
         libm::cos(state.heading) * state.speed_mps,
         libm::sin(state.heading) * state.speed_mps,

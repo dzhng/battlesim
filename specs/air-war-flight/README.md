@@ -72,8 +72,9 @@ Slices that share a seam stay on one lane. These pairs can run concurrently:
 Every slice inherits these:
 - **High air is an elevation layer.** It is the one layer that bends physics (altitude lowered from about 1,000 m to about 250 m for play), so its special treatments (the shadow beneath, cards drawn on top, ...) key on the HighAir layer, never on "jet" or a unit type.
 - **`AirRules::cruise_agl_m(layer)`** is the only answer to "how high". The sim, the ghost and native capture all read it, and no literal heights remain anywhere. A helicopter's shadow is cast along the sun from its actual height; a jet at altitude casts none, and instead shows a soft silhouette shadow on the ground directly beneath it (choices.md).
+- **The layer and the flight model are separate owners.** Layer treatments read the unit's layer (`Unit::layer` in the sim, `UnitType::high_air` in presentation, `highAir` in the web) and the layer's heights in `air.high_air`. Fixed-wing flight (never stopping, turn rate, afterburner, passes, dogfights) lives in `air.fixed_wing` and `crates/sim/src/air/`; high air is flown by it because it is the only high-air flight model.
 - **`crates/sim/src/air/`** owns fixed-wing behaviour:
-  - `jet.rs` is the only flight law; nothing else writes a jet's position, heading or speed.
+  - `fixed_wing.rs` is the only flight law; nothing else writes a winged aircraft's position, heading or speed.
   - `movement/air.rs` handles helicopters only.
   - Orders reach a jet's flight only through `air/orders.rs` → `air/steer.rs`. Weapons never turn a jet.
 - **`air/pass.rs`** owns pass phases and pass-weapon choice. **`flight/release.rs`** owns where an unpowered round lands.

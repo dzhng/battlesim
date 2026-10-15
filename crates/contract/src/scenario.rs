@@ -620,21 +620,41 @@ impl ShoutRules {
     }
 }
 
-/// The heights every aircraft flies at, split by altitude layer (D1, D2, D19).
+/// How aircraft fly: the heights of each air layer, and the flight model of
+/// each kind of airframe (D1, D2, D19). High air is the one layer that bends
+/// physics: its heights are lowered from a real jet's for play, and every
+/// treatment that follows from flying there keys on the layer.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AirRules {
-    pub rotor: RotorAir,
-    pub jet: JetAir,
+    pub low_air: LowAirLayer,
+    pub high_air: HighAirLayer,
+    pub rotor: RotorFlight,
+    pub fixed_wing: FixedWingFlight,
     /// Aircraft closer than this, centre to centre, drift apart.
     pub separation_m: f64,
 }
 
-/// Helicopter flight heights and settling behaviour.
+/// The low-air layer's heights.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct RotorAir {
+pub struct LowAirLayer {
     pub cruise_agl_m: f64,
+}
+
+/// The high-air layer's heights: where it cruises, and the hard floor
+/// nothing in it flies below (D20).
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HighAirLayer {
+    pub cruise_agl_m: f64,
+    pub floor_agl_m: f64,
+}
+
+/// A helicopter's flight: clearance over obstacles and settling at a goal.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RotorFlight {
     pub clearance_m: f64,
     pub ceiling_agl_m: f64,
     pub obstacle_m: f64,
@@ -647,12 +667,11 @@ pub struct RotorAir {
     pub settle_max_m: f64,
 }
 
-/// Fixed-wing flight heights and attack/dogfight bands.
+/// A winged aircraft's flight, which never stops: its attack and dogfight
+/// bands, afterburner ramp, and the margin it turns inside the map's edge.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct JetAir {
-    pub cruise_agl_m: f64,
-    pub floor_agl_m: f64,
+pub struct FixedWingFlight {
     pub strafe_ceiling_m: f64,
     pub bomb_ceiling_m: f64,
     pub dogfight_band_agl_m: [f64; 2],
@@ -663,31 +682,33 @@ pub struct JetAir {
 
 impl AirRules {
     fn check(&self) -> Result<(), String> {
+        let low = &self.low_air;
+        let high = &self.high_air;
         let rotor = &self.rotor;
-        let jet = &self.jet;
-        let rotor_ok = rotor.cruise_agl_m > 0.0
+        let wing = &self.fixed_wing;
+        let rotor_ok = low.cruise_agl_m > 0.0
             && rotor.clearance_m > 0.0
             && rotor.obstacle_m + rotor.clearance_m <= rotor.ceiling_agl_m
-            && rotor.cruise_agl_m <= rotor.ceiling_agl_m
+            && low.cruise_agl_m <= rotor.ceiling_agl_m
             && rotor.acceleration_s > 0.0
             && (0.0..1.0).contains(&rotor.settle_share)
             && rotor.settle_max_m >= 0.0;
-        let jet_ok = jet.floor_agl_m > 0.0
-            && jet.floor_agl_m <= jet.strafe_ceiling_m
-            && jet.floor_agl_m <= jet.bomb_ceiling_m
-            && jet.strafe_ceiling_m <= jet.cruise_agl_m
-            && jet.bomb_ceiling_m <= jet.cruise_agl_m
-            && jet.dogfight_band_agl_m[0] >= jet.floor_agl_m
-            && jet.dogfight_band_agl_m[0] <= jet.dogfight_band_agl_m[1]
-            && jet.dogfight_break_m > 0.0
-            && jet.afterburner_ramp_s > 0.0
-            && jet.edge_margin_m >= 0.0;
-        let ok = rotor_ok && jet_ok && self.separation_m > 0.0;
+        let wing_ok = high.floor_agl_m > 0.0
+            && high.floor_agl_m <= wing.strafe_ceiling_m
+            && high.floor_agl_m <= wing.bomb_ceiling_m
+            && wing.strafe_ceiling_m <= high.cruise_agl_m
+            && wing.bomb_ceiling_m <= high.cruise_agl_m
+            && wing.dogfight_band_agl_m[0] >= high.floor_agl_m
+            && wing.dogfight_band_agl_m[0] <= wing.dogfight_band_agl_m[1]
+            && wing.dogfight_break_m > 0.0
+            && wing.afterburner_ramp_s > 0.0
+            && wing.edge_margin_m >= 0.0;
+        let ok = rotor_ok && wing_ok && self.separation_m > 0.0;
         if ok {
             Ok(())
         } else {
             Err(
-                "air: rotor heights must be positive and within the ceiling; jet floor must not exceed its ceilings, jet ceilings must not exceed cruise, dogfight band must be ordered within floor..cruise, and air timings/margins must be positive"
+                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive"
                     .into(),
             )
         }
@@ -697,8 +718,8 @@ impl AirRules {
     pub fn cruise_agl_m(&self, layer: crate::catalog::AltitudeLayer) -> f64 {
         match layer {
             crate::catalog::AltitudeLayer::Ground => 0.0,
-            crate::catalog::AltitudeLayer::LowAir => self.rotor.cruise_agl_m,
-            crate::catalog::AltitudeLayer::HighAir => self.jet.cruise_agl_m,
+            crate::catalog::AltitudeLayer::LowAir => self.low_air.cruise_agl_m,
+            crate::catalog::AltitudeLayer::HighAir => self.high_air.cruise_agl_m,
         }
     }
 }

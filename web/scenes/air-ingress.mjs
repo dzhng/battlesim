@@ -10,7 +10,7 @@
 // outbound pose leaves at the blue back edge before the refund appears.
 import { writeFile } from "node:fs/promises";
 import { gpuWarnings, obs, advance, aim } from "./_lab.mjs";
-import { openAir, command, JET_CRUISE, shoot } from "./_air.mjs";
+import { openAir, command, HIGH_AIR_CRUISE, shoot } from "./_air.mjs";
 import { game } from "./_units.mjs";
 const JET = "f_16c_block_50";
 const DESTINATIONS = [
@@ -94,7 +94,7 @@ export async function run(ctx) {
     "the jet arrives on the blue back edge at cruise height heading in",
     !!entered &&
       entered.position[0] < 400 &&
-      Math.abs(entered.position[2] - JET_CRUISE) < 2 &&
+      Math.abs(entered.position[2] - HIGH_AIR_CRUISE) < 2 &&
       Math.cos(entered.yaw) > 0,
     JSON.stringify(entered),
   );

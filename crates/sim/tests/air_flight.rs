@@ -91,7 +91,7 @@ fn pops_over_a_roof_and_comes_back_down() {
         "over the 25 m roof it flew at {over:.1} m"
     );
     assert!(
-        (track.last().unwrap().z - air.rotor.cruise_agl_m).abs() < 0.5,
+        (track.last().unwrap().z - air.low_air.cruise_agl_m).abs() < 0.5,
         "it came back down"
     );
 }
@@ -112,7 +112,7 @@ fn clears_forest_canopy_and_fells_nothing() {
     let canopy = b.rules().forests.rule.canopy_height_m;
     let air = &b.rules().air;
     assert!(
-        (over - (canopy + air.rotor.clearance_m).max(air.rotor.cruise_agl_m)).abs() < 0.5,
+        (over - (canopy + air.rotor.clearance_m).max(air.low_air.cruise_agl_m)).abs() < 0.5,
         "over the forest it flew at {over:.1} m"
     );
     assert_eq!(trees(&b), before, "flying over felled trees");

@@ -127,9 +127,8 @@ export async function strip(page, ticks, file) {
   return file;
 }
 
-/** The cruise height every aircraft holds over the ground. */
-export const CRUISE = game.air.rotor.cruise_agl_m;
-export const JET_CRUISE = game.air.jet.cruise_agl_m;
+/** The high-air layer's cruise height over the ground. */
+export const HIGH_AIR_CRUISE = game.air.high_air.cruise_agl_m;
 
 /** Visible ground cells in the side's fog field. */
 export function visibleCells(o) {

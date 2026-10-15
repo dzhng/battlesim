@@ -149,8 +149,8 @@ test("the ghost reads the layer height", () => {
     }),
   } as any;
   const air = {
-    rotor: { cruise_agl_m: 30 },
-    jet: { cruise_agl_m: 250 },
+    low_air: { cruise_agl_m: 30 },
+    high_air: { cruise_agl_m: 250 },
   };
   const altitude = ghostAloft(units, air);
   expect(altitude("heli")).toBe(30);

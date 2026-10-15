@@ -114,6 +114,14 @@ An aircraft is a hull with no ground footprint (`Unit::ground_footprint` is
 never see it. Its motion (`units::Motion::Air`) never reaches ground
 navigation; a site that only a ground mover reaches asks `Unit::ground`.
 
+An aircraft flies in the altitude layer its row names. High air is the one
+layer that bends physics: its heights are lowered from a real jet's for play,
+and what follows from flying there (its cruise height and hard floor, arrival
+and exit by the back edge, no sight of the ground) keys on the layer
+(`Unit::layer`), never on a kind of aircraft. How an airframe flies is its
+flight model: rotors fly low air (`movement::air`), and wings fly high air
+(`air`), never stopping.
+
 Where a mechanic depends on how big or how extreme a unit can be, the extreme
 is data: the rules' `hull_limits` bound every hull a battle may field, loading
 refuses a unit past them, and the mechanic is proven against fake units built
