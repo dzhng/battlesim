@@ -417,6 +417,8 @@ struct Resolved {
     /// What an identified unit is to a weapon; `None` for an area, a ground
     /// point or a round, which no unit class bars.
     class: Option<TargetClass>,
+    /// A round in flight: only an interception row is fired at it.
+    round: bool,
     radar_contact: bool,
 }
 
@@ -426,6 +428,16 @@ impl Resolved {
     /// leave the target out.
     fn fire(&self, def: &WeaponDefinition) -> Option<Fire> {
         def.engages(self.layer, self.class)
+    }
+
+    /// Whether `def` is worth firing at it: at a round, an interception row;
+    /// otherwise what [`effective`] says.
+    fn worth(&self, def: &WeaponDefinition, rules: &Rules) -> bool {
+        if self.round {
+            def.can_intercept.is_some()
+        } else {
+            effective(def, self.armor, rules)
+        }
     }
 }
 
@@ -539,6 +551,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
                 class: Some(unit.unit_type(ctx.rules).target_class()),
+                round: false,
                 radar_contact: unit.layer() == AltitudeLayer::Ground
                     && unit
                         .unit_type(ctx.rules)
@@ -560,6 +573,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: None,
                 layer: AltitudeLayer::Ground,
                 class: None,
+                round: false,
                 radar_contact: contact.source == contract::observation::ContactSource::Radar,
             })
         }
@@ -572,6 +586,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             // an air interception row.
             layer: AltitudeLayer::Ground,
             class: None,
+            round: false,
             radar_contact: false,
         }),
         Target::Round(round) => Some(Resolved {
@@ -581,6 +596,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             armor: None,
             layer: round.layer,
             class: None,
+            round: true,
             radar_contact: false,
         }),
     }
@@ -602,7 +618,7 @@ fn preferred_kind(
             && (!resolved.radar_contact || def.anti_radiation)
             && resolved.fire(def).is_some()
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
-            && (effective(def, resolved.armor, ctx.rules)
+            && (resolved.worth(def, ctx.rules)
                 || (resolved.radar_contact && def.anti_radiation)
                 || (resolved.armor.is_some() && fires_regardless(def)))
     };
@@ -1568,11 +1584,7 @@ fn preferred_mount(
             p.assessment.is_some_and(|a| {
                 a.is_ok_and(|k| {
                     p.resolved.is_some_and(|r| {
-                        effective(
-                            &weapons[specs[unit.mounts[m].spec].kinds[k]].def,
-                            r.armor,
-                            rules,
-                        )
+                        r.worth(&weapons[specs[unit.mounts[m].spec].kinds[k]].def, rules)
                     })
                 })
             })
@@ -1763,8 +1775,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     Err(ActionReason::TrackingLastSighting)
                 };
                 if let Ok(k) = a {
-                    can_engage |=
-                        effective(&ctx.arsenal.weapons[spec.kinds[k]].def, r.armor, ctx.rules);
+                    can_engage |= r.worth(&ctx.arsenal.weapons[spec.kinds[k]].def, ctx.rules);
                 }
                 a
             });

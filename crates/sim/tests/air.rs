@@ -528,6 +528,52 @@ fn a_jet_draws_fire_only_from_a_row_listing_fixed_wing_aircraft() {
     );
 }
 
+/// A round keeps the band its shooter fired it from for its whole flight,
+/// never one read from its height: a ground launcher's missile lofting 60 m
+/// over the field is a ground round throughout, and a helicopter's bullets
+/// falling to the ground stay low-air rounds.
+#[test]
+fn a_round_keeps_the_band_it_was_fired_from_for_its_whole_flight() {
+    let mut rules = fixture();
+    rules["weapons"]["atgm"]["top_attack"] = json!({ "loft_m": 60, "dive_deg": 40 });
+    rules["weapons"]["atgm"]["turn_deg_s"] = json!(360);
+    let mut b = battle_with(
+        &rules,
+        json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 }),
+        json!([
+            { "side": "blue", "kind": "test_at", "position": [100, 300] },
+            { "side": "red", "kind": "test_tank", "position": [600, 300], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_heli", "position": [100, 100] },
+            { "side": "red", "kind": "test_rifle", "position": [250, 100], "engagement": "return_fire_only" },
+        ]),
+    );
+    let (mut missile_top, mut heli_rounds) = (0.0f64, 0);
+    for _ in 0..600 {
+        b.step();
+        for (p, r) in b.rounds() {
+            let ground = b.world().height_at(p.position.x, p.position.y).unwrap();
+            match r.unit {
+                UnitId(0) => {
+                    assert_eq!(
+                        r.layer,
+                        AltitudeLayer::Ground,
+                        "at {:.0} m up",
+                        p.position.z - ground
+                    );
+                    missile_top = missile_top.max(p.position.z - ground);
+                }
+                UnitId(2) => {
+                    assert_eq!(r.layer, AltitudeLayer::LowAir);
+                    heli_rounds += 1;
+                }
+                _ => {}
+            }
+        }
+    }
+    assert!(missile_top > 40.0, "the missile lofted {missile_top:.0} m");
+    assert!(heli_rounds > 0, "the helicopter fired");
+}
+
 #[test]
 fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
     let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
