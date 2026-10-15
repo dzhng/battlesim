@@ -7948,6 +7948,12 @@
           "family": "j_20_mighty_dragon",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -8821,6 +8827,12 @@
           "family": "mig_29_fulcrum",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -8973,6 +8985,12 @@
           "family": "mig_31_foxhound",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -9830,6 +9848,12 @@
           "family": "su_25_frogfoot",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -9961,6 +9985,12 @@
           "family": "su_57_felon",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -10113,6 +10143,12 @@
           "family": "sukhoi_flanker_family",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -10248,6 +10284,12 @@
           "family": "sukhoi_flanker_family",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -10537,6 +10579,12 @@
           "family": "sukhoi_flanker_family",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -14171,6 +14219,12 @@
           "family": "jas_39_gripen",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -15377,6 +15431,12 @@
           "family": "mirage_2000",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -16033,6 +16093,12 @@
           "family": "rafale",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -16518,6 +16584,12 @@
           "family": "tornado",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -16994,6 +17066,12 @@
           "family": "f_35_lightning_ii",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -17300,6 +17378,12 @@
           "family": "a_10_warthog",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -18231,6 +18315,12 @@
           "family": "f_15_eagle",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -18383,6 +18473,12 @@
           "family": "f_15_eagle",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -18514,6 +18610,12 @@
           "family": "f_22_raptor",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -18645,6 +18747,12 @@
           "family": "f_35_lightning_ii",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -18797,6 +18905,12 @@
           "family": "f_a_18_super_hornet",
           "mobility": {
             "air": {
+              "arrival": {
+                "delay_s": [
+                  15.0,
+                  30.0
+                ]
+              },
               "climb_mps": 30.0,
               "cruise_kmh": 650.0,
               "flight": "fixed_wing",
@@ -27606,6 +27720,12 @@
       "id": "eastern_j_20_mighty_dragon_stealth_fighter",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -28597,6 +28717,12 @@
       "id": "eastern_mig_29_fulcrum_mig_29smt",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -28754,6 +28880,12 @@
       "id": "eastern_mig_31_foxhound_mig_31bm",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -29828,6 +29960,12 @@
       "id": "eastern_su_25_frogfoot_su_25sm3",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -29963,6 +30101,12 @@
       "id": "eastern_su_57_felon_stealth_multirole_fighter",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -30120,6 +30264,12 @@
       "id": "eastern_sukhoi_flanker_family_su_27sm3",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -30259,6 +30409,12 @@
       "id": "eastern_sukhoi_flanker_family_su_30sm2",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -30557,6 +30713,12 @@
       "id": "eastern_sukhoi_flanker_family_su_35s",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -34346,6 +34508,12 @@
       "id": "europe_jas_39_gripen_e",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -35682,6 +35850,12 @@
       "id": "europe_mirage_2000_2000d_rmv",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -36359,6 +36533,12 @@
       "id": "europe_rafale_c_f4",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -36873,6 +37053,12 @@
       "id": "europe_tornado_ids",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -37364,6 +37550,12 @@
       "id": "f_35a",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -37914,6 +38106,12 @@
       "id": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -38997,6 +39195,12 @@
       "id": "us_f_15_eagle_f_15e_strike_eagle",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -39154,6 +39358,12 @@
       "id": "us_f_15_eagle_f_15ex_eagle_ii",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -39289,6 +39499,12 @@
       "id": "us_f_22_raptor_f_22a",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -39424,6 +39640,12 @@
       "id": "us_f_35_lightning_ii_f_35b",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
@@ -39581,6 +39803,12 @@
       "id": "us_f_a_18_super_hornet_f_a_18e",
       "mobility": {
         "air": {
+          "arrival": {
+            "delay_s": [
+              15.0,
+              30.0
+            ]
+          },
           "climb_mps": 30.0,
           "cruise_kmh": 650.0,
           "flight": "fixed_wing",
