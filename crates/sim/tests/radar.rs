@@ -143,26 +143,108 @@ fn an_anti_radiation_weapon_without_a_receiver_fires_at_a_radar_contact_a_receiv
     );
 }
 
-#[test]
-fn a_weapon_without_anti_radiation_never_fires_at_a_radar_contact() {
-    // The same truck finds the radar 700 m off; the high-explosive gun
-    // beside it reaches that far but is no anti-radiation weapon, so it holds.
-    let rules = receiver_rules(3000.0, "tank_he");
-    let mut b = battle_of(
-        &rules,
-        [1400.0, 400.0],
-        json!([
-            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
-            { "side": "blue", "kind": "test_supply", "position": [100, 260] },
-            { "side": "red", "kind": "test_tank", "position": [800, 200] }
-        ]),
+/// A battle of `rules` in which a blue jeep at the west end faces a red tank
+/// 700 m east, past what it sees. The tank's radar emits and a blue truck's
+/// receiver finds it (`radar`), or it is silent and fires now and then, so
+/// only its shots are heard (`firing`). Returns the jeep's shots and the
+/// sources of blue's contacts.
+fn at_an_unseen_tank(rules: &serde_json::Value, radar: bool) -> (u32, Vec<ContactSource>) {
+    let mut rules = rules.clone();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({ "capabilities": { "radar": { "emits": radar, "detection_m": if radar { 1200.0 } else { 0.0 } } } }),
     );
+    let mut units = vec![
+        json!({ "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 }),
+        json!({ "side": "red", "kind": "test_tank", "position": [800, 200], "engagement": "return_fire_only" }),
+    ];
+    if radar {
+        units.push(json!({ "side": "blue", "kind": "test_supply", "position": [100, 260] }));
+    }
+    let events: Vec<_> = if radar {
+        Vec::new()
+    } else {
+        (0..10)
+            .map(|k| json!({ "tick": 5 + 30 * k, "fire": { "unit": 1 } }))
+            .collect()
+    };
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [1400, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": units,
+        "events": events, "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let mut sources = Vec::new();
     for _ in 0..300 {
         b.step();
+        for c in &b.observe(Side::Blue).contacts {
+            if !sources.contains(&c.source) {
+                sources.push(c.source);
+            }
+        }
     }
-    assert_eq!(radar_contacts(&b, Side::Blue).len(), 1);
     assert!(b.observe(Side::Blue).identified.is_empty());
-    assert_eq!(shots(&b, UnitId(0)), 0);
+    (shots(&b, UnitId(0)), sources)
+}
+
+#[test]
+fn a_general_purpose_gun_area_fires_at_a_radar_contact_as_at_a_heard_one() {
+    // A radar contact is an area like any other: with no enemy it can see,
+    // the jeep's high-explosive gun shells where the radar was found, as it
+    // shells where shots were heard.
+    let rules = receiver_rules(3000.0, "tank_he");
+    let (heard, sources) = at_an_unseen_tank(&rules, false);
+    assert!(!sources.contains(&ContactSource::Radar), "{sources:?}");
+    assert!(heard > 0, "it fires at the heard contact: {sources:?}");
+    let (found, sources) = at_an_unseen_tank(&rules, true);
+    assert!(sources.contains(&ContactSource::Radar), "{sources:?}");
+    assert!(found > 0, "it fires at the radar contact");
+}
+
+#[test]
+fn an_anti_radiation_row_fires_at_a_radar_contact_but_not_at_a_heard_one() {
+    // It homes on emissions: where shots were heard there is nothing to home
+    // on, even for a row that fires at men on the ground.
+    let mut rules = receiver_rules(3000.0, "sead_missile");
+    rules["weapons"]["sead_missile"]["targets"]["ground"]["classes"] =
+        json!(["infantry", "vehicle"]);
+    let (heard, sources) = at_an_unseen_tank(&rules, false);
+    assert!(sources.contains(&ContactSource::Firing), "{sources:?}");
+    assert_eq!(heard, 0, "it never fires at the heard contact");
+    let (found, _) = at_an_unseen_tank(&rules, true);
+    assert!(found > 0, "it fires at the radar contact");
+}
+
+#[test]
+fn a_tank_fires_at_an_identified_emitting_radar() {
+    // A radar that emits is found from afar; once seen, it is a vehicle like
+    // any other. A tank 250 m from a jeep carrying one shoots at it.
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "capabilities": { "radar": { "emits": true, "detection_m": 1200.0 } } }),
+    );
+    let mut b = battle_of(
+        &rules,
+        [800.0, 400.0],
+        json!([
+            { "side": "blue", "kind": "test_tank", "position": [100, 200], "yaw": 0.0 },
+            { "side": "red", "kind": "test_jeep", "position": [350, 200], "engagement": "return_fire_only" }
+        ]),
+    );
+    for _ in 0..200 {
+        b.step();
+    }
+    assert!(
+        shots(&b, UnitId(0)) > 0,
+        "the tank never fired at the radar it sees"
+    );
 }
 
 #[test]

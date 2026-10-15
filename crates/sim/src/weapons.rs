@@ -417,7 +417,9 @@ struct Resolved {
     /// What an identified unit or a round in flight is to a weapon; `None`
     /// for an area or a ground point, which no class bars.
     class: Option<TargetClass>,
-    radar_contact: bool,
+    /// It radiates: a radar contact, or an identified unit whose radar
+    /// emits. An anti-radiation seeker homes on it; no other weapon reads it.
+    emits: bool,
 }
 
 impl Resolved {
@@ -550,7 +552,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: Some(unit.armor(ctx.rules).copied()),
                 layer: unit.layer(),
                 class: Some(unit.unit_type(ctx.rules).target_class()),
-                radar_contact: unit.layer() == AltitudeLayer::Ground
+                emits: unit.layer() == AltitudeLayer::Ground
                     && unit
                         .unit_type(ctx.rules)
                         .capabilities
@@ -571,7 +573,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
                 armor: None,
                 layer: AltitudeLayer::Ground,
                 class: None,
-                radar_contact: contact.source == contract::observation::ContactSource::Radar,
+                emits: contact.source == contract::observation::ContactSource::Radar,
             })
         }
         Target::Ground(p) => Some(Resolved {
@@ -583,7 +585,7 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             // the layer it was fired from.
             layer: AltitudeLayer::Ground,
             class: None,
-            radar_contact: false,
+            emits: false,
         }),
         Target::Round(round) => Some(Resolved {
             point: round.point,
@@ -592,14 +594,15 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             armor: None,
             layer: round.layer,
             class: Some(TargetClass::Missile),
-            radar_contact: false,
+            emits: false,
         }),
     }
 }
 
 /// The mount's preferred kind for a target: armour-piercing for identified
 /// vehicles, otherwise non-AP; the unlimited default gun also against what it
-/// cannot hurt (W09); AP never at an area (W10).
+/// cannot hurt (W09); AP never at an area (W10). A radar contact is an area
+/// like any other; an anti-radiation row also takes what radiates.
 fn preferred_kind(
     ctx: &FireContext,
     mount: &Mount,
@@ -610,11 +613,10 @@ fn preferred_kind(
     let usable = |k: usize, want_ap: Option<bool>| {
         let def = &weapons[spec.kinds[k]].def;
         mount.has_rounds(k)
-            && (!resolved.radar_contact || def.anti_radiation)
             && resolved.fire(def).is_some()
             && want_ap.is_none_or(|ap| def.armor_piercing == ap)
             && (resolved.worth(def, ctx.rules)
-                || (resolved.radar_contact && def.anti_radiation)
+                || (resolved.emits && def.anti_radiation)
                 || (resolved.armor.is_some() && fires_regardless(def)))
     };
     let n = spec.kinds.len();
@@ -1124,8 +1126,7 @@ fn assess(
         .profile
         .turn_rad_s
         .is_some();
-    let anti_radiation = weapon.anti_radiation;
-    let anti_radiation_target = anti_radiation && r.radar_contact;
+    let anti_radiation_target = weapon.anti_radiation && r.emits;
     if guided
         && (!matches!(target, Target::Unit(_) | Target::Round(_)) && !anti_radiation_target
             || !r.current

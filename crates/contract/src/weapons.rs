@@ -65,9 +65,10 @@ pub struct WeaponDefinition {
     /// strafing guns while a bomb store has rounds remaining.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ground_attack: Option<GroundAttackKind>,
-    /// Anti-radiation seeker: may acquire only a radar contact or an
-    /// identified ground unit whose radar emits. This is distinct from a radar/IR seeker on an
-    /// ordinary air-to-air missile.
+    /// Anti-radiation seeker: it homes on a radar's emission, so it also
+    /// fires at a radar contact or an identified unit whose radar emits,
+    /// and never at an area that doesn't emit. This is distinct from a
+    /// radar/IR seeker on an ordinary air-to-air missile.
     #[serde(default)]
     pub anti_radiation: bool,
     /// A missile/rocket body vulnerable to active protection; shells and
