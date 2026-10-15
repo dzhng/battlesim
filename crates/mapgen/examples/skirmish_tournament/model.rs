@@ -53,6 +53,8 @@ pub(crate) struct Report {
     pub(crate) ticks: u64,
     pub(crate) battle_digest: u64,
     pub(crate) refused_orders: u32,
+    /// Blue's and Red's refused orders.
+    pub(crate) refused_by_side: [u32; 2],
     pub(crate) accepted_orders: u32,
     pub(crate) attempted_orders: u32,
     pub(crate) policy: &'static str,
@@ -70,6 +72,8 @@ pub(crate) struct Report {
     pub(crate) replay_digest: Option<String>,
     pub(crate) replay_match: Option<bool>,
     pub(crate) credit_spend: [u64; 2],
+    /// Each side's purchases accepted before the battle starts.
+    pub(crate) opening: [Vec<String>; 2],
     pub(crate) living_cost: [u64; 2],
     pub(crate) recon_range_m: f64,
     pub(crate) air: Option<[super::runner::AirSide; 2]>,

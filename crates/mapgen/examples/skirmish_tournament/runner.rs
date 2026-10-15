@@ -1,9 +1,8 @@
 use super::inputs::{prepare_row, Inputs};
 use super::model::{ProgressSignature, Report, Row, Status};
 use contract::catalog::Faction;
-use contract::command::{CommandEnvelope, Order, TargetRef};
+use contract::command::{CommandEnvelope, Order};
 use contract::ids::Side;
-use contract::ids::UnitId;
 use contract::observation::ObservationFrame;
 use contract::scenario::Rules;
 use sim::skirmish_ai::BalancedDoctrine;
@@ -39,13 +38,14 @@ fn empty_report(id: String) -> Report {
         ticks: 0,
         battle_digest: 0,
         refused_orders: 0,
+        refused_by_side: [0, 0],
         accepted_orders: 0,
         attempted_orders: 0,
         policy: "balanced_doctrine",
         factions: [Faction::Us, Faction::Europe],
         diagnostic: None,
         result: None,
-        objective_first_owner_ticks: std::collections::BTreeMap::new(),
+        objective_first_owner_ticks: BTreeMap::new(),
         first_contact_tick: None,
         recon_sightings: 0,
         doctrine_pivots: [0, 0],
@@ -54,6 +54,7 @@ fn empty_report(id: String) -> Report {
         replay_digest: None,
         replay_match: None,
         credit_spend: [0, 0],
+        opening: [vec![], vec![]],
         living_cost: [0, 0],
         recon_range_m: 0.0,
         air: None,
@@ -109,13 +110,18 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                     &mut next_buy[side.index()],
                 ));
             }
+            let preparing = frame
+                .skirmish
+                .as_ref()
+                .is_some_and(|view| view.phase == contract::skirmish::Phase::Preparation);
             for order in orders {
-                let purchase_cost = match &order {
-                    Order::ConfirmPurchase { variant, .. } => {
-                        setup.rules.catalog.by_id(variant).cost as u64
-                    }
-                    _ => 0,
+                let purchase = match &order {
+                    Order::ConfirmPurchase { variant, .. } => Some(variant.clone()),
+                    _ => None,
                 };
+                let purchase_cost = purchase
+                    .as_ref()
+                    .map_or(0, |variant| setup.rules.catalog.by_id(variant).cost as u64);
                 report.attempted_orders += 1;
                 let ack = battle.accept(CommandEnvelope {
                     side,
@@ -127,9 +133,13 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 seq[side.index()] += 1;
                 if ack.error.is_some() {
                     refused_this_tick += 1;
+                    report.refused_by_side[side.index()] += 1;
                 } else {
                     report.accepted_orders += 1;
                     report.credit_spend[side.index()] += purchase_cost;
+                    if let Some(variant) = purchase.filter(|_| preparing) {
+                        report.opening[side.index()].push(variant);
+                    }
                 }
             }
         }
