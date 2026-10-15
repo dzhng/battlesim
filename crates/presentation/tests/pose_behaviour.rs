@@ -376,7 +376,7 @@ fn a_diving_jet_pitches_nose_down() {
         jet["airborne"] = true.into();
         jet["layer"] = "high_air".into();
         v["types"]["test_jet"] = jet;
-        v["pose"]["attitude"]["jet"] = json!({
+        v["pose"]["attitude"]["fixed_wing"] = json!({
             "gain": 1,
             "max_deg": 35,
             "smoothing_s": 0.01
@@ -411,7 +411,7 @@ fn a_climbing_jet_pitches_nose_up() {
         jet["airborne"] = true.into();
         jet["layer"] = "high_air".into();
         v["types"]["test_jet"] = jet;
-        v["pose"]["attitude"]["jet"] = json!({
+        v["pose"]["attitude"]["fixed_wing"] = json!({
             "gain": 1,
             "max_deg": 35,
             "smoothing_s": 0.01
@@ -446,7 +446,7 @@ fn a_turning_jet_banks_into_the_turn() {
         jet["airborne"] = true.into();
         jet["layer"] = "high_air".into();
         v["types"]["test_jet"] = jet;
-        v["pose"]["attitude"]["jet"] = json!({
+        v["pose"]["attitude"]["fixed_wing"] = json!({
             "gain": 1,
             "max_deg": 35,
             "smoothing_s": 0.01

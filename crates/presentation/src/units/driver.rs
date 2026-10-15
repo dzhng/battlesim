@@ -196,13 +196,12 @@ pub struct AttitudeFeel {
     pub gain: f64,
     pub max_deg: f64,
     pub smoothing_s: f64,
-    /// Fixed-wing attitude tuning; helicopters use the fields above.
-    #[serde(default)]
-    pub jet: Option<JetAttitudeFeel>,
+    /// A winged aircraft's attitude; helicopters use the fields above.
+    pub fixed_wing: FixedWingAttitudeFeel,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct JetAttitudeFeel {
+pub struct FixedWingAttitudeFeel {
     pub gain: f64,
     pub max_deg: f64,
     pub smoothing_s: f64,
@@ -1208,21 +1207,20 @@ impl PoseDriver {
     }
 }
 
-/// How a high-air aircraft follows its published flight path: pitch is the
+/// How a winged aircraft follows its published flight path: pitch is the
 /// path angle and roll is the bank needed to turn at its published yaw rate.
-fn jet_attitude(
+fn fixed_wing_attitude(
     f: &mut Flight,
     feel: &AttitudeFeel,
     was: Vec3,
     unit: &FeedUnit,
     dt: f64,
 ) -> Option<(f64, f64)> {
-    let (gain, max_deg, smoothing_s) = feel
-        .jet
-        .as_ref()
-        .map_or((feel.gain, feel.max_deg, feel.smoothing_s), |jet| {
-            (jet.gain, jet.max_deg, jet.smoothing_s)
-        });
+    let FixedWingAttitudeFeel {
+        gain,
+        max_deg,
+        smoothing_s,
+    } = feel.fixed_wing;
     let k = 1.0 - libm::exp(-dt / smoothing_s);
     let measured = [
         (unit.position[0] - was[0]) / dt,
@@ -1263,8 +1261,9 @@ fn aircraft_attitude(
     if dt == 0.0 {
         return f.attitude;
     }
+    // High air is flown by wings, low air by rotors.
     if ty.high_air() {
-        return jet_attitude(f, feel, was, unit, dt);
+        return fixed_wing_attitude(f, feel, was, unit, dt);
     }
     let k = 1.0 - libm::exp(-dt / feel.smoothing_s);
     let v = [
