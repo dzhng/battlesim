@@ -12,6 +12,7 @@ pub mod steer;
 pub use fixed_wing::{fly, velocity, FixedWingLimits, FixedWingState, Steer};
 pub use steer::{steer, Bounds, Intent};
 
+use crate::knowledge::SideKnowledge;
 use crate::math::{v2, V3};
 use crate::movement::MovementContext;
 use crate::units::{Motion, Unit, UnitOrder};
@@ -136,7 +137,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         orders::AirTask::Attack { target, explicit } => {
             let point =
                 pass_before.map_or_else(|| target_point(ctx, unit, target), |pass| pass.aim);
-            if target_is_air(ctx, unit, target) {
+            if target_in_high_air(&ctx.knowledge[unit.side.index()], target) {
                 if linked_target.is_none() {
                     if let Target::Unit(target) = target {
                         dogfight::set_target(unit, target);
@@ -269,16 +270,16 @@ fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
     }
 }
 
-fn target_is_air(ctx: &MovementContext, unit: &Unit, target: Target) -> bool {
-    match target {
-        Target::Unit(id) => ctx.knowledge[unit.side.index()]
-            .track(id)
-            .is_some_and(|track| track.position.z > ctx.rules.air.high_air.floor_agl_m),
-        Target::Contact(id) => ctx.knowledge[unit.side.index()]
-            .contact(id)
-            .is_some_and(|contact| contact.layer != AltitudeLayer::Ground),
-        _ => false,
-    }
+/// Whether the side knows `target` as a high-air unit: the only kind a
+/// fixed-wing aircraft dogfights (D29b). Read from the layer of what was seen
+/// or heard, never from height.
+pub(crate) fn target_in_high_air(knowledge: &SideKnowledge, target: Target) -> bool {
+    let layer = match target {
+        Target::Unit(id) => knowledge.track(id).map(|track| track.layer),
+        Target::Contact(id) => knowledge.contact(id).map(|contact| contact.layer),
+        _ => None,
+    };
+    layer == Some(AltitudeLayer::HighAir)
 }
 
 fn pass_weapons(ctx: &MovementContext, unit: &Unit) -> Vec<pass::PassWeapon> {

@@ -26,6 +26,9 @@ pub struct Track {
     pub velocity: V2,
     /// Members seen at the last sighting (infantry).
     pub members: Vec<usize>,
+    /// The height band of the unit seen, from its type: never guessed from
+    /// where it stands.
+    pub layer: AltitudeLayer,
 }
 
 /// An uncertain area the side holds. `emitter` links it to its source
@@ -503,6 +506,7 @@ impl SideKnowledge {
                             yaw: unit.yaw,
                             velocity: v2(0.0, 0.0),
                             members,
+                            layer: unit.layer(),
                         },
                     );
                 }

@@ -578,3 +578,56 @@ fn a_move_breaks_off_mid_pass_at_once() {
     battle.step();
     assert!(battle.unit(UnitId(0)).unwrap().air.unwrap().pass.is_none());
 }
+
+#[test]
+fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
+    // Height never chooses a layer: a tank on a 140 m mesa stands higher
+    // than the high-air floor, yet it is a ground target and gets runs.
+    let setup = serde_json::from_value(json!({
+        "map": {
+            "size": [2400, 1200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "relief": [{ "kind": "mesa", "rect": [1300, 400, 1700, 800], "height_m": 140, "side_degrees": 40 }]
+        },
+        "rules": sim::fixtures::test_game(),
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [500, 600], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_recon", "position": [1450, 600], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [1500, 600], "yaw": 0.0, "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    for _ in 0..30 {
+        battle.step();
+    }
+    let tank = battle
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|t| t.position[2] > 100.0)
+        .map(|t| t.id)
+        .expect("the recon sees the tank up on the mesa");
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id: tank },
+        },
+    });
+    assert_eq!(ack.error, None);
+    let mut passed = false;
+    for _ in 0..600 {
+        battle.step();
+        let air = battle.unit(UnitId(0)).unwrap().air.unwrap();
+        assert_eq!(
+            air.dogfight_target, None,
+            "a tank is never a dogfight opponent"
+        );
+        passed |= air.pass.is_some();
+    }
+    assert!(passed, "the jet flies an attack run at the tank");
+}

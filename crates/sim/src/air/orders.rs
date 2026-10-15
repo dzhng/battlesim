@@ -2,7 +2,6 @@ use crate::knowledge::SideKnowledge;
 use crate::math::V2;
 use crate::units::{Unit, UnitOrder};
 use crate::weapons::Target;
-use contract::catalog::AltitudeLayer;
 use contract::command::Engagement;
 
 use super::pass::PassPlan;
@@ -76,7 +75,7 @@ pub fn task(unit: &Unit, knowledge: &Knowledge, pass: Option<&PassPlan>) -> AirT
         Some(UnitOrder::Attack { target, .. }) => {
             if target_is_destroyed(*target, knowledge) {
                 AirTask::Hold
-            } else if target_is_air(*target, knowledge, unit) {
+            } else if super::target_in_high_air(knowledge, *target) {
                 AirTask::Dogfight
             } else {
                 AirTask::Attack {
@@ -138,18 +137,6 @@ fn move_goal(unit: &Unit) -> V2 {
 
 fn target_is_destroyed(target: Target, knowledge: &Knowledge) -> bool {
     matches!(target, Target::Unit(id) if knowledge.knows_destroyed(id))
-}
-
-fn target_is_air(target: Target, knowledge: &Knowledge, unit: &Unit) -> bool {
-    match target {
-        Target::Unit(id) => knowledge
-            .track(id)
-            .is_some_and(|track| track.position.z > unit.position.z * 0.5),
-        Target::Contact(id) => knowledge
-            .contact(id)
-            .is_some_and(|contact| contact.layer != AltitudeLayer::Ground),
-        _ => false,
-    }
 }
 
 fn along_way_target(unit: &Unit, goal: V2, knowledge: &Knowledge) -> Option<Target> {
