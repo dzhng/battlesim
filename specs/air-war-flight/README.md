@@ -31,7 +31,7 @@ You are implementing this spec with `implement-spec`. Opus subagents write the c
 - [x] 12 [edge transit in the sim](slices/12-edge-transit-sim.md)
 - [x] 13 [approach and departure effect](slices/13-transit-effect.md)
 - [x] 14 [jet attitude](slices/14-jet-attitude.md)
-- [x] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md) (open: the catalog-load limit, see Status)
+- [x] 15 [roster: cleanup, loadouts, enable every jet](slices/15-roster.md) (catalog-load tripwire raised to 640 MiB; the Gepard enabled too)
 - [x] 16 [aircraft model pass](slices/16-model-pass.md) (parallel lane)
 - [x] 17 [skirmish AI and jets](slices/17-skirmish-ai.md)
 - [x] 18 [panel follow-ups](slices/18-panel-follow-ups.md) (parallel lane)
