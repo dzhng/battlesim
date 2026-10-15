@@ -262,8 +262,7 @@ def run_disabled(family, cards, scheme, build, wreck, skip=("dressing_",), ao_di
     variants = [disabled_variant(card, dims) for card, dims in cards.items()]
     receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check, looks)
     if receipt is not None:
-        entries = json.loads((REPO / "fixtures/units/model-manifest.json").read_text())["entries"]
-        families = sorted({e["source_family"] for e in entries if e["id"] in cards})
+        families = sorted({v["family"] for v in variants if v["family"]})
         beside = Path(variants[0]["export"]).parent
         _receipt(f"{beside}/{family}.source-receipt.json", f"{family}.py", receipt,
                  "catalog_frames.disabled_variant", [f"assets/references/{f}/references.json" for f in families])

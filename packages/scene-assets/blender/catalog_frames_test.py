@@ -134,6 +134,22 @@ class DisabledFramesTest(unittest.TestCase):
         self.assertEqual(v["frame_source"], "references")
         self.assertEqual((v["faction"], v["export"]), ("eastern", "assets/source/roster/disabled/tank_x.glb"))
 
+    def test_a_promoted_card_keeps_its_art_where_its_appearance_names_it(self):
+        # A card promoted onto the roster bar leaves the manifest; its art is
+        # still built to the frame its exporter states, written where its
+        # appearance's source is.
+        cards = dict(units=dict(tank_x=dict(name="Tank X", faction="eastern"),
+                                jet_y=dict(name="Jet Y", faction="us", family="jet_family",
+                                           roster=dict(category="air"), appearance="jet_y")))
+        (self.repo / "fixtures/units/roster/cards.json").write_text(json.dumps(cards))
+        (self.repo / "assets").mkdir()
+        looks = dict(jet_y=dict(source="assets/source/roster/disabled/jet_y.glb"))
+        (self.repo / "assets/catalog.json").write_text(json.dumps(dict(appearances=looks)))
+        v = disabled_variant("jet_y", [15.0, 10.0, 4.9], repo=self.repo)
+        self.assertEqual(v["frame"]["body_dimensions_m"], [15.0, 10.0, 4.9])
+        self.assertEqual((v["faction"], v["category"], v["export"], v["family"]),
+                         ("us", "air", "assets/source/roster/disabled/jet_y.glb", "jet_family"))
+
     def test_a_card_the_manifest_lacks_is_refused_by_name(self):
         with self.assertRaisesRegex(LookupError, "nope"):
             disabled_variant("nope", [1.0, 1.0, 1.0], repo=self.repo)

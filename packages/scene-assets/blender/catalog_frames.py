@@ -102,19 +102,27 @@ def family_variants(family, repo=REPO):
 
 
 def disabled_variant(card_id, dimensions, repo=REPO):
-    """A disabled card's export path, names, faction and frame: `dimensions`
-    (length, width and height in metres) as its exporter states them from its
-    references (`frame_source`)."""
+    """A disabled card's export path, names, faction, reference family and
+    frame: `dimensions` (length, width and height in metres) as its exporter
+    states them from its references (`frame_source`). A card promoted onto
+    the roster bar has left the manifest; its art keeps the frame its
+    exporter states and is written where its appearance's source is."""
     entries = json.loads((Path(repo) / "fixtures/units/model-manifest.json").read_text())["entries"]
     entry = next((e for e in entries if e["id"] == card_id), None)
-    if entry is None:
-        raise LookupError(f"{card_id}: no card in fixtures/units/model-manifest.json")
     card = next(
-        doc["units"][card_id]
-        for path in sorted((Path(repo) / "fixtures/units/roster").glob("*.json"))
-        for doc in [json.loads(path.read_text())]
-        if card_id in doc.get("units", {})
+        (doc["units"][card_id]
+         for path in sorted((Path(repo) / "fixtures/units/roster").glob("*.json"))
+         for doc in [json.loads(path.read_text())]
+         if card_id in doc.get("units", {})),
+        None,
     )
+    if entry is None and card is not None and card.get("appearance"):
+        appearances = json.loads((Path(repo) / "assets/catalog.json").read_text())["appearances"]
+        source = appearances.get(card["appearance"], {}).get("source")
+        if source:
+            entry = dict(category=card["roster"]["category"], source_path=source, source_family=card.get("family"))
+    if entry is None or card is None:
+        raise LookupError(f"{card_id}: no card in fixtures/units/model-manifest.json, nor an appearance on the roster")
     frame = dict(
         half_extents_m=[d / 2 for d in dimensions],
         body_dimensions_m=list(dimensions),
@@ -127,6 +135,7 @@ def disabled_variant(card_id, dimensions, repo=REPO):
         faction=card["faction"],
         category=entry["category"],
         export=entry["source_path"],
+        family=entry.get("source_family"),
         frame=frame,
         frame_source="references",
     )
