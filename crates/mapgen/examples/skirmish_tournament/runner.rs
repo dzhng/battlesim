@@ -57,6 +57,7 @@ fn empty_report(id: String) -> Report {
         opening: [vec![], vec![]],
         living_cost: [0, 0],
         recon_range_m: 0.0,
+        launcher_held_s: BTreeMap::new(),
         air: None,
     }
 }
@@ -150,6 +151,25 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
             let frame = battle.observe(side);
             if !frame.contacts.is_empty() || !frame.identified.is_empty() {
                 report.first_contact_tick.get_or_insert(frame.tick);
+            }
+            for unit in frame.own.iter().filter(|unit| {
+                unit.mounts
+                    .iter()
+                    .any(|m| m.reason == contract::observation::ActionReason::BlockedTrajectory)
+                    && setup.rules.catalog.mounts(unit.kind).iter().any(|mount| {
+                        mount.def.weapons.iter().any(|w| {
+                            setup
+                                .rules
+                                .weapons
+                                .get(w)
+                                .is_some_and(|w| w.requires_clear_launch_path)
+                        })
+                    })
+            }) {
+                *report
+                    .launcher_held_s
+                    .entry(setup.rules.catalog.id(unit.kind).into())
+                    .or_default() += 1.0 / f64::from(setup.rules.tick_hz);
             }
             report.recon_sightings += frame
                 .own

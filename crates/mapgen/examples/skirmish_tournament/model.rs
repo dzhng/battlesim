@@ -76,6 +76,9 @@ pub(crate) struct Report {
     pub(crate) opening: [Vec<String>; 2],
     pub(crate) living_cost: [u64; 2],
     pub(crate) recon_range_m: f64,
+    /// Seconds each unit kind needing a clear launch path stood held for it
+    /// (`BlockedTrajectory`), both sides summed.
+    pub(crate) launcher_held_s: std::collections::BTreeMap<String, f64>,
     pub(crate) air: Option<[super::runner::AirSide; 2]>,
 }
 
