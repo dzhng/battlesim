@@ -4,36 +4,36 @@
 use contract::catalog::AltitudeLayer;
 use contract::ids::UnitId;
 use contract::random::{mix, Rng};
-use contract::scenario::JetAir;
+use contract::scenario::FixedWingFlight;
 
 use crate::knowledge::Track;
 use crate::math::{v2, v3, V3};
-use crate::units::{Motion, Unit};
+use crate::units::Unit;
 
-use super::jet::JetState;
+use super::fixed_wing::FixedWingState;
 use super::steer::Intent;
 
 /// Whether a 3D separation has ended a close air engagement.
-pub fn breaks(distance_3d: f64, air: &JetAir) -> bool {
+pub fn breaks(distance_3d: f64, air: &FixedWingFlight) -> bool {
     distance_3d > air.dogfight_break_m
 }
 
-/// Set a firing jet's link and let an unengaged jet answer it.
+/// Set a firing high-air aircraft's link and let an unengaged one answer it.
 ///
 /// The check is deliberately on the altitude layer rather than the current
 /// height: a helicopter is an air target for weapons, but never a dogfight
 /// opponent (D29b).
 pub(crate) fn on_fire(units: &mut [Unit], shooter: UnitId, target: UnitId) {
     if shooter == target
-        || !units.get(shooter.0 as usize).is_some_and(is_jet)
-        || !units.get(target.0 as usize).is_some_and(is_jet)
+        || !units.get(shooter.0 as usize).is_some_and(in_high_air)
+        || !units.get(target.0 as usize).is_some_and(in_high_air)
     {
         return;
     }
     units[shooter.0 as usize]
         .air
         .as_mut()
-        .expect("a jet has air state")
+        .expect("an aircraft's flight state")
         .dogfight_target = Some(target);
     if units[target.0 as usize]
         .air
@@ -43,17 +43,17 @@ pub(crate) fn on_fire(units: &mut [Unit], shooter: UnitId, target: UnitId) {
         units[target.0 as usize]
             .air
             .as_mut()
-            .expect("a jet has air state")
+            .expect("an aircraft's flight state")
             .dogfight_target = Some(shooter);
     }
 }
 
 /// Install a target selected by an explicit air order.
 pub(crate) fn set_target(unit: &mut Unit, target: UnitId) {
-    if is_jet(unit) {
+    if in_high_air(unit) {
         unit.air
             .as_mut()
-            .expect("a jet has air state")
+            .expect("an aircraft's flight state")
             .dogfight_target = Some(target);
     }
 }
@@ -69,7 +69,12 @@ pub(crate) fn clear(unit: &mut Unit) {
 ///
 /// The seed is already separated by jet id by the caller, so the sampled
 /// height is stable for that jet across ticks while remaining battle seeded.
-pub fn intent(own: &JetState, target_track: &Track, seed: u64, air: &JetAir) -> Intent {
+pub fn intent(
+    own: &FixedWingState,
+    target_track: &Track,
+    seed: u64,
+    air: &FixedWingFlight,
+) -> Intent {
     let mut rng = Rng::new(mix(seed));
     let band = air.dogfight_band_agl_m;
     let agl = band[0] + rng.unit() * (band[1] - band[0]);
@@ -107,13 +112,12 @@ pub fn intent(own: &JetState, target_track: &Track, seed: u64, air: &JetAir) -> 
     }
 }
 
-fn is_jet(unit: &Unit) -> bool {
-    unit.alive()
-        && matches!(unit.motion, Motion::Air(flight) if flight.layer == AltitudeLayer::HighAir)
+fn in_high_air(unit: &Unit) -> bool {
+    unit.alive() && unit.layer() == AltitudeLayer::HighAir
 }
 
-/// True when a link's target is a live jet. Kept here so the battle's break
+/// True when a link's target is alive in high air. Kept here so the battle's break
 /// maintenance cannot accidentally turn a helicopter into a dogfight.
 pub(crate) fn valid_target(units: &[Unit], target: UnitId) -> bool {
-    units.get(target.0 as usize).is_some_and(is_jet)
+    units.get(target.0 as usize).is_some_and(in_high_air)
 }

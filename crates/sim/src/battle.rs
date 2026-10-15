@@ -671,7 +671,7 @@ impl Battle {
                         self.units[i].position,
                         self.units[target.0 as usize].position,
                     ),
-                    &self.rules.air.jet,
+                    &self.rules.air.fixed_wing,
                 );
             if broken {
                 crate::air::dogfight::clear(&mut self.units[i]);
@@ -872,12 +872,8 @@ impl Battle {
             );
             let t = self.rules.catalog.get(reservation.data.kind);
             let aircraft = units::ground_mobility(t, &self.rules).is_none();
-            let jet = aircraft
-                && matches!(
-                    units::motion(t, &self.rules),
-                    units::Motion::Air(flight) if flight.layer == AltitudeLayer::HighAir
-                );
-            if jet {
+            let high_air = t.mobility.layer() == AltitudeLayer::HighAir;
+            if high_air {
                 if reservation.ingress_ready_tick.is_none() {
                     let mut rng = contract::random::Rng::new(contract::random::mix(
                         self.seed ^ u64::from(reservation.data.id.0),
@@ -892,7 +888,7 @@ impl Battle {
                         crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
                     let (point, heading) = crate::air::edge::entry(&edge, destination);
                     let units::Motion::Air(flight) = units::motion(t, &self.rules) else {
-                        unreachable!("jet has air motion")
+                        unreachable!("a high-air unit flies")
                     };
                     let z = self.world.height_at(point.x, point.y).unwrap_or(0.0)
                         + self.rules.air.cruise_agl_m(flight.layer);
@@ -970,7 +966,7 @@ impl Battle {
                 &mut self.last_soldier,
                 self.seed,
             );
-            if aircraft && !jet {
+            if aircraft && !high_air {
                 let mut rng = contract::random::Rng::new(contract::random::mix(
                     self.seed ^ u64::from(unit.id.0),
                 ));
@@ -981,11 +977,11 @@ impl Battle {
                         (delay_s * f64::from(self.rules.tick_hz)).round() as u64;
                 }
             }
-            if jet {
+            if high_air {
                 let edge = crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
                 let (point, heading) = crate::air::edge::entry(&edge, destination);
                 let units::Motion::Air(flight) = unit.motion else {
-                    unreachable!("jet has air motion")
+                    unreachable!("a high-air unit flies")
                 };
                 let speed = flight.cruise_mps;
                 unit.position = point.with_z(
@@ -1040,7 +1036,7 @@ impl Battle {
                 if !crate::air::edge::crossed(&edge, previous, unit.position.xy()) {
                     continue;
                 }
-                let air = unit.air.as_ref().expect("jet flight");
+                let air = unit.air.as_ref().expect("an aircraft's flight state");
                 self.air_transits[unit.side.index()].push(AirTransit {
                     kind: unit.kind,
                     point: [unit.position.x, unit.position.y, unit.position.z],
@@ -3051,7 +3047,7 @@ impl Battle {
             if unit.garrisoned() {
                 continue;
             }
-            // Fixed-wing attacks are planned as passes by `air::step_jet`;
+            // Fixed-wing attacks are planned as passes by `air::step_fixed_wing`;
             // they never enter the generic ground-style hover pursuit.
             if unit.layer() == AltitudeLayer::HighAir {
                 continue;

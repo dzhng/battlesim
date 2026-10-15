@@ -1,24 +1,11 @@
-use crate::common::jet::{JetField, Track};
+use crate::common::air_field::{wing_limits, AirField, Track};
 use contract::command::{CommandEnvelope, Order};
 use contract::ids::{Side, UnitId};
-use sim::air::{fly, steer, velocity, Bounds, Intent, JetLimits, JetState, Steer};
+use sim::air::{fly, steer, velocity, Bounds, FixedWingState, Intent, Steer};
 use sim::math::{v2, v3};
 
-fn limits() -> JetLimits {
-    JetLimits {
-        cruise_mps: 100.0,
-        burner_mult: 1.5,
-        turn_rad_s: 1.0,
-        climb_mps: 30.0,
-        ramp_s: 2.0,
-        floor_agl_m: 100.0,
-        edge_margin_m: 300.0,
-        cruise_agl_m: 250.0,
-    }
-}
-
-fn state() -> JetState {
-    JetState {
+fn state() -> FixedWingState {
+    FixedWingState {
         pos: v3(0.0, 0.0, 250.0),
         heading: 0.0,
         speed_mps: 100.0,
@@ -29,8 +16,8 @@ fn state() -> JetState {
 
 #[test]
 fn a_placed_jet_records_one_sample_per_tick() {
-    let mut battle = JetField::new(3000.0)
-        .jet("test_jet", [300.0, 1500.0], 0.0)
+    let mut battle = AirField::new(3000.0)
+        .aircraft("test_jet", [300.0, 1500.0], 0.0)
         .battle();
     let samples = Track::record(&mut battle, 60);
     assert_eq!(samples.len(), 60);
@@ -39,8 +26,8 @@ fn a_placed_jet_records_one_sample_per_tick() {
 
 #[test]
 fn a_jet_never_flies_slower_than_cruise() {
-    let mut battle = JetField::new(3000.0)
-        .jet("test_jet", [300.0, 1500.0], 0.0)
+    let mut battle = AirField::new(3000.0)
+        .aircraft("test_jet", [300.0, 1500.0], 0.0)
         .battle();
     let cruise = battle.unit(UnitId(0)).unwrap().motion;
     let samples = Track::record(&mut battle, 120);
@@ -59,7 +46,7 @@ fn a_jet_never_flies_slower_than_cruise() {
 
 #[test]
 fn afterburner_ramps_to_speed_over_its_ramp_and_back() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     s = fly(
         s,
@@ -101,8 +88,8 @@ fn afterburner_ramps_to_speed_over_its_ramp_and_back() {
 
 #[test]
 fn switching_the_afterburner_off_eases_back_to_cruise_over_its_ramp() {
-    let mut battle = JetField::new(3000.0)
-        .jet("test_jet", [300.0, 1500.0], 0.0)
+    let mut battle = AirField::new(3000.0)
+        .aircraft("test_jet", [300.0, 1500.0], 0.0)
         .battle();
     let toggle = |battle: &mut sim::battle::Battle, seq, enabled| {
         battle.accept(CommandEnvelope {
@@ -117,7 +104,7 @@ fn switching_the_afterburner_off_eases_back_to_cruise_over_its_ramp() {
         });
     };
     let hz = u64::from(battle.rules().tick_hz);
-    let ramp_ticks = (battle.rules().air.jet.afterburner_ramp_s * hz as f64).ceil() as u64;
+    let ramp_ticks = (battle.rules().air.fixed_wing.afterburner_ramp_s * hz as f64).ceil() as u64;
     let speed = |battle: &sim::battle::Battle| battle.unit(UnitId(0)).unwrap().drive_speed_mps;
     let cruise = speed(&battle).max(1.0);
     for _ in 0..hz {
@@ -150,8 +137,8 @@ fn switching_the_afterburner_off_eases_back_to_cruise_over_its_ramp() {
 
 #[test]
 fn afterburner_burns_fuel_at_its_multiplier() {
-    let mut battle = JetField::new(3000.0)
-        .jet("test_jet", [300.0, 1500.0], 0.0)
+    let mut battle = AirField::new(3000.0)
+        .aircraft("test_jet", [300.0, 1500.0], 0.0)
         .battle();
     battle.accept(CommandEnvelope {
         side: Side::Blue,
@@ -172,7 +159,7 @@ fn afterburner_burns_fuel_at_its_multiplier() {
 
 #[test]
 fn a_jet_flies_where_its_nose_points_and_turns_no_faster_than_its_rate() {
-    let l = limits();
+    let l = wing_limits();
     let s = fly(
         state(),
         Steer {
@@ -191,7 +178,7 @@ fn a_jet_flies_where_its_nose_points_and_turns_no_faster_than_its_rate() {
 
 #[test]
 fn a_jet_never_drops_below_the_floor_over_relief() {
-    let l = limits();
+    let l = wing_limits();
     let s = fly(
         state(),
         Steer {
@@ -208,7 +195,7 @@ fn a_jet_never_drops_below_the_floor_over_relief() {
 
 #[test]
 fn a_jet_holds_cruise_over_rolling_ground_without_steps() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     for i in 0..20 {
         s = fly(
@@ -231,7 +218,7 @@ fn a_jet_holds_cruise_over_rolling_ground_without_steps() {
 
 #[test]
 fn a_jet_flies_straight_over_a_61m_tower() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     for _ in 0..60 {
         s = fly(
@@ -258,7 +245,7 @@ fn a_jet_flies_straight_over_a_61m_tower() {
 
 #[test]
 fn a_move_goal_is_circled_at_speed_over_turn_rate() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     s.pos = v3(-250.0, 0.0, 250.0);
     let centre = v2(0.0, 0.0);
@@ -281,7 +268,7 @@ fn a_move_goal_is_circled_at_speed_over_turn_rate() {
 
 #[test]
 fn a_jet_flying_to_a_far_goal_holds_a_straight_heading() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     s.pos = v3(-1_000.0, 0.0, 250.0);
     let bounds = Bounds::new(v2(-2_000.0, -2_000.0), v2(2_000.0, 2_000.0));
@@ -300,7 +287,7 @@ fn a_jet_flying_to_a_far_goal_holds_a_straight_heading() {
 
 #[test]
 fn a_circling_jet_holds_cruise_over_raised_ground() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     s.pos = v3(-150.0, 0.0, 250.0);
     let bounds = Bounds::new(v2(-2_000.0, -2_000.0), v2(2_000.0, 2_000.0));
@@ -323,7 +310,7 @@ fn a_circling_jet_holds_cruise_over_raised_ground() {
 
 #[test]
 fn a_jet_circles_the_way_it_was_already_turning() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     s.turn_sign = -1;
     s.pos = v3(100.0, 0.0, 250.0);
@@ -345,7 +332,7 @@ fn a_jet_circles_the_way_it_was_already_turning() {
 
 #[test]
 fn an_attack_circles_the_targets_current_position() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     let target = v3(0.0, 0.0, 100.0);
     let bounds = Bounds::new(v2(-2_000.0, -2_000.0), v2(2_000.0, 2_000.0));
@@ -369,7 +356,7 @@ fn an_attack_circles_the_targets_current_position() {
 
 #[test]
 fn a_circle_by_the_edge_turns_back_inside_the_square() {
-    let l = limits();
+    let l = wing_limits();
     let mut s = state();
     s.pos = v3(1_850.0, 1_000.0, 250.0);
     s.heading = 0.0;
@@ -391,8 +378,8 @@ fn a_circle_by_the_edge_turns_back_inside_the_square() {
 
 #[test]
 fn a_queued_order_follows_once_the_circle_is_reached() {
-    let mut battle = JetField::new(3_000.0)
-        .jet("test_jet", [300.0, 1_500.0], 0.0)
+    let mut battle = AirField::new(3_000.0)
+        .aircraft("test_jet", [300.0, 1_500.0], 0.0)
         .battle();
     let first = v2(1_000.0, 1_500.0);
     let second = v2(2_000.0, 1_500.0);
@@ -432,8 +419,8 @@ fn a_queued_order_follows_once_the_circle_is_reached() {
 
 #[test]
 fn an_idle_jet_circles_where_it_lost_its_goal() {
-    let mut battle = JetField::new(3_000.0)
-        .jet("test_jet", [300.0, 1_500.0], 0.0)
+    let mut battle = AirField::new(3_000.0)
+        .aircraft("test_jet", [300.0, 1_500.0], 0.0)
         .battle();
     for _ in 0..30 {
         battle.step();

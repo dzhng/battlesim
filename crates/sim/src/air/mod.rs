@@ -1,13 +1,15 @@
-//! Fixed-wing flight laws. Helicopters remain in [`crate::movement::air`].
+//! Fixed-wing flight: the flight law, steering, attack passes, dogfights and
+//! edge transit. It flies the high-air layer, the only layer flown by wings;
+//! helicopters fly low air in [`crate::movement::air`].
 
 pub mod dogfight;
 pub mod edge;
-pub mod jet;
+pub mod fixed_wing;
 pub mod orders;
 pub mod pass;
 pub mod steer;
 
-pub use jet::{fly, velocity, JetLimits, JetState, Steer};
+pub use fixed_wing::{fly, velocity, FixedWingLimits, FixedWingState, Steer};
 pub use steer::{steer, Bounds, Intent};
 
 use crate::math::{v2, V3};
@@ -18,8 +20,9 @@ use contract::catalog::AltitudeLayer;
 use contract::random::{mix, Rng};
 use contract::weapons::GroundAttackKind;
 
-/// Advance one HighAir unit without consulting the helicopter air grid.
-pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
+/// Advance one high-air unit by the fixed-wing flight law, without
+/// consulting the helicopter air grid.
+pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     let Motion::Air(flight) = unit.motion else {
         unreachable!("only aircraft fly");
     };
@@ -57,7 +60,10 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
         let attack_move = matches!(unit.orders.front(), Some(UnitOrder::AttackMove(_)));
         unit.orders.pop_front();
         if attack_move {
-            unit.air.as_mut().expect("jet air state").last_goal = Some(unit.position.xy());
+            unit.air
+                .as_mut()
+                .expect("an aircraft's flight state")
+                .last_goal = Some(unit.position.xy());
         }
         unit.state = if unit.orders.is_empty() {
             contract::observation::MoveState::Idle
@@ -66,22 +72,22 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
         };
     }
     let current_order = unit.orders.front().cloned();
-    let state = JetState {
+    let state = FixedWingState {
         pos: unit.position,
         heading: unit.yaw,
         speed_mps: speed,
         burner,
         turn_sign,
     };
-    let limits = JetLimits {
+    let limits = FixedWingLimits {
         cruise_mps: cruise,
         burner_mult,
         turn_rad_s: flight.turn_rad_s,
         climb_mps: flight.climb_mps,
-        ramp_s: ctx.rules.air.jet.afterburner_ramp_s,
-        floor_agl_m: ctx.rules.air.jet.floor_agl_m,
-        edge_margin_m: ctx.rules.air.jet.edge_margin_m,
-        cruise_agl_m: ctx.rules.air.jet.cruise_agl_m,
+        ramp_s: ctx.rules.air.fixed_wing.afterburner_ramp_s,
+        floor_agl_m: ctx.rules.air.high_air.floor_agl_m,
+        edge_margin_m: ctx.rules.air.fixed_wing.edge_margin_m,
+        cruise_agl_m: ctx.rules.air.cruise_agl_m(unit.layer()),
     };
     let mut pass_release_now = false;
     let pass_before = unit.air.as_ref().and_then(|air| air.pass);
@@ -90,7 +96,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
     let linked_target = unit.air.as_ref().and_then(|air| air.dogfight_target);
     let intent = match task {
         orders::AirTask::Withdraw => {
-            unit.air.as_mut().expect("jet air state").pass = None;
+            unit.air.as_mut().expect("an aircraft's flight state").pass = None;
             match current_order {
                 Some(UnitOrder::Move(m)) => Intent::Exit { to: m.destination },
                 _ => Intent::Exit {
@@ -99,7 +105,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
             }
         }
         orders::AirTask::Hold => {
-            unit.air.as_mut().expect("jet air state").pass = None;
+            unit.air.as_mut().expect("an aircraft's flight state").pass = None;
             if matches!(unit.orders.front(), Some(UnitOrder::Attack { .. })) {
                 unit.orders.pop_front();
             }
@@ -108,11 +114,11 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
             }
         }
         orders::AirTask::Orbit { centre } => {
-            unit.air.as_mut().expect("jet air state").pass = None;
+            unit.air.as_mut().expect("an aircraft's flight state").pass = None;
             Intent::Orbit { centre }
         }
         orders::AirTask::Dogfight => {
-            unit.air.as_mut().expect("jet air state").pass = None;
+            unit.air.as_mut().expect("an aircraft's flight state").pass = None;
             linked_target
                 .and_then(|target| ctx.knowledge[unit.side.index()].track(target))
                 .map(|track| {
@@ -120,7 +126,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                         &state,
                         track,
                         mix(ctx.seed ^ u64::from(unit.id.0)),
-                        &ctx.rules.air.jet,
+                        &ctx.rules.air.fixed_wing,
                     )
                 })
                 .unwrap_or(Intent::Orbit {
@@ -136,7 +142,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                         dogfight::set_target(unit, target);
                     }
                 }
-                unit.air.as_mut().expect("jet air state").pass = None;
+                unit.air.as_mut().expect("an aircraft's flight state").pass = None;
                 unit.air
                     .as_ref()
                     .and_then(|air| air.dogfight_target)
@@ -146,7 +152,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                             &state,
                             track,
                             mix(ctx.seed ^ u64::from(unit.id.0)),
-                            &ctx.rules.air.jet,
+                            &ctx.rules.air.fixed_wing,
                         )
                     })
                     .unwrap_or(Intent::Orbit { centre: point.xy() })
@@ -168,16 +174,22 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                     });
                     if restart {
                         let mut rng = Rng::new(mix(ctx.seed ^ u64::from(unit.id.0)));
-                        let mut plan =
-                            pass::begin(&state, point, weapon, &ctx.rules.air.jet, &mut rng);
+                        let mut plan = pass::begin(
+                            &state,
+                            &limits,
+                            point,
+                            weapon,
+                            &ctx.rules.air.fixed_wing,
+                            &mut rng,
+                        );
                         plan.target = target;
-                        unit.air.as_mut().expect("jet air state").pass = Some(plan);
+                        unit.air.as_mut().expect("an aircraft's flight state").pass = Some(plan);
                     }
                     let release = pass_release(ctx, unit, point, weapon);
                     let pass = unit
                         .air
                         .as_mut()
-                        .expect("jet air state")
+                        .expect("an aircraft's flight state")
                         .pass
                         .as_mut()
                         .unwrap();
@@ -186,7 +198,7 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                     pass_release_now = cue.is_some();
                     if was_pull_out && pass.phase == pass::PassPhase::LineUp {
                         let finished_target = pass.target;
-                        unit.air.as_mut().expect("jet air state").pass = None;
+                        unit.air.as_mut().expect("an aircraft's flight state").pass = None;
                         if !explicit
                             && matches!(
                                 finished_target,
@@ -199,13 +211,15 @@ pub(crate) fn step_jet(ctx: &MovementContext, unit: &mut Unit) {
                             )
                         {
                             unit.orders.pop_front();
-                            unit.air.as_mut().expect("jet air state").last_goal =
-                                Some(unit.position.xy());
+                            unit.air
+                                .as_mut()
+                                .expect("an aircraft's flight state")
+                                .last_goal = Some(unit.position.xy());
                         }
                     }
                     intent
                 } else {
-                    unit.air.as_mut().expect("jet air state").pass = None;
+                    unit.air.as_mut().expect("an aircraft's flight state").pass = None;
                     Intent::Orbit { centre: point.xy() }
                 }
             }
@@ -259,7 +273,7 @@ fn target_is_air(ctx: &MovementContext, unit: &Unit, target: Target) -> bool {
     match target {
         Target::Unit(id) => ctx.knowledge[unit.side.index()]
             .track(id)
-            .is_some_and(|track| track.position.z > ctx.rules.air.jet.floor_agl_m),
+            .is_some_and(|track| track.position.z > ctx.rules.air.high_air.floor_agl_m),
         Target::Contact(id) => ctx.knowledge[unit.side.index()]
             .contact(id)
             .is_some_and(|contact| contact.layer != AltitudeLayer::Ground),

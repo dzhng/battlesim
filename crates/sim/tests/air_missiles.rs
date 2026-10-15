@@ -5,7 +5,7 @@
 //! go up at aircraft.
 
 use crate::common;
-use crate::common::jet::JetField;
+use crate::common::air_field::AirField;
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
@@ -157,8 +157,8 @@ impl ImpactResolver for TestFuse {
 
 #[test]
 fn a_missile_bursts_within_its_blast_radius_of_a_passing_jet() {
-    let battle = JetField::new(3000.0)
-        .jet("test_jet", [800.0, 300.0], 0.0)
+    let battle = AirField::new(3000.0)
+        .aircraft("test_jet", [800.0, 300.0], 0.0)
         .battle();
     let jet = battle.unit(UnitId(0)).unwrap();
     let half = jet.hull.unwrap();

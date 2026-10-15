@@ -1,17 +1,18 @@
 use super::scenario;
 use contract::ids::UnitId;
 use serde_json::json;
+use sim::air::FixedWingLimits;
 use sim::battle::Battle;
 use sim::math::V3;
 
 /// Small authored-like field for fixed-wing flight tests. It keeps setup in the
 /// shared test catalog, so tests do not duplicate battle construction.
-pub struct JetField {
+pub struct AirField {
     size: f64,
     units: Vec<serde_json::Value>,
 }
 
-impl JetField {
+impl AirField {
     pub fn new(size_m: f64) -> Self {
         Self {
             size: size_m,
@@ -19,7 +20,7 @@ impl JetField {
         }
     }
 
-    pub fn jet(mut self, kind: &str, at: [f64; 2], heading: f64) -> Self {
+    pub fn aircraft(mut self, kind: &str, at: [f64; 2], heading: f64) -> Self {
         self.units.push(json!({
             "side": "blue", "kind": kind, "position": at, "yaw": heading,
             "engagement": "return_fire_only"
@@ -42,6 +43,20 @@ impl JetField {
     }
 }
 
+/// A fixed-wing airframe's limits for driving the flight law directly.
+pub fn wing_limits() -> FixedWingLimits {
+    FixedWingLimits {
+        cruise_mps: 100.0,
+        burner_mult: 1.5,
+        turn_rad_s: 1.0,
+        climb_mps: 30.0,
+        ramp_s: 2.0,
+        floor_agl_m: 100.0,
+        edge_margin_m: 300.0,
+        cruise_agl_m: 250.0,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Sample {
     pub pos: V3,
@@ -57,7 +72,7 @@ impl Track {
         let mut samples = Vec::with_capacity(ticks as usize);
         for _ in 0..ticks {
             battle.step();
-            let unit = battle.unit(UnitId(0)).expect("jet unit");
+            let unit = battle.unit(UnitId(0)).expect("the placed aircraft");
             let pos = unit.position;
             let ground = battle.world().height_at(pos.x, pos.y).unwrap_or(0.0);
             let vel = unit.air.map(|air| air.velocity).unwrap_or_default();

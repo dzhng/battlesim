@@ -1,10 +1,11 @@
+use crate::common::air_field::wing_limits;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::random::Rng;
-use contract::scenario::JetAir;
+use contract::scenario::FixedWingFlight;
 use serde_json::json;
 use sim::air::pass::{advance, begin, choose_weapon, PassPhase, PassWeapon};
-use sim::air::JetState;
+use sim::air::FixedWingState;
 use sim::flight::Release;
 use sim::math::v3;
 
@@ -82,10 +83,8 @@ fn air_battle() -> sim::battle::Battle {
     sim::battle::Battle::new(&setup, 1)
 }
 
-fn jet_air() -> JetAir {
-    JetAir {
-        cruise_agl_m: 250.0,
-        floor_agl_m: 100.0,
+fn wing() -> FixedWingFlight {
+    FixedWingFlight {
         strafe_ceiling_m: 130.0,
         bomb_ceiling_m: 200.0,
         dogfight_band_agl_m: [150.0, 350.0],
@@ -95,8 +94,8 @@ fn jet_air() -> JetAir {
     }
 }
 
-fn state(agl: f64) -> JetState {
-    JetState {
+fn state(agl: f64) -> FixedWingState {
+    FixedWingState {
         pos: v3(0.0, 0.0, agl),
         heading: 0.0,
         speed_mps: 100.0,
@@ -110,9 +109,10 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
     let aim = v3(1000.0, 0.0, 0.0);
     let mut plan = begin(
         &state(250.0),
+        &wing_limits(),
         aim,
         PassWeapon::Bomb,
-        &jet_air(),
+        &wing(),
         &mut Rng::new(7),
     );
     assert_eq!(plan.phase, PassPhase::LineUp);
@@ -136,9 +136,10 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
 fn pass_height_is_seeded_between_floor_and_ceiling() {
     let p = begin(
         &state(250.0),
+        &wing_limits(),
         v3(1000.0, 0.0, 0.0),
         PassWeapon::Bomb,
-        &jet_air(),
+        &wing(),
         &mut Rng::new(9),
     );
     assert!((100.0..=200.0).contains(&p.agl));
@@ -148,9 +149,10 @@ fn pass_height_is_seeded_between_floor_and_ceiling() {
 fn a_jet_below_the_ceiling_doesnt_climb_to_start() {
     let p = begin(
         &state(150.0),
+        &wing_limits(),
         v3(1000.0, 0.0, 0.0),
         PassWeapon::Bomb,
-        &jet_air(),
+        &wing(),
         &mut Rng::new(9),
     );
     assert!(p.agl <= 150.0);
@@ -170,9 +172,10 @@ fn every_loadout_flies_a_pass() {
     for weapon in [PassWeapon::Gun, PassWeapon::GroundMissile, PassWeapon::Bomb] {
         let p = begin(
             &state(250.0),
+            &wing_limits(),
             v3(1000.0, 0.0, 0.0),
             weapon,
-            &jet_air(),
+            &wing(),
             &mut Rng::new(3),
         );
         assert_eq!(p.weapon, weapon);
@@ -181,8 +184,8 @@ fn every_loadout_flies_a_pass() {
 
 #[test]
 fn the_gun_fires_only_nose_on_a_legal_target_in_range() {
-    let battle = crate::common::jet::JetField::new(3000.0)
-        .jet("test_jet", [300.0, 1500.0], 0.0)
+    let battle = crate::common::air_field::AirField::new(3000.0)
+        .aircraft("test_jet", [300.0, 1500.0], 0.0)
         .battle();
     let unit = battle.unit(contract::ids::UnitId(0)).unwrap();
     assert!(sim::weapons::nose_on(

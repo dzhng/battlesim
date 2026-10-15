@@ -11,7 +11,7 @@ use super::pass::PassPlan;
 pub type Knowledge = SideKnowledge;
 
 /// A jet's flight task for this tick. This is the only result that turns an
-/// order or a reaction into flight in [`super::step_jet`].
+/// order or a reaction into flight in [`super::step_fixed_wing`].
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AirTask {
     Hold,

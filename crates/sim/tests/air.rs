@@ -74,21 +74,12 @@ fn a_helicopter_enters_the_battle_at_cruise_height() {
 }
 
 #[test]
-fn air_rules_refuse_a_jet_floor_above_its_ceilings() {
+fn air_rules_refuse_a_high_air_floor_above_the_fixed_wing_ceilings() {
     let mut fixture = fixture();
-    fixture["air"]["jet"] = json!({
-        "cruise_agl_m": 250,
-        "floor_agl_m": 250,
-        "strafe_ceiling_m": 130,
-        "bomb_ceiling_m": 200,
-        "dogfight_band_agl_m": [150, 350],
-        "dogfight_break_m": 1200,
-        "afterburner_ramp_s": 2,
-        "edge_margin_m": 300
-    });
+    fixture["air"]["high_air"]["floor_agl_m"] = json!(250);
     let error = serde_json::from_value::<contract::scenario::Rules>(fixture)
-        .expect_err("a jet floor above a ceiling must be rejected");
-    assert!(error.to_string().contains("jet floor"), "{error}");
+        .expect_err("a high-air floor above a fixed-wing ceiling must be rejected");
+    assert!(error.to_string().contains("high-air floor"), "{error}");
 }
 
 #[test]

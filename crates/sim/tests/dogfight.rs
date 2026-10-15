@@ -2,7 +2,7 @@ use contract::ids::UnitId;
 use contract::observation::ObservedTargetId;
 use serde_json::json;
 use sim::air::dogfight::{breaks, intent};
-use sim::air::{Intent, JetState};
+use sim::air::{FixedWingState, Intent};
 use sim::knowledge::Track;
 use sim::math::{v2, v3};
 
@@ -17,8 +17,8 @@ fn track(position: [f64; 3], velocity: [f64; 2], yaw: f64) -> Track {
     }
 }
 
-fn own(position: [f64; 3], heading: f64) -> JetState {
-    JetState {
+fn own(position: [f64; 3], heading: f64) -> FixedWingState {
+    FixedWingState {
         pos: v3(position[0], position[1], position[2]),
         heading,
         speed_mps: 200.0,
@@ -27,8 +27,8 @@ fn own(position: [f64; 3], heading: f64) -> JetState {
     }
 }
 
-fn air() -> contract::scenario::JetAir {
-    serde_json::from_value(sim::fixtures::test_game()["air"]["jet"].clone()).unwrap()
+fn air() -> contract::scenario::FixedWingFlight {
+    serde_json::from_value(sim::fixtures::test_game()["air"]["fixed_wing"].clone()).unwrap()
 }
 
 fn air_battle(units: serde_json::Value) -> sim::battle::Battle {

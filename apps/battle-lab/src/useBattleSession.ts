@@ -98,6 +98,7 @@ import {
   aircraftOrderReadouts,
   orderedGhost,
   ownSoldiers,
+  type AirLayers,
   type UnitGhost,
 } from "./unitGhosts";
 
@@ -163,11 +164,8 @@ export interface ScenarioRules extends PanelRules, RulerRules {
   /** The sensor numbers fog of war shares with the simulation (the
    *  presentation reads them: `presentation::fog::sight::Sensors`). */
   sensors: object;
-  /** Cruise heights for the rotor and jet altitude layers. */
-  air: {
-    rotor: { cruise_agl_m: number };
-    jet: { cruise_agl_m: number };
-  };
+  /** Each air layer's cruise height. */
+  air: AirLayers;
 }
 
 export function useBattleSession({

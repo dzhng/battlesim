@@ -285,7 +285,7 @@ fn height_target(
         )
     } else {
         (
-            air.rotor.cruise_agl_m,
+            air.cruise_agl_m(flight.layer),
             air.rotor.clearance_m,
             air.rotor.ceiling_agl_m,
         )

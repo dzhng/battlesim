@@ -2,12 +2,12 @@
 //! one ground aim point; weapon release remains owned by the flight solver.
 
 use contract::random::Rng;
-use contract::scenario::JetAir;
+use contract::scenario::FixedWingFlight;
 
 use crate::flight::Release;
 use crate::math::{v2, V2, V3};
 
-use super::jet::JetState;
+use super::fixed_wing::{FixedWingLimits, FixedWingState};
 use super::steer::Intent;
 use crate::weapons::Target;
 
@@ -56,7 +56,7 @@ pub fn choose_weapon(weapons: &[PassWeapon]) -> Option<PassWeapon> {
         .or_else(|| weapons.iter().copied().find(|w| *w == PassWeapon::Gun))
 }
 
-fn ceiling(weapon: PassWeapon, air: &JetAir) -> f64 {
+fn ceiling(weapon: PassWeapon, air: &FixedWingFlight) -> f64 {
     match weapon {
         PassWeapon::Bomb => air.bomb_ceiling_m,
         PassWeapon::Gun | PassWeapon::GroundMissile => air.strafe_ceiling_m,
@@ -66,18 +66,20 @@ fn ceiling(weapon: PassWeapon, air: &JetAir) -> f64 {
 /// Start a run. Existing altitude is retained when already under its weapon's
 /// ceiling; otherwise a deterministic height in the permitted band is used.
 pub fn begin(
-    state: &JetState,
+    state: &FixedWingState,
+    limits: &FixedWingLimits,
     aim: V3,
     weapon: PassWeapon,
-    air: &JetAir,
+    air: &FixedWingFlight,
     rng: &mut Rng,
 ) -> PassPlan {
     let max = ceiling(weapon, air);
+    let floor = limits.floor_agl_m;
     let current = state.pos.z;
     let agl = if current <= max {
-        current.max(air.floor_agl_m)
+        current.max(floor)
     } else {
-        air.floor_agl_m + rng.unit() * (max - air.floor_agl_m)
+        floor + rng.unit() * (max - floor)
     };
     let heading = libm::atan2(aim.y - state.pos.y, aim.x - state.pos.x);
     PassPlan {
@@ -87,7 +89,7 @@ pub fn begin(
         weapon,
         agl,
         heading,
-        cruise_agl: air.cruise_agl_m,
+        cruise_agl: limits.cruise_agl_m,
         released: false,
     }
 }
@@ -103,7 +105,7 @@ fn line(plan: &PassPlan, aim: V3, agl: f64) -> Intent {
 /// Advance the run and return the steering intent plus a one-tick release cue.
 pub fn advance(
     plan: &mut PassPlan,
-    state: &JetState,
+    state: &FixedWingState,
     aim: V3,
     release: &Release,
 ) -> (Intent, Option<ReleaseCue>) {
