@@ -504,9 +504,6 @@ pub(crate) fn advance(
             continue;
         }
         if units[i].airborne() {
-            if units[i].air.is_some_and(|air| air.traversing) {
-                continue;
-            }
             // The flight model picks the flight law, never the layer.
             if units[i].fixed_wing() {
                 crate::air::step_fixed_wing(ctx, &mut units[i]);

@@ -124,10 +124,10 @@ export function ArmyDeck({
                 <button
                   type="button"
                   key={unit.id}
-                  className={`hud-army-card${unit.traversing ? " hud-army-traversing" : ""}`}
+                  className="hud-army-card"
                   style={cardOffset(index)}
                   data-unit={unit.id}
-                  aria-label={`${name}${unit.traversing ? " — Traversing to ingress" : ""}`}
+                  aria-label={name}
                   aria-pressed={selected.includes(unit.id)}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
                   onClick={(event) =>

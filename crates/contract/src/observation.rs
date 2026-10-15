@@ -516,9 +516,6 @@ pub struct OwnUnit {
     /// Whether the aircraft's persistent afterburner toggle is enabled.
     #[serde(default)]
     pub afterburner: bool,
-    /// Paid aircraft still traversing to its map-edge ingress point.
-    #[serde(default)]
-    pub traversing: bool,
     /// Own aircraft is currently in a close air engagement. The opponent's
     /// authority id never crosses the observation boundary.
     #[serde(default)]

@@ -49,7 +49,7 @@ export function aircraftOrderReadouts(
   return own.flatMap((unit) => {
     if (!revealed.has(unit.id) || !isHighAir(unit.kind)) return [];
     const ghost = orderedGhost(unit, GHOST_OWN);
-    if (!ghost && !unit.traversing) return [];
+    if (!ghost) return [];
     const [x, y] = ghost?.at ?? unit.position;
     return [{ unit, position: [x, y, ground(x, y) + altitude(unit.kind)] }];
   });

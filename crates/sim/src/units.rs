@@ -321,15 +321,10 @@ pub struct AirState {
     /// Its arrival at the goal it flies to last, once it has turned onto
     /// the leg that ends there.
     pub settle: Option<Settle>,
-    /// Remaining endurance in seconds. It starts when an aircraft reaches
-    /// the map edge; off-map traversal never consumes fuel.
+    /// Remaining endurance in seconds.
     pub fuel_s: f64,
     /// Explicit persistent afterburner toggle, consumed by the air mover.
     pub afterburner: bool,
-    /// Paid aircraft still traversing from off-map to its ingress edge.
-    pub traversing: bool,
-    /// Ticks until the aircraft physically enters the map.
-    pub ingress_remaining: u64,
     /// Close air engagement target while this aircraft is in a dogfight.
     pub dogfight_target: Option<UnitId>,
     /// Remaining automatic flare charges and the next reload tick.
@@ -657,8 +652,6 @@ impl Unit {
             };
             d.f64(a.fuel_s)
                 .u64(a.afterburner as u64)
-                .u64(a.traversing as u64)
-                .u64(a.ingress_remaining)
                 .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)))
                 .u64(a.flare_charges as u64)
                 .u64(a.flare_ready_tick);

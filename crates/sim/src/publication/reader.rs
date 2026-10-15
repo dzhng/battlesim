@@ -52,7 +52,7 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     fog: Arc<Fog>, ground_patch: GroundPatch });
 view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
-    fuel_s: Option<f64>, afterburner: bool, traversing: bool, in_dogfight: bool,
+    fuel_s: Option<f64>, afterburner: bool, in_dogfight: bool,
     flares: Option<Protection>,
     blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
@@ -855,7 +855,6 @@ impl Reader {
             withdrawing: v!(f, "withdrawing") == 1.0,
             fuel_s: present(v!(f, "fuelSeconds")),
             afterburner: v!(f, "afterburner") == 1.0,
-            traversing: v!(f, "traversing") == 1.0,
             in_dogfight: v!(f, "inDogfight") == 1.0,
             flares: (v!(f, "flareCharges") >= 0.0).then(|| Protection {
                 charges: v!(f, "flareCharges"),

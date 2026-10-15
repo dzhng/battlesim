@@ -635,32 +635,9 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 }
 
 impl Battle {
-    fn advance_air_ingress(&mut self) {
-        for unit in &mut self.units {
-            let fuel_s = unit
-                .unit_type(&self.rules)
-                .capabilities
-                .air
-                .as_ref()
-                .map_or(f64::INFINITY, |a| a.fuel_capacity_s);
-            let Some(air) = unit.air.as_mut().filter(|air| air.traversing) else {
-                continue;
-            };
-            air.ingress_remaining = air.ingress_remaining.saturating_sub(1);
-            if air.ingress_remaining == 0 {
-                air.traversing = false;
-                let ground = self
-                    .world
-                    .height_at(unit.position.x, unit.position.y)
-                    .unwrap_or(0.0);
-                air.fuel_s = fuel_s;
-                unit.position.z = ground
-                    + self
-                        .rules
-                        .air
-                        .cruise_agl_m(&unit.unit_type(&self.rules).mobility);
-            }
-        }
+    /// A dogfight ends when either aircraft can no longer fight or they
+    /// draw apart past the break range.
+    fn break_dogfights(&mut self) {
         for i in 0..self.units.len() {
             let Some(target) = self.units[i]
                 .air
@@ -696,11 +673,7 @@ impl Battle {
             if !unit.alive() || unit.retired || unit.withdrawing {
                 continue;
             }
-            let Some(air_state) = unit
-                .air
-                .as_ref()
-                .filter(|air| !air.traversing || unit.fixed_wing())
-            else {
+            let Some(air_state) = unit.air.as_ref() else {
                 continue;
             };
             let Some(capability) = unit.unit_type(&self.rules).capabilities.air.as_ref() else {
@@ -1952,7 +1925,7 @@ impl Battle {
         if let Some(skirmish) = &mut self.skirmish {
             skirmish.advance(self.tick, self.rules.tick_hz);
         }
-        self.advance_air_ingress();
+        self.break_dogfights();
         self.dispatch_reinforcements();
         completed(TickPhase::Orders);
         garrison::advance(
@@ -4469,7 +4442,6 @@ impl Battle {
                         withdrawing: u.withdrawing,
                         fuel_s: u.air.as_ref().map(|air| air.fuel_s),
                         afterburner: u.air.as_ref().is_some_and(|air| air.afterburner),
-                        traversing: u.air.as_ref().is_some_and(|air| air.traversing),
                         in_dogfight: u
                             .air
                             .as_ref()

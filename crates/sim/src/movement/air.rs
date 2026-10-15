@@ -47,9 +47,6 @@ pub(super) fn step_aircraft(
         unreachable!("only aircraft fly");
     };
     let side = units[i].side.index();
-    if units[i].air.is_some_and(|air| air.traversing) {
-        return;
-    }
     plan(ctx, &mut units[i], &mut sides[side]);
     let drift = separation(ctx, units, i);
     let unit = &mut units[i];

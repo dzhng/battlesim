@@ -107,7 +107,6 @@ const STATE_ICONS = {
   // A flame with its hot core, full height: a lone small drop read as an "o".
   afterburner:
     '<path d="M12 2c4 5 6 8 6 12a6 6 0 0 1-12 0c0-4 2-7 6-12z"/><path d="M12 12c1.5 2 2.5 3.5 2.5 5a2.5 2.5 0 0 1-5 0c0-1.5 1-3 2.5-5z"/>',
-  traversing: '<path d="M4 12h14M13 7l5 5-5 5"/><path d="M4 5v14"/>',
   // A fighter on an enemy's tail, as a gun camera sees it: the near plane
   // large, the one it chases small, ahead and clear of its nose, each a
   // solid plan view with its wings. At panel size two planes of one size
