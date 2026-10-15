@@ -1,6 +1,6 @@
 # Air-war flight
 
-**Status:** slices 00–14, 17 and 18 landed; 15 landed (pass 3, branch `awf/enable`: all 19 planned jets enabled, the Su-30SM2 is the Eastern SEAD jet), except that every unit's art now loads 527.1 MiB against the 512 MiB catalog-load limit, so `asset check` fails until the user picks a fix. Slice 16's three faction model passes (US, Europe, Eastern) are merged as source models, not yet baked. The info-card layout (high-air cards on top, uncrossed leaders) and the high-air beneath-shadow are merged. Running: the shared-materials pass (branch `awf/materials`; it ends with the one bake) and the high-air rename, slice 19 item 7 (branch `awf/high-air-rename`).
+**Status:** slices 00–18 and 20 landed, except slice 20's `test_jet` model (D43). Every row but the drones is enabled, the Gepard included. High air is its own screen plane (models above the lower cards, its own card layout), and cards hide near the screen edge. Credits are gold. Next: the `test_jet` model, then slice 19.
 **Updated:** 2026-10-15.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec`. Opus subagents write the code and do all 3D modelling and visual work; Codex (`codex exec`, `gpt-6.1-sol`, high) only takes short, non-visual tasks. You orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** merge `awf/flight-model` once D29c (dogfights only between two fixed-wing aircraft in the same layer) lands on it. Then do slice 20, then settle the catalog-load limit with the user (raise it, or trim the jets' art), then slice 19.
+- **Pickup:** build `test_jet`'s generic grey fighter (D43, slice 20), then slice 19 in order. Also on the closeout list: delete the dead helicopter-traversing code (logged in choices.md; it moves digests of battles with aircraft, so it is a named re-record); re-record the three capture files whose layout text was hand-patched; fix the air-roster lab parking jets off its field; pull every source and get a clean `asset check`.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Merging a worktree:** commit its work on its branch first, and check `git log` shows the merge brought commits in. Merging an uncommitted branch is an empty, silent no-op.
 - **Clean up merged worktrees:** after a branch merges, `git worktree remove` it and delete the branch. Each worktree carries its own multi-gigabyte Cargo `target/`, and leaving them filled the disk once.
