@@ -1,6 +1,6 @@
 # 20 — Aircraft arrival, per-unit height, `test_jet` model
 
-**Delivers:** D38–D43 ([flight-model map](../flight-model-map.md)). Starts after `awf/flight-model` merges with D29d.
+**Delivers:** D38–D43 ([flight-model map](../flight-model-map.md)). Starts after `awf/flight-model` merges with D29c.
 
 ## Contract
 - **Catalog:** `mobility.air.arrival.delay_s: [min, max]` (optional) and `mobility.air.cruise_agl_m` (optional override), on any aircraft. The jet profile sets `arrival.delay_s: [15, 30]`; helicopter profiles set nothing.

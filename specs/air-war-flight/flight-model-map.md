@@ -26,7 +26,7 @@ The four-quadrant map from an explore-unknowns walk with the user. [Slice 20](sl
 ## Known unknowns: decision ledger
 | # | Decision | Why | Closed by |
 |---|---|---|---|
-| D29d | A dogfight forms only between **two fixed-wing aircraft in the same layer**. Any other target, including a rotor aircraft in the pursuer's own layer, gets attack passes: line up, dive, fire nose-on, pull out, come around. Rotors never dogfight. | A turning fight needs two turning aircraft. Against a hovering target the pursuer would only circle a point. | user (A) |
+| D29c | A dogfight forms only between **two fixed-wing aircraft in the same layer**. Any other target, including a rotor aircraft in the pursuer's own layer, gets attack passes: line up, dive, fire nose-on, pull out, come around. Rotors never dogfight. | A turning fight needs two turning aircraft. Against a hovering target the pursuer would only circle a point. | user (A) |
 | D37 | Drones are **low air, fixed-wing, at about 100 m**, with no building avoidance. Low-air fixed-wing stays refused at validation until the drone spec gives low air its fixed-wing floor and pass ceilings. | 100 m clears every roof. Today's pass and dogfight heights are high-air values. | user, territory |
 | D38 | **Arrival wait:** `mobility.air.arrival.delay_s: [min, max]`, optional on any aircraft. It is seeded from the battle. When absent, the aircraft appears at the edge at once. Jets keep 15–30 s through their profile; helicopters have none. | Data over constants, and usable by any aircraft. | user (A) |
 | D39 | **Every aircraft spawns at the back-edge point nearest its side's ground entry site** (the highway), already in flight at its cruise height, then flies to its destination. The approach drawing uses the same point. | Arrivals come from your own side's entry, not from wherever the destination happens to be. | user |
@@ -58,7 +58,7 @@ The four-quadrant map from an explore-unknowns walk with the user. [Slice 20](sl
 
    Any caller left asking by layer draws an overridden unit at the wrong height.
 4. **Sharp edge.** `air-roster` timed out (60 s) under overlapped verify and passes alone (50 s), and enabling the planned jets makes it heavier. Measure it after enabling; mark it `serial` if it's still over.
-5. **Merge order.** The flight-model branch, with D29d applied, merges before slice 20 starts.
+5. **Merge order.** The flight-model branch, with D29c applied, merges before slice 20 starts.
 
 ## Confirm before coding
 - The skirmish AI's purchase logic doesn't assume purchases spawn in order. Check `crates/sim/src/skirmish_ai`.
