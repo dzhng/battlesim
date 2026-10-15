@@ -1,9 +1,11 @@
 // Layered air defence (slice 03), from red's side. Helicopters (LowAir):
 // the medium Buk and the short gun engage them, the long S-300, whose rows
-// target only HighAir, never fires. A jet (HighAir): all three tiers fire,
-// and the short gun the tower hides from it never does, for want of its
-// own line of sight. The simulation's test behind this:
-//   crates/sim/tests/air.rs::air_defence_tiers_follow_the_target_layer_and_need_their_own_sight
+// target only HighAir, never fires. A jet (HighAir): the short gun, the Buk
+// and the S-300 all fire. The short gun the tower hides from it is a
+// ballistic gun, direct fire like any other: it never holds for want of its
+// own line to an aircraft (D52). That a guided missile does hold is the
+// simulation's to show. The simulation's test behind this:
+//   crates/sim/tests/air.rs::air_defence_follows_the_target_layer_and_only_guided_fire_needs_its_own_sight
 //
 // Not shown here, held by the simulation's tests instead: interception of an
 // incoming missile (crates/sim/tests/distances_3d.rs::an_interceptor_engages_an_incoming_missile_at_any_height),
@@ -70,8 +72,8 @@ export async function run(ctx) {
     ctx.check(`jet: the ${kind} fires at it`, jet(kind).shots > 0, JSON.stringify(jet(kind)));
   const hidden = jet(SHORT, 1);
   ctx.check(
-    "jet: the short gun behind the tower never fires, lacking its own sight",
-    hidden.shots === 0 && hidden.reasons.includes("no_own_sight"),
+    "jet: the short gun behind the tower has no air-only sight rule",
+    !hidden.reasons.includes("no_own_sight"),
     JSON.stringify(hidden),
   );
 }
