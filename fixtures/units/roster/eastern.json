@@ -3297,6 +3297,7 @@
       ],
       "appearance": "eastern_type_15_ztq_15_light_tank",
       "sensors": {
+        "high_air_m": 0,
         "on": "cannon"
       }
     },

@@ -73,7 +73,8 @@
     "hearing_shot_m": 2000,
     "sound_bucket_s": 0.5,
     "fog_target_height_m": 1.0,
-    "min_sight_gap_m": 0.5
+    "min_sight_gap_m": 0.5,
+    "unaided_high_air_m": { "on_foot": 600, "aircraft": 600, "ground_vehicle": 300 }
   },
   "penetration": {
     "partial_from": 0.6

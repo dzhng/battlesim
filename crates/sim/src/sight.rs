@@ -86,7 +86,9 @@ pub fn of_layer(unit: &Unit, rules: &Rules, layer: AltitudeLayer) -> Sight {
                 sensors.ground_m
             }
         }
-        AltitudeLayer::HighAir => unit.unit_type(rules).high_air_sight_m(),
+        AltitudeLayer::HighAir => unit
+            .unit_type(rules)
+            .high_air_sight_m(&rules.sensors.unaided_high_air_m),
     };
     Sight {
         forward: unit.sight_forward,

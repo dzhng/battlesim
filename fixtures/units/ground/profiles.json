@@ -356,6 +356,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "high_air_m": 0,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -371,6 +372,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 450,
+        "high_air_m": 0,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -386,6 +388,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 500,
+        "high_air_m": 0,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -401,6 +404,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 550,
+        "high_air_m": 0,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -416,6 +420,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 500,
+        "high_air_m": 0,
         "sight_shape": {
           "front": 1,
           "side": 0.5,
@@ -431,6 +436,7 @@
       "abstract": true,
       "sensors": {
         "ground_m": 600,
+        "high_air_m": 0,
         "sight_shape": {
           "front": 1,
           "side": 0.5,

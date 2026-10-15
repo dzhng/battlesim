@@ -1706,6 +1706,7 @@
       ],
       "appearance": "us_m10_booker",
       "sensors": {
+        "high_air_m": 0,
         "on": "cannon"
       }
     },

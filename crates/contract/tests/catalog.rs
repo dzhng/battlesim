@@ -1,6 +1,7 @@
 //! The catalog's resolution: inheritance, parts, prop types, and the named
 //! errors a broken catalog fails with.
 use contract::catalog::{resolve, Body, CatalogError, Mobility};
+use contract::scenario::UnaidedHighAirSight;
 use serde_json::{json, Value};
 
 fn roles() -> Value {
@@ -150,7 +151,7 @@ fn aircraft_capability_carries_air_ranges_flares_afterburner_radar_and_refund() 
     }});
     let catalog = resolve(&units(json!({ "aircraft": aircraft }))).unwrap();
     let t = catalog.by_id("aircraft");
-    assert_eq!(t.sensors.high_air_m, 3000.0);
+    assert_eq!(t.sensors.high_air_m, Some(3000.0));
     assert_eq!(
         t.capabilities
             .air
@@ -966,6 +967,11 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
 
 #[test]
 fn an_emitting_radar_is_the_units_high_air_sight() {
+    let unaided = UnaidedHighAirSight {
+        on_foot: 600.0,
+        aircraft: 500.0,
+        ground_vehicle: 300.0,
+    };
     let mut site = base_tank();
     site["abstract"] = json!(false);
     site["capabilities"] = json!({ "radar": { "emits": true, "detection_m": 3200 } });
@@ -974,12 +980,12 @@ fn an_emitting_radar_is_the_units_high_air_sight() {
     silent["sensors"]["high_air_m"] = json!(900);
     let catalog = resolve(&units(json!({ "site": site.clone(), "silent": silent }))).unwrap();
     assert_eq!(
-        catalog.by_id("site").high_air_sight_m(),
+        catalog.by_id("site").high_air_sight_m(&unaided),
         3200.0,
         "the radar's reach"
     );
     assert_eq!(
-        catalog.by_id("silent").high_air_sight_m(),
+        catalog.by_id("silent").high_air_sight_m(&unaided),
         900.0,
         "its own optics"
     );
@@ -990,4 +996,58 @@ fn an_emitting_radar_is_the_units_high_air_sight() {
         .unwrap_err()
         .to_string();
     assert!(error.contains("high_air_m"), "{error}");
+}
+
+#[test]
+fn without_radar_or_its_own_sight_a_unit_sees_high_air_by_its_body() {
+    // Soldiers on foot and aircrew look up; a ground vehicle's crew sees
+    // little overhead. A unit that authors its own reach keeps it, and an
+    // authored 0 is blind.
+    let unaided = UnaidedHighAirSight {
+        on_foot: 600.0,
+        aircraft: 500.0,
+        ground_vehicle: 300.0,
+    };
+    let mut hull = base_tank();
+    hull["abstract"] = json!(false);
+    let mut closed_up = hull.clone();
+    closed_up["sensors"]["high_air_m"] = json!(0);
+    let mut lookout = hull.clone();
+    lookout["sensors"]["high_air_m"] = json!(1200);
+    let squad = json!({
+        "name": "Team", "description": "", "faction": "test", "family": "infantry",
+        "roles": ["infantry"], "cost": 100,
+        "body": { "squad": { "slots": ["rifleman"] } },
+        "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
+        "sensors": { "ground_m": 650, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
+        "sound": { "profile": "infantry", "loudness_m": 200 }
+    });
+    let mut rotor = hull.clone();
+    rotor["mobility"] = json!({ "air": {
+        "cruise_kmh": 220, "turn_deg_s": 90, "climb_mps": 6, "flight": "rotor"
+    } });
+    rotor["sensors"].as_object_mut().unwrap().remove("on");
+    let mut docs = units(json!({
+        "hull": hull, "closed_up": closed_up, "lookout": lookout, "squad": squad,
+        "rotor": rotor,
+    }));
+    docs.push(json!({ "soldiers": {
+        "rifleman": { "name": "Rifleman", "description": "", "hp": 100, "appearance": ["r"],
+            "mounts": [{ "id": "rifles", "name": "Rifle", "weapons": ["rifle"], "squad": true }] },
+    } }));
+    let catalog = resolve(&docs).unwrap();
+    let sight = |id: &str| catalog.by_id(id).high_air_sight_m(&unaided);
+    assert_eq!(
+        sight("squad"),
+        600.0,
+        "a squad on foot, not its ground sight"
+    );
+    assert_eq!(sight("hull"), 300.0, "a ground crew, not its ground sight");
+    assert_eq!(sight("rotor"), 500.0, "an aircraft's crew");
+    assert_eq!(
+        sight("closed_up"),
+        0.0,
+        "an authored 0 is blind to high air"
+    );
+    assert_eq!(sight("lookout"), 1200.0, "an authored reach is kept");
 }

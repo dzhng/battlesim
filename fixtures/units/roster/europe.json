@@ -997,6 +997,7 @@
       ],
       "appearance": "europe_cv90120_light_tank",
       "sensors": {
+        "high_air_m": 0,
         "on": "cannon"
       }
     },
