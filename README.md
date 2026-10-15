@@ -57,6 +57,14 @@ The rules then follow from those properties alone:
 
 So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is an entry in the prop catalog (`fixtures/props/`), not new code.
 
+Combat follows the same idea. A behaviour belongs to the thing that physically has it, never to a unit's role:
+
+- **A weapon owns what it can engage.** For each altitude layer it reaches, it lists a range and the target classes it engages (`infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`, `missile`). Intercepting a missile is just targeting one, fired from a layer the weapon lists `missile` in.
+- **A weapon's mechanisms are opt-in flags that compose.** Guidance needs the operator's line of sight to the target. A seeker acquires inside its cone. `requires_clear_launch_path` holds fire when the launcher's own corridor is blocked. `interceptable` lets its rounds be shot down.
+- **A unit owns its body and senses.** That is its hull, its push and weight classes, its sight per layer, its radar (emitting makes it findable, and its reach is how far it sees aircraft), its altitude layer and its flight model.
+
+So there is no "air defence unit" or "anti-tank unit" in the rules. An anti-aircraft gun is a weapon whose air layers list aircraft, and the vehicle carrying it is an air-defence unit only in the roster's grouping. Roles and families group the roster and pick symbols and voices; they never decide behaviour.
+
 A catalog row describes a body, while its placement supplies geometry ownership. Garrison seats and building-scaled integrity require a placed building aggregate; ordinary props, generated forest bodies, bridge decks and vehicle wrecks have no such owner. This constraint follows the body's destruction chain. Aggregate bodies remain immovable until the simulation supports moving all their parts together.
 
 It's a game, not a physics simulation. The target is **Hollywood realism**: the battle should look and behave the way a war film makes it look, not the way a ballistics table says. Keep what a viewer expects, even exaggerated, like cover blown apart, shells felling trees and sparks off armour. Drop what looks silly on screen, even when it's physically defensible, like a squad's stray rifle fire mowing down a forest. Sustained, aimed fire may fell one tree; incidental fire shouldn't clear woods. Use first principles where they stay simple, and hard-code a clear game rule where a principled version would be complex. Today's hard-coded rules:
