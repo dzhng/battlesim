@@ -50,10 +50,10 @@ pub struct WeaponDefinition {
     pub ammo: AmmoCapacity,
     pub penetration: f64,
     /// How gently its damage fades as its penetration falls short of the
-    /// armour: the share of the armour it must reach to do any damage. Absent
-    /// is the rules' `penetration.partial_from`. A shell's blast and
-    /// fragments still shake a hull far beyond what it can pierce, so HE
-    /// fades gently where a kinetic or shaped-charge round cuts off.
+    /// armour: the share of the armour it must reach to do any damage. A row
+    /// with a blast authors its own (its blast and fragments shake a hull far
+    /// beyond what it can pierce); one without may leave it to the rules'
+    /// `penetration.partial_from`, where a kinetic round cuts off.
     #[serde(default)]
     pub partial_from: Option<f64>,
     pub damage: f64,
@@ -384,6 +384,11 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     } else if def.ballistics.speed_mps <= 0.0 || def.ballistics.range_m <= 0.0 {
                         return Err(serde::de::Error::custom(
                             "a powered row needs positive range_m and speed_mps",
+                        ));
+                    }
+                    if def.blast_radius_m > 0.0 && def.partial_from.is_none() {
+                        return Err(serde::de::Error::custom(
+                            "a row with a blast authors its own partial_from",
                         ));
                     }
                     if def.partial_from.is_some_and(|p| !(0.0..1.0).contains(&p)) {

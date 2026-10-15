@@ -305,3 +305,26 @@ fn a_removed_or_unknown_weapon_field_is_refused_by_name() {
         );
     }
 }
+
+/// How gently an explosive round's damage fades short of the armour is its
+/// own row's to say: a row with a blast must author `partial_from`, while a
+/// row without one may leave it to the rules.
+#[test]
+fn an_explosive_row_states_its_own_partial_from() {
+    let targets = json!({ "ground": { "classes": ["infantry", "vehicle"] } });
+    let load = |blast: f64, partial_from: Option<f64>| {
+        let mut rows = test_rows(targets.clone());
+        rows["test_gun"]["blast_radius_m"] = json!(blast);
+        if let Some(p) = partial_from {
+            rows["test_gun"]["partial_from"] = json!(p);
+        }
+        contract::weapons::resolve_weapons(rows).map(|rows| rows["test_gun"].partial_from)
+    };
+    let error = load(3.0, None).unwrap_err().to_string();
+    assert!(
+        error.contains("weapons.test_gun") && error.contains("partial_from"),
+        "{error}"
+    );
+    assert_eq!(load(3.0, Some(0.08)).unwrap(), Some(0.08));
+    assert_eq!(load(0.0, None).unwrap(), None);
+}

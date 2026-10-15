@@ -573,6 +573,9 @@ fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commande
     let mut setup =
         common::scenario_with(&map(extra_props), Value::Array(units), events, json!([]));
     setup.rules.buildings.capacity_soldiers = 16;
+    // The occupants' grenades cut off short of the tank's armour: the tank
+    // shells them for the whole run.
+    setup.rules.weapons.get_mut("grenade").unwrap().partial_from = Some(0.6);
     let mut rows = serde_json::to_value(&setup.rules).unwrap();
     sim::fixtures::patch_catalog(
         &mut rows,

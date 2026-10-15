@@ -807,15 +807,22 @@ fn an_explicit_attack_focuses_compatible_weapons_and_frees_the_rest() {
 
 #[test]
 fn the_default_gun_fires_at_what_it_cannot_hurt_but_specialists_do_not() {
-    let mut b = battle(
-        json!([]),
-        json!([
+    let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
+    let mut rules = rules();
+    // A grenade whose damage cuts off short of the tank's armour.
+    rules["weapons"]["grenade"]["partial_from"] = json!(0.6);
+    let setup = serde_json::from_value(json!({
+        "map": map,
+        "rules": rules,
+        "units": [
             { "side": "blue", "kind": "test_rifle", "position": [100, 300] },
             { "side": "red", "kind": "test_tank", "position": [300, 300] },
-        ]),
-        json!([]),
-        json!([]),
-    );
+        ],
+        "events": [],
+        "scripts": [],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 5);
     let shots = run(&mut b, 120);
     assert!(
         !shots_by(&shots, 0, "rifle").is_empty(),
@@ -891,8 +898,14 @@ fn an_area_then_a_tank() -> Battle {
     );
     // This selection experiment needs a lob steep enough to clear the shed's
     // 6 m roof and drop behind it, independent of tuning.
-    let grenade = &mut setup.rules.weapons.get_mut("grenade").unwrap().ballistics;
-    (grenade.speed_mps, grenade.gravity_scale) = (16.0, 0.09);
+    let grenade = setup.rules.weapons.get_mut("grenade").unwrap();
+    (
+        grenade.ballistics.speed_mps,
+        grenade.ballistics.gravity_scale,
+    ) = (16.0, 0.09);
+    // Its damage cuts off short of the tank's armour: the tank is what it
+    // cannot hurt.
+    grenade.partial_from = Some(0.6);
     Battle::new(&setup, 5)
 }
 

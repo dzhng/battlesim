@@ -449,7 +449,12 @@ fn near_misses() -> Run {
             { "side": "blue", "kind": "test_tank", "position": [100, 300] },
             { "side": "red", "kind": "test_rifle", "position": [200, 303], "engagement": "return_fire_only" },
         ]),
-        brief,
+        |rules| {
+            brief(rules);
+            // Its grenades cut off short of the tank's armour: the squad only
+            // takes the near misses.
+            rules["weapons"]["grenade"]["partial_from"] = json!(0.6);
+        },
     );
     let ground = Order::Attack {
         units: vec![UnitId(0)],

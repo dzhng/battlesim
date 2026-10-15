@@ -1323,7 +1323,9 @@ fn a_top_attack_missile_kills_through_the_roof_a_tank_whose_front_it_cannot_pier
     // kills; the same row flown at the front does not get through.
     let hull = common::hull("test_tank");
     let lethal = |r: &mut Value| {
-        let stops = r["penetration"]["partial_from"].as_f64().unwrap() * hull.armor.front;
+        // A shaped charge whose damage cuts off at 60 % of the armour.
+        r["weapons"]["atgm"]["partial_from"] = json!(0.6);
+        let stops = 0.6 * hull.armor.front;
         r["weapons"]["atgm"]["penetration"] = json!((hull.armor.roof + stops) / 2.0);
         r["weapons"]["atgm"]["damage"] = json!(hull.hp);
         top_attack(r);

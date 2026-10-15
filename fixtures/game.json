@@ -125,6 +125,7 @@
       "reload_s": 5,
       "ammo": 8,
       "penetration": 20,
+      "partial_from": 0.08,
       "damage": 20,
       "scatter_mrad": 30,
       "near_miss_suppression": 0.15,
@@ -212,6 +213,7 @@
       "reload_s": 4,
       "ammo": 4,
       "penetration": 300,
+      "partial_from": 0.08,
       "damage": 45,
       "scatter_mrad": 0.5,
       "turn_deg_s": 60,
@@ -329,6 +331,7 @@
       "gravity_scale": 0.5,
       "damage": 100,
       "penetration": 65,
+      "partial_from": 0.08,
       "near_miss_suppression": 0.1,
       "suppression_radius_m": 6,
       "blast_radius_m": 2,
@@ -354,6 +357,7 @@
     "ground_tank_he": {
       "extends": "tank_he",
       "name": "HE Shell",
+      "partial_from": 0.08,
       "range_m": 850,
       "damage": 80
     },
@@ -367,6 +371,7 @@
     "advanced_tank_he": {
       "extends": "tank_he",
       "name": "HE Shell",
+      "partial_from": 0.08,
       "range_m": 900,
       "damage": 80
     },
@@ -380,6 +385,7 @@
     "light_tank_he": {
       "extends": "tank_he",
       "name": "HE Shell",
+      "partial_from": 0.08,
       "range_m": 750,
       "damage": 65
     },
@@ -387,6 +393,7 @@
       "interceptable": true,
       "extends": "atgm",
       "name": "TOW 2A",
+      "partial_from": 0.08,
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required."
     },
     "kornet": {
@@ -397,6 +404,7 @@
       "range_m": 950,
       "damage": 55,
       "penetration": 320,
+      "partial_from": 0.08,
       "ammo": 4,
       "reload_s": 4.5
     },
@@ -408,6 +416,7 @@
       "range_m": 900,
       "damage": 55,
       "penetration": 320,
+      "partial_from": 0.08,
       "ammo": 4,
       "reload_s": 4.5
     },
@@ -420,6 +429,7 @@
       "min_range_m": 100,
       "damage": 55,
       "penetration": 200,
+      "partial_from": 0.08,
       "turn_deg_s": 360,
       "top_attack": { "loft_m": 60, "dive_deg": 40 }
     },
@@ -439,6 +449,7 @@
       "reload_s": 4,
       "ammo": 3,
       "penetration": 300,
+      "partial_from": 0.08,
       "damage": 260,
       "scatter_mrad": 0.5,
       "turn_deg_s": 180,
@@ -471,6 +482,7 @@
             "gravity_scale": 0.5,
             "damage": 100,
             "penetration": 65,
+            "partial_from": 0.08,
             "near_miss_suppression": 0.1,
             "suppression_radius_m": 6,
             "blast_radius_m": 2,
@@ -506,6 +518,7 @@
             "reload_s": 4,
             "ammo": 8,
             "penetration": 300,
+            "partial_from": 0.08,
             "damage": 120,
             "scatter_mrad": 0.5,
             "turn_deg_s": 180,
@@ -537,6 +550,7 @@
             "reload_s": 9,
             "ammo": 6,
             "penetration": 300,
+            "partial_from": 0.08,
             "damage": 260,
             "scatter_mrad": 0.5,
             "turn_deg_s": 180,
@@ -573,6 +587,7 @@
             "gravity_scale": 0.5,
             "damage": 100,
             "penetration": 65,
+            "partial_from": 0.08,
             "near_miss_suppression": 0.1,
             "suppression_radius_m": 6,
             "blast_radius_m": 2,
@@ -609,6 +624,7 @@
             "reload_s": 4,
             "ammo": 4,
             "penetration": 300,
+            "partial_from": 0.08,
             "damage": 150,
             "scatter_mrad": 0.5,
             "turn_deg_s": 180,
@@ -634,6 +650,7 @@
             "reload_s": 3,
             "ammo": 4,
             "penetration": 40,
+            "partial_from": 0.08,
             "damage": 140,
             "scatter_mrad": 4,
             "near_miss_suppression": 0.3,
@@ -654,6 +671,7 @@
             "reload_s": 4.5,
             "ammo": 3,
             "penetration": 20,
+            "partial_from": 0.08,
             "damage": 70,
             "scatter_mrad": 28,
             "near_miss_suppression": 0.45,
@@ -666,6 +684,7 @@
         "air_ground_missile": {
             "extends": "heli_atgm",
             "name": "Air ground missile",
+            "partial_from": 0.08,
             "description": "A fast guided anti-armour missile for ground attack.",
             "range_m": 2000,
             "top_speed_mps": 400,
@@ -689,6 +708,7 @@
             "reload_s": 4,
             "ammo": 4,
             "penetration": 300,
+            "partial_from": 0.08,
             "damage": 260,
             "scatter_mrad": 0.5,
             "turn_deg_s": 180,
@@ -705,15 +725,18 @@
         },
     "igla_s": {
       "extends": "stinger",
-      "name": "Igla-S"
+      "name": "Igla-S",
+      "partial_from": 0.08
     },
     "fn_6": {
       "extends": "stinger",
-      "name": "FN-6"
+      "name": "FN-6",
+      "partial_from": 0.08
     },
     "akeron_mp": {
       "extends": "javelin",
       "name": "Akeron MP",
+      "partial_from": 0.08,
       "range_m": 900
     },
     "bastion": {
@@ -724,12 +747,14 @@
       "range_m": 650,
       "damage": 55,
       "penetration": 320,
+      "partial_from": 0.08,
       "ammo": 4,
       "reload_s": 4.5
     },
     "heli_atgm": {
       "extends": "atgm",
       "name": "Air ATGM",
+      "partial_from": 0.08,
       "description": "A helicopter's anti-tank missile: fired and steered on the move.",
       "stationary": false,
       "guidance": "on_the_move",
@@ -752,6 +777,7 @@
       "magazine": { "rounds": 8, "shot_interval_s": 0.12 },
       "ammo": 38,
       "penetration": 30,
+      "partial_from": 0.08,
       "damage": 60,
       "blast_radius_m": 7,
       "structural_damage": 80
@@ -762,6 +788,7 @@
       "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
       "damage": 50,
       "penetration": 25,
+      "partial_from": 0.08,
       "blast_radius_m": 9,
       "ammo": "unlimited",
       "structural_damage": 300
@@ -772,6 +799,7 @@
       "range_m": 650,
       "damage": 65,
       "penetration": 25,
+      "partial_from": 0.08,
       "ammo": 20,
       "scatter_mrad": 4
     },
@@ -785,6 +813,7 @@
       "range_m": 300,
       "damage": 45,
       "penetration": 160,
+      "partial_from": 0.08,
       "ammo": 4,
       "reload_s": 4,
       "aim_s": 2,
@@ -802,6 +831,7 @@
       "range_m": 400,
       "damage": 55,
       "penetration": 240,
+      "partial_from": 0.08,
       "ammo": 3,
       "reload_s": 4,
       "aim_s": 2,
@@ -826,6 +856,7 @@
       "reload_s": 7,
       "ammo": 24,
       "penetration": 45,
+      "partial_from": 0.08,
       "damage": 120,
       "scatter_mrad": 18,
       "suppression_radius_m": 18,
@@ -851,6 +882,7 @@
       "reload_s": 5,
       "ammo": 36,
       "penetration": 25,
+      "partial_from": 0.08,
       "damage": 90,
       "scatter_mrad": 26,
       "suppression_radius_m": 16,
@@ -880,6 +912,7 @@
       },
       "ammo": 18,
       "penetration": 30,
+      "partial_from": 0.08,
       "damage": 100,
       "scatter_mrad": 24,
       "suppression_radius_m": 20,
@@ -909,6 +942,7 @@
       },
       "ammo": 12,
       "penetration": 45,
+      "partial_from": 0.08,
       "damage": 150,
       "scatter_mrad": 22,
       "suppression_radius_m": 24,
@@ -934,6 +968,7 @@
       "reload_s": 15,
       "ammo": 6,
       "penetration": 80,
+      "partial_from": 0.08,
       "damage": 220,
       "scatter_mrad": 14,
       "suppression_radius_m": 26,
