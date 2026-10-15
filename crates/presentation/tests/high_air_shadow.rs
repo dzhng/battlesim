@@ -130,8 +130,14 @@ fn a_high_air_unit_lies_in_shadow_on_the_ground_beneath_it_and_casts_none() {
     };
     let (jet, jet_caster, jet_pass) = near(JET_AT);
     let (heli, heli_caster, heli_pass) = near(HELI_AT);
-    assert_eq!(jet_pass, HIGH_PASS, "the high-air jet draws in the high pass");
-    assert_eq!(heli_pass, VIEW_PASS, "the low-air helicopter draws with the world");
+    assert_eq!(
+        jet_pass, HIGH_PASS,
+        "the high-air jet draws in the high pass"
+    );
+    assert_eq!(
+        heli_pass, VIEW_PASS,
+        "the low-air helicopter draws with the world"
+    );
     assert!(jet[2] > heli[2], "the jet flies above the helicopter");
     assert_eq!(jet_caster, NONE, "the high-air jet casts no sun shadow");
     assert_ne!(

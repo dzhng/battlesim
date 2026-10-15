@@ -761,43 +761,49 @@ export function LabViewport({
         };
         syncSize();
         // The high-air models' canvas, drawn by the same frame: laid over this
-        // one between the card planes when the page has them
+        // one between the card planes once the page has them
         // (`HIGH_PLANE_ATTR`), so a high-air model rises above every ground
         // and low-air card. Without them, and for control plates (which a
         // second client's single picture is held to), the models draw with
         // the world.
-        const highCanvas = document.createElement("canvas");
-        const highContext = plates ? null : highCanvas.getContext("webgpu");
-        highContext?.configure({ device, format: info.format, alphaMode: "premultiplied" });
+        let high: { canvas: HTMLCanvasElement; context: GPUCanvasContext } | null = null;
         signal.addEventListener("abort", () => {
-          highContext?.unconfigure();
-          highCanvas.remove();
+          high?.context.unconfigure();
+          high?.canvas.remove();
         });
         let highAt = "";
         const highTarget = (): GPUTextureView | null => {
-          const host = highContext && document.querySelector(`[${HIGH_PLANE_ATTR}]`);
+          const host = plates ? null : document.querySelector(`[${HIGH_PLANE_ATTR}]`);
           if (!host) {
-            highCanvas.remove();
+            high?.canvas.remove();
             return null;
           }
-          if (highCanvas.parentElement !== host) host.appendChild(highCanvas);
-          if (highCanvas.width !== canvas.width || highCanvas.height !== canvas.height) {
-            highCanvas.width = canvas.width;
-            highCanvas.height = canvas.height;
+          if (!high) {
+            const made = document.createElement("canvas");
+            const context = made.getContext("webgpu");
+            if (!context) return null;
+            context.configure({ device: device!, format: info.format, alphaMode: "premultiplied" });
+            high = { canvas: made, context };
+          }
+          const { canvas: over, context: overContext } = high;
+          if (over.parentElement !== host) host.appendChild(over);
+          if (over.width !== canvas.width || over.height !== canvas.height) {
+            over.width = canvas.width;
+            over.height = canvas.height;
           }
           const r = canvas.getBoundingClientRect();
           const h = host.getBoundingClientRect();
           const at = `${r.left - h.left} ${r.top - h.top} ${r.width} ${r.height}`;
           if (at !== highAt) {
             highAt = at;
-            Object.assign(highCanvas.style, {
+            Object.assign(over.style, {
               left: `${r.left - h.left}px`,
               top: `${r.top - h.top}px`,
               width: `${r.width}px`,
               height: `${r.height}px`,
             });
           }
-          return highContext!.getCurrentTexture().createView();
+          return overContext.getCurrentTexture().createView();
         };
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
