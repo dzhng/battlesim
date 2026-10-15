@@ -282,10 +282,8 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
 }
 
 fn air_defence_battle(name: &str) -> Battle {
-    let map = sim::maps::load("air").unwrap().definition;
-    let encounter = sim::maps::encounter("air", name).unwrap();
     let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    Battle::new(&encounter.on(map, rules), 6)
+    Battle::new(&sim::maps::scenario("air", name, rules).unwrap(), 6)
 }
 
 fn shots(b: &Battle, id: UnitId) -> u32 {
@@ -422,10 +420,8 @@ fn an_air_defence_gun_engages_air_within_its_rows_reach_at_each_layer() {
 
 #[test]
 fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
-    let map = sim::maps::load("air").unwrap().definition;
-    let encounter = sim::maps::encounter("air", "ground").unwrap();
     let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    let mut b = Battle::new(&encounter.on(map, rules), 6);
+    let mut b = Battle::new(&sim::maps::scenario("air", "ground", rules).unwrap(), 6);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
         slot: None,

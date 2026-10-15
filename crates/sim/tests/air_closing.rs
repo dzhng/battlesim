@@ -21,12 +21,10 @@ const SEED: u64 = 6;
 /// The encounter as its lab runs it: the game's rules with the test set's
 /// catalog (the game's units plus the test units).
 fn battle() -> Battle {
-    let map = sim::maps::load("air").unwrap().definition;
-    let encounter = sim::maps::encounter("air", "closing").unwrap();
     let mut game = fixtures::game();
     game["catalog"] = serde_json::Value::Array(fixtures::catalog_documents(CatalogSet::Test));
     let rules: Rules = serde_json::from_value(game).unwrap();
-    Battle::new(&encounter.on(map, rules), SEED)
+    Battle::new(&sim::maps::scenario("air", "closing", rules).unwrap(), SEED)
 }
 
 /// What happened, by tick, in the beat's first 30 seconds.

@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use contract::maps::{
     resolve, MapAdmission, MapCategory, MapId, MapSources, ResolveCode, ResolveError, ResolvedMap,
 };
-use contract::scenario::EncounterDefinition;
+use contract::scenario::{EncounterDefinition, Rules, ScenarioDefinition};
 
 /// A catalogue of saved maps and the physical template libraries they pin.
 pub struct Catalogue {
@@ -92,6 +92,25 @@ impl Catalogue {
         })
     }
 
+    /// The map `id`'s saved encounter `name` laid on it under `rules`: the
+    /// scenario it plays, the encounter's overrides merged in
+    /// ([`EncounterDefinition::on`]), or the refusal naming the encounter.
+    pub fn scenario(
+        &self,
+        id: &str,
+        name: &str,
+        rules: Rules,
+    ) -> Result<ScenarioDefinition, ResolveError> {
+        let map = self.load(id)?.definition;
+        self.encounter(id, name)?
+            .on(map, rules)
+            .map_err(|message| ResolveError {
+                code: ResolveCode::InvalidEncounter,
+                location: format!("{id}/encounters/{name}.json"),
+                message,
+            })
+    }
+
     /// What the map `id` is for: its listing's (`meta.json`) `category`,
     /// refused when it is not a [`MapCategory`].
     pub fn category(&self, id: &str) -> Result<MapCategory, ResolveError> {
@@ -130,6 +149,12 @@ pub fn load_folder(folder: &Path) -> Result<ResolvedMap, ResolveError> {
 /// The shipped catalogue's encounter `name` of map `id`.
 pub fn encounter(id: &str, name: &str) -> Result<EncounterDefinition, ResolveError> {
     Catalogue::shipped().encounter(id, name)
+}
+
+/// The shipped catalogue's encounter `name` of map `id`, laid on it under
+/// `rules`.
+pub fn scenario(id: &str, name: &str, rules: Rules) -> Result<ScenarioDefinition, ResolveError> {
+    Catalogue::shipped().scenario(id, name, rules)
 }
 
 /// A catalogue address is one directory name, never a path: checked before

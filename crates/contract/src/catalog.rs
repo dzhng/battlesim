@@ -1193,7 +1193,8 @@ impl<'de> serde::de::Visitor<'de> for Unique<'_> {
 
 impl std::error::Error for CatalogError {}
 
-const SECTIONS: [&str; 5] = ["roles", "parts", "soldiers", "units", "props"];
+/// The sections a catalog document may hold.
+pub const SECTIONS: [&str; 5] = ["roles", "parts", "soldiers", "units", "props"];
 
 /// Resolve authored catalog documents into flat records.
 pub fn resolve(documents: &[Value]) -> Result<Catalog, CatalogError> {

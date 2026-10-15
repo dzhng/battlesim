@@ -38,7 +38,7 @@ fn play() -> Beat {
     let mut game = fixtures::game();
     game["catalog"] = serde_json::Value::Array(fixtures::catalog_documents(CatalogSet::Test));
     let rules: Rules = serde_json::from_value(game).unwrap();
-    let mut b = Battle::new(&encounter.on(map, rules), SEED);
+    let mut b = Battle::new(&encounter.on(map, rules).unwrap(), SEED);
     let full = b
         .rules()
         .catalog
