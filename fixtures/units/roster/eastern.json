@@ -1679,7 +1679,7 @@
           "id": "launcher",
           "name": "Pantsir-SM",
           "weapons": [
-            "aa_medium"
+            "pantsir_missile"
           ],
           "turret": true,
           "pivot_m": [

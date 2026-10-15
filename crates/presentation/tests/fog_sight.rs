@@ -5,11 +5,11 @@
 //! (`fixtures/fog-sight-vectors.json`: FNV-1a over each upload's bytes, the
 //! dispatches and the clears, a frame after each publication and a second
 //! after every third); `BLESS_PARITY=1` re-records the street stream and
-//! layout from that encounter and the native publisher, and re-records a
-//! capture run's frames and stats from its capture. The browser's TypeScript
-//! sight that first wrote these vectors is deleted, so they now pin Rust's
-//! own sight: re-bless a capture run only after its capture was refreshed,
-//! and only once the old capture still reproduces the old vectors.
+//! layout from that encounter and the native publisher, and every run's
+//! frames and stats from its stream. The browser's TypeScript sight that
+//! first wrote these vectors is deleted, so they now pin Rust's own sight:
+//! re-bless only after a stream or capture was refreshed, and only once the
+//! old stream and captures still reproduce the old vectors.
 use contract::ids::Side;
 use presentation::fog::sight::{FogUpload, Sensors};
 use presentation::presentation::{FogSetup, Presentation};
@@ -165,8 +165,7 @@ fn replace_json_string(text: &mut String, key: &str, value: &str) {
     text.replace_range(start..=end, &serde_json::to_string(value).unwrap());
 }
 
-/// Re-record only the native street stream; the browser's frame hashes stay
-/// in `fog-sight-vectors.json` as the parity oracle.
+/// Re-record the native street stream and its layout.
 fn bless_street(vectors: &mut Value) {
     if std::env::var("BLESS_PARITY").as_deref() != Ok("1") {
         return;
@@ -292,7 +291,7 @@ fn every_fog_upload_is_the_browsers() {
                 got.push(frame(&up, i));
             }
         }
-        if bless && source != "street" {
+        if bless {
             let stats = serde_json::to_value(p.fog_stats().unwrap()).unwrap();
             blessed.push((index, got, stats));
             continue;

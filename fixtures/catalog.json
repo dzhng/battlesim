@@ -8760,7 +8760,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_medium"
+                "pantsir_missile"
               ]
             }
           ],
@@ -20239,7 +20239,7 @@
               "squad": false,
               "turret": true,
               "weapons": [
-                "aa_long"
+                "patriot_pac3"
               ]
             }
           ],
@@ -27582,7 +27582,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_medium"
+            "pantsir_missile"
           ]
         }
       ],
@@ -40442,7 +40442,7 @@
           "squad": false,
           "turret": true,
           "weapons": [
-            "aa_long"
+            "patriot_pac3"
           ]
         }
       ],
@@ -42863,6 +42863,103 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
+    "pantsir_missile": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 8,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 120.0,
+      "decoyable": true,
+      "default": false,
+      "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
+      "gravity_scale": 1.0,
+      "guidance": "on_the_move",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 10.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "57E6",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 300.0,
+      "range_m": 2600.0,
+      "reload_s": 4.0,
+      "requires_clear_launch_path": false,
+      "scatter_mrad": 0.5,
+      "seeker": "radar",
+      "seeker_fov_deg": 120.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing",
+            "missile"
+          ]
+        },
+        "low_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing",
+            "missile"
+          ]
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
+    "patriot_pac3": {
+      "accel_mps2": 95.0,
+      "aim_s": 2.0,
+      "ammo": 6,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 3.0,
+      "damage": 260.0,
+      "decoyable": true,
+      "default": false,
+      "description": "Long-range missile that also shoots down missiles fired from aircraft.",
+      "gravity_scale": 1.0,
+      "guidance": "stationary",
+      "icon": "aa_missile",
+      "interceptable": false,
+      "lifetime_s": 19.0,
+      "magazine": null,
+      "min_range_m": 50.0,
+      "name": "PAC-3 MSE",
+      "near_miss_suppression": 0.0,
+      "partial_from": 0.08,
+      "penetration": 300.0,
+      "range_m": 5200.0,
+      "reload_s": 9.0,
+      "requires_clear_launch_path": true,
+      "scatter_mrad": 0.5,
+      "seeker": "radar",
+      "seeker_fov_deg": 100.0,
+      "speed_mps": 100.0,
+      "stationary": true,
+      "structural_damage": 20.0,
+      "suppression_radius_m": 0.0,
+      "targets": {
+        "high_air": {
+          "classes": [
+            "air_rotor",
+            "air_fixed_wing",
+            "missile"
+          ]
+        }
+      },
+      "top_speed_mps": 290.0,
+      "trajectory": "direct",
+      "turn_deg_s": 180.0
+    },
     "rifle": {
       "accel_mps2": null,
       "aim_s": 0.8,
@@ -42932,7 +43029,7 @@
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
       "gravity_scale": 1.0,
       "icon": "rockets",
-      "interceptable": true,
+      "interceptable": false,
       "lifetime_s": null,
       "magazine": {
         "burst": null,
@@ -43086,115 +43183,6 @@
       "top_speed_mps": 600.0,
       "trajectory": "direct",
       "turn_deg_s": 180.0
-    },
-    "shotgun": {
-      "accel_mps2": null,
-      "aim_s": 0.8,
-      "ammo": "unlimited",
-      "anti_radiation": false,
-      "armor_piercing": false,
-      "blast_radius_m": 0.0,
-      "damage": 70.0,
-      "decoyable": false,
-      "default": true,
-      "description": "A pump shotgun: one heavy blast at a few metres, nothing at range.",
-      "gravity_scale": 0.09,
-      "icon": "shotgun",
-      "interceptable": false,
-      "lifetime_s": null,
-      "magazine": {
-        "burst": null,
-        "rounds": 8,
-        "shot_interval_s": 0.9
-      },
-      "min_range_m": 0.0,
-      "name": "Shotgun",
-      "near_miss_suppression": 0.025,
-      "partial_from": null,
-      "penetration": 3.0,
-      "range_m": 60.0,
-      "reload_s": 0.0,
-      "requires_clear_launch_path": false,
-      "scatter_mrad": 40.0,
-      "speed_mps": 800.0,
-      "stationary": false,
-      "structural_damage": 0.25,
-      "suppression_radius_m": 3.0,
-      "targets": {
-        "ground": {
-          "classes": [
-            "infantry",
-            "vehicle"
-          ]
-        },
-        "low_air": {
-          "classes": [
-            "air_rotor",
-            "air_fixed_wing"
-          ],
-          "range_m": 60.0,
-          "scatter_mrad": 60.0
-        }
-      },
-      "top_speed_mps": null,
-      "trajectory": "direct",
-      "turn_deg_s": null
-    },
-    "smg": {
-      "accel_mps2": null,
-      "aim_s": 0.8,
-      "ammo": "unlimited",
-      "anti_radiation": false,
-      "armor_piercing": false,
-      "blast_radius_m": 0.0,
-      "damage": 25.0,
-      "decoyable": false,
-      "default": true,
-      "description": "A submachine gun: fast, short bursts for rooms and streets.",
-      "gravity_scale": 0.09,
-      "icon": "smg",
-      "interceptable": false,
-      "lifetime_s": null,
-      "magazine": {
-        "burst": {
-          "aim_max_s": 1.0,
-          "rounds": 5
-        },
-        "rounds": 30,
-        "shot_interval_s": 0.07
-      },
-      "min_range_m": 0.0,
-      "name": "SMG",
-      "near_miss_suppression": 0.025,
-      "partial_from": null,
-      "penetration": 3.0,
-      "range_m": 150.0,
-      "reload_s": 0.0,
-      "requires_clear_launch_path": false,
-      "scatter_mrad": 16.0,
-      "speed_mps": 800.0,
-      "stationary": false,
-      "structural_damage": 0.25,
-      "suppression_radius_m": 3.0,
-      "targets": {
-        "ground": {
-          "classes": [
-            "infantry",
-            "vehicle"
-          ]
-        },
-        "low_air": {
-          "classes": [
-            "air_rotor",
-            "air_fixed_wing"
-          ],
-          "range_m": 100.0,
-          "scatter_mrad": 60.0
-        }
-      },
-      "top_speed_mps": null,
-      "trajectory": "direct",
-      "turn_deg_s": null
     },
     "spike": {
       "accel_mps2": 140.0,

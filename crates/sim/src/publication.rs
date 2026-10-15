@@ -15,6 +15,11 @@
 //! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
 //! field pair `<name>Lo`, `<name>Hi` holding `lo + hi · 2^limbBits`, both -1
 //! when absent.
+//!
+//! A firing report names the weapon rows it was heard firing as one bit per
+//! row, so the rules may hold at most [`MAX_WEAPON_ROWS`] (64) weapon rows:
+//! the mask travels as three floats of 24 bits (`heardLow`, `heardMid`,
+//! `heardHigh`), and rules with more rows are refused at load.
 use contract::catalog::AltitudeLayer;
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
@@ -125,11 +130,12 @@ const REASONS: [ActionReason; 16] = [
 const TARGET_KINDS: [&str; 4] = ["none", "identified", "contact", "ground"];
 /// Ammunition kinds per mount the record carries (the cannon's AP and HE).
 pub const MAX_AMMO_KINDS: usize = 2;
-/// Weapon rows a firing report's heard mask can name. It travels as two
-/// words of `HEARD_WORD_BITS` each, since a float holds an integer exactly
-/// below 2^24.
-pub const MAX_WEAPON_ROWS: usize = 2 * HEARD_WORD_BITS + 1;
+/// Weapon rows a firing report's heard mask can name: one bit each of the
+/// contact's `heard` word. It travels as `HEARD_WORDS` floats of
+/// `HEARD_WORD_BITS` each, since a float holds an integer exactly below 2^24.
+pub const MAX_WEAPON_ROWS: usize = u64::BITS as usize;
 const HEARD_WORD_BITS: usize = 24;
+const HEARD_WORDS: usize = MAX_WEAPON_ROWS.div_ceil(HEARD_WORD_BITS);
 const MOUNT_FIELDS: [&str; 15] = [
     "mount",
     "loaded",
@@ -230,7 +236,7 @@ const PENDING_FIELDS: [&str; 10] = [
     "arrivalHi",
 ];
 const GROUND_FIELDS: [&str; 4] = ["tile", "span", "craterScorch", "tracksTrampledCleared"];
-const CONTACT_FIELDS: [&str; 15] = [
+const CONTACT_FIELDS: [&str; 16] = [
     "id",
     "source",
     "x",
@@ -243,6 +249,7 @@ const CONTACT_FIELDS: [&str; 15] = [
     "expiresTick",
     "kind",
     "heardLow",
+    "heardMid",
     "heardHigh",
     "bearingDeg",
     "rangeM",
@@ -679,9 +686,10 @@ pub fn layout_json(battle: &Battle) -> String {
         // interpolated); reach toward bearing b is sightRange * m, with
         // c = cos(b - sightForward), m = side·(1 − c²) + (c ≥ 0 ? front : rear)·c².
         // A contact's kind indexes unitKinds (-1 for a firing report); its
-        // heardLow and heardHigh are a bitmask over roundKinds, 24 rows a
-        // word (bit k of heardLow for row k < 24, bit k - 24 of heardHigh
-        // otherwise; both 0 for a last sighting). Its z is its cause's height when the evidence came, and
+        // heardLow, heardMid and heardHigh are a bitmask over roundKinds, 24
+        // rows a word (bit k of heardLow for row k < 24, bit k - 24 of
+        // heardMid for k < 48, bit k - 48 of heardHigh otherwise; all 0 for a
+        // last sighting). Its z is its cause's height when the evidence came, and
         // its layer indexes layers; aloft is 1 when the area hangs in the air
         // (more than the low hover over the ground), else 0.
         // A projectile's or blast's kind indexes roundKinds; a segment's
@@ -1185,8 +1193,13 @@ fn pack_record(
             c.evidence_tick as f32,
             c.expires_tick as f32,
             c.kind.map_or(-1.0, |k| k.0 as f32),
-            (c.heard & ((1 << HEARD_WORD_BITS) - 1)) as f32,
-            (c.heard >> HEARD_WORD_BITS) as f32,
+        ]);
+        out.extend(
+            (0..HEARD_WORDS).map(|w| {
+                ((c.heard >> (w * HEARD_WORD_BITS)) & ((1 << HEARD_WORD_BITS) - 1)) as f32
+            }),
+        );
+        out.extend([
             c.bearing_deg.unwrap_or(-1.0) as f32,
             c.range_m.unwrap_or(-1.0) as f32,
         ]);

@@ -26,7 +26,8 @@ keeps one draw, so it slides with the cursor instead of reshuffling under it.
 
 [Publication](src/publication.rs) exposes only the selected side's observation,
 and [its reader](src/publication/reader.rs), beside it, is the one decoder every
-client uses.
+client uses. A firing report's heard mask has one bit per weapon row, which caps
+the rules at 64 weapon rows (`publication::MAX_WEAPON_ROWS`).
 Geometry, sensing, hearing and knowledge owners decide what that observation may
 contain; the renderer and audio engine do not grant visibility or reveal identities.
 [Weapon origins](src/weapons.rs) follow the actual operator, occupied window or

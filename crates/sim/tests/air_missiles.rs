@@ -372,3 +372,115 @@ fn a_climbing_targets_vertical_velocity_is_led() {
         "vertical target motion was discarded"
     );
 }
+
+/// A test jet whose only store is one guided, interceptable ground-attack
+/// missile, sent at a red tank, with a red jeep beside the tank mounting a
+/// guided interceptor whose `missile` class sits in `intercepts_in` alone.
+/// Returns the tank's hit points before and after, and the shots the jet and
+/// the jeep fired.
+fn jet_missile_at_a_covered_tank(intercepts_in: &str) -> (f64, f64, u32, u32) {
+    let mut rules = sim::fixtures::test_game();
+    rules["weapons"]["test_agm"] = json!({
+        "name": "Test AGM", "description": "A test row.", "icon": "atgm",
+        "interceptable": true, "stationary": false, "guidance": "on_the_move",
+        "range_m": 1500, "min_range_m": 5, "speed_mps": 50, "accel_mps2": 140,
+        "top_speed_mps": 300, "aim_s": 0.1, "reload_s": 4, "ammo": 1,
+        "penetration": 400, "partial_from": 0.08, "damage": 400, "scatter_mrad": 0.5,
+        "turn_deg_s": 60, "lifetime_s": 15, "near_miss_suppression": 0,
+        "suppression_radius_m": 0, "blast_radius_m": 4, "structural_damage": 20,
+        "targets": { "ground": { "classes": ["vehicle"] } }
+    });
+    rules["weapons"]["test_interceptor"] = json!({
+        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
+        "stationary": true, "guidance": "stationary", "range_m": 1500, "min_range_m": 50,
+        "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
+        "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
+        "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180,
+        "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
+        "blast_radius_m": 3, "structural_damage": 20,
+        "targets": { intercepts_in: { "classes": ["missile"] } }
+    });
+    rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
+    rules["service"]["round_costs"]["test_agm"] = json!(1);
+    rules["service"]["round_costs"]["test_interceptor"] = json!(1);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "sensors": { "ground_m": 1500 },
+            "mounts": [{ "id": "gun", "name": "Stores", "weapons": ["test_agm"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [7, 0, 0] }] }),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "HMG", "name": "AA", "weapons": ["test_interceptor"],
+            "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [600, 2000], "yaw": 0.0 },
+            { "side": "red", "kind": "test_tank", "position": [2400, 2000], "yaw": std::f64::consts::PI,
+              "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_jeep", "position": [2450, 2040], "yaw": std::f64::consts::PI },
+            { "side": "blue", "kind": "test_recon", "position": [1800, 2000], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..30 {
+        b.step();
+    }
+    let tank = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|t| (t.position[0] - 2400.0).abs() < 5.0)
+        .map(|t| t.id)
+        .expect("the recon sees the tank");
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: contract::command::TargetRef::Identified { id: tank },
+        },
+    });
+    assert_eq!(ack.error, None);
+    let before = b.unit(UnitId(1)).unwrap().hp;
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+    }
+    (
+        before,
+        b.unit(UnitId(1)).unwrap().hp,
+        shots(&b, 0, "gun"),
+        shots(&b, 2, "HMG"),
+    )
+}
+
+/// A guided interceptor whose high-air layer lists `missile` shoots down the
+/// missile a jet fires at the tank it covers, and the tank is untouched. The
+/// same interceptor listing `missile` only in low air lets the jet's round
+/// (fired from high air) through, and it strikes the tank.
+#[test]
+fn a_high_air_interceptor_shoots_down_a_jets_missile_and_the_tank_survives() {
+    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("high_air");
+    assert_eq!(fired, 1, "the jet fired its one missile");
+    assert!(intercepted > 0, "the interceptor never launched");
+    assert_eq!(after, before, "the covered tank was hit");
+
+    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("low_air");
+    assert_eq!(fired, 1, "the jet fired its one missile");
+    assert_eq!(
+        intercepted, 0,
+        "a low-air interceptor engaged a high-air round"
+    );
+    assert!(after < before, "the jet's missile missed the open tank");
+}

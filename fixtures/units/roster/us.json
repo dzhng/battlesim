@@ -3452,7 +3452,7 @@
           "id": "autocannon",
           "name": "Patriot PAC-3",
           "weapons": [
-            "aa_long"
+            "patriot_pac3"
           ],
           "turret": true,
           "pivot_m": [
