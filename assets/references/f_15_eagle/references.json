@@ -76,11 +76,50 @@
    "licence": "public-domain",
    "sha256": "96f28dd56c47d005dfe2bed6da07b7d76dbff145240b3e9b82306b50ca1a56dc",
    "note": "F-15EX Eagle II from above-right in flight: wing and stabilator planform, fins, CFTs"
+  },
+  {
+   "file": "us_f_15_eagle_f_15ex_eagle_ii-front.jpg",
+   "variant": "us_f_15_eagle_f_15ex_eagle_ii",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Master_Sgt._Tristan_McIntire,_40th_Flight_Test_Squadron,_marshals_the_F-15EX,_the_Air_Force%E2%80%99s_newest_fighter_aircraft,_to_a_stop_at_Eglin_Air_Force_Base,_Fla._March_11,_2021.jpg",
+   "author": "Samuel King Jr.",
+   "licence": "public-domain",
+   "sha256": "15715f6741dbccf76a7ba58421c406d50c91db5a785bcbabaa833a3906c95c51",
+   "note": "F-15EX (40th Flight Test Squadron, Eglin) nearly head-on, slightly from its right, a marshaller across the nose: the intakes' raked box mouths, the upright fins with their tip fairings, the wing's level line, the gear track. Its nose and canopy are hidden by the marshaller."
+  },
+  {
+   "file": "us_f_15_eagle_f_15ex_eagle_ii-three_quarter_rear.jpg",
+   "variant": "us_f_15_eagle_f_15ex_eagle_ii",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:142nd_Wing_F-15EX_Eagle_II_Unveiling_Ceremony_at_the_Portland_Air_National_Guard_Base,_Oregon_on_July_12,_2024_-_4.jpg",
+   "author": "Oregon National Guard",
+   "licence": "CC-BY-2.0",
+   "sha256": "4f6966f2eb3e82ba871b221ef926c893ab457052522b4a78a7b2b90716ac69fc",
+   "note": "F-15EX of the Oregon ANG's 142nd Wing taxiing, right rear three-quarter: the two nozzles between the tail booms, the fins and stabilators, the CFTs' flank, the two-seat canopy."
+  },
+  {
+   "file": "us_f_15_eagle_f_15ex_eagle_ii-front-generated.jpg",
+   "variant": "us_f_15_eagle_f_15ex_eagle_ii",
+   "view": "front",
+   "source": "generated",
+   "page": "",
+   "author": "generated",
+   "licence": "ours",
+   "sha256": "cc4171b4808219124a676c20526ad950ba7907ee5ee92d949d4554a131501c55",
+   "note": "Generated: an unobstructed head-on F-15EX from the marshalled photo beside it. Trusted for layout and proportions only: the intakes' width against the nose, the wing's span and level line, the fins' spacing and height, the gear track. Its stores (an AIM-120 on every station, odd fins) and fin-tip fairings are guesses. The gateway ignored the seed, so it does not reproduce.",
+   "model": "openai/gpt-image-2.5-flare",
+   "prompt": "US Air Force Boeing F-15EX Eagle II, straight head-on front view at eye level on a runway in daylight, photographic reference. Two-seat tandem bubble canopy, long pointed grey radome, two large rectangular raked box intakes either side of the nose below the cockpit, high-mounted cropped-delta wing level with slight anhedral, twin vertical fins standing upright on the tail booms with the antenna fairings on their tips, all-moving stabilators below, tall tricycle landing gear with the nose gear centred, conformal fuel tanks along the intakes' flanks, AIM-120 missiles on the CFT stations and wing pylons, two-tone compass grey paint. Whole aircraft in frame, symmetric, no people, no text.",
+   "inputs": [
+    "us_f_15_eagle_f_15ex_eagle_ii-front.jpg"
+   ],
+   "seed": 16101
   }
  ],
  "gaps": [
   "us_f_15_eagle_f_15e_strike_eagle: no top view or gear-bay detail; planform taken from the EX's top view (same airframe)",
-  "us_f_15_eagle_f_15ex_eagle_ii: no rear or three-quarter-rear view; nozzles from the E's",
+  "us_f_15_eagle_f_15ex_eagle_ii: no straight rear view; the nozzles from the three-quarter rear photo",
   "us_f_15_eagle_f_15e_strike_eagle: dimensions 19.43 x 13.05 x 5.63 m from USAF flight manual TO 1F-15E-1 as cited by https://en.wikipedia.org/wiki/McDonnell_Douglas_F-15E_Strike_Eagle (63 ft 9.6 in x 42 ft 9.6 in x 18 ft 6 in = 19.45 x 13.05 x 5.64): within 0.2%",
   "us_f_15_eagle_f_15ex_eagle_ii: dimensions 19.43 x 13.05 x 5.63 m against Air & Space Forces Magazine as cited by https://en.wikipedia.org/wiki/Boeing_F-15EX_Eagle_II (63 ft 9 in x 42 ft 10 in x 18 ft 8 in = 19.43 x 13.06 x 5.69): within 1.1%"
  ]

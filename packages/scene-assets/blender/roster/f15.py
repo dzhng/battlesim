@@ -35,17 +35,17 @@ def spec(variant):
         # over the nose gear, the intakes' mouths below its rear seat (side photo).
         fuselage=[(9.68, 0.0, 2.3, 2.3), (9.0, 0.38, 2.0, 2.62, 2.28), (7.6, 0.62, 1.76, 2.92, 2.25),
                   (6.0, 0.74, 1.64, 3.06, 2.25, 2.4), (4.4, 0.82, 1.6, 3.1, 2.2, 2.6),
-                  (2.4, 1.42, 1.46, 3.0, 2.1, 4.0), (-2.0, 1.52, 1.44, 2.86, 2.05, 4.5),
-                  (-5.4, 1.42, 1.5, 2.66, 2.05, 4.0), (-8.0, 1.2, 1.6, 2.5, 2.02, 3.0), (-8.62, 1.16, 1.62, 2.42, 2.0)],
+                  (2.4, 1.42, 1.32, 3.0, 2.05, 4.0), (-2.0, 1.52, 1.3, 2.86, 2.0, 4.5),
+                  (-5.4, 1.42, 1.42, 2.66, 2.02, 4.0), (-8.0, 1.2, 1.6, 2.5, 2.02, 3.0), (-8.62, 1.16, 1.62, 2.42, 2.0)],
         bodies=[
             # The two intake trunks, from their raked mouths back into the body,
             # and the conformal fuel tanks along their flanks below the wing.
-            *[(f"fuselage_intake_{k}", [(4.42, 0.5, 1.42, 2.66, 2.0, 5.0), (3.0, 0.52, 1.42, 2.72, 2.0, 5.0),
-                                        (1.2, 0.5, 1.44, 2.76, 2.0, 4.0)], side * 1.16) for side, k in ((1, "L"), (-1, "R"))],
+            *[(f"fuselage_intake_{k}", [(4.42, 0.5, 1.26, 2.66, 1.95, 5.0), (3.0, 0.52, 1.24, 2.72, 1.95, 5.0),
+                                        (1.2, 0.5, 1.26, 2.76, 1.95, 4.0)], side * 1.16) for side, k in ((1, "L"), (-1, "R"))],
             # The CFTs: slab-sided tanks hugging the intakes from their
             # mouths to the wing's trailing edge, as every photo shows.
-            *[(f"fuselage_cft_{k}", [(3.7, 0.0, 1.95, 1.95), (3.1, 0.4, 1.42, 2.5, 1.96, 3.5),
-                                     (-2.8, 0.42, 1.42, 2.52, 1.97, 3.5), (-3.9, 0.0, 2.0, 2.0)], side * 1.74)
+            *[(f"fuselage_cft_{k}", [(3.7, 0.0, 1.9, 1.9), (3.1, 0.4, 1.22, 2.5, 1.9, 3.5),
+                                     (-2.8, 0.42, 1.22, 2.52, 1.9, 3.5), (-3.9, 0.0, 1.95, 1.95)], side * 1.74)
               for side, k in ((1, "L"), (-1, "R"))],
             # The dorsal spine the canopy fairs into, under the speed brake.
             ("fuselage_spine", [(2.3, 0.4, 2.9, 3.6, 3.0, 2.4), (0.6, 0.44, 2.9, 3.22, 3.0, 2.6),
@@ -58,7 +58,7 @@ def spec(variant):
         wing_hinge=(0.75,),
         # A cropped delta (the top photo): the leading edge swept 45 degrees,
         # the trailing edge straight across, the tip raked off.
-        wing=[(2.9, 1.4, WING_Z, 6.6, 0.32), (-2.2, 6.52, WING_Z - 0.08, 1.5, 0.08)],
+        wing=[(2.4, 1.4, WING_Z, 6.8, 0.32), (-2.72, 6.52, WING_Z - 0.08, 1.62, 0.08)],
         stab=[(-6.3, 1.3, 2.18, 2.95, 0.14), (-8.25, 4.3, 2.18, 1.35, 0.05)],
         fins=[dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=1.16),
               dict(root_x=-5.7, root_z=2.62, height=3.01, root_chord=3.4, tip_chord=1.45, sweep_m=2.6, y=-1.16)],
@@ -69,20 +69,20 @@ def spec(variant):
         gear=[dict(name="nose", x=3.3, y=0.0, top=1.64, radius=0.33, width=0.19, door=(0.9, 0.5), light=True),
               dict(name="main_L", x=-2.3, y=1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08),
               dict(name="main_R", x=-2.3, y=-1.38, top=1.5, radius=0.52, width=0.26, door=(1.3, 0.6), rake=0.08)],
-        nav=dict(left=(-2.3, 6.5, WING_Z - 0.06), right=(-2.3, -6.5, WING_Z - 0.06), tail=(-9.45, 0.0, 2.08)),
+        nav=dict(left=(-3.2, 6.5, WING_Z - 0.06), right=(-3.2, -6.5, WING_Z - 0.06), tail=(-9.45, 0.0, 2.08)),
         pylons=[((-0.3, 3.1, WING_Z - 0.1), 1.3, 0.36)],
         # A 610-gallon tank on each wing and on the centreline.
         stores=[("tank", (-0.4, 3.1, 1.66), 5.0, 0.46), ("missile", (-0.3, 3.55, 1.95), 2.9, 0.08),
-                ("tank", (-0.6, 0.0, 0.98), 5.0, 0.46)],
+                ("tank", (-0.6, 0.0, 0.8), 5.0, 0.46)],
     )
     if variant["id"] == E:
         # GBU-31s in tandem on the CFTs' stub pylons, the Sniper and
         # LANTIRN pods under the intakes.
-        s["stores"] += [("bomb", (1.3, 2.0, 1.12), 3.0, 0.23), ("bomb", (-1.6, 2.0, 1.12), 3.0, 0.23),
-                        ("pod", (3.0, 1.0, 1.18), 2.4, 0.18)]
-        s["pylons"] += [((1.3, 2.0, 1.45), 0.9, 0.08), ((-1.6, 2.0, 1.45), 0.9, 0.08)]
+        s["stores"] += [("bomb", (1.3, 2.0, 0.92), 3.0, 0.23), ("bomb", (-1.6, 2.0, 0.92), 3.0, 0.23),
+                        ("pod", (3.0, 1.0, 1.0), 2.4, 0.18)]
+        s["pylons"] += [((1.3, 2.0, 1.26), 0.9, 0.1), ((-1.6, 2.0, 1.26), 0.9, 0.1)]
     else:
-        s["stores"] += [("missile", (1.4, 2.0, 1.32), 3.65, 0.09), ("missile", (-1.6, 2.0, 1.32), 3.65, 0.09)]
+        s["stores"] += [("missile", (1.4, 2.0, 1.08), 3.65, 0.09), ("missile", (-1.6, 2.0, 1.08), 3.65, 0.09)]
     return s
 
 
@@ -97,7 +97,7 @@ def build(variant, v):
     box("speed_brake", (2.2, 0.8, 0.04), (0.4, 0, 3.2), m["paint"], hull, bevel=0.02, lods=MID)
     box("gun_port", (0.3, 0.12, 0.1), (1.6, -1.55, 2.6), m["black"], hull, lods=NEAR)
     A.blade_antenna("antenna_spine", (-1.0, 0, 2.86), 0.25, m, hull)
-    A.blade_antenna("antenna_belly", (0.8, 0, 1.46), 0.2, m, hull, down=True)
+    A.blade_antenna("antenna_belly", (0.8, 0, 1.3), 0.2, m, hull, down=True)
     # Seymour Johnson's SJ in black on the E's gunship grey; Eglin's ET on the EX.
     code, serial, ink = (("SJ", "AF 88 1682", "black") if variant["id"] == E else
                          ("ET", "AF 20 0001", "lowvis_dark"))
