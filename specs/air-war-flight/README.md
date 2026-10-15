@@ -1,7 +1,7 @@
 # Air-war flight
 
-**Status:** slices 00–14 landed; the jet scenes are restaged on the jet field and are being browser-verified. Next: 15 (roster), 16 (model pass), 17 (skirmish AI), 18 (panels), 19 (closeout).
-**Updated:** 2026-10-14.
+**Status:** slices 00–14, 17 and 18 landed; 15 passes 1–2 landed. Slice 16's three faction model passes (US, Europe, Eastern) are merged as source models, not yet baked. The info-card layout (high-air cards on top, uncrossed leaders) and the high-air beneath-shadow are merged. Running: the shared-materials pass (branch `awf/materials`; it ends with the one bake) and the high-air rename, slice 19 item 7 (branch `awf/high-air-rename`).
+**Updated:** 2026-10-15.
 
 Fixed-wing jets fly as jets: high, always moving, circling their goals, attacking in runs, dogfighting in organic turning fights, and arriving and leaving by their own edge. Every planned jet is enabled, with a reviewed model and a historical loadout. [The map](map.md) holds the decisions (D-numbers) and their reasons; this README and the slices are the build plan for them.
 
@@ -9,7 +9,7 @@ Fixed-wing jets fly as jets: high, always moving, circling their goals, attackin
 
 You are implementing this spec with `implement-spec`. Opus subagents write the code and do all 3D modelling and visual work; Codex (`codex exec`, `gpt-6.1-sol`, high) only takes short, non-visual tasks. You orchestrate, review every diff, run the gates and commit. Read [the map](map.md) once, then the slice you are picking up. Load `tweak-mechanics` before any rule change, `write-tests` before any behaviour change, and `game-ui` and `renderer` before any presentation slice.
 
-- **Pickup:** browser-verify the restaged jet scenes, then slice 15; slices 16, 17 and 18 can run beside it. Lanes 16 (model pass) and 18 (panel follow-ups) can start in parallel at any time.
+- **Pickup:** merge `awf/materials` once its sheets are reviewed. Then do slice 15 pass 3: enable all 19 planned jets now that their models are accepted. Then give `test_jet` its own model (slice 16), merge `awf/high-air-rename`, and do the rest of slice 19.
 - **Worktrees:** symlink `web/node_modules` to the main checkout's, run `bun run build:wasm`, and `git lfs pull --include="assets/runtime/**,assets/third-party/effects/**,assets/third-party/textures/**"` before running any scene.
 - **Merging a worktree:** commit its work on its branch first, and check `git log` shows the merge brought commits in. Merging an uncommitted branch is an empty, silent no-op.
 - **Clean up merged worktrees:** after a branch merges, `git worktree remove` it and delete the branch. Each worktree carries its own multi-gigabyte Cargo `target/`, and leaving them filled the disk once.
