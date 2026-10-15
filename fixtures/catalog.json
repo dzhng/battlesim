@@ -972,7 +972,7 @@
       }
     },
     {
-      "cost": 250,
+      "cost": 180,
       "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
       "family": "boxer_skyranger_30",
@@ -2474,7 +2474,7 @@
       }
     },
     {
-      "cost": 240,
+      "cost": 180,
       "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
       "disabled_reason": null,
       "family": "stryker_m_shorad",
@@ -12493,7 +12493,7 @@
               "emits": false
             }
           },
-          "cost": 250,
+          "cost": 180,
           "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
           "faction": "europe",
           "family": "boxer_skyranger_30",
@@ -21863,7 +21863,7 @@
               "emits": false
             }
           },
-          "cost": 240,
+          "cost": 180,
           "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
           "faction": "us",
           "family": "stryker_m_shorad",
@@ -32728,7 +32728,7 @@
           "emits": false
         }
       },
-      "cost": 250,
+      "cost": 180,
       "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
       "family": "boxer_skyranger_30",
@@ -43147,7 +43147,7 @@
           "emits": false
         }
       },
-      "cost": 240,
+      "cost": 180,
       "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
       "faction": "us",
       "family": "stryker_m_shorad",
