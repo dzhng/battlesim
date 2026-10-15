@@ -405,7 +405,6 @@ export function panelSpecimens(
   add(a, "fuel 143 s", flying({}));
   add(a, "fuel out", flying({ fuelS: 0 }));
   add(a, "afterburners on", flying({ afterburner: true }));
-  add(a, "traversing to ingress", flying({ traversing: true }));
   add(a, "dogfight", flying({ inDogfight: true }));
   add(a, "flares ready", flying({ flares: { charges: 4, cooldown: null } }));
   add(a, "flares reloading", flying({ flares: { charges: 1, cooldown: 0.6 } }));

@@ -91,7 +91,6 @@ export interface OwnUnitView {
   withdrawing: boolean;
   fuelS: number | null;
   afterburner: boolean;
-  traversing: boolean;
   inDogfight: boolean;
   flares: { charges: number; cooldown: number | null } | null;
   /** Defensive charges and running cooldown progress; private to the owning side. */

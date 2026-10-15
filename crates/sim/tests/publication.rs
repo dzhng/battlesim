@@ -164,7 +164,6 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
     let own = &groups["own"][0];
     assert_eq!(own.fields["fuelSeconds"], -1.0);
     assert_eq!(own.fields["afterburner"], 0.0);
-    assert_eq!(own.fields["traversing"], 0.0);
     assert_eq!(own.fields["inDogfight"], 0.0);
     assert_eq!(own.fields["flareCharges"], -1.0);
     assert_eq!(own.fields["flareCooldown"], -1.0);

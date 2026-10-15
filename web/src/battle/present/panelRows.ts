@@ -68,7 +68,6 @@ export const STATE_ROWS = {
     amount: true,
   },
   afterburner: { icon: "afterburner", word: () => "AFTERBURNERS ON", lasting: true },
-  traversing: { icon: "traversing", word: () => "TRAVERSING" },
   dogfight: { icon: "dogfight", word: () => "DOGFIGHT", tone: "warn" },
   radar_contact: { icon: "radar", word: () => "RADAR CONTACT", tone: "warn" },
   radar_details: { icon: "radar", word: (n: number | string) => String(n), tone: "warn" },
@@ -183,7 +182,6 @@ export function ownStateRows(
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
   if (u.fuelS != null) rows.push(row("fuel", { n: Math.max(0, Math.ceil(u.fuelS)) }));
   if (u.afterburner) rows.push(row("afterburner"));
-  if (u.traversing) rows.push(row("traversing"));
   if (u.inDogfight) rows.push(row("dogfight"));
   if (u.flares) rows.push(row("flares", { n: u.flares.charges, progress: u.flares.cooldown }));
   if (u.withdrawing) rows.push(row("withdrawing"));
