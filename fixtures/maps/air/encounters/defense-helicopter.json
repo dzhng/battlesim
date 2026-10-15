@@ -1,6 +1,6 @@
 {
   "units": [
-    {"side":"red","kind":"eastern_short_aa","position":[470,260],"yaw":3.14159},
+    {"side":"red","kind":"us_stryker_m_shorad_gun_and_missile_air_defense_vehicle","position":[470,260],"yaw":3.14159},
     {"side":"red","kind":"eastern_buk_buk_m3_medium_range_air_defense","position":[540,200],"yaw":3.14159},
     {"side":"red","kind":"eastern_s300_long","position":[560,320],"yaw":3.14159},
     {"side":"blue","kind":"ah_64e_guardian","position":[30,120],"engagement":"return_fire_only"},

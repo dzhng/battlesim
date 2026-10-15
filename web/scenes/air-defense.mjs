@@ -13,7 +13,7 @@
 import { gpuWarnings } from "./_lab.mjs";
 import { encounter, openAir, play, shots, shoot } from "./_air.mjs";
 
-const SHORT = "eastern_short_aa";
+const SHORT = "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle";
 const MEDIUM = "eastern_buk_buk_m3_medium_range_air_defense";
 const LONG = "eastern_s300_long";
 

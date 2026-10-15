@@ -281,11 +281,50 @@ fn high_air_has_no_ground_vision_but_can_identify_low_air() {
     );
 }
 
-fn air_defence_battle(name: &str) -> Battle {
+/// Red's layered air defence on the air lab's ground, against `blue`: a
+/// short gun, a medium SAM and a long SAM (test jeeps carrying the game's
+/// three air-defence weapon rows), and with `hidden_gun` a second short gun
+/// that a tower hides from blue's approach.
+fn air_defence_battle(blue: Value, hidden_gun: bool) -> Battle {
+    let mut fixture = fixture();
+    let aa = |name: &str, weapon: &str, tier: &str, radar_m: u32| {
+        json!({
+            "extends": "test_jeep", "name": name,
+            "mounts": [{ "id": "HMG", "weapons": [weapon] }],
+            "sensors": { "low_air_m": 900 },
+            "capabilities": {
+                "air_defense": { "tier": tier },
+                "radar": { "emits": radar_m > 0, "detection_m": radar_m }
+            }
+        })
+    };
+    let mut short = aa("Short AA", "aa_ballistic", "short", 0);
+    short["sensors"]["high_air_m"] = json!(900);
+    fixture["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "units": {
+            "test_aa_short": short,
+            "test_aa_medium": aa("Medium SAM", "aa_medium", "medium", 3200),
+            "test_aa_long": aa("Long SAM", "aa_long", "long", 7000),
+        }}));
+    let red = |kind: &str, at: [f64; 2]| json!({ "side": "red", "kind": kind, "position": at, "yaw": std::f64::consts::PI });
+    let mut units = vec![
+        red("test_aa_short", [470.0, 260.0]),
+        red("test_aa_medium", [540.0, 200.0]),
+        red("test_aa_long", [560.0, 320.0]),
+    ];
+    if hidden_gun {
+        units.push(red("test_aa_short", [385.0, 460.0]));
+    }
+    units.extend(blue.as_array().unwrap().iter().cloned());
     let map = sim::maps::load("air").unwrap().definition;
-    let encounter = sim::maps::encounter("air", name).unwrap();
-    let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    Battle::new(&encounter.on(map, rules), 6)
+    let encounter: contract::scenario::EncounterDefinition =
+        serde_json::from_value(json!({ "units": units })).unwrap();
+    Battle::new(
+        &encounter.on(map, serde_json::from_value(fixture).unwrap()),
+        6,
+    )
 }
 
 fn shots(b: &Battle, id: UnitId) -> u32 {
@@ -294,7 +333,13 @@ fn shots(b: &Battle, id: UnitId) -> u32 {
 
 #[test]
 fn air_defence_tiers_follow_the_target_layer_and_need_their_own_sight() {
-    let mut helicopters = air_defence_battle("defense-helicopter");
+    let mut helicopters = air_defence_battle(
+        json!([
+            { "side": "blue", "kind": "test_heli", "position": [250, 200], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_heli", "position": [250, 330], "engagement": "return_fire_only" },
+        ]),
+        false,
+    );
     for _ in 0..300 {
         helicopters.step();
     }
@@ -314,7 +359,10 @@ fn air_defence_tiers_follow_the_target_layer_and_need_their_own_sight() {
 
     // The hidden gun may see the circling jet at times; the rule is that it
     // never fires on a tick it has no sight of its own.
-    let mut jet = air_defence_battle("defense-jet");
+    let mut jet = air_defence_battle(
+        json!([{ "side": "blue", "kind": "test_jet", "position": [20, 300], "engagement": "return_fire_only" }]),
+        true,
+    );
     let mut hidden_no_sight = false;
     for _ in 0..300 {
         let before = shots(&jet, UnitId(3));

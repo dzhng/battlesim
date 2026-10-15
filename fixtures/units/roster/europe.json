@@ -3533,6 +3533,93 @@
         },
         "on": "HMG"
       }
+    },
+    "europe_iris_t_medium": {
+      "name": "IRIS-T SLM",
+      "description": "IRIS-T SLM long-range air defence.",
+      "faction": "europe",
+      "family": "air_defense",
+      "roles": [
+        "air_defense"
+      ],
+      "cost": 360,
+      "roster": {
+        "factions": [
+          "europe"
+        ],
+        "category": "sup",
+        "variant": "IRIS-T SLM",
+        "family_name": "IRIS-T SLM"
+      },
+      "extends": "roster_profile_wheeled_ifv",
+      "sensors": {
+        "low_air_m": 3200
+      },
+      "capabilities": {
+        "air_defense": {
+          "tier": "medium"
+        },
+        "radar": {
+          "emits": true,
+          "detection_m": 3200
+        }
+      },
+      "mounts": [
+        {
+          "id": "autocannon",
+          "name": "IRIS-T SLM",
+          "weapons": [
+            "aa_medium"
+          ],
+          "turret": true,
+          "pivot_m": [
+            -1.05,
+            0.0,
+            1.716
+          ],
+          "muzzle_m": [
+            2.919,
+            0.0,
+            0.475
+          ]
+        }
+      ],
+      "appearance": "us_stryker_m1296_dragoon",
+      "body": {
+        "hull": {
+          "half_extents_m": [
+            3.475,
+            1.36,
+            1.32
+          ],
+          "eye_m": 2.4,
+          "hp": 120,
+          "armor": {
+            "front": 60,
+            "side": 35,
+            "rear": 25,
+            "roof": 15,
+            "ricochet": {
+              "front": 0.1,
+              "side": 0.1,
+              "rear": 0.05,
+              "roof": 0.1
+            }
+          },
+          "weight_class": "medium",
+          "push_class": "medium",
+          "wreck": "medium_wreck"
+        }
+      },
+      "mobility": {
+        "wheeled": {
+          "offroad_kmh": 35,
+          "road_kmh": 80,
+          "turn_deg_s": 35,
+          "turning_radius_m": 8,
+          "reverse_fraction": 0.3
+        }
+      }
     }
   }
 }
