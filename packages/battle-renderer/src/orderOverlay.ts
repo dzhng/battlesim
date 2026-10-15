@@ -175,8 +175,8 @@ export interface OrderView {
    *  footprint's centre and half extents; null otherwise. The squad's circle
    *  encloses it, `building_marker_margin_m` past its corners. */
   building: { center: readonly [number, number]; half: readonly [number, number] } | null;
-  /** A fixed-wing/high-air aircraft: it has no ground marker. */
-  aircraft?: boolean;
+  /** It flies in high air: it has no ground marker. */
+  highAir?: boolean;
   /** Any airborne unit, including helicopters that retain their marker. */
   airborne?: boolean;
   /** How high its ghost stands over where its orders end while one shows
@@ -603,7 +603,7 @@ export function unitCircle(
     | "yaw"
     | "selected"
     | "reveal"
-    | "aircraft"
+    | "highAir"
     | "airborne"
   >,
   style: Pick<
@@ -614,9 +614,9 @@ export function unitCircle(
   const shown = (u.reveal ?? 0) > 0;
   const here: P2 = [u.position[0], u.position[1]];
   const moving = !!u.goal && u.state !== "route_blocked";
-  // Fixed-wing aircraft carry location and state in their floating cards;
+  // High-air aircraft carry location and state in their floating cards;
   // they never receive a ground unit marker.
-  if (u.aircraft) return null;
+  if (u.highAir) return null;
   if (u.building) {
     const { center, half } = u.building;
     const r = Math.hypot(half[0], half[1]) + style.building_marker_margin_m;
@@ -626,7 +626,7 @@ export function unitCircle(
   // movement area itself is the simulation's).
   const drawn = (radius: number) => radius * style.area_draw_scale;
   if (u.members.length === 0)
-    return moving || shown || u.selected || u.airborne || u.aircraft
+    return moving || shown || u.selected || u.airborne
       ? { c: here, r: u.hullHalfLength + style.vehicle_marker_margin_m, facing: u.yaw }
       : null;
   if (moving) return { c: here, r: drawn(squadNow(u, here)), facing: u.yaw };
@@ -749,7 +749,7 @@ export function buildOrderOverlay(
     // selection's own markers either way.
     const reveal = u.reveal ?? 0;
     const shown = reveal > 0;
-    if (!shown && !u.selected && !u.airborne && !u.aircraft) continue;
+    if (!shown && !u.selected && !u.airborne) continue;
     const fade = (c: Rgba): Rgba => fadeAlpha(c, reveal);
     const color = fade(order);
     const current = fade(fadeAlpha(order, style.current_alpha));
@@ -832,7 +832,7 @@ export function buildOrderOverlay(
     // Fixed-wing aircraft carry destination state in their floating cards;
     // never paint a ground circle for them.
     const dest: UnitCircle | null =
-      blocked || u.aircraft ? null : destinationCircle(u, u.goal, style);
+      blocked || u.highAir ? null : destinationCircle(u, u.goal, style);
     routeBetween(paint, pen, circle, u.route, dest, color);
     if (blocked) {
       const warning: UnitCircle = { c: u.goal, r: BLOCKED_R, facing: null };

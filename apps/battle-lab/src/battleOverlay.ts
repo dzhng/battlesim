@@ -191,7 +191,7 @@ export function orderView(
     // Its footprint sizes its marker: a hull's half length, 0 for a squad;
     // a garrisoned squad's, its building's (inside or leaving, not entering).
     hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
-    aircraft: highAir(units.type(u.kind)),
+    highAir: highAir(units.type(u.kind)),
     airborne: airborne(units.type(u.kind)),
     building: g && g.phase !== "entering" ? { center: g.center, half: g.half } : null,
     selected,
