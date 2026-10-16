@@ -785,90 +785,104 @@ fn countryside(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
     channels
 }
 
-/// Distant battle bed, stereo: a light countryside base with distant thuds,
-/// rumbles and gunfire to suggest combat over the horizon. Layered over
-/// attenuated wind and muffled explosions at random intervals.
+/// Distant battle bed, stereo: sparse distinct events over a low wash.
+/// Far-off booms (artillery), MG bursts (short rattles), rifle pops, with gaps.
 fn distant_battle(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
-    let seconds = 16.0;
+    let seconds = 20.0;
     let n = len(seconds, sr);
     let nf = n as f64;
 
-    // Gentle wind base (quieter than countryside)
-    let gust = |i: f64, ph: f64| {
-        0.35 + 0.2 * sin(TAU * 1.5 * i / nf + ph) + 0.1 * sin(TAU * 4.0 * i / nf + ph * 2.0)
-    };
-
+    // Very quiet, low-frequency wash (sub-bass rumble, not hiss)
     let mut channels = Vec::new();
     for c in 0..2 {
-        let ph = c as f64 * 0.7;
-        let wind = seamless(n, len(0.4, sr), |m| {
-            biquad(noise(m, rng), sr, Filter::Lowpass, 280.0, Q)
+        let ph = c as f64 * 0.5;
+        let wash = seamless(n, len(0.8, sr), |m| {
+            biquad(noise(m, rng), sr, Filter::Lowpass, 60.0, 0.5)
         });
         let out: Vec<f32> = (0..n)
             .map(|i| {
-                let g = gust(i as f64, ph);
-                (1.0 * f64::from(wind[i]) * g) as f32
+                let swell = 0.4 + 0.3 * sin(TAU * 0.15 * i as f64 / nf + ph);
+                (f64::from(wash[i]) * 0.25 * swell) as f32
             })
             .collect();
         channels.push(out);
     }
 
-    // Distant thuds/booms: low-frequency rumbles at random intervals
-    let boom_count = 8 + floor(rng.sample() * 6.0) as usize;
+    // Distinct far-off booms (artillery/tank): 3-5 per loop, long tails
+    let boom_count = 3 + floor(rng.sample() * 3.0) as usize;
     for _ in 0..boom_count {
-        let at = rng.sample() * (seconds - 1.5);
-        let pan = 0.2 + 0.6 * rng.sample();
-        let dur = 0.6 + 0.8 * rng.sample();
-        let freq = 35.0 + 25.0 * rng.sample();
+        let at = rng.sample() * (seconds - 2.5);
+        let pan = 0.15 + 0.7 * rng.sample();
+        let dur = 1.2 + 0.8 * rng.sample();
+        let freq = 28.0 + 18.0 * rng.sample();
         let m = len(dur, sr);
         let boom: Vec<f32> = (0..m)
             .map(|i| {
                 let t = i as f64 / sr;
-                let env = exp(-t * 3.0 / dur) * pow(sin(PI * t / dur), 0.5);
-                let tone = sin(TAU * freq * t) * 0.6 + sin(TAU * freq * 1.5 * t) * 0.3;
+                let attack = (t * 40.0).min(1.0);
+                let decay = exp(-t * 2.5 / dur);
+                let env = attack * decay;
+                let tone = sin(TAU * freq * t) * 0.7
+                    + sin(TAU * freq * 1.5 * t) * 0.2
+                    + sin(TAU * freq * 2.0 * t) * 0.1;
                 (env * tone) as f32
             })
             .collect();
-        let boom = biquad(boom, sr, Filter::Lowpass, 120.0, 0.5);
+        let boom = biquad(boom, sr, Filter::Lowpass, 90.0, 0.4);
         let start = len(at, sr);
-        let gain = 0.25 + 0.15 * rng.sample();
-        mix(&mut channels[0], &boom, sr, gain * (1.0 - pan * 0.5), one, start);
-        mix(&mut channels[1], &boom, sr, gain * (0.5 + pan * 0.5), one, start);
+        let gain = 0.45 + 0.2 * rng.sample();
+        mix(&mut channels[0], &boom, sr, gain * (1.0 - pan * 0.4), one, start);
+        mix(&mut channels[1], &boom, sr, gain * (0.6 + pan * 0.4), one, start);
     }
 
-    // Distant crackle/gunfire: filtered noise bursts
-    let crack_count = 12 + floor(rng.sample() * 8.0) as usize;
-    for _ in 0..crack_count {
-        let at = rng.sample() * (seconds - 0.8);
+    // MG bursts: 2-4 short rattles (grouped pops)
+    let burst_count = 2 + floor(rng.sample() * 3.0) as usize;
+    for _ in 0..burst_count {
+        let at = rng.sample() * (seconds - 1.5);
         let pan = rng.sample();
-        let dur = 0.15 + 0.25 * rng.sample();
-        let freq = 400.0 + 200.0 * rng.sample();
+        let shots = 4 + floor(rng.sample() * 6.0) as usize;
+        let interval = 0.08 + 0.04 * rng.sample();
+        for k in 0..shots {
+            let shot_at = at + k as f64 * interval;
+            if shot_at >= seconds - 0.3 {
+                break;
+            }
+            let dur = 0.06 + 0.03 * rng.sample();
+            let freq = 350.0 + 150.0 * rng.sample();
+            let m = len(dur, sr);
+            let mut pop = noise(m, rng);
+            biquad_by(&mut pop, sr, Filter::Bandpass, |_| freq, 2.0, true);
+            for (i, v) in pop.iter_mut().enumerate() {
+                let t = i as f64 / sr;
+                let env = exp(-t * 8.0 / dur);
+                *v = (*v as f64 * env * 0.08) as f32;
+            }
+            let start = len(shot_at, sr);
+            let gain = 0.7 + 0.3 * rng.sample();
+            mix(&mut channels[0], &pop, sr, gain * (1.0 - pan * 0.5), one, start);
+            mix(&mut channels[1], &pop, sr, gain * (0.5 + pan * 0.5), one, start);
+        }
+    }
+
+    // Single rifle pops: 4-7 isolated shots with gaps
+    let pop_count = 4 + floor(rng.sample() * 4.0) as usize;
+    for _ in 0..pop_count {
+        let at = rng.sample() * (seconds - 0.5);
+        let pan = rng.sample();
+        let dur = 0.04 + 0.02 * rng.sample();
+        let freq = 500.0 + 200.0 * rng.sample();
         let m = len(dur, sr);
-        let mut crack = noise(m, rng);
-        biquad_by(&mut crack, sr, Filter::Bandpass, |_| freq, 1.5, true);
-        for (i, v) in crack.iter_mut().enumerate() {
+        let mut pop = noise(m, rng);
+        biquad_by(&mut pop, sr, Filter::Bandpass, |_| freq, 2.5, true);
+        for (i, v) in pop.iter_mut().enumerate() {
             let t = i as f64 / sr;
-            let env = exp(-t * 4.0 / dur);
-            *v = (*v as f64 * env * 0.12) as f32;
+            let env = exp(-t * 12.0 / dur);
+            *v = (*v as f64 * env * 0.05) as f32;
         }
         let start = len(at, sr);
-        mix(&mut channels[0], &crack, sr, 1.0 - pan * 0.6, one, start);
-        mix(&mut channels[1], &crack, sr, 0.4 + pan * 0.6, one, start);
-    }
-
-    // Distant rumble: continuous low filtered noise
-    let [left, right] = &mut channels[..] else {
-        unreachable!("two channels")
-    };
-    let rumble = seamless(n, len(0.5, sr), |m| {
-        biquad(noise(m, rng), sr, Filter::Lowpass, 80.0, 0.7)
-    });
-    for (i, (l, r)) in left.iter_mut().zip(right.iter_mut()).enumerate() {
-        let t = i as f64 / nf;
-        let swell = 0.6 + 0.4 * sin(TAU * 0.3 * t);
-        let s = f64::from(rumble[i]) * 0.08 * swell;
-        *l = (f64::from(*l) + s) as f32;
-        *r = (f64::from(*r) + s * 0.9) as f32;
+        let gain = 0.5 + 0.3 * rng.sample();
+        mix(&mut channels[0], &pop, sr, gain * (1.0 - pan * 0.6), one, start);
+        mix(&mut channels[1], &pop, sr, gain * (0.4 + pan * 0.6), one, start);
     }
 
     let m = channels

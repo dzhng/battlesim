@@ -81,26 +81,26 @@ export interface CapturePreset {
 /** The default cinematic preset: wide top-down transitioning to ground-level tank-follow.
  *  ~37 seconds total, ending at the menu's cinematic ground angle.
  *  This demonstrates the game's scale and detail progression.
- *  All shots follow unit 16 (a parked tank that fires every ~6s from battle start).
- *  The target offsets are relative to the followed unit's position. */
+ *  All shots follow unit 1 (the lead tank moving through forest, road, farmhouse).
+ *  is_followed is set to true for whichever tank the camera centers on. */
 export const DEFAULT_CINEMATIC_REEL: MenuReel = {
   fade_s: 0.8,
   shots: [
     {
       seconds: 9,
-      follow: 16,
+      follow: 1,
       from: { target: [0, 0], distance: 180, yaw: -0.3, pitch: 0.55 },
       to: { target: [0, 0], distance: 100, yaw: -0.2, pitch: 0.38 },
     },
     {
       seconds: 12,
-      follow: 16,
+      follow: 1,
       from: { target: [0, 15], distance: 80, yaw: -0.6, pitch: 0.28 },
       to: { target: [0, 8], distance: 50, yaw: -0.3, pitch: 0.18 },
     },
     {
       seconds: 16,
-      follow: 16,
+      follow: 1,
       from: { target: [-1, 8], distance: 40, yaw: -0.2, pitch: 0.14 },
       to: { target: [-1, 8], distance: 28, yaw: 0.2, pitch: 0.12 },
     },
@@ -116,13 +116,13 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
   },
   "top-down": {
     name: "Top-Down Overview",
-    description: "High-altitude strategic view following an active shooter",
+    description: "High-altitude strategic view following the lead tank",
     reel: {
       fade_s: 0.6,
       shots: [
         {
           seconds: 12,
-          follow: 16,
+          follow: 1,
           from: { target: [0, 0], distance: 180, yaw: 0, pitch: 0.55 },
           to: { target: [20, 30], distance: 160, yaw: 0.4, pitch: 0.5 },
         },
@@ -131,13 +131,13 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
   },
   "ground-level": {
     name: "Ground Level",
-    description: "Low-angle dramatic shot following an active shooter",
+    description: "Low-angle dramatic shot following the lead tank",
     reel: {
       fade_s: 0.6,
       shots: [
         {
           seconds: 15,
-          follow: 16,
+          follow: 1,
           from: { target: [-3, 12], distance: 25, yaw: -1.2, pitch: 0.1 },
           to: { target: [-3, 12], distance: 22, yaw: -0.8, pitch: 0.08 },
         },
@@ -146,13 +146,13 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
   },
   orbit: {
     name: "Orbit",
-    description: "Camera orbits around an active shooter",
+    description: "Camera orbits around the lead tank",
     reel: {
       fade_s: 0.6,
       shots: [
         {
           seconds: 20,
-          follow: 16,
+          follow: 1,
           from: { target: [0, 0], distance: 60, yaw: 0, pitch: 0.25 },
           to: { target: [0, 0], distance: 60, yaw: Math.PI * 2, pitch: 0.25 },
         },
