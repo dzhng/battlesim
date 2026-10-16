@@ -390,3 +390,42 @@ test("a card opening into its detail moves only where it stays nearer its own un
   }
   expect(wrong).toEqual([]);
 });
+
+// ---- Zoom-based card fade tests (U02) ----
+
+import {
+  cardZoomOpacity,
+  CARD_FADE_START_M,
+  CARD_FADE_END_M,
+} from "../src/battle/present/readouts";
+
+test("cards are fully visible at normal command zoom", () => {
+  expect(cardZoomOpacity(200)).toBe(1);
+  expect(cardZoomOpacity(CARD_FADE_START_M + 10)).toBe(1);
+  expect(cardZoomOpacity(CARD_FADE_START_M)).toBe(1);
+});
+
+test("cards are fully hidden when camera is close to ground", () => {
+  expect(cardZoomOpacity(20)).toBe(0);
+  expect(cardZoomOpacity(CARD_FADE_END_M - 10)).toBe(0);
+  expect(cardZoomOpacity(CARD_FADE_END_M)).toBe(0);
+});
+
+test("cards fade linearly between thresholds", () => {
+  const mid = (CARD_FADE_START_M + CARD_FADE_END_M) / 2;
+  const opacity = cardZoomOpacity(mid);
+  expect(opacity).toBeGreaterThan(0);
+  expect(opacity).toBeLessThan(1);
+  expect(opacity).toBeCloseTo(0.5, 1);
+
+  // Check linearity: opacity at 3/4 point should be ~0.75
+  const threeQuarter = CARD_FADE_END_M + 0.75 * (CARD_FADE_START_M - CARD_FADE_END_M);
+  expect(cardZoomOpacity(threeQuarter)).toBeCloseTo(0.75, 1);
+});
+
+test("fade thresholds have sensible defaults", () => {
+  // Per the spec: full above ~90m, gone below ~48m.
+  expect(CARD_FADE_START_M).toBe(90);
+  expect(CARD_FADE_END_M).toBe(48);
+  expect(CARD_FADE_START_M).toBeGreaterThan(CARD_FADE_END_M);
+});

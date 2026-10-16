@@ -44,6 +44,22 @@ import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows
  *  one (`BattleFrame.render`'s high target), and with the world otherwise. */
 export const HIGH_PLANE_ATTR = "data-high-plane";
 
+/** Camera distance thresholds for fading info cards when zoomed in close.
+ *  Cards are fully visible above `CARD_FADE_START_M`, linearly fade to
+ *  fully hidden below `CARD_FADE_END_M`. When players zoom in this close
+ *  they're appreciating the view, not commanding, so cards get out of the way. */
+export const CARD_FADE_START_M = 90;
+export const CARD_FADE_END_M = 48;
+
+/** Compute the zoom-based opacity multiplier for info cards.
+ *  Returns 1 above CARD_FADE_START_M, 0 below CARD_FADE_END_M, and
+ *  linearly interpolates between. */
+export function cardZoomOpacity(cameraDistance: number): number {
+  if (cameraDistance >= CARD_FADE_START_M) return 1;
+  if (cameraDistance <= CARD_FADE_END_M) return 0;
+  return (cameraDistance - CARD_FADE_END_M) / (CARD_FADE_START_M - CARD_FADE_END_M);
+}
+
 /** World point → page CSS pixel, or null when behind the eye. */
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -177,6 +193,7 @@ export function ReadoutLayer({
   const hoveredCard = useRef<string | null>(null);
   const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
+  const zoomOpacity = useRef(1);
   const callouts: Callout[] = [
     ...ghosts.map(
       (g): Callout => ({
@@ -238,6 +255,8 @@ export function ReadoutLayer({
   };
   useImperativeHandle(handle, () => ({
     pick(x, y) {
+      // Fully faded cards don't intercept clicks.
+      if (zoomOpacity.current <= 0) return null;
       const priority = [...calloutsRef.current].sort(
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
@@ -258,6 +277,10 @@ export function ReadoutLayer({
       return !!r && overlaps(r, rect);
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
+      // Fade cards when zoomed in close: players appreciating the view don't
+      // need the command overlay.
+      zoomOpacity.current = cardZoomOpacity(camera.distance);
+
       const contains = (r: ReadoutRect | null | undefined) =>
         !!r && !!hover && hover.x >= r.x0 && hover.x <= r.x1 && hover.y >= r.y0 && hover.y <= r.y1;
       // Retain the original hit area when expansion moves the hovered card.
@@ -486,8 +509,12 @@ export function ReadoutLayer({
         const group = b.node.parentElement!;
         if (inFront) group.dataset.overlapping = "true";
         else delete group.dataset.overlapping;
-        group.style.opacity = String(b.opacity * (softened ? 0.65 : 1));
+        // Apply zoom fade: cards fade out when camera is close to the ground.
+        const finalOpacity = b.opacity * (softened ? 0.65 : 1) * zoomOpacity.current;
+        group.style.opacity = String(finalOpacity);
         group.style.filter = softened ? "blur(0.6px)" : "";
+        // Fully faded cards don't intercept clicks.
+        group.style.pointerEvents = finalOpacity <= 0 ? "none" : "";
       }
     },
   }));
