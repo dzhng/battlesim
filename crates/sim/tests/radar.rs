@@ -113,6 +113,38 @@ fn a_radar_report_rounds_by_the_rules_steps() {
 }
 
 #[test]
+fn a_receiver_finds_an_airborne_emitter_and_a_ground_only_anti_radiation_row_holds() {
+    // A helicopter whose radar emits, hovering 700 m off past what the
+    // jeep sees, is found like any emitter, at its own layer; the jeep's
+    // anti-radiation missile reaches only the ground, so it never fires.
+    let mut rules = receiver_rules(3000.0, "sead_missile");
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_heli",
+        json!({ "capabilities": { "radar": { "emits": true, "detection_m": 1200.0 } } }),
+    );
+    let mut b = battle_of(
+        &rules,
+        [1400.0, 400.0],
+        json!([
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_supply", "position": [100, 260] },
+            { "side": "red", "kind": "test_heli", "position": [800, 200], "engagement": "return_fire_only" }
+        ]),
+    );
+    let contacts = radar_contacts(&b, Side::Blue);
+    let [contact] = contacts.as_slice() else {
+        panic!("expected one radar contact: {contacts:?}");
+    };
+    assert_eq!(contact.layer, contract::catalog::AltitudeLayer::LowAir);
+    for _ in 0..300 {
+        b.step();
+    }
+    assert_eq!(shots(&b, UnitId(0)), 0);
+}
+
+#[test]
 fn radar_contact_refreshes_and_does_not_reveal_the_ground() {
     let rules = receiver_rules(1000.0, "hmg");
     let mut b = battle_of(

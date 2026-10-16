@@ -309,7 +309,6 @@ impl SideKnowledge {
                 u.alive()
                     && u.side != side
                     && !self.identifies(u.id, tick)
-                    && !u.airborne()
                     && u.unit_type(rules)
                         .capabilities
                         .radar
@@ -343,7 +342,7 @@ impl SideKnowledge {
                 id: ContactId(0),
                 source: ContactSource::Radar,
                 center,
-                layer: AltitudeLayer::Ground,
+                layer: emitter.layer(),
                 fixed_wing: emitter.fixed_wing(),
                 radius,
                 evidence_tick: tick,
