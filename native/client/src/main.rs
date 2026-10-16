@@ -99,6 +99,17 @@ fn runtime_dir(executable: &Path, configured: Option<&Path>) -> PathBuf {
     PathBuf::from(RUNTIME)
 }
 
+fn repository_root(executable: &Path) -> PathBuf {
+    for ancestor in executable.ancestors() {
+        if ancestor.join("fixtures/game.json").is_file() {
+            return ancestor.to_owned();
+        }
+    }
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .to_owned()
+}
+
 fn args() -> Result<Args, String> {
     let mut run = None;
     let (mut scene, mut out, mut window, mut pace) = (None, None, "offscreen".to_owned(), 120);
@@ -183,8 +194,13 @@ impl Run {
             configured.as_deref().map(Path::new),
         );
         let library = Library::open(&runtime)?;
+        let root = executable
+            .as_deref()
+            .map(repository_root)
+            .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
+        std::env::set_var("BATTLEGAME_ROOT", &root);
         let opened = Instant::now();
-        let mut replay = Replay::open(&args.scene, &library)?;
+        let mut replay = Replay::open_with_root(&args.scene, &library, &root)?;
         println!(
             "world: ground set, scenery placed and the battle loaded in {:.2} s",
             opened.elapsed().as_secs_f64()
@@ -241,7 +257,8 @@ impl Run {
         );
 
         let built = Instant::now();
-        let pipelines = Pipelines::build(&gpu.device, pipelines::DIR)?;
+        let pipeline_dir = root.join("packages/battle-renderer/pipelines");
+        let pipelines = Pipelines::build(&gpu.device, &pipeline_dir.to_string_lossy())?;
         println!(
             "pipelines: {} built in {:.2} s on {}",
             pipelines.names().count(),
@@ -299,7 +316,14 @@ impl Run {
         // The sun's cascades are fitted over the ground's box each frame.
         let fitted = Some((replay.light.clone(), ground.map_box));
         replay.presentation_mut().set_shadow(fitted);
-        let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
+        let effects = Effects::new(
+            &gpu.device,
+            &gpu.queue,
+            &pipelines,
+            &environment,
+            &targets,
+            &root.join("assets/third-party/effects"),
+        )?;
         // Fog of war over the ground's height pages; a fresh renderer holds none.
         let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
         replay.presentation_mut().resend_fog();
@@ -318,10 +342,10 @@ impl Run {
                     let text = std::fs::read_to_string(p).map_err(|e| format!("{p}: {e}"))?;
                     serde_json::from_str(&text).map_err(|e| format!("{p}: {e}"))
                 };
-                let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/");
+                let fixtures = root.join("fixtures");
                 let setup = audio::setup(
-                    &read(&format!("{root}game.json"))?,
-                    &read(&format!("{root}sounds.json"))?,
+                    &read(&fixtures.join("game.json").to_string_lossy())?,
+                    &read(&fixtures.join("sounds.json").to_string_lossy())?,
                 );
                 let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
                 Some(Audio::new(&setup, &runtime, output)?)

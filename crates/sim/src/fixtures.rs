@@ -11,6 +11,9 @@ use serde_json::Value;
 
 /// The repository's `fixtures/`.
 pub fn dir() -> PathBuf {
+    if let Some(root) = std::env::var_os("BATTLEGAME_ROOT") {
+        return PathBuf::from(root).join("fixtures");
+    }
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures")
 }
 
