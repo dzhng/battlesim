@@ -278,6 +278,16 @@ async function picker(ctx, page, shot) {
     `${shot}: leaving the picker closes the variants`,
     (await page.locator(".hud-purchase-flyout").count()) === 0,
   );
+  // The filter narrows the grid across categories; the picture pins the field
+  // in the tab row. Captured once, on the full-wallet shot.
+  if (!short) {
+    const field = page.getByRole("textbox", { name: "Search units" });
+    await field.fill("tank");
+    await pointerAway(page);
+    await contained(ctx, page, `${shot} search`);
+    await ctx.matchBaseline(page, "purchase-search");
+    await field.fill("");
+  }
 }
 
 export async function run(ctx) {
