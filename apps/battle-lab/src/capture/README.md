@@ -1,33 +1,54 @@
 # Cinematic Capture Mode
 
-Record marketing clips from the menu backdrop battle with scripted camera paths.
+Record marketing clips from battles with scripted camera paths and full in-game audio.
 
 ## Quick Start
 
 ```bash
-# Record with default settings (1920x1080, 60fps, default camera path)
+# Record menu backdrop with default settings (1920x1080, 60fps, audio on)
 pnpm --filter battle-web capture
 
 # Record at 4K with ground-level camera
 pnpm --filter battle-web capture --preset=ground-level --width=3840 --height=2160
 
-# List available presets
+# Record skirmish-style battle
+pnpm --filter battle-web capture --scene=skirmish
+
+# List all options
 pnpm --filter battle-web capture --help
 ```
 
-Output goes to `throwaway/capture/` as WebM (VP9 + Opus).
+Output goes to `throwaway/capture/` as MP4 (H.264 + AAC). Use `--webm` for WebM output.
+
+## CLI Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--preset=<name>` | default | Camera preset |
+| `--width=<n>` | 1920 | Output width in pixels |
+| `--height=<n>` | 1080 | Output height in pixels |
+| `--fps=<n>` | 60 | Frame rate |
+| `--no-audio` | — | Disable audio recording |
+| `--no-cards` | — | Hide info cards |
+| `--webm` | — | Output WebM instead of MP4 |
+| `--output=<path>` | throwaway/capture/ | Output directory |
+| `--scene=<name>` | menu | Scene: menu or skirmish |
 
 ## URL Parameters
 
-You can also access capture mode directly in the browser:
+Access capture mode directly in the browser:
 
 ```
-http://localhost:5173/labs/capture?capture=<preset>&capture-width=1920&capture-height=1080
+# Menu backdrop
+http://localhost:5173/labs/capture?capture=default
+
+# Skirmish battle
+http://localhost:5173/labs/capture-skirmish?capture=default
 ```
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `capture` | — | Camera preset name (required to enable capture) |
+| `capture` | — | Camera preset name (required) |
 | `capture-width` | 1920 | Output width in pixels |
 | `capture-height` | 1080 | Output height in pixels |
 | `capture-fps` | 60 | Target frame rate |
@@ -39,12 +60,12 @@ http://localhost:5173/labs/capture?capture=<preset>&capture-width=1920&capture-h
 
 Built-in presets provide common cinematic shots:
 
-| Preset | Description |
-|--------|-------------|
-| `default` | Wide top-down view transitioning to ground-level tank-follow |
-| `top-down` | High-altitude strategic overview |
-| `ground-level` | Low-angle dramatic shot following a unit |
-| `orbit` | Camera orbits around a central point |
+| Preset | Duration | Description |
+|--------|----------|-------------|
+| `default` | ~38s | Wide top-down view transitioning to ground-level tank-follow |
+| `top-down` | 12s | High-altitude strategic overview |
+| `ground-level` | 15s | Low-angle dramatic shot following a unit |
+| `orbit` | 20s | Camera orbits around a central point |
 
 ## Adding Custom Presets
 
@@ -96,25 +117,47 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
 The camera smoothly interpolates between `from` and `to` over the shot's duration.
 When following a unit, the camera tracks it with a slight lag for cinematic smoothness.
 
+## Audio
+
+Audio is enabled by default. The capture system:
+- Taps the battle's audio output via `BattleAudio.createCaptureTap()`
+- Records full in-game sound: weapons, vehicles, ambience, voices
+- Uses zero-cost implementation when capture is off
+
+Use `--no-audio` to disable audio recording.
+
+## Scenes
+
+Two scenes are available:
+
+### Menu Backdrop (`--scene=menu`)
+Records the menu backdrop battle (market-town map with encounter units).
+This is the same battle that plays behind the main menu.
+
+### Skirmish (`--scene=skirmish`)
+Records the street test map with the "advance" encounter.
+Blue forces advance through a street against red defenders.
+
+## Output Format
+
+**Default (MP4):**
+- Container: MP4
+- Video: H.264 (CRF 18, constant 60fps)
+- Audio: AAC (192kbps)
+- Requires ffmpeg for transcoding
+
+**WebM (`--webm`):**
+- Container: WebM
+- Video: VP9 (16 Mbps)
+- Audio: Opus (192kbps)
+- Direct from MediaRecorder (no ffmpeg needed)
+
 ## Technical Notes
-
-### Output Format
-
-- **Container**: WebM
-- **Video**: VP9 (16 Mbps)
-- **Audio**: Opus (when enabled)
-
-The browser's MediaRecorder API produces WebM. For MP4/H.264 output, you can
-transcode with ffmpeg:
-
-```bash
-ffmpeg -i capture-default-2024-01-01.webm -c:v libx264 -crf 18 -c:a aac output.mp4
-```
 
 ### Zero-Cost When Off
 
 The audio capture tap (`WebAudioSink.createCaptureTap()`) is only created when
-capture mode is active. Normal gameplay has no overhead.
+capture mode is active. Normal gameplay has no overhead from the capture system.
 
 ### Resolution and Performance
 
@@ -123,12 +166,32 @@ Recording at higher resolutions may affect real-time performance. If frames drop
 - Use a preset with fewer close-up shots
 - Ensure the GPU can handle the scene at the target resolution
 
+### ffmpeg Transcoding
+
+The CLI auto-transcodes WebM to MP4 using ffmpeg. If ffmpeg is not found,
+the output remains WebM with a warning. Install ffmpeg:
+
+```bash
+# macOS
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt install ffmpeg
+
+# Windows
+choco install ffmpeg
+```
+
 ## Development
 
 The capture system consists of:
 
 - `captureConfig.ts` - Settings, presets, and URL parameter parsing
 - `CinematicCapture.tsx` - Recording hooks and overlay UI
-- `routes/capture.tsx` - Dedicated capture route
+- `routes/capture.tsx` - Menu backdrop capture route
+- `routes/captureSkirmish.tsx` - Skirmish capture route
 - `web/capture.mjs` - CLI wrapper for automation
-- `web/scenes/capture.mjs` - Scene test for CI
+- `web/scenes/capture.mjs` - Scene test for menu capture
+- `web/scenes/capture-skirmish.mjs` - Scene test for skirmish capture
+- `packages/battle-audio/src/webAudioSink.ts` - Audio capture tap
+- `packages/battle-audio/src/battleAudio.ts` - Battle audio tap wrapper

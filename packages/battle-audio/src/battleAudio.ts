@@ -205,6 +205,19 @@ export class BattleAudio {
       error: this.error,
     };
   }
+
+  /** Create a MediaStream tap for recording the battle's audio output.
+   *  Zero-cost when not called: the destination node is only created on demand.
+   *  Returns the MediaStream that can be passed to MediaRecorder, or null
+   *  if audio is not ready yet. */
+  createCaptureTap(): MediaStream | null {
+    return this.sink?.createCaptureTap() ?? null;
+  }
+
+  /** Release the capture tap when recording is done. */
+  releaseCaptureTap(): void {
+    this.sink?.releaseCaptureTap();
+  }
   dispose() {
     if (this.disposed) return;
     this.disposed = true;

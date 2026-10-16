@@ -14,6 +14,7 @@ const SoundWorkbench = lazy(() => import("../../sound-workbench/src/SoundWorkben
 /** The pages: the benchmark page also owns its named workload URLs. */
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   capture: lazy(() => import("./routes/capture")),
+  "capture-skirmish": lazy(() => import("./routes/captureSkirmish")),
   "graphics-test": lazy(() => import("./routes/graphicsTest")),
   cursor: lazy(() => import("./routes/cursor")),
   frame: lazy(() => import("./routes/frame")),

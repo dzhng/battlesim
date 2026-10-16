@@ -9,6 +9,15 @@
     "loading": false
   },
   {
+    "id": "capture-skirmish",
+    "route": "/labs/capture-skirmish",
+    "describe": "Cinematic capture mode for skirmish-style battles: records scripted camera paths over the street encounter for marketing clips with full battle audio. Use ?capture=<preset> for camera path.",
+    "map": "street",
+    "tool": true,
+    "catalog": "test",
+    "loading": false
+  },
+  {
     "id": "graphics-test",
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",

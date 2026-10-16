@@ -146,6 +146,7 @@ function CaptureBattle({
   const [warmed, setWarmed] = useState(false);
   const recordingStartedRef = useRef(false);
   const pilotStartRef = useRef<number | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
 
   useLabLoading("renderer", warmed);
 
@@ -162,9 +163,10 @@ function CaptureBattle({
     scripted,
     inputEnabled: false,
     xray: false,
+    sound: settings.audio,
   });
 
-  const { sim } = session;
+  const { sim, audio, hear } = session;
 
   const unitAt = useCallback(
     (id: number) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null,
@@ -180,7 +182,23 @@ function CaptureBattle({
       const fps = settings.fps;
       const videoStream = canvas.captureStream(fps);
 
-      let combinedStream = videoStream;
+      let combinedStream: MediaStream;
+
+      if (settings.audio && audio) {
+        const audioTap = audio.createCaptureTap();
+        if (audioTap) {
+          audioStreamRef.current = audioTap;
+          const tracks = [
+            ...videoStream.getVideoTracks(),
+            ...audioTap.getAudioTracks(),
+          ];
+          combinedStream = new MediaStream(tracks);
+        } else {
+          combinedStream = videoStream;
+        }
+      } else {
+        combinedStream = videoStream;
+      }
 
       const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
         ? "video/webm;codecs=vp9,opus"
@@ -191,6 +209,7 @@ function CaptureBattle({
       const recorder = new MediaRecorder(combinedStream, {
         mimeType,
         videoBitsPerSecond: 16_000_000,
+        audioBitsPerSecond: 192_000,
       });
 
       chunksRef.current = [];
@@ -203,6 +222,7 @@ function CaptureBattle({
 
       recorder.onstop = () => {
         setState({ status: "encoding" });
+        audio?.releaseCaptureTap();
         setTimeout(() => {
           const blob = new Blob(chunksRef.current, { type: mimeType });
           const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -212,6 +232,7 @@ function CaptureBattle({
       };
 
       recorder.onerror = (e) => {
+        audio?.releaseCaptureTap();
         setState({
           status: "error",
           message: `Recording error: ${(e as ErrorEvent).message ?? "unknown"}`,
@@ -222,12 +243,13 @@ function CaptureBattle({
       recorder.start(1000);
       setState({ status: "recording", elapsed: 0, duration });
     } catch (err) {
+      audio?.releaseCaptureTap();
       setState({
         status: "error",
         message: `Failed to start recording: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
-  }, [settings, duration, setState]);
+  }, [settings, duration, setState, audio]);
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current;
@@ -286,6 +308,7 @@ function CaptureBattle({
       return finalPose;
     },
     frame({ now }) {
+      hear();
       if (pilotStartRef.current === null || state.status !== "recording") return;
       const elapsed = (now - pilotStartRef.current) / 1000;
       setState({ status: "recording", elapsed, duration });
@@ -311,6 +334,12 @@ function CaptureBattle({
       startRecording();
     }
   }, [warmed, state.status, startRecording]);
+
+  useEffect(() => {
+    return () => {
+      audio?.releaseCaptureTap();
+    };
+  }, [audio]);
 
   const world = useFeed(session.meshes);
   if (!session.meshes || sim.error) return null;

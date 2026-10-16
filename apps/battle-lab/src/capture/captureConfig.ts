@@ -68,26 +68,27 @@ export interface CapturePreset {
 }
 
 /** The default cinematic preset: wide top-down transitioning to ground-level tank-follow.
+ *  ~38 seconds total, ending at the menu's cinematic ground angle.
  *  This demonstrates the game's scale and detail progression. */
 export const DEFAULT_CINEMATIC_REEL: MenuReel = {
   fade_s: 0.8,
   shots: [
     {
-      seconds: 6,
-      from: { target: [0, 0], distance: 150, yaw: -0.5, pitch: 0.45 },
-      to: { target: [0, 0], distance: 120, yaw: -0.3, pitch: 0.40 },
-    },
-    {
-      seconds: 8,
-      follow: 0,
-      from: { target: [0, 10], distance: 80, yaw: -0.8, pitch: 0.30 },
-      to: { target: [0, 5], distance: 50, yaw: -0.5, pitch: 0.20 },
-    },
-    {
       seconds: 10,
+      from: { target: [0, 0], distance: 180, yaw: -0.4, pitch: 0.50 },
+      to: { target: [0, 0], distance: 120, yaw: -0.2, pitch: 0.38 },
+    },
+    {
+      seconds: 12,
       follow: 0,
-      from: { target: [-2, 8], distance: 35, yaw: -0.3, pitch: 0.14 },
-      to: { target: [-2, 8], distance: 28, yaw: 0.1, pitch: 0.12 },
+      from: { target: [0, 15], distance: 90, yaw: -0.6, pitch: 0.28 },
+      to: { target: [0, 8], distance: 55, yaw: -0.3, pitch: 0.18 },
+    },
+    {
+      seconds: 16,
+      follow: 0,
+      from: { target: [-1, 8], distance: 45, yaw: -0.2, pitch: 0.15 },
+      to: { target: [-1, 8], distance: 30, yaw: 0.2, pitch: 0.13 },
     },
   ],
 };
