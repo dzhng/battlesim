@@ -55,15 +55,15 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
-    // Limiter: very gentle to preserve caliber hierarchy.
-    // Big guns (tank/artillery) must stay ~20+ dB above small arms.
-    // High threshold + low ratio lets peaks through with minimal squashing.
+    // Limiter: manages headroom while preserving caliber hierarchy.
+    // Master gain is lowered to 0.5; limiter catches peaks without squashing
+    // the big-gun vs small-arms dynamic range (~20+ dB separation).
     this.limiter = new DynamicsCompressorNode(context, {
-      threshold: 0,
-      knee: 10,
-      ratio: 2,
-      attack: 0.005,
-      release: 0.2,
+      threshold: -6,
+      knee: 6,
+      ratio: 3,
+      attack: 0.002,
+      release: 0.15,
     });
     this.graph.push(this.limiter);
     this.limiter.connect(context.destination);
