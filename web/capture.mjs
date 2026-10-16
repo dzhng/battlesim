@@ -275,11 +275,10 @@ async function captureWithCDP(page, args, server) {
   let droppedEarlyFrames = 0;
   let captureStartTime = null;
   let captureDuration = 0;
-  const frameTimestamps = []; // { path, timestamp_s }
-  let firstValidFrameTime = null;
-  // The reel-ready timestamp from the page (performance.now() when first pose was rendered)
+  const rawFrames = []; // { path, cdpTimestamp }
+  // The reel-ready timestamp from the page (performance.now() ms when first pose was rendered)
   let reelReadyTime = null;
-  // CDP timestamp when the reel became ready (for filtering frames)
+  // CDP timestamp (seconds since epoch) when the reel became ready
   let reelReadyCdpTime = null;
   
   // Handle screencast frames with real timestamps
@@ -289,32 +288,34 @@ async function captureWithCDP(page, args, server) {
     try {
       const frameTime = event.metadata.timestamp;
       
-      // Check if we have the reel-ready signal yet
-      if (reelReadyTime === null) {
-        reelReadyTime = await page.evaluate(() => window.__capture?.reelReadyTime ?? null);
-        if (reelReadyTime !== null) {
-          // Mark this CDP timestamp as the ready point
-          reelReadyCdpTime = frameTime;
+      // Check if we have the reel-ready signal yet, and convert to CDP timestamp space
+      if (reelReadyCdpTime === null) {
+        const readyInfo = await page.evaluate(() => {
+          const reel = window.__capture?.reelReadyTime;
+          if (reel === null || reel === undefined) return null;
+          // Return both reelReadyTime (performance.now) and current timestamps for conversion
+          return {
+            reelReadyTime: reel,
+            performanceNow: performance.now(),
+            dateNow: Date.now(),
+          };
+        });
+        if (readyInfo !== null) {
+          reelReadyTime = readyInfo.reelReadyTime;
+          // Convert performance.now() to CDP timestamp (seconds since Unix epoch):
+          // CDP timestamp ≈ Date.now()/1000
+          // performance.now() is ms since page load
+          // reelReadyCdpTime = (dateNow - performanceNow + reelReadyTime) / 1000
+          const pageLoadEpochMs = readyInfo.dateNow - readyInfo.performanceNow;
+          reelReadyCdpTime = (pageLoadEpochMs + reelReadyTime) / 1000;
         }
       }
       
-      // Drop frames before reel-ready (these show the wrong camera pose)
-      if (reelReadyCdpTime === null || frameTime < reelReadyCdpTime) {
-        droppedEarlyFrames++;
-        await cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId });
-        return;
-      }
-      
+      // Save all frames for now; we'll filter by timestamp after capture
       const frameData = Buffer.from(event.data, "base64");
-      const framePath = join(framesDir, `frame-${String(frameCount).padStart(6, "0")}.jpg`);
+      const framePath = join(framesDir, `frame-${String(rawFrames.length).padStart(6, "0")}.jpg`);
       await writeFile(framePath, frameData);
-      
-      // Use CDP timestamp relative to reel-ready time
-      if (firstValidFrameTime === null) firstValidFrameTime = frameTime;
-      const relativeTime = frameTime - firstValidFrameTime;
-      
-      frameTimestamps.push({ path: framePath, timestamp_s: relativeTime });
-      frameCount++;
+      rawFrames.push({ path: framePath, cdpTimestamp: frameTime });
       
       // Acknowledge frame to receive next one
       await cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId });
@@ -323,8 +324,7 @@ async function captureWithCDP(page, args, server) {
       const elapsed = (Date.now() - captureStartTime) / 1000;
       if (captureDuration > 0) {
         const pct = Math.min(100, (elapsed / captureDuration) * 100).toFixed(0);
-        const dropInfo = droppedEarlyFrames > 0 ? ` (dropped ${droppedEarlyFrames} early)` : "";
-        process.stdout.write(`\r  Recording: ${elapsed.toFixed(1)}s / ${captureDuration.toFixed(1)}s (${pct}%) [${frameCount} frames${dropInfo}]    `);
+        process.stdout.write(`\r  Recording: ${elapsed.toFixed(1)}s / ${captureDuration.toFixed(1)}s (${pct}%) [${rawFrames.length} frames]    `);
       }
     } catch (err) {
       console.error("Frame error:", err.message);
@@ -368,21 +368,64 @@ async function captureWithCDP(page, args, server) {
   // Stop screencast
   await cdp.send("Page.stopScreencast");
   
+  // Filter frames: drop those before reel-ready timestamp
+  let validFrames = rawFrames;
+  if (reelReadyCdpTime !== null) {
+    validFrames = rawFrames.filter(f => f.cdpTimestamp >= reelReadyCdpTime);
+    droppedEarlyFrames = rawFrames.length - validFrames.length;
+  }
+  
+  // Sort by timestamp (should already be sorted, but ensure)
+  validFrames.sort((a, b) => a.cdpTimestamp - b.cdpTimestamp);
+  
+  // Dedupe frames with same or very close timestamps (within 1ms)
+  const dedupedFrames = [];
+  for (const frame of validFrames) {
+    const last = dedupedFrames[dedupedFrames.length - 1];
+    if (!last || frame.cdpTimestamp - last.cdpTimestamp > 0.001) {
+      dedupedFrames.push(frame);
+    } else {
+      // Duplicate timestamp - remove the old frame file
+      await unlink(frame.path).catch(() => {});
+    }
+  }
+  
+  // Delete dropped early frames
+  for (const frame of rawFrames) {
+    if (!validFrames.includes(frame)) {
+      await unlink(frame.path).catch(() => {});
+    }
+  }
+  
+  // Build frameTimestamps with relative times from first valid frame
+  const frameTimestamps = [];
+  const firstValidTime = dedupedFrames[0]?.cdpTimestamp ?? 0;
+  for (const frame of dedupedFrames) {
+    frameTimestamps.push({
+      path: frame.path,
+      timestamp_s: frame.cdpTimestamp - firstValidTime,
+    });
+  }
+  
+  const frameCount = frameTimestamps.length;
   const actualDuration = frameTimestamps.length > 0 
     ? frameTimestamps[frameTimestamps.length - 1].timestamp_s 
     : 0;
-  console.log(`  Captured ${frameCount} frames over ${actualDuration.toFixed(2)}s`);
+  console.log(`  Captured ${rawFrames.length} raw frames, kept ${frameCount} (dropped ${droppedEarlyFrames} early) over ${actualDuration.toFixed(2)}s`);
   
   // Build concat demuxer file with per-frame durations
   console.log("Building frame list with real timestamps...");
+  const minDuration = 1 / 120; // Clamp to >= 1/120s to avoid negative/zero durations
   let concatContent = "";
   for (let i = 0; i < frameTimestamps.length; i++) {
     const frame = frameTimestamps[i];
     const nextFrame = frameTimestamps[i + 1];
     // Duration is time to next frame, or 1/fps for the last frame
-    const duration = nextFrame 
+    let duration = nextFrame 
       ? (nextFrame.timestamp_s - frame.timestamp_s) 
       : (1 / args.fps);
+    // Clamp to minimum to prevent ffmpeg errors with negative/zero durations
+    duration = Math.max(minDuration, duration);
     concatContent += `file '${frame.path}'\n`;
     concatContent += `duration ${duration.toFixed(6)}\n`;
   }

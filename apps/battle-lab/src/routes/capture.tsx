@@ -414,12 +414,14 @@ function CaptureBattle({
   const trackLag = 0.5;
   const trackedRef = useRef<{ follow: number; at: [number, number]; now: number } | null>(null);
   const lastSubjectRef = useRef<readonly [number, number]>([0, 0]);
+  /** True once the follow unit is resolved and the smoothed position is initialized. */
+  const followInitializedRef = useRef(false);
 
   const pilot: ViewportPilot = {
     pose(now) {
       if (pilotStartRef.current === null) {
         pilotStartRef.current = now;
-        // Don't start recording yet - wait for first frame to render
+        // Don't start recording yet - wait for follow to initialize and first frame to render
       }
 
       const elapsed = (now - pilotStartRef.current) / 1000;
@@ -440,7 +442,9 @@ function CaptureBattle({
           const live = unitPosition(followedId);
           const tracked = trackedRef.current;
           if (tracked?.follow !== followedId) {
+            // Initialize smoothed position directly to live position (no lag on first frame)
             trackedRef.current = live ? { follow: followedId, at: [live[0], live[1]], now } : null;
+            if (live) followInitializedRef.current = true;
           }
           if (trackedRef.current) {
             if (live) {
@@ -459,6 +463,8 @@ function CaptureBattle({
           lastSubjectRef.current = [x, y];
         }
       } else {
+        // No follow needed - mark as initialized
+        followInitializedRef.current = true;
         lastSubjectRef.current = [x, y];
       }
 
@@ -473,11 +479,14 @@ function CaptureBattle({
       // Track frames rendered with the reel pose applied
       if (pilotStartRef.current !== null) {
         reelFrameCountRef.current++;
-        // Signal reel-ready after the first frame is rendered with the reel's pose
-        if (reelFrameCountRef.current === 1 && reelReadyTimeRef.current === null) {
+        // Signal reel-ready only after:
+        // 1. Follow unit is resolved and smoothed position is initialized
+        // 2. At least one frame has rendered with the correct pose
+        const canBeReady = followInitializedRef.current && reelFrameCountRef.current >= 1;
+        if (canBeReady && reelReadyTimeRef.current === null) {
           reelReadyTimeRef.current = now;
           onReelReadyRef.current?.(now);
-          // Now that the first pose is applied and rendered, start recording
+          // Now that the pose is correct and rendered, start recording
           if (warmed && stateRef.current.status === "warming") {
             startRecording();
           }
