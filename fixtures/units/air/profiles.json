@@ -41,6 +41,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 800
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_utility_helicopter": {
@@ -84,6 +90,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_heavy_helicopter": {
@@ -127,6 +139,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 1000
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_attack_helicopter": {
@@ -170,6 +188,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_armoured_helicopter": {
@@ -213,6 +237,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     }
   }

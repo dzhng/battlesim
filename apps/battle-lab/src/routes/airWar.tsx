@@ -347,7 +347,7 @@ function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
       `${sensors.ground_m}/${sensors.low_air_m ?? sensors.ground_m}/${highAirSight(t, catalog.rules.sensors.unaided_high_air_m)}`,
     ],
     ["fuel", caps.air ? String(caps.air.fuel_capacity_s) : "—"],
-    ["flares", caps.air?.flares ? `${caps.air.flares.capacity}/${caps.air.flares.reload_s}` : "—"],
+    ["flares", caps.flares ? `${caps.flares.capacity}/${caps.flares.reload_s}` : "—"],
     ["air_reach", `${reach.low_air}/${reach.high_air}`],
     ["radar", radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—"],
     ["radar_receiver", caps.radar_receiver ? String(caps.radar_receiver.range_m) : "—"],

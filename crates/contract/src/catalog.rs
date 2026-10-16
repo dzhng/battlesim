@@ -370,6 +370,9 @@ pub struct Capabilities {
     /// Radar emission/detection is separate from optical sensors.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radar: Option<RadarCapability>,
+    /// Decoys ejected against an incoming decoyable seeker, a charge each.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flares: Option<FlareCapability>,
     /// A radar warning receiver: it finds enemy radars that emit, by
     /// bearing and range, never identifying them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -437,8 +440,6 @@ pub struct RefundWeights {
 pub struct AirCapability {
     #[serde(alias = "fuel_s")]
     pub fuel_capacity_s: f64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub flares: Option<FlareCapability>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub afterburner: Option<AfterburnerCapability>,
     pub refund: RefundWeights,
@@ -1756,11 +1757,6 @@ fn check(
         if !positive(air.fuel_capacity_s) {
             return rule("capabilities.air.fuel_capacity_s must be positive");
         }
-        if let Some(flares) = air.flares {
-            if flares.capacity == 0 || !positive(flares.reload_s) {
-                return rule("capabilities.air.flares needs positive capacity and reload_s");
-            }
-        }
         if let Some(afterburner) = air.afterburner {
             if !(afterburner.speed_multiplier > 1.0
                 && afterburner.fuel_multiplier > 1.0
@@ -1790,6 +1786,12 @@ fn check(
         if rows.len() > 4 {
             return rule("an aircraft may carry at most four distinct weapon rows");
         }
+    }
+    if t.capabilities
+        .flares
+        .is_some_and(|f| f.capacity == 0 || !positive(f.reload_s))
+    {
+        return rule("capabilities.flares needs positive capacity and reload_s");
     }
     if t.capabilities
         .radar_receiver

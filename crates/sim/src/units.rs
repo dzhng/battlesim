@@ -280,6 +280,8 @@ pub struct Unit {
     /// A supply vehicle's remaining stock (L05); `None` for every other unit.
     pub stock: Option<u32>,
     pub protection: Option<crate::protection::State>,
+    /// Its flares, for a unit whose type carries them.
+    pub flares: Option<Flares>,
     /// Service received: progress toward the next item, and why or why not.
     pub progress_service: crate::supply::Progress,
     pub service: contract::observation::ServiceStatus,
@@ -327,13 +329,17 @@ pub struct AirState {
     pub afterburner: bool,
     /// Close air engagement target while this aircraft is in a dogfight.
     pub dogfight_target: Option<UnitId>,
-    /// Remaining automatic flare charges and the next reload tick.
-    pub flare_charges: u32,
-    pub flare_ready_tick: u64,
     /// Current ground attack run, if the explicit attack names a ground aim.
     pub pass: Option<crate::air::pass::PassPlan>,
     /// The one tick in which a pass's unpowered round may leave the jet.
     pub pass_release: bool,
+}
+
+/// A unit's flares: the charges left and the tick the next is ready.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Flares {
+    pub charges: u32,
+    pub ready_tick: u64,
 }
 
 /// How an aircraft arrives: it aims a little past its goal, then, stopped
@@ -652,9 +658,13 @@ impl Unit {
             };
             d.f64(a.fuel_s)
                 .u64(a.afterburner as u64)
-                .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)))
-                .u64(a.flare_charges as u64)
-                .u64(a.flare_ready_tick);
+                .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)));
+        }
+        // Flares follow a flier's flight state; a flier without them hashes
+        // an empty store.
+        if self.air.is_some() || self.flares.is_some() {
+            let f = self.flares.unwrap_or_default();
+            d.u64(f.charges as u64).u64(f.ready_tick);
         }
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),

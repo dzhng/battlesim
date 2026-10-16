@@ -234,9 +234,9 @@ export interface UnitType {
     };
     air?: {
       fuel_capacity_s: number;
-      flares?: { capacity: number; reload_s: number };
       afterburner?: { speed_multiplier: number; fuel_multiplier: number };
     };
+    flares?: { capacity: number; reload_s: number };
     radar?: { emits: boolean; detection_m: number };
     /** It finds enemy radars that emit, within `range_m`. */
     radar_receiver?: { range_m: number };

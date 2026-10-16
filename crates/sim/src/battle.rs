@@ -560,15 +560,8 @@ fn spawn_unit(
                 .air
                 .as_ref()
                 .map_or(f64::INFINITY, |air| air.fuel_capacity_s);
-            let flare_charges = t
-                .capabilities
-                .air
-                .as_ref()
-                .and_then(|air| air.flares)
-                .map_or(0, |f| f.capacity);
             units::AirState {
                 fuel_s,
-                flare_charges,
                 ..Default::default()
             }
         }),
@@ -588,6 +581,10 @@ fn spawn_unit(
             .active_protection
             .as_ref()
             .map(crate::protection::State::new),
+        flares: t.capabilities.flares.map(|f| units::Flares {
+            charges: f.capacity,
+            ready_tick: 0,
+        }),
         progress_service: Default::default(),
         service: ServiceStatus::OutOfRange,
         sight_forward: u.yaw,
@@ -3167,24 +3164,20 @@ impl Battle {
                     let flare = self.units[target_id.0 as usize]
                         .unit_type(&self.rules)
                         .capabilities
-                        .air
-                        .as_ref()
-                        .and_then(|a| a.flares);
+                        .flares;
                     if let Some(flare) = flare {
-                        let ready =
-                            self.units[target_id.0 as usize]
-                                .air
-                                .as_ref()
-                                .is_some_and(|a| {
-                                    a.flare_charges > 0 && a.flare_ready_tick <= self.tick
-                                });
+                        let ready = self.units[target_id.0 as usize]
+                            .flares
+                            .is_some_and(|f| f.charges > 0 && f.ready_tick <= self.tick);
                         if ready {
                             let unit = &self.units[target_id.0 as usize];
-                            let half = unit.hull.expect("airframe hull");
+                            // Ejected off its side, from its hull's top (a
+                            // squad's, from a soldier's height).
+                            let half = unit.hull.unwrap_or(v3(0.5, 0.5, 0.9));
                             let lateral = v2(-libm::sin(unit.yaw), libm::cos(unit.yaw));
                             let position = (unit.position.xy() + lateral * (half.y + 0.5))
                                 .with_z(unit.position.z + half.z);
-                            let base = unit.air.unwrap().velocity;
+                            let base = unit.air.map_or(v3(0.0, 0.0, 0.0), |air| air.velocity);
                             let velocity = v3(
                                 base.x + lateral.x * 18.0,
                                 base.y + lateral.y * 18.0,
@@ -3192,9 +3185,9 @@ impl Battle {
                             );
                             self.projectiles
                                 .decoy_seeker(projectile, position, velocity);
-                            if let Some(air) = self.units[target_id.0 as usize].air.as_mut() {
-                                air.flare_charges -= 1;
-                                air.flare_ready_tick = self.tick
+                            if let Some(f) = self.units[target_id.0 as usize].flares.as_mut() {
+                                f.charges -= 1;
+                                f.ready_tick = self.tick
                                     + (flare.reload_s * self.rules.tick_hz as f64).round() as u64;
                             }
                             if let Some(round) = self.rounds.get_mut(&projectile) {
@@ -4466,17 +4459,15 @@ impl Battle {
                             .air
                             .as_ref()
                             .is_some_and(|air| air.dogfight_target.is_some()),
-                        flares: u.air.as_ref().and_then(|air| {
+                        flares: u.flares.and_then(|state| {
                             u.unit_type(&self.rules)
                                 .capabilities
-                                .air
-                                .as_ref()
-                                .and_then(|a| a.flares)
+                                .flares
                                 .map(|definition| {
                                     let remaining =
-                                        (air.flare_ready_tick as f64 - self.tick as f64).max(0.0);
+                                        (state.ready_tick as f64 - self.tick as f64).max(0.0);
                                     contract::observation::FlareReadiness {
-                                        charges: air.flare_charges,
+                                        charges: state.charges,
                                         cooldown: (remaining > 0.0).then(|| {
                                             (1.0 - remaining
                                                 / (definition.reload_s

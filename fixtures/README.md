@@ -108,7 +108,7 @@ radar and never authors one.
   - a unit's `parts` gather along the chain, the parent's first;
   - anything else is replaced, a list of strings (`roles`, `slots`) whole.
   - What a variant can't do: drop a key or a mount (by id) it inherits. A type that loses a mount extends a common parent instead.
-- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
+- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules, so a part may add any capability: the Trophy adds active protection, and a radar or a flare pod would add `radar`, `radar_receiver` or `flares` the same way. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
 
 Resolution happens once through the contract owner. Invalid inheritance,
 references, physical mounts or numbers fail at load with an entry-specific error.

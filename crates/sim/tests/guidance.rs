@@ -1484,8 +1484,8 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
                 "units",
                 "test_heli",
                 json!({
-                    "capabilities": {"air": {"fuel_capacity_s":180,
-                        "flares":{"capacity":2,"reload_s":30},
+                    "capabilities": {"flares": {"capacity": 2, "reload_s": 30},
+                        "air": {"fuel_capacity_s":180,
                         "refund":{"health":0.4,"ammunition":0.4,"fuel":0.2}}}
                 }),
             );
@@ -1496,7 +1496,7 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
     b.step();
     let target = b.unit(UnitId(1)).unwrap();
     let flare = missile(&b).unwrap();
-    assert_eq!(target.air.unwrap().flare_charges, 1, "flare reacts on lock");
+    assert_eq!(target.flares.unwrap().charges, 1, "flare reacts on lock");
     assert_eq!(target.hp, hp, "missile is still far from its target");
     assert!(
         (v3(flare.point[0], flare.point[1], flare.point[2]) - target.position).length() < 20.0,
@@ -1513,7 +1513,7 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
         "ejected flare continues its physical flight"
     );
     assert_eq!(
-        b.unit(UnitId(1)).unwrap().air.unwrap().flare_charges,
+        b.unit(UnitId(1)).unwrap().flares.unwrap().charges,
         1,
         "one locked missile consumes one flare"
     );
@@ -1532,6 +1532,56 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
         .expect("the aircraft still publishes flare readiness");
     assert_eq!(reloaded.charges, 1, "the flare spend is retained");
     assert!(reloaded.cooldown.is_none(), "reload completes");
+}
+
+/// Flares are a unit's own capability, not an aircraft's: a jeep carrying
+/// them decoys an infrared missile fired at it, and one without is hit.
+#[test]
+fn flares_decoy_a_seeker_fired_at_any_unit_that_carries_them() {
+    let run = |flares: bool| {
+        let mut b = quick(
+            json!([]),
+            json!([
+                { "side": "blue", "kind": "test_at", "position": [40, 300] },
+                { "side": "red", "kind": "test_jeep", "position": [500, 300], "engagement": "return_fire_only" }
+            ]),
+            7,
+            |r| {
+                r["weapons"]["atgm"]["seeker"] = json!("infrared");
+                r["weapons"]["atgm"]["seeker_fov_deg"] = json!(180);
+                r["weapons"]["atgm"]["decoyable"] = json!(true);
+                r["weapons"]["atgm"]["ammo"] = json!(1);
+                if flares {
+                    sim::fixtures::patch_catalog(
+                        r,
+                        "units",
+                        "test_jeep",
+                        json!({ "capabilities": { "flares": { "capacity": 2, "reload_s": 30 } } }),
+                    );
+                }
+            },
+        );
+        let full = b.unit(UnitId(1)).unwrap().hp;
+        until_launch(&mut b);
+        for _ in 0..10 * b.rules().tick_hz {
+            b.step();
+        }
+        let charges = b
+            .observe(Side::Red)
+            .own
+            .first()
+            .and_then(|u| u.flares)
+            .map(|f| f.charges);
+        (full - b.unit(UnitId(1)).unwrap().hp, charges)
+    };
+    assert_eq!(
+        run(true),
+        (0.0, Some(1)),
+        "one flare spent, the jeep unhurt"
+    );
+    let (lost, charges) = run(false);
+    assert_eq!(charges, None);
+    assert!(lost > 0.0, "without flares the missile hits");
 }
 
 #[test]

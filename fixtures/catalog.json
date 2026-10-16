@@ -6488,7 +6488,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 360,
           "description": "AH-64E Guardian",
           "faction": "us",
@@ -7592,16 +7597,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 340,
@@ -7728,16 +7733,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 490,
@@ -7837,7 +7842,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 360,
           "description": "Ka-52M",
           "faction": "eastern",
@@ -8049,7 +8059,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 270,
           "description": "Mi-35M",
           "faction": "eastern",
@@ -8160,7 +8175,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 330,
           "description": "Mi-28NM",
           "faction": "eastern",
@@ -8271,7 +8291,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 170,
           "description": "Mi-8AMTSh",
           "faction": "eastern",
@@ -8396,16 +8421,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 280,
@@ -8553,16 +8578,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 350,
@@ -9293,16 +9318,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 270,
@@ -9429,16 +9454,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 480,
@@ -9586,16 +9611,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 310,
@@ -9722,16 +9747,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             },
             "radar_receiver": {
               "range_m": 5000.0
@@ -9861,16 +9886,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 390,
@@ -10018,16 +10043,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 410,
@@ -11103,7 +11128,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 300,
           "description": "Attack helicopter",
           "faction": "eastern",
@@ -11214,7 +11244,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 180,
           "description": "Utility transport",
           "faction": "eastern",
@@ -11561,7 +11596,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 230,
           "description": "HC4",
           "faction": "europe",
@@ -11680,7 +11720,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 170,
           "description": "AH1",
           "faction": "europe",
@@ -12257,7 +12302,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 240,
           "description": "HC6",
           "faction": "europe",
@@ -13021,7 +13071,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 350,
           "description": "HAD",
           "faction": "europe",
@@ -13132,7 +13187,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 330,
           "description": "UHT",
           "faction": "europe",
@@ -13249,16 +13309,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 410,
@@ -13668,16 +13728,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 350,
@@ -14668,16 +14728,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 290,
@@ -14894,7 +14954,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 190,
           "description": "TTH",
           "faction": "europe",
@@ -15219,16 +15284,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 420,
@@ -15466,16 +15531,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             },
             "radar_receiver": {
               "range_m": 5000.0
@@ -15605,16 +15670,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 310,
@@ -15923,16 +15988,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 350,
@@ -16081,16 +16146,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 470,
@@ -16386,16 +16451,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 300,
@@ -16607,7 +16672,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 320,
           "description": "Attack helicopter",
           "faction": "us",
@@ -16718,7 +16788,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 180,
           "description": "AH-6M",
           "faction": "us",
@@ -16829,7 +16904,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 120,
           "description": "MH-6M",
           "faction": "us",
@@ -17042,7 +17122,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 240,
           "description": "CH-47F",
           "faction": "us",
@@ -17167,16 +17252,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             },
             "radar_receiver": {
               "range_m": 5000.0
@@ -17306,16 +17391,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 400,
@@ -17463,16 +17548,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 430,
@@ -17599,16 +17684,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 500,
@@ -17735,16 +17820,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 490,
@@ -17892,16 +17977,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
               }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 370,
@@ -20633,7 +20718,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 160,
           "description": "Utility transport",
           "faction": "us",
@@ -20752,7 +20842,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 180,
           "description": "UH-60M",
           "faction": "us",
@@ -24721,7 +24816,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 360,
       "description": "AH-64E Guardian",
       "faction": "us",
@@ -26181,16 +26281,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 340,
@@ -26321,16 +26421,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 490,
@@ -26433,7 +26533,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 360,
       "description": "Ka-52M",
       "faction": "eastern",
@@ -26742,7 +26847,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 270,
       "description": "Mi-35M",
       "faction": "eastern",
@@ -26857,7 +26967,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 330,
       "description": "Mi-28NM",
       "faction": "eastern",
@@ -26972,7 +27087,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 170,
       "description": "Mi-8AMTSh",
       "faction": "eastern",
@@ -27101,16 +27221,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 280,
@@ -27263,16 +27383,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 350,
@@ -28217,16 +28337,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 270,
@@ -28357,16 +28477,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 480,
@@ -28519,16 +28639,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 310,
@@ -28659,16 +28779,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         },
         "radar_receiver": {
           "range_m": 5000.0
@@ -28802,16 +28922,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 390,
@@ -28964,16 +29084,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 410,
@@ -30087,7 +30207,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 300,
       "description": "Attack helicopter",
       "faction": "eastern",
@@ -30202,7 +30327,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 180,
       "description": "Utility transport",
       "faction": "eastern",
@@ -30621,7 +30751,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 230,
       "description": "HC4",
       "faction": "europe",
@@ -30744,7 +30879,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 170,
       "description": "AH1",
       "faction": "europe",
@@ -31340,7 +31480,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 240,
       "description": "HC6",
       "faction": "europe",
@@ -32130,7 +32275,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 350,
       "description": "HAD",
       "faction": "europe",
@@ -32245,7 +32395,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 330,
       "description": "UHT",
       "faction": "europe",
@@ -32366,16 +32521,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 410,
@@ -32798,16 +32953,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 350,
@@ -33922,16 +34077,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 290,
@@ -34155,7 +34310,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 190,
       "description": "TTH",
       "faction": "europe",
@@ -34491,16 +34651,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 420,
@@ -34760,16 +34920,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         },
         "radar_receiver": {
           "range_m": 5000.0
@@ -34903,16 +35063,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 310,
@@ -35231,16 +35391,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 350,
@@ -35394,16 +35554,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 470,
@@ -35943,16 +36103,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 300,
@@ -36171,7 +36331,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 320,
       "description": "Attack helicopter",
       "faction": "us",
@@ -36286,7 +36451,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 180,
       "description": "AH-6M",
       "faction": "us",
@@ -36401,7 +36571,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 120,
       "description": "MH-6M",
       "faction": "us",
@@ -36743,7 +36918,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 240,
       "description": "CH-47F",
       "faction": "us",
@@ -36872,16 +37052,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         },
         "radar_receiver": {
           "range_m": 5000.0
@@ -37015,16 +37195,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 400,
@@ -37177,16 +37357,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 430,
@@ -37317,16 +37497,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 500,
@@ -37457,16 +37637,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 490,
@@ -37619,16 +37799,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
           }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 370,
@@ -40737,7 +40917,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 160,
       "description": "Utility transport",
       "faction": "us",
@@ -40860,7 +41045,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 180,
       "description": "UH-60M",
       "faction": "us",
