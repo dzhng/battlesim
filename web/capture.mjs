@@ -125,7 +125,7 @@ async function checkMechanicsBuilt() {
 
 /** Check if the wasm build exists. */
 async function checkWasmBuilt() {
-  const wasmPath = new URL("web/dist/presentation_wasm_bg.wasm", ROOT);
+  const wasmPath = new URL("web/src/wasm/presentation/presentation_wasm_bg.wasm", ROOT);
   return existsSync(wasmPath);
 }
 
@@ -285,15 +285,24 @@ async function captureWithDeterministic(page, args, server) {
   await mkdir(framesDir, { recursive: true });
   
   const frameDurationMs = 1000 / args.fps;
+  const frameDurationS = 1 / args.fps;
   const frames = []; // { path, virtualTimeMs }
   
   // Wait for scene to be ready
   console.log("Waiting for scene to prepare...");
-  const duration = await page.evaluate(() => window.__capture?.duration ?? 0);
-  if (!duration || duration <= 0) {
+  const reelDuration = await page.evaluate(() => window.__capture?.duration ?? 0);
+  if (!reelDuration || reelDuration <= 0) {
     throw new Error("Scene duration not available");
   }
-  console.log(`  Duration: ${duration.toFixed(2)}s, ${Math.ceil(duration * args.fps)} frames at ${args.fps}fps`);
+  
+  // Preroll cut: skip the first portion of the reel (same as realtime mode's calibration cut)
+  // The reel has 2.0s preroll; we cut at ~1.15s like realtime mode does
+  const PREROLL_CUT_S = 1.15;
+  const cutStartS = PREROLL_CUT_S;
+  const outputDuration = reelDuration - cutStartS;
+  
+  console.log(`  Full reel: ${reelDuration.toFixed(2)}s, preroll cut at ${cutStartS.toFixed(2)}s`);
+  console.log(`  Output duration: ${outputDuration.toFixed(2)}s, ${Math.ceil(outputDuration * args.fps)} frames at ${args.fps}fps`);
   
   // Wait for reel to be ready
   console.log("Waiting for reel-ready signal...");
@@ -318,19 +327,22 @@ async function captureWithDeterministic(page, args, server) {
   // Note: In deterministic mode, we record audio commands for offline rendering
   // rather than capturing real-time audio (which wouldn't sync with virtual time)
   
-  // Capture frames at exact virtual times
-  const totalFrames = Math.ceil(duration * args.fps);
-  console.log(`Capturing ${totalFrames} frames with virtual clock...`);
+  // Capture frames at exact virtual times, starting from the preroll cut point
+  const totalOutputFrames = Math.ceil(outputDuration * args.fps);
+  const cutStartMs = cutStartS * 1000;
+  console.log(`Capturing ${totalOutputFrames} frames with virtual clock (starting at ${cutStartS.toFixed(2)}s)...`);
+  console.log(`  Note: Deterministic capture runs at ~5 fps; this will take several minutes.`);
   
   const captureStart = Date.now();
-  for (let frameIdx = 0; frameIdx < totalFrames; frameIdx++) {
-    const virtualTimeMs = frameIdx * frameDurationMs;
+  for (let outputIdx = 0; outputIdx < totalOutputFrames; outputIdx++) {
+    // Virtual time starts from the cut point
+    const virtualTimeMs = cutStartMs + (outputIdx * frameDurationMs);
     
-    // Step the frame to this virtual time
+    // Step the frame to this virtual time - this updates the camera pose
     await page.evaluate((t) => window.__capture?.stepFrame(t), virtualTimeMs);
     
-    // Wait a tick for render to complete
-    await page.evaluate(() => new Promise(r => requestAnimationFrame(r)));
+    // Wait for two RAF frames to ensure the render is complete with the new pose
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     
     // Capture the frame via CDP
     const screenshotResult = await cdp.send("Page.captureScreenshot", {
@@ -340,20 +352,24 @@ async function captureWithDeterministic(page, args, server) {
     });
     
     // Save frame
-    const framePath = join(framesDir, `frame-${String(frameIdx).padStart(6, "0")}.jpg`);
+    const framePath = join(framesDir, `frame-${String(outputIdx).padStart(6, "0")}.jpg`);
     const frameData = Buffer.from(screenshotResult.data, "base64");
     await writeFile(framePath, frameData);
-    frames.push({ path: framePath, virtualTimeMs, idx: frameIdx });
+    frames.push({ path: framePath, virtualTimeMs, idx: outputIdx });
     
     // Progress
-    if (frameIdx % 30 === 0 || frameIdx === totalFrames - 1) {
+    if (outputIdx % 30 === 0 || outputIdx === totalOutputFrames - 1) {
       const elapsed = (Date.now() - captureStart) / 1000;
-      const pct = ((frameIdx + 1) / totalFrames * 100).toFixed(0);
-      const fps = (frameIdx + 1) / elapsed;
-      process.stdout.write(`\r  Capturing: frame ${frameIdx + 1}/${totalFrames} (${pct}%) at ${fps.toFixed(1)} fps    `);
+      const pct = ((outputIdx + 1) / totalOutputFrames * 100).toFixed(0);
+      const captureFps = (outputIdx + 1) / elapsed;
+      const eta = elapsed / (outputIdx + 1) * (totalOutputFrames - outputIdx - 1);
+      process.stdout.write(`\r  Capturing: frame ${outputIdx + 1}/${totalOutputFrames} (${pct}%) at ${captureFps.toFixed(1)} fps, ETA ${Math.ceil(eta)}s    `);
     }
   }
+  const captureElapsed = (Date.now() - captureStart) / 1000;
+  const actualCaptureFps = frames.length / captureElapsed;
   process.stdout.write("\n");
+  console.log(`  Captured ${frames.length} frames in ${captureElapsed.toFixed(1)}s (${actualCaptureFps.toFixed(1)} fps capture rate)`);
   
   // Get recorded audio commands for offline rendering
   console.log("Getting recorded audio commands...");
@@ -383,7 +399,9 @@ async function captureWithDeterministic(page, args, server) {
     fps: args.fps,
     frameDurationMs,
     totalFrames: frames.length,
-    duration,
+    reelDuration,
+    outputDuration,
+    prerollCutS: cutStartS,
     frames: frames.map(f => ({
       path: f.path,
       virtualTimeMs: f.virtualTimeMs,
@@ -396,7 +414,6 @@ async function captureWithDeterministic(page, args, server) {
   
   // Build concat demuxer file with exact frame durations
   console.log("Building frame list with exact timing...");
-  const frameDurationS = 1 / args.fps;
   let concatContent = "";
   for (const frame of frames) {
     concatContent += `file '${frame.path}'\n`;
@@ -452,8 +469,8 @@ async function captureWithDeterministic(page, args, server) {
   if (args.audio && audioCommands.length > 0) {
     console.log(`Rendering audio offline from ${audioCommands.length} recorded commands...`);
     
-    // Render audio in the browser using OfflineAudioContext
-    const audioBase64 = await page.evaluate(async (durationS) => {
+    // Render audio for the full reel duration (audio commands have virtual timestamps from 0)
+    const audioBase64 = await page.evaluate(async (fullDurationS) => {
       const capture = window.__capture;
       if (!capture?.renderOfflineAudio) {
         console.log(`[deterministic] renderOfflineAudio not available`);
@@ -461,7 +478,7 @@ async function captureWithDeterministic(page, args, server) {
       }
       
       try {
-        const blob = await capture.renderOfflineAudio(durationS);
+        const blob = await capture.renderOfflineAudio(fullDurationS);
         if (!blob) {
           console.log(`[deterministic] No audio rendered`);
           return null;
@@ -480,25 +497,25 @@ async function captureWithDeterministic(page, args, server) {
         console.error(`[deterministic] Audio rendering failed:`, e);
         return null;
       }
-    }, duration);
+    }, reelDuration);
     
     if (audioBase64) {
       const audioData = Buffer.from(audioBase64, "base64");
       await writeFile(rawAudioPath, audioData);
-      console.log(`  Audio rendered: ${(audioData.length / 1024 / 1024).toFixed(2)} MB WAV`);
+      console.log(`  Audio rendered: ${(audioData.length / 1024 / 1024).toFixed(2)} MB WAV (full ${reelDuration.toFixed(2)}s reel)`);
       
-      // Process audio with ffmpeg: add limiter and fade
-      const audioTargetDuration = duration;
+      // Process audio with ffmpeg: trim from preroll cut point, add limiter and fade
       const limiterFilter = "alimiter=limit=0.6:attack=0.1:release=50:level=false";
       const fadeOutDuration = 0.3;
-      const fadeStartTime = Math.max(0, audioTargetDuration - fadeOutDuration);
+      const fadeStartTime = Math.max(0, outputDuration - fadeOutDuration);
       const fadeFilter = `afade=t=out:st=${fadeStartTime.toFixed(3)}:d=${fadeOutDuration}`;
       
       await new Promise((resolve, reject) => {
         const ffmpegTrim = spawn("ffmpeg", [
           "-y",
+          "-ss", String(cutStartS), // Start from preroll cut point
           "-i", rawAudioPath,
-          "-t", String(audioTargetDuration),
+          "-t", String(outputDuration),
           "-af", `${limiterFilter},${fadeFilter}`,
           "-c:a", "aac",
           "-b:a", "192k",
@@ -510,7 +527,7 @@ async function captureWithDeterministic(page, args, server) {
         });
         ffmpegTrim.on("error", reject);
       });
-      console.log(`  Audio: duration ${audioTargetDuration.toFixed(2)}s, fade at ${fadeStartTime.toFixed(2)}s`);
+      console.log(`  Audio: trimmed from ${cutStartS.toFixed(2)}s, duration ${outputDuration.toFixed(2)}s, fade at ${fadeStartTime.toFixed(2)}s`);
       hasAudio = true;
     } else {
       console.log("  Note: Audio rendering returned no data");
@@ -557,7 +574,9 @@ async function captureWithDeterministic(page, args, server) {
     follow_unit_id: followUnitId,
     fps: args.fps,
     total_frames: frames.length,
-    duration,
+    reel_duration: reelDuration,
+    output_duration: outputDuration,
+    preroll_cut_s: cutStartS,
     frame_pacing: framePacing,
     audio_commands: audioCommands.length,
     has_audio: hasAudio,

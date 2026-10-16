@@ -300,6 +300,8 @@ function CaptureBattle({
   const audioBlobRef = useRef<Blob | null>(null);
   const isPageMode = settings.mode === "page";
   const isDeterministicMode = settings.mode === "deterministic";
+  /** Frame duration in ms (1000 / fps), used for deterministic mode smoothing. */
+  const frameDurationMs = 1000 / settings.fps;
   /** Frame count since pilot started; reel is ready after at least one frame rendered. */
   const reelFrameCountRef = useRef(0);
   /** Timestamp when the reel-ready signal was sent (first pose applied + frame rendered). */
@@ -733,18 +735,23 @@ function CaptureBattle({
           const tracked = trackedRef.current;
           if (tracked?.follow !== followedId) {
             // Initialize smoothed position directly to live position (no lag on first frame)
-            trackedRef.current = live ? { follow: followedId, at: [live[0], live[1]], now } : null;
+            trackedRef.current = live ? { follow: followedId, at: [live[0], live[1]], time: effectiveNow } : null;
             if (live) followInitializedRef.current = true;
           }
           if (trackedRef.current) {
             if (live) {
-              const k = 1 - Math.exp(-(now - trackedRef.current.now) / 1000 / trackLag);
+              // In deterministic mode, use virtual time delta (1/60s per frame)
+              // In realtime mode, use wall clock delta
+              const timeDelta = deterministicActiveRef.current
+                ? frameDurationMs / 1000 // Exactly 1/60s per frame in deterministic mode
+                : (effectiveNow - trackedRef.current.time) / 1000;
+              const k = 1 - Math.exp(-timeDelta / trackLag);
               trackedRef.current.at = [
                 trackedRef.current.at[0] + (live[0] - trackedRef.current.at[0]) * k,
                 trackedRef.current.at[1] + (live[1] - trackedRef.current.at[1]) * k,
               ];
             }
-            trackedRef.current.now = now;
+            trackedRef.current.time = effectiveNow;
             const unit = trackedRef.current.at;
             lastSubjectRef.current = unit;
             finalPose = { ...sample.pose, target: [unit[0] + x, unit[1] + y] };
@@ -794,40 +801,43 @@ function CaptureBattle({
         }
       }
       
-      // In deterministic mode, resolve the stepFrame promise after each frame
-      if (deterministicActiveRef.current && stepFrameResolveRef.current) {
-        const resolve = stepFrameResolveRef.current;
-        stepFrameResolveRef.current = null;
-        resolve();
-        return; // Skip state updates in deterministic mode
-      }
-      
-      if (pilotStartRef.current === null || stateRef.current.status !== "recording") return;
-      // Use reelStartTime for elapsed (matches pose() calculation)
+      // Calculate elapsed time consistently for both modes
       const startTime = reelStartTimeRef.current ?? pilotStartRef.current;
       const elapsed = deterministicActiveRef.current
         ? virtualTimeRef.current / 1000
-        : (now - startTime) / 1000;
-      setState({ status: "recording", elapsed, duration });
+        : (startTime !== null ? (now - startTime) / 1000 : 0);
 
-      // Track weapon fire events for the sidecar JSON
-      // Use sim.latest.current for fresh observation data
+      // Track weapon fire events for the sidecar JSON (both modes)
+      // In deterministic mode, use virtual time for event timestamps
       const observation = sim.latest.current;
       if (fireTracker && observation) {
         const sample = sampleReel(reel, elapsed);
-        // Use the same resolution as the camera for consistency
         const followedId = resolveFollow(sample.follow);
-        // Report the follow unit ID once (on first resolution)
         if (reportedFollowRef.current === undefined && followedId !== null) {
           reportedFollowRef.current = followedId;
           onFollowUnitIdRef.current?.(followedId);
         }
         fireTracker.setFollowedUnit(followedId);
-        const newEvents = fireTracker.update(observation, now);
+        // Use virtual time in deterministic mode, wall clock in realtime
+        const eventTime = deterministicActiveRef.current
+          ? virtualTimeRef.current
+          : now;
+        const newEvents = fireTracker.update(observation, eventTime);
         if (newEvents.length > 0) {
           onFireEventsRef.current?.(fireTracker.getEvents());
         }
       }
+
+      // In deterministic mode, resolve the stepFrame promise after each frame
+      if (deterministicActiveRef.current && stepFrameResolveRef.current) {
+        const resolve = stepFrameResolveRef.current;
+        stepFrameResolveRef.current = null;
+        resolve();
+        return; // Skip UI state updates in deterministic mode
+      }
+      
+      if (pilotStartRef.current === null || stateRef.current.status !== "recording") return;
+      setState({ status: "recording", elapsed, duration });
     },
   };
 

@@ -53,11 +53,37 @@ export async function detectFlashOnsets(framesDir, triggerTimesMs, pageLoadEpoch
   if (!triggerTimesMs || triggerTimesMs.length === 0) return [];
   
   // If we have frames.json with real timestamps, use those
+  // Priority: calibrationFrames > rawFrames (filtered) > frames (output only)
   let frameList;
-  if (framesJson?.frames?.length > 0) {
-    frameList = framesJson.frames.map(f => ({
+  if (framesJson?.calibrationFrames?.length > 0) {
+    // Use calibration frames (pre-cut, where flashes are)
+    frameList = framesJson.calibrationFrames.map(f => ({
       path: f.path,
       cdpTimestamp: f.cdpTimestamp,
+      frameIdx: f.idx,
+    }));
+  } else if (framesJson?.rawFrames?.length > 0) {
+    // Use raw frames, filter to calibration frames (isCalibration: true)
+    const calibFrames = framesJson.rawFrames.filter(f => f.isCalibration);
+    if (calibFrames.length > 0) {
+      frameList = calibFrames.map(f => ({
+        path: f.path,
+        cdpTimestamp: f.cdpTimestamp,
+        frameIdx: f.idx,
+      }));
+    } else {
+      // No calibration frames, fall back to all raw frames
+      frameList = framesJson.rawFrames.map(f => ({
+        path: f.path,
+        cdpTimestamp: f.cdpTimestamp,
+        frameIdx: f.idx,
+      }));
+    }
+  } else if (framesJson?.frames?.length > 0) {
+    // Fall back to output frames (may not contain calibration period)
+    frameList = framesJson.frames.map(f => ({
+      path: f.path,
+      cdpTimestamp: f.cdpTimestamp ?? f.timestamp_s, // Handle both realtime and deterministic
       frameIdx: f.idx,
     }));
   } else {
@@ -300,7 +326,20 @@ Output:
       if (framesJson.pageLoadEpochMs !== null && pageLoadEpochMs === 0) {
         pageLoadEpochMs = framesJson.pageLoadEpochMs;
       }
-      console.error(`Loaded ${framesJson.frames?.length ?? 0} frames from ${framesJsonPath}`);
+      // Report frame counts to stderr
+      const calibCount = framesJson.calibrationFrames?.length ?? 0;
+      const rawCount = framesJson.rawFrames?.length ?? 0;
+      const outputCount = framesJson.frames?.length ?? 0;
+      if (calibCount > 0) {
+        console.error(`Loaded ${calibCount} calibration frames from ${basename(framesJsonPath)}`);
+      } else if (rawCount > 0) {
+        const calibInRaw = framesJson.rawFrames.filter(f => f.isCalibration).length;
+        console.error(`Loaded ${rawCount} raw frames (${calibInRaw} calibration) from ${basename(framesJsonPath)}`);
+      } else if (outputCount > 0) {
+        console.error(`Loaded ${outputCount} output frames from ${basename(framesJsonPath)} (no calibration frames - use --keep-raw)`);
+      } else {
+        console.error(`Warning: No frames in ${basename(framesJsonPath)}`);
+      }
     } catch (err) {
       console.error(`Warning: Could not load frames.json: ${err.message}`);
     }
