@@ -95,7 +95,6 @@ pub struct UnitsSection {
     /// `presentation.pose`, as the pose driver reads it.
     pub pose: Value,
     /// `presentation.transit`, the visible approach and departure durations.
-    #[serde(default)]
     pub transit: TransitFeel,
     pub lean_hold: f64,
     pub detail: Detail,
@@ -120,20 +119,13 @@ pub struct UnitType {
     #[serde(default)]
     pub vehicle_class: Option<String>,
     pub airborne: bool,
-    /// The height band it occupies (its mobility's `layer`); a type that
-    /// names none stands on the ground.
-    #[serde(default = "ground_layer")]
+    /// The height band it occupies (its mobility's `layer`).
     pub layer: AltitudeLayer,
     /// How it flies (its mobility's `flight`); none on the ground.
-    #[serde(default)]
     pub flight: Option<FlightModel>,
     pub roles: Vec<String>,
     pub mounts: Vec<TypeMount>,
     pub draws: BTreeMap<String, Draws>,
-}
-
-fn ground_layer() -> AltitudeLayer {
-    AltitudeLayer::Ground
 }
 
 impl UnitType {
@@ -264,7 +256,6 @@ pub enum Appearance {
         bounds: Vec<Bounds>,
         /// Its box seen from above at rest, in its own frame: least x,
         /// least y, greatest x, greatest y (m).
-        #[serde(default)]
         plan: [f64; 4],
     },
 }
