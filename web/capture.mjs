@@ -450,16 +450,33 @@ async function captureWithCDP(page, args, server) {
     // Don't delete duplicate files yet - we'll clean up at the end
   }
   
+  // Calculate target output duration: trim at exactly reel end, no tail
+  // Target = reelDuration - (cutTime - reelReadyTime)
+  // This removes the 0.5s tail that was recorded after the reel ended
+  let targetOutputDuration = null;
+  if (dynamicCutTimeMs !== null && reelReadyTime !== null && captureDuration > 0) {
+    const cutOffsetFromReelStart = (dynamicCutTimeMs - reelReadyTime) / 1000;
+    targetOutputDuration = captureDuration - cutOffsetFromReelStart;
+    console.log(`  Target output duration: ${targetOutputDuration.toFixed(2)}s (reel=${captureDuration}s - cut_offset=${cutOffsetFromReelStart.toFixed(2)}s)`);
+  }
+  
   // Build frameTimestamps only from files that exist on disk
   const frameTimestamps = [];
   const firstValidTime = dedupedFrames[0]?.cdpTimestamp ?? 0;
+  let droppedTailFrames = 0;
   for (const frame of dedupedFrames) {
+    const timestamp_s = frame.cdpTimestamp - firstValidTime;
+    // Trim frames past the target output duration (remove tail)
+    if (targetOutputDuration !== null && timestamp_s > targetOutputDuration) {
+      droppedTailFrames++;
+      continue;
+    }
     // Verify file exists before including
     try {
       await access(frame.path);
       frameTimestamps.push({
         path: frame.path,
-        timestamp_s: frame.cdpTimestamp - firstValidTime,
+        timestamp_s,
       });
     } catch {
       console.warn(`  Warning: frame file missing: ${frame.path}`);
@@ -470,7 +487,59 @@ async function captureWithCDP(page, args, server) {
   const actualDuration = frameTimestamps.length > 0 
     ? frameTimestamps[frameTimestamps.length - 1].timestamp_s 
     : 0;
-  console.log(`  Captured ${rawFrames.length} raw frames, kept ${frameCount} (dropped ${droppedEarlyFrames} early, cut ${PREROLL_CUT_S}s) over ${actualDuration.toFixed(2)}s`);
+  console.log(`  Captured ${rawFrames.length} raw frames, kept ${frameCount} (dropped ${droppedEarlyFrames} early, ${droppedTailFrames} tail) over ${actualDuration.toFixed(2)}s`);
+  
+  // Frame-to-frame diff check in the last 1s: detect camera jump/reset
+  // If any frame differs significantly from the previous, fail loudly
+  if (frameTimestamps.length > 0 && targetOutputDuration !== null) {
+    const last1sStart = Math.max(0, actualDuration - 1.0);
+    const last1sFrames = frameTimestamps.filter(f => f.timestamp_s >= last1sStart);
+    if (last1sFrames.length >= 2) {
+      console.log(`  Checking frame-to-frame diff in last 1s (${last1sFrames.length} frames)...`);
+      let maxDiff = 0;
+      let maxDiffTime = 0;
+      for (let i = 1; i < last1sFrames.length; i++) {
+        // Use ffmpeg to compare consecutive frames and get PSNR
+        const prevFrame = last1sFrames[i - 1].path;
+        const currFrame = last1sFrames[i].path;
+        try {
+          const diffResult = await new Promise((resolve, reject) => {
+            const ffmpeg = spawn("ffmpeg", [
+              "-i", prevFrame,
+              "-i", currFrame,
+              "-lavfi", "psnr",
+              "-f", "null", "-",
+            ], { stdio: ["pipe", "pipe", "pipe"] });
+            let stderr = "";
+            ffmpeg.stderr.on("data", (d) => stderr += d);
+            ffmpeg.on("close", () => resolve(stderr));
+            ffmpeg.on("error", () => resolve(""));
+          });
+          // Parse PSNR: "average:XX.XX" - lower PSNR = more different
+          const psnrMatch = diffResult.match(/average:([\d.]+)/);
+          if (psnrMatch) {
+            const psnr = parseFloat(psnrMatch[1]);
+            // PSNR < 20 indicates a significant visual change (jump/reset)
+            if (psnr < 20) {
+              const diff = 50 - psnr; // Higher = more different
+              if (diff > maxDiff) {
+                maxDiff = diff;
+                maxDiffTime = last1sFrames[i].timestamp_s;
+              }
+            }
+          }
+        } catch (e) {
+          // Skip diff check on error
+        }
+      }
+      if (maxDiff > 30) { // PSNR < 20 means huge visual difference
+        console.error(`  ERROR: Camera jump detected at ${maxDiffTime.toFixed(2)}s (diff score=${maxDiff.toFixed(1)})`);
+        throw new Error(`Camera jump detected in last 1s at ${maxDiffTime.toFixed(2)}s - possible tail contamination`);
+      } else {
+        console.log(`  Frame diff check OK (max diff score=${maxDiff.toFixed(1)})`);
+      }
+    }
+  }
   
   // Build concat demuxer file with per-frame durations
   console.log("Building frame list with real timestamps...");
@@ -753,17 +822,26 @@ async function captureWithCDP(page, args, server) {
       
       // Build ffmpeg filter chain:
       // - alimiter at limit=0.6 (~-4.4 dBFS) prevents AAC from exceeding -0.5 dBFS after decode
+      // - afade for 0.3s fade-out at the end (matching video trim point)
       const limiterFilter = "alimiter=limit=0.6:attack=0.1:release=50:level=false";
       
+      // Calculate audio duration to match video (target output duration)
+      // Add 0.3s fade-out ending at the trim point
+      const fadeOutDuration = 0.3;
+      const audioTargetDuration = targetOutputDuration ?? actualDuration;
+      const fadeStartTime = Math.max(0, audioTargetDuration - fadeOutDuration);
+      const fadeFilter = `afade=t=out:st=${fadeStartTime.toFixed(3)}:d=${fadeOutDuration}`;
+      
       if (audioOffsetMs >= 0) {
-        // Audio started early: trim from the beginning
+        // Audio started early: trim from the beginning, and trim at the end
         const trimS = audioOffsetMs / 1000;
         await new Promise((resolve, reject) => {
           const ffmpegTrim = spawn("ffmpeg", [
             "-y",
             "-i", rawAudioPath,
             "-ss", String(trimS),
-            "-af", limiterFilter,
+            "-t", String(audioTargetDuration),
+            "-af", `${limiterFilter},${fadeFilter}`,
             "-c:a", "aac",
             "-b:a", "192k",
             trimmedAudioPath,
@@ -774,9 +852,9 @@ async function captureWithCDP(page, args, server) {
           });
           ffmpegTrim.on("error", reject);
         });
-        console.log(`  Audio trimmed ${trimS.toFixed(3)}s from start`);
+        console.log(`  Audio: trimmed ${trimS.toFixed(3)}s from start, duration ${audioTargetDuration.toFixed(2)}s, fade-out at ${fadeStartTime.toFixed(2)}s`);
       } else {
-        // Audio started late: delay (pad) the beginning
+        // Audio started late: delay (pad) the beginning, and trim at the end
         const delayMs = Math.abs(audioOffsetMs);
         // adelay adds silence to the start; use "all=1" to apply to all channels
         const delayFilter = `adelay=${Math.round(delayMs)}:all=1`;
@@ -784,7 +862,8 @@ async function captureWithCDP(page, args, server) {
           const ffmpegDelay = spawn("ffmpeg", [
             "-y",
             "-i", rawAudioPath,
-            "-af", `${delayFilter},${limiterFilter}`,
+            "-t", String(audioTargetDuration + delayMs / 1000), // Account for delay
+            "-af", `${delayFilter},${limiterFilter},${fadeFilter}`,
             "-c:a", "aac",
             "-b:a", "192k",
             trimmedAudioPath,
@@ -795,7 +874,7 @@ async function captureWithCDP(page, args, server) {
           });
           ffmpegDelay.on("error", reject);
         });
-        console.log(`  Audio delayed ${delayMs.toFixed(1)}ms (padded start)`);
+        console.log(`  Audio: delayed ${delayMs.toFixed(1)}ms, duration ${audioTargetDuration.toFixed(2)}s, fade-out at ${fadeStartTime.toFixed(2)}s`);
       }
       hasAudio = true;
     }
