@@ -4,7 +4,7 @@ use crate::units::{Unit, UnitOrder};
 use crate::weapons::{unit_reach, Arsenal, Target};
 use contract::command::Engagement;
 
-use super::pass::PassPlan;
+use super::pass::{PassPhase, PassPlan};
 
 /// A jet's flight task for this tick. This is the only result that turns an
 /// order or a reaction into flight in [`super::step_fixed_wing`].
@@ -18,14 +18,14 @@ pub enum AirTask {
     /// layer (`super::dogfightable`), passes at anything else.
     Attack {
         target: Target,
-        explicit: bool,
     },
     Withdraw,
 }
 
 /// Resolve one jet's order and reaction against the knowledge available to
-/// its side. An existing pass owns the current leg until it completes; the
-/// caller clears it only after that leg has flown.
+/// its side. On attack-move a committed run finishes before the jet picks
+/// anew (D18), and once the target it picked up is dead the jet holds,
+/// unless something calls for an answer (D15).
 pub fn task(
     unit: &Unit,
     knowledge: &SideKnowledge,
@@ -36,23 +36,14 @@ pub fn task(
         return AirTask::Withdraw;
     }
 
-    if let Some(pass) = pass {
-        if let Some(order) = unit.orders.front() {
-            match order {
-                UnitOrder::Attack { target, .. } => {
-                    return AirTask::Attack {
-                        target: *target,
-                        explicit: true,
-                    };
-                }
-                UnitOrder::AttackMove(_) => {
-                    return AirTask::Attack {
-                        target: pass.target,
-                        explicit: false,
-                    };
-                }
-                _ => {}
-            }
+    if let (Some(pass), Some(UnitOrder::AttackMove(_))) = (pass, unit.orders.front()) {
+        if target_is_destroyed(pass.target, knowledge) {
+            return reaction(unit, knowledge);
+        }
+        if pass.phase == PassPhase::Dive {
+            return AirTask::Attack {
+                target: pass.target,
+            };
         }
     }
 
@@ -62,10 +53,7 @@ pub fn task(
         },
         Some(UnitOrder::AttackMove(order)) => {
             if let Some(target) = along_way_target(unit, order.destination, knowledge, arsenal) {
-                AirTask::Attack {
-                    target,
-                    explicit: false,
-                }
+                AirTask::Attack { target }
             } else {
                 match reaction(unit, knowledge) {
                     AirTask::Hold => AirTask::Orbit {
@@ -79,10 +67,7 @@ pub fn task(
             if target_is_destroyed(*target, knowledge) {
                 AirTask::Hold
             } else {
-                AirTask::Attack {
-                    target: *target,
-                    explicit: true,
-                }
+                AirTask::Attack { target: *target }
             }
         }
         Some(UnitOrder::Garrison { .. } | UnitOrder::Exit) => AirTask::Hold,
@@ -100,7 +85,6 @@ pub(crate) fn reaction(unit: &Unit, knowledge: &SideKnowledge) -> AirTask {
         if knowledge.track(id).is_some() {
             return Some(AirTask::Attack {
                 target: Target::Unit(id),
-                explicit: false,
             });
         }
         knowledge
@@ -108,7 +92,6 @@ pub(crate) fn reaction(unit: &Unit, knowledge: &SideKnowledge) -> AirTask {
             .find(|contact| contact.emitter == id)
             .map(|contact| AirTask::Attack {
                 target: Target::Contact(contact.id),
-                explicit: false,
             })
     });
     attacker
@@ -118,7 +101,6 @@ pub(crate) fn reaction(unit: &Unit, knowledge: &SideKnowledge) -> AirTask {
                 .find(|contact| contact.source == contract::observation::ContactSource::Firing)
                 .map(|contact| AirTask::Attack {
                     target: Target::Contact(contact.id),
-                    explicit: false,
                 })
         })
         .unwrap_or(AirTask::Hold)

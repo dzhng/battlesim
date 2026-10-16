@@ -330,7 +330,7 @@ pub struct AirState {
     pub afterburner: bool,
     /// Close air engagement target while this aircraft is in a dogfight.
     pub dogfight_target: Option<UnitId>,
-    /// Current ground attack run, if the explicit attack names a ground aim.
+    /// Its attack on a ground target, in runs (`air::pass`).
     pub pass: Option<crate::air::pass::PassPlan>,
     /// The one tick in which a pass's unpowered round may leave the jet.
     pub pass_release: bool,
@@ -481,12 +481,6 @@ pub fn validate_drive(rules: &Rules) {
 impl Unit {
     /// Admit an order with the same replacement and deployment semantics everywhere.
     pub(crate) fn enqueue(&mut self, order: UnitOrder, queued: bool) {
-        // Attack-move is the one explicit order that keeps an aircraft's
-        // automatic dogfight lock: the aircraft continues its close fight
-        // while advancing, then resumes the attack-move policy afterwards.
-        if !queued && !matches!(order, UnitOrder::AttackMove(_)) {
-            crate::air::dogfight::clear(self);
-        }
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
         }

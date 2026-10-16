@@ -2,7 +2,7 @@
 // ground missile) and an F-15E (gun and bombs) attack ground points, and an EA-18G attacks the
 // Buk's radar contact.
 // The simulation's tests behind it:
-//   crates/sim/tests/attack_passes.rs::a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back
+//   crates/sim/tests/attack_passes.rs::a_bombing_run_releases_at_its_release_point_and_is_over
 //   crates/sim/tests/attack_passes.rs::a_missile_pass_fires_the_gun_when_nose_on
 //   crates/sim/tests/attack_passes.rs::a_bombing_pass_never_fires_the_gun
 //   crates/sim/tests/radar.rs::an_anti_radiation_row_fires_at_a_radar_contact_but_not_at_a_heard_one

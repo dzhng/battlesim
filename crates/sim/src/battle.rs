@@ -711,6 +711,7 @@ impl Battle {
             if let Some(air) = unit.air.as_mut() {
                 air.afterburner = false;
             }
+            crate::air::break_off(unit);
             unit.enqueue(
                 UnitOrder::Move(MoveOrder {
                     destination: entry,
@@ -3635,12 +3636,17 @@ impl Battle {
             | Order::SetDeployment { units, .. }
             | Order::Garrison { units, .. }
             | Order::OccupyBuilding { units, .. }
-            | Order::ExitBuilding { units } => Some(units),
+            | Order::ExitBuilding { units }
+            | Order::Refund { units } => Some(units),
             _ => None,
         };
+        // Every order a unit is given reaches it here first: it is no longer
+        // withdrawing, and a jet's run, release cue and dogfight end, so no
+        // order (repeated or not) can leave one stuck in a run.
         if let Some(units) = replacing {
             for id in units {
                 movers[id.0 as usize].withdrawing = false;
+                crate::air::break_off(&mut movers[id.0 as usize]);
             }
         }
         match command.order {

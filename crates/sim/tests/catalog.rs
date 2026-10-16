@@ -859,7 +859,16 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             }
         }
 
-        let mut b = battle(&fixture, id, json!([]));
+        // A jet flies to its goal on the open field it fought on: the small
+        // field lies wholly inside the edge guard's margin.
+        let (mut b, goal) = if never_stops {
+            (
+                battle_at(&fixture, id, json!([]), [500.0, 1000.0], 3000.0, 2000.0),
+                sim::math::v2(1500.0, 1300.0),
+            )
+        } else {
+            (battle(&fixture, id, json!([])), sim::math::v2(200.0, 500.0))
+        };
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
             slot: None,
@@ -867,7 +876,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             order: Order::Move {
                 units: vec![UnitId(0)],
                 gesture: 1,
-                goal: [200.0, 500.0],
+                goal: [goal.x, goal.y],
                 route: RoutePolicy::Shortest,
                 direction: MoveDirection::Forward,
                 facing: None,
@@ -889,10 +898,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             let mut closest = f64::INFINITY;
             for _ in 0..90 * rules.tick_hz {
                 b.step();
-                closest = closest.min(
-                    (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0))
-                        .length(),
-                );
+                closest = closest.min((b.unit(UnitId(0)).unwrap().position.xy() - goal).length());
             }
             if closest > radius + 10.0 {
                 failures.push(format!(
@@ -903,8 +909,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             for _ in 0..90 * rules.tick_hz {
                 b.step();
             }
-            let short =
-                (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0)).length();
+            let short = (b.unit(UnitId(0)).unwrap().position.xy() - goal).length();
             if short > 10.0 {
                 failures.push(format!("{id}: stopped {short:.1} m short of its goal"));
             }
