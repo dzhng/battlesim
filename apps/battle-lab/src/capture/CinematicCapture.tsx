@@ -290,6 +290,8 @@ export interface CaptureExtras {
   followUnitId?: number | null;
   /** Timestamp when the reel's first pose was applied and rendered (for dropping early frames). */
   reelReadyTime?: number | null;
+  /** Timestamp when audio recording started (performance.now() for sync calculation). */
+  audioStartTime?: number | null;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -310,5 +312,6 @@ export function exposeCaptureToWindow(
     fireEvents: extras?.fireEvents,
     followUnitId: extras?.followUnitId,
     reelReadyTime: extras?.reelReadyTime,
+    audioStartTime: extras?.audioStartTime,
   };
 }

@@ -481,10 +481,11 @@ async function captureWithCDP(page, args, server) {
   
   // Get audio from browser if enabled
   let hasAudio = false;
+  let audioTrimS = 0;
   const rawAudioPath = resolve(args.output, `raw-audio-${timestamp}.webm`);
   const trimmedAudioPath = resolve(args.output, `trimmed-audio-${timestamp}.aac`);
   if (args.audio) {
-    const audioBase64 = await page.evaluate(async () => {
+    const audioInfo = await page.evaluate(async () => {
       const capture = window.__capture;
       if (!capture?.audioBlob) return null;
       const buffer = await capture.audioBlob.arrayBuffer();
@@ -494,20 +495,42 @@ async function captureWithCDP(page, args, server) {
       for (let i = 0; i < bytes.length; i += chunk) {
         binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
       }
-      return btoa(binary);
+      return {
+        audioBase64: btoa(binary),
+        audioStartTime: capture.audioStartTime ?? null,
+        reelReadyTime: capture.reelReadyTime ?? null,
+      };
     });
     
-    if (audioBase64) {
-      const audioData = Buffer.from(audioBase64, "base64");
+    if (audioInfo?.audioBase64) {
+      const audioData = Buffer.from(audioInfo.audioBase64, "base64");
       await writeFile(rawAudioPath, audioData);
-      console.log("  Audio captured, trimming to match video...");
+      console.log("  Audio captured, calculating sync trim...");
       
-      // Trim audio by the same amount as video (PREROLL_CUT_S from start)
+      // Calculate exact audio trim: (videoCutTime - audioStartTime)
+      // Video cut point is reelReadyTime + PREROLL_CUT_S (in performance.now() space)
+      // Audio started at audioStartTime (in performance.now() space)
+      const videoCutTime = audioInfo.reelReadyTime !== null 
+        ? audioInfo.reelReadyTime + PREROLL_CUT_S * 1000 
+        : null;
+      const audioStartTime = audioInfo.audioStartTime;
+      
+      if (videoCutTime !== null && audioStartTime !== null) {
+        // Both in ms, convert to seconds
+        audioTrimS = Math.max(0, (videoCutTime - audioStartTime) / 1000);
+        console.log(`  Audio trim: ${audioTrimS.toFixed(3)}s (videoCut=${videoCutTime.toFixed(0)}ms, audioStart=${audioStartTime.toFixed(0)}ms)`);
+      } else {
+        // Fallback to fixed trim
+        audioTrimS = PREROLL_CUT_S;
+        console.log(`  Audio trim: ${audioTrimS.toFixed(3)}s (fallback, missing timing data)`);
+      }
+      
+      // Trim audio to sync with video cut
       await new Promise((resolve, reject) => {
         const ffmpegTrim = spawn("ffmpeg", [
           "-y",
           "-i", rawAudioPath,
-          "-ss", String(PREROLL_CUT_S),
+          "-ss", String(audioTrimS),
           "-c:a", "aac",
           "-b:a", "192k",
           trimmedAudioPath,
@@ -519,7 +542,7 @@ async function captureWithCDP(page, args, server) {
         ffmpegTrim.on("error", reject);
       });
       hasAudio = true;
-      console.log(`  Audio trimmed (cut ${PREROLL_CUT_S}s from start)`);
+      console.log(`  Audio trimmed (cut ${audioTrimS.toFixed(3)}s from start)`);
     }
   }
   
@@ -564,10 +587,14 @@ async function captureWithCDP(page, args, server) {
   const fireEvents = await page.evaluate(() => window.__capture?.fireEvents ?? []);
   const followUnitId = await page.evaluate(() => window.__capture?.followUnitId ?? null);
   const pageReelReadyTime = await page.evaluate(() => window.__capture?.reelReadyTime ?? null);
+  const pageAudioStartTime = await page.evaluate(() => window.__capture?.audioStartTime ?? null);
   const sidecarPath = finalPath.replace(/\.(mp4|webm)$/, "-fire-events.json");
   const sidecar = {
     follow_unit_id: followUnitId,
     reel_ready_time_ms: pageReelReadyTime,
+    audio_start_time_ms: pageAudioStartTime,
+    audio_trim_s: audioTrimS,
+    video_cut_s: PREROLL_CUT_S,
     dropped_early_frames: droppedEarlyFrames,
     total_events: fireEvents.length,
     followed_events: fireEvents.filter(e => e.is_followed).length,
@@ -576,7 +603,7 @@ async function captureWithCDP(page, args, server) {
   await writeFile(sidecarPath, JSON.stringify(sidecar, null, 2));
   console.log(`  Fire events: ${fireEvents.length} total, ${sidecar.followed_events} from followed unit (id: ${followUnitId ?? 'none'}) -> ${basename(sidecarPath)}`);
   if (droppedEarlyFrames > 0) {
-    console.log(`  Dropped ${droppedEarlyFrames} early frames (before reel-ready at ${pageReelReadyTime?.toFixed(1) ?? '?'}ms)`);
+    console.log(`  Dropped ${droppedEarlyFrames} early frames (before reel-ready + ${PREROLL_CUT_S}s)`);
   }
   if (sidecar.followed_events === 0) {
     console.log("  WARNING: Followed unit did not fire during capture");

@@ -79,25 +79,27 @@ export interface CapturePreset {
 }
 
 /** The hero camera: a single continuous zoom from strategic height to ground level.
- *  39s total: 1s preroll (static start pose), 32s eased zoom, 6s hold at end pose.
- *  The 1s preroll ensures the smoothed follow target is initialized before zoom starts.
- *  capture.mjs cuts 0.5s from both video and audio, trimming any stale frames.
+ *  40s total: 1.5s preroll (static start pose), 32s eased zoom, 6.5s hold at end pose.
+ *  The 1.5s preroll ensures the smoothed follow target is initialized before zoom starts.
+ *  capture.mjs cuts 0.5s from both video and audio (at reelReady + 0.5s), trimming any stale frames.
+ *  Recording stops 0.5s after reel ends for a clean tail.
+ *  Expected output: ~38.5s video (1.5s preroll - 0.5s cut = 1s visible preroll, then 32s zoom + 6s hold).
  *  Follows unit 1 (the driving tank) with target offset [-1, 8].
  *  Distance is log-linear for smooth zoom feel; yaw/pitch/target are linear.
  *  Info cards fade in as the camera descends (90m → 48m, handled by the game). */
 export const DEFAULT_CINEMATIC_REEL: MenuReel = {
   fade_s: 0,
   shots: [
-    // 1s preroll: hold start pose while follow target initializes
+    // 1.5s preroll: hold start pose while follow target initializes
     {
-      seconds: 1.0,
+      seconds: 1.5,
       follow: 1,
       from: { target: [-1, 8], distance: 700, yaw: 0.174, pitch: 1.2 },
       to: { target: [-1, 8], distance: 700, yaw: 0.174, pitch: 1.2 },
     },
-    // 38s main shot: 32s zoom + 6s hold
+    // 38.5s main shot: 32s zoom + 6.5s hold
     {
-      seconds: 38.0,
+      seconds: 38.5,
       follow: 1,
       from: { target: [-1, 8], distance: 700, yaw: 0.174, pitch: 1.2 },
       to: { target: [-1, 8], distance: 39.6, yaw: -0.426, pitch: 0.147 },

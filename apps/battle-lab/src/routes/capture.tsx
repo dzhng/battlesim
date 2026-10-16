@@ -138,8 +138,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
     URL.revokeObjectURL(url);
   }, [state]);
 
-  // Track reelReadyTime from the battle component
+  // Track reelReadyTime and audioStartTime from the battle component
   const [reelReadyTime, setReelReadyTime] = useState<number | null>(null);
+  const [audioStartTime, setAudioStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
@@ -149,8 +150,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       fireEvents,
       followUnitId,
       reelReadyTime,
+      audioStartTime,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, audioStartTime]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -172,6 +174,7 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         onFireEvents={setFireEvents}
         onFollowUnitId={setFollowUnitId}
         onReelReady={setReelReadyTime}
+        onAudioStart={setAudioStartTime}
         isTrackedVehicle={isTrackedVehicle}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
@@ -193,6 +196,7 @@ function CaptureBattle({
   onFireEvents,
   onFollowUnitId,
   onReelReady,
+  onAudioStart,
   isTrackedVehicle,
 }: {
   scene: BackdropScene;
@@ -208,6 +212,7 @@ function CaptureBattle({
   onFireEvents?: (events: WeaponFireEvent[]) => void;
   onFollowUnitId?: (id: number | null) => void;
   onReelReady?: (time: number) => void;
+  onAudioStart?: (time: number) => void;
   isTrackedVehicle: (kind: string) => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -224,6 +229,10 @@ function CaptureBattle({
   const reelFrameCountRef = useRef(0);
   /** Timestamp when the reel-ready signal was sent (first pose applied + frame rendered). */
   const reelReadyTimeRef = useRef<number | null>(null);
+  /** Timestamp when audio recording started (performance.now()). */
+  const audioStartTimeRef = useRef<number | null>(null);
+  /** Whether we've scheduled the recording stop (to prevent duplicate timeouts). */
+  const stoppingRef = useRef(false);
 
   // Refs for values accessed in the frame callback to avoid stale closures
   const stateRef = useRef(state);
@@ -321,6 +330,10 @@ function CaptureBattle({
             };
 
             recorderRef.current = recorder;
+            // Record audio start time for sync with video cut
+            const audioStart = performance.now();
+            audioStartTimeRef.current = audioStart;
+            onAudioStart?.(audioStart);
             recorder.start(1000);
           }
         }
@@ -427,8 +440,12 @@ function CaptureBattle({
       const elapsed = (now - pilotStartRef.current) / 1000;
       const sample = sampleReel(reel, elapsed);
 
-      if (sample.done && recorderRef.current?.state === "recording") {
-        stopRecording();
+      if (sample.done && recorderRef.current?.state === "recording" && !stoppingRef.current) {
+        // Add a small tail (0.5s) to ensure the last frame is captured
+        stoppingRef.current = true;
+        setTimeout(() => stopRecording(), 500);
+      }
+      if (sample.done) {
         return sample.pose;
       }
 
