@@ -55,14 +55,15 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
-    // Limiter: loosened to allow ~15-20 dB transient headroom for cannon shots.
-    // Original was threshold -6, ratio 20 which squashed peaks too much.
+    // Limiter: very gentle to preserve caliber hierarchy.
+    // Big guns (tank/artillery) must stay ~20+ dB above small arms.
+    // High threshold + low ratio lets peaks through with minimal squashing.
     this.limiter = new DynamicsCompressorNode(context, {
-      threshold: -3,
-      knee: 6,
-      ratio: 4,
-      attack: 0.003,
-      release: 0.15,
+      threshold: 0,
+      knee: 10,
+      ratio: 2,
+      attack: 0.005,
+      release: 0.2,
     });
     this.graph.push(this.limiter);
     this.limiter.connect(context.destination);

@@ -1307,14 +1307,19 @@
       "hold_s": 0.25,
       "late_s": 0.25,
       "shots": {
-        "default": { "near": "rifle", "far": "rifle_far", "gain": 0.35, "far_m": 300 },
-        "rifle": { "near": "rifle", "far": "rifle_far", "gain": 0.35, "far_m": 300 },
-        "hmg": { "near": "hmg", "far": "hmg_far", "gain": 0.5, "far_m": 350 },
-        "autocannon": { "near": "hmg", "far": "hmg_far", "gain": 0.7, "far_m": 450 },
-        "tank_ap": { "near": "cannon", "far": "cannon_far", "gain": 10.0, "far_m": 500 },
-        "tank_he": { "near": "cannon", "far": "cannon_far", "gain": 10.0, "far_m": 500 },
-        "grenade": { "near": "thump", "far": "thump", "gain": 0.45, "far_m": 200 },
-        "atgm": { "near": "launch", "far": "launch", "gain": 1.0, "far_m": 400 }
+        "_caliber_hierarchy": "Class A: tank/artillery (gain 12-15), Class B: autocannon (3-4), Class C: HMG (1.5), Class D: missiles (2), Class E: small arms (0.2-0.4), Class F: grenades (0.6)",
+        "default": { "near": "rifle", "far": "rifle_far", "gain": 0.25, "far_m": 250 },
+        "rifle": { "near": "rifle", "far": "rifle_far", "gain": 0.25, "far_m": 250 },
+        "hmg": { "near": "hmg", "far": "hmg_far", "gain": 1.5, "far_m": 400 },
+        "autocannon": { "near": "hmg", "far": "hmg_far", "gain": 3.5, "far_m": 550 },
+        "tank_ap": { "near": "cannon", "far": "cannon_far", "gain": 14.0, "far_m": 900 },
+        "tank_he": { "near": "cannon", "far": "cannon_far", "gain": 14.0, "far_m": 900 },
+        "artillery_howitzer": { "near": "cannon", "far": "cannon_far", "gain": 16.0, "far_m": 1200 },
+        "artillery_mortar": { "near": "cannon", "far": "cannon_far", "gain": 12.0, "far_m": 800 },
+        "artillery_rocket": { "near": "cannon", "far": "cannon_far", "gain": 15.0, "far_m": 1000 },
+        "grenade": { "near": "thump", "far": "thump", "gain": 0.6, "far_m": 250 },
+        "rpg": { "near": "launch", "far": "launch", "gain": 2.0, "far_m": 350 },
+        "atgm": { "near": "launch", "far": "launch", "gain": 2.5, "far_m": 450 }
       },
       "impacts": {
         "default": { "sound": "impact_ground", "gain": 0.35 },
@@ -1323,16 +1328,24 @@
         "prop": { "sound": "impact_prop", "gain": 0.45 },
         "soldier": { "sound": "impact_soldier", "gain": 0.25 }
       },
-      "impact_scale": { "default": 1, "hmg": 1.3, "autocannon": 1.8, "tank_ap": 2.5, "tank_he": 2.5, "atgm": 2 },
+      "impact_scale": { "default": 1, "rifle": 0.8, "hmg": 1.5, "autocannon": 2.2, "tank_ap": 4.0, "tank_he": 4.0, "artillery_howitzer": 5.0, "artillery_mortar": 4.0, "atgm": 3.5, "rpg": 2.5 },
       "ricochet": { "sound": "ricochet", "gain": 0.25 },
       "blasts": {
-        "default": { "near": "explosion", "far": "explosion_far", "gain": 1.6, "far_m": 600 },
-        "grenade": { "near": "explosion", "far": "explosion_far", "gain": 0.7, "far_m": 400 },
-        "autocannon": { "near": "explosion", "far": "explosion_far", "gain": 0.25, "far_m": 250 }
+        "_caliber_hierarchy": "Heavy artillery/tank: 8-12, autocannon: 1.5, grenade/rpg: 0.8-1.2, small arms: minimal",
+        "default": { "near": "explosion", "far": "explosion_far", "gain": 2.0, "far_m": 600 },
+        "tank_ap": { "near": "explosion", "far": "explosion_far", "gain": 10.0, "far_m": 900 },
+        "tank_he": { "near": "explosion", "far": "explosion_far", "gain": 12.0, "far_m": 1000 },
+        "artillery_howitzer": { "near": "explosion", "far": "explosion_far", "gain": 14.0, "far_m": 1200 },
+        "artillery_mortar": { "near": "explosion", "far": "explosion_far", "gain": 10.0, "far_m": 900 },
+        "artillery_rocket": { "near": "explosion", "far": "explosion_far", "gain": 12.0, "far_m": 1100 },
+        "grenade": { "near": "explosion", "far": "explosion_far", "gain": 1.0, "far_m": 400 },
+        "rpg": { "near": "explosion", "far": "explosion_far", "gain": 1.5, "far_m": 450 },
+        "autocannon": { "near": "explosion", "far": "explosion_far", "gain": 1.8, "far_m": 400 },
+        "atgm": { "near": "explosion", "far": "explosion_far", "gain": 8.0, "far_m": 800 }
       },
       "cook_off": {
-        "blast": { "near": "explosion", "far": "explosion_far", "gain": 1.4, "far_m": 900 },
-        "landing": { "hit": "hull", "as": "tank_ap", "gain": 1.1 }
+        "blast": { "near": "explosion", "far": "explosion_far", "gain": 12.0, "far_m": 1000 },
+        "landing": { "hit": "hull", "as": "tank_ap", "gain": 3.0 }
       },
       "motors": { "atgm": { "sound": "motor", "gain": 0.25 } },
       "vehicles": {
