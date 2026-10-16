@@ -10,7 +10,7 @@ import { MusicPlayer } from "./music/musicPlayer";
 import type { VoiceRequest } from "./voices/chatter";
 
 /** The menu's countryside bed, under its music (the catalog's `menu` mood). */
-export const MENU_AMBIENCE = { sound: "countryside", gain: 0.08 } as const;
+export const MENU_AMBIENCE = { sound: "countryside", gain: 0.02 } as const;
 export const MENU_CUES = {
   hover: { sound: "recorded-clack-14", gain: 0.12 },
   click: { sound: "recorded-clack-17", gain: 0.3 },
