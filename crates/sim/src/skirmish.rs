@@ -292,6 +292,10 @@ impl Skirmish {
                     .u64(r.data.confirmed_tick)
                     .u64(r.data.blocked as u64)
                     .u64(r.price as u64);
+                match r.data.arrival_tick {
+                    Some(tick) => digest.u64(1).u64(tick),
+                    None => digest.u64(0),
+                };
             }
         }
     }

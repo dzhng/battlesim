@@ -1,4 +1,4 @@
-use crate::math::{wrap_angle, V2, V3};
+use crate::math::{wrap_angle, V2};
 
 use super::fixed_wing::{FixedWingLimits, FixedWingState, Steer};
 
@@ -22,10 +22,25 @@ impl Bounds {
 /// What a fixed-wing pilot is trying to do this tick.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Intent {
-    Orbit { centre: V2 },
-    Line { through: V2, heading: f64, agl: f64 },
-    Pursue { point: V3, vel: V3, lag_s: f64 },
-    Exit { to: V2 },
+    Orbit {
+        centre: V2,
+    },
+    Line {
+        through: V2,
+        heading: f64,
+        agl: f64,
+    },
+    /// Chase `point`, moving at `vel`, aimed `lag_s` behind it, flown at
+    /// `agl` metres above ground.
+    Pursue {
+        point: V2,
+        vel: V2,
+        lag_s: f64,
+        agl: f64,
+    },
+    Exit {
+        to: V2,
+    },
 }
 
 fn turn_toward(current: f64, wanted: f64, limits: &FixedWingLimits, dt_s: f64) -> f64 {
@@ -106,15 +121,20 @@ fn intent_turn(
             let wanted = heading - libm::atan2(cross_track, lookahead);
             (turn_toward(state.heading, wanted, limits, dt_s), agl)
         }
-        Intent::Pursue { point, vel, lag_s } => {
+        Intent::Pursue {
+            point,
+            vel,
+            lag_s,
+            agl,
+        } => {
             let aim = point - vel * lag_s.max(0.0);
-            let direction = aim.xy() - state.pos.xy();
+            let direction = aim - state.pos.xy();
             let wanted = if direction.length() > 1e-9 {
                 libm::atan2(direction.y, direction.x)
             } else {
                 state.heading
             };
-            (turn_toward(state.heading, wanted, limits, dt_s), point.z)
+            (turn_toward(state.heading, wanted, limits, dt_s), agl)
         }
         Intent::Exit { to } => {
             let direction = to - state.pos.xy();

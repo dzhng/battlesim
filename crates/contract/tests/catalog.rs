@@ -165,6 +165,29 @@ fn aircraft_capability_carries_air_ranges_afterburner_and_refund() {
     );
 }
 
+/// The afterburner is a jet's: no rotor flight law flies it, so a rotor
+/// row carrying one is refused, naming the rule.
+#[test]
+fn an_afterburner_needs_fixed_wing_flight() {
+    let mut rotor = base_tank();
+    rotor["abstract"] = json!(false);
+    rotor["mobility"] = json!({
+        "air": { "cruise_kmh": 180, "turn_deg_s": 30, "climb_mps": 8, "flight": "rotor" }
+    });
+    rotor["capabilities"] = json!({ "air": {
+        "fuel_capacity_s": 180,
+        "afterburner": {},
+        "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
+    }});
+    let error = resolve(&units(json!({ "rotor": rotor })))
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("afterburner") && error.contains("fixed-wing"),
+        "{error}"
+    );
+}
+
 #[test]
 fn aircraft_refund_weights_must_sum_to_one() {
     let mut aircraft = base_tank();

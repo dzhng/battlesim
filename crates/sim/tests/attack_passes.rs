@@ -111,6 +111,7 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
     let aim = v3(1000.0, 0.0, 0.0);
     let mut plan = begin(
         &state(250.0),
+        0.0,
         &wing_limits(),
         aim,
         PassWeapon::Bomb,
@@ -138,6 +139,7 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
 fn pass_height_is_seeded_between_floor_and_ceiling() {
     let p = begin(
         &state(250.0),
+        0.0,
         &wing_limits(),
         v3(1000.0, 0.0, 0.0),
         PassWeapon::Bomb,
@@ -151,6 +153,7 @@ fn pass_height_is_seeded_between_floor_and_ceiling() {
 fn a_jet_below_the_ceiling_doesnt_climb_to_start() {
     let p = begin(
         &state(150.0),
+        0.0,
         &wing_limits(),
         v3(1000.0, 0.0, 0.0),
         PassWeapon::Bomb,
@@ -158,6 +161,28 @@ fn a_jet_below_the_ceiling_doesnt_climb_to_start() {
         &mut Rng::new(9),
     );
     assert!(p.agl <= 150.0);
+}
+
+/// The pass ceiling is a height above the ground under the jet: over a
+/// rise, a jet already under it keeps its height above ground rather than
+/// counting the rise as height of its own.
+#[test]
+fn a_pass_over_raised_ground_keeps_the_height_above_it() {
+    let wing = wing();
+    let limits = wing_limits();
+    let under = (limits.floor_agl_m + wing.strafe_ceiling_m) * 0.5;
+    for ground in [5.0, 60.0] {
+        let p = begin(
+            &state(ground + under),
+            ground,
+            &limits,
+            v3(1000.0, 0.0, ground),
+            PassWeapon::Gun,
+            &wing,
+            &mut Rng::new(9),
+        );
+        assert_eq!(p.agl, under, "over {ground} m ground");
+    }
 }
 
 #[test]
@@ -178,6 +203,7 @@ fn every_loadout_flies_a_pass() {
     for weapon in [PassWeapon::Gun, PassWeapon::GroundMissile, PassWeapon::Bomb] {
         let p = begin(
             &state(250.0),
+            0.0,
             &wing_limits(),
             v3(1000.0, 0.0, 0.0),
             weapon,
@@ -565,6 +591,56 @@ fn attack_move_picks_up_targets_then_holds_circling() {
         battle.unit(UnitId(0)).unwrap().orders.is_empty(),
         "attack-move did not settle"
     );
+}
+
+/// Attack-move picks up what lies along the way: an enemy its side knows
+/// of, but farther off the leg than the jet's weapons reach, is left alone,
+/// and the jet flies on to its goal.
+#[test]
+fn attack_move_leaves_an_enemy_beyond_reach_of_its_leg() {
+    const REACH_M: f64 = 500.0;
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mounts": [{
+            "id": "air gun", "name": "Air Gun", "weapons": ["air_gun"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
+        }] }),
+    );
+    rules["weapons"]["air_gun"]["targets"]["ground"]["range_m"] = json!(REACH_M);
+    let off_leg = 1_000.0 + REACH_M * 3.0;
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [5000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [300, 1000], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_recon", "position": [1900, off_leg - 100.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [1900, off_leg], "yaw": 0.0, "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    attack_move(&mut battle, 1, [3_500.0, 1_000.0]);
+    let mut known = false;
+    for _ in 0..1_500 {
+        battle.step();
+        known |= !battle.observe(Side::Blue).identified.is_empty();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        assert!(
+            jet.air.unwrap().pass.is_none(),
+            "the jet turned off its leg"
+        );
+        if jet.orders.is_empty() {
+            break;
+        }
+    }
+    assert!(known, "the recon sees the tank");
+    let jet = battle.unit(UnitId(0)).unwrap();
+    assert!(jet.orders.is_empty(), "the jet never reached its goal");
+    assert_eq!(jet.mounts[0].shots, 0);
 }
 
 #[test]

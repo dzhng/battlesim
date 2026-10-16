@@ -7,13 +7,12 @@
 ```rust
 BackEdge { a: V2, b: V2, inward: V2 }
 back_edge(side, &sites, &World) -> BackEdge   // the map edge nearest the side's EntrySite.center; one lookup for every caller
-entry(&BackEdge, toward: V2) -> (V2, heading)
-nearest_exit(&BackEdge, pos) -> V2
+entry(&BackEdge, toward: V2) -> (V2, heading)   // the nearest edge point, in or out
 crossed(&BackEdge, prev, next) -> bool
 ```
 - **Arrival:** a bought jet stays a reservation through its seeded delay, then spawns at `entry` at its layer's cruise height and speed, heading in.
 - **Published record:** own-side `AirTransit { kind, point: V3, heading, speed_mps, edge_tick, dir: In | Out }`, carried through publication, the reader and WASM.
-- **Withdrawal:** heads to `nearest_exit`. The jet is retired and refunded at `crossed`, and an `Out` transit is published. The fuel estimate uses the edge distance.
+- **Withdrawal:** heads to `entry`'s point nearest the jet. The jet is retired and refunded at `crossed`, and an `Out` transit is published. The fuel estimate uses the edge distance.
 - **Delete for jets** (helicopters keep them):
   - the jets' use of `traversing`, `ingress_remaining`, the four-sides spawn and the snap;
   - the entry-centre retirement;

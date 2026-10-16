@@ -86,10 +86,13 @@ fn ceiling(weapon: PassWeapon, air: &FixedWingFlight) -> f64 {
     }
 }
 
-/// Start a run. Existing altitude is retained when already under its weapon's
-/// ceiling; otherwise a deterministic height in the permitted band is used.
+/// Start a run from `state`, flying over ground `ground_m` high. Its
+/// existing height above that ground is retained when already under its
+/// weapon's ceiling; otherwise a deterministic height in the permitted band
+/// is used.
 pub fn begin(
     state: &FixedWingState,
+    ground_m: f64,
     limits: &FixedWingLimits,
     aim: V3,
     weapon: PassWeapon,
@@ -98,7 +101,7 @@ pub fn begin(
 ) -> PassPlan {
     let max = ceiling(weapon, air);
     let floor = limits.floor_agl_m;
-    let current = state.pos.z;
+    let current = state.pos.z - ground_m;
     let agl = if current <= max {
         current.max(floor)
     } else {

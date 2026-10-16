@@ -63,6 +63,8 @@ const LAYERS: [AltitudeLayer; 3] = [
     AltitudeLayer::LowAir,
     AltitudeLayer::HighAir,
 ];
+const AIR_TRANSIT_DIRECTIONS: [AirTransitDirection; 2] =
+    [AirTransitDirection::In, AirTransitDirection::Out];
 const SOUND_CATEGORIES: [SoundCategory; 4] = [
     SoundCategory::Infantry,
     SoundCategory::Vehicle,
@@ -646,7 +648,7 @@ pub fn layout_json(battle: &Battle) -> String {
         "directions": names(&DIRECTIONS),
         "contactSources": names(&CONTACT_SOURCES),
         "layers": names(&LAYERS),
-        "airTransitDirections": ["in", "out"],
+        "airTransitDirections": names(&AIR_TRANSIT_DIRECTIONS),
         "soundCategories": names(&SOUND_CATEGORIES),
         "soundBands": names(&SOUND_BANDS),
         "shoutTriggers": names(&ShoutTrigger::ALL),
@@ -1291,7 +1293,7 @@ fn pack_record(
             t.heading as f32,
             t.speed_mps as f32,
             t.edge_tick as f32,
-            matches!(t.dir, AirTransitDirection::Out) as u8 as f32,
+            tag(&AIR_TRANSIT_DIRECTIONS, &t.dir),
         ]);
     }
     if let Some(ends) = ends.as_mut() {

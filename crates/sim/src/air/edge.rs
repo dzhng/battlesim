@@ -40,15 +40,13 @@ pub fn back_edge(side: Side, sites: &SkirmishSites, world: &WorldGeometry) -> Ba
     BackEdge { a, b, inward }
 }
 
+/// The point on `edge` nearest `toward`, and the inward heading there: where
+/// a jet crosses the edge, coming in or going home.
 pub fn entry(edge: &BackEdge, toward: V2) -> (V2, f64) {
     let edge_vec = edge.b - edge.a;
     let t = ((toward - edge.a).dot(edge_vec) / edge_vec.dot(edge_vec)).clamp(0.0, 1.0);
     let point = edge.a + edge_vec * t;
     (point, libm::atan2(edge.inward.y, edge.inward.x))
-}
-
-pub fn nearest_exit(edge: &BackEdge, pos: V2) -> V2 {
-    entry(edge, pos).0
 }
 
 pub fn crossed(edge: &BackEdge, prev: V2, next: V2) -> bool {
