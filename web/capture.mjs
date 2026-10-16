@@ -450,16 +450,24 @@ async function captureWithCDP(page, args, server) {
     // Don't delete duplicate files yet - we'll clean up at the end
   }
   
-  // Calculate target output duration: trim at exactly reel end, no tail
-  // The recording runs for captureDuration + 0.5s tail, so subtract 0.5s
-  // Target = (reelDuration - 0.5s tail) - (cutTime - reelReadyTime)
-  const TAIL_DURATION_S = 0.5;
+  // Calculate target output duration: trim at exactly reel end
+  // Use reelEndTime if available (precise), otherwise estimate from duration
+  const reelEndTime = await page.evaluate(() => window.__capture?.reelEndTime);
   let targetOutputDuration = null;
-  if (dynamicCutTimeMs !== null && reelReadyTime !== null && captureDuration > 0) {
-    const cutOffsetFromReelStart = (dynamicCutTimeMs - reelReadyTime) / 1000;
-    // Subtract tail duration to get the real reel end (before camera reset)
-    targetOutputDuration = captureDuration - cutOffsetFromReelStart - TAIL_DURATION_S;
-    console.log(`  Target output duration: ${targetOutputDuration.toFixed(2)}s (reel=${captureDuration}s - cut=${cutOffsetFromReelStart.toFixed(2)}s - tail=${TAIL_DURATION_S}s)`);
+  if (dynamicCutTimeMs !== null && reelReadyTime !== null) {
+    if (reelEndTime !== null && reelEndTime !== undefined) {
+      // Precise: use the actual reel-end timestamp from the page
+      const reelDurationMs = reelEndTime - reelReadyTime;
+      const cutOffsetFromReelStart = (dynamicCutTimeMs - reelReadyTime) / 1000;
+      targetOutputDuration = reelDurationMs / 1000 - cutOffsetFromReelStart;
+      console.log(`  Target output duration: ${targetOutputDuration.toFixed(2)}s (reelEnd=${reelDurationMs.toFixed(0)}ms - cut=${(cutOffsetFromReelStart * 1000).toFixed(0)}ms)`);
+    } else if (captureDuration > 0) {
+      // Fallback: estimate from captureDuration minus 0.5s tail
+      const TAIL_DURATION_S = 0.5;
+      const cutOffsetFromReelStart = (dynamicCutTimeMs - reelReadyTime) / 1000;
+      targetOutputDuration = captureDuration - cutOffsetFromReelStart - TAIL_DURATION_S;
+      console.log(`  Target output duration: ${targetOutputDuration.toFixed(2)}s (estimated: reel=${captureDuration}s - cut=${cutOffsetFromReelStart.toFixed(2)}s - tail=${TAIL_DURATION_S}s)`);
+    }
   }
   
   // Build frameTimestamps only from files that exist on disk

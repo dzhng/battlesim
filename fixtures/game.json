@@ -1739,10 +1739,10 @@
       "shadow_floor": 0.32,
       "sky": {
         "turbidity": 4.5,
-        "radiance": 14,
+        "radiance": 10.5,
         "fill": [1.0, 0.92, 0.78],
-        "saturation": 0.45,
-        "tint": [1.02, 1.0, 0.97],
+        "saturation": 1.62,
+        "tint": [1.02, 0.9, 1.05],
         "grade_mix": 0.0,
         "clouds": { "coverage": 0.42, "height_m": 1600, "scale_m": 600, "softness": 0.05, "opacity": 0.95, "radiance": 1.6, "shade": [0.6, 0.58, 0.55] }
       },
@@ -1771,8 +1771,8 @@
         "contrast": 0.62,
         "split_tone": 1.0,
         "shadow_lift": 0.3,
-        "shadow_tint": [1.3, 1.04, 0.72],
-        "highlight_tint": [1.52, 1.1, 0.56],
+        "shadow_tint": [1.3, 1.05, 0.69],
+        "highlight_tint": [1.55, 1.11, 0.53],
         "lift": [0.03, 0.03, 0.026]
       },
       "bloom": { "strength": 0.3, "radius": 0.55, "threshold": 0.55, "smooth_width": 0.5 },

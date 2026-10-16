@@ -138,8 +138,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
     URL.revokeObjectURL(url);
   }, [state]);
 
-  // Track reelReadyTime, audioStartTime, and audioLatency from the battle component
+  // Track reelReadyTime, reelEndTime, audioStartTime, and audioLatency from the battle component
   const [reelReadyTime, setReelReadyTime] = useState<number | null>(null);
+  const [reelEndTime, setReelEndTime] = useState<number | null>(null);
   const [audioStartTime, setAudioStartTime] = useState<number | null>(null);
   const [audioLatency, setAudioLatency] = useState<number>(0);
   const [calibrationTime, setCalibrationTime] = useState<number | null>(null);
@@ -154,12 +155,13 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       fireEvents,
       followUnitId,
       reelReadyTime,
+      reelEndTime,
       audioStartTime,
       audioLatency,
       triggerCalibration: triggerCalibrationRef.current ?? undefined,
       calibrationTime,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, audioStartTime, audioLatency, calibrationTime]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, reelEndTime, audioStartTime, audioLatency, calibrationTime]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -181,6 +183,7 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         onFireEvents={setFireEvents}
         onFollowUnitId={setFollowUnitId}
         onReelReady={setReelReadyTime}
+        onReelEndTime={setReelEndTime}
         onAudioStart={(time, latency) => {
           setAudioStartTime(time);
           setAudioLatency(latency);
@@ -210,6 +213,7 @@ function CaptureBattle({
   onFireEvents,
   onFollowUnitId,
   onReelReady,
+  onReelEndTime,
   onAudioStart,
   onCalibration,
   onCalibrationTime,
@@ -228,6 +232,7 @@ function CaptureBattle({
   onFireEvents?: (events: WeaponFireEvent[]) => void;
   onFollowUnitId?: (id: number | null) => void;
   onReelReady?: (time: number) => void;
+  onReelEndTime?: (time: number) => void;
   onAudioStart?: (time: number, latency: number) => void;
   onCalibration?: (fn: () => number) => void;
   onCalibrationTime?: (time: number) => void;
@@ -247,6 +252,8 @@ function CaptureBattle({
   const reelFrameCountRef = useRef(0);
   /** Timestamp when the reel-ready signal was sent (first pose applied + frame rendered). */
   const reelReadyTimeRef = useRef<number | null>(null);
+  /** Timestamp when the reel ended (sample.done became true for the first time). */
+  const reelEndTimeRef = useRef<number | null>(null);
   /** Timestamp when audio recording started (performance.now()). */
   const audioStartTimeRef = useRef<number | null>(null);
   /** Whether we've scheduled the recording stop (to prevent duplicate timeouts). */
@@ -259,11 +266,13 @@ function CaptureBattle({
   const onFireEventsRef = useRef(onFireEvents);
   const onFollowUnitIdRef = useRef(onFollowUnitId);
   const onReelReadyRef = useRef(onReelReady);
+  const onReelEndTimeRef = useRef(onReelEndTime);
   const reportedFollowRef = useRef<number | null | undefined>(undefined);
   stateRef.current = state;
   onFireEventsRef.current = onFireEvents;
   onFollowUnitIdRef.current = onFollowUnitId;
   onReelReadyRef.current = onReelReady;
+  onReelEndTimeRef.current = onReelEndTime;
 
   useLabLoading("renderer", warmed);
 
@@ -491,14 +500,20 @@ function CaptureBattle({
       const sample = sampleReel(reel, elapsed);
 
       if (sample.done && recorderRef.current?.state === "recording" && !stoppingRef.current) {
+        // Record the exact reel-end time for precise cutting
+        if (reelEndTimeRef.current === null) {
+          reelEndTimeRef.current = now;
+          onReelEndTimeRef.current?.(now);
+        }
         // Add a small tail (0.5s) to ensure the last frame is captured
         stoppingRef.current = true;
         setTimeout(() => stopRecording(), 500);
       }
-      if (sample.done) {
-        return sample.pose;
-      }
 
+      // IMPORTANT: Always apply follow tracking, even when done.
+      // When done, HOLD the final keyframe with the current tracked position
+      // rather than jumping back to the static offset. This prevents camera
+      // reset at the end of the reel.
       const [x, y] = sample.pose.target;
       let finalPose = sample.pose;
 

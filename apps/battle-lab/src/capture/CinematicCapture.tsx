@@ -290,6 +290,8 @@ export interface CaptureExtras {
   followUnitId?: number | null;
   /** Timestamp when the reel's first pose was applied and rendered (for dropping early frames). */
   reelReadyTime?: number | null;
+  /** Timestamp when the reel ended (sample.done became true), for precise cut timing. */
+  reelEndTime?: number | null;
   /** Timestamp when audio recording started (performance.now() for sync calculation). */
   audioStartTime?: number | null;
   /** Audio output latency in seconds (outputLatency + baseLatency from AudioContext). */
@@ -318,6 +320,7 @@ export function exposeCaptureToWindow(
     fireEvents: extras?.fireEvents,
     followUnitId: extras?.followUnitId,
     reelReadyTime: extras?.reelReadyTime,
+    reelEndTime: extras?.reelEndTime,
     audioStartTime: extras?.audioStartTime,
     audioLatency: extras?.audioLatency,
     triggerCalibration: extras?.triggerCalibration,
