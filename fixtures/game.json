@@ -1738,7 +1738,7 @@
       "sun_intensity": 7.2,
       "shadow_floor": 0.32,
       "sky": {
-        "turbidity": 2.0,
+        "turbidity": 4.5,
         "radiance": 14,
         "fill": [1.0, 0.92, 0.78],
         "clouds": { "coverage": 0.42, "height_m": 1600, "scale_m": 600, "softness": 0.05, "opacity": 0.95, "radiance": 1.6, "shade": [0.6, 0.58, 0.55] }
@@ -1761,18 +1761,18 @@
         "mist_opacity": 0.08
       },
       "backdrop": { "reach_m": 40000 },
-      "exposure": 1.65,
+      "exposure": 2.6,
       "grade": {
         "enabled": true,
-        "saturation": 2.20,
-        "contrast": 0.58,
-        "split_tone": 0.45,
-        "shadow_lift": 0.70,
+        "saturation": 1.1,
+        "contrast": 0.62,
+        "split_tone": 0.6,
+        "shadow_lift": 0.3,
         "shadow_tint": [1.0, 1.0, 1.0],
-        "highlight_tint": [1.22, 1.06, 0.82],
+        "highlight_tint": [1.22, 1.06, 0.80],
         "lift": [0.014, 0.016, 0.018]
       },
-      "bloom": { "strength": 0.35, "radius": 0.55, "threshold": 0.55, "smooth_width": 0.5 },
+      "bloom": { "strength": 0.3, "radius": 0.55, "threshold": 0.55, "smooth_width": 0.5 },
       "cascades": {
         "count": 4,
         "map_size": 2048,

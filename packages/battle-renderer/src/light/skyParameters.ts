@@ -37,3 +37,7 @@ export const OVERCAST_ZENITH_RADIANCE: readonly [number, number, number] = [1.04
 /** Sun disc: ~1.2° visual radius (readable at game framing). */
 export const SUN_DISC_COS_INNER = 0.99985;
 export const SUN_DISC_COS_OUTER = 0.99955;
+
+/** Clear-sky chroma pulled toward luma, plus a gentle warm-white tint. */
+export const SKY_DESATURATE = 0.55;
+export const SKY_TINT: readonly [number, number, number] = [1.02, 1.0, 0.97];
