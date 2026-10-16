@@ -1290,7 +1290,7 @@
       "blade": { "roughness": 0.9 }
     },
     "audio": {
-      "buses": { "master": 4.2, "units": 0.8, "effects": 1.0, "ambience": 0.6, "music": 1.0, "voices": 1.0 },
+      "buses": { "master": 2.8, "units": 0.8, "effects": 1.0, "ambience": 0.6, "music": 1.0, "voices": 1.0 },
       "listener_eye_share": 0.25,
       "distance": { "ref_m": 15, "rolloff": 1.8, "max_m": 3000, "floor": 0.06, "cull": 0.004 },
       "air": {
@@ -1769,7 +1769,7 @@
         "split_tone": 0.45,
         "shadow_lift": 0.70,
         "shadow_tint": [1.0, 1.0, 1.0],
-        "highlight_tint": [1.18, 1.05, 0.85],
+        "highlight_tint": [1.22, 1.06, 0.82],
         "lift": [0.014, 0.016, 0.018]
       },
       "bloom": { "strength": 0.35, "radius": 0.55, "threshold": 0.55, "smooth_width": 0.5 },

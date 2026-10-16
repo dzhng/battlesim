@@ -172,7 +172,7 @@
       }
     },
     {
-      "tick": 150,
+      "tick": 120,
       "side": "blue",
       "order": {
         "kind": "set_engagement",
@@ -181,39 +181,33 @@
       }
     },
     {
-      "tick": 210,
+      "tick": 180,
       "side": "blue",
       "order": {
-        "kind": "attack",
+        "kind": "attack_move",
         "units": [1],
-        "target": {
-          "kind": "ground",
-          "point": [3404, 2057, 0.0]
-        }
+        "gesture": 14,
+        "goal": [3420, 1750]
       }
     },
     {
-      "tick": 540,
+      "tick": 450,
       "side": "blue",
       "order": {
-        "kind": "attack",
+        "kind": "attack_move",
         "units": [1],
-        "target": {
-          "kind": "ground",
-          "point": [3346, 2065, 0.0]
-        }
+        "gesture": 15,
+        "goal": [3380, 1880]
       }
     },
     {
-      "tick": 780,
+      "tick": 750,
       "side": "blue",
       "order": {
-        "kind": "attack",
+        "kind": "attack_move",
         "units": [1],
-        "target": {
-          "kind": "ground",
-          "point": [3690, 1995, 0.0]
-        }
+        "gesture": 16,
+        "goal": [3400, 1960]
       }
     },
     {

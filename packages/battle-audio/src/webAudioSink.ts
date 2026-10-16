@@ -55,14 +55,14 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
-    // Limiter: gentle safety net. Gains are structured so big guns peak just
-    // under the limiter; this only catches unexpected transients.
+    // Brickwall limiter: prevents any signal from exceeding -1 dBFS.
+    // High ratio (20:1) with minimal knee for true peak limiting.
     this.limiter = new DynamicsCompressorNode(context, {
-      threshold: -3,
-      knee: 10,
-      ratio: 4,
-      attack: 0.003,
-      release: 0.12,
+      threshold: -1,
+      knee: 0,
+      ratio: 20,
+      attack: 0.001,
+      release: 0.05,
     });
     this.graph.push(this.limiter);
     this.limiter.connect(context.destination);
