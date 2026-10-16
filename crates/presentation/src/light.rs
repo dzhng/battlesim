@@ -150,6 +150,10 @@ pub struct CloudSettings {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GradeSettings {
+    /// Whether the authored grade is applied. When false, only exposure and
+    /// AgX tone mapping are used (neutral look).
+    #[serde(default = "default_true")]
+    pub enabled: bool,
     pub saturation: f64,
     pub contrast: f64,
     pub split_tone: f64,
@@ -157,6 +161,10 @@ pub struct GradeSettings {
     pub shadow_tint: [f64; 3],
     pub highlight_tint: [f64; 3],
     pub lift: [f64; 3],
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -347,20 +355,36 @@ impl LightSettings {
         }
     }
 
-    /// The grade's uniform.
+    /// The grade's uniform. When the grade is disabled, returns neutral values
+    /// so only exposure and AgX tone mapping apply.
     pub fn grade(&self) -> Grade {
         let g = &self.grade;
         let rgb = |v: [f64; 3], w: f64| f32s([v[0], v[1], v[2], w]);
-        Grade {
-            saturation: g.saturation as f32,
-            contrast: g.contrast as f32,
-            split_tone: g.split_tone as f32,
-            shadow_lift: g.shadow_lift as f32,
-            exposure: self.exposure as f32,
-            pad: [0.0; 3],
-            shadow_tint: rgb(g.shadow_tint, 1.0),
-            highlight_tint: rgb(g.highlight_tint, 1.0),
-            lift: rgb(g.lift, 0.0),
+        if g.enabled {
+            Grade {
+                saturation: g.saturation as f32,
+                contrast: g.contrast as f32,
+                split_tone: g.split_tone as f32,
+                shadow_lift: g.shadow_lift as f32,
+                exposure: self.exposure as f32,
+                pad: [0.0; 3],
+                shadow_tint: rgb(g.shadow_tint, 1.0),
+                highlight_tint: rgb(g.highlight_tint, 1.0),
+                lift: rgb(g.lift, 0.0),
+            }
+        } else {
+            // Neutral grade: only exposure and AgX tone mapping apply.
+            Grade {
+                saturation: 1.0,
+                contrast: 0.0,
+                split_tone: 0.0,
+                shadow_lift: 0.0,
+                exposure: self.exposure as f32,
+                pad: [0.0; 3],
+                shadow_tint: [1.0, 1.0, 1.0, 1.0],
+                highlight_tint: [1.0, 1.0, 1.0, 1.0],
+                lift: [0.0, 0.0, 0.0, 0.0],
+            }
         }
     }
 }

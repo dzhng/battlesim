@@ -43,6 +43,9 @@ export interface HazeSettings {
 
 /** Applied to HDR before AgX. Tints multiply linear rgb. */
 export interface GradeSettings {
+  /** Whether the authored grade is applied. When false, only exposure and
+   *  AgX tone mapping are used (neutral look). Defaults to true. */
+  enabled?: boolean;
   saturation: number;
   contrast: number;
   split_tone: number;

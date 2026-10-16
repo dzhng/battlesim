@@ -1608,13 +1608,13 @@
     "light": {
       "sun_azimuth": -0.35,
       "sun_elevation": 0.7,
-      "sun_intensity": 6.5,
-      "shadow_floor": 0.4,
+      "sun_intensity": 7.2,
+      "shadow_floor": 0.32,
       "sky": {
         "turbidity": 2.0,
-        "radiance": 12,
-        "fill": [1.0, 0.75, 0.47],
-        "clouds": { "coverage": 0.42, "height_m": 1600, "scale_m": 600, "softness": 0.05, "opacity": 0.95, "radiance": 1.5, "shade": [0.55, 0.6, 0.7] }
+        "radiance": 14,
+        "fill": [0.92, 0.84, 0.72],
+        "clouds": { "coverage": 0.42, "height_m": 1600, "scale_m": 600, "softness": 0.05, "opacity": 0.95, "radiance": 1.6, "shade": [0.55, 0.6, 0.7] }
       },
       "haze": {
         "distance_scale": 4.6,
@@ -1634,17 +1634,18 @@
         "mist_opacity": 0.08
       },
       "backdrop": { "reach_m": 40000 },
-      "exposure": 1.0,
+      "exposure": 1.05,
       "grade": {
-        "saturation": 1.1,
-        "contrast": 0.5,
-        "split_tone": 0.6,
-        "shadow_lift": 1.0,
-        "shadow_tint": [1.04, 1.0, 0.9],
-        "highlight_tint": [1.02, 1.0, 0.97],
-        "lift": [0.017, 0.021, 0.036]
+        "enabled": true,
+        "saturation": 1.14,
+        "contrast": 0.55,
+        "split_tone": 0.65,
+        "shadow_lift": 1.1,
+        "shadow_tint": [0.98, 1.0, 1.04],
+        "highlight_tint": [1.06, 1.01, 0.96],
+        "lift": [0.022, 0.026, 0.038]
       },
-      "bloom": { "strength": 0.085, "radius": 0.56, "threshold": 1.02, "smooth_width": 0.75 },
+      "bloom": { "strength": 0.14, "radius": 0.58, "threshold": 0.85, "smooth_width": 0.6 },
       "cascades": {
         "count": 4,
         "map_size": 2048,
