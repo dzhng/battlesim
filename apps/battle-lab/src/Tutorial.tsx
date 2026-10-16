@@ -151,8 +151,8 @@ export function Tutorial() {
             Click <strong>Reinforcements</strong> at the bottom left. Your faction&apos;s shop opens
             with tabs by role under the cards; point at a tab to switch to it: <strong>REC</strong>{" "}
             (reconnaissance), <strong>INF</strong> (infantry), <strong>VEH</strong> (fighting
-            vehicles and tanks), <strong>SUP</strong> (supply trucks), and helicopters and aircraft,
-            which are not available yet.
+            vehicles and tanks), <strong>SUP</strong> (supply trucks), <strong>HEL</strong>{" "}
+            (helicopters) and <strong>AIR</strong> (jets).
           </li>
           <li>
             Each card is a family of units and shows its cheapest price, which warns you when you
@@ -360,6 +360,79 @@ export function Tutorial() {
             your back.
           </li>
         </ul>
+      </Section>
+
+      <Section title="Aircraft">
+        <ul>
+          <li>
+            <strong>Helicopters</strong> fly low and fight much like ground units in the air: they
+            go where you send them, hover, and fire at what they see. One you buy sets off from your
+            edge of the map at once.
+          </li>
+          <li>
+            <strong>Jets</strong> fly high and never stop. Sent somewhere, a jet circles over it;
+            sent to attack, it makes passes: it lines up, dives, fires, pulls out and comes around
+            for the next.
+          </li>
+          <li>
+            A jet you buy arrives from your own edge of the map after a short wait. Until then its
+            card in the army bar counts down, <em>Arriving in</em>.
+          </li>
+          <li>
+            A jet carries limited fuel. When it runs low, it leaves by your edge of the map on its
+            own, and part of its price comes back.
+          </li>
+          <li>
+            Jets dogfight only other jets. Against a helicopter, a jet makes passes as it would
+            against a ground target.
+          </li>
+        </ul>
+        <Shot name="arriving">
+          A jet bought mid-battle: its card at the end of the army bar counts down to its arrival.
+        </Shot>
+        <Shot name="jet">
+          A jet in flight, its panel open: its weapons, the fuel it has left and its flares.
+        </Shot>
+      </Section>
+
+      <Section title="Air defence">
+        <ul>
+          <li>
+            <strong>Seeing aircraft:</strong> a jet high up is hard to see. Infantry and helicopter
+            crews spot one within a few hundred metres, other vehicles only when it is nearly
+            overhead, and tanks not at all. Air-defence radars see jets kilometres away. Firing
+            gives any unit away, a jet included: its rough position becomes a red contact.
+          </li>
+          <li>
+            <strong>Shooting them down:</strong> guns hit aircraft close in; missiles (SAMs) reach
+            further. Infantry&apos;s shoulder-launched missiles reach only low-flying aircraft such
+            as helicopters. Long-range SAMs are big launchers that won&apos;t fire from under trees
+            or hard beside a building, so give them open ground.
+          </li>
+          <li>
+            <strong>Shooting down missiles:</strong> some air defence also destroys missiles fired
+            from aircraft: guns like the Skyranger and the Gepard, the Patriot and the Pantsir.
+            Missiles fired from the ground, anti-tank missiles and RPGs, are never shot down, except
+            by a tank&apos;s own active protection (Trophy), which destroys a missile about to hit
+            it for as long as it has charges.
+          </li>
+          <li>
+            <strong>Radar and SEAD:</strong> a radar that emits sees far, but radar-hunting (SEAD)
+            jets can find it. What they find shows as a <strong>radar contact</strong>: a red area
+            marked with the radar icon, with the bearing and range from the jet that found it. SEAD
+            missiles fire at it on their own; no other weapon can. Fire into any contact scatters
+            across its area: the bigger the area, the wider the fire.
+          </li>
+        </ul>
+        <Shot name="radar">
+          A radar contact up close: an enemy radar is somewhere in the red area. Its panel carries
+          the radar icon, and the bearing and range from the SEAD jet that found it, off the
+          picture.
+        </Shot>
+        <p>
+          Every side should buy some air defence: a jet overhead that nobody can see or shoot is a
+          jet that attacks unopposed.
+        </p>
       </Section>
 
       <Section title="How to win">
