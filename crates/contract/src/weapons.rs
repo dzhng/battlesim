@@ -59,6 +59,10 @@ pub struct WeaponDefinition {
     pub damage: f64,
     pub near_miss_suppression: f64,
     pub blast_radius_m: f64,
+    /// A proximity fuse: the round bursts this close to the aircraft it was
+    /// fired at. Absent, it bursts only on what it strikes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proximity_fuse_m: Option<f64>,
     #[serde(default)]
     pub structural_damage: f64,
     /// Ground attack mode for air-launched rows. Bombs take precedence over
@@ -402,6 +406,11 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     } else if def.ballistics.speed_mps <= 0.0 || def.ballistics.range_m <= 0.0 {
                         return Err(serde::de::Error::custom(
                             "a powered row needs positive range_m and speed_mps",
+                        ));
+                    }
+                    if def.proximity_fuse_m.is_some_and(|m| !(m.is_finite() && m > 0.0)) {
+                        return Err(serde::de::Error::custom(
+                            "proximity_fuse_m must be finite and positive",
                         ));
                     }
                     if def.blast_radius_m > 0.0 && def.partial_from.is_none() {

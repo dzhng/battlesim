@@ -427,6 +427,7 @@
       "near_miss_suppression": 0,
       "suppression_radius_m": 0,
       "blast_radius_m": 3,
+      "proximity_fuse_m": 3,
       "structural_damage": 20
     },
         "aa_ballistic": {
@@ -496,6 +497,7 @@
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
+            "proximity_fuse_m": 3,
             "structural_damage": 20,
             "seeker": "radar",
             "seeker_fov_deg": 120,
@@ -529,6 +531,7 @@
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
+            "proximity_fuse_m": 3,
             "structural_damage": 20,
             "seeker": "radar",
             "seeker_fov_deg": 100,
@@ -620,6 +623,7 @@
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
+            "proximity_fuse_m": 3,
             "structural_damage": 20,
             "seeker": "infrared",
             "seeker_fov_deg": 70,

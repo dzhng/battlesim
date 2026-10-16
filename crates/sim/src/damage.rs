@@ -302,17 +302,15 @@ impl ImpactResolver for HullResolver<'_> {
     fn aircraft_fuse(&self, projectile: ProjectileId) -> Option<(UnitId, f64)> {
         let round = self.rounds.get(&projectile)?;
         let def = &self.arsenal.weapons[round.weapon].def;
-        // A proximity fuse belongs to powered missiles. A seeker that has
-        // already been diverted to a flare no longer follows the aircraft.
-        if def.ballistics.accel_mps2.is_none() || def.blast_radius_m <= 0.0 {
-            return None;
-        }
+        let fuse = def.proximity_fuse_m?;
+        // A seeker that has already been diverted to a flare no longer
+        // follows the aircraft.
         if def.seeker.is_some() && round.seeker_target.is_none() {
             return None;
         }
         let target = round.air_target?;
         let unit = self.units.get(target.0 as usize)?;
-        (unit.alive() && unit.airborne()).then_some((target, def.blast_radius_m))
+        (unit.alive() && unit.airborne()).then_some((target, fuse))
     }
     fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
         let Some(attacker) = self.rounds.get(&interceptor) else {

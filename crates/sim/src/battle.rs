@@ -5102,7 +5102,7 @@ mod tests {
             "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
             "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180, "guidance": "stationary",
             "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
-            "blast_radius_m": 3, "structural_damage": 20,
+            "blast_radius_m": 3, "proximity_fuse_m": 3, "structural_damage": 20,
             "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
         });
         if seeker {

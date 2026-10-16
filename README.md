@@ -77,6 +77,7 @@ These were all built and then deleted, because each stood in for a property some
 - **Lane width sized from the widest hull of any unit,** aircraft included. Only ground hulls drive streets.
 - **A `sead` unit flag and a second radar block on aircraft.** Finding emitting radars is a sensor a unit has, shown on its card; firing at a radar contact belongs to the weapon's `anti_radiation`. A unit may have either without the other.
 - **Auto-fire inferred from an airborne seeker.** An aircraft's seeker missile that reached the air, or homed on radars, skipped the engagement policy, behind a ground-only permission path. A row that fires on its own says so (`fires_on_its_own`), and one permission path covers every unit.
+- **A proximity fuse inferred from a motor and a blast.** Any powered round with a blast burst near the aircraft it was fired at. A round with a fuse authors its reach (`proximity_fuse_m`).
 
 If a rule asks "is this an X unit?" or "is this target an aircraft?", the question is usually one of these again.
 
