@@ -641,18 +641,18 @@ async function captureWithCDP(page, args, server) {
       console.log("  Detecting calibration click in audio...");
       if (expectedClickMs !== null) {
         try {
-          // Use astats to get per-segment peak levels, find the loudest segment
-          // near the expected click time
+          // Use astats with 5ms windows (240 samples at 48kHz) to find click onset
           const searchStartS = Math.max(0, (expectedClickMs - 300) / 1000);
-          const searchEndS = (expectedClickMs + 300) / 1000;
-          const segmentMs = 5; // 5ms segments
+          const searchDurationS = 0.6; // 600ms window
           
+          // Put -ss/-t before -i for input seeking (more efficient)
+          // asetnsamples=n=240 gives 5ms windows at 48kHz
           const astatsResult = await new Promise((resolve, reject) => {
             const ffmpeg = spawn("ffmpeg", [
-              "-i", rawAudioPath,
               "-ss", String(searchStartS),
-              "-t", String(searchEndS - searchStartS),
-              "-af", `asegment=timestamps=${Array.from({length: Math.ceil((searchEndS - searchStartS) * 1000 / segmentMs)}, (_, i) => (searchStartS + i * segmentMs / 1000).toFixed(4)).join("|")},astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.Peak_level:file=-`,
+              "-t", String(searchDurationS),
+              "-i", rawAudioPath,
+              "-af", "asetnsamples=n=240,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.Peak_level:file=-",
               "-f", "null", "-",
             ], { stdio: ["pipe", "pipe", "pipe"] });
             let stdout = "";
@@ -662,6 +662,13 @@ async function captureWithCDP(page, args, server) {
             ffmpeg.on("close", (code) => resolve({ stdout, stderr, code }));
             ffmpeg.on("error", (e) => reject(e));
           });
+          
+          // Check for ffmpeg errors
+          if (astatsResult.code !== 0) {
+            console.error(`  ERROR: ffmpeg astats exited with code ${astatsResult.code}`);
+            console.error(`  stderr: ${astatsResult.stderr.slice(-500)}`);
+            throw new Error(`ffmpeg astats failed with code ${astatsResult.code}`);
+          }
           
           // Parse peak levels and find the FIRST window > -10dB (onset detection)
           // Format: frame:N pts:P pts_time:T\nlavfi.astats.Overall.Peak_level=V
@@ -674,6 +681,7 @@ async function captureWithCDP(page, args, server) {
             const peakLevel = parseFloat(peakMatch[2]);
             // Find FIRST window that exceeds -10dB (onset, not max)
             if (peakLevel > -10 && onsetTime === null) {
+              // Add searchStartS to get absolute time in audio file
               onsetTime = searchStartS + ptsTime;
               onsetPeak = peakLevel;
               break; // Stop at first loud segment
@@ -685,17 +693,19 @@ async function captureWithCDP(page, args, server) {
             console.log(`  Calibration click DETECTED at audio ${calibAudioMs.toFixed(1)}ms (onset peak=${onsetPeak.toFixed(1)}dB)`);
           } else {
             // No onset found - this is a failure, not a fallback
-            console.error(`  ERROR: No click onset (> -10dB) found in search window ${searchStartS.toFixed(3)}s - ${searchEndS.toFixed(3)}s`);
+            console.error(`  ERROR: No click onset (> -10dB) found in search window ${searchStartS.toFixed(3)}s - ${(searchStartS + searchDurationS).toFixed(3)}s`);
             console.error(`    Expected click at ${expectedClickMs.toFixed(0)}ms relative to audio start`);
+            console.error(`    Parsed ${(astatsResult.stdout.match(/Peak_level/g) || []).length} peak values from astats`);
             throw new Error(`Click detection failed: no onset > -10dB found near expected time ${expectedClickMs.toFixed(0)}ms`);
           }
         } catch (e) {
-          if (e.message.includes("Click detection failed")) throw e;
+          if (e.message.includes("Click detection failed") || e.message.includes("ffmpeg astats failed")) throw e;
           console.error(`  ERROR: Audio click detection failed: ${e.message}`);
           throw new Error(`Click detection error: ${e.message}`);
         }
       } else {
-        console.log("  WARNING: Cannot detect click - missing calibrationTime or audioStartTime");
+        console.error("  ERROR: Cannot detect click - missing calibrationTime or audioStartTime");
+        throw new Error("Click detection failed: missing calibrationTime or audioStartTime");
       }
       
       // Calculate sync offset from calibration or fall back to timing-based calculation
