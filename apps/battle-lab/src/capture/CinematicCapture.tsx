@@ -310,6 +310,12 @@ export interface CaptureExtras {
   stepFrame?: (virtualTimeMs: number) => Promise<void>;
   /** [Deterministic mode] Enter deterministic mode - use virtual clock for timing. */
   enterDeterministicMode?: () => void;
+  /** [Deterministic mode] Get recorded audio commands for offline rendering. */
+  getRecordedAudioCommands?: () => unknown[];
+  /** [Deterministic mode] Get audio rendering parameters for offline rendering. */
+  getAudioRenderParams?: () => { sampleRate: number; presentation: unknown; catalog: unknown } | null;
+  /** [Deterministic mode] Render recorded audio offline and return as WAV blob. */
+  renderOfflineAudio?: (durationS: number) => Promise<Blob | null>;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -339,5 +345,8 @@ export function exposeCaptureToWindow(
     endCalibrationTimes: extras?.endCalibrationTimes,
     stepFrame: extras?.stepFrame,
     enterDeterministicMode: extras?.enterDeterministicMode,
+    getRecordedAudioCommands: extras?.getRecordedAudioCommands,
+    getAudioRenderParams: extras?.getAudioRenderParams,
+    renderOfflineAudio: extras?.renderOfflineAudio,
   };
 }

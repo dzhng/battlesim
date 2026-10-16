@@ -153,6 +153,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   const stepFrameRef = useRef<((virtualTimeMs: number) => Promise<void>) | null>(null);
   const enterDeterministicModeRef = useRef<(() => void) | null>(null);
   const stopAudioRef = useRef<(() => void) | null>(null);
+  const getRecordedAudioCommandsRef = useRef<(() => unknown[]) | null>(null);
+  const getAudioRenderParamsRef = useRef<(() => { sampleRate: number; presentation: unknown; catalog: unknown } | null) | null>(null);
+  const renderOfflineAudioRef = useRef<((durationS: number) => Promise<Blob | null>) | null>(null);
 
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
@@ -171,6 +174,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       endCalibrationTimes,
       stepFrame: stepFrameRef.current ?? undefined,
       enterDeterministicMode: enterDeterministicModeRef.current ?? undefined,
+      getRecordedAudioCommands: getRecordedAudioCommandsRef.current ?? undefined,
+      getAudioRenderParams: getAudioRenderParamsRef.current ?? undefined,
+      renderOfflineAudio: renderOfflineAudioRef.current ?? undefined,
     });
   }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, reelEndTime, audioStartTime, audioLatency, calibrationTimes, endCalibrationTimes]);
 
@@ -214,6 +220,15 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         onStopAudio={(fn) => {
           stopAudioRef.current = fn;
         }}
+        onGetRecordedAudioCommands={(fn) => {
+          getRecordedAudioCommandsRef.current = fn;
+        }}
+        onGetAudioRenderParams={(fn) => {
+          getAudioRenderParamsRef.current = fn;
+        }}
+        onRenderOfflineAudio={(fn) => {
+          renderOfflineAudioRef.current = fn;
+        }}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page" || settings.mode === "deterministic"} />
     </>
@@ -243,6 +258,9 @@ function CaptureBattle({
   onStepFrame,
   onEnterDeterministicMode,
   onStopAudio,
+  onGetRecordedAudioCommands,
+  onGetAudioRenderParams,
+  onRenderOfflineAudio,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -267,6 +285,9 @@ function CaptureBattle({
   onStepFrame?: (fn: (virtualTimeMs: number) => Promise<void>) => void;
   onEnterDeterministicMode?: (fn: () => void) => void;
   onStopAudio?: (fn: () => void) => void;
+  onGetRecordedAudioCommands?: (fn: () => unknown[]) => void;
+  onGetAudioRenderParams?: (fn: () => { sampleRate: number; presentation: unknown; catalog: unknown } | null) => void;
+  onRenderOfflineAudio?: (fn: (durationS: number) => Promise<Blob | null>) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gpuRef = useRef<ViewportGpu | null>(null);
@@ -386,15 +407,29 @@ function CaptureBattle({
   );
 
   // Deterministic mode: enter deterministic mode (use virtual clock)
-  const enterDeterministicMode = useCallback(() => {
+  // This advances the sim to cover the entire duration before frame capture begins
+  const enterDeterministicMode = useCallback(async () => {
     deterministicActiveRef.current = true;
     virtualTimeRef.current = 0;
+    // Enable audio recording mode
+    if (audio) {
+      audio.enableRecording();
+    }
+    // Advance the sim to cover the entire duration
+    // Duration is in seconds, tick rate is game.tick_hz (30)
+    const ticksNeeded = Math.ceil(duration * game.tick_hz);
+    console.log(`[deterministic] Advancing sim ${ticksNeeded} ticks for ${duration}s duration`);
+    if (sim.client) {
+      sim.client.pause();
+      await sim.client.advance(ticksNeeded);
+      console.log(`[deterministic] Sim advanced, ready for capture`);
+    }
     // Mark ready immediately in deterministic mode
     if (reelReadyTimeRef.current === null) {
       reelReadyTimeRef.current = performance.now();
       onReelReadyRef.current?.(reelReadyTimeRef.current);
     }
-  }, []);
+  }, [audio, duration, sim.client]);
 
   // Deterministic mode: stop audio recording
   const stopAudio = useCallback(() => {
@@ -416,6 +451,42 @@ function CaptureBattle({
   useEffect(() => {
     onStopAudio?.(stopAudio);
   }, [onStopAudio, stopAudio]);
+
+  // Deterministic mode: get recorded audio commands
+  const getRecordedAudioCommands = useCallback(() => {
+    return audio?.getRecordedCommands() ?? [];
+  }, [audio]);
+
+  useEffect(() => {
+    onGetRecordedAudioCommands?.(getRecordedAudioCommands);
+  }, [onGetRecordedAudioCommands, getRecordedAudioCommands]);
+
+  // Deterministic mode: get audio rendering parameters
+  const getAudioRenderParams = useCallback(() => {
+    if (!audio) return null;
+    return {
+      sampleRate: 48000, // Standard sample rate
+      presentation: audio.getPresentation(),
+      catalog: audio.getCatalog(),
+    };
+  }, [audio]);
+
+  useEffect(() => {
+    onGetAudioRenderParams?.(getAudioRenderParams);
+  }, [onGetAudioRenderParams, getAudioRenderParams]);
+
+  // Deterministic mode: render audio offline
+  const renderOfflineAudio = useCallback(
+    async (durationS: number): Promise<Blob | null> => {
+      if (!audio) return null;
+      return audio.renderOffline(durationS);
+    },
+    [audio],
+  );
+
+  useEffect(() => {
+    onRenderOfflineAudio?.(renderOfflineAudio);
+  }, [onRenderOfflineAudio, renderOfflineAudio]);
 
   // Get a unit's position by its ID
   const unitPosition = useCallback(
@@ -696,6 +767,11 @@ function CaptureBattle({
       const presentation = sim.client?.presentation;
       if (audio && presentation) {
         const listener = cameraListener(camera, game.presentation.audio.listener_eye_share);
+        // In deterministic mode, set virtual time and record (don't play real-time)
+        if (deterministicActiveRef.current) {
+          const virtualTimeS = virtualTimeRef.current / 1000;
+          audio.setVirtualTime(virtualTimeS);
+        }
         audio.updateWithListener(presentation.wasm, listener);
       }
       // Track frames rendered with the reel pose applied

@@ -302,22 +302,17 @@ async function captureWithDeterministic(page, args, server) {
     throw new Error("Page does not support deterministic capture (stepFrame not available). Update the capture route.");
   }
   
-  // Configure deterministic mode
-  await page.evaluate(() => {
+  // Configure deterministic mode - this advances the sim to cover the entire duration
+  console.log("Entering deterministic mode (advancing sim)...");
+  await page.evaluate(async () => {
     if (window.__capture?.enterDeterministicMode) {
-      window.__capture.enterDeterministicMode();
+      await window.__capture.enterDeterministicMode();
     }
   });
+  console.log("  Sim advanced, ready for capture");
   
-  // Start audio recording for real-time capture of sound events
-  // (For now, we still use real-time audio; offline rendering can be added later)
-  console.log("Starting audio recording...");
-  await page.evaluate(() => {
-    if (window.__capture?.startAudioOnly) {
-      window.__capture.startAudioOnly();
-    }
-  });
-  await page.waitForFunction(() => window.__capture?.audioStartTime !== null, undefined, { timeout: 10000 });
+  // Note: In deterministic mode, we record audio commands for offline rendering
+  // rather than capturing real-time audio (which wouldn't sync with virtual time)
   
   // Capture frames at exact virtual times
   const totalFrames = Math.ceil(duration * args.fps);
@@ -356,21 +351,10 @@ async function captureWithDeterministic(page, args, server) {
   }
   process.stdout.write("\n");
   
-  // Stop audio recording
-  console.log("Stopping audio recording...");
-  await page.evaluate(() => {
-    // Trigger recording stop
-    if (window.__capture?.stopAudio) {
-      window.__capture.stopAudio();
-    }
-  });
-  
-  // Wait for audio blob
-  await page.waitForFunction(
-    () => window.__capture?.state === "complete" || window.__capture?.state === "audio_complete",
-    undefined,
-    { timeout: 10000 }
-  ).catch(() => console.log("  Note: Audio completion not signaled"));
+  // Get recorded audio commands for offline rendering
+  console.log("Getting recorded audio commands...");
+  const audioCommands = await page.evaluate(() => window.__capture?.getRecordedAudioCommands?.() ?? []);
+  console.log(`  Recorded ${audioCommands.length} audio commands`);
   
   // Frame pacing analysis (should be perfect in deterministic mode)
   const framePacing = {
@@ -456,40 +440,51 @@ async function captureWithDeterministic(page, args, server) {
   });
   console.log("  Video encoded");
   
-  // Get audio and mux
+  // Render audio offline from recorded commands
   let hasAudio = false;
-  const rawAudioPath = resolve(args.output, `raw-audio-${timestamp}.webm`);
+  const rawAudioPath = resolve(args.output, `raw-audio-${timestamp}.wav`);
   const trimmedAudioPath = resolve(args.output, `trimmed-audio-${timestamp}.aac`);
   
-  if (args.audio) {
-    const audioInfo = await page.evaluate(async () => {
-      const capture = window.__capture;
-      if (!capture?.audioBlob) return null;
-      const buffer = await capture.audioBlob.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const chunk = 8192;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-      }
-      return {
-        audioBase64: btoa(binary),
-        audioStartTime: capture.audioStartTime ?? null,
-        reelReadyTime: capture.reelReadyTime ?? null,
-      };
-    });
+  if (args.audio && audioCommands.length > 0) {
+    console.log(`Rendering audio offline from ${audioCommands.length} recorded commands...`);
     
-    if (audioInfo?.audioBase64) {
-      const audioData = Buffer.from(audioInfo.audioBase64, "base64");
+    // Render audio in the browser using OfflineAudioContext
+    const audioBase64 = await page.evaluate(async (durationS) => {
+      const capture = window.__capture;
+      if (!capture?.renderOfflineAudio) {
+        console.log(`[deterministic] renderOfflineAudio not available`);
+        return null;
+      }
+      
+      try {
+        const blob = await capture.renderOfflineAudio(durationS);
+        if (!blob) {
+          console.log(`[deterministic] No audio rendered`);
+          return null;
+        }
+        
+        // Convert blob to base64
+        const buffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      } catch (e) {
+        console.error(`[deterministic] Audio rendering failed:`, e);
+        return null;
+      }
+    }, duration);
+    
+    if (audioBase64) {
+      const audioData = Buffer.from(audioBase64, "base64");
       await writeFile(rawAudioPath, audioData);
-      console.log("  Audio captured");
+      console.log(`  Audio rendered: ${(audioData.length / 1024 / 1024).toFixed(2)} MB WAV`);
       
-      // In deterministic mode, audio sync is simpler: audio started at reelReady,
-      // video started at virtual time 0 which corresponds to reelReady
-      const audioOffsetMs = 0; // Perfect sync by construction
+      // Process audio with ffmpeg: add limiter and fade
       const audioTargetDuration = duration;
-      
-      // Trim and process audio
       const limiterFilter = "alimiter=limit=0.6:attack=0.1:release=50:level=false";
       const fadeOutDuration = 0.3;
       const fadeStartTime = Math.max(0, audioTargetDuration - fadeOutDuration);
@@ -513,6 +508,8 @@ async function captureWithDeterministic(page, args, server) {
       });
       console.log(`  Audio: duration ${audioTargetDuration.toFixed(2)}s, fade at ${fadeStartTime.toFixed(2)}s`);
       hasAudio = true;
+    } else {
+      console.log("  Note: Audio rendering returned no data");
     }
   }
   
@@ -554,6 +551,8 @@ async function captureWithDeterministic(page, args, server) {
     total_frames: frames.length,
     duration,
     frame_pacing: framePacing,
+    audio_commands: audioCommands.length,
+    has_audio: hasAudio,
     total_events: fireEvents.length,
     followed_events: fireEvents.filter(e => e.is_followed).length,
     events: fireEvents,
