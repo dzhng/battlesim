@@ -919,13 +919,16 @@ fn engage(
             // A bomb released now falls from here with the carrier's
             // velocity; its pass's release cue is its reach. It holds for a
             // friendly on its fall or in its blast where it lands.
-            let fall_s = crate::flight::release(
+            let Some(fall) = crate::flight::release(
                 origin,
                 carrier,
                 weapon.profile.gravity(&ctx.arsenal.config),
                 r.point,
-            )
-            .fall_s;
+            ) else {
+                // Dropped from below its target, it falls away from it.
+                return Err(ActionReason::OutOfRange);
+            };
+            let fall_s = fall.fall_s;
             let lands = (origin.xy() + carrier.xy() * fall_s).with_z(r.point.z);
             let s = FiringSolution {
                 velocity: V3::default(),
@@ -1061,12 +1064,13 @@ struct Assessed {
     prospective_windows: bool,
 }
 
-/// A shot an assessment found: the kind it would load and how long its
-/// round flies to meet the target.
+/// A shot an assessment found: the kind it would load, how long its round
+/// flies to meet the target and where it meets it.
 #[derive(Clone, Copy)]
 struct Ready {
     kind: usize,
     time_of_flight_s: f64,
+    intercept: V3,
 }
 
 impl Assessed {
@@ -1191,6 +1195,7 @@ fn assess(
     engage(ctx, unit, units, mount, spec, k, target, r).map(|s| Ready {
         kind: k,
         time_of_flight_s: s.time_of_flight_s,
+        intercept: s.intercept,
     })
 }
 
@@ -1707,7 +1712,7 @@ struct MountPlan {
     stationary: bool,
     idle_reason: ActionReason,
     resolved: Option<Resolved>,
-    assessment: Option<Result<usize, ActionReason>>,
+    assessment: Option<Result<Ready, ActionReason>>,
     kind: Option<usize>,
 }
 
@@ -1728,9 +1733,12 @@ fn preferred_mount(
     let useful = |m: usize| {
         plans[m].as_ref().is_some_and(|p| {
             p.assessment.is_some_and(|a| {
-                a.is_ok_and(|k| {
+                a.is_ok_and(|ready| {
                     p.resolved.is_some_and(|r| {
-                        r.worth(&weapons[specs[unit.mounts[m].spec].kinds[k]].def, rules)
+                        r.worth(
+                            &weapons[specs[unit.mounts[m].spec].kinds[ready.kind]].def,
+                            rules,
+                        )
                     })
                 })
             })
@@ -1916,12 +1924,13 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             // Could shoot now, from here, and to effect?
             let assessment = mount.lock.as_ref().zip(resolved.as_ref()).map(|(l, r)| {
                 let a = if r.current {
-                    assessed.target(ctx, unit, units, &mount, spec, l.target, r)
+                    assessed.shot(ctx, unit, units, &mount, spec, l.target, r)
                 } else {
                     Err(ActionReason::TrackingLastSighting)
                 };
-                if let Ok(k) = a {
-                    can_engage |= r.worth(&ctx.arsenal.weapons[spec.kinds[k]].def, ctx.rules);
+                if let Ok(ready) = a {
+                    can_engage |=
+                        r.worth(&ctx.arsenal.weapons[spec.kinds[ready.kind]].def, ctx.rules);
                 }
                 a
             });
@@ -2046,8 +2055,8 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             // Fire when everything lines up.
             let mut engaging = false;
             mount.reason = match (&mount.lock, &resolved, assessment) {
-                (Some(lock), Some(r), Some(Ok(k))) => {
-                    let target = lock.target;
+                (Some(lock), Some(r), Some(Ok(ready))) => {
+                    let (target, k) = (lock.target, ready.kind);
                     engaging = mount.cycles.iter().any(active);
                     if !engaging {
                         ActionReason::HoldingFire
@@ -2093,7 +2102,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                             &mut mount,
                             m,
                             spec,
-                            k,
+                            ready,
                             target,
                             r,
                             moving,
@@ -2152,13 +2161,14 @@ fn fire(
     mount: &mut Mount,
     m: usize,
     spec: &MountSpec,
-    k: usize,
+    ready: Ready,
     target: Target,
     r: &Resolved,
     moving: bool,
     rng: &mut Rng,
     leaned: &mut Vec<u32>,
 ) -> Option<Shot> {
+    let k = ready.kind;
     let weapon_index = spec.kinds[k];
     let weapon = &ctx.arsenal.weapons[weapon_index];
     // Its spread at the target's height: wide for a ground gun swung up at
@@ -2375,16 +2385,12 @@ fn fire(
             (!hold(rng)).then(|| {
                 // A bomb leaves the jet with the jet's velocity; its
                 // scatter is a small push off the rack that spreads where it
-                // lands around where the drop carries it.
-                let scattered = crate::flight::scatter_aim(aim.origin, aim.target, scatter, rng);
-                let fall_s = crate::flight::release(
-                    aim.origin,
-                    aim.carrier,
-                    weapon.profile.gravity(&ctx.arsenal.config),
-                    aim.target,
-                )
-                .fall_s;
-                let push = (scattered - aim.target).xy() * (1.0 / fall_s.max(f64::MIN_POSITIVE));
+                // lands around where the drop carries it (its assessment's
+                // landing point and fall).
+                let lands = ready.intercept;
+                let scattered = crate::flight::scatter_aim(aim.origin, lands, scatter, rng);
+                let push = (scattered - lands).xy()
+                    * (1.0 / ready.time_of_flight_s.max(f64::MIN_POSITIVE));
                 Launch {
                     origin: aim.origin,
                     carrier: aim.carrier,
@@ -2739,7 +2745,7 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims
                         .map(|s| s.target)
                         .or_else(|| candidate.lock.as_ref().map(|l| l.target))?;
                     let r = resolve_for(ctx, u, m, spec, target, units)?;
-                    let assessment = assessed.target(ctx, u, units, m, spec, target, &r);
+                    let assessment = assessed.shot(ctx, u, units, m, spec, target, &r);
                     Some(MountPlan {
                         stationary: false,
                         idle_reason,
@@ -2948,7 +2954,7 @@ mod target_priority_tests {
             velocity: v2(0.0, 0.0),
             members: vec![],
             layer: contract::catalog::AltitudeLayer::Ground,
-            fixed_wing: false,
+            class: contract::weapons::TargetClass::Vehicle,
         };
         // The declared bore points west: 180m to us is inside its minimum.
         // Using its observed carrier yaw would point east (220m), and using
@@ -3002,7 +3008,7 @@ mod target_priority_tests {
                 velocity: v2(0.0, 0.0),
                 members: vec![],
                 layer: contract::catalog::AltitudeLayer::Ground,
-                fixed_wing: false,
+                class: contract::weapons::TargetClass::Vehicle,
             };
             assert_eq!(
                 return_fire_threat(&ctx, battle.unit(UnitId(0)).unwrap(), enemy.kind, &track),

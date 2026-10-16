@@ -61,13 +61,6 @@ pub struct PassPlan {
     pub agl: f64,
     /// The approach bearing through the aim point.
     pub heading: f64,
-    pub cruise_agl: f64,
-    pub released: bool,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ReleaseCue {
-    pub at: V2,
 }
 
 /// Limited ground stores take a run before the unlimited fixed gun.
@@ -115,8 +108,6 @@ pub fn begin(
         weapon,
         agl,
         heading,
-        cruise_agl: limits.cruise_agl_m,
-        released: false,
     }
 }
 
@@ -138,7 +129,8 @@ fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2
     (state.pos.xy() + left * (radius * side), radius)
 }
 
-/// Advance the run and return the steering intent plus a one-tick release cue.
+/// Advance the run and return the steering intent, and whether this is the
+/// one tick its weapon is released.
 ///
 /// The line-up is flown from where the jet is. It flies straight on until
 /// turning in on the aim would leave it pointed at the aim a full run-in
@@ -155,7 +147,7 @@ pub fn advance(
     aim: V3,
     release: &Release,
     dt: f64,
-) -> (Intent, Option<ReleaseCue>) {
+) -> (Intent, bool) {
     let to_aim = aim.xy() - state.pos.xy();
     let distance = to_aim.length();
     let bearing = libm::atan2(to_aim.y, to_aim.x);
@@ -175,14 +167,14 @@ pub fn advance(
             {
                 plan.phase = PassPhase::TurnIn;
                 plan.heading = bearing;
-                (line(plan, aim, plan.agl), None)
+                (line(plan, aim, plan.agl), false)
             } else {
                 let straight_on = Intent::Line {
                     through: state.pos.xy(),
                     heading: state.heading,
                     agl: plan.agl,
                 };
-                (straight_on, None)
+                (straight_on, false)
             }
         }
         PassPhase::TurnIn => {
@@ -198,20 +190,16 @@ pub fn advance(
                 // brings the nose on from here, so it lines up again.
                 plan.phase = PassPhase::LineUp;
             }
-            (line(plan, aim, plan.agl), None)
+            (line(plan, aim, plan.agl), false)
         }
         PassPhase::Dive => {
             let step = speed * dt;
             let short = (release.at - state.pos.xy()).dot(forward);
             if short - step <= step * 0.5 {
                 plan.phase = PassPhase::PullOut;
-                plan.released = true;
-                return (
-                    line(plan, aim, plan.agl),
-                    Some(ReleaseCue { at: release.at }),
-                );
+                return (line(plan, aim, plan.agl), true);
             }
-            (line(plan, aim, plan.agl), None)
+            (line(plan, aim, plan.agl), false)
         }
         PassPhase::PullOut => {
             // The jet has cleared the aim once it is past it and two
@@ -220,9 +208,8 @@ pub fn advance(
             let past = to_aim.dot(forward) < 0.0;
             if past && distance > speed * 2.0 {
                 plan.phase = PassPhase::LineUp;
-                plan.released = false;
             }
-            (line(plan, aim, plan.cruise_agl), None)
+            (line(plan, aim, limits.cruise_agl_m), false)
         }
     }
 }

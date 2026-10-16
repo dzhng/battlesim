@@ -29,9 +29,9 @@ pub struct Track {
     /// The height band of the unit seen, from its type: never guessed from
     /// where it stands.
     pub layer: AltitudeLayer,
-    /// It flies on wings, from its type, as a viewer tells a jet from a
-    /// helicopter.
-    pub fixed_wing: bool,
+    /// What it is to a weapon, from its type and body, as a viewer tells a
+    /// jet from a helicopter and a tank from a squad.
+    pub class: contract::weapons::TargetClass,
 }
 
 /// An uncertain area the side holds. `emitter` links it to its source
@@ -492,7 +492,7 @@ impl SideKnowledge {
                             velocity: v2(0.0, 0.0),
                             members,
                             layer: unit.layer(),
-                            fixed_wing: unit.fixed_wing(),
+                            class: unit.unit_type(rules).target_class(),
                         },
                     );
                 }

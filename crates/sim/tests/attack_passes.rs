@@ -147,7 +147,7 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
         let mut current = state(plan.agl);
         current.pos.x = step as f64 * 60.0;
         let (_, cue) = advance(&mut plan, &current, &wing_limits(), aim, &release, dt);
-        if cue.is_some() {
+        if cue {
             assert!(released_at.is_none(), "one cue per pass");
             // Where this tick's step carries the jet.
             released_at = Some(current.pos.x + 60.0);
@@ -469,13 +469,17 @@ fn a_bomb_holds_for_a_friendly_vehicle_in_its_blast() {
             json!({ "side": "blue", "kind": "test_tank", "position": [2000, 2008], "yaw": 0.0, "engagement": "return_fire_only" }),
         ],
     );
+    let mut cued = false;
     for _ in 0..1200 {
         battle.step();
         assert!(
             battle.rounds().all(|(_, r)| r.unit != UnitId(0)),
             "the jet bombed its own tank"
         );
+        cued |= battle.unit(UnitId(0)).unwrap().air.unwrap().pass_release;
     }
+    // It held at the release point, not short of it.
+    assert!(cued, "the jet never reached its release point");
 }
 
 #[test]
@@ -925,6 +929,80 @@ fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
         passed |= air.pass.is_some();
     }
     assert!(passed, "the jet flies an attack run at the tank");
+}
+
+/// A jet carrying bombs and its gun answers a helicopter that fires on it
+/// from above (hovering over a mesa higher than the jet flies): a bomb
+/// can't reach an aircraft, so it strafes with the gun, and flies on
+/// rather than circling on a release point no bomb could fall to.
+#[test]
+fn a_bomb_carrier_strafes_a_helicopter_attacker_above_it() {
+    let mut rules = sim::fixtures::test_game();
+    let mount = |id: &str, weapon: &str| {
+        json!({ "id": id, "name": "Test Mount", "weapons": [weapon], "turret": false,
+            "pivot_m": [0, 0, 1.2], "muzzle_m": [7, 0, 0] })
+    };
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        // Armoured past the helicopter's fire, so it lives to answer it.
+        json!({ "mounts": [mount("bombs", "air_bomb"), mount("gun", "air_gun")],
+            "body": { "hull": { "hp": 1_000_000 } } }),
+    );
+    // The helicopter's gun reaches up to the jet, so it is an attacker.
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_heli",
+        json!({ "mounts": [{ "id": "gun", "name": "Gun", "weapons": ["air_gun"], "turret": true,
+            "pivot_m": [0, 0, 1.2], "muzzle_m": [1, 0, 0] }] }),
+    );
+    let jet_agl = rules["air"]["high_air"]["cruise_agl_m"].as_f64().unwrap();
+    let setup = serde_json::from_value(json!({
+        "map": {
+            "size": [3000, 1200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "relief": [{ "kind": "mesa", "rect": [900, 300, 1500, 900], "height_m": jet_agl + 60.0, "side_degrees": 40 }]
+        },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [500, 600], "yaw": 0.0 },
+            { "side": "red", "kind": "test_heli", "position": [1000, 600], "yaw": std::f64::consts::PI }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    let mut strafed = false;
+    let mut dived = false;
+    let mut answered_from_below = None;
+    for _ in 0..1800 {
+        battle.step();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        let heli = battle.unit(UnitId(1)).unwrap();
+        assert!(
+            jet.position.x.is_finite() && jet.position.y.is_finite() && jet.position.z.is_finite(),
+            "the jet's flight went NaN"
+        );
+        let Some(pass) = jet.air.unwrap().pass else {
+            continue;
+        };
+        answered_from_below.get_or_insert(heli.position.z > jet.position.z);
+        assert_ne!(
+            pass.weapon,
+            PassWeapon::Bomb,
+            "the jet flew a bomb run at a helicopter"
+        );
+        strafed |= pass.weapon == PassWeapon::Gun;
+        dived |= matches!(pass.phase, PassPhase::Dive | PassPhase::PullOut);
+    }
+    assert!(strafed, "the jet never answered the helicopter");
+    assert!(dived, "the jet's strafing run never dived in");
+    assert_eq!(
+        answered_from_below,
+        Some(true),
+        "the helicopter flies above the jet when it answers"
+    );
 }
 
 /// The jet's own numbers for the repeated-pass test: every bound it asserts

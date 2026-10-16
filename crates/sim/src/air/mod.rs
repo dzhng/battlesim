@@ -18,6 +18,7 @@ use crate::movement::MovementContext;
 use crate::units::{Motion, Unit, UnitOrder};
 use crate::weapons::Target;
 use contract::catalog::AltitudeLayer;
+use contract::weapons::TargetClass;
 use contract::random::{mix, Rng};
 
 /// Advance one winged aircraft by the fixed-wing flight law, without
@@ -168,16 +169,17 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                     .or(ordered);
                 dogfight_intent(ctx, unit, &state, chase, point.xy())
             } else {
-                let weapons = pass_weapons(ctx, unit);
-                let just_released = unit
-                    .air
-                    .as_ref()
-                    .is_some_and(|air| air.pass_release && air.pass.is_some_and(|p| p.released));
-                let chosen = unit
-                    .air
-                    .as_ref()
-                    .and_then(|air| air.pass.filter(|_| just_released).map(|p| p.weapon))
-                    .or_else(|| pass::choose_weapon(&weapons));
+                let weapons = pass_weapons(ctx, unit, target, point);
+                // The tick after its release a pass flies on with what it
+                // dropped, though that was the last of it.
+                let just_released = unit.air.as_ref().and_then(|air| {
+                    air.pass
+                        .filter(|p| air.pass_release && p.phase == pass::PassPhase::PullOut)
+                        .map(|p| p.weapon)
+                });
+                let chosen = just_released.or_else(|| {
+                    pass::choose_weapon(&weapons.iter().map(|(w, _)| *w).collect::<Vec<_>>())
+                });
                 if let Some(weapon) = chosen {
                     let restart = unit.air.as_ref().is_none_or(|air| {
                         air.pass
@@ -197,7 +199,10 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         plan.target = target;
                         unit.air.as_mut().expect("an aircraft's flight state").pass = Some(plan);
                     }
-                    let release = pass_release(ctx, unit, point, weapon);
+                    let release = weapons
+                        .iter()
+                        .find(|(w, _)| *w == weapon)
+                        .map_or_else(|| at_the_aim(point), |(_, release)| *release);
                     let pass = unit
                         .air
                         .as_mut()
@@ -207,7 +212,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         .unwrap();
                     let was_pull_out = pass.phase == pass::PassPhase::PullOut;
                     let (intent, cue) = pass::advance(pass, &state, &limits, point, &release, dt);
-                    pass_release_now = cue.is_some();
+                    pass_release_now = cue;
                     if was_pull_out && pass.phase == pass::PassPhase::LineUp {
                         let finished_target = pass.target;
                         unit.air.as_mut().expect("an aircraft's flight state").pass = None;
@@ -302,6 +307,20 @@ fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
     }
 }
 
+/// What the side knows `target` to be: its layer and, for an identified
+/// unit, its class. A contact is an area in the layer its cause flew in,
+/// which no class bars; a ground point, or a unit lost from view, is a
+/// point on the ground. Read from what was seen or heard, never from
+/// height.
+fn known_target(knowledge: &SideKnowledge, target: Target) -> (AltitudeLayer, Option<TargetClass>) {
+    match target {
+        Target::Unit(id) => knowledge.track(id).map(|t| (t.layer, Some(t.class))),
+        Target::Contact(id) => knowledge.contact(id).map(|c| (c.layer, None)),
+        _ => None,
+    }
+    .unwrap_or((AltitudeLayer::Ground, None))
+}
+
 /// Whether the side knows `target` as a winged aircraft in `layer`, the
 /// pursuer's own: the only kind a fixed-wing aircraft dogfights (D29c);
 /// anything else it attacks in passes. Read from what was seen or heard of
@@ -312,60 +331,64 @@ pub(crate) fn dogfightable(
     layer: AltitudeLayer,
 ) -> bool {
     let seen = match target {
-        Target::Unit(id) => knowledge.track(id).map(|t| (t.layer, t.fixed_wing)),
+        Target::Unit(id) => knowledge
+            .track(id)
+            .map(|t| (t.layer, t.class == TargetClass::AirFixedWing)),
         Target::Contact(id) => knowledge.contact(id).map(|c| (c.layer, c.fixed_wing)),
         _ => None,
     };
     seen == Some((layer, true))
 }
 
-fn pass_weapons(ctx: &MovementContext, unit: &Unit) -> Vec<pass::PassWeapon> {
+/// What the jet can fly a pass with at `aim`: each pass weapon one of its
+/// rows with rounds left engages the target with, as its side knows it,
+/// and the release it flies to. A bomb's is where it must leave the jet to
+/// fall onto the aim; a bomb that can't fall to the aim from here (the aim
+/// is above the jet) flies no run. Any other row fires at the aim itself.
+fn pass_weapons(
+    ctx: &MovementContext,
+    unit: &Unit,
+    target: Target,
+    aim: V3,
+) -> Vec<(pass::PassWeapon, crate::flight::Release)> {
+    let (layer, class) = known_target(ctx.knowledge[unit.side.index()], target);
     let specs = ctx.arsenal.specs(unit.kind);
-    let mut out = Vec::new();
+    let mut out: Vec<(pass::PassWeapon, crate::flight::Release)> = Vec::new();
     for mount in &unit.mounts {
         let spec = &specs[mount.spec];
         for (slot, &kind) in spec.kinds.iter().enumerate() {
-            if !mount.ammo[slot].is_none_or(|n| n > 0) {
+            let weapon = &ctx.arsenal.weapons[kind];
+            if !mount.ammo[slot].is_none_or(|n| n > 0) || weapon.def.engages(layer, class).is_none()
+            {
                 continue;
             }
-            let mode = pass::pass_weapon(&ctx.arsenal.weapons[kind].def);
-            if let Some(mode) = mode.filter(|mode| !out.contains(mode)) {
-                out.push(mode);
+            let Some(mode) = pass::pass_weapon(&weapon.def) else {
+                continue;
+            };
+            if out.iter().any(|(m, _)| *m == mode) {
+                continue;
+            }
+            let release = match mode {
+                pass::PassWeapon::Bomb => crate::flight::release(
+                    unit.position,
+                    unit.flight_velocity(),
+                    weapon.profile.gravity(&ctx.arsenal.config),
+                    aim,
+                ),
+                pass::PassWeapon::Gun | pass::PassWeapon::GroundMissile => {
+                    Some(at_the_aim(aim))
+                }
+            };
+            if let Some(release) = release {
+                out.push((mode, release));
             }
         }
     }
     out
 }
 
-fn pass_release(
-    ctx: &MovementContext,
-    unit: &Unit,
-    aim: V3,
-    weapon: pass::PassWeapon,
-) -> crate::flight::Release {
-    let kind = unit
-        .mounts
-        .iter()
-        .flat_map(|mount| {
-            let spec = &ctx.arsenal.specs(unit.kind)[mount.spec];
-            spec.kinds.iter().enumerate().filter_map(|(slot, &kind)| {
-                if !mount.ammo[slot].is_none_or(|n| n > 0) {
-                    return None;
-                }
-                (pass::pass_weapon(&ctx.arsenal.weapons[kind].def) == Some(weapon)).then_some(kind)
-            })
-        })
-        .next();
-    if let Some(kind) = kind.filter(|_| matches!(weapon, pass::PassWeapon::Bomb)) {
-        return crate::flight::release(
-            unit.position,
-            unit.flight_velocity(),
-            ctx.arsenal.weapons[kind]
-                .profile
-                .gravity(&ctx.arsenal.config),
-            aim,
-        );
-    }
+/// The release of a row fired at the aim itself, not dropped short of it.
+fn at_the_aim(aim: V3) -> crate::flight::Release {
     crate::flight::Release {
         fall_s: 0.0,
         ahead_m: 0.0,
