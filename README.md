@@ -76,6 +76,8 @@ These were all built and then deleted, because each stood in for a property some
 - **Lane width sized from the widest hull of any unit,** aircraft included. Only ground hulls drive streets.
 - **A `sead` unit flag and a second radar block on aircraft.** Finding emitting radars is a sensor a unit has, shown on its card; firing at a radar contact belongs to the weapon's `anti_radiation`. A unit may have either without the other.
 
+- **Rules that re-enforced what the data already decided.** An emitting radar counted only on the ground, interceptors armed only off aircraft, and flares worked only for aircraft. No configured unit reached the other branch, so each check did nothing except block the next unit type. Which units carry what is configuration: author it only where it belongs, and refuse at load what the game can't run.
+
 If a rule asks "is this an X unit?" or "is this target an aircraft?", the question is usually one of these again.
 
 A catalog row describes a body, while its placement supplies geometry ownership. Garrison seats and building-scaled integrity require a placed building aggregate; ordinary props, generated forest bodies, bridge decks and vehicle wrecks have no such owner. This constraint follows the body's destruction chain. Aggregate bodies remain immovable until the simulation supports moving all their parts together.

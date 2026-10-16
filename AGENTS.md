@@ -49,6 +49,8 @@ Before adding or changing anything the player sees (markers, callouts, HUD, colo
 
 Rules come from physical properties, not named special cases, and are judged by picturing the moment on the battlefield. The target is the realism of a war film, not of a ballistics table: keep what a viewer expects, and drop what looks silly on screen even when it is physically defensible.
 
+A behaviour belongs to what physically has it: a weapon decides what it can engage, a unit's body and senses decide what it can do. Which units have what is configuration. If only ground vehicles should carry radars, give radars only to ground vehicles; never add a check in the rules that re-enforces it. Such a check does nothing today and silently blocks every unit someone configures differently tomorrow. A combination the game truly can't run is refused loudly when the data loads, never quietly ignored in play.
+
 The simulation is the one authority, and everything else observes it. Each side sees only what its own units can see.
 
 Before proposing or changing a game mechanic, invoke [`tweak-mechanics`](.agents/skills/tweak-mechanics/SKILL.md).
