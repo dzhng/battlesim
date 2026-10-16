@@ -844,8 +844,10 @@ async function captureWithCDP(page, args, server) {
       }
       
       // Detect START calibration burst (5 flash/click pairs)
+      // Use the local calibrationTimes from the page.evaluate that triggered them,
+      // NOT audioInfo.calibrationTimes which reads from React state (may be empty)
       console.log("  Detecting START calibration burst...");
-      const startCalibTimes = audioInfo.calibrationTimes ?? [];
+      const startCalibTimes = calibrationTimes ?? [];
       const startFlashOnsets = await detectFlashOnsets(startCalibTimes, "START video");
       const startClickOnsets = await detectClickOnsets(startCalibTimes, "START audio");
       
@@ -878,8 +880,9 @@ async function captureWithCDP(page, args, server) {
       }
       
       // Detect END calibration burst for drift measurement
+      // Get END calibration times directly from page (triggered after reel ended)
       console.log("  Detecting END calibration burst...");
-      const endCalibTimes = audioInfo.endCalibrationTimes ?? [];
+      const endCalibTimes = await page.evaluate(() => window.__capture?.endCalibrationTimes ?? []);
       
       if (endCalibTimes.length > 0) {
         const endFlashOnsets = await detectFlashOnsets(endCalibTimes, "END video");
