@@ -284,6 +284,8 @@ export interface CaptureExtras {
   audioBlob?: Blob;
   /** Start audio-only recording (for page mode). */
   startAudioOnly?: () => void;
+  /** Stop audio recording (for deterministic mode). */
+  stopAudio?: () => void;
   /** Weapon fire events logged during capture. */
   fireEvents?: WeaponFireEvent[];
   /** The resolved follow unit ID (real unit ID, not index). */
@@ -303,6 +305,11 @@ export interface CaptureExtras {
   calibrationTimes?: number[];
   /** Timestamps of end-of-reel calibration bursts (performance.now()). */
   endCalibrationTimes?: number[];
+  /** [Deterministic mode] Step the render to a specific virtual time (ms).
+   *  Returns a promise that resolves after the frame is rendered. */
+  stepFrame?: (virtualTimeMs: number) => Promise<void>;
+  /** [Deterministic mode] Enter deterministic mode - use virtual clock for timing. */
+  enterDeterministicMode?: () => void;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -320,6 +327,7 @@ export function exposeCaptureToWindow(
     duration: extras?.duration,
     audioBlob: extras?.audioBlob,
     startAudioOnly: extras?.startAudioOnly,
+    stopAudio: extras?.stopAudio,
     fireEvents: extras?.fireEvents,
     followUnitId: extras?.followUnitId,
     reelReadyTime: extras?.reelReadyTime,
@@ -329,5 +337,7 @@ export function exposeCaptureToWindow(
     triggerCalibrationBurst: extras?.triggerCalibrationBurst,
     calibrationTimes: extras?.calibrationTimes,
     endCalibrationTimes: extras?.endCalibrationTimes,
+    stepFrame: extras?.stepFrame,
+    enterDeterministicMode: extras?.enterDeterministicMode,
   };
 }

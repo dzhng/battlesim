@@ -4,8 +4,11 @@
 
 import type { MenuReel } from "../menuReel";
 
-/** Capture mode: "browser" for canvas-based recording, "page" for CDP page-level capture. */
-export type CaptureMode = "browser" | "page";
+/** Capture mode:
+ *  - "browser": canvas-based recording with MediaRecorder
+ *  - "page": CDP page-level capture with real-time screencast
+ *  - "deterministic": virtual clock + explicit frame capture for perfect timing */
+export type CaptureMode = "browser" | "page" | "deterministic";
 
 /** Capture mode settings from URL parameters. */
 export interface CaptureSettings {
@@ -50,7 +53,10 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
   if (!capture) return null;
 
   const modeParam = params.get("capture-mode");
-  const mode: CaptureMode = modeParam === "browser" ? "browser" : "page";
+  const mode: CaptureMode = 
+    modeParam === "browser" ? "browser" : 
+    modeParam === "deterministic" ? "deterministic" : 
+    "page";
 
   return {
     preset: capture === "true" ? "default" : capture,

@@ -149,12 +149,17 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   const [endCalibrationTimes, setEndCalibrationTimes] = useState<number[]>([]);
   // Ref to the triggerCalibrationBurst function provided by CaptureBattle
   const triggerCalibrationBurstRef = useRef<((count: number, intervalMs: number) => Promise<number[]>) | null>(null);
+  // Deterministic mode function refs
+  const stepFrameRef = useRef<((virtualTimeMs: number) => Promise<void>) | null>(null);
+  const enterDeterministicModeRef = useRef<(() => void) | null>(null);
+  const stopAudioRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
       duration,
       audioBlob: audioBlob ?? undefined,
       startAudioOnly: startAudioOnlyRef.current ?? undefined,
+      stopAudio: stopAudioRef.current ?? undefined,
       fireEvents,
       followUnitId,
       reelReadyTime,
@@ -164,6 +169,8 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       triggerCalibrationBurst: triggerCalibrationBurstRef.current ?? undefined,
       calibrationTimes,
       endCalibrationTimes,
+      stepFrame: stepFrameRef.current ?? undefined,
+      enterDeterministicMode: enterDeterministicModeRef.current ?? undefined,
     });
   }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, reelEndTime, audioStartTime, audioLatency, calibrationTimes, endCalibrationTimes]);
 
@@ -198,8 +205,17 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         onCalibrationTimes={setCalibrationTimes}
         onEndCalibrationTimes={setEndCalibrationTimes}
         isTrackedVehicle={isTrackedVehicle}
+        onStepFrame={(fn) => {
+          stepFrameRef.current = fn;
+        }}
+        onEnterDeterministicMode={(fn) => {
+          enterDeterministicModeRef.current = fn;
+        }}
+        onStopAudio={(fn) => {
+          stopAudioRef.current = fn;
+        }}
       />
-      <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
+      <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page" || settings.mode === "deterministic"} />
     </>
   );
 }
@@ -224,6 +240,9 @@ function CaptureBattle({
   onCalibrationTimes,
   onEndCalibrationTimes,
   isTrackedVehicle,
+  onStepFrame,
+  onEnterDeterministicMode,
+  onStopAudio,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -244,6 +263,10 @@ function CaptureBattle({
   onCalibrationTimes?: (times: number[]) => void;
   onEndCalibrationTimes?: (times: number[]) => void;
   isTrackedVehicle: (kind: string) => boolean;
+  // Deterministic mode callbacks
+  onStepFrame?: (fn: (virtualTimeMs: number) => Promise<void>) => void;
+  onEnterDeterministicMode?: (fn: () => void) => void;
+  onStopAudio?: (fn: () => void) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gpuRef = useRef<ViewportGpu | null>(null);
@@ -255,6 +278,7 @@ function CaptureBattle({
   const audioStreamRef = useRef<MediaStream | null>(null);
   const audioBlobRef = useRef<Blob | null>(null);
   const isPageMode = settings.mode === "page";
+  const isDeterministicMode = settings.mode === "deterministic";
   /** Frame count since pilot started; reel is ready after at least one frame rendered. */
   const reelFrameCountRef = useRef(0);
   /** Timestamp when the reel-ready signal was sent (first pose applied + frame rendered). */
@@ -267,6 +291,14 @@ function CaptureBattle({
   const stoppingRef = useRef(false);
   /** Ref to the calibration overlay element. */
   const calibrationOverlayRef = useRef<HTMLDivElement | null>(null);
+  
+  // Deterministic mode state
+  /** Whether deterministic mode is active (virtual clock). */
+  const deterministicActiveRef = useRef(false);
+  /** Current virtual time in deterministic mode (ms). */
+  const virtualTimeRef = useRef<number>(0);
+  /** Resolve function for the current stepFrame() call. */
+  const stepFrameResolveRef = useRef<(() => void) | null>(null);
 
   // Refs for values accessed in the frame callback to avoid stale closures
   const stateRef = useRef(state);
@@ -340,6 +372,50 @@ function CaptureBattle({
   useEffect(() => {
     onCalibrationBurst?.(triggerCalibrationBurst);
   }, [onCalibrationBurst, triggerCalibrationBurst]);
+
+  // Deterministic mode: step frame to a specific virtual time
+  const stepFrame = useCallback(
+    (virtualTimeMs: number): Promise<void> => {
+      return new Promise((resolve) => {
+        virtualTimeRef.current = virtualTimeMs;
+        stepFrameResolveRef.current = resolve;
+        // The next RAF frame will pick up the new virtual time and resolve when done
+      });
+    },
+    [],
+  );
+
+  // Deterministic mode: enter deterministic mode (use virtual clock)
+  const enterDeterministicMode = useCallback(() => {
+    deterministicActiveRef.current = true;
+    virtualTimeRef.current = 0;
+    // Mark ready immediately in deterministic mode
+    if (reelReadyTimeRef.current === null) {
+      reelReadyTimeRef.current = performance.now();
+      onReelReadyRef.current?.(reelReadyTimeRef.current);
+    }
+  }, []);
+
+  // Deterministic mode: stop audio recording
+  const stopAudio = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+  }, []);
+
+  // Provide deterministic mode functions to parent
+  useEffect(() => {
+    onStepFrame?.(stepFrame);
+  }, [onStepFrame, stepFrame]);
+
+  useEffect(() => {
+    onEnterDeterministicMode?.(enterDeterministicMode);
+  }, [onEnterDeterministicMode, enterDeterministicMode]);
+
+  useEffect(() => {
+    onStopAudio?.(stopAudio);
+  }, [onStopAudio, stopAudio]);
 
   // Get a unit's position by its ID
   const unitPosition = useCallback(
@@ -518,16 +594,23 @@ function CaptureBattle({
 
   const pilot: ViewportPilot = {
     pose(now) {
+      // In deterministic mode, use virtual time instead of wall clock
+      const effectiveNow = deterministicActiveRef.current
+        ? (reelReadyTimeRef.current ?? performance.now()) + virtualTimeRef.current
+        : now;
+      
       // Track first pose call for initialization, but use reelStartTime for elapsed
       if (pilotStartRef.current === null) {
-        pilotStartRef.current = now;
+        pilotStartRef.current = effectiveNow;
         // Don't start recording yet - wait for follow to initialize and first frame to render
       }
 
       // Use reelStartTime (set at reel-ready) for elapsed calculation
       // This removes the drift between first pose() and reel-ready
       const startTime = reelStartTimeRef.current ?? pilotStartRef.current;
-      const elapsed = (now - startTime) / 1000;
+      const elapsed = deterministicActiveRef.current
+        ? virtualTimeRef.current / 1000  // Deterministic: virtual time is already relative
+        : (effectiveNow - startTime) / 1000;
       const sample = sampleReel(reel, elapsed);
 
       // When reel ends: record time, trigger end calibration, then schedule stop
@@ -622,7 +705,7 @@ function CaptureBattle({
         // 1. Follow unit is resolved and smoothed position is initialized
         // 2. At least one frame has rendered with the correct pose
         const canBeReady = followInitializedRef.current && reelFrameCountRef.current >= 1;
-        if (canBeReady && reelReadyTimeRef.current === null) {
+        if (canBeReady && reelReadyTimeRef.current === null && !deterministicActiveRef.current) {
           reelReadyTimeRef.current = now;
           // Start reel clock at ready time (removes drift between first pose and ready)
           reelStartTimeRef.current = now;
@@ -634,10 +717,21 @@ function CaptureBattle({
           }
         }
       }
+      
+      // In deterministic mode, resolve the stepFrame promise after each frame
+      if (deterministicActiveRef.current && stepFrameResolveRef.current) {
+        const resolve = stepFrameResolveRef.current;
+        stepFrameResolveRef.current = null;
+        resolve();
+        return; // Skip state updates in deterministic mode
+      }
+      
       if (pilotStartRef.current === null || stateRef.current.status !== "recording") return;
       // Use reelStartTime for elapsed (matches pose() calculation)
       const startTime = reelStartTimeRef.current ?? pilotStartRef.current;
-      const elapsed = (now - startTime) / 1000;
+      const elapsed = deterministicActiveRef.current
+        ? virtualTimeRef.current / 1000
+        : (now - startTime) / 1000;
       setState({ status: "recording", elapsed, duration });
 
       // Track weapon fire events for the sidecar JSON
