@@ -17,10 +17,6 @@ use crate::pipelines::Pipelines;
 /// `FLIPBOOKS` rows give the layer order.
 const FLIPBOOKS_TS: &str =
     include_str!("../../../packages/battle-renderer/src/effects/flipbooks.ts");
-const SHEETS: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../assets/third-party/effects"
-);
 /// Every sheet is this square (`FLIPBOOK_SIZE`).
 const SHEET: u32 = 1024;
 const INSTANCE_BYTES: u64 = std::mem::size_of::<Effect>() as u64;
@@ -105,7 +101,7 @@ fn halve(level: &[u8], side: usize) -> Vec<u8> {
 }
 
 /// Every flipbook into one layer of a mipmapped sRGB 2D array.
-fn atlas(device: &Device, queue: &Queue) -> Result<TextureView, String> {
+fn atlas(device: &Device, queue: &Queue, sheets: &std::path::Path) -> Result<TextureView, String> {
     let files = sheet_files();
     let levels = SHEET.ilog2() + 1;
     let texture = device.create_texture(&TextureDescriptor {
@@ -123,7 +119,7 @@ fn atlas(device: &Device, queue: &Queue) -> Result<TextureView, String> {
         view_formats: &[],
     });
     for (layer, file) in files.iter().enumerate() {
-        let mut level = premultiplied(&format!("{SHEETS}/{file}"))?;
+        let mut level = premultiplied(&sheets.join(file).to_string_lossy())?;
         for mip in 0..levels {
             let side = SHEET >> mip;
             if mip > 0 {
@@ -176,8 +172,9 @@ impl Effects {
         pipelines: &Pipelines,
         environment: &Environment,
         targets: &Targets,
+        sheets: &std::path::Path,
     ) -> Result<Self, String> {
-        let atlas = atlas(device, queue)?;
+        let atlas = atlas(device, queue, sheets)?;
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("effects"),
             mag_filter: FilterMode::Linear,

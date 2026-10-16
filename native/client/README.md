@@ -3,6 +3,26 @@
 The native client on `wgpu`. It runs the browser's own shaders and passes over the [presentation crate](../../crates/presentation/README.md)'s
 `World` and `Frame`, and decides nothing per entity itself.
 
+## Windows development
+
+The native client is a Windows desktop binary built with the MSVC Rust target
+and Visual Studio's C++ workload (the Windows SDK supplies `link.exe`). From a
+Windows PowerShell checkout, run `powershell -ExecutionPolicy Bypass -File
+tools/setup-windows.ps1 -Native`; the script also prepares the browser path.
+The GNU target can be built from WSL after installing MinGW, but MSVC is the
+supported Windows development target.
+
+The browser and native clients share the same baked runtime files but load them
+through different boundaries. Vite copies `assets/runtime` into the web build;
+the native client reads it from disk. A packaged native build should place
+`assets/runtime` above the executable or set `BATTLEGAME_RUNTIME` to its path.
+The native resolver no longer depends on the WSL checkout path.
+
+The browser is started with `bun run dev`. WSL should serve the app while
+Windows Chrome supplies the real GPU; configure `.wslconfig` with
+`networkingMode=mirrored` so Chrome can reach the WSL localhost server. WSL's
+own software adapter is suitable for pipeline checks, not for the full battle.
+
 - **Shaders and pipelines** are the browser's [export](../../crates/pipelines/README.md),
   built from `pipelines.json` at start. The export is read strictly: a setting
   the client does not know fails the build rather than being dropped, and any

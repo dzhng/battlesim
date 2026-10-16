@@ -16,7 +16,7 @@
 //! With `--bench`, no plate is written: every frame record is framed, drawn
 //! and presented back to back, timed (`bench`), and the report is written to
 //! that directory as `native-<scene>-<time>.json` for `web/fps-compare.mjs`.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -53,6 +53,25 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
+#[cfg(test)]
+mod runtime_path_tests {
+    use super::runtime_dir;
+    use std::fs;
+
+    #[test]
+    fn runtime_dir_finds_assets_next_to_executable_tree() {
+        let root = std::env::temp_dir().join(format!("native-runtime-{}", std::process::id()));
+        let executable = root.join("target/debug/native-client.exe");
+        let runtime = root.join("assets/runtime");
+        fs::create_dir_all(&runtime).unwrap();
+        fs::write(runtime.join("catalog.json"), b"{}").unwrap();
+
+        assert_eq!(runtime_dir(&executable, None), runtime);
+
+        let _ = fs::remove_dir_all(root);
+    }
+}
+
 struct Args {
     scene: PathBuf,
     /// Where plates are written; absent for a bench.
@@ -62,6 +81,33 @@ struct Args {
     window: String,
     pace: usize,
     sound: Option<PathBuf>,
+}
+
+/// Resolve native runtime files without relying on the build machine's path.
+/// Packaged builds set `BATTLEGAME_RUNTIME`; development builds find the
+/// repository's `assets/runtime` beside the executable's target directory.
+fn runtime_dir(executable: &Path, configured: Option<&Path>) -> PathBuf {
+    if let Some(path) = configured {
+        return path.to_owned();
+    }
+    for ancestor in executable.ancestors() {
+        let candidate = ancestor.join("assets/runtime");
+        if candidate.join("catalog.json").is_file() {
+            return candidate;
+        }
+    }
+    PathBuf::from(RUNTIME)
+}
+
+fn repository_root(executable: &Path) -> PathBuf {
+    for ancestor in executable.ancestors() {
+        if ancestor.join("fixtures/game.json").is_file() {
+            return ancestor.to_owned();
+        }
+    }
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .to_owned()
 }
 
 fn args() -> Result<Args, String> {
@@ -141,9 +187,20 @@ struct Run {
 
 impl Run {
     fn start(event_loop: &ActiveEventLoop, args: &Args) -> Result<Self, String> {
-        let library = Library::open(std::path::Path::new(RUNTIME))?;
+        let executable = std::env::current_exe().ok();
+        let configured = std::env::var_os("BATTLEGAME_RUNTIME");
+        let runtime = runtime_dir(
+            executable.as_deref().unwrap_or_else(|| Path::new("")),
+            configured.as_deref().map(Path::new),
+        );
+        let library = Library::open(&runtime)?;
+        let root = executable
+            .as_deref()
+            .map(repository_root)
+            .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
+        std::env::set_var("BATTLEGAME_ROOT", &root);
         let opened = Instant::now();
-        let mut replay = Replay::open(&args.scene, &library)?;
+        let mut replay = Replay::open_with_root(&args.scene, &library, &root)?;
         println!(
             "world: ground set, scenery placed and the battle loaded in {:.2} s",
             opened.elapsed().as_secs_f64()
@@ -200,7 +257,8 @@ impl Run {
         );
 
         let built = Instant::now();
-        let pipelines = Pipelines::build(&gpu.device, pipelines::DIR)?;
+        let pipeline_dir = root.join("packages/battle-renderer/pipelines");
+        let pipelines = Pipelines::build(&gpu.device, &pipeline_dir.to_string_lossy())?;
         println!(
             "pipelines: {} built in {:.2} s on {}",
             pipelines.names().count(),
@@ -258,7 +316,14 @@ impl Run {
         // The sun's cascades are fitted over the ground's box each frame.
         let fitted = Some((replay.light.clone(), ground.map_box));
         replay.presentation_mut().set_shadow(fitted);
-        let effects = Effects::new(&gpu.device, &gpu.queue, &pipelines, &environment, &targets)?;
+        let effects = Effects::new(
+            &gpu.device,
+            &gpu.queue,
+            &pipelines,
+            &environment,
+            &targets,
+            &root.join("assets/third-party/effects"),
+        )?;
         // Fog of war over the ground's height pages; a fresh renderer holds none.
         let fog = Fog::new(&gpu.device, &pipelines, &targets, &ground.heights);
         replay.presentation_mut().resend_fog();
@@ -277,13 +342,13 @@ impl Run {
                     let text = std::fs::read_to_string(p).map_err(|e| format!("{p}: {e}"))?;
                     serde_json::from_str(&text).map_err(|e| format!("{p}: {e}"))
                 };
-                let root = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/");
+                let fixtures = root.join("fixtures");
                 let setup = audio::setup(
-                    &read(&format!("{root}game.json"))?,
-                    &read(&format!("{root}sounds.json"))?,
+                    &read(&fixtures.join("game.json").to_string_lossy())?,
+                    &read(&fixtures.join("sounds.json").to_string_lossy())?,
                 );
                 let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
-                Some(Audio::new(&setup, std::path::Path::new(RUNTIME), output)?)
+                Some(Audio::new(&setup, &runtime, output)?)
             }
         };
         Ok(Self {
