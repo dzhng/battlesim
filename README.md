@@ -59,7 +59,7 @@ So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth a
 
 Combat follows the same idea. A behaviour belongs to the thing that physically has it, never to a unit's role:
 
-- **A weapon owns what it can engage.** For each altitude layer it reaches, it lists a range and the target classes it engages (`infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`, `missile`). Intercepting a missile is just targeting one, fired from a layer the weapon lists `missile` in.
+- **A weapon owns what it can engage.** For each altitude layer it reaches, it lists a range and the target classes it engages (`infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`, `missile`). Intercepting a missile is just targeting one, fired from a layer the weapon lists `missile` in; a round a shot can catch comes first, because it is about to hit something.
 - **A weapon's mechanisms are opt-in flags that compose.** Guidance needs the operator's line of sight to the target. A seeker acquires inside its cone. `requires_clear_launch_path` holds fire when the launcher's own corridor is blocked. `interceptable` lets its rounds be shot down. `fires_on_its_own` fires whatever the unit's engagement policy.
 - **A radar contact is a contact like any other.** Its source changes only its evidence (its radius, bearing and range), never who may fire at it; an `anti_radiation` row may also fire at what radiates, a radar contact or a seen unit whose radar emits.
 - **A unit owns its body and senses.** That is its hull, its push and weight classes, its sight per layer, its radar (emitting makes it findable, and its reach is how far it sees aircraft), its radar receiver (it finds enemy radars that emit, by bearing and range), its flares, its altitude layer and its flight model.
@@ -83,6 +83,7 @@ These were all built and then deleted, because each stood in for a property some
 - **A `ground_attack` tag (`bomb`, `strafe`) on weapon rows.** A bomb is an unpowered row (`delivery: unpowered`); a strafing gun is the aircraft's always-available gun (`default`).
 - **Interceptors armed on the ground only.** Arming against incoming rounds skipped every airborne unit. An aircraft's row that lists `missile` arms as a ground mount's does.
 - **Flares as an aircraft's store.** `capabilities.air.flares` and the charges in an aircraft's flight state became `capabilities.flares`, which any unit may carry.
+- **A separate pass arming interceptors.** It locked only an idle mount on any round in reach, and aimed at the round as if it stood still. A round is a target like any other, taken through the same shot assessment, lead included, and one a shot can catch comes before the mount's other targets.
 
 If a rule asks "is this an X unit?" or "is this target an aircraft?", the question is usually one of these again.
 

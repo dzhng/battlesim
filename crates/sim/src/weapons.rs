@@ -296,11 +296,25 @@ pub enum Target {
     Round(RoundTarget),
 }
 
+/// A round in flight, by its id and the layer it was fired from; where it
+/// is and how it flies are read live ([`IncomingRound`]).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RoundTarget {
     pub id: ProjectileId,
-    pub point: V3,
     pub layer: AltitudeLayer,
+}
+
+/// An interceptable round in flight, as every mount may engage it: who fired
+/// it, where it is, how it flies, and the layer it was fired from.
+#[derive(Clone, Copy, Debug)]
+pub struct IncomingRound {
+    pub id: ProjectileId,
+    pub side: Side,
+    pub position: V3,
+    pub velocity: V3,
+    pub layer: AltitudeLayer,
+    /// Seconds until its flight ends of itself (its lifetime).
+    pub ends_in_s: f64,
 }
 
 impl Target {
@@ -309,13 +323,7 @@ impl Target {
             Target::Unit(u) => d.u64(0).u64(u.0 as u64),
             Target::Contact(c) => d.u64(1).u64(c.0 as u64),
             Target::Ground(p) => d.u64(2).f64(p.x).f64(p.y).f64(p.z),
-            Target::Round(round) => d
-                .u64(3)
-                .u64(round.id.0)
-                .f64(round.point.x)
-                .f64(round.point.y)
-                .f64(round.point.z)
-                .u64(round.layer as u64),
+            Target::Round(round) => d.u64(3).u64(round.id.0).u64(round.layer as u64),
         };
     }
 }
@@ -459,6 +467,8 @@ pub struct FireContext<'a> {
     pub rules: &'a Rules,
     pub tick: Tick,
     pub knowledge: &'a [SideKnowledge; 3],
+    /// The interceptable rounds in flight.
+    pub rounds: &'a [IncomingRound],
 }
 
 /// How far a squad's own weapons reach: its squad mount's longest range
@@ -586,15 +596,18 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             class: None,
             emits: false,
         }),
-        Target::Round(round) => Some(Resolved {
-            point: round.point,
-            velocity: v3(0.0, 0.0, 0.0),
-            current: true,
-            armor: None,
-            layer: round.layer,
-            class: Some(TargetClass::Missile),
-            emits: false,
-        }),
+        Target::Round(round) => {
+            let flying = ctx.rounds.iter().find(|r| r.id == round.id)?;
+            Some(Resolved {
+                point: flying.position,
+                velocity: flying.velocity,
+                current: true,
+                armor: None,
+                layer: round.layer,
+                class: Some(TargetClass::Missile),
+                emits: false,
+            })
+        }
     }
 }
 
@@ -1519,6 +1532,21 @@ fn automatic_lock(
     spec: &MountSpec,
     assessed: &mut Assessed,
 ) -> ActionReason {
+    // An incoming round a shot can catch comes before anything else: the crew
+    // shoots it down, then turns back to what it was on (`select`, once the
+    // round is gone).
+    if !matches!(
+        mount.lock.as_ref().map(|l| l.target),
+        Some(Target::Round(_))
+    ) {
+        if let Some(round) = catchable_round(ctx, unit, units, mount, spec, assessed) {
+            mount.lock = Some(Lock {
+                target: round,
+                engaging: false,
+            });
+            return ActionReason::Aiming;
+        }
+    }
     // An area is never kept on its own once an identified enemy is in reach.
     if mount
         .lock
@@ -1562,6 +1590,88 @@ fn automatic_lock(
         None => mount.lock = None,
     }
     reason
+}
+
+/// The nearest enemy round in this mount's `missile` reach (by the layer it
+/// was fired from) that a shot can catch now: the same assessment as any
+/// target, its lead solution included (a round speeding away has none),
+/// and the shot meets it in time and within reach ([`catches`]).
+fn catchable_round(
+    ctx: &FireContext,
+    unit: &Unit,
+    units: &[Unit],
+    mount: &Mount,
+    spec: &MountSpec,
+    assessed: &mut Assessed,
+) -> Option<Target> {
+    let reach = |layer| {
+        (0..spec.kinds.len())
+            .filter(|&k| mount.has_rounds(k))
+            .filter_map(|k| {
+                ctx.arsenal.weapons[spec.kinds[k]]
+                    .def
+                    .engages(layer, Some(TargetClass::Missile))
+            })
+            .map(|fire| fire.range_m)
+            .fold(0.0, f64::max)
+    };
+    let mut near: Vec<(f64, &IncomingRound)> = ctx
+        .rounds
+        .iter()
+        .filter(|r| r.side != unit.side)
+        .map(|r| (body_distance(r.position, unit.position), r))
+        .filter(|&(d, r)| {
+            let reach = reach(r.layer);
+            reach > 0.0 && d <= reach
+        })
+        .collect();
+    near.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.id.cmp(&b.1.id)));
+    near.into_iter()
+        .map(|(_, r)| {
+            Target::Round(RoundTarget {
+                id: r.id,
+                layer: r.layer,
+            })
+        })
+        .find(|&target| {
+            resolve(ctx, unit.side, target, units).is_some_and(|r| {
+                assessed
+                    .target(ctx, unit, units, mount, spec, target, &r)
+                    .is_ok_and(|k| catches(ctx, unit, units, mount, spec, k, target, &r))
+            })
+        })
+}
+
+/// Whether the shot's lead meets the round in time and in reach: before
+/// the round's own flight ends, and within the row's reach for its layer (a
+/// fast round crossing the edge of reach is met past it, however close it
+/// is now).
+#[allow(clippy::too_many_arguments)]
+fn catches(
+    ctx: &FireContext,
+    unit: &Unit,
+    units: &[Unit],
+    mount: &Mount,
+    spec: &MountSpec,
+    k: usize,
+    target: Target,
+    r: &Resolved,
+) -> bool {
+    let Target::Round(round) = target else {
+        return false;
+    };
+    let ends_in_s = ctx
+        .rounds
+        .iter()
+        .find(|r| r.id == round.id)
+        .map_or(0.0, |r| r.ends_in_s);
+    r.fire(&ctx.arsenal.weapons[spec.kinds[k]].def)
+        .is_some_and(|fire| {
+            engage(ctx, unit, units, mount, spec, k, target, r).is_ok_and(|s| {
+                s.time_of_flight_s <= ends_in_s
+                    && body_distance(s.intercept, unit.position) <= fire.range_m
+            })
+        })
 }
 
 /// What a unit's weapons concluded this tick, read by next tick's movement.
@@ -2759,6 +2869,7 @@ mod target_priority_tests {
             rules: &setup.rules,
             tick: 0,
             knowledge: &knowledge,
+            rounds: &[],
         };
         let mut soldier = battle.unit(UnitId(0)).unwrap().members[0].clone();
         soldier.position = v3(100.0, 100.0, 0.0);
@@ -2814,6 +2925,7 @@ mod target_priority_tests {
             rules: &setup.rules,
             tick: 0,
             knowledge: &knowledge,
+            rounds: &[],
         };
         let track = crate::knowledge::Track {
             id: contract::observation::ObservedTargetId(7),
@@ -2866,6 +2978,7 @@ mod target_priority_tests {
                 rules: &setup.rules,
                 tick: 0,
                 knowledge: &knowledge,
+                rounds: &[],
             };
             let enemy = battle.unit(UnitId(1)).unwrap();
             let track = crate::knowledge::Track {
@@ -2924,6 +3037,7 @@ mod target_priority_tests {
             rules: &setup.rules,
             tick: 0,
             knowledge: &knowledge,
+            rounds: &[],
         };
         let choose = |units: &[Unit]| {
             select(

@@ -3521,3 +3521,47 @@ fn a_row_that_fires_on_its_own_ignores_the_engagement_policy() {
     assert_eq!(shots(false), 0, "an ordinary row holds on return fire only");
     assert!(shots(true) > 0, "a row that fires on its own fires");
 }
+
+/// A mount keeps an automatic target only while a shot at it can succeed:
+/// a jeep's machine gun on a red jeep 200 m off turns to another 250 m off
+/// once the first drives out past its 400 m.
+#[test]
+fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
+    let mut rules = sim::fixtures::test_game();
+    rules["weapons"]["hmg"]["range_m"] = json!(400);
+    // The tanks answer its fire; it outlasts them here.
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "body": { "hull": { "hp": 1.0e9 } } }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [1600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
+            { "side": "red", "kind": "test_tank", "position": [300, 200], "yaw": 0.0, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [340, 50], "yaw": 0.0, "engagement": "return_fire_only" }
+        ],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "red", "order": { "kind": "move", "units": [1],
+            "gesture": 1, "goal": [1500, 200], "route": "shortest", "direction": "forward", "facing": null } }]
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let target = |b: &Battle| b.observe(Side::Blue).own[0].mounts[0].target.clone();
+    let first = (0..30).find_map(|_| {
+        b.step();
+        target(&b)
+    });
+    let mut last = first.clone();
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+        last = target(&b).or(last);
+    }
+    let away = b.unit(UnitId(1)).unwrap().position.x - 100.0;
+    assert!(away > 420.0, "the first tank drove out of reach: {away}");
+    assert!(first.is_some());
+    assert_ne!(last, first, "it kept a target it could no longer reach");
+}

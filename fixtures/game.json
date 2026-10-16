@@ -432,6 +432,7 @@
       "structural_damage": 20
     },
         "aa_ballistic": {
+            "proximity_fuse_m": 5,
             "extends": "hmg",
             "name": "Short AA gun",
             "description": "Ballistic short-range air defence.",
@@ -539,6 +540,7 @@
             "decoyable": true
         },
         "patriot_pac3": {
+            "proximity_fuse_m": 5,
             "extends": "aa_long",
             "name": "PAC-3 MSE",
             "description": "Long-range missile that also shoots down missiles fired from aircraft.",
@@ -547,6 +549,7 @@
             }
         },
         "pantsir_missile": {
+            "proximity_fuse_m": 5,
             "extends": "aa_medium",
             "name": "57E6",
             "description": "Medium-range missile that also shoots down missiles fired from aircraft.",

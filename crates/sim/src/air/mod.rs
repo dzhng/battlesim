@@ -264,7 +264,8 @@ fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
             .or_else(|| unit.pursuit.map(|p| p.to.with_z(unit.position.z)))
             .unwrap_or(unit.position),
         Target::Ground(point) => point,
-        Target::Round(round) => round.point,
+        // No order names a round; a mount's lock is never a flight goal.
+        Target::Round(_) => unit.position,
         Target::Contact(contact) => ctx.knowledge[unit.side.index()]
             .contact(contact)
             .map(|c| c.center)
