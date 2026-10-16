@@ -54,6 +54,14 @@ class VehicleExportTest(unittest.TestCase):
         self.assertEqual(save.call_args.args[:4],
                          ("assets/source/roster/one/source-receipt.json", "shared.py", receipt, "fixtures/catalog.json"))
 
+    def test_a_receipt_names_its_folders_reference_library_whatever_its_script(self):
+        module = exporter()
+        with patch.object(module, "_export", return_value=[dict(id="jet", sha256="a")]), \
+             patch.object(module, "family_variants", return_value=[]), \
+             patch.object(module, "_receipt") as save:
+            module.run("f_16_fighting_falcon", "paint", None, None, script="f16.py")
+        self.assertEqual(save.call_args.args[4], "assets/references/f_16_fighting_falcon/references.json")
+
 
 if __name__ == "__main__":
     unittest.main()

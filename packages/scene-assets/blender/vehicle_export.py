@@ -210,7 +210,7 @@ def run(family, scheme, build, wreck, ao_distance=1.0, ao_rays=8, references=Non
     if receipt is not None:
         _receipt(receipt_file or f"assets/source/roster/{family}/source-receipt.json",
                  script or f"{family}.py", receipt, "fixtures/catalog.json",
-                 references)
+                 references or f"assets/references/{family}/references.json")
 
 
 # How far a disabled card's built model may stray from the dimensions its
