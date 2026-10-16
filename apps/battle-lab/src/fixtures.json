@@ -1,5 +1,14 @@
 [
   {
+    "id": "capture",
+    "route": "/labs/capture",
+    "describe": "Cinematic capture mode: records scripted camera paths over the menu backdrop battle for marketing clips. Use ?capture=<preset> to select camera path (default, top-down, ground-level, orbit) and optional params for resolution, fps, and audio.",
+    "map": null,
+    "tool": true,
+    "catalog": "menu",
+    "loading": false
+  },
+  {
     "id": "graphics-test",
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",

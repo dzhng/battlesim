@@ -11,6 +11,7 @@
     "build:wasm": "RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/game-wasm --target web --release --out-dir ../../web/src/wasm && RUSTFLAGS='-C target-feature=+simd128' wasm-pack build ../crates/presentation-wasm --target web --release --out-dir ../../web/src/wasm/presentation",
     "scene": "node scene.mjs",
     "asset": "node asset.mjs",
+    "capture": "node capture.mjs",
     "tutorial-shots": "node tutorial-shots.mjs",
     "install-browsers": "playwright install chromium",
     "check-prerequisites": "node check-prerequisites.mjs",

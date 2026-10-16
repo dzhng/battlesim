@@ -42,6 +42,10 @@ export class WebAudioSink implements VoiceSink {
   private readonly sounding = new Set<LiveVoice>();
   private readonly graph: AudioNode[] = [];
   private readonly ownsBank: boolean;
+  /** The limiter node, exposed for capture tap. */
+  private readonly limiter: DynamicsCompressorNode;
+  /** MediaStreamDestination for recording, lazily created. */
+  private captureDest: MediaStreamAudioDestinationNode | null = null;
 
   constructor(
     readonly context: BaseAudioContext,
@@ -51,18 +55,18 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
-    const limiter = new DynamicsCompressorNode(context, {
+    this.limiter = new DynamicsCompressorNode(context, {
       threshold: -6,
       knee: 3,
       ratio: 20,
       attack: 0.002,
       release: 0.2,
     });
-    this.graph.push(limiter);
-    limiter.connect(context.destination);
+    this.graph.push(this.limiter);
+    this.limiter.connect(context.destination);
     this.master = new GainNode(context, { gain: presentation.buses.master });
     this.graph.push(this.master);
-    this.master.connect(limiter);
+    this.master.connect(this.limiter);
     this.buses = Object.fromEntries(
       BUSES.map((b) => {
         const g = new GainNode(context, { gain: presentation.buses[b] });
@@ -247,6 +251,7 @@ export class WebAudioSink implements VoiceSink {
    * A borrowed bank belongs to the page and outlives this mixer. */
   dispose() {
     this.clear();
+    this.releaseCaptureTap();
     for (const node of this.graph) node.disconnect();
     this.graph.length = 0;
     if (this.ownsBank) this.bank.dispose();
@@ -255,6 +260,34 @@ export class WebAudioSink implements VoiceSink {
   /** Voices the graph holds now. */
   get live() {
     return this.sounding.size;
+  }
+
+  /** Create a MediaStream tap for recording the audio output.
+   *  Zero-cost when not called: the destination node is only created on demand.
+   *  Returns the MediaStream that can be passed to MediaRecorder.
+   *  Only works with a live AudioContext (not OfflineAudioContext). */
+  createCaptureTap(): MediaStream | null {
+    if (!(this.context instanceof AudioContext)) return null;
+    if (this.captureDest) return this.captureDest.stream;
+    this.captureDest = this.context.createMediaStreamDestination();
+    this.limiter.connect(this.captureDest);
+    return this.captureDest.stream;
+  }
+
+  /** Whether a capture tap is currently active. */
+  hasCaptureTap(): boolean {
+    return this.captureDest !== null;
+  }
+
+  /** Release the capture tap and disconnect it from the graph. */
+  releaseCaptureTap(): void {
+    if (!this.captureDest) return;
+    try {
+      this.limiter.disconnect(this.captureDest);
+    } catch {
+      // Already disconnected
+    }
+    this.captureDest = null;
   }
 }
 
