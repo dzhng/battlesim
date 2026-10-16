@@ -771,3 +771,12 @@ fn k_weighting_reads_the_bs1770_reference() {
         assert!((l + 3.01).abs() < 0.05, "{rate}: {l}");
     }
 }
+
+#[test]
+fn game_audio_config_parses_with_strict_serde() {
+    // Ensures no unknown fields like _note or _hollywood_caliber sneak into
+    // fixtures/game.json presentation.audio, which would fail at runtime with
+    // "unknown field, expected ...". The Sound::from_json path uses
+    // serde(deny_unknown_fields), so this test catches regressions.
+    let _ = sound();
+}

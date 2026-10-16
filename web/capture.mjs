@@ -111,6 +111,38 @@ async function checkMechanicsBuilt() {
   return true;
 }
 
+/** Check if the wasm build exists. */
+async function checkWasmBuilt() {
+  const wasmPath = new URL("web/dist/presentation_wasm_bg.wasm", ROOT);
+  return existsSync(wasmPath);
+}
+
+/** Run a build command and wait for it. */
+async function runBuild(name, command) {
+  console.log(`Building ${name}...`);
+  return new Promise((resolve, reject) => {
+    const proc = spawn("bun", ["run", command], {
+      cwd: ROOT.pathname,
+      stdio: "inherit",
+    });
+    proc.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${command} failed with code ${code}`));
+    });
+    proc.on("error", reject);
+  });
+}
+
+/** Ensure prerequisite builds are done, running them if needed. */
+async function ensureBuilds() {
+  if (!await checkMechanicsBuilt()) {
+    await runBuild("mechanics validator", "build:mechanics");
+  }
+  if (!await checkWasmBuilt()) {
+    await runBuild("wasm", "build:wasm");
+  }
+}
+
 /** Check if a file is an LFS pointer (text file starting with "version https://git-lfs.github.com"). */
 async function isLfsPointer(filePath) {
   try {
@@ -146,27 +178,16 @@ async function checkLfsAssets() {
   return pointers;
 }
 
-/** Check prerequisites and print what's missing. */
+/** Check prerequisites and build what's missing. */
 async function checkPrerequisites() {
-  const issues = [];
-
-  if (!await checkMechanicsBuilt()) {
-    issues.push("Mechanics validator not built. Run: bun run build:mechanics");
-  }
-
   const lfsPointers = await checkLfsAssets();
   if (lfsPointers.length > 0) {
-    issues.push(`LFS assets are pointers (not downloaded). Run: git lfs pull`);
-  }
-
-  if (issues.length > 0) {
-    console.error("Missing prerequisites:");
-    for (const issue of issues) {
-      console.error(`  - ${issue}`);
-    }
-    console.error("");
+    console.error("LFS assets are pointers (not downloaded). Run: git lfs pull");
     return false;
   }
+
+  // Ensure mechanics and wasm are built
+  await ensureBuilds();
   return true;
 }
 
@@ -517,15 +538,50 @@ async function main() {
     const route = args.scene === "skirmish" ? "/labs/capture-skirmish" : "/labs/capture";
     const url = `${server.url}${route}?${params}`;
     console.log(`Opening ${url}`);
+
+    // Monitor network errors, especially /__mechanics validation failures
+    let networkError = null;
+    page.on("response", async (response) => {
+      if (response.status() >= 400) {
+        const reqUrl = response.url();
+        if (reqUrl.includes("__mechanics")) {
+          try {
+            const body = await response.text();
+            networkError = `/__mechanics validation failed (${response.status()}): ${body}`;
+          } catch {
+            networkError = `/__mechanics validation failed with status ${response.status()}`;
+          }
+        }
+      }
+    });
+
     await page.goto(url);
+
+    // Check for network error immediately
+    if (networkError) {
+      throw new Error(networkError);
+    }
 
     // Wait for lab to be ready
     console.log("Waiting for scene to prepare...");
-    await page.waitForFunction(
-      () => window.__lab?.ready || window.__lab?.error,
-      undefined,
-      { timeout: 120_000 },
-    );
+    try {
+      await page.waitForFunction(
+        () => window.__lab?.ready || window.__lab?.error,
+        undefined,
+        { timeout: 120_000 },
+      );
+    } catch (waitError) {
+      // Check if we have a network error that explains the timeout
+      if (networkError) {
+        throw new Error(networkError);
+      }
+      throw waitError;
+    }
+
+    // Check for network error after wait
+    if (networkError) {
+      throw new Error(networkError);
+    }
 
     const labError = await page.evaluate(() => window.__lab?.error);
     if (labError) {

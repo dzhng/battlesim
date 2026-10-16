@@ -785,6 +785,102 @@ fn countryside(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
     channels
 }
 
+/// Distant battle bed, stereo: a light countryside base with distant thuds,
+/// rumbles and gunfire to suggest combat over the horizon. Layered over
+/// attenuated wind and muffled explosions at random intervals.
+fn distant_battle(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
+    let seconds = 16.0;
+    let n = len(seconds, sr);
+    let nf = n as f64;
+
+    // Gentle wind base (quieter than countryside)
+    let gust = |i: f64, ph: f64| {
+        0.35 + 0.2 * sin(TAU * 1.5 * i / nf + ph) + 0.1 * sin(TAU * 4.0 * i / nf + ph * 2.0)
+    };
+
+    let mut channels = Vec::new();
+    for c in 0..2 {
+        let ph = c as f64 * 0.7;
+        let wind = seamless(n, len(0.4, sr), |m| {
+            biquad(noise(m, rng), sr, Filter::Lowpass, 280.0, Q)
+        });
+        let out: Vec<f32> = (0..n)
+            .map(|i| {
+                let g = gust(i as f64, ph);
+                (1.0 * f64::from(wind[i]) * g) as f32
+            })
+            .collect();
+        channels.push(out);
+    }
+
+    // Distant thuds/booms: low-frequency rumbles at random intervals
+    let boom_count = 8 + floor(rng.sample() * 6.0) as usize;
+    for _ in 0..boom_count {
+        let at = rng.sample() * (seconds - 1.5);
+        let pan = 0.2 + 0.6 * rng.sample();
+        let dur = 0.6 + 0.8 * rng.sample();
+        let freq = 35.0 + 25.0 * rng.sample();
+        let m = len(dur, sr);
+        let boom: Vec<f32> = (0..m)
+            .map(|i| {
+                let t = i as f64 / sr;
+                let env = exp(-t * 3.0 / dur) * pow(sin(PI * t / dur), 0.5);
+                let tone = sin(TAU * freq * t) * 0.6 + sin(TAU * freq * 1.5 * t) * 0.3;
+                (env * tone) as f32
+            })
+            .collect();
+        let boom = biquad(boom, sr, Filter::Lowpass, 120.0, 0.5);
+        let start = len(at, sr);
+        let gain = 0.25 + 0.15 * rng.sample();
+        mix(&mut channels[0], &boom, sr, gain * (1.0 - pan * 0.5), one, start);
+        mix(&mut channels[1], &boom, sr, gain * (0.5 + pan * 0.5), one, start);
+    }
+
+    // Distant crackle/gunfire: filtered noise bursts
+    let crack_count = 12 + floor(rng.sample() * 8.0) as usize;
+    for _ in 0..crack_count {
+        let at = rng.sample() * (seconds - 0.8);
+        let pan = rng.sample();
+        let dur = 0.15 + 0.25 * rng.sample();
+        let freq = 400.0 + 200.0 * rng.sample();
+        let m = len(dur, sr);
+        let mut crack = noise(m, rng);
+        biquad_by(&mut crack, sr, Filter::Bandpass, |_| freq, 1.5, true);
+        for (i, v) in crack.iter_mut().enumerate() {
+            let t = i as f64 / sr;
+            let env = exp(-t * 4.0 / dur);
+            *v = (*v as f64 * env * 0.12) as f32;
+        }
+        let start = len(at, sr);
+        mix(&mut channels[0], &crack, sr, 1.0 - pan * 0.6, one, start);
+        mix(&mut channels[1], &crack, sr, 0.4 + pan * 0.6, one, start);
+    }
+
+    // Distant rumble: continuous low filtered noise
+    let [left, right] = &mut channels[..] else {
+        unreachable!("two channels")
+    };
+    let rumble = seamless(n, len(0.5, sr), |m| {
+        biquad(noise(m, rng), sr, Filter::Lowpass, 80.0, 0.7)
+    });
+    for (i, (l, r)) in left.iter_mut().zip(right.iter_mut()).enumerate() {
+        let t = i as f64 / nf;
+        let swell = 0.6 + 0.4 * sin(TAU * 0.3 * t);
+        let s = f64::from(rumble[i]) * 0.08 * swell;
+        *l = (f64::from(*l) + s) as f32;
+        *r = (f64::from(*r) + s * 0.9) as f32;
+    }
+
+    let m = channels
+        .iter()
+        .flatten()
+        .fold(0.0f64, |m, v| m.max(f64::from(v.abs())));
+    for v in channels.iter_mut().flatten() {
+        *v = (f64::from(*v) * (PEAK / m)) as f32;
+    }
+    channels
+}
+
 type Mono = fn(f64, &mut Mulberry32) -> Vec<f32>;
 
 /// Every mono sound, by name, and whether it loops.
@@ -839,21 +935,22 @@ const SOUNDS: &[(&str, Mono, bool)] = &[
     ("cue_footsteps", cue_footsteps, false),
 ];
 
-const BED: &str = "countryside";
+/// Stereo ambient beds.
+const BEDS: &[&str] = &["countryside", "distant_battle"];
 
 /// Whether `name` is a synthesized sound.
 pub fn exists(name: &str) -> bool {
-    name == BED || SOUNDS.iter().any(|(n, ..)| *n == name)
+    BEDS.contains(&name) || SOUNDS.iter().any(|(n, ..)| *n == name)
 }
 
 /// Every synthesized sound's name.
 pub fn names() -> impl Iterator<Item = &'static str> {
-    SOUNDS.iter().map(|(n, ..)| *n).chain([BED])
+    SOUNDS.iter().map(|(n, ..)| *n).chain(BEDS.iter().copied())
 }
 
 /// Whether synthesized sound `name` loops; None for an unknown name.
 pub fn loops(name: &str) -> Option<bool> {
-    if name == BED {
+    if BEDS.contains(&name) {
         return Some(true);
     }
     SOUNDS.iter().find(|(n, ..)| *n == name).map(|s| s.2)
@@ -862,9 +959,15 @@ pub fn loops(name: &str) -> Option<bool> {
 /// `name` at `sample_rate`: the same samples every time.
 pub fn synthesize(name: &str, sample_rate: f64) -> Result<Synth, String> {
     let mut rng = Key::new().text(name).rng();
-    if name == BED {
+    if name == "countryside" {
         return Ok(Synth {
             channels: countryside(sample_rate, &mut rng),
+            looping: true,
+        });
+    }
+    if name == "distant_battle" {
+        return Ok(Synth {
+            channels: distant_battle(sample_rate, &mut rng),
             looping: true,
         });
     }

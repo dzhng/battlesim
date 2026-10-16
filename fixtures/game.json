@@ -1305,8 +1305,6 @@
       "hold_s": 0.25,
       "late_s": 0.25,
       "shots": {
-        "_hollywood_caliber": "Big weapons, big sounds. Reference: artillery_howitzer = 2.5 (0 dB)",
-        
         "default": { "near": "rifle", "far": "rifle_far", "gain": 0.08, "far_m": 200 },
         
         "rifle": { "near": "rifle", "far": "rifle_far", "gain": 0.08, "far_m": 200 },
@@ -1369,15 +1367,13 @@
         "helicopter_crash": { "near": "cannon", "far": "cannon_far", "gain": 1.50, "far_m": 700 }
       },
       "impacts": {
-        "_note": "Tank/artillery get heavy explosion layer via high impact_scale",
         "default": { "sound": "impact_ground", "gain": 0.15 },
         "ground": { "sound": "impact_ground", "gain": 0.18 },
         "hull": { "sound": "impact_hull", "gain": 0.4 },
         "prop": { "sound": "impact_prop", "gain": 0.2 },
         "soldier": { "sound": "impact_soldier", "gain": 0.1 }
       },
-      "impact_scale": { 
-          "_hollywood_caliber": "Heavy impacts get big explosion layer",
+      "impact_scale": {
           "default": 1.0,
           "rifle": 0.5, "carbine": 0.5, "smg": 0.4, "shotgun": 0.6, "lmg": 0.8, "marksman_rifle": 0.6, "heavy_sniper": 1.5,
           "hmg": 1.5,
@@ -1393,8 +1389,6 @@
         },
       "ricochet": { "sound": "ricochet", "gain": 0.25 },
       "blasts": {
-        "_hollywood_caliber": "Big, concussive, long-tailed explosions. Reference: artillery_howitzer = 2.2 (0 dB)",
-        
         "default": { "near": "explosion", "far": "explosion_far", "gain": 0.30, "far_m": 400 },
         
         "grenade": { "near": "explosion", "far": "explosion_far", "gain": 0.25, "far_m": 300 },
@@ -1450,8 +1444,7 @@
         "blast": { "near": "explosion", "far": "explosion_far", "gain": 2.0, "far_m": 900 },
         "landing": { "hit": "hull", "as": "tank_ap", "gain": 0.5 }
       },
-      "motors": { 
-        "_hollywood_caliber": "Missile motor sounds - audible throughout flight",
+      "motors": {
         "atgm": { "sound": "motor", "gain": 0.40 },
         "tow": { "sound": "motor", "gain": 0.40 },
         "kornet": { "sound": "motor", "gain": 0.45 },
@@ -1668,7 +1661,7 @@
       },
       "footsteps": { "sound": "footstep", "gain": 0.07, "stride_m": 0.8, "max_step_m": 2 },
       "fires": { "default": { "sound": "fire", "gain": 0.25, "smoulder_gain": 0.06 } },
-      "ambience": { "sound": "countryside", "gain": 0.45, "_note": "continuous distant-battle bed; gain raised to sit above engines but below nearby fire" },
+      "ambience": { "sound": "distant_battle", "gain": 0.55 },
       "air_alarm": { "sound": "airwar-air-alarm", "gain": 0.8 },
       "missile_warning": { "sound": "airwar-missile-warning", "gain": 0.9 },
       "flare_deploy": { "sound": "airwar-flare-burst", "gain": 0.75 },
@@ -1768,16 +1761,16 @@
         "mist_opacity": 0.08
       },
       "backdrop": { "reach_m": 40000 },
-      "exposure": 1.42,
+      "exposure": 1.60,
       "grade": {
         "enabled": true,
-        "saturation": 1.70,
-        "contrast": 0.50,
-        "split_tone": 0.75,
-        "shadow_lift": 1.10,
+        "saturation": 2.20,
+        "contrast": 0.45,
+        "split_tone": 0.70,
+        "shadow_lift": 1.25,
         "shadow_tint": [1.01, 1.0, 0.99],
-        "highlight_tint": [1.06, 1.02, 0.95],
-        "lift": [0.022, 0.024, 0.028]
+        "highlight_tint": [1.04, 1.01, 0.97],
+        "lift": [0.028, 0.030, 0.034]
       },
       "bloom": { "strength": 0.35, "radius": 0.55, "threshold": 0.55, "smooth_width": 0.5 },
       "cascades": {
