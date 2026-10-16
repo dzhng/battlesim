@@ -85,3 +85,19 @@ fn an_inbound_transit_draws_before_its_edge_tick() {
     assert_eq!(poses.len(), 1);
     assert!(poses[0].position[0] < 100.0);
 }
+
+#[test]
+fn an_inbound_transit_the_simulation_stops_publishing_stops_drawing() {
+    // A cancelled reservation's approach leaves the publication before its
+    // edge tick; no unit will arrive, so the approach must not keep flying.
+    let feel = TransitFeel {
+        inbound_s: 10.0,
+        outbound_s: 2.0,
+    };
+    let edge_tick = 300.0;
+    let mut history = TransitHistory::default();
+    history.note(&[transit("in", edge_tick)], edge_tick - 60.0, 30.0, &feel);
+    history.note(&[], edge_tick - 59.0, 30.0, &feel);
+
+    assert!(history.tracks(edge_tick - 30.0, 30.0, &feel).is_empty());
+}

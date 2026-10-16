@@ -81,10 +81,12 @@ import { restingModelPose, type ModelInstance, type ModelPose } from "./modelIns
 import {
   BATCH_WORDS,
   Batch,
+  CULLED,
   Counts,
   FOG_UNITS,
   GHOST_PASS,
   HIGH_PASS,
+  IMPOSTOR,
   INSTANCE_WORDS,
   Instance,
   JOINT_WORDS,
@@ -119,10 +121,6 @@ export const ModelRecord = Instance;
 // Each drawable has ordinary and ghost runs, each with the same fog classes.
 const DRAW_CLASSES = FOG_CLASSES * 2;
 const RECORD_FLOATS = INSTANCE_WORDS;
-/** Rust's tiers for a model off screen and for its card (`view::CULLED`,
- *  `view::IMPOSTOR`): `model_tiers` and `Batch.tier` give them. */
-const CULLED = -1;
-const IMPOSTOR = 4;
 /** The words `model_tiers` reads per model. */
 const TIER_INPUT = 6;
 export const modelVertexLayout = tgpu.vertexLayout(d.disarrayOf(ModelVertex));

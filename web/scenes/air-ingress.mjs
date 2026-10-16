@@ -14,18 +14,17 @@
 // outbound pose leaves at the blue back edge before the refund appears.
 import { writeFile } from "node:fs/promises";
 import { gpuWarnings, obs, advance, aim } from "./_lab.mjs";
-import { openAir, command, HIGH_AIR_CRUISE, shoot } from "./_air.mjs";
+import { openAir, command, field, HIGH_AIR_CRUISE, shoot } from "./_air.mjs";
 import { game, unitType } from "./_units.mjs";
 const JET = "f_16c_block_50";
 const DESTINATIONS = [
   [1500, 1500],
   [2500, 2400],
 ];
-/** Blue's entry site in the ingress skirmish (`apps/battle-lab/src/routes/airWar.tsx`):
- *  its back edge is the west edge, and the point on it nearest the site is
- *  where every bought aircraft arrives. */
-const BLUE_ENTRY = [10, 260];
-const ARRIVAL_POINT = [0, BLUE_ENTRY[1]];
+/** Blue's entry site in the ingress skirmish (`apps/battle-lab/src/routes/airWar.tsx`)
+ *  sits mid-way along the west edge: that is its back edge, and the point on
+ *  it nearest the site is where every bought aircraft arrives. */
+const ARRIVAL_POINT = [0, field("air-ingress")[1] / 2];
 
 export async function run(ctx) {
   const page = await openAir(ctx);
@@ -36,6 +35,9 @@ export async function run(ctx) {
     !!o.skirmish && o.own.length === 0,
     JSON.stringify(o.skirmish),
   );
+  // The whole field from the south, as the checkpoint opens: its objectives
+  // spread across it.
+  await shoot(ctx, page, "air-ingress-field");
   await command(page, { kind: "ready" });
   await advance(page, 2);
   const before = (await obs(page)).skirmish.credits;

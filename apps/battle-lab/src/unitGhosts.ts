@@ -3,7 +3,7 @@
 // preview, and every ordered destination with Space held. The UI says where
 // each body stands; the presentation fields and poses them (`GhostBody`).
 import type { SurfaceHeight } from "@packages/battle-renderer/src/orderOverlay";
-import { highAir, layerOf, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { layerOf, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { GhostReadout } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { GhostBody } from "@web/battle/sim/presentation";
@@ -34,9 +34,7 @@ export const ghostAloft =
     return layer === "high_air" ? Math.max(height, air.high_air.floor_agl_m) : height;
   };
 
-/** Cards accompany only revealed HighAir order ghosts while Space is held.
- * Traversing aircraft have no landed goal yet, so their card hangs from the
- * current ingress-edge position until the flight reaches the map. */
+/** Cards accompany only revealed HighAir order ghosts while Space is held. */
 export function aircraftOrderReadouts(
   own: readonly OwnUnitView[],
   showOrders: boolean,
@@ -50,7 +48,7 @@ export function aircraftOrderReadouts(
     if (!revealed.has(unit.id) || !isHighAir(unit.kind)) return [];
     const ghost = orderedGhost(unit, GHOST_OWN);
     if (!ghost) return [];
-    const [x, y] = ghost?.at ?? unit.position;
+    const [x, y] = ghost.at;
     return [{ unit, position: [x, y, ground(x, y) + altitude(unit.kind)] }];
   });
 }

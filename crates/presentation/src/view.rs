@@ -57,8 +57,8 @@ pub fn caster_tier(tier: usize) -> usize {
     (tier + 1).min(TIERS - 1)
 }
 /// What a batch of models at `tier` drawn for `pass` casts with
-/// (`Batch.caster`): in view, [`caster_tier`]; an impostor card and a ghost
-/// nothing (`NONE`). A battle's models and a lab's own take it alike.
+/// (`Batch.caster`): in view, [`caster_tier`]; an impostor card, a ghost and
+/// a high-air model (`HIGH_PASS`) nothing (`NONE`). A battle's models and a lab's own take it alike.
 pub fn batch_caster(tier: u32, pass: u32) -> u32 {
     if pass == VIEW_PASS && tier != IMPOSTOR as u32 {
         caster_tier(tier as usize) as u32

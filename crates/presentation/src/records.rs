@@ -603,6 +603,14 @@ pub fn typescript() -> String {
          export const HIGH_PASS = {HIGH_PASS};\n",
     ));
     out.push_str(&format!(
+        "/** Rust's tiers for a model off screen and for its card (`view.rs`): \
+         `model_tiers` and `Batch.tier` give them. */\n\
+         export const CULLED = {};\n\
+         export const IMPOSTOR = {};\n",
+        crate::view::CULLED,
+        crate::view::IMPOSTOR
+    ));
+    out.push_str(&format!(
         "/** How fog of war takes a batch (`Batch.fog`). */\n\
          export const FOG_UNITS = {FOG_UNITS};\n\
          export const FOG_FACES = {FOG_FACES};\n\

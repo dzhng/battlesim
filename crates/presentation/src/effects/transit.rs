@@ -23,21 +23,24 @@ pub struct TransitPose {
     pub kind: Arc<str>,
     pub position: Vec3,
     pub heading: f64,
-    pub outbound: bool,
 }
 
-/// Edge transits observed in prior publications, retained until their visual
-/// window ends so a one-tick publication remains drawable.
+/// Edge transits as presentation draws them. An inbound approach is
+/// published every tick while its reservation waits, so each publication
+/// replaces the approaches; a departure is published for one tick, so it is
+/// retained until its visual window ends.
 #[derive(Default)]
 pub struct TransitHistory {
     seen: Vec<AirTransit>,
 }
 
 impl TransitHistory {
-    /// Retain newly observed edge events, keyed by their kind, direction,
-    /// edge tick and edge point.
+    /// Take a publication's approaches as the current ones and retain its
+    /// newly observed departures, keyed by their kind, edge tick and edge
+    /// point.
     pub fn note(&mut self, transits: &[AirTransit], now: f64, tick_hz: f64, feel: &TransitFeel) {
         self.prune(now, tick_hz, feel);
+        self.seen.retain(|seen| seen.dir.as_ref() != "in");
         for transit in transits {
             if !self.seen.iter().any(|seen| same_key(seen, transit)) {
                 self.seen.push(transit.clone());
@@ -123,7 +126,6 @@ pub fn tracks(
                 transit.point[2],
             ],
             heading: transit.heading,
-            outbound,
         });
     }
     out

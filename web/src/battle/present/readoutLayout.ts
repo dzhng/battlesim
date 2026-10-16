@@ -52,7 +52,7 @@ const SIDE_SWAP_COST_PX = 60;
 const BELOW_COST_PX = 40;
 /** A unit's anchor kept clear of other cards and leaders: this half-size
  *  square. */
-const ANCHOR_PX = 6;
+export const READOUT_ANCHOR_PX = 6;
 /** A leader passes no closer than this to another card, so it never reads
  *  as that card's. */
 const LEADER_CLEAR_PX = 6;
@@ -168,28 +168,25 @@ export function layoutReadouts(
 
   /** Lay out one plane's cards; `soft` is what they keep off when they can. */
   const place = (plane: readonly LayoutCard[], soft: (box: ReadoutRect) => boolean) => {
-    /** From a unit's anchor to a box's nearest point. */
-    const reach = (b: LayoutCard, box: ReadoutRect) =>
-      Math.hypot(Math.max(box.x0 - b.x, 0, b.x - box.x1), Math.max(box.y0 - b.y, 0, b.y - box.y1));
-    /** Whether a box lies nearer another of the plane's units than its own,
-     *  so it reads as that unit's card. */
-    const astray = (b: LayoutCard, box: ReadoutRect) => {
-      const own = reach(b, box);
-      return plane.some((o) => o.id !== b.id && reach(o, box) < own);
-    };
+    const anchors = plane.map((b) => [b.x, b.y] as const);
     // Kept clear by a card's box, padded by the gap: the panels and the
     // plane's cards placed so far; by its box alone: the plane's other units.
     const taken: ReadoutRect[] = [...panels];
-    const anchors = plane.map((b) => ({
+    const anchorBoxes = plane.map((b) => ({
       id: b.id,
-      r: { x0: b.x - ANCHOR_PX, x1: b.x + ANCHOR_PX, y0: b.y - ANCHOR_PX, y1: b.y + ANCHOR_PX },
+      r: {
+        x0: b.x - READOUT_ANCHOR_PX,
+        x1: b.x + READOUT_ANCHOR_PX,
+        y0: b.y - READOUT_ANCHOR_PX,
+        y1: b.y + READOUT_ANCHOR_PX,
+      },
     }));
     const boxes: ReadoutRect[] = [];
     const leaders: Segment[] = [];
     const free = (b: LayoutCard, box: ReadoutRect, rise: Segment, foot: Segment) =>
       inside(box) &&
       !taken.some((o) => overlapsBy(box, o, gap)) &&
-      !anchors.some(
+      !anchorBoxes.some(
         (a) => a.id !== b.id && (overlaps(a.r, box) || crossesBox(rise[0], rise[1], a.r, 0)),
       ) &&
       !boxes.some((o) => crossesBox(rise[0], rise[1], o, LEADER_CLEAR_PX)) &&
@@ -199,7 +196,8 @@ export function layoutReadouts(
           segment2.intersects(p, q, rise[0], rise[1]) ||
           segment2.intersects(p, q, foot[0], foot[1]),
       );
-    for (const b of [...plane].sort((m, n) => n.x - m.x)) {
+    for (const i of plane.map((_, i) => i).sort((m, n) => plane[n].x - plane[m].x)) {
+      const b = plane[i];
       const natural = naturalOf(b);
       // Each free spot's penalty: lying nearer another unit than its own
       // outweighs lying over a soft obstacle. The cheapest spot of the
@@ -215,7 +213,8 @@ export function layoutReadouts(
         const rise: Segment = [from, corner];
         const foot: Segment = [corner, end];
         if (!free(b, box, rise, foot)) continue;
-        const penalty = (astray(b, box) ? 2 : 0) + (soft(box) ? 1 : 0);
+        const astray = nearerAnotherAnchor(anchors, i, box.x0, box.y0, box.x1, box.y1);
+        const penalty = (astray ? 2 : 0) + (soft(box) ? 1 : 0);
         if (!found || penalty < found.penalty) found = { box, rise, foot, penalty };
         if (penalty === 0) break;
       }
@@ -239,10 +238,30 @@ export function layoutReadouts(
       aloft.some(
         (b) =>
           overlapsBy(box, out.get(b.id)!.box, gap) ||
-          overlapsBy(box, { x0: b.x, x1: b.x, y0: b.y, y1: b.y }, ANCHOR_PX),
+          overlapsBy(box, { x0: b.x, x1: b.x, y0: b.y, y1: b.y }, READOUT_ANCHOR_PX),
       ),
   );
   return out;
+}
+
+/** From the point (x, y) to the box (x0, y0)–(x1, y1)'s nearest point. */
+const reach = (x: number, y: number, x0: number, y0: number, x1: number, y1: number) =>
+  Math.hypot(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1));
+
+/** Whether a card at the box (x0, y0)–(x1, y1) lies nearer another unit's
+ *  anchor than its own unit's (`anchors[own]`), so it reads as that unit's
+ *  card. The caller says which units' anchors count. */
+export function nearerAnotherAnchor(
+  anchors: readonly (readonly [number, number])[],
+  own: number,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+): boolean {
+  const [x, y] = anchors[own];
+  const mine = reach(x, y, x0, y0, x1, y1);
+  return anchors.some(([ax, ay], i) => i !== own && reach(ax, ay, x0, y0, x1, y1) < mine);
 }
 
 /** A leader line: from the unit's anchor to the card's near corner, then

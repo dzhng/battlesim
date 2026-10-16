@@ -190,7 +190,7 @@ export function ArmyDeck({
                   className={`hud-army-card hud-army-pending${eta !== null ? " hud-army-arriving" : ""}`}
                   style={cardOffset(own.length + index)}
                   disabled
-                  aria-label={`${name} — ${eta !== null ? state : "Will be deployed"}`}
+                  aria-label={`${name} — ${state}`}
                   title={`${name} — ${state}`}
                 >
                   <UnitFace kind={unit.kind}>

@@ -21,8 +21,8 @@ import { SavedEncounter, SavedMap } from "../savedMaps";
 import { TickStatus } from "../TickStatus";
 import matchRules from "@fixtures/skirmish.json";
 
-// The air-war checkpoints (specs/done/air-war), each played on the air test
-// map through the production battle view, so its cards, fog, orders and
+// The air-war checkpoints (specs/done/air-war), each played on its fixture's
+// air map (`fixtures.json`) through the production battle view, so its cards, fog, orders and
 // sound are the game's. A checkpoint is one or more variants, chosen by
 // `?variant=`; each is a saved encounter of the air map (its units and
 // scripted orders), a line-up of the catalog's air and air-defence types,
@@ -121,24 +121,34 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
   },
 };
 
-/** The empty skirmish of the ingress checkpoint: blue's entry on the west
- *  edge, red's on the east, three objectives across the middle; no
+/** The empty skirmish of the ingress checkpoint, placed from the field's
+ *  size: blue's entry mid-way along the west edge, red's along the east, so
+ *  each side's back edge is its own; three objectives down the middle; no
  *  preparation, so a purchase dispatches as soon as blue is ready. */
-const INGRESS_SKIRMISH = {
-  factions: ["us", "eastern"],
-  rules: { ...matchRules, preparation_s: 0 },
-  sites: {
-    entries: [
-      { side: "blue", center: [10, 260], yaw: 0 },
-      { side: "red", center: [630, 260], yaw: Math.PI },
-    ],
-    objectives: [
-      { id: "center", center: [320, 260], radius_m: 40, kind: "junction", counterpart: null },
-      { id: "south", center: [320, 80], radius_m: 40, kind: "field", counterpart: "north" },
-      { id: "north", center: [320, 440], radius_m: 40, kind: "field", counterpart: "south" },
-    ],
-  },
-};
+function ingressSkirmish([w, h]: [number, number]) {
+  const objective = (id: string, y: number, kind: string, counterpart: string | null) => ({
+    id,
+    center: [w / 2, y],
+    radius_m: 40,
+    kind,
+    counterpart,
+  });
+  return {
+    factions: ["us", "eastern"],
+    rules: { ...matchRules, preparation_s: 0 },
+    sites: {
+      entries: [
+        { side: "blue", center: [10, h / 2], yaw: 0 },
+        { side: "red", center: [w - 10, h / 2], yaw: Math.PI },
+      ],
+      objectives: [
+        objective("center", h / 2, "junction", null),
+        objective("south", h * 0.15, "field", "north"),
+        objective("north", h * 0.85, "field", "south"),
+      ],
+    },
+  };
+}
 
 /** Each faction's enabled roster types by air role. Air defence is listed
  *  by how far it reaches into the air, nearest first: how short- or
@@ -301,7 +311,7 @@ function BuiltScenario({
         scripts: [],
         ...("lineup" in source
           ? lineupEncounter(catalog, map.size)
-          : { units: [], skirmish: INGRESS_SKIRMISH }),
+          : { units: [], skirmish: ingressSkirmish(map.size) }),
       }),
     [map, source, catalog],
   );
