@@ -23,6 +23,11 @@ Windows Chrome supplies the real GPU; configure `.wslconfig` with
 `networkingMode=mirrored` so Chrome can reach the WSL localhost server. WSL's
 own software adapter is suitable for pipeline checks, not for the full battle.
 
+On Windows, the native client adapts the browser's cutout sample-mask shaders
+to discard-based fragments while compiling pipelines. AMD's Windows driver
+crashes in `wgpu` when those depth-only sample-mask pipelines are created; the
+adaptation preserves the cutout test and leaves the browser export unchanged.
+
 - **Shaders and pipelines** are the browser's [export](../../crates/pipelines/README.md),
   built from `pipelines.json` at start. The export is read strictly: a setting
   the client does not know fails the build rather than being dropped, and any
