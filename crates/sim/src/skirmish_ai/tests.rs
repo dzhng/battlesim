@@ -610,6 +610,38 @@ fn every_ai_opening_includes_a_high_air_defender() {
     );
 }
 
+/// The AA card is the opening's first claim on its wallet, not a hold on
+/// it: when it costs more than the whole wallet, the rest of the opening is
+/// still bought.
+#[test]
+fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
+    let mut authored = deck();
+    for id in ["test_rifle", "test_at", "test_recon", "test_tank", "test_supply"] {
+        crate::fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": 50 }));
+    }
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({ "cost": 900, "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }] }),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let (_, mut frame, entry) = empty_match();
+    frame.skirmish.as_mut().unwrap().credits = 400.0;
+    let orders = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry,
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let bought = confirm_purchases(&rules, &mut frame, &orders);
+    let aa = rules.catalog.index("test_jeep").unwrap();
+    assert!(!bought.is_empty(), "the opening bought nothing: {orders:?}");
+    assert!(!bought.contains(&aa));
+}
+
 #[test]
 fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     let mut authored = deck();
