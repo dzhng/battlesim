@@ -752,7 +752,7 @@ impl Battle {
             })
             .collect();
         for unit in &mut self.units {
-            if !unit.alive() || unit.retired || unit.airborne() {
+            if !unit.alive() || unit.retired {
                 continue;
             }
             let explicit = unit.attack_target().is_some();
@@ -4948,13 +4948,26 @@ mod tests {
         lifetime_s: f64,
         layer: AltitudeLayer,
     ) -> (Battle, ProjectileId) {
+        carried_interceptor_and_round("test_jeep", row, at, velocity, lifetime_s, layer)
+    }
+
+    /// As [`interceptor_and_flying_round`], the interceptor carried by blue's
+    /// `carrier` (a test unit whose mounts the row's mount follows).
+    fn carried_interceptor_and_round(
+        carrier: &str,
+        row: serde_json::Value,
+        at: V3,
+        velocity: V3,
+        lifetime_s: f64,
+        layer: AltitudeLayer,
+    ) -> (Battle, ProjectileId) {
         let mut rules = crate::fixtures::test_game();
         rules["weapons"]["test_interceptor"] = row;
         rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",
-            "test_jeep",
+            carrier,
             serde_json::json!({
                 "mounts": [{ "id": "AA", "name": "AA", "weapons": ["test_interceptor"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
             }),
@@ -4963,7 +4976,7 @@ mod tests {
             "map": { "size": [2400, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
             "rules": rules,
             "units": [
-                { "side": "blue", "kind": "test_jeep", "position": [100, 200] },
+                { "side": "blue", "kind": carrier, "position": [100, 200] },
                 { "side": "red", "kind": "test_tank", "position": [2300, 200] }
             ],
             "events": [], "scripts": []
@@ -5042,6 +5055,36 @@ mod tests {
                 _ => assert!(!reached, "{layer:?}: no lock inside its reach: {lock:?}"),
             }
         }
+    }
+
+    /// An aircraft's gun that lists `missile` arms against a round as a
+    /// ground mount's does: a helicopter's, 300 m from a round fired from
+    /// low air, locks on it.
+    #[test]
+    fn an_aircraft_arms_against_an_incoming_round() {
+        let row = test_interceptor(serde_json::json!({
+            "low_air": { "classes": ["missile"], "range_m": 400 }
+        }));
+        let (mut battle, round) = carried_interceptor_and_round(
+            "test_heli",
+            row,
+            v3(400.0, 200.0, 30.0),
+            v3(0.0, 0.0, 0.0),
+            30.0,
+            AltitudeLayer::LowAir,
+        );
+        battle.step();
+        let locks: Vec<_> = battle.units[0]
+            .mounts
+            .iter()
+            .filter_map(|m| m.lock.as_ref().map(|l| l.target))
+            .collect();
+        assert!(
+            locks
+                .iter()
+                .any(|t| matches!(t, Target::Round(r) if r.id == round)),
+            "{locks:?}"
+        );
     }
 
     /// A gun shoots down a round only when the layer the round was fired
