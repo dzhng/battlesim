@@ -1,6 +1,7 @@
 // Player gestures through the shared session and real worker authority.
 import { lab, obs, advance, until, openBattle, snapshot, presented } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
+import { game } from "./_units.mjs";
 
 const base = (ctx) => new URL(ctx.url).origin;
 const select = async (page, ids) => {
@@ -823,17 +824,22 @@ export async function readoutEdge(ctx) {
   await page.waitForFunction(
     () => document.querySelector('.ro-unit[data-unit="0"]')?.dataset.zoom === "default",
   );
+  // A card keeps `panel_edge_hide_px` clear of the screen's edge (nearer, it
+  // hides), so the one framed against the right edge stands at that margin.
+  const margin = 430 - game.presentation.hud.panel_edge_hide_px;
   const box = await page.locator('.ro-unit[data-unit="0"]').boundingBox();
-  if (!box || box.x + box.width < 416)
-    throw Error(`own readout is not at the screen edge: ${JSON.stringify(box)}`);
-  await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2);
-  await page.waitForFunction(() =>
-    document
-      .elementFromPoint(
-        420,
-        document.querySelector('.ro-unit[data-unit="0"]').getBoundingClientRect().y + 10,
-      )
-      ?.closest(".ro-unit"),
+  if (!box || box.x + box.width < margin - 4)
+    throw Error(`own readout is not framed against the screen edge: ${JSON.stringify(box)}`);
+  ctx.check(
+    "an edge readout stops at the edge margin, never nearer",
+    box.x + box.width <= margin + 0.5,
+    JSON.stringify({ box, margin }),
+  );
+  const hover = { x: box.x + box.width - 2, y: box.y + box.height / 2 };
+  await page.mouse.move(hover.x, hover.y);
+  await page.waitForFunction(
+    ({ x, y }) => document.elementFromPoint(x, y)?.closest('.ro-unit[data-unit="0"]'),
+    hover,
   );
   const before = await lab(page, () => window.__lab.camera());
   await page.waitForTimeout(350);
