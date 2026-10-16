@@ -3190,7 +3190,8 @@
               "height_m": 1.2,
               "prop": "medium_wreck"
             }
-          }
+          },
+          "wreck": true
         },
         "hedge": {
           "appearance": {
@@ -3400,7 +3401,8 @@
             "topples": false,
             "weight_class": "light"
           },
-          "destroyed": "removed"
+          "destroyed": "removed",
+          "wreck": true
         },
         "log": {
           "appearance": {
@@ -3450,7 +3452,8 @@
               "height_m": 0.8,
               "prop": "light_wreck"
             }
-          }
+          },
+          "wreck": true
         },
         "outdoor_gym": {
           "appearance": {
@@ -21420,7 +21423,8 @@
           "height_m": 1.2,
           "prop": "medium_wreck"
         }
-      }
+      },
+      "wreck": true
     },
     "hedge": {
       "appearance": {
@@ -21630,7 +21634,8 @@
         "topples": false,
         "weight_class": "light"
       },
-      "destroyed": "removed"
+      "destroyed": "removed",
+      "wreck": true
     },
     "log": {
       "appearance": {
@@ -21680,7 +21685,8 @@
           "height_m": 0.8,
           "prop": "light_wreck"
         }
-      }
+      },
+      "wreck": true
     },
     "outdoor_gym": {
       "appearance": {

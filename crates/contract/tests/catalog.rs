@@ -906,6 +906,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
     recon["roles"] = json!(["recon"]);
     let mut truck = wheeled.clone();
     truck["roles"] = json!(["logistics"]);
+    truck["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
     let mut heli = base_tank();
     heli["abstract"] = json!(false);
     heli["body"]["hull"]["weight_class"] = json!("light");
@@ -1049,4 +1050,24 @@ fn without_radar_or_its_own_sight_a_unit_sees_high_air_by_its_body() {
         "an authored 0 is blind to high air"
     );
     assert_eq!(sight("lookout"), 1200.0, "an authored reach is kept");
+}
+
+/// A vehicle is presented as a hauler (`_logistics`) because it carries
+/// supply, not because its card's role says so.
+#[test]
+fn a_supply_carrier_is_a_logistics_vehicle_whatever_its_role() {
+    let mut hauler = base_tank();
+    hauler["abstract"] = json!(false);
+    hauler["roles"] = json!(["mbt"]);
+    hauler["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
+    let mut tagged = base_tank();
+    tagged["abstract"] = json!(false);
+    tagged["roles"] = json!(["logistics"]);
+    let mut documents = units(json!({ "hauler": hauler, "tagged": tagged }));
+    documents[0]["roles"]["logistics"] =
+        json!({ "name": "Logistics", "description": "", "symbol": ["supply"] });
+    let catalog = resolve(&documents).unwrap();
+    let class = |id: &str| catalog.by_id(id).vehicle_class().unwrap();
+    assert_eq!(class("hauler"), "tracked_heavy_logistics");
+    assert_eq!(class("tagged"), "tracked_heavy");
 }

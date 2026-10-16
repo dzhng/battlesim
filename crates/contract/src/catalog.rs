@@ -534,6 +534,10 @@ pub struct PropKind(pub u16);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PropType {
+    /// It is what a unit leaves when destroyed: each placement names the
+    /// unit type it was (`wreck_of`), and only a wreck's does.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub wreck: bool,
     pub body: PropBody,
     /// What a destroyed body becomes; with `body.hp`, and only with it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -984,8 +988,8 @@ impl UnitType {
 
     /// A vehicle's presentation class, from its physics: how it moves
     /// (tracked, wheeled, `air`, or `high_air` for an aircraft in high air),
-    /// its hull's weight class, and `_logistics` for a supply hauler, as
-    /// `tracked_heavy`, `air_light` or `wheeled_medium_logistics`. Vehicle
+    /// its hull's weight class, and `_logistics` for a unit that carries
+    /// supply, as `tracked_heavy`, `air_light` or `wheeled_medium_logistics`. Vehicle
     /// sound, running gear and art rules are keyed by it, never by unit id.
     /// None for a squad.
     pub fn vehicle_class(&self) -> Option<String> {
@@ -1006,7 +1010,7 @@ impl UnitType {
             WeightClass::Heavy => "heavy",
             WeightClass::Immovable => "immovable",
         };
-        let hauls = if self.has_role("logistics") {
+        let hauls = if self.capabilities.supply.is_some() {
             "_logistics"
         } else {
             ""
