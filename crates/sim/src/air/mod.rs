@@ -108,6 +108,9 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         pass_before.as_ref(),
     );
     let linked_target = unit.air.as_ref().and_then(|air| air.dogfight_target);
+    // While it attacks, by order or answering fire, in passes or a
+    // dogfight, where it is is where it circles once the attack ends.
+    let attacking = matches!(task, orders::AirTask::Attack { .. });
     let intent = match task {
         // A withdrawing jet only flies for its back edge (air::edge).
         orders::AirTask::Withdraw => {
@@ -226,10 +229,6 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                                 == orders::AirTask::Hold
                         {
                             unit.orders.pop_front();
-                            unit.air
-                                .as_mut()
-                                .expect("an aircraft's flight state")
-                                .last_goal = Some(unit.position.xy());
                         }
                     }
                     intent
@@ -260,7 +259,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     air.burner = next.burner;
     air.turn_sign = next.turn_sign;
     air.pass_release = pass_release_now;
-    if flying_to_goal || air.last_goal.is_none() {
+    if flying_to_goal || attacking || air.last_goal.is_none() {
         air.last_goal = Some(next.pos.xy());
     }
     air.fuel_s = (fuel_s - dt * fuel_mult).max(0.0);

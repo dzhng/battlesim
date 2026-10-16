@@ -1116,3 +1116,80 @@ fn repeated_passes_each_dive_in_nose_on_and_fire() {
         );
     }
 }
+
+/// Once its ordered target dies, a jet circles where the attack ended (the
+/// doc's "where its last order or run ended"), not where it was before the
+/// order, kilometres back.
+#[test]
+fn a_jet_circles_where_its_attack_ended() {
+    const CRUISE_KMH: f64 = 540.0;
+    const TURN_DEG_S: f64 = 60.0;
+    let radius = CRUISE_KMH / 3.6 / TURN_DEG_S.to_radians();
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mobility": { "air": { "cruise_kmh": CRUISE_KMH, "turn_deg_s": TURN_DEG_S } } }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [6000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [400, 1000], "yaw": 0.0, "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "test_recon", "position": [3500, 1100], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [3600, 1000], "yaw": 0.0, "engagement": "return_fire_only", "condition": { "hp": 1 } }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    for _ in 0..30 {
+        battle.step();
+    }
+    let tank = battle
+        .observe(Side::Blue)
+        .identified
+        .first()
+        .map(|t| t.id)
+        .expect("the recon sees the tank");
+    let start = battle.unit(UnitId(0)).unwrap().position.xy();
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id: tank },
+        },
+    });
+    assert_eq!(ack.error, None);
+    let hz = f64::from(battle.rules().tick_hz);
+    let mut ended = None;
+    for _ in 0..(120.0 * hz) as u64 {
+        battle.step();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        if jet.orders.is_empty() {
+            ended = Some(jet.position.xy());
+            break;
+        }
+    }
+    let ended = ended.expect("the attack never ended");
+    assert!(
+        !battle.unit(UnitId(2)).unwrap().alive(),
+        "the attack ended with the tank alive"
+    );
+    assert!((ended - start).length() > 10.0 * radius, "the attack ended near the start");
+    // A circle round where it ended passes within its diameter of it.
+    for _ in 0..(60.0 * hz) as u64 {
+        battle.step();
+        let jet = battle.unit(UnitId(0)).unwrap().position.xy();
+        assert!(
+            (jet - ended).length() <= 3.0 * radius,
+            "{:.0} m from where its attack ended, {:.0} m from where it began",
+            (jet - ended).length(),
+            (jet - start).length()
+        );
+    }
+}
