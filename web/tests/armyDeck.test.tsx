@@ -243,6 +243,14 @@ test("pending reinforcements reuse dimmed vertical cards with deployment hover t
           blocked: false,
           arrivalTick: 0,
         },
+        {
+          id: 43,
+          kind: "test_tank",
+          destination: [10, 12],
+          confirmedTick: 0,
+          blocked: true,
+          arrivalTick: 0,
+        },
       ]}
     />,
   );
@@ -251,6 +259,9 @@ test("pending reinforcements reuse dimmed vertical cards with deployment hover t
   expect(card.getAttribute("title")).toContain("Will be deployed");
   expect(card.hasAttribute("disabled")).toBe(true);
   expect(words(card)).toBe("");
+  // A blocked card says so to a screen reader as its hover text does.
+  const blocked = view.getByRole("button", { name: "Tank — Entry blocked" });
+  expect(blocked.getAttribute("title")).toBe("Tank — Entry blocked");
 });
 
 test("a waiting aircraft's pending card counts down to its arrival, whole seconds rounded up", () => {
