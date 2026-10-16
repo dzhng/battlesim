@@ -1787,11 +1787,13 @@ fn check(
             return rule("an aircraft may carry at most four distinct weapon rows");
         }
     }
-    if t.capabilities
-        .flares
-        .is_some_and(|f| f.capacity == 0 || !positive(f.reload_s))
-    {
-        return rule("capabilities.flares needs positive capacity and reload_s");
+    if let Some(flares) = t.capabilities.flares {
+        if t.hull().is_none() {
+            return rule("capabilities.flares needs a hull: flares are dispensed from a vehicle or an airframe");
+        }
+        if flares.capacity == 0 || !positive(flares.reload_s) {
+            return rule("capabilities.flares needs positive capacity and reload_s");
+        }
     }
     if t.capabilities
         .radar_receiver

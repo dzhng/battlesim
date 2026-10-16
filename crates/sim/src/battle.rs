@@ -3079,12 +3079,12 @@ impl Battle {
                             .is_some_and(|f| f.charges > 0 && f.ready_tick <= self.tick);
                         if ready {
                             let unit = &self.units[target_id.0 as usize];
-                            // Ejected off its side, from its hull's top (a
-                            // squad's, from a soldier's height).
-                            let half = unit.hull.unwrap_or(v3(0.5, 0.5, 0.9));
+                            // Ejected off its side, from its hull's top.
+                            let half = unit.hull.expect("flares are carried by a hull (catalog)");
                             let lateral = v2(-libm::sin(unit.yaw), libm::cos(unit.yaw));
                             let position = (unit.position.xy() + lateral * (half.y + 0.5))
                                 .with_z(unit.position.z + half.z);
+                            // A ground vehicle's are thrown from it at rest.
                             let base = unit.air.map_or(v3(0.0, 0.0, 0.0), |air| air.velocity);
                             let velocity = v3(
                                 base.x + lateral.x * 18.0,
