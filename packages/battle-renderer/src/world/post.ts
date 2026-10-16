@@ -40,6 +40,7 @@ const finalLayout = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },
   scene: { texture: d.texture2d() },
   bloom: { texture: d.texture2d() },
+  depth: { texture: d.textureDepth2d() },
   grade: { uniform: Grade },
 });
 
@@ -55,6 +56,7 @@ export type PostMode = "look" | "ungraded" | "raw";
 export async function createTypegpuPost(
   device: GPUDevice,
   input: GPUTextureView,
+  depth: GPUTextureView,
   width: number,
   height: number,
   outputFormat: GPUTextureFormat,
@@ -261,7 +263,7 @@ export async function createTypegpuPost(
     const outputSrgb = tgpu.fn([d.vec3f], d.vec3f)(outputSrgbWgsl);
     const finalAlgorithm = tgpu
       .fn(
-        [d.vec2f, d.texture2d(), d.texture2d(), d.sampler(), Grade],
+        [d.vec2f, d.texture2d(), d.texture2d(), d.textureDepth2d(), d.sampler(), Grade],
         d.vec4f,
       )(postFinalWgsl)
       .$uses({ gradeColor, agx, outputSrgb });
@@ -274,6 +276,7 @@ export async function createTypegpuPost(
         uv,
         finalLayout.$.scene,
         finalLayout.$.bloom,
+        finalLayout.$.depth,
         finalLayout.$.linearSampler,
         finalLayout.$.grade,
       );
@@ -336,6 +339,7 @@ export async function createTypegpuPost(
           linearSampler: sampler,
           scene: input,
           bloom,
+          depth,
           grade: uniform,
         }),
       ),

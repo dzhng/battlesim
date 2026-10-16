@@ -90,7 +90,31 @@ pub struct SkySettings {
     pub radiance: f64,
     /// Multiplies the sky's environment light per linear channel: the shadow fill.
     pub fill: [f64; 3],
+    /// Sky saturation applied before tonemap (1.0 = original, 0 = greyscale).
+    /// Replaces the hardcoded SKY_DESATURATE; default 0.45 (= 1 - 0.55).
+    #[serde(default = "default_sky_saturation")]
+    pub saturation: f64,
+    /// Sky tint multiplier (linear rgb) applied before tonemap.
+    /// Replaces the hardcoded SKY_TINT; default [1.02, 1.0, 0.97].
+    #[serde(default = "default_sky_tint")]
+    pub tint: [f64; 3],
+    /// How much the post grade affects the sky (0 = ungraded, 1 = fully graded).
+    /// Default 1.0 preserves the current look where sky receives full grading.
+    #[serde(default = "default_sky_grade_mix")]
+    pub grade_mix: f64,
     pub clouds: CloudSettings,
+}
+
+fn default_sky_saturation() -> f64 {
+    0.45
+}
+
+fn default_sky_tint() -> [f64; 3] {
+    [1.02, 1.0, 0.97]
+}
+
+fn default_sky_grade_mix() -> f64 {
+    1.0
 }
 
 /// The haze's curve over the physical extinction.
@@ -337,7 +361,12 @@ impl LightSettings {
             cloud_lit: folded(transmittance, c.radiance, 1.0),
             cloud_silver: (c.radiance * 0.6) as f32,
             cloud_base: folded(c.shade, c.radiance, 0.7),
-            pad1: 0.0,
+            // Sky color adjustments applied before tonemap.
+            sky_saturation: self.sky.saturation as f32,
+            sky_grade_mix: self.sky.grade_mix as f32,
+            pad1: [0.0; 3],
+            sky_tint: f32s(self.sky.tint),
+            pad2: 0.0,
         }
     }
 
@@ -367,7 +396,8 @@ impl LightSettings {
                 split_tone: g.split_tone as f32,
                 shadow_lift: g.shadow_lift as f32,
                 exposure: self.exposure as f32,
-                pad: [0.0; 3],
+                sky_grade_mix: self.sky.grade_mix as f32,
+                pad: [0.0; 2],
                 shadow_tint: rgb(g.shadow_tint, 1.0),
                 highlight_tint: rgb(g.highlight_tint, 1.0),
                 lift: rgb(g.lift, 0.0),
@@ -382,7 +412,8 @@ impl LightSettings {
                 split_tone: 0.0,
                 shadow_lift: 0.0,
                 exposure: self.exposure as f32,
-                pad: [0.0; 3],
+                sky_grade_mix: self.sky.grade_mix as f32,
+                pad: [0.0; 2],
                 shadow_tint: [1.0, 1.0, 1.0, 1.0],
                 highlight_tint: [1.0, 1.0, 1.0, 1.0],
                 lift: [0.0, 0.0, 0.0, 0.0],

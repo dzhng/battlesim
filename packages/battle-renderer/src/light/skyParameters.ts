@@ -38,14 +38,11 @@ export const OVERCAST_ZENITH_RADIANCE: readonly [number, number, number] = [1.04
 export const SUN_DISC_COS_INNER = 0.99985;
 export const SUN_DISC_COS_OUTER = 0.99955;
 
-/** Clear-sky chroma pulled toward luma, plus a gentle warm-white tint.
- *  These baked constants are used at shader build time. To expose them
- *  at runtime, add saturation/tint/grade_mix to the SkyLight uniform
- *  (see `presentation.light.sky` in game.json for the authored values). */
+/** @deprecated Legacy constants — now driven by SkyLight uniform from
+ *  `presentation.light.sky` in game.json. These remain for reference only;
+ *  the shader reads skyLight.skySaturation/skyTint/skyGradeMix at runtime.
+ *  Default saturation 0.45 (= 1 - 0.55 desaturate), tint [1.02, 1.0, 0.97],
+ *  grade_mix 1.0 preserves the original look. */
 export const SKY_DESATURATE = 0.55;
 export const SKY_TINT: readonly [number, number, number] = [1.02, 1.0, 0.97];
-
-/** How much the grade's highlight_tint affects the sky (0 = ungraded sky).
- *  Currently hardcoded at 1.0 (fully graded); expose via SkyLight uniform
- *  when separate sky grading is needed. */
 export const SKY_GRADE_MIX = 1.0;

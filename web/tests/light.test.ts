@@ -97,10 +97,11 @@ test("a frame's cascades are the structs the renderer binds: a receiver block an
 test("post encodes sRGB itself, so it refuses an sRGB canvas that would encode twice", async () => {
   const device = null as unknown as GPUDevice;
   const input = null as unknown as GPUTextureView;
+  const depth = null as unknown as GPUTextureView;
   const post = await resolveLight(LIGHT);
-  await expect(createTypegpuPost(device, input, 256, 256, "bgra8unorm-srgb", post)).rejects.toThrow(
-    /sRGB/,
-  );
+  await expect(
+    createTypegpuPost(device, input, depth, 256, 256, "bgra8unorm-srgb", post),
+  ).rejects.toThrow(/sRGB/);
 });
 
 test("a cloud field past full is refused by name", () => {

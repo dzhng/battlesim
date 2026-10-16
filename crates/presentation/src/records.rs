@@ -346,7 +346,14 @@ records! {
         cloud_silver: f32,
         /// A shaded base's radiance, before the sky shows through it.
         cloud_base: [f32; 3],
-        pad1: f32,
+        /// Sky saturation before tonemap (1 = original, 0 = luma only).
+        sky_saturation: f32,
+        /// How much the post grade affects the sky (0 = ungraded, 1 = fully graded).
+        sky_grade_mix: f32,
+        pad1: [f32; 3],
+        /// Sky tint multiplier (linear rgb) applied before tonemap.
+        sky_tint: [f32; 3],
+        pad2: f32,
     }
 
     /// The haze, in every lit shader's environment uniform: extinction over
@@ -413,7 +420,9 @@ records! {
         split_tone: f32,
         shadow_lift: f32,
         exposure: f32,
-        pad: [f32; 3],
+        /// How much the grade affects the sky (0 = ungraded, 1 = fully graded).
+        sky_grade_mix: f32,
+        pad: [f32; 2],
         /// rgb; w 1.
         shadow_tint: [f32; 4],
         /// rgb; w 1.

@@ -153,6 +153,7 @@ export async function createBattleFrame(
       const post = await createTypegpuPost(
         device,
         t.hdr.createView(),
+        t.depth.createView(),
         width,
         height,
         displayFormat,
