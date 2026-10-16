@@ -85,7 +85,7 @@ These were all built and then deleted, because each stood in for a property some
 - **Flares as an aircraft's store.** `capabilities.air.flares` and the charges in an aircraft's flight state became `capabilities.flares`, which any unit may carry.
 - **A separate pass arming interceptors.** It locked only an idle mount on any round in reach, and aimed at the round as if it stood still. A round is a target like any other, taken through the same shot assessment, lead included, and one a shot can catch comes before the mount's other targets.
 
-- **Rules that re-enforced what the data already decided.** An emitting radar counted only on the ground, interceptors armed only off aircraft, and flares worked only for aircraft. No configured unit reached the other branch, so each check did nothing except block the next unit type. Which units carry what is configuration: author it only where it belongs, and refuse at load what the game can't run.
+- **Rules that re-enforced what the data already decided.** An emitting radar counted only on the ground, interceptors armed only off aircraft, flares worked only for aircraft, and a proximity fuse burst only near an aircraft. No configured unit reached the other branch, so each check did nothing except block the next unit type. Which units carry what is configuration: author it only where it belongs, and refuse at load what the game can't run.
 
 If a rule asks "is this an X unit?" or "is this target an aircraft?", the question is usually one of these again.
 

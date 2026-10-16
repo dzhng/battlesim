@@ -87,9 +87,9 @@ pub struct Round {
     pub side: Side,
     /// A seeker missile keeps its target independently of launcher support.
     pub seeker_target: Option<Target>,
-    /// Aircraft target retained for proximity fuses, including guided rounds
-    /// without a fire-and-forget seeker.
-    pub air_target: Option<UnitId>,
+    /// The unit it was fired at, for its proximity fuse (seeker or not):
+    /// a fuse bursts near whatever its round was aimed at.
+    pub fused_target: Option<UnitId>,
     /// The height band its shooter fired it from, for its whole flight:
     /// what an interceptor reaches it by. Never read from its height.
     pub layer: AltitudeLayer,
@@ -3058,14 +3058,15 @@ impl Battle {
                 f.ready_tick =
                     self.tick + (flare.reload_s * self.rules.tick_hz as f64).round() as u64;
             }
+            // A spoofed round's fuse no longer looks for the unit.
             let round = self.rounds.get_mut(&projectile).expect("checked above");
+            round.fused_target = None;
             if round.seeker_target.take().is_some() {
                 self.projectiles
                     .decoy_seeker(projectile, position, velocity);
             } else {
                 // Its launcher lets go; guidance releases it, as for a lost
-                // sight line, and its fuse no longer looks for the target.
-                round.air_target = None;
+                // sight line.
                 for mount in self.units.iter_mut().flat_map(|u| &mut u.mounts) {
                     if mount.support.is_some_and(|s| s.projectile == projectile) {
                         mount.support = None;
@@ -3232,10 +3233,8 @@ impl Battle {
                         unit: shot.unit,
                         side,
                         seeker_target: seeker.then_some(shot.target),
-                        air_target: match shot.target {
-                            Target::Unit(target) if self.units[target.0 as usize].airborne() => {
-                                Some(target)
-                            }
+                        fused_target: match shot.target {
+                            Target::Unit(target) => Some(target),
                             _ => None,
                         },
                         layer: self.units[shot.unit.0 as usize].layer(),
@@ -4773,7 +4772,7 @@ impl Battle {
             } else {
                 d.u64(0);
             }
-            if let Some(target) = r.air_target {
+            if let Some(target) = r.fused_target {
                 d.u64(1).u64(target.0 as u64);
             } else {
                 d.u64(0);
@@ -4985,7 +4984,7 @@ mod tests {
                 unit: UnitId(1),
                 side: Side::Red,
                 seeker_target: None,
-                air_target: None,
+                fused_target: None,
                 layer,
             },
         );
@@ -5635,7 +5634,7 @@ mod tests {
                             unit: UnitId(1),
                             side: Side::Blue,
                             seeker_target: None,
-                            air_target: None,
+                            fused_target: None,
                             layer: AltitudeLayer::Ground,
                         },
                     );

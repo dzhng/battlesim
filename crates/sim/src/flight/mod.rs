@@ -643,9 +643,9 @@ pub trait ImpactResolver {
     fn projectile_interceptor_reach(&self, _projectile: ProjectileId) -> f64 {
         0.0
     }
-    /// A missile aimed at an aircraft may burst at a swept standoff from its
-    /// hull. Ground targets never return a fuse here.
-    fn aircraft_fuse(&self, _projectile: ProjectileId) -> Option<(UnitId, f64)> {
+    /// A fused round may burst at a swept standoff from the hull of the unit
+    /// it was fired at.
+    fn target_fuse(&self, _projectile: ProjectileId) -> Option<(UnitId, f64)> {
         None
     }
     /// Resolve a projectile-to-projectile interception. Returning true
@@ -1163,7 +1163,7 @@ impl Flight<'_> {
             g.point = decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
         }
         let gravity = self.acceleration(p, span);
-        let fuse = resolver.aircraft_fuse(p.id);
+        let fuse = resolver.target_fuse(p.id);
         scratch.misses.clear();
         // Each leg flies from the round's state `flown` seconds into the tick;
         // a ricochet starts the next leg at its hit, clear of the body it
