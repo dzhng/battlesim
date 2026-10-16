@@ -601,8 +601,7 @@ impl BalancedDoctrine {
                     }
                 }
                 if unit.engagement == contract::command::Engagement::FireAtWill {
-                    let jet = rules.catalog.get(unit.kind).mobility.flight()
-                        == Some(contract::catalog::FlightModel::FixedWing);
+                    let jet = is_jet(rules, unit.kind);
                     if jet && self.jet_targets.contains_key(&unit.id) {
                         continue;
                     }
@@ -991,7 +990,14 @@ fn recon_post(
     ]
 }
 
-fn unit_engages_aircraft_in(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
+/// Whether `kind` flies on wings (its flight model), whatever its layer.
+pub fn is_jet(rules: &Rules, kind: TypeIndex) -> bool {
+    rules.catalog.get(kind).mobility.flight() == Some(contract::catalog::FlightModel::FixedWing)
+}
+
+/// Whether one of `kind`'s weapons engages an aircraft, of either flight,
+/// in `layer`; a row that only shoots down missiles there does not.
+pub fn unit_engages_aircraft_in(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
     unit_weapons(rules, kind).any(|weapon| engages_aircraft(weapon, layer))
 }
 

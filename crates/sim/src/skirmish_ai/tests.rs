@@ -616,7 +616,13 @@ fn every_ai_opening_includes_a_high_air_defender() {
 #[test]
 fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
     let mut authored = deck();
-    for id in ["test_rifle", "test_at", "test_recon", "test_tank", "test_supply"] {
+    for id in [
+        "test_rifle",
+        "test_at",
+        "test_recon",
+        "test_tank",
+        "test_supply",
+    ] {
         crate::fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": 50 }));
     }
     crate::fixtures::patch_catalog(
