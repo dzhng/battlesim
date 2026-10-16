@@ -272,24 +272,46 @@ async function captureWithCDP(page, args, server) {
   await mkdir(framesDir, { recursive: true });
   
   let frameCount = 0;
+  let droppedEarlyFrames = 0;
   let captureStartTime = null;
   let captureDuration = 0;
   const frameTimestamps = []; // { path, timestamp_s }
-  let firstFrameTime = null;
+  let firstValidFrameTime = null;
+  // The reel-ready timestamp from the page (performance.now() when first pose was rendered)
+  let reelReadyTime = null;
+  // CDP timestamp when the reel became ready (for filtering frames)
+  let reelReadyCdpTime = null;
   
   // Handle screencast frames with real timestamps
   cdp.on("Page.screencastFrame", async (event) => {
     if (!captureStartTime) captureStartTime = Date.now();
     
     try {
+      const frameTime = event.metadata.timestamp;
+      
+      // Check if we have the reel-ready signal yet
+      if (reelReadyTime === null) {
+        reelReadyTime = await page.evaluate(() => window.__capture?.reelReadyTime ?? null);
+        if (reelReadyTime !== null) {
+          // Mark this CDP timestamp as the ready point
+          reelReadyCdpTime = frameTime;
+        }
+      }
+      
+      // Drop frames before reel-ready (these show the wrong camera pose)
+      if (reelReadyCdpTime === null || frameTime < reelReadyCdpTime) {
+        droppedEarlyFrames++;
+        await cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId });
+        return;
+      }
+      
       const frameData = Buffer.from(event.data, "base64");
       const framePath = join(framesDir, `frame-${String(frameCount).padStart(6, "0")}.jpg`);
       await writeFile(framePath, frameData);
       
-      // Use CDP timestamp (seconds since epoch) for accurate timing
-      const frameTime = event.metadata.timestamp;
-      if (firstFrameTime === null) firstFrameTime = frameTime;
-      const relativeTime = frameTime - firstFrameTime;
+      // Use CDP timestamp relative to reel-ready time
+      if (firstValidFrameTime === null) firstValidFrameTime = frameTime;
+      const relativeTime = frameTime - firstValidFrameTime;
       
       frameTimestamps.push({ path: framePath, timestamp_s: relativeTime });
       frameCount++;
@@ -301,7 +323,8 @@ async function captureWithCDP(page, args, server) {
       const elapsed = (Date.now() - captureStartTime) / 1000;
       if (captureDuration > 0) {
         const pct = Math.min(100, (elapsed / captureDuration) * 100).toFixed(0);
-        process.stdout.write(`\r  Recording: ${elapsed.toFixed(1)}s / ${captureDuration.toFixed(1)}s (${pct}%) [${frameCount} frames]    `);
+        const dropInfo = droppedEarlyFrames > 0 ? ` (dropped ${droppedEarlyFrames} early)` : "";
+        process.stdout.write(`\r  Recording: ${elapsed.toFixed(1)}s / ${captureDuration.toFixed(1)}s (${pct}%) [${frameCount} frames${dropInfo}]    `);
       }
     } catch (err) {
       console.error("Frame error:", err.message);
@@ -317,7 +340,7 @@ async function captureWithCDP(page, args, server) {
     everyNthFrame: 1,
   });
   
-  console.log("CDP screencast started, recording page...");
+  console.log("CDP screencast started, waiting for reel-ready signal...");
   
   // Tell the page to start (it will run the battle and capture audio only)
   await page.evaluate(() => {
@@ -473,15 +496,21 @@ async function captureWithCDP(page, args, server) {
   // Get and write weapon fire events to sidecar JSON
   const fireEvents = await page.evaluate(() => window.__capture?.fireEvents ?? []);
   const followUnitId = await page.evaluate(() => window.__capture?.followUnitId ?? null);
+  const pageReelReadyTime = await page.evaluate(() => window.__capture?.reelReadyTime ?? null);
   const sidecarPath = finalPath.replace(/\.(mp4|webm)$/, "-fire-events.json");
   const sidecar = {
     follow_unit_id: followUnitId,
+    reel_ready_time_ms: pageReelReadyTime,
+    dropped_early_frames: droppedEarlyFrames,
     total_events: fireEvents.length,
     followed_events: fireEvents.filter(e => e.is_followed).length,
     events: fireEvents,
   };
   await writeFile(sidecarPath, JSON.stringify(sidecar, null, 2));
   console.log(`  Fire events: ${fireEvents.length} total, ${sidecar.followed_events} from followed unit (id: ${followUnitId ?? 'none'}) -> ${basename(sidecarPath)}`);
+  if (droppedEarlyFrames > 0) {
+    console.log(`  Dropped ${droppedEarlyFrames} early frames (before reel-ready at ${pageReelReadyTime?.toFixed(1) ?? '?'}ms)`);
+  }
   if (sidecar.followed_events === 0) {
     console.log("  WARNING: Followed unit did not fire during capture");
   }

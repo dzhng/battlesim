@@ -138,6 +138,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
     URL.revokeObjectURL(url);
   }, [state]);
 
+  // Track reelReadyTime from the battle component
+  const [reelReadyTime, setReelReadyTime] = useState<number | null>(null);
+
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
       duration,
@@ -145,8 +148,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       startAudioOnly: startAudioOnlyRef.current ?? undefined,
       fireEvents,
       followUnitId,
+      reelReadyTime,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -167,6 +171,7 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         fireTracker={fireTrackerRef.current}
         onFireEvents={setFireEvents}
         onFollowUnitId={setFollowUnitId}
+        onReelReady={setReelReadyTime}
         isTrackedVehicle={isTrackedVehicle}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
@@ -187,6 +192,7 @@ function CaptureBattle({
   fireTracker,
   onFireEvents,
   onFollowUnitId,
+  onReelReady,
   isTrackedVehicle,
 }: {
   scene: BackdropScene;
@@ -201,6 +207,7 @@ function CaptureBattle({
   fireTracker?: WeaponFireTracker;
   onFireEvents?: (events: WeaponFireEvent[]) => void;
   onFollowUnitId?: (id: number | null) => void;
+  onReelReady?: (time: number) => void;
   isTrackedVehicle: (kind: string) => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -213,15 +220,21 @@ function CaptureBattle({
   const audioStreamRef = useRef<MediaStream | null>(null);
   const audioBlobRef = useRef<Blob | null>(null);
   const isPageMode = settings.mode === "page";
+  /** Frame count since pilot started; reel is ready after at least one frame rendered. */
+  const reelFrameCountRef = useRef(0);
+  /** Timestamp when the reel-ready signal was sent (first pose applied + frame rendered). */
+  const reelReadyTimeRef = useRef<number | null>(null);
 
   // Refs for values accessed in the frame callback to avoid stale closures
   const stateRef = useRef(state);
   const onFireEventsRef = useRef(onFireEvents);
   const onFollowUnitIdRef = useRef(onFollowUnitId);
+  const onReelReadyRef = useRef(onReelReady);
   const reportedFollowRef = useRef<number | null | undefined>(undefined);
   stateRef.current = state;
   onFireEventsRef.current = onFireEvents;
   onFollowUnitIdRef.current = onFollowUnitId;
+  onReelReadyRef.current = onReelReady;
 
   useLabLoading("renderer", warmed);
 
@@ -406,9 +419,7 @@ function CaptureBattle({
     pose(now) {
       if (pilotStartRef.current === null) {
         pilotStartRef.current = now;
-        if (warmed && state.status === "warming") {
-          startRecording();
-        }
+        // Don't start recording yet - wait for first frame to render
       }
 
       const elapsed = (now - pilotStartRef.current) / 1000;
@@ -459,6 +470,19 @@ function CaptureBattle({
         const listener = cameraListener(camera, game.presentation.audio.listener_eye_share);
         audio.updateWithListener(presentation.wasm, listener);
       }
+      // Track frames rendered with the reel pose applied
+      if (pilotStartRef.current !== null) {
+        reelFrameCountRef.current++;
+        // Signal reel-ready after the first frame is rendered with the reel's pose
+        if (reelFrameCountRef.current === 1 && reelReadyTimeRef.current === null) {
+          reelReadyTimeRef.current = now;
+          onReelReadyRef.current?.(now);
+          // Now that the first pose is applied and rendered, start recording
+          if (warmed && stateRef.current.status === "warming") {
+            startRecording();
+          }
+        }
+      }
       if (pilotStartRef.current === null || stateRef.current.status !== "recording") return;
       const elapsed = (now - pilotStartRef.current) / 1000;
       setState({ status: "recording", elapsed, duration });
@@ -499,7 +523,9 @@ function CaptureBattle({
   }, [sim.error, setState]);
 
   useEffect(() => {
-    if (warmed && state.status === "warming" && pilotStartRef.current !== null) {
+    // Recording now starts from the frame() callback after the first reel frame is rendered.
+    // This useEffect is kept for safety but should not trigger before the frame callback.
+    if (warmed && state.status === "warming" && reelReadyTimeRef.current !== null) {
       startRecording();
     }
   }, [warmed, state.status, startRecording]);

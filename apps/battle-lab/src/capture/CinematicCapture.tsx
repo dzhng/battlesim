@@ -288,6 +288,8 @@ export interface CaptureExtras {
   fireEvents?: WeaponFireEvent[];
   /** The resolved follow unit ID (real unit ID, not index). */
   followUnitId?: number | null;
+  /** Timestamp when the reel's first pose was applied and rendered (for dropping early frames). */
+  reelReadyTime?: number | null;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -307,5 +309,6 @@ export function exposeCaptureToWindow(
     startAudioOnly: extras?.startAudioOnly,
     fireEvents: extras?.fireEvents,
     followUnitId: extras?.followUnitId,
+    reelReadyTime: extras?.reelReadyTime,
   };
 }
