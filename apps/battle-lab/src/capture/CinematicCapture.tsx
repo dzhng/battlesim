@@ -294,6 +294,10 @@ export interface CaptureExtras {
   audioStartTime?: number | null;
   /** Audio output latency in seconds (outputLatency + baseLatency from AudioContext). */
   audioLatency?: number;
+  /** Trigger calibration event (white overlay + click). Returns the performance.now() timestamp. */
+  triggerCalibration?: () => number;
+  /** Timestamp when calibration was triggered (performance.now()). */
+  calibrationTime?: number | null;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -316,5 +320,7 @@ export function exposeCaptureToWindow(
     reelReadyTime: extras?.reelReadyTime,
     audioStartTime: extras?.audioStartTime,
     audioLatency: extras?.audioLatency,
+    triggerCalibration: extras?.triggerCalibration,
+    calibrationTime: extras?.calibrationTime,
   };
 }

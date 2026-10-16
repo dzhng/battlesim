@@ -142,6 +142,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   const [reelReadyTime, setReelReadyTime] = useState<number | null>(null);
   const [audioStartTime, setAudioStartTime] = useState<number | null>(null);
   const [audioLatency, setAudioLatency] = useState<number>(0);
+  const [calibrationTime, setCalibrationTime] = useState<number | null>(null);
+  // Ref to the triggerCalibration function provided by CaptureBattle
+  const triggerCalibrationRef = useRef<(() => number) | null>(null);
 
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
@@ -153,8 +156,10 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       reelReadyTime,
       audioStartTime,
       audioLatency,
+      triggerCalibration: triggerCalibrationRef.current ?? undefined,
+      calibrationTime,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, audioStartTime, audioLatency]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, audioStartTime, audioLatency, calibrationTime]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -180,6 +185,10 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
           setAudioStartTime(time);
           setAudioLatency(latency);
         }}
+        onCalibration={(fn) => {
+          triggerCalibrationRef.current = fn;
+        }}
+        onCalibrationTime={setCalibrationTime}
         isTrackedVehicle={isTrackedVehicle}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
@@ -202,6 +211,8 @@ function CaptureBattle({
   onFollowUnitId,
   onReelReady,
   onAudioStart,
+  onCalibration,
+  onCalibrationTime,
   isTrackedVehicle,
 }: {
   scene: BackdropScene;
@@ -218,6 +229,8 @@ function CaptureBattle({
   onFollowUnitId?: (id: number | null) => void;
   onReelReady?: (time: number) => void;
   onAudioStart?: (time: number, latency: number) => void;
+  onCalibration?: (fn: () => number) => void;
+  onCalibrationTime?: (time: number) => void;
   isTrackedVehicle: (kind: string) => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -238,6 +251,8 @@ function CaptureBattle({
   const audioStartTimeRef = useRef<number | null>(null);
   /** Whether we've scheduled the recording stop (to prevent duplicate timeouts). */
   const stoppingRef = useRef(false);
+  /** Ref to the calibration overlay element. */
+  const calibrationOverlayRef = useRef<HTMLDivElement | null>(null);
 
   // Refs for values accessed in the frame callback to avoid stale closures
   const stateRef = useRef(state);
@@ -269,6 +284,35 @@ function CaptureBattle({
   });
 
   const { sim, audio, hear } = session;
+
+  // Calibration function: shows white overlay and plays click, returns timestamp
+  const triggerCalibration = useCallback(() => {
+    const overlay = calibrationOverlayRef.current;
+    const timestamp = performance.now();
+    
+    // Show white overlay for 2 frames (~33ms at 60fps)
+    if (overlay) {
+      overlay.style.display = "block";
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 33);
+    }
+    
+    // Play calibration click through the same audio graph
+    if (audio) {
+      audio.playCalibrationClick();
+    }
+    
+    // Report calibration time
+    onCalibrationTime?.(timestamp);
+    
+    return timestamp;
+  }, [audio, onCalibrationTime]);
+
+  // Provide the calibration function to parent
+  useEffect(() => {
+    onCalibration?.(triggerCalibration);
+  }, [onCalibration, triggerCalibration]);
 
   // Get a unit's position by its ID
   const unitPosition = useCallback(
@@ -616,6 +660,21 @@ function CaptureBattle({
           handle={session.readouts}
         />
       )}
+      {/* Calibration overlay: white flash for sync measurement */}
+      <div
+        ref={calibrationOverlayRef}
+        style={{
+          display: "none",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          backgroundColor: "#ffffff",
+          zIndex: 9999,
+          pointerEvents: "none",
+        }}
+      />
     </div>
   );
 }

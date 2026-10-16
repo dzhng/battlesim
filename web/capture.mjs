@@ -351,6 +351,28 @@ async function captureWithCDP(page, args, server) {
   const duration = await page.evaluate(() => window.__capture?.duration);
   if (duration) captureDuration = duration;
   
+  // Wait for reel to be ready, then trigger calibration
+  let calibrationTime = null;
+  let calibrationTriggered = false;
+  const calibrationCheckInterval = setInterval(async () => {
+    if (calibrationTriggered) return;
+    const ready = await page.evaluate(() => window.__capture?.reelReadyTime !== null);
+    if (ready && !calibrationTriggered) {
+      calibrationTriggered = true;
+      // Trigger calibration: white flash + click
+      calibrationTime = await page.evaluate(() => {
+        if (window.__capture?.triggerCalibration) {
+          return window.__capture.triggerCalibration();
+        }
+        return null;
+      });
+      if (calibrationTime !== null) {
+        console.log(`  Calibration triggered at ${calibrationTime.toFixed(1)}ms`);
+      }
+      clearInterval(calibrationCheckInterval);
+    }
+  }, 16); // Check every frame
+  
   // Poll for completion
   await page.waitForFunction(
     () => {
@@ -360,6 +382,9 @@ async function captureWithCDP(page, args, server) {
     undefined,
     { timeout: 300_000 },
   );
+  
+  // Clear calibration check interval if still running
+  clearInterval(calibrationCheckInterval);
   
   process.stdout.write("\n");
   
@@ -483,6 +508,8 @@ async function captureWithCDP(page, args, server) {
   let hasAudio = false;
   let audioOffsetMs = 0;
   let audioLatencyMs = 0;
+  let calibVideoMs = null;
+  let calibAudioMs = null;
   const rawAudioPath = resolve(args.output, `raw-audio-${timestamp}.webm`);
   const trimmedAudioPath = resolve(args.output, `trimmed-audio-${timestamp}.aac`);
   if (args.audio) {
@@ -501,40 +528,114 @@ async function captureWithCDP(page, args, server) {
         audioStartTime: capture.audioStartTime ?? null,
         reelReadyTime: capture.reelReadyTime ?? null,
         audioLatency: capture.audioLatency ?? 0,
+        calibrationTime: capture.calibrationTime ?? null,
       };
     });
     
     if (audioInfo?.audioBase64) {
       const audioData = Buffer.from(audioInfo.audioBase64, "base64");
       await writeFile(rawAudioPath, audioData);
-      console.log("  Audio captured, calculating sync offset...");
+      console.log("  Audio captured, detecting calibration signals...");
       
       // Audio output latency from AudioContext (outputLatency + baseLatency)
       audioLatencyMs = (audioInfo.audioLatency ?? 0) * 1000;
       
-      // Calculate audio offset: (videoCutTime - audioStartTime) + audioLatency
-      // Video cut point is reelReadyTime + PREROLL_CUT_S (in performance.now() space)
-      // Audio started at audioStartTime (in performance.now() space)
-      // audioLatency compensates for the delay between sound generation and reaching the tap
+      // Detect calibration white frame in video (first frame with mean brightness > 250)
+      // We search the raw frames before the cut point
+      const calibSearchFrames = rawFrames.filter(f => 
+        cutCdpTime !== null && f.cdpTimestamp < cutCdpTime
+      );
+      
+      // Find white frame by analyzing JPEG brightness with ffmpeg
+      for (const frame of calibSearchFrames) {
+        try {
+          const result = await new Promise((resolve, reject) => {
+            const ffmpeg = spawn("ffmpeg", [
+              "-i", frame.path,
+              "-vf", "signalstats",
+              "-f", "null", "-",
+            ], { stdio: ["pipe", "pipe", "pipe"] });
+            let stderr = "";
+            ffmpeg.stderr.on("data", (d) => stderr += d);
+            ffmpeg.on("close", () => resolve(stderr));
+            ffmpeg.on("error", () => resolve(""));
+          });
+          // Parse signalstats output for YAVG (luma average)
+          const yavgMatch = result.match(/YAVG:\s*([\d.]+)/);
+          if (yavgMatch) {
+            const yavg = parseFloat(yavgMatch[1]);
+            if (yavg > 250) {
+              // Found white frame! Convert CDP timestamp to ms relative to audio start
+              const pageLoadEpochMs = audioInfo.reelReadyTime !== null
+                ? (reelReadyCdpTime * 1000) - audioInfo.reelReadyTime
+                : null;
+              if (pageLoadEpochMs !== null) {
+                calibVideoMs = (frame.cdpTimestamp * 1000) - pageLoadEpochMs - (audioInfo.audioStartTime ?? 0);
+                console.log(`  Calibration white frame detected at video ${calibVideoMs.toFixed(1)}ms (YAVG=${yavg.toFixed(0)})`);
+              }
+              break;
+            }
+          }
+        } catch (e) {
+          // Continue searching
+        }
+      }
+      
+      // Detect calibration click in audio (first sample above -20dBFS)
+      // Use ffmpeg to find the first loud transient
+      try {
+        const clickResult = await new Promise((resolve, reject) => {
+          const ffmpeg = spawn("ffmpeg", [
+            "-i", rawAudioPath,
+            "-af", "silencedetect=n=-20dB:d=0.001",
+            "-f", "null", "-",
+          ], { stdio: ["pipe", "pipe", "pipe"] });
+          let stderr = "";
+          ffmpeg.stderr.on("data", (d) => stderr += d);
+          ffmpeg.on("close", () => resolve(stderr));
+          ffmpeg.on("error", () => resolve(""));
+        });
+        // Parse silencedetect output to find first silence_end (= click onset)
+        const silenceEndMatch = clickResult.match(/silence_end:\s*([\d.]+)/);
+        if (silenceEndMatch) {
+          calibAudioMs = parseFloat(silenceEndMatch[1]) * 1000;
+          console.log(`  Calibration click detected at audio ${calibAudioMs.toFixed(1)}ms`);
+        }
+      } catch (e) {
+        console.log(`  Warning: Could not detect calibration click: ${e.message}`);
+      }
+      
+      // Calculate sync offset from calibration or fall back to timing-based calculation
       const videoCutTime = audioInfo.reelReadyTime !== null 
         ? audioInfo.reelReadyTime + PREROLL_CUT_S * 1000 
         : null;
       const audioStartTime = audioInfo.audioStartTime;
       
-      if (videoCutTime !== null && audioStartTime !== null) {
-        // Positive offset: audio started early, needs trim
-        // Negative offset: audio started late, needs delay (padding)
-        audioOffsetMs = (videoCutTime - audioStartTime) + audioLatencyMs;
-        console.log(`  Audio offset: ${audioOffsetMs.toFixed(1)}ms (videoCut=${videoCutTime.toFixed(0)}ms, audioStart=${audioStartTime.toFixed(0)}ms, latency=${audioLatencyMs.toFixed(1)}ms)`);
+      if (calibVideoMs !== null && calibAudioMs !== null) {
+        // Use calibration-measured offset: video - audio
+        // If calibVideoMs > calibAudioMs, audio is early, need to trim
+        // If calibVideoMs < calibAudioMs, audio is late, need to delay
+        const calibOffsetMs = calibVideoMs - calibAudioMs;
+        // The final offset also needs to account for the video cut point
+        const cutOffsetMs = videoCutTime !== null && audioStartTime !== null
+          ? (videoCutTime - audioStartTime)
+          : PREROLL_CUT_S * 1000;
+        audioOffsetMs = cutOffsetMs + calibOffsetMs;
+        console.log(`  Calibration offset: ${calibOffsetMs.toFixed(1)}ms (video=${calibVideoMs.toFixed(1)}ms, audio=${calibAudioMs.toFixed(1)}ms)`);
+        console.log(`  Final audio offset: ${audioOffsetMs.toFixed(1)}ms (cut=${cutOffsetMs.toFixed(1)}ms + calib=${calibOffsetMs.toFixed(1)}ms)`);
       } else {
-        // Fallback to fixed trim
-        audioOffsetMs = PREROLL_CUT_S * 1000;
-        console.log(`  Audio offset: ${audioOffsetMs.toFixed(1)}ms (fallback, missing timing data)`);
+        // Calibration detection failed - this is an error condition
+        const videoDetected = calibVideoMs !== null;
+        const audioDetected = calibAudioMs !== null;
+        console.error(`  ERROR: Calibration detection failed!`);
+        console.error(`    - White frame detected: ${videoDetected} (${calibVideoMs !== null ? calibVideoMs.toFixed(1) + 'ms' : 'not found'})`);
+        console.error(`    - Click detected: ${audioDetected} (${calibAudioMs !== null ? calibAudioMs.toFixed(1) + 'ms' : 'not found'})`);
+        throw new Error(`Calibration failed: video=${videoDetected}, audio=${audioDetected}. Cannot determine A/V sync offset.`);
       }
       
       // Build ffmpeg filter chain:
-      // - alimiter prevents clipping during AAC encoding (limit at ~-1 dBFS)
-      const limiterFilter = "alimiter=limit=0.891:attack=0.1:release=50:level=false";
+      // - alimiter at limit=0.7 (~-3.1 dBFS) prevents AAC from exceeding -0.5 dBFS after decode
+      const limiterFilter = "alimiter=limit=0.7:attack=0.1:release=50:level=false";
       
       if (audioOffsetMs >= 0) {
         // Audio started early: trim from the beginning
@@ -630,6 +731,8 @@ async function captureWithCDP(page, args, server) {
     reel_ready_time_ms: pageReelReadyTime,
     audio_start_time_ms: pageAudioStartTime,
     audio_latency_ms: audioLatencyMs,
+    calib_video_ms: calibVideoMs,
+    calib_audio_ms: calibAudioMs,
     audio_offset_ms: audioOffsetMs,
     video_cut_s: PREROLL_CUT_S,
     dropped_early_frames: droppedEarlyFrames,

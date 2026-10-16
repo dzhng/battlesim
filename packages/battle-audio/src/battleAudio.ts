@@ -242,6 +242,37 @@ export class BattleAudio {
   releaseCaptureTap(): void {
     this.sink?.releaseCaptureTap();
   }
+
+  /** Play a calibration click through the same audio graph as battle sounds.
+   *  Used to measure the exact audio pipeline latency by comparing the click's
+   *  timestamp in the recorded audio against a simultaneous visual marker.
+   *  Returns false if audio is not ready. */
+  playCalibrationClick(): boolean {
+    const ctx = this.sink?.context;
+    if (!ctx || !(ctx instanceof AudioContext)) return false;
+    
+    // Create a short, sharp click: 1ms of 1kHz sine at full amplitude
+    const sampleRate = ctx.sampleRate;
+    const duration = 0.001; // 1ms
+    const samples = Math.ceil(sampleRate * duration);
+    const buffer = ctx.createBuffer(1, samples, sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    // Generate a sharp impulse: half-sine envelope for clean onset
+    for (let i = 0; i < samples; i++) {
+      const t = i / sampleRate;
+      const freq = 1000; // 1kHz for easy detection
+      const envelope = Math.sin(Math.PI * i / samples); // half-sine envelope
+      data[i] = Math.sin(2 * Math.PI * freq * t) * envelope;
+    }
+    
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    // Connect directly to master to bypass any effects processing
+    source.connect(this.sink!.master);
+    source.start();
+    return true;
+  }
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
