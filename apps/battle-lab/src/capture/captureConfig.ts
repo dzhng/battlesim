@@ -60,10 +60,7 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
     audio: params.get("capture-audio") !== "false",
     showCards: params.get("capture-cards") !== "false",
     grade: params.get("capture-grade") !== "false",
-    maxDuration: parseInt(
-      params.get("capture-max") ?? String(DEFAULT_CAPTURE.maxDuration),
-      10,
-    ),
+    maxDuration: parseInt(params.get("capture-max") ?? String(DEFAULT_CAPTURE.maxDuration), 10),
     mode,
   };
 }
@@ -127,7 +124,7 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
           seconds: 12,
           follow: 1,
           from: { target: [0, 0], distance: 180, yaw: 0, pitch: 0.55 },
-          to: { target: [20, 30], distance: 160, yaw: 0.4, pitch: 0.50 },
+          to: { target: [20, 30], distance: 160, yaw: 0.4, pitch: 0.5 },
         },
       ],
     },
@@ -141,7 +138,7 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
         {
           seconds: 15,
           follow: 1,
-          from: { target: [-3, 12], distance: 25, yaw: -1.2, pitch: 0.10 },
+          from: { target: [-3, 12], distance: 25, yaw: -1.2, pitch: 0.1 },
           to: { target: [-3, 12], distance: 22, yaw: -0.8, pitch: 0.08 },
         },
       ],
@@ -167,6 +164,35 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
 /** Get a capture preset by name, falling back to default. */
 export function getCapturePreset(name: string): CapturePreset {
   return CAPTURE_PRESETS[name] ?? CAPTURE_PRESETS.default;
+}
+
+/** Resolve a follow value to an actual unit ID from the observation.
+ *  The reel's follow value is interpreted as a "slot" meaning:
+ *  - If a unit with that exact ID exists, use it
+ *  - Otherwise, find the Nth tracked vehicle (0=first, 1=second, etc.)
+ *  Returns the unit ID or null if no match found.
+ *  Both camera and tracker should use this for consistency. */
+export function resolveFollowId(
+  follow: number | null,
+  observation: { own: readonly { id: number; kind: string }[] },
+  isTrackedVehicle: (kind: string) => boolean,
+): number | null {
+  if (follow === null) return null;
+
+  // First, check if a unit with this exact ID exists
+  const exact = observation.own.find((u) => u.id === follow);
+  if (exact) return exact.id;
+
+  // Otherwise, treat follow as an index into tracked vehicles
+  const trackedVehicles = observation.own.filter((u) => isTrackedVehicle(u.kind));
+  const byIndex = trackedVehicles[follow];
+  if (byIndex) return byIndex.id;
+
+  // Fall back to first tracked vehicle
+  if (trackedVehicles.length > 0) return trackedVehicles[0].id;
+
+  // Last resort: first unit
+  return observation.own[0]?.id ?? null;
 }
 
 /** Calculate the total duration of a reel in seconds. */

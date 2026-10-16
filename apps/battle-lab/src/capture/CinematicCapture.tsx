@@ -37,10 +37,7 @@ export interface CaptureHooks {
     onEnd: () => void,
   ) => ViewportPilot;
   /** Start recording (call after viewport is ready). */
-  startRecording: (
-    canvas: HTMLCanvasElement,
-    audioStream?: MediaStream | null,
-  ) => void;
+  startRecording: (canvas: HTMLCanvasElement, audioStream?: MediaStream | null) => void;
   /** Stop recording early. */
   stopRecording: () => void;
 }
@@ -135,10 +132,7 @@ export function useCaptureHooks(): CaptureHooks {
     };
   };
 
-  const startRecording = (
-    canvas: HTMLCanvasElement,
-    audioStream?: MediaStream | null,
-  ) => {
+  const startRecording = (canvas: HTMLCanvasElement, audioStream?: MediaStream | null) => {
     const settings = settingsRef.current;
     if (!settings) return;
 
@@ -148,10 +142,7 @@ export function useCaptureHooks(): CaptureHooks {
 
       let combinedStream: MediaStream;
       if (audioStream && settings.audio) {
-        const tracks = [
-          ...videoStream.getVideoTracks(),
-          ...audioStream.getAudioTracks(),
-        ];
+        const tracks = [...videoStream.getVideoTracks(), ...audioStream.getAudioTracks()];
         combinedStream = new MediaStream(tracks);
       } else {
         combinedStream = videoStream;

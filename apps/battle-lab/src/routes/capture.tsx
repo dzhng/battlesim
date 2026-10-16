@@ -36,6 +36,7 @@ import {
   getCapturePreset,
   reelDuration,
   WeaponFireTracker,
+  resolveFollowId,
   type CaptureSettings,
   type WeaponFireEvent,
 } from "../capture/captureConfig";
@@ -79,6 +80,19 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   const [fireEvents, setFireEvents] = useState<WeaponFireEvent[]>([]);
   const startAudioOnlyRef = useRef<(() => void) | null>(null);
   const fireTrackerRef = useRef(new WeaponFireTracker());
+
+  // Check if a unit kind is a tracked vehicle (tank, etc.)
+  const isTrackedVehicle = useCallback(
+    (kind: string) => {
+      try {
+        const vehicleClass = units.type(kind).vehicle_class;
+        return vehicleClass?.startsWith("tracked") ?? false;
+      } catch {
+        return false;
+      }
+    },
+    [units],
+  );
 
   // Set up the weapon kind resolver using the unit catalog
   useEffect(() => {
@@ -145,9 +159,12 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         state={state}
         setState={setState}
         onAudioBlob={setAudioBlob}
-        onStartAudioOnly={(fn) => { startAudioOnlyRef.current = fn; }}
+        onStartAudioOnly={(fn) => {
+          startAudioOnlyRef.current = fn;
+        }}
         fireTracker={fireTrackerRef.current}
         onFireEvents={setFireEvents}
+        isTrackedVehicle={isTrackedVehicle}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
     </>
@@ -166,6 +183,7 @@ function CaptureBattle({
   onStartAudioOnly,
   fireTracker,
   onFireEvents,
+  isTrackedVehicle,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -178,6 +196,7 @@ function CaptureBattle({
   onStartAudioOnly?: (fn: () => void) => void;
   fireTracker?: WeaponFireTracker;
   onFireEvents?: (events: WeaponFireEvent[]) => void;
+  isTrackedVehicle: (kind: string) => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gpuRef = useRef<ViewportGpu | null>(null);
@@ -216,9 +235,20 @@ function CaptureBattle({
 
   const { sim, audio, hear } = session;
 
-  const unitAt = useCallback(
+  // Get a unit's position by its ID
+  const unitPosition = useCallback(
     (id: number) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null,
     [sim.latest],
+  );
+
+  // Resolve a follow value to actual unit ID, using resolveFollowId for consistency
+  const resolveFollow = useCallback(
+    (follow: number | null) => {
+      const observation = sim.latest.current;
+      if (!observation) return null;
+      return resolveFollowId(follow, observation, isTrackedVehicle);
+    },
+    [sim.latest, isTrackedVehicle],
   );
 
   const startRecording = useCallback(() => {
@@ -286,10 +316,7 @@ function CaptureBattle({
         const audioTap = audio.createCaptureTap();
         if (audioTap) {
           audioStreamRef.current = audioTap;
-          const tracks = [
-            ...videoStream.getVideoTracks(),
-            ...audioTap.getAudioTracks(),
-          ];
+          const tracks = [...videoStream.getVideoTracks(), ...audioTap.getAudioTracks()];
           combinedStream = new MediaStream(tracks);
         } else {
           combinedStream = videoStream;
@@ -388,23 +415,29 @@ function CaptureBattle({
       let finalPose = sample.pose;
 
       if (sample.follow !== null) {
-        const live = unitAt(sample.follow);
-        const tracked = trackedRef.current;
-        if (tracked?.follow !== sample.follow) {
-          trackedRef.current = live ? { follow: sample.follow, at: [live[0], live[1]], now } : null;
-        }
-        if (trackedRef.current) {
-          if (live) {
-            const k = 1 - Math.exp(-(now - trackedRef.current.now) / 1000 / trackLag);
-            trackedRef.current.at = [
-              trackedRef.current.at[0] + (live[0] - trackedRef.current.at[0]) * k,
-              trackedRef.current.at[1] + (live[1] - trackedRef.current.at[1]) * k,
-            ];
+        // Resolve the follow value to an actual unit ID
+        const followedId = resolveFollow(sample.follow);
+        if (followedId !== null) {
+          const live = unitPosition(followedId);
+          const tracked = trackedRef.current;
+          if (tracked?.follow !== followedId) {
+            trackedRef.current = live ? { follow: followedId, at: [live[0], live[1]], now } : null;
           }
-          trackedRef.current.now = now;
-          const unit = trackedRef.current.at;
-          lastSubjectRef.current = unit;
-          finalPose = { ...sample.pose, target: [unit[0] + x, unit[1] + y] };
+          if (trackedRef.current) {
+            if (live) {
+              const k = 1 - Math.exp(-(now - trackedRef.current.now) / 1000 / trackLag);
+              trackedRef.current.at = [
+                trackedRef.current.at[0] + (live[0] - trackedRef.current.at[0]) * k,
+                trackedRef.current.at[1] + (live[1] - trackedRef.current.at[1]) * k,
+              ];
+            }
+            trackedRef.current.now = now;
+            const unit = trackedRef.current.at;
+            lastSubjectRef.current = unit;
+            finalPose = { ...sample.pose, target: [unit[0] + x, unit[1] + y] };
+          }
+        } else {
+          lastSubjectRef.current = [x, y];
         }
       } else {
         lastSubjectRef.current = [x, y];
@@ -427,11 +460,8 @@ function CaptureBattle({
       const observation = sim.latest.current;
       if (fireTracker && observation) {
         const sample = sampleReel(reel, elapsed);
-        // Resolve follow index to actual unit ID (follow is an index, not an id)
-        const followedId =
-          sample.follow !== null && observation.own[sample.follow]
-            ? observation.own[sample.follow].id
-            : null;
+        // Use the same resolution as the camera for consistency
+        const followedId = resolveFollow(sample.follow);
         fireTracker.setFollowedUnit(followedId);
         const newEvents = fireTracker.update(observation, now);
         if (newEvents.length > 0) {

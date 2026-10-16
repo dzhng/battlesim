@@ -495,7 +495,9 @@
   border-radius: 8px;
   background: rgba(12, 16, 22, 0.9);
   color: #e6ecf5;
-  font: 14px/1.4 system-ui, sans-serif;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
   backdrop-filter: blur(4px);
   pointer-events: auto;
 }

@@ -60,8 +60,7 @@ export async function run(ctx) {
   const under = async (u) =>
     css(page, [u.position[0], u.position[1], await surface(page, u.position)]);
   const frame = async () => (
-    await page.evaluate(() => window.__lab.frame()),
-    decode(await page.screenshot())
+    await page.evaluate(() => window.__lab.frame()), decode(await page.screenshot())
   );
   const plain = await frame();
   await lab(page, (ids) => window.__lab.route.select(ids), [jet.id, heli.id]);

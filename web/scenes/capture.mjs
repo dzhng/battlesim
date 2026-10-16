@@ -19,11 +19,7 @@ export async function run(ctx) {
     await page.waitForFunction(
       () => {
         const capture = window.__capture;
-        return (
-          capture?.state === "complete" ||
-          capture?.state === "error" ||
-          window.__lab?.error
-        );
+        return capture?.state === "complete" || capture?.state === "error" || window.__lab?.error;
       },
       undefined,
       { timeout: 120_000 },

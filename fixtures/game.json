@@ -1294,7 +1294,7 @@
     "audio": {
       "buses": { "master": 0.9, "units": 0.7, "effects": 1.0, "ambience": 0.25, "music": 1.0, "voices": 1.0 },
       "listener_eye_share": 0.25,
-      "distance": { "ref_m": 15, "rolloff": 2.5, "max_m": 3000, "floor": 0.04, "cull": 0.004 },
+      "distance": { "ref_m": 15, "rolloff": 1.8, "max_m": 3000, "floor": 0.06, "cull": 0.004 },
       "air": {
         "near_hz": 18000,
         "far_hz": 1600,
@@ -1311,8 +1311,8 @@
         "rifle": { "near": "rifle", "far": "rifle_far", "gain": 0.35, "far_m": 300 },
         "hmg": { "near": "hmg", "far": "hmg_far", "gain": 0.5, "far_m": 350 },
         "autocannon": { "near": "hmg", "far": "hmg_far", "gain": 0.7, "far_m": 450 },
-        "tank_ap": { "near": "cannon", "far": "cannon_far", "gain": 2.0, "far_m": 500 },
-        "tank_he": { "near": "cannon", "far": "cannon_far", "gain": 2.0, "far_m": 500 },
+        "tank_ap": { "near": "cannon", "far": "cannon_far", "gain": 10.0, "far_m": 500 },
+        "tank_he": { "near": "cannon", "far": "cannon_far", "gain": 10.0, "far_m": 500 },
         "grenade": { "near": "thump", "far": "thump", "gain": 0.45, "far_m": 200 },
         "atgm": { "near": "launch", "far": "launch", "gain": 1.0, "far_m": 400 }
       },
@@ -1637,15 +1637,15 @@
       "exposure": 1.18,
       "grade": {
         "enabled": true,
-        "saturation": 1.30,
+        "saturation": 2.8,
         "contrast": 0.58,
-        "split_tone": 0.72,
-        "shadow_lift": 1.25,
+        "split_tone": 0.85,
+        "shadow_lift": 1.4,
         "shadow_tint": [1.02, 1.0, 0.97],
-        "highlight_tint": [1.10, 1.02, 0.92],
-        "lift": [0.028, 0.030, 0.035]
+        "highlight_tint": [1.12, 1.04, 0.90],
+        "lift": [0.032, 0.034, 0.038]
       },
-      "bloom": { "strength": 0.28, "radius": 0.55, "threshold": 0.65, "smooth_width": 0.5 },
+      "bloom": { "strength": 0.35, "radius": 0.55, "threshold": 0.55, "smooth_width": 0.5 },
       "cascades": {
         "count": 4,
         "map_size": 2048,

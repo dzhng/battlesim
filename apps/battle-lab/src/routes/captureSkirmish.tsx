@@ -63,13 +63,7 @@ export default function CaptureSkirmishPage() {
   );
 }
 
-function CaptureSession({
-  settings,
-  battle,
-}: {
-  settings: CaptureSettings;
-  battle: SavedBattle;
-}) {
+function CaptureSession({ settings, battle }: { settings: CaptureSettings; battle: SavedBattle }) {
   const refused = appResources.error();
   const [state, setState] = useState<CaptureState>({
     status: "warming",
@@ -117,7 +111,9 @@ function CaptureSession({
         state={state}
         setState={setState}
         onAudioBlob={setAudioBlob}
-        onStartAudioOnly={(fn) => { startAudioOnlyRef.current = fn; }}
+        onStartAudioOnly={(fn) => {
+          startAudioOnlyRef.current = fn;
+        }}
         fireTracker={fireTrackerRef.current}
         onFireEvents={setFireEvents}
       />
@@ -258,10 +254,7 @@ function CaptureBattle({
       if (settings.audio && audio) {
         const audioTap = audio.createCaptureTap();
         if (audioTap) {
-          const tracks = [
-            ...videoStream.getVideoTracks(),
-            ...audioTap.getAudioTracks(),
-          ];
+          const tracks = [...videoStream.getVideoTracks(), ...audioTap.getAudioTracks()];
           combinedStream = new MediaStream(tracks);
         } else {
           combinedStream = videoStream;
