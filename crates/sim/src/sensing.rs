@@ -125,6 +125,31 @@ pub fn sees_point(
     foliage_reach(range * concealment, foliage, s).is_some_and(|reach| distance <= reach)
 }
 
+/// Whether one of `side`'s living units sees a round in flight at
+/// `position`, fired from `layer`: by its sight in that layer, as a round
+/// is a target like any other.
+pub fn side_sees_round(
+    world: &WorldGeometry,
+    rules: &Rules,
+    units: &[Unit],
+    side: Side,
+    position: V3,
+    layer: AltitudeLayer,
+) -> bool {
+    units.iter().any(|u| {
+        u.side == side
+            && u.alive()
+            && sees_point(
+                world,
+                eye(u, rules),
+                position,
+                &crate::sight::of_layer(u, rules, layer),
+                1.0,
+                &rules.sensors,
+            )
+    })
+}
+
 /// A visibility sample: the member it belongs to (none for a hull), where
 /// it is, and the concealment its ground and building give it.
 type Sample = (Option<usize>, V3, f64);

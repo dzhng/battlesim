@@ -3077,7 +3077,7 @@ impl Battle {
     /// Guided missiles (P05, P06): a launcher supports its missile while it
     /// stands still, has a living operator (including a survivor who takes
     /// over the launcher), its side identifies the target (a round: while it
-    /// flies), and its operator has physical line of sight independent of
+    /// flies and one of the side's units sees it), and its operator has physical line of sight independent of
     /// spotting range. It steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
@@ -3093,6 +3093,30 @@ impl Battle {
             .iter()
             .map(|u| u.aim_height(&self.rules))
             .collect();
+        // A round guided at is seen as a unit is: by one of the side's
+        // units, where it flies now.
+        let rounds_seen: BTreeSet<(Side, ProjectileId)> = self
+            .units
+            .iter()
+            .flat_map(|u| u.mounts.iter().map(move |m| (u.side, m.support)))
+            .filter_map(|(side, support)| match support?.target {
+                Target::Round(round) => Some((side, round)),
+                _ => None,
+            })
+            .filter(|&(side, round)| {
+                self.projectiles.get(round.id).is_some_and(|p| {
+                    crate::sensing::side_sees_round(
+                        &self.world,
+                        &self.rules,
+                        &self.units,
+                        side,
+                        p.position,
+                        round.layer,
+                    )
+                })
+            })
+            .map(|(side, round)| (side, round.id))
+            .collect();
         for (i, unit) in self.units.iter_mut().enumerate() {
             weapons::assign_operators(&self.arsenal, unit);
             let knowledge = &self.knowledge[unit.side.index()];
@@ -3106,9 +3130,11 @@ impl Battle {
                         .track(t)
                         .filter(|tr| tr.last_seen + 1 == self.tick)
                         .map(|tr| tr.position + v3(0.0, 0.0, aim_z[t.0 as usize])),
-                    // A round is followed where it flies, while it flies, as
-                    // the interceptor lock found it.
-                    Target::Round(round) => self.projectiles.get(round.id).map(|p| p.position),
+                    // A round is followed where it flies, while it flies and
+                    // its side sees it, as the interceptor lock found it.
+                    Target::Round(round) if rounds_seen.contains(&(unit.side, round.id)) => {
+                        self.projectiles.get(round.id).map(|p| p.position)
+                    }
                     _ => None,
                 };
                 // Entering or leaving a building is a transition that releases too.
@@ -3205,18 +3231,14 @@ impl Battle {
                         layer: round.layer,
                         ends_in_s: p.lifetime_s - p.age_s,
                         seen: Side::ALL.map(|side| {
-                            self.units.iter().any(|u| {
-                                u.side == side
-                                    && u.alive()
-                                    && crate::sensing::sees_point(
-                                        &self.world,
-                                        crate::sensing::eye(u, &self.rules),
-                                        p.position,
-                                        &crate::sight::of_layer(u, &self.rules, round.layer),
-                                        1.0,
-                                        &self.rules.sensors,
-                                    )
-                            })
+                            crate::sensing::side_sees_round(
+                                &self.world,
+                                &self.rules,
+                                &self.units,
+                                side,
+                                p.position,
+                                round.layer,
+                            )
                         }),
                     })
             })

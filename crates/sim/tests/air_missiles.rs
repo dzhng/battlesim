@@ -325,6 +325,27 @@ fn a_climbing_targets_vertical_velocity_is_led() {
 /// Red's tank and jeep see high air `red_high_air_m` far. Returns the tank's
 /// hit points before and after, and the shots the jet and the jeep fired.
 fn jet_missile_at_a_covered_tank(intercepts_in: &str, red_high_air_m: f64) -> (f64, f64, u32, u32) {
+    let mut b = covered_tank_battle(intercepts_in, red_high_air_m, None);
+    let before = b.unit(UnitId(1)).unwrap().hp;
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+    }
+    (
+        before,
+        b.unit(UnitId(1)).unwrap().hp,
+        shots(&b, 0, "gun"),
+        shots(&b, 2, "HMG"),
+    )
+}
+
+/// [`jet_missile_at_a_covered_tank`]'s battle as the jet takes its attack
+/// order, with a red squad placed fifth at `spotter`'s point,
+/// seeing high air as far as its distance.
+fn covered_tank_battle(
+    intercepts_in: &str,
+    red_high_air_m: f64,
+    spotter: Option<([f64; 2], f64)>,
+) -> Battle {
     let mut rules = sim::fixtures::test_game();
     rules["weapons"]["test_agm"] = json!({
         "name": "Test AGM", "description": "A test row.", "icon": "atgm",
@@ -371,16 +392,27 @@ fn jet_missile_at_a_covered_tank(intercepts_in: &str, red_high_air_m: f64) -> (f
         "test_tank",
         json!({ "sensors": { "high_air_m": red_high_air_m } }),
     );
+    let mut units = vec![
+        json!({ "side": "blue", "kind": "test_jet", "position": [600, 2000], "yaw": 0.0 }),
+        json!({ "side": "red", "kind": "test_tank", "position": [2400, 2000], "yaw": std::f64::consts::PI,
+              "engagement": "return_fire_only" }),
+        json!({ "side": "red", "kind": "test_jeep", "position": [2450, 2040], "yaw": std::f64::consts::PI }),
+        json!({ "side": "blue", "kind": "test_recon", "position": [1800, 2000], "engagement": "return_fire_only" }),
+    ];
+    if let Some((at, high_air_m)) = spotter {
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_rifle",
+            json!({ "sensors": { "high_air_m": high_air_m } }),
+        );
+        units.push(json!({ "side": "red", "kind": "test_rifle", "position": at,
+            "engagement": "return_fire_only" }));
+    }
     let setup = serde_json::from_value(json!({
         "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
-        "units": [
-            { "side": "blue", "kind": "test_jet", "position": [600, 2000], "yaw": 0.0 },
-            { "side": "red", "kind": "test_tank", "position": [2400, 2000], "yaw": std::f64::consts::PI,
-              "engagement": "return_fire_only" },
-            { "side": "red", "kind": "test_jeep", "position": [2450, 2040], "yaw": std::f64::consts::PI },
-            { "side": "blue", "kind": "test_recon", "position": [1800, 2000], "engagement": "return_fire_only" }
-        ],
+        "units": units,
         "events": [], "scripts": []
     }))
     .unwrap();
@@ -406,16 +438,7 @@ fn jet_missile_at_a_covered_tank(intercepts_in: &str, red_high_air_m: f64) -> (f
         },
     });
     assert_eq!(ack.error, None);
-    let before = b.unit(UnitId(1)).unwrap().hp;
-    for _ in 0..40 * b.rules().tick_hz {
-        b.step();
-    }
-    (
-        before,
-        b.unit(UnitId(1)).unwrap().hp,
-        shots(&b, 0, "gun"),
-        shots(&b, 2, "HMG"),
-    )
+    b
 }
 
 /// A guided interceptor whose high-air layer lists `missile` shoots down the
@@ -450,6 +473,48 @@ fn an_interceptor_holds_for_a_round_its_side_cannot_see() {
         "the interceptor fired at a round nobody saw"
     );
     assert!(after < before, "the jet's missile missed the tank");
+}
+
+/// A guided interceptor is steered only at a round its side sees, as at
+/// a unit: the jeep can't see high air, and once the jet's missile flies
+/// out of the one red spotter's sight, its launcher's line of sight alone
+/// keeps no guidance and the interceptor lets go.
+#[test]
+fn a_guided_interceptor_lets_go_of_a_round_its_side_loses_sight_of() {
+    const SPOTTER: [f64; 2] = [1300.0, 2000.0];
+    const SPOTTER_HIGH_AIR_M: f64 = 350.0;
+    let mut b = covered_tank_battle("high_air", 0.0, Some((SPOTTER, SPOTTER_HIGH_AIR_M)));
+    let spotter = v3(SPOTTER[0], SPOTTER[1], 0.0);
+    let (mut guided_while_seen, mut checked) = (false, false);
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+        let Some((missile, _)) = b.rounds().find(|(_, r)| r.unit == UnitId(0)) else {
+            continue;
+        };
+        let Some((interceptor, _)) = b.rounds().find(|(_, r)| r.unit == UnitId(2)) else {
+            continue;
+        };
+        let supported = interceptor.guidance.is_some_and(|g| g.supported);
+        // Past its sight, with a tick's flight and the eye's height to
+        // spare.
+        if (missile.position - spotter).length() > SPOTTER_HIGH_AIR_M + 50.0 {
+            assert!(
+                !supported,
+                "the interceptor was guided at a round nobody sees"
+            );
+            checked = true;
+        } else {
+            guided_while_seen |= supported;
+        }
+    }
+    assert!(
+        guided_while_seen,
+        "the interceptor was never guided at the seen round"
+    );
+    assert!(
+        checked,
+        "the round never flew out of the spotter's sight under guidance"
+    );
 }
 
 /// How far from a helicopter 400 m off its first missile bursts, when a jeep
