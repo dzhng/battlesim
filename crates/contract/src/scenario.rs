@@ -642,6 +642,7 @@ pub struct Rules {
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
     pub hull_limits: HullLimits,
+    pub air_speed_limits_kmh: AirSpeedLimits,
     pub air: AirRules,
     pub shouts: ShoutRules,
 }
@@ -804,9 +805,56 @@ pub struct HullLimits {
     pub tracked: DriveLimits,
     pub wheeled: DriveLimits,
     /// A helicopter's hull, without its rotor disc.
-    pub low_air: DriveLimits,
+    pub rotor: DriveLimits,
     /// A fixed-wing aircraft's hull.
-    pub high_air: DriveLimits,
+    pub fixed_wing: DriveLimits,
+}
+
+impl HullLimits {
+    /// The limits of an aircraft that flies by `flight`.
+    pub fn flight(&self, flight: crate::catalog::FlightModel) -> &DriveLimits {
+        match flight {
+            crate::catalog::FlightModel::Rotor => &self.rotor,
+            crate::catalog::FlightModel::FixedWing => &self.fixed_wing,
+        }
+    }
+}
+
+/// The fastest an aircraft of each flight model may cruise, km/h.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AirSpeedLimits {
+    pub rotor: f64,
+    pub fixed_wing: f64,
+}
+
+impl AirSpeedLimits {
+    /// The first aircraft of `catalog` cruising past its flight model's limit.
+    fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), crate::catalog::CatalogError> {
+        use crate::catalog::{FlightModel, Mobility};
+        for index in catalog.indices() {
+            let Mobility::Air {
+                cruise_kmh, flight, ..
+            } = catalog.get(index).mobility
+            else {
+                continue;
+            };
+            let (name, limit) = match flight {
+                FlightModel::Rotor => ("rotor", self.rotor),
+                FlightModel::FixedWing => ("fixed_wing", self.fixed_wing),
+            };
+            if cruise_kmh > limit {
+                return Err(crate::catalog::CatalogError::Invalid {
+                    section: "units",
+                    id: catalog.id(index).into(),
+                    error: format!(
+                        "its {name} cruise_kmh {cruise_kmh} is past the limit of {limit} (air_speed_limits_kmh)"
+                    ),
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 /// One drive's largest hull; a tracked hull pivots and has no turn limit.
@@ -831,11 +879,14 @@ impl HullLimits {
                 Mobility::Wheeled {
                     turning_radius_m, ..
                 } => ("wheeled", &self.wheeled, Some(turning_radius_m)),
-                Mobility::Air { layer, .. } => match layer {
-                    crate::catalog::AltitudeLayer::Ground => ("low_air", &self.low_air, None),
-                    crate::catalog::AltitudeLayer::LowAir => ("low_air", &self.low_air, None),
-                    crate::catalog::AltitudeLayer::HighAir => ("high_air", &self.high_air, None),
-                },
+                Mobility::Air { flight, .. } => (
+                    match flight {
+                        crate::catalog::FlightModel::Rotor => "rotor",
+                        crate::catalog::FlightModel::FixedWing => "fixed_wing",
+                    },
+                    self.flight(flight),
+                    None,
+                ),
                 // A squad has no hull; the catalog refuses a hull on foot.
                 Mobility::Foot { .. } => continue,
             };
@@ -892,6 +943,7 @@ struct UncheckedRules {
     buildings: BuildingRules,
     garrison: GarrisonRules,
     hull_limits: HullLimits,
+    air_speed_limits_kmh: AirSpeedLimits,
     air: AirRules,
     shouts: ShoutRules,
 }
@@ -901,6 +953,7 @@ impl TryFrom<UncheckedRules> for Rules {
     fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
         r.catalog.check_weapons(&r.weapons)?;
         r.hull_limits.check(&r.catalog)?;
+        r.air_speed_limits_kmh.check(&r.catalog)?;
         for (id, checked) in [
             ("suppression", r.suppression.check()),
             ("navigation", r.navigation.check()),
@@ -942,6 +995,7 @@ impl TryFrom<UncheckedRules> for Rules {
             buildings: r.buildings,
             garrison: r.garrison,
             hull_limits: r.hull_limits,
+            air_speed_limits_kmh: r.air_speed_limits_kmh,
             air: r.air,
             shouts: r.shouts,
         })

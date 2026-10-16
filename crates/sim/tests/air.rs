@@ -80,16 +80,16 @@ fn air_rules_refuse_a_high_air_floor_above_the_fixed_wing_ceilings() {
 }
 
 #[test]
-fn helicopters_route_with_the_low_air_hull_limit() {
+fn helicopters_route_with_the_rotor_hull_limit() {
     let rules: Rules = serde_json::from_value(fixture()).unwrap();
     assert_eq!(
         sim::navigation::air::routing_margin(&rules),
-        rules.hull_limits.low_air.half_length_m
+        rules.hull_limits.rotor.half_length_m
     );
 }
 
 #[test]
-fn high_air_admission_uses_the_high_air_hull_limit() {
+fn fixed_wing_admission_uses_the_fixed_wing_hull_limit() {
     let mut fixture = fixture();
     sim::fixtures::patch_catalog(
         &mut fixture,
@@ -101,7 +101,7 @@ fn high_air_admission_uses_the_high_air_hull_limit() {
         }),
     );
     serde_json::from_value::<Rules>(fixture)
-        .expect("a high-air hull within the high-air limit is admitted");
+        .expect("a fixed-wing hull within the fixed-wing limit is admitted");
 }
 
 #[test]
@@ -820,9 +820,9 @@ fn an_identified_enemy_helicopter_below_half_hp_publishes_smoking() {
 }
 
 #[test]
-fn an_air_hull_past_its_limits_is_refused() {
+fn an_air_hull_past_its_flight_models_limits_is_refused() {
     let mut fixture = fixture();
-    let past = fixture["hull_limits"]["low_air"]["half_length_m"]
+    let past = fixture["hull_limits"]["rotor"]["half_length_m"]
         .as_f64()
         .unwrap()
         + 0.5;
@@ -832,21 +832,28 @@ fn an_air_hull_past_its_limits_is_refused() {
         "test_heli",
         json!({ "body": { "hull": { "half_extents_m": [past, 1.2, 1.6] } } }),
     );
-    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the low-air limit");
-    assert!(error.to_string().contains("low_air half length"), "{error}");
+    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the rotor limit");
+    assert!(error.to_string().contains("rotor half length"), "{error}");
 }
 
 #[test]
-fn an_aircraft_cruising_past_its_limit_is_refused() {
-    let mut fixture = fixture();
-    sim::fixtures::patch_catalog(
-        &mut fixture,
-        "units",
-        "test_heli",
-        json!({ "mobility": { "air": { "cruise_kmh": 400 } } }),
-    );
-    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the air speed");
-    assert!(error.to_string().contains("cruise_kmh"), "{error}");
+fn an_aircraft_cruising_past_its_flight_models_limit_is_refused() {
+    // The rules set the limit: a helicopter cruising at 200 km/h is refused
+    // under a 150 km/h rotor limit, and admitted under a 250 km/h one.
+    let admitted = |limit: f64| {
+        let mut fixture = fixture();
+        fixture["air_speed_limits_kmh"]["rotor"] = json!(limit);
+        sim::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            "test_heli",
+            json!({ "mobility": { "air": { "cruise_kmh": 200 } } }),
+        );
+        serde_json::from_value::<Rules>(fixture).map_err(|e| e.to_string())
+    };
+    let error = admitted(150.0).expect_err("past the rotor speed");
+    assert!(error.contains("rotor cruise_kmh"), "{error}");
+    admitted(250.0).expect("within the rotor speed");
 }
 
 #[test]

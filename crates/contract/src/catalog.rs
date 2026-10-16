@@ -176,10 +176,6 @@ pub struct Hull {
 /// No ground mover's top speed may exceed this (light wheeled vehicles do 110).
 pub const MAX_SPEED_KMH: f64 = 130.0;
 
-/// No low-air aircraft's cruise may exceed this (attack helicopters cruise at 240).
-pub const MAX_AIR_SPEED_KMH: f64 = 320.0;
-pub const MAX_HIGH_AIR_SPEED_KMH: f64 = 1000.0;
-
 /// The height band a unit occupies, which decides what can engage it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -1853,13 +1849,9 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         }) {
             return Some("mobility: arrival.delay_s must be [min, max] with 0 <= min <= max");
         }
-        let max_speed = match layer {
-            AltitudeLayer::LowAir => MAX_AIR_SPEED_KMH,
-            AltitudeLayer::HighAir => MAX_HIGH_AIR_SPEED_KMH,
-            AltitudeLayer::Ground => unreachable!(),
-        };
-        if !(cruise_kmh > 0.0 && cruise_kmh <= max_speed) {
-            return Some("mobility: cruise_kmh must lie within its altitude-layer limit");
+        // Its upper limit is the rules' (`air_speed_limits_kmh`).
+        if !positive(cruise_kmh) {
+            return Some("mobility: an aircraft's cruise_kmh must be positive");
         }
         if !positive(turn_deg_s) || !positive(climb_mps) {
             return Some("mobility: an aircraft's turn_deg_s and climb_mps must be positive");
