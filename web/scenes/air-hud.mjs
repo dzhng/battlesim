@@ -60,8 +60,7 @@ export async function run(ctx) {
   const under = async (u) =>
     css(page, [u.position[0], u.position[1], await surface(page, u.position)]);
   const frame = async () => (
-    await page.evaluate(() => window.__lab.frame()),
-    decode(await page.screenshot())
+    await page.evaluate(() => window.__lab.frame()), decode(await page.screenshot())
   );
   const plain = await frame();
   await lab(page, (ids) => window.__lab.route.select(ids), [jet.id, heli.id]);
@@ -76,7 +75,7 @@ export async function run(ctx) {
 
   await lab(page, (id) => window.__lab.route.select([id]), jet.id);
   const card = await cardText(page, `[data-unit="${jet.id}"]`);
-  const flares = unitType(JET).capabilities.air.flares.capacity;
+  const flares = unitType(JET).capabilities.flares.capacity;
   ctx.check(
     "the jet card shows fuel and flares",
     !!card && /FUEL \d+ s/.test(card) && card.includes(`FLARES ${flares}`),
