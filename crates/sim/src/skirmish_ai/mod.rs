@@ -6,6 +6,7 @@ use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ObservationFrame, ObservedTargetId};
 use contract::scenario::Rules;
 use contract::skirmish::Phase;
+use contract::weapons::{TargetClass, WeaponDefinition};
 use std::collections::BTreeMap;
 
 /// A side-scoped skirmish policy. Implementations emit the same ordinary
@@ -378,7 +379,7 @@ impl BalancedDoctrine {
         let high_air_defender = eligible
             .iter()
             .copied()
-            .filter(|&kind| unit_can_target_layer(rules, kind, AltitudeLayer::HighAir))
+            .filter(|&kind| unit_engages_aircraft_in(rules, kind, AltitudeLayer::HighAir))
             .max_by(|a, b| {
                 candidate_score(rules, *a, draw_unit, Some(AltitudeLayer::HighAir)).total_cmp(
                     &candidate_score(rules, *b, draw_unit, Some(AltitudeLayer::HighAir)),
@@ -469,7 +470,7 @@ impl BalancedDoctrine {
                         eligible
                             .iter()
                             .copied()
-                            .filter(|&kind| unit_can_target_layer(rules, kind, layer))
+                            .filter(|&kind| unit_engages_aircraft_in(rules, kind, layer))
                             .max_by(|a, b| {
                                 candidate_score(rules, *a, draw_unit, Some(layer))
                                     .total_cmp(&candidate_score(rules, *b, draw_unit, Some(layer)))
@@ -764,15 +765,26 @@ fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
 }
 
 fn unit_can_engage_target(rules: &Rules, kind: TypeIndex, target: TypeIndex) -> bool {
-    let layer = rules.catalog.get(target).mobility.layer();
-    rules.catalog.mounts(kind).iter().any(|mount| {
-        mount
-            .def
-            .weapons
-            .iter()
-            .filter_map(|weapon| rules.weapons.get(weapon))
-            .any(|weapon| weapon.against(layer).is_some())
-    })
+    let target = rules.catalog.get(target);
+    let (layer, class) = (target.mobility.layer(), target.target_class());
+    unit_weapons(rules, kind).any(|weapon| weapon.engages(layer, Some(class)).is_some())
+}
+
+/// The weapon rows `kind`'s mounts carry.
+fn unit_weapons(rules: &Rules, kind: TypeIndex) -> impl Iterator<Item = &WeaponDefinition> {
+    rules
+        .catalog
+        .mounts(kind)
+        .iter()
+        .flat_map(|mount| &mount.def.weapons)
+        .filter_map(|weapon| rules.weapons.get(weapon))
+}
+
+/// Whether `weapon` engages an aircraft in `layer`, of either flight.
+fn engages_aircraft(weapon: &WeaponDefinition, layer: AltitudeLayer) -> bool {
+    [TargetClass::AirRotor, TargetClass::AirFixedWing]
+        .into_iter()
+        .any(|class| weapon.engages(layer, Some(class)).is_some())
 }
 
 /// A ground point is eligible only when one mounted indirect weapon can
@@ -924,15 +936,8 @@ fn recon_post(
     ]
 }
 
-fn unit_can_target_layer(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
-    rules.catalog.mounts(kind).iter().any(|mount| {
-        mount
-            .def
-            .weapons
-            .iter()
-            .filter_map(|weapon| rules.weapons.get(weapon))
-            .any(|weapon| weapon.targets.contains_key(&layer))
-    })
+fn unit_engages_aircraft_in(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
+    unit_weapons(rules, kind).any(|weapon| engages_aircraft(weapon, layer))
 }
 
 fn frame_has_layer_threat(frame: &ObservationFrame, rules: &Rules, layer: AltitudeLayer) -> bool {
@@ -951,7 +956,7 @@ fn candidate_score(
 ) -> f64 {
     let unit = rules.catalog.get(kind);
     let capability = demand.map_or(0.0, |layer| {
-        if unit_can_target_layer(rules, kind, layer) {
+        if unit_engages_aircraft_in(rules, kind, layer) {
             10_000.0
         } else {
             -10_000.0
@@ -959,13 +964,8 @@ fn candidate_score(
     });
     let affordability_bias = 1_000.0 - f64::from(unit.cost);
     let weapon_value = demand.map_or(0.0, |layer| {
-        rules
-            .catalog
-            .mounts(kind)
-            .iter()
-            .flat_map(|mount| mount.def.weapons.iter())
-            .filter_map(|id| rules.weapons.get(id))
-            .filter(|weapon| weapon.targets.contains_key(&layer))
+        unit_weapons(rules, kind)
+            .filter(|weapon| engages_aircraft(weapon, layer))
             .map(|weapon| weapon.damage * weapon.ballistics.range_m)
             .fold(0.0, f64::max)
             / f64::from(unit.cost.max(1))

@@ -446,7 +446,7 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
         unreachable!()
     };
     let kind = rules.catalog.index(variant).unwrap();
-    assert!(unit_can_target_layer(
+    assert!(unit_engages_aircraft_in(
         &rules,
         kind,
         contract::catalog::AltitudeLayer::LowAir
@@ -545,7 +545,7 @@ fn every_ai_opening_includes_a_high_air_defender() {
             orders.iter().any(|order| matches!(
                 order,
                 Order::ConfirmPurchase { variant, .. }
-                    if unit_can_target_layer(
+                    if unit_engages_aircraft_in(
                         &rules,
                         rules.catalog.index(variant).unwrap(),
                         AltitudeLayer::HighAir
@@ -565,7 +565,7 @@ fn every_ai_opening_includes_a_high_air_defender() {
             && rules
                 .catalog
                 .index(id)
-                .is_some_and(|k| unit_can_target_layer(&rules, k, AltitudeLayer::HighAir))
+                .is_some_and(|k| unit_engages_aircraft_in(&rules, k, AltitudeLayer::HighAir))
     };
     let mut authored = crate::fixtures::game();
     for doc in authored["catalog"].as_array_mut().unwrap() {
@@ -677,14 +677,14 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
         })
     };
     let ordinary_kind = purchased(&ordinary).expect("ordinary reinforcement");
-    assert!(!unit_can_target_layer(
+    assert!(!unit_engages_aircraft_in(
         &rules,
         ordinary_kind,
         AltitudeLayer::HighAir
     ));
     let defended = purchased(&threatened).expect("jet sighting buys a defender");
     assert!(
-        unit_can_target_layer(&rules, defended, AltitudeLayer::HighAir),
+        unit_engages_aircraft_in(&rules, defended, AltitudeLayer::HighAir),
         "threat response bought {}",
         rules.catalog.id(defended)
     );
@@ -1377,4 +1377,24 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
         (70.0..=110.0).contains(&moved),
         "it fired {moved:.0} m from where it was held"
     );
+}
+
+/// What the AI counts as able to fight an aircraft is what its weapons
+/// engage, by the aircraft's class: a gun whose low-air layer lists only
+/// `missile` shoots down rounds there, never a helicopter.
+#[test]
+fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
+    let defends = |classes: Value| {
+        let mut fixture = crate::fixtures::test_game();
+        fixture["weapons"]["hmg"]["targets"]["low_air"]["classes"] = classes;
+        let rules: Rules = serde_json::from_value(fixture).unwrap();
+        let jeep = rules.catalog.index("test_jeep").unwrap();
+        let heli = rules.catalog.index("test_heli").unwrap();
+        (
+            unit_engages_aircraft_in(&rules, jeep, AltitudeLayer::LowAir),
+            unit_can_engage_target(&rules, jeep, heli),
+        )
+    };
+    assert_eq!(defends(json!(["air_rotor"])), (true, true));
+    assert_eq!(defends(json!(["missile"])), (false, false));
 }
