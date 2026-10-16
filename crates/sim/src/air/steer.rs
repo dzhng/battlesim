@@ -58,9 +58,9 @@ fn orbit_turn(state: &FixedWingState, limits: &FixedWingLimits, centre: V2, dt_s
     } else {
         state.heading - sign * core::f64::consts::FRAC_PI_2
     };
-    // A tangent entry lets a jet outside the orbit close on it without flying
-    // through the centre. Once on the circle, the full rate gives the authored
-    // radius exactly (speed / turn rate).
+    // Near the circle the jet turns onto its tangent, in its own turn
+    // direction; farther out it flies at the centre. Once on the circle, the
+    // full rate gives the authored radius exactly (speed / turn rate).
     let tolerance = radius * 0.04 + 1.0;
     if (distance - radius).abs() <= radius * 0.15 + tolerance {
         let tangent = radial + sign * core::f64::consts::FRAC_PI_2;

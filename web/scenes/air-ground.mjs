@@ -5,7 +5,7 @@
 //   crates/sim/tests/attack_passes.rs::a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back
 //   crates/sim/tests/attack_passes.rs::a_missile_pass_fires_the_gun_when_nose_on
 //   crates/sim/tests/attack_passes.rs::a_bombing_pass_never_fires_the_gun
-//   crates/sim/tests/radar.rs::anti_radiation_weapon_can_fire_at_radar_contact_without_unit_los
+//   crates/sim/tests/radar.rs::an_anti_radiation_row_fires_at_a_radar_contact_but_not_at_a_heard_one
 //   crates/sim/tests/air.rs::an_attack_on_a_target_the_side_has_never_identified_is_refused
 //   crates/sim/tests/air.rs::high_air_has_no_ground_vision_but_can_identify_low_air
 // Browser-only evidence: with the roster's real loadouts on the real field,

@@ -109,7 +109,7 @@ impl Replay {
     /// Loads scene `dir` of a parity run. The world is the repository's: the
     /// saved map the manifest names, the units its encounter fields and their
     /// art, the scenery placed from `library`'s bundles, under the game's
-    /// rules (the soldier's body, the aircraft's cruise height, the light).
+    /// rules (the soldier's body, the light).
     pub fn open(dir: &Path, library: &Library) -> Result<Self, String> {
         Self::open_with_root(dir, library, Path::new(ROOT))
     }
