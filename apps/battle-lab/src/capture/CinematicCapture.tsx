@@ -292,6 +292,8 @@ export interface CaptureExtras {
   reelReadyTime?: number | null;
   /** Timestamp when audio recording started (performance.now() for sync calculation). */
   audioStartTime?: number | null;
+  /** Audio output latency in seconds (outputLatency + baseLatency from AudioContext). */
+  audioLatency?: number;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -313,5 +315,6 @@ export function exposeCaptureToWindow(
     followUnitId: extras?.followUnitId,
     reelReadyTime: extras?.reelReadyTime,
     audioStartTime: extras?.audioStartTime,
+    audioLatency: extras?.audioLatency,
   };
 }

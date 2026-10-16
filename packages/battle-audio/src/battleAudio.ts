@@ -192,6 +192,18 @@ export class BattleAudio {
     this.frame?.reset();
     this.voices?.reset();
   }
+  /** Get the audio output latency in seconds (outputLatency + baseLatency).
+   *  Returns 0 if context is not an AudioContext or latency is not available. */
+  getOutputLatency(): number {
+    const ctx = this.sink?.context;
+    if (!ctx || !(ctx instanceof AudioContext)) return 0;
+    // outputLatency: time from audio being rendered to reaching the speakers
+    // baseLatency: time from when audio enters the system to when it's rendered
+    const output = ctx.outputLatency ?? 0;
+    const base = ctx.baseLatency ?? 0;
+    return output + base;
+  }
+
   setVolume(volume: number, voices = 1) {
     if (!this.sink) return;
     const at = this.sink.now();

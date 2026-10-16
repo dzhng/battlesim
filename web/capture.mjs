@@ -481,7 +481,8 @@ async function captureWithCDP(page, args, server) {
   
   // Get audio from browser if enabled
   let hasAudio = false;
-  let audioTrimS = 0;
+  let audioOffsetMs = 0;
+  let audioLatencyMs = 0;
   const rawAudioPath = resolve(args.output, `raw-audio-${timestamp}.webm`);
   const trimmedAudioPath = resolve(args.output, `trimmed-audio-${timestamp}.aac`);
   if (args.audio) {
@@ -499,50 +500,85 @@ async function captureWithCDP(page, args, server) {
         audioBase64: btoa(binary),
         audioStartTime: capture.audioStartTime ?? null,
         reelReadyTime: capture.reelReadyTime ?? null,
+        audioLatency: capture.audioLatency ?? 0,
       };
     });
     
     if (audioInfo?.audioBase64) {
       const audioData = Buffer.from(audioInfo.audioBase64, "base64");
       await writeFile(rawAudioPath, audioData);
-      console.log("  Audio captured, calculating sync trim...");
+      console.log("  Audio captured, calculating sync offset...");
       
-      // Calculate exact audio trim: (videoCutTime - audioStartTime)
+      // Audio output latency from AudioContext (outputLatency + baseLatency)
+      audioLatencyMs = (audioInfo.audioLatency ?? 0) * 1000;
+      
+      // Calculate audio offset: (videoCutTime - audioStartTime) + audioLatency
       // Video cut point is reelReadyTime + PREROLL_CUT_S (in performance.now() space)
       // Audio started at audioStartTime (in performance.now() space)
+      // audioLatency compensates for the delay between sound generation and reaching the tap
       const videoCutTime = audioInfo.reelReadyTime !== null 
         ? audioInfo.reelReadyTime + PREROLL_CUT_S * 1000 
         : null;
       const audioStartTime = audioInfo.audioStartTime;
       
       if (videoCutTime !== null && audioStartTime !== null) {
-        // Both in ms, convert to seconds
-        audioTrimS = Math.max(0, (videoCutTime - audioStartTime) / 1000);
-        console.log(`  Audio trim: ${audioTrimS.toFixed(3)}s (videoCut=${videoCutTime.toFixed(0)}ms, audioStart=${audioStartTime.toFixed(0)}ms)`);
+        // Positive offset: audio started early, needs trim
+        // Negative offset: audio started late, needs delay (padding)
+        audioOffsetMs = (videoCutTime - audioStartTime) + audioLatencyMs;
+        console.log(`  Audio offset: ${audioOffsetMs.toFixed(1)}ms (videoCut=${videoCutTime.toFixed(0)}ms, audioStart=${audioStartTime.toFixed(0)}ms, latency=${audioLatencyMs.toFixed(1)}ms)`);
       } else {
         // Fallback to fixed trim
-        audioTrimS = PREROLL_CUT_S;
-        console.log(`  Audio trim: ${audioTrimS.toFixed(3)}s (fallback, missing timing data)`);
+        audioOffsetMs = PREROLL_CUT_S * 1000;
+        console.log(`  Audio offset: ${audioOffsetMs.toFixed(1)}ms (fallback, missing timing data)`);
       }
       
-      // Trim audio to sync with video cut
-      await new Promise((resolve, reject) => {
-        const ffmpegTrim = spawn("ffmpeg", [
-          "-y",
-          "-i", rawAudioPath,
-          "-ss", String(audioTrimS),
-          "-c:a", "aac",
-          "-b:a", "192k",
-          trimmedAudioPath,
-        ], { stdio: "pipe" });
-        ffmpegTrim.on("close", (code) => {
-          if (code === 0) resolve();
-          else reject(new Error(`ffmpeg audio trim exited with code ${code}`));
+      // Build ffmpeg filter chain:
+      // - alimiter prevents clipping during AAC encoding (limit at ~-1 dBFS)
+      const limiterFilter = "alimiter=limit=0.891:attack=0.1:release=50:level=false";
+      
+      if (audioOffsetMs >= 0) {
+        // Audio started early: trim from the beginning
+        const trimS = audioOffsetMs / 1000;
+        await new Promise((resolve, reject) => {
+          const ffmpegTrim = spawn("ffmpeg", [
+            "-y",
+            "-i", rawAudioPath,
+            "-ss", String(trimS),
+            "-af", limiterFilter,
+            "-c:a", "aac",
+            "-b:a", "192k",
+            trimmedAudioPath,
+          ], { stdio: "pipe" });
+          ffmpegTrim.on("close", (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`ffmpeg audio trim exited with code ${code}`));
+          });
+          ffmpegTrim.on("error", reject);
         });
-        ffmpegTrim.on("error", reject);
-      });
+        console.log(`  Audio trimmed ${trimS.toFixed(3)}s from start`);
+      } else {
+        // Audio started late: delay (pad) the beginning
+        const delayMs = Math.abs(audioOffsetMs);
+        // adelay adds silence to the start; use "all=1" to apply to all channels
+        const delayFilter = `adelay=${Math.round(delayMs)}:all=1`;
+        await new Promise((resolve, reject) => {
+          const ffmpegDelay = spawn("ffmpeg", [
+            "-y",
+            "-i", rawAudioPath,
+            "-af", `${delayFilter},${limiterFilter}`,
+            "-c:a", "aac",
+            "-b:a", "192k",
+            trimmedAudioPath,
+          ], { stdio: "pipe" });
+          ffmpegDelay.on("close", (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`ffmpeg audio delay exited with code ${code}`));
+          });
+          ffmpegDelay.on("error", reject);
+        });
+        console.log(`  Audio delayed ${delayMs.toFixed(1)}ms (padded start)`);
+      }
       hasAudio = true;
-      console.log(`  Audio trimmed (cut ${audioTrimS.toFixed(3)}s from start)`);
     }
   }
   
@@ -593,7 +629,8 @@ async function captureWithCDP(page, args, server) {
     follow_unit_id: followUnitId,
     reel_ready_time_ms: pageReelReadyTime,
     audio_start_time_ms: pageAudioStartTime,
-    audio_trim_s: audioTrimS,
+    audio_latency_ms: audioLatencyMs,
+    audio_offset_ms: audioOffsetMs,
     video_cut_s: PREROLL_CUT_S,
     dropped_early_frames: droppedEarlyFrames,
     total_events: fireEvents.length,

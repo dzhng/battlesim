@@ -138,9 +138,10 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
     URL.revokeObjectURL(url);
   }, [state]);
 
-  // Track reelReadyTime and audioStartTime from the battle component
+  // Track reelReadyTime, audioStartTime, and audioLatency from the battle component
   const [reelReadyTime, setReelReadyTime] = useState<number | null>(null);
   const [audioStartTime, setAudioStartTime] = useState<number | null>(null);
+  const [audioLatency, setAudioLatency] = useState<number>(0);
 
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
@@ -151,8 +152,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       followUnitId,
       reelReadyTime,
       audioStartTime,
+      audioLatency,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, audioStartTime]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, audioStartTime, audioLatency]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -174,7 +176,10 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         onFireEvents={setFireEvents}
         onFollowUnitId={setFollowUnitId}
         onReelReady={setReelReadyTime}
-        onAudioStart={setAudioStartTime}
+        onAudioStart={(time, latency) => {
+          setAudioStartTime(time);
+          setAudioLatency(latency);
+        }}
         isTrackedVehicle={isTrackedVehicle}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
@@ -212,7 +217,7 @@ function CaptureBattle({
   onFireEvents?: (events: WeaponFireEvent[]) => void;
   onFollowUnitId?: (id: number | null) => void;
   onReelReady?: (time: number) => void;
-  onAudioStart?: (time: number) => void;
+  onAudioStart?: (time: number, latency: number) => void;
   isTrackedVehicle: (kind: string) => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -330,10 +335,11 @@ function CaptureBattle({
             };
 
             recorderRef.current = recorder;
-            // Record audio start time for sync with video cut
+            // Record audio start time and output latency for sync with video cut
             const audioStart = performance.now();
+            const audioLatency = audio.getOutputLatency();
             audioStartTimeRef.current = audioStart;
-            onAudioStart?.(audioStart);
+            onAudioStart?.(audioStart, audioLatency);
             recorder.start(1000);
           }
         }
