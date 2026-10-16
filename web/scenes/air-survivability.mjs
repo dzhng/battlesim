@@ -11,7 +11,7 @@ import { hull, unitType } from "./_units.mjs";
 
 const HELI = "ah_64e_guardian";
 const JET = "f_16c_block_50";
-const FLARES = unitType(JET).capabilities.air.flares.capacity;
+const FLARES = unitType(JET).capabilities.flares.capacity;
 
 export async function run(ctx) {
   const page = await openAir(ctx);
