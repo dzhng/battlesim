@@ -69,7 +69,7 @@ export default function CapturePage() {
 }
 
 function CaptureSession({ settings }: { settings: CaptureSettings }) {
-  const { rules } = useSessionCatalog();
+  const { rules, units } = useSessionCatalog();
   const refused = appResources.error();
   const [state, setState] = useState<CaptureState>({
     status: "warming",
@@ -79,6 +79,21 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   const [fireEvents, setFireEvents] = useState<WeaponFireEvent[]>([]);
   const startAudioOnlyRef = useRef<(() => void) | null>(null);
   const fireTrackerRef = useRef(new WeaponFireTracker());
+
+  // Set up the weapon kind resolver using the unit catalog
+  useEffect(() => {
+    fireTrackerRef.current.setResolver({
+      getWeaponKind(unitKind: string, mountIndex: number): string | null {
+        try {
+          const type = units.type(unitKind);
+          const mount = type.mounts[mountIndex];
+          return mount?.weapons[0] ?? null;
+        } catch {
+          return null;
+        }
+      },
+    });
+  }, [units]);
 
   const scene = SCENES[0];
   const preset = getCapturePreset(settings.preset);
@@ -412,7 +427,12 @@ function CaptureBattle({
       const observation = sim.latest.current;
       if (fireTracker && observation) {
         const sample = sampleReel(reel, elapsed);
-        fireTracker.setFollowedUnit(sample.follow);
+        // Resolve follow index to actual unit ID (follow is an index, not an id)
+        const followedId =
+          sample.follow !== null && observation.own[sample.follow]
+            ? observation.own[sample.follow].id
+            : null;
+        fireTracker.setFollowedUnit(followedId);
         const newEvents = fireTracker.update(observation, now);
         if (newEvents.length > 0) {
           onFireEventsRef.current?.(fireTracker.getEvents());

@@ -192,12 +192,25 @@ export interface WeaponFireEvent {
   is_followed: boolean;
 }
 
+/** Resolver for weapon kinds from unit type and mount index. */
+export interface WeaponKindResolver {
+  /** Look up the primary weapon kind for a unit type's mount. */
+  getWeaponKind(unitKind: string, mountIndex: number): string | null;
+}
+
 /** Tracks weapon fires by watching shot counts on unit mounts. */
 export class WeaponFireTracker {
   private shotCounts = new Map<string, number>();
   private events: WeaponFireEvent[] = [];
   private startTime: number | null = null;
   private followedUnit: number | null = null;
+  private initialized = false;
+  private resolver: WeaponKindResolver | null = null;
+
+  /** Set the weapon kind resolver (call once at construction). */
+  setResolver(resolver: WeaponKindResolver) {
+    this.resolver = resolver;
+  }
 
   /** Set which unit is being followed (for logging). */
   setFollowedUnit(id: number | null) {
@@ -218,6 +231,20 @@ export class WeaponFireTracker {
     now: number,
   ): WeaponFireEvent[] {
     if (this.startTime === null) this.startTime = now;
+
+    // On first frame, snapshot initial shot counts without logging events.
+    // This prevents false positives when units start with non-zero shot counts.
+    if (!this.initialized) {
+      this.initialized = true;
+      for (const unit of observation.own) {
+        for (const pose of unit.weaponPoses) {
+          const key = `${unit.id}:${pose.mount}`;
+          this.shotCounts.set(key, pose.shots);
+        }
+      }
+      return [];
+    }
+
     const elapsed = (now - this.startTime) / 1000;
     const newEvents: WeaponFireEvent[] = [];
 
@@ -228,12 +255,13 @@ export class WeaponFireTracker {
         const current = pose.shots;
 
         if (current > prev) {
+          const weaponKind = this.resolver?.getWeaponKind(unit.kind, pose.mount) ?? "unknown";
           const event: WeaponFireEvent = {
             time_s: elapsed,
             unit_id: unit.id,
             unit_kind: unit.kind,
             mount: pose.mount,
-            weapon_kind: "unknown", // Would need rules to resolve
+            weapon_kind: weaponKind,
             position: unit.position,
             is_followed: unit.id === this.followedUnit,
           };
@@ -258,5 +286,6 @@ export class WeaponFireTracker {
     this.shotCounts.clear();
     this.events = [];
     this.startTime = null;
+    this.initialized = false;
   }
 }

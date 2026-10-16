@@ -374,8 +374,10 @@ impl LightSettings {
             }
         } else {
             // Neutral grade: only exposure and AgX tone mapping apply.
+            // Saturation 0.0 is neutral: the shader computes 1.0 + sat * f(midtone),
+            // so sat=0 gives multiplier 1.0 (no change), not sat=1 which would boost.
             Grade {
-                saturation: 1.0,
+                saturation: 0.0,
                 contrast: 0.0,
                 split_tone: 0.0,
                 shadow_lift: 0.0,
