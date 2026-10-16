@@ -318,7 +318,8 @@ pub struct AirState {
     pub burner: f64,
     /// Last non-zero turn direction, retained by the fixed-wing flight law.
     pub turn_sign: i8,
-    /// Where the last explicit goal was lost; idle jets orbit this point.
+    /// Where an idle jet circles: the move goal it last reached, or where it
+    /// was when its last order or attack run ended (choice 03).
     pub last_goal: Option<V2>,
     /// Its arrival at the goal it flies to last, once it has turned onto
     /// the leg that ends there.
@@ -671,13 +672,30 @@ impl Unit {
             d.f64(a.fuel_s)
                 .u64(a.afterburner as u64)
                 .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)));
+            match a.pass {
+                Some(p) => {
+                    d.u64(1);
+                    p.target.digest(d);
+                    d.f64(p.aim.x)
+                        .f64(p.aim.y)
+                        .f64(p.aim.z)
+                        .u64(p.phase as u64)
+                        .u64(p.weapon as u64)
+                        .f64(p.agl)
+                        .f64(p.heading)
+                        .f64(p.cruise_agl)
+                        .u64(p.released as u64);
+                }
+                None => {
+                    d.u64(0);
+                }
+            }
+            d.u64(a.pass_release as u64);
         }
-        // Flares follow a flier's flight state; a flier without them hashes
-        // an empty store.
-        if self.air.is_some() || self.flares.is_some() {
-            let f = self.flares.unwrap_or_default();
-            d.u64(f.charges as u64).u64(f.ready_tick);
-        }
+        match self.flares {
+            Some(f) => d.u64(1).u64(f.charges as u64).u64(f.ready_tick),
+            None => d.u64(0),
+        };
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),
             None => d.u64(0),

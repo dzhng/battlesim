@@ -104,16 +104,6 @@ pub(super) fn step_aircraft(
         v2(0.0, 0.0)
     };
     let low = sinks(unit);
-    let fuel_mult = if unit.air.as_ref().is_some_and(|a| a.afterburner) {
-        unit.unit_type(ctx.rules)
-            .capabilities
-            .air
-            .as_ref()
-            .and_then(|a| a.afterburner)
-            .map_or(1.0, |a| a.fuel_multiplier)
-    } else {
-        1.0
-    };
     let air = unit.air.as_mut().expect("an aircraft's flight state");
     let change = wanted - air.velocity.xy();
     let most = accel * dt;
@@ -122,7 +112,7 @@ pub(super) fn step_aircraft(
     } else {
         wanted
     };
-    air.fuel_s = (air.fuel_s - dt * fuel_mult).max(0.0);
+    air.fuel_s = (air.fuel_s - dt).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
     let target = height_target(ctx, next, velocity, flight, reach, low);

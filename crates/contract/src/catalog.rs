@@ -1758,6 +1758,11 @@ fn check(
             return rule("capabilities.air.fuel_capacity_s must be positive");
         }
         if let Some(afterburner) = air.afterburner {
+            if t.mobility.flight() != Some(FlightModel::FixedWing) {
+                return rule(
+                    "capabilities.air.afterburner needs fixed-wing flight: no rotor flight law flies it",
+                );
+            }
             if !(afterburner.speed_multiplier > 1.0
                 && afterburner.fuel_multiplier > 1.0
                 && afterburner.speed_multiplier.is_finite()

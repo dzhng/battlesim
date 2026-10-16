@@ -1,29 +1,37 @@
 use crate::knowledge::SideKnowledge;
 use crate::math::V2;
 use crate::units::{Unit, UnitOrder};
-use crate::weapons::Target;
+use crate::weapons::{unit_reach, Arsenal, Target};
 use contract::command::Engagement;
 
 use super::pass::PassPlan;
-
-/// The side-scoped knowledge passed to an aircraft order decision.
-pub type Knowledge = SideKnowledge;
 
 /// A jet's flight task for this tick. This is the only result that turns an
 /// order or a reaction into flight in [`super::step_fixed_wing`].
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AirTask {
     Hold,
-    Orbit { centre: V2 },
-    Attack { target: Target, explicit: bool },
-    Dogfight,
+    Orbit {
+        centre: V2,
+    },
+    /// Attack `target`: a dogfight against a winged aircraft in its own
+    /// layer (`super::dogfightable`), passes at anything else.
+    Attack {
+        target: Target,
+        explicit: bool,
+    },
     Withdraw,
 }
 
 /// Resolve one jet's order and reaction against the knowledge available to
 /// its side. An existing pass owns the current leg until it completes; the
 /// caller clears it only after that leg has flown.
-pub fn task(unit: &Unit, knowledge: &Knowledge, pass: Option<&PassPlan>) -> AirTask {
+pub fn task(
+    unit: &Unit,
+    knowledge: &SideKnowledge,
+    arsenal: &Arsenal,
+    pass: Option<&PassPlan>,
+) -> AirTask {
     if unit.withdrawing {
         return AirTask::Withdraw;
     }
@@ -43,11 +51,6 @@ pub fn task(unit: &Unit, knowledge: &Knowledge, pass: Option<&PassPlan>) -> AirT
                         explicit: false,
                     };
                 }
-                UnitOrder::Move(_) => {
-                    return AirTask::Orbit {
-                        centre: move_goal(unit),
-                    };
-                }
                 _ => {}
             }
         }
@@ -58,7 +61,7 @@ pub fn task(unit: &Unit, knowledge: &Knowledge, pass: Option<&PassPlan>) -> AirT
             centre: order.destination,
         },
         Some(UnitOrder::AttackMove(order)) => {
-            if let Some(target) = along_way_target(unit, order.destination, knowledge) {
+            if let Some(target) = along_way_target(unit, order.destination, knowledge, arsenal) {
                 AirTask::Attack {
                     target,
                     explicit: false,
@@ -75,8 +78,6 @@ pub fn task(unit: &Unit, knowledge: &Knowledge, pass: Option<&PassPlan>) -> AirT
         Some(UnitOrder::Attack { target, .. }) => {
             if target_is_destroyed(*target, knowledge) {
                 AirTask::Hold
-            } else if super::dogfightable(knowledge, *target, unit.layer()) {
-                AirTask::Dogfight
             } else {
                 AirTask::Attack {
                     target: *target,
@@ -89,19 +90,14 @@ pub fn task(unit: &Unit, knowledge: &Knowledge, pass: Option<&PassPlan>) -> AirT
     }
 }
 
-pub fn reaction_task(unit: &Unit, knowledge: &Knowledge) -> AirTask {
-    reaction(unit, knowledge)
-}
-
-fn reaction(unit: &Unit, knowledge: &Knowledge) -> AirTask {
+/// What a jet with no order does on its own: answer an attacker it knows
+/// of, or a firing contact, under fire at will; otherwise hold.
+pub(crate) fn reaction(unit: &Unit, knowledge: &SideKnowledge) -> AirTask {
     if unit.engagement != Engagement::FireAtWill {
         return AirTask::Hold;
     }
     let attacker = unit.attackers.iter().find_map(|&id| {
-        if let Some(track) = knowledge.track(id) {
-            if track.position.z > unit.position.z * 0.5 {
-                return Some(AirTask::Dogfight);
-            }
+        if knowledge.track(id).is_some() {
             return Some(AirTask::Attack {
                 target: Target::Unit(id),
                 explicit: false,
@@ -128,33 +124,33 @@ fn reaction(unit: &Unit, knowledge: &Knowledge) -> AirTask {
         .unwrap_or(AirTask::Hold)
 }
 
-fn move_goal(unit: &Unit) -> V2 {
-    unit.orders
-        .front()
-        .and_then(UnitOrder::movement)
-        .map_or(unit.position.xy(), |order| order.destination)
-}
-
-fn target_is_destroyed(target: Target, knowledge: &Knowledge) -> bool {
+fn target_is_destroyed(target: Target, knowledge: &SideKnowledge) -> bool {
     matches!(target, Target::Unit(id) if knowledge.knows_destroyed(id))
 }
 
-fn along_way_target(unit: &Unit, goal: V2, knowledge: &Knowledge) -> Option<Target> {
+/// The known enemy nearest the jet's remaining leg to `goal`, among those
+/// its weapons reach from somewhere on the leg: what an attack-move picks
+/// up along the way. None once the leg is flown.
+fn along_way_target(
+    unit: &Unit,
+    goal: V2,
+    knowledge: &SideKnowledge,
+    arsenal: &Arsenal,
+) -> Option<Target> {
     let from = unit.position.xy();
     let leg = goal - from;
     let length_sq = leg.dot(leg);
+    if length_sq <= 1e-9 {
+        return None;
+    }
     knowledge
         .tracks()
         .filter_map(|(id, track)| {
-            let projection = if length_sq > 1e-9 {
-                (track.position.xy() - from).dot(leg) / length_sq
-            } else {
-                0.0
-            };
-            (0.0..=1.0).contains(&projection).then_some((
-                (track.position.xy() - (from + leg * projection)).length(),
-                id,
-            ))
+            let projection = (track.position.xy() - from).dot(leg) / length_sq;
+            let off = (track.position.xy() - (from + leg * projection)).length();
+            ((0.0..=1.0).contains(&projection)
+                && off <= unit_reach(arsenal, unit.kind, track.layer))
+            .then_some((off, id))
         })
         .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)))
         .map(|(_, id)| Target::Unit(id))

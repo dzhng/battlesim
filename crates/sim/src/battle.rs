@@ -662,9 +662,11 @@ impl Battle {
     }
 
     /// A finite-endurance aircraft turns for home while it still has enough
-    /// fuel for the friendly entry.  The ordinary withdrawal route then
-    /// settles its weighted refund at that base; a combat order cannot strand
-    /// an airframe after its tank is effectively empty.
+    /// fuel to reach it: a jet flies for the nearest point on its side's back
+    /// edge, a helicopter for its friendly entry site. The ordinary
+    /// withdrawal route then retires it there and settles its weighted
+    /// refund, so a combat order cannot strand an airframe after its tank is
+    /// effectively empty.
     fn trigger_fuel_withdrawals(&mut self) {
         let Some(skirmish) = &self.skirmish else {
             return;
@@ -679,9 +681,10 @@ impl Battle {
             let Some(capability) = unit.unit_type(&self.rules).capabilities.air.as_ref() else {
                 continue;
             };
-            let edge = crate::air::edge::back_edge(unit.side, &skirmish.setup.sites, &self.world);
             let entry = if unit.fixed_wing() {
-                crate::air::edge::nearest_exit(&edge, unit.position.xy())
+                let edge =
+                    crate::air::edge::back_edge(unit.side, &skirmish.setup.sites, &self.world);
+                crate::air::edge::entry(&edge, unit.position.xy()).0
             } else {
                 skirmish
                     .setup
@@ -2989,14 +2992,6 @@ impl Battle {
         }
     }
 
-    /// Guided missiles (P05, P06): a launcher supports its missile while it
-    /// stands still, has a living operator (including a survivor who takes
-    /// over the launcher), its side identifies the target (a round: while it
-    /// flies), and its operator has physical line of sight independent of
-    /// spotting range. It steers it at the target's observed position. Losing any of these (or a
-    /// Stop, which drops the mount's support) releases it at once and for good:
-    /// the missile coasts straight on for `guided.release_coast_s`, then goes
-    /// to ground, so a far one misses a target it can no longer see.
     /// A decoyable round closing on a unit with a flare ready draws one, in
     /// round order, one per flare reload. A seeker follows the flare; an
     /// operator-guided round loses its guidance, as when its operator loses
@@ -3032,6 +3027,10 @@ impl Battle {
                 continue;
             }
             let target = &self.units[target_id.0 as usize];
+            // A wreck or a withdrawn airframe dispenses nothing.
+            if !target.alive() {
+                continue;
+            }
             let Some(flare) = target.unit_type(&self.rules).capabilities.flares else {
                 continue;
             };
@@ -3046,8 +3045,7 @@ impl Battle {
             let lateral = v2(-libm::sin(target.yaw), libm::cos(target.yaw));
             let position = (target.position.xy() + lateral * (half.y + 0.5))
                 .with_z(target.position.z + half.z);
-            // A ground vehicle's are thrown from it at rest.
-            let base = target.air.map_or(v3(0.0, 0.0, 0.0), |air| air.velocity);
+            let base = target.flight_velocity();
             let velocity = v3(
                 base.x + lateral.x * 18.0,
                 base.y + lateral.y * 18.0,
@@ -3076,6 +3074,15 @@ impl Battle {
         }
     }
 
+    /// Guided missiles (P05, P06): a launcher supports its missile while it
+    /// stands still, has a living operator (including a survivor who takes
+    /// over the launcher), its side identifies the target (a round: while it
+    /// flies), and its operator has physical line of sight independent of
+    /// spotting range. It steers it at the target's observed position. Losing any of these (or a
+    /// Stop, which drops the mount's support) releases it at once and for good:
+    /// the missile coasts straight on for `guided.release_coast_s`, then goes
+    /// to ground, so a far one misses a target it can no longer see.
+    /// Flares are dispensed first, so a spoofed round is steered no more.
     fn guide(&mut self, moved: &[bool]) {
         self.dispense_flares();
         let mut supported = BTreeSet::new();
@@ -4777,6 +4784,7 @@ impl Battle {
             } else {
                 d.u64(0);
             }
+            d.u64(r.layer as u64);
         }
         d.u64(self.suppressed.len() as u64);
         for ((id, i), v) in &self.suppressed {
@@ -5037,6 +5045,61 @@ mod tests {
             "on the helicopter"
         );
         battle
+    }
+
+    /// A wreck or a withdrawn airframe dispenses nothing: a seeker still
+    /// flying at a helicopter that has left the battle draws no flare from
+    /// it, though its dispenser is ready.
+    #[test]
+    fn a_unit_out_of_the_battle_draws_no_flare() {
+        let mut rules = crate::fixtures::test_game();
+        rules["weapons"]["atgm"]["aim_s"] = serde_json::json!(0.5);
+        rules["weapons"]["atgm"]["seeker"] = serde_json::json!("infrared");
+        rules["weapons"]["atgm"]["seeker_fov_deg"] = serde_json::json!(180);
+        rules["weapons"]["atgm"]["decoyable"] = serde_json::json!(true);
+        rules["weapons"]["atgm"]["targets"] =
+            serde_json::json!({"low_air": {"classes": ["air_rotor"]}});
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_heli",
+            serde_json::json!({"capabilities": {"flares": {"capacity": 2, "reload_s": 30}}}),
+        );
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": {"size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35},
+            "rules": rules,
+            "units": [
+                {"side": "blue", "kind": "test_at", "position": [40, 300]},
+                {"side": "red", "kind": "test_heli", "position": [500, 300], "engagement": "return_fire_only"}
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 7);
+        for _ in 0..600 {
+            battle.step();
+            if battle
+                .rounds
+                .values()
+                .any(|r| r.seeker_target == Some(Target::Unit(UnitId(1))))
+            {
+                break;
+            }
+        }
+        assert!(
+            battle
+                .rounds
+                .values()
+                .any(|r| r.seeker_target == Some(Target::Unit(UnitId(1)))),
+            "a seeker flies at the helicopter"
+        );
+        let ready = battle.units[1]
+            .flares
+            .expect("the helicopter carries flares");
+        assert_eq!(ready.charges, 2, "no flare drawn before the lock");
+        battle.units[1].retired = true;
+        battle.step();
+        assert_eq!(battle.units[1].flares, Some(ready));
     }
 
     /// The patched gun's lock: the jeep's own HMG is mount 0.

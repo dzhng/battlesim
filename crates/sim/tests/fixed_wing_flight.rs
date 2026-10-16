@@ -273,9 +273,10 @@ fn a_jet_flying_to_a_far_goal_holds_a_straight_heading() {
     s.pos = v3(-1_000.0, 0.0, 250.0);
     let bounds = Bounds::new(v2(-2_000.0, -2_000.0), v2(2_000.0, 2_000.0));
     let intent = Intent::Pursue {
-        point: v3(1_000.0, 0.0, 250.0),
-        vel: v3(0.0, 0.0, 0.0),
+        point: v2(1_000.0, 0.0),
+        vel: v2(0.0, 0.0),
         lag_s: 0.0,
+        agl: 250.0,
     };
     for _ in 0..120 {
         let command = steer(&intent, &s, &l, &bounds, 1.0 / 30.0);
@@ -334,14 +335,15 @@ fn a_jet_circles_the_way_it_was_already_turning() {
 fn an_attack_circles_the_targets_current_position() {
     let l = wing_limits();
     let mut s = state();
-    let target = v3(0.0, 0.0, 100.0);
+    let target = v2(0.0, 0.0);
     let bounds = Bounds::new(v2(-2_000.0, -2_000.0), v2(2_000.0, 2_000.0));
     for _ in 0..200 {
         let command = steer(
             &Intent::Pursue {
                 point: target,
-                vel: v3(10.0, 0.0, 0.0),
+                vel: v2(10.0, 0.0),
                 lag_s: 2.0,
+                agl: 100.0,
             },
             &s,
             &l,
@@ -350,7 +352,7 @@ fn an_attack_circles_the_targets_current_position() {
         );
         s = fly(s, command, &l, &|_| 0.0, 1.0 / 30.0);
     }
-    let aim = target.xy() - v2(20.0, 0.0);
+    let aim = target - v2(20.0, 0.0);
     assert!((s.pos.xy() - aim).length() > 0.0);
 }
 
@@ -417,18 +419,52 @@ fn a_queued_order_follows_once_the_circle_is_reached() {
     assert!((battle.unit(UnitId(0)).unwrap().position.xy() - second).length() < 2_000.0);
 }
 
+/// A jet that reaches its move goal keeps circling that goal once the
+/// order is done (choice 03), rather than drifting onto a circle of its own
+/// wherever the order happened to end.
 #[test]
-fn an_idle_jet_circles_where_it_lost_its_goal() {
+fn an_idle_jet_circles_the_goal_it_reached() {
     let mut battle = AirField::new(3_000.0)
         .aircraft("test_jet", [300.0, 1_500.0], 0.0)
         .battle();
-    for _ in 0..30 {
+    let goal = v2(1_300.0, 1_700.0);
+    battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [goal.x, goal.y],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    });
+    let sim::units::Motion::Air(flight) = battle.unit(UnitId(0)).unwrap().motion else {
+        panic!("test_jet flies");
+    };
+    let radius = flight.cruise_mps / flight.turn_rad_s;
+    battle.step();
+    assert!(!battle.unit(UnitId(0)).unwrap().orders.is_empty());
+    let mut ticks = 0;
+    while !battle.unit(UnitId(0)).unwrap().orders.is_empty() {
         battle.step();
+        ticks += 1;
+        assert!(ticks < 3_000, "the jet never reached its goal");
     }
-    let before = battle.unit(UnitId(0)).unwrap().position.xy();
-    for _ in 0..120 {
+    // Several whole turns: the mean position is the circle's centre.
+    let turn_ticks = (std::f64::consts::TAU / flight.turn_rad_s * 30.0).round() as usize;
+    let mut sum = v2(0.0, 0.0);
+    for _ in 0..turn_ticks * 4 {
         battle.step();
+        sum = sum + battle.unit(UnitId(0)).unwrap().position.xy();
     }
-    let after = battle.unit(UnitId(0)).unwrap().position.xy();
-    assert!((after - before).length() > 1.0);
+    let centre = sum * (1.0 / (turn_ticks * 4) as f64);
+    assert!(
+        (centre - goal).length() < radius * 0.25,
+        "circles {centre:?}, {:.0} m from its goal (turn radius {radius:.0} m)",
+        (centre - goal).length()
+    );
 }

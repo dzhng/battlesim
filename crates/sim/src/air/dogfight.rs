@@ -6,7 +6,7 @@ use contract::random::{mix, Rng};
 use contract::scenario::FixedWingFlight;
 
 use crate::knowledge::Track;
-use crate::math::{v2, v3, V3};
+use crate::math::{v2, V2};
 use crate::units::Unit;
 
 use super::fixed_wing::FixedWingState;
@@ -89,7 +89,7 @@ pub fn intent(
     let mut rng = Rng::new(mix(seed));
     let band = air.dogfight_band_agl_m;
     let agl = band[0] + rng.unit() * (band[1] - band[0]);
-    let target_velocity = v3(target_track.velocity.x, target_track.velocity.y, 0.0);
+    let target_velocity = target_track.velocity;
     let own_forward = v2(libm::cos(own.heading), libm::sin(own.heading));
     let offset = target_track.position.xy() - own.pos.xy();
     let distance = offset.length();
@@ -101,7 +101,7 @@ pub fn intent(
     let target_forward = v2(libm::cos(target_track.yaw), libm::sin(target_track.yaw));
     let head_on = own_forward.dot(to_target) > 0.5 && target_forward.dot(-to_target) > 0.5;
     let own_velocity = own_forward * own.speed_mps;
-    let closing = (target_velocity.xy() - own_velocity).dot(offset) < 0.0;
+    let closing = (target_velocity - own_velocity).dot(offset) < 0.0;
     if distance <= air.dogfight_break_m * 0.5
         && head_on
         && (closing || target_track.velocity.length() <= 1e-6)
@@ -109,17 +109,18 @@ pub fn intent(
         // A merge is a pass, not a charge through the opponent. Aim behind
         // our own nose for two seconds; once clear, ordinary lag pursuit
         // brings the jets round onto one another again.
-        let point = (own.pos.xy() - own_forward * (own.speed_mps.max(1.0) * 2.0)).with_z(agl);
         return Intent::Pursue {
-            point,
-            vel: V3::default(),
+            point: own.pos.xy() - own_forward * (own.speed_mps.max(1.0) * 2.0),
+            vel: V2::default(),
             lag_s: 0.0,
+            agl,
         };
     }
     Intent::Pursue {
-        point: v3(target_track.position.x, target_track.position.y, agl),
+        point: target_track.position.xy(),
         vel: target_velocity,
         lag_s: 1.5,
+        agl,
     }
 }
 

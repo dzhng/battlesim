@@ -78,13 +78,6 @@ pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
 /// [`crate::garrison::facade_eyes`]). The fog sweep, identification and the
 /// published `UnitSight::eyes` the renderer's fog draws all read this one
 /// list. There is no extra all-round roof sensor.
-/// Whether `unit` sees the ground at all. High air never does: it flies
-/// lowered for play but still as far above the battle as a real jet, so the
-/// ground and its fog are out of its sight (air-to-air sight is unaffected).
-pub fn sees_ground(unit: &Unit) -> bool {
-    unit.layer() != AltitudeLayer::HighAir
-}
-
 pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
     let facades = crate::garrison::facade_eyes(unit, rules);
     if facades.is_empty() {
@@ -92,6 +85,13 @@ pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
     } else {
         facades
     }
+}
+
+/// Whether `unit` sees the ground at all. High air never does: it flies
+/// lowered for play but still as far above the battle as a real jet, so the
+/// ground and its fog are out of its sight (air-to-air sight is unaffected).
+pub fn sees_ground(unit: &Unit) -> bool {
+    unit.layer() != AltitudeLayer::HighAir
 }
 
 /// How far sight of directional `range` reaches through foliage of `depth`

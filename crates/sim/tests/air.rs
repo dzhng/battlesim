@@ -603,7 +603,6 @@ fn authored_aircraft_fuel_starts_full_and_burns_on_map() {
         json!({
             "capabilities": { "air": {
                 "fuel_capacity_s": 180.0,
-                "afterburner": { "speed_multiplier": 1.5, "fuel_multiplier": 2.0 },
                 "refund": { "health": 0.34, "ammunition": 0.33, "fuel": 0.33 }
             }}
         }),

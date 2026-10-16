@@ -486,6 +486,19 @@ pub fn squad_range(arsenal: &Arsenal, kind: TypeIndex) -> f64 {
     )
 }
 
+/// How far a unit's weapons reach at `layer`: the longest range there of
+/// any row it carries (0 for none).
+pub fn unit_reach(arsenal: &Arsenal, kind: TypeIndex, layer: AltitudeLayer) -> f64 {
+    reach(
+        arsenal,
+        layer,
+        arsenal
+            .specs(kind)
+            .iter()
+            .flat_map(|s| s.kinds.iter().copied()),
+    )
+}
+
 /// The longest range of these weapon rows at `layer` (0 for none).
 fn reach(arsenal: &Arsenal, layer: AltitudeLayer, rows: impl Iterator<Item = usize>) -> f64 {
     rows.filter_map(|k| arsenal.weapons[k].def.against(layer))
