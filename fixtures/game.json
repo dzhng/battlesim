@@ -74,7 +74,8 @@
     "sound_bucket_s": 0.5,
     "fog_target_height_m": 1.0,
     "min_sight_gap_m": 0.5,
-    "unaided_high_air_m": { "on_foot": 600, "aircraft": 600, "ground_vehicle": 300 }
+    "unaided_high_air_m": { "on_foot": 600, "aircraft": 600, "ground_vehicle": 300 },
+    "radar_report": { "bearing_step_deg": 5, "range_step_m": 100, "min_radius_m": 50 }
   },
   "penetration": {
     "partial_from": 0.6

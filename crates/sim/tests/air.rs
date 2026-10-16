@@ -645,7 +645,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
         "units": [], "events": [], "scripts": [],
         "skirmish": {
             "factions": ["us", "eastern"],
-            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "dispatch_interval_s": 1 },
+            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "center": [400, 10], "side": "blue", "yaw": std::f64::consts::FRAC_PI_2 },
                 { "center": [400, 590], "side": "red", "yaw": -std::f64::consts::FRAC_PI_2 }
@@ -1118,7 +1118,7 @@ fn back_edge_entry_and_crossing_follow_the_entry_site_side() {
     let setup = serde_json::from_value::<contract::scenario::ScenarioDefinition>(serde_json::json!({
         "map": {"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules": fixture, "units": [],
-        "skirmish": {"factions":["us","eastern"],"rules":{"credits_per_minute":1,"starting_minutes":1,"preparation_s":1,"max_units":1,"dispatch_interval_s":1},"sites":{"entries":[{"side":"blue","center":[300,5],"yaw":1.57},{"side":"red","center":[300,395],"yaw":-1.57}],"objectives":[{"id":"center","center":[300,200],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,100],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[400,300],"radius_m":50,"kind":"field","counterpart":"south"}]}}
+        "skirmish": {"factions":["us","eastern"],"rules":{"credits_per_minute":1,"starting_minutes":1,"preparation_s":1,"max_units":1,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},"sites":{"entries":[{"side":"blue","center":[300,5],"yaw":1.57},{"side":"red","center":[300,395],"yaw":-1.57}],"objectives":[{"id":"center","center":[300,200],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,100],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[400,300],"radius_m":50,"kind":"field","counterpart":"south"}]}}
     })).unwrap();
     let world = sim::encounter::PreparedMap::new(&setup.map, &setup.rules).world;
     let edge = sim::air::edge::back_edge(

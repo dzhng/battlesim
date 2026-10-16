@@ -89,6 +89,30 @@ fn a_ground_unit_with_a_radar_receiver_finds_an_emitter_within_its_reach() {
 }
 
 #[test]
+fn a_radar_report_rounds_by_the_rules_steps() {
+    // Steps of 45° and 500 m, an area at least 300 m wide: an emitter 707 m
+    // off, 8° left of east, reads as bearing 0° and range 500 m.
+    let mut rules = receiver_rules(1000.0, "hmg");
+    rules["sensors"]["radar_report"] =
+        json!({ "bearing_step_deg": 45, "range_step_m": 500, "min_radius_m": 300 });
+    let b = battle_of(
+        &rules,
+        [1400.0, 400.0],
+        json!([
+            { "side": "blue", "kind": "test_supply", "position": [100, 100] },
+            { "side": "red", "kind": "test_tank", "position": [800, 200] }
+        ]),
+    );
+    let contacts = radar_contacts(&b, Side::Blue);
+    let [contact] = contacts.as_slice() else {
+        panic!("expected one radar contact: {contacts:?}");
+    };
+    assert_eq!(contact.bearing_deg, Some(0.0));
+    assert_eq!(contact.range_m, Some(500.0));
+    assert!(contact.radius >= 300.0, "{}", contact.radius);
+}
+
+#[test]
 fn radar_contact_refreshes_and_does_not_reveal_the_ground() {
     let rules = receiver_rules(1000.0, "hmg");
     let mut b = battle_of(

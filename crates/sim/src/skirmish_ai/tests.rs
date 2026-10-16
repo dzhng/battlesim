@@ -458,12 +458,19 @@ fn doctrine_pivots_after_maximum_dwell_without_visible_progress() {
     let (rules, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
     frame.skirmish.as_mut().unwrap().credits = 0.0;
+    // Its tuning, not a number in the code, says how long it dwells: 60 s.
     let mut ai = BalancedDoctrine::new(7);
+    ai.tuning.max_dwell_s = 60.0;
     ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
         Some(1.0)
     });
     assert_eq!(ai.doctrine(), Doctrine::BalancedOpening);
-    frame.tick = 181 * u64::from(rules.tick_hz);
+    frame.tick = 55 * u64::from(rules.tick_hz);
+    ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
+        Some(1.0)
+    });
+    assert_eq!(ai.doctrine(), Doctrine::BalancedOpening);
+    frame.tick = 65 * u64::from(rules.tick_hz);
     ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
         Some(1.0)
     });

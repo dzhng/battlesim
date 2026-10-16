@@ -328,9 +328,11 @@ impl SideKnowledge {
             let delta = emitter.position.xy() - detector.position.xy();
             // In [0, 360): counter-clockwise from east, as the map's yaw.
             let bearing = libm::atan2(delta.y, delta.x).to_degrees();
-            let bearing = ((bearing / 5.0).round() * 5.0).rem_euclid(360.0);
-            let range = (distance / 100.0).round() * 100.0;
-            let radius = emitter.contact_radius(rules).max(50.0);
+            let report = rules.sensors.radar_report;
+            let step = report.bearing_step_deg;
+            let bearing = ((bearing / step).round() * step).rem_euclid(360.0);
+            let range = (distance / report.range_step_m).round() * report.range_step_m;
+            let radius = emitter.contact_radius(rules).max(report.min_radius_m);
             // The report's centre is deliberately displaced inside its area;
             // the exact emitter position never crosses the observation seam.
             let angle = std::f64::consts::TAU * self.rng.unit();

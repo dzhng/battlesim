@@ -543,6 +543,18 @@ pub struct SensorRules {
     /// How far a unit with neither an emitting radar nor its own high-air
     /// reach sees the high-air band, by its body and flight (D48).
     pub unaided_high_air_m: UnaidedHighAirSight,
+    /// How coarsely a radar receiver reports what it finds.
+    pub radar_report: RadarReport,
+}
+
+/// A radar receiver's report of an emitter: its bearing and range rounded
+/// to these steps, and an area at least this wide around it.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RadarReport {
+    pub bearing_step_deg: f64,
+    pub range_step_m: f64,
+    pub min_radius_m: f64,
 }
 
 /// High-air sight without radar, by body and flight: soldiers on foot look
@@ -570,6 +582,15 @@ impl SensorRules {
             .any(|m| !m.is_finite() || *m < 0.0)
         {
             return Err("unaided_high_air_m: every row must be finite and not negative".into());
+        }
+        let r = self.radar_report;
+        if [r.bearing_step_deg, r.range_step_m, r.min_radius_m]
+            .iter()
+            .any(|m| !(m.is_finite() && *m > 0.0))
+        {
+            return Err(
+                "radar_report: every step and the radius must be finite and positive".into(),
+            );
         }
         Ok(())
     }

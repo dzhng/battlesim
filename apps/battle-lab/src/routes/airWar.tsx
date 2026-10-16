@@ -19,6 +19,7 @@ import { gameCamera } from "../gameCamera";
 import { listMaps } from "@web/maps/catalogue";
 import { SavedEncounter, SavedMap } from "../savedMaps";
 import { TickStatus } from "../TickStatus";
+import matchRules from "@fixtures/skirmish.json";
 
 // The air-war checkpoints (specs/done/air-war), each played on the air test
 // map through the production battle view, so its cards, fog, orders and
@@ -125,13 +126,7 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
  *  preparation, so a purchase dispatches as soon as blue is ready. */
 const INGRESS_SKIRMISH = {
   factions: ["us", "eastern"],
-  rules: {
-    credits_per_minute: 200,
-    starting_minutes: 5,
-    preparation_s: 0,
-    max_units: 30,
-    dispatch_interval_s: 1,
-  },
+  rules: { ...matchRules, preparation_s: 0 },
   sites: {
     entries: [
       { side: "blue", center: [10, 260], yaw: 0 },

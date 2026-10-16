@@ -5636,7 +5636,7 @@ mod settlement_tests {
         });
         battle.skirmish = Some(crate::skirmish::Skirmish::new(serde_json::from_value(json!({
             "factions":["us","eastern"],
-            "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1},
+            "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},
             "sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0},{"side":"red","center":[400,590],"yaw":0}],
                 "objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},
                     {"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},

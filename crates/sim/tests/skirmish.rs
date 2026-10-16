@@ -51,7 +51,7 @@ fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition 
         "rules": rules, "units": [],
         "skirmish": {
             "factions": ["us", "eastern"],
-            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1 },
+            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "side": "blue", "center": [400, 10], "yaw": 1.5707963267948966 },
                 { "side": "red", "center": [400, 590], "yaw": -1.5707963267948966 }
