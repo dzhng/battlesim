@@ -127,7 +127,7 @@ The user saw these preferences and kept answering questions themselves. The only
 - **The camera isn't a blocker.** The walk's numbers stand until the user plays them.
 - **No balance tests.** Tests pin mechanisms (a missile burns out at its lifetime, the afterburner ramps, the floor holds), never which unit wins. This is now in the agent's memory.
 - **Aircraft get a real model pass,** unlike other units.
-- **The behaviour mock** `throwaway/air-war-flight/flight-mock.html` sketches circling, bomb passes, missile passes with the gun, a dogfight a third jet joins, fly-in and withdrawal, and the SAM chase, with sliders. The user didn't flag anything in it. Its logic was checked in Node: bombs land within 2 m, the gun never fires on bomb passes, and it does fire on missile passes and in dogfights.
+- **The behaviour mock** [`visualizations/flight-mock.html`](visualizations/flight-mock.html) sketches circling, bomb passes, missile passes with the gun, a dogfight a third jet joins, fly-in and withdrawal, and the SAM chase, with sliders. The user didn't flag anything in it. Its logic was checked in Node: bombs land within 2 m, the gun never fires on bomb passes, and it does fire on missile passes and in dogfights.
 
 ## 4. Unknown unknowns: landmines
 
