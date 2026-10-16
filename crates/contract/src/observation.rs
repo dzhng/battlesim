@@ -88,7 +88,7 @@ pub enum ContactSource {
     Firing,
     /// An identified enemy was last seen here.
     LastSeen,
-    /// A radar-only report from a SEAD sensor. It is deliberately distinct
+    /// A radar-only report from a radar receiver. It is deliberately distinct
     /// from firing and last-seen evidence so presentation can label it
     /// "RADAR CONTACT" without exposing an identity or ground visibility.
     Radar,
@@ -124,12 +124,12 @@ pub struct ApproximateContact {
     /// gun's report doesn't say which round it loaded (a cannon's AP and HE
     /// sound alike). 0 for a last sighting.
     pub heard: u64,
-    /// Quantized bearing from the detecting SEAD aircraft, in degrees in
+    /// Quantized bearing from the receiver that found it, in degrees in
     /// [0, 360), counter-clockwise from +X like the map's yaw. Radar reports
     /// carry this separately from the uncertain area centre.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bearing_deg: Option<f64>,
-    /// Quantized range from the detecting SEAD aircraft, in metres.
+    /// Quantized range from the receiver that found it, in metres.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub range_m: Option<f64>,
 }

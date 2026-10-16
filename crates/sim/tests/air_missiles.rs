@@ -397,7 +397,7 @@ fn jet_missile_at_a_covered_tank(intercepts_in: &str) -> (f64, f64, u32, u32) {
         "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
         "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180,
         "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
-        "blast_radius_m": 3, "structural_damage": 20,
+        "blast_radius_m": 3, "proximity_fuse_m": 5, "structural_damage": 20,
         "targets": { intercepts_in: { "classes": ["missile"] } }
     });
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
@@ -483,4 +483,56 @@ fn a_high_air_interceptor_shoots_down_a_jets_missile_and_the_tank_survives() {
         "a low-air interceptor engaged a high-air round"
     );
     assert!(after < before, "the jet's missile missed the open tank");
+}
+
+/// How far from a helicopter 400 m off its first missile bursts, when a jeep
+/// fires a stinger with this proximity fuse at it (none: it bursts only on
+/// what it strikes).
+fn burst_from_the_helicopter(fuse_m: Option<f64>) -> f64 {
+    let mut rules = sim::fixtures::test_game();
+    match fuse_m {
+        Some(m) => rules["weapons"]["stinger"]["proximity_fuse_m"] = json!(m),
+        None => {
+            rules["weapons"]["stinger"]
+                .as_object_mut()
+                .unwrap()
+                .remove("proximity_fuse_m");
+        }
+    }
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "HMG", "weapons": ["stinger"] }] }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
+            { "side": "red", "kind": "test_heli", "position": [500, 200], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..600 {
+        b.step();
+        if let Some(blast) = b.observe(Side::Blue).blasts.first() {
+            let heli = b.unit(UnitId(1)).unwrap().position;
+            let p = blast.point;
+            return (v3(p[0], p[1], p[2]) - heli).length();
+        }
+    }
+    panic!("the stinger never burst");
+}
+
+#[test]
+fn a_proximity_fused_missile_bursts_as_it_nears_the_aircraft() {
+    // A fuse reaching 30 m bursts it 30 m off the helicopter's hull (7 m
+    // from its centre at the most); without one it flies on into the hull.
+    let fused = burst_from_the_helicopter(Some(30.0));
+    assert!((30.0..=37.5).contains(&fused), "{fused}");
+    let unfused = burst_from_the_helicopter(None);
+    assert!(unfused < 10.0, "{unfused}");
 }

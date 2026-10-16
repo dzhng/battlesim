@@ -1,0 +1,16 @@
+{
+  "decision_s": 5,
+  "reaction_max_s": 3,
+  "air_memory_s": 30,
+  "min_dwell_s": 20,
+  "max_dwell_s": 180,
+  "sighting_horizon_s": 3,
+  "supply_share": 0.4,
+  "truck_slack_m": 40,
+  "contact_aim_share": 0.35,
+  "objective_aim_share": 0.5,
+  "aim_cap_m": 40,
+  "recon_sight_share": 0.85,
+  "recon_approach_share": 0.75,
+  "purchase_noise": 40
+}

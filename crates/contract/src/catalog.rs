@@ -176,10 +176,6 @@ pub struct Hull {
 /// No ground mover's top speed may exceed this (light wheeled vehicles do 110).
 pub const MAX_SPEED_KMH: f64 = 130.0;
 
-/// No low-air aircraft's cruise may exceed this (attack helicopters cruise at 240).
-pub const MAX_AIR_SPEED_KMH: f64 = 320.0;
-pub const MAX_HIGH_AIR_SPEED_KMH: f64 = 1000.0;
-
 /// The height band a unit occupies, which decides what can engage it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -322,10 +318,10 @@ fn default_air_layer() -> AltitudeLayer {
 pub struct Sensors {
     /// Ground range in the open, before shape.
     pub ground_m: f64,
-    /// Detection reach for the low-air band. Zero means this sensor does not
-    /// author an air reach (legacy ground rows leave it absent).
-    #[serde(default)]
-    pub low_air_m: f64,
+    /// Its own reach into the low-air band; absent, it sees low air as far
+    /// as it sees the ground (`ground_m`), and an authored 0 is blind to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub low_air_m: Option<f64>,
     /// Its own reach into the high-air band; absent, it sees high air
     /// unaided, by its body (the rules' `sensors.unaided_high_air_m`), and
     /// an authored 0 is blind to it. A unit whose radar emits never authors
@@ -374,6 +370,20 @@ pub struct Capabilities {
     /// Radar emission/detection is separate from optical sensors.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radar: Option<RadarCapability>,
+    /// Decoys ejected against an incoming decoyable seeker, a charge each.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flares: Option<FlareCapability>,
+    /// A radar warning receiver: it finds enemy radars that emit, by
+    /// bearing and range, never identifying them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radar_receiver: Option<RadarReceiver>,
+}
+
+/// How far a radar warning receiver finds an emitting radar.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RadarReceiver {
+    pub range_m: f64,
 }
 
 /// A radar's authored emission and detection contract.
@@ -431,14 +441,7 @@ pub struct AirCapability {
     #[serde(alias = "fuel_s")]
     pub fuel_capacity_s: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub flares: Option<FlareCapability>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub afterburner: Option<AfterburnerCapability>,
-    /// Anti-radiation mission capability; only these aircraft may engage radar contacts.
-    #[serde(default)]
-    pub sead: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub radar: Option<RadarCapability>,
     pub refund: RefundWeights,
 }
 
@@ -532,6 +535,10 @@ pub struct PropKind(pub u16);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PropType {
+    /// It is what a unit leaves when destroyed: each placement names the
+    /// unit type it was (`wreck_of`), and only a wreck's does.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub wreck: bool,
     pub body: PropBody,
     /// What a destroyed body becomes; with `body.hp`, and only with it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -982,8 +989,8 @@ impl UnitType {
 
     /// A vehicle's presentation class, from its physics: how it moves
     /// (tracked, wheeled, `air`, or `high_air` for an aircraft in high air),
-    /// its hull's weight class, and `_logistics` for a supply hauler, as
-    /// `tracked_heavy`, `air_light` or `wheeled_medium_logistics`. Vehicle
+    /// its hull's weight class, and `_logistics` for a unit that carries
+    /// supply, as `tracked_heavy`, `air_light` or `wheeled_medium_logistics`. Vehicle
     /// sound, running gear and art rules are keyed by it, never by unit id.
     /// None for a squad.
     pub fn vehicle_class(&self) -> Option<String> {
@@ -1004,7 +1011,7 @@ impl UnitType {
             WeightClass::Heavy => "heavy",
             WeightClass::Immovable => "immovable",
         };
-        let hauls = if self.has_role("logistics") {
+        let hauls = if self.capabilities.supply.is_some() {
             "_logistics"
         } else {
             ""
@@ -1750,11 +1757,6 @@ fn check(
         if !positive(air.fuel_capacity_s) {
             return rule("capabilities.air.fuel_capacity_s must be positive");
         }
-        if let Some(flares) = air.flares {
-            if flares.capacity == 0 || !positive(flares.reload_s) {
-                return rule("capabilities.air.flares needs positive capacity and reload_s");
-            }
-        }
         if let Some(afterburner) = air.afterburner {
             if !(afterburner.speed_multiplier > 1.0
                 && afterburner.fuel_multiplier > 1.0
@@ -1764,14 +1766,6 @@ fn check(
                 return rule(
                     "capabilities.air.afterburner multipliers must be finite and greater than one",
                 );
-            }
-        }
-        if let Some(radar) = air.radar {
-            if radar.emits && !positive(radar.detection_m) {
-                return rule("capabilities.air.radar detection_m must be positive when it emits");
-            }
-            if !at_least_zero(radar.detection_m) {
-                return rule("capabilities.air.radar detection_m must be finite and nonnegative");
             }
         }
         let refund = air.refund;
@@ -1792,6 +1786,20 @@ fn check(
         if rows.len() > 4 {
             return rule("an aircraft may carry at most four distinct weapon rows");
         }
+    }
+    if let Some(flares) = t.capabilities.flares {
+        if t.hull().is_none() {
+            return rule("capabilities.flares needs a hull: flares are dispensed from a vehicle or an airframe");
+        }
+        if flares.capacity == 0 || !positive(flares.reload_s) {
+            return rule("capabilities.flares needs positive capacity and reload_s");
+        }
+    }
+    if t.capabilities
+        .radar_receiver
+        .is_some_and(|receiver| !positive(receiver.range_m))
+    {
+        return rule("capabilities.radar_receiver range_m must be positive");
     }
     if let Some(radar) = t.capabilities.radar {
         if radar.emits && !positive(radar.detection_m) {
@@ -1849,13 +1857,9 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         }) {
             return Some("mobility: arrival.delay_s must be [min, max] with 0 <= min <= max");
         }
-        let max_speed = match layer {
-            AltitudeLayer::LowAir => MAX_AIR_SPEED_KMH,
-            AltitudeLayer::HighAir => MAX_HIGH_AIR_SPEED_KMH,
-            AltitudeLayer::Ground => unreachable!(),
-        };
-        if !(cruise_kmh > 0.0 && cruise_kmh <= max_speed) {
-            return Some("mobility: cruise_kmh must lie within its altitude-layer limit");
+        // Its upper limit is the rules' (`air_speed_limits_kmh`).
+        if !positive(cruise_kmh) {
+            return Some("mobility: an aircraft's cruise_kmh must be positive");
         }
         if !positive(turn_deg_s) || !positive(climb_mps) {
             return Some("mobility: an aircraft's turn_deg_s and climb_mps must be positive");
@@ -1902,8 +1906,9 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
             .then_some("sensors.concealed_range_multiplier must be finite and at least 1")
     })
     .or_else(|| {
-        (![t.sensors.low_air_m, t.sensors.high_air_m.unwrap_or(0.0)]
+        (![t.sensors.low_air_m, t.sensors.high_air_m]
             .into_iter()
+            .flatten()
             .all(at_least_zero))
         .then_some("sensors air ranges must be finite and nonnegative")
     })

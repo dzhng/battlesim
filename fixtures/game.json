@@ -74,7 +74,8 @@
     "sound_bucket_s": 0.5,
     "fog_target_height_m": 1.0,
     "min_sight_gap_m": 0.5,
-    "unaided_high_air_m": { "on_foot": 600, "aircraft": 600, "ground_vehicle": 300 }
+    "unaided_high_air_m": { "on_foot": 600, "aircraft": 600, "ground_vehicle": 300 },
+    "radar_report": { "bearing_step_deg": 5, "range_step_m": 100, "min_radius_m": 50 }
   },
   "penetration": {
     "partial_from": 0.6
@@ -427,9 +428,11 @@
       "near_miss_suppression": 0,
       "suppression_radius_m": 0,
       "blast_radius_m": 3,
+      "proximity_fuse_m": 3,
       "structural_damage": 20
     },
         "aa_ballistic": {
+            "proximity_fuse_m": 5,
             "extends": "hmg",
             "name": "Short AA gun",
             "description": "Ballistic short-range air defence.",
@@ -496,6 +499,7 @@
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
+            "proximity_fuse_m": 3,
             "structural_damage": 20,
             "seeker": "radar",
             "seeker_fov_deg": 120,
@@ -529,12 +533,14 @@
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
+            "proximity_fuse_m": 3,
             "structural_damage": 20,
             "seeker": "radar",
             "seeker_fov_deg": 100,
             "decoyable": true
         },
         "patriot_pac3": {
+            "proximity_fuse_m": 5,
             "extends": "aa_long",
             "name": "PAC-3 MSE",
             "description": "Long-range missile that also shoots down missiles fired from aircraft.",
@@ -543,6 +549,7 @@
             }
         },
         "pantsir_missile": {
+            "proximity_fuse_m": 5,
             "extends": "aa_medium",
             "name": "57E6",
             "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
@@ -588,10 +595,10 @@
                     "aim_max_s": 1
                 }
             },
-            "default": true,
-            "ground_attack": "strafe"
+            "default": true
         },
         "air_missile": {
+            "fires_on_its_own": true,
             "targets": {
                 "low_air": { "classes": ["air_rotor", "air_fixed_wing"] },
                 "high_air": { "classes": ["air_rotor", "air_fixed_wing"] }
@@ -619,6 +626,7 @@
             "near_miss_suppression": 0,
             "suppression_radius_m": 0,
             "blast_radius_m": 3,
+            "proximity_fuse_m": 3,
             "structural_damage": 20,
             "seeker": "infrared",
             "seeker_fov_deg": 70,
@@ -642,8 +650,7 @@
             "near_miss_suppression": 0.3,
             "suppression_radius_m": 18,
             "blast_radius_m": 14,
-            "structural_damage": 80,
-            "ground_attack": "bomb"
+            "structural_damage": 80
         },
         "air_bomb_cluster": {
             "delivery": "unpowered",
@@ -664,8 +671,7 @@
             "suppression_radius_m": 24,
             "blast_radius_m": 9,
             "structural_damage": 35,
-            "magazine": { "rounds": 4, "shot_interval_s": 0.08 },
-            "ground_attack": "bomb"
+            "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
         },
         "air_ground_missile": {
             "extends": "heli_atgm",
@@ -677,6 +683,7 @@
             "ammo": 4
         },
         "sead_missile": {
+            "fires_on_its_own": true,
             "targets": {
                 "ground": { "classes": ["vehicle"] }
             },
@@ -2200,9 +2207,10 @@
   "hull_limits": {
     "tracked": { "half_width_m": 2.1, "half_length_m": 4.8 },
     "wheeled": { "half_width_m": 1.6, "half_length_m": 6.2, "turning_radius_m": 8.0 },
-    "low_air": { "half_width_m": 3.7, "half_length_m": 10.0 },
-    "high_air": { "half_width_m": 8.8, "half_length_m": 11.7 }
+    "rotor": { "half_width_m": 3.7, "half_length_m": 10.0 },
+    "fixed_wing": { "half_width_m": 8.8, "half_length_m": 11.7 }
   },
+  "air_speed_limits_kmh": { "rotor": 320, "fixed_wing": 1000 },
   "shouts": {
     "cooldown_s": 8,
     "talk_s": {

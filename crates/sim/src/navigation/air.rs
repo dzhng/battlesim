@@ -28,12 +28,12 @@ pub fn walls_aircraft(world: &WorldGeometry, rules: &Rules, prop: &Prop) -> bool
 }
 
 pub fn routing_margin(rules: &Rules) -> f64 {
-    rules.hull_limits.low_air.half_length_m
+    rules.hull_limits.rotor.half_length_m
 }
 
 impl AirGrid {
     /// The grid over `world` with `walls` closed, each widened by the
-    /// helicopter hull limit (`hull_limits.low_air.half_length_m`).
+    /// helicopter hull limit (`hull_limits.rotor.half_length_m`).
     pub fn build<'a>(
         world: &WorldGeometry,
         rules: &Rules,

@@ -55,14 +55,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -618,23 +617,21 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": true,
-          "radar": {
-            "emits": false,
-            "detection_m": 5000
-          },
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
             "fuel": 0.3
           }
+        },
+        "radar_receiver": {
+          "range_m": 5000
         }
       },
       "mounts": [
@@ -732,14 +729,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -860,14 +856,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -970,14 +965,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -1080,14 +1074,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -1208,14 +1201,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,

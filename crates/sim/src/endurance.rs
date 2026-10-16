@@ -162,7 +162,7 @@ fn scenario_in_arena(
                 // Concentrate only the opening fighting line. Reserves
                 // and logistics stay at the rear, where their later wave
                 // and supply orders expect them to start.
-                let depth = if !reserve && !rules.catalog.by_id(kind).has_role("logistics") {
+                let depth = if !reserve && rules.catalog.by_id(kind).capabilities.supply.is_none() {
                     depth + front_shift_m
                 } else {
                     depth
@@ -184,7 +184,7 @@ fn scenario_in_arena(
         let ids: Vec<UnitId> = (first..first + n as u32).map(UnitId).collect();
         let supplies = |id: &&UnitId| {
             let kind = units_kind(&ROSTER, (id.0 - first) as usize);
-            rules.catalog.by_id(kind).has_role("logistics")
+            rules.catalog.by_id(kind).capabilities.supply.is_some()
         };
         let supply: Vec<UnitId> = ids.iter().filter(supplies).copied().collect();
         let fighters: Vec<UnitId> = ids.iter().filter(|id| !supplies(id)).copied().collect();

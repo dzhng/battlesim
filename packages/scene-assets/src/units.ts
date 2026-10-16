@@ -106,7 +106,9 @@ export const layerOf = (type: Pick<UnitType, "mobility">): "ground" | "low_air" 
 export const fixedWing = (type: Pick<UnitType, "mobility">): boolean =>
   "air" in type.mobility && type.mobility.air.flight === "fixed_wing";
 
-/** The air war's roles: ground air defence, SEAD, and the other fixed-wing. */
+/** The air war's roles: ground air defence, SEAD (a fixed-wing that finds
+ *  radars and carries an anti-radiation row), and the other fixed-wing. A
+ *  roster grouping for the labs; no rule reads it. */
 export const AIR_ROLES = ["air_defense", "sead", "fixed_wing"] as const;
 export type AirRole = (typeof AIR_ROLES)[number];
 
@@ -117,7 +119,11 @@ export function airRole(
   type: Pick<UnitType, "mobility" | "capabilities" | "mounts">,
   weapons: Record<string, WeaponRow>,
 ): AirRole | null {
-  if (fixedWing(type)) return type.capabilities.air?.sead ? "sead" : "fixed_wing";
+  if (fixedWing(type))
+    return type.capabilities.radar_receiver &&
+      type.mounts.some((m) => m.weapons.some((id) => weapons[id]?.anti_radiation))
+      ? "sead"
+      : "fixed_wing";
   if (layerOf(type) === "ground" && airReach(type, weapons).high_air > 0) return "air_defense";
   return null;
 }
@@ -228,12 +234,12 @@ export interface UnitType {
     };
     air?: {
       fuel_capacity_s: number;
-      sead: boolean;
-      flares?: { capacity: number; reload_s: number };
       afterburner?: { speed_multiplier: number; fuel_multiplier: number };
-      radar?: { emits: boolean; detection_m: number };
     };
+    flares?: { capacity: number; reload_s: number };
     radar?: { emits: boolean; detection_m: number };
+    /** It finds enemy radars that emit, within `range_m`. */
+    radar_receiver?: { range_m: number };
   };
   sound: { profile: "infantry" | "vehicle"; loudness_m: number };
   /** A hull's model; a squad draws its soldiers' appearance sets. */

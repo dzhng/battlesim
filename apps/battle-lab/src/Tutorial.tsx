@@ -418,10 +418,11 @@ export function Tutorial() {
           </li>
           <li>
             <strong>Radar and SEAD:</strong> a radar that emits sees far, but radar-hunting (SEAD)
-            jets can find it. What they find shows as a <strong>radar contact</strong>: a red area
-            marked with the radar icon, with the bearing and range from the jet that found it. SEAD
-            missiles fire at it on their own; no other weapon can. Fire into any contact scatters
-            across its area: the bigger the area, the wider the fire.
+            jets can find it: their panel says FINDS RADARS. What they find shows as a{" "}
+            <strong>radar contact</strong>: a red area marked with the radar icon, with the bearing
+            and range from the jet that found it. SEAD missiles fire at it on their own, and
+            anything in range can fire into the area like any contact. Fire into any contact
+            scatters across its area: the bigger the area, the wider the fire.
           </li>
         </ul>
         <Shot name="radar">

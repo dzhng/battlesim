@@ -38,7 +38,7 @@ fn base_tank() -> Value {
 /// down to a lighter one.
 fn wrecks() -> Value {
     json!({ "props": {
-        "wreck": { "abstract": true,
+        "wreck": { "abstract": true, "wreck": true,
             "body": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true,
                 "occludes": false, "armor": 0.5 },
             "appearance": { "drawn_by": "wreck" } },
@@ -132,7 +132,7 @@ fn air_mobility_names_its_layer_and_its_flight_model() {
 }
 
 #[test]
-fn aircraft_capability_carries_air_ranges_flares_afterburner_radar_and_refund() {
+fn aircraft_capability_carries_air_ranges_afterburner_and_refund() {
     let mut aircraft = base_tank();
     aircraft["abstract"] = json!(false);
     aircraft["mobility"] = json!({
@@ -142,13 +142,14 @@ fn aircraft_capability_carries_air_ranges_flares_afterburner_radar_and_refund() 
         "ground_m": 500, "low_air_m": 1500, "high_air_m": 3000,
         "sight_shape": { "front": 1, "side": 0.8, "rear": 0.5 }
     });
-    aircraft["capabilities"] = json!({ "air": {
-        "fuel_capacity_s": 180,
+    aircraft["capabilities"] = json!({
         "flares": { "capacity": 6, "reload_s": 18 },
-        "afterburner": {},
-        "radar": { "emits": false, "detection_m": 0 },
-        "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
-    }});
+        "air": {
+            "fuel_capacity_s": 180,
+            "afterburner": {},
+            "refund": { "health": 0.5, "ammunition": 0.3, "fuel": 0.2 }
+        }
+    });
     let catalog = resolve(&units(json!({ "aircraft": aircraft }))).unwrap();
     let t = catalog.by_id("aircraft");
     assert_eq!(t.sensors.high_air_m, Some(3000.0));
@@ -907,6 +908,7 @@ fn the_view_gives_each_vehicle_the_class_its_physics_make_it() {
     recon["roles"] = json!(["recon"]);
     let mut truck = wheeled.clone();
     truck["roles"] = json!(["logistics"]);
+    truck["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
     let mut heli = base_tank();
     heli["abstract"] = json!(false);
     heli["body"]["hull"]["weight_class"] = json!("light");
@@ -1050,4 +1052,49 @@ fn without_radar_or_its_own_sight_a_unit_sees_high_air_by_its_body() {
         "an authored 0 is blind to high air"
     );
     assert_eq!(sight("lookout"), 1200.0, "an authored reach is kept");
+}
+
+/// A vehicle is presented as a hauler (`_logistics`) because it carries
+/// supply, not because its card's role says so.
+#[test]
+fn a_supply_carrier_is_a_logistics_vehicle_whatever_its_role() {
+    let mut hauler = base_tank();
+    hauler["abstract"] = json!(false);
+    hauler["roles"] = json!(["mbt"]);
+    hauler["capabilities"] = json!({ "deploy": { "seconds": 3 }, "supply": { "stock": 100 } });
+    let mut tagged = base_tank();
+    tagged["abstract"] = json!(false);
+    tagged["roles"] = json!(["logistics"]);
+    let mut documents = units(json!({ "hauler": hauler, "tagged": tagged }));
+    documents[0]["roles"]["logistics"] =
+        json!({ "name": "Logistics", "description": "", "symbol": ["supply"] });
+    let catalog = resolve(&documents).unwrap();
+    let class = |id: &str| catalog.by_id(id).vehicle_class().unwrap();
+    assert_eq!(class("hauler"), "tracked_heavy_logistics");
+    assert_eq!(class("tagged"), "tracked_heavy");
+}
+
+/// Flares are dispensed from a vehicle or an airframe: a squad carrying
+/// them is refused, naming the rule.
+#[test]
+fn flares_need_a_hull() {
+    let soldiers = json!({ "soldiers": {
+        "rifleman": { "name": "Rifleman", "description": "", "hp": 100, "appearance": ["r"],
+            "mounts": [{ "id": "rifles", "name": "Rifle", "weapons": ["rifle"], "squad": true }] },
+    } });
+    let mut docs = units(json!({ "team": {
+        "name": "Team", "description": "", "faction": "test", "family": "infantry",
+        "roles": ["infantry"], "cost": 100,
+        "body": { "squad": { "slots": ["rifleman"] } },
+        "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
+        "sensors": { "ground_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
+        "sound": { "profile": "infantry", "loudness_m": 200 },
+        "capabilities": { "flares": { "capacity": 2, "reload_s": 3 } }
+    } }));
+    docs.push(soldiers);
+    let error = resolve(&docs).unwrap_err().to_string();
+    assert!(
+        error.contains("capabilities.flares needs a hull"),
+        "{error}"
+    );
 }

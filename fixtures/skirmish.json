@@ -3,5 +3,8 @@
   "starting_minutes": 5,
   "preparation_s": 60,
   "max_units": 30,
-  "dispatch_interval_s": 1
+  "dispatch_interval_s": 1,
+  "capture_s": 20,
+  "majority_s": 1800,
+  "victory_score": 1000
 }

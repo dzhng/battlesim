@@ -80,16 +80,16 @@ fn air_rules_refuse_a_high_air_floor_above_the_fixed_wing_ceilings() {
 }
 
 #[test]
-fn helicopters_route_with_the_low_air_hull_limit() {
+fn helicopters_route_with_the_rotor_hull_limit() {
     let rules: Rules = serde_json::from_value(fixture()).unwrap();
     assert_eq!(
         sim::navigation::air::routing_margin(&rules),
-        rules.hull_limits.low_air.half_length_m
+        rules.hull_limits.rotor.half_length_m
     );
 }
 
 #[test]
-fn high_air_admission_uses_the_high_air_hull_limit() {
+fn fixed_wing_admission_uses_the_fixed_wing_hull_limit() {
     let mut fixture = fixture();
     sim::fixtures::patch_catalog(
         &mut fixture,
@@ -101,7 +101,7 @@ fn high_air_admission_uses_the_high_air_hull_limit() {
         }),
     );
     serde_json::from_value::<Rules>(fixture)
-        .expect("a high-air hull within the high-air limit is admitted");
+        .expect("a fixed-wing hull within the fixed-wing limit is admitted");
 }
 
 #[test]
@@ -645,7 +645,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
         "units": [], "events": [], "scripts": [],
         "skirmish": {
             "factions": ["us", "eastern"],
-            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "dispatch_interval_s": 1 },
+            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "center": [400, 10], "side": "blue", "yaw": std::f64::consts::FRAC_PI_2 },
                 { "center": [400, 590], "side": "red", "yaw": -std::f64::consts::FRAC_PI_2 }
@@ -820,9 +820,9 @@ fn an_identified_enemy_helicopter_below_half_hp_publishes_smoking() {
 }
 
 #[test]
-fn an_air_hull_past_its_limits_is_refused() {
+fn an_air_hull_past_its_flight_models_limits_is_refused() {
     let mut fixture = fixture();
-    let past = fixture["hull_limits"]["low_air"]["half_length_m"]
+    let past = fixture["hull_limits"]["rotor"]["half_length_m"]
         .as_f64()
         .unwrap()
         + 0.5;
@@ -832,21 +832,28 @@ fn an_air_hull_past_its_limits_is_refused() {
         "test_heli",
         json!({ "body": { "hull": { "half_extents_m": [past, 1.2, 1.6] } } }),
     );
-    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the low-air limit");
-    assert!(error.to_string().contains("low_air half length"), "{error}");
+    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the rotor limit");
+    assert!(error.to_string().contains("rotor half length"), "{error}");
 }
 
 #[test]
-fn an_aircraft_cruising_past_its_limit_is_refused() {
-    let mut fixture = fixture();
-    sim::fixtures::patch_catalog(
-        &mut fixture,
-        "units",
-        "test_heli",
-        json!({ "mobility": { "air": { "cruise_kmh": 400 } } }),
-    );
-    let error = serde_json::from_value::<Rules>(fixture).expect_err("past the air speed");
-    assert!(error.to_string().contains("cruise_kmh"), "{error}");
+fn an_aircraft_cruising_past_its_flight_models_limit_is_refused() {
+    // The rules set the limit: a helicopter cruising at 200 km/h is refused
+    // under a 150 km/h rotor limit, and admitted under a 250 km/h one.
+    let admitted = |limit: f64| {
+        let mut fixture = fixture();
+        fixture["air_speed_limits_kmh"]["rotor"] = json!(limit);
+        sim::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            "test_heli",
+            json!({ "mobility": { "air": { "cruise_kmh": 200 } } }),
+        );
+        serde_json::from_value::<Rules>(fixture).map_err(|e| e.to_string())
+    };
+    let error = admitted(150.0).expect_err("past the rotor speed");
+    assert!(error.contains("rotor cruise_kmh"), "{error}");
+    admitted(250.0).expect("within the rotor speed");
 }
 
 #[test]
@@ -1111,7 +1118,7 @@ fn back_edge_entry_and_crossing_follow_the_entry_site_side() {
     let setup = serde_json::from_value::<contract::scenario::ScenarioDefinition>(serde_json::json!({
         "map": {"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules": fixture, "units": [],
-        "skirmish": {"factions":["us","eastern"],"rules":{"credits_per_minute":1,"starting_minutes":1,"preparation_s":1,"max_units":1,"dispatch_interval_s":1},"sites":{"entries":[{"side":"blue","center":[300,5],"yaw":1.57},{"side":"red","center":[300,395],"yaw":-1.57}],"objectives":[{"id":"center","center":[300,200],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,100],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[400,300],"radius_m":50,"kind":"field","counterpart":"south"}]}}
+        "skirmish": {"factions":["us","eastern"],"rules":{"credits_per_minute":1,"starting_minutes":1,"preparation_s":1,"max_units":1,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},"sites":{"entries":[{"side":"blue","center":[300,5],"yaw":1.57},{"side":"red","center":[300,395],"yaw":-1.57}],"objectives":[{"id":"center","center":[300,200],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,100],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[400,300],"radius_m":50,"kind":"field","counterpart":"south"}]}}
     })).unwrap();
     let world = sim::encounter::PreparedMap::new(&setup.map, &setup.rules).world;
     let edge = sim::air::edge::back_edge(
@@ -1180,4 +1187,37 @@ fn a_high_air_unit_lights_no_ground_fog_in_its_sides_picture() {
     };
     assert_eq!(eyes(0), 0, "a high-air unit lights no ground fog");
     assert!(eyes(1) > 0, "a low-air unit still does");
+}
+
+/// Whether a jeep whose low-air sight is `low_air_m` (absent: as far as it
+/// sees the ground, 450 m) identifies a helicopter hovering 300 m off.
+fn jeep_sees_the_helicopter(low_air_m: Option<f64>) -> bool {
+    let mut fixture = fixture();
+    if let Some(m) = low_air_m {
+        sim::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            "test_jeep",
+            json!({ "sensors": { "low_air_m": m } }),
+        );
+    }
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_heli", "position": [400, 200], "engagement": "return_fire_only" }
+        ]),
+    );
+    b.step();
+    b.step();
+    !b.observe(Side::Blue).identified.is_empty()
+}
+
+#[test]
+fn low_air_sight_is_the_units_own_else_its_ground_sight_and_zero_is_blind() {
+    assert!(jeep_sees_the_helicopter(None), "absent: its ground sight");
+    assert!(!jeep_sees_the_helicopter(Some(0.0)), "0: blind to low air");
+    assert!(!jeep_sees_the_helicopter(Some(200.0)));
+    assert!(jeep_sees_the_helicopter(Some(600.0)));
 }

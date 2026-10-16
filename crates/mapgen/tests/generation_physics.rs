@@ -116,8 +116,8 @@ fn an_aircraft_row_moves_nothing_on_the_ground() {
     // Airframes may be far wider than anything that drives.
     const WIDE_M: f64 = 40.0;
     let mut rules = sim::fixtures::test_game();
-    for layer in ["low_air", "high_air"] {
-        rules["hull_limits"][layer] = serde_json::json!({
+    for flight in ["rotor", "fixed_wing"] {
+        rules["hull_limits"][flight] = serde_json::json!({
             "half_width_m": WIDE_M, "half_length_m": WIDE_M
         });
     }

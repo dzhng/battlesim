@@ -66,12 +66,12 @@
         "loudness_m": 1400
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
           "refund": {
             "health": 0.4,

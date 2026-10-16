@@ -57,7 +57,7 @@ fn binary_skirmish_refuses_a_neutral_ai_side() {
             "starting_minutes": 1,
             "preparation_s": 1,
             "max_units": 1,
-            "dispatch_interval_s": 1
+            "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000
         },
         "sites": {
             "entries": [

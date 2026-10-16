@@ -59,15 +59,16 @@ So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth a
 
 Combat follows the same idea. A behaviour belongs to the thing that physically has it, never to a unit's role:
 
-- **A weapon owns what it can engage.** For each altitude layer it reaches, it lists a range and the target classes it engages (`infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`, `missile`). Intercepting a missile is just targeting one, fired from a layer the weapon lists `missile` in.
-- **A weapon's mechanisms are opt-in flags that compose.** Guidance needs the operator's line of sight to the target. A seeker acquires inside its cone. `requires_clear_launch_path` holds fire when the launcher's own corridor is blocked. `interceptable` lets its rounds be shot down.
-- **A unit owns its body and senses.** That is its hull, its push and weight classes, its sight per layer, its radar (emitting makes it findable, and its reach is how far it sees aircraft), its altitude layer and its flight model.
+- **A weapon owns what it can engage.** For each altitude layer it reaches, it lists a range and the target classes it engages (`infantry`, `vehicle`, `air_rotor`, `air_fixed_wing`, `missile`). Intercepting a missile is just targeting one, fired from a layer the weapon lists `missile` in; a round a shot can catch comes first, because it is about to hit something.
+- **A weapon's mechanisms are opt-in flags that compose.** Guidance needs the operator's line of sight to the target. A seeker acquires inside its cone. `requires_clear_launch_path` holds fire when the launcher's own corridor is blocked. `interceptable` lets its rounds be shot down. `fires_on_its_own` fires whatever the unit's engagement policy.
+- **A radar contact is a contact like any other.** Its source changes only its evidence (its radius, bearing and range), never who may fire at it; an `anti_radiation` row may also fire at what radiates, a radar contact or a seen unit whose radar emits.
+- **A unit owns its body and senses.** That is its hull, its push and weight classes, its sight per layer, its radar (emitting makes it findable, and its reach is how far it sees aircraft), its radar receiver (it finds enemy radars that emit, by bearing and range), its flares (dispensed from a hull), its altitude layer and its flight model.
 
 So there is no "air defence unit" or "anti-tank unit" in the rules. An anti-aircraft gun is a weapon whose air layers list aircraft, and the vehicle carrying it is an air-defence unit only in the roster's grouping. Roles and families group the roster and pick symbols and voices; they never decide behaviour.
 
 These were all built and then deleted, because each stood in for a property something already had:
 
-- **An `air_defense` flag on units.** It gated interceptors, radar contacts and an air-only sight rule. Interceptors now arm from their weapon's `missile` class, SEAD finds any unit whose radar emits, and guided fire's line-of-sight rule covers every target.
+- **An `air_defense` flag on units.** It gated interceptors, radar contacts and an air-only sight rule. Interceptors now arm from their weapon's `missile` class, a radar receiver finds any unit whose radar emits, and guided fire's line-of-sight rule covers every target.
 - **Short, medium and long air-defence tiers.** They drove nothing but labels and validation. How far an air-defence unit reaches is its weapons' range.
 - **An `anti_armor` weapon flag.** The weapon's target classes say it engages vehicles.
 - **A boolean `can_intercept`.** It became the `missile` target class, listed per layer.
@@ -75,6 +76,14 @@ These were all built and then deleted, because each stood in for a property some
 - **Air targets judged by their height.** A target's layer comes from what was seen or heard, and a round keeps the layer it was fired from.
 - **Lane width sized from the widest hull of any unit,** aircraft included. Only ground hulls drive streets.
 - **A `sead` unit flag and a second radar block on aircraft.** Finding emitting radars is a sensor a unit has, shown on its card; firing at a radar contact belongs to the weapon's `anti_radiation`. A unit may have either without the other.
+- **Auto-fire inferred from an airborne seeker.** An aircraft's seeker missile that reached the air, or homed on radars, skipped the engagement policy, behind a ground-only permission path. A row that fires on its own says so (`fires_on_its_own`), and one permission path covers every unit.
+- **A proximity fuse inferred from a motor and a blast.** Any powered round with a blast burst near the aircraft it was fired at. A round with a fuse authors its reach (`proximity_fuse_m`).
+- **Hull and speed limits keyed by altitude layer.** The largest aircraft hull and the fastest cruise were read by `low_air` and `high_air`, standing in for helicopter and jet. They are keyed by flight model (`hull_limits.rotor`, `air_speed_limits_kmh.fixed_wing`), and the speed limits are rules data.
+- **A hauler or a wreck known by its role or its art.** A vehicle's `_logistics` class and the endurance harness read the `logistics` role, and the simulation knew a wreck by `drawn_by: "wreck"`. A hauler is a unit that carries `supply`; a wreck is a prop row authored `wreck: true`.
+- **A `ground_attack` tag (`bomb`, `strafe`) on weapon rows.** A bomb is an unpowered row (`delivery: unpowered`); a strafing gun is the aircraft's always-available gun (`default`).
+- **Interceptors armed on the ground only.** Arming against incoming rounds skipped every airborne unit. An aircraft's row that lists `missile` arms as a ground mount's does.
+- **Flares as an aircraft's store.** `capabilities.air.flares` and the charges in an aircraft's flight state became `capabilities.flares`, which any unit may carry.
+- **A separate pass arming interceptors.** It locked only an idle mount on any round in reach, and aimed at the round as if it stood still. A round is a target like any other, taken through the same shot assessment, lead included, and one a shot can catch comes before the mount's other targets.
 
 - **Rules that re-enforced what the data already decided.** An emitting radar counted only on the ground, interceptors armed only off aircraft, and flares worked only for aircraft. No configured unit reached the other branch, so each check did nothing except block the next unit type. Which units carry what is configuration: author it only where it belongs, and refuse at load what the game can't run.
 

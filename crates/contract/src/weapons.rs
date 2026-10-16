@@ -59,17 +59,23 @@ pub struct WeaponDefinition {
     pub damage: f64,
     pub near_miss_suppression: f64,
     pub blast_radius_m: f64,
+    /// A proximity fuse: the round bursts this close to the aircraft it was
+    /// fired at. Absent, it bursts only on what it strikes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proximity_fuse_m: Option<f64>,
     #[serde(default)]
     pub structural_damage: f64,
-    /// Ground attack mode for air-launched rows. Bombs take precedence over
-    /// strafing guns while a bomb store has rounds remaining.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ground_attack: Option<GroundAttackKind>,
-    /// Anti-radiation seeker: may acquire only a radar contact or an
-    /// identified ground unit whose radar emits. This is distinct from a radar/IR seeker on an
-    /// ordinary air-to-air missile.
+    /// Anti-radiation seeker: it homes on a radar's emission, so it also
+    /// fires at a radar contact or an identified unit whose radar emits,
+    /// and never at an area that doesn't emit. This is distinct from a
+    /// radar/IR seeker on an ordinary air-to-air missile.
     #[serde(default)]
     pub anti_radiation: bool,
+    /// It fires on its own at what it may engage, whatever its unit's
+    /// engagement policy: a fire-and-forget missile its crew looses at any
+    /// target its seeker takes.
+    #[serde(default)]
+    pub fires_on_its_own: bool,
     /// A missile/rocket body vulnerable to active protection; shells and
     /// bullets do not inherit eligibility from penetration or guidance.
     #[serde(default)]
@@ -100,13 +106,6 @@ pub struct WeaponDefinition {
     /// with a much wider spread than along the ground; a tank gun, a grenade
     /// or a ground missile cannot. A layer it does not list, it never engages.
     pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GroundAttackKind {
-    Bomb,
-    Strafe,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -382,11 +381,6 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                         }
                     }
                     let unpowered = def.ballistics.delivery == Delivery::Unpowered;
-                    if matches!(def.ground_attack, Some(GroundAttackKind::Bomb)) && !unpowered {
-                        return Err(serde::de::Error::custom(
-                            "a bomb row must use unpowered delivery",
-                        ));
-                    }
                     if unpowered {
                         if def.ballistics.speed_mps != 0.0 || def.ballistics.range_m != 0.0 {
                             return Err(serde::de::Error::custom(
@@ -396,6 +390,11 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                     } else if def.ballistics.speed_mps <= 0.0 || def.ballistics.range_m <= 0.0 {
                         return Err(serde::de::Error::custom(
                             "a powered row needs positive range_m and speed_mps",
+                        ));
+                    }
+                    if def.proximity_fuse_m.is_some_and(|m| !(m.is_finite() && m > 0.0)) {
+                        return Err(serde::de::Error::custom(
+                            "proximity_fuse_m must be finite and positive",
                         ));
                     }
                     if def.blast_radius_m > 0.0 && def.partial_from.is_none() {
@@ -459,11 +458,11 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "an anti-radiation row needs a radar seeker",
                         ));
                     }
-                    if matches!(def.ground_attack, Some(GroundAttackKind::Bomb))
+                    if def.ballistics.delivery == Delivery::Unpowered
                         && !def.targets.contains_key(&crate::catalog::AltitudeLayer::Ground)
                     {
                         return Err(serde::de::Error::custom(
-                            "a bomb row must target Ground",
+                            "an unpowered row (a bomb) must target Ground",
                         ));
                     }
                     if def.seeker_fov_deg.is_some_and(|fov| {

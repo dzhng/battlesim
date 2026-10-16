@@ -426,3 +426,35 @@ fn a_prop_that_is_no_wreck_names_no_unit() {
     crate_of["wreck_of"] = json!("test_tank");
     battle(json!([crate_of]), json!([]), far(), json!([]));
 }
+
+/// A wreck is known by its rules row (`wreck`), not by what draws it: a
+/// scrap heap drawn as a crate, but authored as a unit's remains, names the
+/// tank it was.
+#[test]
+fn a_wreck_is_known_by_its_rules_row_not_its_art() {
+    let mut rules = sim::fixtures::test_game();
+    rules["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({ "props": {
+            "test_scrap": {
+                "wreck": true,
+                "body": { "blocks": { "infantry": true, "vehicle": true }, "stops_rounds": true,
+                    "occludes": false, "weight_class": "light", "cover_tier": "light", "hp": 150 },
+                "destroyed": "removed",
+                "appearance": { "drawn_by": "crate" }
+            }
+        }}));
+    let map = json!({ "size": [600, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "props": [wreck("test_scrap", [300.0, 300.0], [3.5, 1.8, 1.2])] });
+    let units = json!([{ "side": "red", "kind": "test_rifle", "position": [550, 550], "engagement": "return_fire_only" }]);
+    let setup = serde_json::from_value(json!({
+        "map": map, "rules": rules, "units": units, "events": [], "scripts": []
+    }))
+    .unwrap();
+    let b = Battle::new(&setup, 1);
+    assert_eq!(
+        b.world().prop(0).and_then(|p| p.wreck_of),
+        Some(common::unit_kind("test_tank"))
+    );
+}

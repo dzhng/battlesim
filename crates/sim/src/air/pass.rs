@@ -19,6 +19,25 @@ pub enum PassWeapon {
     Gun,
 }
 
+/// What a weapon row does on a pass, from how it is delivered: an
+/// unpowered row falls (a bomb), the always-available gun (`default`)
+/// strafes, and any other row reaching the ground is fired on a missile
+/// pass. `None` for a row that never attacks the ground on a pass.
+pub fn pass_weapon(def: &contract::weapons::WeaponDefinition) -> Option<PassWeapon> {
+    if def.ballistics.delivery == contract::ballistics::Delivery::Unpowered {
+        Some(PassWeapon::Bomb)
+    } else if def
+        .against(contract::catalog::AltitudeLayer::Ground)
+        .is_none()
+    {
+        None
+    } else if def.default {
+        Some(PassWeapon::Gun)
+    } else {
+        Some(PassWeapon::GroundMissile)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PassPhase {
     /// Flying straight on until a turn in on the aim leaves a full run-in.

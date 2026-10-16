@@ -13,6 +13,13 @@ pub struct MatchRules {
     pub preparation_s: u32,
     pub max_units: u32,
     pub dispatch_interval_s: u32,
+    /// How long a side must hold an objective alone to take it.
+    pub capture_s: u32,
+    /// How long a side holding a majority of the objectives alone takes to
+    /// win; holding fewer, its score climbs more slowly.
+    pub majority_s: u32,
+    /// The score a side wins at.
+    pub victory_score: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -46,12 +53,18 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
             || r.starting_minutes == 0
             || r.max_units == 0
             || r.dispatch_interval_s == 0
+            || r.capture_s == 0
+            || r.majority_s == 0
+            || !(r.victory_score.is_finite() && r.victory_score > 0.0)
             || u64::from(r.credits_per_minute)
                 .checked_mul(u64::from(r.starting_minutes))
                 .and_then(|n| n.checked_mul(1_000_000))
                 .is_none()
         {
-            return Err("skirmish requires positive affordable economy and dispatch rules".into());
+            return Err(
+                "skirmish requires positive affordable economy, dispatch and objective rules"
+                    .into(),
+            );
         }
         value.sites.validate()?;
         Ok(Self {

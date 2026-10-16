@@ -20,7 +20,6 @@ use contract::scenario::{
     UnitCondition,
 };
 use contract::script::{CompiledScript, ScriptInput};
-use contract::weapons::TargetClass;
 use serde::{Deserialize, Serialize};
 
 use crate::arrangement;
@@ -47,7 +46,7 @@ use crate::structures::Structures;
 use crate::supply;
 use crate::units::{self, MoveOrder, Pursuit, Soldier, Unit, UnitOrder};
 use crate::visibility::OcclusionGrid;
-use crate::weapons::{self, Arsenal, FireContext, RoundTarget, Support, Target, VEHICLE_BODY_BASE};
+use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
 
@@ -560,15 +559,8 @@ fn spawn_unit(
                 .air
                 .as_ref()
                 .map_or(f64::INFINITY, |air| air.fuel_capacity_s);
-            let flare_charges = t
-                .capabilities
-                .air
-                .as_ref()
-                .and_then(|air| air.flares)
-                .map_or(0, |f| f.capacity);
             units::AirState {
                 fuel_s,
-                flare_charges,
                 ..Default::default()
             }
         }),
@@ -588,6 +580,10 @@ fn spawn_unit(
             .active_protection
             .as_ref()
             .map(crate::protection::State::new),
+        flares: t.capabilities.flares.map(|f| units::Flares {
+            charges: f.capacity,
+            ready_tick: 0,
+        }),
         progress_service: Default::default(),
         service: ServiceStatus::OutOfRange,
         sight_forward: u.yaw,
@@ -724,96 +720,6 @@ impl Battle {
                 false,
             );
             unit.withdrawing = true;
-        }
-    }
-
-    /// Give any ground mount carrying a row that lists `missile` at the
-    /// band an incoming round was fired from a physical lock on that round
-    /// before ordinary target selection. The round target carries its
-    /// current point and selected interceptor row, so the existing launch
-    /// solver, seeker FOV and LOS rules still decide whether the interceptor
-    /// can actually leave the mount. Explicit orders retain ownership of a
-    /// mount; an idle mount drops yesterday's round lock before looking for a
-    /// new threat.
-    fn arm_missile_interceptors(&mut self) {
-        let incoming: Vec<_> = self
-            .projectiles
-            .active()
-            .iter()
-            .filter_map(|projectile| {
-                let round = self.rounds.get(&projectile.id)?;
-                let weapon = &self.arsenal.weapons[round.weapon].def;
-                weapon.interceptable.then_some((
-                    round.side,
-                    projectile.id,
-                    projectile.position,
-                    round.layer,
-                ))
-            })
-            .collect();
-        for unit in &mut self.units {
-            if !unit.alive() || unit.retired || unit.airborne() {
-                continue;
-            }
-            let explicit = unit.attack_target().is_some();
-            let specs = self.arsenal.specs(unit.kind);
-            for mount_index in 0..unit.mounts.len() {
-                if !explicit
-                    && matches!(
-                        unit.mounts[mount_index]
-                            .lock
-                            .as_ref()
-                            .map(|lock| lock.target),
-                        Some(Target::Ground(_) | Target::Round(_))
-                    )
-                {
-                    unit.mounts[mount_index].lock = None;
-                }
-                if explicit || unit.mounts[mount_index].lock.is_some() {
-                    continue;
-                }
-                if incoming.is_empty() {
-                    continue;
-                }
-                let mount = &unit.mounts[mount_index];
-                let Some((projectile, point, layer)) = incoming
-                    .iter()
-                    .filter_map(|&(side, projectile, point, layer)| {
-                        // Reached by a row listing `missile` at the band it
-                        // was fired from.
-                        let reach = specs[mount.spec]
-                            .kinds
-                            .iter()
-                            .enumerate()
-                            .filter(|&(slot, _)| mount.ammo[slot].is_none_or(|n| n > 0))
-                            .filter_map(|(_, kind)| {
-                                self.arsenal.weapons[*kind]
-                                    .def
-                                    .engages(layer, Some(TargetClass::Missile))
-                            })
-                            .map(|fire| fire.range_m)
-                            .fold(0.0, f64::max);
-                        (side != unit.side
-                            && reach > 0.0
-                            && body_distance(point, unit.position) <= reach)
-                            .then_some((projectile, point, layer))
-                    })
-                    .min_by(|a, b| {
-                        body_distance(a.1, unit.position)
-                            .total_cmp(&body_distance(b.1, unit.position))
-                    })
-                else {
-                    continue;
-                };
-                unit.mounts[mount_index].lock = Some(crate::weapons::Lock {
-                    target: Target::Round(RoundTarget {
-                        id: projectile,
-                        point,
-                        layer,
-                    }),
-                    engaging: false,
-                });
-            }
         }
     }
 
@@ -1995,7 +1901,6 @@ impl Battle {
             }
         }
         self.prune_attackers();
-        self.arm_missile_interceptors();
         let fired = self.fire(&moved);
         self.shout_fired = fired.clone();
         supply::service(
@@ -3167,24 +3072,20 @@ impl Battle {
                     let flare = self.units[target_id.0 as usize]
                         .unit_type(&self.rules)
                         .capabilities
-                        .air
-                        .as_ref()
-                        .and_then(|a| a.flares);
+                        .flares;
                     if let Some(flare) = flare {
-                        let ready =
-                            self.units[target_id.0 as usize]
-                                .air
-                                .as_ref()
-                                .is_some_and(|a| {
-                                    a.flare_charges > 0 && a.flare_ready_tick <= self.tick
-                                });
+                        let ready = self.units[target_id.0 as usize]
+                            .flares
+                            .is_some_and(|f| f.charges > 0 && f.ready_tick <= self.tick);
                         if ready {
                             let unit = &self.units[target_id.0 as usize];
-                            let half = unit.hull.expect("airframe hull");
+                            // Ejected off its side, from its hull's top.
+                            let half = unit.hull.expect("flares are carried by a hull (catalog)");
                             let lateral = v2(-libm::sin(unit.yaw), libm::cos(unit.yaw));
                             let position = (unit.position.xy() + lateral * (half.y + 0.5))
                                 .with_z(unit.position.z + half.z);
-                            let base = unit.air.unwrap().velocity;
+                            // A ground vehicle's are thrown from it at rest.
+                            let base = unit.air.map_or(v3(0.0, 0.0, 0.0), |air| air.velocity);
                             let velocity = v3(
                                 base.x + lateral.x * 18.0,
                                 base.y + lateral.y * 18.0,
@@ -3192,9 +3093,9 @@ impl Battle {
                             );
                             self.projectiles
                                 .decoy_seeker(projectile, position, velocity);
-                            if let Some(air) = self.units[target_id.0 as usize].air.as_mut() {
-                                air.flare_charges -= 1;
-                                air.flare_ready_tick = self.tick
+                            if let Some(f) = self.units[target_id.0 as usize].flares.as_mut() {
+                                f.charges -= 1;
+                                f.ready_tick = self.tick
                                     + (flare.reload_s * self.rules.tick_hz as f64).round() as u64;
                             }
                             if let Some(round) = self.rounds.get_mut(&projectile) {
@@ -3205,22 +3106,28 @@ impl Battle {
                     }
                 }
             }
-            let point = match target {
+            // Where the target is and how it moves (a ground unit's pose
+            // here is its position alone).
+            let seen = match target {
                 Target::Unit(id) if self.units.get(id.0 as usize).is_some_and(Unit::alive) => {
                     let unit = &self.units[id.0 as usize];
                     let centre = unit
                         .hull
                         .map_or(unit.position, |half| unit.position + v3(0.0, 0.0, half.z));
-                    Some(centre)
+                    Some((centre, unit.flight_velocity()))
                 }
                 Target::Contact(id) => self
                     .knowledge
                     .iter()
-                    .find_map(|k| k.contact(id).map(|c| c.center)),
-                Target::Round(round) => self.projectiles.get(round.id).map(|p| p.position),
+                    .find_map(|k| k.contact(id).map(|c| (c.center, v3(0.0, 0.0, 0.0)))),
+                Target::Round(round) => self
+                    .projectiles
+                    .get(round.id)
+                    .map(|p| (p.position, p.velocity)),
                 _ => None,
             };
-            if let Some(point) = point {
+            if let (Some((at, velocity)), Some(seeker)) = (seen, self.projectiles.get(projectile)) {
+                let point = crate::flight::lead(seeker.position, seeker.velocity, at, velocity);
                 self.projectiles.steer_seeker(projectile, point);
             }
         }
@@ -3244,6 +3151,25 @@ impl Battle {
         for unit in &mut self.units {
             weapons::assign_operators(&self.arsenal, unit);
         }
+        let rounds: Vec<weapons::IncomingRound> = self
+            .projectiles
+            .active()
+            .iter()
+            .filter_map(|p| {
+                let round = self.rounds.get(&p.id)?;
+                self.arsenal.weapons[round.weapon]
+                    .def
+                    .interceptable
+                    .then_some(weapons::IncomingRound {
+                        id: p.id,
+                        side: round.side,
+                        position: p.position,
+                        velocity: p.velocity,
+                        layer: round.layer,
+                        ends_in_s: p.lifetime_s - p.age_s,
+                    })
+            })
+            .collect();
         let ctx = FireContext {
             world: &self.world,
             structures: &self.structures,
@@ -3252,6 +3178,7 @@ impl Battle {
             rules: &self.rules,
             tick: self.tick,
             knowledge: &self.knowledge,
+            rounds: &rounds,
         };
         let aims = weapons::garrison_aims(&ctx, &self.units);
         garrison::allocate_slots(&mut self.units, &aims, &self.rules, self.tick);
@@ -4466,17 +4393,15 @@ impl Battle {
                             .air
                             .as_ref()
                             .is_some_and(|air| air.dogfight_target.is_some()),
-                        flares: u.air.as_ref().and_then(|air| {
+                        flares: u.flares.and_then(|state| {
                             u.unit_type(&self.rules)
                                 .capabilities
-                                .air
-                                .as_ref()
-                                .and_then(|a| a.flares)
+                                .flares
                                 .map(|definition| {
                                     let remaining =
-                                        (air.flare_ready_tick as f64 - self.tick as f64).max(0.0);
+                                        (state.ready_tick as f64 - self.tick as f64).max(0.0);
                                     contract::observation::FlareReadiness {
-                                        charges: air.flare_charges,
+                                        charges: state.charges,
                                         cooldown: (remaining > 0.0).then(|| {
                                             (1.0 - remaining
                                                 / (definition.reload_s
@@ -4948,28 +4873,64 @@ mod tests {
         lifetime_s: f64,
         layer: AltitudeLayer,
     ) -> (Battle, ProjectileId) {
+        carried_interceptor_and_round(
+            "test_jeep",
+            row,
+            at,
+            velocity,
+            lifetime_s,
+            layer,
+            serde_json::json!([]),
+        )
+    }
+
+    /// As [`interceptor_and_flying_round`], the interceptor carried by blue's
+    /// `carrier` (a test unit whose mounts the row's mount follows).
+    fn carried_interceptor_and_round(
+        carrier: &str,
+        row: serde_json::Value,
+        at: V3,
+        velocity: V3,
+        lifetime_s: f64,
+        layer: AltitudeLayer,
+        props: serde_json::Value,
+    ) -> (Battle, ProjectileId) {
         let mut rules = crate::fixtures::test_game();
         rules["weapons"]["test_interceptor"] = row;
         rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",
-            "test_jeep",
+            carrier,
             serde_json::json!({
                 "mounts": [{ "id": "AA", "name": "AA", "weapons": ["test_interceptor"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
             }),
         );
         let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
-            "map": { "size": [2400, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "map": { "size": [2400, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                "props": props },
             "rules": rules,
             "units": [
-                { "side": "blue", "kind": "test_jeep", "position": [100, 200] },
+                { "side": "blue", "kind": carrier, "position": [100, 200] },
                 { "side": "red", "kind": "test_tank", "position": [2300, 200] }
             ],
             "events": [], "scripts": []
         }))
         .expect("interceptor scenario");
         let mut battle = Battle::new(&setup, 17);
+        let projectile = launch_red_round(&mut battle, at, velocity, lifetime_s, layer);
+        (battle, projectile)
+    }
+
+    /// A red interceptable round at `at`, flying at `velocity` without
+    /// falling for `lifetime_s`, as if red's unit 1 fired it from `layer`.
+    fn launch_red_round(
+        battle: &mut Battle,
+        at: V3,
+        velocity: V3,
+        lifetime_s: f64,
+        layer: AltitudeLayer,
+    ) -> ProjectileId {
         let incoming = battle
             .arsenal
             .weapons
@@ -4999,7 +4960,126 @@ mod tests {
                 layer,
             },
         );
-        (battle, projectile)
+        projectile
+    }
+
+    /// A jeep (unit 0) at (1000, 1000) with a gun (its mount 1) firing at
+    /// 600 m/s out to 800 m, at helicopters and at rounds fired from low
+    /// air, locked on a red helicopter hovering 300 m east (unit 1), too
+    /// tough to bring down here.
+    fn interceptor_on_a_helicopter() -> Battle {
+        let mut rules = crate::fixtures::test_game();
+        let mut row = test_interceptor(serde_json::json!({
+            "low_air": { "classes": ["air_rotor", "missile"] }
+        }));
+        row["range_m"] = serde_json::json!(800);
+        rules["weapons"]["test_interceptor"] = row;
+        rules["service"]["round_costs"]["test_interceptor"] = serde_json::json!(1);
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            serde_json::json!({
+                "mounts": [{ "id": "AA", "name": "AA", "weapons": ["test_interceptor"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
+            }),
+        );
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_heli",
+            serde_json::json!({ "body": { "hull": { "hp": 1.0e9 } } }),
+        );
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [2400, 2400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": rules,
+            "units": [
+                { "side": "blue", "kind": "test_jeep", "position": [1000, 1000] },
+                { "side": "red", "kind": "test_heli", "position": [1300, 1000], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .expect("interceptor scenario");
+        let mut battle = Battle::new(&setup, 17);
+        for _ in 0..30 {
+            battle.step();
+        }
+        assert_eq!(
+            gun_lock(&battle),
+            Some(Target::Unit(UnitId(1))),
+            "on the helicopter"
+        );
+        battle
+    }
+
+    /// The patched gun's lock: the jeep's own HMG is mount 0.
+    fn gun_lock(battle: &Battle) -> Option<Target> {
+        battle.units[0].mounts[1].lock.as_ref().map(|l| l.target)
+    }
+
+    /// A round flying at the jeep head-on, 700 m off at 150 m/s, comes
+    /// first: the gun turns from the helicopter, shoots the round down as
+    /// soon as it has reloaded, well before the round arrives, and goes
+    /// back to the helicopter.
+    #[test]
+    fn a_gun_on_an_aircraft_shoots_down_a_round_closing_on_it_then_resumes() {
+        let mut battle = interceptor_on_a_helicopter();
+        let round = launch_red_round(
+            &mut battle,
+            v3(1700.0, 1000.0, 30.0),
+            v3(-150.0, 0.0, 0.0),
+            30.0,
+            AltitudeLayer::LowAir,
+        );
+        let mut switched = false;
+        for _ in 0..150 {
+            battle.step();
+            switched |= matches!(gun_lock(&battle), Some(Target::Round(r)) if r.id == round);
+            if battle.projectiles.get(round).is_none() {
+                break;
+            }
+        }
+        assert!(switched, "the gun never turned to the round");
+        assert!(
+            battle.projectiles.get(round).is_none(),
+            "the round was not shot down before it arrived"
+        );
+        for _ in 0..30 {
+            battle.step();
+        }
+        assert_eq!(
+            gun_lock(&battle),
+            Some(Target::Unit(UnitId(1))),
+            "back on the helicopter"
+        );
+    }
+
+    /// Whether the gun ever turns from the helicopter to a round at `at`
+    /// flying at `velocity` over the next two seconds.
+    fn turns_to(at: V3, velocity: V3) -> bool {
+        let mut battle = interceptor_on_a_helicopter();
+        let round = launch_red_round(&mut battle, at, velocity, 30.0, AltitudeLayer::LowAir);
+        (0..60).any(|_| {
+            battle.step();
+            matches!(gun_lock(&battle), Some(Target::Round(r)) if r.id == round)
+        })
+    }
+
+    /// A round 100 m off speeding away at 900 m/s, faster than the gun's
+    /// 600 m/s shells, can't be caught: the gun keeps the helicopter.
+    #[test]
+    fn a_round_speeding_away_faster_than_the_shot_is_left_alone() {
+        assert!(!turns_to(v3(1100.0, 1000.0, 30.0), v3(900.0, 0.0, 0.0)));
+    }
+
+    /// A round crossing 790 m off, inside the gun's 800 m, at 300 m/s: the
+    /// shells would meet it about 880 m off, past their reach, so the gun
+    /// keeps the helicopter.
+    #[test]
+    fn a_round_crossing_whose_meeting_point_lies_past_reach_is_left_alone() {
+        assert!(!turns_to(v3(1790.0, 1000.0, 30.0), v3(0.0, 300.0, 0.0)));
+        // The same round closing instead is taken: the reach, not the
+        // crossing, decides.
+        assert!(turns_to(v3(1790.0, 1000.0, 30.0), v3(-300.0, 0.0, 0.0)));
     }
 
     /// A ballistic gun that `targets` as given: 1,500 m, 40 rounds.
@@ -5009,8 +5089,8 @@ mod tests {
             "stationary": false, "range_m": 1500, "speed_mps": 600, "gravity_scale": 0.5,
             "aim_s": 0.5, "reload_s": 3.5, "ammo": 40, "penetration": 65, "partial_from": 0.08,
             "damage": 100, "scatter_mrad": 5, "near_miss_suppression": 0.1,
-            "suppression_radius_m": 6, "blast_radius_m": 2, "structural_damage": 8,
-            "targets": targets
+            "suppression_radius_m": 6, "blast_radius_m": 2, "proximity_fuse_m": 5,
+            "structural_damage": 8, "targets": targets
         })
     }
 
@@ -5031,7 +5111,7 @@ mod tests {
             (AltitudeLayer::HighAir, true),
         ] {
             let mut battle = interceptor_and_round(row.clone(), v3(400.0, 200.0, 40.0), layer);
-            battle.arm_missile_interceptors();
+            battle.step();
             // The jeep's own gun is mount 0; the patched AA mount follows it.
             let lock = battle.units[0].mounts[1].lock.as_ref().map(|l| l.target);
             match lock {
@@ -5042,6 +5122,37 @@ mod tests {
                 _ => assert!(!reached, "{layer:?}: no lock inside its reach: {lock:?}"),
             }
         }
+    }
+
+    /// An aircraft's gun that lists `missile` arms against a round as a
+    /// ground mount's does: a helicopter's, 300 m from a round fired from
+    /// low air, locks on it.
+    #[test]
+    fn an_aircraft_arms_against_an_incoming_round() {
+        let row = test_interceptor(serde_json::json!({
+            "low_air": { "classes": ["missile"], "range_m": 400 }
+        }));
+        let (mut battle, round) = carried_interceptor_and_round(
+            "test_heli",
+            row,
+            v3(400.0, 200.0, 30.0),
+            v3(0.0, 0.0, 0.0),
+            30.0,
+            AltitudeLayer::LowAir,
+            serde_json::json!([]),
+        );
+        battle.step();
+        let locks: Vec<_> = battle.units[0]
+            .mounts
+            .iter()
+            .filter_map(|m| m.lock.as_ref().map(|l| l.target))
+            .collect();
+        assert!(
+            locks
+                .iter()
+                .any(|t| matches!(t, Target::Round(r) if r.id == round)),
+            "{locks:?}"
+        );
     }
 
     /// A gun shoots down a round only when the layer the round was fired
@@ -5092,7 +5203,7 @@ mod tests {
     }
 
     /// A guided row that lists `missile` in high air: 1,500 m, accelerating
-    /// from 100 to 290 m/s, turning 180°/s, a 3 m fuse; launcher-supported,
+    /// from 100 to 290 m/s, turning 180°/s, a 5 m fuse; launcher-supported,
     /// or homing on its own with a radar seeker.
     fn test_guided_interceptor(seeker: bool) -> serde_json::Value {
         let mut row = serde_json::json!({
@@ -5102,7 +5213,7 @@ mod tests {
             "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
             "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180, "guidance": "stationary",
             "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
-            "blast_radius_m": 3, "structural_damage": 20,
+            "blast_radius_m": 3, "proximity_fuse_m": 5, "structural_damage": 20,
             "targets": { "high_air": { "classes": ["air_rotor", "air_fixed_wing", "missile"] } }
         });
         if seeker {
@@ -5164,17 +5275,23 @@ mod tests {
     }
 
     /// A round that ends in flight is a target lost, as a unit that dies
-    /// is: the launcher lets its missile go, and the missile flies on at a
-    /// point it no longer renews, never at where the round would have been.
+    /// is: one that strikes a wall 100 m beside it, which no lead foresees, ends
+    /// before the missile reaches it; the launcher lets its missile go, and
+    /// the missile flies on at a point it no longer renews, never at where
+    /// the round would have been.
     #[test]
     fn a_guided_missile_whose_round_ends_mid_flight_is_let_go() {
         for seeker in [false, true] {
-            let (mut battle, incoming) = interceptor_and_flying_round(
+            let wall = serde_json::json!([{ "kind": "wall", "center": [700, 330], "yaw": 0,
+                "half_extents": [100, 1, 80] }]);
+            let (mut battle, incoming) = carried_interceptor_and_round(
+                "test_jeep",
                 test_guided_interceptor(seeker),
-                v3(1200.0, 230.0, 300.0),
-                v3(-40.0, 0.0, 0.0),
-                2.5,
+                v3(700.0, 230.0, 40.0),
+                v3(0.0, 40.0, 0.0),
+                30.0,
                 AltitudeLayer::HighAir,
+                wall,
             );
             let mut missile = None;
             while battle.projectiles.get(incoming).is_some() {
@@ -5636,7 +5753,7 @@ mod settlement_tests {
         });
         battle.skirmish = Some(crate::skirmish::Skirmish::new(serde_json::from_value(json!({
             "factions":["us","eastern"],
-            "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1},
+            "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},
             "sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0},{"side":"red","center":[400,590],"yaw":0}],
                 "objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},
                     {"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},

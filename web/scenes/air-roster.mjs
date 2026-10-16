@@ -3,7 +3,7 @@
 // reach high air) nearest reach first with its low- and high-air reach, its
 // SEAD jets and its other fixed-wing aircraft, read from the cards as the
 // catalog resolves them; every faction has air defence and a SEAD platform
-// (crates/sim/tests/catalog.rs::every_faction_has_a_dedicated_sead_aircraft).
+// (crates/sim/tests/catalog.rs::every_faction_has_a_sead_aircraft).
 // How short- or long-range each air defence is follows from its weapons; the
 // reach column is where a roster's spread shows (D52). The battle parks each of
 // those types on the air field, and each is drawn; a contact sheet of them is
@@ -152,13 +152,13 @@ async function recordsPanel(ctx) {
     const t = unitType(kind);
     const rec = records.find((r) => r.kind === kind);
     const caps = t.capabilities;
-    const radar = caps.air?.radar ?? caps.radar;
+    const radar = caps.radar;
     const want = {
       layer: layerOf(t),
       fuel: caps.air ? String(caps.air.fuel_capacity_s) : "—",
       air_reach: `${reach(kind).low_air}/${reach(kind).high_air}`,
       radar: radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—",
-      sead: caps.air?.sead ? "yes" : "no",
+      radar_receiver: caps.radar_receiver ? String(caps.radar_receiver.range_m) : "—",
     };
     const targets = Object.fromEntries(
       t.mounts

@@ -3,15 +3,11 @@ use contract::catalog::Category;
 use contract::encounter::ObjectiveSite;
 use contract::ids::Side;
 use contract::scenario::Rules;
-use contract::skirmish::{MatchResult, ObjectiveView};
+use contract::skirmish::{MatchResult, MatchRules, ObjectiveView};
 
 use crate::digest::Digest;
 use crate::math::v2;
 use crate::units::Unit;
-
-const CAPTURE_SECONDS: u64 = 20;
-const VICTORY_SCORE: f64 = 1000.0;
-const MAJORITY_SECONDS: u64 = 1800;
 
 #[derive(Default)]
 struct Objective {
@@ -29,6 +25,10 @@ struct FinalFraction {
 }
 
 pub struct Objectives {
+    /// The match's `capture_s`, `majority_s` and `victory_score`.
+    capture_s: u64,
+    majority_s: u64,
+    victory_score: f64,
     sites: Vec<Objective>,
     flag_ticks: [u64; 2],
     final_fraction: Option<FinalFraction>,
@@ -36,8 +36,11 @@ pub struct Objectives {
 }
 
 impl Objectives {
-    pub fn new(count: usize) -> Self {
+    pub fn new(count: usize, rules: &MatchRules) -> Self {
         Self {
+            capture_s: u64::from(rules.capture_s),
+            majority_s: u64::from(rules.majority_s),
+            victory_score: rules.victory_score,
             sites: (0..count).map(|_| Objective::default()).collect(),
             flag_ticks: [0; 2],
             final_fraction: None,
@@ -46,7 +49,7 @@ impl Objectives {
     }
 
     fn threshold(&self, hz: u32) -> u64 {
-        MAJORITY_SECONDS * (self.sites.len() as u64 / 2 + 1) * u64::from(hz)
+        self.majority_s * (self.sites.len() as u64 / 2 + 1) * u64::from(hz)
     }
 
     pub fn advance(&mut self, geography: &[ObjectiveSite], units: &[Unit], rules: &Rules) {
@@ -140,7 +143,7 @@ impl Objectives {
                         site.capture_ticks = 0;
                     }
                     site.capture_ticks += 1;
-                    if site.capture_ticks >= CAPTURE_SECONDS * u64::from(hz) {
+                    if site.capture_ticks >= self.capture_s * u64::from(hz) {
                         site.owner = Some(side);
                         site.capturing = None;
                         site.capture_ticks = 0;
@@ -170,7 +173,7 @@ impl Objectives {
                 + self.final_fraction.as_ref().map_or(0.0, |f| {
                     f.rates[i] as f64 * f.numerator as f64 / f.denominator as f64
                 });
-            ticks * VICTORY_SCORE / self.threshold(hz) as f64
+            ticks * self.victory_score / self.threshold(hz) as f64
         })
     }
 
@@ -185,7 +188,7 @@ impl Objectives {
                 owner: state.owner,
                 capturing: state.capturing,
                 capture_progress: state.capture_ticks as f64
-                    / (CAPTURE_SECONDS * u64::from(hz)) as f64,
+                    / (self.capture_s * u64::from(hz)) as f64,
                 contested: state.contested,
             })
             .collect()
@@ -227,9 +230,34 @@ pub fn can_hold(t: &contract::catalog::UnitType) -> bool {
 mod tests {
     use super::*;
 
+    /// A match taking an objective in 20 s alone and won at 1,000 points by
+    /// holding a majority for 30 minutes.
+    fn rules() -> MatchRules {
+        serde_json::from_value(serde_json::json!({
+            "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60,
+            "max_units": 30, "dispatch_interval_s": 1,
+            "capture_s": 20, "majority_s": 1800, "victory_score": 1000
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn a_match_takes_an_objective_in_its_own_capture_time() {
+        let mut rules = rules();
+        rules.capture_s = 5;
+        let mut referee = Objectives::new(3, &rules);
+        let blue_alone = [[true, false], [false; 2], [false; 2]];
+        for _ in 0..4 {
+            referee.advance_presence(&blue_alone, 1);
+        }
+        assert_eq!(referee.sites[0].owner, None);
+        referee.advance_presence(&blue_alone, 1);
+        assert_eq!(referee.sites[0].owner, Some(Side::Blue));
+    }
+
     #[test]
     fn interruption_preserves_progress_while_both_sides_remain_then_resumes() {
-        let mut referee = Objectives::new(3);
+        let mut referee = Objectives::new(3, &rules());
         for _ in 0..10 {
             referee.advance_presence(&[[true, false], [false; 2], [false; 2]], 1);
         }
@@ -253,7 +281,7 @@ mod tests {
     }
     #[test]
     fn leaving_resets_an_incomplete_capture_and_enemy_presence_stops_owned_scoring() {
-        let mut referee = Objectives::new(3);
+        let mut referee = Objectives::new(3, &rules());
         for _ in 0..10 {
             referee.advance_presence(&[[true, false], [false; 2], [false; 2]], 1);
         }
@@ -281,7 +309,7 @@ mod tests {
 
     #[test]
     fn smallest_majority_wins_in_thirty_minutes_and_minority_keeps_scoring() {
-        let mut referee = Objectives::new(3);
+        let mut referee = Objectives::new(3, &rules());
         referee.sites[0].owner = Some(Side::Blue);
         referee.sites[1].owner = Some(Side::Blue);
         referee.sites[2].owner = Some(Side::Red);
@@ -299,7 +327,7 @@ mod tests {
 
     #[test]
     fn exact_score_crossings_draw_but_an_earlier_fraction_wins() {
-        let mut tied = Objectives::new(3);
+        let mut tied = Objectives::new(3, &rules());
         tied.sites[0].owner = Some(Side::Blue);
         tied.sites[1].owner = Some(Side::Blue);
         tied.sites[2].owner = Some(Side::Red);
@@ -309,7 +337,7 @@ mod tests {
         assert_eq!(tied.result, Some(MatchResult::Draw));
         assert_eq!(tied.scores(30), [1000.0, 1000.0]);
 
-        let mut earlier = Objectives::new(3);
+        let mut earlier = Objectives::new(3, &rules());
         earlier.sites[0].owner = Some(Side::Blue);
         earlier.sites[1].owner = Some(Side::Blue);
         earlier.sites[2].owner = Some(Side::Red);

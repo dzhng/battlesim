@@ -3190,7 +3190,8 @@
               "height_m": 1.2,
               "prop": "medium_wreck"
             }
-          }
+          },
+          "wreck": true
         },
         "hedge": {
           "appearance": {
@@ -3400,7 +3401,8 @@
             "topples": false,
             "weight_class": "light"
           },
-          "destroyed": "removed"
+          "destroyed": "removed",
+          "wreck": true
         },
         "log": {
           "appearance": {
@@ -3450,7 +3452,8 @@
               "height_m": 0.8,
               "prop": "light_wreck"
             }
-          }
+          },
+          "wreck": true
         },
         "outdoor_gym": {
           "appearance": {
@@ -6485,7 +6488,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 360,
           "description": "AH-64E Guardian",
           "faction": "us",
@@ -6579,7 +6587,6 @@
           },
           "sensors": {
             "ground_m": 900.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -6632,7 +6639,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -6722,7 +6728,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -6813,7 +6818,6 @@
           },
           "sensors": {
             "ground_m": 400.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -6860,7 +6864,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -6907,7 +6910,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -6959,7 +6961,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -7050,7 +7051,6 @@
           },
           "sensors": {
             "ground_m": 400.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -7161,7 +7161,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -7274,7 +7273,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "main_gun",
             "sight_shape": {
               "front": 1.0,
@@ -7366,7 +7364,6 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -7458,7 +7455,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -7601,17 +7597,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 340,
@@ -7738,17 +7733,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 490,
@@ -7848,7 +7842,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 360,
           "description": "Ka-52M",
           "faction": "eastern",
@@ -7920,7 +7919,6 @@
           },
           "sensors": {
             "ground_m": 900.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8022,7 +8020,6 @@
           },
           "sensors": {
             "ground_m": 650.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -8062,7 +8059,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 270,
           "description": "Mi-35M",
           "faction": "eastern",
@@ -8134,7 +8136,6 @@
           },
           "sensors": {
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8174,7 +8175,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 330,
           "description": "Mi-28NM",
           "faction": "eastern",
@@ -8246,7 +8252,6 @@
           },
           "sensors": {
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8286,7 +8291,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 170,
           "description": "Mi-8AMTSh",
           "faction": "eastern",
@@ -8366,7 +8376,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8412,17 +8421,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 280,
@@ -8570,17 +8578,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 350,
@@ -8868,7 +8875,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -8915,7 +8921,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -8962,7 +8967,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9224,7 +9228,6 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9270,7 +9273,6 @@
           },
           "sensors": {
             "ground_m": 800.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -9316,17 +9318,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 270,
@@ -9453,17 +9454,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 480,
@@ -9611,17 +9611,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 310,
@@ -9748,21 +9747,19 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 5000.0,
-                "emits": false
-              },
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": true
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            },
+            "radar_receiver": {
+              "range_m": 5000.0
             }
           },
           "cost": 370,
@@ -9889,17 +9886,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 390,
@@ -10047,17 +10043,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 410,
@@ -10251,7 +10246,6 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10363,7 +10357,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -10477,7 +10470,6 @@
           "sensors": {
             "ground_m": 450.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10591,7 +10583,6 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10705,7 +10696,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -10797,7 +10787,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -10911,7 +10900,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11025,7 +11013,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -11102,7 +11089,6 @@
           },
           "sensors": {
             "ground_m": 300.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11142,7 +11128,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 300,
           "description": "Attack helicopter",
           "faction": "eastern",
@@ -11214,7 +11205,6 @@
           },
           "sensors": {
             "ground_m": 900.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11254,7 +11244,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 180,
           "description": "Utility transport",
           "faction": "eastern",
@@ -11334,7 +11329,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11425,7 +11419,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -11517,7 +11510,6 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -11565,7 +11557,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -11605,7 +11596,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 230,
           "description": "HC4",
           "faction": "europe",
@@ -11685,7 +11681,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11725,7 +11720,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 170,
           "description": "AH1",
           "faction": "europe",
@@ -11780,7 +11780,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -11871,7 +11870,6 @@
           },
           "sensors": {
             "ground_m": 450.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -11963,7 +11961,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -12152,7 +12149,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -12266,7 +12262,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12307,7 +12302,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 240,
           "description": "HC6",
           "faction": "europe",
@@ -12387,7 +12387,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -12500,7 +12499,6 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12627,7 +12625,6 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12741,7 +12738,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -12832,7 +12828,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -12923,7 +12918,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -13037,7 +13031,6 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -13078,7 +13071,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 350,
           "description": "HAD",
           "faction": "europe",
@@ -13150,7 +13148,6 @@
           },
           "sensors": {
             "ground_m": 900.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13190,7 +13187,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 330,
           "description": "UHT",
           "faction": "europe",
@@ -13262,7 +13264,6 @@
           },
           "sensors": {
             "ground_m": 900.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -13308,17 +13309,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 410,
@@ -13491,7 +13491,6 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -13729,17 +13728,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 350,
@@ -14006,7 +14004,6 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14120,7 +14117,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14234,7 +14230,6 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14348,7 +14343,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14475,7 +14469,6 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -14552,7 +14545,6 @@
           },
           "sensors": {
             "ground_m": 300.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -14602,7 +14594,6 @@
           },
           "sensors": {
             "ground_m": 650.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -14692,7 +14683,6 @@
           },
           "sensors": {
             "ground_m": 450.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -14738,17 +14728,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 290,
@@ -14965,7 +14954,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 190,
           "description": "TTH",
           "faction": "europe",
@@ -15045,7 +15039,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15156,7 +15149,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -15247,7 +15239,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -15293,17 +15284,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 420,
@@ -15454,7 +15444,6 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -15542,21 +15531,19 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 5000.0,
-                "emits": false
-              },
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": true
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            },
+            "radar_receiver": {
+              "range_m": 5000.0
             }
           },
           "cost": 340,
@@ -15683,17 +15670,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 310,
@@ -15865,7 +15851,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -15957,7 +15942,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -16004,17 +15988,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 350,
@@ -16163,17 +16146,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 470,
@@ -16324,7 +16306,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16372,7 +16353,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16426,7 +16406,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -16472,17 +16451,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 300,
@@ -16654,7 +16632,6 @@
           },
           "sensors": {
             "ground_m": 450.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -16695,7 +16672,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 320,
           "description": "Attack helicopter",
           "faction": "us",
@@ -16767,7 +16749,6 @@
           },
           "sensors": {
             "ground_m": 900.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16807,7 +16788,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 180,
           "description": "AH-6M",
           "faction": "us",
@@ -16879,7 +16865,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -16919,7 +16904,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 120,
           "description": "MH-6M",
           "faction": "us",
@@ -16999,7 +16989,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17048,7 +17037,6 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 750.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -17095,7 +17083,6 @@
           },
           "sensors": {
             "ground_m": 600.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -17135,7 +17122,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 240,
           "description": "CH-47F",
           "faction": "us",
@@ -17215,7 +17207,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -17261,21 +17252,19 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
-              "radar": {
-                "detection_m": 5000.0,
-                "emits": false
-              },
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": true
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            },
+            "radar_receiver": {
+              "range_m": 5000.0
             }
           },
           "cost": 380,
@@ -17402,17 +17391,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 400,
@@ -17560,17 +17548,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 430,
@@ -17697,17 +17684,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 500,
@@ -17834,17 +17820,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 490,
@@ -17992,17 +17977,16 @@
                 "fuel_multiplier": 2.0,
                 "speed_multiplier": 1.5
               },
-              "flares": {
-                "capacity": 4,
-                "reload_s": 3.0
-              },
               "fuel_capacity_s": 180.0,
               "refund": {
                 "ammunition": 0.3,
                 "fuel": 0.3,
                 "health": 0.4
-              },
-              "sead": false
+              }
+            },
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
             }
           },
           "cost": 370,
@@ -18153,7 +18137,6 @@
           "sensors": {
             "concealed_range_multiplier": 2.0,
             "ground_m": 800.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -18296,7 +18279,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -18388,7 +18370,6 @@
           },
           "sensors": {
             "ground_m": 650.0,
-            "low_air_m": 0.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -18479,7 +18460,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -18592,7 +18572,6 @@
           "sensors": {
             "ground_m": 550.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -18685,7 +18664,6 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -18777,7 +18755,6 @@
           },
           "sensors": {
             "ground_m": 500.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -18868,7 +18845,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -18960,7 +18936,6 @@
           },
           "sensors": {
             "ground_m": 450.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19051,7 +19026,6 @@
           },
           "sensors": {
             "ground_m": 450.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19164,7 +19138,6 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19291,7 +19264,6 @@
           "sensors": {
             "ground_m": 500.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19418,7 +19390,6 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19545,7 +19516,6 @@
           "sensors": {
             "ground_m": 600.0,
             "high_air_m": 0.0,
-            "low_air_m": 0.0,
             "on": "cannon",
             "sight_shape": {
               "front": 1.0,
@@ -19636,7 +19606,6 @@
           },
           "sensors": {
             "ground_m": 450.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19747,7 +19716,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -19860,7 +19828,6 @@
           "sensors": {
             "concealed_range_multiplier": 1.5,
             "ground_m": 850.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -19937,7 +19904,6 @@
           },
           "sensors": {
             "ground_m": 300.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -19989,7 +19955,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -20039,7 +20004,6 @@
           },
           "sensors": {
             "ground_m": 650.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -20345,7 +20309,6 @@
           },
           "sensors": {
             "ground_m": 800.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 1.0,
@@ -20436,7 +20399,6 @@
           },
           "sensors": {
             "ground_m": 450.0,
-            "low_air_m": 0.0,
             "on": "HMG",
             "sight_shape": {
               "front": 1.0,
@@ -20528,7 +20490,6 @@
           },
           "sensors": {
             "ground_m": 650.0,
-            "low_air_m": 0.0,
             "on": "launcher",
             "sight_shape": {
               "front": 1.0,
@@ -20620,7 +20581,6 @@
           },
           "sensors": {
             "ground_m": 550.0,
-            "low_air_m": 0.0,
             "on": "autocannon",
             "sight_shape": {
               "front": 1.0,
@@ -20758,7 +20718,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 160,
           "description": "Utility transport",
           "faction": "us",
@@ -20838,7 +20803,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -20878,7 +20842,12 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "flares": {
+              "capacity": 4,
+              "reload_s": 3.0
+            }
+          },
           "cost": 180,
           "description": "UH-60M",
           "faction": "us",
@@ -20958,7 +20927,6 @@
           },
           "sensors": {
             "ground_m": 700.0,
-            "low_air_m": 0.0,
             "sight_shape": {
               "front": 1.0,
               "rear": 0.3,
@@ -21550,7 +21518,8 @@
           "height_m": 1.2,
           "prop": "medium_wreck"
         }
-      }
+      },
+      "wreck": true
     },
     "hedge": {
       "appearance": {
@@ -21760,7 +21729,8 @@
         "topples": false,
         "weight_class": "light"
       },
-      "destroyed": "removed"
+      "destroyed": "removed",
+      "wreck": true
     },
     "log": {
       "appearance": {
@@ -21810,7 +21780,8 @@
           "height_m": 0.8,
           "prop": "light_wreck"
         }
-      }
+      },
+      "wreck": true
     },
     "outdoor_gym": {
       "appearance": {
@@ -24845,7 +24816,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 360,
       "description": "AH-64E Guardian",
       "faction": "us",
@@ -24943,7 +24919,6 @@
       },
       "sensors": {
         "ground_m": 900.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -25131,7 +25106,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -25224,7 +25198,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -25318,7 +25291,6 @@
       },
       "sensors": {
         "ground_m": 400.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -25427,7 +25399,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -25536,7 +25507,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -25654,7 +25624,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -25748,7 +25717,6 @@
       },
       "sensors": {
         "ground_m": 400.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -25863,7 +25831,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -25980,7 +25947,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "main_gun",
         "sight_shape": {
           "front": 1.0,
@@ -26075,7 +26041,6 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -26170,7 +26135,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -26317,17 +26281,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 340,
@@ -26458,17 +26421,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 490,
@@ -26571,7 +26533,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 360,
       "description": "Ka-52M",
       "faction": "eastern",
@@ -26646,7 +26613,6 @@
       },
       "sensors": {
         "ground_m": 900.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -26841,7 +26807,6 @@
       },
       "sensors": {
         "ground_m": 650.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -26882,7 +26847,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 270,
       "description": "Mi-35M",
       "faction": "eastern",
@@ -26957,7 +26927,6 @@
       },
       "sensors": {
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -26998,7 +26967,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 330,
       "description": "Mi-28NM",
       "faction": "eastern",
@@ -27073,7 +27047,6 @@
       },
       "sensors": {
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27114,7 +27087,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 170,
       "description": "Mi-8AMTSh",
       "faction": "eastern",
@@ -27197,7 +27175,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27244,17 +27221,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 280,
@@ -27407,17 +27383,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 350,
@@ -27693,7 +27668,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -27802,7 +27776,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -27911,7 +27884,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28217,7 +28189,6 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28320,7 +28291,6 @@
       },
       "sensors": {
         "ground_m": 800.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -28367,17 +28337,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 270,
@@ -28508,17 +28477,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 480,
@@ -28671,17 +28639,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 310,
@@ -28812,21 +28779,19 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 5000.0,
-            "emits": false
-          },
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": true
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        },
+        "radar_receiver": {
+          "range_m": 5000.0
         }
       },
       "cost": 370,
@@ -28957,17 +28922,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 390,
@@ -29120,17 +29084,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 410,
@@ -29331,7 +29294,6 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -29447,7 +29409,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -29565,7 +29526,6 @@
       "sensors": {
         "ground_m": 450.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -29683,7 +29643,6 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -29801,7 +29760,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -29896,7 +29854,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -30014,7 +29971,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -30132,7 +30088,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -30212,7 +30167,6 @@
       },
       "sensors": {
         "ground_m": 300.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30253,7 +30207,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 300,
       "description": "Attack helicopter",
       "faction": "eastern",
@@ -30328,7 +30287,6 @@
       },
       "sensors": {
         "ground_m": 900.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30369,7 +30327,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 180,
       "description": "Utility transport",
       "faction": "eastern",
@@ -30452,7 +30415,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30546,7 +30508,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -30641,7 +30602,6 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -30751,7 +30711,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -30792,7 +30751,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 230,
       "description": "HC4",
       "faction": "europe",
@@ -30875,7 +30839,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -30916,7 +30879,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 170,
       "description": "AH1",
       "faction": "europe",
@@ -30973,7 +30941,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31067,7 +31034,6 @@
       },
       "sensors": {
         "ground_m": 450.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -31162,7 +31128,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -31357,7 +31322,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31475,7 +31439,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -31517,7 +31480,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 240,
       "description": "HC6",
       "faction": "europe",
@@ -31600,7 +31568,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -31717,7 +31684,6 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -31848,7 +31814,6 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -31966,7 +31931,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -32060,7 +32024,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32154,7 +32117,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32272,7 +32234,6 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -32314,7 +32275,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 350,
       "description": "HAD",
       "faction": "europe",
@@ -32389,7 +32355,6 @@
       },
       "sensors": {
         "ground_m": 900.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -32430,7 +32395,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 330,
       "description": "UHT",
       "faction": "europe",
@@ -32505,7 +32475,6 @@
       },
       "sensors": {
         "ground_m": 900.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -32552,17 +32521,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 410,
@@ -32741,7 +32709,6 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -32986,17 +32953,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 350,
@@ -33219,7 +33185,6 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33337,7 +33302,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33455,7 +33419,6 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33573,7 +33536,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33704,7 +33666,6 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -33784,7 +33745,6 @@
       },
       "sensors": {
         "ground_m": 300.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -33979,7 +33939,6 @@
       },
       "sensors": {
         "ground_m": 650.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -34072,7 +34031,6 @@
       },
       "sensors": {
         "ground_m": 450.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34119,17 +34077,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 290,
@@ -34353,7 +34310,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 190,
       "description": "TTH",
       "faction": "europe",
@@ -34436,7 +34398,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34551,7 +34512,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -34645,7 +34605,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -34692,17 +34651,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 420,
@@ -34916,7 +34874,6 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -34963,21 +34920,19 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 5000.0,
-            "emits": false
-          },
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": true
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        },
+        "radar_receiver": {
+          "range_m": 5000.0
         }
       },
       "cost": 340,
@@ -35108,17 +35063,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 310,
@@ -35296,7 +35250,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -35391,7 +35344,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -35439,17 +35391,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 350,
@@ -35603,17 +35554,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 470,
@@ -35830,7 +35780,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -35940,7 +35889,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -36109,7 +36057,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -36156,17 +36103,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 300,
@@ -36344,7 +36290,6 @@
       },
       "sensors": {
         "ground_m": 450.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -36386,7 +36331,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 320,
       "description": "Attack helicopter",
       "faction": "us",
@@ -36461,7 +36411,6 @@
       },
       "sensors": {
         "ground_m": 900.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36502,7 +36451,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 180,
       "description": "AH-6M",
       "faction": "us",
@@ -36577,7 +36531,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36618,7 +36571,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 120,
       "description": "MH-6M",
       "faction": "us",
@@ -36701,7 +36659,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -36809,7 +36766,6 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 750.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -36922,7 +36878,6 @@
       },
       "sensors": {
         "ground_m": 600.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -36963,7 +36918,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 240,
       "description": "CH-47F",
       "faction": "us",
@@ -37046,7 +37006,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -37093,21 +37052,19 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
-          "radar": {
-            "detection_m": 5000.0,
-            "emits": false
-          },
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": true
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        },
+        "radar_receiver": {
+          "range_m": 5000.0
         }
       },
       "cost": 380,
@@ -37238,17 +37195,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 400,
@@ -37401,17 +37357,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 430,
@@ -37542,17 +37497,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 500,
@@ -37683,17 +37637,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 490,
@@ -37846,17 +37799,16 @@
             "fuel_multiplier": 2.0,
             "speed_multiplier": 1.5
           },
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3.0
-          },
           "fuel_capacity_s": 180.0,
           "refund": {
             "ammunition": 0.3,
             "fuel": 0.3,
             "health": 0.4
-          },
-          "sead": false
+          }
+        },
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
         }
       },
       "cost": 370,
@@ -38090,7 +38042,6 @@
       "sensors": {
         "concealed_range_multiplier": 2.0,
         "ground_m": 800.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -38184,7 +38135,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -38279,7 +38229,6 @@
       },
       "sensors": {
         "ground_m": 650.0,
-        "low_air_m": 0.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -38373,7 +38322,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38490,7 +38438,6 @@
       "sensors": {
         "ground_m": 550.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -38586,7 +38533,6 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -38681,7 +38627,6 @@
       },
       "sensors": {
         "ground_m": 500.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38775,7 +38720,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -38870,7 +38814,6 @@
       },
       "sensors": {
         "ground_m": 450.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -38964,7 +38907,6 @@
       },
       "sensors": {
         "ground_m": 450.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39081,7 +39023,6 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -39212,7 +39153,6 @@
       "sensors": {
         "ground_m": 500.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -39343,7 +39283,6 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -39474,7 +39413,6 @@
       "sensors": {
         "ground_m": 600.0,
         "high_air_m": 0.0,
-        "low_air_m": 0.0,
         "on": "cannon",
         "sight_shape": {
           "front": 1.0,
@@ -39568,7 +39506,6 @@
       },
       "sensors": {
         "ground_m": 450.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -39683,7 +39620,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -39800,7 +39736,6 @@
       "sensors": {
         "concealed_range_multiplier": 1.5,
         "ground_m": 850.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -39880,7 +39815,6 @@
       },
       "sensors": {
         "ground_m": 300.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -40067,7 +40001,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40262,7 +40195,6 @@
       },
       "sensors": {
         "ground_m": 650.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40563,7 +40495,6 @@
       },
       "sensors": {
         "ground_m": 800.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 1.0,
@@ -40657,7 +40588,6 @@
       },
       "sensors": {
         "ground_m": 450.0,
-        "low_air_m": 0.0,
         "on": "HMG",
         "sight_shape": {
           "front": 1.0,
@@ -40752,7 +40682,6 @@
       },
       "sensors": {
         "ground_m": 650.0,
-        "low_air_m": 0.0,
         "on": "launcher",
         "sight_shape": {
           "front": 1.0,
@@ -40847,7 +40776,6 @@
       },
       "sensors": {
         "ground_m": 550.0,
-        "low_air_m": 0.0,
         "on": "autocannon",
         "sight_shape": {
           "front": 1.0,
@@ -40989,7 +40917,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 160,
       "description": "Utility transport",
       "faction": "us",
@@ -41072,7 +41005,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -41113,7 +41045,12 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3.0
+        }
+      },
       "cost": 180,
       "description": "UH-60M",
       "faction": "us",
@@ -41196,7 +41133,6 @@
       },
       "sensors": {
         "ground_m": 700.0,
-        "low_air_m": 0.0,
         "sight_shape": {
           "front": 1.0,
           "rear": 0.3,
@@ -41222,6 +41158,7 @@
       "decoyable": false,
       "default": true,
       "description": "Ballistic short-range air defence.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.5,
       "icon": "autocannon",
       "interceptable": false,
@@ -41239,6 +41176,7 @@
       "near_miss_suppression": 0.1,
       "partial_from": 0.08,
       "penetration": 65.0,
+      "proximity_fuse_m": 5.0,
       "range_m": 1500.0,
       "reload_s": 3.5,
       "requires_clear_launch_path": false,
@@ -41288,6 +41226,7 @@
       "decoyable": true,
       "default": false,
       "description": "Long-range aircraft-only missile.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "aa_missile",
@@ -41299,6 +41238,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 3.0,
       "range_m": 5200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
@@ -41332,6 +41272,7 @@
       "decoyable": true,
       "default": false,
       "description": "Medium-range surface-to-air missile.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "on_the_move",
       "icon": "aa_missile",
@@ -41343,6 +41284,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 3.0,
       "range_m": 2600.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
@@ -41382,6 +41324,7 @@
       "decoyable": false,
       "default": false,
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "ap_shell",
       "interceptable": false,
@@ -41423,6 +41366,7 @@
       "decoyable": false,
       "default": false,
       "description": "High-explosive shell for troops, cover and buildings.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "he_shell",
       "interceptable": false,
@@ -41465,8 +41409,8 @@
       "default": false,
       "delivery": "unpowered",
       "description": "Unguided iron bomb with a heavy single blast.",
+      "fires_on_its_own": false,
       "gravity_scale": 4.5,
-      "ground_attack": "bomb",
       "icon": "bomb",
       "interceptable": false,
       "lifetime_s": null,
@@ -41508,8 +41452,8 @@
       "default": false,
       "delivery": "unpowered",
       "description": "Wide-spread cluster bomb salvo for area attacks.",
+      "fires_on_its_own": false,
       "gravity_scale": 4.5,
-      "ground_attack": "bomb",
       "icon": "bomb",
       "interceptable": false,
       "lifetime_s": null,
@@ -41554,6 +41498,7 @@
       "decoyable": false,
       "default": false,
       "description": "A fast guided anti-armour missile for ground attack.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "on_the_move",
       "icon": "atgm",
@@ -41595,8 +41540,8 @@
       "decoyable": false,
       "default": true,
       "description": "Unlimited aircraft gun.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.5,
-      "ground_attack": "strafe",
       "icon": "autocannon",
       "interceptable": false,
       "lifetime_s": null,
@@ -41660,6 +41605,7 @@
       "decoyable": true,
       "default": false,
       "description": "Fire-and-forget air-to-air missile.",
+      "fires_on_its_own": true,
       "gravity_scale": 1.0,
       "guidance": "on_the_move",
       "icon": "aa_missile",
@@ -41671,6 +41617,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 3.0,
       "range_m": 3000.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
@@ -41710,6 +41657,7 @@
       "decoyable": false,
       "default": false,
       "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "atgm",
@@ -41755,6 +41703,7 @@
       "decoyable": false,
       "default": false,
       "description": "Indirect-fire howitzer shell for long-range support.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "icon": "howitzer",
       "interceptable": false,
@@ -41796,6 +41745,7 @@
       "decoyable": false,
       "default": false,
       "description": "High-angle mortar bomb for close indirect support.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "icon": "mortar",
       "interceptable": false,
@@ -41837,6 +41787,7 @@
       "decoyable": false,
       "default": false,
       "description": "Heavy rocket salvo for deep area fire.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "icon": "rockets",
       "interceptable": false,
@@ -41882,6 +41833,7 @@
       "decoyable": false,
       "default": false,
       "description": "Unguided rocket salvo for deep area fire.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "icon": "rockets",
       "interceptable": false,
@@ -41927,6 +41879,7 @@
       "decoyable": false,
       "default": false,
       "description": "Long-range unguided strike missile for deep area fire.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "icon": "rockets",
       "interceptable": false,
@@ -41968,6 +41921,7 @@
       "decoyable": false,
       "default": false,
       "description": "A wire-guided anti-tank missile, steered onto its target.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "atgm",
@@ -42009,6 +41963,7 @@
       "decoyable": false,
       "default": true,
       "description": "A slow-firing cannon whose small bursting shells tear up troops, cover and light armour.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.5,
       "icon": "autocannon",
       "interceptable": false,
@@ -42065,6 +42020,7 @@
       "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "atgm",
@@ -42106,6 +42062,7 @@
       "decoyable": false,
       "default": true,
       "description": "A short rifle for close quarters: handier, less accurate at range.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.09,
       "icon": "rifle",
       "interceptable": false,
@@ -42162,6 +42119,7 @@
       "decoyable": false,
       "default": false,
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "aa_missile",
@@ -42173,6 +42131,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 3.0,
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
@@ -42204,6 +42163,7 @@
       "decoyable": false,
       "default": false,
       "description": "Rifle grenades lobbed at troops behind cover.",
+      "fires_on_its_own": false,
       "gravity_scale": 5.35103,
       "icon": "grenade",
       "interceptable": false,
@@ -42245,6 +42205,7 @@
       "decoyable": false,
       "default": false,
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "ap_shell",
       "interceptable": false,
@@ -42286,6 +42247,7 @@
       "decoyable": false,
       "default": false,
       "description": "High-explosive shell for troops, cover and buildings.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "he_shell",
       "interceptable": false,
@@ -42327,6 +42289,7 @@
       "decoyable": false,
       "default": false,
       "description": "A .50-calibre rifle: few, heavy, long shots.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.09,
       "icon": "sniper",
       "interceptable": false,
@@ -42376,6 +42339,7 @@
       "decoyable": false,
       "default": false,
       "description": "A helicopter's anti-tank missile: fired and steered on the move.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "on_the_move",
       "icon": "atgm",
@@ -42417,6 +42381,7 @@
       "decoyable": false,
       "default": false,
       "description": "A downed airframe striking the ground: no gun fires it. It fells the trees beneath and hurts what lies there, less than a shell.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "he_shell",
       "interceptable": false,
@@ -42458,6 +42423,7 @@
       "decoyable": false,
       "default": true,
       "description": "A heavy machine gun for troops and light vehicles.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.09,
       "icon": "hmg",
       "interceptable": false,
@@ -42514,6 +42480,7 @@
       "decoyable": false,
       "default": false,
       "description": "High-explosive shell for troops, cover and buildings.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "he_shell",
       "interceptable": false,
@@ -42555,6 +42522,7 @@
       "decoyable": false,
       "default": false,
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "aa_missile",
@@ -42566,6 +42534,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 3.0,
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
@@ -42597,6 +42566,7 @@
       "decoyable": false,
       "default": false,
       "description": "Top-attack anti-tank missile: it climbs, then dives onto the roof; the gunner must keep sight.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "atgm",
@@ -42642,6 +42612,7 @@
       "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "atgm",
@@ -42683,6 +42654,7 @@
       "decoyable": false,
       "default": false,
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "ap_shell",
       "interceptable": false,
@@ -42724,6 +42696,7 @@
       "decoyable": false,
       "default": false,
       "description": "High-explosive shell for troops, cover and buildings.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "he_shell",
       "interceptable": false,
@@ -42765,6 +42738,7 @@
       "decoyable": false,
       "default": false,
       "description": "A light machine gun: long belts of fire that keep heads down.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.09,
       "icon": "lmg",
       "interceptable": false,
@@ -42821,6 +42795,7 @@
       "decoyable": false,
       "default": false,
       "description": "A designated marksman's scoped rifle: aimed single shots past rifle range.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.09,
       "icon": "sniper",
       "interceptable": false,
@@ -42874,6 +42849,7 @@
       "decoyable": true,
       "default": false,
       "description": "Medium-range missile that also shoots down missiles fired from aircraft.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "on_the_move",
       "icon": "aa_missile",
@@ -42885,6 +42861,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 5.0,
       "range_m": 2600.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
@@ -42926,6 +42903,7 @@
       "decoyable": true,
       "default": false,
       "description": "Long-range missile that also shoots down missiles fired from aircraft.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "aa_missile",
@@ -42937,6 +42915,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 5.0,
       "range_m": 5200.0,
       "reload_s": 9.0,
       "requires_clear_launch_path": true,
@@ -42971,6 +42950,7 @@
       "decoyable": false,
       "default": true,
       "description": "The standard rifle every soldier carries.",
+      "fires_on_its_own": false,
       "gravity_scale": 0.09,
       "icon": "rifle",
       "interceptable": false,
@@ -43027,6 +43007,7 @@
       "decoyable": false,
       "default": false,
       "description": "Unguided rockets in salvos, for troops, light vehicles and cover.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "icon": "rockets",
       "interceptable": false,
@@ -43072,6 +43053,7 @@
       "decoyable": false,
       "default": false,
       "description": "Unguided direct anti-tank rocket.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "rpg",
       "interceptable": true,
@@ -43112,6 +43094,7 @@
       "decoyable": false,
       "default": false,
       "description": "Unguided direct anti-tank rocket.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "rpg",
       "interceptable": true,
@@ -43152,6 +43135,7 @@
       "decoyable": false,
       "default": false,
       "description": "Long-range anti-radiation missile.",
+      "fires_on_its_own": true,
       "gravity_scale": 1.0,
       "guidance": "on_the_move",
       "icon": "aa_missile",
@@ -43195,6 +43179,7 @@
       "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; no top-attack or fire-and-forget behavior.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "atgm",
@@ -43236,6 +43221,7 @@
       "decoyable": false,
       "default": false,
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "aa_missile",
@@ -43247,6 +43233,7 @@
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
       "penetration": 300.0,
+      "proximity_fuse_m": 3.0,
       "range_m": 1500.0,
       "reload_s": 4.0,
       "requires_clear_launch_path": false,
@@ -43278,6 +43265,7 @@
       "decoyable": false,
       "default": false,
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "ap_shell",
       "interceptable": false,
@@ -43319,6 +43307,7 @@
       "decoyable": false,
       "default": false,
       "description": "High-explosive shell for troops, cover and buildings.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.7651,
       "icon": "he_shell",
       "interceptable": false,
@@ -43360,6 +43349,7 @@
       "decoyable": false,
       "default": false,
       "description": "Optically supported direct anti-tank missile; launcher line of sight is required.",
+      "fires_on_its_own": false,
       "gravity_scale": 1.0,
       "guidance": "stationary",
       "icon": "atgm",

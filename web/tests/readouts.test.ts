@@ -27,7 +27,13 @@ test("every published action reason has player words and a mark, and every garri
   expect(phases.length).toBeGreaterThan(2);
   const rules = { tick_hz: 30, weapons: {}, service: { radius_m: 1 } } as PanelRules;
   for (const phase of phases) {
-    const u = { garrison: { phase, progress: 0.5 }, suppression: "none", service: "", stock: null };
+    const u = {
+      kind: "test_rifle",
+      garrison: { phase, progress: 0.5 },
+      suppression: "none",
+      service: "",
+      stock: null,
+    };
     expect(ownStateRows(UNITS, u as unknown as OwnUnitView, [], rules), phase).toHaveLength(1);
   }
 });
