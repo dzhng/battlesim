@@ -66,7 +66,7 @@ The `explore-unknowns` walk on 2026-10-14, held with the user. It was sliced int
 ### Attacks
 | # | Decision | Why | Closed by |
 |---|---|---|---|
-| D14 | **An attack run** goes: line up on a line through the target → dive under the weapon's ceiling → release → pull out, climb back to cruise and come round for the next pass. | A run, not a hover. | user |
+| D14 | **An attack run** goes: line up on a line through the target → dive under the weapon's ceiling → release → pull out, climb back to cruise and come round for the next pass. *Superseded in part (user, 2026-10-16, [choices](choices.md) "runs"): a run ends when its weapon fires or it is broken, and the jet holds its attack height until the attack ends.* | A run, not a hover. | user |
 | D13 | Run heights are **ceilings, not targets**: about **130 m to strafe and 200 m to bomb**, with the 100 m floor below. Each pass randomises its height between the floor and the ceiling, using seeded randomness. A jet already below the ceiling doesn't climb. | Hollywood variety. | user |
 | D30 | **The gun fires whenever the jet's nose is on a legal target within gun range.** There is no weapon-pairing rule. Nose-on missile passes and dogfights fire the gun on their own; a bombing pass flies past high and never does. Today's "no strafing while bombs remain" rule is deleted. | One rule. | user |
 | D23 | **Any loadout works.** Limited-ammunition ground weapons choose the pass ahead of the unlimited gun; a pass flies under its chosen weapon's ceiling, and every other weapon that can engage during the pass fires too. | A data choice must never confuse the sim. | user |
