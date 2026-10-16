@@ -130,6 +130,16 @@ export async function run(ctx) {
   const tree = o?.fallenBodies[0];
   ctx.check("a burst in the wood fells a tree blue sees", !!tree, JSON.stringify(o?.fallenBodies));
   if (tree) {
+    // While that tree is filmed the tank shells open ground, so no later
+    // burst (nor its return fire on the squad) fells another mid-shot; its
+    // 20 s on the forest squad resume after.
+    await lab(page, () =>
+      window.__lab.route.command({
+        kind: "attack",
+        units: [0],
+        target: { kind: "ground", point: [230, 400, 0] },
+      }),
+    );
     // From above (a wood's crowns hide anything lower), side-on to the fall.
     const yaw = Math.atan2(tree.toward[1], tree.toward[0]) + Math.PI / 2;
     const at = [tree.at[0] + tree.toward[0] * 5, tree.at[1] + tree.toward[1] * 5];
@@ -145,12 +155,12 @@ export async function run(ctx) {
     await aim(page, at, { distance: 55, pitch: 0.9, yaw });
     await presented(page);
     await snapshot(ctx, page, "felled-lying-game.png");
-    spent += 126;
     ctx.check(
       "a felled tree falls on the clock, then lies by its stump",
       falling.trees > 0 && falling.falling && lying.trees > 0 && !lying.falling && lying.stumps > 0,
       JSON.stringify({ tree, falling, lying }),
     );
+    await demo(page, "HE on the forest squad");
   }
   await look(page, [330, 250], 330);
   await advance(page, Math.max(0, 600 - spent));
