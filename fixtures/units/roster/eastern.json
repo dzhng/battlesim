@@ -815,18 +815,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -924,18 +912,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -1378,18 +1354,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -1505,18 +1469,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -1934,18 +1886,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -2043,18 +1983,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -2170,18 +2098,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -2279,18 +2195,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -2391,18 +2295,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -2518,18 +2410,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"

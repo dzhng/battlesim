@@ -82,6 +82,7 @@ These were all built and then deleted, because each stood in for a property some
 - **A hauler or a wreck known by its role or its art.** A vehicle's `_logistics` class and the endurance harness read the `logistics` role, and the simulation knew a wreck by `drawn_by: "wreck"`. A hauler is a unit that carries `supply`; a wreck is a prop row authored `wreck: true`.
 - **A `ground_attack` tag (`bomb`, `strafe`) on weapon rows.** A bomb is an unpowered row (`delivery: unpowered`); a strafing gun is the aircraft's always-available gun (`default`).
 - **Interceptors armed on the ground only.** Arming against incoming rounds skipped every airborne unit. An aircraft's row that lists `missile` arms as a ground mount's does.
+- **An aspect multiplier on aircraft.** A hit on a flying unit's side did half damage, its roof three quarters and its rear 0.85, whatever struck it. Each airframe's per-face armour says it now, as any hull's does.
 - **Flares as an aircraft's store.** `capabilities.air.flares` and the charges in an aircraft's flight state became `capabilities.flares`, which any unit may carry.
 - **A separate pass arming interceptors.** It locked only an idle mount on any round in reach, and aimed at the round as if it stood still. A round is a target like any other, taken through the same shot assessment, lead included, and one a shot can catch comes before the mount's other targets.
 

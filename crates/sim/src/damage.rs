@@ -697,17 +697,7 @@ fn hull_damage(
 ) -> f64 {
     let armor = unit.armor(ctx.rules).expect("vehicle armour");
     let face = struck_face(unit.hull.expect("vehicle hull"), pose, point, normal);
-    let aspect = if unit.airborne() {
-        match face {
-            contract::scenario::Face::Front => 1.0,
-            contract::scenario::Face::Rear => 0.85,
-            contract::scenario::Face::Roof => 0.75,
-            contract::scenario::Face::Side => 0.5,
-        }
-    } else {
-        1.0
-    };
-    def.damage * aspect * pierce_share(def, bounces, ctx.rules, armor.face(face))
+    def.damage * pierce_share(def, bounces, ctx.rules, armor.face(face))
 }
 
 /// Weapon-specific suppression at `distance` from a round's path or impact.

@@ -6466,15 +6466,15 @@
             "hull": {
               "armor": {
                 "front": 25.0,
-                "rear": 15.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 10.0,
-                "side": 15.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 1.9,
               "half_extents_m": [
@@ -7569,15 +7569,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -7705,15 +7705,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -7820,15 +7820,15 @@
             "hull": {
               "armor": {
                 "front": 25.0,
-                "rear": 15.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 10.0,
-                "side": 15.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.2,
               "half_extents_m": [
@@ -8037,15 +8037,15 @@
             "hull": {
               "armor": {
                 "front": 30.0,
-                "rear": 20.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 25.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 1.9,
               "half_extents_m": [
@@ -8153,15 +8153,15 @@
             "hull": {
               "armor": {
                 "front": 30.0,
-                "rear": 20.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 25.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -8269,15 +8269,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -8393,15 +8393,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -8550,15 +8550,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -9290,15 +9290,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -9426,15 +9426,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -9583,15 +9583,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -9719,15 +9719,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -9858,15 +9858,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -10015,15 +10015,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -11106,15 +11106,15 @@
             "hull": {
               "armor": {
                 "front": 25.0,
-                "rear": 15.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 10.0,
-                "side": 15.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 1.95,
               "half_extents_m": [
@@ -11222,15 +11222,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 1.8,
               "half_extents_m": [
@@ -11574,15 +11574,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -11698,15 +11698,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 1.55,
               "half_extents_m": [
@@ -12280,15 +12280,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 2.2,
               "half_extents_m": [
@@ -13049,15 +13049,15 @@
             "hull": {
               "armor": {
                 "front": 25.0,
-                "rear": 15.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 10.0,
-                "side": 15.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 1.9,
               "half_extents_m": [
@@ -13165,15 +13165,15 @@
             "hull": {
               "armor": {
                 "front": 25.0,
-                "rear": 15.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 10.0,
-                "side": 15.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 1.9,
               "half_extents_m": [
@@ -13281,15 +13281,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -13700,15 +13700,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -14700,15 +14700,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -14932,15 +14932,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 1.9,
               "half_extents_m": [
@@ -15256,15 +15256,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -15503,15 +15503,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -15642,15 +15642,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -15960,15 +15960,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -16118,15 +16118,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -16423,15 +16423,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -16650,15 +16650,15 @@
             "hull": {
               "armor": {
                 "front": 25.0,
-                "rear": 15.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 10.0,
-                "side": 15.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.1,
               "half_extents_m": [
@@ -16766,15 +16766,15 @@
             "hull": {
               "armor": {
                 "front": 7.0,
-                "rear": 7.0,
+                "rear": 8.5,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 7.0,
-                "side": 7.0
+                "roof": 9.0,
+                "side": 10.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -16882,15 +16882,15 @@
             "hull": {
               "armor": {
                 "front": 7.0,
-                "rear": 7.0,
+                "rear": 8.5,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 7.0,
-                "side": 7.0
+                "roof": 9.0,
+                "side": 10.0
               },
               "eye_m": 1.4,
               "half_extents_m": [
@@ -17100,15 +17100,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 2.2,
               "half_extents_m": [
@@ -17224,15 +17224,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -17363,15 +17363,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -17520,15 +17520,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -17656,15 +17656,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -17792,15 +17792,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -17949,15 +17949,15 @@
             "hull": {
               "armor": {
                 "front": 20.0,
-                "rear": 10.0,
+                "rear": 50.0,
                 "ricochet": {
                   "front": 0.0,
                   "rear": 0.0,
                   "roof": 0.0,
                   "side": 0.0
                 },
-                "roof": 8.0,
-                "side": 12.0
+                "roof": 65.0,
+                "side": 95.0
               },
               "eye_m": 2.0,
               "half_extents_m": [
@@ -20696,15 +20696,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 1.8,
               "half_extents_m": [
@@ -20820,15 +20820,15 @@
             "hull": {
               "armor": {
                 "front": 15.0,
-                "rear": 15.0,
+                "rear": 21.0,
                 "ricochet": {
                   "front": 0.1,
                   "rear": 0.1,
                   "roof": 0.1,
                   "side": 0.1
                 },
-                "roof": 15.0,
-                "side": 15.0
+                "roof": 22.0,
+                "side": 25.0
               },
               "eye_m": 1.8,
               "half_extents_m": [
@@ -24794,15 +24794,15 @@
         "hull": {
           "armor": {
             "front": 25.0,
-            "rear": 15.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 10.0,
-            "side": 15.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 1.9,
           "half_extents_m": [
@@ -26253,15 +26253,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -26393,15 +26393,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -26511,15 +26511,15 @@
         "hull": {
           "armor": {
             "front": 25.0,
-            "rear": 15.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 10.0,
-            "side": 15.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.2,
           "half_extents_m": [
@@ -26825,15 +26825,15 @@
         "hull": {
           "armor": {
             "front": 30.0,
-            "rear": 20.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 25.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 1.9,
           "half_extents_m": [
@@ -26945,15 +26945,15 @@
         "hull": {
           "armor": {
             "front": 30.0,
-            "rear": 20.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 25.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -27065,15 +27065,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -27193,15 +27193,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -27355,15 +27355,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -28309,15 +28309,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -28449,15 +28449,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -28611,15 +28611,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -28751,15 +28751,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -28894,15 +28894,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -29056,15 +29056,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -30185,15 +30185,15 @@
         "hull": {
           "armor": {
             "front": 25.0,
-            "rear": 15.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 10.0,
-            "side": 15.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 1.95,
           "half_extents_m": [
@@ -30305,15 +30305,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 1.8,
           "half_extents_m": [
@@ -30729,15 +30729,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -30857,15 +30857,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 1.55,
           "half_extents_m": [
@@ -31458,15 +31458,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 2.2,
           "half_extents_m": [
@@ -32253,15 +32253,15 @@
         "hull": {
           "armor": {
             "front": 25.0,
-            "rear": 15.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 10.0,
-            "side": 15.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 1.9,
           "half_extents_m": [
@@ -32373,15 +32373,15 @@
         "hull": {
           "armor": {
             "front": 25.0,
-            "rear": 15.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 10.0,
-            "side": 15.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 1.9,
           "half_extents_m": [
@@ -32493,15 +32493,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -32925,15 +32925,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -34049,15 +34049,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -34288,15 +34288,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 1.9,
           "half_extents_m": [
@@ -34623,15 +34623,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -34892,15 +34892,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -35035,15 +35035,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -35363,15 +35363,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -35526,15 +35526,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -36075,15 +36075,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -36309,15 +36309,15 @@
         "hull": {
           "armor": {
             "front": 25.0,
-            "rear": 15.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 10.0,
-            "side": 15.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.1,
           "half_extents_m": [
@@ -36429,15 +36429,15 @@
         "hull": {
           "armor": {
             "front": 7.0,
-            "rear": 7.0,
+            "rear": 8.5,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 7.0,
-            "side": 7.0
+            "roof": 9.0,
+            "side": 10.0
           },
           "eye_m": 1.4,
           "half_extents_m": [
@@ -36549,15 +36549,15 @@
         "hull": {
           "armor": {
             "front": 7.0,
-            "rear": 7.0,
+            "rear": 8.5,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 7.0,
-            "side": 7.0
+            "roof": 9.0,
+            "side": 10.0
           },
           "eye_m": 1.4,
           "half_extents_m": [
@@ -36896,15 +36896,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 2.2,
           "half_extents_m": [
@@ -37024,15 +37024,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -37167,15 +37167,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -37329,15 +37329,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -37469,15 +37469,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -37609,15 +37609,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -37771,15 +37771,15 @@
         "hull": {
           "armor": {
             "front": 20.0,
-            "rear": 10.0,
+            "rear": 50.0,
             "ricochet": {
               "front": 0.0,
               "rear": 0.0,
               "roof": 0.0,
               "side": 0.0
             },
-            "roof": 8.0,
-            "side": 12.0
+            "roof": 65.0,
+            "side": 95.0
           },
           "eye_m": 2.0,
           "half_extents_m": [
@@ -40895,15 +40895,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 1.8,
           "half_extents_m": [
@@ -41023,15 +41023,15 @@
         "hull": {
           "armor": {
             "front": 15.0,
-            "rear": 15.0,
+            "rear": 21.0,
             "ricochet": {
               "front": 0.1,
               "rear": 0.1,
               "roof": 0.1,
               "side": 0.1
             },
-            "roof": 15.0,
-            "side": 15.0
+            "roof": 22.0,
+            "side": 25.0
           },
           "eye_m": 1.8,
           "half_extents_m": [
@@ -41237,7 +41237,7 @@
       "name": "Long SAM",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 3.0,
       "range_m": 5200.0,
       "reload_s": 9.0,
@@ -41283,7 +41283,7 @@
       "name": "Medium SAM",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 3.0,
       "range_m": 2600.0,
       "reload_s": 4.0,
@@ -41616,7 +41616,7 @@
       "name": "Air missile",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 3.0,
       "range_m": 3000.0,
       "reload_s": 4.0,
@@ -42130,7 +42130,7 @@
       "name": "FN-6",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 3.0,
       "range_m": 1500.0,
       "reload_s": 4.0,
@@ -42533,7 +42533,7 @@
       "name": "Igla-S",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 3.0,
       "range_m": 1500.0,
       "reload_s": 4.0,
@@ -42860,7 +42860,7 @@
       "name": "57E6",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 5.0,
       "range_m": 2600.0,
       "reload_s": 4.0,
@@ -42914,7 +42914,7 @@
       "name": "PAC-3 MSE",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 5.0,
       "range_m": 5200.0,
       "reload_s": 9.0,
@@ -43232,7 +43232,7 @@
       "name": "Stinger",
       "near_miss_suppression": 0.0,
       "partial_from": 0.08,
-      "penetration": 300.0,
+      "penetration": 40.0,
       "proximity_fuse_m": 3.0,
       "range_m": 1500.0,
       "reload_s": 4.0,
