@@ -991,7 +991,12 @@ impl Reader {
         const FIELDS: &[&str] = &CONTACT_FIELDS;
         let f = r.fields;
         // Bit k of the heard mask, 24 rows a word.
-        let mask = v!(f, "heardLow") as i64 | (v!(f, "heardHigh") as i64) << HEARD_WORD_BITS;
+        let mask = [v!(f, "heardLow"), v!(f, "heardMid"), v!(f, "heardHigh")]
+            .into_iter()
+            .enumerate()
+            .fold(0_u64, |mask, (w, word)| {
+                mask | (word as u64) << (w * HEARD_WORD_BITS)
+            });
         let kinds = &self.tables["roundKinds"];
         Ok(Contact {
             id: v!(f, "id"),

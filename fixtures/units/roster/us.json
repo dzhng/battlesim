@@ -27,18 +27,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -55,14 +43,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -284,9 +271,9 @@
         "hull": {
           "armor": {
             "front": 7,
-            "side": 7,
-            "rear": 7,
-            "roof": 7,
+            "side": 10,
+            "rear": 8.5,
+            "roof": 9,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -364,9 +351,9 @@
         "hull": {
           "armor": {
             "front": 7,
-            "side": 7,
-            "rear": 7,
-            "roof": 7,
+            "side": 10,
+            "rear": 8.5,
+            "roof": 9,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -590,18 +577,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -618,23 +593,21 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": true,
-          "radar": {
-            "emits": false,
-            "detection_m": 5000
-          },
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
             "fuel": 0.3
           }
+        },
+        "radar_receiver": {
+          "range_m": 5000
         }
       },
       "mounts": [
@@ -704,18 +677,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -732,14 +693,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -832,18 +792,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -860,14 +808,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -942,18 +889,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -970,14 +905,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -1052,18 +986,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -1080,14 +1002,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -1180,18 +1101,6 @@
           ],
           "eye_m": 2.0,
           "hp": 100,
-          "armor": {
-            "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
-            "ricochet": {
-              "front": 0,
-              "side": 0,
-              "rear": 0,
-              "roof": 0
-            }
-          },
           "weight_class": "light",
           "push_class": "none",
           "wreck": "light_wreck"
@@ -1208,14 +1117,13 @@
         }
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
-          "sead": false,
           "refund": {
             "health": 0.4,
             "ammunition": 0.3,
@@ -3452,7 +3360,7 @@
           "id": "autocannon",
           "name": "Patriot PAC-3",
           "weapons": [
-            "aa_long"
+            "patriot_pac3"
           ],
           "turret": true,
           "pivot_m": [

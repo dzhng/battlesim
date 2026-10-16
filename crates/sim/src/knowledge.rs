@@ -286,31 +286,21 @@ impl SideKnowledge {
         identified
     }
 
-    /// Fold the radar-only evidence supplied by SEAD aircraft into this
-    /// side's knowledge. Radar is intentionally a separate sensor pass: it
-    /// has no terrain/foliage interaction and never identifies the emitter.
+    /// Fold what this side's radar receivers find into its knowledge: an
+    /// enemy radar that emits, within a receiver's reach. Radar is a
+    /// separate sensor pass: it has no terrain/foliage interaction and never
+    /// identifies the emitter.
     pub fn update_radar(&mut self, tick: Tick, side: Side, units: &[Unit], rules: &Rules) {
         let lifetime = (rules.sensors.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
-        let detectors: Vec<&Unit> = units
+        let receivers: Vec<(&Unit, f64)> = units
             .iter()
-            .filter(|u| {
-                u.side == side
-                    && u.alive()
-                    && u.layer() == AltitudeLayer::HighAir
-                    && u.unit_type(rules)
-                        .capabilities
-                        .air
-                        .as_ref()
-                        .is_some_and(|air| air.sead)
-                    && u.unit_type(rules)
-                        .capabilities
-                        .air
-                        .as_ref()
-                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
-                        .is_some_and(|(sead, radar)| sead && radar.detection_m > 0.0)
+            .filter(|u| u.side == side && u.alive())
+            .filter_map(|u| {
+                let receiver = u.unit_type(rules).capabilities.radar_receiver?;
+                Some((u, receiver.range_m))
             })
             .collect();
-        if detectors.is_empty() {
+        if receivers.is_empty() {
             return;
         }
         let emitters: Vec<UnitId> = units
@@ -319,7 +309,6 @@ impl SideKnowledge {
                 u.alive()
                     && u.side != side
                     && !self.identifies(u.id, tick)
-                    && !u.airborne()
                     && u.unit_type(rules)
                         .capabilities
                         .radar
@@ -329,30 +318,20 @@ impl SideKnowledge {
             .collect();
         for emitter_id in emitters {
             let emitter = &units[emitter_id.0 as usize];
-            let Some((detector, distance)) = detectors
-                .iter()
-                .map(|detector| {
-                    let distance = body_distance(emitter.position, detector.position);
-                    (detector, distance)
-                })
-                .find(|(detector, distance)| {
-                    detector
-                        .unit_type(rules)
-                        .capabilities
-                        .air
-                        .as_ref()
-                        .and_then(|air| air.radar.map(|radar| (air.sead, radar)))
-                        .is_some_and(|(sead, radar)| sead && *distance <= radar.detection_m)
-                })
-            else {
+            let Some((detector, distance)) = receivers.iter().find_map(|&(detector, range_m)| {
+                let distance = body_distance(emitter.position, detector.position);
+                (distance <= range_m).then_some((detector, distance))
+            }) else {
                 continue;
             };
             let delta = emitter.position.xy() - detector.position.xy();
             // In [0, 360): counter-clockwise from east, as the map's yaw.
             let bearing = libm::atan2(delta.y, delta.x).to_degrees();
-            let bearing = ((bearing / 5.0).round() * 5.0).rem_euclid(360.0);
-            let range = (distance / 100.0).round() * 100.0;
-            let radius = emitter.contact_radius(rules).max(50.0);
+            let report = rules.sensors.radar_report;
+            let step = report.bearing_step_deg;
+            let bearing = ((bearing / step).round() * step).rem_euclid(360.0);
+            let range = (distance / report.range_step_m).round() * report.range_step_m;
+            let radius = emitter.contact_radius(rules).max(report.min_radius_m);
             // The report's centre is deliberately displaced inside its area;
             // the exact emitter position never crosses the observation seam.
             let angle = std::f64::consts::TAU * self.rng.unit();
@@ -363,7 +342,7 @@ impl SideKnowledge {
                 id: ContactId(0),
                 source: ContactSource::Radar,
                 center,
-                layer: AltitudeLayer::Ground,
+                layer: emitter.layer(),
                 fixed_wing: emitter.fixed_wing(),
                 radius,
                 evidence_tick: tick,
@@ -375,10 +354,9 @@ impl SideKnowledge {
                 emitter: emitter.id,
                 live: true,
             };
+            // The first receiver in unit order reports it; one report is
+            // enough for a shared team contact.
             self.new_contact(contact);
-            // Keep the detector selection stable in the deterministic unit
-            // ordering; one report is enough for a shared team contact.
-            let _ = detector;
         }
     }
 

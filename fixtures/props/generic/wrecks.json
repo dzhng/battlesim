@@ -2,6 +2,7 @@
   "props": {
     "wreck": {
       "abstract": true,
+      "wreck": true,
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "armor": 0.5},
       "appearance": {"drawn_by": "wreck"}
     },

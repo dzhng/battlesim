@@ -732,3 +732,59 @@ fn a_squad_whose_soldiers_start_tougher_stands_longer_under_the_same_fire() {
         "tough squad's first loss at tick {tough}, plain at {plain}"
     );
 }
+
+/// An aircraft's faces differ only by their armour: with the same armour all
+/// round, a hit on its side does what a hit on its nose does; with thicker
+/// side armour, less.
+#[test]
+fn test_an_aircrafts_side_takes_less_only_through_its_armour() {
+    let hit = |side_armor: f64, from: [f64; 2]| -> f64 {
+        let mut game = rules();
+        let hmg = &mut game["weapons"]["hmg"];
+        hmg["penetration"] = json!(50.0);
+        hmg["damage"] = json!(10.0);
+        hmg["partial_from"] = json!(0.08);
+        hmg["targets"]["low_air"] =
+            json!({ "classes": ["air_rotor"], "range_m": 300, "scatter_mrad": 0 });
+        sim::fixtures::patch_catalog(
+            &mut game,
+            "units",
+            "test_heli",
+            json!({ "body": { "hull": { "armor": {
+                "front": 100, "rear": 100, "roof": 100, "side": side_armor,
+                "ricochet": { "front": 0, "rear": 0, "roof": 0, "side": 0 }
+            } } } }),
+        );
+        let setup = serde_json::from_value(json!({
+            "map": serde_json::from_str::<Value>(&map(json!([]), json!([]))).unwrap(),
+            "rules": game,
+            "units": [
+                { "side": "red", "kind": "test_heli", "position": [400, 300], "yaw": 0.0, "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "test_jeep", "position": from }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 3);
+        let full = b.unit(UnitId(0)).unwrap().hp;
+        for _ in 0..900 {
+            b.step();
+            let hp = b.unit(UnitId(0)).unwrap().hp;
+            if hp < full {
+                return full - hp;
+            }
+        }
+        panic!("the jeep never hit the helicopter");
+    };
+    let nose = hit(100.0, [600.0, 300.0]);
+    let side = hit(100.0, [400.0, 500.0]);
+    assert!(
+        (side - nose).abs() < 1e-9,
+        "same armour: nose {nose}, side {side}"
+    );
+    let armoured = hit(200.0, [400.0, 500.0]);
+    assert!(
+        armoured < nose * 0.5,
+        "thicker side: nose {nose}, side {armoured}"
+    );
+}

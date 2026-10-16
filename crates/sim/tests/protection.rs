@@ -296,7 +296,7 @@ fn production_resolver_prevents_hull_damage_but_keeps_ordinary_collateral_and_so
             unit: UnitId(0),
             side: Side::Blue,
             seeker_target: None,
-            air_target: None,
+            fused_target: None,
             layer: contract::catalog::AltitudeLayer::Ground,
         },
     )]);
@@ -561,7 +561,7 @@ fn missile_burst_at_a_nearby_flare_still_damages_the_airframe() {
             unit: UnitId(1),
             side: Side::Blue,
             seeker_target: None,
-            air_target: None,
+            fused_target: None,
             layer: contract::catalog::AltitudeLayer::Ground,
         },
     )]);

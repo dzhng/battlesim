@@ -21,9 +21,9 @@
           "hp": 100,
           "armor": {
             "front": 20,
-            "side": 12,
-            "rear": 10,
-            "roof": 8,
+            "side": 95,
+            "rear": 50,
+            "roof": 65,
             "ricochet": {
               "front": 0,
               "side": 0,
@@ -66,12 +66,12 @@
         "loudness_m": 1400
       },
       "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        },
         "air": {
           "fuel_capacity_s": 180,
-          "flares": {
-            "capacity": 4,
-            "reload_s": 3
-          },
           "afterburner": {},
           "refund": {
             "health": 0.4,

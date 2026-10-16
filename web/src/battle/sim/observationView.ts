@@ -405,9 +405,9 @@ export interface ContactView {
   /** A firing report's weapon rows as heard (round kinds, each mount's
    *  every row: a report doesn't say which round); empty for a last sighting. */
   heard: string[];
-  /** Quantized bearing from the detecting SEAD aircraft, present for radar. */
+  /** Quantized bearing from the receiver that found it, present for radar. */
   bearingDeg?: number | null;
-  /** Quantized range from the detecting SEAD aircraft, present for radar. */
+  /** Quantized range from the receiver that found it, present for radar. */
   rangeM?: number | null;
 }
 

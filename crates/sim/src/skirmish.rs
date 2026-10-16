@@ -42,7 +42,8 @@ impl Skirmish {
         let budget = u64::from(setup.rules.credits_per_minute)
             * u64::from(setup.rules.starting_minutes)
             * CREDIT_SCALE;
-        let objectives = crate::objectives::Objectives::new(setup.sites.objectives.len());
+        let objectives =
+            crate::objectives::Objectives::new(setup.sites.objectives.len(), &setup.rules);
         Self {
             objectives,
             settlement: Default::default(),

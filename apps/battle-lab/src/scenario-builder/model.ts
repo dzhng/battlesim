@@ -2,6 +2,7 @@ import type { MapDefinition } from "@web/maps/resolve";
 import type { GameRules } from "@web/battle/catalog/compose";
 import { FACTIONS, type Faction, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
+import matchRules from "@fixtures/skirmish.json";
 
 export type BuilderController = "human" | "active_ai" | "passive_ai";
 export type BuilderMode = "sandbox" | "economy";
@@ -59,13 +60,8 @@ export const BUILDER_FACTIONS = FACTIONS;
 export interface BuilderSkirmish {
   factions: [Faction, Faction];
   ai_side?: SideName;
-  rules: {
-    credits_per_minute: number;
-    starting_minutes: number;
-    preparation_s: number;
-    max_units: number;
-    dispatch_interval_s: number;
-  };
+  /** The match rules (`contract::skirmish::MatchRules`). */
+  rules: typeof matchRules;
   sites: {
     entries: [
       { side: "blue"; center: [number, number]; yaw: number },
@@ -87,13 +83,7 @@ export function builderEconomy(size: readonly [number, number]): BuilderSkirmish
   return {
     factions: ["us", "eastern"],
     ai_side: "red",
-    rules: {
-      credits_per_minute: 200,
-      starting_minutes: 2,
-      preparation_s: 20,
-      max_units: 30,
-      dispatch_interval_s: 1,
-    },
+    rules: { ...matchRules, starting_minutes: 2, preparation_s: 20 },
     sites: {
       entries: [
         { side: "blue", center: [width / 2, 12], yaw: Math.PI / 2 },

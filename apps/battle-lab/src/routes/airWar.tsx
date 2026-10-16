@@ -19,6 +19,7 @@ import { gameCamera } from "../gameCamera";
 import { listMaps } from "@web/maps/catalogue";
 import { SavedEncounter, SavedMap } from "../savedMaps";
 import { TickStatus } from "../TickStatus";
+import matchRules from "@fixtures/skirmish.json";
 
 // The air-war checkpoints (specs/done/air-war), each played on the air test
 // map through the production battle view, so its cards, fog, orders and
@@ -125,13 +126,7 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
  *  preparation, so a purchase dispatches as soon as blue is ready. */
 const INGRESS_SKIRMISH = {
   factions: ["us", "eastern"],
-  rules: {
-    credits_per_minute: 200,
-    starting_minutes: 5,
-    preparation_s: 0,
-    max_units: 30,
-    dispatch_interval_s: 1,
-  },
+  rules: { ...matchRules, preparation_s: 0 },
   sites: {
     entries: [
       { side: "blue", center: [10, 260], yaw: 0 },
@@ -342,20 +337,20 @@ function AirPanel({ kind, scenario }: { kind: "records" | "matrix"; scenario: st
 function AirRecord({ catalog, id }: { catalog: SessionCatalog; id: string }) {
   const t = catalog.units.type(id);
   const { sensors, capabilities: caps } = t;
-  const radar = caps.air?.radar ?? caps.radar;
+  const radar = caps.radar;
   const reach = airReach(t, catalog.weapons);
   const fields: [string, string][] = [
     ["layer", layerOf(t)],
     ["flight", "air" in t.mobility ? t.mobility.air.flight : "—"],
     [
       "sensors",
-      `${sensors.ground_m}/${sensors.low_air_m ?? 0}/${highAirSight(t, catalog.rules.sensors.unaided_high_air_m)}`,
+      `${sensors.ground_m}/${sensors.low_air_m ?? sensors.ground_m}/${highAirSight(t, catalog.rules.sensors.unaided_high_air_m)}`,
     ],
     ["fuel", caps.air ? String(caps.air.fuel_capacity_s) : "—"],
-    ["flares", caps.air?.flares ? `${caps.air.flares.capacity}/${caps.air.flares.reload_s}` : "—"],
+    ["flares", caps.flares ? `${caps.flares.capacity}/${caps.flares.reload_s}` : "—"],
     ["air_reach", `${reach.low_air}/${reach.high_air}`],
     ["radar", radar ? `${radar.emits ? "emits" : "silent"}/${radar.detection_m}` : "—"],
-    ["sead", caps.air?.sead ? "yes" : "no"],
+    ["radar_receiver", caps.radar_receiver ? String(caps.radar_receiver.range_m) : "—"],
   ];
   const weapons = t.mounts.flatMap((m) => m.weapons);
   return (

@@ -6,6 +6,7 @@ use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ObservationFrame, ObservedTargetId};
 use contract::scenario::Rules;
 use contract::skirmish::Phase;
+use contract::weapons::{TargetClass, WeaponDefinition};
 use std::collections::BTreeMap;
 
 /// A side-scoped skirmish policy. Implementations emit the same ordinary
@@ -34,8 +35,57 @@ pub enum Doctrine {
     Consolidate,
 }
 
+/// The doctrine's timings and distances, authored in
+/// `fixtures/skirmish-ai.json`: its playbook's numbers, not battle rules.
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Tuning {
+    /// Seconds between decisions.
+    decision_s: f64,
+    /// The longest delay before it answers air evidence; each AI draws its
+    /// own once, up to this.
+    reaction_max_s: f64,
+    /// Seconds air evidence keeps it ready to answer after the last sighting.
+    air_memory_s: f64,
+    /// A doctrine holds at least `min_dwell_s` before a threat turns it, and
+    /// moves on after `max_dwell_s`.
+    min_dwell_s: f64,
+    max_dwell_s: f64,
+    /// Seconds a sighting or contact stays fresh enough for its artillery.
+    sighting_horizon_s: f64,
+    /// Its supply trucks wait this share of the way from its entry to its
+    /// combat units, and move only when farther than `truck_slack_m` off.
+    supply_share: f64,
+    truck_slack_m: f64,
+    /// Its artillery aims this share of a contact's radius off the contact's
+    /// centre, and this share of an objective's radius past the objective's
+    /// centre, each radius capped at `aim_cap_m`.
+    contact_aim_share: f64,
+    objective_aim_share: f64,
+    aim_cap_m: f64,
+    /// Its recon stands this share of its sight short of an objective, and
+    /// at most this share of the way back along its approach.
+    recon_sight_share: f64,
+    recon_approach_share: f64,
+    /// How wide the random term in a purchase's score spreads.
+    purchase_noise: f64,
+}
+
+impl Tuning {
+    fn shipped() -> Self {
+        serde_json::from_str(include_str!("../../../../fixtures/skirmish-ai.json"))
+            .expect("authored skirmish AI tuning")
+    }
+
+    /// `s` seconds in ticks at `hz`.
+    fn ticks(s: f64, hz: u32) -> Tick {
+        (s * f64::from(hz)) as Tick
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct BalancedDoctrine {
+    tuning: Tuning,
     next_decision: Tick,
     assigned: BTreeMap<UnitId, String>,
     /// The target each own jet was last sent at. A jet keeps it while the
@@ -85,6 +135,7 @@ struct ArtillerySighting {
 impl Default for BalancedDoctrine {
     fn default() -> Self {
         Self {
+            tuning: Tuning::shipped(),
             next_decision: 0,
             assigned: BTreeMap::new(),
             jet_targets: BTreeMap::new(),
@@ -185,7 +236,7 @@ impl BalancedDoctrine {
             // One fixed draw selects a bounded reaction delay. The delay is a
             // personality trait, not a license to ignore a threat forever.
             self.response_delay_ticks =
-                Some(1 + (draw_unit * 3.0 * f64::from(rules.tick_hz)) as Tick);
+                Some(1 + Tuning::ticks(draw_unit * self.tuning.reaction_max_s, rules.tick_hz));
         }
         let low_air = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
         let own_count = frame.own.len();
@@ -195,14 +246,13 @@ impl BalancedDoctrine {
         self.last_own_count = Some(own_count);
         if low_air {
             self.last_air_evidence.get_or_insert(frame.tick);
-        } else if self
-            .last_air_evidence
-            .is_some_and(|seen| frame.tick.saturating_sub(seen) > 30 * u64::from(rules.tick_hz))
-        {
+        } else if self.last_air_evidence.is_some_and(|seen| {
+            frame.tick.saturating_sub(seen) > Tuning::ticks(self.tuning.air_memory_s, rules.tick_hz)
+        }) {
             self.last_air_evidence = None;
         }
-        let min_dwell = 20 * u64::from(rules.tick_hz);
-        let max_dwell = 180 * u64::from(rules.tick_hz);
+        let min_dwell = Tuning::ticks(self.tuning.min_dwell_s, rules.tick_hz);
+        let max_dwell = Tuning::ticks(self.tuning.max_dwell_s, rules.tick_hz);
         let dwell = frame.tick.saturating_sub(self.doctrine_since);
         let delayed_air = self.last_air_evidence.is_some_and(|seen| {
             frame.tick.saturating_sub(seen)
@@ -258,7 +308,7 @@ impl BalancedDoctrine {
         let Some(view) = &frame.skirmish else {
             return vec![];
         };
-        let horizon = 3 * u64::from(rules.tick_hz);
+        let horizon = Tuning::ticks(self.tuning.sighting_horizon_s, rules.tick_hz);
         self.sightings
             .retain(|_, seen| frame.tick.saturating_sub(seen.tick) <= horizon);
         for target in &frame.identified {
@@ -278,7 +328,9 @@ impl BalancedDoctrine {
         }
         let draw = self.random.next_u64();
         let draw_unit = (draw >> 11) as f64 * (1.0 / (1u64 << 53) as f64);
-        self.next_decision = frame.tick.saturating_add(5 * u64::from(rules.tick_hz));
+        self.next_decision = frame
+            .tick
+            .saturating_add(Tuning::ticks(self.tuning.decision_s, rules.tick_hz));
         self.update_doctrine(frame, rules, draw_unit);
         self.assigned
             .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
@@ -378,11 +430,22 @@ impl BalancedDoctrine {
         let high_air_defender = eligible
             .iter()
             .copied()
-            .filter(|&kind| unit_can_target_layer(rules, kind, AltitudeLayer::HighAir))
+            .filter(|&kind| unit_engages_aircraft_in(rules, kind, AltitudeLayer::HighAir))
             .max_by(|a, b| {
-                candidate_score(rules, *a, draw_unit, Some(AltitudeLayer::HighAir)).total_cmp(
-                    &candidate_score(rules, *b, draw_unit, Some(AltitudeLayer::HighAir)),
+                candidate_score(
+                    rules,
+                    &self.tuning,
+                    *a,
+                    draw_unit,
+                    Some(AltitudeLayer::HighAir),
                 )
+                .total_cmp(&candidate_score(
+                    rules,
+                    &self.tuning,
+                    *b,
+                    draw_unit,
+                    Some(AltitudeLayer::HighAir),
+                ))
             });
         let desired: Vec<_> = high_air_defender.iter().copied().chain(desired).collect();
         let mut orders = Vec::new();
@@ -469,10 +532,16 @@ impl BalancedDoctrine {
                         eligible
                             .iter()
                             .copied()
-                            .filter(|&kind| unit_can_target_layer(rules, kind, layer))
+                            .filter(|&kind| unit_engages_aircraft_in(rules, kind, layer))
                             .max_by(|a, b| {
-                                candidate_score(rules, *a, draw_unit, Some(layer))
-                                    .total_cmp(&candidate_score(rules, *b, draw_unit, Some(layer)))
+                                candidate_score(rules, &self.tuning, *a, draw_unit, Some(layer))
+                                    .total_cmp(&candidate_score(
+                                        rules,
+                                        &self.tuning,
+                                        *b,
+                                        draw_unit,
+                                        Some(layer),
+                                    ))
                                     .then_with(|| rules.catalog.id(*b).cmp(rules.catalog.id(*a)))
                             })
                             .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
@@ -587,15 +656,24 @@ impl BalancedDoctrine {
                         continue;
                     }
                     if rules.catalog.get(unit.kind).has_role("artillery") {
-                        if let Some(point) =
-                            artillery_ground_guess(unit, frame, rules, &self.sightings).or_else(
-                                || {
-                                    artillery_objective_guess(
-                                        unit, side, entry, frame, rules, route_time,
-                                    )
-                                },
+                        if let Some(point) = artillery_ground_guess(
+                            unit,
+                            frame,
+                            rules,
+                            &self.tuning,
+                            &self.sightings,
+                        )
+                        .or_else(|| {
+                            artillery_objective_guess(
+                                unit,
+                                side,
+                                entry,
+                                frame,
+                                rules,
+                                &self.tuning,
+                                route_time,
                             )
-                        {
+                        }) {
                             orders.push(Order::Attack {
                                 units: vec![unit.id],
                                 target: TargetRef::Ground { point },
@@ -646,7 +724,7 @@ impl BalancedDoctrine {
                 if let Some((objective, _)) = best {
                     self.assigned.insert(unit.id, objective.id.clone());
                     if rules.catalog.get(unit.kind).has_role("recon") {
-                        let goal = recon_post(unit, objective.center, entry.center);
+                        let goal = recon_post(unit, &self.tuning, objective.center, entry.center);
                         if route_time(unit.id, goal).is_some() {
                             orders.push(Order::Move {
                                 units: vec![unit.id],
@@ -683,9 +761,10 @@ impl BalancedDoctrine {
                     center[0] += u.position[0];
                     center[1] += u.position[1];
                 }
+                let share = self.tuning.supply_share;
                 [
-                    entry.center[0] + 0.4 * (center[0] / combat.len() as f64 - entry.center[0]),
-                    entry.center[1] + 0.4 * (center[1] / combat.len() as f64 - entry.center[1]),
+                    entry.center[0] + share * (center[0] / combat.len() as f64 - entry.center[0]),
+                    entry.center[1] + share * (center[1] / combat.len() as f64 - entry.center[1]),
                 ]
             };
             for truck in own
@@ -693,8 +772,12 @@ impl BalancedDoctrine {
                 .filter(|u| rules.catalog.get(u.kind).has_role("logistics"))
             {
                 let here = [truck.position[0], truck.position[1]];
-                if distance(here, support) > 40.0 {
-                    if truck.goal.is_some_and(|old| distance(old, support) <= 40.0) {
+                let slack = self.tuning.truck_slack_m;
+                if distance(here, support) > slack {
+                    if truck
+                        .goal
+                        .is_some_and(|old| distance(old, support) <= slack)
+                    {
                         continue;
                     }
                     let goal = if route_time(truck.id, support)
@@ -708,8 +791,8 @@ impl BalancedDoctrine {
                     } else {
                         continue;
                     };
-                    if distance(here, goal) > 40.0 {
-                        if truck.goal.is_none_or(|old| distance(old, goal) > 40.0) {
+                    if distance(here, goal) > slack {
+                        if truck.goal.is_none_or(|old| distance(old, goal) > slack) {
                             orders.push(Order::Move {
                                 units: vec![truck.id],
                                 gesture: frame.tick,
@@ -764,15 +847,26 @@ fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
 }
 
 fn unit_can_engage_target(rules: &Rules, kind: TypeIndex, target: TypeIndex) -> bool {
-    let layer = rules.catalog.get(target).mobility.layer();
-    rules.catalog.mounts(kind).iter().any(|mount| {
-        mount
-            .def
-            .weapons
-            .iter()
-            .filter_map(|weapon| rules.weapons.get(weapon))
-            .any(|weapon| weapon.against(layer).is_some())
-    })
+    let target = rules.catalog.get(target);
+    let (layer, class) = (target.mobility.layer(), target.target_class());
+    unit_weapons(rules, kind).any(|weapon| weapon.engages(layer, Some(class)).is_some())
+}
+
+/// The weapon rows `kind`'s mounts carry.
+fn unit_weapons(rules: &Rules, kind: TypeIndex) -> impl Iterator<Item = &WeaponDefinition> {
+    rules
+        .catalog
+        .mounts(kind)
+        .iter()
+        .flat_map(|mount| &mount.def.weapons)
+        .filter_map(|weapon| rules.weapons.get(weapon))
+}
+
+/// Whether `weapon` engages an aircraft in `layer`, of either flight.
+fn engages_aircraft(weapon: &WeaponDefinition, layer: AltitudeLayer) -> bool {
+    [TargetClass::AirRotor, TargetClass::AirFixedWing]
+        .into_iter()
+        .any(|class| weapon.engages(layer, Some(class)).is_some())
 }
 
 /// A ground point is eligible only when one mounted indirect weapon can
@@ -803,9 +897,10 @@ fn artillery_ground_guess(
     unit: &contract::observation::OwnUnit,
     frame: &ObservationFrame,
     rules: &Rules,
+    tuning: &Tuning,
     sightings: &BTreeMap<ObservedTargetId, ArtillerySighting>,
 ) -> Option<[f64; 3]> {
-    let horizon = 3 * u64::from(rules.tick_hz);
+    let horizon = Tuning::ticks(tuning.sighting_horizon_s, rules.tick_hz);
     let contacts = frame
         .contacts
         .iter()
@@ -818,7 +913,7 @@ fn artillery_ground_guess(
         })
         .filter_map(|contact| {
             let angle = f64::from(contact.id.0) * 2.399963229728653;
-            let bias = contact.radius.min(40.0) * 0.35;
+            let bias = contact.radius.min(tuning.aim_cap_m) * tuning.contact_aim_share;
             let point = [
                 contact.center[0] + libm::cos(angle) * bias,
                 contact.center[1] + libm::sin(angle) * bias,
@@ -870,6 +965,7 @@ fn artillery_objective_guess(
     entry: &EntrySite,
     frame: &ObservationFrame,
     rules: &Rules,
+    tuning: &Tuning,
     route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
 ) -> Option<[f64; 3]> {
     frame
@@ -891,7 +987,7 @@ fn artillery_objective_guess(
             if length <= 0.0 {
                 return None;
             }
-            let offset = objective.radius_m.min(40.0) * 0.5;
+            let offset = objective.radius_m.min(tuning.aim_cap_m) * tuning.objective_aim_share;
             let point = [
                 objective.center[0] + dx / length * offset,
                 objective.center[1] + dy / length * offset,
@@ -910,6 +1006,7 @@ fn artillery_objective_guess(
 
 fn recon_post(
     unit: &contract::observation::OwnUnit,
+    tuning: &Tuning,
     objective: [f64; 2],
     entry: [f64; 2],
 ) -> [f64; 2] {
@@ -917,22 +1014,15 @@ fn recon_post(
     let dy = objective[1] - entry[1];
     let approach = libm::hypot(dx, dy).max(1.0);
     let range = unit.sight.range.max(1.0);
-    let standoff = (range * 0.85).min(approach * 0.75);
+    let standoff = (range * tuning.recon_sight_share).min(approach * tuning.recon_approach_share);
     [
         objective[0] - dx / approach * standoff,
         objective[1] - dy / approach * standoff,
     ]
 }
 
-fn unit_can_target_layer(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
-    rules.catalog.mounts(kind).iter().any(|mount| {
-        mount
-            .def
-            .weapons
-            .iter()
-            .filter_map(|weapon| rules.weapons.get(weapon))
-            .any(|weapon| weapon.targets.contains_key(&layer))
-    })
+fn unit_engages_aircraft_in(rules: &Rules, kind: TypeIndex, layer: AltitudeLayer) -> bool {
+    unit_weapons(rules, kind).any(|weapon| engages_aircraft(weapon, layer))
 }
 
 fn frame_has_layer_threat(frame: &ObservationFrame, rules: &Rules, layer: AltitudeLayer) -> bool {
@@ -945,13 +1035,14 @@ fn frame_has_layer_threat(frame: &ObservationFrame, rules: &Rules, layer: Altitu
 
 fn candidate_score(
     rules: &Rules,
+    tuning: &Tuning,
     kind: TypeIndex,
     draw_unit: f64,
     demand: Option<AltitudeLayer>,
 ) -> f64 {
     let unit = rules.catalog.get(kind);
     let capability = demand.map_or(0.0, |layer| {
-        if unit_can_target_layer(rules, kind, layer) {
+        if unit_engages_aircraft_in(rules, kind, layer) {
             10_000.0
         } else {
             -10_000.0
@@ -959,13 +1050,8 @@ fn candidate_score(
     });
     let affordability_bias = 1_000.0 - f64::from(unit.cost);
     let weapon_value = demand.map_or(0.0, |layer| {
-        rules
-            .catalog
-            .mounts(kind)
-            .iter()
-            .flat_map(|mount| mount.def.weapons.iter())
-            .filter_map(|id| rules.weapons.get(id))
-            .filter(|weapon| weapon.targets.contains_key(&layer))
+        unit_weapons(rules, kind)
+            .filter(|weapon| engages_aircraft(weapon, layer))
             .map(|weapon| weapon.damage * weapon.ballistics.range_m)
             .fold(0.0, f64::max)
             / f64::from(unit.cost.max(1))
@@ -973,7 +1059,7 @@ fn candidate_score(
     let noise = (contract::random::mix(u64::from(kind.0) ^ draw_unit.to_bits()) as f64
         / u64::MAX as f64
         - 0.5)
-        * 40.0;
+        * tuning.purchase_noise;
     capability + affordability_bias + weapon_value + noise
 }
 

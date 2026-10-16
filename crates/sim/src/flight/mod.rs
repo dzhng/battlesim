@@ -643,9 +643,9 @@ pub trait ImpactResolver {
     fn projectile_interceptor_reach(&self, _projectile: ProjectileId) -> f64 {
         0.0
     }
-    /// A missile aimed at an aircraft may burst at a swept standoff from its
-    /// hull. Ground targets never return a fuse here.
-    fn aircraft_fuse(&self, _projectile: ProjectileId) -> Option<(UnitId, f64)> {
+    /// A fused round may burst at a swept standoff from the hull of the unit
+    /// it was fired at.
+    fn target_fuse(&self, _projectile: ProjectileId) -> Option<(UnitId, f64)> {
         None
     }
     /// Resolve a projectile-to-projectile interception. Returning true
@@ -1163,7 +1163,7 @@ impl Flight<'_> {
             g.point = decoy.position + decoy.velocity * span + config.gravity * (0.5 * span * span);
         }
         let gravity = self.acceleration(p, span);
-        let fuse = resolver.aircraft_fuse(p.id);
+        let fuse = resolver.target_fuse(p.id);
         scratch.misses.clear();
         // Each leg flies from the round's state `flown` seconds into the tick;
         // a ricochet starts the next leg at its hit, clear of the body it
@@ -1493,6 +1493,21 @@ impl Flight<'_> {
 }
 
 /// `velocity` turned toward `toward` by at most `max_angle`, keeping its speed.
+/// Where a seeker at `from`, flying at `from_velocity`, aims to meet a
+/// target at `at` flying at `velocity`: ahead of the target by the time the
+/// range takes to close at its present rate. A target not closing is
+/// aimed at where it is.
+pub fn lead(from: V3, from_velocity: V3, at: V3, velocity: V3) -> V3 {
+    let range = at - from;
+    let distance = range.length();
+    let closing = -range.dot(velocity - from_velocity) / distance.max(1e-9);
+    if distance > 0.0 && closing > 0.0 {
+        at + velocity * (distance / closing)
+    } else {
+        at
+    }
+}
+
 pub fn steer(velocity: V3, toward: V3, max_angle: f64) -> V3 {
     let speed = velocity.length();
     if speed == 0.0 || toward.length() < 1e-9 {

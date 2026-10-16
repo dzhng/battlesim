@@ -69,6 +69,11 @@ export const STATE_ROWS = {
   },
   afterburner: { icon: "afterburner", word: () => "AFTERBURNERS ON", lasting: true },
   dogfight: { icon: "dogfight", word: () => "DOGFIGHT", tone: "warn" },
+  radar_receiver: {
+    icon: "radar",
+    word: (n: number | string) => `FINDS RADARS ${n} m`,
+    lasting: true,
+  },
   radar_contact: { icon: "radar", word: () => "RADAR CONTACT", tone: "warn" },
   radar_details: { icon: "radar", word: (n: number | string) => String(n), tone: "warn" },
   flares: {
@@ -180,6 +185,8 @@ export function ownStateRows(
   rules: PanelRules,
 ): StateRow[] {
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
+  const receiver = units.type(u.kind).capabilities.radar_receiver;
+  if (receiver) rows.push(row("radar_receiver", { n: receiver.range_m.toLocaleString("en-US") }));
   if (u.fuelS != null) rows.push(row("fuel", { n: Math.max(0, Math.ceil(u.fuelS)) }));
   if (u.afterburner) rows.push(row("afterburner"));
   if (u.inDogfight) rows.push(row("dogfight"));

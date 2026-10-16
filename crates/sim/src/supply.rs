@@ -1,7 +1,7 @@
 //! Recovery with finite stock. A fully deployed supply vehicle
 //! serves its side's living units within its radius that stand still and did
-//! not fire this tick (L03, L04): finite ammunition first, defensive charges,
-//! then vehicle health,
+//! not fire this tick (L03, L04): finite ammunition first, defensive charges
+//! (active protection, then flares), then vehicle health,
 //! then replacement soldiers, each at its configured rate and paid from the
 //! vehicle's stock. Stock is debited whole and in ascending unit order, never
 //! below zero, and never refilled (L05). Readiness is the deployment module's.
@@ -28,6 +28,7 @@ use crate::world::{Prop, WorldGeometry};
 pub struct Progress {
     pub ammo_s: f64,
     pub protection_s: f64,
+    pub flare_s: f64,
     pub hp_s: f64,
     pub soldier_s: f64,
 }
@@ -42,6 +43,11 @@ enum Need {
         capacity: u32,
         service_s: f64,
         stock_per_charge: u32,
+    },
+    /// A flare, up to the unit's capacity, at the service rules' rate and
+    /// price.
+    Flare {
+        capacity: u32,
     },
     Health,
     Soldier,
@@ -75,6 +81,13 @@ fn need(unit: &Unit, room: bool, arsenal: &Arsenal, rules: &Rules) -> Option<Nee
             });
         }
     }
+    if let (Some(state), Some(cap)) = (unit.flares, &unit.unit_type(rules).capabilities.flares) {
+        if state.charges < cap.capacity {
+            return Some(Need::Flare {
+                capacity: cap.capacity,
+            });
+        }
+    }
     if unit.hull.is_some() && unit.hp < unit.max_hp(rules) {
         return Some(Need::Health);
     }
@@ -93,6 +106,7 @@ fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
         Need::Protection {
             stock_per_charge, ..
         } => stock_per_charge,
+        Need::Flare { .. } => s.stock_per_flare,
         Need::Health => s.stock_per_hp,
         Need::Soldier => s.stock_per_soldier,
     }
@@ -196,6 +210,7 @@ fn serve(
     let (clock, period) = match need {
         Need::Round(..) => (&mut progress.ammo_s, 1.0 / s.ammo_rounds_per_s),
         Need::Protection { service_s, .. } => (&mut progress.protection_s, service_s),
+        Need::Flare { .. } => (&mut progress.flare_s, s.flare_service_s),
         Need::Health => (&mut progress.hp_s, 1.0 / s.vehicle_hp_per_s),
         Need::Soldier => (&mut progress.soldier_s, s.soldier_replacement_s),
     };
@@ -215,6 +230,10 @@ fn serve(
         }
         Need::Protection { capacity, .. } => {
             let state = unit.protection.as_mut().expect("a protection recipient");
+            state.charges = (state.charges + 1).min(capacity);
+        }
+        Need::Flare { capacity } => {
+            let state = unit.flares.as_mut().expect("a flare recipient");
             state.charges = (state.charges + 1).min(capacity);
         }
         Need::Health => unit.hp = (unit.hp + 1.0).min(unit.max_hp(rules)),

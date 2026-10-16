@@ -124,16 +124,23 @@ fn disabled_model_manifest_covers_cards_without_admitting_units() {
 }
 
 #[test]
-fn every_faction_has_a_dedicated_sead_aircraft() {
-    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
-        sim::fixtures::CatalogSet::Game,
-    ))
-    .unwrap();
+fn every_faction_has_a_sead_aircraft() {
+    // A SEAD aircraft finds radars (a receiver) and fires at them (an
+    // anti-radiation row): a roster guideline, not a rule.
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let catalog = &rules.catalog;
     for faction in ["us", "europe", "eastern"] {
         assert!(
             catalog.indices().any(|i| {
                 let t = catalog.get(i);
-                t.faction == faction && t.capabilities.air.as_ref().is_some_and(|air| air.sead)
+                t.faction == faction
+                    && t.mobility.flight().is_some()
+                    && t.capabilities.radar_receiver.is_some()
+                    && catalog
+                        .mounts(i)
+                        .iter()
+                        .flat_map(|m| &m.def.weapons)
+                        .any(|w| rules.weapons[w].anti_radiation)
             }),
             "{faction} has no SEAD aircraft"
         );

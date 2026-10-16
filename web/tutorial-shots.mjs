@@ -28,6 +28,7 @@ import { mkdir, rm } from "node:fs/promises";
 import { startServer } from "./scene.mjs";
 import { launchBrowser } from "./browser.mjs";
 import { advance, lab, until } from "./scenes/_lab.mjs";
+import { unitType } from "./scenes/_units.mjs";
 
 const HERE = new URL(".", import.meta.url);
 const OUT = new URL("../assets/runtime/tutorial/", HERE).pathname;
@@ -56,7 +57,22 @@ const ARMOUR = [
  *  squad can't stand in. */
 const PLACE_FROM = [930, 1010];
 const PLACE_BLOCKED = [930, 994];
-const SHOTS = ["overview", "buy", "place", "capture", "contact", "move"];
+/** A jet bought once the battle's income affords it, sent to circle over
+ *  the fields south of the town, where it stands out against the ground. */
+const JET = ["f_16c_block_50", [850, 1350]];
+/** The air-war checkpoint whose SEAD jet finds an enemy radar. */
+const RADAR_LAB = "/labs/air-hud";
+const SHOTS = [
+  "overview",
+  "buy",
+  "place",
+  "capture",
+  "contact",
+  "move",
+  "arriving",
+  "jet",
+  "radar",
+];
 const asked = process.argv.slice(2).filter((a) => a !== "--");
 for (const name of asked) if (!SHOTS.includes(name)) throw new Error(`no shot "${name}": ${SHOTS}`);
 const wanted = (name) => asked.length === 0 || asked.includes(name);
@@ -149,8 +165,8 @@ const glide = (page, a, b, n) =>
   });
 const hold = (n, step = async () => {}) => Array.from({ length: n }, () => step);
 
-/** A fresh page on the seeded battle, paused at tick 10. */
-async function openBattle(browser, url) {
+/** A fresh page on the battle at `url`, paused at tick `at`. */
+async function openBattle(browser, url, at = 10) {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE });
   const page = await context.newPage();
   page.on("pageerror", (e) => console.error(`page error: ${e.message}`));
@@ -170,7 +186,7 @@ async function openBattle(browser, url) {
   if (error) throw new Error(`battle failed: ${error}`);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 60_000 });
   await lab(page, () => window.__lab.route.pause());
-  await advance(page, 10 - (await lab(page, () => window.__lab.route.tick())));
+  await advance(page, Math.max(0, at - (await lab(page, () => window.__lab.route.tick()))));
   return page;
 }
 
@@ -366,6 +382,100 @@ async function battle(page) {
   await still(page, "contact", clip);
 }
 
+/** The air war: a jet bought mid-battle counting down on its pending card,
+ *  then in flight with its panel open. Its own battle, so the purchase moves
+ *  none of the other shots. */
+async function air(browser, url) {
+  const page = await openBattle(browser, url);
+  await deploy(page, FORCE);
+  const [kind, destination] = JET;
+  await moment(page, "credits for a jet", (o) => o.skirmish.credits >= unitType(kind).cost, 6000);
+  const ack = await command(page, { kind: "confirm_purchase", variant: kind, destination });
+  if (ack?.error) throw new Error(`buying ${kind}: ${JSON.stringify(ack.error)}`);
+  // Its card counting down, a few seconds into the wait.
+  await moment(
+    page,
+    "the jet waiting off the map",
+    (o) => o.skirmish.pending.some((p) => p.kind === kind && p.arrivalTick > o.tick + 150),
+    600,
+  );
+  await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height / 3);
+  // The army bar's cards, the waiting jet's last, without the bar's
+  // header and commands.
+  const cards = await page
+    .locator(".hud-army-card")
+    .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
+  await still(page, "arriving", fit(cards, 5));
+
+  // In flight over its goal, its panel open beside it.
+  const flying = await moment(
+    page,
+    "the jet in flight",
+    (o) =>
+      o.own.some(
+        (u) =>
+          u.kind === kind &&
+          Math.hypot(u.position[0] - destination[0], u.position[1] - destination[1]) < 300,
+      ),
+    3000,
+  );
+  const jet = flying.own.find((u) => u.kind === kind);
+  // The view centred on the jet itself (a player's view centres on the
+  // ground), a little above it and turned from the town, so the fields lie
+  // behind it and it reads at its size.
+  await lab(
+    page,
+    (target) => {
+      const camera = window.__lab.camera();
+      window.__lab.setCamera({
+        ...camera,
+        target,
+        distance: 260,
+        pitch: 0.55,
+        yaw: camera.yaw + Math.PI,
+      });
+    },
+    jet.position,
+  );
+  await settle(page, 250);
+  // Its panel opens under the pointer.
+  const card = page.locator(`[data-testid=readouts] [data-unit="${jet.id}"]`);
+  const name = await card.boundingBox();
+  await page.mouse.move(name.x + name.width - 6, name.y + name.height / 2);
+  await settle(page, 300);
+  const open = await card.evaluate((e) => e.getBoundingClientRect().toJSON());
+  const at = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), jet.position);
+  await still(page, "jet", around([spot(at), open], 60));
+  await page.context().close();
+}
+
+/** A radar contact up close, from the air-war checkpoint where a SEAD jet
+ *  finds an enemy radar at once: the skirmish needs a SEAD jet and an enemy
+ *  radar alive together, which its seed never reliably brings. */
+async function radar(browser, base) {
+  const page = await openBattle(browser, `${base}${RADAR_LAB}`, 0);
+  const found = await moment(
+    page,
+    "a radar contact",
+    (o) => o.contacts.some((c) => c.source === "radar"),
+    600,
+  );
+  const c = found.contacts.find((x) => x.source === "radar");
+  await frame(page, [c.center[0], c.center[1]], c.radius * 5, 0.85);
+  // The card opens under the pointer: its radar icon, the contact's
+  // bearing and range.
+  const card = page.locator(`[data-testid=readouts] [data-contact="${c.id}"]`);
+  const name = await card.boundingBox();
+  await page.mouse.move(name.x + name.width - 6, name.y + name.height / 2);
+  await settle(page, 300);
+  const open = await card.evaluate((e) => e.getBoundingClientRect().toJSON());
+  // The card and the middle of its area, close enough for the card to read
+  // at the page's size.
+  const middle = spot(await css(page, [c.center[0], c.center[1]]));
+  await still(page, "radar", around([middle, open], 110));
+  await page.context().close();
+}
+
 async function main() {
   await rm(WORK, { recursive: true, force: true });
   await mkdir(WORK, { recursive: true });
@@ -374,14 +484,17 @@ async function main() {
   const browser = await launchBrowser({ args: ["--mute-audio"] });
   try {
     const url = `${server.url}${BATTLE}`;
-    // Every shot but the right-drag is one battle's; that one plays its own.
-    if (SHOTS.some((name) => name !== "move" && wanted(name))) {
+    // The opening and the fighting are one battle; the right-drag and the air
+    // war play their own, and the radar contact is a checkpoint's.
+    if (["overview", "buy", "place", "capture", "contact"].some(wanted)) {
       const page = await openBattle(browser, url);
       await preparation(page);
       if (wanted("capture") || wanted("contact")) await battle(page);
       await page.context().close();
     }
     if (wanted("move")) await rightDrag(browser, url);
+    if (wanted("arriving") || wanted("jet")) await air(browser, url);
+    if (wanted("radar")) await radar(browser, server.url);
   } finally {
     await browser.close();
     await server.close();

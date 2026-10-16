@@ -842,12 +842,14 @@ fn the_default_gun_fires_at_what_it_cannot_hurt_but_specialists_do_not() {
 fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     // The same squad and tank as above, but the rifles carry a counted supply.
     let mut rules = rules();
-    rules["weapons"]["rifle"]["ammo"] = json!(200);
-    rules["service"]["round_costs"]["rifle"] = json!(1);
-    // The other squad guns inherit this finite supply and need the same service admission.
-    for row in ["carbine", "smg", "shotgun"] {
-        rules["service"]["round_costs"][row] = json!(1);
-    }
+    rules["weapons"]["test_counted_rifle"] = json!({ "extends": "rifle", "ammo": 200 });
+    rules["service"]["round_costs"]["test_counted_rifle"] = json!(1);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "soldiers",
+        "test_rifleman",
+        json!({ "mounts": [{ "id": "rifles", "weapons": ["test_counted_rifle"] }] }),
+    );
     let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
     let setup = serde_json::from_value(json!({
         "map": map,
@@ -863,7 +865,7 @@ fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     let mut b = Battle::new(&setup, 5);
     let shots = run(&mut b, 120);
     assert!(
-        shots_by(&shots, 0, "rifle").is_empty(),
+        shots_by(&shots, 0, "test_counted_rifle").is_empty(),
         "no counted round spent on a tank it cannot hurt"
     );
     assert_eq!(
@@ -3483,4 +3485,118 @@ fn a_round_with_a_gentle_falloff_still_shakes_armour_twice_its_penetration() {
     let lost: Vec<f64> = hits.iter().map(|h| h.0).collect();
     assert!(!lost.is_empty(), "no hit landed");
     assert!(lost.iter().all(|l| (l - 15.0).abs() < 1e-9), "{lost:?}");
+}
+
+/// A row that fires on its own looses at what it sees whatever its unit's
+/// engagement policy: on the ground as in the air, by its own flag. A jeep
+/// on return fire only, facing a tank 300 m off that never fires, shoots it
+/// with such a row and holds with the same row unflagged.
+#[test]
+fn a_row_that_fires_on_its_own_ignores_the_engagement_policy() {
+    let shots = |on_its_own: bool| {
+        let mut rules = sim::fixtures::test_game();
+        rules["weapons"]["tank_he"]["fires_on_its_own"] = json!(on_its_own);
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "test_jeep",
+            json!({ "mounts": [{ "id": "HMG", "weapons": ["tank_he"] }] }),
+        );
+        let setup = serde_json::from_value(json!({
+            "map": { "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": rules,
+            "units": [
+                { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0, "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [400, 200], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut b = Battle::new(&setup, 1);
+        for _ in 0..200 {
+            b.step();
+        }
+        b.unit(UnitId(0)).unwrap().mounts[0].shots
+    };
+    assert_eq!(shots(false), 0, "an ordinary row holds on return fire only");
+    assert!(shots(true) > 0, "a row that fires on its own fires");
+}
+
+/// A mount keeps an automatic target only while a shot at it can succeed:
+/// a jeep's machine gun on a red jeep 200 m off turns to another 250 m off
+/// once the first drives out past its 400 m.
+#[test]
+fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
+    let mut rules = sim::fixtures::test_game();
+    rules["weapons"]["hmg"]["range_m"] = json!(400);
+    // The tanks answer its fire; it outlasts them here.
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "body": { "hull": { "hp": 1.0e9 } } }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [1600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
+            { "side": "red", "kind": "test_tank", "position": [300, 200], "yaw": 0.0, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [340, 50], "yaw": 0.0, "engagement": "return_fire_only" }
+        ],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "red", "order": { "kind": "move", "units": [1],
+            "gesture": 1, "goal": [1500, 200], "route": "shortest", "direction": "forward", "facing": null } }]
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let target = |b: &Battle| b.observe(Side::Blue).own[0].mounts[0].target.clone();
+    let first = (0..30).find_map(|_| {
+        b.step();
+        target(&b)
+    });
+    let mut last = first.clone();
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+        last = target(&b).or(last);
+    }
+    let away = b.unit(UnitId(1)).unwrap().position.x - 100.0;
+    assert!(away > 420.0, "the first tank drove out of reach: {away}");
+    assert!(first.is_some());
+    assert_ne!(last, first, "it kept a target it could no longer reach");
+}
+
+/// A shot must meet its target within the weapon's reach for its layer, not
+/// merely start inside it: a jeep driving away inside reach, whose meeting
+/// point lies past it, is not fired at, and the gun takes the still jeep a
+/// little farther off instead.
+#[test]
+fn test_a_target_met_past_reach_is_passed_over_for_one_in_reach() {
+    let mut game = rules();
+    let hmg = &mut game["weapons"]["hmg"];
+    hmg["range_m"] = json!(300.0);
+    hmg["speed_mps"] = json!(50.0);
+    hmg["scatter_mrad"] = json!(10.0);
+    let setup = serde_json::from_value(json!({
+        "map": serde_json::from_str::<Value>(&map(json!([]))).unwrap(),
+        "rules": game,
+        "units": [
+            { "side": "blue", "kind": "test_jeep", "position": [600, 300] },
+            { "side": "red", "kind": "test_jeep", "position": [850, 300], "yaw": 0.0, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_jeep", "position": [600, 590], "engagement": "return_fire_only" }
+        ],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "red", "order":
+            { "kind": "move", "units": [1], "gesture": 1, "goal": [1190, 300], "route": "shortest" } }]
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..600 {
+        b.step();
+        if let Some((_, round)) = b.rounds().find(|(_, r)| r.unit == UnitId(0)) {
+            assert_eq!(round.fused_target, Some(UnitId(2)), "the first shot");
+            return;
+        }
+    }
+    panic!("the gun never fired");
 }

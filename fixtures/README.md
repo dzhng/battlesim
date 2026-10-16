@@ -30,6 +30,23 @@ fire policies and scripted attacks set who fires and who dies when, so a change
 keeps the cuts it was not asked to change and retimes the battle to them, never
 the reverse.
 
+**Directing the reel after a change.** You control the whole scenario; the shots
+are the fixed part. When a battle no longer plays a shot as approved, change the
+battle, never the shot:
+
+- **A followed unit dies too early:** give it more health through the
+  encounter's `overrides` (a scenario-only hero row), or delay or move what
+  kills it.
+- **A shot's action happens too early, too late or not at all:** move the
+  units, retime the scripted orders or fire policies, or pin the stats through
+  `overrides`.
+- **Something new happens in a shot** (a rule now lets a unit fire): script it
+  out, or move the unit out of frame.
+
+Only when the user asks for a new shot do a shot's camera, framing, timing or
+subject change. After re-recording the log, render the reel and show the user
+the footage to approve.
+
 The backdrop is directed footage, not a battle. It may field any units, including
 the [menu's own](units/menu/) (`menu_*`, in the menu's catalog set only) with
 whatever stats, hulls, weapons, scripts and positions it needs, and anything in it
@@ -43,9 +60,10 @@ unit whose part it plays, hull and all, and changes its look; one shared random
 stream means any physical difference retimes the whole scene. So each scene's
 encounter pins, in its `overrides`, every stat of every weapon its cast fires, at
 the values the approved reel was filmed with: the game's weapons are retuned all
-the time, and none of that retuning reaches the reel. A change to a rule the pins
-do not cover (a rules section, a test unit) still retimes it. Re-record a log only
-for a reel the user has approved; a stat change never forces one.
+the time, and none of that retuning reaches the reel. The pins prevent only
+stat-driven reshoots: a change to a rule (a mechanic, a rules section, a test
+unit) still retimes the battle, and is never held back to keep the reel. It
+re-records the reel's log, and the user approves the new footage.
 
 [Sound authoring](#sound-catalog) owns audio provenance and choices independently
 of gameplay weapon cycles. Saved maps, component inheritance and paired evidence
@@ -108,7 +126,7 @@ radar and never authors one.
   - a unit's `parts` gather along the chain, the parent's first;
   - anything else is replaced, a list of strings (`roles`, `slots`) whole.
   - What a variant can't do: drop a key or a mount (by id) it inherits. A type that loses a mount extends a common parent instead.
-- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
+- **Parts are upgrades:** `"parts": ["trophy_aps"]` merges each part's `patch` into the type after inheritance, by the same rules, so a part may add any capability: the Trophy adds active protection, and a radar or a flare pod would add `radar`, `radar_receiver` or `flares` the same way. A part that needs a capability the simulation doesn't build yet is refused at load, because the type no longer parses. A part names the model nodes that show its hardware (`nodes`), and the type's model must draw them.
 
 Resolution happens once through the contract owner. Invalid inheritance,
 references, physical mounts or numbers fail at load with an entry-specific error.

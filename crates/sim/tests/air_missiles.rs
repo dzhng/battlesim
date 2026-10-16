@@ -150,7 +150,7 @@ impl ImpactResolver for TestFuse {
         }
     }
 
-    fn aircraft_fuse(&self, _projectile: sim::flight::ProjectileId) -> Option<(UnitId, f64)> {
+    fn target_fuse(&self, _projectile: sim::flight::ProjectileId) -> Option<(UnitId, f64)> {
         self.target.map(|target| (target, 3.0))
     }
 }
@@ -219,60 +219,6 @@ fn a_missile_bursts_within_its_blast_radius_of_a_passing_jet() {
     assert!(
         lateral_surface_distance <= 3.0 + 1e-6,
         "burst was {lateral_surface_distance:.3} m from the hull"
-    );
-}
-
-#[test]
-fn no_proximity_fuse_against_ground() {
-    let battle = battle(json!([
-        { "side": "red", "kind": "test_tank", "position": [800, 300], "yaw": 0.0 }
-    ]));
-    let tank = battle.unit(UnitId(0)).unwrap();
-    let half = tank.hull.unwrap();
-    let body = Body {
-        id: BodyId(sim::weapons::VEHICLE_BODY_BASE),
-        unit: UnitId(0),
-        shape: Shape::Box { half },
-        from: Pose {
-            base: tank.position,
-            yaw: tank.yaw,
-        },
-        to: Pose {
-            base: tank.position,
-            yaw: tank.yaw,
-        },
-    };
-    let mut projectiles = Projectiles::new(common::config());
-    projectiles.launch(Launch {
-        origin: v3(
-            700.0,
-            tank.position.y + half.y + 2.5,
-            tank.position.z + half.z,
-        ),
-        carrier: v3(0.0, 0.0, 0.0),
-        velocity: v3(290.0, 0.0, 0.0),
-        gravity_scale: 0.0,
-        lifetime_s: 1.0,
-        suppression_radius_m: 0.0,
-        shooter: None,
-        guidance: None,
-        motor: None,
-        fall: None,
-    });
-    let mut events = Vec::new();
-    let mut resolver = TestFuse { target: None };
-    advance_projectiles(
-        &mut projectiles,
-        battle.world(),
-        &[body],
-        &mut events,
-        &mut resolver,
-    );
-    assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, FlightEvent::Impact(_))),
-        "a ground target got a proximity fuse"
     );
 }
 
@@ -371,4 +317,209 @@ fn a_climbing_targets_vertical_velocity_is_led() {
         solution.intercept.z > 251.6,
         "vertical target motion was discarded"
     );
+}
+
+/// A test jet whose only store is one guided, interceptable ground-attack
+/// missile, sent at a red tank, with a red jeep beside the tank mounting a
+/// guided interceptor whose `missile` class sits in `intercepts_in` alone.
+/// Returns the tank's hit points before and after, and the shots the jet and
+/// the jeep fired.
+fn jet_missile_at_a_covered_tank(intercepts_in: &str) -> (f64, f64, u32, u32) {
+    let mut rules = sim::fixtures::test_game();
+    rules["weapons"]["test_agm"] = json!({
+        "name": "Test AGM", "description": "A test row.", "icon": "atgm",
+        "interceptable": true, "stationary": false, "guidance": "on_the_move",
+        "range_m": 1500, "min_range_m": 5, "speed_mps": 50, "accel_mps2": 140,
+        "top_speed_mps": 300, "aim_s": 0.1, "reload_s": 4, "ammo": 1,
+        "penetration": 400, "partial_from": 0.08, "damage": 400, "scatter_mrad": 0.5,
+        "turn_deg_s": 60, "lifetime_s": 15, "near_miss_suppression": 0,
+        "suppression_radius_m": 0, "blast_radius_m": 4, "structural_damage": 20,
+        "targets": { "ground": { "classes": ["vehicle"] } }
+    });
+    rules["weapons"]["test_interceptor"] = json!({
+        "name": "Test SAM", "description": "A test row.", "icon": "aa_missile",
+        "stationary": true, "guidance": "stationary", "range_m": 1500, "min_range_m": 50,
+        "speed_mps": 100, "accel_mps2": 95, "top_speed_mps": 290,
+        "aim_s": 0.5, "reload_s": 4, "ammo": 6, "penetration": 300, "partial_from": 0.08,
+        "damage": 100, "scatter_mrad": 0.5, "turn_deg_s": 180,
+        "lifetime_s": 10, "near_miss_suppression": 0, "suppression_radius_m": 0,
+        "blast_radius_m": 3, "proximity_fuse_m": 5, "structural_damage": 20,
+        "targets": { intercepts_in: { "classes": ["missile"] } }
+    });
+    rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
+    rules["service"]["round_costs"]["test_agm"] = json!(1);
+    rules["service"]["round_costs"]["test_interceptor"] = json!(1);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "sensors": { "ground_m": 1500 },
+            "mounts": [{ "id": "gun", "name": "Stores", "weapons": ["test_agm"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [7, 0, 0] }] }),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "HMG", "name": "AA", "weapons": ["test_interceptor"],
+            "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [600, 2000], "yaw": 0.0 },
+            { "side": "red", "kind": "test_tank", "position": [2400, 2000], "yaw": std::f64::consts::PI,
+              "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_jeep", "position": [2450, 2040], "yaw": std::f64::consts::PI },
+            { "side": "blue", "kind": "test_recon", "position": [1800, 2000], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..30 {
+        b.step();
+    }
+    let tank = b
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|t| (t.position[0] - 2400.0).abs() < 5.0)
+        .map(|t| t.id)
+        .expect("the recon sees the tank");
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        slot: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: contract::command::TargetRef::Identified { id: tank },
+        },
+    });
+    assert_eq!(ack.error, None);
+    let before = b.unit(UnitId(1)).unwrap().hp;
+    for _ in 0..40 * b.rules().tick_hz {
+        b.step();
+    }
+    (
+        before,
+        b.unit(UnitId(1)).unwrap().hp,
+        shots(&b, 0, "gun"),
+        shots(&b, 2, "HMG"),
+    )
+}
+
+/// A guided interceptor whose high-air layer lists `missile` shoots down the
+/// missile a jet fires at the tank it covers, and the tank is untouched. The
+/// same interceptor listing `missile` only in low air lets the jet's round
+/// (fired from high air) through, and it strikes the tank.
+#[test]
+fn a_high_air_interceptor_shoots_down_a_jets_missile_and_the_tank_survives() {
+    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("high_air");
+    assert_eq!(fired, 1, "the jet fired its one missile");
+    assert!(intercepted > 0, "the interceptor never launched");
+    assert_eq!(after, before, "the covered tank was hit");
+
+    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("low_air");
+    assert_eq!(fired, 1, "the jet fired its one missile");
+    assert_eq!(
+        intercepted, 0,
+        "a low-air interceptor engaged a high-air round"
+    );
+    assert!(after < before, "the jet's missile missed the open tank");
+}
+
+/// How far from a helicopter 400 m off its first missile bursts, when a jeep
+/// fires a stinger with this proximity fuse at it (none: it bursts only on
+/// what it strikes).
+fn burst_from_the_helicopter(fuse_m: Option<f64>) -> f64 {
+    let mut rules = sim::fixtures::test_game();
+    match fuse_m {
+        Some(m) => rules["weapons"]["stinger"]["proximity_fuse_m"] = json!(m),
+        None => {
+            rules["weapons"]["stinger"]
+                .as_object_mut()
+                .unwrap()
+                .remove("proximity_fuse_m");
+        }
+    }
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "HMG", "weapons": ["stinger"] }] }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
+            { "side": "red", "kind": "test_heli", "position": [500, 200], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..600 {
+        b.step();
+        if let Some(blast) = b.observe(Side::Blue).blasts.first() {
+            let heli = b.unit(UnitId(1)).unwrap().position;
+            let p = blast.point;
+            return (v3(p[0], p[1], p[2]) - heli).length();
+        }
+    }
+    panic!("the stinger never burst");
+}
+
+/// A fuse bursts near whatever its round was fired at, on the ground as in
+/// the air: an ATGM given a 30 m fuse bursts 30 m off the jeep it was fired
+/// at, not on its hull.
+#[test]
+fn test_a_proximity_fuse_bursts_near_a_ground_target_too() {
+    let mut rules = sim::fixtures::test_game();
+    rules["weapons"]["atgm"]["proximity_fuse_m"] = json!(30.0);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "HMG", "weapons": ["atgm"] }] }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0 },
+            { "side": "red", "kind": "test_jeep", "position": [500, 200], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let target = b.unit(UnitId(1)).unwrap();
+    let (centre, reach) = (target.position, target.hull.unwrap().length());
+    for _ in 0..600 {
+        b.step();
+        if let Some(blast) = b.observe(Side::Blue).blasts.first() {
+            let p = blast.point;
+            let off = (v3(p[0], p[1], p[2]) - centre).length();
+            assert!(
+                (30.0..=30.0 + reach).contains(&off),
+                "burst {off:.1} m off the jeep"
+            );
+            return;
+        }
+    }
+    panic!("the missile never burst");
+}
+
+#[test]
+fn a_proximity_fused_missile_bursts_as_it_nears_the_aircraft() {
+    // A fuse reaching 30 m bursts it 30 m off the helicopter's hull (7 m
+    // from its centre at the most); without one it flies on into the hull.
+    let fused = burst_from_the_helicopter(Some(30.0));
+    assert!((30.0..=37.5).contains(&fused), "{fused}");
+    let unfused = burst_from_the_helicopter(None);
+    assert!(unfused < 10.0, "{unfused}");
 }

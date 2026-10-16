@@ -258,7 +258,7 @@ impl ImpactResolver for HullResolver<'_> {
             return None;
         }
         let unit = self.units.get(body.unit.0 as usize)?;
-        (unit.alive() && unit.hull.is_some())
+        unit.alive()
             .then(|| {
                 unit.unit_type(self.rules)
                     .capabilities
@@ -287,32 +287,22 @@ impl ImpactResolver for HullResolver<'_> {
             return 0.0;
         };
         let def = &self.arsenal.weapons[round.weapon].def;
-        // Only a row listing `missile` may destroy another projectile;
-        // `interceptable` remains the incoming round's own flag.
-        // Range decides whether the mount may launch.  Once launched,
-        // projectile interception is a proximity fuse, so using the weapon's
-        // full engagement range would erase rounds at a visibly impossible
-        // distance.
+        // Only a row listing `missile` may destroy another projectile, and
+        // only by its proximity fuse; `interceptable` remains the incoming
+        // round's own flag.
         if def.intercepts() {
-            def.blast_radius_m.max(5.0)
+            def.proximity_fuse_m.unwrap_or(0.0)
         } else {
             0.0
         }
     }
-    fn aircraft_fuse(&self, projectile: ProjectileId) -> Option<(UnitId, f64)> {
+    fn target_fuse(&self, projectile: ProjectileId) -> Option<(UnitId, f64)> {
         let round = self.rounds.get(&projectile)?;
         let def = &self.arsenal.weapons[round.weapon].def;
-        // A proximity fuse belongs to powered missiles. A seeker that has
-        // already been diverted to a flare no longer follows the aircraft.
-        if def.ballistics.accel_mps2.is_none() || def.blast_radius_m <= 0.0 {
-            return None;
-        }
-        if def.seeker.is_some() && round.seeker_target.is_none() {
-            return None;
-        }
-        let target = round.air_target?;
+        let fuse = def.proximity_fuse_m?;
+        let target = round.fused_target?;
         let unit = self.units.get(target.0 as usize)?;
-        (unit.alive() && unit.airborne()).then_some((target, def.blast_radius_m))
+        unit.alive().then_some((target, fuse))
     }
     fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
         let Some(attacker) = self.rounds.get(&interceptor) else {
@@ -707,17 +697,7 @@ fn hull_damage(
 ) -> f64 {
     let armor = unit.armor(ctx.rules).expect("vehicle armour");
     let face = struck_face(unit.hull.expect("vehicle hull"), pose, point, normal);
-    let aspect = if unit.airborne() {
-        match face {
-            contract::scenario::Face::Front => 1.0,
-            contract::scenario::Face::Rear => 0.85,
-            contract::scenario::Face::Roof => 0.75,
-            contract::scenario::Face::Side => 0.5,
-        }
-    } else {
-        1.0
-    };
-    def.damage * aspect * pierce_share(def, bounces, ctx.rules, armor.face(face))
+    def.damage * pierce_share(def, bounces, ctx.rules, armor.face(face))
 }
 
 /// Weapon-specific suppression at `distance` from a round's path or impact.

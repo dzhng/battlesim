@@ -7,9 +7,9 @@
           "hp": 80,
           "armor": {
             "front": 15,
-            "side": 15,
-            "rear": 15,
-            "roof": 15,
+            "side": 25,
+            "rear": 21,
+            "roof": 22,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -41,6 +41,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 800
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_utility_helicopter": {
@@ -50,9 +56,9 @@
           "hp": 100,
           "armor": {
             "front": 15,
-            "side": 15,
-            "rear": 15,
-            "roof": 15,
+            "side": 25,
+            "rear": 21,
+            "roof": 22,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -84,6 +90,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_heavy_helicopter": {
@@ -93,9 +105,9 @@
           "hp": 120,
           "armor": {
             "front": 15,
-            "side": 15,
-            "rear": 15,
-            "roof": 15,
+            "side": 25,
+            "rear": 21,
+            "roof": 22,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -127,6 +139,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 1000
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_attack_helicopter": {
@@ -136,9 +154,9 @@
           "hp": 120,
           "armor": {
             "front": 25,
-            "side": 15,
-            "rear": 15,
-            "roof": 10,
+            "side": 95,
+            "rear": 50,
+            "roof": 65,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -170,6 +188,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     },
     "roster_profile_armoured_helicopter": {
@@ -179,9 +203,9 @@
           "hp": 150,
           "armor": {
             "front": 30,
-            "side": 25,
-            "rear": 20,
-            "roof": 15,
+            "side": 95,
+            "rear": 50,
+            "roof": 65,
             "ricochet": {
               "front": 0.1,
               "side": 0.1,
@@ -213,6 +237,12 @@
       "sound": {
         "profile": "vehicle",
         "loudness_m": 900
+      },
+      "capabilities": {
+        "flares": {
+          "capacity": 4,
+          "reload_s": 3
+        }
       }
     }
   }

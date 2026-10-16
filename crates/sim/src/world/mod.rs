@@ -880,11 +880,11 @@ impl WorldGeometry {
         }
     }
 
-    /// The unit type `def`'s wreck was: a prop drawn by `wreck` names a unit
-    /// type with a hull, whether a death or a map placed it, and no other
-    /// prop names one. There is no default wreck to fall back to.
+    /// The unit type `def`'s wreck was: a wreck prop (`PropType::wreck`)
+    /// names a unit type with a hull, whether a death or a map placed it,
+    /// and no other prop names one. There is no default wreck to fall back to.
     fn wreck_of(&self, def: &PropDefinition) -> Option<contract::catalog::TypeIndex> {
-        let wreck = self.types.by_id(&def.kind).appearance.drawn_by == "wreck";
+        let wreck = self.types.by_id(&def.kind).wreck;
         match &def.wreck_of {
             Some(unit) if wreck => Some(*self.wreck_units.get(unit).unwrap_or_else(|| {
                 panic!("a wreck names the unit it was: {unit:?} is no unit type with a hull")

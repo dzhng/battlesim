@@ -75,7 +75,7 @@ export async function run(ctx) {
 
   await lab(page, (id) => window.__lab.route.select([id]), jet.id);
   const card = await cardText(page, `[data-unit="${jet.id}"]`);
-  const flares = unitType(JET).capabilities.air.flares.capacity;
+  const flares = unitType(JET).capabilities.flares.capacity;
   ctx.check(
     "the jet card shows fuel and flares",
     !!card && /FUEL \d+ s/.test(card) && card.includes(`FLARES ${flares}`),

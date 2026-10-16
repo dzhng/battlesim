@@ -8,7 +8,9 @@
 //! gains a type, and the reel may swap one unit type for another.
 //!
 //! The recorded logs are `tests/fixtures/menu-reel/<map>-<encounter>.log`.
-//! Re-record one (`BLESS_MENU_REEL=1`) only for a reel the user has approved.
+//! Re-record one (`BLESS_MENU_REEL=1`) when a rule change retimes the reel,
+//! once the battle is directed back to its shots; the user approves the
+//! rendered footage (`fixtures/README.md`, the menu backdrop).
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::PathBuf;

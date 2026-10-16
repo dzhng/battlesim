@@ -54,11 +54,6 @@ const WEAPON_ICONS: Record<string, string> = {
     '<path d="M2 14h14l2-1h4"/><path d="M5 14l-1 4h3l1.5-4"/><rect x="8" y="8.5" width="6" height="2.5" rx="1"/><path d="M11 11v3"/>',
   // The rifle's line with a box magazine under it and a bipod at the front.
   lmg: '<path d="M2 12h15l1.5-1h4.5"/><path d="M5 12l-1 4h3l1.5-4"/><rect x="9" y="12" width="4" height="4" rx="0.5"/><path d="M17 12l-2 6M17 12l2 6"/>',
-  // Short and stubby, the long magazine straight down.
-  smg: '<path d="M5 11h12"/><path d="M5 11v4h2.5l1-4"/><path d="M11.5 11v7"/>',
-  // A long plain barrel over a pump fore-end.
-  shotgun:
-    '<path d="M2 12h19"/><path d="M2 12l-0.5 3.5h4l1.5-3.5"/><rect x="12" y="13.5" width="5" height="2" rx="0.8"/>',
   autocannon:
     '<path d="M3 9h9v6H3z"/><path d="M12 12h8"/><path d="M18 10v4M21 10v4"/><path d="M6 15v4h3v-4"/>',
   rpg: '<path d="M2 11h11v2H2z"/><path d="M13 8.5h3l5 3.5-5 3.5h-3z"/><path d="M5 13v4M9 13v3"/>',
