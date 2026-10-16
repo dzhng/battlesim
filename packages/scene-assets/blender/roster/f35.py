@@ -1,4 +1,4 @@
-"""F-35A and F-35B Lightning II, from assets/references/f_35_lightning_ii/. Disabled cards.
+"""F-35A and F-35B Lightning II, from assets/references/f_35_lightning_ii/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/f35.py -- [--variant=<card>] [--wreck]
 
@@ -11,7 +11,7 @@ behind the canopy, the auxiliary inlet doors above the engine and the
 swivelling three-bearing nozzle, no gun. Both in the dark grey radar
 coating.
 
-Dimensions stated from the references (Lockheed Martin figures agree):
+The references' dimensions (Lockheed Martin figures agree):
 F-35A 15.7 x 10.7 x 4.38 m; F-35B 15.6 x 10.7 x 4.36 m.
 """
 import math
@@ -21,11 +21,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 FA, FB = "f_35a", "us_f_35_lightning_ii_f_35b"
-CARDS = {FA: (15.7, 10.7, 4.38), FB: (15.6, 10.7, 4.36)}
 
 WING_Z = 2.0
 
@@ -126,4 +125,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.8, wing_y=3.2, wing_side=-1, tail_yaw=-0.25, seed=35)
 
 
-run_disabled("f35", CARDS, "us_gunship_grey", build, wreck)
+run("f_35_lightning_ii", "us_gunship_grey", build, wreck, script="f35.py")

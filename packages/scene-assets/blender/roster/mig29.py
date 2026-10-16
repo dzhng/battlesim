@@ -1,4 +1,4 @@
-"""MiG-29SMT, from assets/references/mig_29_fulcrum/. A disabled card.
+"""MiG-29SMT, from assets/references/mig_29_fulcrum/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/mig29.py -- [--wreck]
 
@@ -8,7 +8,7 @@ nacelles slung apart under it and their raked box intakes under the
 leading-edge extensions, a swept wing, twin fins on the nacelles canted a
 little outward, stabilators, two nozzles; twin nose wheels. Two greys.
 
-Dimensions stated from the references (MiG figures): length 17.32 m, span
+The references' dimensions (MiG figures): length 17.32 m, span
 11.36 m, height 4.73 m.
 """
 import os
@@ -17,10 +17,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_mig_29_fulcrum_mig_29smt": (17.32, 11.36, 4.73)}
 WING_Z = 2.3
 FIN = dict(root_x=-3.6, root_z=2.6, height=2.13, root_chord=3.0, tip_chord=1.0, sweep_m=1.9, cant=0.12)
 SPEC = dict(
@@ -82,4 +81,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-4.0, wing_y=3.4, wing_side=-1, tail_yaw=-0.3, seed=29)
 
 
-run_disabled("mig29", CARDS, "russian_air_grey", build, wreck)
+run("mig_29_fulcrum", "russian_air_grey", build, wreck, script="mig29.py")

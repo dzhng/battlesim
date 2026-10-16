@@ -15,11 +15,7 @@ What the photos settle:
   no remote weapon station, a ring mount for the M2 on the commander's
   hatch.
 
-The frames are the Stryker's
-published dimensions (6.95 x 2.72 m; 3.2 m to the M-SHORAD turret's top,
-2.5 m for the mortar carrier, whose roof carries no remote station),
-recorded as `references`. The turret and
-the mortar are drawn at rest.
+The turret and the mortar are drawn at rest.
 """
 import math
 import os
@@ -30,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import stryker as S  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, script_args  # noqa: E402
-from vehicle_export import run, run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
@@ -166,5 +162,6 @@ if __name__ == "__main__":
         run("m1129_stryker_mortar", "us_desert_tan", build, wreck,
             script="stryker_support.py", chip=0.6)
     if selected != MORTAR:
-        run_disabled("stryker_support", {SHORAD: (6.95, 2.72, 3.20)}, "us_desert_tan", build,
-                     wreck, chip=0.6)
+        run("stryker_m_shorad", "us_desert_tan", build, wreck,
+            receipt_file="assets/source/roster/stryker_m_shorad/stryker_support.source-receipt.json",
+            script="stryker_support.py", chip=0.6)

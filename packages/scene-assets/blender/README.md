@@ -74,7 +74,10 @@ script states one from its references: the length, width and height.
 frame (`catalog_frames.disabled_variant`), refuses a model that strays from it
 (leaving out what `skip` names: dressing, guns, rotor blades), and writes the
 family's receipt beside the cards' GLBs (in `assets/source/roster/disabled/`,
-or the ground cards' own family folders). Every receipt hashes each script the
+or the ground cards' own family folders). A card that gains a unit type
+leaves the manifest, and its sources move to its family's folder, named for
+its reference library: from then on it builds through `vehicle_export.run`
+like any roster vehicle. Every receipt hashes each script the
 export loaded and names the reference library of its source's folder (a
 manifest entry's `source_family`).
 The support cards' trucks stand on [one chassis](roster/truck_chassis.py)

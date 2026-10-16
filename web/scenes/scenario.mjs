@@ -28,7 +28,7 @@ export async function run(ctx) {
     "download exports a self-contained scenario package",
     (await artifact.failure()) === null,
   );
-  await page.goto(ctx.urlFor(ctx.url, { mode: "play" }));
+  await page.goto(ctx.urlFor({ mode: "play" }));
   await page.getByRole("heading", { name: "Play scenario" }).waitFor();
   await page.locator('input[type="file"]').setInputFiles(packagePath);
   await page.getByRole("heading", { name: "Choose controller" }).waitFor();

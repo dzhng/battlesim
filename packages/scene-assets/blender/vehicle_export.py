@@ -241,8 +241,7 @@ def _measured(skip):
     return hi - lo, lo
 
 
-def run_disabled(family, cards, scheme, build, wreck, skip=("dressing_",), ao_distance=1.0, ao_rays=8, references=None,
-                 **looks):
+def run_disabled(family, cards, scheme, build, wreck, skip=("dressing_",), ao_distance=1.0, ao_rays=8, **looks):
     """Export a disabled card family: `cards` maps each card id to the
     (length, width, height) its script states from its references, its
     frame (`catalog_frames.disabled_variant`). `scheme` is the family's, or one
@@ -250,9 +249,7 @@ def run_disabled(family, cards, scheme, build, wreck, skip=("dressing_",), ao_di
     frame within `FRAME_TOLERANCE`, leaving out the nodes `skip` names (a
     rotor disc, dressing). Each card writes its `source_path`; the family's
     receipt, beside them, records each card's frame source and names its
-    cards' reference libraries (their manifest `source_family`, and
-    `references` for a family none of whose cards the manifest still lists:
-    an enabled one, which builds to its unit type's frame). `looks` are
+    cards' reference libraries (their manifest `source_family`). `looks` are
     `materials` keywords, as for `run`."""
     from catalog_frames import disabled_variant
 
@@ -269,7 +266,7 @@ def run_disabled(family, cards, scheme, build, wreck, skip=("dressing_",), ao_di
     receipt = _export(variants, scheme, build, wreck, ao_distance, ao_rays, check, looks)
     if receipt is not None:
         entries = json.loads((REPO / "fixtures/units/model-manifest.json").read_text())["entries"]
-        families = sorted({e["source_family"] for e in entries if e["id"] in cards} | {references} - {None})
+        families = sorted({e["source_family"] for e in entries if e["id"] in cards})
         beside = Path(variants[0]["export"]).parent
         _receipt(f"{beside}/{family}.source-receipt.json", f"{family}.py", receipt,
                  "catalog_frames.disabled_variant", [f"assets/references/{f}/references.json" for f in families])

@@ -116,7 +116,7 @@
   {
     "id": "air-dogfight",
     "route": "/labs/air-dogfight",
-    "describe": "A 2v2 jet fight on air-jet grows when a third jet joins. One-way dogfight links, 3D break range and the dogfight height band are observed from the blue publication; the shot shows the turning paths, DOGFIGHT card and a wingman that keeps fighting after an explicit move.",
+    "describe": "A 2v2 jet fight on air-jet, directed by attack orders, grows when a third blue jet joins: the selected jet carries the DOGFIGHT card, and an explicit move takes it out of the fight while its wingman keeps fighting. The trace and shot show the turning paths.",
     "map": "air-jet"
   },
   {
@@ -128,13 +128,13 @@
   {
     "id": "air-ground",
     "route": "/labs/air-ground",
-    "describe": "Air-ground passes on the 3 km air-jet field: a bomber dives and drops near its ground point; a missile-capable/gun jet makes a nose-on pass and fires its gun; SEAD attacks a radar contact; an unknown target is refused; high-air aircraft do not reveal ground. Browser-only evidence is the pass/flash/SEAD order and jet-only fog frame.",
+    "describe": "Air-ground passes on the 3 km air-jet field with the roster's loadouts: an F-15E dives and releases its bombs; an F-16 makes a nose-on gun pass; an EA-18G's attack on the Buk's radar contact is accepted and it fires. The height trace, passes strip and full-field frame with the jet-only fog are for review.",
     "map": "air-jet"
   },
   {
     "id": "air-survivability",
     "route": "/labs/air-survivability",
-    "describe": "Air-jet survivability: a decoyable 290 m/s proximity-fused missile is flared by the F-16, while the Apache without flares is hit. The shot shows the flare charge/cooldown, missile event and aircraft outcomes.",
+    "describe": "Air-jet survivability: a Buk fires decoyable 290 m/s proximity-fused missiles at an F-16, which spends a flare, and at an Apache without flares, which is shot down. The shot shows the missile and flare tracks together.",
     "map": "air-jet"
   },
   {
@@ -146,7 +146,7 @@
   {
     "id": "air-hud",
     "route": "/labs/air-hud",
-    "describe": "Air-jet HUD: a jet has no ground marker or drop line while the Apache has both; the jet card shows fuel and flares; Space reveals the jet order ghost at cruise height; the radar contact card keeps its bearing and range.",
+    "describe": "Air-jet HUD: a jet has no ground marker or drop line while the Apache has both; the jet card shows fuel and flares; Space reveals the jet order ghost card; the radar contact card keeps its bearing and range.",
     "map": "air-jet"
   },
   {

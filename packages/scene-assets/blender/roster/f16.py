@@ -1,4 +1,4 @@
-"""F-16C Block 50, from assets/references/f_16_fighting_falcon/. A disabled card.
+"""F-16C Block 50, from assets/references/f_16_fighting_falcon/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/f16.py -- [--wreck]
 
@@ -10,7 +10,7 @@ petals; wing-tip AIM-120 rails, tanks on the inner wing pylons, missiles
 outboard, the targeting and HARM pods on the intake's cheeks (Block 50),
 the tall nose gear behind the intake and the main gear folding into the body.
 
-Dimensions stated from the references (USAF fact sheet figures agree):
+The references' dimensions (USAF fact sheet figures agree):
 length 15.06 m, span 9.96 m over the tip rails, height 4.88 m.
 """
 import os
@@ -19,10 +19,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
-CARDS = {"f_16c_block_50": (15.06, 9.96, 4.88)}
 
 WING_Z = 1.78
 SPEC = dict(
@@ -110,4 +109,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-4.2, wing_y=2.8, wing_side=-1, seed=16, litter_reach=0.95)
 
 
-run_disabled("f16", CARDS, "us_compass_grey", build, wreck, references="f_16_fighting_falcon")
+run("f_16_fighting_falcon", "us_compass_grey", build, wreck, script="f16.py")

@@ -1,4 +1,4 @@
-"""J-10C, from assets/references/j_10_vigorous_dragon/. A disabled card.
+"""J-10C, from assets/references/j_10_vigorous_dragon/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/j10.py -- [--wreck]
 
@@ -8,7 +8,7 @@ where the A had a splitter plate), canards just behind the cockpit, the delta
 wing, one tall fin, two ventral fins canted outward under the tail, one
 nozzle. Light grey.
 
-Dimensions stated from the references (published figures): length 16.9 m,
+The references' dimensions (published figures): length 16.9 m,
 span 9.75 m, height 5.43 m.
 """
 import os
@@ -17,10 +17,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_j_10_vigorous_dragon_j_10c": (16.9, 9.75, 5.43)}
 WING_Z = 1.85
 VENTRAL = dict(root_x=-4.2, root_z=1.75, height=0.7, root_chord=1.6, tip_chord=0.9, sweep_m=0.5, cant=2.7,
                rudder=False)
@@ -78,4 +77,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.4, wing_y=3.0, wing_side=1, tail_yaw=0.3, seed=10)
 
 
-run_disabled("j10", CARDS, "chinese_air_light_grey", build, wreck, references="j_10_vigorous_dragon")
+run("j_10_vigorous_dragon", "chinese_air_light_grey", build, wreck, script="j10.py")

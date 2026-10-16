@@ -6301,7 +6301,7 @@
     },
     "eastern_j_10_vigorous_dragon_j_10c": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c.glb",
+      "source": "assets/source/roster/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_j_10_vigorous_dragon_j_10c_wreck"
     },
@@ -6309,8 +6309,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_j_10_vigorous_dragon_j_10c_wreck_debris.glb"
+        "default": "assets/source/roster/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c_wreck.glb",
+        "debris": "assets/source/roster/j_10_vigorous_dragon/eastern_j_10_vigorous_dragon_j_10c_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6324,7 +6324,7 @@
     },
     "eastern_sukhoi_flanker_family_su_34": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34.glb",
+      "source": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_sukhoi_flanker_family_su_34_wreck"
     },
@@ -6332,8 +6332,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_34_wreck_debris.glb"
+        "default": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34_wreck.glb",
+        "debris": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_34_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6347,7 +6347,7 @@
     },
     "europe_eurofighter_typhoon_tranche_3": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3.glb",
+      "source": "assets/source/roster/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3.glb",
       "basis_yaw_deg": 0,
       "wreck": "europe_eurofighter_typhoon_tranche_3_wreck"
     },
@@ -6355,8 +6355,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3_wreck.glb",
-        "debris": "assets/source/roster/disabled/europe_eurofighter_typhoon_tranche_3_wreck_debris.glb"
+        "default": "assets/source/roster/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3_wreck.glb",
+        "debris": "assets/source/roster/eurofighter_typhoon/europe_eurofighter_typhoon_tranche_3_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6370,7 +6370,7 @@
     },
     "europe_tornado_ids": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/europe_tornado_ids.glb",
+      "source": "assets/source/roster/tornado/europe_tornado_ids.glb",
       "basis_yaw_deg": 0,
       "wreck": "europe_tornado_ids_wreck"
     },
@@ -6378,8 +6378,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/europe_tornado_ids_wreck.glb",
-        "debris": "assets/source/roster/disabled/europe_tornado_ids_wreck_debris.glb"
+        "default": "assets/source/roster/tornado/europe_tornado_ids_wreck.glb",
+        "debris": "assets/source/roster/tornado/europe_tornado_ids_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6393,7 +6393,7 @@
     },
     "europe_tornado_ecr": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/europe_tornado_ecr.glb",
+      "source": "assets/source/roster/tornado/europe_tornado_ecr.glb",
       "basis_yaw_deg": 0,
       "wreck": "europe_tornado_ecr_wreck"
     },
@@ -6401,8 +6401,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/europe_tornado_ecr_wreck.glb",
-        "debris": "assets/source/roster/disabled/europe_tornado_ecr_wreck_debris.glb"
+        "default": "assets/source/roster/tornado/europe_tornado_ecr_wreck.glb",
+        "debris": "assets/source/roster/tornado/europe_tornado_ecr_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6416,7 +6416,7 @@
     },
     "f_16c_block_50": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/f_16c_block_50.glb",
+      "source": "assets/source/roster/f_16_fighting_falcon/f_16c_block_50.glb",
       "basis_yaw_deg": 0,
       "wreck": "f_16c_block_50_wreck"
     },
@@ -6424,8 +6424,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/f_16c_block_50_wreck.glb",
-        "debris": "assets/source/roster/disabled/f_16c_block_50_wreck_debris.glb"
+        "default": "assets/source/roster/f_16_fighting_falcon/f_16c_block_50_wreck.glb",
+        "debris": "assets/source/roster/f_16_fighting_falcon/f_16c_block_50_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6439,7 +6439,7 @@
     },
     "us_ea_18g_growler_electronic_warfare_aircraft": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft.glb",
+      "source": "assets/source/roster/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft.glb",
       "basis_yaw_deg": 0,
       "wreck": "us_ea_18g_growler_electronic_warfare_aircraft_wreck"
     },
@@ -6447,8 +6447,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft_wreck.glb",
-        "debris": "assets/source/roster/disabled/us_ea_18g_growler_electronic_warfare_aircraft_wreck_debris.glb"
+        "default": "assets/source/roster/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft_wreck.glb",
+        "debris": "assets/source/roster/ea_18g_growler/us_ea_18g_growler_electronic_warfare_aircraft_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6462,7 +6462,7 @@
     },
     "eastern_j_20_mighty_dragon_stealth_fighter": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter.glb",
+      "source": "assets/source/roster/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_j_20_mighty_dragon_stealth_fighter_wreck",
       "tolerances": {
@@ -6473,8 +6473,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_j_20_mighty_dragon_stealth_fighter_wreck_debris.glb"
+        "default": "assets/source/roster/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter_wreck.glb",
+        "debris": "assets/source/roster/j_20_mighty_dragon/eastern_j_20_mighty_dragon_stealth_fighter_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6488,7 +6488,7 @@
     },
     "eastern_mig_29_fulcrum_mig_29smt": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt.glb",
+      "source": "assets/source/roster/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_mig_29_fulcrum_mig_29smt_wreck"
     },
@@ -6496,8 +6496,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_mig_29_fulcrum_mig_29smt_wreck_debris.glb"
+        "default": "assets/source/roster/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt_wreck.glb",
+        "debris": "assets/source/roster/mig_29_fulcrum/eastern_mig_29_fulcrum_mig_29smt_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6511,7 +6511,7 @@
     },
     "eastern_mig_31_foxhound_mig_31bm": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm.glb",
+      "source": "assets/source/roster/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_mig_31_foxhound_mig_31bm_wreck"
     },
@@ -6519,8 +6519,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_mig_31_foxhound_mig_31bm_wreck_debris.glb"
+        "default": "assets/source/roster/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm_wreck.glb",
+        "debris": "assets/source/roster/mig_31_foxhound/eastern_mig_31_foxhound_mig_31bm_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6534,7 +6534,7 @@
     },
     "eastern_su_25_frogfoot_su_25sm3": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3.glb",
+      "source": "assets/source/roster/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_su_25_frogfoot_su_25sm3_wreck",
       "tolerances": {
@@ -6545,8 +6545,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_su_25_frogfoot_su_25sm3_wreck_debris.glb"
+        "default": "assets/source/roster/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3_wreck.glb",
+        "debris": "assets/source/roster/su_25_frogfoot/eastern_su_25_frogfoot_su_25sm3_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6560,7 +6560,7 @@
     },
     "eastern_su_57_felon_stealth_multirole_fighter": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter.glb",
+      "source": "assets/source/roster/su_57_felon/eastern_su_57_felon_stealth_multirole_fighter.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_su_57_felon_stealth_multirole_fighter_wreck"
     },
@@ -6568,8 +6568,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_su_57_felon_stealth_multirole_fighter_wreck_debris.glb"
+        "default": "assets/source/roster/su_57_felon/eastern_su_57_felon_stealth_multirole_fighter_wreck.glb",
+        "debris": "assets/source/roster/su_57_felon/eastern_su_57_felon_stealth_multirole_fighter_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6583,7 +6583,7 @@
     },
     "eastern_sukhoi_flanker_family_su_27sm3": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3.glb",
+      "source": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_sukhoi_flanker_family_su_27sm3_wreck"
     },
@@ -6591,8 +6591,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_27sm3_wreck_debris.glb"
+        "default": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3_wreck.glb",
+        "debris": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_27sm3_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6606,7 +6606,7 @@
     },
     "eastern_sukhoi_flanker_family_su_30sm2": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2.glb",
+      "source": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_sukhoi_flanker_family_su_30sm2_wreck"
     },
@@ -6614,8 +6614,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_30sm2_wreck_debris.glb"
+        "default": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2_wreck.glb",
+        "debris": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_30sm2_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6629,7 +6629,7 @@
     },
     "eastern_sukhoi_flanker_family_su_35s": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s.glb",
+      "source": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s.glb",
       "basis_yaw_deg": 0,
       "wreck": "eastern_sukhoi_flanker_family_su_35s_wreck"
     },
@@ -6637,8 +6637,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s_wreck.glb",
-        "debris": "assets/source/roster/disabled/eastern_sukhoi_flanker_family_su_35s_wreck_debris.glb"
+        "default": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s_wreck.glb",
+        "debris": "assets/source/roster/sukhoi_flanker_family/eastern_sukhoi_flanker_family_su_35s_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6652,7 +6652,7 @@
     },
     "europe_jas_39_gripen_e": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/europe_jas_39_gripen_e.glb",
+      "source": "assets/source/roster/jas_39_gripen/europe_jas_39_gripen_e.glb",
       "basis_yaw_deg": 0,
       "wreck": "europe_jas_39_gripen_e_wreck"
     },
@@ -6660,8 +6660,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/europe_jas_39_gripen_e_wreck.glb",
-        "debris": "assets/source/roster/disabled/europe_jas_39_gripen_e_wreck_debris.glb"
+        "default": "assets/source/roster/jas_39_gripen/europe_jas_39_gripen_e_wreck.glb",
+        "debris": "assets/source/roster/jas_39_gripen/europe_jas_39_gripen_e_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6675,7 +6675,7 @@
     },
     "europe_mirage_2000_2000d_rmv": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv.glb",
+      "source": "assets/source/roster/mirage_2000/europe_mirage_2000_2000d_rmv.glb",
       "basis_yaw_deg": 0,
       "wreck": "europe_mirage_2000_2000d_rmv_wreck"
     },
@@ -6683,8 +6683,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv_wreck.glb",
-        "debris": "assets/source/roster/disabled/europe_mirage_2000_2000d_rmv_wreck_debris.glb"
+        "default": "assets/source/roster/mirage_2000/europe_mirage_2000_2000d_rmv_wreck.glb",
+        "debris": "assets/source/roster/mirage_2000/europe_mirage_2000_2000d_rmv_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6698,7 +6698,7 @@
     },
     "europe_rafale_c_f4": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/europe_rafale_c_f4.glb",
+      "source": "assets/source/roster/rafale/europe_rafale_c_f4.glb",
       "basis_yaw_deg": 0,
       "wreck": "europe_rafale_c_f4_wreck"
     },
@@ -6706,8 +6706,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/europe_rafale_c_f4_wreck.glb",
-        "debris": "assets/source/roster/disabled/europe_rafale_c_f4_wreck_debris.glb"
+        "default": "assets/source/roster/rafale/europe_rafale_c_f4_wreck.glb",
+        "debris": "assets/source/roster/rafale/europe_rafale_c_f4_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6721,7 +6721,7 @@
     },
     "f_35a": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/f_35a.glb",
+      "source": "assets/source/roster/f_35_lightning_ii/f_35a.glb",
       "basis_yaw_deg": 0,
       "wreck": "f_35a_wreck"
     },
@@ -6729,8 +6729,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/f_35a_wreck.glb",
-        "debris": "assets/source/roster/disabled/f_35a_wreck_debris.glb"
+        "default": "assets/source/roster/f_35_lightning_ii/f_35a_wreck.glb",
+        "debris": "assets/source/roster/f_35_lightning_ii/f_35a_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6744,7 +6744,7 @@
     },
     "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb",
+      "source": "assets/source/roster/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed.glb",
       "basis_yaw_deg": 0,
       "wreck": "us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck"
     },
@@ -6752,8 +6752,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck.glb",
-        "debris": "assets/source/roster/disabled/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck_debris.glb"
+        "default": "assets/source/roster/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck.glb",
+        "debris": "assets/source/roster/a_10_warthog/us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6767,7 +6767,7 @@
     },
     "us_f_15_eagle_f_15e_strike_eagle": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/us_f_15_eagle_f_15e_strike_eagle.glb",
+      "source": "assets/source/roster/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle.glb",
       "basis_yaw_deg": 0,
       "wreck": "us_f_15_eagle_f_15e_strike_eagle_wreck"
     },
@@ -6775,8 +6775,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/us_f_15_eagle_f_15e_strike_eagle_wreck.glb",
-        "debris": "assets/source/roster/disabled/us_f_15_eagle_f_15e_strike_eagle_wreck_debris.glb"
+        "default": "assets/source/roster/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle_wreck.glb",
+        "debris": "assets/source/roster/f_15_eagle/us_f_15_eagle_f_15e_strike_eagle_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6790,7 +6790,7 @@
     },
     "us_f_15_eagle_f_15ex_eagle_ii": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/us_f_15_eagle_f_15ex_eagle_ii.glb",
+      "source": "assets/source/roster/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii.glb",
       "basis_yaw_deg": 0,
       "wreck": "us_f_15_eagle_f_15ex_eagle_ii_wreck"
     },
@@ -6798,8 +6798,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/us_f_15_eagle_f_15ex_eagle_ii_wreck.glb",
-        "debris": "assets/source/roster/disabled/us_f_15_eagle_f_15ex_eagle_ii_wreck_debris.glb"
+        "default": "assets/source/roster/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii_wreck.glb",
+        "debris": "assets/source/roster/f_15_eagle/us_f_15_eagle_f_15ex_eagle_ii_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6813,7 +6813,7 @@
     },
     "us_f_22_raptor_f_22a": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/us_f_22_raptor_f_22a.glb",
+      "source": "assets/source/roster/f_22_raptor/us_f_22_raptor_f_22a.glb",
       "basis_yaw_deg": 0,
       "wreck": "us_f_22_raptor_f_22a_wreck"
     },
@@ -6821,8 +6821,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/us_f_22_raptor_f_22a_wreck.glb",
-        "debris": "assets/source/roster/disabled/us_f_22_raptor_f_22a_wreck_debris.glb"
+        "default": "assets/source/roster/f_22_raptor/us_f_22_raptor_f_22a_wreck.glb",
+        "debris": "assets/source/roster/f_22_raptor/us_f_22_raptor_f_22a_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6836,7 +6836,7 @@
     },
     "us_f_35_lightning_ii_f_35b": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/us_f_35_lightning_ii_f_35b.glb",
+      "source": "assets/source/roster/f_35_lightning_ii/us_f_35_lightning_ii_f_35b.glb",
       "basis_yaw_deg": 0,
       "wreck": "us_f_35_lightning_ii_f_35b_wreck"
     },
@@ -6844,8 +6844,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/us_f_35_lightning_ii_f_35b_wreck.glb",
-        "debris": "assets/source/roster/disabled/us_f_35_lightning_ii_f_35b_wreck_debris.glb"
+        "default": "assets/source/roster/f_35_lightning_ii/us_f_35_lightning_ii_f_35b_wreck.glb",
+        "debris": "assets/source/roster/f_35_lightning_ii/us_f_35_lightning_ii_f_35b_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -6859,7 +6859,7 @@
     },
     "us_f_a_18_super_hornet_f_a_18e": {
       "unit": "vehicle",
-      "source": "assets/source/roster/disabled/us_f_a_18_super_hornet_f_a_18e.glb",
+      "source": "assets/source/roster/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e.glb",
       "basis_yaw_deg": 0,
       "wreck": "us_f_a_18_super_hornet_f_a_18e_wreck"
     },
@@ -6867,8 +6867,8 @@
       "unit": "scenery",
       "scenery": "wreck",
       "states": {
-        "default": "assets/source/roster/disabled/us_f_a_18_super_hornet_f_a_18e_wreck.glb",
-        "debris": "assets/source/roster/disabled/us_f_a_18_super_hornet_f_a_18e_wreck_debris.glb"
+        "default": "assets/source/roster/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e_wreck.glb",
+        "debris": "assets/source/roster/f_a_18_super_hornet/us_f_a_18_super_hornet_f_a_18e_wreck_debris.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [

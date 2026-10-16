@@ -1,4 +1,4 @@
-"""A-10C Thunderbolt II, from assets/references/a_10_warthog/. A disabled card.
+"""A-10C Thunderbolt II, from assets/references/a_10_warthog/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/a10.py -- [--wreck]
 
@@ -9,7 +9,7 @@ into pods under it and the tips drooped, two engines in round nacelles on
 pylons high on the rear fuselage, the tailplane with twin fins at its ends;
 eleven pylons. Two-tone grey.
 
-Dimensions stated from the references (USAF fact sheet figures agree):
+The references' dimensions (USAF fact sheet figures agree):
 length 16.26 m, span 17.53 m, height 4.47 m.
 """
 import math
@@ -19,10 +19,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import FINE, MID, NEAR  # noqa: E402
 
-CARDS = {"us_a_10_warthog_a_10c_retained_as_an_iconic_exception_if_needed": (16.26, 17.53, 4.47)}
 
 # The side photo stands the A-10 tall on its gear: its low wing 1.6 m up,
 # its forward body 1.4-3.2 m, the canopy's top 3.6 m.
@@ -109,4 +108,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-4.9, wing_y=5.0, wing_side=-1, tail_yaw=0.32, seed=10)
 
 
-run_disabled("a10", CARDS, "us_gunship_grey", build, wreck)
+run("a_10_warthog", "us_gunship_grey", build, wreck, script="a10.py")

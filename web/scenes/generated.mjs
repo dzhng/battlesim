@@ -287,7 +287,7 @@ async function cameraKeepsOut(ctx, page, town, options) {
 async function cameraOnMap(ctx, spec) {
   const [type, size, seed] = spec.split(":");
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await page.goto(ctx.urlFor(ctx.url, { type, size, seed, faction: "us" }));
+  await page.goto(ctx.urlFor({ type, size, seed, faction: "us" }));
   await playable(page, 300000);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab.route.status().status === "paused");
@@ -646,7 +646,7 @@ export async function run(ctx) {
     digest: window.__lab.route.digest(),
   }));
   const file = await lab(page, () => window.__lab.route.exportReplay());
-  await page.goto(ctx.urlFor(ctx.url, { replay: "saved" }));
+  await page.goto(ctx.urlFor({ replay: "saved" }));
   await playable(page);
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab.route.status().status === "paused");
@@ -689,7 +689,7 @@ export async function run(ctx) {
   // faction (a link without one is refused for that first), so the size is
   // its one fault.
   const refused = await ctx.newPage({ allowErrors: true });
-  await refused.goto(ctx.urlFor(ctx.url, { type: "metro", size: "tiny", faction: "us" }));
+  await refused.goto(ctx.urlFor({ type: "metro", size: "tiny", faction: "us" }));
   await refused.getByTestId("error").waitFor();
   const message = await refused.getByTestId("error").textContent();
   await refused.getByRole("button", { name: "Details" }).click();

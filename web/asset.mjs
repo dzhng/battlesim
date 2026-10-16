@@ -672,28 +672,13 @@ async function sheet(args) {
  *  (`assets/source/roster/<family>/`, or a kit's
  *  `assets/source/roster/infantry/<kit>/`), or why there is no panel. */
 /** A source's reference family: its roster folder, or for a disabled card
- *  (`assets/source/roster/disabled/`) its manifest entry's `source_family`,
- *  else the library its family's receipt names (an enabled jet has no
- *  manifest entry). */
+ *  (`assets/source/roster/disabled/`) its manifest entry's `source_family`. */
 function referenceFamily(source) {
   const folder = source?.match(/^assets\/source\/roster\/(?:infantry\/)?([^/]+)\//)?.[1];
   if (folder !== "disabled") return folder;
   const body = source.replace(/_wreck\.glb$/, ".glb");
   const manifest = readJson(join(ROOT, "fixtures/units/model-manifest.json"));
-  const entry = manifest.entries.find((e) => e.source_path === body);
-  if (entry) return entry.source_family;
-  const dir = join(ROOT, "assets/source/roster/disabled");
-  const id = basename(body, ".glb");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".source-receipt.json"))) {
-    let receipt;
-    try {
-      receipt = readJson(join(dir, file));
-    } catch {
-      continue; // an unpulled LFS pointer
-    }
-    if (receipt.variants?.some((v) => v.id === id))
-      return receipt.references?.[0]?.match(/^assets\/references\/([^/]+)\//)?.[1];
-  }
+  return manifest.entries.find((e) => e.source_path === body)?.source_family;
 }
 
 function referenceRows(source, variant) {

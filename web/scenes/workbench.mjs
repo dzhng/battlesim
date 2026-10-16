@@ -298,7 +298,7 @@ export async function run(ctx) {
       ? route.fulfill({ status: 200, body: Buffer.from(bytes) })
       : route.fulfill({ status: 404, body: "" });
   });
-  await ctx.openLab(served, ctx.urlFor(ctx.url, { bundle: WORN.tank }));
+  await ctx.openLab(served, ctx.urlFor({ bundle: WORN.tank }));
   await drawnOnBench(served, WORN.tank);
   const fromCatalog = await served.evaluate(() => ({
     state: window.__workbench.state(),
@@ -328,7 +328,7 @@ export async function run(ctx) {
   // ---- a grass kind from the real catalog, the clump
   // the battle's grass field instances, shown and sheeted like any scenery.
   const grass = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(grass, ctx.urlFor(ctx.url, { bundle: "grass_meadow" }));
+  await ctx.openLab(grass, ctx.urlFor({ bundle: "grass_meadow" }));
   await drawnOnBench(grass, "grass_meadow");
   const meadow = await grass.evaluate(() => ({
     state: window.__workbench.state(),

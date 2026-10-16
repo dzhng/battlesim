@@ -153,7 +153,7 @@ The user saw these preferences and kept answering questions themselves. The only
 - How the off-map delay is published, and where an effect can hook in to draw the 10 s approach and departure (presentation crate, own side only).
 - What `interception` names today, and which row an interceptor should use against a round once the height thresholds are gone (D32′).
 - Whether any scripted encounter relies on the four-sides spawn (`fixtures/maps/air/encounters/*.json`).
-- That every family script builds in `vehicle_export.run_disabled` before the model pass starts.
+- That every enabled jet's family script builds in `vehicle_export.run` from its reference family's folder; only cards still in the model manifest use `run_disabled`.
 
 ## Panel follow-ups (carried over)
 

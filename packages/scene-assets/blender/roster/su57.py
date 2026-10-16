@@ -1,4 +1,4 @@
-"""Su-57, from assets/references/su_57_felon/. A disabled card.
+"""Su-57, from assets/references/su_57_felon/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/su57.py -- [--wreck]
 
@@ -9,7 +9,7 @@ intakes raked under the LEVCONs, a swept wing, stabilators, all-moving fins
 canted outward, the long stinger between widely spaced nozzles. Splinter
 greys.
 
-Dimensions stated from the references (published figures): length 20.1 m,
+The references' dimensions (published figures): length 20.1 m,
 span 14.1 m, height 4.6 m.
 """
 import math
@@ -19,10 +19,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_su_57_felon_stealth_multirole_fighter": (20.1, 14.1, 4.6)}
 WING_Z = 2.1
 FIN = dict(root_x=-5.0, root_z=2.4, height=2.44, root_chord=3.2, tip_chord=1.3, sweep_m=2.0, cant=0.45, rudder=False)
 SPEC = dict(
@@ -83,4 +82,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.4, wing_y=4.4, wing_side=1, tail_yaw=0.28, seed=57)
 
 
-run_disabled("su57", CARDS, "russian_air_grey", build, wreck)
+run("su_57_felon", "russian_air_grey", build, wreck, script="su57.py")
