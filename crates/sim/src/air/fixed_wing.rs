@@ -23,6 +23,8 @@ pub struct FixedWingLimits {
     pub floor_agl_m: f64,
     pub edge_margin_m: f64,
     pub cruise_agl_m: f64,
+    /// The nose-on cone either side of its heading (`nose_on_deg`).
+    pub nose_on_rad: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

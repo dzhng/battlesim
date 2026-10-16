@@ -1121,3 +1121,12 @@ fn flares_need_a_hull() {
         "{error}"
     );
 }
+
+/// A flight model's name is the one it is authored by.
+#[test]
+fn a_flight_models_name_is_its_authored_name() {
+    use contract::catalog::FlightModel;
+    for model in [FlightModel::Rotor, FlightModel::FixedWing] {
+        assert_eq!(serde_json::to_value(model).unwrap(), model.name());
+    }
+}

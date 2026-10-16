@@ -3204,6 +3204,20 @@ impl Battle {
                         velocity: p.velocity,
                         layer: round.layer,
                         ends_in_s: p.lifetime_s - p.age_s,
+                        seen: Side::ALL.map(|side| {
+                            self.units.iter().any(|u| {
+                                u.side == side
+                                    && u.alive()
+                                    && crate::sensing::sees_point(
+                                        &self.world,
+                                        crate::sensing::eye(u, &self.rules),
+                                        p.position,
+                                        &crate::sight::of_layer(u, &self.rules, round.layer),
+                                        1.0,
+                                        &self.rules.sensors,
+                                    )
+                            })
+                        }),
                     })
             })
             .collect();
@@ -4921,7 +4935,8 @@ mod tests {
     }
 
     /// As [`interceptor_and_flying_round`], the interceptor carried by blue's
-    /// `carrier` (a test unit whose mounts the row's mount follows).
+    /// `carrier` (a test unit whose mounts the row's mount follows), which
+    /// sees 1,500 m at every height, so it sees the round.
     fn carried_interceptor_and_round(
         carrier: &str,
         row: serde_json::Value,
@@ -4939,6 +4954,7 @@ mod tests {
             "units",
             carrier,
             serde_json::json!({
+                "sensors": { "ground_m": 1500, "low_air_m": 1500, "high_air_m": 1500 },
                 "mounts": [{ "id": "AA", "name": "AA", "weapons": ["test_interceptor"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }]
             }),
         );

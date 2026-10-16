@@ -44,8 +44,8 @@ pub enum PassPhase {
     LineUp,
     /// Turning in on the aim, then flying at it until the dive.
     TurnIn,
+    /// Flying the straight, nose-on leg to the release point.
     Dive,
-    Release,
     PullOut,
 }
 
@@ -142,29 +142,37 @@ fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2
 ///
 /// The line-up is flown from where the jet is. It flies straight on until
 /// turning in on the aim would leave it pointed at the aim a full run-in
-/// out (the aim lies that far along a tangent from the turn's circle), then
-/// turns in and holds the turn until its nose is on. The dive begins only
-/// nose-on and within the run-in, so every pass, the first or a repeat,
-/// dives in from the approach side.
+/// short of where it releases (a bomb's release point lies its forward
+/// throw short of the aim), then turns in and holds the turn until its nose
+/// is on. The dive begins only nose-on and within the run-in, so every pass,
+/// the first or a repeat, dives in from the approach side. The cue comes on
+/// the tick whose `dt` step carries the jet to its release point, so a bomb
+/// leaves the jet within half a step of it.
 pub fn advance(
     plan: &mut PassPlan,
     state: &FixedWingState,
     limits: &FixedWingLimits,
     aim: V3,
     release: &Release,
+    dt: f64,
 ) -> (Intent, Option<ReleaseCue>) {
     let to_aim = aim.xy() - state.pos.xy();
     let distance = to_aim.length();
     let bearing = libm::atan2(to_aim.y, to_aim.x);
-    let release_distance = (state.pos.xy() - release.at).length();
     let speed = state.speed_mps.max(1.0);
-    // The straight, nose-on leg a dive is flown along.
-    let run_in = speed * 2.0;
-    let nose_on = nose_on_bearing(state.heading, bearing);
+    // The straight, nose-on leg a dive is flown along, ending where the
+    // jet releases.
+    let run_in = speed * 2.0 + release.ahead_m;
+    let nose_on = nose_on_bearing(state.heading, bearing, limits.nose_on_rad);
+    // Already past where it would release on this run.
+    let too_close = distance <= release.ahead_m;
     let (centre, radius) = turn_circle(state, limits, aim.xy());
+    let forward = v2(libm::cos(plan.heading), libm::sin(plan.heading));
     match plan.phase {
         PassPhase::LineUp => {
-            if nose_on || (aim.xy() - centre).at_least_radius(libm::hypot(radius, run_in)) {
+            if (nose_on && !too_close)
+                || (aim.xy() - centre).at_least_radius(libm::hypot(radius, run_in))
+            {
                 plan.phase = PassPhase::TurnIn;
                 plan.heading = bearing;
                 (line(plan, aim, plan.agl), None)
@@ -179,7 +187,11 @@ pub fn advance(
         }
         PassPhase::TurnIn => {
             plan.heading = bearing;
-            if nose_on && distance <= run_in {
+            if nose_on && too_close {
+                // Nose-on past its release point: it flies on through and
+                // lines up again.
+                plan.phase = PassPhase::LineUp;
+            } else if nose_on && distance <= run_in {
                 plan.phase = PassPhase::Dive;
             } else if !nose_on && (aim.xy() - centre).inside_radius(radius) {
                 // Pushed inside its own turn (by the edge guard): no turn
@@ -189,25 +201,24 @@ pub fn advance(
             (line(plan, aim, plan.agl), None)
         }
         PassPhase::Dive => {
-            let forward = v2(libm::cos(plan.heading), libm::sin(plan.heading));
-            let passed_release = (state.pos.xy() - release.at).dot(forward) >= 0.0;
-            if release_distance <= speed * 0.75 || passed_release {
-                plan.phase = PassPhase::Release;
+            let step = speed * dt;
+            let short = (release.at - state.pos.xy()).dot(forward);
+            if short - step <= step * 0.5 {
+                plan.phase = PassPhase::PullOut;
+                plan.released = true;
+                return (
+                    line(plan, aim, plan.agl),
+                    Some(ReleaseCue { at: release.at }),
+                );
             }
             (line(plan, aim, plan.agl), None)
         }
-        PassPhase::Release => {
-            plan.phase = PassPhase::PullOut;
-            plan.released = true;
-            (
-                line(plan, aim, plan.cruise_agl),
-                Some(ReleaseCue { at: release.at }),
-            )
-        }
         PassPhase::PullOut => {
-            // The jet has cleared the aim line once it is two speed-lengths
-            // out; a five-length gate is outside the authored orbit radius.
-            if distance > speed * 2.0 {
+            // The jet has cleared the aim once it is past it and two
+            // speed-lengths out; a five-length gate is outside the authored
+            // orbit radius.
+            let past = to_aim.dot(forward) < 0.0;
+            if past && distance > speed * 2.0 {
                 plan.phase = PassPhase::LineUp;
                 plan.released = false;
             }

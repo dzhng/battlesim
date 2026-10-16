@@ -322,9 +322,9 @@ fn a_climbing_targets_vertical_velocity_is_led() {
 /// A test jet whose only store is one guided, interceptable ground-attack
 /// missile, sent at a red tank, with a red jeep beside the tank mounting a
 /// guided interceptor whose `missile` class sits in `intercepts_in` alone.
-/// Returns the tank's hit points before and after, and the shots the jet and
-/// the jeep fired.
-fn jet_missile_at_a_covered_tank(intercepts_in: &str) -> (f64, f64, u32, u32) {
+/// Red's tank and jeep see high air `red_high_air_m` far. Returns the tank's
+/// hit points before and after, and the shots the jet and the jeep fired.
+fn jet_missile_at_a_covered_tank(intercepts_in: &str, red_high_air_m: f64) -> (f64, f64, u32, u32) {
     let mut rules = sim::fixtures::test_game();
     rules["weapons"]["test_agm"] = json!({
         "name": "Test AGM", "description": "A test row.", "icon": "atgm",
@@ -361,8 +361,15 @@ fn jet_missile_at_a_covered_tank(intercepts_in: &str) -> (f64, f64, u32, u32) {
         &mut rules,
         "units",
         "test_jeep",
-        json!({ "mounts": [{ "id": "HMG", "name": "AA", "weapons": ["test_interceptor"],
+        json!({ "sensors": { "high_air_m": red_high_air_m },
+            "mounts": [{ "id": "HMG", "name": "AA", "weapons": ["test_interceptor"],
             "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_tank",
+        json!({ "sensors": { "high_air_m": red_high_air_m } }),
     );
     let setup = serde_json::from_value(json!({
         "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
@@ -417,18 +424,32 @@ fn jet_missile_at_a_covered_tank(intercepts_in: &str) -> (f64, f64, u32, u32) {
 /// (fired from high air) through, and it strikes the tank.
 #[test]
 fn a_high_air_interceptor_shoots_down_a_jets_missile_and_the_tank_survives() {
-    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("high_air");
+    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("high_air", 2000.0);
     assert_eq!(fired, 1, "the jet fired its one missile");
     assert!(intercepted > 0, "the interceptor never launched");
     assert_eq!(after, before, "the covered tank was hit");
 
-    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("low_air");
+    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("low_air", 2000.0);
     assert_eq!(fired, 1, "the jet fired its one missile");
     assert_eq!(
         intercepted, 0,
         "a low-air interceptor engaged a high-air round"
     );
     assert!(after < before, "the jet's missile missed the open tank");
+}
+
+/// An interceptor fires only at a round its side can see, as at any other
+/// target: with neither the tank nor the jeep able to see high air, the
+/// jet's missile flies in unseen and strikes the tank.
+#[test]
+fn an_interceptor_holds_for_a_round_its_side_cannot_see() {
+    let (before, after, fired, intercepted) = jet_missile_at_a_covered_tank("high_air", 0.0);
+    assert_eq!(fired, 1, "the jet fired its one missile");
+    assert_eq!(
+        intercepted, 0,
+        "the interceptor fired at a round nobody saw"
+    );
+    assert!(after < before, "the jet's missile missed the tank");
 }
 
 /// How far from a helicopter 400 m off its first missile bursts, when a jeep

@@ -291,7 +291,8 @@ impl ImpactResolver for HullResolver<'_> {
         // only by its proximity fuse; `interceptable` remains the incoming
         // round's own flag.
         if def.intercepts() {
-            def.proximity_fuse_m.unwrap_or(0.0)
+            def.proximity_fuse_m
+                .expect("the rules refuse a row listing missile without a fuse")
         } else {
             0.0
         }

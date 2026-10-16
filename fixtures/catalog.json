@@ -12001,12 +12001,7 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {
-            "radar": {
-              "detection_m": 0.0,
-              "emits": false
-            }
-          },
+          "capabilities": {},
           "cost": 180,
           "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
           "faction": "europe",
@@ -20621,12 +20616,7 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {
-            "radar": {
-              "detection_m": 0.0,
-              "emits": false
-            }
-          },
+          "capabilities": {},
           "cost": 180,
           "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
           "faction": "us",
@@ -31169,12 +31159,7 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {
-        "radar": {
-          "detection_m": 0.0,
-          "emits": false
-        }
-      },
+      "capabilities": {},
       "cost": 180,
       "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
       "faction": "europe",
@@ -40817,12 +40802,7 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {
-        "radar": {
-          "detection_m": 0.0,
-          "emits": false
-        }
-      },
+      "capabilities": {},
       "cost": 180,
       "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
       "faction": "us",

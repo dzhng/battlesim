@@ -793,9 +793,6 @@
       "description": "J-10C",
       "faction": "eastern",
       "family": "j_10_vigorous_dragon",
-      "roles": [
-        "recon"
-      ],
       "cost": 340,
       "roster": {
         "factions": [
@@ -812,37 +809,7 @@
             8.45,
             4.86,
             2.72
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -890,9 +857,6 @@
       "description": "Stealth fighter",
       "faction": "eastern",
       "family": "j_20_mighty_dragon",
-      "roles": [
-        "recon"
-      ],
       "cost": 490,
       "roster": {
         "factions": [
@@ -909,37 +873,7 @@
             10.41,
             6.51,
             2.29
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -1332,9 +1266,6 @@
       "description": "MiG-29SMT",
       "faction": "eastern",
       "family": "mig_29_fulcrum",
-      "roles": [
-        "recon"
-      ],
       "cost": 280,
       "roster": {
         "factions": [
@@ -1351,37 +1282,7 @@
             8.58,
             5.67,
             2.36
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -1447,9 +1348,6 @@
       "description": "MiG-31BM",
       "faction": "eastern",
       "family": "mig_31_foxhound",
-      "roles": [
-        "recon"
-      ],
       "cost": 350,
       "roster": {
         "factions": [
@@ -1466,37 +1364,7 @@
             11.35,
             6.74,
             3.08
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -1864,9 +1732,6 @@
       "description": "Su-25SM3",
       "faction": "eastern",
       "family": "su_25_frogfoot",
-      "roles": [
-        "recon"
-      ],
       "cost": 270,
       "roster": {
         "factions": [
@@ -1883,37 +1748,7 @@
             8.11,
             7.32,
             2.4
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -1961,9 +1796,6 @@
       "description": "Stealth multirole fighter",
       "faction": "eastern",
       "family": "su_57_felon",
-      "roles": [
-        "recon"
-      ],
       "cost": 480,
       "roster": {
         "factions": [
@@ -1980,37 +1812,7 @@
             10,
             7.06,
             2.31
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -2076,9 +1878,6 @@
       "description": "Su-27SM3",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
-      "roles": [
-        "recon"
-      ],
       "cost": 310,
       "roster": {
         "factions": [
@@ -2095,37 +1894,7 @@
             10.9,
             7.39,
             2.96
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -2173,9 +1942,6 @@
       "description": "Su-30SM2",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
-      "roles": [
-        "recon"
-      ],
       "cost": 370,
       "roster": {
         "factions": [
@@ -2192,38 +1958,10 @@
             10.92,
             7.39,
             3.18
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
+          ]
         }
       },
       "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
-        },
         "radar_receiver": {
           "range_m": 5000
         }
@@ -2273,9 +2011,6 @@
       "description": "Su-34",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
-      "roles": [
-        "recon"
-      ],
       "cost": 390,
       "roster": {
         "factions": [
@@ -2292,37 +2027,7 @@
             11.62,
             7.39,
             3.05
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -2388,9 +2093,6 @@
       "description": "Su-35S",
       "faction": "eastern",
       "family": "sukhoi_flanker_family",
-      "roles": [
-        "recon"
-      ],
       "cost": 410,
       "roster": {
         "factions": [
@@ -2407,37 +2109,7 @@
             10.9,
             7.65,
             2.95
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [

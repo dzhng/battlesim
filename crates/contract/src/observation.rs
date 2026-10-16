@@ -340,19 +340,31 @@ pub struct GuidedMissile {
     pub supported: bool,
 }
 
+/// Which way an aircraft crosses the map edge.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AirTransitDirection {
+    /// Arriving onto the map.
     In,
+    /// Leaving it.
     Out,
 }
 
+/// One of this side's own aircraft entering or leaving over the map edge.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AirTransit {
+    /// Its unit type.
     pub kind: TypeIndex,
+    /// Where it crosses the edge: for `In`, the entry point at cruise height
+    /// above the ground; for `Out`, the jet's position as it crosses.
     pub point: [f64; 3],
+    /// Radians, counter-clockwise from +X.
     pub heading: f64,
+    /// Horizontal speed: for `In`, its cruise speed; for `Out`, its speed as
+    /// it leaves.
     pub speed_mps: f64,
+    /// The tick it crosses: for `In`, the future arrival tick; for `Out`,
+    /// this tick.
     pub edge_tick: Tick,
     pub dir: AirTransitDirection,
 }
@@ -757,6 +769,10 @@ pub struct ObservationFrame {
     pub crashes: Vec<FallingAirframe>,
     /// This side's own guided missiles in flight.
     pub guided: Vec<GuidedMissile>,
+    /// This side's own aircraft crossing the map edge this tick: arrivals
+    /// still waiting off the map, announced every tick until they cross, and
+    /// withdrawing jets on the tick they leave. Recorded frames older than
+    /// the field carry none.
     #[serde(default)]
     pub air_transits: Vec<AirTransit>,
     /// The fixture's completion condition, when it has one.

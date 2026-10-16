@@ -28,20 +28,21 @@ use contract::random::Rng;
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;
 
-/// Whether a jet's fixed nose gun bears on a point in its authored range.
-pub fn nose_on(unit: &Unit, target: V3, range: f64) -> bool {
+/// Whether a jet's fixed nose gun bears on a point in its authored range,
+/// within `cone_rad` of its heading.
+pub fn nose_on(unit: &Unit, target: V3, range: f64, cone_rad: f64) -> bool {
     let delta = target - unit.position;
     range.is_finite()
         && range >= 0.0
         && delta.length() <= range
-        && nose_on_bearing(unit.yaw, libm::atan2(delta.y, delta.x))
+        && nose_on_bearing(unit.yaw, libm::atan2(delta.y, delta.x), cone_rad)
 }
 
-/// Whether a winged aircraft heading along `yaw` has its nose on `bearing`:
-/// what its fixed gun needs to fire, and what an attack pass needs before
-/// its dive begins.
-pub fn nose_on_bearing(yaw: f64, bearing: f64) -> bool {
-    wrap_angle(bearing - yaw).abs() <= 2.0_f64.to_radians()
+/// Whether a winged aircraft heading along `yaw` has its nose on `bearing`,
+/// within `cone_rad` (`air.fixed_wing.nose_on_deg`): what its fixed gun
+/// needs to fire, and what an attack pass needs before its dive begins.
+pub fn nose_on_bearing(yaw: f64, bearing: f64, cone_rad: f64) -> bool {
+    wrap_angle(bearing - yaw).abs() <= cone_rad
 }
 
 /// A weapon row with its validated flight profile.
@@ -315,6 +316,9 @@ pub struct IncomingRound {
     pub layer: AltitudeLayer,
     /// Seconds until its flight ends of itself (its lifetime).
     pub ends_in_s: f64,
+    /// By side: whether one of its living units sees the round now. A mount
+    /// fires only at a round its side sees, as at any other target.
+    pub seen: [bool; Side::ALL.len()],
 }
 
 impl Target {
@@ -606,7 +610,10 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
             emits: false,
         }),
         Target::Round(round) => {
-            let flying = ctx.rounds.iter().find(|r| r.id == round.id)?;
+            let flying = ctx
+                .rounds
+                .iter()
+                .find(|r| r.id == round.id && r.seen[side.index()])?;
             Some(Resolved {
                 point: flying.position,
                 velocity: flying.velocity,
@@ -909,12 +916,27 @@ fn engage(
             return Err(ActionReason::HoldingFire);
         }
         if weapon.def.ballistics.delivery == Delivery::Unpowered {
-            return Ok(FiringSolution {
+            // A bomb released now falls from here with the carrier's
+            // velocity; its pass's release cue is its reach. It holds for a
+            // friendly on its fall or in its blast where it lands.
+            let fall_s = crate::flight::release(
+                origin,
+                carrier,
+                weapon.profile.gravity(&ctx.arsenal.config),
+                r.point,
+            )
+            .fall_s;
+            let lands = (origin.xy() + carrier.xy() * fall_s).with_z(r.point.z);
+            let s = FiringSolution {
                 velocity: V3::default(),
-                time_of_flight_s: 0.0,
-                intercept: r.point,
+                time_of_flight_s: fall_s,
+                intercept: lands,
                 arc: crate::flight::ArcKind::Low,
-            });
+            };
+            if friendly_in_line(ctx, unit, units, origin, (&s, lands), weapon, hull, carrier) {
+                return Err(ActionReason::FriendlyInLine);
+            }
+            return Ok(s);
         }
         let Some(reach) = r.fire(&weapon.def).map(|fire| fire.range_m) else {
             return Err(ActionReason::OutOfRange);
@@ -1035,11 +1057,20 @@ fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
 /// assessed once (its line tests and firing solutions are the costly part).
 #[derive(Default)]
 struct Assessed {
-    values: Vec<(Target, Result<usize, ActionReason>)>,
+    values: Vec<(Target, Result<Ready, ActionReason>)>,
     prospective_windows: bool,
 }
 
+/// A shot an assessment found: the kind it would load and how long its
+/// round flies to meet the target.
+#[derive(Clone, Copy)]
+struct Ready {
+    kind: usize,
+    time_of_flight_s: f64,
+}
+
 impl Assessed {
+    /// The kind this mount would load at `target`, or why it can't fire.
     #[allow(clippy::too_many_arguments)]
     fn target(
         &mut self,
@@ -1051,25 +1082,29 @@ impl Assessed {
         target: Target,
         resolved: &Resolved,
     ) -> Result<usize, ActionReason> {
-        let windows = self.prospective_windows;
-        self.of(target, || {
-            if windows {
-                assess_windows(ctx, unit, units, mount, spec, target, resolved)
-            } else {
-                assess(ctx, unit, units, mount, spec, target, resolved)
-            }
-        })
+        self.shot(ctx, unit, units, mount, spec, target, resolved)
+            .map(|ready| ready.kind)
     }
 
-    fn of(
+    #[allow(clippy::too_many_arguments)]
+    fn shot(
         &mut self,
+        ctx: &FireContext,
+        unit: &Unit,
+        units: &[Unit],
+        mount: &Mount,
+        spec: &MountSpec,
         target: Target,
-        assess: impl FnOnce() -> Result<usize, ActionReason>,
-    ) -> Result<usize, ActionReason> {
+        resolved: &Resolved,
+    ) -> Result<Ready, ActionReason> {
         if let Some(&(_, a)) = self.values.iter().find(|(t, _)| *t == target) {
             return a;
         }
-        let a = assess();
+        let a = if self.prospective_windows {
+            assess_windows(ctx, unit, units, mount, spec, target, resolved)
+        } else {
+            assess(ctx, unit, units, mount, spec, target, resolved)
+        };
         self.values.push((target, a));
         a
     }
@@ -1085,7 +1120,7 @@ fn assess(
     spec: &MountSpec,
     target: Target,
     r: &Resolved,
-) -> Result<usize, ActionReason> {
+) -> Result<Ready, ActionReason> {
     let k = preferred_kind(ctx, mount, spec, r);
     let on_its_own = k.is_some_and(|k| ctx.arsenal.weapons[spec.kinds[k]].def.fires_on_its_own);
     if !on_its_own && !permitted(ctx, unit, target) {
@@ -1100,11 +1135,11 @@ fn assess(
     if r.layer == AltitudeLayer::Ground {
         let pass = unit.air.as_ref().and_then(|air| air.pass);
         let bomb_pass = pass.is_some_and(|p| p.weapon == crate::air::pass::PassWeapon::Bomb);
-        // A winged aircraft's bombs leave only on its bombing pass's release
-        // cue, never between passes.
+        // Bombs leave only on a bombing pass's release cue, never between
+        // passes (only a winged aircraft carries them: catalog admission).
         let release_cue = bomb_pass && unit.air.as_ref().is_some_and(|air| air.pass_release);
         match crate::air::pass::pass_weapon(weapon) {
-            Some(crate::air::pass::PassWeapon::Bomb) if unit.fixed_wing() && !release_cue => {
+            Some(crate::air::pass::PassWeapon::Bomb) if !release_cue => {
                 return Err(ActionReason::HoldingFire);
             }
             Some(crate::air::pass::PassWeapon::Gun) if bomb_pass => {
@@ -1130,9 +1165,10 @@ fn assess(
         && hull_fixed(unit, spec)
         && weapon.ballistics.guidance.is_none()
         && weapon.ballistics.delivery == contract::ballistics::Delivery::Powered
-        && !r
-            .fire(weapon)
-            .is_some_and(|fire| nose_on(unit, r.point, fire.range_m))
+        && !r.fire(weapon).is_some_and(|fire| {
+            let cone = ctx.rules.air.fixed_wing.nose_on_deg.to_radians();
+            nose_on(unit, r.point, fire.range_m, cone)
+        })
     {
         return Err(ActionReason::NoFacingSlot);
     }
@@ -1152,7 +1188,10 @@ fn assess(
     {
         return Err(ActionReason::NoOwnSight);
     }
-    engage(ctx, unit, units, mount, spec, k, target, r).map(|_| k)
+    engage(ctx, unit, units, mount, spec, k, target, r).map(|s| Ready {
+        kind: k,
+        time_of_flight_s: s.time_of_flight_s,
+    })
 }
 
 /// Whether a seeker can acquire a bearing inside its forward cone. This is
@@ -1299,7 +1338,8 @@ fn return_fire_threat(
 }
 
 /// Automatic choice (W06, W09, W10), in order: an identified target some kind can
-/// damage, ranked by known return-fire threat, then the share of the mount's
+/// damage, ranked first by whether a loaded seeker row engages it, then by
+/// known return-fire threat, then the share of the mount's
 /// damage its facing armour lets through, then value, distance and observed
 /// id; for the unlimited default gun, the nearest
 /// identified target it cannot hurt; and only with no identified enemy in
@@ -1318,24 +1358,23 @@ fn select(
     let knowledge = &ctx.knowledge[unit.side.index()];
     let here = unit.position;
     let weapons = &ctx.arsenal.weapons;
-    let air_priority = spec.kinds.iter().enumerate().any(|(slot, &kind)| {
-        mount.has_rounds(slot)
-            && ctx.arsenal.weapons[kind].def.seeker.is_some()
-            && (ctx.arsenal.weapons[kind]
-                .def
-                .against(AltitudeLayer::LowAir)
-                .is_some()
-                || ctx.arsenal.weapons[kind]
-                    .def
-                    .against(AltitudeLayer::HighAir)
-                    .is_some())
-    });
+    // What a loaded seeker row engages comes first: a seeker is carried
+    // for those targets.
+    let seeker_target = |target: &Unit| {
+        let class = target.unit_type(ctx.rules).target_class();
+        spec.kinds.iter().enumerate().any(|(slot, &kind)| {
+            let def = &weapons[kind].def;
+            mount.has_rounds(slot)
+                && def.seeker.is_some()
+                && def.engages(target.layer(), Some(class)).is_some()
+        })
+    };
     let mut ranked: Vec<(bool, bool, f64, u32, f64, u32, UnitId)> = knowledge
         .identified_now(ctx.tick)
         .map(|(u, t)| {
             let target = &units[u.0 as usize];
             (
-                air_priority && target.airborne(),
+                seeker_target(target),
                 return_fire_threat(ctx, unit, target.kind, t),
                 share_through(ctx, unit, mount, spec, target),
                 target.unit_type(ctx.rules).cost,
@@ -1604,7 +1643,7 @@ fn automatic_lock(
 /// The nearest enemy round in this mount's `missile` reach (by the layer it
 /// was fired from) that a shot can catch now: the same assessment as any
 /// target, its lead solution included (a round speeding away has none),
-/// and the shot meets it in time and within reach ([`catches`]).
+/// and the shot meets it in time and within reach.
 fn catchable_round(
     ctx: &FireContext,
     unit: &Unit,
@@ -1635,46 +1674,20 @@ fn catchable_round(
         })
         .collect();
     near.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.id.cmp(&b.1.id)));
-    near.into_iter()
-        .map(|(_, r)| {
-            Target::Round(RoundTarget {
-                id: r.id,
-                layer: r.layer,
-            })
-        })
-        .find(|&target| {
-            resolve(ctx, unit.side, target, units).is_some_and(|r| {
-                assessed
-                    .target(ctx, unit, units, mount, spec, target, &r)
-                    .is_ok_and(|k| catches(ctx, unit, units, mount, spec, k, target, &r))
-            })
-        })
-}
-
-/// Whether the shot's lead meets the round in time: before the round's own
-/// flight ends. That it meets it within reach, every shot's assessment asks
-/// ([`engage`]).
-#[allow(clippy::too_many_arguments)]
-fn catches(
-    ctx: &FireContext,
-    unit: &Unit,
-    units: &[Unit],
-    mount: &Mount,
-    spec: &MountSpec,
-    k: usize,
-    target: Target,
-    r: &Resolved,
-) -> bool {
-    let Target::Round(round) = target else {
-        return false;
-    };
-    let ends_in_s = ctx
-        .rounds
-        .iter()
-        .find(|r| r.id == round.id)
-        .map_or(0.0, |r| r.ends_in_s);
-    engage(ctx, unit, units, mount, spec, k, target, r)
-        .is_ok_and(|s| s.time_of_flight_s <= ends_in_s)
+    near.into_iter().find_map(|(_, round)| {
+        let target = Target::Round(RoundTarget {
+            id: round.id,
+            layer: round.layer,
+        });
+        let r = resolve(ctx, unit.side, target, units)?;
+        // The shot's lead must meet the round before the round's own flight
+        // ends; that it meets it within reach, every shot's assessment asks
+        // ([`engage`]).
+        assessed
+            .shot(ctx, unit, units, mount, spec, target, &r)
+            .is_ok_and(|ready| ready.time_of_flight_s <= round.ends_in_s)
+            .then_some(target)
+    })
 }
 
 /// What a unit's weapons concluded this tick, read by next tick's movement.
@@ -2360,17 +2373,22 @@ fn fire(
         };
         let launch = if weapon.def.ballistics.delivery == Delivery::Unpowered {
             (!hold(rng)).then(|| {
+                // A bomb leaves the jet with the jet's velocity; its
+                // scatter is a small push off the rack that spreads where it
+                // lands around where the drop carries it.
                 let scattered = crate::flight::scatter_aim(aim.origin, aim.target, scatter, rng);
-                let drop = crate::flight::release(
+                let fall_s = crate::flight::release(
                     aim.origin,
                     aim.carrier,
                     weapon.profile.gravity(&ctx.arsenal.config),
-                    scattered,
-                );
+                    aim.target,
+                )
+                .fall_s;
+                let push = (scattered - aim.target).xy() * (1.0 / fall_s.max(f64::MIN_POSITIVE));
                 Launch {
-                    origin: drop.at.with_z(aim.origin.z),
+                    origin: aim.origin,
                     carrier: aim.carrier,
-                    velocity: V3::default(),
+                    velocity: push.with_z(0.0),
                     gravity_scale: weapon.profile.gravity_scale,
                     lifetime_s: weapon.profile.lifetime_s,
                     suppression_radius_m: weapon.profile.suppression_radius_m,
@@ -2658,7 +2676,7 @@ fn assess_windows(
     spec: &MountSpec,
     target: Target,
     resolved: &Resolved,
-) -> Result<usize, ActionReason> {
+) -> Result<Ready, ActionReason> {
     let mut prospective = unit.clone();
     if unit.attackers.is_empty() {
         prospective.engagement = Engagement::FireAtWill;

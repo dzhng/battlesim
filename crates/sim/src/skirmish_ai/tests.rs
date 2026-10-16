@@ -1432,6 +1432,7 @@ fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     let defends = |classes: Value| {
         let mut fixture = crate::fixtures::test_game();
         fixture["weapons"]["hmg"]["targets"]["low_air"]["classes"] = classes;
+        fixture["weapons"]["hmg"]["proximity_fuse_m"] = serde_json::json!(2);
         let rules: Rules = serde_json::from_value(fixture).unwrap();
         let jeep = rules.catalog.index("test_jeep").unwrap();
         let heli = rules.catalog.index("test_heli").unwrap();

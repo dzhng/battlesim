@@ -14,6 +14,18 @@ fn ground_attack_battle(weapons: &[&str]) -> sim::battle::Battle {
 }
 
 fn ground_attack_battle_with_bomb_ammo(weapons: &[&str], bomb_ammo: u32) -> sim::battle::Battle {
+    ground_attack_battle_with(weapons, bomb_ammo, |_| {}, &[])
+}
+
+/// A test jet with `weapons` ordered to attack the ground under a red test
+/// tank at (2000, 2000), 1 km east of it in the middle of a 4 km field (far
+/// inside the edge guard); `patch` edits the rules and `units` adds more.
+fn ground_attack_battle_with(
+    weapons: &[&str],
+    bomb_ammo: u32,
+    patch: impl FnOnce(&mut serde_json::Value),
+    units: &[serde_json::Value],
+) -> sim::battle::Battle {
     let mut rules = sim::fixtures::test_game();
     let mounts: Vec<_> = weapons
         .iter()
@@ -35,13 +47,16 @@ fn ground_attack_battle_with_bomb_ammo(weapons: &[&str], bomb_ammo: u32) -> sim:
     rules["weapons"]["air_ground_missile"]["aim_s"] = json!(0.1);
     rules["weapons"]["air_ground_missile"]["targets"]["ground"]["classes"] =
         json!(["infantry", "vehicle"]);
+    patch(&mut rules);
+    let mut placed = vec![
+        json!({ "side": "blue", "kind": "test_jet", "position": [1000, 2000], "yaw": 0.0 }),
+        json!({ "side": "red", "kind": "test_tank", "position": [2000, 2000], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }),
+    ];
+    placed.extend(units.iter().cloned());
     let setup = serde_json::from_value(json!({
-        "map": { "size": [2000, 800], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules,
-        "units": [
-            { "side": "blue", "kind": "test_jet", "position": [500, 400], "yaw": 0.0 },
-            { "side": "red", "kind": "test_tank", "position": [900, 400], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
-        ],
+        "units": placed,
         "events": [], "scripts": []
     })).unwrap();
     let mut battle = sim::battle::Battle::new(&setup, 1);
@@ -53,7 +68,7 @@ fn ground_attack_battle_with_bomb_ammo(weapons: &[&str], bomb_ammo: u32) -> sim:
         order: Order::Attack {
             units: vec![UnitId(0)],
             target: TargetRef::Ground {
-                point: [900.0, 400.0, 0.0],
+                point: [2000.0, 2000.0, 0.0],
             },
         },
     });
@@ -93,6 +108,7 @@ fn wing() -> FixedWingFlight {
         afterburner_ramp_s: 2.0,
         afterburner_scatter_multiplier: 1.8,
         edge_margin_m: 300.0,
+        nose_on_deg: 2.0,
     }
 }
 
@@ -124,15 +140,25 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
         ahead_m: 300.0,
         at: sim::math::v2(700.0, 0.0),
     };
-    let mut saw_release = false;
+    // 100 m/s in 0.6 s steps: 60 m a step.
+    let dt = 0.6;
+    let mut released_at = None;
     for step in 0..20 {
         let mut current = state(plan.agl);
         current.pos.x = step as f64 * 60.0;
-        let (intent, cue) = advance(&mut plan, &current, &wing_limits(), aim, &release);
-        saw_release |= cue.is_some();
-        let _ = intent;
+        let (_, cue) = advance(&mut plan, &current, &wing_limits(), aim, &release, dt);
+        if cue.is_some() {
+            assert!(released_at.is_none(), "one cue per pass");
+            // Where this tick's step carries the jet.
+            released_at = Some(current.pos.x + 60.0);
+        }
     }
-    assert!(saw_release || plan.phase == PassPhase::Release);
+    let x = released_at.expect("the pass never released");
+    assert!(
+        (x - 700.0).abs() <= 30.0,
+        "released {x} m along, more than half a step from the release point"
+    );
+    assert_eq!(plan.phase, PassPhase::PullOut);
 }
 
 #[test]
@@ -337,15 +363,19 @@ fn the_gun_fires_only_nose_on_a_legal_target_in_range() {
         .aircraft("test_jet", [300.0, 1500.0], 0.0)
         .battle();
     let unit = battle.unit(contract::ids::UnitId(0)).unwrap();
+    // A test-defined cone: 200 m off at 200 m out is 45 degrees.
+    let cone = 10_f64.to_radians();
     assert!(sim::weapons::nose_on(
         unit,
         v3(500.0, 1500.0, unit.position.z),
-        700.0
+        700.0,
+        cone
     ));
     assert!(!sim::weapons::nose_on(
         unit,
-        v3(500.0, 1600.0, unit.position.z),
-        700.0
+        v3(500.0, 1700.0, unit.position.z),
+        700.0,
+        cone
     ));
 }
 
@@ -380,6 +410,72 @@ fn a_bombing_pass_never_fires_the_gun() {
         }
     }
     assert_eq!(bomb_tick.expect("bomb pass never released"), 0);
+}
+
+/// A bomb leaves the jet: on the tick it is released it is where the jet
+/// is, and it falls onto the aim because the jet released it at the right
+/// moment, not because it was placed there.
+#[test]
+fn a_bomb_leaves_the_jet_and_falls_onto_the_aim() {
+    let blast_m = 20.0;
+    let mut battle = ground_attack_battle_with(
+        &["air_bomb"],
+        1,
+        |rules| {
+            rules["weapons"]["air_bomb"]["scatter_mrad"] = json!(0.0);
+            rules["weapons"]["air_bomb"]["blast_radius_m"] = json!(blast_m);
+        },
+        &[],
+    );
+    let mut bomb = None;
+    for _ in 0..1200 {
+        battle.step();
+        if let Some((p, _)) = battle.rounds().find(|(_, r)| r.unit == UnitId(0)) {
+            let jet = battle.unit(UnitId(0)).unwrap().position;
+            assert!(
+                (p.position - jet).length() < 15.0,
+                "the bomb appeared {:.0} m from the jet",
+                (p.position - jet).length()
+            );
+            bomb = Some(p.id);
+            break;
+        }
+    }
+    let bomb = bomb.expect("the jet never released its bomb");
+    for _ in 0..600 {
+        battle.step();
+        let landed = battle.flight_events().iter().find_map(|e| match e {
+            sim::flight::FlightEvent::Impact(i) if i.projectile == bomb => Some(i.point),
+            _ => None,
+        });
+        if let Some(point) = landed {
+            let miss = (point.xy() - sim::math::v2(2000.0, 2000.0)).length();
+            assert!(miss < blast_m, "the bomb landed {miss:.0} m from the aim");
+            return;
+        }
+    }
+    panic!("the bomb never landed");
+}
+
+/// A jet holds its bombs while a friendly vehicle sits in their blast at
+/// the aim, as any gun holds for a friendly in its line.
+#[test]
+fn a_bomb_holds_for_a_friendly_vehicle_in_its_blast() {
+    let mut battle = ground_attack_battle_with(
+        &["air_bomb"],
+        1,
+        |rules| rules["weapons"]["air_bomb"]["blast_radius_m"] = json!(20.0),
+        &[
+            json!({ "side": "blue", "kind": "test_tank", "position": [2000, 2008], "yaw": 0.0, "engagement": "return_fire_only" }),
+        ],
+    );
+    for _ in 0..1200 {
+        battle.step();
+        assert!(
+            battle.rounds().all(|(_, r)| r.unit != UnitId(0)),
+            "the jet bombed its own tank"
+        );
+    }
 }
 
 #[test]

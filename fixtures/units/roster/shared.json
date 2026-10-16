@@ -126,9 +126,6 @@
       "description": "F-16C Block 50",
       "faction": "us",
       "family": "f_16_fighting_falcon",
-      "roles": [
-        "recon"
-      ],
       "cost": 350,
       "roster": {
         "factions": [
@@ -146,37 +143,7 @@
             7.54,
             5.02,
             2.44
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -242,9 +209,6 @@
       "description": "F-35A",
       "faction": "us",
       "family": "f_35_lightning_ii",
-      "roles": [
-        "recon"
-      ],
       "cost": 470,
       "roster": {
         "factions": [
@@ -262,37 +226,7 @@
             7.82,
             5.36,
             2.2
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [

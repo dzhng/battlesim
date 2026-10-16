@@ -96,6 +96,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
             .expect("the catalog admits fixed-wing flight only in a layer with a floor"),
         edge_margin_m: ctx.rules.air.fixed_wing.edge_margin_m,
         cruise_agl_m: flight.cruise_agl_m,
+        nose_on_rad: ctx.rules.air.fixed_wing.nose_on_deg.to_radians(),
     };
     let mut pass_release_now = false;
     let pass_before = unit.air.as_ref().and_then(|air| air.pass);
@@ -205,7 +206,7 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         .as_mut()
                         .unwrap();
                     let was_pull_out = pass.phase == pass::PassPhase::PullOut;
-                    let (intent, cue) = pass::advance(pass, &state, &limits, point, &release);
+                    let (intent, cue) = pass::advance(pass, &state, &limits, point, &release, dt);
                     pass_release_now = cue.is_some();
                     if was_pull_out && pass.phase == pass::PassPhase::LineUp {
                         let finished_target = pass.target;

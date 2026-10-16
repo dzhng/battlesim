@@ -649,6 +649,42 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
     );
 }
 
+/// A bomb is released only on a winged aircraft's pass, the one flight that
+/// plans a release point: a bomb row on a helicopter or a ground vehicle
+/// is refused as the rules load, naming the type.
+#[test]
+fn only_a_winged_aircraft_carries_a_bomb() {
+    let load = |id: &str| {
+        let mut fixture = common::game();
+        fixture["weapons"]["test_bomb"] = json!({
+            "name": "Test Bomb", "description": "A test row.", "icon": "bomb",
+            "delivery": "unpowered", "stationary": false, "gravity_scale": 2,
+            "aim_s": 0.1, "reload_s": 3, "ammo": 2, "penetration": 10,
+            "partial_from": 0.08, "damage": 50, "scatter_mrad": 1,
+            "near_miss_suppression": 0, "suppression_radius_m": 0,
+            "blast_radius_m": 5, "structural_damage": 10,
+            "targets": { "ground": { "classes": ["vehicle"] } }
+        });
+        fixture["service"]["round_costs"]["test_bomb"] = json!(1);
+        sim::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            id,
+            json!({ "mounts": [{ "id": "rack", "name": "Rack", "weapons": ["test_bomb"],
+                "turret": false, "pivot_m": [0, 0, 1], "muzzle_m": [1, 0, 0] }] }),
+        );
+        serde_json::from_value::<Rules>(fixture).map(|_| ())
+    };
+    load("test_jet").expect("a jet carries bombs");
+    for id in ["test_heli", "test_tank"] {
+        let e = load(id).unwrap_err().to_string();
+        assert!(
+            e.contains(&format!("units.{id}")) && e.contains("test_bomb"),
+            "{id}: {e}"
+        );
+    }
+}
+
 /// Firing mechanics use fixed reach rather than the live grenade balance.
 fn grenade_firing_profile(fixture: &mut Value) {
     fixture["weapons"]["grenade"]["range_m"] = json!(450);
