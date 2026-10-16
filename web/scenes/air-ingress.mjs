@@ -38,14 +38,24 @@ export async function run(ctx) {
   );
   await command(page, { kind: "ready" });
   await advance(page, 2);
+  // Income lands every active tick, so each credit reading below is off by
+  // one tick of it: measure that tick while nothing is bought.
+  const idle = (await obs(page)).skirmish.credits;
+  await advance(page, 1);
   const before = (await obs(page)).skirmish.credits;
+  const tickIncome = before - idle;
   for (const destination of DESTINATIONS)
     await command(page, { kind: "confirm_purchase", variant: JET, destination });
   await advance(page, 1);
   o = await obs(page);
   const cost = before - o.skirmish.credits;
+  const price = unitType(JET).cost;
+  ctx.check(
+    "both purchases debit immediately",
+    Math.abs(cost - DESTINATIONS.length * price) <= 2 * tickIncome + 1e-6,
+    JSON.stringify({ cost, price, tickIncome }),
+  );
 
-  o = await obs(page);
   ctx.check(
     "the delayed aircraft is not a unit",
     o.own.filter((u) => u.kind === JET).length === 0,
@@ -171,6 +181,11 @@ export async function run(ctx) {
     "the outbound effect uses the nearest back edge",
     !!outbound && outbound.transits.some((t) => t.point[0] <= 10),
     JSON.stringify(outbound),
+  );
+  ctx.check(
+    "the jet retires after its outbound transit and is refunded",
+    !!retired && !!outbound && outbound.tick <= retired.tick && retired.refund > 2 * tickIncome,
+    JSON.stringify({ outbound: outbound?.tick, retired, tickIncome }),
   );
 
   await writeFile(
