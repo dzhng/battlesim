@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Air-war flight — behaviour mock</title>
+<style>
+  :root { --bg:#0b1014; --panel:#121a20; --line:#24323c; --ink:#cfe3ea; --dim:#7d96a1; --blue:#5fc4ff; --red:#ff6a5c; --amber:#ffc35c; --green:#7be08f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0 0 4px; font-size:15px; letter-spacing:.08em; text-transform:uppercase; }
+  header p { margin:0; color:var(--dim); }
+  main { display:grid; grid-template-columns: 760px 1fr; gap:16px; padding:16px 20px; }
+  canvas { background:#081015; border:1px solid var(--line); display:block; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .tabs button, .btn { background:var(--panel); color:var(--ink); border:1px solid var(--line); padding:6px 10px; cursor:pointer; font:inherit; }
+  .tabs button.on { border-color:var(--blue); color:var(--blue); }
+  .panel { background:var(--panel); border:1px solid var(--line); padding:12px; margin-bottom:12px; }
+  .panel h2 { margin:0 0 8px; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+  label.s { display:grid; grid-template-columns: 150px 1fr 70px; align-items:center; gap:8px; margin:4px 0; }
+  input[type=range] { width:100%; }
+  .note { color:var(--dim); }
+  .chips { display:flex; gap:6px; margin:6px 0; }
+  .chip { border:1px solid var(--line); padding:4px 8px; cursor:pointer; user-select:none; }
+  .chip.yes.on { border-color:var(--green); color:var(--green); }
+  .chip.no.on { border-color:var(--red); color:var(--red); }
+  textarea { width:100%; background:#0a1116; color:var(--ink); border:1px solid var(--line); font:inherit; padding:6px; }
+  .legend span { margin-right:12px; }
+  #reply { min-height:150px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Air-war flight · behaviour mock</h1>
+  <p>Throwaway sketch with the walk's numbers (D1–D30). Top-down view on top, altitude strip below. Not the game's renderer and not the sim; it shows the <em>shape</em> of each behaviour so you can react.</p>
+</header>
+<main>
+  <div>
+    <div class="tabs" id="tabs"></div>
+    <canvas id="top" width="760" height="560"></canvas>
+    <canvas id="side" width="760" height="150" style="margin-top:8px"></canvas>
+    <div class="legend note" style="margin-top:6px">
+      <span style="color:var(--blue)">■ friendly jet</span><span style="color:var(--red)">■ enemy</span>
+      <span style="color:var(--amber)">· gun</span><span>─ missile</span><span>● bomb</span>
+      <span>dashed square = playable area · grey = fog</span>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <h2 id="scTitle"></h2>
+      <div id="scText"></div>
+      <div class="chips"><span class="chip yes" id="cYes">looks right</span><span class="chip no" id="cNo">something's off</span></div>
+      <textarea id="scNote" rows="2" placeholder="what's off, in a few words (optional)"></textarea>
+    </div>
+    <div class="panel">
+      <h2>Tune (guesses, all of them)</h2>
+      <label class="s">cruise speed <input type="range" id="kmh" min="400" max="900" step="10"><b id="kmhV"></b></label>
+      <label class="s">turn rate (°/s) <input type="range" id="turn" min="30" max="110" step="1"><b id="turnV"></b></label>
+      <label class="s">cruise height (m) <input type="range" id="cruise" min="150" max="600" step="10"><b id="cruiseV"></b></label>
+      <label class="s">air missile (m/s) <input type="range" id="msl" min="250" max="450" step="5"><b id="mslV"></b></label>
+      <label class="s">bomb fall (s) <input type="range" id="fall" min="1.5" max="6" step="0.1"><b id="fallV"></b></label>
+      <label class="s">time scale <input type="range" id="ts" min="0.25" max="2" step="0.25"><b id="tsV"></b></label>
+      <div class="note">Lap = 360 / turn rate. Orbit radius = speed / turn rate. Floor 100 m is fixed.</div>
+      <button class="btn" id="restart" style="margin-top:6px">restart scenario</button>
+    </div>
+    <div class="panel">
+      <h2>Your reply (assembled)</h2>
+      <textarea id="reply" readonly></textarea>
+      <button class="btn" id="copy" style="margin-top:6px">copy reply</button>
+    </div>
+  </div>
+</main>
+<script>
+// ---------- numbers (all walk guesses) ----------
+const P = { kmh:650, turn:72, cruise:250, msl:290, fall:3.0, ts:1 };
+const FLOOR = 100, STRAFE_CEIL = 130, BOMB_CEIL = 200, AB = 1.5, RAMP = 2, GUN_R = 900, GUN_CONE = 7 * Math.PI/180;
+const HALF = 1000, FOG_R = 2900;               // playable square half-width, world disc radius
+const D2R = Math.PI/180;
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+// ---------- scenarios ----------
+const SC = {
+  orbit:   { title:"1 · Move goal → circle", text:"Ordered to a point, the jet never stops: it flies to the goal and circles it at full turn rate, in the direction it was already turning. It never touches the point (D3, D4, D10). Halfway through, afterburner toggles on: 2 s ramp, wider circle, same lap time (D3′).", view:{cx:0,cy:0,s:0.3} },
+  bomb:    { title:"2 · Bomb passes", text:"Explicit attack on a ground target with unguided bombs. Each pass: line up → descend under the 200 m bomb ceiling (random height per pass, never below the 100 m floor) → release early; the bomb keeps the jet's speed and falls in ~3 s onto the target → pull out, climb back to cruise, come round. Nose never points at the target, so no gun (D13, D14, D6′, D30).", view:{cx:0,cy:0,s:0.22} },
+  missile: { title:"3 · Ground-missile passes + gun", text:"A ground-missile carrier dives nose-on under the strafe ceiling, fires its missile from ~2 km (it leaves with the jet's velocity + its motor, D21), and because its nose is on the target the gun fires once inside 900 m (D30). Pull out at the floor, come round.", view:{cx:0,cy:0,s:0.22} },
+  dogfight:{ title:"4 · Dogfight, 2 v 2 then a third joins", text:"Each jet has one target (D8′). Lag pursuit: they chase where the target was, never fly straight at each other; a head-on merge makes both break away and come round (D11). Heights wander 150–350 m. Gun fires only when the target is in the nose cone and in range; air missiles fire inside their seeker cone (D16, D30). At 12 s a third blue jet joins by picking a red that's already engaged.", view:{cx:0,cy:0,s:0.26} },
+  ingress: { title:"5 · Fly in through fog, withdraw to own back edge", text:"The jet is visible ~10 s before the playable edge, flying in through the fog that surrounds the square (D27′). It circles its goal, then withdraws: straight to the nearest point on its own back edge (south), and stays visible ~10 s past it before it's gone (D28′).", view:{cx:0,cy:-600,s:0.115} },
+  chase:   { title:"6 · Medium SAM vs a jet passing overhead", text:"The jet passes right over a medium SAM at cruise height; the SAM fires as it passes. Left jet: cruise. Right jet: afterburner. Slide 'air missile' to see where the escape flips. A tuning picture only — no test pins it (D17′).", view:{cx:900,cy:0,s:0.17} },
+};
+const ORDER = Object.keys(SC);
+let cur = "orbit", W, verdict = {};
+
+// ---------- jet model ----------
+function jet(o){ return Object.assign({x:0,y:0,z:P.cruise,h:0,spd:1,ab:false,abK:0,side:"b",trail:[],alt:[],zT:P.cruise,turnDir:0,gun:0,alive:true,vis:1}, o); }
+const vBase = () => P.kmh/3.6;
+function speedOf(j){ return vBase() * (1 + (AB-1)*j.abK); }
+function wrap(a){ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; }
+function steerTo(j, tx, ty, dt){
+  const want = Math.atan2(ty-j.y, tx-j.x), d = wrap(want - j.h), m = P.turn*D2R*dt;
+  j.h = wrap(j.h + Math.max(-m, Math.min(m, d)));
+  if (Math.abs(d) > 1e-3) j.turnDir = Math.sign(d);
+}
+function circle(j, gx, gy, dt){
+  const R = speedOf(j)/(P.turn*D2R), dx = j.x-gx, dy = j.y-gy, r = Math.hypot(dx,dy);
+  if (r > R*1.6) { steerTo(j,gx,gy,dt); return; }
+  if (!j.turnDir) j.turnDir = 1;
+  j.h = wrap(j.h + j.turnDir*P.turn*D2R*dt);   // full-rate turn: lap = 360/turn
+}
+function fly(j, dt){
+  const target = j.ab ? 1 : 0; j.abK += Math.sign(target - j.abK) * Math.min(Math.abs(target-j.abK), dt/RAMP);
+  const v = speedOf(j); j.x += Math.cos(j.h)*v*dt; j.y += Math.sin(j.h)*v*dt;
+  const climb = 35*dt; j.z += Math.max(-climb, Math.min(climb, j.zT - j.z)); j.z = Math.max(FLOOR, j.z);
+  j.trail.push([j.x,j.y]); if (j.trail.length > 260) j.trail.shift();
+  j.alt.push(j.z); if (j.alt.length > 600) j.alt.shift();
+}
+function noseOn(j, t){ const a = Math.atan2(t.y-j.y, t.x-j.x); return Math.abs(wrap(a-j.h)) < GUN_CONE; }
+function dist3(a,b){ return Math.hypot(a.x-b.x, a.y-b.y, (a.z||0)-(b.z||0)); }
+
+// ---------- world ----------
+function reset(){
+  seed = 7;
+  W = { t:0, jets:[], rounds:[], bombs:[], missiles:[], booms:[], ground:[], msg:"" };
+  const s = cur;
+  if (s==="orbit"){ W.jets.push(jet({x:-900,y:-500,h:0.4})); W.goal={x:200,y:150}; }
+  if (s==="bomb" || s==="missile"){ W.jets.push(jet({x:-1400,y:-900,h:0.5})); W.ground.push({x:0,y:0}); W.run={phase:"out", ax:-1, ay:-0.3}; }
+  if (s==="dogfight"){
+    W.jets.push(jet({x:-1200,y:-200,h:0,side:"b",mt:0}), jet({x:-1200,y:250,h:0,side:"b",mt:3}),
+                jet({x:1200,y:150,h:Math.PI,side:"r",mt:1}), jet({x:1200,y:-300,h:Math.PI,side:"r",mt:5}));
+    W.jets.forEach((j,i)=>{ j.ph = rnd()*6.28; j.per = 9+rnd()*7; j.cool = 4+rnd()*4; });
+    W.jets[0].tgt=2; W.jets[1].tgt=3; W.jets[2].tgt=0; W.jets[3].tgt=1;
+  }
+  if (s==="ingress"){ const v=vBase(); W.jets.push(jet({x:-300,y:-HALF-10*v,h:Math.PI/2})); W.goal={x:-450,y:-200}; W.phase="in"; }
+  if (s==="chase"){
+    W.sam={x:0,y:0};
+    W.jets.push(jet({x:-800,y:-260,h:0,ab:false}), jet({x:-800,y:260,h:0,ab:true,abK:1}));
+    W.jets.forEach(j=>j.fired=false);
+  }
+}
+
+// ---------- per-scenario behaviour ----------
+function stepScenario(dt){
+  const s = cur, J = W.jets;
+  if (s==="orbit"){ const j=J[0]; circle(j,W.goal.x,W.goal.y,dt); j.ab = W.t>14 && W.t<26; j.zT=P.cruise; }
+  if (s==="bomb" || s==="missile"){
+    const j=J[0], g=W.ground[0], r=W.run, bomb = s==="bomb";
+    const ceil = bomb ? BOMB_CEIL : STRAFE_CEIL;
+    if (r.phase==="out"){ // fly out along the run axis, at cruise
+      j.zT = P.cruise; const ox = g.x + r.ax*1700, oy = g.y + r.ay*1700; steerTo(j,ox,oy,dt);
+      if (Math.hypot(j.x-ox,j.y-oy) < 250) { r.phase="turn"; r.h = FLOOR + rnd()*(ceil-FLOOR); }
+    } else if (r.phase==="turn"){ steerTo(j,g.x,g.y,dt); j.zT=r.h;
+      if (Math.abs(wrap(Math.atan2(g.y-j.y,g.x-j.x)-j.h)) < 0.05) { r.phase="in"; r.fired=false; }
+    } else if (r.phase==="in"){
+      steerTo(j,g.x,g.y,dt); j.zT = r.h;
+      const d = Math.hypot(g.x-j.x,g.y-j.y), v = speedOf(j);
+      if (bomb && !r.fired && d <= v*P.fall){ r.fired=true;
+        W.bombs.push({x:j.x,y:j.y,z:j.z,vx:Math.cos(j.h)*v,vy:Math.sin(j.h)*v,g:2*j.z/(P.fall*P.fall),vz:0}); }
+      if (!bomb && !r.fired && d <= 2000 && noseOn(j,g)){ r.fired=true;
+        W.missiles.push({x:j.x,y:j.y,z:j.z,spd:v+20,top:v+200,tx:g.x,ty:g.y,tz:0,life:12,trail:[],kind:"ag"}); }
+      if (!bomb && d < GUN_R && noseOn(j,{x:g.x,y:g.y})) gun(j, g.x, g.y, 0);
+      if (d < (bomb ? 250 : 380)) { r.phase="pull"; r.px=j.x+Math.cos(j.h)*900; r.py=j.y+Math.sin(j.h)*900; }
+    } else if (r.phase==="pull"){ j.zT=P.cruise; steerTo(j,r.px,r.py,dt);
+      if (Math.hypot(j.x-r.px,j.y-r.py)<200){ const a = Math.atan2(j.y-g.y,j.x-g.x)+ (rnd()-0.5); r.ax=Math.cos(a); r.ay=Math.sin(a); r.phase="out"; } }
+  }
+  if (s==="dogfight"){
+    if (W.t>12 && J.length===4){ const n=jet({x:-2300,y:-700,h:0.2,side:"b"}); n.ph=1; n.per=11; n.cool=3; n.tgt=2; n.join=true; J.push(n); }
+    J.forEach((j,i)=>{
+      const t = J[j.tgt]; if(!t) return;
+      // lag pursuit: chase where the target was ~1.2 s ago
+      let ax = t.x - Math.cos(t.h)*speedOf(t)*1.2, ay = t.y - Math.sin(t.h)*speedOf(t)*1.2;
+      const head = Math.abs(wrap(t.h - j.h)) > 2.6, d = Math.hypot(t.x-j.x,t.y-j.y);
+      if (j.brk>0){ j.brk-=dt; j.h = wrap(j.h + j.brkDir*P.turn*D2R*dt); }
+      else if (head && d < 700 && noseOn(t,j)) { j.brk = 1.6; j.brkDir = (i%2?1:-1); }
+      else steerTo(j,ax,ay,dt);
+      j.zT = 250 + 100*Math.sin(W.t*2*Math.PI/j.per + j.ph);
+      if (d < GUN_R && noseOn(j,t)) gun(j,t.x,t.y,t.z);
+      j.cool -= dt;
+      const ang = Math.abs(wrap(Math.atan2(t.y-j.y,t.x-j.x)-j.h));
+      if (j.cool<=0 && d < 3000 && d > 300 && ang < 35*D2R){ j.cool=8;
+        W.missiles.push({x:j.x,y:j.y,z:j.z,spd:speedOf(j)+100,top:P.msl+speedOf(j)*0,tgt:t,life:9,trail:[],kind:"aa"}); }
+    });
+  }
+  if (s==="ingress"){
+    const j=J[0];
+    if (W.phase==="in"){ circle(j,W.goal.x,W.goal.y,dt); if (W.t>34){ W.phase="out"; } }
+    else { steerTo(j, j.x, -HALF-4000, dt); if (j.y < -HALF && W.exitT===undefined) W.exitT=W.t;
+      if (W.exitT!==undefined){ j.vis = Math.max(0, 1-(W.t-W.exitT-8)/2); } }
+    W.msg = W.phase==="in" ? (j.y < -HALF ? `inbound, ${((-HALF-j.y)/speedOf(j)).toFixed(1)} s to edge` : "circling goal")
+                           : (W.exitT===undefined ? "withdrawing to own back edge" : `past edge ${(W.t-W.exitT).toFixed(1)} s`);
+  }
+  if (s==="chase"){
+    J.forEach(j=>{ j.h=0; j.zT=P.cruise;
+      if (!j.fired && j.x >= W.sam.x){ j.fired=true;
+        W.missiles.push({x:W.sam.x,y:j.y,z:0,spd:100,top:P.msl,tgt:j,life:(2600+(P.msl-100)**2/800)/P.msl,trail:[],kind:"aa",chase:true}); } });
+  }
+}
+function gun(j, tx, ty, tz){
+  j.gun -= 1; if (j.gun > 0) return; j.gun = 3;
+  const sp = 0.02; W.rounds.push({x:j.x,y:j.y,z:j.z,vx:Math.cos(j.h+ (rnd()-.5)*sp)*(600+speedOf(j)),vy:Math.sin(j.h+(rnd()-.5)*sp)*(600+speedOf(j)),vz:(tz-j.z)/Math.max(1,Math.hypot(tx-j.x,ty-j.y))*600,life:1.6});
+}
+function stepRounds(dt){
+  W.rounds = W.rounds.filter(r=>{ r.x+=r.vx*dt; r.y+=r.vy*dt; r.z+=r.vz*dt; r.life-=dt; return r.life>0 && r.z>-1; });
+  W.bombs = W.bombs.filter(b=>{ b.vz -= b.g*dt; b.x+=b.vx*dt; b.y+=b.vy*dt; b.z+=b.vz*dt; if(b.z<=0){ W.booms.push({x:b.x,y:b.y,t:0,r:11}); return false;} return true; });
+  W.missiles = W.missiles.filter(m=>{
+    m.spd = Math.min(m.top, m.spd + 400*dt); m.life -= dt;
+    const t = m.tgt || {x:m.tx,y:m.ty,z:m.tz};
+    const dx=t.x-m.x, dy=t.y-m.y, dz=(t.z||0)-m.z, d=Math.hypot(dx,dy,dz);
+    m.trail.push([m.x,m.y]); if(m.trail.length>200) m.trail.shift();
+    if (d < 6){ W.booms.push({x:m.x,y:m.y,t:0,r: m.kind==="ag"?6:4, hit:true}); if (m.chase) m.tgt.result="HIT"; return false; }
+    if (m.life<=0){ if (m.chase) m.tgt.result=`burned out ${d.toFixed(0)} m short`; W.booms.push({x:m.x,y:m.y,t:0,r:2,fizz:true}); return false; }
+    m.x+=dx/d*m.spd*dt; m.y+=dy/d*m.spd*dt; m.z+=dz/d*m.spd*dt; return true; });
+  W.booms = W.booms.filter(b=>(b.t+=dt)<1.4);
+}
+
+// ---------- drawing ----------
+const top = document.getElementById("top").getContext("2d"), side = document.getElementById("side").getContext("2d");
+function view(){ return SC[cur].view; }
+function sx(x){ const v=view(); return 380 + (x-v.cx)*v.s; }
+function sy(y){ const v=view(); return 280 - (y-v.cy)*v.s; }
+function draw(){
+  const c = top, v = view();
+  c.fillStyle = "#3a434a"; c.fillRect(0,0,760,560);             // beyond the world disc
+  c.fillStyle = "#1d262c"; c.beginPath(); c.arc(sx(0),sy(0),FOG_R*v.s,0,7); c.fill();   // fogged terrain disc
+  c.fillStyle = "#0e1a14"; c.fillRect(sx(-HALF),sy(HALF),2*HALF*v.s,2*HALF*v.s);       // playable square
+  c.setLineDash([6,5]); c.strokeStyle="#5fc4ff55"; c.strokeRect(sx(-HALF),sy(HALF),2*HALF*v.s,2*HALF*v.s); c.setLineDash([]);
+  c.fillStyle="#5fc4ff88"; c.fillText("own back edge", sx(-HALF)+4, sy(-HALF)-4);
+  if (W.goal){ c.strokeStyle="#5fc4ff"; c.beginPath(); c.arc(sx(W.goal.x),sy(W.goal.y),4,0,7); c.stroke(); }
+  W.ground.forEach(g=>{ c.fillStyle="#ff6a5c"; c.fillRect(sx(g.x)-4,sy(g.y)-4,8,8); });
+  if (W.sam){ c.fillStyle="#ff6a5c"; c.fillText("SAM ▲", sx(W.sam.x)-14, sy(0)+4); c.strokeStyle="#ff6a5c44"; c.beginPath(); c.moveTo(sx(0),sy(-600)); c.lineTo(sx(0),sy(600)); c.stroke(); }
+  W.booms.forEach(b=>{ c.strokeStyle = b.fizz? "#888" : "#ffc35c"; c.globalAlpha = 1-b.t/1.4; c.beginPath(); c.arc(sx(b.x),sy(b.y),Math.max(2,b.r*v.s*(1+b.t*3)),0,7); c.stroke(); c.globalAlpha=1; });
+  W.bombs.forEach(b=>{ c.fillStyle="#ffc35c"; c.beginPath(); c.arc(sx(b.x),sy(b.y),3,0,7); c.fill(); });
+  W.rounds.forEach(r=>{ c.fillStyle="#ffc35c"; c.fillRect(sx(r.x),sy(r.y),2,2); });
+  W.missiles.forEach(m=>{ c.strokeStyle="#e8f3f7aa"; c.beginPath(); m.trail.forEach((p,i)=>i?c.lineTo(sx(p[0]),sy(p[1])):c.moveTo(sx(p[0]),sy(p[1]))); c.stroke(); });
+  W.jets.forEach(j=>{
+    const col = j.side==="r" ? "#ff6a5c" : "#5fc4ff"; c.globalAlpha = j.vis;
+    c.strokeStyle = col+"55"; c.beginPath(); j.trail.forEach((p,i)=>i?c.lineTo(sx(p[0]),sy(p[1])):c.moveTo(sx(p[0]),sy(p[1]))); c.stroke();
+    const X=sx(j.x), Y=sy(j.y), h=-j.h, s=7; c.fillStyle=col; c.beginPath();
+    c.moveTo(X+Math.cos(h)*s*1.6, Y+Math.sin(h)*s*1.6); c.lineTo(X+Math.cos(h+2.5)*s, Y+Math.sin(h+2.5)*s); c.lineTo(X+Math.cos(h-2.5)*s, Y+Math.sin(h-2.5)*s); c.fill();
+    c.fillStyle="#cfe3ea"; c.fillText(`${j.z.toFixed(0)} m${j.abK>0.05?" AB":""}${j.join?" (joined)":""}${j.result?" · "+j.result:""}`, X+10, Y-8);
+    c.globalAlpha = 1;
+  });
+  c.fillStyle="#cfe3ea"; const R = vBase()/(P.turn*D2R);
+  c.fillText(`t ${W.t.toFixed(1)} s   speed ${P.kmh} km/h (${vBase().toFixed(0)} m/s)   lap ${(360/P.turn).toFixed(1)} s   orbit radius ${R.toFixed(0)} m   ${W.msg||""}`, 10, 18);
+  // altitude strip
+  const d = side; d.fillStyle="#081015"; d.fillRect(0,0,760,150);
+  const zy = z => 140 - z/450*130;
+  [[FLOOR,"floor 100"],[STRAFE_CEIL,"strafe ceil"],[BOMB_CEIL,"bomb ceil"],[P.cruise,"cruise"]].forEach(([z,l])=>{ d.strokeStyle="#24323c"; d.beginPath(); d.moveTo(0,zy(z)); d.lineTo(760,zy(z)); d.stroke(); d.fillStyle="#7d96a1"; d.fillText(l,690,zy(z)-2); });
+  W.jets.forEach(j=>{ d.strokeStyle = j.side==="r" ? "#ff6a5c" : "#5fc4ff"; d.beginPath(); j.alt.forEach((z,i)=>{ const x = 680 - (j.alt.length-1-i)*1.1; i?d.lineTo(x,zy(z)):d.moveTo(x,zy(z)); }); d.stroke(); });
+  d.fillStyle="#7d96a1"; d.fillText("altitude, last ~11 s", 8, 12);
+}
+
+// ---------- loop + UI ----------
+let last = performance.now();
+function loop(now){ let dt = Math.min(0.05,(now-last)/1000)*P.ts; last = now;
+  const n = 4; for (let i=0;i<n;i++){ W.t += dt/n; stepScenario(dt/n); W.jets.forEach(j=>fly(j,dt/n)); stepRounds(dt/n); }
+  if (W.t > 60 && cur!=="ingress") reset(); if (cur==="ingress" && W.t>58) reset(); if (cur==="chase" && W.t>16) reset();
+  draw(); requestAnimationFrame(loop); }
+const tabs = document.getElementById("tabs");
+ORDER.forEach(k=>{ const b=document.createElement("button"); b.textContent=SC[k].title.split(" · ")[0]+" "+SC[k].title.split(" · ")[1].split(",")[0]; b.onclick=()=>{cur=k; select();}; b.dataset.k=k; tabs.appendChild(b); });
+function select(){ [...tabs.children].forEach(b=>b.classList.toggle("on", b.dataset.k===cur));
+  document.getElementById("scTitle").textContent = SC[cur].title; document.getElementById("scText").textContent = SC[cur].text;
+  const v = verdict[cur]||{}; document.getElementById("cYes").classList.toggle("on", v.ok===true); document.getElementById("cNo").classList.toggle("on", v.ok===false);
+  document.getElementById("scNote").value = v.note||""; reset(); }
+document.getElementById("cYes").onclick=()=>{ (verdict[cur]??={}).ok=true; select(); assemble(); };
+document.getElementById("cNo").onclick=()=>{ (verdict[cur]??={}).ok=false; select(); assemble(); };
+document.getElementById("scNote").oninput=e=>{ (verdict[cur]??={}).note=e.target.value; assemble(); };
+["kmh","turn","cruise","msl","fall","ts"].forEach(k=>{ const el=document.getElementById(k); el.value=P[k]; const out=document.getElementById(k+"V");
+  const upd=()=>{ P[k]=+el.value; out.textContent=el.value; assemble(); }; el.oninput=upd; upd(); });
+document.getElementById("restart").onclick=reset;
+function assemble(){
+  const lines = ["Flight mock reactions:"];
+  ORDER.forEach(k=>{ const v=verdict[k]; if(!v) return; lines.push(`- ${SC[k].title}: ${v.ok===false?"OFF":"ok"}${v.note?" — "+v.note:""}`); });
+  const def = {kmh:650,turn:72,cruise:250,msl:290,fall:3}; const ch = Object.keys(def).filter(k=>P[k]!==def[k]).map(k=>`${k} ${def[k]} → ${P[k]}`);
+  if (ch.length) lines.push("- Numbers I'd start from instead: " + ch.join(", "));
+  document.getElementById("reply").value = lines.join("\n");
+}
+document.getElementById("copy").onclick=()=>{ const t=document.getElementById("reply"); t.select(); navigator.clipboard?.writeText(t.value); };
+select(); assemble(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Air-war flight: choices
 
-Decisions made where the spec was silent, appended each pass (`audit-choices`). Decisions the user made live in [the map](map.md).
+Decisions made where the spec was silent, appended each pass (`audit-choices`). Decisions the user made live in [the map](map.md) and [the flight-model map](flight-model-map.md). The Pass column names the build slice or pass that made the choice; the slices themselves are in git history. A row's verdict is as of its pass unless a later row or decision supersedes it.
 
 | Pass | Choice | Verdict | Why |
 |---|---|---|---|

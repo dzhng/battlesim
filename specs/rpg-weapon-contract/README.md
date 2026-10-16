@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the air-war-flight closeout, air-war-flight D53); interception became the `missile` target class per layer and guided rows may intercept (air-war-flight D54, branch `awf/intercept-layers`); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
+Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the [air-war-flight](../done/air-war-flight/README.md) closeout, air-war-flight [D53](../done/air-war-flight/flight-model-map.md)); interception became the `missile` target class per layer and guided rows may intercept (air-war-flight D54, branch `awf/intercept-layers`); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
 
 ## Goal
 
