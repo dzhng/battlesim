@@ -2,7 +2,7 @@
 // Cinematic capture CLI: record the menu backdrop battle with a scripted camera.
 //
 // Usage:
-//   pnpm --filter battle-web capture [options]
+//   bun run --cwd web capture [options]
 //   node capture.mjs [options]
 //
 // Options:
@@ -17,16 +17,18 @@
 //   --scene=<name>     Scene to capture: menu (default) or skirmish
 //
 // Example:
-//   pnpm --filter battle-web capture --preset=ground-level --width=3840 --height=2160
+//   bun run --cwd web capture --preset=ground-level --width=3840 --height=2160
 
-import { mkdir, writeFile, unlink, access } from "node:fs/promises";
+import { mkdir, writeFile, unlink, access, stat, readFile } from "node:fs/promises";
 import { resolve, basename } from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync, execSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { startServer } from "./scene.mjs";
 import { launchBrowser } from "./browser.mjs";
 
 const HERE = new URL(".", import.meta.url);
 const OUTPUT_DIR = new URL("../throwaway/capture/", HERE);
+const ROOT = new URL("../", HERE);
 
 function parseArgs(argv) {
   const args = {
@@ -64,7 +66,7 @@ function parseArgs(argv) {
       console.log(`Cinematic capture: record menu backdrop with scripted camera
 
 Usage:
-  pnpm --filter battle-web capture [options]
+  bun run --cwd web capture [options]
 
 Options:
   --preset=<name>    Camera preset (default, top-down, ground-level, orbit)
@@ -78,16 +80,85 @@ Options:
   --scene=<name>     Scene to capture: menu (default) or skirmish
 
 Examples:
-  pnpm --filter battle-web capture
-  pnpm --filter battle-web capture --preset=ground-level
-  pnpm --filter battle-web capture --width=3840 --height=2160 --preset=orbit
-  pnpm --filter battle-web capture --scene=skirmish
+  bun run --cwd web capture
+  bun run --cwd web capture --preset=ground-level
+  bun run --cwd web capture --width=3840 --height=2160 --preset=orbit
+  bun run --cwd web capture --scene=skirmish
 `);
       process.exit(0);
     }
   }
 
   return args;
+}
+
+/** Check if the mechanics validator is built. */
+async function checkMechanicsBuilt() {
+  const mechanicsPath = new URL("../target/debug/examples/mechanics_validate", ROOT);
+  const mechanicsRelease = new URL("../target/release/examples/mechanics_validate", ROOT);
+  if (!existsSync(mechanicsPath) && !existsSync(mechanicsRelease)) {
+    return false;
+  }
+  return true;
+}
+
+/** Check if a file is an LFS pointer (text file starting with "version https://git-lfs.github.com"). */
+async function isLfsPointer(filePath) {
+  try {
+    const content = await readFile(filePath, "utf8");
+    return content.startsWith("version https://git-lfs.github.com");
+  } catch {
+    return false;
+  }
+}
+
+/** Check for LFS pointer files in critical asset directories. */
+async function checkLfsAssets() {
+  const assetDirs = [
+    new URL("../assets/sounds/", ROOT),
+    new URL("../assets/models/", ROOT),
+  ];
+  const pointers = [];
+  for (const dir of assetDirs) {
+    if (!existsSync(dir)) continue;
+    try {
+      const { readdirSync } = await import("node:fs");
+      const files = readdirSync(dir).slice(0, 5);
+      for (const file of files) {
+        const filePath = new URL(file, dir);
+        if (await isLfsPointer(filePath)) {
+          pointers.push(filePath.pathname);
+        }
+      }
+    } catch {
+      // Directory may not exist
+    }
+  }
+  return pointers;
+}
+
+/** Check prerequisites and print what's missing. */
+async function checkPrerequisites() {
+  const issues = [];
+
+  if (!await checkMechanicsBuilt()) {
+    issues.push("Mechanics validator not built. Run: bun run build:mechanics");
+  }
+
+  const lfsPointers = await checkLfsAssets();
+  if (lfsPointers.length > 0) {
+    issues.push(`LFS assets are pointers (not downloaded). Run: git lfs pull`);
+  }
+
+  if (issues.length > 0) {
+    console.error("Missing prerequisites:");
+    for (const issue of issues) {
+      console.error(`  - ${issue}`);
+    }
+    console.error("");
+    return false;
+  }
+  return true;
 }
 
 /** Check if ffmpeg is available. */
@@ -100,11 +171,12 @@ function hasFfmpeg() {
   }
 }
 
-/** Transcode WebM to MP4 using ffmpeg. Returns the output path. */
+/** Transcode WebM to MP4 using ffmpeg. Returns the output path and dropped frame count. */
 async function transcodeToMp4(webmPath, fps) {
   const mp4Path = webmPath.replace(/\.webm$/, ".mp4");
   
   console.log("Transcoding to MP4 (H.264 + AAC)...");
+  console.log("  Note: Real-time capture may have variable frame rate; ffmpeg will normalize to constant " + fps + " fps.");
   
   return new Promise((resolve, reject) => {
     const ffmpeg = spawn("ffmpeg", [
@@ -121,18 +193,27 @@ async function transcodeToMp4(webmPath, fps) {
     ], { stdio: ["ignore", "pipe", "pipe"] });
     
     let stderr = "";
+    let droppedFrames = 0;
     ffmpeg.stderr.on("data", (data) => {
       stderr += data.toString();
-      const match = stderr.match(/time=(\d+:\d+:\d+\.\d+)/g);
-      if (match) {
-        process.stdout.write(`\r  Progress: ${match[match.length - 1]}    `);
+      const timeMatch = stderr.match(/time=(\d+:\d+:\d+\.\d+)/g);
+      if (timeMatch) {
+        process.stdout.write(`\r  Progress: ${timeMatch[timeMatch.length - 1]}    `);
+      }
+      // Count dropped/duplicated frames from ffmpeg warnings
+      const dropMatch = data.toString().match(/dropping frame|dropping.*frames|duplicating frame|dup=/gi);
+      if (dropMatch) {
+        droppedFrames += dropMatch.length;
       }
     });
     
     ffmpeg.on("close", (code) => {
       process.stdout.write("\n");
+      if (droppedFrames > 0) {
+        console.log(`  Frame adjustment: ${droppedFrames} frames dropped/duplicated during re-timing`);
+      }
       if (code === 0) {
-        resolve(mp4Path);
+        resolve({ path: mp4Path, droppedFrames });
       } else {
         reject(new Error(`ffmpeg exited with code ${code}`));
       }
@@ -144,6 +225,12 @@ async function transcodeToMp4(webmPath, fps) {
 
 async function main() {
   const args = parseArgs(process.argv);
+  
+  // Check prerequisites before starting
+  if (!await checkPrerequisites()) {
+    process.exit(1);
+  }
+
   console.log("Starting cinematic capture...");
   console.log(`  Scene: ${args.scene}`);
   console.log(`  Preset: ${args.preset}`);
@@ -271,12 +358,12 @@ async function main() {
     // Transcode to MP4 unless --webm flag is set
     if (!args.webm) {
       try {
-        const mp4Path = await transcodeToMp4(webmPath, args.fps);
+        const result = await transcodeToMp4(webmPath, args.fps);
         // Remove the intermediate WebM file
         await unlink(webmPath).catch(() => {});
-        finalPath = mp4Path;
+        finalPath = result.path;
         const { size } = await import("node:fs").then((fs) =>
-          fs.promises.stat(mp4Path),
+          fs.promises.stat(result.path),
         );
         finalSize = size;
       } catch (err) {

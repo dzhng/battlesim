@@ -68,15 +68,16 @@ export interface CapturePreset {
 }
 
 /** The default cinematic preset: wide top-down transitioning to ground-level tank-follow.
- *  ~38 seconds total, ending at the menu's cinematic ground angle.
- *  This demonstrates the game's scale and detail progression. */
+ *  ~37 seconds total, ending at the menu's cinematic ground angle.
+ *  This demonstrates the game's scale and detail progression.
+ *  Shot 1 shows the engagement area from above, then transitions to following unit 0. */
 export const DEFAULT_CINEMATIC_REEL: MenuReel = {
   fade_s: 0.8,
   shots: [
     {
-      seconds: 10,
-      from: { target: [0, 0], distance: 180, yaw: -0.4, pitch: 0.50 },
-      to: { target: [0, 0], distance: 120, yaw: -0.2, pitch: 0.38 },
+      seconds: 9,
+      from: { target: [0, 15], distance: 220, yaw: -0.3, pitch: 0.60 },
+      to: { target: [0, 12], distance: 140, yaw: -0.2, pitch: 0.45 },
     },
     {
       seconds: 12,
@@ -108,8 +109,8 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
       shots: [
         {
           seconds: 12,
-          from: { target: [0, 0], distance: 180, yaw: 0, pitch: 0.55 },
-          to: { target: [50, 30], distance: 160, yaw: 0.4, pitch: 0.50 },
+          from: { target: [0, 15], distance: 180, yaw: 0, pitch: 0.55 },
+          to: { target: [5, 20], distance: 160, yaw: 0.4, pitch: 0.50 },
         },
       ],
     },
@@ -137,8 +138,8 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
       shots: [
         {
           seconds: 20,
-          from: { target: [0, 0], distance: 60, yaw: 0, pitch: 0.25 },
-          to: { target: [0, 0], distance: 60, yaw: Math.PI * 2, pitch: 0.25 },
+          from: { target: [0, 15], distance: 60, yaw: 0, pitch: 0.25 },
+          to: { target: [0, 15], distance: 60, yaw: Math.PI * 2, pitch: 0.25 },
         },
       ],
     },

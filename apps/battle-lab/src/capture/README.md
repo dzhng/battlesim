@@ -6,19 +6,33 @@ Record marketing clips from battles with scripted camera paths and full in-game 
 
 ```bash
 # Record menu backdrop with default settings (1920x1080, 60fps, audio on)
-pnpm --filter battle-web capture
+bun run --cwd web capture
 
 # Record at 4K with ground-level camera
-pnpm --filter battle-web capture --preset=ground-level --width=3840 --height=2160
+bun run --cwd web capture --preset=ground-level --width=3840 --height=2160
 
 # Record skirmish-style battle
-pnpm --filter battle-web capture --scene=skirmish
+bun run --cwd web capture --scene=skirmish
 
 # List all options
-pnpm --filter battle-web capture --help
+bun run --cwd web capture --help
 ```
 
 Output goes to `throwaway/capture/` as MP4 (H.264 + AAC). Use `--webm` for WebM output.
+
+### Prerequisites
+
+On a fresh worktree, ensure these are ready before running capture:
+
+```bash
+# Build the mechanics validator (required for map loading)
+bun run build:mechanics
+
+# Pull LFS assets (sounds, models)
+git lfs pull
+```
+
+The CLI will detect missing prerequisites and print what's needed.
 
 ## CLI Options
 
@@ -62,7 +76,7 @@ Built-in presets provide common cinematic shots:
 
 | Preset | Duration | Description |
 |--------|----------|-------------|
-| `default` | ~38s | Wide top-down view transitioning to ground-level tank-follow |
+| `default` | ~37s | Wide top-down view transitioning to ground-level tank-follow |
 | `top-down` | 12s | High-altitude strategic overview |
 | `ground-level` | 15s | Low-angle dramatic shot following a unit |
 | `orbit` | 20s | Camera orbits around a central point |

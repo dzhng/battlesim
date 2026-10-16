@@ -17,6 +17,7 @@ import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/cont
 import backdrop from "@fixtures/menu-backdrop.json";
 import { listMaps } from "@web/maps/catalogue";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import { appResources } from "../appResources";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
@@ -347,6 +348,7 @@ function CaptureBattle({
   }, [audio]);
 
   const world = useFeed(session.meshes);
+  const observation = sim.observation;
   if (!session.meshes || sim.error) return null;
 
   return (
@@ -382,8 +384,17 @@ function CaptureBattle({
           pilot={pilot}
           cameraConfig={gameCamera.config}
           quality={graphicsProfiles.high}
+          onFrame={settings.showCards ? session.placePanels : undefined}
         />
       </div>
+      {settings.showCards && (
+        <ReadoutLayer
+          own={observation?.own ?? []}
+          rules={session.rules}
+          selected={[]}
+          handle={session.readouts}
+        />
+      )}
     </div>
   );
 }

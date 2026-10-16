@@ -14,6 +14,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import { appResources } from "../appResources";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
@@ -21,6 +22,7 @@ import { LabViewport, type ViewportPilot, type ViewportGpu } from "../LabViewpor
 import { sampleReel } from "../menuReel";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
+import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { useLabLoading } from "../LabLoading";
 import game from "@fixtures/game.json";
 import { graphicsProfiles } from "../graphicsSettings";
@@ -155,6 +157,13 @@ function CaptureBattle({
     }
   }, [sim.observation, warmed]);
 
+  // Boost skirmish audio volume to match menu backdrop levels (~8dB boost = 2.5x)
+  useEffect(() => {
+    if (audio && settings.audio) {
+      audio.setVolume(2.5, 1);
+    }
+  }, [audio, settings.audio]);
+
   const startRecording = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || recordingStartedRef.current) return;
@@ -288,8 +297,12 @@ function CaptureBattle({
 
       return finalPose;
     },
-    frame({ now }) {
-      hear();
+    frame({ now, camera }) {
+      const presentation = sim.client?.presentation;
+      if (audio && presentation) {
+        const listener = cameraListener(camera, game.presentation.audio.listener_eye_share);
+        audio.updateWithListener(presentation.wasm, listener);
+      }
       if (pilotStartRef.current === null || state.status !== "recording") return;
       const elapsed = (now - pilotStartRef.current) / 1000;
       setState({ status: "recording", elapsed, duration });
@@ -323,6 +336,7 @@ function CaptureBattle({
   }, [audio]);
 
   const world = useFeed(session.meshes);
+  const observation = sim.observation;
   if (!session.meshes || sim.error) return null;
 
   return (
@@ -357,8 +371,17 @@ function CaptureBattle({
           pilot={pilot}
           cameraConfig={gameCamera.config}
           quality={graphicsProfiles.high}
+          onFrame={settings.showCards ? session.placePanels : undefined}
         />
       </div>
+      {settings.showCards && (
+        <ReadoutLayer
+          own={observation?.own ?? []}
+          rules={session.rules}
+          selected={[]}
+          handle={session.readouts}
+        />
+      )}
     </div>
   );
 }

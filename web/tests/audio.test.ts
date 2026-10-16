@@ -26,7 +26,7 @@ test("a cue's stereo pan follows the camera: east is right when looking north", 
 
 test("cameraListener places listener between target and eye based on share", () => {
   const camera = {
-    target: [100, 200, 0] as const,
+    target: [100, 200, 0] as [number, number, number],
     distance: 100,
     pitch: -Math.PI / 4,
     yaw: 0,
@@ -53,8 +53,8 @@ test("cameraListener places listener between target and eye based on share", () 
 });
 
 test("cameraListener forward vector depends on yaw", () => {
-  const camera1 = { target: [0, 0, 0] as const, distance: 100, pitch: -Math.PI / 4, yaw: 0 };
-  const camera2 = { target: [0, 0, 0] as const, distance: 100, pitch: -Math.PI / 4, yaw: Math.PI / 2 };
+  const camera1 = { target: [0, 0, 0] as [number, number, number], distance: 100, pitch: -Math.PI / 4, yaw: 0 };
+  const camera2 = { target: [0, 0, 0] as [number, number, number], distance: 100, pitch: -Math.PI / 4, yaw: Math.PI / 2 };
   const forward1 = cameraListener(camera1, 0.25).forward;
   const forward2 = cameraListener(camera2, 0.25).forward;
   expect(Math.hypot(forward1[0], forward1[1])).toBeGreaterThan(0);
