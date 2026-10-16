@@ -47,7 +47,7 @@ Before adding or changing anything the player sees (markers, callouts, HUD, colo
 
 ## Game rules
 
-Rules come from physical properties, not named special cases, and are judged by picturing the moment on the battlefield. The target is the realism of a war film, not of a ballistics table: keep what a viewer expects, and drop what looks silly on screen even when it is physically defensible.
+Rules come from physical properties, not named special cases, and are judged by picturing the moment on the battlefield. Which units have which properties is configuration: express a restriction by what the data gives each unit, never by a check in the rules that re-enforces it. The target is the realism of a war film, not of a ballistics table: keep what a viewer expects, and drop what looks silly on screen even when it is physically defensible.
 
 The simulation is the one authority, and everything else observes it. Each side sees only what its own units can see.
 
