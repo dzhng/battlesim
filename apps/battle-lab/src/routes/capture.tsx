@@ -35,7 +35,9 @@ import {
   parseCaptureParams,
   getCapturePreset,
   reelDuration,
+  WeaponFireTracker,
   type CaptureSettings,
+  type WeaponFireEvent,
 } from "../capture/captureConfig";
 import {
   CaptureOverlay,
@@ -74,7 +76,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
     message: "Preparing battle...",
   });
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [fireEvents, setFireEvents] = useState<WeaponFireEvent[]>([]);
   const startAudioOnlyRef = useRef<(() => void) | null>(null);
+  const fireTrackerRef = useRef(new WeaponFireTracker());
 
   const scene = SCENES[0];
   const preset = getCapturePreset(settings.preset);
@@ -109,8 +113,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       duration,
       audioBlob: audioBlob ?? undefined,
       startAudioOnly: startAudioOnlyRef.current ?? undefined,
+      fireEvents,
     });
-  }, [state, downloadBlob, duration, audioBlob]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -126,8 +131,10 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         setState={setState}
         onAudioBlob={setAudioBlob}
         onStartAudioOnly={(fn) => { startAudioOnlyRef.current = fn; }}
+        fireTracker={fireTrackerRef.current}
+        onFireEvents={setFireEvents}
       />
-      <CaptureOverlay state={state} onDownload={downloadBlob} />
+      <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
     </>
   );
 }
@@ -142,6 +149,8 @@ function CaptureBattle({
   setState,
   onAudioBlob,
   onStartAudioOnly,
+  fireTracker,
+  onFireEvents,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -152,6 +161,8 @@ function CaptureBattle({
   setState: (state: CaptureState) => void;
   onAudioBlob?: (blob: Blob) => void;
   onStartAudioOnly?: (fn: () => void) => void;
+  fireTracker?: WeaponFireTracker;
+  onFireEvents?: (events: WeaponFireEvent[]) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gpuRef = useRef<ViewportGpu | null>(null);
@@ -389,6 +400,16 @@ function CaptureBattle({
       if (pilotStartRef.current === null || state.status !== "recording") return;
       const elapsed = (now - pilotStartRef.current) / 1000;
       setState({ status: "recording", elapsed, duration });
+
+      // Track weapon fire events for the sidecar JSON
+      if (fireTracker && sim.observation) {
+        const sample = sampleReel(reel, elapsed);
+        fireTracker.setFollowedUnit(sample.follow);
+        const newEvents = fireTracker.update(sim.observation, now);
+        if (newEvents.length > 0) {
+          onFireEvents?.(fireTracker.getEvents());
+        }
+      }
     },
   };
 
@@ -432,7 +453,7 @@ function CaptureBattle({
       }}
     >
       <div
-        className="menu-backdrop-film"
+        className={`menu-backdrop-film${isPageMode ? " capture-mode" : ""}`}
         ref={(el) => {
           if (el) {
             const canvas = el.querySelector("canvas");

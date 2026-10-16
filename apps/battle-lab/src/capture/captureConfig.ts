@@ -169,3 +169,90 @@ export function getCapturePreset(name: string): CapturePreset {
 export function reelDuration(reel: MenuReel): number {
   return reel.shots.reduce((sum, shot) => sum + shot.seconds, 0);
 }
+
+/** A logged weapon fire event for correlating audio with visuals. */
+export interface WeaponFireEvent {
+  /** Capture-relative time in seconds when the shot was detected. */
+  time_s: number;
+  /** The unit that fired (id). */
+  unit_id: number;
+  /** The unit's kind (type name). */
+  unit_kind: string;
+  /** Which mount fired (index into unit's mounts). */
+  mount: number;
+  /** Weapon kind (round type name like "tank_ap", "rifle", "hmg"). */
+  weapon_kind: string;
+  /** Position where the shot originated. */
+  position: readonly [number, number, number];
+  /** Whether this is the followed unit. */
+  is_followed: boolean;
+}
+
+/** Tracks weapon fires by watching shot counts on unit mounts. */
+export class WeaponFireTracker {
+  private shotCounts = new Map<string, number>();
+  private events: WeaponFireEvent[] = [];
+  private startTime: number | null = null;
+  private followedUnit: number | null = null;
+
+  /** Set which unit is being followed (for logging). */
+  setFollowedUnit(id: number | null) {
+    this.followedUnit = id;
+  }
+
+  /** Update with current observation. Call each frame during capture.
+   *  Returns any new fire events detected this frame. */
+  update(
+    observation: {
+      own: readonly {
+        id: number;
+        kind: string;
+        position: readonly [number, number, number];
+        weaponPoses: readonly { mount: number; shots: number }[];
+      }[];
+    },
+    now: number,
+  ): WeaponFireEvent[] {
+    if (this.startTime === null) this.startTime = now;
+    const elapsed = (now - this.startTime) / 1000;
+    const newEvents: WeaponFireEvent[] = [];
+
+    for (const unit of observation.own) {
+      for (const pose of unit.weaponPoses) {
+        const key = `${unit.id}:${pose.mount}`;
+        const prev = this.shotCounts.get(key) ?? 0;
+        const current = pose.shots;
+
+        if (current > prev) {
+          const event: WeaponFireEvent = {
+            time_s: elapsed,
+            unit_id: unit.id,
+            unit_kind: unit.kind,
+            mount: pose.mount,
+            weapon_kind: "unknown", // Would need rules to resolve
+            position: unit.position,
+            is_followed: unit.id === this.followedUnit,
+          };
+          newEvents.push(event);
+          this.events.push(event);
+        }
+
+        this.shotCounts.set(key, current);
+      }
+    }
+
+    return newEvents;
+  }
+
+  /** Get all fire events logged so far. */
+  getEvents(): WeaponFireEvent[] {
+    return [...this.events];
+  }
+
+  /** Reset the tracker for a new capture. */
+  reset() {
+    this.shotCounts.clear();
+    this.events = [];
+    this.startTime = null;
+  }
+}

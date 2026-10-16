@@ -231,11 +231,14 @@ export function useCaptureHooks(): CaptureHooks {
 export function CaptureOverlay({
   state,
   onDownload,
+  hidden,
 }: {
   state: CaptureState;
   onDownload?: () => void;
+  /** Hide the overlay (used in page capture mode where CLI shows progress). */
+  hidden?: boolean;
 }) {
-  if (state.status === "idle") return null;
+  if (state.status === "idle" || hidden) return null;
 
   return (
     <div className="capture-overlay" data-testid="capture-overlay">
@@ -280,6 +283,8 @@ export function CaptureOverlay({
   );
 }
 
+import type { WeaponFireEvent } from "./captureConfig";
+
 /** Extra data exposed to window for page-level capture mode. */
 export interface CaptureExtras {
   /** Total duration of the capture in seconds. */
@@ -288,6 +293,8 @@ export interface CaptureExtras {
   audioBlob?: Blob;
   /** Start audio-only recording (for page mode). */
   startAudioOnly?: () => void;
+  /** Weapon fire events logged during capture. */
+  fireEvents?: WeaponFireEvent[];
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -305,5 +312,6 @@ export function exposeCaptureToWindow(
     duration: extras?.duration,
     audioBlob: extras?.audioBlob,
     startAudioOnly: extras?.startAudioOnly,
+    fireEvents: extras?.fireEvents,
   };
 }

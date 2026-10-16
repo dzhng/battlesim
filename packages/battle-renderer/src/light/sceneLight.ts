@@ -162,10 +162,12 @@ export function validateLight(light: LightPresentation): LightPresentation {
   const walk = (value: unknown, path: string) => {
     if (typeof value === "number") {
       if (!Number.isFinite(value)) bad(path, "must be finite");
+    } else if (typeof value === "boolean") {
+      // Booleans are allowed (e.g., grade.enabled)
     } else if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}[${i}]`));
     else if (value && typeof value === "object")
       for (const [k, v] of Object.entries(value)) walk(v, path ? `${path}.${k}` : k);
-    else bad(path, "must be a number");
+    else bad(path, "must be a number or boolean");
   };
   walk(light, "");
   const within = (path: string, v: number, lo: number, hi: number) => {

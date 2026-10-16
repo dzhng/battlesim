@@ -228,40 +228,44 @@ async function transcodeToMp4(webmPath, fps) {
 }
 
 /** CDP-based page capture: captures the full page including DOM overlays.
- *  Uses Page.startScreencast for video frames piped to ffmpeg, and
- *  browser-side audio capture for audio, then muxes them together. */
+ *  Uses Page.startScreencast for video frames with real timestamps, piped to
+ *  ffmpeg via a concat demuxer for proper VFR-to-CFR conversion. Audio is
+ *  captured via browser Web Audio API and muxed at the end. */
 async function captureWithCDP(page, args, server) {
   const cdp = await page.context().newCDPSession(page);
   
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  // Use scene in filename: capture-menu-preset or capture-skirmish-preset
+  const sceneName = args.scene === "skirmish" ? "skirmish" : "menu";
   const rawVideoPath = resolve(args.output, `raw-${timestamp}.mp4`);
   const audioPath = resolve(args.output, `audio-${timestamp}.webm`);
-  const finalPath = resolve(args.output, `capture-${args.preset}-${timestamp}.${args.webm ? "webm" : "mp4"}`);
+  const framesDir = resolve(args.output, `frames-${timestamp}`);
+  const concatPath = resolve(args.output, `concat-${timestamp}.txt`);
+  const finalPath = resolve(args.output, `capture-${sceneName}-${args.preset}-${timestamp}.${args.webm ? "webm" : "mp4"}`);
   
-  // Start ffmpeg to receive frames
-  const ffmpegVideo = spawn("ffmpeg", [
-    "-y",
-    "-f", "image2pipe",
-    "-framerate", String(args.fps),
-    "-i", "-",
-    "-c:v", "libx264",
-    "-preset", "ultrafast",
-    "-crf", "18",
-    "-pix_fmt", "yuv420p",
-    rawVideoPath,
-  ], { stdio: ["pipe", "pipe", "pipe"] });
+  await mkdir(framesDir, { recursive: true });
   
   let frameCount = 0;
   let captureStartTime = null;
   let captureDuration = 0;
+  const frameTimestamps = []; // { path, timestamp_s }
+  let firstFrameTime = null;
   
-  // Handle screencast frames
+  // Handle screencast frames with real timestamps
   cdp.on("Page.screencastFrame", async (event) => {
     if (!captureStartTime) captureStartTime = Date.now();
     
     try {
       const frameData = Buffer.from(event.data, "base64");
-      ffmpegVideo.stdin.write(frameData);
+      const framePath = join(framesDir, `frame-${String(frameCount).padStart(6, "0")}.jpg`);
+      await writeFile(framePath, frameData);
+      
+      // Use CDP timestamp (seconds since epoch) for accurate timing
+      const frameTime = event.metadata.timestamp;
+      if (firstFrameTime === null) firstFrameTime = frameTime;
+      const relativeTime = frameTime - firstFrameTime;
+      
+      frameTimestamps.push({ path: framePath, timestamp_s: relativeTime });
       frameCount++;
       
       // Acknowledge frame to receive next one
@@ -281,7 +285,7 @@ async function captureWithCDP(page, args, server) {
   // Start screencast
   await cdp.send("Page.startScreencast", {
     format: "jpeg",
-    quality: 90,
+    quality: 95,
     maxWidth: args.width,
     maxHeight: args.height,
     everyNthFrame: 1,
@@ -311,18 +315,67 @@ async function captureWithCDP(page, args, server) {
   );
   
   process.stdout.write("\n");
-  console.log(`  Captured ${frameCount} frames`);
   
   // Stop screencast
   await cdp.send("Page.stopScreencast");
   
-  // Close ffmpeg video input
-  ffmpegVideo.stdin.end();
+  const actualDuration = frameTimestamps.length > 0 
+    ? frameTimestamps[frameTimestamps.length - 1].timestamp_s 
+    : 0;
+  console.log(`  Captured ${frameCount} frames over ${actualDuration.toFixed(2)}s`);
+  
+  // Build concat demuxer file with per-frame durations
+  console.log("Building frame list with real timestamps...");
+  let concatContent = "";
+  for (let i = 0; i < frameTimestamps.length; i++) {
+    const frame = frameTimestamps[i];
+    const nextFrame = frameTimestamps[i + 1];
+    // Duration is time to next frame, or 1/fps for the last frame
+    const duration = nextFrame 
+      ? (nextFrame.timestamp_s - frame.timestamp_s) 
+      : (1 / args.fps);
+    concatContent += `file '${frame.path}'\n`;
+    concatContent += `duration ${duration.toFixed(6)}\n`;
+  }
+  // Concat demuxer needs last file repeated without duration
+  if (frameTimestamps.length > 0) {
+    concatContent += `file '${frameTimestamps[frameTimestamps.length - 1].path}'\n`;
+  }
+  await writeFile(concatPath, concatContent);
+  
+  // Encode video with proper timing using concat demuxer
+  // High profile, CRF 20, faststart for web playback
+  console.log("Encoding video with real frame timing...");
   await new Promise((resolve, reject) => {
+    const ffmpegVideo = spawn("ffmpeg", [
+      "-y",
+      "-f", "concat",
+      "-safe", "0",
+      "-i", concatPath,
+      "-c:v", "libx264",
+      "-profile:v", "high",
+      "-preset", "medium",
+      "-crf", "20",
+      "-pix_fmt", "yuv420p",
+      "-movflags", "+faststart",
+      rawVideoPath,
+    ], { stdio: ["ignore", "pipe", "pipe"] });
+    
+    let stderr = "";
+    ffmpegVideo.stderr.on("data", (data) => {
+      stderr += data.toString();
+      const timeMatch = stderr.match(/time=(\d+:\d+:\d+\.\d+)/g);
+      if (timeMatch) {
+        process.stdout.write(`\r  Encoding: ${timeMatch[timeMatch.length - 1]}    `);
+      }
+    });
+    
     ffmpegVideo.on("close", (code) => {
+      process.stdout.write("\n");
       if (code === 0) resolve();
       else reject(new Error(`ffmpeg video exited with code ${code}`));
     });
+    ffmpegVideo.on("error", reject);
   });
   
   console.log("  Video encoded");
@@ -351,12 +404,23 @@ async function captureWithCDP(page, args, server) {
     }
   }
   
-  // Mux audio and video
+  // Mux audio and video - use audio duration as primary, pad video if needed
   console.log("Muxing audio and video...");
   
+  // High profile, CRF 20, faststart for final output
   const muxArgs = hasAudio
-    ? ["-y", "-i", rawVideoPath, "-i", audioPath, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", finalPath]
-    : ["-y", "-i", rawVideoPath, "-c:v", "copy", "-an", finalPath];
+    ? [
+        "-y",
+        "-i", rawVideoPath,
+        "-i", audioPath,
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-movflags", "+faststart",
+        // Use shortest=0 (disabled) to keep full audio; video loops last frame if shorter
+        finalPath,
+      ]
+    : ["-y", "-i", rawVideoPath, "-c:v", "copy", "-an", "-movflags", "+faststart", finalPath];
   
   await new Promise((resolve, reject) => {
     const ffmpegMux = spawn("ffmpeg", muxArgs, { stdio: "pipe" });
@@ -369,10 +433,26 @@ async function captureWithCDP(page, args, server) {
   
   // Clean up intermediate files
   await unlink(rawVideoPath).catch(() => {});
+  await unlink(concatPath).catch(() => {});
   if (hasAudio) await unlink(audioPath).catch(() => {});
+  // Clean up frames directory
+  for (const frame of frameTimestamps) {
+    await unlink(frame.path).catch(() => {});
+  }
+  await import("node:fs/promises").then(fs => fs.rmdir(framesDir).catch(() => {}));
+  
+  // Get and write weapon fire events to sidecar JSON
+  const fireEvents = await page.evaluate(() => window.__capture?.fireEvents ?? []);
+  const sidecarPath = finalPath.replace(/\.(mp4|webm)$/, "-fire-events.json");
+  if (fireEvents.length > 0) {
+    await writeFile(sidecarPath, JSON.stringify(fireEvents, null, 2));
+    console.log(`  Fire events: ${fireEvents.length} logged to ${basename(sidecarPath)}`);
+  } else {
+    console.log("  No weapon fire events detected");
+  }
   
   const { size } = await stat(finalPath);
-  return { path: finalPath, size };
+  return { path: finalPath, size, fireEventsPath: fireEvents.length > 0 ? sidecarPath : null };
 }
 
 async function main() {

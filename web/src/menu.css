@@ -47,6 +47,10 @@
   inset: 0;
   filter: grayscale(1) contrast(1.35) brightness(0.85);
 }
+/* In capture mode, disable the greyscale film so we get full-colour output. */
+.menu-backdrop-film.capture-mode {
+  filter: none;
+}
 /* Shade under the grade, so the edges darken in the same amber. */
 .menu-backdrop-film::after {
   content: "";
@@ -55,6 +59,10 @@
   background:
     radial-gradient(ellipse at 60% 50%, transparent 40%, rgb(0 0 0 / 0.65) 100%),
     linear-gradient(to right, rgb(0 0 0 / 0.55), transparent 50%);
+}
+/* Disable vignette in capture mode. */
+.menu-backdrop-film.capture-mode::after {
+  background: none;
 }
 .menu-backdrop-grade {
   position: absolute;
