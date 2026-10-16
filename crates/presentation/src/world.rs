@@ -142,11 +142,6 @@ impl UnitType {
     pub fn high_air(&self) -> bool {
         self.layer == AltitudeLayer::HighAir
     }
-
-    /// It flies on wings: it banks into its turns and never hovers.
-    pub fn fixed_wing(&self) -> bool {
-        self.flight == Some(FlightModel::FixedWing)
-    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]

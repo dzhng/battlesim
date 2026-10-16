@@ -15,6 +15,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use std::sync::Arc;
 
+use contract::catalog::FlightModel;
 use serde::Deserialize;
 
 use super::delta_angle;
@@ -191,17 +192,27 @@ pub struct RotorFeel {
     pub tip_mps: f64,
 }
 
+/// How each flight model leans an aircraft.
 #[derive(Clone, Debug, Deserialize)]
 pub struct AttitudeFeel {
-    pub gain: f64,
-    pub max_deg: f64,
-    pub smoothing_s: f64,
-    /// A winged aircraft's attitude; helicopters use the fields above.
-    pub fixed_wing: FixedWingAttitudeFeel,
+    pub rotor: TiltFeel,
+    pub fixed_wing: TiltFeel,
 }
 
+impl AttitudeFeel {
+    /// The tilt of an aircraft that flies by `flight`.
+    pub fn flight(&self, flight: FlightModel) -> &TiltFeel {
+        match flight {
+            FlightModel::Rotor => &self.rotor,
+            FlightModel::FixedWing => &self.fixed_wing,
+        }
+    }
+}
+
+/// How far and how quickly an aircraft tilts: `gain` scales the angle its
+/// flight asks for, clamped to `max_deg` and eased over `smoothing_s`.
 #[derive(Clone, Debug, Deserialize)]
-pub struct FixedWingAttitudeFeel {
+pub struct TiltFeel {
     pub gain: f64,
     pub max_deg: f64,
     pub smoothing_s: f64,
@@ -604,8 +615,6 @@ struct Flight {
     accel: [f64; 2],
     /// A fixed-wing aircraft's published 3D flight velocity, eased.
     path_velocity: [f64; 3],
-    /// Its last published heading, for fixed-wing turn rate.
-    heading: Option<f64>,
     /// The (pitch, roll) they gave it last, held while the clock stands still.
     attitude: Option<(f64, f64)>,
 }
@@ -1166,7 +1175,7 @@ impl PoseDriver {
         }
         let flying = if pose.airborne && unit.attitude.is_none() {
             let f = state.flight.get_or_insert_with(Flight::default);
-            aircraft_attitude(f, &feel.attitude, pose.position, unit, ty, dt)
+            aircraft_attitude(f, &feel.attitude, (pose.position, pose.yaw), unit, ty, dt)
         } else {
             None
         };
@@ -1211,16 +1220,16 @@ impl PoseDriver {
 /// path angle and roll is the bank needed to turn at its published yaw rate.
 fn fixed_wing_attitude(
     f: &mut Flight,
-    feel: &AttitudeFeel,
-    was: Vec3,
+    feel: &TiltFeel,
+    (was, was_yaw): (Vec3, f64),
     unit: &FeedUnit,
     dt: f64,
 ) -> Option<(f64, f64)> {
-    let FixedWingAttitudeFeel {
+    let TiltFeel {
         gain,
         max_deg,
         smoothing_s,
-    } = feel.fixed_wing;
+    } = *feel;
     let k = 1.0 - libm::exp(-dt / smoothing_s);
     let measured = [
         (unit.position[0] - was[0]) / dt,
@@ -1234,10 +1243,7 @@ fn fixed_wing_attitude(
     let max = max_deg * PI / 180.0;
     let limit = |angle: f64| (gain * angle).clamp(-max, max);
     let target_pitch = limit(libm::atan2(f.path_velocity[2], horizontal));
-    let turn_rate = f
-        .heading
-        .map_or(0.0, |heading| delta_angle(heading, unit.yaw) / dt);
-    f.heading = Some(unit.yaw);
+    let turn_rate = delta_angle(was_yaw, unit.yaw) / dt;
     let target_roll = limit(-libm::atan2(horizontal * turn_rate, GRAVITY));
     let (old_pitch, old_roll) = f.attitude.unwrap_or_default();
     let pitch = old_pitch + (target_pitch - old_pitch) * k;
@@ -1246,14 +1252,16 @@ fn fixed_wing_attitude(
     f.attitude
 }
 
-/// How a flying aircraft leans, from how its drawn position moved since the
-/// last frame (`was`): nose down to speed up, up to brake, into a turn, by
-/// the angle that tilts its lift into its acceleration. Held while the clock
+/// How a flying aircraft leans, from how its drawn pose (position and yaw)
+/// moved since the last frame (`was`). A winged aircraft follows its flight
+/// path (see `fixed_wing_attitude`). Any other aircraft leans by its
+/// acceleration: nose down to speed up, up to brake, into a turn, by the
+/// angle that tilts its lift into its acceleration. Held while the clock
 /// stands still; level, it carries no tilt.
 fn aircraft_attitude(
     f: &mut Flight,
     feel: &AttitudeFeel,
-    was: Vec3,
+    was: (Vec3, f64),
     unit: &FeedUnit,
     ty: &UnitType,
     dt: f64,
@@ -1262,9 +1270,12 @@ fn aircraft_attitude(
         return f.attitude;
     }
     // The flight model, never the layer, decides how it tilts.
-    if ty.fixed_wing() {
+    let flight = ty.flight.unwrap_or(FlightModel::Rotor);
+    let feel = feel.flight(flight);
+    if flight == FlightModel::FixedWing {
         return fixed_wing_attitude(f, feel, was, unit, dt);
     }
+    let (was, _) = was;
     let k = 1.0 - libm::exp(-dt / feel.smoothing_s);
     let v = [
         (unit.position[0] - was[0]) / dt,

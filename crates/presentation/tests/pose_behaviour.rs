@@ -480,7 +480,7 @@ fn a_helicopters_attitude_is_unchanged() {
         v["types"]["test_heli"] = heli;
     });
     let none = fallen(&[]);
-    let max = feel(&units, "/attitude/max_deg").to_radians();
+    let max = feel(&units, "/attitude/rotor/max_deg").to_radians();
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut heli = tank(0.0, 0.0, (0.0, 0.0, 0.0), 0.0);
     heli.kind = "test_heli".into();

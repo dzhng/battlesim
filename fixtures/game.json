@@ -1916,7 +1916,7 @@
         "wheeled_heavy": 0.75
       },
       "rotor": { "tip_mps": 200 },
-      "attitude": { "gain": 1, "max_deg": 18, "smoothing_s": 0.4, "fixed_wing": { "gain": 1, "max_deg": 35, "smoothing_s": 0.25 } },
+      "attitude": { "rotor": { "gain": 1, "max_deg": 18, "smoothing_s": 0.4 }, "fixed_wing": { "gain": 1, "max_deg": 35, "smoothing_s": 0.25 } },
       "corpses": { "max": 1000, "fade_s": 3, "sink_m": 0.6 }
     },
     "transit": { "inbound_s": 10, "outbound_s": 10 },
