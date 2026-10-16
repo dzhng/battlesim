@@ -106,7 +106,8 @@ fn reach_and_fire_gate_agree_so_nothing_freezes() {
         &fixture,
         json!([
             { "side": "blue", "kind": "test_jeep", "position": [100, 300] },
-            { "side": "red", "kind": "test_heli", "position": [1590, 300], "yaw": std::f64::consts::PI }
+            // Flying away: where a shot would meet it lies past reach too.
+            { "side": "red", "kind": "test_heli", "position": [1590, 300], "yaw": 0.0 }
         ]),
         &map([2200.0, 600.0]),
     );

@@ -1,7 +1,7 @@
 {
   "units": [
     {"side":"blue","kind":"test_heli","position":[40,460],"engagement":"return_fire_only"},
-    {"side":"red","kind":"test_rifle","position":[215,405],"yaw":1.5707963267948966},
+    {"side":"red","kind":"test_rifle","position":[215,405],"yaw":1.5707963267948966,"condition":{"soldier_hp":400}},
     {"side":"red","kind":"test_gun_jeep","position":[480,160],"yaw":1.5707963267948966,"engagement":"return_fire_only"},
     {"side":"red","kind":"test_tank","position":[506,160],"yaw":1.5707963267948966}
   ],

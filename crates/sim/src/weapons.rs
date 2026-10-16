@@ -895,12 +895,6 @@ fn engage(
             // OutOfRange asks an ordered unit to advance; too close holds.
             return Err(ActionReason::HoldingFire);
         }
-        if weapon.def.ballistics.delivery == Delivery::Powered
-            && r.fire(&weapon.def)
-                .is_none_or(|fire| distance > fire.range_m)
-        {
-            return Err(ActionReason::OutOfRange);
-        }
         if weapon.def.ballistics.delivery == Delivery::Unpowered {
             return Ok(FiringSolution {
                 velocity: V3::default(),
@@ -909,6 +903,9 @@ fn engage(
                 arc: crate::flight::ArcKind::Low,
             });
         }
+        let Some(reach) = r.fire(&weapon.def).map(|fire| fire.range_m) else {
+            return Err(ActionReason::OutOfRange);
+        };
         let aim = Aim {
             origin,
             target: r.point,
@@ -925,6 +922,10 @@ fn engage(
         ) {
             Err(NoSolution::OutOfReach) => Err(ActionReason::OutOfRange),
             Err(NoSolution::Blocked { .. }) => Err(ActionReason::BlockedTrajectory),
+            // The shot must meet its target within its layer's reach, not
+            // merely start inside it: the lead's meeting point is the one
+            // point the aim uses and the one the reach is judged at.
+            Ok((s, _)) if (s.intercept - origin).length() > reach => Err(ActionReason::OutOfRange),
             Ok((s, _))
                 if weapon.def.requires_clear_launch_path
                     && !launch_clear(ctx, origin, &s, weapon, carrier) =>
@@ -1637,10 +1638,9 @@ fn catchable_round(
         })
 }
 
-/// Whether the shot's lead meets the round in time and in reach: before
-/// the round's own flight ends, and within the row's reach for its layer (a
-/// fast round crossing the edge of reach is met past it, however close it
-/// is now).
+/// Whether the shot's lead meets the round in time: before the round's own
+/// flight ends. That it meets it within reach, every shot's assessment asks
+/// ([`engage`]).
 #[allow(clippy::too_many_arguments)]
 fn catches(
     ctx: &FireContext,
@@ -1660,13 +1660,8 @@ fn catches(
         .iter()
         .find(|r| r.id == round.id)
         .map_or(0.0, |r| r.ends_in_s);
-    r.fire(&ctx.arsenal.weapons[spec.kinds[k]].def)
-        .is_some_and(|fire| {
-            engage(ctx, unit, units, mount, spec, k, target, r).is_ok_and(|s| {
-                s.time_of_flight_s <= ends_in_s
-                    && body_distance(s.intercept, unit.position) <= fire.range_m
-            })
-        })
+    engage(ctx, unit, units, mount, spec, k, target, r)
+        .is_ok_and(|s| s.time_of_flight_s <= ends_in_s)
 }
 
 /// What a unit's weapons concluded this tick, read by next tick's movement.

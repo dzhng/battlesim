@@ -3565,3 +3565,38 @@ fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
     assert!(first.is_some());
     assert_ne!(last, first, "it kept a target it could no longer reach");
 }
+
+/// A shot must meet its target within the weapon's reach for its layer, not
+/// merely start inside it: a jeep driving away inside reach, whose meeting
+/// point lies past it, is not fired at, and the gun takes the still jeep a
+/// little farther off instead.
+#[test]
+fn test_a_target_met_past_reach_is_passed_over_for_one_in_reach() {
+    let mut game = rules();
+    let hmg = &mut game["weapons"]["hmg"];
+    hmg["range_m"] = json!(300.0);
+    hmg["speed_mps"] = json!(50.0);
+    hmg["scatter_mrad"] = json!(10.0);
+    let setup = serde_json::from_value(json!({
+        "map": serde_json::from_str::<Value>(&map(json!([]))).unwrap(),
+        "rules": game,
+        "units": [
+            { "side": "blue", "kind": "test_jeep", "position": [600, 300] },
+            { "side": "red", "kind": "test_jeep", "position": [850, 300], "yaw": 0.0, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_jeep", "position": [600, 590], "engagement": "return_fire_only" }
+        ],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "red", "order":
+            { "kind": "move", "units": [1], "gesture": 1, "goal": [1190, 300], "route": "shortest" } }]
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    for _ in 0..600 {
+        b.step();
+        if let Some((_, round)) = b.rounds().find(|(_, r)| r.unit == UnitId(0)) {
+            assert_eq!(round.fused_target, Some(UnitId(2)), "the first shot");
+            return;
+        }
+    }
+    panic!("the gun never fired");
+}
