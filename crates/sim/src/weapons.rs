@@ -1108,11 +1108,14 @@ fn assess(
             return Err(ActionReason::NoFacingSlot);
         }
     }
-    // A winged aircraft's fixed gun fires only nose-on: its flight, never a
-    // weapon, points the airframe.
+    // A winged aircraft's flight, never a weapon, points the airframe, so a
+    // hull-fixed row it aims by the nose (unguided and powered: a fixed gun,
+    // a rocket pod) fires only nose-on. A seeker row aims by its cone, a
+    // guided one by its guidance and a bomb by its pass's release cue.
     if unit.fixed_wing()
-        && weapon.default
-        && !spec.turret
+        && hull_fixed(unit, spec)
+        && weapon.ballistics.guidance.is_none()
+        && weapon.ballistics.delivery == contract::ballistics::Delivery::Powered
         && !r
             .fire(weapon)
             .is_some_and(|fire| nose_on(unit, r.point, fire.range_m))
