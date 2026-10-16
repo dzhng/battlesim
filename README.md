@@ -80,6 +80,7 @@ These were all built and then deleted, because each stood in for a property some
 - **A proximity fuse inferred from a motor and a blast.** Any powered round with a blast burst near the aircraft it was fired at. A round with a fuse authors its reach (`proximity_fuse_m`).
 - **Hull and speed limits keyed by altitude layer.** The largest aircraft hull and the fastest cruise were read by `low_air` and `high_air`, standing in for helicopter and jet. They are keyed by flight model (`hull_limits.rotor`, `air_speed_limits_kmh.fixed_wing`), and the speed limits are rules data.
 - **A hauler or a wreck known by its role or its art.** A vehicle's `_logistics` class and the endurance harness read the `logistics` role, and the simulation knew a wreck by `drawn_by: "wreck"`. A hauler is a unit that carries `supply`; a wreck is a prop row authored `wreck: true`.
+- **A `ground_attack` tag (`bomb`, `strafe`) on weapon rows.** A bomb is an unpowered row (`delivery: unpowered`); a strafing gun is the aircraft's always-available gun (`default`).
 
 If a rule asks "is this an X unit?" or "is this target an aircraft?", the question is usually one of these again.
 

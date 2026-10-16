@@ -65,10 +65,6 @@ pub struct WeaponDefinition {
     pub proximity_fuse_m: Option<f64>,
     #[serde(default)]
     pub structural_damage: f64,
-    /// Ground attack mode for air-launched rows. Bombs take precedence over
-    /// strafing guns while a bomb store has rounds remaining.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ground_attack: Option<GroundAttackKind>,
     /// Anti-radiation seeker: it homes on a radar's emission, so it also
     /// fires at a radar contact or an identified unit whose radar emits,
     /// and never at an area that doesn't emit. This is distinct from a
@@ -110,13 +106,6 @@ pub struct WeaponDefinition {
     /// with a much wider spread than along the ground; a tank gun, a grenade
     /// or a ground missile cannot. A layer it does not list, it never engages.
     pub targets: BTreeMap<crate::catalog::AltitudeLayer, LayerFire>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GroundAttackKind {
-    Bomb,
-    Strafe,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -392,11 +381,6 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                         }
                     }
                     let unpowered = def.ballistics.delivery == Delivery::Unpowered;
-                    if matches!(def.ground_attack, Some(GroundAttackKind::Bomb)) && !unpowered {
-                        return Err(serde::de::Error::custom(
-                            "a bomb row must use unpowered delivery",
-                        ));
-                    }
                     if unpowered {
                         if def.ballistics.speed_mps != 0.0 || def.ballistics.range_m != 0.0 {
                             return Err(serde::de::Error::custom(
@@ -474,11 +458,11 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "an anti-radiation row needs a radar seeker",
                         ));
                     }
-                    if matches!(def.ground_attack, Some(GroundAttackKind::Bomb))
+                    if def.ballistics.delivery == Delivery::Unpowered
                         && !def.targets.contains_key(&crate::catalog::AltitudeLayer::Ground)
                     {
                         return Err(serde::de::Error::custom(
-                            "a bomb row must target Ground",
+                            "an unpowered row (a bomb) must target Ground",
                         ));
                     }
                     if def.seeker_fov_deg.is_some_and(|fov| {

@@ -592,8 +592,7 @@
                     "aim_max_s": 1
                 }
             },
-            "default": true,
-            "ground_attack": "strafe"
+            "default": true
         },
         "air_missile": {
             "fires_on_its_own": true,
@@ -648,8 +647,7 @@
             "near_miss_suppression": 0.3,
             "suppression_radius_m": 18,
             "blast_radius_m": 14,
-            "structural_damage": 80,
-            "ground_attack": "bomb"
+            "structural_damage": 80
         },
         "air_bomb_cluster": {
             "delivery": "unpowered",
@@ -670,8 +668,7 @@
             "suppression_radius_m": 24,
             "blast_radius_m": 9,
             "structural_damage": 35,
-            "magazine": { "rounds": 4, "shot_interval_s": 0.08 },
-            "ground_attack": "bomb"
+            "magazine": { "rounds": 4, "shot_interval_s": 0.08 }
         },
         "air_ground_missile": {
             "extends": "heli_atgm",

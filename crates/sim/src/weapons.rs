@@ -6,7 +6,6 @@ use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ActionReason, ContactId, MountReadiness, WeaponPose};
 use contract::scenario::{Armor, Rules};
-use contract::weapons::GroundAttackKind;
 use contract::weapons::{AmmoCapacity, Fire, TargetClass, WeaponDefinition};
 
 mod cycle;
@@ -1081,11 +1080,11 @@ fn assess(
         // A winged aircraft's bombs leave only on its bombing pass's release
         // cue, never between passes.
         let release_cue = bomb_pass && unit.air.as_ref().is_some_and(|air| air.pass_release);
-        match weapon.ground_attack {
-            Some(GroundAttackKind::Bomb) if unit.fixed_wing() && !release_cue => {
+        match crate::air::pass::pass_weapon(weapon) {
+            Some(crate::air::pass::PassWeapon::Bomb) if unit.fixed_wing() && !release_cue => {
                 return Err(ActionReason::HoldingFire);
             }
-            Some(GroundAttackKind::Strafe) if bomb_pass => {
+            Some(crate::air::pass::PassWeapon::Gun) if bomb_pass => {
                 return Err(ActionReason::NoCompatibleTarget);
             }
             _ => {}

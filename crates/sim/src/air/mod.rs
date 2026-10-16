@@ -19,7 +19,6 @@ use crate::units::{Motion, Unit, UnitOrder};
 use crate::weapons::Target;
 use contract::catalog::AltitudeLayer;
 use contract::random::{mix, Rng};
-use contract::weapons::GroundAttackKind;
 
 /// Advance one winged aircraft by the fixed-wing flight law, without
 /// consulting the rotor air grid.
@@ -300,15 +299,7 @@ fn pass_weapons(ctx: &MovementContext, unit: &Unit) -> Vec<pass::PassWeapon> {
             if !mount.ammo[slot].is_none_or(|n| n > 0) {
                 continue;
             }
-            let def = &ctx.arsenal.weapons[kind].def;
-            let mode = match def.ground_attack {
-                Some(GroundAttackKind::Bomb) => Some(pass::PassWeapon::Bomb),
-                Some(GroundAttackKind::Strafe) => Some(pass::PassWeapon::Gun),
-                None if def.against(AltitudeLayer::Ground).is_some() && !def.default => {
-                    Some(pass::PassWeapon::GroundMissile)
-                }
-                _ => None,
-            };
+            let mode = pass::pass_weapon(&ctx.arsenal.weapons[kind].def);
             if let Some(mode) = mode.filter(|mode| !out.contains(mode)) {
                 out.push(mode);
             }
@@ -332,17 +323,7 @@ fn pass_release(
                 if !mount.ammo[slot].is_none_or(|n| n > 0) {
                     return None;
                 }
-                let def = &ctx.arsenal.weapons[kind].def;
-                let matches = match weapon {
-                    pass::PassWeapon::Bomb => {
-                        matches!(def.ground_attack, Some(GroundAttackKind::Bomb))
-                    }
-                    pass::PassWeapon::Gun => {
-                        matches!(def.ground_attack, Some(GroundAttackKind::Strafe))
-                    }
-                    pass::PassWeapon::GroundMissile => def.ground_attack.is_none() && !def.default,
-                };
-                matches.then_some(kind)
+                (pass::pass_weapon(&ctx.arsenal.weapons[kind].def) == Some(weapon)).then_some(kind)
             })
         })
         .next();
