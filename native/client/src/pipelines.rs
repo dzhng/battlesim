@@ -407,6 +407,23 @@ impl Pipelines {
     }
 }
 
+#[cfg(windows)]
+fn native_shader_source(name: &str, source: String) -> String {
+    if !name.ends_with("Cutout") {
+        return source;
+    }
+    source
+        .replace("-> @builtin(sample_mask) u32 {", " {")
+        .replace(
+            "return coveredSamples(coverage, fwidth(coverage), pixelNoise(clip.xy));",
+            "if (coverage <= 0.5f) { discard; }",
+        )
+        .replace(
+            "return u32((cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy)));",
+            "if (!(cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy))) { discard; }",
+        )
+}
+
 fn build(
     device: &Device,
     dir: &str,
@@ -414,6 +431,8 @@ fn build(
     layouts: &HashMap<String, BindGroupLayout>,
 ) -> Result<Pipeline> {
     let source = fs::read_to_string(format!("{dir}/{}", desc.shader)).map_err(|e| e.to_string())?;
+    #[cfg(windows)]
+    let source = native_shader_source(&desc.name, source);
     let module = device.create_shader_module(ShaderModuleDescriptor {
         label: Some(&desc.shader),
         source: ShaderSource::Wgsl(source.into()),
@@ -549,4 +568,19 @@ fn build(
             cache: None,
         },
     )))
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::native_shader_source;
+
+    #[test]
+    fn amd_cutout_shader_uses_discard_instead_of_sample_mask() {
+        let source = "@fragment fn cut() -> @builtin(sample_mask) u32 { return coveredSamples(coverage, fwidth(coverage), pixelNoise(clip.xy)); } return u32((cutoutCoverage(_arg_0.material, _arg_0.uv) > pixelNoise(clip.xy)));";
+        let adapted = native_shader_source("modelPrepassCutout", source.to_owned());
+        assert!(!adapted.contains("sample_mask"));
+        assert!(!adapted.contains("return coveredSamples"));
+        assert!(!adapted.contains("return u32"));
+        assert!(adapted.contains("discard"));
+    }
 }
