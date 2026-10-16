@@ -4,6 +4,18 @@
    scrims. Every colour is a `--hud-*` property from `presentation.hud`
    (`hudTheme.ts`); this sheet holds none of its own. */
 
+/* A game's interface is never selected like a page's text: a drag or a
+   double-click anywhere (HUD, world labels, menus) highlights nothing. Only
+   fields the player types into keep their text selectable. */
+html {
+  -webkit-user-select: none;
+  user-select: none;
+}
+:is(input, textarea, [contenteditable]) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* The black halo that keeps callout text legible over any ground. */
 :root {
   --hud-text-halo: 0 0 2px rgb(0 0 0 / 0.95), 0 0 5px rgb(0 0 0 / 0.7);
@@ -479,7 +491,6 @@
   --ink: var(--hud-warn);
 }
 .ro-body {
-  user-select: none;
   display: flex;
   flex-direction: column;
 }
@@ -772,12 +783,6 @@
 [data-zoom="far"] .ro-section:not([data-repeat-icons]) :is(.ro-kinds, .ro-state > .ro-pips) {
   margin-left: 0;
   padding-left: 0;
-}
-
-/* A game's interface is never selected like a page's text: a drag across
-   the HUD while giving orders highlights nothing. */
-.hud {
-  user-select: none;
 }
 
 /* ---- The battle HUD's layout ------------------------------------------

@@ -1,5 +1,5 @@
 """F/A-18E Super Hornet and EA-18G Growler, from assets/references/f_a_18_super_hornet/
-and assets/references/ea_18g_growler/. Disabled cards.
+and assets/references/ea_18g_growler/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/super_hornet.py -- [--variant=<card>] [--wreck]
 
@@ -12,7 +12,7 @@ the Growler has the two-seat canopy, ALQ-218 receiver pods on the wing tips
 and ALQ-99 jamming pods (with their ram-air turbines) under the wings and
 the body. Both in the Navy's tactical greys.
 
-Dimensions stated from the references (Navy fact file figures agree): length
+The references' dimensions (Navy fact file figures agree): length
 18.31 m, span 13.62 m over the tip stores, height 4.88 m.
 """
 import math
@@ -22,11 +22,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 E, G = "us_f_a_18_super_hornet_f_a_18e", "us_ea_18g_growler_electronic_warfare_aircraft"
-CARDS = {E: (18.31, 13.62, 4.88), G: (18.31, 13.62, 4.88)}
 
 WING_Z = 2.45
 # The nose's tip and the tail's last point (the nozzles' and fins' trailing edges).
@@ -130,4 +129,6 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.0, wing_y=3.6, wing_side=-1, tail_yaw=-0.3, seed=18, litter_reach=0.95)
 
 
-run_disabled("super_hornet", CARDS, "us_compass_grey", build, wreck, references="ea_18g_growler")
+run("f_a_18_super_hornet", "us_compass_grey", build, wreck, appearances=[E, G], script="super_hornet.py",
+    receipt_file="assets/source/roster/f_a_18_super_hornet/super_hornet.source-receipt.json",
+    references=[f"assets/references/{f}/references.json" for f in ("ea_18g_growler", "f_a_18_super_hornet")])

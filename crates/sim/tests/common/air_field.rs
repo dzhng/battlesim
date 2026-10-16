@@ -54,6 +54,7 @@ pub fn wing_limits() -> FixedWingLimits {
         floor_agl_m: 100.0,
         edge_margin_m: 300.0,
         cruise_agl_m: 250.0,
+        nose_on_rad: 2_f64.to_radians(),
     }
 }
 

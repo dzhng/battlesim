@@ -78,13 +78,6 @@ pub fn eye(unit: &Unit, rules: &Rules) -> V3 {
 /// [`crate::garrison::facade_eyes`]). The fog sweep, identification and the
 /// published `UnitSight::eyes` the renderer's fog draws all read this one
 /// list. There is no extra all-round roof sensor.
-/// Whether `unit` sees the ground at all. High air never does: it flies
-/// lowered for play but still as far above the battle as a real jet, so the
-/// ground and its fog are out of its sight (air-to-air sight is unaffected).
-pub fn sees_ground(unit: &Unit) -> bool {
-    unit.layer() != AltitudeLayer::HighAir
-}
-
 pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
     let facades = crate::garrison::facade_eyes(unit, rules);
     if facades.is_empty() {
@@ -92,6 +85,13 @@ pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
     } else {
         facades
     }
+}
+
+/// Whether `unit` sees the ground at all. High air never does: it flies
+/// lowered for play but still as far above the battle as a real jet, so the
+/// ground and its fog are out of its sight (air-to-air sight is unaffected).
+pub fn sees_ground(unit: &Unit) -> bool {
+    unit.layer() != AltitudeLayer::HighAir
 }
 
 /// How far sight of directional `range` reaches through foliage of `depth`
@@ -123,6 +123,31 @@ pub fn sees_point(
     }
     let foliage = world.foliage_depth(eye, target);
     foliage_reach(range * concealment, foliage, s).is_some_and(|reach| distance <= reach)
+}
+
+/// Whether one of `side`'s living units sees a round in flight at
+/// `position`, fired from `layer`: by its sight in that layer, as a round
+/// is a target like any other.
+pub fn side_sees_round(
+    world: &WorldGeometry,
+    rules: &Rules,
+    units: &[Unit],
+    side: Side,
+    position: V3,
+    layer: AltitudeLayer,
+) -> bool {
+    units.iter().any(|u| {
+        u.side == side
+            && u.alive()
+            && sees_point(
+                world,
+                eye(u, rules),
+                position,
+                &crate::sight::of_layer(u, rules, layer),
+                1.0,
+                &rules.sensors,
+            )
+    })
 }
 
 /// A visibility sample: the member it belongs to (none for a hull), where

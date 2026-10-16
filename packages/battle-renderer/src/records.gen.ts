@@ -8,6 +8,9 @@ export const VIEW_PASS = 0;
 export const CAST_PASS = 1;
 export const GHOST_PASS = 2;
 export const HIGH_PASS = 3;
+/** Rust's tiers for a model off screen and for its card (`view.rs`): `model_tiers` and `Batch.tier` give them. */
+export const CULLED = -1;
+export const IMPOSTOR = 4;
 /** How fog of war takes a batch (`Batch.fog`). */
 export const FOG_UNITS = 0;
 export const FOG_FACES = 1;

@@ -1,4 +1,4 @@
-"""Su-25SM3, from assets/references/su_25_frogfoot/. A disabled card.
+"""Su-25SM3, from assets/references/su_25_frogfoot/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/su25.py -- [--wreck]
 
@@ -10,7 +10,7 @@ edge; the nose wheel offset to the left, rough-field tyres; eight pylons
 with rocket pods and bombs, the SM3's L-370 jamming pods on the wing tips.
 Green and brown camouflage.
 
-Dimensions stated from the references (Sukhoi figures): length 15.53 m,
+The references' dimensions (Sukhoi figures): length 15.53 m,
 span 14.36 m, height 4.8 m.
 """
 import os
@@ -19,10 +19,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_su_25_frogfoot_su_25sm3": (15.53, 14.36, 4.8)}
 WING_Z = 2.25
 SPEC = dict(
     fuselage=[(7.77, 0.0, 1.95, 1.95), (7.3, 0.32, 1.68, 2.2, 1.95), (6.2, 0.52, 1.5, 2.42, 1.95, 2.2),
@@ -84,4 +83,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.6, wing_y=4.6, wing_side=-1, tail_yaw=-0.32, seed=25)
 
 
-run_disabled("su25", CARDS, "russian_helicopter_camo", build, wreck)
+run("su_25_frogfoot", "russian_helicopter_camo", build, wreck, script="su25.py")

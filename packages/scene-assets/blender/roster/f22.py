@@ -1,4 +1,4 @@
-"""F-22A Raptor, from assets/references/f_22_raptor/. A disabled card.
+"""F-22A Raptor, from assets/references/f_22_raptor/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/f22.py -- [--wreck]
 
@@ -9,7 +9,7 @@ trailing edge forward-swept inboard), twin fins canted outward, stabilators
 level with the wing, two-dimensional vectoring nozzles side by side between
 the tail booms, the tall gear. Compass greys.
 
-Dimensions stated from the references (USAF fact sheet figures agree):
+The references' dimensions (USAF fact sheet figures agree):
 length 18.92 m, span 13.56 m, height 5.08 m.
 """
 import math
@@ -19,10 +19,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
-CARDS = {"us_f_22_raptor_f_22a": (18.92, 13.56, 5.08)}
 
 WING_Z = 2.24
 # The fins' leading edges sweep only a metre over their height (side photo).
@@ -95,4 +94,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.2, wing_y=4.2, wing_side=1, tail_yaw=0.3, seed=22)
 
 
-run_disabled("f22", CARDS, "us_compass_grey", build, wreck)
+run("f_22_raptor", "us_compass_grey", build, wreck, script="f22.py")

@@ -1,4 +1,4 @@
-"""Air defence vehicles (disabled cards): Gepard 1A2, Buk-M3, Pantsir-SM,
+"""Air defence vehicles: Gepard 1A2, Buk-M3, Pantsir-SM,
 Boxer Skyranger 30 and NASAMS 3, from assets/references/<family>/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/air_defence.py -- [--variant=<card id>] [--wreck]
@@ -24,10 +24,7 @@ What the photos settle:
   trailer, six AMRAAM canisters in two rows on the turntable, stowed flat,
   levelling legs at the corners.
 
-Each card's frame is the published
-length, width and travelling height (the Buk's measured off its side photo
-against its road wheels), recorded as `references`; turrets,
-guns and launchers are drawn stowed and do not articulate yet.
+Turrets, guns and launchers are drawn stowed and do not articulate yet.
 """
 import math
 import os
@@ -39,17 +36,17 @@ import boxer  # noqa: E402
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft, prism  # noqa: E402
 from truck_chassis import chassis  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
+# Each appearance's family (its source folder and reference library) and scheme.
 CARDS = {
-    "europe_gepard_1a2": ("gepard", "german_three_tone", (6.85, 3.37, 3.29)),
-    "eastern_buk_buk_m3_medium_range_air_defense": ("buk", "russian_green", (9.30, 3.25, 3.55)),
-    "eastern_pantsir_pantsir_sm": ("pantsir", "russian_green", (10.40, 2.55, 4.20)),
-    "europe_boxer_skyranger_30_gun_and_missile_air_defense": ("boxer_skyranger_30", "german_three_tone",
-                                                             (7.93, 2.99, 3.50)),
-    "europe_nasams_nasams_3": ("nasams", "german_three_tone", (6.40, 2.45, 2.90)),
+    "europe_gepard_1a2": ("gepard", "german_three_tone"),
+    "eastern_buk_buk_m3_medium_range_air_defense": ("buk", "russian_green"),
+    "eastern_pantsir_pantsir_sm": ("pantsir", "russian_green"),
+    "europe_boxer_skyranger_30_gun_and_missile_air_defense": ("boxer_skyranger_30", "german_three_tone"),
+    "europe_nasams_nasams_3": ("nasams", "german_three_tone"),
 }
 
 
@@ -399,5 +396,7 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run_disabled("air_defence", {c: dims for c, (_, _, dims) in CARDS.items()},
-                 {c: scheme for c, (_, scheme, _) in CARDS.items()}, build, wreck, skip=("dressing_", "gun_", "fume_", "muzzle_", "brake_"), chip=1.0)
+    run("gepard", {c: scheme for c, (_, scheme) in CARDS.items()}, build, wreck,
+        appearances=list(CARDS), script="air_defence.py",
+        receipt_file="assets/source/roster/gepard/air_defence.source-receipt.json",
+        references=[f"assets/references/{family}/references.json" for family, _ in CARDS.values()], chip=1.0)

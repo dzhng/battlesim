@@ -76,7 +76,7 @@ async function runSet(ctx, page, set, fit) {
   const query = new URLSearchParams();
   query.set("set", set);
   if (process.env.CITY_CATEGORY) query.set("category", process.env.CITY_CATEGORY);
-  await ctx.openLab(page, ctx.urlFor(ctx.url, Object.fromEntries(query)), 120000);
+  await ctx.openLab(page, ctx.urlFor(Object.fromEntries(query)), 120000);
   await page.waitForFunction(
     async () => {
       await window.__lab.frame();

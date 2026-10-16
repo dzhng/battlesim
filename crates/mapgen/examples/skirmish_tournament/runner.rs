@@ -14,7 +14,7 @@ pub(crate) fn run_safe(inputs: &Inputs, row: Row) -> Report {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(inputs, row))) {
         Ok(report) => report,
         Err(panic) => {
-            let mut report = empty_report(fallback_id);
+            let mut report = empty_report(fallback_id, inputs.factions);
             report.seed = seed;
             report.diagnostic = Some(
                 panic
@@ -28,7 +28,7 @@ pub(crate) fn run_safe(inputs: &Inputs, row: Row) -> Report {
     }
 }
 
-fn empty_report(id: String) -> Report {
+fn empty_report(id: String, factions: [Faction; 2]) -> Report {
     Report {
         id,
         seed: 0,
@@ -42,7 +42,7 @@ fn empty_report(id: String) -> Report {
         accepted_orders: 0,
         attempted_orders: 0,
         policy: "balanced_doctrine",
-        factions: [Faction::Us, Faction::Europe],
+        factions,
         diagnostic: None,
         result: None,
         objective_first_owner_ticks: BTreeMap::new(),
@@ -63,8 +63,7 @@ fn empty_report(id: String) -> Report {
 }
 
 pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
-    let mut report = empty_report(row.id.clone());
-    report.factions = inputs.factions;
+    let mut report = empty_report(row.id.clone(), inputs.factions);
     report.seed = row.seed;
     report.max_battle_seconds = row.horizon_ticks / u64::from(inputs.rules.tick_hz);
     let (setup, prepared, map_identity) = match prepare_row(inputs, &row) {
@@ -101,21 +100,30 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 &setup.rules,
                 &mut |id, goal| battle.route_time(side, id, goal),
             );
-            let mut orders = orders;
+            // Each order with its place in the side's scripted list, if it
+            // is a scripted purchase.
+            let mut orders: Vec<(Option<usize>, Order)> =
+                orders.into_iter().map(|order| (None, order)).collect();
             if let Some(list) = &inputs.buy[side.index()] {
-                orders.retain(|order| !matches!(order, Order::ConfirmPurchase { .. }));
-                orders.extend(scripted_purchases(
-                    &setup.rules,
-                    &frame,
-                    list,
-                    &mut next_buy[side.index()],
-                ));
+                orders.retain(|(_, order)| !matches!(order, Order::ConfirmPurchase { .. }));
+                orders.extend(
+                    scripted_purchases(&setup.rules, &frame, list, next_buy[side.index()])
+                        .into_iter()
+                        .map(|(at, order)| (Some(at), order)),
+                );
             }
             let preparing = frame
                 .skirmish
                 .as_ref()
                 .is_some_and(|view| view.phase == contract::skirmish::Phase::Preparation);
-            for order in orders {
+            // A refused scripted card is retried next tick, and the cards
+            // planned after it on its credits and slot wait with it, so the
+            // list stays bought strictly in order.
+            let mut scripted_refused = false;
+            for (scripted, order) in orders {
+                if scripted.is_some() && scripted_refused {
+                    continue;
+                }
                 let purchase = match &order {
                     Order::ConfirmPurchase { variant, .. } => Some(variant.clone()),
                     _ => None,
@@ -132,6 +140,10 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                     queued: false,
                 });
                 seq[side.index()] += 1;
+                if let Some(at) = scripted {
+                    scripted_refused = ack.error.is_some();
+                    next_buy[side.index()] = at + usize::from(!scripted_refused);
+                }
                 if ack.error.is_some() {
                     refused_this_tick += 1;
                     report.refused_by_side[side.index()] += 1;
@@ -294,16 +306,17 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     report
 }
 
-/// The next cards of `list` the wallet affords, strictly in order, so a side
-/// saves for an expensive card rather than skipping it. Cards before a `|`
-/// are bought once; the rest repeat. Each goes to the objective nearest the
-/// middle of them all.
+/// The next cards of `list` from position `next` the wallet affords,
+/// strictly in order, so a side saves for an expensive card rather than
+/// skipping it, each with its position. Cards before a `|` are bought once;
+/// the rest repeat. Each goes to the objective nearest the middle of them
+/// all.
 fn scripted_purchases(
     rules: &Rules,
     frame: &ObservationFrame,
     list: &[String],
-    next: &mut usize,
-) -> Vec<Order> {
+    mut next: usize,
+) -> Vec<(usize, Order)> {
     let Some(view) = frame.skirmish.as_ref() else {
         return vec![];
     };
@@ -325,9 +338,9 @@ fn scripted_purchases(
     let mut orders = Vec::new();
     while view.phase != contract::skirmish::Phase::Finished && slots < view.max_units {
         let index = match bar {
-            Some(bar) if *next >= bar => bar + 1 + (*next - bar) % (list.len() - bar - 1).max(1),
-            Some(_) => *next,
-            None => *next % list.len(),
+            Some(bar) if next >= bar => bar + 1 + (next - bar) % (list.len() - bar - 1).max(1),
+            Some(_) => next,
+            None => next % list.len(),
         };
         let Some(variant) = list.get(index) else {
             break;
@@ -338,11 +351,14 @@ fn scripted_purchases(
         }
         credits -= cost;
         slots += 1;
-        *next += 1;
-        orders.push(Order::ConfirmPurchase {
-            variant: variant.clone(),
-            destination,
-        });
+        orders.push((
+            next,
+            Order::ConfirmPurchase {
+                variant: variant.clone(),
+                destination,
+            },
+        ));
+        next += 1;
     }
     orders
 }
@@ -352,24 +368,19 @@ fn scripted_purchases(
 fn air_summary(rules: &Rules, report: &contract::skirmish::MatchReport) -> [AirSide; 2] {
     use contract::catalog::AltitudeLayer;
     use contract::skirmish::MatchEvent;
-    let layer = |kind| rules.catalog.get(kind).mobility.layer();
+    use sim::skirmish_ai::{is_jet, unit_engages_aircraft_in};
+    let jet = |kind| is_jet(rules, kind);
+    // A ground unit that can fight jets: by what its weapons engage up there.
     let ground_aa = |kind| {
-        layer(kind) == AltitudeLayer::Ground
-            && rules.catalog.mounts(kind).iter().any(|mount| {
-                mount
-                    .def
-                    .weapons
-                    .iter()
-                    .filter_map(|weapon| rules.weapons.get(weapon))
-                    .any(|weapon| weapon.targets.contains_key(&AltitudeLayer::HighAir))
-            })
+        rules.catalog.get(kind).mobility.layer() == AltitudeLayer::Ground
+            && unit_engages_aircraft_in(rules, kind, AltitudeLayer::HighAir)
     };
     let mut sides = [AirSide::default(), AirSide::default()];
     for event in &report.events {
         match event {
             MatchEvent::Spawn { tick, unit, cost } => {
                 let side = &mut sides[unit.side.index()];
-                if layer(unit.kind) == AltitudeLayer::HighAir {
+                if jet(unit.kind) {
                     side.jets_bought += 1;
                     side.jet_spend += cost;
                     side.first_jet_tick.get_or_insert(*tick);
@@ -390,8 +401,8 @@ fn air_summary(rules: &Rules, report: &contract::skirmish::MatchReport) -> [AirS
                     continue;
                 };
                 let by = &mut sides[killer.side.index()];
-                let jet_victim = layer(victim.kind) == AltitudeLayer::HighAir;
-                if layer(killer.kind) == AltitudeLayer::HighAir {
+                let jet_victim = jet(victim.kind);
+                if jet(killer.kind) {
                     by.jet_kills += 1;
                     by.jet_kill_value += victim_cost;
                     if jet_victim {
@@ -407,7 +418,7 @@ fn air_summary(rules: &Rules, report: &contract::skirmish::MatchReport) -> [AirS
                 }
             }
             MatchEvent::Refund { unit, credits, .. } => {
-                if layer(unit.kind) == AltitudeLayer::HighAir {
+                if jet(unit.kind) {
                     sides[unit.side.index()].jet_refunds += credits;
                 }
             }

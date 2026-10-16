@@ -197,6 +197,17 @@ pub enum FlightModel {
     FixedWing,
 }
 
+impl FlightModel {
+    /// Its name as authored (the serde name): the key the rules' per-flight
+    /// tables use.
+    pub fn name(self) -> &'static str {
+        match self {
+            FlightModel::Rotor => "rotor",
+            FlightModel::FixedWing => "fixed_wing",
+        }
+    }
+}
+
 /// How a unit moves (Q29, Q30). A ground mover has its own two top speeds,
 /// in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road. A
 /// surface kind's `speed_factor` scales the road speed, never below the
@@ -363,9 +374,9 @@ pub struct Capabilities {
     /// A finite defensive interceptor, independent of offensive mounts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_protection: Option<ActiveProtection>,
-    /// Authored aircraft lifecycle and air-combat capability. The alias keeps
-    /// fixture prose readable while the contract uses one stable key.
-    #[serde(default, skip_serializing_if = "Option::is_none", alias = "aircraft")]
+    /// An aircraft's fuel, afterburner and withdrawal refund
+    /// (`AirCapability`); needs air mobility.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub air: Option<AirCapability>,
     /// Radar emission/detection is separate from optical sensors.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -428,17 +439,16 @@ fn afterburner_fuel_multiplier() -> f64 {
 #[serde(deny_unknown_fields)]
 pub struct RefundWeights {
     pub health: f64,
-    #[serde(alias = "ammo")]
     pub ammunition: f64,
     pub fuel: f64,
 }
 
-/// Persistent fixed-wing aircraft data. Presence is optional while legacy
-/// helicopter rows continue to load; an authored row must still be complete.
+/// An aircraft's fuel, optional afterburner and withdrawal refund. Optional
+/// on any air-mobile row (the roster's helicopters author none); a row that
+/// authors it must be complete.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AirCapability {
-    #[serde(alias = "fuel_s")]
     pub fuel_capacity_s: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub afterburner: Option<AfterburnerCapability>,
@@ -861,25 +871,37 @@ impl Catalog {
     }
 
     /// Every mount, a type's own or a soldier kind's, names weapon rows
-    /// that exist among `weapons` (the rules' rows, resolved).
+    /// that exist among `weapons` (the rules' rows, resolved). An unpowered
+    /// row (a bomb) is carried only by a winged aircraft: its pass is the
+    /// one flight that plans a release.
     pub fn check_weapons(&self, weapons: &crate::weapons::WeaponRules) -> Result<(), CatalogError> {
-        let missing = |mounts: &[MountDefinition]| {
+        let invalid = |mounts: &[MountDefinition], flight: Option<FlightModel>| {
             mounts.iter().find_map(|m| {
-                let w = m.weapons.iter().find(|w| !weapons.contains_key(*w))?;
-                Some(format!(
-                    "mount {:?} names weapon row {w:?}, which does not exist",
-                    m.id
-                ))
+                if let Some(w) = m.weapons.iter().find(|w| !weapons.contains_key(*w)) {
+                    return Some(format!(
+                        "mount {:?} names weapon row {w:?}, which does not exist",
+                        m.id
+                    ));
+                }
+                let bomb = m.weapons.iter().find(|w| {
+                    weapons[*w].ballistics.delivery == crate::ballistics::Delivery::Unpowered
+                })?;
+                (flight != Some(FlightModel::FixedWing)).then(|| {
+                    format!(
+                        "mount {:?} carries unpowered row {bomb:?}, which only a winged aircraft's pass can release",
+                        m.id
+                    )
+                })
             })
         };
         for (id, s) in &self.soldiers {
-            if let Some(error) = missing(&s.mounts) {
+            if let Some(error) = invalid(&s.mounts, None) {
                 let (section, id) = ("soldiers", id.clone());
                 return Err(CatalogError::Invalid { section, id, error });
             }
         }
         for (id, t) in self.ids.iter().zip(&self.types) {
-            if let Some(error) = missing(&t.mounts) {
+            if let Some(error) = invalid(&t.mounts, t.mobility.flight()) {
                 return Err(CatalogError::Rule {
                     id: id.clone(),
                     error,
@@ -1758,6 +1780,11 @@ fn check(
             return rule("capabilities.air.fuel_capacity_s must be positive");
         }
         if let Some(afterburner) = air.afterburner {
+            if t.mobility.flight() != Some(FlightModel::FixedWing) {
+                return rule(
+                    "capabilities.air.afterburner needs fixed-wing flight: no rotor flight law flies it",
+                );
+            }
             if !(afterburner.speed_multiplier > 1.0
                 && afterburner.fuel_multiplier > 1.0
                 && afterburner.speed_multiplier.is_finite()

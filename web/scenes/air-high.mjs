@@ -28,6 +28,7 @@ import {
 
 const [JET, TANK, HELI, ENEMY_JET] = encounter("high-air", "air-high").units.map((u) => u.kind);
 const goal = encounter("high-air", "air-high").scripts[0].order.goal;
+const FIELD_SIZE = field("air-high");
 
 export async function run(ctx) {
   const page = await openAir(ctx);
@@ -49,7 +50,7 @@ export async function run(ctx) {
     for (const u of o.identified) seen.add(u.kind);
     if (o.identified.some((u) => u.kind === TANK)) tankSeen = true;
     const jet = own(o, JET)[0];
-    if (jet && !onMap(jet.position, field("air-high"))) offMap = jet.position;
+    if (jet && !onMap(jet.position, FIELD_SIZE)) offMap = jet.position;
     if (jet && k++ % 30 === 0) heights.push(jet.position);
     return !!jet && near(jet.position);
   });

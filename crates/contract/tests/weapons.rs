@@ -70,6 +70,31 @@ fn an_unpowered_row_with_range_is_refused() {
     );
 }
 
+/// A bomb has no reach of its own, in any layer: its release decides where
+/// it falls.
+#[test]
+fn an_unpowered_row_with_a_layer_range_is_refused() {
+    let mut rows = test_rows(json!({ "ground": { "classes": ["vehicle"], "range_m": 5 } }));
+    rows["test_gun"]["delivery"] = json!("unpowered");
+    rows["test_gun"].as_object_mut().unwrap().remove("range_m");
+    rows["test_gun"]
+        .as_object_mut()
+        .unwrap()
+        .remove("speed_mps");
+    let error = contract::weapons::resolve_weapons(rows.clone())
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("weapons.test_gun") && error.contains("targets.ground.range_m"),
+        "{error}"
+    );
+    rows["test_gun"]["targets"]["ground"]
+        .as_object_mut()
+        .unwrap()
+        .remove("range_m");
+    contract::weapons::resolve_weapons(rows).expect("a bomb without a reach loads");
+}
+
 /// A weapon row's `name` is what the player reads on a card and its `icon`
 /// names a generated drawing: an identifier, a slug, a long description or
 /// a missing icon is refused at load, naming the row.
@@ -307,6 +332,27 @@ fn a_removed_or_unknown_weapon_field_is_refused_by_name() {
     }
 }
 
+/// A row may author a field at its default, or null an inherited optional
+/// one, and still load; a key that is no field is refused by name.
+#[test]
+fn a_field_at_its_default_or_null_is_a_field() {
+    let mut rows = test_rows(json!({ "ground": { "classes": ["vehicle"] } }));
+    rows["test_gun"]["delivery"] = json!("powered");
+    rows["test_gun"]["proximity_fuse_m"] = json!(2);
+    rows["test_child"] = json!({ "extends": "test_gun", "proximity_fuse_m": null, "seeker": null });
+    let loaded = contract::weapons::resolve_weapons(rows.clone()).unwrap();
+    assert_eq!(loaded["test_gun"].proximity_fuse_m, Some(2.0));
+    assert_eq!(loaded["test_child"].proximity_fuse_m, None);
+    rows["test_child"]["proximity_fuze_m"] = json!(2);
+    let error = contract::weapons::resolve_weapons(rows)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("weapons.test_child") && error.contains("proximity_fuze_m"),
+        "{error}"
+    );
+}
+
 /// Interception is a target class like any other: `missile`, a round fired
 /// from that layer, may be listed in any layer, guided or not, and is
 /// matched by the one `engages`.
@@ -320,6 +366,7 @@ fn any_layer_may_list_missile() {
     });
     for guided in [false, true] {
         let mut rows = test_rows(targets.clone());
+        rows["test_gun"]["proximity_fuse_m"] = json!(3);
         if guided {
             rows["test_gun"]["turn_deg_s"] = json!(180);
             rows["test_gun"]["guidance"] = json!("stationary");
@@ -336,6 +383,24 @@ fn any_layer_may_list_missile() {
             "a layer it does not list"
         );
     }
+}
+
+/// A round destroys another only by bursting near it, so a row that lists
+/// `missile` must author the proximity fuse that reaches it: without one it
+/// would fire at rounds it can never destroy.
+#[test]
+fn a_row_listing_missile_needs_a_proximity_fuse() {
+    let rows = test_rows(json!({ "high_air": { "classes": ["missile"] } }));
+    let error = contract::weapons::resolve_weapons(rows.clone())
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains("weapons.test_gun") && error.contains("proximity_fuse_m"),
+        "{error}"
+    );
+    let mut fused = rows;
+    fused["test_gun"]["proximity_fuse_m"] = json!(3);
+    contract::weapons::resolve_weapons(fused).expect("a fused interceptor loads");
 }
 
 /// How gently an explosive round's damage fades short of the armour is its

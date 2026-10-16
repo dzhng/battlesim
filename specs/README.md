@@ -14,7 +14,7 @@ ladder with parallel named-model production.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield
-contract. [Air-war flight](air-war-flight/README.md) (active) makes jets fly as jets:
+contract. [Air-war flight](done/air-war-flight/README.md) (shipped) made jets fly as jets:
 their own altitude, circling, attack runs, organic dogfights, edge arrival and
 departure, and every planned jet enabled with a reviewed model. [Air-defence radar networks](air-defence-radar/README.md) is a deferred idea:
 launchers that see far only through separate radar units.

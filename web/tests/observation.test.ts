@@ -2,7 +2,7 @@
 import { UNITS } from "./catalog";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync, Battle, resolve_catalog } from "@wasm/game_wasm.js";
+import { initSync, Battle, encounter_scenario, resolve_catalog } from "@wasm/game_wasm.js";
 import type { CatalogView } from "@packages/scene-assets/src/units";
 import {
   ownPanel,
@@ -367,11 +367,11 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   expect(published(lab, layout).encounter).toBeNull();
   lab.free();
   const battle = new Battle(
-    JSON.stringify({
-      map: loadMap("street").definition,
-      rules: TEST_RULES,
-      ...loadEncounter("street", "attack"),
-    }),
+    encounter_scenario(
+      loadMap("street").json,
+      JSON.stringify(loadEncounter("street", "attack")),
+      JSON.stringify(TEST_RULES),
+    ),
     1,
   );
   battle.step();

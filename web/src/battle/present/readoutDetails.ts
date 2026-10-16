@@ -1,5 +1,6 @@
 import { clamp, vec2 } from "math";
 import { box2, type Box2 } from "math/shapes";
+import { nearerAnotherAnchor } from "./readoutLayout";
 
 export interface DetailCard {
   id: string;
@@ -64,13 +65,10 @@ export function layoutReadoutDetails(
     y = clamp(y, viewport[1], viewport[3] - h);
     return [x, y, x + w, y + h];
   };
-  /** From an anchor to a box's nearest point. */
-  const reach = ([x, y]: readonly [number, number], b: Box2) =>
-    Math.hypot(Math.max(b[0] - x, 0, x - b[2]), Math.max(b[1] - y, 0, y - b[3]));
-  const astray = (card: DetailCard, b: Box2) => {
-    const own = reach(card.anchor, b);
-    return cards.some((o) => o.id !== card.id && reach(o.anchor, b) < own);
-  };
+  const anchors = cards.map((c) => c.anchor);
+  const order = new Map(cards.map((c, i) => [c.id, i]));
+  const astray = (card: DetailCard, b: Box2) =>
+    nearerAnotherAnchor(anchors, order.get(card.id)!, b[0], b[1], b[2], b[3]);
   const free = (card: DetailCard, shape: Box2, origin: Box2, others: readonly Box2[]) => {
     let best: Box2 | null = null;
     const consider = (x: number, y: number) => {

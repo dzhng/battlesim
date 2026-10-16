@@ -610,6 +610,44 @@ fn every_ai_opening_includes_a_high_air_defender() {
     );
 }
 
+/// The AA card is the opening's first claim on its wallet, not a hold on
+/// it: when it costs more than the whole wallet, the rest of the opening is
+/// still bought.
+#[test]
+fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
+    let mut authored = deck();
+    for id in [
+        "test_rifle",
+        "test_at",
+        "test_recon",
+        "test_tank",
+        "test_supply",
+    ] {
+        crate::fixtures::patch_catalog(&mut authored, "units", id, json!({ "cost": 50 }));
+    }
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({ "cost": 900, "mounts": [{ "id": "HMG", "weapons": ["aa_long"] }] }),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
+    let (_, mut frame, entry) = empty_match();
+    frame.skirmish.as_mut().unwrap().credits = 400.0;
+    let orders = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry,
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let bought = confirm_purchases(&rules, &mut frame, &orders);
+    let aa = rules.catalog.index("test_jeep").unwrap();
+    assert!(!bought.is_empty(), "the opening bought nothing: {orders:?}");
+    assert!(!bought.contains(&aa));
+}
+
 #[test]
 fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     let mut authored = deck();
@@ -1300,8 +1338,8 @@ fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
 /// wall is sent by the AI to shell the approach to an objective blue holds,
 /// over the wall, and holds for a clear launch path (`BlockedTrajectory`);
 /// a ground point is no target to close on, so nothing else moves it.
-/// After `launch.relocate_after_s` of that, the AI orders it about
-/// `launch.relocate_m` off, clear of the wall, and from there it fires. The
+/// After its tuning's `relocate_after_s` of that, the AI orders it about
+/// `relocate_m` off, clear of the wall, and from there it fires. The
 /// policy reads the battle's own frames and its orders go through the
 /// ordinary admission, as the skirmish host plays it.
 #[test]
@@ -1312,8 +1350,6 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
         "requires_clear_launch_path": true,
     });
     rules["service"]["round_costs"]["test_launcher"] = json!(1);
-    rules["launch"]["relocate_after_s"] = json!(10);
-    rules["launch"]["relocate_m"] = json!(90);
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -1341,6 +1377,8 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
     view.objectives[0].owner = Some(Side::Blue);
     let entry = entry_from([400.0, 590.0]);
     let mut ai = BalancedDoctrine::new(3);
+    ai.tuning.relocate_after_s = 10.0;
+    ai.tuning.relocate_m = 90.0;
     let mut seq = 0;
     let jeep = UnitId(0);
     let start = battle.unit(jeep).unwrap().position;
@@ -1394,6 +1432,7 @@ fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     let defends = |classes: Value| {
         let mut fixture = crate::fixtures::test_game();
         fixture["weapons"]["hmg"]["targets"]["low_air"]["classes"] = classes;
+        fixture["weapons"]["hmg"]["proximity_fuse_m"] = serde_json::json!(2);
         let rules: Rules = serde_json::from_value(fixture).unwrap();
         let jeep = rules.catalog.index("test_jeep").unwrap();
         let heli = rules.catalog.index("test_heli").unwrap();

@@ -1,4 +1,4 @@
-"""JAS 39 Gripen E, from assets/references/jas_39_gripen/. A disabled card.
+"""JAS 39 Gripen E, from assets/references/jas_39_gripen/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/gripen.py -- [--wreck]
 
@@ -8,7 +8,7 @@ the single nozzle; wing-tip missiles. The E (from the NG demonstrator and
 published figures) keeps the C's layout on a longer body with its main gear
 moved out into the wing roots. Light grey.
 
-Dimensions stated from the references (Saab figures): length 15.2 m, span
+The references' dimensions (Saab figures): length 15.2 m, span
 8.6 m over the tip missiles, height 4.5 m.
 """
 import os
@@ -17,10 +17,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"europe_jas_39_gripen_e": (15.2, 8.6, 4.5)}
 WING_Z = 1.6
 SPEC = dict(
     # The side photo: the long canopy 2.4 m back from the nose, the spine
@@ -81,4 +80,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-2.8, wing_y=2.4, wing_side=-1, tail_yaw=-0.3, seed=39)
 
 
-run_disabled("gripen", CARDS, "nato_air_grey", build, wreck)
+run("jas_39_gripen", "nato_air_grey", build, wreck, script="gripen.py")

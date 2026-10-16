@@ -5,7 +5,7 @@
 
 ## Next Agent Prompt
 
-You are picking up an idea the user liked during [air-war flight](../air-war-flight/README.md): air-defence launchers that can't see far on their own, and radar units that find targets for them. When the user starts this:
+You are picking up an idea the user liked during [air-war flight](../done/air-war-flight/README.md): air-defence launchers that can't see far on their own, and radar units that find targets for them. When the user starts this:
 1. walk the open questions below with them (`explore-unknowns`);
 2. turn this page into a sliced plan (`write-spec`).
 

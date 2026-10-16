@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the air-war-flight closeout, air-war-flight D53); interception became the `missile` target class per layer and guided rows may intercept (air-war-flight D54, branch `awf/intercept-layers`); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
+Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the [air-war-flight](../done/air-war-flight/README.md) closeout, air-war-flight [D53](../done/air-war-flight/flight-model-map.md)); interception became the `missile` target class per layer and guided rows may intercept (air-war-flight D54, branch `awf/intercept-layers`); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
 
 ## Goal
 
@@ -50,7 +50,7 @@ The plan gives one owner to each concept: `LayerFire` for per-layer target eligi
 ## What slices 1–3 left open
 
 - ~~Guided interceptors never launch at a round.~~ Resolved by D54: a guided row listing `missile` launches at a round and homes on it; `aa_long` lists no `missile`, so it no longer wastes its lock on one.
-- The skirmish AI moves a launcher its cover keeps holding (D54, `launch.relocate_after_s` / `relocate_m`); a player's own units are theirs to move.
+- The skirmish AI moves a launcher its cover keeps holding (D54, `relocate_after_s` / `relocate_m` in `fixtures/skirmish-ai.json`); a player's own units are theirs to move.
 - **`partial_from: 0.08` on every explosive row is a balance change** (user, through the coordinator, 2026-10-15): grenades, RPGs, ATGMs, SAMs, autocannon rounds, bombs and artillery now chip armour they cannot pierce. Retune in slice 4's sample run if it reads wrong.
 - The kamikaze drones' unit ids still end `_anti_armor`; they name models, not the removed field.
 

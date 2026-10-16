@@ -59,8 +59,10 @@ pub struct WeaponDefinition {
     pub damage: f64,
     pub near_miss_suppression: f64,
     pub blast_radius_m: f64,
-    /// A proximity fuse: the round bursts this close to the aircraft it was
-    /// fired at. Absent, it bursts only on what it strikes.
+    /// A proximity fuse: the round bursts this close to the unit it was
+    /// fired at (until a flare spoofs it), and a row that lists `missile`
+    /// destroys an interceptable round within this reach. Absent, it bursts
+    /// only on what it strikes; a row listing `missile` must author one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proximity_fuse_m: Option<f64>,
     #[serde(default)]
@@ -354,10 +356,20 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
             serde_json::from_value::<WeaponDefinition>(row.clone())
                 .and_then(|def| {
                     // Flattened ballistics keep serde from refusing unknown
-                    // fields itself: whatever the row says that its
-                    // definition does not hold is a field it does not have.
+                    // fields itself. A key the loaded row holds is a field;
+                    // one it does not (skipped at its default, or null) is a
+                    // field only if a value no field holds fails to load
+                    // under it, as serde passes over a key it does not know.
                     let known = serde_json::to_value(&def)?;
-                    if let Some(field) = row.as_object().into_iter().flatten().map(|(k, _)| k).find(|k| known.get(k.as_str()).is_none()) {
+                    let fields = row.as_object().into_iter().flatten().map(|(k, _)| k);
+                    if let Some(field) = fields
+                        .filter(|k| known.get(k.as_str()).is_none())
+                        .find(|k| {
+                            let mut probe = row.clone();
+                            probe[k.as_str()] = serde_json::json!([[["no field holds this"]]]);
+                            serde_json::from_value::<WeaponDefinition>(probe).is_ok()
+                        })
+                    {
                         return Err(serde::de::Error::custom(format!("unknown field `{field}`")));
                     }
                     crate::labels::check_label(&def.name)
@@ -397,6 +409,11 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                             "proximity_fuse_m must be finite and positive",
                         ));
                     }
+                    if def.intercepts() && def.proximity_fuse_m.is_none() {
+                        return Err(serde::de::Error::custom(
+                            "a row listing `missile` authors the proximity_fuse_m that destroys a round",
+                        ));
+                    }
                     if def.blast_radius_m > 0.0 && def.partial_from.is_none() {
                         return Err(serde::de::Error::custom(
                             "a row with a blast authors its own partial_from",
@@ -424,6 +441,11 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                                     serde_json::to_value(class)?
                                 )));
                             }
+                        }
+                        if unpowered && fire.range_m.is_some() {
+                            return Err(serde::de::Error::custom(format!(
+                                "targets.{layer}.range_m: an unpowered row has no reach to author"
+                            )));
                         }
                         if !unpowered
                             && fire.range_m.is_some_and(|r| {

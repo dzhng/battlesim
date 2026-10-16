@@ -414,13 +414,6 @@ fn middle_aim() -> f64 {
 pub struct LaunchRules {
     /// How far along its arc from the muzzle its round must meet nothing.
     pub clearance_m: f64,
-    /// How long the skirmish AI lets a launcher it owns stand held for its
-    /// launch path (`BlockedTrajectory`) before it drives it to open
-    /// ground, as a player would.
-    pub relocate_after_s: f64,
-    /// How far off the AI looks for that ground: farther than the cover a
-    /// launcher is likely to stand under.
-    pub relocate_m: f64,
 }
 
 /// Armour by impacted face (P10).
@@ -758,6 +751,10 @@ pub struct FixedWingFlight {
     /// weapon's authored dispersion: a fast pass is hard to stabilise.
     pub afterburner_scatter_multiplier: f64,
     pub edge_margin_m: f64,
+    /// The cone, either side of a winged aircraft's heading, it counts as
+    /// nose-on: where a row it aims by the nose fires, and what an attack
+    /// pass needs before its dive begins.
+    pub nose_on_deg: f64,
 }
 
 impl AirRules {
@@ -783,13 +780,15 @@ impl AirRules {
             && wing.dogfight_break_m > 0.0
             && wing.afterburner_ramp_s > 0.0
             && wing.afterburner_scatter_multiplier >= 1.0
-            && wing.edge_margin_m >= 0.0;
+            && wing.edge_margin_m >= 0.0
+            && wing.nose_on_deg > 0.0
+            && wing.nose_on_deg < 180.0;
         let ok = rotor_ok && wing_ok && self.separation_m > 0.0;
         if ok {
             Ok(())
         } else {
             Err(
-                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive, and afterburner scatter at least 1"
+                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive, afterburner scatter at least 1, and the nose-on cone within (0, 180) degrees"
                     .into(),
             )
         }
@@ -859,9 +858,17 @@ pub struct AirSpeedLimits {
 }
 
 impl AirSpeedLimits {
+    /// The fastest an aircraft that flies by `flight` may cruise, km/h.
+    pub fn flight(&self, flight: crate::catalog::FlightModel) -> f64 {
+        match flight {
+            crate::catalog::FlightModel::Rotor => self.rotor,
+            crate::catalog::FlightModel::FixedWing => self.fixed_wing,
+        }
+    }
+
     /// The first aircraft of `catalog` cruising past its flight model's limit.
     fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), crate::catalog::CatalogError> {
-        use crate::catalog::{FlightModel, Mobility};
+        use crate::catalog::Mobility;
         for index in catalog.indices() {
             let Mobility::Air {
                 cruise_kmh, flight, ..
@@ -869,10 +876,7 @@ impl AirSpeedLimits {
             else {
                 continue;
             };
-            let (name, limit) = match flight {
-                FlightModel::Rotor => ("rotor", self.rotor),
-                FlightModel::FixedWing => ("fixed_wing", self.fixed_wing),
-            };
+            let (name, limit) = (flight.name(), self.flight(flight));
             if cruise_kmh > limit {
                 return Err(crate::catalog::CatalogError::Invalid {
                     section: "units",
@@ -909,14 +913,7 @@ impl HullLimits {
                 Mobility::Wheeled {
                     turning_radius_m, ..
                 } => ("wheeled", &self.wheeled, Some(turning_radius_m)),
-                Mobility::Air { flight, .. } => (
-                    match flight {
-                        crate::catalog::FlightModel::Rotor => "rotor",
-                        crate::catalog::FlightModel::FixedWing => "fixed_wing",
-                    },
-                    self.flight(flight),
-                    None,
-                ),
+                Mobility::Air { flight, .. } => (flight.name(), self.flight(flight), None),
                 // A squad has no hull; the catalog refuses a hull on foot.
                 Mobility::Foot { .. } => continue,
             };

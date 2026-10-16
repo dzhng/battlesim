@@ -13,12 +13,13 @@ pub use fixed_wing::{fly, velocity, FixedWingLimits, FixedWingState, Steer};
 pub use steer::{steer, Bounds, Intent};
 
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, V3};
+use crate::math::{v2, V2, V3};
 use crate::movement::MovementContext;
 use crate::units::{Motion, Unit, UnitOrder};
 use crate::weapons::Target;
 use contract::catalog::AltitudeLayer;
 use contract::random::{mix, Rng};
+use contract::weapons::TargetClass;
 
 /// Advance one winged aircraft by the fixed-wing flight law, without
 /// consulting the rotor air grid.
@@ -57,14 +58,12 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         ((unit.position.xy() - centre).length() - radius).abs() <= radius * 0.08 + 2.0
     });
     if on_circle && !unit.withdrawing {
-        let attack_move = matches!(unit.orders.front(), Some(UnitOrder::AttackMove(_)));
         unit.orders.pop_front();
-        if attack_move {
-            unit.air
-                .as_mut()
-                .expect("an aircraft's flight state")
-                .last_goal = Some(unit.position.xy());
-        }
+        // It goes on circling the goal it reached.
+        unit.air
+            .as_mut()
+            .expect("an aircraft's flight state")
+            .last_goal = goal;
         unit.state = if unit.orders.is_empty() {
             contract::observation::MoveState::Idle
         } else {
@@ -72,6 +71,12 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         };
     }
     let current_order = unit.orders.front().cloned();
+    // While it flies for a goal, an order taken off it leaves it circling
+    // where it was.
+    let flying_to_goal = matches!(
+        current_order,
+        Some(UnitOrder::Move(_) | UnitOrder::AttackMove(_))
+    );
     let state = FixedWingState {
         pos: unit.position,
         heading: unit.yaw,
@@ -92,13 +97,23 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
             .expect("the catalog admits fixed-wing flight only in a layer with a floor"),
         edge_margin_m: ctx.rules.air.fixed_wing.edge_margin_m,
         cruise_agl_m: flight.cruise_agl_m,
+        nose_on_rad: ctx.rules.air.fixed_wing.nose_on_deg.to_radians(),
     };
+    let bounds = Bounds::new(v2(0.0, 0.0), v2(ctx.world.width(), ctx.world.depth()));
     let mut pass_release_now = false;
     let pass_before = unit.air.as_ref().and_then(|air| air.pass);
-    let task = orders::task(unit, ctx.knowledge[unit.side.index()], pass_before.as_ref());
-    // A withdrawing jet only flies for its back edge (air::edge).
+    let task = orders::task(
+        unit,
+        ctx.knowledge[unit.side.index()],
+        ctx.arsenal,
+        pass_before.as_ref(),
+    );
     let linked_target = unit.air.as_ref().and_then(|air| air.dogfight_target);
+    // While it attacks, by order or answering fire, in passes or a
+    // dogfight, where it is is where it circles once the attack ends.
+    let attacking = matches!(task, orders::AirTask::Attack { .. });
     let intent = match task {
+        // A withdrawing jet only flies for its back edge (air::edge).
         orders::AirTask::Withdraw => {
             unit.air.as_mut().expect("an aircraft's flight state").pass = None;
             match current_order {
@@ -110,76 +125,72 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
         }
         orders::AirTask::Hold => {
             unit.air.as_mut().expect("an aircraft's flight state").pass = None;
-            if matches!(unit.orders.front(), Some(UnitOrder::Attack { .. })) {
+            // An attack, or an attack-move whose target it killed, is over (D15).
+            if matches!(
+                unit.orders.front(),
+                Some(UnitOrder::Attack { .. } | UnitOrder::AttackMove(_))
+            ) {
                 unit.orders.pop_front();
             }
             Intent::Orbit {
-                centre: unit.position.xy(),
+                centre: unit
+                    .air
+                    .as_ref()
+                    .and_then(|air| air.last_goal)
+                    .unwrap_or_else(|| unit.position.xy()),
             }
         }
         orders::AirTask::Orbit { centre } => {
             unit.air.as_mut().expect("an aircraft's flight state").pass = None;
             Intent::Orbit { centre }
         }
-        orders::AirTask::Dogfight => {
-            unit.air.as_mut().expect("an aircraft's flight state").pass = None;
-            linked_target
-                .and_then(|target| ctx.knowledge[unit.side.index()].track(target))
-                .map(|track| {
-                    dogfight::intent(
-                        &state,
-                        track,
-                        mix(ctx.seed ^ u64::from(unit.id.0)),
-                        &ctx.rules.air.fixed_wing,
-                    )
-                })
-                .unwrap_or(Intent::Orbit {
-                    centre: unit.position.xy(),
-                })
-        }
-        orders::AirTask::Attack { target, explicit } => {
-            let point =
-                pass_before.map_or_else(|| target_point(ctx, unit, target), |pass| pass.aim);
-            if dogfightable(&ctx.knowledge[unit.side.index()], target, unit.layer()) {
+        orders::AirTask::Attack { target } => {
+            // A run flies at the aim it committed to; lining up, at the
+            // target's point now.
+            let point = pass_before
+                .filter(|p| p.phase == pass::PassPhase::Dive && p.target == target)
+                .map_or_else(|| target_point(ctx, unit, target), |p| p.aim);
+            if dogfightable(ctx.knowledge[unit.side.index()], target, unit.layer()) {
+                unit.air.as_mut().expect("an aircraft's flight state").pass = None;
+                let ordered = match target {
+                    Target::Unit(id) => Some(id),
+                    _ => None,
+                };
+                // It flies at a jet beyond the break range; the dogfight
+                // forms once it is inside.
+                let in_range = |id| {
+                    ctx.knowledge[unit.side.index()]
+                        .track(id)
+                        .is_some_and(|track| {
+                            !dogfight::breaks(
+                                crate::math::body_distance(unit.position, track.position),
+                                &ctx.rules.air.fixed_wing,
+                            )
+                        })
+                };
                 if linked_target.is_none() {
-                    if let Target::Unit(target) = target {
-                        dogfight::set_target(unit, target);
+                    if let Some(id) = ordered.filter(|&id| in_range(id)) {
+                        dogfight::set_target(unit, id);
                     }
                 }
-                unit.air.as_mut().expect("an aircraft's flight state").pass = None;
-                unit.air
+                let chase = unit
+                    .air
                     .as_ref()
                     .and_then(|air| air.dogfight_target)
-                    .and_then(|target| ctx.knowledge[unit.side.index()].track(target))
-                    .map(|track| {
-                        dogfight::intent(
-                            &state,
-                            track,
-                            mix(ctx.seed ^ u64::from(unit.id.0)),
-                            &ctx.rules.air.fixed_wing,
-                        )
-                    })
-                    .unwrap_or(Intent::Orbit { centre: point.xy() })
+                    .or(ordered);
+                dogfight_intent(ctx, unit, &state, chase, point.xy())
             } else {
-                let weapons = pass_weapons(ctx, unit);
-                let just_released = unit
-                    .air
-                    .as_ref()
-                    .is_some_and(|air| air.pass_release && air.pass.is_some_and(|p| p.released));
-                let chosen = unit
-                    .air
-                    .as_ref()
-                    .and_then(|air| air.pass.filter(|_| just_released).map(|p| p.weapon))
-                    .or_else(|| pass::choose_weapon(&weapons));
+                let weapons = pass_weapons(ctx, unit, target, point);
+                let chosen =
+                    pass::choose_weapon(&weapons.iter().map(|(w, _)| *w).collect::<Vec<_>>());
                 if let Some(weapon) = chosen {
-                    let restart = unit.air.as_ref().is_none_or(|air| {
-                        air.pass
-                            .is_none_or(|p| p.weapon != weapon || p.target != target)
-                    });
+                    let restart =
+                        pass_before.is_none_or(|p| p.weapon != weapon || p.target != target);
                     if restart {
                         let mut rng = Rng::new(mix(ctx.seed ^ u64::from(unit.id.0)));
                         let mut plan = pass::begin(
                             &state,
+                            ctx.world.height_at(state.pos.x, state.pos.y).unwrap_or(0.0),
                             &limits,
                             point,
                             weapon,
@@ -189,38 +200,25 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
                         plan.target = target;
                         unit.air.as_mut().expect("an aircraft's flight state").pass = Some(plan);
                     }
-                    let release = pass_release(ctx, unit, point, weapon);
+                    let release = weapons
+                        .iter()
+                        .find(|(w, _)| *w == weapon)
+                        .map_or_else(|| at_the_aim(point), |(_, release)| *release);
+                    let lost = !knows_target(ctx.knowledge[unit.side.index()], target);
                     let pass = unit
                         .air
                         .as_mut()
                         .expect("an aircraft's flight state")
                         .pass
                         .as_mut()
-                        .unwrap();
-                    let was_pull_out = pass.phase == pass::PassPhase::PullOut;
-                    let (intent, cue) = pass::advance(pass, &state, &limits, point, &release);
-                    pass_release_now = cue.is_some();
-                    if was_pull_out && pass.phase == pass::PassPhase::LineUp {
-                        let finished_target = pass.target;
-                        unit.air.as_mut().expect("an aircraft's flight state").pass = None;
-                        if !explicit
-                            && matches!(
-                                finished_target,
-                                Target::Unit(id)
-                                    if ctx.knowledge[unit.side.index()].knows_destroyed(id)
-                            )
-                            && matches!(
-                                orders::reaction_task(unit, ctx.knowledge[unit.side.index()]),
-                                orders::AirTask::Hold | orders::AirTask::Orbit { .. }
-                            )
-                        {
-                            unit.orders.pop_front();
-                            unit.air
-                                .as_mut()
-                                .expect("an aircraft's flight state")
-                                .last_goal = Some(unit.position.xy());
-                        }
+                        .expect("a pass was begun");
+                    // A run at a target its side has lost is over.
+                    if lost {
+                        pass.phase = pass::PassPhase::LineUp;
                     }
+                    let (intent, cue) =
+                        pass::advance(pass, &state, &limits, &bounds, point, &release, dt);
+                    pass_release_now = cue;
                     intent
                 } else {
                     unit.air.as_mut().expect("an aircraft's flight state").pass = None;
@@ -229,7 +227,6 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
             }
         }
     };
-    let bounds = Bounds::new(v2(0.0, 0.0), v2(ctx.world.width(), ctx.world.depth()));
     let mut command = steer(&intent, &state, &limits, &bounds, dt);
     command.burner = afterburner;
     let next = fly(
@@ -249,11 +246,55 @@ pub(crate) fn step_fixed_wing(ctx: &MovementContext, unit: &mut Unit) {
     air.burner = next.burner;
     air.turn_sign = next.turn_sign;
     air.pass_release = pass_release_now;
-    if goal.is_some() || air.last_goal.is_none() {
+    if flying_to_goal || attacking || air.last_goal.is_none() {
         air.last_goal = Some(next.pos.xy());
     }
     air.fuel_s = (fuel_s - dt * fuel_mult).max(0.0);
     unit.state = contract::observation::MoveState::Moving;
+}
+
+/// End whatever run or fight a jet is in: no attack run, release cue or
+/// dogfight link survives an order it is given (order application, and
+/// turning for home on low fuel). If its order still attacks, it lines up
+/// afresh from where it is.
+pub(crate) fn break_off(unit: &mut Unit) {
+    if let Some(air) = unit.air.as_mut() {
+        air.pass = None;
+        air.pass_release = false;
+        air.dogfight_target = None;
+    }
+}
+
+/// Whether the side still knows where `target` is: a ground point always,
+/// a unit while it holds a track of it, a contact while it lives.
+fn knows_target(knowledge: &SideKnowledge, target: Target) -> bool {
+    match target {
+        Target::Unit(id) => knowledge.track(id).is_some(),
+        Target::Contact(id) => knowledge.contact(id).is_some(),
+        Target::Ground(_) | Target::Round(_) => true,
+    }
+}
+
+/// How a jet flies its dogfight against `target`, as its side knows it;
+/// circling `fallback` while it knows nothing of one.
+fn dogfight_intent(
+    ctx: &MovementContext,
+    unit: &Unit,
+    state: &FixedWingState,
+    target: Option<contract::ids::UnitId>,
+    fallback: V2,
+) -> Intent {
+    target
+        .and_then(|target| ctx.knowledge[unit.side.index()].track(target))
+        .map(|track| {
+            dogfight::intent(
+                state,
+                track,
+                mix(ctx.seed ^ u64::from(unit.id.0)),
+                &ctx.rules.air.fixed_wing,
+            )
+        })
+        .unwrap_or(Intent::Orbit { centre: fallback })
 }
 
 fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
@@ -274,6 +315,20 @@ fn target_point(ctx: &MovementContext, unit: &Unit, target: Target) -> V3 {
     }
 }
 
+/// What the side knows `target` to be: its layer and, for an identified
+/// unit, its class. A contact is an area in the layer its cause flew in,
+/// which no class bars; a ground point, or a unit lost from view, is a
+/// point on the ground. Read from what was seen or heard, never from
+/// height.
+fn known_target(knowledge: &SideKnowledge, target: Target) -> (AltitudeLayer, Option<TargetClass>) {
+    match target {
+        Target::Unit(id) => knowledge.track(id).map(|t| (t.layer, Some(t.class))),
+        Target::Contact(id) => knowledge.contact(id).map(|c| (c.layer, None)),
+        _ => None,
+    }
+    .unwrap_or((AltitudeLayer::Ground, None))
+}
+
 /// Whether the side knows `target` as a winged aircraft in `layer`, the
 /// pursuer's own: the only kind a fixed-wing aircraft dogfights (D29c);
 /// anything else it attacks in passes. Read from what was seen or heard of
@@ -284,60 +339,62 @@ pub(crate) fn dogfightable(
     layer: AltitudeLayer,
 ) -> bool {
     let seen = match target {
-        Target::Unit(id) => knowledge.track(id).map(|t| (t.layer, t.fixed_wing)),
+        Target::Unit(id) => knowledge
+            .track(id)
+            .map(|t| (t.layer, t.class == TargetClass::AirFixedWing)),
         Target::Contact(id) => knowledge.contact(id).map(|c| (c.layer, c.fixed_wing)),
         _ => None,
     };
     seen == Some((layer, true))
 }
 
-fn pass_weapons(ctx: &MovementContext, unit: &Unit) -> Vec<pass::PassWeapon> {
+/// What the jet can fly a pass with at `aim`: each pass weapon one of its
+/// rows with rounds left engages the target with, as its side knows it,
+/// and the release it flies to. A bomb's is where it must leave the jet to
+/// fall onto the aim; a bomb that can't fall to the aim from here (the aim
+/// is above the jet) flies no run. Any other row fires at the aim itself.
+fn pass_weapons(
+    ctx: &MovementContext,
+    unit: &Unit,
+    target: Target,
+    aim: V3,
+) -> Vec<(pass::PassWeapon, crate::flight::Release)> {
+    let (layer, class) = known_target(ctx.knowledge[unit.side.index()], target);
     let specs = ctx.arsenal.specs(unit.kind);
-    let mut out = Vec::new();
+    let mut out: Vec<(pass::PassWeapon, crate::flight::Release)> = Vec::new();
     for mount in &unit.mounts {
         let spec = &specs[mount.spec];
         for (slot, &kind) in spec.kinds.iter().enumerate() {
-            if !mount.ammo[slot].is_none_or(|n| n > 0) {
+            let weapon = &ctx.arsenal.weapons[kind];
+            if !mount.ammo[slot].is_none_or(|n| n > 0) || weapon.def.engages(layer, class).is_none()
+            {
                 continue;
             }
-            let mode = pass::pass_weapon(&ctx.arsenal.weapons[kind].def);
-            if let Some(mode) = mode.filter(|mode| !out.contains(mode)) {
-                out.push(mode);
+            let Some(mode) = pass::pass_weapon(&weapon.def) else {
+                continue;
+            };
+            if out.iter().any(|(m, _)| *m == mode) {
+                continue;
+            }
+            let release = match mode {
+                pass::PassWeapon::Bomb => crate::flight::release(
+                    unit.position,
+                    unit.flight_velocity(),
+                    weapon.profile.gravity(&ctx.arsenal.config),
+                    aim,
+                ),
+                pass::PassWeapon::Gun | pass::PassWeapon::GroundMissile => Some(at_the_aim(aim)),
+            };
+            if let Some(release) = release {
+                out.push((mode, release));
             }
         }
     }
     out
 }
 
-fn pass_release(
-    ctx: &MovementContext,
-    unit: &Unit,
-    aim: V3,
-    weapon: pass::PassWeapon,
-) -> crate::flight::Release {
-    let kind = unit
-        .mounts
-        .iter()
-        .flat_map(|mount| {
-            let spec = &ctx.arsenal.specs(unit.kind)[mount.spec];
-            spec.kinds.iter().enumerate().filter_map(|(slot, &kind)| {
-                if !mount.ammo[slot].is_none_or(|n| n > 0) {
-                    return None;
-                }
-                (pass::pass_weapon(&ctx.arsenal.weapons[kind].def) == Some(weapon)).then_some(kind)
-            })
-        })
-        .next();
-    if let Some(kind) = kind.filter(|_| matches!(weapon, pass::PassWeapon::Bomb)) {
-        return crate::flight::release(
-            unit.position,
-            unit.flight_velocity(),
-            ctx.arsenal.weapons[kind]
-                .profile
-                .gravity(&ctx.arsenal.config),
-            aim,
-        );
-    }
+/// The release of a row fired at the aim itself, not dropped short of it.
+fn at_the_aim(aim: V3) -> crate::flight::Release {
     crate::flight::Release {
         fall_s: 0.0,
         ahead_m: 0.0,

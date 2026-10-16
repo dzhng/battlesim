@@ -158,9 +158,9 @@ export function selectFixtures(fixtures, ids) {
   return ids.map((id) => fixtures.find((f) => f.id === id));
 }
 
-export function sceneUrlFor(url, quality, allowQuality = true) {
+export function sceneUrlFor(url, quality) {
   const sceneUrl = new URL(url);
-  if (quality && allowQuality && sceneUrl.pathname.startsWith("/labs/"))
+  if (quality && sceneUrl.pathname.startsWith("/labs/"))
     sceneUrl.searchParams.set("test-quality", quality);
   return sceneUrl;
 }
@@ -327,12 +327,12 @@ export async function run(fixtures, { pinnedIds = new Set() } = {}) {
         rejectSceneFailure(sceneFailure);
       };
       const quality = fixtureGraphicsQuality(fixture, { pinned: pinnedIds.has(fixture.id) });
-      const sceneUrl = sceneUrlFor(`${server.url}${fixture.route}`, quality, Boolean(quality));
+      const sceneUrl = sceneUrlFor(`${server.url}${fixture.route}`, quality);
       const ctx = {
         fixture,
         url: sceneUrl.href,
-        urlFor(url = sceneUrl.href, params = {}) {
-          return mergeSceneUrl(url, params);
+        urlFor(params = {}) {
+          return mergeSceneUrl(sceneUrl.href, params);
         },
         browser: browser.version(),
         readinessTimeout,

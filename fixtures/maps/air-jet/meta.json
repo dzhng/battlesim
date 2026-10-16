@@ -16,6 +16,7 @@
   "source": "authored",
   "seed": null,
   "encounters": [
+    "audio",
     "dogfight",
     "ground",
     "high-air",

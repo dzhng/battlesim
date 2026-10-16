@@ -5,9 +5,6 @@
       "description": "A-10C",
       "faction": "us",
       "family": "a_10_warthog",
-      "roles": [
-        "recon"
-      ],
       "cost": 300,
       "roster": {
         "factions": [
@@ -24,37 +21,7 @@
             8.26,
             8.77,
             2.23
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -555,9 +522,6 @@
       "description": "Electronic-warfare aircraft",
       "faction": "us",
       "family": "ea_18g_growler",
-      "roles": [
-        "recon"
-      ],
       "cost": 380,
       "roster": {
         "factions": [
@@ -574,38 +538,10 @@
             9.09,
             6.89,
             2.44
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
+          ]
         }
       },
       "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
-        },
         "radar_receiver": {
           "range_m": 5000
         }
@@ -655,9 +591,6 @@
       "description": "F-15E Strike Eagle",
       "faction": "us",
       "family": "f_15_eagle",
-      "roles": [
-        "recon"
-      ],
       "cost": 400,
       "roster": {
         "factions": [
@@ -674,37 +607,7 @@
             9.75,
             6.55,
             2.82
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -770,9 +673,6 @@
       "description": "F-15EX Eagle II",
       "faction": "us",
       "family": "f_15_eagle",
-      "roles": [
-        "recon"
-      ],
       "cost": 430,
       "roster": {
         "factions": [
@@ -789,37 +689,7 @@
             9.75,
             6.55,
             2.82
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -867,9 +737,6 @@
       "description": "F-22A",
       "faction": "us",
       "family": "f_22_raptor",
-      "roles": [
-        "recon"
-      ],
       "cost": 500,
       "roster": {
         "factions": [
@@ -886,37 +753,7 @@
             9.46,
             6.79,
             2.56
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -964,9 +801,6 @@
       "description": "F-35B",
       "faction": "us",
       "family": "f_35_lightning_ii",
-      "roles": [
-        "recon"
-      ],
       "cost": 490,
       "roster": {
         "factions": [
@@ -983,37 +817,7 @@
             7.82,
             5.36,
             2.19
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -1079,9 +883,6 @@
       "description": "F/A-18E",
       "faction": "us",
       "family": "f_a_18_super_hornet",
-      "roles": [
-        "recon"
-      ],
       "cost": 370,
       "roster": {
         "factions": [
@@ -1098,37 +899,7 @@
             9.09,
             6.84,
             2.43
-          ],
-          "eye_m": 2.0,
-          "hp": 100,
-          "weight_class": "light",
-          "push_class": "none",
-          "wreck": "light_wreck"
-        }
-      },
-      "sensors": {
-        "ground_m": 1,
-        "low_air_m": 1800,
-        "high_air_m": 3000,
-        "sight_shape": {
-          "front": 1,
-          "side": 0.8,
-          "rear": 0.5
-        }
-      },
-      "capabilities": {
-        "flares": {
-          "capacity": 4,
-          "reload_s": 3
-        },
-        "air": {
-          "fuel_capacity_s": 180,
-          "afterburner": {},
-          "refund": {
-            "health": 0.4,
-            "ammunition": 0.3,
-            "fuel": 0.3
-          }
+          ]
         }
       },
       "mounts": [
@@ -3147,12 +2918,6 @@
       "sensors": {
         "low_air_m": 900,
         "high_air_m": 900
-      },
-      "capabilities": {
-        "radar": {
-          "emits": false,
-          "detection_m": 0
-        }
       },
       "mounts": [
         {

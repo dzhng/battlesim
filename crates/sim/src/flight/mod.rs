@@ -1492,7 +1492,6 @@ impl Flight<'_> {
     }
 }
 
-/// `velocity` turned toward `toward` by at most `max_angle`, keeping its speed.
 /// Where a seeker at `from`, flying at `from_velocity`, aims to meet a
 /// target at `at` flying at `velocity`: ahead of the target by the time the
 /// range takes to close at its present rate. A target not closing is
@@ -1508,6 +1507,7 @@ pub fn lead(from: V3, from_velocity: V3, at: V3, velocity: V3) -> V3 {
     }
 }
 
+/// `velocity` turned toward `toward` by at most `max_angle`, keeping its speed.
 pub fn steer(velocity: V3, toward: V3, max_angle: f64) -> V3 {
     let speed = velocity.length();
     if speed == 0.0 || toward.length() < 1e-9 {

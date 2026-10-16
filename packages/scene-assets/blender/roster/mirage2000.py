@@ -1,4 +1,4 @@
-"""Mirage 2000D (RMV), from assets/references/mirage_2000/. A disabled card.
+"""Mirage 2000D (RMV), from assets/references/mirage_2000/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/mirage2000.py -- [--wreck]
 
@@ -8,7 +8,7 @@ cones either side of the cockpit, the pure delta wing low on the body, one
 tall fin, the single M53 nozzle; big tanks under the wings, bombs under the
 body. French strike camouflage, grey with dark grey-green patches.
 
-Dimensions stated from the references (Dassault figures): length 14.36 m,
+The references' dimensions (Dassault figures): length 14.36 m,
 span 9.13 m, height 5.2 m.
 """
 import os
@@ -17,10 +17,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"europe_mirage_2000_2000d_rmv": (14.36, 9.13, 5.2)}
 WING_Z = 1.55
 SPEC = dict(
     # The side photo: the two-seat canopy 3 m behind the nose and 4 m long,
@@ -86,4 +85,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.2, wing_y=2.8, wing_side=-1, tail_yaw=-0.3, seed=20)
 
 
-run_disabled("mirage2000", CARDS, "french_air_camo", build, wreck)
+run("mirage_2000", "french_air_camo", build, wreck, script="mirage2000.py")

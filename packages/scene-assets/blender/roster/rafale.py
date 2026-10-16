@@ -1,4 +1,4 @@
-"""Dassault Rafale C (F4), from assets/references/rafale/. A disabled card.
+"""Dassault Rafale C (F4), from assets/references/rafale/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/rafale.py -- [--wreck]
 
@@ -7,7 +7,7 @@ crescent intakes set low under the cockpit, the fixed refuelling probe on the
 right of the nose, the cranked delta wing, one tall swept fin, two M88
 nozzles; wing-tip missiles, tanks and Meteors under the wing. Mid grey.
 
-Dimensions stated from the references (Dassault figures): length 15.27 m,
+The references' dimensions (Dassault figures): length 15.27 m,
 span 10.80 m, height 5.34 m.
 """
 import os
@@ -16,10 +16,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box, cyl  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"europe_rafale_c_f4": (15.27, 10.8, 5.34)}
 WING_Z = 1.85
 SPEC = dict(
     fuselage=[(7.63, 0.0, 2.0, 2.0), (6.9, 0.36, 1.75, 2.26, 2.0), (5.8, 0.52, 1.58, 2.46, 1.95, 2.2),
@@ -85,4 +84,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.4, wing_y=3.0, wing_side=1, tail_yaw=0.3, seed=7)
 
 
-run_disabled("rafale", CARDS, "nato_air_grey", build, wreck)
+run("rafale", "nato_air_grey", build, wreck, script="rafale.py")

@@ -29,15 +29,14 @@ fn main() {
             .position(|arg| arg == flag)
             .and_then(|index| args.get(index + 1))
     };
-    let factions = value("--factions").map_or([Faction::Us, Faction::Europe], |pair| {
+    let mut inputs = Inputs::load().expect("load generation inputs");
+    if let Some(pair) = value("--factions") {
         let names: Vec<Faction> = pair
             .split(',')
             .map(|name| serde_json::from_value(name.into()).expect("--factions us,europe|eastern"))
             .collect();
-        [names[0], names[1]]
-    });
-    let mut inputs = Inputs::load().expect("load generation inputs");
-    inputs.factions = factions;
+        inputs.factions = [names[0], names[1]];
+    }
     for (side, flag) in ["--buy-blue", "--buy-red"].into_iter().enumerate() {
         inputs.buy[side] = value(flag).map(|list| {
             list.replace('|', ",|,")
@@ -45,6 +44,23 @@ fn main() {
                 .map(String::from)
                 .collect()
         });
+        // A card the side can never buy would hold its list forever.
+        let faction = inputs.factions[side];
+        for card in inputs.buy[side]
+            .iter()
+            .flatten()
+            .filter(|card| *card != "|")
+        {
+            let roster = inputs
+                .rules
+                .catalog
+                .index(card)
+                .and_then(|kind| inputs.rules.catalog.get(kind).roster.as_ref());
+            assert!(
+                roster.is_some_and(|roster| roster.factions.contains(&faction)),
+                "{flag} card {card} is not in {faction:?}'s roster"
+            );
+        }
     }
     if args.iter().any(|arg| arg == "--corpus") {
         let corpus: Corpus =
@@ -58,16 +74,10 @@ fn main() {
             );
         }
     } else {
-        let seed = args
-            .iter()
-            .position(|arg| arg == "--seed")
-            .and_then(|index| args.get(index + 1))
+        let seed = value("--seed")
             .map(|value| value.parse::<u64>().expect("--seed must be a u64"))
             .unwrap_or_else(random_seed);
-        let max_seconds = args
-            .iter()
-            .position(|arg| arg == "--max-seconds")
-            .and_then(|index| args.get(index + 1))
+        let max_seconds = value("--max-seconds")
             .map(|value| value.parse::<u64>().expect("--max-seconds must be a u64"))
             .unwrap_or(DEFAULT_MAX_BATTLE_SECONDS);
         println!(

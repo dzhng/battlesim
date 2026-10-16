@@ -649,6 +649,42 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
     );
 }
 
+/// A bomb is released only on a winged aircraft's pass, the one flight that
+/// plans a release point: a bomb row on a helicopter or a ground vehicle
+/// is refused as the rules load, naming the type.
+#[test]
+fn only_a_winged_aircraft_carries_a_bomb() {
+    let load = |id: &str| {
+        let mut fixture = common::game();
+        fixture["weapons"]["test_bomb"] = json!({
+            "name": "Test Bomb", "description": "A test row.", "icon": "bomb",
+            "delivery": "unpowered", "stationary": false, "gravity_scale": 2,
+            "aim_s": 0.1, "reload_s": 3, "ammo": 2, "penetration": 10,
+            "partial_from": 0.08, "damage": 50, "scatter_mrad": 1,
+            "near_miss_suppression": 0, "suppression_radius_m": 0,
+            "blast_radius_m": 5, "structural_damage": 10,
+            "targets": { "ground": { "classes": ["vehicle"] } }
+        });
+        fixture["service"]["round_costs"]["test_bomb"] = json!(1);
+        sim::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            id,
+            json!({ "mounts": [{ "id": "rack", "name": "Rack", "weapons": ["test_bomb"],
+                "turret": false, "pivot_m": [0, 0, 1], "muzzle_m": [1, 0, 0] }] }),
+        );
+        serde_json::from_value::<Rules>(fixture).map(|_| ())
+    };
+    load("test_jet").expect("a jet carries bombs");
+    for id in ["test_heli", "test_tank"] {
+        let e = load(id).unwrap_err().to_string();
+        assert!(
+            e.contains(&format!("units.{id}")) && e.contains("test_bomb"),
+            "{id}: {e}"
+        );
+    }
+}
+
 /// Firing mechanics use fixed reach rather than the live grenade balance.
 fn grenade_firing_profile(fixture: &mut Value) {
     fixture["weapons"]["grenade"]["range_m"] = json!(450);
@@ -823,7 +859,16 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             }
         }
 
-        let mut b = battle(&fixture, id, json!([]));
+        // A jet flies to its goal on the open field it fought on: the small
+        // field lies wholly inside the edge guard's margin.
+        let (mut b, goal) = if never_stops {
+            (
+                battle_at(&fixture, id, json!([]), [500.0, 1000.0], 3000.0, 2000.0),
+                sim::math::v2(1500.0, 1300.0),
+            )
+        } else {
+            (battle(&fixture, id, json!([])), sim::math::v2(200.0, 500.0))
+        };
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
             slot: None,
@@ -831,7 +876,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             order: Order::Move {
                 units: vec![UnitId(0)],
                 gesture: 1,
-                goal: [200.0, 500.0],
+                goal: [goal.x, goal.y],
                 route: RoutePolicy::Shortest,
                 direction: MoveDirection::Forward,
                 facing: None,
@@ -853,10 +898,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             let mut closest = f64::INFINITY;
             for _ in 0..90 * rules.tick_hz {
                 b.step();
-                closest = closest.min(
-                    (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0))
-                        .length(),
-                );
+                closest = closest.min((b.unit(UnitId(0)).unwrap().position.xy() - goal).length());
             }
             if closest > radius + 10.0 {
                 failures.push(format!(
@@ -867,8 +909,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
             for _ in 0..90 * rules.tick_hz {
                 b.step();
             }
-            let short =
-                (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 500.0)).length();
+            let short = (b.unit(UnitId(0)).unwrap().position.xy() - goal).length();
             if short > 10.0 {
                 failures.push(format!("{id}: stopped {short:.1} m short of its goal"));
             }

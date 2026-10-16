@@ -300,7 +300,7 @@ fn an_unguided_row_tighter_than_the_spread_ceiling_is_refused_and_a_guided_one_i
 
 fn unpowered_bomb_launch(carrier: V3, velocity: V3, aim: V3, profile: &LaunchProfile) -> Launch {
     let gravity = profile.gravity(&config());
-    let drop = sim::flight::release(carrier, velocity, gravity, aim);
+    let drop = sim::flight::release(carrier, velocity, gravity, aim).expect("it falls to the aim");
     Launch {
         origin: drop.at.with_z(carrier.z),
         carrier: velocity,
@@ -345,7 +345,8 @@ fn a_bomb_falls_ahead_carrying_the_jets_velocity() {
     let carrier = v3(100.0, 100.0, 200.0);
     let velocity = v3(100.0, 0.0, 0.0);
     let aim = v3(500.0, 100.0, 0.0);
-    let release = sim::flight::release(carrier, velocity, profile.gravity(&config()), aim);
+    let release = sim::flight::release(carrier, velocity, profile.gravity(&config()), aim)
+        .expect("it falls to the aim");
     let mut store = Projectiles::new(config());
     store.launch(unpowered_bomb_launch(carrier, velocity, aim, &profile));
     let events = fly(&mut store, &flat([1200.0, 400.0], ""), 240, |_| Vec::new());
@@ -353,6 +354,21 @@ fn a_bomb_falls_ahead_carrying_the_jets_velocity() {
         panic!("{events:?}")
     };
     assert!((hit.point.x - release.at.x - velocity.x * release.fall_s).abs() < 0.1);
+}
+
+#[test]
+fn a_bomb_has_no_release_onto_an_aim_above_the_carrier() {
+    let gravity = profile("air_bomb").gravity(&config());
+    let carrier = v3(100.0, 100.0, 200.0);
+    let level = v3(100.0, 0.0, 0.0);
+    let above = v3(500.0, 100.0, 260.0);
+    assert_eq!(sim::flight::release(carrier, level, gravity, above), None);
+    // Climbing hard enough, the dropped round rises past the aim's height
+    // and falls back onto it.
+    let climbing = v3(100.0, 0.0, 120.0);
+    let release = sim::flight::release(carrier, climbing, gravity, above)
+        .expect("a fast climb carries it up to the aim");
+    assert!(release.fall_s > 0.0 && release.fall_s.is_finite());
 }
 
 #[test]

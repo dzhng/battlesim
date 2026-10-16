@@ -112,6 +112,12 @@ bun run setup   # install web dependencies and Playwright Chromium
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
+On Windows, [`tools/setup-windows.ps1`](tools/setup-windows.ps1) checks the
+required tools and can prepare both clients. Run it with `-Native` to build the
+native Windows executable, or without it for browser development. The native
+client's Windows prerequisites and runtime lookup are documented in the
+[native client README](native/client/README.md#windows-development).
+
 `bun run setup` is also the test prerequisite. It installs the managed Chromium
 used by Vitest and by checks that cannot attach to a system browser, then checks
 for `ffmpeg` and `ffprobe`, which the audio asset tests execute.

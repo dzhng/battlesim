@@ -318,7 +318,8 @@ pub struct AirState {
     pub burner: f64,
     /// Last non-zero turn direction, retained by the fixed-wing flight law.
     pub turn_sign: i8,
-    /// Where the last explicit goal was lost; idle jets orbit this point.
+    /// Where an idle jet circles: the move goal it last reached, or where it
+    /// was when its last order or attack run ended (choice 03).
     pub last_goal: Option<V2>,
     /// Its arrival at the goal it flies to last, once it has turned onto
     /// the leg that ends there.
@@ -329,7 +330,7 @@ pub struct AirState {
     pub afterburner: bool,
     /// Close air engagement target while this aircraft is in a dogfight.
     pub dogfight_target: Option<UnitId>,
-    /// Current ground attack run, if the explicit attack names a ground aim.
+    /// Its attack on a ground target, in runs (`air::pass`).
     pub pass: Option<crate::air::pass::PassPlan>,
     /// The one tick in which a pass's unpowered round may leave the jet.
     pub pass_release: bool,
@@ -480,12 +481,6 @@ pub fn validate_drive(rules: &Rules) {
 impl Unit {
     /// Admit an order with the same replacement and deployment semantics everywhere.
     pub(crate) fn enqueue(&mut self, order: UnitOrder, queued: bool) {
-        // Attack-move is the one explicit order that keeps an aircraft's
-        // automatic dogfight lock: the aircraft continues its close fight
-        // while advancing, then resumes the attack-move policy afterwards.
-        if !queued && !matches!(order, UnitOrder::AttackMove(_)) {
-            crate::air::dogfight::clear(self);
-        }
         if let Some(d) = self.deployment.as_mut() {
             d.stationary = contract::observation::Posture::Deployed;
         }
@@ -671,13 +666,28 @@ impl Unit {
             d.f64(a.fuel_s)
                 .u64(a.afterburner as u64)
                 .u64(a.dogfight_target.map_or(u64::MAX, |id| u64::from(id.0)));
+            match a.pass {
+                Some(p) => {
+                    d.u64(1);
+                    p.target.digest(d);
+                    d.f64(p.aim.x)
+                        .f64(p.aim.y)
+                        .f64(p.aim.z)
+                        .u64(p.phase as u64)
+                        .u64(p.weapon as u64)
+                        .f64(p.agl)
+                        .f64(p.heading);
+                }
+                None => {
+                    d.u64(0);
+                }
+            }
+            d.u64(a.pass_release as u64);
         }
-        // Flares follow a flier's flight state; a flier without them hashes
-        // an empty store.
-        if self.air.is_some() || self.flares.is_some() {
-            let f = self.flares.unwrap_or_default();
-            d.u64(f.charges as u64).u64(f.ready_tick);
-        }
+        match self.flares {
+            Some(f) => d.u64(1).u64(f.charges as u64).u64(f.ready_tick),
+            None => d.u64(0),
+        };
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),
             None => d.u64(0),

@@ -2,7 +2,7 @@
 
 ## Contract unlocked
 
-Weapon rows explicitly state what they can target in each altitude layer. Dedicated anti-armour behavior is represented by `classes: ["vehicle"]`, not a boolean. Interception was `can_intercept`, since replaced by the per-layer `missile` target class (air-war-flight D54); incoming projectiles retain `interceptable: true`.
+Weapon rows explicitly state what they can target in each altitude layer. Dedicated anti-armour behavior is represented by `classes: ["vehicle"]`, not a boolean. Interception was `can_intercept`, since replaced by the per-layer `missile` target class ([air-war-flight D54](../../done/air-war-flight/flight-model-map.md)); incoming projectiles retain `interceptable: true`.
 
 ## Seam and ownership
 

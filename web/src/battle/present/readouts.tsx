@@ -31,6 +31,7 @@ import {
   leaderOf,
   overlaps,
   readoutPaintOrder,
+  READOUT_ANCHOR_PX,
   type ReadoutRect,
 } from "./readoutLayout";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -435,7 +436,14 @@ export function ReadoutLayer({
             ...panels.map((r): Box2 => [r.x0, r.y0, r.x1, r.y1]),
             ...callouts
               .filter((b) => b.highAir === high)
-              .map((b): Box2 => [b.x - 6, b.y - 6, b.x + 6, b.y + 6]),
+              .map(
+                (b): Box2 => [
+                  b.x - READOUT_ANCHOR_PX,
+                  b.y - READOUT_ANCHOR_PX,
+                  b.x + READOUT_ANCHOR_PX,
+                  b.y + READOUT_ANCHOR_PX,
+                ],
+              ),
           ];
           const plane = layoutReadoutDetails(
             detailCards,
