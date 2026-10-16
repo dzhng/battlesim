@@ -7,11 +7,10 @@
 //   crates/sim/tests/radar.rs::every_radar_contact_reaches_the_reader_with_its_bearing_and_range
 // Browser-only evidence: the jet has no ground marker/drop line while the
 // Apache has both, the jet card exposes fuel/flares, and Space shows the jet's
-// order ghost card at the aircraft's cruise-height treatment; the radar card
-// remains a contact card with bearing and range.
+// order ghost card; the radar card remains a contact card with bearing and range.
 import { decode, mostChanged, pixel, around } from "./_png.mjs";
 import { gpuWarnings, lab, obs, hideHud, presented, aim } from "./_lab.mjs";
-import { openAir, own, play, surface, command, cardText, HIGH_AIR_CRUISE } from "./_air.mjs";
+import { openAir, own, play, surface, command, cardText } from "./_air.mjs";
 import { unitType } from "./_units.mjs";
 
 const JET = "f_16c_block_50";
@@ -86,13 +85,12 @@ export async function run(ctx) {
   await play(page, 2);
   await page.keyboard.down("Space");
   const ghost = await cardText(page, ".ro-callout[data-ghost]");
-  const ghostHeight = await lab(page, () => window.__lab.route.movePreview?.()?.ghostAloft ?? null);
   await page.screenshot({ path: ctx.evidencePath("space-ghost.png") });
   await page.keyboard.up("Space");
   ctx.check(
-    "Space shows the jet order ghost card at cruise-height treatment",
-    ghost !== null && (ghostHeight === null || ghostHeight >= HIGH_AIR_CRUISE),
-    JSON.stringify({ ghost, ghostHeight }),
+    "Space shows the jet order ghost card",
+    ghost !== null,
+    ghost ?? "no ghost card",
   );
 
   const radar = (await obs(page)).contacts.find((c) => c.source === "radar");

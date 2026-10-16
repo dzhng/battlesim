@@ -206,7 +206,7 @@ export async function openBattle(
   ctx,
   { viewport, url, tick, timeout, grass = false, allowErrors } = {},
 ) {
-  timeout ??= ctx.readinessTimeout ?? 30000;
+  timeout ??= ctx.readinessTimeout;
   const page = await ctx.newPage({ viewport, allowErrors });
   await ctx.openLab(page, url, timeout);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout });

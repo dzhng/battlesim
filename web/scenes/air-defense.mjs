@@ -23,7 +23,7 @@ const LONG = "eastern_s300_long";
 const at = (o, p) => o.own.find((u) => Math.hypot(u.position[0] - p[0], u.position[1] - p[1]) < 1);
 
 async function engagement(ctx, variant, ticks) {
-  const units = encounter(`defense-${variant}`).units.filter((u) => u.side === "red");
+  const units = encounter(`defense-${variant}`, "air-defense").units.filter((u) => u.side === "red");
   const page = await openAir(ctx, variant);
   const warnings = gpuWarnings(page);
   const fired = new Map();
@@ -72,8 +72,8 @@ export async function run(ctx) {
     ctx.check(`jet: the ${kind} fires at it`, jet(kind).shots > 0, JSON.stringify(jet(kind)));
   const hidden = jet(SHORT, 1);
   ctx.check(
-    "jet: the short gun behind the tower has no air-only sight rule",
-    !hidden.reasons.includes("no_own_sight"),
+    "jet: the short gun behind the tower is observed and has no air-only sight rule",
+    hidden.reasons.length > 0 && !hidden.reasons.includes("no_own_sight"),
     JSON.stringify(hidden),
   );
 }

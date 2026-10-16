@@ -17,14 +17,13 @@ const ffmpeg = promisify(execFile);
 export const encounter = (name, fixture) => loadEncounter(mapOf(fixture), name);
 
 /** The fixture's saved map. */
-export const mapOf = (fixture = "air-hover") => FIXTURES.find((f) => f.id === fixture).map;
+export const mapOf = (fixture) => FIXTURES.find((f) => f.id === fixture).map;
 
 /** The fixture's field size, metres, from its map's metadata. */
 export const field = (fixture) =>
   JSON.parse(
     readFileSync(new URL(`../../fixtures/maps/${mapOf(fixture)}/meta.json`, import.meta.url)),
   ).size_m;
-export const FIELD = field();
 
 /** The checkpoint's battle opened on `variant` (its default without one),
  *  paused past its first ticks. */
@@ -57,7 +56,7 @@ export const shots = (u, mount = 0) => u.weaponPoses.find((p) => p.mount === mou
 export const surface = (page, p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
 
 /** Whether `p` lies on the map. */
-export const onMap = (p, size = FIELD) =>
+export const onMap = (p, size) =>
   p[0] >= 0 && p[1] >= 0 && p[0] <= size[0] && p[1] <= size[1];
 
 /** Record selected observed unit tracks and heights as a compact review PNG. */

@@ -418,7 +418,7 @@ export async function run(ctx) {
   await page.close();
   const dusk = await openBattle(ctx, {
     viewport: VIEWPORT,
-    url: ctx.urlFor(ctx.url, { sun: 0.3 }),
+    url: ctx.urlFor({ sun: 0.3 }),
     grass: true,
     timeout: 60000,
   });

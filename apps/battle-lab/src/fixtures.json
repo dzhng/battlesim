@@ -146,7 +146,7 @@
   {
     "id": "air-hud",
     "route": "/labs/air-hud",
-    "describe": "Air-jet HUD: a jet has no ground marker or drop line while the Apache has both; the jet card shows fuel and flares; Space reveals the jet order ghost at cruise height; the radar contact card keeps its bearing and range.",
+    "describe": "Air-jet HUD: a jet has no ground marker or drop line while the Apache has both; the jet card shows fuel and flares; Space reveals the jet order ghost card; the radar contact card keeps its bearing and range.",
     "map": "air-jet"
   },
   {

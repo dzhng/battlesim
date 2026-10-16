@@ -29,7 +29,7 @@ async function openStressLab(ctx, page) {
     await ctx.openLab(page);
     return null;
   }
-  await ctx.openLab(page, ctx.urlFor(ctx.url, { generated: 1 }), PREPARE_TIMEOUT);
+  await ctx.openLab(page, ctx.urlFor({ generated: 1 }), PREPARE_TIMEOUT);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
     timeout: PREPARE_TIMEOUT,
   });
