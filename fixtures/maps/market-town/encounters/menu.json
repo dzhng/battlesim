@@ -149,17 +149,6 @@
       }
     },
     {
-      "tick": 4,
-      "side": "blue",
-      "order": {
-        "kind": "move",
-        "units": [1],
-        "gesture": 2,
-        "goal": [3461, 1603],
-        "route": "shortest"
-      }
-    },
-    {
       "tick": 30,
       "side": "blue",
       "order": {
@@ -169,45 +158,6 @@
           "kind": "ground",
           "point": [3300, 1990, 0.0]
         }
-      }
-    },
-    {
-      "tick": 120,
-      "side": "blue",
-      "order": {
-        "kind": "set_engagement",
-        "units": [1],
-        "policy": "fire_at_will"
-      }
-    },
-    {
-      "tick": 180,
-      "side": "blue",
-      "order": {
-        "kind": "attack_move",
-        "units": [1],
-        "gesture": 14,
-        "goal": [3420, 1750]
-      }
-    },
-    {
-      "tick": 450,
-      "side": "blue",
-      "order": {
-        "kind": "attack_move",
-        "units": [1],
-        "gesture": 15,
-        "goal": [3380, 1880]
-      }
-    },
-    {
-      "tick": 750,
-      "side": "blue",
-      "order": {
-        "kind": "attack_move",
-        "units": [1],
-        "gesture": 16,
-        "goal": [3400, 1960]
       }
     },
     {
@@ -223,25 +173,56 @@
       }
     },
     {
-      "tick": 846,
+      "tick": 90,
       "side": "blue",
       "order": {
-        "kind": "move",
+        "kind": "set_engagement",
         "units": [1],
-        "gesture": 2,
-        "goal": [3457.5, 1611.25],
-        "route": "shortest"
+        "policy": "fire_at_will"
       }
     },
     {
-      "tick": 858,
+      "tick": 150,
       "side": "blue",
       "order": {
         "kind": "move",
         "units": [1],
         "gesture": 2,
-        "goal": [3445, 1985],
-        "route": "shortest"
+        "goal": [3460, 1700],
+        "route": "fastest"
+      }
+    },
+    {
+      "tick": 420,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [1],
+        "gesture": 2,
+        "goal": [3420, 1850],
+        "route": "fastest"
+      }
+    },
+    {
+      "tick": 690,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [1],
+        "gesture": 2,
+        "goal": [3400, 1960],
+        "route": "fastest"
+      }
+    },
+    {
+      "tick": 960,
+      "side": "blue",
+      "order": {
+        "kind": "move",
+        "units": [1],
+        "gesture": 2,
+        "goal": [3380, 2020],
+        "route": "fastest"
       }
     },
     {

@@ -55,10 +55,10 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
-    // Brickwall limiter: prevents any signal from exceeding -1 dBFS.
+    // Brickwall limiter: prevents any signal from exceeding -2 dBFS.
     // High ratio (20:1) with minimal knee for true peak limiting.
     this.limiter = new DynamicsCompressorNode(context, {
-      threshold: -1,
+      threshold: -2,
       knee: 0,
       ratio: 20,
       attack: 0.001,
