@@ -91,6 +91,7 @@ fn wing() -> FixedWingFlight {
         dogfight_band_agl_m: [150.0, 350.0],
         dogfight_break_m: 1200.0,
         afterburner_ramp_s: 2.0,
+        afterburner_scatter_multiplier: 1.8,
         edge_margin_m: 300.0,
     }
 }

@@ -1086,7 +1086,7 @@ fn assess(
         ActionReason::NoCompatibleTarget
     })?;
     let weapon = &ctx.arsenal.weapons[spec.kinds[k]].def;
-    if unit.airborne() && r.layer == AltitudeLayer::Ground {
+    if r.layer == AltitudeLayer::Ground {
         let pass = unit.air.as_ref().and_then(|air| air.pass);
         let bomb_pass = pass.is_some_and(|p| p.weapon == crate::air::pass::PassWeapon::Bomb);
         // A winged aircraft's bombs leave only on its bombing pass's release
@@ -1307,19 +1307,18 @@ fn select(
     let knowledge = &ctx.knowledge[unit.side.index()];
     let here = unit.position;
     let weapons = &ctx.arsenal.weapons;
-    let air_priority = unit.airborne()
-        && spec.kinds.iter().enumerate().any(|(slot, &kind)| {
-            mount.has_rounds(slot)
-                && ctx.arsenal.weapons[kind].def.seeker.is_some()
-                && (ctx.arsenal.weapons[kind]
+    let air_priority = spec.kinds.iter().enumerate().any(|(slot, &kind)| {
+        mount.has_rounds(slot)
+            && ctx.arsenal.weapons[kind].def.seeker.is_some()
+            && (ctx.arsenal.weapons[kind]
+                .def
+                .against(AltitudeLayer::LowAir)
+                .is_some()
+                || ctx.arsenal.weapons[kind]
                     .def
-                    .against(AltitudeLayer::LowAir)
-                    .is_some()
-                    || ctx.arsenal.weapons[kind]
-                        .def
-                        .against(AltitudeLayer::HighAir)
-                        .is_some())
-        });
+                    .against(AltitudeLayer::HighAir)
+                    .is_some())
+    });
     let mut ranked: Vec<(bool, bool, f64, u32, f64, u32, UnitId)> = knowledge
         .identified_now(ctx.tick)
         .map(|(u, t)| {
@@ -2158,11 +2157,8 @@ fn fire(
     // A fast pass is harder to stabilise for a ground attack.  Keep the
     // penalty on the weapon's authored dispersion so guns, rockets and bombs
     // all read the same physical rule.
-    if unit.airborne()
-        && r.layer == AltitudeLayer::Ground
-        && unit.air.as_ref().is_some_and(|air| air.afterburner)
-    {
-        scatter *= 1.8;
+    if r.layer == AltitudeLayer::Ground && unit.air.as_ref().is_some_and(|air| air.afterburner) {
+        scatter *= ctx.rules.air.fixed_wing.afterburner_scatter_multiplier;
     }
     let knowledge = &ctx.knowledge[unit.side.index()];
     // Rounds and their muzzles: the hull's one weapon, or each soldier

@@ -749,6 +749,9 @@ pub struct FixedWingFlight {
     pub dogfight_band_agl_m: [f64; 2],
     pub dogfight_break_m: f64,
     pub afterburner_ramp_s: f64,
+    /// A ground attack fired on afterburner scatters this many times its
+    /// weapon's authored dispersion: a fast pass is hard to stabilise.
+    pub afterburner_scatter_multiplier: f64,
     pub edge_margin_m: f64,
 }
 
@@ -774,13 +777,14 @@ impl AirRules {
             && wing.dogfight_band_agl_m[0] <= wing.dogfight_band_agl_m[1]
             && wing.dogfight_break_m > 0.0
             && wing.afterburner_ramp_s > 0.0
+            && wing.afterburner_scatter_multiplier >= 1.0
             && wing.edge_margin_m >= 0.0;
         let ok = rotor_ok && wing_ok && self.separation_m > 0.0;
         if ok {
             Ok(())
         } else {
             Err(
-                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive"
+                "air: low-air cruise must be positive and within the rotor ceiling; the high-air floor must not exceed the fixed-wing ceilings, those ceilings must not exceed high-air cruise, the dogfight band must be ordered from the floor up, and air timings/margins must be positive, and afterburner scatter at least 1"
                     .into(),
             )
         }

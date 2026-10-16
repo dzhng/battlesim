@@ -2233,5 +2233,5 @@
       "b17_friendly_destroyed_nearby": 2.5
     }
   },
-  "air": {"low_air": {"cruise_agl_m": 30}, "high_air": {"cruise_agl_m": 250, "floor_agl_m": 100}, "rotor": {"clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4}, "fixed_wing": {"strafe_ceiling_m": 130, "bomb_ceiling_m": 200, "dogfight_band_agl_m": [150, 350], "dogfight_break_m": 1200, "afterburner_ramp_s": 2, "edge_margin_m": 300}, "separation_m": 14}
+  "air": {"low_air": {"cruise_agl_m": 30}, "high_air": {"cruise_agl_m": 250, "floor_agl_m": 100}, "rotor": {"clearance_m": 10, "ceiling_agl_m": 40, "obstacle_m": 30, "acceleration_s": 4.5, "settle_share": 0.05, "settle_max_m": 4}, "fixed_wing": {"strafe_ceiling_m": 130, "bomb_ceiling_m": 200, "dogfight_band_agl_m": [150, 350], "dogfight_break_m": 1200, "afterburner_ramp_s": 2, "afterburner_scatter_multiplier": 1.8, "edge_margin_m": 300}, "separation_m": 14}
 }

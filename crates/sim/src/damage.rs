@@ -258,7 +258,7 @@ impl ImpactResolver for HullResolver<'_> {
             return None;
         }
         let unit = self.units.get(body.unit.0 as usize)?;
-        (unit.alive() && unit.hull.is_some())
+        unit.alive()
             .then(|| {
                 unit.unit_type(self.rules)
                     .capabilities
