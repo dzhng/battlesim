@@ -340,38 +340,63 @@ async function captureWithCDP(page, args, server) {
   
   console.log("CDP screencast started, waiting for reel-ready signal...");
   
-  // Tell the page to start (it will run the battle and capture audio only)
+  // Wait for page to signal completion or get duration
+  const duration = await page.evaluate(() => window.__capture?.duration);
+  if (duration) captureDuration = duration;
+  
+  // Preroll sequence: reel-ready → audio start → wait 150ms → calibration → cut at calib + 400ms
+  // This ensures the click is recorded in the audio tap
+  
+  // Step 1: Wait for reel to be ready
+  console.log("  Waiting for reel-ready...");
+  await page.waitForFunction(() => window.__capture?.reelReadyTime !== null, undefined, { timeout: 60000 });
+  const reelReadyTimeFromPage = await page.evaluate(() => window.__capture?.reelReadyTime);
+  console.log(`  Reel ready at ${reelReadyTimeFromPage?.toFixed(1) ?? '?'}ms`);
+  
+  // Step 2: Start audio recording
+  console.log("  Starting audio recording...");
   await page.evaluate(() => {
     if (window.__capture?.startAudioOnly) {
       window.__capture.startAudioOnly();
     }
   });
   
-  // Wait for page to signal completion or get duration
-  const duration = await page.evaluate(() => window.__capture?.duration);
-  if (duration) captureDuration = duration;
+  // Step 3: Wait for audio to actually start + 150ms settling time
+  console.log("  Waiting for audio tap to start...");
+  await page.waitForFunction(() => window.__capture?.audioStartTime !== null, undefined, { timeout: 10000 });
+  const audioStartTimeFromPage = await page.evaluate(() => window.__capture?.audioStartTime);
+  console.log(`  Audio started at ${audioStartTimeFromPage?.toFixed(1) ?? '?'}ms`);
   
-  // Wait for reel to be ready, then trigger calibration
-  let calibrationTime = null;
-  let calibrationTriggered = false;
-  const calibrationCheckInterval = setInterval(async () => {
-    if (calibrationTriggered) return;
-    const ready = await page.evaluate(() => window.__capture?.reelReadyTime !== null);
-    if (ready && !calibrationTriggered) {
-      calibrationTriggered = true;
-      // Trigger calibration: white flash + click
-      calibrationTime = await page.evaluate(() => {
-        if (window.__capture?.triggerCalibration) {
-          return window.__capture.triggerCalibration();
-        }
-        return null;
-      });
-      if (calibrationTime !== null) {
-        console.log(`  Calibration triggered at ${calibrationTime.toFixed(1)}ms`);
-      }
-      clearInterval(calibrationCheckInterval);
+  // Wait 150ms after audio starts for the tap to be fully active
+  await new Promise(r => setTimeout(r, 150));
+  
+  // Step 4: Trigger calibration (white flash + click)
+  console.log("  Triggering calibration...");
+  const calibrationTime = await page.evaluate(() => {
+    if (window.__capture?.triggerCalibration) {
+      return window.__capture.triggerCalibration();
     }
-  }, 16); // Check every frame
+    return null;
+  });
+  
+  // Step 5: Calculate video cut time = calibrationTime + 400ms (after flash ends)
+  // This replaces the old PREROLL_CUT_S logic with calibration-based cut
+  let dynamicCutTimeMs = null;
+  if (calibrationTime !== null && audioStartTimeFromPage !== null) {
+    dynamicCutTimeMs = calibrationTime + 400; // 400ms after flash
+    console.log(`  Calibration at ${calibrationTime.toFixed(1)}ms, cut at ${dynamicCutTimeMs.toFixed(1)}ms`);
+    
+    // Verify ordering: audioStart < calib < cut
+    const ordering = `audioStart(${audioStartTimeFromPage.toFixed(0)}) < calib(${calibrationTime.toFixed(0)}) < cut(${dynamicCutTimeMs.toFixed(0)})`;
+    if (audioStartTimeFromPage < calibrationTime && calibrationTime < dynamicCutTimeMs) {
+      console.log(`  Ordering OK: ${ordering}`);
+    } else {
+      console.error(`  ERROR: Bad ordering: ${ordering}`);
+      throw new Error(`Preroll ordering failed: ${ordering}`);
+    }
+  } else {
+    console.log("  WARNING: Calibration failed, falling back to fixed preroll cut");
+  }
   
   // Poll for completion
   await page.waitForFunction(
@@ -383,9 +408,6 @@ async function captureWithCDP(page, args, server) {
     { timeout: 300_000 },
   );
   
-  // Clear calibration check interval if still running
-  clearInterval(calibrationCheckInterval);
-  
   process.stdout.write("\n");
   
   // Stop screencast
@@ -395,10 +417,18 @@ async function captureWithCDP(page, args, server) {
   console.log("  Waiting for frame writes to complete...");
   await Promise.all(rawFrames.map(f => f.writePromise));
   
-  // Calculate cut timestamp: ready + 0.5s preroll cut
-  const cutCdpTime = reelReadyCdpTime !== null 
-    ? reelReadyCdpTime + PREROLL_CUT_S 
-    : null;
+  // Calculate cut timestamp using dynamic calibration time or fallback to fixed preroll
+  let cutCdpTime = null;
+  if (dynamicCutTimeMs !== null && reelReadyCdpTime !== null && reelReadyTime !== null) {
+    // Convert dynamicCutTimeMs (perf.now() space) to CDP timestamp
+    const pageLoadEpochMs = (reelReadyCdpTime * 1000) - reelReadyTime;
+    cutCdpTime = (pageLoadEpochMs + dynamicCutTimeMs) / 1000;
+    console.log(`  Video cut at CDP time ${cutCdpTime.toFixed(3)}s (dynamic)`);
+  } else if (reelReadyCdpTime !== null) {
+    // Fallback to fixed preroll cut
+    cutCdpTime = reelReadyCdpTime + PREROLL_CUT_S;
+    console.log(`  Video cut at CDP time ${cutCdpTime.toFixed(3)}s (fallback, preroll=${PREROLL_CUT_S}s)`);
+  }
   
   // Filter frames: drop those before cut timestamp
   let validFrames = rawFrames;
@@ -545,61 +575,65 @@ async function captureWithCDP(page, args, server) {
         ? audioInfo.calibrationTime - audioInfo.audioStartTime
         : null;
       
-      // Detect calibration white frame in video using signalstats on raw video
-      // Run single ffmpeg pass with metadata output
-      console.log("  Detecting calibration white frame in video...");
-      try {
-        const statsResult = await new Promise((resolve, reject) => {
-          const ffmpeg = spawn("ffmpeg", [
-            "-i", rawVideoPath,
-            "-vf", "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-",
-            "-f", "null", "-",
-          ], { stdio: ["pipe", "pipe", "pipe"] });
-          let stdout = "";
-          let stderr = "";
-          ffmpeg.stdout.on("data", (d) => stdout += d);
-          ffmpeg.stderr.on("data", (d) => stderr += d);
-          ffmpeg.on("close", () => resolve({ stdout, stderr }));
-          ffmpeg.on("error", (e) => reject(e));
-        });
-        
-        // Parse frame-by-frame YAVG values from stdout
-        // Format: frame:N    pts:P    pts_time:T\nlavfi.signalstats.YAVG=V
-        const framePattern = /frame:\s*(\d+)\s+pts:\s*\d+\s+pts_time:([\d.]+)\s*\nlavfi\.signalstats\.YAVG=([\d.]+)/g;
-        let match;
-        let whiteFrameTime = null;
-        let whiteFrameYavg = 0;
-        while ((match = framePattern.exec(statsResult.stdout)) !== null) {
-          const frameNum = parseInt(match[1]);
-          const ptsTime = parseFloat(match[2]);
-          const yavg = parseFloat(match[3]);
-          if (yavg > 250 && whiteFrameTime === null) {
-            whiteFrameTime = ptsTime;
-            whiteFrameYavg = yavg;
-            console.log(`    White frame detected: frame ${frameNum}, time ${ptsTime.toFixed(3)}s, YAVG=${yavg.toFixed(0)}`);
-            break;
+      // Detect calibration white frame by scanning ALL captured frames (including pre-cut)
+      // The flash happens before the cut point, so we must scan the full frame set
+      console.log("  Detecting calibration white frame in frames...");
+      
+      // Search frames around the expected calibration time
+      const expectedCalibCdpTime = calibrationTime !== null && reelReadyCdpTime !== null && reelReadyTime !== null
+        ? (((reelReadyCdpTime * 1000) - reelReadyTime + calibrationTime) / 1000)
+        : null;
+      
+      // Filter frames to search: within ±500ms of expected calibration time
+      const searchFrames = expectedCalibCdpTime !== null
+        ? rawFrames.filter(f => Math.abs(f.cdpTimestamp - expectedCalibCdpTime) < 0.5)
+        : rawFrames.slice(0, Math.min(100, rawFrames.length)); // fallback: first 100 frames
+      
+      console.log(`    Searching ${searchFrames.length} frames near expected calib time ${expectedCalibCdpTime?.toFixed(3) ?? '?'}s`);
+      
+      // Analyze each frame's brightness using ffmpeg signalstats
+      let whiteFrame = null;
+      for (const frame of searchFrames) {
+        try {
+          const result = await new Promise((resolve, reject) => {
+            const ffmpeg = spawn("ffmpeg", [
+              "-i", frame.path,
+              "-vf", "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-",
+              "-f", "null", "-",
+            ], { stdio: ["pipe", "pipe", "pipe"] });
+            let stdout = "";
+            ffmpeg.stdout.on("data", (d) => stdout += d);
+            ffmpeg.on("close", () => resolve(stdout));
+            ffmpeg.on("error", () => resolve(""));
+          });
+          
+          // Parse YAVG from metadata output
+          const yavgMatch = result.match(/lavfi\.signalstats\.YAVG=([\d.]+)/);
+          if (yavgMatch) {
+            const yavg = parseFloat(yavgMatch[1]);
+            if (yavg > 250) {
+              whiteFrame = { cdpTimestamp: frame.cdpTimestamp, yavg };
+              console.log(`    White frame found: cdpTime=${frame.cdpTimestamp.toFixed(3)}s, YAVG=${yavg.toFixed(0)}`);
+              break;
+            }
           }
+        } catch (e) {
+          // Continue searching
         }
-        
-        if (whiteFrameTime !== null) {
-          // Convert video time to ms relative to audio start
-          // The raw video starts at the first frame's CDP timestamp
-          const firstFrameCdpTime = rawFrames[0]?.cdpTimestamp ?? 0;
-          const pageLoadEpochMs = audioInfo.reelReadyTime !== null
-            ? (reelReadyCdpTime * 1000) - audioInfo.reelReadyTime
-            : null;
-          if (pageLoadEpochMs !== null) {
-            // Video frame time is relative to video start (firstFrameCdpTime)
-            // Convert to perf.now() space then to audio-relative
-            const frameCdpTimeMs = (firstFrameCdpTime + whiteFrameTime) * 1000;
-            calibVideoMs = frameCdpTimeMs - pageLoadEpochMs - (audioInfo.audioStartTime ?? 0);
-            console.log(`  Calibration white frame at video ${calibVideoMs.toFixed(1)}ms (YAVG=${whiteFrameYavg.toFixed(0)})`);
-          }
-        } else {
-          console.log("  WARNING: No white frame (YAVG > 250) found in video");
+      }
+      
+      if (whiteFrame !== null) {
+        // Convert white frame CDP timestamp to ms relative to audio start
+        const pageLoadEpochMs = audioInfo.reelReadyTime !== null && reelReadyCdpTime !== null
+          ? (reelReadyCdpTime * 1000) - audioInfo.reelReadyTime
+          : null;
+        if (pageLoadEpochMs !== null && audioInfo.audioStartTime !== null) {
+          const framePerfNow = (whiteFrame.cdpTimestamp * 1000) - pageLoadEpochMs;
+          calibVideoMs = framePerfNow - audioInfo.audioStartTime;
+          console.log(`  Calibration white frame at ${calibVideoMs.toFixed(1)}ms relative to audio start (YAVG=${whiteFrame.yavg.toFixed(0)})`);
         }
-      } catch (e) {
-        console.log(`  WARNING: Video white frame detection failed: ${e.message}`);
+      } else {
+        console.log("  WARNING: No white frame (YAVG > 250) found in frames");
       }
       
       // Detect calibration click in audio by finding strongest transient
@@ -681,9 +715,10 @@ async function captureWithCDP(page, args, server) {
       }
       
       // Calculate sync offset from calibration or fall back to timing-based calculation
-      const videoCutTime = audioInfo.reelReadyTime !== null 
-        ? audioInfo.reelReadyTime + PREROLL_CUT_S * 1000 
-        : null;
+      // Use dynamic cut time (calibrationTime + 400ms) if available, else fallback
+      const videoCutTime = dynamicCutTimeMs !== null
+        ? dynamicCutTimeMs
+        : (audioInfo.reelReadyTime !== null ? audioInfo.reelReadyTime + PREROLL_CUT_S * 1000 : null);
       const audioStartTime = audioInfo.audioStartTime;
       
       if (calibVideoMs !== null && calibAudioMs !== null) {
@@ -694,7 +729,7 @@ async function captureWithCDP(page, args, server) {
         // The final offset also needs to account for the video cut point
         const cutOffsetMs = videoCutTime !== null && audioStartTime !== null
           ? (videoCutTime - audioStartTime)
-          : PREROLL_CUT_S * 1000;
+          : (dynamicCutTimeMs !== null ? dynamicCutTimeMs - (audioStartTime ?? 0) : PREROLL_CUT_S * 1000);
         audioOffsetMs = cutOffsetMs + calibOffsetMs;
         console.log(`  Calibration offset: ${calibOffsetMs.toFixed(1)}ms (video=${calibVideoMs.toFixed(1)}ms, audio=${calibAudioMs.toFixed(1)}ms)`);
         console.log(`  Final audio offset: ${audioOffsetMs.toFixed(1)}ms (cut=${cutOffsetMs.toFixed(1)}ms + calib=${calibOffsetMs.toFixed(1)}ms)`);
@@ -821,7 +856,7 @@ async function captureWithCDP(page, args, server) {
     calib_video_ms: calibVideoMs,
     calib_audio_ms: calibAudioMs,
     audio_offset_ms: audioOffsetMs,
-    video_cut_s: PREROLL_CUT_S,
+    video_cut_ms: dynamicCutTimeMs ?? (PREROLL_CUT_S * 1000),
     dropped_early_frames: droppedEarlyFrames,
     total_events: fireEvents.length,
     followed_events: fireEvents.filter(e => e.is_followed).length,
