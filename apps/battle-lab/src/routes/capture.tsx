@@ -25,6 +25,7 @@ import { validateBackdrop, sampleReel, type BackdropScene } from "../menuReel";
 import { savedBattle } from "../savedMaps";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useBattleSession } from "../useBattleSession";
+import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { useLabLoading } from "../LabLoading";
 import type { ScriptedSim } from "../useSimSession";
 import game from "@fixtures/game.json";
@@ -307,8 +308,12 @@ function CaptureBattle({
 
       return finalPose;
     },
-    frame({ now }) {
-      hear();
+    frame({ now, camera }) {
+      const presentation = sim.client?.presentation;
+      if (audio && presentation) {
+        const listener = cameraListener(camera, game.presentation.audio.listener_eye_share);
+        audio.updateWithListener(presentation.wasm, listener);
+      }
       if (pilotStartRef.current === null || state.status !== "recording") return;
       const elapsed = (now - pilotStartRef.current) / 1000;
       setState({ status: "recording", elapsed, duration });

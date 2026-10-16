@@ -581,6 +581,26 @@ impl SoundFrame {
         commands(self.inner.update(clock, wall, now, &motion, listener))
     }
 
+    /// Hears `presentation`'s last frame at wall time `wall`, mixer time `now`,
+    /// from `listener` (its position xyz, then forward xyz) instead of from
+    /// the presentation's camera. Use when the drawn camera differs from the
+    /// presentation's stored one (e.g. a capture pilot following a unit).
+    pub fn hear_at(
+        &mut self,
+        presentation: &Presentation,
+        wall: f64,
+        now: f64,
+        listener: &[f64],
+    ) -> String {
+        let listener = Listener {
+            position: [listener[0], listener[1], listener[2]],
+            forward: [listener[3], listener[4], listener[5]],
+        };
+        let motion = presentation.inner.motion();
+        let clock = presentation.inner.clock_of_frame();
+        commands(self.inner.update(clock, wall, now, &motion, listener))
+    }
+
     /// Hears scripted motion at presentation time `clock` from `listener`
     /// (its position, then forward): `soldiers` four numbers each (id, x, y,
     /// z), `vehicles` eight each (key, x, y, z, left and right travel,

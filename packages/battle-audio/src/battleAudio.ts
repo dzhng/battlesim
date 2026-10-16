@@ -176,6 +176,18 @@ export class BattleAudio {
     const lines = voices?.hear(frame);
     this.app.battleHeard(this, lines?.heard ?? [], voices?.speaking() ?? false);
   }
+  /** Hear the battle's last frame from an explicit listener position. Use when
+   *  the drawn camera differs from the presentation's stored camera (e.g. a
+   *  capture pilot following a unit). */
+  updateWithListener(presentation: Presentation, listener: Listener) {
+    const frame = this.live;
+    if (!frame) return;
+    const wall = performance.now() / 1000;
+    frame.hearAt(presentation, wall, listener);
+    const voices = this.voices;
+    const lines = voices?.hear(frame);
+    this.app.battleHeard(this, lines?.heard ?? [], voices?.speaking() ?? false);
+  }
   reset() {
     this.frame?.reset();
     this.voices?.reset();

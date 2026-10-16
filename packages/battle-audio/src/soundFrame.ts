@@ -320,6 +320,20 @@ export class SoundFrame {
     this.run(this.rust.hear(presentation, wall, this.sink.now()));
   }
 
+  /** Hear `presentation`'s last frame, from explicit `listener` instead of
+   *  the presentation's camera, at wall time `wall` (seconds). Use when the
+   *  drawn camera differs from the presentation's (e.g. a capture pilot). */
+  hearAt(presentation: Presentation, wall: number, listener: Listener) {
+    this.run(
+      this.rust.hear_at(
+        presentation,
+        wall,
+        this.sink.now(),
+        Float64Array.from([...listener.position, ...listener.forward]),
+      ),
+    );
+  }
+
   /** Take one scripted publication; the same tick again is ignored. */
   note(pub: SoundPublication) {
     this.run(this.rust.note_scripted(JSON.stringify(pub), this.sink.now()));
