@@ -9,7 +9,7 @@
 ```rust
 choose_weapon(&[PassWeapon]) -> Option<PassWeapon>   // limited ground ammunition before the unlimited gun
 begin(&JetState, aim, PassWeapon, &JetAir, &mut Rng) -> PassPlan { phase: LineUp | TurnIn | Dive | Release | PullOut, agl }
-advance(&mut PassPlan, &JetState, &FixedWingLimits, aim, &Release) -> (Intent, Option<ReleaseCue>)
+advance(&mut PassPlan, &JetState, &FixedWingLimits, aim, &Release) -> (Intent, bool)   // the one release tick
 ```
 - **Line-up from where the jet is** (closeout fix, [choices](../choices.md)): fly straight on until a full-rate turn in on the aim leaves a full run-in, turn in, and dive only nose-on within the run-in. Every repeat pass dives in from the approach side.
 - **Ceiling per pass:** bombs use `bomb_ceiling_m`; guns and ground missiles use `strafe_ceiling_m`.

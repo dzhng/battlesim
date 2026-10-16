@@ -18,8 +18,8 @@ use crate::movement::MovementContext;
 use crate::units::{Motion, Unit, UnitOrder};
 use crate::weapons::Target;
 use contract::catalog::AltitudeLayer;
-use contract::weapons::TargetClass;
 use contract::random::{mix, Rng};
+use contract::weapons::TargetClass;
 
 /// Advance one winged aircraft by the fixed-wing flight law, without
 /// consulting the rotor air grid.
@@ -374,9 +374,7 @@ fn pass_weapons(
                     weapon.profile.gravity(&ctx.arsenal.config),
                     aim,
                 ),
-                pass::PassWeapon::Gun | pass::PassWeapon::GroundMissile => {
-                    Some(at_the_aim(aim))
-                }
+                pass::PassWeapon::Gun | pass::PassWeapon::GroundMissile => Some(at_the_aim(aim)),
             };
             if let Some(release) = release {
                 out.push((mode, release));

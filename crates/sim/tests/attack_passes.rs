@@ -1180,7 +1180,10 @@ fn a_jet_circles_where_its_attack_ended() {
         !battle.unit(UnitId(2)).unwrap().alive(),
         "the attack ended with the tank alive"
     );
-    assert!((ended - start).length() > 10.0 * radius, "the attack ended near the start");
+    assert!(
+        (ended - start).length() > 10.0 * radius,
+        "the attack ended near the start"
+    );
     // A circle round where it ended passes within its diameter of it.
     for _ in 0..(60.0 * hz) as u64 {
         battle.step();
