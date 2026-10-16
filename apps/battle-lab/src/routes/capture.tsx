@@ -144,9 +144,11 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   const [reelEndTime, setReelEndTime] = useState<number | null>(null);
   const [audioStartTime, setAudioStartTime] = useState<number | null>(null);
   const [audioLatency, setAudioLatency] = useState<number>(0);
-  const [calibrationTime, setCalibrationTime] = useState<number | null>(null);
-  // Ref to the triggerCalibration function provided by CaptureBattle
-  const triggerCalibrationRef = useRef<(() => number) | null>(null);
+  // Calibration bursts: arrays of timestamps for start and end calibration
+  const [calibrationTimes, setCalibrationTimes] = useState<number[]>([]);
+  const [endCalibrationTimes, setEndCalibrationTimes] = useState<number[]>([]);
+  // Ref to the triggerCalibrationBurst function provided by CaptureBattle
+  const triggerCalibrationBurstRef = useRef<((count: number, intervalMs: number) => Promise<number[]>) | null>(null);
 
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
@@ -159,10 +161,11 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       reelEndTime,
       audioStartTime,
       audioLatency,
-      triggerCalibration: triggerCalibrationRef.current ?? undefined,
-      calibrationTime,
+      triggerCalibrationBurst: triggerCalibrationBurstRef.current ?? undefined,
+      calibrationTimes,
+      endCalibrationTimes,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, reelEndTime, audioStartTime, audioLatency, calibrationTime]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, reelEndTime, audioStartTime, audioLatency, calibrationTimes, endCalibrationTimes]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -189,10 +192,11 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
           setAudioStartTime(time);
           setAudioLatency(latency);
         }}
-        onCalibration={(fn) => {
-          triggerCalibrationRef.current = fn;
+        onCalibrationBurst={(fn) => {
+          triggerCalibrationBurstRef.current = fn;
         }}
-        onCalibrationTime={setCalibrationTime}
+        onCalibrationTimes={setCalibrationTimes}
+        onEndCalibrationTimes={setEndCalibrationTimes}
         isTrackedVehicle={isTrackedVehicle}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
@@ -216,8 +220,9 @@ function CaptureBattle({
   onReelReady,
   onReelEndTime,
   onAudioStart,
-  onCalibration,
-  onCalibrationTime,
+  onCalibrationBurst,
+  onCalibrationTimes,
+  onEndCalibrationTimes,
   isTrackedVehicle,
 }: {
   scene: BackdropScene;
@@ -235,8 +240,9 @@ function CaptureBattle({
   onReelReady?: (time: number) => void;
   onReelEndTime?: (time: number) => void;
   onAudioStart?: (time: number, latency: number) => void;
-  onCalibration?: (fn: () => number) => void;
-  onCalibrationTime?: (time: number) => void;
+  onCalibrationBurst?: (fn: (count: number, intervalMs: number) => Promise<number[]>) => void;
+  onCalibrationTimes?: (times: number[]) => void;
+  onEndCalibrationTimes?: (times: number[]) => void;
   isTrackedVehicle: (kind: string) => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -295,34 +301,45 @@ function CaptureBattle({
 
   const { sim, audio, hear } = session;
 
-  // Calibration function: shows white overlay and plays click, returns timestamp
-  const triggerCalibration = useCallback(() => {
-    const overlay = calibrationOverlayRef.current;
-    const timestamp = performance.now();
-    
-    // Show white overlay for 2 frames (~33ms at 60fps)
-    if (overlay) {
-      overlay.style.display = "block";
-      setTimeout(() => {
-        overlay.style.display = "none";
-      }, 33);
-    }
-    
-    // Play calibration click through the same audio graph
-    if (audio) {
-      audio.playCalibrationClick();
-    }
-    
-    // Report calibration time
-    onCalibrationTime?.(timestamp);
-    
-    return timestamp;
-  }, [audio, onCalibrationTime]);
+  // Calibration burst function: fires count flash/click pairs at intervalMs apart
+  // Returns array of performance.now() timestamps for each flash
+  const triggerCalibrationBurst = useCallback(
+    async (count: number, intervalMs: number): Promise<number[]> => {
+      const overlay = calibrationOverlayRef.current;
+      const timestamps: number[] = [];
 
-  // Provide the calibration function to parent
+      for (let i = 0; i < count; i++) {
+        const timestamp = performance.now();
+        timestamps.push(timestamp);
+
+        // Show white overlay for 2 frames (~33ms at 60fps)
+        if (overlay) {
+          overlay.style.display = "block";
+          setTimeout(() => {
+            overlay.style.display = "none";
+          }, 33);
+        }
+
+        // Play calibration click through the same audio graph
+        if (audio) {
+          audio.playCalibrationClick();
+        }
+
+        // Wait for interval before next flash (except after last one)
+        if (i < count - 1) {
+          await new Promise((r) => setTimeout(r, intervalMs));
+        }
+      }
+
+      return timestamps;
+    },
+    [audio],
+  );
+
+  // Provide the calibration burst function to parent
   useEffect(() => {
-    onCalibration?.(triggerCalibration);
-  }, [onCalibration, triggerCalibration]);
+    onCalibrationBurst?.(triggerCalibrationBurst);
+  }, [onCalibrationBurst, triggerCalibrationBurst]);
 
   // Get a unit's position by its ID
   const unitPosition = useCallback(
@@ -491,18 +508,29 @@ function CaptureBattle({
   const followInitializedRef = useRef(false);
   /** The last fully-computed pose (with follow tracking applied), frozen when reel ends. */
   const heldPoseRef = useRef<CameraPose | null>(null);
+  /** Reel start time: set to reelReadyTime when ready, so reel clock starts at ready signal. */
+  const reelStartTimeRef = useRef<number | null>(null);
+  /** Whether end calibration has been triggered. */
+  const endCalibTriggeredRef = useRef(false);
+  /** Ref to callbacks for triggering end calibration from within setTimeout. */
+  const onEndCalibrationTimesRef = useRef(onEndCalibrationTimes);
+  onEndCalibrationTimesRef.current = onEndCalibrationTimes;
 
   const pilot: ViewportPilot = {
     pose(now) {
+      // Track first pose call for initialization, but use reelStartTime for elapsed
       if (pilotStartRef.current === null) {
         pilotStartRef.current = now;
         // Don't start recording yet - wait for follow to initialize and first frame to render
       }
 
-      const elapsed = (now - pilotStartRef.current) / 1000;
+      // Use reelStartTime (set at reel-ready) for elapsed calculation
+      // This removes the drift between first pose() and reel-ready
+      const startTime = reelStartTimeRef.current ?? pilotStartRef.current;
+      const elapsed = (now - startTime) / 1000;
       const sample = sampleReel(reel, elapsed);
 
-      // When reel ends: record time, schedule stop ONCE, then return HELD pose
+      // When reel ends: record time, trigger end calibration, then schedule stop
       if (sample.done) {
         // Record reelEndTime on first done frame (independent of recorder state)
         if (reelEndTimeRef.current === null) {
@@ -510,14 +538,26 @@ function CaptureBattle({
           onReelEndTimeRef.current?.(now);
           console.log(`[capture] reel done at ${now.toFixed(1)}ms (elapsed=${elapsed.toFixed(2)}s)`);
         }
-        // Schedule stopRecording once (guarded by stoppingRef)
+        // Trigger end calibration burst once, then schedule stop after it completes
+        // Extended tail: 1.5s total = ~500ms for end calibration + buffer
         if (!stoppingRef.current) {
           stoppingRef.current = true;
-          console.log(`[capture] scheduling recorder stop in 500ms`);
-          setTimeout(() => {
-            console.log(`[capture] recorder stop triggered`);
-            stopRecording();
-          }, 500);
+          console.log(`[capture] scheduling end calibration burst + recorder stop`);
+          // Wait 200ms for any in-flight audio to settle, then trigger end calibration
+          setTimeout(async () => {
+            try {
+              const endTimes = await triggerCalibrationBurst(5, 150);
+              console.log(`[capture] end calibration burst fired: ${endTimes.map((t) => t.toFixed(0)).join(", ")}`);
+              onEndCalibrationTimesRef.current?.(endTimes);
+            } catch (e) {
+              console.error(`[capture] end calibration failed:`, e);
+            }
+            // Wait 500ms after end calibration for audio to record, then stop
+            setTimeout(() => {
+              console.log(`[capture] recorder stop triggered`);
+              stopRecording();
+            }, 500);
+          }, 200);
         }
         // Return the HELD pose (frozen last tracked position) - never recompute
         if (heldPoseRef.current !== null) {
@@ -584,6 +624,9 @@ function CaptureBattle({
         const canBeReady = followInitializedRef.current && reelFrameCountRef.current >= 1;
         if (canBeReady && reelReadyTimeRef.current === null) {
           reelReadyTimeRef.current = now;
+          // Start reel clock at ready time (removes drift between first pose and ready)
+          reelStartTimeRef.current = now;
+          console.log(`[capture] reel ready at ${now.toFixed(1)}ms, reel clock starts now`);
           onReelReadyRef.current?.(now);
           // Now that the pose is correct and rendered, start recording
           if (warmed && stateRef.current.status === "warming") {
@@ -592,7 +635,9 @@ function CaptureBattle({
         }
       }
       if (pilotStartRef.current === null || stateRef.current.status !== "recording") return;
-      const elapsed = (now - pilotStartRef.current) / 1000;
+      // Use reelStartTime for elapsed (matches pose() calculation)
+      const startTime = reelStartTimeRef.current ?? pilotStartRef.current;
+      const elapsed = (now - startTime) / 1000;
       setState({ status: "recording", elapsed, duration });
 
       // Track weapon fire events for the sidecar JSON

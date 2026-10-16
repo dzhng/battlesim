@@ -296,10 +296,13 @@ export interface CaptureExtras {
   audioStartTime?: number | null;
   /** Audio output latency in seconds (outputLatency + baseLatency from AudioContext). */
   audioLatency?: number;
-  /** Trigger calibration event (white overlay + click). Returns the performance.now() timestamp. */
-  triggerCalibration?: () => number;
-  /** Timestamp when calibration was triggered (performance.now()). */
-  calibrationTime?: number | null;
+  /** Trigger calibration burst (count flash/click pairs at intervalMs apart).
+   *  Returns array of performance.now() timestamps for each flash. */
+  triggerCalibrationBurst?: (count: number, intervalMs: number) => Promise<number[]>;
+  /** Timestamps of start calibration bursts (performance.now()). */
+  calibrationTimes?: number[];
+  /** Timestamps of end-of-reel calibration bursts (performance.now()). */
+  endCalibrationTimes?: number[];
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -323,7 +326,8 @@ export function exposeCaptureToWindow(
     reelEndTime: extras?.reelEndTime,
     audioStartTime: extras?.audioStartTime,
     audioLatency: extras?.audioLatency,
-    triggerCalibration: extras?.triggerCalibration,
-    calibrationTime: extras?.calibrationTime,
+    triggerCalibrationBurst: extras?.triggerCalibrationBurst,
+    calibrationTimes: extras?.calibrationTimes,
+    endCalibrationTimes: extras?.endCalibrationTimes,
   };
 }
