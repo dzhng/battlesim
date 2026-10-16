@@ -69,6 +69,11 @@ struct Tuning {
     recon_approach_share: f64,
     /// How wide the random term in a purchase's score spreads.
     purchase_noise: f64,
+    /// How long it lets a unit of its own stand held by its own cover
+    /// (`BlockedTrajectory`, from any weapon) before it moves it, and how
+    /// far: farther than the cover a unit is likely to stand under.
+    relocate_after_s: f64,
+    relocate_m: f64,
 }
 
 impl Tuning {
@@ -172,11 +177,10 @@ impl BalancedDoctrine {
         self.pivot_count
     }
 
-    /// A unit its own cover keeps from firing (`BlockedTrajectory` on a
-    /// weapon at every decision while it stands, for
-    /// `launch.relocate_after_s`) is driven to other ground
-    /// `launch.relocate_m` off, as a player would move it: the first of
-    /// eight bearings a route reaches, starting from its heading, one
+    /// A unit its own cover keeps from firing (`BlockedTrajectory` on any
+    /// weapon at every decision while it stands, for its tuning's
+    /// `relocate_after_s`) is driven to other ground `relocate_m` off, as a
+    /// player would move it: the first of eight bearings a route reaches, starting from its heading, one
     /// bearing further round for each earlier move. Arriving, it is watched
     /// afresh, and moved again if it is still held.
     fn relocation(
@@ -186,6 +190,8 @@ impl BalancedDoctrine {
         rules: &Rules,
         route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Relocation {
+        let after = Tuning::ticks(self.tuning.relocate_after_s, rules.tick_hz);
+        let reach = self.tuning.relocate_m;
         let held = self.held.entry(unit.id).or_default();
         if held.driving {
             // A route that failed on the way ends the move as arriving does.
@@ -204,7 +210,6 @@ impl BalancedDoctrine {
             return Relocation::Stay;
         }
         let since = *held.since.get_or_insert(tick);
-        let after = (rules.launch.relocate_after_s * f64::from(rules.tick_hz)) as Tick;
         if tick.saturating_sub(since) < after {
             return Relocation::Stay;
         }
@@ -213,8 +218,8 @@ impl BalancedDoctrine {
             .map(|k| unit.yaw + step * (held.moves + k) as f64)
             .map(|bearing| {
                 [
-                    unit.position[0] + libm::cos(bearing) * rules.launch.relocate_m,
-                    unit.position[1] + libm::sin(bearing) * rules.launch.relocate_m,
+                    unit.position[0] + libm::cos(bearing) * reach,
+                    unit.position[1] + libm::sin(bearing) * reach,
                 ]
             })
             .find(|&goal| route_time(unit.id, goal).is_some_and(|t| t.is_finite() && t >= 0.0));

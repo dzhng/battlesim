@@ -414,13 +414,6 @@ fn middle_aim() -> f64 {
 pub struct LaunchRules {
     /// How far along its arc from the muzzle its round must meet nothing.
     pub clearance_m: f64,
-    /// How long the skirmish AI lets a launcher it owns stand held for its
-    /// launch path (`BlockedTrajectory`) before it drives it to open
-    /// ground, as a player would.
-    pub relocate_after_s: f64,
-    /// How far off the AI looks for that ground: farther than the cover a
-    /// launcher is likely to stand under.
-    pub relocate_m: f64,
 }
 
 /// Armour by impacted face (P10).

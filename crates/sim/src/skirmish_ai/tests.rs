@@ -1300,8 +1300,8 @@ fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
 /// wall is sent by the AI to shell the approach to an objective blue holds,
 /// over the wall, and holds for a clear launch path (`BlockedTrajectory`);
 /// a ground point is no target to close on, so nothing else moves it.
-/// After `launch.relocate_after_s` of that, the AI orders it about
-/// `launch.relocate_m` off, clear of the wall, and from there it fires. The
+/// After its tuning's `relocate_after_s` of that, the AI orders it about
+/// `relocate_m` off, clear of the wall, and from there it fires. The
 /// policy reads the battle's own frames and its orders go through the
 /// ordinary admission, as the skirmish host plays it.
 #[test]
@@ -1312,8 +1312,6 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
         "requires_clear_launch_path": true,
     });
     rules["service"]["round_costs"]["test_launcher"] = json!(1);
-    rules["launch"]["relocate_after_s"] = json!(10);
-    rules["launch"]["relocate_m"] = json!(90);
     crate::fixtures::patch_catalog(
         &mut rules,
         "units",
@@ -1341,6 +1339,8 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
     view.objectives[0].owner = Some(Side::Blue);
     let entry = entry_from([400.0, 590.0]);
     let mut ai = BalancedDoctrine::new(3);
+    ai.tuning.relocate_after_s = 10.0;
+    ai.tuning.relocate_m = 90.0;
     let mut seq = 0;
     let jeep = UnitId(0);
     let start = battle.unit(jeep).unwrap().position;

@@ -12,5 +12,7 @@
   "aim_cap_m": 40,
   "recon_sight_share": 0.85,
   "recon_approach_share": 0.75,
-  "purchase_noise": 40
+  "purchase_noise": 40,
+  "relocate_after_s": 10,
+  "relocate_m": 50
 }
