@@ -139,7 +139,9 @@ fn turn_circle(state: &FixedWingState, limits: &FixedWingLimits, aim: V2) -> (V2
 /// is on. The dive begins only nose-on and within the run-in, so every pass,
 /// the first or a repeat, dives in from the approach side. The cue comes on
 /// the tick whose `dt` step carries the jet to its release point, so a bomb
-/// leaves the jet within half a step of it.
+/// leaves the jet within half a step of it. A dive or pull-out the edge
+/// guard turns back off its run lines up again, so a pass at an aim near
+/// the edge comes round instead of circling in one phase for good.
 pub fn advance(
     plan: &mut PassPlan,
     state: &FixedWingState,
@@ -160,6 +162,10 @@ pub fn advance(
     let too_close = distance <= release.ahead_m;
     let (centre, radius) = turn_circle(state, limits, aim.xy());
     let forward = v2(libm::cos(plan.heading), libm::sin(plan.heading));
+    // Turned back off its run (by the edge guard, before the dive reached
+    // its release or the pull-out cleared the aim): it is already coming
+    // round, so it lines up again.
+    let turned_back = v2(libm::cos(state.heading), libm::sin(state.heading)).dot(forward) < 0.0;
     match plan.phase {
         PassPhase::LineUp => {
             if (nose_on && !too_close)
@@ -193,6 +199,10 @@ pub fn advance(
             (line(plan, aim, plan.agl), false)
         }
         PassPhase::Dive => {
+            if turned_back {
+                plan.phase = PassPhase::LineUp;
+                return (line(plan, aim, plan.agl), false);
+            }
             let step = speed * dt;
             let short = (release.at - state.pos.xy()).dot(forward);
             if short - step <= step * 0.5 {
@@ -203,10 +213,9 @@ pub fn advance(
         }
         PassPhase::PullOut => {
             // The jet has cleared the aim once it is past it and two
-            // speed-lengths out; a five-length gate is outside the authored
-            // orbit radius.
+            // speed-lengths out.
             let past = to_aim.dot(forward) < 0.0;
-            if past && distance > speed * 2.0 {
+            if (past && distance > speed * 2.0) || turned_back {
                 plan.phase = PassPhase::LineUp;
             }
             (line(plan, aim, limits.cruise_agl_m), false)

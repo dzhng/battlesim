@@ -161,6 +161,36 @@ fn a_bombing_pass_lines_up_dives_under_its_ceiling_releases_and_climbs_back() {
     assert_eq!(plan.phase, PassPhase::PullOut);
 }
 
+/// A dive the edge guard turns back before its release is over: the jet
+/// lines up for another run rather than diving on forever, and releases
+/// nothing flying away from the aim, though it is beyond the release point.
+#[test]
+fn a_dive_turned_back_short_of_its_release_lines_up_again() {
+    let aim = v3(1000.0, 0.0, 0.0);
+    let mut plan = begin(
+        &state(150.0),
+        0.0,
+        &wing_limits(),
+        aim,
+        PassWeapon::Bomb,
+        &wing(),
+        &mut Rng::new(7),
+    );
+    plan.phase = PassPhase::Dive;
+    let release = Release {
+        fall_s: 3.0,
+        ahead_m: 300.0,
+        at: sim::math::v2(700.0, 0.0),
+    };
+    // Flying west, back the way it came, 100 m on from the release point.
+    let mut turned = state(plan.agl);
+    turned.pos.x = 800.0;
+    turned.heading = std::f64::consts::PI;
+    let (_, cue) = advance(&mut plan, &turned, &wing_limits(), aim, &release, 0.05);
+    assert!(!cue, "released flying away from the aim");
+    assert_eq!(plan.phase, PassPhase::LineUp);
+}
+
 #[test]
 fn pass_height_is_seeded_between_floor_and_ceiling() {
     let p = begin(
@@ -1011,10 +1041,10 @@ const REPEAT_CRUISE_KMH: f64 = 540.0;
 const REPEAT_TURN_DEG_S: f64 = 60.0;
 const REPEAT_PASSES: usize = 4;
 
-/// A test jet carrying only `weapon` (in place of its gun), 1 km west of a ground aim point in the
-/// middle of a 4 km field (far inside the edge guard), heading east at it
-/// under an explicit attack order.
-fn repeated_pass_battle(weapon: &str) -> sim::battle::Battle {
+/// A test jet carrying only `weapon` (in place of its gun) at (1000, 2000)
+/// on a 4 km field, heading east, under an explicit attack order on the
+/// ground at `aim`.
+fn repeated_pass_battle(weapon: &str, aim: [f64; 2]) -> sim::battle::Battle {
     let mut rules = sim::fixtures::test_game();
     rules["air"]["fixed_wing"]["edge_margin_m"] = json!(300.0);
     rules["weapons"]["air_bomb"]["ammo"] = json!(REPEAT_PASSES);
@@ -1049,7 +1079,7 @@ fn repeated_pass_battle(weapon: &str) -> sim::battle::Battle {
         order: Order::Attack {
             units: vec![UnitId(0)],
             target: TargetRef::Ground {
-                point: [2000.0, 2000.0, 0.0],
+                point: [aim[0], aim[1], 0.0],
             },
         },
     });
@@ -1062,16 +1092,35 @@ fn repeated_pass_battle(weapon: &str) -> sim::battle::Battle {
 /// go again. Every pass after the first must line up as well as the first.
 #[test]
 fn repeated_passes_each_dive_in_nose_on_and_fire() {
+    // 1 km east of the jet, in the middle of the field (far inside the
+    // edge guard).
+    fly_repeated_passes([2000.0, 2000.0], &["air_bomb", "air_gun"]);
+}
+
+/// A target by the map's edge is bombed pass after pass like any other: the
+/// edge guard turns the jet back before it is far past the aim, and the
+/// pull-out must still end and the jet come round again, not circle over the
+/// target for good. (A bomb's release lies its throw short of the aim, out
+/// of the guard's band; a strafe so near the edge is the open line-up limit.)
+#[test]
+fn repeated_bombing_passes_reach_an_aim_inside_the_edge_guard() {
+    // 100 m from the east edge, inside the 300 m margin the battle sets.
+    fly_repeated_passes([3900.0, 2000.0], &["air_bomb"]);
+}
+
+/// Fly `REPEAT_PASSES` passes with each of `weapons` at `aim`, asserting each
+/// dive begins nose-on and each pass fires.
+fn fly_repeated_passes(aim: [f64; 2], weapons: &[&str]) {
     let speed = REPEAT_CRUISE_KMH / 3.6;
     let turn = REPEAT_TURN_DEG_S.to_radians();
     let lap_s = std::f64::consts::TAU / turn;
+    let aim = sim::math::v2(aim[0], aim[1]);
     // Reaching the target, then each pass: a turn-around and straight legs
     // out and back, well inside two full laps of flying.
-    let bound_s = 1000.0 / speed + REPEAT_PASSES as f64 * 2.0 * lap_s;
+    let bound_s = (aim.x - 1000.0) / speed + REPEAT_PASSES as f64 * 2.0 * lap_s;
     let tolerance = 10_f64.to_radians();
-    let aim = sim::math::v2(2000.0, 2000.0);
-    for weapon in ["air_bomb", "air_gun"] {
-        let mut battle = repeated_pass_battle(weapon);
+    for &weapon in weapons {
+        let mut battle = repeated_pass_battle(weapon, [aim.x, aim.y]);
         let hz = f64::from(battle.rules().tick_hz);
         let mut previous = None;
         let mut dives = Vec::new();
