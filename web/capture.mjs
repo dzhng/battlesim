@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // Cinematic capture CLI: record the menu backdrop battle with a scripted camera.
 //
+// Uses CDP Page.startScreencast for page-level capture, which includes both the
+// WebGL canvas AND DOM overlays (info cards). Audio is captured separately via
+// the browser's Web Audio API and muxed with ffmpeg.
+//
 // Usage:
 //   bun run --cwd web capture [options]
 //   node capture.mjs [options]
@@ -20,9 +24,9 @@
 //   bun run --cwd web capture --preset=ground-level --width=3840 --height=2160
 
 import { mkdir, writeFile, unlink, access, stat, readFile } from "node:fs/promises";
-import { resolve, basename } from "node:path";
+import { resolve, basename, join } from "node:path";
 import { spawn, spawnSync, execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, createWriteStream } from "node:fs";
 import { startServer } from "./scene.mjs";
 import { launchBrowser } from "./browser.mjs";
 
@@ -94,8 +98,8 @@ Examples:
 
 /** Check if the mechanics validator is built. */
 async function checkMechanicsBuilt() {
-  const mechanicsPath = new URL("../target/debug/examples/mechanics_validate", ROOT);
-  const mechanicsRelease = new URL("../target/release/examples/mechanics_validate", ROOT);
+  const mechanicsPath = new URL("target/debug/examples/mechanics_validate", ROOT);
+  const mechanicsRelease = new URL("target/release/examples/mechanics_validate", ROOT);
   if (!existsSync(mechanicsPath) && !existsSync(mechanicsRelease)) {
     return false;
   }
@@ -115,8 +119,8 @@ async function isLfsPointer(filePath) {
 /** Check for LFS pointer files in critical asset directories. */
 async function checkLfsAssets() {
   const assetDirs = [
-    new URL("../assets/sounds/", ROOT),
-    new URL("../assets/models/", ROOT),
+    new URL("assets/sounds/", ROOT),
+    new URL("assets/models/", ROOT),
   ];
   const pointers = [];
   for (const dir of assetDirs) {
@@ -223,6 +227,154 @@ async function transcodeToMp4(webmPath, fps) {
   });
 }
 
+/** CDP-based page capture: captures the full page including DOM overlays.
+ *  Uses Page.startScreencast for video frames piped to ffmpeg, and
+ *  browser-side audio capture for audio, then muxes them together. */
+async function captureWithCDP(page, args, server) {
+  const cdp = await page.context().newCDPSession(page);
+  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const rawVideoPath = resolve(args.output, `raw-${timestamp}.mp4`);
+  const audioPath = resolve(args.output, `audio-${timestamp}.webm`);
+  const finalPath = resolve(args.output, `capture-${args.preset}-${timestamp}.${args.webm ? "webm" : "mp4"}`);
+  
+  // Start ffmpeg to receive frames
+  const ffmpegVideo = spawn("ffmpeg", [
+    "-y",
+    "-f", "image2pipe",
+    "-framerate", String(args.fps),
+    "-i", "-",
+    "-c:v", "libx264",
+    "-preset", "ultrafast",
+    "-crf", "18",
+    "-pix_fmt", "yuv420p",
+    rawVideoPath,
+  ], { stdio: ["pipe", "pipe", "pipe"] });
+  
+  let frameCount = 0;
+  let captureStartTime = null;
+  let captureDuration = 0;
+  
+  // Handle screencast frames
+  cdp.on("Page.screencastFrame", async (event) => {
+    if (!captureStartTime) captureStartTime = Date.now();
+    
+    try {
+      const frameData = Buffer.from(event.data, "base64");
+      ffmpegVideo.stdin.write(frameData);
+      frameCount++;
+      
+      // Acknowledge frame to receive next one
+      await cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId });
+      
+      // Update progress
+      const elapsed = (Date.now() - captureStartTime) / 1000;
+      if (captureDuration > 0) {
+        const pct = Math.min(100, (elapsed / captureDuration) * 100).toFixed(0);
+        process.stdout.write(`\r  Recording: ${elapsed.toFixed(1)}s / ${captureDuration.toFixed(1)}s (${pct}%) [${frameCount} frames]    `);
+      }
+    } catch (err) {
+      console.error("Frame error:", err.message);
+    }
+  });
+  
+  // Start screencast
+  await cdp.send("Page.startScreencast", {
+    format: "jpeg",
+    quality: 90,
+    maxWidth: args.width,
+    maxHeight: args.height,
+    everyNthFrame: 1,
+  });
+  
+  console.log("CDP screencast started, recording page...");
+  
+  // Tell the page to start (it will run the battle and capture audio only)
+  await page.evaluate(() => {
+    if (window.__capture?.startAudioOnly) {
+      window.__capture.startAudioOnly();
+    }
+  });
+  
+  // Wait for page to signal completion or get duration
+  const duration = await page.evaluate(() => window.__capture?.duration);
+  if (duration) captureDuration = duration;
+  
+  // Poll for completion
+  await page.waitForFunction(
+    () => {
+      const capture = window.__capture;
+      return capture?.state === "complete" || capture?.state === "error" || capture?.state === "audio_complete";
+    },
+    undefined,
+    { timeout: 300_000 },
+  );
+  
+  process.stdout.write("\n");
+  console.log(`  Captured ${frameCount} frames`);
+  
+  // Stop screencast
+  await cdp.send("Page.stopScreencast");
+  
+  // Close ffmpeg video input
+  ffmpegVideo.stdin.end();
+  await new Promise((resolve, reject) => {
+    ffmpegVideo.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg video exited with code ${code}`));
+    });
+  });
+  
+  console.log("  Video encoded");
+  
+  // Get audio from browser if enabled
+  let hasAudio = false;
+  if (args.audio) {
+    const audioBase64 = await page.evaluate(async () => {
+      const capture = window.__capture;
+      if (!capture?.audioBlob) return null;
+      const buffer = await capture.audioBlob.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      const chunk = 8192;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    });
+    
+    if (audioBase64) {
+      const audioData = Buffer.from(audioBase64, "base64");
+      await writeFile(audioPath, audioData);
+      hasAudio = true;
+      console.log("  Audio captured");
+    }
+  }
+  
+  // Mux audio and video
+  console.log("Muxing audio and video...");
+  
+  const muxArgs = hasAudio
+    ? ["-y", "-i", rawVideoPath, "-i", audioPath, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", finalPath]
+    : ["-y", "-i", rawVideoPath, "-c:v", "copy", "-an", finalPath];
+  
+  await new Promise((resolve, reject) => {
+    const ffmpegMux = spawn("ffmpeg", muxArgs, { stdio: "pipe" });
+    ffmpegMux.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg mux exited with code ${code}`));
+    });
+    ffmpegMux.on("error", reject);
+  });
+  
+  // Clean up intermediate files
+  await unlink(rawVideoPath).catch(() => {});
+  if (hasAudio) await unlink(audioPath).catch(() => {});
+  
+  const { size } = await stat(finalPath);
+  return { path: finalPath, size };
+}
+
 async function main() {
   const args = parseArgs(process.argv);
   
@@ -239,10 +391,11 @@ async function main() {
   console.log(`  Audio: ${args.audio}`);
   console.log(`  Cards: ${args.cards}`);
   console.log(`  Output format: ${args.webm ? "WebM" : "MP4"}`);
+  console.log(`  Capture mode: CDP page-level (includes DOM overlays)`);
 
-  if (!args.webm && !hasFfmpeg()) {
-    console.warn("Warning: ffmpeg not found, output will be WebM");
-    args.webm = true;
+  if (!hasFfmpeg()) {
+    console.error("Error: ffmpeg is required for page-level capture");
+    process.exit(1);
   }
 
   await mkdir(args.output, { recursive: true });
@@ -266,6 +419,7 @@ async function main() {
       "capture-fps": String(args.fps),
       "capture-audio": String(args.audio),
       "capture-cards": String(args.cards),
+      "capture-mode": "page",
     });
     if (args.scene === "skirmish") {
       params.set("capture-scene", "skirmish");
@@ -289,92 +443,12 @@ async function main() {
       throw new Error(`Lab error: ${labError}`);
     }
 
-    console.log("Recording started...");
-
-    // Poll for progress
-    const progressInterval = setInterval(async () => {
-      try {
-        const status = await page.evaluate(() => window.__capture);
-        if (status?.state === "recording") {
-          const pct = ((status.elapsed / status.duration) * 100).toFixed(0);
-          process.stdout.write(
-            `\r  Recording: ${status.elapsed.toFixed(1)}s / ${status.duration.toFixed(1)}s (${pct}%)    `,
-          );
-        }
-      } catch {
-        // Page may be navigating
-      }
-    }, 500);
-
-    // Wait for capture to complete
-    await page.waitForFunction(
-      () => {
-        const capture = window.__capture;
-        return capture?.state === "complete" || capture?.state === "error";
-      },
-      undefined,
-      { timeout: 300_000 },
-    );
-    clearInterval(progressInterval);
-    process.stdout.write("\n");
-
-    const result = await page.evaluate(() => window.__capture);
-
-    if (result?.state === "error") {
-      throw new Error(`Capture error: ${result.error}`);
-    }
-
-    if (result?.state !== "complete") {
-      throw new Error("Capture did not complete");
-    }
-
-    console.log("Encoding complete, saving video...");
-
-    // Download the blob
-    const base64 = await page.evaluate(async () => {
-      const capture = window.__capture;
-      if (!capture?.blob) return null;
-      const buffer = await capture.blob.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = "";
-      const chunk = 8192;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-      }
-      return btoa(binary);
-    });
-
-    if (!base64) {
-      throw new Error("Could not extract video blob");
-    }
-
-    const videoData = Buffer.from(base64, "base64");
-    const webmPath = resolve(args.output, result.filename);
-    await writeFile(webmPath, videoData);
-
-    let finalPath = webmPath;
-    let finalSize = videoData.length;
-
-    // Transcode to MP4 unless --webm flag is set
-    if (!args.webm) {
-      try {
-        const result = await transcodeToMp4(webmPath, args.fps);
-        // Remove the intermediate WebM file
-        await unlink(webmPath).catch(() => {});
-        finalPath = result.path;
-        const { size } = await import("node:fs").then((fs) =>
-          fs.promises.stat(result.path),
-        );
-        finalSize = size;
-      } catch (err) {
-        console.warn(`Transcoding failed: ${err.message}`);
-        console.warn("Keeping WebM output");
-      }
-    }
+    // Use CDP page-level capture
+    const result = await captureWithCDP(page, args, server);
 
     console.log(`\nCapture complete!`);
-    console.log(`  Output: ${finalPath}`);
-    console.log(`  Size: ${(finalSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Output: ${result.path}`);
+    console.log(`  Size: ${(result.size / 1024 / 1024).toFixed(2)} MB`);
 
     await context.close();
   } finally {

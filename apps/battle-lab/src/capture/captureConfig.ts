@@ -4,6 +4,9 @@
 
 import type { MenuReel } from "../menuReel";
 
+/** Capture mode: "browser" for canvas-based recording, "page" for CDP page-level capture. */
+export type CaptureMode = "browser" | "page";
+
 /** Capture mode settings from URL parameters. */
 export interface CaptureSettings {
   /** Which camera preset to use. */
@@ -20,6 +23,8 @@ export interface CaptureSettings {
   showCards: boolean;
   /** Maximum recording duration in seconds (safety limit). */
   maxDuration: number;
+  /** Capture mode: "browser" for canvas-based, "page" for CDP page-level (includes DOM overlays). */
+  mode: CaptureMode;
 }
 
 /** Default capture settings. */
@@ -31,6 +36,7 @@ export const DEFAULT_CAPTURE: CaptureSettings = {
   audio: true,
   showCards: true,
   maxDuration: 120,
+  mode: "page",
 };
 
 /** Parse capture settings from URL search params.
@@ -39,6 +45,9 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
   const params = new URLSearchParams(search);
   const capture = params.get("capture");
   if (!capture) return null;
+
+  const modeParam = params.get("capture-mode");
+  const mode: CaptureMode = modeParam === "browser" ? "browser" : "page";
 
   return {
     preset: capture === "true" ? "default" : capture,
@@ -51,6 +60,7 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
       params.get("capture-max") ?? String(DEFAULT_CAPTURE.maxDuration),
       10,
     ),
+    mode,
   };
 }
 
@@ -70,26 +80,28 @@ export interface CapturePreset {
 /** The default cinematic preset: wide top-down transitioning to ground-level tank-follow.
  *  ~37 seconds total, ending at the menu's cinematic ground angle.
  *  This demonstrates the game's scale and detail progression.
- *  Shot 1 shows the engagement area from above, then transitions to following unit 0. */
+ *  All shots follow unit 1 (the lead tank) to ensure the camera stays with the action.
+ *  The target offsets are relative to the followed unit's position. */
 export const DEFAULT_CINEMATIC_REEL: MenuReel = {
   fade_s: 0.8,
   shots: [
     {
       seconds: 9,
-      from: { target: [0, 15], distance: 220, yaw: -0.3, pitch: 0.60 },
-      to: { target: [0, 12], distance: 140, yaw: -0.2, pitch: 0.45 },
+      follow: 1,
+      from: { target: [0, 0], distance: 180, yaw: -0.3, pitch: 0.55 },
+      to: { target: [0, 0], distance: 100, yaw: -0.2, pitch: 0.38 },
     },
     {
       seconds: 12,
-      follow: 0,
-      from: { target: [0, 15], distance: 90, yaw: -0.6, pitch: 0.28 },
-      to: { target: [0, 8], distance: 55, yaw: -0.3, pitch: 0.18 },
+      follow: 1,
+      from: { target: [0, 15], distance: 80, yaw: -0.6, pitch: 0.28 },
+      to: { target: [0, 8], distance: 50, yaw: -0.3, pitch: 0.18 },
     },
     {
       seconds: 16,
-      follow: 0,
-      from: { target: [-1, 8], distance: 45, yaw: -0.2, pitch: 0.15 },
-      to: { target: [-1, 8], distance: 30, yaw: 0.2, pitch: 0.13 },
+      follow: 1,
+      from: { target: [-1, 8], distance: 40, yaw: -0.2, pitch: 0.14 },
+      to: { target: [-1, 8], distance: 28, yaw: 0.2, pitch: 0.12 },
     },
   ],
 };
@@ -103,27 +115,28 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
   },
   "top-down": {
     name: "Top-Down Overview",
-    description: "High-altitude strategic view",
+    description: "High-altitude strategic view following the lead tank",
     reel: {
       fade_s: 0.6,
       shots: [
         {
           seconds: 12,
-          from: { target: [0, 15], distance: 180, yaw: 0, pitch: 0.55 },
-          to: { target: [5, 20], distance: 160, yaw: 0.4, pitch: 0.50 },
+          follow: 1,
+          from: { target: [0, 0], distance: 180, yaw: 0, pitch: 0.55 },
+          to: { target: [20, 30], distance: 160, yaw: 0.4, pitch: 0.50 },
         },
       ],
     },
   },
   "ground-level": {
     name: "Ground Level",
-    description: "Low-angle dramatic shot following a unit",
+    description: "Low-angle dramatic shot following the lead tank",
     reel: {
       fade_s: 0.6,
       shots: [
         {
           seconds: 15,
-          follow: 0,
+          follow: 1,
           from: { target: [-3, 12], distance: 25, yaw: -1.2, pitch: 0.10 },
           to: { target: [-3, 12], distance: 22, yaw: -0.8, pitch: 0.08 },
         },
@@ -132,14 +145,15 @@ export const CAPTURE_PRESETS: Record<string, CapturePreset> = {
   },
   orbit: {
     name: "Orbit",
-    description: "Camera orbits around a central point",
+    description: "Camera orbits around the lead tank",
     reel: {
       fade_s: 0.6,
       shots: [
         {
           seconds: 20,
-          from: { target: [0, 15], distance: 60, yaw: 0, pitch: 0.25 },
-          to: { target: [0, 15], distance: 60, yaw: Math.PI * 2, pitch: 0.25 },
+          follow: 1,
+          from: { target: [0, 0], distance: 60, yaw: 0, pitch: 0.25 },
+          to: { target: [0, 0], distance: 60, yaw: Math.PI * 2, pitch: 0.25 },
         },
       ],
     },

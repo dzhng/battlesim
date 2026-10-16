@@ -280,10 +280,21 @@ export function CaptureOverlay({
   );
 }
 
+/** Extra data exposed to window for page-level capture mode. */
+export interface CaptureExtras {
+  /** Total duration of the capture in seconds. */
+  duration?: number;
+  /** Audio-only blob (for page mode where video is captured via CDP). */
+  audioBlob?: Blob;
+  /** Start audio-only recording (for page mode). */
+  startAudioOnly?: () => void;
+}
+
 /** Expose capture results to window for CLI automation. */
 export function exposeCaptureToWindow(
   state: CaptureState,
   download: () => void,
+  extras?: CaptureExtras,
 ) {
   (window as Window & { __capture?: unknown }).__capture = {
     state: state.status,
@@ -291,5 +302,8 @@ export function exposeCaptureToWindow(
     blob: state.status === "complete" ? state.blob : undefined,
     filename: state.status === "complete" ? state.filename : undefined,
     error: state.status === "error" ? state.message : undefined,
+    duration: extras?.duration,
+    audioBlob: extras?.audioBlob,
+    startAudioOnly: extras?.startAudioOnly,
   };
 }

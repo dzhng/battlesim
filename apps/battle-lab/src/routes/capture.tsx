@@ -73,6 +73,8 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
     status: "warming",
     message: "Preparing battle...",
   });
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const startAudioOnlyRef = useRef<(() => void) | null>(null);
 
   const scene = SCENES[0];
   const preset = getCapturePreset(settings.preset);
@@ -103,8 +105,12 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   }, [state]);
 
   useEffect(() => {
-    exposeCaptureToWindow(state, downloadBlob);
-  }, [state, downloadBlob]);
+    exposeCaptureToWindow(state, downloadBlob, {
+      duration,
+      audioBlob: audioBlob ?? undefined,
+      startAudioOnly: startAudioOnlyRef.current ?? undefined,
+    });
+  }, [state, downloadBlob, duration, audioBlob]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -118,6 +124,8 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         duration={duration}
         state={state}
         setState={setState}
+        onAudioBlob={setAudioBlob}
+        onStartAudioOnly={(fn) => { startAudioOnlyRef.current = fn; }}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} />
     </>
@@ -132,6 +140,8 @@ function CaptureBattle({
   duration,
   state,
   setState,
+  onAudioBlob,
+  onStartAudioOnly,
 }: {
   scene: BackdropScene;
   scenario: string;
@@ -140,6 +150,8 @@ function CaptureBattle({
   duration: number;
   state: CaptureState;
   setState: (state: CaptureState) => void;
+  onAudioBlob?: (blob: Blob) => void;
+  onStartAudioOnly?: (fn: () => void) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gpuRef = useRef<ViewportGpu | null>(null);
@@ -149,6 +161,8 @@ function CaptureBattle({
   const recordingStartedRef = useRef(false);
   const pilotStartRef = useRef<number | null>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioBlobRef = useRef<Blob | null>(null);
+  const isPageMode = settings.mode === "page";
 
   useLabLoading("renderer", warmed);
 
@@ -182,6 +196,56 @@ function CaptureBattle({
 
     try {
       const fps = settings.fps;
+
+      // In page mode, only capture audio (video is captured via CDP screencast)
+      if (isPageMode) {
+        if (settings.audio && audio) {
+          const audioTap = audio.createCaptureTap();
+          if (audioTap) {
+            audioStreamRef.current = audioTap;
+            const audioStream = new MediaStream(audioTap.getAudioTracks());
+            const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+              ? "audio/webm;codecs=opus"
+              : "audio/webm";
+
+            const recorder = new MediaRecorder(audioStream, {
+              mimeType,
+              audioBitsPerSecond: 192_000,
+            });
+
+            chunksRef.current = [];
+
+            recorder.ondataavailable = (e) => {
+              if (e.data.size > 0) {
+                chunksRef.current.push(e.data);
+              }
+            };
+
+            recorder.onstop = () => {
+              audio?.releaseCaptureTap();
+              const blob = new Blob(chunksRef.current, { type: mimeType });
+              audioBlobRef.current = blob;
+              onAudioBlob?.(blob);
+              setState({ status: "complete", blob, filename: "audio.webm" });
+            };
+
+            recorder.onerror = (e) => {
+              audio?.releaseCaptureTap();
+              setState({
+                status: "error",
+                message: `Audio recording error: ${(e as ErrorEvent).message ?? "unknown"}`,
+              });
+            };
+
+            recorderRef.current = recorder;
+            recorder.start(1000);
+          }
+        }
+        setState({ status: "recording", elapsed: 0, duration });
+        return;
+      }
+
+      // Browser mode: capture both video and audio
       const videoStream = canvas.captureStream(fps);
 
       let combinedStream: MediaStream;
@@ -251,7 +315,14 @@ function CaptureBattle({
         message: `Failed to start recording: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
-  }, [settings, duration, setState, audio]);
+  }, [settings, duration, setState, audio, isPageMode, onAudioBlob]);
+
+  // In page mode, expose startRecording for CDP to call
+  useEffect(() => {
+    if (isPageMode && onStartAudioOnly) {
+      onStartAudioOnly(startRecording);
+    }
+  }, [isPageMode, onStartAudioOnly, startRecording]);
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current;
