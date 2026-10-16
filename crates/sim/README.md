@@ -50,8 +50,11 @@ side's observation through the existing publication owner.
 Flight offers it only an imminent swept hull collision at the authored standoff;
 ordinary projectiles, passes and cover remain ordinary flight events. Supply
 service restores one charge from finite stock after offensive ammunition and
-before vehicle health or soldiers. Protection state is part of the battle digest
-and never becomes an offensive weapon row.
+before vehicle health or soldiers, then flares, at the service rules' flare
+rate and price (`service.flare_service_s`, `service.stock_per_flare`). A jet
+never stands still in reach, so it rearms flares only by withdrawing.
+Protection state is part of the battle digest and never becomes an offensive
+weapon row.
 
 [Kill settlement](src/settlement.rs) consumes causal full-unit deaths and immutable
 purchase receipts. Both sides settle against the same pre-tick bounty pools, so

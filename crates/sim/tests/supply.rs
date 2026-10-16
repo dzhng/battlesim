@@ -566,3 +566,63 @@ fn a_truck_on_the_move_serves_nobody() {
     );
     assert_eq!(own(&b, Side::Blue, 1).unwrap().hp, hp);
 }
+
+/// A truck refills a hulled unit's spent flares as it does a Trophy's
+/// charges: one per flare service time, at the flare price, up to capacity.
+#[test]
+fn test_a_truck_refills_a_vehicles_spent_flares() {
+    use std::collections::BTreeSet;
+    let mut rules = sim::fixtures::test_game();
+    rules["service"]["flare_service_s"] = json!(2.0);
+    rules["service"]["stock_per_flare"] = json!(3);
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jeep",
+        json!({ "capabilities": { "flares": { "capacity": 2, "reload_s": 30 } } }),
+    );
+    let setup = serde_json::from_value(json!({
+        "rules": rules,
+        "map": { "size": [1000, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "units": [
+            { "side": "blue", "kind": "test_supply", "position": [100, 200], "stock": 40 },
+            { "side": "blue", "kind": "test_jeep", "position": [120, 200] }
+        ]
+    }))
+    .unwrap();
+    let battle = Battle::new(&setup, 7);
+    let hz = u64::from(battle.rules().tick_hz);
+    let mut units: Vec<_> = (0..2)
+        .map(|i| battle.unit(UnitId(i)).unwrap().clone())
+        .collect();
+    let deployment = units[0].deployment.as_mut().unwrap();
+    deployment.current = deployment.duration;
+    units[1].flares = Some(sim::units::Flares {
+        charges: 0,
+        ready_tick: 0,
+    });
+    let mut next_soldier = 0;
+    let mut serve = |units: &mut [sim::units::Unit], ticks: u64| {
+        for _ in 0..ticks {
+            sim::supply::service(
+                battle.world(),
+                units,
+                battle.arsenal(),
+                battle.rules(),
+                &[false, false],
+                &BTreeSet::new(),
+                &mut next_soldier,
+            );
+        }
+    };
+    let state = |units: &[sim::units::Unit]| (units[1].flares.unwrap().charges, units[0].stock);
+    serve(&mut units, 2 * hz - 1);
+    assert_eq!(state(&units), (0, Some(40)), "the first flare takes 2 s");
+    serve(&mut units, 1);
+    assert_eq!(state(&units), (1, Some(37)), "one flare for 3 stock");
+    serve(&mut units, 2 * hz);
+    assert_eq!(state(&units), (2, Some(34)));
+    serve(&mut units, 4 * hz);
+    assert_eq!(state(&units), (2, Some(34)), "never past capacity");
+    assert_eq!(units[1].service, ServiceStatus::Full);
+}

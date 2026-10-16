@@ -508,6 +508,18 @@ impl Unit {
         matches!(self.motion, Motion::Air(_))
     }
 
+    /// Where rounds aim on it, above its position: the one aim rule, keyed
+    /// on the target. Anything in the air is aimed at its hull's centre,
+    /// whatever fires; a ground vehicle at `vehicle_aim_height_fraction` of
+    /// its hull's height; a soldier at `infantry_aim_m`.
+    pub fn aim_height(&self, rules: &Rules) -> f64 {
+        match self.hull {
+            Some(half) if self.layer() != AltitudeLayer::Ground => half.z,
+            Some(half) => 2.0 * half.z * rules.physics.vehicle_aim_height_fraction,
+            None => rules.physics.infantry_aim_m,
+        }
+    }
+
     /// The velocity a round carries away from this unit at launch. Ground
     /// units contribute zero; aircraft carry their full world velocity.
     pub fn flight_velocity(&self) -> V3 {
@@ -730,6 +742,7 @@ impl Unit {
         let p = self.progress_service;
         d.f64(p.ammo_s)
             .f64(p.protection_s)
+            .f64(p.flare_s)
             .f64(p.hp_s)
             .f64(p.soldier_s)
             .u64(self.service as u64);

@@ -856,6 +856,31 @@ fn an_aircraft_cruising_past_its_flight_models_limit_is_refused() {
     admitted(250.0).expect("within the rotor speed");
 }
 
+/// An aircraft carries as many weapon rows as it has mounts for: there is no
+/// cap on how many distinct rows it fields.
+#[test]
+fn test_an_aircraft_with_five_distinct_weapon_rows_is_admitted() {
+    let mut fixture = fixture();
+    let mount = |id: &str, row: &str| {
+        json!({ "id": id, "name": id.to_uppercase(), "weapons": [row], "turret": true,
+            "pivot_m": [1.0, 0.0, 1.0], "muzzle_m": [1.0, 0.0, 0.0] })
+    };
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_heli",
+        json!({
+            "capabilities": { "air": { "fuel_capacity_s": 180,
+                "refund": { "health": 0.4, "ammunition": 0.4, "fuel": 0.2 } } },
+            "mounts": [
+                mount("a", "hmg"), mount("b", "rifle"), mount("c", "lmg"),
+                mount("d", "autocannon"), mount("e", "rocket_pod"),
+            ]
+        }),
+    );
+    serde_json::from_value::<Rules>(fixture).expect("five rows on five mounts");
+}
+
 #[test]
 fn a_battle_with_a_helicopter_replays_to_the_same_digest() {
     let fixture = fixture();

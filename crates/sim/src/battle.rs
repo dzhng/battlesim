@@ -2997,18 +2997,93 @@ impl Battle {
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
     /// to ground, so a far one misses a target it can no longer see.
+    /// A decoyable round closing on a unit with a flare ready draws one, in
+    /// round order, one per flare reload. A seeker follows the flare; an
+    /// operator-guided round loses its guidance, as when its operator loses
+    /// sight of the target, and flies on to the ground.
+    fn dispense_flares(&mut self) {
+        // What each round closes on: its seeker's target, or what its
+        // launcher steers it at.
+        let mut closing: BTreeMap<ProjectileId, UnitId> = self
+            .units
+            .iter()
+            .flat_map(|u| &u.mounts)
+            .filter_map(|m| match m.support {
+                Some(weapons::Support {
+                    projectile,
+                    target: Target::Unit(target),
+                }) => Some((projectile, target)),
+                _ => None,
+            })
+            .collect();
+        closing.extend(
+            self.rounds
+                .iter()
+                .filter_map(|(id, round)| match round.seeker_target {
+                    Some(Target::Unit(target)) => Some((*id, target)),
+                    _ => None,
+                }),
+        );
+        for (projectile, target_id) in closing {
+            let Some(round) = self.rounds.get(&projectile) else {
+                continue;
+            };
+            if !self.arsenal.weapons[round.weapon].def.decoyable {
+                continue;
+            }
+            let target = &self.units[target_id.0 as usize];
+            let Some(flare) = target.unit_type(&self.rules).capabilities.flares else {
+                continue;
+            };
+            if !target
+                .flares
+                .is_some_and(|f| f.charges > 0 && f.ready_tick <= self.tick)
+            {
+                continue;
+            }
+            // Ejected off its side, from its hull's top.
+            let half = target.hull.expect("flares are carried by a hull (catalog)");
+            let lateral = v2(-libm::sin(target.yaw), libm::cos(target.yaw));
+            let position = (target.position.xy() + lateral * (half.y + 0.5))
+                .with_z(target.position.z + half.z);
+            // A ground vehicle's are thrown from it at rest.
+            let base = target.air.map_or(v3(0.0, 0.0, 0.0), |air| air.velocity);
+            let velocity = v3(
+                base.x + lateral.x * 18.0,
+                base.y + lateral.y * 18.0,
+                base.z - 2.0,
+            );
+            if let Some(f) = self.units[target_id.0 as usize].flares.as_mut() {
+                f.charges -= 1;
+                f.ready_tick =
+                    self.tick + (flare.reload_s * self.rules.tick_hz as f64).round() as u64;
+            }
+            let round = self.rounds.get_mut(&projectile).expect("checked above");
+            if round.seeker_target.take().is_some() {
+                self.projectiles
+                    .decoy_seeker(projectile, position, velocity);
+            } else {
+                // Its launcher lets go; guidance releases it, as for a lost
+                // sight line, and its fuse no longer looks for the target.
+                round.air_target = None;
+                for mount in self.units.iter_mut().flat_map(|u| &mut u.mounts) {
+                    if mount.support.is_some_and(|s| s.projectile == projectile) {
+                        mount.support = None;
+                    }
+                }
+            }
+        }
+    }
+
     fn guide(&mut self, moved: &[bool]) {
+        self.dispense_flares();
         let mut supported = BTreeSet::new();
         let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();
-        // Guidance and gun fire share the vehicle aim height.
+        // Guidance and gun fire share the one aim rule.
         let aim_z: Vec<f64> = self
             .units
             .iter()
-            .map(|u| {
-                u.hull.map_or(self.rules.physics.infantry_aim_m, |h| {
-                    2.0 * h.z * self.rules.physics.vehicle_aim_height_fraction
-                })
-            })
+            .map(|u| u.aim_height(&self.rules))
             .collect();
         for (i, unit) in self.units.iter_mut().enumerate() {
             weapons::assign_operators(&self.arsenal, unit);
@@ -3059,62 +3134,16 @@ impl Battle {
         let seekers: Vec<_> = self
             .rounds
             .iter()
-            .filter_map(|(id, round)| {
-                round
-                    .seeker_target
-                    .map(|target| (*id, round.weapon, target))
-            })
+            .filter_map(|(id, round)| round.seeker_target.map(|target| (*id, target)))
             .collect();
-        for (projectile, weapon, target) in seekers {
-            if let Target::Unit(target_id) = target {
-                let decoyable = self.arsenal.weapons[weapon].def.decoyable;
-                if decoyable {
-                    let flare = self.units[target_id.0 as usize]
-                        .unit_type(&self.rules)
-                        .capabilities
-                        .flares;
-                    if let Some(flare) = flare {
-                        let ready = self.units[target_id.0 as usize]
-                            .flares
-                            .is_some_and(|f| f.charges > 0 && f.ready_tick <= self.tick);
-                        if ready {
-                            let unit = &self.units[target_id.0 as usize];
-                            // Ejected off its side, from its hull's top.
-                            let half = unit.hull.expect("flares are carried by a hull (catalog)");
-                            let lateral = v2(-libm::sin(unit.yaw), libm::cos(unit.yaw));
-                            let position = (unit.position.xy() + lateral * (half.y + 0.5))
-                                .with_z(unit.position.z + half.z);
-                            // A ground vehicle's are thrown from it at rest.
-                            let base = unit.air.map_or(v3(0.0, 0.0, 0.0), |air| air.velocity);
-                            let velocity = v3(
-                                base.x + lateral.x * 18.0,
-                                base.y + lateral.y * 18.0,
-                                base.z - 2.0,
-                            );
-                            self.projectiles
-                                .decoy_seeker(projectile, position, velocity);
-                            if let Some(f) = self.units[target_id.0 as usize].flares.as_mut() {
-                                f.charges -= 1;
-                                f.ready_tick = self.tick
-                                    + (flare.reload_s * self.rules.tick_hz as f64).round() as u64;
-                            }
-                            if let Some(round) = self.rounds.get_mut(&projectile) {
-                                round.seeker_target = None;
-                            }
-                            continue;
-                        }
-                    }
-                }
-            }
+        for (projectile, target) in seekers {
             // Where the target is and how it moves (a ground unit's pose
             // here is its position alone).
             let seen = match target {
                 Target::Unit(id) if self.units.get(id.0 as usize).is_some_and(Unit::alive) => {
                     let unit = &self.units[id.0 as usize];
-                    let centre = unit
-                        .hull
-                        .map_or(unit.position, |half| unit.position + v3(0.0, 0.0, half.z));
-                    Some((centre, unit.flight_velocity()))
+                    let aim = unit.position + v3(0.0, 0.0, unit.aim_height(&self.rules));
+                    Some((aim, unit.flight_velocity()))
                 }
                 Target::Contact(id) => self
                     .knowledge

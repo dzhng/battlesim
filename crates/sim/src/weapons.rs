@@ -549,11 +549,8 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
         Target::Unit(u) => {
             let track = knowledge.track(u)?;
             let unit = &units[u.0 as usize];
-            let height = unit.hull.map_or(ctx.rules.physics.infantry_aim_m, |h| {
-                2.0 * h.z * ctx.rules.physics.vehicle_aim_height_fraction
-            });
             Some(Resolved {
-                point: track.position + v3(0.0, 0.0, height),
+                point: track.position + v3(0.0, 0.0, unit.aim_height(ctx.rules)),
                 velocity: track
                     .velocity
                     .with_z(unit.air.as_ref().map_or(0.0, |air| air.velocity.z)),
@@ -1214,10 +1211,7 @@ fn return_fire_threat(
     kind: TypeIndex,
     track: &crate::knowledge::Track,
 ) -> bool {
-    let target_height = shooter.hull.map_or(ctx.rules.physics.infantry_aim_m, |h| {
-        2.0 * h.z * ctx.rules.physics.vehicle_aim_height_fraction
-    });
-    let target = shooter.position + v3(0.0, 0.0, target_height);
+    let target = shooter.position + v3(0.0, 0.0, shooter.aim_height(ctx.rules));
     let delta = target.xy() - track.position.xy();
     let bearing = libm::atan2(delta.y, delta.x);
     let eye = track.position
@@ -2239,11 +2233,6 @@ fn fire(
                 p.with_z(
                     ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + ctx.rules.physics.infantry_aim_m,
                 )
-            }
-            Target::Unit(u) if weapon.def.seeker.is_some() && units[u.0 as usize].airborne() => {
-                let unit = &units[u.0 as usize];
-                unit.hull
-                    .map_or(r.point, |half| unit.position + v3(0.0, 0.0, half.z))
             }
             _ if !seen.is_empty() => seen[n % seen.len()],
             _ => r.point,

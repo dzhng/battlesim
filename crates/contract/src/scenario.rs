@@ -627,6 +627,11 @@ pub struct ServiceRules {
     pub stock_per_hp: u32,
     pub soldier_replacement_s: f64,
     pub stock_per_soldier: u32,
+    /// One flare restored every `flare_service_s`, each costing
+    /// `stock_per_flare`, for any unit that carries flares and stands still
+    /// in reach (a jet never does: it withdraws to rearm).
+    pub flare_service_s: f64,
+    pub stock_per_flare: u32,
 }
 
 /// The game's rules (`fixtures/game.json` with its catalog). Loading

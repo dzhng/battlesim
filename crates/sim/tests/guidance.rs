@@ -1441,6 +1441,50 @@ fn a_released_top_attack_missile_drops_its_climb_and_goes_to_ground_at_its_fixed
     }
 }
 
+/// One aim rule, keyed on the target: a guided missile is steered at an
+/// aircraft's hull centre, and at a ground vehicle three quarters of the way
+/// up its hull, whatever fires.
+#[test]
+fn test_a_guided_missile_aims_at_an_aircrafts_centre_and_high_on_a_ground_hull() {
+    let aim = |target: &str| {
+        let mut b = quick(
+            json!([]),
+            json!([
+                { "side": "blue", "kind": "test_at", "position": [40, 300] },
+                { "side": "red", "kind": target, "position": [500, 300], "engagement": "return_fire_only" }
+            ]),
+            7,
+            |r| {
+                r["physics"]["vehicle_aim_height_fraction"] = json!(0.75);
+                r["weapons"]["atgm"]["targets"] = json!({
+                    "ground": { "classes": ["vehicle"] },
+                    "low_air": { "classes": ["air_rotor"] }
+                });
+                sim::fixtures::patch_catalog(
+                    r,
+                    "units",
+                    target,
+                    json!({ "body": { "hull": { "half_extents_m": [3.0, 1.2, 1.2] } } }),
+                );
+            },
+        );
+        until_launch(&mut b);
+        b.step();
+        let point = missile(&b).expect("the missile is guided").point;
+        point[2] - b.unit(UnitId(1)).unwrap().position.z
+    };
+    let air = aim("test_heli");
+    assert!(
+        (air - 1.2).abs() < 0.05,
+        "aimed {air} m up a 2.4 m airframe"
+    );
+    let ground = aim("test_jeep");
+    assert!(
+        (ground - 1.8).abs() < 0.05,
+        "aimed {ground} m up a 2.4 m hull"
+    );
+}
+
 #[test]
 fn seeker_missile_is_fire_and_forget_after_launch() {
     let mut b = quick(
@@ -1578,6 +1622,63 @@ fn flares_decoy_a_seeker_fired_at_any_unit_that_carries_them() {
         run(true),
         (0.0, Some(1)),
         "one flare spent, the jeep unhurt"
+    );
+    let (lost, charges) = run(false);
+    assert_eq!(charges, None);
+    assert!(lost > 0.0, "without flares the missile hits");
+}
+
+/// A flare spoofs an operator-guided missile as it does a seeker: the
+/// launcher loses its guidance, as when its operator loses sight, and the
+/// round flies on past. Without flares the helicopter is hit.
+#[test]
+fn test_flares_spoof_an_operator_guided_missile_at_a_helicopter() {
+    let run = |flares: bool| {
+        let mut b = quick(
+            json!([]),
+            json!([
+                { "side": "blue", "kind": "test_at", "position": [40, 300] },
+                { "side": "red", "kind": "test_heli", "position": [500, 300], "engagement": "return_fire_only" }
+            ]),
+            7,
+            |r| {
+                // Its door gun answers harmlessly: the operator lives.
+                r["weapons"]["hmg"]["damage"] = json!(0.0);
+                r["weapons"]["atgm"]["decoyable"] = json!(true);
+                r["weapons"]["atgm"]["targets"] =
+                    json!({ "low_air": { "classes": ["air_rotor"] } });
+                r["weapons"]["atgm"]["ammo"] = json!(1);
+                if flares {
+                    sim::fixtures::patch_catalog(
+                        r,
+                        "units",
+                        "test_heli",
+                        json!({ "capabilities": { "flares": { "capacity": 2, "reload_s": 30 } } }),
+                    );
+                }
+            },
+        );
+        let full = b.unit(UnitId(1)).unwrap().hp;
+        until_launch(&mut b);
+        assert!(
+            missile(&b).is_some_and(|m| m.supported),
+            "the operator guides it"
+        );
+        for _ in 0..10 * b.rules().tick_hz {
+            b.step();
+        }
+        let charges = b
+            .observe(Side::Red)
+            .own
+            .first()
+            .and_then(|u| u.flares)
+            .map(|f| f.charges);
+        (full - b.unit(UnitId(1)).unwrap().hp, charges)
+    };
+    assert_eq!(
+        run(true),
+        (0.0, Some(1)),
+        "one flare spent, the helicopter unhurt"
     );
     let (lost, charges) = run(false);
     assert_eq!(charges, None);

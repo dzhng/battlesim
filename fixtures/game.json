@@ -202,6 +202,7 @@
     "atgm": {
       "targets": { "ground": { "classes": ["vehicle"] } },
       "interceptable": true,
+      "decoyable": true,
       "name": "ATGM",
       "description": "A wire-guided anti-tank missile, steered onto its target.",
       "icon": "atgm",
@@ -406,6 +407,7 @@
     "stinger": {
       "targets": { "low_air": { "classes": ["air_rotor", "air_fixed_wing"] } },
       "interceptable": false,
+      "decoyable": true,
       "name": "Stinger",
       "description": "A shoulder-fired missile that reaches only aircraft; the gunner keeps it in his sight.",
       "icon": "aa_missile",
@@ -713,7 +715,7 @@
             "structural_damage": 20,
             "seeker": "radar",
             "seeker_fov_deg": 90,
-            "decoyable": false,
+            "decoyable": true,
             "anti_radiation": true
         },
     "igla_s": {
@@ -1071,7 +1073,9 @@
     "vehicle_hp_per_s": 2,
     "stock_per_hp": 1,
     "soldier_replacement_s": 5,
-    "stock_per_soldier": 15
+    "stock_per_soldier": 15,
+    "flare_service_s": 2,
+    "stock_per_flare": 2
   },
   "garrison": {
     "enter_exit_s": 2,

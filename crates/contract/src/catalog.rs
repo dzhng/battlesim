@@ -1778,14 +1778,6 @@ fn check(
                 "capabilities.air.refund weights must be finite, nonnegative and sum to one",
             );
         }
-        let rows: std::collections::BTreeSet<&str> = t
-            .mounts
-            .iter()
-            .flat_map(|mount| mount.weapons.iter().map(String::as_str))
-            .collect();
-        if rows.len() > 4 {
-            return rule("an aircraft may carry at most four distinct weapon rows");
-        }
     }
     if let Some(flares) = t.capabilities.flares {
         if t.hull().is_none() {
