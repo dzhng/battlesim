@@ -17,7 +17,13 @@ import { writeSheet } from "./_sheet.mjs";
 import { decode, mostChanged, writeCrop } from "./_png.mjs";
 import { unitType, weapons } from "./_units.mjs";
 import { nodeCatalogSet } from "../src/battle/catalog/node.ts";
-import { AIR_ROLES, airReach, airRole, FACTIONS, layerOf } from "../../packages/scene-assets/src/units.ts";
+import {
+  AIR_ROLES,
+  airReach,
+  airRole,
+  FACTIONS,
+  layerOf,
+} from "../../packages/scene-assets/src/units.ts";
 const cards = (await nodeCatalogSet("test")).units.view.cards.filter((c) => !c.disabled_reason);
 const role = (id) => airRole(unitType(id), weapons);
 const reach = (id) => airReach(unitType(id), weapons);

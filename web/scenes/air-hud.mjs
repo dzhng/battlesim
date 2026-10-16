@@ -87,11 +87,7 @@ export async function run(ctx) {
   const ghost = await cardText(page, ".ro-callout[data-ghost]");
   await page.screenshot({ path: ctx.evidencePath("space-ghost.png") });
   await page.keyboard.up("Space");
-  ctx.check(
-    "Space shows the jet order ghost card",
-    ghost !== null,
-    ghost ?? "no ghost card",
-  );
+  ctx.check("Space shows the jet order ghost card", ghost !== null, ghost ?? "no ghost card");
 
   const radar = (await obs(page)).contacts.find((c) => c.source === "radar");
   if (radar) await aim(page, radar.center, { distance: 500, pitch: 0.8 });

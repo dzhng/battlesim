@@ -23,7 +23,9 @@ const LONG = "eastern_s300_long";
 const at = (o, p) => o.own.find((u) => Math.hypot(u.position[0] - p[0], u.position[1] - p[1]) < 1);
 
 async function engagement(ctx, variant, ticks) {
-  const units = encounter(`defense-${variant}`, "air-defense").units.filter((u) => u.side === "red");
+  const units = encounter(`defense-${variant}`, "air-defense").units.filter(
+    (u) => u.side === "red",
+  );
   const page = await openAir(ctx, variant);
   const warnings = gpuWarnings(page);
   const fired = new Map();

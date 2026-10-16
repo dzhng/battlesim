@@ -56,8 +56,7 @@ export const shots = (u, mount = 0) => u.weaponPoses.find((p) => p.mount === mou
 export const surface = (page, p) => lab(page, (q) => window.__lab.route.surfaceZ(q[0], q[1]), p);
 
 /** Whether `p` lies on the map. */
-export const onMap = (p, size) =>
-  p[0] >= 0 && p[1] >= 0 && p[0] <= size[0] && p[1] <= size[1];
+export const onMap = (p, size) => p[0] >= 0 && p[1] >= 0 && p[0] <= size[0] && p[1] <= size[1];
 
 /** Record selected observed unit tracks and heights as a compact review PNG. */
 export async function trace(page, ticks, ids, file) {
