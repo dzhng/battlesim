@@ -271,15 +271,17 @@ async function captureWithCDP(page, args, server) {
   
   await mkdir(framesDir, { recursive: true });
   
-  let frameCount = 0;
   let droppedEarlyFrames = 0;
   let captureStartTime = null;
   let captureDuration = 0;
-  const rawFrames = []; // { path, cdpTimestamp }
+  const rawFrames = []; // { path, cdpTimestamp, writePromise }
+  let frameIndex = 0;
   // The reel-ready timestamp from the page (performance.now() ms when first pose was rendered)
   let reelReadyTime = null;
   // CDP timestamp (seconds since epoch) when the reel became ready
   let reelReadyCdpTime = null;
+  // Preroll cut: drop 0.5s of video/audio after ready to ensure clean start
+  const PREROLL_CUT_S = 0.5;
   
   // Handle screencast frames with real timestamps
   cdp.on("Page.screencastFrame", async (event) => {
@@ -293,7 +295,6 @@ async function captureWithCDP(page, args, server) {
         const readyInfo = await page.evaluate(() => {
           const reel = window.__capture?.reelReadyTime;
           if (reel === null || reel === undefined) return null;
-          // Return both reelReadyTime (performance.now) and current timestamps for conversion
           return {
             reelReadyTime: reel,
             performanceNow: performance.now(),
@@ -302,22 +303,19 @@ async function captureWithCDP(page, args, server) {
         });
         if (readyInfo !== null) {
           reelReadyTime = readyInfo.reelReadyTime;
-          // Convert performance.now() to CDP timestamp (seconds since Unix epoch):
-          // CDP timestamp ≈ Date.now()/1000
-          // performance.now() is ms since page load
-          // reelReadyCdpTime = (dateNow - performanceNow + reelReadyTime) / 1000
           const pageLoadEpochMs = readyInfo.dateNow - readyInfo.performanceNow;
           reelReadyCdpTime = (pageLoadEpochMs + reelReadyTime) / 1000;
         }
       }
       
-      // Save all frames for now; we'll filter by timestamp after capture
+      // Save all frames; track write promises for later await
       const frameData = Buffer.from(event.data, "base64");
-      const framePath = join(framesDir, `frame-${String(rawFrames.length).padStart(6, "0")}.jpg`);
-      await writeFile(framePath, frameData);
-      rawFrames.push({ path: framePath, cdpTimestamp: frameTime });
+      const idx = frameIndex++;
+      const framePath = join(framesDir, `frame-${String(idx).padStart(6, "0")}.jpg`);
+      const writePromise = writeFile(framePath, frameData);
+      rawFrames.push({ path: framePath, cdpTimestamp: frameTime, writePromise });
       
-      // Acknowledge frame to receive next one
+      // Acknowledge frame to receive next one (don't wait for write)
       await cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId });
       
       // Update progress
@@ -368,10 +366,19 @@ async function captureWithCDP(page, args, server) {
   // Stop screencast
   await cdp.send("Page.stopScreencast");
   
-  // Filter frames: drop those before reel-ready timestamp
+  // Await all pending frame writes
+  console.log("  Waiting for frame writes to complete...");
+  await Promise.all(rawFrames.map(f => f.writePromise));
+  
+  // Calculate cut timestamp: ready + 0.5s preroll cut
+  const cutCdpTime = reelReadyCdpTime !== null 
+    ? reelReadyCdpTime + PREROLL_CUT_S 
+    : null;
+  
+  // Filter frames: drop those before cut timestamp
   let validFrames = rawFrames;
-  if (reelReadyCdpTime !== null) {
-    validFrames = rawFrames.filter(f => f.cdpTimestamp >= reelReadyCdpTime);
+  if (cutCdpTime !== null) {
+    validFrames = rawFrames.filter(f => f.cdpTimestamp >= cutCdpTime);
     droppedEarlyFrames = rawFrames.length - validFrames.length;
   }
   
@@ -384,34 +391,31 @@ async function captureWithCDP(page, args, server) {
     const last = dedupedFrames[dedupedFrames.length - 1];
     if (!last || frame.cdpTimestamp - last.cdpTimestamp > 0.001) {
       dedupedFrames.push(frame);
-    } else {
-      // Duplicate timestamp - remove the old frame file
-      await unlink(frame.path).catch(() => {});
     }
+    // Don't delete duplicate files yet - we'll clean up at the end
   }
   
-  // Delete dropped early frames
-  for (const frame of rawFrames) {
-    if (!validFrames.includes(frame)) {
-      await unlink(frame.path).catch(() => {});
-    }
-  }
-  
-  // Build frameTimestamps with relative times from first valid frame
+  // Build frameTimestamps only from files that exist on disk
   const frameTimestamps = [];
   const firstValidTime = dedupedFrames[0]?.cdpTimestamp ?? 0;
   for (const frame of dedupedFrames) {
-    frameTimestamps.push({
-      path: frame.path,
-      timestamp_s: frame.cdpTimestamp - firstValidTime,
-    });
+    // Verify file exists before including
+    try {
+      await access(frame.path);
+      frameTimestamps.push({
+        path: frame.path,
+        timestamp_s: frame.cdpTimestamp - firstValidTime,
+      });
+    } catch {
+      console.warn(`  Warning: frame file missing: ${frame.path}`);
+    }
   }
   
   const frameCount = frameTimestamps.length;
   const actualDuration = frameTimestamps.length > 0 
     ? frameTimestamps[frameTimestamps.length - 1].timestamp_s 
     : 0;
-  console.log(`  Captured ${rawFrames.length} raw frames, kept ${frameCount} (dropped ${droppedEarlyFrames} early) over ${actualDuration.toFixed(2)}s`);
+  console.log(`  Captured ${rawFrames.length} raw frames, kept ${frameCount} (dropped ${droppedEarlyFrames} early, cut ${PREROLL_CUT_S}s) over ${actualDuration.toFixed(2)}s`);
   
   // Build concat demuxer file with per-frame durations
   console.log("Building frame list with real timestamps...");
@@ -477,6 +481,8 @@ async function captureWithCDP(page, args, server) {
   
   // Get audio from browser if enabled
   let hasAudio = false;
+  const rawAudioPath = resolve(args.output, `raw-audio-${timestamp}.webm`);
+  const trimmedAudioPath = resolve(args.output, `trimmed-audio-${timestamp}.aac`);
   if (args.audio) {
     const audioBase64 = await page.evaluate(async () => {
       const capture = window.__capture;
@@ -493,26 +499,41 @@ async function captureWithCDP(page, args, server) {
     
     if (audioBase64) {
       const audioData = Buffer.from(audioBase64, "base64");
-      await writeFile(audioPath, audioData);
+      await writeFile(rawAudioPath, audioData);
+      console.log("  Audio captured, trimming to match video...");
+      
+      // Trim audio by the same amount as video (PREROLL_CUT_S from start)
+      await new Promise((resolve, reject) => {
+        const ffmpegTrim = spawn("ffmpeg", [
+          "-y",
+          "-i", rawAudioPath,
+          "-ss", String(PREROLL_CUT_S),
+          "-c:a", "aac",
+          "-b:a", "192k",
+          trimmedAudioPath,
+        ], { stdio: "pipe" });
+        ffmpegTrim.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg audio trim exited with code ${code}`));
+        });
+        ffmpegTrim.on("error", reject);
+      });
       hasAudio = true;
-      console.log("  Audio captured");
+      console.log(`  Audio trimmed (cut ${PREROLL_CUT_S}s from start)`);
     }
   }
   
-  // Mux audio and video - use audio duration as primary, pad video if needed
+  // Mux audio and video
   console.log("Muxing audio and video...");
   
-  // High profile, CRF 20, faststart for final output
   const muxArgs = hasAudio
     ? [
         "-y",
         "-i", rawVideoPath,
-        "-i", audioPath,
+        "-i", trimmedAudioPath,
         "-c:v", "copy",
-        "-c:a", "aac",
-        "-b:a", "192k",
+        "-c:a", "copy",
         "-movflags", "+faststart",
-        // Use shortest=0 (disabled) to keep full audio; video loops last frame if shorter
         finalPath,
       ]
     : ["-y", "-i", rawVideoPath, "-c:v", "copy", "-an", "-movflags", "+faststart", finalPath];
@@ -529,9 +550,12 @@ async function captureWithCDP(page, args, server) {
   // Clean up intermediate files
   await unlink(rawVideoPath).catch(() => {});
   await unlink(concatPath).catch(() => {});
-  if (hasAudio) await unlink(audioPath).catch(() => {});
-  // Clean up frames directory
-  for (const frame of frameTimestamps) {
+  if (hasAudio) {
+    await unlink(rawAudioPath).catch(() => {});
+    await unlink(trimmedAudioPath).catch(() => {});
+  }
+  // Clean up ALL frame files (including dropped ones)
+  for (const frame of rawFrames) {
     await unlink(frame.path).catch(() => {});
   }
   await import("node:fs/promises").then(fs => fs.rmdir(framesDir).catch(() => {}));
