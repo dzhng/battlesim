@@ -1,0 +1,11 @@
+{
+  "units": [
+    {"side":"blue","kind":"us_marine_squad_close_quarters_infantry","position":[1500,1500],"yaw":0.785,"engagement":"return_fire_only"},
+    {"side":"red","kind":"eastern_j_10_vigorous_dragon_j_10c","position":[2600,2600],"yaw":3.93,"engagement":"return_fire_only"}
+  ],
+  "scripts": [
+    {"tick":150,"side":"red","order":{"kind":"move","units":[1],"gesture":1,"goal":[1500,1500],"route":"fastest"}},
+    {"tick":450,"side":"red","order":{"kind":"move","units":[1],"gesture":2,"goal":[2600,2600],"route":"fastest"}},
+    {"tick":800,"side":"red","order":{"kind":"move","units":[1],"gesture":3,"goal":[1500,1500],"route":"fastest"}}
+  ]
+}

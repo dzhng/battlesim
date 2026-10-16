@@ -1,6 +1,8 @@
-// The air alarm (slice 11), heard by blue. Blue's Abrams sees no aircraft
-// until a J-10 flies into its view: then blue hears one air alarm and the
-// jet's approach. While the J-10 stays seen no second alarm sounds. It flies
+// The air alarm (slice 11), heard by blue. Blue's marine squad sees no
+// aircraft until a J-10 flies into its view: then blue hears one air alarm
+// and the jet's approach. (Its eyes are on foot: a tank's crew is blind to
+// high air, D48.) On the 3 km jet field the J-10 flies its scripted legs
+// rather than circling the small air map's middle. While the J-10 stays seen no second alarm sounds. It flies
 // off out of sight, ending the episode, and back: the alarm sounds once more.
 // The battle runs live, as a player hears it, after a first click. The tests
 // behind the episode rule and the sighting:

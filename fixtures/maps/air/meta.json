@@ -9,7 +9,7 @@
   "source": "authored",
   "seed": null,
   "encounters": [
-    "apache", "audio", "closing", "combined", "contracts", "crash", "defense-helicopter",
+    "apache", "closing", "combined", "contracts", "crash", "defense-helicopter",
     "defense-jet", "dogfight", "flight", "fog", "ground", "high-air", "hover", "hud", "lost",
     "radar-fighter", "radar-sead", "roof", "survivability"
   ],

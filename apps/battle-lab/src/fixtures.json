@@ -152,8 +152,8 @@
   {
     "id": "air-audio",
     "route": "/labs/air-audio",
-    "describe": "The air alarm: a J-10 flies into the view of blue's Abrams, and blue hears one alarm and the jet's approach; while it stays seen no second alarm sounds; it flies off out of sight and back, a new episode, and the alarm sounds once more.",
-    "map": "air"
+    "describe": "The air alarm: a J-10 flies into the view of blue's marine squad, and blue hears one alarm and the jet's approach; while it stays seen no second alarm sounds; it flies off out of sight and back, a new episode, and the alarm sounds once more.",
+    "map": "air-jet"
   },
   {
     "id": "garrison",
