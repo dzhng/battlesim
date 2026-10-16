@@ -715,16 +715,22 @@ async function captureWithCDP(page, args, server) {
         : null;
       const audioStartMs = audioInfo.audioStartTime ?? 0;
       
-      // Helper: detect white frames in a time range by CDP timestamp
-      async function detectWhiteFrames(expectedTimesMs, label) {
+      // Helper: detect white frame ONSETS (first white frame after non-white)
+      // Returns array of { cdpTimestamp, yavg, onsetMs } where onsetMs is relative to audioStart
+      async function detectFlashOnsets(expectedTimesMs, label) {
         if (!expectedTimesMs || expectedTimesMs.length === 0 || pageLoadEpochMs === null) return [];
-        const whiteFrames = [];
+        
+        // Search range: from first trigger to last trigger + 150ms (enough for render latency)
         const expectedCdpTimes = expectedTimesMs.map(t => (pageLoadEpochMs + t) / 1000);
-        const minCdp = Math.min(...expectedCdpTimes) - 0.1;
-        const maxCdp = Math.max(...expectedCdpTimes) + 0.1;
-        const searchFrames = rawFrames.filter(f => f.cdpTimestamp >= minCdp && f.cdpTimestamp <= maxCdp);
+        const minCdp = Math.min(...expectedCdpTimes) - 0.02; // 20ms before first
+        const maxCdp = Math.max(...expectedCdpTimes) + 0.15; // 150ms after last
+        const searchFrames = rawFrames
+          .filter(f => f.cdpTimestamp >= minCdp && f.cdpTimestamp <= maxCdp)
+          .sort((a, b) => a.cdpTimestamp - b.cdpTimestamp);
         console.log(`    ${label}: searching ${searchFrames.length} frames in CDP [${minCdp.toFixed(3)}, ${maxCdp.toFixed(3)}]`);
         
+        // Analyze all frames for brightness
+        const frameBrightness = [];
         for (const frame of searchFrames) {
           try {
             const result = await new Promise((resolve) => {
@@ -739,27 +745,42 @@ async function captureWithCDP(page, args, server) {
               ffmpeg.on("error", () => resolve(""));
             });
             const yavgMatch = result.match(/lavfi\.signalstats\.YAVG=([\d.]+)/);
-            if (yavgMatch && parseFloat(yavgMatch[1]) > 250) {
-              whiteFrames.push({ cdpTimestamp: frame.cdpTimestamp, yavg: parseFloat(yavgMatch[1]) });
-            }
-          } catch { /* continue */ }
+            const yavg = yavgMatch ? parseFloat(yavgMatch[1]) : 0;
+            frameBrightness.push({ cdpTimestamp: frame.cdpTimestamp, yavg });
+          } catch {
+            frameBrightness.push({ cdpTimestamp: frame.cdpTimestamp, yavg: 0 });
+          }
         }
-        console.log(`    ${label}: found ${whiteFrames.length} white frames`);
-        return whiteFrames;
+        
+        // Detect onsets: first frame with YAVG > 250 after a frame with YAVG < 200
+        const onsets = [];
+        for (let i = 1; i < frameBrightness.length; i++) {
+          const prev = frameBrightness[i - 1];
+          const curr = frameBrightness[i];
+          if (prev.yavg < 200 && curr.yavg > 250) {
+            const onsetMs = (curr.cdpTimestamp * 1000) - pageLoadEpochMs - audioStartMs;
+            onsets.push({ cdpTimestamp: curr.cdpTimestamp, yavg: curr.yavg, onsetMs });
+          }
+        }
+        console.log(`    ${label}: found ${onsets.length} flash onsets at [${onsets.map(o => o.onsetMs.toFixed(0)).join(", ")}]ms`);
+        return onsets;
       }
       
       // Helper: detect click onsets in audio
-      async function detectClicks(expectedTimesMs, label) {
+      // Returns array of { timeMs, peakDb } where timeMs is relative to audioStart
+      async function detectClickOnsets(expectedTimesMs, label) {
         if (!expectedTimesMs || expectedTimesMs.length === 0) return [];
-        const clicks = [];
+        
+        // Search range: 50ms before first trigger to 150ms after last trigger
         const relativeTimesMs = expectedTimesMs.map(t => t - audioStartMs);
-        const searchStartMs = Math.max(0, Math.min(...relativeTimesMs) - 100);
-        const searchEndMs = Math.max(...relativeTimesMs) + 100;
+        const searchStartMs = Math.max(0, Math.min(...relativeTimesMs) - 50);
+        const searchEndMs = Math.max(...relativeTimesMs) + 150;
         const searchStartS = searchStartMs / 1000;
         const searchDurationS = (searchEndMs - searchStartMs) / 1000;
         
         console.log(`    ${label}: searching audio ${searchStartS.toFixed(3)}s - ${(searchStartS + searchDurationS).toFixed(3)}s`);
         
+        const clicks = [];
         try {
           const astatsResult = await new Promise((resolve, reject) => {
             const ffmpeg = spawn("ffmpeg", [
@@ -784,43 +805,76 @@ async function captureWithCDP(page, args, server) {
             const ptsTime = parseFloat(peakMatch[1]);
             const peakLevel = parseFloat(peakMatch[2]);
             const absoluteMs = (searchStartS + ptsTime) * 1000;
+            // Onset detection: > -10dB and at least 80ms since last
             if (peakLevel > -10 && absoluteMs - lastOnsetMs > 80) {
               clicks.push({ timeMs: absoluteMs, peakDb: peakLevel });
               lastOnsetMs = absoluteMs;
             }
           }
         } catch { /* ignore */ }
-        console.log(`    ${label}: found ${clicks.length} clicks`);
+        console.log(`    ${label}: found ${clicks.length} click onsets at [${clicks.map(c => c.timeMs.toFixed(0)).join(", ")}]ms`);
         return clicks;
+      }
+      
+      // Helper: match triggers to detected onsets
+      // For each trigger, find first onset in [trigger, trigger+120ms] for video
+      // or [trigger-20ms, trigger+120ms] for audio
+      function matchTriggersToOnsets(triggerTimesMs, onsets, label, isVideo) {
+        const matched = [];
+        const usedOnsets = new Set();
+        
+        for (let i = 0; i < triggerTimesMs.length; i++) {
+          const triggerRelMs = triggerTimesMs[i] - audioStartMs;
+          const windowStart = isVideo ? triggerRelMs : triggerRelMs - 20;
+          const windowEnd = triggerRelMs + 120;
+          
+          // Find first unused onset in window
+          const onset = onsets.find(o => {
+            const t = isVideo ? o.onsetMs : o.timeMs;
+            return t >= windowStart && t <= windowEnd && !usedOnsets.has(o);
+          });
+          
+          if (onset) {
+            usedOnsets.add(onset);
+            matched.push({ triggerIdx: i, triggerMs: triggerRelMs, onset });
+          }
+        }
+        console.log(`    ${label}: matched ${matched.length}/${triggerTimesMs.length} triggers`);
+        return matched;
       }
       
       // Detect START calibration burst (5 flash/click pairs)
       console.log("  Detecting START calibration burst...");
       const startCalibTimes = audioInfo.calibrationTimes ?? [];
-      const startWhiteFrames = await detectWhiteFrames(startCalibTimes, "START video");
-      const startClicks = await detectClicks(startCalibTimes, "START audio");
+      const startFlashOnsets = await detectFlashOnsets(startCalibTimes, "START video");
+      const startClickOnsets = await detectClickOnsets(startCalibTimes, "START audio");
       
-      // Match white frames to expected times by CDP timestamp, compute offsets
+      const startVideoMatches = matchTriggersToOnsets(startCalibTimes, startFlashOnsets, "START video", true);
+      const startAudioMatches = matchTriggersToOnsets(startCalibTimes, startClickOnsets, "START audio", false);
+      
+      // Pair up video and audio matches by trigger index
       const startPairOffsets = [];
-      for (let i = 0; i < startCalibTimes.length; i++) {
-        const expectedCdp = (pageLoadEpochMs + startCalibTimes[i]) / 1000;
-        const videoMatch = startWhiteFrames.find(f => Math.abs(f.cdpTimestamp - expectedCdp) < 0.05);
-        const expectedRelMs = startCalibTimes[i] - audioStartMs;
-        const audioMatch = startClicks.find(c => Math.abs(c.timeMs - expectedRelMs) < 50);
-        if (videoMatch && audioMatch) {
-          const videoMs = (videoMatch.cdpTimestamp * 1000) - pageLoadEpochMs - audioStartMs;
-          const offset = videoMs - audioMatch.timeMs;
+      const startMatchedPairs = [];
+      for (const vm of startVideoMatches) {
+        const am = startAudioMatches.find(a => a.triggerIdx === vm.triggerIdx);
+        if (am) {
+          const videoOnsetMs = vm.onset.onsetMs;
+          const audioOnsetMs = am.onset.timeMs;
+          const offset = videoOnsetMs - audioOnsetMs;
           startPairOffsets.push(offset);
+          startMatchedPairs.push({ idx: vm.triggerIdx, videoMs: videoOnsetMs, audioMs: audioOnsetMs, offset });
         }
       }
       
-      if (startPairOffsets.length > 0) {
+      console.log(`  START matched pairs: ${startMatchedPairs.map(p => `[${p.idx}] v=${p.videoMs.toFixed(0)} a=${p.audioMs.toFixed(0)} Δ=${p.offset.toFixed(1)}`).join(", ")}`);
+      
+      if (startPairOffsets.length >= 3) {
         const sorted = [...startPairOffsets].sort((a, b) => a - b);
         startMedianOffsetMs = sorted[Math.floor(sorted.length / 2)];
-        console.log(`  START calibration: ${startPairOffsets.length} pairs, offsets=[${startPairOffsets.map(o => o.toFixed(1)).join(", ")}]ms, median=${startMedianOffsetMs.toFixed(1)}ms`);
+        console.log(`  START calibration: ${startPairOffsets.length} pairs, median offset=${startMedianOffsetMs.toFixed(1)}ms`);
       } else {
-        console.error("  ERROR: No matched START calibration pairs");
-        throw new Error("START calibration failed: no matched video/audio pairs");
+        console.error(`  ERROR: Only ${startPairOffsets.length} matched START pairs (need ≥3)`);
+        throw new Error(`START calibration failed: only ${startPairOffsets.length} matched pairs (need ≥3)`);
       }
       
       // Detect END calibration burst for drift measurement
@@ -828,25 +882,31 @@ async function captureWithCDP(page, args, server) {
       const endCalibTimes = audioInfo.endCalibrationTimes ?? [];
       
       if (endCalibTimes.length > 0) {
-        const endWhiteFrames = await detectWhiteFrames(endCalibTimes, "END video");
-        const endClicks = await detectClicks(endCalibTimes, "END audio");
+        const endFlashOnsets = await detectFlashOnsets(endCalibTimes, "END video");
+        const endClickOnsets = await detectClickOnsets(endCalibTimes, "END audio");
+        
+        const endVideoMatches = matchTriggersToOnsets(endCalibTimes, endFlashOnsets, "END video", true);
+        const endAudioMatches = matchTriggersToOnsets(endCalibTimes, endClickOnsets, "END audio", false);
         
         const endPairOffsets = [];
-        for (let i = 0; i < endCalibTimes.length; i++) {
-          const expectedCdp = (pageLoadEpochMs + endCalibTimes[i]) / 1000;
-          const videoMatch = endWhiteFrames.find(f => Math.abs(f.cdpTimestamp - expectedCdp) < 0.05);
-          const expectedRelMs = endCalibTimes[i] - audioStartMs;
-          const audioMatch = endClicks.find(c => Math.abs(c.timeMs - expectedRelMs) < 50);
-          if (videoMatch && audioMatch) {
-            const videoMs = (videoMatch.cdpTimestamp * 1000) - pageLoadEpochMs - audioStartMs;
-            endPairOffsets.push(videoMs - audioMatch.timeMs);
+        const endMatchedPairs = [];
+        for (const vm of endVideoMatches) {
+          const am = endAudioMatches.find(a => a.triggerIdx === vm.triggerIdx);
+          if (am) {
+            const videoOnsetMs = vm.onset.onsetMs;
+            const audioOnsetMs = am.onset.timeMs;
+            const offset = videoOnsetMs - audioOnsetMs;
+            endPairOffsets.push(offset);
+            endMatchedPairs.push({ idx: vm.triggerIdx, videoMs: videoOnsetMs, audioMs: audioOnsetMs, offset });
           }
         }
         
-        if (endPairOffsets.length > 0) {
+        console.log(`  END matched pairs: ${endMatchedPairs.map(p => `[${p.idx}] v=${p.videoMs.toFixed(0)} a=${p.audioMs.toFixed(0)} Δ=${p.offset.toFixed(1)}`).join(", ")}`);
+        
+        if (endPairOffsets.length >= 3) {
           const sorted = [...endPairOffsets].sort((a, b) => a - b);
           endMedianOffsetMs = sorted[Math.floor(sorted.length / 2)];
-          console.log(`  END calibration: ${endPairOffsets.length} pairs, offsets=[${endPairOffsets.map(o => o.toFixed(1)).join(", ")}]ms, median=${endMedianOffsetMs.toFixed(1)}ms`);
+          console.log(`  END calibration: ${endPairOffsets.length} pairs, median offset=${endMedianOffsetMs.toFixed(1)}ms`);
           
           // Compute drift ratio
           const driftMs = endMedianOffsetMs - startMedianOffsetMs;
@@ -861,7 +921,7 @@ async function captureWithCDP(page, args, server) {
             console.log("  WARNING: Span too short for drift, using ratio 1.0");
           }
         } else {
-          console.log("  WARNING: No matched END calibration pairs");
+          console.log(`  WARNING: Only ${endPairOffsets.length} matched END pairs (need ≥3 for drift)`);
         }
       } else {
         console.log("  WARNING: No END calibration times");
