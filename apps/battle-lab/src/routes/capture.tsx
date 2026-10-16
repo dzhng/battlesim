@@ -17,6 +17,7 @@ import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/cont
 import backdrop from "@fixtures/menu-backdrop.json";
 import { listMaps } from "@web/maps/catalogue";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import { appResources } from "../appResources";
 import { useFeed } from "../feed";
@@ -488,6 +489,8 @@ function CaptureBattle({
   const lastSubjectRef = useRef<readonly [number, number]>([0, 0]);
   /** True once the follow unit is resolved and the smoothed position is initialized. */
   const followInitializedRef = useRef(false);
+  /** The last fully-computed pose (with follow tracking applied), frozen when reel ends. */
+  const heldPoseRef = useRef<CameraPose | null>(null);
 
   const pilot: ViewportPilot = {
     pose(now) {
@@ -499,21 +502,32 @@ function CaptureBattle({
       const elapsed = (now - pilotStartRef.current) / 1000;
       const sample = sampleReel(reel, elapsed);
 
-      if (sample.done && recorderRef.current?.state === "recording" && !stoppingRef.current) {
-        // Record the exact reel-end time for precise cutting
+      // When reel ends: record time, schedule stop ONCE, then return HELD pose
+      if (sample.done) {
+        // Record reelEndTime on first done frame (independent of recorder state)
         if (reelEndTimeRef.current === null) {
           reelEndTimeRef.current = now;
           onReelEndTimeRef.current?.(now);
+          console.log(`[capture] reel done at ${now.toFixed(1)}ms (elapsed=${elapsed.toFixed(2)}s)`);
         }
-        // Add a small tail (0.5s) to ensure the last frame is captured
-        stoppingRef.current = true;
-        setTimeout(() => stopRecording(), 500);
+        // Schedule stopRecording once (guarded by stoppingRef)
+        if (!stoppingRef.current) {
+          stoppingRef.current = true;
+          console.log(`[capture] scheduling recorder stop in 500ms`);
+          setTimeout(() => {
+            console.log(`[capture] recorder stop triggered`);
+            stopRecording();
+          }, 500);
+        }
+        // Return the HELD pose (frozen last tracked position) - never recompute
+        if (heldPoseRef.current !== null) {
+          return heldPoseRef.current;
+        }
+        // Fallback: if no held pose yet, return sample.pose (shouldn't happen normally)
+        return sample.pose;
       }
 
-      // IMPORTANT: Always apply follow tracking, even when done.
-      // When done, HOLD the final keyframe with the current tracked position
-      // rather than jumping back to the static offset. This prevents camera
-      // reset at the end of the reel.
+      // Reel still running: compute follow-tracked pose and save it
       const [x, y] = sample.pose.target;
       let finalPose = sample.pose;
 
@@ -549,6 +563,9 @@ function CaptureBattle({
         followInitializedRef.current = true;
         lastSubjectRef.current = [x, y];
       }
+
+      // Save computed pose for holding when reel ends
+      heldPoseRef.current = finalPose;
 
       return finalPose;
     },

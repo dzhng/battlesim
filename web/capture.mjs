@@ -398,15 +398,47 @@ async function captureWithCDP(page, args, server) {
     console.log("  WARNING: Calibration failed, falling back to fixed preroll cut");
   }
   
-  // Poll for completion
-  await page.waitForFunction(
-    () => {
+  // Poll for completion with watchdog timeout
+  // Normal capture should complete within captureDuration + tail + buffer
+  const watchdogTimeoutMs = (captureDuration + 3) * 1000;
+  const watchdogStart = Date.now();
+  console.log(`  Watchdog: expecting completion within ${(watchdogTimeoutMs / 1000).toFixed(1)}s (duration=${captureDuration.toFixed(1)}s + 3s buffer)`);
+  
+  try {
+    await page.waitForFunction(
+      () => {
+        const capture = window.__capture;
+        return capture?.state === "complete" || capture?.state === "error" || capture?.state === "audio_complete";
+      },
+      undefined,
+      { timeout: watchdogTimeoutMs },
+    );
+  } catch (watchdogError) {
+    // Watchdog timeout: gather diagnostics and fail fast
+    const elapsed = (Date.now() - watchdogStart) / 1000;
+    const diag = await page.evaluate(() => {
       const capture = window.__capture;
-      return capture?.state === "complete" || capture?.state === "error" || capture?.state === "audio_complete";
-    },
-    undefined,
-    { timeout: 300_000 },
-  );
+      return {
+        state: capture?.state ?? 'undefined',
+        reelReadyTime: capture?.reelReadyTime ?? null,
+        reelEndTime: capture?.reelEndTime ?? null,
+        audioStartTime: capture?.audioStartTime ?? null,
+        duration: capture?.duration ?? null,
+      };
+    });
+    console.error(`\n  WATCHDOG TIMEOUT after ${elapsed.toFixed(1)}s!`);
+    console.error(`  Diagnostics:`);
+    console.error(`    - state: ${diag.state}`);
+    console.error(`    - reelReadyTime: ${diag.reelReadyTime?.toFixed(1) ?? 'null'}ms`);
+    console.error(`    - reelEndTime: ${diag.reelEndTime?.toFixed(1) ?? 'null'}ms`);
+    console.error(`    - audioStartTime: ${diag.audioStartTime?.toFixed(1) ?? 'null'}ms`);
+    console.error(`    - expected duration: ${diag.duration?.toFixed(1) ?? 'null'}s`);
+    if (diag.reelReadyTime !== null && diag.reelEndTime !== null) {
+      const actualReelDuration = (diag.reelEndTime - diag.reelReadyTime) / 1000;
+      console.error(`    - actual reel duration: ${actualReelDuration.toFixed(2)}s`);
+    }
+    throw new Error(`Capture watchdog timeout: page stuck in state '${diag.state}' after ${elapsed.toFixed(1)}s`);
+  }
   
   process.stdout.write("\n");
   
@@ -453,6 +485,21 @@ async function captureWithCDP(page, args, server) {
   // Calculate target output duration: trim at exactly reel end
   // Use reelEndTime if available (precise), otherwise estimate from duration
   const reelEndTime = await page.evaluate(() => window.__capture?.reelEndTime);
+  
+  // Log reel timing diagnostic: compare expected vs actual reel end
+  if (reelReadyTime !== null && captureDuration > 0) {
+    const expectedReelEndMs = reelReadyTime + (captureDuration * 1000);
+    if (reelEndTime !== null && reelEndTime !== undefined) {
+      const actualReelDurationMs = reelEndTime - reelReadyTime;
+      const expectedReelDurationMs = captureDuration * 1000;
+      const driftMs = actualReelDurationMs - expectedReelDurationMs;
+      console.log(`  Reel timing: ready=${reelReadyTime.toFixed(0)}ms, end=${reelEndTime.toFixed(0)}ms`);
+      console.log(`    Expected duration: ${expectedReelDurationMs.toFixed(0)}ms, actual: ${actualReelDurationMs.toFixed(0)}ms, drift: ${driftMs >= 0 ? '+' : ''}${driftMs.toFixed(0)}ms`);
+    } else {
+      console.log(`  Reel timing: ready=${reelReadyTime.toFixed(0)}ms, end=NOT_RECORDED (expected at ${expectedReelEndMs.toFixed(0)}ms)`);
+    }
+  }
+  
   let targetOutputDuration = null;
   if (dynamicCutTimeMs !== null && reelReadyTime !== null) {
     if (reelEndTime !== null && reelEndTime !== undefined) {
