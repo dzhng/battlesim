@@ -47,6 +47,7 @@ function parseArgs(argv) {
     output: OUTPUT_DIR.pathname,
     scene: "menu",
     deterministic: false, // Virtual clock + explicit frame capture
+    keepRaw: false, // Keep raw audio and frames for offline analysis
   };
 
   for (const arg of argv.slice(2)) {
@@ -74,6 +75,8 @@ function parseArgs(argv) {
       args.deterministic = true;
     } else if (arg === "--realtime") {
       args.deterministic = false;
+    } else if (arg === "--keep-raw") {
+      args.keepRaw = true;
     } else if (arg === "--help" || arg === "-h") {
       console.log(`Cinematic capture: record menu backdrop with scripted camera
 
@@ -93,6 +96,7 @@ Options:
   --scene=<name>     Scene to capture: menu (default) or skirmish
   --deterministic    Use virtual clock for exact frame timing (no stutter)
   --realtime         Use real-time capture (default, may have stutter)
+  --keep-raw         Keep raw audio, calibration frames, and detailed frames.json
 
 Examples:
   bun run --cwd web capture
@@ -528,17 +532,21 @@ async function captureWithDeterministic(page, args, server) {
     ffmpegMux.on("error", reject);
   });
   
-  // Clean up
-  await unlink(rawVideoPath).catch(() => {});
-  await unlink(concatPath).catch(() => {});
-  if (hasAudio) {
-    await unlink(rawAudioPath).catch(() => {});
-    await unlink(trimmedAudioPath).catch(() => {});
+  // Clean up (unless --keep-raw)
+  if (!args.keepRaw) {
+    await unlink(rawVideoPath).catch(() => {});
+    await unlink(concatPath).catch(() => {});
+    if (hasAudio) {
+      await unlink(rawAudioPath).catch(() => {});
+      await unlink(trimmedAudioPath).catch(() => {});
+    }
+    for (const frame of frames) {
+      await unlink(frame.path).catch(() => {});
+    }
+    await import("node:fs/promises").then(fs => fs.rmdir(framesDir).catch(() => {}));
+  } else {
+    console.log(`  Keeping raw files: ${framesDir}, ${basename(rawVideoPath)}${hasAudio ? `, ${basename(rawAudioPath)}` : ""}`);
   }
-  for (const frame of frames) {
-    await unlink(frame.path).catch(() => {});
-  }
-  await import("node:fs/promises").then(fs => fs.rmdir(framesDir).catch(() => {}));
   
   // Write sidecar
   const fireEvents = await page.evaluate(() => window.__capture?.fireEvents ?? []);
@@ -912,21 +920,40 @@ async function captureWithCDP(page, args, server) {
   // Write frames.json BEFORE any checks (so it's available even on failure)
   const framesJsonPath = resolve(args.output, `frames-${timestamp}.json`);
   const framesJson = {
+    mode: "realtime",
     cutCdpTime,
     targetOutputDuration,
     pageLoadEpochMs: reelReadyCdpTime !== null && reelReadyTime !== null 
       ? (reelReadyCdpTime * 1000) - reelReadyTime 
       : null,
     audioStartMs: await page.evaluate(() => window.__capture?.audioStartTime ?? null),
+    // Output frames (after cut, before tail trim)
     frames: frameTimestamps.map((f, i) => ({
       path: f.path,
       timestamp_s: f.timestamp_s,
       idx: i,
     })),
     pacing: framePacing,
+    // When --keep-raw, include all raw frames (including calibration/preroll)
+    ...(args.keepRaw ? {
+      rawFrames: rawFrames.map((f, i) => ({
+        path: f.path,
+        cdpTimestamp: f.cdpTimestamp,
+        relativeTimestamp_s: f.cdpTimestamp - (rawFrames[0]?.cdpTimestamp ?? f.cdpTimestamp),
+        idx: f.idx,
+        isCalibration: f.cdpTimestamp < cutCdpTime,
+        isOutput: f.cdpTimestamp >= cutCdpTime && frameTimestamps.some(ft => ft.path === f.path),
+      })),
+      calibrationFrames: rawFrames.filter(f => f.cdpTimestamp < cutCdpTime).map((f, i) => ({
+        path: f.path,
+        cdpTimestamp: f.cdpTimestamp,
+        relativeTimestamp_s: f.cdpTimestamp - (rawFrames[0]?.cdpTimestamp ?? f.cdpTimestamp),
+        idx: i,
+      })),
+    } : {}),
   };
   await writeFile(framesJsonPath, JSON.stringify(framesJson, null, 2));
-  console.log(`  Wrote ${basename(framesJsonPath)}`);
+  console.log(`  Wrote ${basename(framesJsonPath)}${args.keepRaw ? ` (with ${rawFrames.filter(f => f.cdpTimestamp < cutCdpTime).length} calibration frames)` : ""}`);
   
   // FAIL if any gap > 50ms (frame starvation) in the OUTPUT range
   if (framePacing.longestGapMs > 50) {
@@ -1415,18 +1442,22 @@ async function captureWithCDP(page, args, server) {
     ffmpegMux.on("error", reject);
   });
   
-  // Clean up intermediate files
-  await unlink(rawVideoPath).catch(() => {});
-  await unlink(concatPath).catch(() => {});
-  if (hasAudio) {
-    await unlink(rawAudioPath).catch(() => {});
-    await unlink(trimmedAudioPath).catch(() => {});
+  // Clean up intermediate files (unless --keep-raw)
+  if (!args.keepRaw) {
+    await unlink(rawVideoPath).catch(() => {});
+    await unlink(concatPath).catch(() => {});
+    if (hasAudio) {
+      await unlink(rawAudioPath).catch(() => {});
+      await unlink(trimmedAudioPath).catch(() => {});
+    }
+    // Clean up ALL frame files (including dropped ones)
+    for (const frame of rawFrames) {
+      await unlink(frame.path).catch(() => {});
+    }
+    await import("node:fs/promises").then(fs => fs.rmdir(framesDir).catch(() => {}));
+  } else {
+    console.log(`  Keeping raw files: ${framesDir}, ${basename(rawVideoPath)}${hasAudio ? `, ${basename(rawAudioPath)}` : ""}`);
   }
-  // Clean up ALL frame files (including dropped ones)
-  for (const frame of rawFrames) {
-    await unlink(frame.path).catch(() => {});
-  }
-  await import("node:fs/promises").then(fs => fs.rmdir(framesDir).catch(() => {}));
   
   // Get and write weapon fire events to sidecar JSON
   const fireEvents = await page.evaluate(() => window.__capture?.fireEvents ?? []);
