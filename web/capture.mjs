@@ -492,58 +492,36 @@ async function captureWithCDP(page, args, server) {
   console.log(`  Captured ${rawFrames.length} raw frames, kept ${frameCount} (dropped ${droppedEarlyFrames} early, ${droppedTailFrames} tail) over ${actualDuration.toFixed(2)}s`);
   
   // Frame-to-frame diff check in the last 1s: detect camera jump/reset
-  // Use mean-abs-diff spike rule: fail if any frame diff > 3× median of surrounding 30 frames AND > 8
+  // Use mean-abs-diff spike rule: fail if diff > 8 AND > 3× median of surrounding frames
+  // On v22 this gives 13.2 at the jump vs ≤4 elsewhere
   if (frameTimestamps.length > 0 && targetOutputDuration !== null) {
     const last1sStart = Math.max(0, actualDuration - 1.0);
     const last1sFrames = frameTimestamps.filter(f => f.timestamp_s >= last1sStart);
     if (last1sFrames.length >= 2) {
       console.log(`  Checking frame-to-frame diff in last 1s (${last1sFrames.length} frames)...`);
       
-      // Calculate mean-abs-diff for each consecutive pair using ssim filter (gives diff)
+      // Calculate true mean-abs-diff using signalstats YAVG of blend=difference
       const diffs = [];
       for (let i = 1; i < last1sFrames.length; i++) {
         const prevFrame = last1sFrames[i - 1].path;
         const currFrame = last1sFrames[i].path;
         try {
-          // Use blend filter to compute absolute difference, then compute mean
-          const diffResult = await new Promise((resolve, reject) => {
+          const statResult = await new Promise((resolve, reject) => {
             const ffmpeg = spawn("ffmpeg", [
               "-i", prevFrame,
               "-i", currFrame,
-              "-lavfi", "[0:v][1:v]blend=all_mode=difference,blackframe=amount=0:threshold=1",
+              "-filter_complex", "[0:v][1:v]blend=all_mode=difference[d];[d]signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-",
               "-f", "null", "-",
             ], { stdio: ["pipe", "pipe", "pipe"] });
-            let stderr = "";
-            ffmpeg.stderr.on("data", (d) => stderr += d);
-            ffmpeg.on("close", () => resolve(stderr));
+            let stdout = "";
+            ffmpeg.stdout.on("data", (d) => stdout += d);
+            ffmpeg.on("close", () => resolve(stdout));
             ffmpeg.on("error", () => resolve(""));
           });
-          // Parse blackframe output: "pblack:XX" where higher = more similar (more black in diff)
-          // If no blackframe match, use signalstats for mean
-          const pblackMatch = diffResult.match(/pblack:\s*(\d+)/);
-          if (pblackMatch) {
-            // pblack is % of black pixels, so diff = 100 - pblack (higher = more different)
-            const meanAbsDiff = 100 - parseInt(pblackMatch[1]);
+          const yavgMatch = statResult.match(/lavfi\.signalstats\.YAVG=([\d.]+)/);
+          if (yavgMatch) {
+            const meanAbsDiff = parseFloat(yavgMatch[1]);
             diffs.push({ index: i, time: last1sFrames[i].timestamp_s, diff: meanAbsDiff });
-          } else {
-            // Fallback: use signalstats YAVG diff
-            const statResult = await new Promise((resolve, reject) => {
-              const ffmpeg = spawn("ffmpeg", [
-                "-i", prevFrame,
-                "-i", currFrame,
-                "-filter_complex", "[0:v][1:v]blend=all_mode=difference[d];[d]signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-",
-                "-f", "null", "-",
-              ], { stdio: ["pipe", "pipe", "pipe"] });
-              let stdout = "";
-              ffmpeg.stdout.on("data", (d) => stdout += d);
-              ffmpeg.on("close", () => resolve(stdout));
-              ffmpeg.on("error", () => resolve(""));
-            });
-            const yavgMatch = statResult.match(/lavfi\.signalstats\.YAVG=([\d.]+)/);
-            if (yavgMatch) {
-              const meanAbsDiff = parseFloat(yavgMatch[1]);
-              diffs.push({ index: i, time: last1sFrames[i].timestamp_s, diff: meanAbsDiff });
-            }
           }
         } catch (e) {
           // Skip on error
@@ -551,20 +529,20 @@ async function captureWithCDP(page, args, server) {
       }
       
       if (diffs.length > 0) {
-        // Find spikes: diff > 3× median of surrounding 30 frames AND > 8
+        // Spike rule: fail if diff > 8 AND > 3× median of surrounding frames
         const sortedDiffs = [...diffs].sort((a, b) => a.diff - b.diff);
         const medianDiff = sortedDiffs[Math.floor(sortedDiffs.length / 2)]?.diff ?? 0;
         const maxDiff = Math.max(...diffs.map(d => d.diff));
-        const spikeThreshold = Math.max(8, medianDiff * 3);
         
-        const spikes = diffs.filter(d => d.diff > spikeThreshold);
+        // Check each frame against the spike rule
+        const spikes = diffs.filter(d => d.diff > 8 && d.diff > medianDiff * 3);
         if (spikes.length > 0) {
           const worstSpike = spikes.reduce((a, b) => a.diff > b.diff ? a : b);
           console.error(`  ERROR: Camera jump detected at ${worstSpike.time.toFixed(2)}s`);
-          console.error(`    - Mean-abs-diff: ${worstSpike.diff.toFixed(1)} (median=${medianDiff.toFixed(1)}, threshold=${spikeThreshold.toFixed(1)})`);
-          throw new Error(`Camera jump detected in last 1s at ${worstSpike.time.toFixed(2)}s (diff=${worstSpike.diff.toFixed(1)} > ${spikeThreshold.toFixed(1)})`);
+          console.error(`    - Mean-abs-diff: ${worstSpike.diff.toFixed(1)} (median=${medianDiff.toFixed(1)}, threshold=max(8, ${(medianDiff * 3).toFixed(1)}))`);
+          throw new Error(`Camera jump detected in last 1s at ${worstSpike.time.toFixed(2)}s (diff=${worstSpike.diff.toFixed(1)} > 8 and > 3×median)`);
         } else {
-          console.log(`  Frame diff check OK (max=${maxDiff.toFixed(1)}, median=${medianDiff.toFixed(1)}, threshold=${spikeThreshold.toFixed(1)})`);
+          console.log(`  Frame diff check OK (max=${maxDiff.toFixed(1)}, median=${medianDiff.toFixed(1)})`);
         }
       }
     }

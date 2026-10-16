@@ -72,15 +72,14 @@ export const bloomCompositeWgsl = `(uv: vec2f, level0: texture_2d<f32>, level1: 
   return (${[0, 1, 2, 3, 4].map((i) => `textureSample(level${i},linearSampler,uv)*bloom.${i < 4 ? `weights.${"xyzw"[i]}` : "weight4"}`).join("+")})*bloom.strength;
 }`;
 
-export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, depth: texture_depth_2d, linearSampler: sampler, grade: Grade) -> vec4f {
+export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, linearSampler: sampler, grade: Grade) -> vec4f {
   let hdr = textureSample(scene,linearSampler,uv)+textureSample(bloom,linearSampler,uv);
-  // Sample depth to detect sky (reverse-Z: 0.0 = far plane = sky).
-  let d = textureSample(depth,linearSampler,uv);
-  let isSky = select(0.0, 1.0, d < 0.0001);
+  // Sky pixels have alpha=0 (set by sky.ts); world objects have alpha=1.
+  let isSky = select(0.0, 1.0, hdr.a < 0.5);
   // For sky pixels, mix between fully graded and ungraded based on skyGradeMix.
   let graded = gradeColor(hdr.rgb,grade);
   let finalColor = mix(hdr.rgb, graded, 1.0 - isSky * (1.0 - grade.skyGradeMix));
-  return vec4f(outputSrgb(agx(finalColor,grade.exposure)),clamp(hdr.a,0.0,1.0));
+  return vec4f(outputSrgb(agx(finalColor,grade.exposure)),1.0);
 }`;
 
 /** The high-air plane's look: a layer over the world's, so the same bloom,

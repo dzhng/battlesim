@@ -79,7 +79,8 @@ export async function createTypegpuSky(
       [d.vec2f],
       d.vec4f,
     )(`(uv: vec2f) -> vec4f {
-    return max(vec4f(sample(rays.origin + rays.dx * uv.x + rays.dy * uv.y), 1.0), vec4f(0.0));
+    // Alpha=0 marks sky pixels so post can detect them for grade_mix bypass.
+    return max(vec4f(sample(rays.origin + rays.dx * uv.x + rays.dy * uv.y), 0.0), vec4f(0.0));
   }`)
     .$uses({ sample, rays: rays.as("uniform") });
   const bake = root.createRenderPipeline({

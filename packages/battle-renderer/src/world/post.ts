@@ -40,7 +40,6 @@ const finalLayout = tgpu.bindGroupLayout({
   linearSampler: { sampler: "filtering" },
   scene: { texture: d.texture2d() },
   bloom: { texture: d.texture2d() },
-  depth: { texture: d.textureDepth2d() },
   grade: { uniform: Grade },
 });
 
@@ -56,7 +55,6 @@ export type PostMode = "look" | "ungraded" | "raw";
 export async function createTypegpuPost(
   device: GPUDevice,
   input: GPUTextureView,
-  depth: GPUTextureView,
   width: number,
   height: number,
   outputFormat: GPUTextureFormat,
@@ -66,6 +64,11 @@ export async function createTypegpuPost(
     throw new Error("Five-level parity bloom requires a framebuffer at least 64×64");
   if (outputFormat.endsWith("-srgb"))
     throw new Error("Post shader already applies sRGB transfer; output must not encode twice");
+  // Surface pipeline validation errors that would otherwise fail silently.
+  device.onuncapturederror = (event) => {
+    console.error("WebGPU uncaptured error:", event.error);
+  };
+  device.pushErrorScope("validation");
   const root = tgpu.initFromDevice({ device });
   const owned: { destroy(): void }[] = [];
   let disposed = false;
@@ -263,7 +266,7 @@ export async function createTypegpuPost(
     const outputSrgb = tgpu.fn([d.vec3f], d.vec3f)(outputSrgbWgsl);
     const finalAlgorithm = tgpu
       .fn(
-        [d.vec2f, d.texture2d(), d.texture2d(), d.textureDepth2d(), d.sampler(), Grade],
+        [d.vec2f, d.texture2d(), d.texture2d(), d.sampler(), Grade],
         d.vec4f,
       )(postFinalWgsl)
       .$uses({ gradeColor, agx, outputSrgb });
@@ -276,7 +279,6 @@ export async function createTypegpuPost(
         uv,
         finalLayout.$.scene,
         finalLayout.$.bloom,
-        finalLayout.$.depth,
         finalLayout.$.linearSampler,
         finalLayout.$.grade,
       );
@@ -339,13 +341,17 @@ export async function createTypegpuPost(
           linearSampler: sampler,
           scene: input,
           bloom,
-          depth,
           grade: uniform,
         }),
       ),
     );
     const pipelinesReady = Promise.all(init);
     await Promise.all([pipelinesReady, admission()]);
+    // Check for validation errors from pipeline creation.
+    const validationError = await device.popErrorScope();
+    if (validationError) {
+      console.error("WebGPU validation error during post pipeline creation:", validationError);
+    }
     return {
       encode(encoder: GPUCommandEncoder, output: GPUTextureView, mode: PostMode = "look") {
         if (disposed) throw new Error("TypeGPU post is disposed");
