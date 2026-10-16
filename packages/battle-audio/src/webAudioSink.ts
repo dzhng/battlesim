@@ -42,8 +42,10 @@ export class WebAudioSink implements VoiceSink {
   private readonly sounding = new Set<LiveVoice>();
   private readonly graph: AudioNode[] = [];
   private readonly ownsBank: boolean;
-  /** The limiter node, exposed for capture tap. */
+  /** The limiter node (DynamicsCompressor). */
   private readonly limiter: DynamicsCompressorNode;
+  /** Hard clipper after limiter: true brickwall at -1 dBFS. */
+  private readonly clipper: WaveShaperNode;
   /** MediaStreamDestination for recording, lazily created. */
   private captureDest: MediaStreamAudioDestinationNode | null = null;
 
@@ -64,8 +66,11 @@ export class WebAudioSink implements VoiceSink {
       attack: 0.001,
       release: 0.05,
     });
-    this.graph.push(this.limiter);
-    this.limiter.connect(context.destination);
+    // Hard clipper: WaveShaper that clips at -1 dBFS (≈0.891 amplitude).
+    // This is a true brickwall after the compressor to catch any remaining overs.
+    this.clipper = new WaveShaperNode(context, { curve: hardClipCurve(-1) });
+    this.graph.push(this.limiter, this.clipper);
+    this.limiter.connect(this.clipper).connect(context.destination);
     this.master = new GainNode(context, { gain: presentation.buses.master });
     this.graph.push(this.master);
     this.master.connect(this.limiter);
@@ -272,7 +277,7 @@ export class WebAudioSink implements VoiceSink {
     if (!(this.context instanceof AudioContext)) return null;
     if (this.captureDest) return this.captureDest.stream;
     this.captureDest = this.context.createMediaStreamDestination();
-    this.limiter.connect(this.captureDest);
+    this.clipper.connect(this.captureDest);
     return this.captureDest.stream;
   }
 
@@ -285,7 +290,7 @@ export class WebAudioSink implements VoiceSink {
   releaseCaptureTap(): void {
     if (!this.captureDest) return;
     try {
-      this.limiter.disconnect(this.captureDest);
+      this.clipper.disconnect(this.captureDest);
     } catch {
       // Already disconnected
     }
@@ -294,6 +299,19 @@ export class WebAudioSink implements VoiceSink {
 }
 
 const TAU = Math.PI * 2;
+
+/** Hard-clip WaveShaper curve at `dBFS` (e.g. -1 for -1 dBFS ceiling).
+ *  Linear from -ceiling to +ceiling, flat beyond. */
+function hardClipCurve(dBFS: number): Float32Array {
+  const ceiling = Math.pow(10, dBFS / 20);
+  const n = 8192;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (2 * i) / (n - 1) - 1;
+    curve[i] = Math.max(-ceiling, Math.min(ceiling, x));
+  }
+  return curve;
+}
 
 /** An RBJ low-pass run in place over `x`, its cutoff `hz(i)` taken every 32 samples. */
 function lowpass(x: Float32Array, sr: number, hz: (i: number) => number) {

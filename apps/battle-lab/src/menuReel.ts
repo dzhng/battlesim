@@ -12,6 +12,12 @@ export interface MenuShot {
   follow?: number;
   from: CameraPose;
   to: CameraPose;
+  /** Easing function: "linear" (default) or "cubic" (ease-in-out). */
+  ease?: "linear" | "cubic";
+  /** Interpolate distance in log space (for smooth zoom feel). */
+  logDistance?: boolean;
+  /** Duration of the actual zoom; after this, hold the end pose (default: seconds). */
+  zoomDuration?: number;
 }
 
 export interface MenuReel {
@@ -62,15 +68,26 @@ export function validateReel(json: {
   };
 }
 
+/** Cubic ease-in-out: t<0.5 ? 4t³ : 1 - (-2t+2)³/2 */
+function cubicEaseInOut(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 /** The reel's framing and veil `elapsed` seconds in. */
 export function sampleReel(reel: MenuReel, elapsed: number): ReelSample {
   let start = 0;
   for (const shot of reel.shots) {
     const end = start + shot.seconds;
     if (elapsed < end) {
-      const edge = Math.min(elapsed - start, end - elapsed);
+      const shotElapsed = elapsed - start;
+      const zoomDur = shot.zoomDuration ?? shot.seconds;
+      // t goes 0→1 over zoomDuration, then clamps at 1 for any hold period
+      const rawT = Math.min(1, shotElapsed / zoomDur);
+      // Apply easing
+      const e = shot.ease === "cubic" ? cubicEaseInOut(rawT) : rawT;
+      const edge = Math.min(shotElapsed, end - elapsed);
       return {
-        pose: between(shot.from, shot.to, (elapsed - start) / shot.seconds),
+        pose: betweenEased(shot.from, shot.to, e, shot.logDistance ?? false),
         follow: shot.follow ?? null,
         black: 1 - clamp(edge / reel.fade_s, 0, 1),
         done: false,
@@ -97,10 +114,18 @@ export function plateShot(reel: MenuReel, previous: number, now: number): number
 }
 
 function between(a: CameraPose, b: CameraPose, s: number): CameraPose {
+  return betweenEased(a, b, s, false);
+}
+
+function betweenEased(a: CameraPose, b: CameraPose, s: number, logDistance: boolean): CameraPose {
   const at = (u: number, v: number) => u + (v - u) * s;
+  // Log-linear distance: exp(lerp(ln(a), ln(b), s)) for smooth zoom feel
+  const dist = logDistance
+    ? Math.exp(at(Math.log(a.distance), Math.log(b.distance)))
+    : at(a.distance, b.distance);
   return {
     target: [at(a.target[0], b.target[0]), at(a.target[1], b.target[1])],
-    distance: at(a.distance, b.distance),
+    distance: dist,
     yaw: at(a.yaw, b.yaw),
     pitch: at(a.pitch, b.pitch),
   };

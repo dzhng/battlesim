@@ -78,31 +78,22 @@ export interface CapturePreset {
   reel: MenuReel;
 }
 
-/** The default cinematic preset: wide top-down transitioning to ground-level tank-follow.
- *  ~37 seconds total, ending at the menu's cinematic ground angle.
- *  This demonstrates the game's scale and detail progression.
- *  All shots follow unit 1 (the lead tank moving through forest, road, farmhouse).
- *  is_followed is set to true for whichever tank the camera centers on. */
+/** The hero camera: a single continuous zoom from strategic height to ground level.
+ *  38.5s total: 32s eased zoom with cubic ease-in-out, then 6s hold at end pose.
+ *  Follows unit 1 (the driving tank) with target offset [-1, 8].
+ *  Distance is log-linear for smooth zoom feel; yaw/pitch/target are linear.
+ *  Info cards fade in as the camera descends (90m → 48m, handled by the game). */
 export const DEFAULT_CINEMATIC_REEL: MenuReel = {
-  fade_s: 0.8,
+  fade_s: 0,
   shots: [
     {
-      seconds: 9,
+      seconds: 38.5,
       follow: 1,
-      from: { target: [0, 0], distance: 180, yaw: -0.3, pitch: 0.55 },
-      to: { target: [0, 0], distance: 100, yaw: -0.2, pitch: 0.38 },
-    },
-    {
-      seconds: 12,
-      follow: 1,
-      from: { target: [0, 15], distance: 80, yaw: -0.6, pitch: 0.28 },
-      to: { target: [0, 8], distance: 50, yaw: -0.3, pitch: 0.18 },
-    },
-    {
-      seconds: 16,
-      follow: 1,
-      from: { target: [-1, 8], distance: 40, yaw: -0.2, pitch: 0.14 },
-      to: { target: [-1, 8], distance: 28, yaw: 0.2, pitch: 0.12 },
+      from: { target: [-1, 8], distance: 700, yaw: 0.174, pitch: 1.2 },
+      to: { target: [-1, 8], distance: 39.6, yaw: -0.426, pitch: 0.147 },
+      ease: "cubic",
+      logDistance: true,
+      zoomDuration: 32,
     },
   ],
 };
