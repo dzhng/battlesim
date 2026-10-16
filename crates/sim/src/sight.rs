@@ -79,13 +79,7 @@ pub fn of_layer(unit: &Unit, rules: &Rules, layer: AltitudeLayer) -> Sight {
     let sensors = &unit.unit_type(rules).sensors;
     let range = match layer {
         AltitudeLayer::Ground => sensors.ground_m,
-        AltitudeLayer::LowAir => {
-            if sensors.low_air_m > 0.0 {
-                sensors.low_air_m
-            } else {
-                sensors.ground_m
-            }
-        }
+        AltitudeLayer::LowAir => sensors.low_air_m.unwrap_or(sensors.ground_m),
         AltitudeLayer::HighAir => unit
             .unit_type(rules)
             .high_air_sight_m(&rules.sensors.unaided_high_air_m),

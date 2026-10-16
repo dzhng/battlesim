@@ -318,10 +318,10 @@ fn default_air_layer() -> AltitudeLayer {
 pub struct Sensors {
     /// Ground range in the open, before shape.
     pub ground_m: f64,
-    /// Detection reach for the low-air band. Zero means this sensor does not
-    /// author an air reach (legacy ground rows leave it absent).
-    #[serde(default)]
-    pub low_air_m: f64,
+    /// Its own reach into the low-air band; absent, it sees low air as far
+    /// as it sees the ground (`ground_m`), and an authored 0 is blind to it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub low_air_m: Option<f64>,
     /// Its own reach into the high-air band; absent, it sees high air
     /// unaided, by its body (the rules' `sensors.unaided_high_air_m`), and
     /// an authored 0 is blind to it. A unit whose radar emits never authors
@@ -1898,8 +1898,9 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
             .then_some("sensors.concealed_range_multiplier must be finite and at least 1")
     })
     .or_else(|| {
-        (![t.sensors.low_air_m, t.sensors.high_air_m.unwrap_or(0.0)]
+        (![t.sensors.low_air_m, t.sensors.high_air_m]
             .into_iter()
+            .flatten()
             .all(at_least_zero))
         .then_some("sensors air ranges must be finite and nonnegative")
     })

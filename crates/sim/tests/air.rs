@@ -1188,3 +1188,36 @@ fn a_high_air_unit_lights_no_ground_fog_in_its_sides_picture() {
     assert_eq!(eyes(0), 0, "a high-air unit lights no ground fog");
     assert!(eyes(1) > 0, "a low-air unit still does");
 }
+
+/// Whether a jeep whose low-air sight is `low_air_m` (absent: as far as it
+/// sees the ground, 450 m) identifies a helicopter hovering 300 m off.
+fn jeep_sees_the_helicopter(low_air_m: Option<f64>) -> bool {
+    let mut fixture = fixture();
+    if let Some(m) = low_air_m {
+        sim::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            "test_jeep",
+            json!({ "sensors": { "low_air_m": m } }),
+        );
+    }
+    let mut b = battle_with(
+        &fixture,
+        open_map(),
+        json!([
+            { "side": "blue", "kind": "test_jeep", "position": [100, 200], "yaw": 0.0, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_heli", "position": [400, 200], "engagement": "return_fire_only" }
+        ]),
+    );
+    b.step();
+    b.step();
+    !b.observe(Side::Blue).identified.is_empty()
+}
+
+#[test]
+fn low_air_sight_is_the_units_own_else_its_ground_sight_and_zero_is_blind() {
+    assert!(jeep_sees_the_helicopter(None), "absent: its ground sight");
+    assert!(!jeep_sees_the_helicopter(Some(0.0)), "0: blind to low air");
+    assert!(!jeep_sees_the_helicopter(Some(200.0)));
+    assert!(jeep_sees_the_helicopter(Some(600.0)));
+}
