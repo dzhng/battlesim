@@ -1,4 +1,4 @@
-"""F-15E Strike Eagle and F-15EX Eagle II, from assets/references/f_15_eagle/. Disabled cards.
+"""F-15E Strike Eagle and F-15EX Eagle II, from assets/references/f_15_eagle/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/f15.py -- [--variant=<card>] [--wreck]
 
@@ -10,7 +10,7 @@ EX keeps the E's), conformal fuel tanks along the intakes' flanks below the
 wing, tall gear legs. The Strike Eagle wears gunship grey, the EX two-tone
 compass grey; the E carries bombs on its CFTs, the EX missiles.
 
-Dimensions stated from the references (USAF and Boeing figures agree):
+The references' dimensions (USAF and Boeing figures agree):
 length 19.43 m, span 13.05 m, height 5.63 m.
 """
 import os
@@ -19,11 +19,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 E, EX = "us_f_15_eagle_f_15e_strike_eagle", "us_f_15_eagle_f_15ex_eagle_ii"
-CARDS = {E: (19.43, 13.05, 5.63), EX: (19.43, 13.05, 5.63)}
 SCHEME = {E: "us_gunship_grey", EX: "us_compass_grey"}
 
 WING_Z = 2.62
@@ -119,4 +118,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.6, wing_y=3.8, wing_side=1, tail_yaw=0.25, seed=15)
 
 
-run_disabled("f15", CARDS, SCHEME, build, wreck)
+run("f_15_eagle", SCHEME, build, wreck, script="f15.py")

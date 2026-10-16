@@ -1,4 +1,4 @@
-"""J-20, from assets/references/j_20_mighty_dragon/. A disabled card.
+"""J-20, from assets/references/j_20_mighty_dragon/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/j20.py -- [--wreck]
 
@@ -7,7 +7,7 @@ diverterless intakes either side of the cockpit, canards ahead of the
 leading-edge extensions and the delta wing, all-moving fins canted outward,
 two ventral fins, two nozzles; weapon bays under the body. Dark grey.
 
-Dimensions stated from the references: about 21.2 m long, 13.01 m span and
+The references' dimensions: about 21.2 m long, 13.01 m span and
 4.69 m high (published estimates; no official figures).
 """
 import math
@@ -17,10 +17,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_j_20_mighty_dragon_stealth_fighter": (21.2, 13.01, 4.69)}
 WING_Z = 2.0
 FIN = dict(root_x=-4.8, root_z=2.35, height=2.4, root_chord=3.2, tip_chord=1.0, sweep_m=2.5, cant=0.4, rudder=False)
 VENTRAL = dict(root_x=-5.6, root_z=1.5, height=0.65, root_chord=1.6, tip_chord=0.8, sweep_m=0.5, cant=2.6,
@@ -77,4 +76,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.4, wing_y=4.2, wing_side=-1, tail_yaw=-0.28, seed=20)
 
 
-run_disabled("j20", CARDS, "chinese_air_grey", build, wreck)
+run("j_20_mighty_dragon", "chinese_air_grey", build, wreck, script="j20.py")

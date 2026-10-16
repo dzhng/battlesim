@@ -141,18 +141,6 @@ class DisabledFramesTest(unittest.TestCase):
         with self.assertRaisesRegex(LookupError, "nope"):
             disabled_variant("nope", [1.0, 1.0, 1.0], repo=self.repo)
 
-    def test_an_enabled_card_takes_its_unit_types_frame(self):
-        # A card promoted to a unit type leaves the manifest; its unit's hull is its frame.
-        (self.repo / "fixtures/catalog.json").write_text(json.dumps(dict(
-            units=[unit("jet_y", "jet_y", [8.0, 5.5, 2.6], 2.0, [GUN])])))
-        (self.repo / "assets/catalog.json").write_text(json.dumps(dict(appearances=dict(
-            jet_y=dict(source="assets/source/roster/disabled/jet_y.glb")))))
-        v = disabled_variant("jet_y", [15.9, 10.9, 5.3], repo=self.repo)
-        self.assertEqual(v["frame"]["body_dimensions_m"], [16.0, 11.0, 5.2])
-        self.assertEqual(v["frame_source"], "catalog")
-        self.assertEqual([m["role"] for m in v["frame"]["mounts"]], [None])
-        self.assertEqual(v["export"], "assets/source/roster/disabled/jet_y.glb")
-
 
 if __name__ == "__main__":
     unittest.main()

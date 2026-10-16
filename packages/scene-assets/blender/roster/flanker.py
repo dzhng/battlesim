@@ -1,5 +1,4 @@
 """Su-27SM3, Su-30SM2, Su-35S and Su-34, from assets/references/sukhoi_flanker_family/.
-Disabled cards.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/flanker.py -- [--variant=<card>] [--wreck]
 
@@ -14,7 +13,7 @@ carries wing-tip jamming pods; the Su-34 has the side-by-side cockpit under a
 broad flattened nose, canards, tandem main wheels and a longer stinger. Flanker
 blue-greys.
 
-Dimensions stated from the references (Sukhoi figures): Su-27SM3 21.9 x 14.7
+The references' dimensions (Sukhoi figures): Su-27SM3 21.9 x 14.7
 x 5.92 m; Su-30SM2 21.935 x 14.7 x 6.36 m; Su-35S 21.9 x 15.3 x 5.9 m;
 Su-34 23.34 x 14.7 x 6.09 m.
 """
@@ -24,12 +23,12 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 SU27, SU30, SU35, SU34 = ("eastern_sukhoi_flanker_family_su_27sm3", "eastern_sukhoi_flanker_family_su_30sm2",
                           "eastern_sukhoi_flanker_family_su_35s", "eastern_sukhoi_flanker_family_su_34")
-CARDS = {SU27: (21.9, 14.7, 5.92), SU30: (21.935, 14.7, 6.36), SU35: (21.9, 15.3, 5.9), SU34: (23.34, 14.7, 6.09)}
+DIMENSIONS = {SU27: (21.9, 14.7, 5.92), SU30: (21.935, 14.7, 6.36), SU35: (21.9, 15.3, 5.9), SU34: (23.34, 14.7, 6.09)}
 
 WING_Z = 2.55
 # The engines' centres, and the tail booms' outboard of them (over the main
@@ -39,7 +38,7 @@ NACELLE_Y, BOOM_Y, FIN_Z = 1.35, 2.3, 2.5
 
 def spec(variant):
     vid = variant["id"]
-    length, span, height = CARDS[vid]
+    length, span, height = DIMENSIONS[vid]
     nose = length / 2
     su34 = vid == SU34
     # The Su-34 draws its nose broad and flat for the side-by-side cockpit.
@@ -119,7 +118,7 @@ def build(variant, v):
         A.body(f"nacelle_{k}", [(3.0, 0.56, 1.16, 2.24, 1.66, 4.5), (0.0, 0.62, 1.12, 2.3, 1.68, 4.0),
                                 (-4.0, 0.62, 1.2, 2.36, 1.75, 3.0), (-8.4, 0.6, 1.25, 2.45, 1.85)],
                m["paint"], hull, seg=20, loc=(0, side * NACELLE_Y, 0))
-    tip_y = CARDS[vid][1] / 2 - 0.12
+    tip_y = DIMENSIONS[vid][1] / 2 - 0.12
     A.mirrored(lambda side, k: box(f"wing_tip_rail_{k}", (2.4, 0.08, 0.1), (-3.0, side * tip_y, WING_Z - 0.08),
                                    m["dark"], hull))
     if vid != SU35:
@@ -133,7 +132,7 @@ def build(variant, v):
     # The VKS's red star on the fins (out and in) and under the wings; the
     # red bort number on the nose (52 and 01 in the side photos).
     fin_x = -4.4 - 2.4 * 0.72 - 1.0
-    fin_z = FIN_Z + (CARDS[vid][2] - FIN_Z) * 0.72
+    fin_z = FIN_Z + (DIMENSIONS[vid][2] - FIN_Z) * 0.72
     rows = [("insignia", dict(kind="ru_star", centre=(fin_x, y, fin_z), normal=(0, n, 0), up=(0, 0, 1), size=0.36,
                               onto=("tail_fin_0", "tail_fin_1"), mirror=False))
             for y, n in ((BOOM_Y + 0.25, 1), (BOOM_Y - 0.25, -1), (-BOOM_Y - 0.25, -1), (-BOOM_Y + 0.25, 1))]
@@ -151,4 +150,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.2, wing_y=4.6, wing_side=-1, tail_yaw=-0.25, seed=27, litter_reach=0.9)
 
 
-run_disabled("flanker", CARDS, "russian_air_blue", build, wreck)
+run("sukhoi_flanker_family", "russian_air_blue", build, wreck, script="flanker.py")

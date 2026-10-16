@@ -105,16 +105,11 @@ def family_variants(family, repo=REPO):
 def disabled_variant(card_id, dimensions, repo=REPO):
     """A disabled card's export path, names, faction and frame: `dimensions`
     (length, width and height in metres) as its exporter states them from its
-    references (`frame_source`). A card enabled since (out of the manifest,
-    drawn by a unit type) takes its unit type's frame instead, as any roster
-    variant does."""
+    references (`frame_source`)."""
     entries = json.loads((Path(repo) / "fixtures/units/model-manifest.json").read_text())["entries"]
     entry = next((e for e in entries if e["id"] == card_id), None)
     if entry is None:
-        try:
-            return dict(roster_variant(card_id, repo), frame_source="catalog")
-        except LookupError as e:
-            raise LookupError(f"{card_id}: no card in fixtures/units/model-manifest.json, and {e}") from e
+        raise LookupError(f"{card_id}: no card in fixtures/units/model-manifest.json")
     card = next(
         doc["units"][card_id]
         for path in sorted((Path(repo) / "fixtures/units/roster").glob("*.json"))

@@ -1,4 +1,4 @@
-"""MiG-31BM, from assets/references/mig_31_foxhound/. A disabled card.
+"""MiG-31BM, from assets/references/mig_31_foxhound/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/mig31.py -- [--wreck]
 
@@ -8,7 +8,7 @@ shoulder wing, twin fins canted a little outward over ventral fins,
 stabilators, two big nozzles; offset twin-wheel main gear; four long-range
 missiles under the body. Light grey.
 
-Dimensions stated from the references (MiG figures): length 22.69 m, span
+The references' dimensions (MiG figures): length 22.69 m, span
 13.46 m, height 6.15 m.
 """
 import os
@@ -17,10 +17,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"eastern_mig_31_foxhound_mig_31bm": (22.69, 13.46, 6.15)}
 WING_Z = 3.2
 FIN = dict(root_x=-5.7, root_z=3.25, height=2.93, root_chord=3.6, tip_chord=1.3, sweep_m=2.4, cant=0.14)
 VENTRAL = dict(root_x=-6.4, root_z=1.95, height=0.85, root_chord=1.8, tip_chord=1.0, sweep_m=0.6, cant=2.8,
@@ -85,4 +84,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-5.8, wing_y=4.2, wing_side=1, tail_yaw=0.25, seed=31)
 
 
-run_disabled("mig31", CARDS, "russian_air_grey", build, wreck)
+run("mig_31_foxhound", "russian_air_grey", build, wreck, script="mig31.py")

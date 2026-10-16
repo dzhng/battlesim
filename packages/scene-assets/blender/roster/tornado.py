@@ -1,4 +1,4 @@
-"""Panavia Tornado IDS and ECR, from assets/references/tornado/. Disabled cards.
+"""Panavia Tornado IDS and ECR, from assets/references/tornado/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/tornado.py -- [--variant=<card>] [--wreck]
 
@@ -10,7 +10,7 @@ with their reverser buckets; tanks on the wing's swivel pylons. The IDS has
 the two cannon under the nose; the ECR has none and carries HARMs on its
 shoulder pylons. Luftwaffe grey.
 
-Dimensions stated from the references (Panavia figures): length 16.72 m,
+The references' dimensions (Panavia figures): length 16.72 m,
 span 13.91 m spread, height 5.95 m.
 """
 import os
@@ -19,11 +19,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID, NEAR  # noqa: E402
 
 IDS, ECR = "europe_tornado_ids", "europe_tornado_ecr"
-CARDS = {IDS: (16.72, 13.91, 5.95), ECR: (16.72, 13.91, 5.95)}
 WING_Z = 2.3
 
 
@@ -123,4 +122,4 @@ def wreck(variant, v):
     A.crash(v, tail_x=-3.6, wing_y=4.0, wing_side=1, tail_yaw=0.25, seed=12)
 
 
-run_disabled("tornado", CARDS, "nato_air_grey", build, wreck)
+run("tornado", "nato_air_grey", build, wreck, script="tornado.py")

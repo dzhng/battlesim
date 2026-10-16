@@ -1,4 +1,4 @@
-"""Eurofighter Typhoon (Tranche 3), from assets/references/eurofighter_typhoon/. A disabled card.
+"""Eurofighter Typhoon (Tranche 3), from assets/references/eurofighter_typhoon/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/typhoon.py -- [--wreck]
 
@@ -8,7 +8,7 @@ variable lip, the cranked delta wing with no tailplane, one swept fin, two
 EJ200 nozzles side by side; wing-tip defensive-aids pods, tanks and missiles
 under the wing, missiles semi-recessed under the body. Light grey.
 
-Dimensions stated from the references (Eurofighter figures agree): length
+The references' dimensions (Eurofighter figures agree): length
 15.96 m, span 10.95 m, height 5.28 m.
 """
 import os
@@ -17,10 +17,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import aircraft_parts as A  # noqa: E402
 from parts import box  # noqa: E402
-from vehicle_export import run_disabled  # noqa: E402
+from vehicle_export import run  # noqa: E402
 from vehicle_parts import MID  # noqa: E402
 
-CARDS = {"europe_eurofighter_typhoon_tranche_3": (15.96, 10.95, 5.28)}
 # The side photo (an RAF jet taxiing): the nose high (its tip 2.5 m up),
 # the canopy's top 3.7 m, the spine falling to 2.8 m at the fin; the chin
 # intake's lip 4.6 m behind the nose, 1.35-1.95 m up; the two nozzles low
@@ -89,4 +88,4 @@ def wreck(variant, v):
             o.location.y *= 0.95
 
 
-run_disabled("typhoon", CARDS, "nato_air_grey", build, wreck, references="eurofighter_typhoon")
+run("eurofighter_typhoon", "nato_air_grey", build, wreck, script="typhoon.py")
