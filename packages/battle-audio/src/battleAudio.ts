@@ -246,30 +246,45 @@ export class BattleAudio {
   /** Play a calibration click through the same audio graph as battle sounds.
    *  Used to measure the exact audio pipeline latency by comparing the click's
    *  timestamp in the recorded audio against a simultaneous visual marker.
+   *  The click is 20ms long at 2kHz with a sharp attack for easy transient detection.
    *  Returns false if audio is not ready. */
   playCalibrationClick(): boolean {
     const ctx = this.sink?.context;
     if (!ctx || !(ctx instanceof AudioContext)) return false;
     
-    // Create a short, sharp click: 1ms of 1kHz sine at full amplitude
+    // Create a loud, sharp click: 20ms of 2kHz sine at full amplitude
     const sampleRate = ctx.sampleRate;
-    const duration = 0.001; // 1ms
+    const duration = 0.02; // 20ms - long enough to detect reliably
     const samples = Math.ceil(sampleRate * duration);
     const buffer = ctx.createBuffer(1, samples, sampleRate);
     const data = buffer.getChannelData(0);
     
-    // Generate a sharp impulse: half-sine envelope for clean onset
+    // Generate a sharp impulse with instant attack, quick decay
+    // First 1ms at full amplitude, then exponential decay
+    const attackSamples = Math.ceil(sampleRate * 0.001); // 1ms attack
     for (let i = 0; i < samples; i++) {
       const t = i / sampleRate;
-      const freq = 1000; // 1kHz for easy detection
-      const envelope = Math.sin(Math.PI * i / samples); // half-sine envelope
+      const freq = 2000; // 2kHz for sharp transient
+      let envelope: number;
+      if (i < attackSamples) {
+        // Instant attack to full amplitude
+        envelope = 1.0;
+      } else {
+        // Exponential decay over remaining time
+        const decayT = (i - attackSamples) / (samples - attackSamples);
+        envelope = Math.exp(-3 * decayT); // decay to ~5% by end
+      }
       data[i] = Math.sin(2 * Math.PI * freq * t) * envelope;
     }
     
+    // Create a gain node for extra loudness (the click should be unmistakable)
+    const gain = ctx.createGain();
+    gain.gain.value = 2.0; // +6dB boost
+    
     const source = ctx.createBufferSource();
     source.buffer = buffer;
-    // Connect directly to master to bypass any effects processing
-    source.connect(this.sink!.master);
+    source.connect(gain);
+    gain.connect(this.sink!.master);
     source.start();
     return true;
   }

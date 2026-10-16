@@ -540,69 +540,144 @@ async function captureWithCDP(page, args, server) {
       // Audio output latency from AudioContext (outputLatency + baseLatency)
       audioLatencyMs = (audioInfo.audioLatency ?? 0) * 1000;
       
-      // Detect calibration white frame in video (first frame with mean brightness > 250)
-      // We search the raw frames before the cut point
-      const calibSearchFrames = rawFrames.filter(f => 
-        cutCdpTime !== null && f.cdpTimestamp < cutCdpTime
-      );
+      // Expected click time relative to audio start
+      const expectedClickMs = audioInfo.calibrationTime !== null && audioInfo.audioStartTime !== null
+        ? audioInfo.calibrationTime - audioInfo.audioStartTime
+        : null;
       
-      // Find white frame by analyzing JPEG brightness with ffmpeg
-      for (const frame of calibSearchFrames) {
+      // Detect calibration white frame in video using signalstats on raw video
+      // Run single ffmpeg pass with metadata output
+      console.log("  Detecting calibration white frame in video...");
+      try {
+        const statsResult = await new Promise((resolve, reject) => {
+          const ffmpeg = spawn("ffmpeg", [
+            "-i", rawVideoPath,
+            "-vf", "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-",
+            "-f", "null", "-",
+          ], { stdio: ["pipe", "pipe", "pipe"] });
+          let stdout = "";
+          let stderr = "";
+          ffmpeg.stdout.on("data", (d) => stdout += d);
+          ffmpeg.stderr.on("data", (d) => stderr += d);
+          ffmpeg.on("close", () => resolve({ stdout, stderr }));
+          ffmpeg.on("error", (e) => reject(e));
+        });
+        
+        // Parse frame-by-frame YAVG values from stdout
+        // Format: frame:N    pts:P    pts_time:T\nlavfi.signalstats.YAVG=V
+        const framePattern = /frame:\s*(\d+)\s+pts:\s*\d+\s+pts_time:([\d.]+)\s*\nlavfi\.signalstats\.YAVG=([\d.]+)/g;
+        let match;
+        let whiteFrameTime = null;
+        let whiteFrameYavg = 0;
+        while ((match = framePattern.exec(statsResult.stdout)) !== null) {
+          const frameNum = parseInt(match[1]);
+          const ptsTime = parseFloat(match[2]);
+          const yavg = parseFloat(match[3]);
+          if (yavg > 250 && whiteFrameTime === null) {
+            whiteFrameTime = ptsTime;
+            whiteFrameYavg = yavg;
+            console.log(`    White frame detected: frame ${frameNum}, time ${ptsTime.toFixed(3)}s, YAVG=${yavg.toFixed(0)}`);
+            break;
+          }
+        }
+        
+        if (whiteFrameTime !== null) {
+          // Convert video time to ms relative to audio start
+          // The raw video starts at the first frame's CDP timestamp
+          const firstFrameCdpTime = rawFrames[0]?.cdpTimestamp ?? 0;
+          const pageLoadEpochMs = audioInfo.reelReadyTime !== null
+            ? (reelReadyCdpTime * 1000) - audioInfo.reelReadyTime
+            : null;
+          if (pageLoadEpochMs !== null) {
+            // Video frame time is relative to video start (firstFrameCdpTime)
+            // Convert to perf.now() space then to audio-relative
+            const frameCdpTimeMs = (firstFrameCdpTime + whiteFrameTime) * 1000;
+            calibVideoMs = frameCdpTimeMs - pageLoadEpochMs - (audioInfo.audioStartTime ?? 0);
+            console.log(`  Calibration white frame at video ${calibVideoMs.toFixed(1)}ms (YAVG=${whiteFrameYavg.toFixed(0)})`);
+          }
+        } else {
+          console.log("  WARNING: No white frame (YAVG > 250) found in video");
+        }
+      } catch (e) {
+        console.log(`  WARNING: Video white frame detection failed: ${e.message}`);
+      }
+      
+      // Detect calibration click in audio by finding strongest transient
+      // Search within ±300ms of expected click time
+      console.log("  Detecting calibration click in audio...");
+      if (expectedClickMs !== null) {
         try {
-          const result = await new Promise((resolve, reject) => {
+          // Use astats to get per-segment peak levels, find the loudest segment
+          // near the expected click time
+          const searchStartS = Math.max(0, (expectedClickMs - 300) / 1000);
+          const searchEndS = (expectedClickMs + 300) / 1000;
+          const segmentMs = 5; // 5ms segments
+          
+          const astatsResult = await new Promise((resolve, reject) => {
             const ffmpeg = spawn("ffmpeg", [
-              "-i", frame.path,
-              "-vf", "signalstats",
+              "-i", rawAudioPath,
+              "-ss", String(searchStartS),
+              "-t", String(searchEndS - searchStartS),
+              "-af", `asegment=timestamps=${Array.from({length: Math.ceil((searchEndS - searchStartS) * 1000 / segmentMs)}, (_, i) => (searchStartS + i * segmentMs / 1000).toFixed(4)).join("|")},astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.Peak_level:file=-`,
               "-f", "null", "-",
             ], { stdio: ["pipe", "pipe", "pipe"] });
+            let stdout = "";
             let stderr = "";
+            ffmpeg.stdout.on("data", (d) => stdout += d);
             ffmpeg.stderr.on("data", (d) => stderr += d);
-            ffmpeg.on("close", () => resolve(stderr));
-            ffmpeg.on("error", () => resolve(""));
+            ffmpeg.on("close", (code) => resolve({ stdout, stderr, code }));
+            ffmpeg.on("error", (e) => reject(e));
           });
-          // Parse signalstats output for YAVG (luma average)
-          const yavgMatch = result.match(/YAVG:\s*([\d.]+)/);
-          if (yavgMatch) {
-            const yavg = parseFloat(yavgMatch[1]);
-            if (yavg > 250) {
-              // Found white frame! Convert CDP timestamp to ms relative to audio start
-              const pageLoadEpochMs = audioInfo.reelReadyTime !== null
-                ? (reelReadyCdpTime * 1000) - audioInfo.reelReadyTime
-                : null;
-              if (pageLoadEpochMs !== null) {
-                calibVideoMs = (frame.cdpTimestamp * 1000) - pageLoadEpochMs - (audioInfo.audioStartTime ?? 0);
-                console.log(`  Calibration white frame detected at video ${calibVideoMs.toFixed(1)}ms (YAVG=${yavg.toFixed(0)})`);
-              }
-              break;
+          
+          // Parse peak levels and find the loudest one
+          // Format: frame:N pts:P pts_time:T\nlavfi.astats.Overall.Peak_level=V
+          const peakPattern = /pts_time:([\d.]+)\s*\nlavfi\.astats\.Overall\.Peak_level=([-\d.]+)/g;
+          let peakMatch;
+          let maxPeak = -100;
+          let maxPeakTime = null;
+          while ((peakMatch = peakPattern.exec(astatsResult.stdout)) !== null) {
+            const ptsTime = parseFloat(peakMatch[1]);
+            const peakLevel = parseFloat(peakMatch[2]);
+            if (peakLevel > maxPeak) {
+              maxPeak = peakLevel;
+              maxPeakTime = searchStartS + ptsTime;
+            }
+          }
+          
+          if (maxPeakTime !== null && maxPeak > -10) { // Click should be loud (> -10dB)
+            calibAudioMs = maxPeakTime * 1000;
+            console.log(`  Calibration click at audio ${calibAudioMs.toFixed(1)}ms (peak=${maxPeak.toFixed(1)}dB)`);
+          } else {
+            // Fallback: use volumedetect to find peak sample
+            const volResult = await new Promise((resolve, reject) => {
+              const ffmpeg = spawn("ffmpeg", [
+                "-i", rawAudioPath,
+                "-ss", String(searchStartS),
+                "-t", String(searchEndS - searchStartS),
+                "-af", "volumedetect",
+                "-f", "null", "-",
+              ], { stdio: ["pipe", "pipe", "pipe"] });
+              let stderr = "";
+              ffmpeg.stderr.on("data", (d) => stderr += d);
+              ffmpeg.on("close", () => resolve(stderr));
+              ffmpeg.on("error", () => resolve(""));
+            });
+            
+            // If max_volume is high, use expected time as approximation
+            const maxVolMatch = volResult.match(/max_volume:\s*([-\d.]+)\s*dB/);
+            if (maxVolMatch && parseFloat(maxVolMatch[1]) > -10) {
+              // High peak exists, use expected time
+              calibAudioMs = expectedClickMs;
+              console.log(`  Calibration click at audio ${calibAudioMs.toFixed(1)}ms (using expected time, peak=${maxVolMatch[1]}dB)`);
+            } else {
+              console.log(`  WARNING: No loud click found near expected time ${expectedClickMs.toFixed(0)}ms`);
             }
           }
         } catch (e) {
-          // Continue searching
+          console.log(`  WARNING: Audio click detection failed: ${e.message}`);
         }
-      }
-      
-      // Detect calibration click in audio (first sample above -20dBFS)
-      // Use ffmpeg to find the first loud transient
-      try {
-        const clickResult = await new Promise((resolve, reject) => {
-          const ffmpeg = spawn("ffmpeg", [
-            "-i", rawAudioPath,
-            "-af", "silencedetect=n=-20dB:d=0.001",
-            "-f", "null", "-",
-          ], { stdio: ["pipe", "pipe", "pipe"] });
-          let stderr = "";
-          ffmpeg.stderr.on("data", (d) => stderr += d);
-          ffmpeg.on("close", () => resolve(stderr));
-          ffmpeg.on("error", () => resolve(""));
-        });
-        // Parse silencedetect output to find first silence_end (= click onset)
-        const silenceEndMatch = clickResult.match(/silence_end:\s*([\d.]+)/);
-        if (silenceEndMatch) {
-          calibAudioMs = parseFloat(silenceEndMatch[1]) * 1000;
-          console.log(`  Calibration click detected at audio ${calibAudioMs.toFixed(1)}ms`);
-        }
-      } catch (e) {
-        console.log(`  Warning: Could not detect calibration click: ${e.message}`);
+      } else {
+        console.log("  WARNING: Cannot detect click - missing calibrationTime or audioStartTime");
       }
       
       // Calculate sync offset from calibration or fall back to timing-based calculation
@@ -623,6 +698,18 @@ async function captureWithCDP(page, args, server) {
         audioOffsetMs = cutOffsetMs + calibOffsetMs;
         console.log(`  Calibration offset: ${calibOffsetMs.toFixed(1)}ms (video=${calibVideoMs.toFixed(1)}ms, audio=${calibAudioMs.toFixed(1)}ms)`);
         console.log(`  Final audio offset: ${audioOffsetMs.toFixed(1)}ms (cut=${cutOffsetMs.toFixed(1)}ms + calib=${calibOffsetMs.toFixed(1)}ms)`);
+        
+        // Plausibility check: offset should be within ±500ms
+        if (Math.abs(audioOffsetMs) > 500) {
+          console.error(`  ERROR: Computed audio offset ${audioOffsetMs.toFixed(1)}ms is implausible (|offset| > 500ms)`);
+          console.error(`    - calibVideoMs: ${calibVideoMs.toFixed(1)}ms`);
+          console.error(`    - calibAudioMs: ${calibAudioMs.toFixed(1)}ms`);
+          console.error(`    - calibOffsetMs: ${calibOffsetMs.toFixed(1)}ms`);
+          console.error(`    - cutOffsetMs: ${cutOffsetMs.toFixed(1)}ms`);
+          console.error(`    - videoCutTime: ${videoCutTime?.toFixed(0) ?? 'null'}ms`);
+          console.error(`    - audioStartTime: ${audioStartTime?.toFixed(0) ?? 'null'}ms`);
+          throw new Error(`Implausible audio offset: ${audioOffsetMs.toFixed(1)}ms (expected |offset| < 500ms)`);
+        }
       } else {
         // Calibration detection failed - this is an error condition
         const videoDetected = calibVideoMs !== null;
