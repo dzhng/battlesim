@@ -21,6 +21,8 @@ export interface CaptureSettings {
   audio: boolean;
   /** Whether to show info cards (with zoom fade). */
   showCards: boolean;
+  /** Whether to apply the color grade (false for before/after comparisons). */
+  grade: boolean;
   /** Maximum recording duration in seconds (safety limit). */
   maxDuration: number;
   /** Capture mode: "browser" for canvas-based, "page" for CDP page-level (includes DOM overlays). */
@@ -35,6 +37,7 @@ export const DEFAULT_CAPTURE: CaptureSettings = {
   fps: 60,
   audio: true,
   showCards: true,
+  grade: true,
   maxDuration: 120,
   mode: "page",
 };
@@ -56,6 +59,7 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
     fps: parseInt(params.get("capture-fps") ?? String(DEFAULT_CAPTURE.fps), 10),
     audio: params.get("capture-audio") !== "false",
     showCards: params.get("capture-cards") !== "false",
+    grade: params.get("capture-grade") !== "false",
     maxDuration: parseInt(
       params.get("capture-max") ?? String(DEFAULT_CAPTURE.maxDuration),
       10,

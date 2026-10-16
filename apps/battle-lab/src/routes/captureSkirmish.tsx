@@ -159,6 +159,12 @@ function CaptureBattle({
   const audioBlobRef = useRef<Blob | null>(null);
   const isPageMode = settings.mode === "page";
 
+  // Refs for values accessed in the frame callback to avoid stale closures
+  const stateRef = useRef(state);
+  const onFireEventsRef = useRef(onFireEvents);
+  stateRef.current = state;
+  onFireEventsRef.current = onFireEvents;
+
   useLabLoading("renderer", warmed);
 
   const session = useBattleSession({
@@ -384,17 +390,19 @@ function CaptureBattle({
         const listener = cameraListener(camera, game.presentation.audio.listener_eye_share);
         audio.updateWithListener(presentation.wasm, listener);
       }
-      if (pilotStartRef.current === null || state.status !== "recording") return;
+      if (pilotStartRef.current === null || stateRef.current.status !== "recording") return;
       const elapsed = (now - pilotStartRef.current) / 1000;
       setState({ status: "recording", elapsed, duration });
 
       // Track weapon fire events for the sidecar JSON
-      if (fireTracker && sim.observation) {
+      // Use sim.latest.current for fresh observation data
+      const observation = sim.latest.current;
+      if (fireTracker && observation) {
         const sample = sampleReel(reel, elapsed);
         fireTracker.setFollowedUnit(sample.follow);
-        const newEvents = fireTracker.update(sim.observation, now);
+        const newEvents = fireTracker.update(observation, now);
         if (newEvents.length > 0) {
-          onFireEvents?.(fireTracker.getEvents());
+          onFireEventsRef.current?.(fireTracker.getEvents());
         }
       }
     },

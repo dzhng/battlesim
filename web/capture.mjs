@@ -42,6 +42,7 @@ function parseArgs(argv) {
     fps: 60,
     audio: true,
     cards: true,
+    grade: true,
     webm: false,
     output: OUTPUT_DIR.pathname,
     scene: "menu",
@@ -60,6 +61,8 @@ function parseArgs(argv) {
       args.audio = false;
     } else if (arg === "--no-cards") {
       args.cards = false;
+    } else if (arg === "--no-grade") {
+      args.grade = false;
     } else if (arg === "--webm") {
       args.webm = true;
     } else if (arg.startsWith("--output=")) {
@@ -79,6 +82,7 @@ Options:
   --fps=<n>          Frame rate (default 60)
   --no-audio         Disable audio recording
   --no-cards         Hide info cards
+  --no-grade         Disable color grade (for before/after comparisons)
   --webm             Output WebM instead of MP4 (skip ffmpeg transcoding)
   --output=<path>    Output directory (default throwaway/capture/)
   --scene=<name>     Scene to capture: menu (default) or skirmish
@@ -88,6 +92,7 @@ Examples:
   bun run --cwd web capture --preset=ground-level
   bun run --cwd web capture --width=3840 --height=2160 --preset=orbit
   bun run --cwd web capture --scene=skirmish
+  bun run --cwd web capture --no-grade  # Without color grading
 `);
       process.exit(0);
     }
@@ -345,13 +350,16 @@ async function captureWithCDP(page, args, server) {
   
   // Encode video with proper timing using concat demuxer
   // High profile, CRF 20, faststart for web playback
-  console.log("Encoding video with real frame timing...");
+  // Use -fps_mode cfr -r to force constant frame rate (VFR to CFR conversion)
+  console.log(`Encoding video with real frame timing at ${args.fps} fps...`);
   await new Promise((resolve, reject) => {
     const ffmpegVideo = spawn("ffmpeg", [
       "-y",
       "-f", "concat",
       "-safe", "0",
       "-i", concatPath,
+      "-fps_mode", "cfr",
+      "-r", String(args.fps),
       "-c:v", "libx264",
       "-profile:v", "high",
       "-preset", "medium",
@@ -499,6 +507,7 @@ async function main() {
       "capture-fps": String(args.fps),
       "capture-audio": String(args.audio),
       "capture-cards": String(args.cards),
+      "capture-grade": String(args.grade),
       "capture-mode": "page",
     });
     if (args.scene === "skirmish") {
