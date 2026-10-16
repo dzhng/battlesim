@@ -46,36 +46,48 @@ export async function getFrameBrightness(framePath) {
  * @param {number[]} triggerTimesMs - Trigger times in ms (perf.now space)
  * @param {number} pageLoadEpochMs - Page load epoch for CDP timestamp conversion
  * @param {number} audioStartMs - Audio start time in ms (perf.now space)
+ * @param {object[]} [framesJson] - Optional frames.json data with real CDP timestamps
  * @returns {Promise<{onsetMs: number, cdpTimestamp: number, yavg: number}[]>}
  */
-export async function detectFlashOnsets(framesDir, triggerTimesMs, pageLoadEpochMs, audioStartMs) {
+export async function detectFlashOnsets(framesDir, triggerTimesMs, pageLoadEpochMs, audioStartMs, framesJson = null) {
   if (!triggerTimesMs || triggerTimesMs.length === 0) return [];
   
-  // Read all frames and parse their timestamps from filenames or use index
-  const files = await readdir(framesDir);
-  const frameFiles = files
-    .filter(f => f.startsWith("frame-") && f.endsWith(".jpg"))
-    .sort();
-  
-  if (frameFiles.length === 0) return [];
-  
-  // Base CDP timestamp: frames are captured starting from audio start time
-  // In perf.now space, frame 0 is at audioStartMs; convert to CDP timestamp
-  const baseCdpTimestamp = (pageLoadEpochMs + audioStartMs) / 1000;
+  // If we have frames.json with real timestamps, use those
+  let frameList;
+  if (framesJson?.frames?.length > 0) {
+    frameList = framesJson.frames.map(f => ({
+      path: f.path,
+      cdpTimestamp: f.cdpTimestamp,
+      frameIdx: f.idx,
+    }));
+  } else {
+    // Fall back to reading directory and estimating timestamps
+    const files = await readdir(framesDir);
+    const frameFiles = files
+      .filter(f => f.startsWith("frame-") && f.endsWith(".jpg"))
+      .sort();
+    
+    if (frameFiles.length === 0) return [];
+    
+    // Base CDP timestamp: frames are captured starting from audio start time
+    const baseCdpTimestamp = (pageLoadEpochMs + audioStartMs) / 1000;
+    
+    frameList = frameFiles.map((file, i) => {
+      const idxMatch = file.match(/frame-(\d+)/);
+      const frameIdx = idxMatch ? parseInt(idxMatch[1], 10) : i;
+      return {
+        path: join(framesDir, file),
+        cdpTimestamp: baseCdpTimestamp + (frameIdx * 0.01667),
+        frameIdx,
+      };
+    });
+  }
   
   // Analyze brightness of all frames in order
   const frameBrightness = [];
-  for (const file of frameFiles) {
-    const framePath = join(framesDir, file);
-    // Extract frame index from filename (frame-000123.jpg -> 123)
-    const idxMatch = file.match(/frame-(\d+)/);
-    const frameIdx = idxMatch ? parseInt(idxMatch[1], 10) : frameBrightness.length;
-    
-    const yavg = await getFrameBrightness(framePath);
-    // Estimate CDP timestamp from frame index (assume ~60fps = 16.67ms per frame)
-    // Frame N is at baseCdpTimestamp + N * 16.67ms
-    const cdpTimestamp = baseCdpTimestamp + (frameIdx * 0.01667);
-    frameBrightness.push({ file, frameIdx, cdpTimestamp, yavg });
+  for (const frame of frameList) {
+    const yavg = await getFrameBrightness(frame.path);
+    frameBrightness.push({ ...frame, yavg });
   }
   
   // Detect onsets: first frame with YAVG > 250 after a frame with YAVG < 200
@@ -192,11 +204,12 @@ export function matchTriggersToOnsets(triggerTimesMs, onsets, audioStartMs, isVi
  * @param {number[]} triggerTimesMs - Trigger times (perf.now space)
  * @param {number} audioStartMs - Audio start time (perf.now space)
  * @param {number} pageLoadEpochMs - Page load epoch for CDP conversion
+ * @param {object} [framesJson] - Optional frames.json data with real CDP timestamps
  * @returns {Promise<{medianOffsetMs: number, pairs: {idx: number, videoMs: number, audioMs: number, offset: number}[], flashOnsets: number[], clickOnsets: number[]}>}
  */
-export async function matchCalibration(framesDir, audioPath, triggerTimesMs, audioStartMs, pageLoadEpochMs) {
-  // Detect onsets
-  const flashOnsets = await detectFlashOnsets(framesDir, triggerTimesMs, pageLoadEpochMs, audioStartMs);
+export async function matchCalibration(framesDir, audioPath, triggerTimesMs, audioStartMs, pageLoadEpochMs, framesJson = null) {
+  // Detect onsets (use real timestamps from framesJson if available)
+  const flashOnsets = await detectFlashOnsets(framesDir, triggerTimesMs, pageLoadEpochMs, audioStartMs, framesJson);
   const clickOnsets = await detectClickOnsets(audioPath, triggerTimesMs, audioStartMs);
   
   // Match triggers to onsets
@@ -237,6 +250,7 @@ async function main() {
   let triggersJson = null;
   let audioStartMs = 0;
   let pageLoadEpochMs = 0;
+  let framesJsonPath = null;
   
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--frames" && args[i + 1]) framesDir = resolve(args[++i]);
@@ -244,6 +258,7 @@ async function main() {
     else if (args[i] === "--triggers" && args[i + 1]) triggersJson = args[++i];
     else if (args[i] === "--audio-start" && args[i + 1]) audioStartMs = parseFloat(args[++i]);
     else if (args[i] === "--page-load-epoch" && args[i + 1]) pageLoadEpochMs = parseFloat(args[++i]);
+    else if (args[i] === "--frames-json" && args[i + 1]) framesJsonPath = resolve(args[++i]);
     else if (args[i] === "--help" || args[i] === "-h") {
       console.log(`Calibration analysis for A/V sync measurement.
 
@@ -256,6 +271,7 @@ Options:
   --triggers <json>        JSON array of trigger times in ms, e.g. "[100,250,400]"
   --audio-start <ms>       Audio start time in ms (default 0)
   --page-load-epoch <ms>   Page load epoch for CDP conversion (default 0)
+  --frames-json <file>     frames.json with real CDP timestamps (overrides --audio-start, --page-load-epoch)
 
 Output:
   JSON with medianOffsetMs, pairs, flashOnsets, clickOnsets
@@ -271,7 +287,26 @@ Output:
   
   const triggerTimesMs = JSON.parse(triggersJson);
   
-  const result = await matchCalibration(framesDir, audioPath, triggerTimesMs, audioStartMs, pageLoadEpochMs);
+  // Load frames.json if provided (contains real CDP timestamps)
+  let framesJson = null;
+  if (framesJsonPath) {
+    try {
+      const content = await readFile(framesJsonPath, "utf8");
+      framesJson = JSON.parse(content);
+      // Use values from frames.json if not explicitly provided
+      if (framesJson.audioStartMs !== null && audioStartMs === 0) {
+        audioStartMs = framesJson.audioStartMs;
+      }
+      if (framesJson.pageLoadEpochMs !== null && pageLoadEpochMs === 0) {
+        pageLoadEpochMs = framesJson.pageLoadEpochMs;
+      }
+      console.error(`Loaded ${framesJson.frames?.length ?? 0} frames from ${framesJsonPath}`);
+    } catch (err) {
+      console.error(`Warning: Could not load frames.json: ${err.message}`);
+    }
+  }
+  
+  const result = await matchCalibration(framesDir, audioPath, triggerTimesMs, audioStartMs, pageLoadEpochMs, framesJson);
   
   console.log(JSON.stringify(result, null, 2));
 }

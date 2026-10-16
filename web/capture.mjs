@@ -284,7 +284,11 @@ async function captureWithCDP(page, args, server) {
   const PREROLL_CUT_S = 0.5;
   
   // Handle screencast frames with real timestamps
+  // Ack immediately, write asynchronously to reduce screencast load
   cdp.on("Page.screencastFrame", async (event) => {
+    // ACK IMMEDIATELY to reduce screencast backpressure
+    cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId }).catch(() => {});
+    
     if (!captureStartTime) captureStartTime = Date.now();
     
     try {
@@ -308,17 +312,14 @@ async function captureWithCDP(page, args, server) {
         }
       }
       
-      // Save all frames; track write promises for later await
+      // Save all frames asynchronously; track write promises for later await
       const frameData = Buffer.from(event.data, "base64");
       const idx = frameIndex++;
       const framePath = join(framesDir, `frame-${String(idx).padStart(6, "0")}.jpg`);
       const writePromise = writeFile(framePath, frameData);
-      rawFrames.push({ path: framePath, cdpTimestamp: frameTime, writePromise });
+      rawFrames.push({ path: framePath, cdpTimestamp: frameTime, writePromise, idx });
       
-      // Acknowledge frame to receive next one (don't wait for write)
-      await cdp.send("Page.screencastFrameAck", { sessionId: event.sessionId });
-      
-      // Update progress
+      // Update progress (don't block)
       const elapsed = (Date.now() - captureStartTime) / 1000;
       if (captureDuration > 0) {
         const pct = Math.min(100, (elapsed / captureDuration) * 100).toFixed(0);
@@ -329,10 +330,10 @@ async function captureWithCDP(page, args, server) {
     }
   });
   
-  // Start screencast
+  // Start screencast with reduced quality to lower bandwidth/CPU load
   await cdp.send("Page.startScreencast", {
     format: "jpeg",
-    quality: 95,
+    quality: 80, // Reduced from 95 to lower screencast load
     maxWidth: args.width,
     maxHeight: args.height,
     everyNthFrame: 1,
@@ -477,13 +478,81 @@ async function captureWithCDP(page, args, server) {
   
   // Dedupe frames with same or very close timestamps (within 1ms)
   const dedupedFrames = [];
+  let duplicateCount = 0;
   for (const frame of validFrames) {
     const last = dedupedFrames[dedupedFrames.length - 1];
     if (!last || frame.cdpTimestamp - last.cdpTimestamp > 0.001) {
       dedupedFrames.push(frame);
+    } else {
+      duplicateCount++;
     }
-    // Don't delete duplicate files yet - we'll clean up at the end
   }
+  
+  // Frame-pacing analysis: detect gaps and report
+  const framePacing = {
+    totalFrames: validFrames.length,
+    uniqueFrames: dedupedFrames.length,
+    duplicateFrames: duplicateCount,
+    longestGapMs: 0,
+    longestGapTimestamp: 0,
+    longestGapIdx: 0,
+    gaps: [], // Gaps > 25ms (missed frame threshold)
+  };
+  
+  for (let i = 1; i < dedupedFrames.length; i++) {
+    const prev = dedupedFrames[i - 1];
+    const curr = dedupedFrames[i];
+    const gapMs = (curr.cdpTimestamp - prev.cdpTimestamp) * 1000;
+    
+    if (gapMs > framePacing.longestGapMs) {
+      framePacing.longestGapMs = gapMs;
+      framePacing.longestGapTimestamp = prev.cdpTimestamp;
+      framePacing.longestGapIdx = i - 1;
+    }
+    
+    // Track gaps > 25ms (more than 1.5 frames at 60fps)
+    if (gapMs > 25) {
+      framePacing.gaps.push({
+        idx: i - 1,
+        cdpTimestamp: prev.cdpTimestamp,
+        gapMs,
+      });
+    }
+  }
+  
+  // Log frame-pacing report
+  const avgFps = dedupedFrames.length > 1 
+    ? dedupedFrames.length / (dedupedFrames[dedupedFrames.length - 1].cdpTimestamp - dedupedFrames[0].cdpTimestamp)
+    : 0;
+  console.log(`  Frame pacing: ${dedupedFrames.length} unique / ${validFrames.length} total (${duplicateCount} dupes), avg ${avgFps.toFixed(1)} fps`);
+  if (framePacing.gaps.length > 0) {
+    console.log(`    Gaps > 25ms: ${framePacing.gaps.length}, longest ${framePacing.longestGapMs.toFixed(1)}ms at frame ${framePacing.longestGapIdx}`);
+  }
+  
+  // FAIL if any gap > 50ms (frame starvation)
+  if (framePacing.longestGapMs > 50) {
+    const gapTime = (framePacing.longestGapTimestamp - (cutCdpTime ?? 0)).toFixed(2);
+    console.error(`  ERROR: Frame starvation detected!`);
+    console.error(`    Longest gap: ${framePacing.longestGapMs.toFixed(1)}ms at output time ~${gapTime}s (frame ${framePacing.longestGapIdx})`);
+    throw new Error(`Frame starvation: ${framePacing.longestGapMs.toFixed(1)}ms gap at ~${gapTime}s exceeds 50ms threshold`);
+  }
+  
+  // Write frames.json with real timestamps for captureCalib CLI
+  const framesJsonPath = resolve(args.output, `frames-${timestamp}.json`);
+  const framesJson = {
+    cutCdpTime,
+    pageLoadEpochMs: reelReadyCdpTime !== null && reelReadyTime !== null 
+      ? (reelReadyCdpTime * 1000) - reelReadyTime 
+      : null,
+    audioStartMs: await page.evaluate(() => window.__capture?.audioStartTime ?? null),
+    frames: dedupedFrames.map(f => ({
+      path: f.path,
+      cdpTimestamp: f.cdpTimestamp,
+      idx: f.idx,
+    })),
+    pacing: framePacing,
+  };
+  await writeFile(framesJsonPath, JSON.stringify(framesJson, null, 2));
   
   // Calculate target output duration: trim at exactly reel end
   // Use reelEndTime if available (precise), otherwise estimate from duration
@@ -1059,6 +1128,13 @@ async function captureWithCDP(page, args, server) {
     audio_offset_ms: audioOffsetMs,
     video_cut_ms: dynamicCutTimeMs ?? (PREROLL_CUT_S * 1000),
     dropped_early_frames: droppedEarlyFrames,
+    frame_pacing: {
+      unique_frames: framePacing.uniqueFrames,
+      duplicate_frames: framePacing.duplicateFrames,
+      longest_gap_ms: framePacing.longestGapMs,
+      longest_gap_timestamp: framePacing.longestGapTimestamp,
+      gaps_over_25ms: framePacing.gaps.length,
+    },
     total_events: fireEvents.length,
     followed_events: fireEvents.filter(e => e.is_followed).length,
     events: fireEvents,
