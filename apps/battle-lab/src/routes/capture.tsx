@@ -78,6 +78,7 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   });
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [fireEvents, setFireEvents] = useState<WeaponFireEvent[]>([]);
+  const [followUnitId, setFollowUnitId] = useState<number | null>(null);
   const startAudioOnlyRef = useRef<(() => void) | null>(null);
   const fireTrackerRef = useRef(new WeaponFireTracker());
 
@@ -143,8 +144,9 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       audioBlob: audioBlob ?? undefined,
       startAudioOnly: startAudioOnlyRef.current ?? undefined,
       fireEvents,
+      followUnitId,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents]);
+  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -164,6 +166,7 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         }}
         fireTracker={fireTrackerRef.current}
         onFireEvents={setFireEvents}
+        onFollowUnitId={setFollowUnitId}
         isTrackedVehicle={isTrackedVehicle}
       />
       <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page"} />
@@ -183,6 +186,7 @@ function CaptureBattle({
   onStartAudioOnly,
   fireTracker,
   onFireEvents,
+  onFollowUnitId,
   isTrackedVehicle,
 }: {
   scene: BackdropScene;
@@ -196,6 +200,7 @@ function CaptureBattle({
   onStartAudioOnly?: (fn: () => void) => void;
   fireTracker?: WeaponFireTracker;
   onFireEvents?: (events: WeaponFireEvent[]) => void;
+  onFollowUnitId?: (id: number | null) => void;
   isTrackedVehicle: (kind: string) => boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -212,8 +217,11 @@ function CaptureBattle({
   // Refs for values accessed in the frame callback to avoid stale closures
   const stateRef = useRef(state);
   const onFireEventsRef = useRef(onFireEvents);
+  const onFollowUnitIdRef = useRef(onFollowUnitId);
+  const reportedFollowRef = useRef<number | null | undefined>(undefined);
   stateRef.current = state;
   onFireEventsRef.current = onFireEvents;
+  onFollowUnitIdRef.current = onFollowUnitId;
 
   useLabLoading("renderer", warmed);
 
@@ -462,6 +470,11 @@ function CaptureBattle({
         const sample = sampleReel(reel, elapsed);
         // Use the same resolution as the camera for consistency
         const followedId = resolveFollow(sample.follow);
+        // Report the follow unit ID once (on first resolution)
+        if (reportedFollowRef.current === undefined && followedId !== null) {
+          reportedFollowRef.current = followedId;
+          onFollowUnitIdRef.current?.(followedId);
+        }
         fireTracker.setFollowedUnit(followedId);
         const newEvents = fireTracker.update(observation, now);
         if (newEvents.length > 0) {

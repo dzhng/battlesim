@@ -172,6 +172,51 @@
       }
     },
     {
+      "tick": 150,
+      "side": "blue",
+      "order": {
+        "kind": "set_engagement",
+        "units": [1],
+        "policy": "fire_at_will"
+      }
+    },
+    {
+      "tick": 210,
+      "side": "blue",
+      "order": {
+        "kind": "attack",
+        "units": [1],
+        "target": {
+          "kind": "ground",
+          "point": [3404, 2057, 0.0]
+        }
+      }
+    },
+    {
+      "tick": 540,
+      "side": "blue",
+      "order": {
+        "kind": "attack",
+        "units": [1],
+        "target": {
+          "kind": "ground",
+          "point": [3346, 2065, 0.0]
+        }
+      }
+    },
+    {
+      "tick": 780,
+      "side": "blue",
+      "order": {
+        "kind": "attack",
+        "units": [1],
+        "target": {
+          "kind": "ground",
+          "point": [3690, 1995, 0.0]
+        }
+      }
+    },
+    {
       "tick": 30,
       "side": "blue",
       "order": {

@@ -472,12 +472,18 @@ async function captureWithCDP(page, args, server) {
   
   // Get and write weapon fire events to sidecar JSON
   const fireEvents = await page.evaluate(() => window.__capture?.fireEvents ?? []);
+  const followUnitId = await page.evaluate(() => window.__capture?.followUnitId ?? null);
   const sidecarPath = finalPath.replace(/\.(mp4|webm)$/, "-fire-events.json");
-  if (fireEvents.length > 0) {
-    await writeFile(sidecarPath, JSON.stringify(fireEvents, null, 2));
-    console.log(`  Fire events: ${fireEvents.length} logged to ${basename(sidecarPath)}`);
-  } else {
-    console.log("  No weapon fire events detected");
+  const sidecar = {
+    follow_unit_id: followUnitId,
+    total_events: fireEvents.length,
+    followed_events: fireEvents.filter(e => e.is_followed).length,
+    events: fireEvents,
+  };
+  await writeFile(sidecarPath, JSON.stringify(sidecar, null, 2));
+  console.log(`  Fire events: ${fireEvents.length} total, ${sidecar.followed_events} from followed unit (id: ${followUnitId ?? 'none'}) -> ${basename(sidecarPath)}`);
+  if (sidecar.followed_events === 0) {
+    console.log("  WARNING: Followed unit did not fire during capture");
   }
   
   const { size } = await stat(finalPath);

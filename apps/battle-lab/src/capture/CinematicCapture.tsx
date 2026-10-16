@@ -286,6 +286,8 @@ export interface CaptureExtras {
   startAudioOnly?: () => void;
   /** Weapon fire events logged during capture. */
   fireEvents?: WeaponFireEvent[];
+  /** The resolved follow unit ID (real unit ID, not index). */
+  followUnitId?: number | null;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -304,5 +306,6 @@ export function exposeCaptureToWindow(
     audioBlob: extras?.audioBlob,
     startAudioOnly: extras?.startAudioOnly,
     fireEvents: extras?.fireEvents,
+    followUnitId: extras?.followUnitId,
   };
 }
