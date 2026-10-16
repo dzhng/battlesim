@@ -716,17 +716,19 @@ async function captureWithCDP(page, args, server) {
       const audioStartTime = audioInfo.audioStartTime;
       
       if (calibVideoMs !== null && calibAudioMs !== null) {
-        // Use calibration-measured offset: video - audio
-        // If calibVideoMs > calibAudioMs, audio is early, need to trim
-        // If calibVideoMs < calibAudioMs, audio is late, need to delay
+        // Calibration measures A/V drift: calibOffsetMs = calibVideoMs - calibAudioMs
+        // If positive: video event appears later, meaning audio is early (ahead)
+        // If negative: audio event appears later, meaning audio is late (behind)
+        // Since audio is early when calibOffsetMs > 0, we need LESS trim, so SUBTRACT it
         const calibOffsetMs = calibVideoMs - calibAudioMs;
-        // The final offset also needs to account for the video cut point
+        // The base offset is how much to trim to align with the video cut point
         const cutOffsetMs = videoCutTime !== null && audioStartTime !== null
           ? (videoCutTime - audioStartTime)
           : (dynamicCutTimeMs !== null ? dynamicCutTimeMs - (audioStartTime ?? 0) : PREROLL_CUT_S * 1000);
-        audioOffsetMs = cutOffsetMs + calibOffsetMs;
+        // Subtract calibOffsetMs because calibration already accounts for pipeline latency
+        audioOffsetMs = cutOffsetMs - calibOffsetMs;
         console.log(`  Calibration offset: ${calibOffsetMs.toFixed(1)}ms (video=${calibVideoMs.toFixed(1)}ms, audio=${calibAudioMs.toFixed(1)}ms)`);
-        console.log(`  Final audio offset: ${audioOffsetMs.toFixed(1)}ms (cut=${cutOffsetMs.toFixed(1)}ms + calib=${calibOffsetMs.toFixed(1)}ms)`);
+        console.log(`  Final audio offset: ${audioOffsetMs.toFixed(1)}ms (cut=${cutOffsetMs.toFixed(1)}ms - calib=${calibOffsetMs.toFixed(1)}ms)`);
         
         // Plausibility check: calibration offset should be within ±300ms
         // (The total offset legitimately includes the ~600ms cut offset)
@@ -750,8 +752,8 @@ async function captureWithCDP(page, args, server) {
       }
       
       // Build ffmpeg filter chain:
-      // - alimiter at limit=0.7 (~-3.1 dBFS) prevents AAC from exceeding -0.5 dBFS after decode
-      const limiterFilter = "alimiter=limit=0.7:attack=0.1:release=50:level=false";
+      // - alimiter at limit=0.6 (~-4.4 dBFS) prevents AAC from exceeding -0.5 dBFS after decode
+      const limiterFilter = "alimiter=limit=0.6:attack=0.1:release=50:level=false";
       
       if (audioOffsetMs >= 0) {
         // Audio started early: trim from the beginning
