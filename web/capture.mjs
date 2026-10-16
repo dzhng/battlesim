@@ -663,52 +663,36 @@ async function captureWithCDP(page, args, server) {
             ffmpeg.on("error", (e) => reject(e));
           });
           
-          // Parse peak levels and find the loudest one
+          // Parse peak levels and find the FIRST window > -10dB (onset detection)
           // Format: frame:N pts:P pts_time:T\nlavfi.astats.Overall.Peak_level=V
           const peakPattern = /pts_time:([\d.]+)\s*\nlavfi\.astats\.Overall\.Peak_level=([-\d.]+)/g;
           let peakMatch;
-          let maxPeak = -100;
-          let maxPeakTime = null;
+          let onsetTime = null;
+          let onsetPeak = -100;
           while ((peakMatch = peakPattern.exec(astatsResult.stdout)) !== null) {
             const ptsTime = parseFloat(peakMatch[1]);
             const peakLevel = parseFloat(peakMatch[2]);
-            if (peakLevel > maxPeak) {
-              maxPeak = peakLevel;
-              maxPeakTime = searchStartS + ptsTime;
+            // Find FIRST window that exceeds -10dB (onset, not max)
+            if (peakLevel > -10 && onsetTime === null) {
+              onsetTime = searchStartS + ptsTime;
+              onsetPeak = peakLevel;
+              break; // Stop at first loud segment
             }
           }
           
-          if (maxPeakTime !== null && maxPeak > -10) { // Click should be loud (> -10dB)
-            calibAudioMs = maxPeakTime * 1000;
-            console.log(`  Calibration click at audio ${calibAudioMs.toFixed(1)}ms (peak=${maxPeak.toFixed(1)}dB)`);
+          if (onsetTime !== null) {
+            calibAudioMs = onsetTime * 1000;
+            console.log(`  Calibration click DETECTED at audio ${calibAudioMs.toFixed(1)}ms (onset peak=${onsetPeak.toFixed(1)}dB)`);
           } else {
-            // Fallback: use volumedetect to find peak sample
-            const volResult = await new Promise((resolve, reject) => {
-              const ffmpeg = spawn("ffmpeg", [
-                "-i", rawAudioPath,
-                "-ss", String(searchStartS),
-                "-t", String(searchEndS - searchStartS),
-                "-af", "volumedetect",
-                "-f", "null", "-",
-              ], { stdio: ["pipe", "pipe", "pipe"] });
-              let stderr = "";
-              ffmpeg.stderr.on("data", (d) => stderr += d);
-              ffmpeg.on("close", () => resolve(stderr));
-              ffmpeg.on("error", () => resolve(""));
-            });
-            
-            // If max_volume is high, use expected time as approximation
-            const maxVolMatch = volResult.match(/max_volume:\s*([-\d.]+)\s*dB/);
-            if (maxVolMatch && parseFloat(maxVolMatch[1]) > -10) {
-              // High peak exists, use expected time
-              calibAudioMs = expectedClickMs;
-              console.log(`  Calibration click at audio ${calibAudioMs.toFixed(1)}ms (using expected time, peak=${maxVolMatch[1]}dB)`);
-            } else {
-              console.log(`  WARNING: No loud click found near expected time ${expectedClickMs.toFixed(0)}ms`);
-            }
+            // No onset found - this is a failure, not a fallback
+            console.error(`  ERROR: No click onset (> -10dB) found in search window ${searchStartS.toFixed(3)}s - ${searchEndS.toFixed(3)}s`);
+            console.error(`    Expected click at ${expectedClickMs.toFixed(0)}ms relative to audio start`);
+            throw new Error(`Click detection failed: no onset > -10dB found near expected time ${expectedClickMs.toFixed(0)}ms`);
           }
         } catch (e) {
-          console.log(`  WARNING: Audio click detection failed: ${e.message}`);
+          if (e.message.includes("Click detection failed")) throw e;
+          console.error(`  ERROR: Audio click detection failed: ${e.message}`);
+          throw new Error(`Click detection error: ${e.message}`);
         }
       } else {
         console.log("  WARNING: Cannot detect click - missing calibrationTime or audioStartTime");
@@ -734,16 +718,16 @@ async function captureWithCDP(page, args, server) {
         console.log(`  Calibration offset: ${calibOffsetMs.toFixed(1)}ms (video=${calibVideoMs.toFixed(1)}ms, audio=${calibAudioMs.toFixed(1)}ms)`);
         console.log(`  Final audio offset: ${audioOffsetMs.toFixed(1)}ms (cut=${cutOffsetMs.toFixed(1)}ms + calib=${calibOffsetMs.toFixed(1)}ms)`);
         
-        // Plausibility check: offset should be within ±500ms
-        if (Math.abs(audioOffsetMs) > 500) {
-          console.error(`  ERROR: Computed audio offset ${audioOffsetMs.toFixed(1)}ms is implausible (|offset| > 500ms)`);
+        // Plausibility check: calibration offset should be within ±300ms
+        // (The total offset legitimately includes the ~600ms cut offset)
+        if (Math.abs(calibOffsetMs) > 300) {
+          console.error(`  ERROR: Calibration offset ${calibOffsetMs.toFixed(1)}ms is implausible (|calib| > 300ms)`);
           console.error(`    - calibVideoMs: ${calibVideoMs.toFixed(1)}ms`);
           console.error(`    - calibAudioMs: ${calibAudioMs.toFixed(1)}ms`);
-          console.error(`    - calibOffsetMs: ${calibOffsetMs.toFixed(1)}ms`);
           console.error(`    - cutOffsetMs: ${cutOffsetMs.toFixed(1)}ms`);
           console.error(`    - videoCutTime: ${videoCutTime?.toFixed(0) ?? 'null'}ms`);
           console.error(`    - audioStartTime: ${audioStartTime?.toFixed(0) ?? 'null'}ms`);
-          throw new Error(`Implausible audio offset: ${audioOffsetMs.toFixed(1)}ms (expected |offset| < 500ms)`);
+          throw new Error(`Implausible calibration offset: ${calibOffsetMs.toFixed(1)}ms (expected |calib| < 300ms)`);
         }
       } else {
         // Calibration detection failed - this is an error condition
