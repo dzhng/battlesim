@@ -1837,6 +1837,11 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         cruise_agl_m,
     } = t.mobility
     {
+        if layer == AltitudeLayer::Ground {
+            return Some(
+                "mobility: an aircraft flies in low_air or high_air; in the ground layer it would sit at 0 m, a target for nothing",
+            );
+        }
         if let Some(missing) = unflown(layer, flight) {
             return Some(missing);
         }

@@ -99,6 +99,7 @@ It's a game, not a physics simulation. The target is **Hollywood realism**: the 
 - suppression pins squads only; a vehicle's crew isn't suppressed;
 - active protection (a Trophy) is a simple capability, not an interceptor weapon: while it has charges, any interceptable missile that comes within its standoff is destroyed, with no sight, cone or range of its own;
 - who can hold an objective follows the unit card's category (recon, infantry and vehicles), a game rule rather than a physical one;
+- the neutral side only returns fire, whatever its units author, and takes no commands;
 - the skirmish AI and the scripted encounter defender choose their behaviour by role tags (logistics, artillery, recon, AT, MBT). They're opponents' playbooks, not rules of the battle.
 
 ## Running it

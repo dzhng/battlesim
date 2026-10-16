@@ -881,6 +881,21 @@ fn test_an_aircraft_with_five_distinct_weapon_rows_is_admitted() {
     serde_json::from_value::<Rules>(fixture).expect("five rows on five mounts");
 }
 
+/// An aircraft authored in the ground layer would sit at 0 m where nothing
+/// that reaches the air or the ground could target it: refused at load.
+#[test]
+fn test_an_aircraft_in_the_ground_layer_is_refused() {
+    let mut fixture = fixture();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_heli",
+        json!({ "mobility": { "air": { "layer": "ground" } } }),
+    );
+    let error = serde_json::from_value::<Rules>(fixture).expect_err("an aircraft on the ground");
+    assert!(error.to_string().contains("ground layer"), "{error}");
+}
+
 #[test]
 fn a_battle_with_a_helicopter_replays_to_the_same_digest() {
     let fixture = fixture();
