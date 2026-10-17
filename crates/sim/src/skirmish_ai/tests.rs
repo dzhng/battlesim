@@ -1364,7 +1364,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
             "props": [{ "kind": "wall", "center": [400, 446], "yaw": 0,
                 "half_extents": [5.0, 0.5, 7.0] }] },
         "rules": rules,
-        "units": [{ "side": "red", "kind": "test_jeep", "position": [400, 450], "yaw": -1.5707963267948966 }],
+        "units": [{ "side": "red", "kind": "test_jeep", "position": [400, 450], "yaw": -std::f64::consts::FRAC_PI_2 }],
         "events": [], "scripts": []
     }))
     .unwrap();

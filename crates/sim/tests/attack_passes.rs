@@ -332,8 +332,8 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
             "factions": ["us", "eastern"],
             "rules": { "credits_per_minute": 200, "starting_minutes": 20, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
-                { "side": "blue", "center": [1500, 10], "yaw": 1.5707963267948966 },
-                { "side": "red", "center": [1500, 2990], "yaw": -1.5707963267948966 }
+                { "side": "blue", "center": [1500, 10], "yaw": std::f64::consts::FRAC_PI_2 },
+                { "side": "red", "center": [1500, 2990], "yaw": -std::f64::consts::FRAC_PI_2 }
             ], "objectives": [
                 { "id": "center", "center": [1500, 1500], "radius_m": 50, "kind": "junction", "counterpart": null },
                 { "id": "south", "center": [800, 1000], "radius_m": 50, "kind": "field", "counterpart": "north" },
