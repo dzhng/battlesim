@@ -8,8 +8,8 @@ import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import { categoryMap, type MapEntry } from "@web/maps/catalogue";
 
 /** One move: the camera drifts from `from` to `to`. A tracking shot follows
- *  one unit (its id, which is its index in the encounter's `units`, either
- *  side): its targets are offsets from that unit. */
+ *  one of the filming side's units (its index in the encounter's `units`):
+ *  its targets are offsets from that unit. */
 export interface Shot {
   seconds: number;
   follow?: number;

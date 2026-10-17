@@ -279,7 +279,7 @@ fn paris_corners_reel_plays_as_recorded() {
 /// its scene's encounter fields (a unit's id is its index in `units`). The
 /// web validator checks the rest of the file, but loads no encounter.
 #[test]
-fn every_capture_films_a_capture_map_and_follows_its_units() {
+fn every_capture_films_a_capture_map_and_follows_its_own_units() {
     let read = |path: PathBuf| -> Value {
         serde_json::from_str(&std::fs::read_to_string(&path).unwrap())
             .unwrap_or_else(|e| panic!("{}: {e}", path.display()))
@@ -303,10 +303,8 @@ fn every_capture_films_a_capture_map_and_follows_its_units() {
                 category, "capture",
                 "{name} scenes[{i}].map: {map} is a {category} map, not a capture map"
             );
-            let units = read(maps.join("encounters").join(format!("{encounter}.json")))["units"]
-                .as_array()
-                .unwrap()
-                .len();
+            let encounter_json = read(maps.join("encounters").join(format!("{encounter}.json")));
+            let units = encounter_json["units"].as_array().unwrap();
             for (s, shot) in scene["reel"]["shots"]
                 .as_array()
                 .unwrap()
@@ -314,10 +312,18 @@ fn every_capture_films_a_capture_map_and_follows_its_units() {
                 .enumerate()
             {
                 if let Some(follow) = shot["follow"].as_u64() {
-                    assert!(
-                        (follow as usize) < units,
-                        "{name} scenes[{i}].reel.shots[{s}].follow: unit {follow}, but {map}'s \
-                         encounter {encounter} fields {units} units"
+                    let at = format!("{name} scenes[{i}].reel.shots[{s}].follow");
+                    let unit = units.get(follow as usize).unwrap_or_else(|| {
+                        panic!(
+                            "{at}: unit {follow}, but {map}'s encounter {encounter} fields {} units",
+                            units.len()
+                        )
+                    });
+                    // The camera follows the filming side's own units: the
+                    // client sees nothing else's true position.
+                    assert_eq!(
+                        unit["side"], "blue",
+                        "{at}: unit {follow} is not one of blue's"
                     );
                 }
             }

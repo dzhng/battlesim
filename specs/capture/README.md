@@ -11,7 +11,7 @@ You are resuming the capture rework. Read this README, then the slice you pick u
 - **TODO:**
   - [x] 01 Rename the map category, unit set and unit prefix `menu` → `capture`, re-record the parity and menu-reel logs ([slice](slices/01-rename-menu-to-capture.md))
   - [x] 02 Capture file and the `capture` module ([slice](slices/02-capture-module.md))
-  - [ ] 03 One `ScenePlayer` for menu and capture, any-side follow, seeded score ([slice](slices/03-scene-player.md))
+  - [ ] 03 One `ScenePlayer` for menu and capture, seeded score ([slice](slices/03-scene-player.md))
   - [ ] 04 Capture route records the stage with tab capture ([slice](slices/04-tab-recorder.md))
   - [ ] 05 CLI writes the MP4s and the report ([slice](slices/05-cli.md))
   - [ ] 06 Menu reel through the new path, approvals, docs, full run, close-spec ([slice](slices/06-closeout.md))
@@ -48,7 +48,7 @@ Least complexity and least technical debt decide every trade-off. Output is 16:9
 }
 ```
 
-- `follow` is an index into the encounter's `units`, either side. It replaces today's blue-only lookup (`MenuBackdrop.tsx:350`).
+- `follow` is an index into the encounter's `units`, and names one of the filming side's (blue) units. The camera follows your own units only. The client sees only blue's observation, and enemy follow was never needed (the user, 2026-10-17).
 - `validateCapture` keeps every shot field. Today `menuReel.ts:61-66` drops `ease`, `logDistance` and `zoomDuration`.
 - It refuses non-capture maps and unknown fields, by name.
 
@@ -100,7 +100,7 @@ The order is linear because each slice consumes the previous slice's names. Old 
 |---|---|---|
 | 01 | Menu still plays both scenes; catalogue lists 2 capture and 18 test maps | rename tests, parity + menu-reel re-record after watching |
 | 02 | Menu loads from `fixtures/captures/menu.json` | `capture` unit tests |
-| 03 | Menu unchanged; a red unit can be followed | menu first-cut probe, `frame` scene, critique |
+| 03 | Menu unchanged; the capture route plays through the same player | menu first-cut probe, `frame` scene, critique |
 | 04 | `/labs/capture` records a WebM with cards and sound | `capture` scene, ffprobe, critique |
 | 05 | One command → MP4s + report | CLI stage tests, a real run, ffprobe |
 | 06 | Menu reel re-recorded through the new path | approvals, docs, full run |
@@ -150,7 +150,7 @@ Slice 04's first step repeats this on the real `/labs/capture` page before anyth
 ## Known unknowns
 
 - **Auto-accept flag.** If a Chrome update breaks `--auto-accept-this-tab-capture`, the CLI must fail loudly with a named error, never hang on a prompt.
-- **Following a fogged unit.** The player follows through the unfogged (x-ray) observation. If a followed red unit dies, the camera holds its last position.
+- **A followed unit that falls.** The camera holds its last position. `menu_reel` already refuses a menu shot whose followed unit falls mid-shot.
 - **Name collision.** "Capture" already means the game's capture points (`specs/battle-foundation/slices/21-capture-economy.md`) and the native parity captures (`fixtures/parity/capture/`, `web/scenes/native-parity-capture.mjs`). The user chose "capture" and "scene" for this feature. Renaming the parity collision is a follow-up the user decides; it isn't in this spec.
 
 ## Alternatives considered

@@ -2,7 +2,7 @@
 
 ## Contract unlocked
 
-One player plays a capture scene for both the menu and the capture route. A shot can follow any unit of the encounter, either side. The battle score's shuffle comes from the scene seed.
+One player plays a capture scene for both the menu and the capture route. The battle score's shuffle comes from the scene seed.
 
 ## Seam
 
@@ -12,18 +12,18 @@ One player plays a capture scene for both the menu and the capture route. A shot
   - the fade veil, the stage element and scene completion.
 
   Its props: the scene, cards on/off, and an `onEnd` callback. The menu keeps its grey film look and scene loop on top. Don't wrap it in another abstraction.
-- **`reelPilot.ts`** is pure. It maps (reel, t, `unitAt(index)`) → camera pose. `unitAt` reads the unfogged (x-ray) observation, so red units resolve too. A followed unit that's gone holds its last position.
+- **`reelPilot.ts`** is pure. It maps (reel, t, `unitAt(index)`) → camera pose. `unitAt` reads the filming side's own units. A followed unit that's gone holds its last position.
 - **Score seed.** `packages/battle-audio/src/appAudio.ts:188` uses the scene seed instead of `Math.random`, in menu and capture alike.
 
 ## Human can see
 
-The menu looks and cuts as before. A test capture with `follow` set to a red unit's index tracks it.
+The menu looks and cuts as before. 
 
 ## Verification
 
 - Pure tests in `web/tests/capture.test.ts` or beside the pilot:
   - pose at t;
-  - following a red unit;
+  - following an own unit tracks it;
   - a vanished unit holds its last position;
   - the same seed gives the same score order.
 - The menu first-cut probe and the `frame` scene.
