@@ -34,7 +34,9 @@ replaces a lost squad before its role rotation. A squad far from its objective,
 or from an enemy on the ground it is sent at, stops for a free carrier. The
 carrier collects it and drives toward the nearest such enemy, else the
 objective. It lets the squad out short of it, beyond the reach of every enemy
-the side identifies, then waits there for its next squad. Pairs are read off the
+the side identifies. An empty carrier whose mounts can fight is a combat unit
+like any other until a squad claims it; an unarmed one waits for its next
+squad, and only pairing buys one. Pairs are read off the
 observation at each decision, never stored, and passengers take no orders.
 [`transport.rs`](../../../crates/sim/src/skirmish_ai/transport.rs) owns those
 rules.

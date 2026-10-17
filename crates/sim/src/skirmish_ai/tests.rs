@@ -1480,9 +1480,14 @@ fn transport_deck() -> serde_json::Value {
 /// An active match on the transport deck with `units` of red's own, no
 /// credits to spend, and the empty match's one objective.
 fn transport_match(units: Value) -> (Rules, ObservationFrame, EntrySite) {
+    transport_match_on(transport_deck(), units)
+}
+
+/// [`transport_match`] on `deck`.
+fn transport_match_on(deck: Value, units: Value) -> (Rules, ObservationFrame, EntrySite) {
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":transport_deck(),"units":units,"events":[],"scripts":[]
+        "rules":deck,"units":units,"events":[],"scripts":[]
     }))
     .unwrap();
     let battle = crate::battle::Battle::new(&setup, 1);
@@ -1615,6 +1620,52 @@ fn the_ai_ignores_unseen_enemies_when_choosing_where_to_unload() {
     assert_ne!(unload(&frame), clear);
 }
 
+/// A carrier no squad needs is a combat unit if its mounts can fight: it
+/// advances like any other. One with no weapon waits for a squad.
+#[test]
+fn an_empty_armed_carrier_fights_and_an_unarmed_one_waits() {
+    let mut deck = transport_deck();
+    crate::fixtures::patch_catalog(
+        &mut deck,
+        "units",
+        "test_scout_car",
+        json!({ "mounts": [] }),
+    );
+    let (rules, frame, entry) = transport_match_on(
+        deck,
+        json!([
+            {"side":"red","kind":"test_apc","position":[530,60]},
+            {"side":"red","kind":"test_scout_car","position":[600,60]}
+        ]),
+    );
+    let (armed, unarmed) = (frame.own[0].id, frame.own[1].id);
+    let orders = BalancedDoctrine::default().decide(
+        Side::Red,
+        Faction::Us,
+        &entry,
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let ordered = |unit: UnitId| {
+        orders.iter().any(|o| match o {
+            Order::Attack { units, .. }
+            | Order::AttackMove { units, .. }
+            | Order::Move { units, .. }
+            | Order::Unload { units, .. }
+            | Order::Collect { units, .. } => units.contains(&unit),
+            _ => false,
+        })
+    };
+    assert!(
+        orders
+            .iter()
+            .any(|o| matches!(o, Order::AttackMove { units, .. } if units == &vec![armed])),
+        "the armed carrier advances on the objective: {orders:?}"
+    );
+    assert!(!ordered(unarmed), "the unarmed carrier waits: {orders:?}");
+}
+
 /// Pairs are read afresh at each decision, so a carrier already driving to a
 /// squad must stay its ride: handing the squad to a nearer carrier at every
 /// decision sends both back and forth and nobody ever boards.
@@ -1642,7 +1693,8 @@ fn a_carrier_already_coming_for_a_squad_stays_its_ride() {
         _ => false,
     };
     assert!(
-        !orders.iter().any(|o| names(o, near) || names(o, squad)),
+        !orders.iter().any(|o| names(o, squad)
+            || matches!(o, Order::Collect { units, .. } if units.contains(&near))),
         "the squad waits for the carrier already coming: {orders:?}"
     );
     assert!(

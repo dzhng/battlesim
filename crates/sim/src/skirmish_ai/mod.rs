@@ -499,13 +499,16 @@ impl BalancedDoctrine {
             .collect();
         // The cheapest cards of `role` (all of `category` when no role is
         // named, or the deck has no card of it), the `ordinal`-th of them.
+        // An unarmed carrier only carries: pairing alone buys it.
+        let unarmed_carrier =
+            |k: TypeIndex| transport::seats(rules, k) > 0 && rules.catalog.mounts(k).is_empty();
         let pick = |role: Option<&str>, category: Category, ordinal: usize| {
             let mut matching: Vec<_> = role
                 .map(|role| {
                     eligible
                         .iter()
                         .copied()
-                        .filter(|&k| rules.catalog.get(k).has_role(role))
+                        .filter(|&k| rules.catalog.get(k).has_role(role) && !unarmed_carrier(k))
                         .collect()
                 })
                 .unwrap_or_default();
@@ -513,6 +516,7 @@ impl BalancedDoctrine {
                 matching = eligible
                     .iter()
                     .copied()
+                    .filter(|&k| !unarmed_carrier(k))
                     .filter(|&k| {
                         let unit = rules.catalog.get(k);
                         unit.roster.as_ref().unwrap().category == category
@@ -760,9 +764,11 @@ impl BalancedDoctrine {
             });
         }
         if view.phase == Phase::Active {
-            let mut own: Vec<_> = frame.own.iter().collect();
-            own.sort_by_key(|u| u.id);
             let carries = |u: &contract::observation::OwnUnit| transport::seats(rules, u.kind) > 0;
+            // Carriers take their turn last, once every squad has claimed
+            // its ride.
+            let mut own: Vec<_> = frame.own.iter().collect();
+            own.sort_by_key(|u| (carries(u), u.id));
             // Carriers with no one aboard, free to collect a squad, and the
             // squad each one is sent for at this decision.
             let mut free: Vec<_> = own
@@ -777,12 +783,37 @@ impl BalancedDoctrine {
                 .collect();
             let mut collect: BTreeMap<UnitId, UnitId> = BTreeMap::new();
             for unit in &own {
-                // Passengers take no orders; carriers take theirs below.
+                // Passengers take no orders.
                 if rules.catalog.get(unit.kind).has_role("logistics")
                     || transport::carrier_of(unit).is_some()
-                    || carries(unit)
                 {
                     continue;
+                }
+                // A carrier collects the squad that claimed it, or drives a
+                // loaded squad to its drop point. Empty, it fights as its
+                // mounts let it, or waits for a squad with none.
+                if carries(unit) {
+                    if let Some(&squad) = collect.get(&unit.id) {
+                        let standing = own
+                            .iter()
+                            .find(|u| u.id == squad)
+                            .is_some_and(|squad| transport::coming_for(rules, unit, squad));
+                        if !standing {
+                            orders.push(Order::Collect {
+                                units: vec![unit.id],
+                                squads: vec![squad],
+                                gesture: frame.tick,
+                            });
+                        }
+                        continue;
+                    }
+                    if transport::passengers(frame, unit.id).next().is_some() {
+                        orders.extend(self.unload(side, entry, frame, rules, unit));
+                        continue;
+                    }
+                    if rules.catalog.mounts(unit.kind).is_empty() {
+                        continue;
+                    }
                 }
                 match self.relocation(unit, frame.tick, rules, route_time) {
                     Relocation::Stay => {}
@@ -955,28 +986,6 @@ impl BalancedDoctrine {
                     gesture: frame.tick,
                     goal: objective.center,
                 });
-            }
-            // A carrier collects the squad it was sent for, drives a loaded
-            // squad to its drop point, or waits where it is for a squad.
-            for carrier in own.iter().copied().filter(|u| carries(u)) {
-                if let Some(&squad) = collect.get(&carrier.id) {
-                    let standing = own
-                        .iter()
-                        .find(|u| u.id == squad)
-                        .is_some_and(|squad| transport::coming_for(rules, carrier, squad));
-                    if standing {
-                        continue;
-                    }
-                    orders.push(Order::Collect {
-                        units: vec![carrier.id],
-                        squads: vec![squad],
-                        gesture: frame.tick,
-                    });
-                    continue;
-                }
-                if let Some(order) = self.unload(side, entry, frame, rules, carrier) {
-                    orders.push(order);
-                }
             }
             // Support stays between the road-edge base and the observed combat
             // group. An impossible support route falls back to the admitted base.
