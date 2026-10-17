@@ -70,6 +70,62 @@ function entry(catalog: JsonObject, section: string, id: string): JsonObject {
   return object(records[id]);
 }
 
+/** Every edit takes effect in the resolved `catalog`: the selected unit
+ *  still carries each edited soldier kind (by its local variant id in
+ *  `soldierIds`), and no inheritance or upgrade overrides the new value. */
+function checkIntent(
+  catalog: JsonObject,
+  changes: readonly MechanicsChange[],
+  soldierIds: Record<string, string>,
+): void {
+  for (const change of changes) {
+    if (change.restore) continue;
+    const id = soldierIds[targetKey(change)] ?? change.id;
+    if (
+      change.section === "soldiers" &&
+      !(
+        valueAt(entry(catalog, "units", change.unit!), ["body", "squad", "slots"]) as Json[]
+      ).includes(id)
+    )
+      throw new MechanicsError(
+        "The selected unit no longer carries the edited soldier kind. Update its slots or remove the soldier edit.",
+      );
+    if (!matchesIntent(valueAt(entry(catalog, change.section, id), change.path), change.value!))
+      throw new MechanicsError(
+        "Inheritance or an upgrade part overrides this field. The requested value would not take effect.",
+      );
+  }
+}
+
+/** The units whose resolved row differs between `before` and `after`, or
+ *  that carry a changed weapon or soldier kind. */
+function changedUnits(before: JsonObject, after: JsonObject): string[] {
+  const changedRows = (section: string) =>
+    new Set(
+      Object.keys(entries(after, section)).filter(
+        (id) =>
+          JSON.stringify(entries(after, section)[id]) !==
+          JSON.stringify(entries(before, section)[id]),
+      ),
+    );
+  const changedWeapons = changedRows("weapons");
+  const changedSoldiers = changedRows("soldiers");
+  const oldUnits = before.units as JsonObject[];
+  const units = after.units as JsonObject[];
+  return units
+    .filter(
+      (unit) =>
+        JSON.stringify(unit) !== JSON.stringify(oldUnits.find((old) => old.id === unit.id)) ||
+        (unit.mounts as JsonObject[]).some((mount) =>
+          (mount.weapons as string[]).some((id) => changedWeapons.has(id)),
+        ) ||
+        (valueAt(unit, ["body", "squad", "slots"]) as string[] | undefined)?.some((id) =>
+          changedSoldiers.has(id),
+        ),
+    )
+    .map((unit) => String(unit.id));
+}
+
 function override(
   target: JsonObject,
   resolved: JsonObject,
@@ -255,6 +311,7 @@ export class MechanicsStore {
     });
   }
 
+  // eslint-disable-next-line complexity -- debt: per-change validation records each field address in `seen` midway; a clean split needs it to return the address so this loop owns `seen`, keeping the error order
   private async candidate(draft: MechanicsDraft): Promise<MechanicsPreview> {
     if (!draft || typeof draft !== "object" || Array.isArray(draft))
       throw new MechanicsError("A draft must be a JSON object");
@@ -394,47 +451,8 @@ export class MechanicsStore {
         Object.assign(unit, original);
       }
     }
-    for (const change of draft.changes) {
-      if (change.restore) continue;
-      const id = soldierIds[targetKey(change)] ?? change.id;
-      if (
-        change.section === "soldiers" &&
-        !(
-          valueAt(entry(catalog, "units", change.unit!), ["body", "squad", "slots"]) as Json[]
-        ).includes(id)
-      )
-        throw new MechanicsError(
-          "The selected unit no longer carries the edited soldier kind. Update its slots or remove the soldier edit.",
-        );
-      if (!matchesIntent(valueAt(entry(catalog, change.section, id), change.path), change.value!))
-        throw new MechanicsError(
-          "Inheritance or an upgrade part overrides this field. The requested value would not take effect.",
-        );
-    }
-    const changedRows = (section: string) =>
-      new Set(
-        Object.keys(entries(catalog, section)).filter(
-          (id) =>
-            JSON.stringify(entries(catalog, section)[id]) !==
-            JSON.stringify(entries(state.catalog, section)[id]),
-        ),
-      );
-    const changedWeapons = changedRows("weapons");
-    const changedSoldiers = changedRows("soldiers");
-    const oldUnits = state.catalog.units as JsonObject[];
-    const units = catalog.units as JsonObject[];
-    const affectedUnits = units
-      .filter(
-        (unit) =>
-          JSON.stringify(unit) !== JSON.stringify(oldUnits.find((old) => old.id === unit.id)) ||
-          (unit.mounts as JsonObject[]).some((mount) =>
-            (mount.weapons as string[]).some((id) => changedWeapons.has(id)),
-          ) ||
-          (valueAt(unit, ["body", "squad", "slots"]) as string[] | undefined)?.some((id) =>
-            changedSoldiers.has(id),
-          ),
-      )
-      .map((unit) => String(unit.id));
+    checkIntent(catalog, draft.changes, soldierIds);
+    const affectedUnits = changedUnits(state.catalog, catalog);
     const files = documents.flatMap((file, i) =>
       JSON.stringify(file.value) === JSON.stringify(state.files[i].value)
         ? []

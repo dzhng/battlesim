@@ -955,6 +955,7 @@ export function LabViewport({
         let modifiers = { ctrl: false, shift: false };
         const pointerRay = () => (pointer ? handle.rayAt!(pointer.x, pointer.y) : null);
         let lastFrame = performance.now();
+        // eslint-disable-next-line complexity -- debt: its stages read and write the effect's mutable locals (scene, dirty, pointer, grassSuppressed, lastFrame); split needs those in one frame-state object the stages take, not more closures.
         const loop = (now: number) => {
           if (signal.aborted) return;
           const dt = Math.min(0.1, (now - lastFrame) / 1000);

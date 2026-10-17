@@ -69,6 +69,42 @@ export function inferUnit(bytes: Uint8Array): AppearanceUnit {
   return "scenery";
 }
 
+/** A skinned model's clips, judged against its catalog skeleton, or, when it
+ *  has none or the caller brings its own clips, against every clip they hold. */
+async function looseClips(
+  model: { path: string; bytes: Uint8Array; yaw: number; skeleton: string | undefined },
+  catalog: Pick<Catalog, "skeletons">,
+  options: LooseOptions,
+  readSource: (path: string) => Promise<Uint8Array>,
+) {
+  const skeletonEntry = model.skeleton ? catalog.skeletons[model.skeleton] : null;
+  const clipsPath = options.clips?.path ?? skeletonEntry?.source ?? model.path;
+  const clipBytes =
+    options.clips?.bytes ?? (clipsPath === model.path ? model.bytes : await readSource(clipsPath));
+  let declared: SkeletonEntry | null = skeletonEntry && !options.clips ? skeletonEntry : null;
+  if (!declared) {
+    const loops = options.loops ?? [];
+    const names: string[] = (parseGlb(clipBytes).json.animations ?? []).map(
+      (a: { name: string }) => a.name,
+    );
+    declared = {
+      source: clipsPath,
+      basis_yaw_deg: model.yaw,
+      sample_hz: 30,
+      aim_reference: { clip: "stand_aim", phase: 0 },
+      clips: Object.fromEntries(names.map((n) => [n, { loop: loops.includes(n) }])),
+    };
+  }
+  const id = model.skeleton ?? "adhoc";
+  const clips = await validateSkeleton(id, declared, clipBytes);
+  return {
+    result: { ...clips, path: clipsPath, id },
+    skeleton: clips.preview
+      ? { clips: clips.preview, aim_reference: declared.aim_reference }
+      : undefined,
+  };
+}
+
 export async function validateLoose(
   path: string,
   bytes: Uint8Array,
@@ -134,31 +170,17 @@ export async function validateLoose(
     if (!(state in files)) files[state] = await readSource(state);
   let skeleton;
   if (kind === "skinned") {
-    const skeletonEntry = named?.[1].skeleton ? catalog.skeletons[named[1].skeleton] : null;
-    const clipsPath = options.clips?.path ?? skeletonEntry?.source ?? path;
-    const clipBytes =
-      options.clips?.bytes ?? (clipsPath === path ? bytes : await readSource(clipsPath));
-    let declared: SkeletonEntry | null = skeletonEntry && !options.clips ? skeletonEntry : null;
-    if (!declared) {
-      const loops = options.loops ?? [];
-      const names: string[] = (parseGlb(clipBytes).json.animations ?? []).map(
-        (a: { name: string }) => a.name,
-      );
-      declared = {
-        source: clipsPath,
-        basis_yaw_deg: yaw,
-        sample_hz: 30,
-        aim_reference: { clip: "stand_aim", phase: 0 },
-        clips: Object.fromEntries(names.map((n) => [n, { loop: loops.includes(n) }])),
-      };
-    }
-    const id = named?.[1].skeleton ?? "adhoc";
-    const clips = await validateSkeleton(id, declared, clipBytes);
-    result.clips = { ...clips, path: clipsPath, id };
+    const clips = await looseClips(
+      { path, bytes, yaw, skeleton: named?.[1].skeleton },
+      catalog,
+      options,
+      readSource,
+    );
+    result.clips = clips.result;
     // Fit is measured on whatever clips built, so body findings show even
     // when the clips have errors.
-    if (!clips.preview) return result;
-    skeleton = { clips: clips.preview, aim_reference: declared.aim_reference };
+    if (!clips.skeleton) return result;
+    skeleton = clips.skeleton;
   }
   result.appearance = await validateAppearance(
     {

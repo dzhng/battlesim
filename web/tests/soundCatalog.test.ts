@@ -220,6 +220,13 @@ test("air-war audio keeps downloaded rights-unassigned receipts beside placehold
   expect(prepared).not.toContain("airwar-air-alarm-placeholder");
 });
 
+test("a provenance receipt without its download record is refused as an invalid receipt", () => {
+  const c = structuredClone(shipped) as unknown as SoundCatalog;
+  const [name, receipt] = Object.entries(c.provenance ?? {})[0];
+  delete (receipt as Partial<typeof receipt>).download;
+  expect(() => validateSoundCatalog(c)).toThrow(`provenance ${name}: invalid source receipt`);
+});
+
 test("a generated sound effect is cut into clips like a recording; a generated music master is not", () => {
   const c = catalog();
   const generated = (path: string) => ({

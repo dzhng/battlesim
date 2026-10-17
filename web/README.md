@@ -28,14 +28,15 @@ startup alone does not prove its performance budget.
 
 [The web manifest](package.json) owns browser dependencies, WebAssembly compilation,
 build and test commands; [the root manifest](../package.json) composes prerequisites.
-Use the root [startup instructions](../README.md#running-it) for a first checkout.
+Use the root [startup instructions](../README.md#try-it) for a first checkout.
 [WebAssembly build and memory ownership](../crates/game-wasm/README.md) explains
 generated bindings and how publications cross the boundary.
 
-`bun run setup` installs the web dependencies and Playwright's managed
-Chromium, then checks the `ffmpeg` and `ffprobe` tools used by the audio asset
-tests. If dependencies are already present but the browser executable is
-missing, run `bun run --cwd web install-browsers`; check the audio tools with
+`bun run setup` installs the repository's hook dependencies and the web
+dependencies, then installs Playwright's managed Chromium and checks the
+`ffmpeg` and `ffprobe` tools used by the audio asset tests. If dependencies are
+already present but the browser executable is missing, run
+`bun run --cwd web install-browsers`; check the audio tools with
 `bun run --cwd web check-prerequisites`. On macOS install the audio tools with
 `brew install ffmpeg`. On WSL install them with
 `sudo apt-get update && sudo apt-get install -y ffmpeg`. The browser harness

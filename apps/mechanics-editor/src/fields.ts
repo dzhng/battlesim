@@ -723,30 +723,46 @@ export function validateGameplayValue(
     return Array.isArray(value) && value.every((v) => typeof v === "string" && v.length > 0)
       ? undefined
       : "Use a comma-separated list of reference ids.";
-  if (f.kind === "object") {
-    if (!isObject(value)) return "Expected a gameplay object or none.";
-    for (const [key, child] of Object.entries(value)) {
-      const error = validateGameplayValue(section, [...path, key], child);
-      if (error) return `${key}: ${error}`;
-    }
-    return undefined;
+  if (f.kind === "object") return validateObject(section, path, value);
+  if (f.kind === "mounts") return validateMounts(section, path, value);
+  return validateNumbers(f, value);
+}
+
+function validateObject(
+  section: Section,
+  path: readonly string[],
+  value: Json,
+): string | undefined {
+  if (!isObject(value)) return "Expected a gameplay object or none.";
+  for (const [key, child] of Object.entries(value)) {
+    const error = validateGameplayValue(section, [...path, key], child);
+    if (error) return `${key}: ${error}`;
   }
-  if (f.kind === "mounts") {
-    if (!Array.isArray(value)) return "Expected a list of mounts, each with an id.";
-    const ids = new Set<string>();
-    for (const row of value) {
-      if (!isObject(row) || typeof row.id !== "string" || !row.id.trim() || ids.has(row.id))
-        return "Every mount needs a unique id.";
-      ids.add(row.id);
-      // Its label is the catalog's to judge (`contract::labels`), on preview.
-      for (const [key, child] of Object.entries(row)) {
-        if (key === "id" || key === "name") continue;
-        const error = validateGameplayValue(section, [...path, row.id, key], child);
-        if (error) return `${row.id}.${key}: ${error}`;
-      }
+  return undefined;
+}
+
+function validateMounts(
+  section: Section,
+  path: readonly string[],
+  value: Json,
+): string | undefined {
+  if (!Array.isArray(value)) return "Expected a list of mounts, each with an id.";
+  const ids = new Set<string>();
+  for (const row of value) {
+    if (!isObject(row) || typeof row.id !== "string" || !row.id.trim() || ids.has(row.id))
+      return "Every mount needs a unique id.";
+    ids.add(row.id);
+    // Its label is the catalog's to judge (`contract::labels`), on preview.
+    for (const [key, child] of Object.entries(row)) {
+      if (key === "id" || key === "name") continue;
+      const error = validateGameplayValue(section, [...path, row.id, key], child);
+      if (error) return `${row.id}.${key}: ${error}`;
     }
-    return undefined;
   }
+  return undefined;
+}
+
+function validateNumbers(f: GameplayField, value: Json): string | undefined {
   const numbers = f.kind === "vector" && Array.isArray(value) ? value : [value];
   if (f.kind === "vector" && (!Array.isArray(value) || value.length !== 3))
     return "Enter three numbers: forward, left, up (or length, width, height).";

@@ -147,26 +147,28 @@ export function grassSpecErrors(spec: GrassSpec): string[] {
     if (!(Array.isArray(r) && r.length === 2 && r[0] >= lo && r[1] >= r[0] && r[1] <= hi))
       out.push(`${what} must be [low, high] within [${lo}, ${hi}]`);
   };
+  const within = (what: string, v: number, lo: number, hi: number) => {
+    if (!(v >= lo && v <= hi)) out.push(`${what} must be within [${lo}, ${hi}]`);
+  };
   if (!(Number.isInteger(spec.blades) && spec.blades >= 1 && spec.blades <= GRASS_MAX_BLADES))
     out.push(`blades must be a whole number within [1, ${GRASS_MAX_BLADES}]`);
   range("height_m", spec.height_m, 0.02, 3);
   range("lean", spec.lean, 0, 0.8);
-  if (!(spec.radius_m >= 0 && spec.radius_m <= 1)) out.push("radius_m must be within [0, 1]");
+  within("radius_m", spec.radius_m, 0, 1);
   if (!(spec.width_m > 0 && spec.width_m <= 0.2)) out.push("width_m must be within (0, 0.2]");
-  if (!(spec.jitter >= 0 && spec.jitter <= 0.5)) out.push("jitter must be within [0, 0.5]");
-  if (!(spec.wind >= 0 && spec.wind <= 1)) out.push("wind must be within [0, 1]");
-  if (spec.droop !== undefined && !(spec.droop >= 0 && spec.droop <= 0.6))
-    out.push("droop must be within [0, 0.6]");
-  if (spec.shape && !(spec.shape.taper >= 0.5 && spec.shape.taper <= 8))
-    out.push("shape.taper must be within [0.5, 8]");
-  if (spec.shape && !(spec.shape.belly >= 0 && spec.shape.belly <= 4))
-    out.push("shape.belly must be within [0, 4]");
-  if (spec.head && !(spec.head.from > 0 && spec.head.from < 1 && spec.head.width >= 1))
-    out.push("head.from must be within (0, 1) and head.width at least 1");
-  if (spec.head && !(spec.head.chance >= 0 && spec.head.chance <= 1))
-    out.push("head.chance must be within [0, 1]");
-  if (spec.dry && !(spec.dry.chance >= 0 && spec.dry.chance <= 1))
-    out.push("dry.chance must be within [0, 1]");
+  within("jitter", spec.jitter, 0, 0.5);
+  within("wind", spec.wind, 0, 1);
+  if (spec.droop !== undefined) within("droop", spec.droop, 0, 0.6);
+  if (spec.shape) {
+    within("shape.taper", spec.shape.taper, 0.5, 8);
+    within("shape.belly", spec.shape.belly, 0, 4);
+  }
+  if (spec.head) {
+    if (!(spec.head.from > 0 && spec.head.from < 1 && spec.head.width >= 1))
+      out.push("head.from must be within (0, 1) and head.width at least 1");
+    within("head.chance", spec.head.chance, 0, 1);
+  }
+  if (spec.dry) within("dry.chance", spec.dry.chance, 0, 1);
   const colours = [spec.colors?.root, spec.colors?.mid, spec.colors?.tip];
   if (spec.dry) colours.push(spec.dry.colors?.root, spec.dry.colors?.mid, spec.dry.colors?.tip);
   if (spec.head?.color) colours.push(spec.head.color);

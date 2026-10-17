@@ -89,6 +89,15 @@ interface DrawnAnchors {
   ground?: (x: number, y: number) => number;
 }
 
+/** Where `c`'s panel hangs: its unit as the frame drew it (a ghost where it
+ *  stands), or a ground contact on the drawn ground. */
+function anchorOf(c: Callout, drawn: DrawnAnchors): Point3 {
+  if (c.ghost) return c.at;
+  if (c.owner === "own") return drawn.own?.get(c.id) ?? c.at;
+  if (c.owner === "enemy") return drawn.enemies?.get(c.id) ?? c.at;
+  return c.onGround ? [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0] : c.at;
+}
+
 export interface GhostReadout {
   unit: OwnUnitView;
   position: Point3;
@@ -237,6 +246,70 @@ export function ReadoutLayer({
     const r = node.getBoundingClientRect();
     return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
   };
+  /** The card under `hover`, else the unit or enemy it points at. The card
+   *  hovered last frame keeps hold while the pointer is in its compact or
+   *  drawn box, so expanding it never moves it out from under the pointer. */
+  const hoveredKey = (hover: ReadoutHover | null): string | null => {
+    const contains = (r: ReadoutRect | null | undefined) =>
+      !!r && !!hover && hover.x >= r.x0 && hover.x <= r.x1 && hover.y >= r.y0 && hover.y <= r.y1;
+    const previous = hoveredCard.current;
+    const held =
+      previous &&
+      calloutsRef.current.some((c) => c.key === previous && !c.retiring && !c.ghost) &&
+      (contains(compactBoxes.current.get(previous)) || contains(visibleBox(previous)));
+    const card =
+      hover &&
+      [...calloutsRef.current]
+        .sort((a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0))
+        .find((c) => !c.retiring && !c.ghost && contains(visibleBox(c.key)));
+    return hover
+      ? held
+        ? previous
+        : (card?.key ??
+          (hover.unit !== null
+            ? `own-${hover.unit}`
+            : hover.enemy != null
+              ? `enemy-${hover.enemy}`
+              : null))
+      : null;
+  };
+  /** A panel off the layout this frame: no leader, and no nudge to ease from. */
+  const unplace = (key: string) => {
+    leaders.current.get(key)?.setAttribute("d", "");
+    nudges.current.delete(key);
+  };
+  /** In a far view, where cards may overlap: a card another paints over is
+   *  softened (unless hovered), and one painted over another is marked. */
+  const shadeOverlaps = (
+    cards: readonly { id: string; node: HTMLDivElement; distanceSq: number; opacity: number }[],
+    drawnBoxes: ReadonlyMap<string, ReadoutRect>,
+    overlap: boolean,
+  ) => {
+    const near = [...cards].sort((a, b) => a.distanceSq - b.distanceSq);
+    for (const b of cards) {
+      const box = drawnBoxes.get(b.id)!;
+      const behind =
+        overlap &&
+        near.some(
+          (other) =>
+            paintOrder.current.get(other.id)! > paintOrder.current.get(b.id)! &&
+            overlaps(box, drawnBoxes.get(other.id)!),
+        );
+      const inFront =
+        overlap &&
+        near.some(
+          (other) =>
+            paintOrder.current.get(other.id)! < paintOrder.current.get(b.id)! &&
+            overlaps(box, drawnBoxes.get(other.id)!),
+        );
+      const softened = behind && b.id !== hoveredCard.current;
+      const group = b.node.parentElement!;
+      if (inFront) group.dataset.overlapping = "true";
+      else delete group.dataset.overlapping;
+      group.style.opacity = String(b.opacity * (softened ? 0.65 : 1));
+      group.style.filter = softened ? "blur(0.6px)" : "";
+    }
+  };
   useImperativeHandle(handle, () => ({
     pick(x, y) {
       const priority = [...calloutsRef.current].sort(
@@ -259,31 +332,7 @@ export function ReadoutLayer({
       return !!r && overlaps(r, rect);
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
-      const contains = (r: ReadoutRect | null | undefined) =>
-        !!r && !!hover && hover.x >= r.x0 && hover.x <= r.x1 && hover.y >= r.y0 && hover.y <= r.y1;
-      // Retain the original hit area when expansion moves the hovered card.
-      const previous = hoveredCard.current;
-      const held =
-        previous &&
-        calloutsRef.current.some((c) => c.key === previous && !c.retiring && !c.ghost) &&
-        (contains(compactBoxes.current.get(previous)) || contains(visibleBox(previous)));
-      const card =
-        hover &&
-        [...calloutsRef.current]
-          .sort(
-            (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
-          )
-          .find((c) => !c.retiring && !c.ghost && contains(visibleBox(c.key)));
-      hoveredCard.current = hover
-        ? held
-          ? previous
-          : (card?.key ??
-            (hover.unit !== null
-              ? `own-${hover.unit}`
-              : hover.enemy != null
-                ? `enemy-${hover.enemy}`
-                : null))
-        : null;
+      hoveredCard.current = hoveredKey(hover);
       eyePosition(_readout_eye, camera);
       const overlap = camera.distance > 1000;
       // Each panel's anchor, in page pixels.
@@ -300,15 +349,7 @@ export function ReadoutLayer({
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
         if (!node) continue;
-        const p: Point3 = c.ghost
-          ? c.at
-          : c.owner === "own"
-            ? (drawn.own?.get(c.id) ?? c.at)
-            : c.owner === "enemy"
-              ? (drawn.enemies?.get(c.id) ?? c.at)
-              : c.onGround
-                ? [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0]
-                : c.at;
+        const p = anchorOf(c, drawn);
         // A panel hangs off a unit in front of the eye; the layout hides one
         // near the viewport's edge.
         const at = project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M));
@@ -327,10 +368,7 @@ export function ReadoutLayer({
               vec3.set(_readout_anchor, p[0], p[1], p[2]),
             ),
           });
-        else {
-          leaders.current.get(c.key)?.setAttribute("d", "");
-          nudges.current.delete(c.key);
-        }
+        else unplace(c.key);
       }
       const zoom = expanded ? "default" : "compressed";
       if (layer.current && layer.current.dataset.zoom !== zoom) layer.current.dataset.zoom = zoom;
@@ -372,8 +410,7 @@ export function ReadoutLayer({
         const at = layout.get(b.id);
         if (!at) {
           b.node.style.display = "none";
-          leaders.current.get(b.id)?.setAttribute("d", "");
-          nudges.current.delete(b.id);
+          unplace(b.id);
           continue;
         }
         const { natural, box: target } = at;
@@ -439,7 +476,6 @@ export function ReadoutLayer({
       );
       for (const { b } of situated)
         b.node.parentElement!.style.zIndex = String(paintOrder.current.get(b.id));
-      const near = [...situated].sort((a, b) => a.b.distanceSq - b.b.distanceSq);
       const drawnBoxes = new Map<string, ReadoutRect>();
       for (const { b, box: compact } of situated) {
         const detail = details.get(b.id);
@@ -474,29 +510,11 @@ export function ReadoutLayer({
               `M ${xy(from)} L ${xy(corner)} L ${xy(foot)}`,
           );
       }
-      for (const { b } of situated) {
-        const box = drawnBoxes.get(b.id)!;
-        const behind =
-          overlap &&
-          near.some(
-            ({ b: other }) =>
-              paintOrder.current.get(other.id)! > paintOrder.current.get(b.id)! &&
-              overlaps(box, drawnBoxes.get(other.id)!),
-          );
-        const inFront =
-          overlap &&
-          near.some(
-            ({ b: other }) =>
-              paintOrder.current.get(other.id)! < paintOrder.current.get(b.id)! &&
-              overlaps(box, drawnBoxes.get(other.id)!),
-          );
-        const softened = behind && b.id !== hoveredCard.current;
-        const group = b.node.parentElement!;
-        if (inFront) group.dataset.overlapping = "true";
-        else delete group.dataset.overlapping;
-        group.style.opacity = String(b.opacity * (softened ? 0.65 : 1));
-        group.style.filter = softened ? "blur(0.6px)" : "";
-      }
+      shadeOverlaps(
+        situated.map(({ b }) => b),
+        drawnBoxes,
+        overlap,
+      );
     },
   }));
   const bind = useCallback(

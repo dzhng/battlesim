@@ -2,7 +2,7 @@
 
 Run `bun run dev` from the repository root, then open `/sound-workbench` at the
 localhost address printed by Vite, or use the developer menu. The root
-[startup instructions](../../README.md#running-it) own prerequisites and setup.
+[startup instructions](../../README.md#try-it) own prerequisites and setup.
 The library includes clean recordings, unused mechanical actions and the original
 synthesis baselines. Audition is explicit; opening or testing the tool stays silent.
 
