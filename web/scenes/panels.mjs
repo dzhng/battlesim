@@ -263,6 +263,8 @@ async function checkCarriers(ctx, page) {
       const own = body.getBoundingClientRect();
       return {
         id: card.dataset.specimen,
+        // An own carrier's specimen lists who it carries (`data-carries`).
+        carrier: card.dataset.carries !== undefined,
         enemy: unit.dataset.owner === "enemy",
         compact: body.dataset.zoom === "compressed",
         seats: shown(seats) ? seats.textContent.trim() : null,
@@ -279,7 +281,7 @@ async function checkCarriers(ctx, page) {
       };
     }),
   );
-  const carrierCards = carriers.filter((c) => !c.enemy && !c.id.includes("squad"));
+  const carrierCards = carriers.filter((c) => c.carrier && !c.enemy);
   ctx.check(
     "a carrier's card shows SEATS n/N in every view, alone when compact, with its riders' compact cards set in under it; an enemy's shows none",
     carrierCards.length >= 5 &&
