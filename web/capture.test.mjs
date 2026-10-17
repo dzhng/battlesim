@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 import { parseCaptureArgs } from "./capture/args.mjs";
 import { planCapture } from "./capture/plan.mjs";
 import { transcodeArgs } from "./capture/transcode.mjs";
-import { CROSSFADE_S, joinArgs, joinOffsets } from "./capture/join.mjs";
+import { JOIN_S, joinArgs, joinOffsets } from "./capture/join.mjs";
 import { buildReport, frameStats } from "./capture/report.mjs";
 import { CaptureError, recordingVerdict, recordTimeoutMs } from "./capture/recording.mjs";
 
@@ -117,7 +117,7 @@ test("transcode: VP9/Opus WebM to CFR H.264 yuv420p + AAC at the exact frame siz
 });
 
 test("join: chained xfade/acrossfade with offsets from each scene's length", () => {
-  const d = CROSSFADE_S;
+  const d = JOIN_S;
   expect(d).toBeGreaterThan(0);
   expect(d).toBeLessThan(1);
   // Each transition starts `d` before the running joined length ends.

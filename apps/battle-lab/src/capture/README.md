@@ -3,7 +3,7 @@
 Scripted battle videos for marketing, filmed from a JSON file. An agent writes
 the file and one command turns it into MP4s. Nobody drives this by hand, and
 there is no UI. The design and its reasons live in
-[the capture spec](../../../../specs/capture/README.md).
+[the capture spec](../../../../specs/done/capture/README.md).
 
 ## Two files, two owners
 

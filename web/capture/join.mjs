@@ -7,24 +7,24 @@ import { AAC, X264 } from "./transcode.mjs";
 
 /** The dip between scenes, in seconds: long enough to read as a cut,
  * short enough not to eat either scene's last or first beat. */
-export const CROSSFADE_S = 0.5;
+export const JOIN_S = 0.5;
 
 /** Millisecond-rounded, so float noise never reaches the filter graph. */
 const ms = (seconds) => Math.round(seconds * 1000) / 1000;
 
 /** Start time of each transition in the joined timeline: transition k begins
- * CROSSFADE_S before the running length of scenes 0..k ends. */
+ * JOIN_S before the running length of scenes 0..k ends. */
 export function joinOffsets(durations) {
   durations.forEach((seconds, i) => {
-    if (!(seconds > CROSSFADE_S)) {
-      throw new Error(`scene ${i} is ${seconds}s, not longer than the ${CROSSFADE_S}s crossfade`);
+    if (!(seconds > JOIN_S)) {
+      throw new Error(`scene ${i} is ${seconds}s, not longer than the ${JOIN_S}s join`);
     }
   });
   const offsets = [];
   let length = durations[0];
   for (let k = 1; k < durations.length; k++) {
-    offsets.push(ms(length - CROSSFADE_S));
-    length += durations[k] - CROSSFADE_S;
+    offsets.push(ms(length - JOIN_S));
+    length += durations[k] - JOIN_S;
   }
   return offsets;
 }
@@ -40,8 +40,8 @@ export function joinArgs({ inputs, output, fps }) {
   offsets.forEach((offset, k) => {
     const i = k + 1;
     graph.push(
-      `[${video}][${i}:v]xfade=transition=fadeblack:duration=${CROSSFADE_S}:offset=${offset}[v${i}]`,
-      `[${audio}][${i}:a]acrossfade=d=${CROSSFADE_S}[a${i}]`,
+      `[${video}][${i}:v]xfade=transition=fadeblack:duration=${JOIN_S}:offset=${offset}[v${i}]`,
+      `[${audio}][${i}:a]acrossfade=d=${JOIN_S}[a${i}]`,
     );
     video = `v${i}`;
     audio = `a${i}`;

@@ -1,7 +1,7 @@
 /** Records one element of this tab, with the tab's sound, as a VP9+Opus WebM.
  *
  *  The browser composites the stage exactly as the player sees it (WebGPU
- *  canvases, DOM cards, CSS grade) and mixes every sound the tab plays, so
+ *  canvases, DOM cards, the grade) and mixes every sound the tab plays, so
  *  nothing here re-renders or re-mixes. Chromium grants the capture without a
  *  prompt only when launched with `--auto-accept-this-tab-capture`; without it
  *  `getDisplayMedia` waits on a dialog nobody will answer, so the caller owns
