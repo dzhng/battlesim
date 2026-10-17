@@ -36,8 +36,6 @@ import {
   aim,
   groundCss,
   pointerOffCanvas,
-  menuShown,
-  openMenuPage,
 } from "./_lab.mjs";
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
@@ -3073,104 +3071,9 @@ async function rulerTour(ctx) {
   await page.close();
 }
 
-/** The HUD's enemy red, as CSS computes it. */
-const ENEMY_RGB = `rgb(${game.presentation.hud.enemy.map((v) => Math.round(v * 255)).join(", ")})`;
-
-/** One panel as drawn: shown, its name, every state row (state, word, ring
- *  progress) and every weapon tag. `attr` is `unit`, `enemy` or `contact`. */
-const panelOf = (page, attr, id) =>
-  lab(
-    page,
-    ([a, k]) => {
-      const n = document.querySelector(`[data-testid=readouts] .ro-unit[data-${a}="${k}"]`);
-      if (!n) return null;
-      const r = n.getBoundingClientRect();
-      return {
-        shown: n.style.display !== "none",
-        box: { x: r.left, y: r.top, w: r.width, h: r.height },
-        name: n.querySelector(".ro-name-word")?.textContent.trim() ?? null,
-        states: [...n.querySelectorAll(".ro-state")].map((e) => ({
-          state: e.dataset.state,
-          word: e.querySelector(".ro-state-word").textContent,
-          progress: e.dataset.progress,
-        })),
-        weapons: [...n.querySelectorAll(".ro-weapon")].map((e) => e.textContent.trim()),
-        text: n.textContent,
-        colour: getComputedStyle(n.querySelector(".ro-name") ?? n).color,
-      };
-    },
-    [attr, id],
-  );
-
-/** A frame named `name`, and a 2× crop round the panel it shows. */
-async function panelShot(ctx, page, attr, id, name) {
-  const selector = `.ro-layer .ro-unit[data-${attr}="${id}"]`;
-  if ((await panelOf(page, attr, id))?.shown) {
-    await page.locator(selector).locator(".ro-name").hover();
-    await page.waitForFunction(
-      (s) => document.querySelector(s)?.dataset.zoom === "default",
-      selector,
-    );
-  }
-  const png = decode(await snapshot(ctx, page, `${name}-1920x1080.png`));
-  const p = await panelOf(page, attr, id);
-  if (p?.shown)
-    await writeCrop(
-      png,
-      ctx.evidencePath(`${name}-crop-2x.png`),
-      p.box.x + p.box.w / 2 - 20,
-      p.box.y + p.box.h / 2 + 20,
-      p.box.w / 2 + 70,
-      p.box.h / 2 + 60,
-      2,
-    );
-  await page.mouse.move(1885, 25);
-}
-
-/** Ink of the ground marks (overlay over black, and the paint) within
- *  `radius` metres of `at` on screen, the panels hidden. */
-async function marksNear(ctx, page, at, radius, name) {
-  await page.evaluate(() => {
-    document.querySelector("[data-testid=readouts]").style.visibility = "hidden";
-  });
-  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
-  const over = decode(await snapshot(ctx, page, `${name}-overlay.png`));
-  await lab(page, () => window.__lab.setFrameView("final"));
-  const paint = await paintOnly(ctx, page, name);
-  await page.evaluate(() => {
-    document.querySelector("[data-testid=readouts]").style.visibility = "";
-  });
-  const c = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), at);
-  const rim = await lab(
-    page,
-    ([p, r]) =>
-      [0, 1, 2, 3].map((k) =>
-        window.__lab.projectToCss(
-          p[0] + r * Math.cos((k * Math.PI) / 2),
-          p[1] + r * Math.sin((k * Math.PI) / 2),
-          p[2],
-        ),
-      ),
-    [at, radius],
-  );
-  const px = Math.max(...rim.map((q) => Math.hypot(q[0] - c[0], q[1] - c[1])));
-  let overlay = 0,
-    painted = 0;
-  for (let y = Math.max(0, c[1] - px); y < Math.min(over.height, c[1] + px); y++)
-    for (let x = Math.max(0, c[0] - px); x < Math.min(over.width, c[0] + px); x++) {
-      if (Math.hypot(x - c[0], y - c[1]) > px) continue;
-      const [r, g, b] = pixel(over, x, y);
-      if (r + g + b >= 60) overlay++;
-      const [pr, pg, pb] = pixel(paint, x, y);
-      if (pr + pg + pb >= 60) painted++;
-    }
-  return { overlay, painted, px: Math.round(px) };
-}
-
-/** Every unit's info panel holds its states, as an icon and a short word;
- *  the ground keeps only selection and movement. Enemy panels are red and
- *  say only what blue can know. Shots of each panel at the default camera
- *  and one far, busy frame. */
+/** The info panels' layout: at a far, busy camera the closest units' panels
+ *  get full detail and stay clear of each other, holding that layout steady,
+ *  and hovering an unselected unit opens its full panel. */
 async function panelLayoutTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const own = (await obs(page)).own;

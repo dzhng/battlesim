@@ -76,7 +76,7 @@ fn attack_identified_for(b: &mut Battle, side: Side, seq: u64, unit: UnitId, tar
         .unwrap_or_else(|| panic!("{side:?} identifies target unit {target:?}"));
     let ack = b.accept(CommandEnvelope {
         side,
-        slot: None,
+        player: None,
         seq,
         order: Order::Attack {
             units: vec![unit],
@@ -294,7 +294,7 @@ fn a_ground_order_on_a_hill_stays_ground() {
     );
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],

@@ -134,18 +134,29 @@ function ingressSkirmish([w, h]: [number, number]) {
     counterpart,
   });
   return {
-    factions: ["us", "eastern"],
-    rules: { ...matchRules, preparation_s: 0 },
-    sites: {
-      entries: [
-        { side: "blue", center: [10, h / 2], yaw: 0 },
-        { side: "red", center: [w - 10, h / 2], yaw: Math.PI },
-      ],
-      objectives: [
-        objective("center", h / 2, "junction", null),
-        objective("south", h * 0.15, "field", "north"),
-        objective("north", h * 0.85, "field", "south"),
-      ],
+    players: [
+      { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
+    skirmish: {
+      rules: { ...matchRules, preparation_s: 0 },
+      sites: {
+        entries: [
+          { side: "blue", center: [10, h / 2], yaw: 0 },
+          { side: "red", center: [w - 10, h / 2], yaw: Math.PI },
+        ],
+        objectives: [
+          objective("center", h / 2, "junction", null),
+          objective("south", h * 0.15, "field", "north"),
+          objective("north", h * 0.85, "field", "south"),
+        ],
+      },
     },
   };
 }
@@ -311,7 +322,7 @@ function BuiltScenario({
         scripts: [],
         ...("lineup" in source
           ? lineupEncounter(catalog, map.size)
-          : { units: [], skirmish: ingressSkirmish(map.size) }),
+          : { units: [], ...ingressSkirmish(map.size) }),
       }),
     [map, source, catalog],
   );

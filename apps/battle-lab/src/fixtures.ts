@@ -17,7 +17,7 @@ export interface LabFixture {
   /** Runs alone: timing and parity scenes GPU contention would invalidate. */
   serial?: boolean;
   /** Catalog scope used by the router; omitted fixtures use the test catalog. */
-  catalog?: "game" | "menu" | "test";
+  catalog?: "game" | "capture" | "test";
   /** Show the lab loading cover while this fixture prepares (default true). */
   loading?: boolean;
   /** Seconds its scene may run, other than the runner's default. */
@@ -27,7 +27,7 @@ export interface LabFixture {
 export const LAB_FIXTURES: readonly LabFixture[] = fixtures as readonly LabFixture[];
 
 /** The fixed saved map declared by a fixture: always a `test` map, since a
- *  lab stands on no menu's battlefield. */
+ *  lab stands on no capture map's battlefield. */
 export function fixtureMap(id: string): string {
   const fixture = LAB_FIXTURES.find((fixture) => fixture.id === id);
   if (!fixture?.map) throw new Error(`fixture ${id} has no fixed saved map`);

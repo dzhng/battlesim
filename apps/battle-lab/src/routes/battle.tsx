@@ -140,7 +140,7 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
           config.limits,
         ),
       },
-      factions: a.factions,
+      players: a.players,
       battle_seed: a.battleSeed,
     }),
   );

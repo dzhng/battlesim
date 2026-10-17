@@ -546,6 +546,8 @@ pub struct OwnUnit {
     pub flares: Option<FlareReadiness>,
     pub protection: Option<ProtectionReadiness>,
     pub id: UnitId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<crate::players::PlayerIndex>,
     /// Its unit type: its rank in the catalog, the layout's `unitKinds`.
     pub kind: TypeIndex,
     pub position: [f64; 3],

@@ -15,6 +15,10 @@ describe("graphics auto-detect", () => {
     expect(result.averageFps).toBeCloseTo(60);
     expect(result.onePercentLowFps).toBeCloseTo(60);
   });
+  test("accepts a slow but valid frame stream as evidence", () => {
+    const result = judgeIntervals(Array(15).fill(66.666), "low");
+    expect(result.averageFps).toBeCloseTo(15);
+  });
   test("chooses the highest passing tier", () => {
     expect(
       chooseTier({

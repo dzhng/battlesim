@@ -9,7 +9,7 @@ afterEach(() => vi.restoreAllMocks());
 
 const entry = (id: string, status: catalogue.MapStatus): catalogue.MapEntry => ({
   id,
-  category: "menu",
+  category: "capture",
   status,
   label: `Battlefield ${id}`,
   character: "mixed",

@@ -505,7 +505,7 @@ test("purchase preview resolves through the authority without spending or advanc
       type: "purchase_preview",
       id: 1,
       // Open ground: the tank is sent where it was placed.
-      placement: { Ok: { kind: expect.any(Number), destination: [400, 250], spots: [] } },
+      placement: { Ok: { kind: expect.any(Number), destination: [400, 250], spots: [], entry: 0 } },
     },
     { type: "purchase_preview", id: 2, placement: { Err: { reason: "wrong_faction" } } },
   ]);
@@ -516,6 +516,7 @@ test("purchase preview resolves through the authority without spending or advanc
   ) as ObservationLayout;
   const p = h.publications()[0];
   const view = new ScenePresentation(layout).decode(new Float32Array(p.buffer, 0, p.length))!;
-  expect(view.skirmish).toMatchObject({ credits: 1000, occupiedSlots: 0, pending: [] });
+  expect(view.skirmish?.players.map((player) => player.id)).toEqual(["blue-1"]);
+  expect(view.skirmish?.players[0]).toMatchObject({ credits: 1000, unitCount: 0, pending: [] });
   expect(view.own).toEqual([]);
 });

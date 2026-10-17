@@ -1,8 +1,8 @@
-0 unit 0 Blue menu_us_recon
-0 unit 1 Blue menu_rifle
-0 unit 2 Blue menu_us_tank
-0 unit 3 Red menu_rifle
-0 unit 4 Red menu_rifle
+0 unit 0 Blue capture_us_recon
+0 unit 1 Blue capture_rifle
+0 unit 2 Blue capture_us_tank
+0 unit 3 Red capture_rifle
+0 unit 4 Red capture_rifle
 308 fire 3 rifle
 310 fire 3 rifle
 312 hit 3 rifle prop

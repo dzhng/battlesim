@@ -49,7 +49,22 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
                       kind: "generated",
                       request: { type: "open", size: "small", seed: "1" },
                     },
-                    factions: ["us", "eastern"],
+                    players: [
+                      {
+                        id: "blue-1",
+                        side: "blue",
+                        faction: "us",
+                        controller: "human",
+                        human_capable: true,
+                      },
+                      {
+                        id: "red-1",
+                        side: "red",
+                        faction: "eastern",
+                        controller: "active_ai",
+                        human_capable: false,
+                      },
+                    ],
                     battle_seed: 1,
                   },
                   size: map.size,

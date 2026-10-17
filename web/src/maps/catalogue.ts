@@ -8,9 +8,9 @@
 import { MAP_ID, type MapDefinition, type MapIdentity } from "./resolve.ts";
 
 /** What a saved map is for (`contract::maps::MapCategory`): a test's own
- *  ground (tests, labs, benchmarks) or a battlefield the menu backdrop films.
+ *  ground (tests, labs, benchmarks) or a battlefield the capture tool and menu film.
  *  Players never fight on a saved map: their battles are generated. */
-const MAP_CATEGORIES = ["test", "menu"] as const;
+const MAP_CATEGORIES = ["test", "capture"] as const;
 const MAP_STATUSES = ["draft", "released", "retired"] as const;
 const MAP_SOURCES = ["imported", "generated", "authored"] as const;
 /** What kind of ground a map is: a generated map's type (`open`, `mixed`,
@@ -26,7 +26,7 @@ export type MapCharacter = (typeof MAP_CHARACTERS)[number];
 export type MapTag = (typeof MAP_TAGS)[number];
 
 export interface MapMeta {
-  /** What the map is for: a test's, or the menu's. */
+  /** What the map is for: a test's, or the capture set's. */
   category: MapCategory;
   /** Drafts are listed only for developers; retired maps are not listed. */
   status: MapStatus;
@@ -167,7 +167,7 @@ export function checkMapFolder(id: string, meta: MapMeta, folder: MapFolder): st
 }
 
 /** The entry of map `id` among `entries`, which must be a `category` map:
- *  the menu backdrop films only `menu` maps, and labs and tests stand only
+ *  the capture tool and menu film only `capture` maps, and labs and tests stand only
  *  on `test` maps. A map the catalogue lacks, or one of another category, is
  *  refused by name. */
 export function categoryMap(

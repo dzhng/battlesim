@@ -122,7 +122,7 @@ pub struct ScriptOutput {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ScriptCommand {
     pub side: Side,
-    pub slot: Option<String>,
+    pub player: Option<String>,
     pub order: Order,
     pub queued: bool,
 }
@@ -137,7 +137,7 @@ pub struct ScriptEvent {
 /// the host, but scripts can read only the scalar projection below.
 pub struct ScriptInput<'a> {
     pub side: Side,
-    pub slot: Option<String>,
+    pub player: Option<String>,
     pub tick: Tick,
     pub observation: &'a ObservationFrame,
     pub rng_seed: u64,
@@ -147,15 +147,15 @@ impl<'a> ScriptInput<'a> {
     pub fn new(side: Side, observation: &'a ObservationFrame, rng_seed: u64) -> Self {
         Self {
             side,
-            slot: None,
+            player: None,
             tick: observation.tick,
             observation,
             rng_seed,
         }
     }
 
-    pub fn with_slot(mut self, slot: impl Into<String>) -> Self {
-        self.slot = Some(slot.into());
+    pub fn with_player(mut self, player: impl Into<String>) -> Self {
+        self.player = Some(player.into());
         self
     }
 }
@@ -607,7 +607,7 @@ impl<'a> Vm<'a> {
         };
         self.commands.push(ScriptCommand {
             side: self.input.side,
-            slot: self.input.slot.clone(),
+            player: self.input.player.clone(),
             order,
             queued: false,
         });

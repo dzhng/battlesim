@@ -194,12 +194,19 @@ function DeckReview({ onBack }: { onBack: () => void }) {
   };
   const skirmish = {
     phase: "preparation" as const,
-    ready: [false, false] as [boolean, boolean],
+    players: [
+      {
+        index: 0,
+        id: "blue-1",
+        controller: "human" as const,
+        ready: false,
+        credits: 769,
+        unitCount: selection.units.length,
+        cap: 30,
+        pending: [],
+      },
+    ],
     preparationRemainingS: 60,
-    credits: 769,
-    occupiedSlots: selection.units.length,
-    maxUnits: 30,
-    pending: [],
     scores: [0, 0] as [number, number],
     result: null,
     objectives: [],
@@ -263,6 +270,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
               cards={[]}
               faction="us"
               match={skirmish}
+              player={skirmish.players[0]}
               onChoose={() => {}}
               rules={rules}
             />

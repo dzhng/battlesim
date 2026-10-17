@@ -21,17 +21,25 @@ fn setup_with_map(
 fn command(seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq,
         order,
         queued: false,
     }
 }
 
+/// A command from the side's one player in the transport skirmish.
 fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side,
-        slot: None,
+        player: Some(
+            if side == Side::Blue {
+                "blue-1"
+            } else {
+                "red-1"
+            }
+            .into(),
+        ),
         seq,
         order,
         queued: false,
@@ -56,7 +64,8 @@ fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
     serde_json::from_value(json!({
         "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]},
         "rules":rules,"units":[],"events":[],"scripts":[],
-        "skirmish":{"factions":["us","eastern"],"rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":0,"max_units":30,"dispatch_interval_s":1,"capture_s":20,"majority_s":1800,"victory_score":1000},"sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0.0},{"side":"red","center":[400,590],"yaw":0.0}],"objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[600,400],"radius_m":50,"kind":"field","counterpart":"south"}]}}
+        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}],
+        "skirmish":{"rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":0,"max_units":30,"max_players_per_side":10,"dispatch_interval_s":1,"capture_s":20,"majority_s":1800,"victory_score":1000},"sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0.0},{"side":"red","center":[400,590],"yaw":0.0}],"objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[600,400],"radius_m":50,"kind":"field","counterpart":"south"}]}}
     })).unwrap()
 }
 
@@ -538,7 +547,8 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
     }
     assert!(battle.unit(UnitId(0)).is_some() && battle.unit(UnitId(1)).is_some());
     assert!(battle
-        .accept(command(
+        .accept(side_command(
+            Side::Blue,
             4,
             Order::Board {
                 units: vec![UnitId(1)],
@@ -555,7 +565,8 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
         }
     }
     assert!(!battle.unit(UnitId(1)).unwrap().on_field());
-    let refused = battle.accept(command(
+    let refused = battle.accept(side_command(
+        Side::Blue,
         5,
         Order::Refund {
             units: vec![UnitId(1)],
@@ -569,7 +580,8 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
         .unwrap()
         .credits;
     assert!(battle
-        .accept(command(
+        .accept(side_command(
+            Side::Blue,
             6,
             Order::Refund {
                 units: vec![UnitId(0)]

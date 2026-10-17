@@ -15,6 +15,11 @@ import {
   type ReadoutRect,
 } from "../src/battle/present/readoutLayout";
 import { layoutReadoutDetails, type DetailCard } from "../src/battle/present/readoutDetails";
+import {
+  cardZoomOpacity,
+  CARD_FADE_END_M,
+  CARD_FADE_START_M,
+} from "../src/battle/present/readouts";
 
 const GAP = 14;
 /** The edge margin no card sits within. */
@@ -122,8 +127,6 @@ const plane = (cards: LayoutCard[], placed: Map<string, CardPlacement>, high: bo
   cards
     .filter((c) => c.highAir === high && placed.has(c.id))
     .map((c) => ({ c, box: placed.get(c.id)!.box, leader: leaderOf(c, placed.get(c.id)!.box) }));
-const grounded = (cards: LayoutCard[], placed: Map<string, CardPlacement>) =>
-  plane(cards, placed, false);
 /** Every crowd's two planes, each named. */
 const planes = function* () {
   for (const crowd of CROWDS) {
@@ -389,4 +392,16 @@ test("a card opening into its detail moves only where it stays nearer its own un
     if (nearer.length) wrong.push(`${c.id} nearer ${nearer.map((o) => o.id).join(",")}`);
   }
   expect(wrong).toEqual([]);
+});
+
+test("a camera close to the ground fades the cards out, and they come back as it pulls away", () => {
+  expect(cardZoomOpacity(CARD_FADE_START_M * 2)).toBe(1);
+  expect(cardZoomOpacity(CARD_FADE_START_M)).toBe(1);
+  expect(cardZoomOpacity(CARD_FADE_END_M)).toBe(0);
+  expect(cardZoomOpacity(CARD_FADE_END_M / 2)).toBe(0);
+  const between = (CARD_FADE_START_M + CARD_FADE_END_M) / 2;
+  expect(cardZoomOpacity(between)).toBeCloseTo(0.5, 6);
+  // Zooming in only ever fades them further.
+  const steps = Array.from({ length: 50 }, (_, i) => cardZoomOpacity(CARD_FADE_START_M + 10 - i));
+  expect(steps.every((o, i) => i === 0 || o <= steps[i - 1]!)).toBe(true);
 });

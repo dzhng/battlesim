@@ -1,11 +1,11 @@
-import backdrop from "@fixtures/menu-backdrop.json";
+import menuCapture from "@fixtures/captures/menu.json";
 
 /** Stable identity for the menu scenes used by the graphics test. The fixture
  * remains the content owner; this module only gives candidates a workload key. */
 export const MENU_REEL_WORKLOAD = {
   id: "menu-reel",
   version: 1,
-  scenes: backdrop.scenes.map((scene) => ({
+  scenes: menuCapture.scenes.map((scene) => ({
     map: scene.map,
     encounter: scene.encounter,
     seed: scene.seed,

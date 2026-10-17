@@ -35,7 +35,10 @@ const request = (
   limits = config.limits,
 ): PrepareBattleRequest => ({
   map_source: { kind: "generated", request: generationRequest(wasm, choice, documents, limits) },
-  factions: ["europe", "eastern"],
+  players: [
+    { id: "blue-1", side: "blue", faction: "europe", controller: "human", human_capable: true },
+    { id: "red-1", side: "red", faction: "eastern", controller: "active_ai", human_capable: false },
+  ],
   battle_seed: 1,
   ...over,
 });
@@ -112,7 +115,8 @@ async function refusal(preparing: Promise<unknown>): Promise<PreparationRefused>
 interface Scenario {
   map: unknown;
   units: unknown[];
-  skirmish: { factions: [string, string]; sites: { entries: SkirmishEntry[] } };
+  players: { id: string; side: string; faction: string }[];
+  skirmish: { sites: { entries: SkirmishEntry[] } };
 }
 interface SkirmishEntry {
   side: string;
@@ -146,7 +150,7 @@ test("a prepared battle fields both asked factions on the requested map, and it 
 
   // Both factions, as asked, and no army laid in advance: the match starts
   // in preparation from each side's admitted base, where the camera starts.
-  expect(scenario.skirmish.factions).toEqual(["europe", "eastern"]);
+  expect(scenario.players.map((player) => player.faction)).toEqual(["europe", "eastern"]);
   expect(scenario.units).toEqual([]);
   const base = scenario.skirmish.sites.entries.find((e) => e.side === "blue")!;
   expect(report.start).toEqual({ at: base.center, yaw: base.yaw });
@@ -183,11 +187,11 @@ test("a map seed a JavaScript number cannot hold reaches the generator as writte
 }, 60_000);
 
 test("a request the simulation's check refuses prepares nothing, and names the field", async () => {
-  const { factions: _, ...faceless } = request();
+  const { players: _, ...faceless } = request();
   for (const [asked, location, names] of [
     [request(OPEN, { battle_seed: 2 ** 53 }), "$.battle_seed", /battle seed/],
     [request(OPEN, { battle_seed: 1.5 }), "$", /./],
-    [faceless, "$", /factions/],
+    [faceless, "$", /players/],
     [{ ...request(), recipe_id: "assault" }, "$", /recipe_id/],
     [{ ...request(), encounter_seed: "1" }, "$", /encounter_seed/],
   ] as const) {

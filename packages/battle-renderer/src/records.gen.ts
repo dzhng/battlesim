@@ -303,6 +303,10 @@ export const SkyLight = d
     cloudSilver: d.f32,
     /** A shaded base's radiance, before the sky shows through it. */
     cloudBase: d.vec3f,
+    /** The clear sky's saturation (1 as modelled, 0 its luminance). */
+    skySaturation: d.f32,
+    /** Multiplies the clear sky, linear rgb. */
+    skyTint: d.vec3f,
   })
   .$name("SkyLight");
 /** Where `SkyLight`'s fields lie, in words. */
@@ -329,9 +333,11 @@ export const SkyLightAt = {
   cloud_lit: 28,
   cloud_silver: 31,
   cloud_base: 32,
-  pad1: 35,
+  sky_saturation: 35,
+  sky_tint: 36,
+  pad1: 39,
 } as const;
-export const SKY_LIGHT_WORDS = 36;
+export const SKY_LIGHT_WORDS = 40;
 
 /** The haze, in every lit shader's environment uniform: extinction over distance from the camera's ground focus, a range term, a sunward Mie tint and a low valley mist. */
 export const Aerial = d
@@ -444,6 +450,8 @@ export const Grade = d
     shadowLift: d.f32,
     /**  */
     exposure: d.f32,
+    /** How much of the grade the sky takes (1 all, 0 none). */
+    skyGradeMix: d.f32,
     /** rgb; w 1. */
     shadowTint: d.vec4f,
     /** rgb; w 1. */
@@ -459,7 +467,8 @@ export const GradeAt = {
   split_tone: 2,
   shadow_lift: 3,
   exposure: 4,
-  pad: 5,
+  sky_grade_mix: 5,
+  pad: 6,
   shadow_tint: 8,
   highlight_tint: 12,
   lift: 16,

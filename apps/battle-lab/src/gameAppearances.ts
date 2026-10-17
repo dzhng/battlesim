@@ -42,6 +42,7 @@ let loadingScenery: string | null | undefined;
 let appearanceStatus: Record<string, unknown> = { state: "idle" };
 let prefetching: Promise<void> | null = null;
 let prefetchTimer: ReturnType<typeof setTimeout> | null = null;
+let prefetchAllowed = false;
 let prefetchStatus: Record<string, unknown> = { state: "idle" };
 diagnosticsSource("appearance loading", () => ({ ...appearanceStatus, prefetch: prefetchStatus }));
 
@@ -136,6 +137,12 @@ function scheduleRuntimePrefetch(baseUrl: string): void {
   }, 3_000);
 }
 
+/** Start warming unused art only after the first page has a stable graphics tier. */
+export function allowRuntimePrefetch(): void {
+  prefetchAllowed = true;
+  scheduleRuntimePrefetch("/");
+}
+
 /** The page's appearances for a session running `units`, with `asked`
  *  among them: the catalog's one load, then whichever of their art and of
  *  those the page has not fetched yet. */
@@ -156,7 +163,7 @@ export function gameAppearances(
     .then(() => library.withUnits(wearing))
     .then(() => library.withAppearances(asked))
     .then((next) => {
-      scheduleRuntimePrefetch("/");
+      if (prefetchAllowed) scheduleRuntimePrefetch("/");
       return next;
     });
 }

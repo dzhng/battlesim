@@ -19,7 +19,7 @@ fn queued_destinations_do_not_assume_an_unfinished_attack_will_end() {
         battle
             .accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 1,
                 queued: false,
                 order: Order::Attack {
@@ -228,7 +228,7 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
     };
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order,
         queued: false,
@@ -275,7 +275,7 @@ fn preview_queries_cannot_change_later_navigation_or_replay() {
     let mut quiet = Battle::new(&setup, 1);
     let command = CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Move {
@@ -428,7 +428,7 @@ fn a_held_squad_preview_keeps_its_spots_as_time_passes_and_the_order_sends_soldi
     );
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Move {

@@ -12,8 +12,8 @@ export interface SimSessionOptions {
   seed: number;
   prepared?: PreparedConnectionSession;
   side?: SideName;
-  /** Player slot issuing commands in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing commands in a player-owned scenario. */
+  player?: string;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** Replay these accepted commands instead of taking input. */
@@ -53,7 +53,7 @@ export function useSimSession({
   replay,
   scripted,
   prepared,
-  slot,
+  player,
   side = "blue",
 }: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
@@ -94,7 +94,7 @@ export function useSimSession({
       scenario,
       seed,
       side: openSide.current,
-      slot,
+      player,
       transport: "worker",
       replay,
       // A prepared bundle connection owns one live authority. Once the
@@ -166,7 +166,7 @@ export function useSimSession({
       if (frame !== null) cancelAnimationFrame(frame);
       next.dispose();
     };
-  }, [scenario, seed, generation, replay, prepared, slot]);
+  }, [scenario, seed, generation, replay, prepared, player]);
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;

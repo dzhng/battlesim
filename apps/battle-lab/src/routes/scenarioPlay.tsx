@@ -67,13 +67,13 @@ export default function ScenarioPlay() {
     try {
       const text = await readScenarioBundle(file);
       const parsed = JSON.parse(text) as {
-        slots?: { id: string; side: string; human_capable?: boolean }[];
+        scenario?: { players?: { id: string; side: string; human_capable?: boolean }[] };
       };
-      const slots = (parsed.slots ?? [])
-        .filter((slot) => slot.human_capable)
+      const players = (parsed.scenario?.players ?? [])
+        .filter((player) => player.human_capable)
         .map(({ id, side }) => ({ id, side }));
-      setHumanSlots(slots);
-      setActiveHuman(slots[0]?.id);
+      setHumanSlots(players);
+      setActiveHuman(players[0]?.id);
       setBundle(text);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -88,9 +88,9 @@ export default function ScenarioPlay() {
       <main className="menu scenario-play-menu">
         <div className="hud-panel menu-body scenario-play-upload">
           <h1>Choose controller</h1>
-          <p>Choose at most one human-capable slot for this local play session.</p>
+          <p>Choose at most one human-capable player for this local play session.</p>
           <label>
-            Active human slot
+            Active human player
             <select
               value={activeHuman ?? "__none"}
               onChange={(event) =>
@@ -232,7 +232,7 @@ function ScenarioBattle({
         seed={1}
         prepared={prepared}
         replay={replayText}
-        slot={report.active_human_slot ?? undefined}
+        player={report.active_human_player ?? undefined}
         side={report.active_human_side ?? "blue"}
         camera={camera}
         cameraConfig={gameCamera.forMap(report.size, report.extents.rendered)}
@@ -301,13 +301,13 @@ function ScenarioBattle({
                 }}
               />
             </label>
-            {report.active_human_slot && (
+            {report.active_human_player && (
               <button
                 type="button"
                 className="hud-menu-item"
                 onClick={() =>
                   battleSession.sim.client?.setControllers(
-                    JSON.stringify([[report.active_human_slot, "active_ai"]]),
+                    JSON.stringify([[report.active_human_player, "active_ai"]]),
                   )
                 }
               >

@@ -51,6 +51,20 @@ import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows
  *  one (`BattleFrame.render`'s high target), and with the world otherwise. */
 export const HIGH_PLANE_ATTR = "data-high-plane";
 
+/** A camera this close to the ground is watching the battle, not commanding
+ *  it: cards are whole from `CARD_FADE_START_M` of camera distance out and
+ *  fade away linearly to nothing at `CARD_FADE_END_M`, so a close shot is
+ *  clean film. */
+export const CARD_FADE_START_M = 90;
+export const CARD_FADE_END_M = 48;
+
+/** The cards' opacity at camera distance `cameraDistance`. */
+export function cardZoomOpacity(cameraDistance: number): number {
+  if (cameraDistance >= CARD_FADE_START_M) return 1;
+  if (cameraDistance <= CARD_FADE_END_M) return 0;
+  return (cameraDistance - CARD_FADE_END_M) / (CARD_FADE_START_M - CARD_FADE_END_M);
+}
+
 /** World point → page CSS pixel, or null when behind the eye. */
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -217,6 +231,7 @@ export function ReadoutLayer({
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
   /** The squads riding an own carrier: their cards stack under its. */
   const riders = new Set(own.flatMap((c) => passengersOf(own, c.id).map((p) => p.id)));
+  const zoomOpacity = useRef(1);
   const callouts: Callout[] = [
     ...ghosts.map(
       (g): Callout => ({
@@ -343,12 +358,17 @@ export function ReadoutLayer({
       const group = b.node.parentElement!;
       if (inFront) group.dataset.overlapping = "true";
       else delete group.dataset.overlapping;
-      group.style.opacity = String(b.opacity * (softened ? 0.65 : 1));
+      // A close camera fades every card out (`cardZoomOpacity`); a faded card takes no clicks.
+      const opacity = b.opacity * (softened ? 0.65 : 1) * zoomOpacity.current;
+      group.style.opacity = String(opacity);
       group.style.filter = softened ? "blur(0.6px)" : "";
+      group.style.pointerEvents = opacity <= 0 ? "none" : "";
     }
   };
   useImperativeHandle(handle, () => ({
     pick(x, y) {
+      // Cards faded out by a close camera take no clicks.
+      if (zoomOpacity.current <= 0) return null;
       const priority = [...calloutsRef.current].sort(
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
@@ -366,6 +386,7 @@ export function ReadoutLayer({
       return null;
     },
     inRect(unit, rect) {
+      if (zoomOpacity.current <= 0) return false;
       const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
@@ -374,6 +395,7 @@ export function ReadoutLayer({
       return visibleBox(carrier?.key ?? `own-${unit}`);
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
+      zoomOpacity.current = cardZoomOpacity(camera.distance);
       hoveredCard.current = hoveredKey(hover);
       eyePosition(_readout_eye, camera);
       const overlap = camera.distance > 1000;

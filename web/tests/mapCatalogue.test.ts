@@ -113,7 +113,7 @@ test("metadata a listing could not show is refused, naming the file and the fiel
   // A saved map is a test's or the menu's: no game, lab or benchmark map.
   for (const category of ["playable", "lab", "benchmark", undefined])
     expect(refused({ category })).toMatch(/^fixtures\/maps\/a-lab\/meta\.json\.category: /);
-  expect(refused({ category: "menu" })).toBe("accepted");
+  expect(refused({ category: "capture" })).toBe("accepted");
   expect(refused({ character: "farmland" })).toMatch(/meta\.json\.character: /);
   expect(refused({ status: undefined })).toBe("fixtures/maps/a-lab/meta.json.status: missing");
   expect(refused({ colour: "red" })).toBe("fixtures/maps/a-lab/meta.json.colour: unknown field");
@@ -166,15 +166,15 @@ test("metadata that disagrees with its map is reported field by field", () => {
 
 test("a map is taken only for what its category says it is for", () => {
   const entries = [
-    { id: "town", ...META, category: "menu" },
+    { id: "town", ...META, category: "capture" },
     { id: "range", ...META, category: "test" },
   ] satisfies MapEntry[];
-  expect(categoryMap(entries, "town", "menu").id).toBe("town");
+  expect(categoryMap(entries, "town", "capture").id).toBe("town");
   expect(categoryMap(entries, "range", "test").id).toBe("range");
-  expect(() => categoryMap(entries, "range", "menu")).toThrow(
-    'the saved map "range" is a test map, not a menu map',
+  expect(() => categoryMap(entries, "range", "capture")).toThrow(
+    'the saved map "range" is a test map, not a capture map',
   );
-  expect(() => categoryMap(entries, "town", "test")).toThrow(/is a menu map, not a test map/);
+  expect(() => categoryMap(entries, "town", "test")).toThrow(/is a capture map, not a test map/);
   expect(() => categoryMap(entries, "nowhere", "test")).toThrow('no saved map "nowhere"');
 });
 

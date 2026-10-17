@@ -25,7 +25,16 @@ function benchmarkPreparation(
         request: generationRequest(wasm, scenario.generated, { presets, templates }, config.limits),
       },
       // The stress scene fields its own forces; the request still names two.
-      factions: ["us", "eastern"],
+      players: [
+        { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+        {
+          id: "red-1",
+          side: "red",
+          faction: "eastern",
+          controller: "active_ai",
+          human_capable: false,
+        },
+      ],
       battle_seed: scenario.seed,
     },
     documents: { presets, templates, rules: JSON.stringify(rules) },

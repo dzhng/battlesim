@@ -1,11 +1,20 @@
 [
   {
+    "id": "capture",
+    "route": "/labs/capture",
+    "describe": "Films one scene of a capture file (fixtures/captures/<name>.json) for the capture CLI: ?capture=<name>&scene=<i>&cards=0|1, and record=1 to record the stage with tab capture.",
+    "map": null,
+    "tool": true,
+    "catalog": "capture",
+    "loading": false
+  },
+  {
     "id": "graphics-test",
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
     "map": null,
     "timeout_s": 300,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "native-parity-capture",
@@ -15,7 +24,7 @@
     "timeout_s": 600,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "graphics-fps",
@@ -26,7 +35,7 @@
     "timeout_s": 900,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "cursor",
@@ -297,6 +306,15 @@
     "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events.",
     "map": null,
     "loading": false
+  },
+  {
+    "id": "map-picture",
+    "route": "/labs/map-picture",
+    "describe": "The lobby's map picture alone: real admitted maps for 1v1, 3v4 and 5v5 at S, M, L and XL, each through the lobby's preview controller at lobby size, with the refusal a pairing below a size's floor gets; ?cell=3v4-large draws one.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "timeout_s": 300
   },
   {
     "id": "map-workbench",

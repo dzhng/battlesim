@@ -4817,9 +4817,17 @@
       "loop": true
     },
     "countryside": {
-      "label": "Synth \u00b7 countryside",
+      "label": "Synth · countryside",
       "clips": [],
       "synth": "countryside",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "distant_battle": {
+      "label": "Synth · distant battle",
+      "clips": [],
+      "synth": "distant_battle",
       "synth_gain": 1,
       "gain": 1,
       "loop": true

@@ -3,6 +3,7 @@ use contract::catalog::Faction;
 use contract::encounter::{EntrySite, ObjectiveSite, ObjectiveSiteKind, SkirmishSites};
 use contract::generation::{GenerationProfile, GenerationRequest, MapSize, MapType};
 use contract::ids::Side;
+use contract::players::{ControllerKind, Player};
 use contract::scenario::{Rules, ScenarioDefinition};
 use contract::skirmish::SkirmishSetup;
 use contract::templates::TemplateGeometryCatalog;
@@ -95,6 +96,7 @@ pub(crate) fn prepare_row(
                 template_catalog_hash: inputs.template_hash.clone(),
                 map_type,
                 size,
+                entries_per_side: 1,
                 profile: GenerationProfile::Skirmish,
                 region: None,
                 limits: inputs.limits,
@@ -109,9 +111,26 @@ pub(crate) fn prepare_row(
                 return Err("map generation refused the pinned request".into());
             };
             let prepared = sim::encounter::PreparedMap::new(&result.map, &inputs.rules);
+            let players = vec![
+                Player {
+                    id: "blue-1".into(),
+                    side: Side::Blue,
+                    faction: Some(inputs.factions[0]),
+                    controller: ControllerKind::ActiveAi,
+                    human_capable: false,
+                },
+                Player {
+                    id: "red-1".into(),
+                    side: Side::Red,
+                    faction: Some(inputs.factions[1]),
+                    controller: ControllerKind::ActiveAi,
+                    human_capable: false,
+                },
+            ];
             let admitted = sim::map_analysis::admit_skirmish(
                 &prepared.queries(&result.map, &result.sites),
                 &inputs.rules,
+                &players,
             )
             .map_err(|error| format!("skirmish admission: {error}"))?;
             let sites = admitted
@@ -123,12 +142,27 @@ pub(crate) fn prepare_row(
         }
     };
     let setup = ScenarioDefinition {
+        players: vec![
+            Player {
+                id: "blue-1".into(),
+                side: Side::Blue,
+                faction: Some(inputs.factions[0]),
+                controller: ControllerKind::ActiveAi,
+                human_capable: false,
+            },
+            Player {
+                id: "red-1".into(),
+                side: Side::Red,
+                faction: Some(inputs.factions[1]),
+                controller: ControllerKind::ActiveAi,
+                human_capable: false,
+            },
+        ],
         skirmish: Some(SkirmishSetup {
-            factions: inputs.factions,
-            ai_side: None,
             // The real skirmish's economy and timing, from their one owner.
             rules: sim::skirmish::starter_rules(),
             sites,
+            openings: std::collections::BTreeMap::new(),
         }),
         map,
         rules: inputs.rules.clone(),
@@ -146,7 +180,7 @@ pub(crate) fn prepare_row(
 fn synthetic_sites(map: &contract::map::MapDefinition) -> SkirmishSites {
     let [width, depth] = map.size;
     SkirmishSites {
-        entries: [
+        entries: vec![
             EntrySite {
                 side: Side::Blue,
                 center: [width * 0.5, 12.0],

@@ -28,6 +28,11 @@ fn main() {
             .unwrap();
     let rules: contract::scenario::Rules =
         serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let players: Vec<contract::players::Player> = serde_json::from_value(serde_json::json!([
+        {"id":"blue-1","side":"blue","faction":"us","controller":"active_ai"},
+        {"id":"red-1","side":"red","faction":"eastern","controller":"active_ai"}
+    ]))
+    .unwrap();
     let rules_json = serde_json::to_string(&rules).unwrap();
     let presets_def = mapgen::layout::PresetDefinitions::from_json(presets).unwrap();
     let defaults: serde_json::Value =
@@ -41,6 +46,7 @@ fn main() {
             template_catalog_hash: catalog.hash().into(),
             map_type,
             size,
+            entries_per_side: 1,
             profile: GenerationProfile::Skirmish,
             region: None,
             limits: serde_json::from_value(defaults["limits"].clone()).unwrap(),
@@ -59,6 +65,7 @@ fn main() {
                 match sim::map_analysis::admit_skirmish(
                     &prepared.queries(&result.map, &result.sites),
                     &rules,
+                    &players,
                 ) {
                     Ok(admitted) => {
                         serde_json::json!({"seed":seed,"stage":"admitted","extent_m":request.extent_m(),"sites":admitted.sites.skirmish,"journeys":admitted.journeys})

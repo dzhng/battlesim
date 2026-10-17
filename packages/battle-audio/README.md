@@ -219,6 +219,15 @@ play the same samples. The synthesized sounds' names are generated from Rust
 (`synthSounds.gen.ts`). Disposal aborts loading
 and prevents late admission.
 
+The bed keeps its level between shots and makes room under a loud one, as a
+film mix does: a sound at least `presentation.audio.ambience.duck_over` loud
+at the listener (its level there, as the voice budget ranks it, never a list
+of weapons) dips the ambience bus by the bed's `duck`, which recovers once the
+dip is reached. Distant fire never reaches the threshold, so the bed does not
+pump under it. Both players dip the ambience through a gain of its own after
+the bus, reverb tail included, so the dip never overwrites the bus level; the
+music's duck under voice lines is the same command on the music bus.
+
 The [page audio owner](src/appAudio.ts) retains one context and bank across
 client navigation. Its menu bed attempts playback early; when browser permission
 blocks that attempt, a qualifying input resumes the same context. The bed stays

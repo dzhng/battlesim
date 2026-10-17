@@ -1,4 +1,3 @@
-use contract::catalog::Faction;
 use contract::maps::MapSource;
 use contract::preparation::{check_request_json, PrepareBattleRequest, BATTLE_SEED_MAX};
 use serde_json::{json, Value};
@@ -15,7 +14,10 @@ fn generated() -> Value {
             "size": "small",
             "limits": { "max_authored_parts": 1, "max_bay_positions": 1, "max_ground_points": 1 },
         }},
-        "factions": ["us", "eastern"],
+        "players": [
+            {"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},
+            {"id":"red-1","side":"red","faction":"eastern","controller":"active_ai","human_capable":false}
+        ],
         "battle_seed": BATTLE_SEED_MAX,
     })
 }
@@ -36,7 +38,7 @@ fn a_request_keeps_seeds_a_javascript_number_cannot_hold() {
     let request = PrepareBattleRequest::from_json(&generated().to_string()).unwrap();
     let MapSource::Generated { request: map } = &request.map_source;
     assert_eq!(map.seed.value(), u64::MAX);
-    assert_eq!(request.factions, [Faction::Us, Faction::Eastern]);
+    assert_eq!(request.players.len(), 2);
     assert_eq!(request.battle_seed, BATTLE_SEED_MAX);
     // Across the JSON boundary the seeds come back as the text that went in.
     let outcome: Value =
@@ -46,25 +48,25 @@ fn a_request_keeps_seeds_a_javascript_number_cannot_hold() {
 }
 
 #[test]
-fn a_request_names_both_factions_and_nothing_it_no_longer_reads() {
-    // Nothing is defaulted: a battle without both factions is refused, and
+fn a_request_names_players_and_nothing_it_no_longer_reads() {
+    // Nothing is defaulted: a battle without players is refused, and
     // the message names the field.
     let mut without = generated();
-    without.as_object_mut().unwrap().remove("factions");
+    without.as_object_mut().unwrap().remove("players");
     let (location, message) = refusal(&without);
     assert_eq!(location, "$");
-    assert!(message.contains("factions"), "{message}");
-    for factions in [
-        json!(["us"]),
-        json!(["us", "eastern", "europe"]),
+    assert!(message.contains("players"), "{message}");
+    for players in [
+        json!([]),
+        json!([{"id":"blue-1","side":"blue","faction":"us","controller":"active_ai"}]),
         json!(null),
     ] {
         let mut request = generated();
-        request["factions"] = factions.clone();
+        request["players"] = players.clone();
         refusal(&request);
     }
     let mut unknown = generated();
-    unknown["factions"] = json!(["us", "atlantis"]);
+    unknown["players"] = json!([{"id":"blue-1","side":"blue","faction":"atlantis","controller":"active_ai"},{"id":"red-1","side":"red","faction":"eastern","controller":"active_ai"}]);
     let (_, message) = refusal(&unknown);
     assert!(message.contains("atlantis"), "{message}");
     // The recipe and the planner's seed left the request: an old request
@@ -126,4 +128,20 @@ fn a_request_that_cannot_be_prepared_names_the_field_at_fault() {
     refusal(&with(&["map_source"], json!({ "kind": "saved" })));
     refusal(&with(&["map_source", "request", "type"], json!("huge")));
     refusal(&with(&["fallback_seed"], json!("1")));
+}
+
+#[test]
+fn a_request_checks_player_topology_without_fixture_caps() {
+    let mut request = generated();
+    let players = request["players"].as_array_mut().unwrap();
+    for i in 2..=11 {
+        players.push(json!({
+            "id": format!("blue-{i}"),
+            "side": "blue",
+            "faction": "us",
+            "controller": "active_ai",
+            "human_capable": false,
+        }));
+    }
+    assert!(PrepareBattleRequest::from_json(&request.to_string()).is_ok());
 }

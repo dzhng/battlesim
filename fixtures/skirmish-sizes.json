@@ -1,0 +1,8 @@
+{
+  "tiers": [
+    { "min_players": 1, "max_players": 1, "size": "small", "extent_m": 1800 },
+    { "min_players": 2, "max_players": 2, "size": "medium", "extent_m": 2400 },
+    { "min_players": 3, "max_players": 4, "size": "large", "extent_m": 3000 },
+    { "min_players": 5, "size": "xl", "extent_m": 3600 }
+  ]
+}

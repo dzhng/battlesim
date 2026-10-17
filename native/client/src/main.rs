@@ -399,6 +399,11 @@ impl Run {
         if let Some(last) = self.last.replace(now) {
             self.presents.intervals.push(now - last);
         }
+        // A bench measures rendering, not the platform's swapchain pacing.
+        // Windows can block an off-screen surface even when it is never shown.
+        if self.bench.is_some() {
+            return self.gpu.queue.submit([encoder.finish()]);
+        }
         let texture = match self.surface.get_current_texture() {
             CurrentSurfaceTexture::Success(t) | CurrentSurfaceTexture::Suboptimal(t) => t,
             CurrentSurfaceTexture::Occluded => {

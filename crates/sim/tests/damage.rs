@@ -207,7 +207,7 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
     // The destroyed tank is gone from red's own list, and can take no orders.
     let ack = b.accept(CommandEnvelope {
         side: Side::Red,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Stop {
             units: vec![UnitId(2)],

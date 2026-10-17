@@ -48,7 +48,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   for (const [page, expected] of Object.entries(entries)) {
     open(page);
     if (page === "Skirmish") {
-      for (const label of ["XS", "medium", "large", "xl"]) {
+      for (const label of ["S", "M", "L", "XL"]) {
         expect(menu.getByRole("radio", { name: label })).toBeTruthy();
       }
     }

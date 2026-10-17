@@ -17,7 +17,10 @@ const request: PrepareBattleRequest = {
       limits: { max_authored_parts: 10, max_bay_positions: 10, max_ground_points: 10 },
     },
   },
-  factions: ["us", "eastern"],
+  players: [
+    { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+    { id: "red-1", side: "red", faction: "eastern", controller: "active_ai", human_capable: false },
+  ],
   battle_seed: 7,
 };
 const documents: PrepareDocuments = {
@@ -59,6 +62,7 @@ const module = {
   },
   check_prepare_request: (json: string) =>
     JSON.stringify({ status: "ok", request: JSON.parse(json) }),
+  check_scenario_player_contract: () => JSON.stringify({ status: "ok" }),
   generate_map: () =>
     JSON.stringify({ status: "ok", result: { map, identity, report: {}, sites: {} } }),
   map_generator_version: () => "test",

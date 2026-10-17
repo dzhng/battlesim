@@ -472,7 +472,7 @@ fn the_fallen_play_their_death_lie_and_give_way_past_the_cap() {
         ..FeedSoldier::default()
     };
     let squad = |ids: &[f64]| FeedUnit {
-        kind: "menu_rifle".into(),
+        kind: "capture_rifle".into(),
         side: "blue".into(),
         soldiers: ids.iter().map(|&id| soldier(id)).collect(),
         ..FeedUnit::default()
@@ -484,7 +484,7 @@ fn the_fallen_play_their_death_lie_and_give_way_past_the_cap() {
                     soldier: id,
                     position: [id, 0.0, 0.0],
                     yaw: 0.0,
-                    kind: "menu_rifle".into(),
+                    kind: "capture_rifle".into(),
                     slot: 0,
                     side: "blue".into(),
                 })

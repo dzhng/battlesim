@@ -32,8 +32,6 @@ export async function run(ctx) {
     },
     lanes,
   );
-  const initial = await obs(page);
-  const bodies = (o) => o.own.map((u) => [u.id, u.hp, u.memberIds, u.memberHp]);
   const seen = new Set();
   const samples = [];
   const midpoint = [0, 0, 0];

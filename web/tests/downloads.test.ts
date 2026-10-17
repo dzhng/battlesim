@@ -45,3 +45,17 @@ test("the bytes of a download count up as its body arrives, against its announce
   expect((await body).byteLength).toBe(1000);
   expect(downloads.get()).toMatchObject({ active: 0, loaded: 0, total: 0 });
 });
+
+test("retries a cache write failure without using the browser cache", async () => {
+  const response = new Response(new Uint8Array([1, 2, 3]));
+  const fetcher = vi
+    .fn()
+    .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+    .mockResolvedValueOnce(response);
+  vi.stubGlobal("fetch", fetcher);
+
+  expect(new Uint8Array(await (await countedFetch("/bundle.bin")).arrayBuffer())).toEqual(
+    new Uint8Array([1, 2, 3]),
+  );
+  expect(fetcher).toHaveBeenNthCalledWith(2, "/bundle.bin", { cache: "no-store" });
+});
