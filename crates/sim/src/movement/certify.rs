@@ -392,6 +392,8 @@ pub(crate) fn certify_orders(
                 u.hold.as_ref().filter(|_| owned).map(|g| g.phase),
             )
         };
+        let mut refusals: [Vec<contract::command::Refusal>; 3] =
+            std::array::from_fn(|_| Vec::new());
         loop {
             if remaining < step_cost || remaining <= floor {
                 unproven = true;
@@ -421,6 +423,7 @@ pub(crate) fn certify_orders(
                 &mut units,
                 ctx.rules,
                 ctx.seed,
+                &mut refusals,
             );
             crate::deployment::advance_all(&mut units);
             let local = MovementContext {

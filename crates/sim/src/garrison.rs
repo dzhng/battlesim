@@ -78,7 +78,7 @@ fn building_hold(unit: &Unit) -> Option<&Garrison> {
 }
 
 fn held_building(unit: &Unit) -> Option<PropId> {
-    unit.hold.as_ref().map(|hold| hold.host.building())
+    unit.hold.as_ref().and_then(|hold| hold.host.building())
 }
 
 /// Published body pose: indoors behind the occupied window. Combat keeps
@@ -304,12 +304,12 @@ pub(crate) fn current_entry(unit: &Unit, building: PropId) -> Option<V2> {
     if let Some(hold) = unit
         .hold
         .as_ref()
-        .filter(|hold| hold.host.building() == building)
+        .filter(|hold| hold.host.building() == Some(building))
     {
         if matches!(hold.phase, Phase::Entering(_))
             && matches!(want(unit), Want::Enter(b) if b == building)
         {
-            return Some(hold.place.entry());
+            return Some(hold.building()?.entry);
         }
     }
     None
@@ -319,7 +319,7 @@ pub(crate) fn held_entry(unit: &Unit, building: PropId) -> Option<V2> {
     unit.hold
         .as_ref()
         .filter(|hold| {
-            hold.host.building() == building
+            hold.host.building() == Some(building)
                 && matches!(hold.phase, Phase::Inside)
                 && match want(unit) {
                     Want::Stay => true,
@@ -327,7 +327,7 @@ pub(crate) fn held_entry(unit: &Unit, building: PropId) -> Option<V2> {
                     Want::Leave => false,
                 }
         })
-        .map(|hold| hold.place.entry())
+        .and_then(|hold| hold.building().map(|g| g.entry))
 }
 
 /// What stops a soldier on foot: every prop that blocks infantry.
@@ -620,7 +620,7 @@ pub fn shell(unit: &Unit) -> Option<PropId> {
     unit.hold
         .as_ref()
         .filter(|_| unit.garrisoned())
-        .map(|hold| hold.host.building())
+        .and_then(|hold| hold.host.building())
 }
 
 /// Whether garrisoned member `k` stands at a slot facing `point`, ready to
@@ -662,7 +662,7 @@ pub fn collapse(
         if units[index]
             .hold
             .as_ref()
-            .is_none_or(|hold| hold.host.building() != target)
+            .is_none_or(|hold| hold.host.building() != Some(target))
         {
             continue;
         }
@@ -730,7 +730,7 @@ pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldSt
             progress,
         });
     }
-    let building = hold.host.building();
+    let building = hold.host.building()?;
     let footprint = world.structure_footprint(building)?;
     let timer = ticks(hold.host.timing(rules).enter_exit_s, rules) as f64;
     let (phase, progress) = match hold.phase {
@@ -763,7 +763,9 @@ pub fn digest(unit: &Unit, d: &mut Digest) {
                 d.u64(u64::MAX).u64(id.0 as u64).u64(tag).u64(n as u64);
             }
             (Host::Building(_), Place::Building(g)) => {
-                d.u64(hold.host.building() as u64).u64(tag).u64(n as u64);
+                d.u64(hold.host.building().expect("building place") as u64)
+                    .u64(tag)
+                    .u64(n as u64);
                 d.f64(g.entry.x).f64(g.entry.y);
                 d.u64(g.slots.len() as u64).u64(g.seats.len() as u64);
                 for s in &g.seats {

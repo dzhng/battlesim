@@ -203,3 +203,46 @@ fn catalog_rejects_invalid_carriage_seats_and_squads() {
     );
     assert!(serde_json::from_value::<contract::scenario::Rules>(game).is_err());
 }
+
+#[test]
+fn capacity_lost_during_boarding_is_published_as_refusal() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_rifle","position":[195,200]},
+            {"side":"blue","kind":"test_recon","position":[196,200]}
+        ])),
+        12,
+    );
+    assert!(battle
+        .accept(command(
+            1,
+            Order::Board {
+                units: vec![UnitId(1)],
+                carrier: UnitId(0),
+                gesture: 1,
+            },
+        ))
+        .error
+        .is_none());
+    assert!(battle
+        .accept(command(
+            2,
+            Order::Board {
+                units: vec![UnitId(2)],
+                carrier: UnitId(0),
+                gesture: 2,
+            },
+        ))
+        .error
+        .is_none());
+    let mut seen = false;
+    for _ in 0..(battle.rules().tick_hz * 2) {
+        battle.step();
+        seen |= battle.observe(Side::Blue).refusals.iter().any(|refusal| {
+            matches!(refusal.unit, UnitId(1) | UnitId(2))
+                && refusal.reason == OrderError::CapacityFull
+        });
+    }
+    assert!(seen);
+}

@@ -244,7 +244,7 @@ pub(crate) fn occupy(
         let hold = u
             .hold
             .as_ref()
-            .filter(|hold| hold.host.building() == owner)?;
+            .filter(|hold| hold.host.building() == Some(owner))?;
         hold.building()?;
         let held = matches!(hold.phase, crate::hold::Phase::Inside);
         let entering = matches!(hold.phase, crate::hold::Phase::Entering(_));
@@ -268,7 +268,7 @@ pub(crate) fn occupy(
             } else {
                 EntryAction::Reassert
             };
-            Some((id, hold.place.entry(), action, held))
+            Some((id, hold.building()?.entry, action, held))
         } else {
             None
         }
@@ -646,7 +646,7 @@ fn gather(
                             u.garrisoned()
                                 && u.hold
                                     .as_ref()
-                                    .is_some_and(|hold| hold.host.building() == owner)
+                                    .is_some_and(|hold| hold.host.building() == Some(owner))
                         })
         })
         .map(|c| BuildingEntry {

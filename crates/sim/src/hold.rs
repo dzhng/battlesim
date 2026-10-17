@@ -1,7 +1,6 @@
 //! A unit's host and stationary hold state.
 
 use crate::garrison::Garrison;
-use crate::math::V2;
 use crate::units::{Unit, UnitOrder};
 use crate::world::PropId;
 use contract::scenario::Rules;
@@ -41,10 +40,10 @@ impl Host {
         }
     }
 
-    pub fn building(self) -> PropId {
+    pub fn building(self) -> Option<PropId> {
         match self {
-            Self::Building(id) => id,
-            Self::Carrier(_) => panic!("carrier hold has no building"),
+            Self::Building(id) => Some(id),
+            Self::Carrier(_) => None,
         }
     }
 
@@ -64,10 +63,17 @@ pub enum Place {
 }
 
 impl Place {
-    pub fn entry(&self) -> V2 {
+    pub fn building(&self) -> Option<&Garrison> {
         match self {
-            Self::Building(garrison) => garrison.entry,
-            Self::Carrier => V2::default(),
+            Self::Building(garrison) => Some(garrison),
+            Self::Carrier => None,
+        }
+    }
+
+    pub fn building_mut(&mut self) -> Option<&mut Garrison> {
+        match self {
+            Self::Building(garrison) => Some(garrison),
+            Self::Carrier => None,
         }
     }
 }
@@ -81,19 +87,11 @@ pub struct Hold {
 
 impl Hold {
     pub fn building(&self) -> Option<&Garrison> {
-        match (&self.host, &self.place) {
-            (Host::Building(_), Place::Building(garrison)) => Some(garrison),
-            (Host::Carrier(_), Place::Carrier) => None,
-            _ => None,
-        }
+        self.place.building()
     }
 
     pub fn building_mut(&mut self) -> Option<&mut Garrison> {
-        match (&self.host, &mut self.place) {
-            (Host::Building(_), Place::Building(garrison)) => Some(garrison),
-            (Host::Carrier(_), Place::Carrier) => None,
-            _ => None,
-        }
+        self.place.building_mut()
     }
 }
 
@@ -106,11 +104,9 @@ fn ticks(seconds: f64, rules: &Rules) -> u32 {
     ((seconds * rules.tick_hz as f64).round() as u32).max(1)
 }
 
-/// Advance every squad's garrison one tick: start entering beside the
-/// ordered building, seat the squad when the timer ends unless another holds it,
-/// leave after the exit timer. Transitions are stationary: a squad with a
-/// building has no movement goal. `seed`, the squad and where it heads
-/// fix the arrangement a leaving squad spreads into.
+/// Advance every unit's hold through one shared phase and timer. Host-specific
+/// checks and admission remain in garrison/carriage; this function owns the
+/// stationary state machine for both hosts.
 pub(crate) fn advance(
     world: &WorldGeometry,
     sides: &[crate::movement::SideGeometry; 3],
@@ -118,151 +114,208 @@ pub(crate) fn advance(
     units: &mut [Unit],
     rules: &Rules,
     seed: u64,
+    refusals: &mut [Vec<contract::command::Refusal>; 3],
 ) {
     for i in 0..units.len() {
         if !units[i].alive() {
             continue;
         }
-        let want = garrison::want(&units[i]);
-        let phase = units[i].hold.as_ref().and_then(|h| match h.host {
-            Host::Building(building) => Some((building, h.phase)),
-            Host::Carrier(_) => None,
-        });
-        let timer = phase.map_or(1, |(building, _)| {
-            ticks(Host::Building(building).timing(rules).enter_exit_s, rules)
-        });
-        match (phase, want) {
-            (None, Want::Enter(b)) => {
-                let Some(_) = sides[units[i].side.index()]
-                    .prop(world, authored, b)
-                    .filter(|p| p.body.garrison)
-                else {
-                    units[i].orders.pop_front(); // its fall was discovered
-                    continue;
-                };
-                if world
-                    .structure_parts(b)
-                    .into_iter()
-                    .filter_map(|id| sides[units[i].side.index()].prop(world, authored, id))
-                    .any(|p| {
-                        p.footprint().contains(
-                            units[i].position.xy(),
-                            Host::Building(b).timing(rules).reach_m,
-                        )
-                    })
+        let Some((host, phase)) = units[i].hold.as_ref().map(|h| (h.host, h.phase)) else {
+            let want = garrison::want(&units[i]);
+            let Want::Enter(building) = want else {
+                if matches!(want, Want::Leave)
+                    && matches!(units[i].orders.front(), Some(UnitOrder::Exit))
                 {
-                    let unit = &mut units[i];
-                    unit.route = None;
-                    unit.planned_goal = None;
-                    unit.state = MoveState::Idle;
-                    unit.hold = Some(Hold {
-                        host: Host::Building(b),
-                        phase: Phase::Entering(1),
-                        place: Place::Building(Garrison {
-                            slots: Vec::new(),
-                            seats: Vec::new(),
-                            entry: unit.position.xy(),
-                        }),
-                    });
+                    units[i].orders.pop_front();
                 }
-            }
-            (None, Want::Leave) if matches!(units[i].orders.front(), Some(UnitOrder::Exit)) => {
-                units[i].orders.pop_front(); // nothing to leave
-            }
-            (None, _) => {}
-            (Some((b, Phase::Entering(_))), w)
-                if !matches!(w, Want::Enter(x) if x == b)
-                    || garrison::building(world, b).is_none() =>
+                continue;
+            };
+            let Some(_) = sides[units[i].side.index()]
+                .prop(world, authored, building)
+                .filter(|p| p.body.garrison)
+            else {
+                units[i].orders.pop_front();
+                continue;
+            };
+            if world
+                .structure_parts(building)
+                .into_iter()
+                .filter_map(|id| sides[units[i].side.index()].prop(world, authored, id))
+                .any(|p| {
+                    p.footprint().contains(
+                        units[i].position.xy(),
+                        Host::Building(building).timing(rules).reach_m,
+                    )
+                })
             {
-                // A new order (or Stop) cancels entering where the squad stands.
-                units[i].hold = None;
-                if matches!(units[i].orders.front(), Some(UnitOrder::Exit)) {
-                    units[i].orders.pop_front();
-                }
-            }
-            (Some((_, Phase::Entering(n))), _) if n < timer => {
-                units[i].hold.as_mut().unwrap().phase = Phase::Entering(n + 1);
-            }
-            (Some((b, Phase::Entering(_))), _) => {
-                // Another squad (an enemy's) got in first: the order lapses
-                // and the squad stands where it is.
-                if garrison::held_by_another(units, b, i) {
-                    units[i].hold = None;
-                    units[i].orders.pop_front();
-                    continue;
-                }
-                let entry = units[i].hold.as_ref().unwrap().place.entry();
-                let prop = garrison::building(world, b).expect("standing building");
-                let slots = garrison::seats_for_state(world, prop, rules);
-                // Supply may restore soldiers during the entry timer. Admission
-                // still belongs to the whole living squad when it takes seats.
-                if units[i].members.iter().filter(|s| s.alive()).count() > slots.len() {
-                    units[i].hold = None;
-                    units[i].orders.pop_front();
-                    continue;
-                }
-                let seats = garrison::seat_evenly(&slots, &units[i]);
-                let unit = &mut units[i];
-                for (s, seat) in unit.members.iter_mut().zip(&seats) {
-                    if let Some(k) = seat {
-                        s.position = slots[*k].position;
-                    }
-                }
-                unit.settle();
-                unit.hold = Some(Hold {
-                    host: Host::Building(b),
-                    phase: Phase::Inside,
+                let at = units[i].position.xy();
+                units[i].route = None;
+                units[i].planned_goal = None;
+                units[i].state = MoveState::Idle;
+                units[i].hold = Some(Hold {
+                    host: Host::Building(building),
+                    phase: Phase::Entering(1),
                     place: Place::Building(Garrison {
-                        slots,
-                        seats,
-                        entry,
+                        slots: Vec::new(),
+                        seats: Vec::new(),
+                        entry: at,
                     }),
                 });
-                unit.orders.pop_front();
             }
-            (Some((b, Phase::Inside)), Want::Enter(x)) if x == b => {
-                units[i].orders.pop_front(); // already there
-            }
-            (Some((_, Phase::Inside)), Want::Enter(_) | Want::Leave) => {
-                units[i].hold.as_mut().unwrap().phase = Phase::Exiting(1);
-            }
-            (Some((_, Phase::Inside)), Want::Stay) => {}
-            (Some((_, Phase::Exiting(_))), Want::Stay) => {
-                // Stop (or an order that stays) keeps the squad inside.
-                units[i].hold.as_mut().unwrap().phase = Phase::Inside;
-            }
-            (Some((_, Phase::Exiting(n))), _) if n < timer => {
-                units[i].hold.as_mut().unwrap().phase = Phase::Exiting(n + 1);
-            }
-            (Some((b, Phase::Exiting(_))), _) => {
-                let unit = &units[i];
-                let prop = garrison::building(world, b).expect("occupied building stands");
-                let entry = unit.hold.as_ref().unwrap().place.entry();
-                let preferred = match unit.orders.front() {
-                    Some(UnitOrder::Garrison { approach, .. }) => *approach,
-                    Some(o) => o.movement().map_or(entry, |m| m.destination),
-                    None => entry,
-                };
-                // No room outside: the squad stays inside and tries again.
-                let mut draws = arrangement::rng(seed, unit.id.0, arrangement::arrival(preferred));
-                if let Some(spots) =
-                    garrison::exit_spots(world, prop, unit, preferred, rules, &mut draws)
+            continue;
+        };
+        let timer = ticks(host.timing(rules).enter_exit_s, rules);
+        match host {
+            Host::Carrier(carrier) => {
+                let order_matches = matches!(
+                    units[i].orders.front(),
+                    Some(UnitOrder::Board { carrier: target, .. }) if *target == carrier
+                );
+                if matches!(phase, Phase::Entering(_))
+                    && (!order_matches
+                        || !crate::carriage::near_and_still(units, i, carrier, rules))
                 {
-                    let unit = &mut units[i];
-                    let living = unit.members.iter_mut().filter(|s| s.alive());
-                    for (s, p) in living.zip(spots) {
-                        let z = world.surface_at(p.x, p.y).map_or(s.position.z, |g| g.z);
-                        s.position = p.with_z(z);
+                    let host_missing = units
+                        .get(carrier.0 as usize)
+                        .is_none_or(|host| !host.alive());
+                    units[i].hold = None;
+                    if host_missing && order_matches {
+                        units[i].orders.pop_front();
+                        refusals[units[i].side.index()].push(contract::command::Refusal {
+                            unit: units[i].id,
+                            reason: contract::command::OrderError::NotACarrier,
+                        });
                     }
-                    unit.settle();
-                    // Placed out of the building: the squad holds round there.
-                    unit.anchor = Some(crate::cover::Anchor {
-                        at: unit.position.xy(),
-                        halt: false,
-                    });
-                    unit.hold = None;
-                    if matches!(unit.orders.front(), Some(UnitOrder::Exit)) {
+                    continue;
+                }
+                match phase {
+                    Phase::Entering(n) if n < timer => {
+                        units[i].hold.as_mut().expect("carrier hold").phase =
+                            Phase::Entering(n + 1);
+                    }
+                    Phase::Entering(_) => {
+                        if crate::carriage::admit(units, i, carrier, rules) {
+                            units[i].hold.as_mut().expect("carrier hold").phase = Phase::Inside;
+                            if matches!(units[i].orders.front(), Some(UnitOrder::Board { .. })) {
+                                units[i].orders.pop_front();
+                            }
+                        } else {
+                            units[i].hold = None;
+                            units[i].orders.pop_front();
+                            refusals[units[i].side.index()].push(contract::command::Refusal {
+                                unit: units[i].id,
+                                reason: contract::command::OrderError::CapacityFull,
+                            });
+                        }
+                    }
+                    Phase::Inside | Phase::Exiting(_) => {}
+                }
+            }
+            Host::Building(building) => {
+                let want = garrison::want(&units[i]);
+                if matches!(phase, Phase::Entering(_))
+                    && (!matches!(want, Want::Enter(target) if target == building)
+                        || garrison::building(world, building).is_none())
+                {
+                    units[i].hold = None;
+                    if matches!(units[i].orders.front(), Some(UnitOrder::Exit)) {
+                        units[i].orders.pop_front();
+                    }
+                    continue;
+                }
+                match (phase, want) {
+                    (Phase::Entering(n), _) if n < timer => {
+                        units[i].hold.as_mut().expect("building hold").phase =
+                            Phase::Entering(n + 1);
+                    }
+                    (Phase::Entering(_), _) => {
+                        if garrison::held_by_another(units, building, i) {
+                            units[i].hold = None;
+                            units[i].orders.pop_front();
+                            continue;
+                        }
+                        let entry = units[i]
+                            .hold
+                            .as_ref()
+                            .and_then(|hold| hold.building())
+                            .expect("building hold")
+                            .entry;
+                        let prop = garrison::building(world, building).expect("standing building");
+                        let slots = garrison::seats_for_state(world, prop, rules);
+                        if units[i].members.iter().filter(|s| s.alive()).count() > slots.len() {
+                            units[i].hold = None;
+                            units[i].orders.pop_front();
+                            continue;
+                        }
+                        let seats = garrison::seat_evenly(&slots, &units[i]);
+                        let unit = &mut units[i];
+                        for (s, seat) in unit.members.iter_mut().zip(&seats) {
+                            if let Some(k) = seat {
+                                s.position = slots[*k].position;
+                            }
+                        }
+                        unit.settle();
+                        unit.hold = Some(Hold {
+                            host: Host::Building(building),
+                            phase: Phase::Inside,
+                            place: Place::Building(Garrison {
+                                slots,
+                                seats,
+                                entry,
+                            }),
+                        });
                         unit.orders.pop_front();
+                    }
+                    (Phase::Inside, Want::Enter(target)) if target == building => {
+                        units[i].orders.pop_front();
+                    }
+                    (Phase::Inside, Want::Enter(_) | Want::Leave) => {
+                        units[i].hold.as_mut().expect("building hold").phase = Phase::Exiting(1);
+                    }
+                    (Phase::Inside, Want::Stay) => {}
+                    (Phase::Exiting(_), Want::Stay) => {
+                        units[i].hold.as_mut().expect("building hold").phase = Phase::Inside;
+                    }
+                    (Phase::Exiting(n), _) if n < timer => {
+                        units[i].hold.as_mut().expect("building hold").phase =
+                            Phase::Exiting(n + 1);
+                    }
+                    (Phase::Exiting(_), _) => {
+                        let unit = &units[i];
+                        let prop =
+                            garrison::building(world, building).expect("occupied building stands");
+                        let entry = unit
+                            .hold
+                            .as_ref()
+                            .and_then(|hold| hold.building())
+                            .expect("building hold")
+                            .entry;
+                        let preferred = match unit.orders.front() {
+                            Some(UnitOrder::Garrison { approach, .. }) => *approach,
+                            Some(o) => o.movement().map_or(entry, |m| m.destination),
+                            None => entry,
+                        };
+                        let mut draws =
+                            arrangement::rng(seed, unit.id.0, arrangement::arrival(preferred));
+                        if let Some(spots) =
+                            garrison::exit_spots(world, prop, unit, preferred, rules, &mut draws)
+                        {
+                            let unit = &mut units[i];
+                            let living = unit.members.iter_mut().filter(|s| s.alive());
+                            for (s, p) in living.zip(spots) {
+                                let z = world.surface_at(p.x, p.y).map_or(s.position.z, |g| g.z);
+                                s.position = p.with_z(z);
+                            }
+                            unit.settle();
+                            unit.anchor = Some(crate::cover::Anchor {
+                                at: unit.position.xy(),
+                                halt: false,
+                            });
+                            unit.hold = None;
+                            if matches!(unit.orders.front(), Some(UnitOrder::Exit)) {
+                                unit.orders.pop_front();
+                            }
+                        }
                     }
                 }
             }

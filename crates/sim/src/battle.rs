@@ -347,6 +347,7 @@ pub struct Battle {
     /// Recorded commands still to apply when this battle is a replay.
     replaying: Option<VecDeque<(Tick, CommandEnvelope)>>,
     observations: [ObservationFrame; 3],
+    refusals: [Vec<contract::command::Refusal>; 3],
     pub(crate) shouts: [ShoutLedger; 3],
     /// Each unit as barks saw it at the start of this tick.
     shout_before: Vec<shouts::Before>,
@@ -1155,6 +1156,7 @@ impl Battle {
             accepted: Vec::new(),
             replaying: None,
             observations: Default::default(),
+            refusals: Default::default(),
             shouts: Default::default(),
             shout_before: Vec::new(),
             shout_evidence: ShoutEvidence::default(),
@@ -1876,6 +1878,7 @@ impl Battle {
         self.break_dogfights();
         self.dispatch_reinforcements();
         completed(TickPhase::Orders);
+        crate::carriage::advance(&mut self.units, &self.rules, &mut self.refusals);
         crate::hold::advance(
             &self.world,
             &self.sides,
@@ -1883,8 +1886,9 @@ impl Battle {
             &mut self.units,
             &self.rules,
             self.seed,
+            &mut self.refusals,
         );
-        crate::carriage::advance(&mut self.units, &self.rules);
+        crate::carriage::copy_passenger_positions(&mut self.units);
         self.update_pursuit();
         damage::recover(&mut self.units, &self.rules, self.tick);
         // Progress moves before movement, so the gate opens on the tick packing completes.
@@ -3708,6 +3712,8 @@ impl Battle {
     }
 
     fn apply(&mut self, prepared: PreparedCommand) {
+        let side = prepared.command.side.index();
+        self.refusals[side].extend(prepared.refused.iter().cloned());
         let mut units = std::mem::take(&mut self.units);
         self.apply_units(prepared, &mut units);
         self.units = units;
@@ -4499,9 +4505,8 @@ impl Battle {
                         > low_hover
             }));
             frame.audible.clone_from(&self.audible[side.index()]);
-            // Refusals are transient evidence for this completed tick. Later
-            // transport slices append per-unit failures before publication.
-            frame.refusals.clear();
+            // Refusals are transient evidence for this completed tick.
+            frame.refusals = std::mem::take(&mut self.refusals[side.index()]);
             frame.shouts.clone_from(&own_shouts[side.index()]);
             for other in Side::ALL.into_iter().filter(|other| *other != side) {
                 frame.shouts.extend(shouts::heard(
