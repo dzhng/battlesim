@@ -10,7 +10,7 @@ a capability has shipped.
 variants, the skirmish economy/objectives, basic AI and a phased implementation
 ladder with parallel named-model production.
 
-[Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
+[Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is planned: infantry squads riding in APCs, IFVs, light vehicles and helicopters, with bail-out when a carrier dies and a skirmish AI that moves its infantry by transport.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield
