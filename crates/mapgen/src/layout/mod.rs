@@ -24,7 +24,7 @@ use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-18";
+pub const GENERATOR_VERSION: &str = "layout-19";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
@@ -72,6 +72,34 @@ pub fn generate_layout(
     request: &GenerationRequest,
     presets: &PresetDefinitions,
 ) -> Result<MapPlan, Vec<Diagnostic>> {
+    if !(1..=3).contains(&request.entries_per_side) {
+        return Err(vec![Diagnostic {
+            code: DiagnosticCode::InvalidRequest,
+            feature: Some("entries".into()),
+            location: "$.entries_per_side".into(),
+            message: "entries_per_side must be between one and three".into(),
+        }]);
+    }
+    if request.profile == contract::generation::GenerationProfile::Skirmish {
+        let minimum = match request.entries_per_side {
+            1 => MapSize::Small,
+            2 => MapSize::Medium,
+            _ => MapSize::Large,
+        };
+        if request.size < minimum {
+            return Err(vec![Diagnostic {
+                code: DiagnosticCode::InvalidRequest,
+                feature: Some("skirmish_sites".into()),
+                location: "$.size".into(),
+                message: format!(
+                    "skirmish size {} is below the {}-entry floor {}",
+                    request.size.name(),
+                    request.entries_per_side,
+                    minimum.name()
+                ),
+            }]);
+        }
+    }
     let pins = [
         (
             "generator_version",
@@ -134,7 +162,8 @@ pub fn generate_layout(
     surfaces.extend(towns::surfaces(&context, &towns)?);
     let skirmish = crate::skirmish::reserve(
         request,
-        &surfaces,
+        &mut surfaces,
+        &water,
         skeleton.hub,
         &towns
             .iter()

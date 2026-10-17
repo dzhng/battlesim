@@ -1,5 +1,6 @@
 use contract::catalog::Faction;
 use contract::encounter::EntrySite;
+use contract::generation::{skirmish_size_floor, MapSize};
 use contract::ids::Side;
 use contract::players::{
     entry_count, side_faction, validate_entry_counts, validate_players, validate_players_per_side,
@@ -136,4 +137,35 @@ fn both_sides_get_the_larger_sides_entry_count() {
     assert!(validate_entry_counts(&players, &entries(2, 2)).is_ok());
     assert!(validate_entry_counts(&players, &entries(2, 1)).is_err());
     assert!(validate_entry_counts(&players, &entries(1, 1)).is_err());
+}
+
+#[test]
+fn skirmish_size_floor_comes_from_the_shared_fixture() {
+    assert_eq!(skirmish_size_floor(1), MapSize::Small);
+    assert_eq!(skirmish_size_floor(2), MapSize::Medium);
+    assert_eq!(skirmish_size_floor(3), MapSize::Large);
+    assert_eq!(skirmish_size_floor(4), MapSize::Large);
+    assert_eq!(skirmish_size_floor(5), MapSize::Xl);
+    assert_eq!(skirmish_size_floor(10), MapSize::Xl);
+}
+
+#[test]
+fn generation_request_defaults_to_one_entry_and_round_trips_explicit_count() {
+    let base = serde_json::json!({
+        "generator_version": "layout-18",
+        "preset_revision": "r1",
+        "seed": "1",
+        "template_catalog_hash": "hash",
+        "type": "open",
+        "size": "small",
+        "profile": "skirmish",
+        "limits": {"max_authored_parts": 1, "max_bay_positions": 1, "max_ground_points": 1}
+    });
+    let request: contract::generation::GenerationRequest = serde_json::from_value(base).unwrap();
+    assert_eq!(request.entries_per_side, 1);
+    let mut explicit = serde_json::to_value(request).unwrap();
+    explicit["entries_per_side"] = serde_json::json!(3);
+    let request: contract::generation::GenerationRequest =
+        serde_json::from_value(explicit).unwrap();
+    assert_eq!(request.entries_per_side, 3);
 }

@@ -780,9 +780,7 @@ impl Battle {
             let entry = skirmish
                 .setup
                 .sites
-                .entries
-                .iter()
-                .find(|entry| entry.side == side)
+                .centre_entry(side)
                 .expect("combatant entry site");
             let (entry_site, entry_yaw) = (v2(entry.center[0], entry.center[1]), entry.yaw);
             let edge = crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
@@ -999,13 +997,7 @@ impl Battle {
             } else if unit.movement_goal().is_some() {
                 continue;
             }
-            let entry = skirmish
-                .setup
-                .sites
-                .entries
-                .iter()
-                .find(|entry| entry.side == unit.side)
-                .unwrap();
+            let entry = skirmish.setup.sites.centre_entry(unit.side).unwrap();
             // Helicopter retirement follows completed ordinary movement at the admitted base.
             let half = unit.hull.map_or(2.0, |half| half.x.max(half.y));
             if !unit.fixed_wing()
@@ -3774,13 +3766,7 @@ impl Battle {
                     destinations: units
                         .iter()
                         .map(|unit| {
-                            let entry = skirmish
-                                .setup
-                                .sites
-                                .entries
-                                .iter()
-                                .find(|entry| entry.side == command.side)
-                                .unwrap();
+                            let entry = skirmish.setup.sites.centre_entry(command.side).unwrap();
                             let (goal, facing) = if self.units[unit.0 as usize].fixed_wing() {
                                 let edge = crate::air::edge::back_edge(
                                     command.side,
@@ -4213,9 +4199,7 @@ impl Battle {
         let entry = skirmish
             .setup
             .sites
-            .entries
-            .iter()
-            .find(|entry| entry.side == side)
+            .centre_entry(side)
             .ok_or(OrderError::NotSkirmish)?;
         let (from, yaw) = (v2(entry.center[0], entry.center[1]), entry.yaw);
         let t = self.rules.catalog.get(kind);

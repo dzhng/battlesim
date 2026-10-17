@@ -1,4 +1,5 @@
 import game from "@fixtures/game.json";
+import skirmishSizes from "@fixtures/skirmish-sizes.json";
 import type { Player, PrepareBattleRequest, ControllerKind } from "@web/battle/prepare/protocol";
 import {
   MAP_SIZES,
@@ -73,13 +74,13 @@ function orderedPlayers(players: Player[]): Player[] {
 
 function minimumSize(players: readonly Player[]): MapSize {
   const largestSide = Math.max(sideCount(players, "blue"), sideCount(players, "red"));
-  return largestSide >= 5
-    ? "xl"
-    : largestSide >= 3
-      ? "large"
-      : largestSide === 2
-        ? "medium"
-        : "small";
+  const tier = skirmishSizes.tiers.find(
+    (candidate) =>
+      largestSide >= candidate.min_players &&
+      (candidate.max_players === undefined || largestSide <= candidate.max_players),
+  );
+  if (!tier) throw new Error(`no skirmish size tier for ${largestSide} players`);
+  return tier.size as MapSize;
 }
 
 function sizeRank(size: MapSize): number {

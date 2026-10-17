@@ -138,6 +138,19 @@ These answer the four facts above:
 
 The sample is small: 7 rows, 4 of them saved maps with synthetic objectives. Slice 04 re-measures admission on its real arm pass.
 
+### Slice 04 results (2026-10-17)
+
+The real arm pass uses the shared entry count on both sides. On the seven-row corpus, the measured admissions were:
+
+| Pairing | Entries per side | Admitted | Slice 00 |
+|---|---:|---:|---:|
+| 1v1 | 1 | 3/7 | 2/7 |
+| 2v3 | 3 | 1/7 | 0/7 (unequal counts) |
+| 3v3 | 3 | 1/7 | 2/7 |
+| 5v5 | 3 | 1/7 | 2/7 |
+
+The two refused three-entry generations were named generation refusals before admission; the remaining maps were measured with every entry standing and routing to every objective. These rates are evidence for the current arm and objective candidates, not a new fairness threshold. The request's one-entry form keeps the existing map bytes and hashes; only the generator identity version changes.
+
 ## Implementation choices
 
 Decisions the implementation made where the spec was silent, with a verdict on each.
@@ -159,3 +172,20 @@ Decisions the implementation made where the spec was silent, with a verdict on e
 | 02 | An unowned killer in a skirmish fails a debug assertion and earns nothing, rather than being credited to the side's first player. | Sound: every skirmish unit has an owner, so a fallback would hide a bug. |
 | 02 | Until slice 03, the side's skirmish view shows the human player's economy if the side has one, otherwise the first player's. | Provisional. Slice 03's player table replaces it. |
 | 02 | The browser sends orders as the viewing side's Human, or the side's first player when it has none (`apps/battle-lab/src/commandingPlayer.ts`, used by the battle session for every route). | Sound: found in my own verification. After slice 02, every generated-battle order was refused with `MissingPlayer`, because no route passed a player. Slice 10's `controlled(observation, player)` builds on the same player. |
+| 04 | Entry sites are ordered centre, then left-to-right flanks per side; until slice 05, existing simulation consumers use the centre site through `centre_entry`. | Sound: it preserves slice-02 behavior while making the list order explicit for the next owner/dispatch slice. |
+| 04 | Left and right arms sit at mirrored edge fractions on both sides, drawn once from the `"entries"` stream. An arm pair is accepted only if both sides pass spacing, river-mouth and join checks. | Sound. It removes unfairness the arms would otherwise create; added after the first measurement came back low. |
+| 04 | The size floor and the skirmish extents have one owner, `fixtures/skirmish-sizes.json`, read by `contract` and imported by the lobby model. There is one admission entry point, `admit_skirmish(q, rules, players)`. | Sound: corrected in review, from three copies of the size table and two entry points. |
+| 04 | The generator version is bumped to `layout-19`. The map-layout parity records change their version string, and the two compiled-map records change their output hash because the output embeds that version. 1-entry geometry is unchanged, which tests pin on an explicit request and on the corpus's generated rows. | Sound: the spec required the bump. |
+| 04 | Until slice 05, simulation consumers read the centre entry through `SkirmishSites::centre_entry`. | Provisional. Slice 05's entry owner replaces it. |
+
+### Slice 04 admission sweep (2026-10-17)
+
+`cargo run --release -p mapgen --example entry_admission -- --seeds 30`. Generated maps only, at each pairing's floor size, with equal entries (D52). Admitted out of 30:
+
+| Type | 1v1 (S) | 2v2 (M) | 3v3 (L) | 5v5 (XL) |
+|---|---|---|---|---|
+| open | 29 | 28 | 22 | 23 |
+| mixed | 27 | 24 | 27 | 21 |
+| metro | 23 | 23 | 20 | 20 |
+
+Fairness is most of the refusals at every size, including 1v1, so this is the generator's own rate, not the arms'. The lowest cell is 67%, so a preview's 5 hidden attempts fail about 0.4% of the time. A metro 3v3 also had one river-mouth refusal.

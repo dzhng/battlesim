@@ -78,6 +78,7 @@ impl Inputs {
                 template_catalog_hash: catalogue.hash().into(),
                 map_type: MapType::Open,
                 size: MapSize::Small,
+                entries_per_side: 1,
                 profile: contract::generation::GenerationProfile::Standard,
                 region: None,
                 limits: serde_json::from_value(config["limits"].clone())?,

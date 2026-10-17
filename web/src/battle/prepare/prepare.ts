@@ -30,7 +30,7 @@ export interface PreparationModule extends MapGenerator {
 /** The simulation's world of one map, built once: the skirmish sites are
  *  admitted on it and the battle then takes it. */
 export interface PreparedWorld {
-  admit_skirmish(sites: string): string;
+  admit_skirmish(sites: string, players: string): string;
   skirmish_fields(sites: string, players: string): string;
   extents(): string;
   into_battle(scenario: string, seed: number): SimBattle;
@@ -159,7 +159,9 @@ export async function prepare(
     let skirmish = sites.skirmish;
     if (skirmish) {
       try {
-        const admitted = JSON.parse(world.admit_skirmish(map.sites)) as {
+        const admitted = JSON.parse(
+          world.admit_skirmish(map.sites, JSON.stringify(checked.players)),
+        ) as {
           sites: { skirmish: NonNullable<typeof skirmish> };
         };
         map.sites = JSON.stringify(admitted.sites);

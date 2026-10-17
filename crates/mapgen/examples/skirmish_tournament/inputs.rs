@@ -96,6 +96,7 @@ pub(crate) fn prepare_row(
                 template_catalog_hash: inputs.template_hash.clone(),
                 map_type,
                 size,
+                entries_per_side: 1,
                 profile: GenerationProfile::Skirmish,
                 region: None,
                 limits: inputs.limits,
@@ -110,9 +111,26 @@ pub(crate) fn prepare_row(
                 return Err("map generation refused the pinned request".into());
             };
             let prepared = sim::encounter::PreparedMap::new(&result.map, &inputs.rules);
+            let players = vec![
+                Player {
+                    id: "blue-1".into(),
+                    side: Side::Blue,
+                    faction: Some(inputs.factions[0]),
+                    controller: ControllerKind::ActiveAi,
+                    human_capable: false,
+                },
+                Player {
+                    id: "red-1".into(),
+                    side: Side::Red,
+                    faction: Some(inputs.factions[1]),
+                    controller: ControllerKind::ActiveAi,
+                    human_capable: false,
+                },
+            ];
             let admitted = sim::map_analysis::admit_skirmish(
                 &prepared.queries(&result.map, &result.sites),
                 &inputs.rules,
+                &players,
             )
             .map_err(|error| format!("skirmish admission: {error}"))?;
             let sites = admitted

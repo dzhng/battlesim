@@ -993,11 +993,14 @@ pub struct PreparedWorld {
 #[wasm_bindgen]
 impl PreparedWorld {
     /// Final skirmish placement/route admission on this prepared physical world.
-    pub fn admit_skirmish(&self, sites_json: &str) -> Result<String, JsError> {
+    pub fn admit_skirmish(&self, sites_json: &str, players_json: &str) -> Result<String, JsError> {
         let sites = serde_json::from_str(sites_json).map_err(js_error)?;
+        let players: Vec<contract::players::Player> =
+            serde_json::from_str(players_json).map_err(js_error)?;
         let admitted = sim::map_analysis::admit_skirmish(
             &self.prepared.queries(&self.map, &sites),
             &self.rules,
+            &players,
         )
         .map_err(js_error)?;
         serde_json::to_string(&admitted).map_err(js_error)

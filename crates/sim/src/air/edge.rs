@@ -13,9 +13,7 @@ pub struct BackEdge {
 
 pub fn back_edge(side: Side, sites: &SkirmishSites, world: &WorldGeometry) -> BackEdge {
     let center = sites
-        .entries
-        .iter()
-        .find(|entry| entry.side == side)
+        .centre_entry(side)
         .map(|entry| v2(entry.center[0], entry.center[1]))
         .expect("combatant entry site");
     let w = world.width();

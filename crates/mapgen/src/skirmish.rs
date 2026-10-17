@@ -1,14 +1,16 @@
 //! Public skirmish sites reserved before parcels, trees and street furniture.
+use crate::layout::water::Water;
 use crate::{Diagnostic, DiagnosticCode};
 use contract::encounter::{EntrySite, ObjectiveSite, ObjectiveSiteKind, SkirmishSites};
 use contract::generation::{GenerationProfile, GenerationRequest, MapSize};
 use contract::ground::GroundShape;
 use contract::ids::Side;
-use contract::map::SurfaceArea;
+use contract::map::{SurfaceArea, SurfaceKind};
 
 pub(crate) fn reserve(
     request: &GenerationRequest,
-    surfaces: &[SurfaceArea],
+    surfaces: &mut Vec<SurfaceArea>,
+    water: &Water<'_>,
     hub: [f64; 2],
     towns: &[&[[f64; 2]]],
 ) -> Result<Option<SkirmishSites>, Vec<Diagnostic>> {
@@ -54,7 +56,32 @@ pub(crate) fn reserve(
             yaw: libm::atan2(delta[1], delta[0]),
         })
     };
-    let entries = vec![edge(Side::Blue, extent)?, edge(Side::Red, 0.0)?];
+    let centre_entries = [edge(Side::Blue, extent)?, edge(Side::Red, 0.0)?];
+    let mut entries = centre_entries.to_vec();
+    if request.entries_per_side > 1 {
+        let extra = add_entry_arms(request, surfaces, water, extent, &entries, fail)?;
+        entries.extend(extra);
+    }
+    let mut ordered = Vec::with_capacity(entries.len());
+    for side in [Side::Blue, Side::Red] {
+        let mut side_entries: Vec<_> = entries.iter().filter(|entry| entry.side == side).collect();
+        let centre_index = side_entries
+            .iter()
+            .enumerate()
+            .min_by(|(_, a), (_, b)| {
+                (a.center[0] - extent / 2.0)
+                    .abs()
+                    .total_cmp(&(b.center[0] - extent / 2.0).abs())
+            })
+            .map(|(index, _)| index)
+            .expect("centre entry");
+        let centre = side_entries.remove(centre_index);
+        ordered.push(centre.clone());
+        let mut flank: Vec<_> = side_entries.into_iter().cloned().collect();
+        flank.sort_by(|a, b| a.center[0].total_cmp(&b.center[0]));
+        ordered.extend(flank);
+    }
+    entries = ordered;
     let mut objectives = vec![ObjectiveSite {
         id: "objective-0".into(),
         center: hub,
@@ -178,6 +205,117 @@ pub(crate) fn reserve(
         }
     }
     Ok(Some(sites))
+}
+
+/// Add the lateral shared entry arms without touching the one-entry layout.
+/// Each stroke ends on an existing carriageway centreline, so the generated
+/// road graph remains connected. Candidate exits are sampled from the named
+/// `entries` stream and rejected when they approach water or another arm.
+fn add_entry_arms(
+    request: &GenerationRequest,
+    surfaces: &mut Vec<SurfaceArea>,
+    water: &Water<'_>,
+    extent: f64,
+    existing: &[EntrySite],
+    fail: impl Fn(&str) -> Vec<Diagnostic> + Copy,
+) -> Result<Vec<EntrySite>, Vec<Diagnostic>> {
+    let wanted = request.entries_per_side - 1;
+    let bands: &[f64] = match wanted {
+        1 => &[0.22, 0.30, 0.38, 0.62, 0.70, 0.78],
+        2 => &[0.18, 0.24, 0.30, 0.70, 0.76, 0.82],
+        _ => unreachable!(),
+    };
+    let mut rng = crate::layout::stream(request, "entries");
+    let road_points: Vec<[f64; 2]> = surfaces
+        .iter()
+        .filter(|s| s.kind.is_road())
+        .filter_map(|s| match &s.shape {
+            GroundShape::Stroke { centerline, .. } => Some(centerline.samples().to_vec()),
+            GroundShape::Polygon { .. } => None,
+        })
+        .flatten()
+        .filter(|p| p[1] > 30.0 && p[1] < extent - 30.0)
+        .collect();
+    if road_points.is_empty() {
+        return Err(fail("entry arms have no interior road to join"));
+    }
+    let mut added = Vec::new();
+    let mut side_entries = [
+        existing
+            .iter()
+            .filter(|e| e.side == Side::Blue)
+            .cloned()
+            .collect::<Vec<_>>(),
+        existing
+            .iter()
+            .filter(|e| e.side == Side::Red)
+            .cloned()
+            .collect::<Vec<_>>(),
+    ];
+    for _ in 0..wanted {
+        let mut selected = None;
+        for band in bands.iter().copied() {
+            let fraction = (band + (rng.unit() - 0.5) * 0.04).clamp(0.12, 0.88);
+            let mut pair = Vec::new();
+            for (index, side) in [Side::Blue, Side::Red].into_iter().enumerate() {
+                let y = if side == Side::Blue { extent } else { 0.0 };
+                let inward = if side == Side::Blue { -1.0 } else { 1.0 };
+                let start = [extent * fraction, y];
+                if side_entries[index]
+                    .iter()
+                    .any(|e| distance(e.center, start) < 150.0)
+                    || water.gap(start, 90.0) < 90.0
+                {
+                    pair.clear();
+                    break;
+                }
+                let Some(target) = road_points
+                    .iter()
+                    .copied()
+                    .filter(|p| {
+                        (p[1] - y) * inward > 100.0 && (p[0] - start[0]).abs() < extent * 0.45
+                    })
+                    .min_by(|a, b| distance(start, *a).total_cmp(&distance(start, *b)))
+                else {
+                    pair.clear();
+                    break;
+                };
+                if water.segment_gap(start, target, 90.0) < 30.0 {
+                    pair.clear();
+                    break;
+                }
+                let delta = [target[0] - start[0], target[1] - start[1]];
+                pair.push((side, start, target, libm::atan2(delta[1], delta[0]), inward));
+            }
+            if pair.len() == 2 {
+                let mut entries = Vec::new();
+                for (side, start, target, yaw, inward) in pair {
+                    let shape = GroundShape::stroke(vec![start, target], 12.0)
+                        .map_err(|_| fail("entry arm geometry is not representable"))?;
+                    surfaces.push(SurfaceArea {
+                        kind: SurfaceKind::CountryRoad,
+                        shape,
+                    });
+                    entries.push(EntrySite {
+                        side,
+                        center: [start[0], start[1] + inward * 8.0],
+                        yaw,
+                    });
+                }
+                selected = Some(entries);
+                break;
+            }
+        }
+        let Some(entries) = selected else {
+            return Err(fail("no mirrored, spaced, river-safe entry arm pair fits"));
+        };
+        for entry in entries {
+            let index = usize::from(entry.side == Side::Red);
+            side_entries[index].push(entry.clone());
+            added.push(entry);
+        }
+    }
+    Ok(added)
 }
 /// Ground kept beyond a reserved objective's clearance, so what stands round
 /// it does not crowd its edge.

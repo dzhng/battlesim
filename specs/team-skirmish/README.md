@@ -1,20 +1,22 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–02 and 07 done).
+**Status:** in progress (slices 00–02, 04 and 07 done).
 **Updated:** 2026-10-17.
 
 ## Next Agent Prompt
 
-**Done:** slices 00, 01, 02 and 07.
+**Done:** slices 00, 01, 02, 04 and 07.
 - Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
 - Slice 01 landed the player contract. D54 makes Neutral players factionless.
 - Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
+- Slice 04 added the shared `entries_per_side` generation request, dedicated seeded entry arms, centre/left/right site ordering, hard 150 m and river-mouth checks, and best-entry fairness admission. One-entry map hashes remain unchanged.
 - Slice 07 landed the pure lobby model and moved the builder onto `scenario.players`.
+- Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
 
 **Next:**
-- Slice 03 (publication): the side view still shows one player's economy.
-- Resume slice 04 (entry arms). Its Codex session was paused for disk space in worktree `team-entries`, branch `team-skirmish/team-entries`.
-- 05 waits on 02 and 04.
+- Slice 03 (publication): it is being finished in worktree `team-publication`.
+- Slice 05 (simulation entry owner): 02 and 04 have landed. It replaces the temporary `centre_entry` reads.
+- Slice 08 (lobby map picture, visual) can start now that 04 and 07 have landed.
 
 **Known environment failures.** A worktree needs `git lfs pull --include 'assets/runtime,assets/third-party,packages/scene-assets,web/scenes'` before browser tests and scenes, which is about 0.75 GB. After that, only these fail, identically on main, because they need LFS source art:
 - `icons.test.ts` (3 tests);
@@ -42,7 +44,7 @@ Slices:
 - [x] 01: one player contract, mechanical port ([slice](slices/01-player-contract.md))
 - [x] 02: simulation per-player ownership ([slice](slices/02-sim-ownership.md))
 - [ ] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
-- [ ] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
+- [x] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
 - [ ] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
 - [ ] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
 - [x] 07: lobby model ([slice](slices/07-lobby-model.md))

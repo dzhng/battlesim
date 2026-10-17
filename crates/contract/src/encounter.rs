@@ -173,6 +173,12 @@ impl EncounterSites {
 }
 
 impl SkirmishSites {
+    /// The centre arm is the first entry in the ordered centre/left/right list.
+    /// Slice 05 will replace this temporary single-entry consumer with owner
+    /// selection; until then all simulation callers use the centre arm.
+    pub fn centre_entry(&self, side: crate::ids::Side) -> Option<&EntrySite> {
+        self.entries.iter().find(|entry| entry.side == side)
+    }
     pub fn all_reserved_objectives(&self) -> impl Iterator<Item = &ObjectiveSite> {
         self.objectives.iter().chain(&self.candidates)
     }
@@ -202,6 +208,36 @@ impl SkirmishSites {
             return Err(
                 "skirmish entries require one to three finite blue/red entries per side".into(),
             );
+        }
+        let blue_count = self
+            .entries
+            .iter()
+            .filter(|entry| entry.side == crate::ids::Side::Blue)
+            .count();
+        let red_count = self
+            .entries
+            .iter()
+            .filter(|entry| entry.side == crate::ids::Side::Red)
+            .count();
+        if blue_count != red_count {
+            return Err("skirmish entries require the same count on both sides".into());
+        }
+        for side in [crate::ids::Side::Blue, crate::ids::Side::Red] {
+            let side_entries: Vec<_> = self
+                .entries
+                .iter()
+                .filter(|entry| entry.side == side)
+                .collect();
+            for (i, entry) in side_entries.iter().enumerate() {
+                if side_entries[..i].iter().any(|other| {
+                    libm::hypot(
+                        entry.center[0] - other.center[0],
+                        entry.center[1] - other.center[1],
+                    ) < 150.0
+                }) {
+                    return Err("skirmish entries must be at least 150 metres apart".into());
+                }
+            }
         }
         if !matches!(self.objectives.len(), 3 | 5 | 7) {
             return Err("skirmish requires three, five or seven objectives".into());
