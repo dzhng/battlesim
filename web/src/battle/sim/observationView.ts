@@ -225,6 +225,9 @@ export type HoldHostView =
  *  not on the field, and the player can't select or order it (D10). */
 export const aboardCarrier = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind === "carrier";
 
+/** Whether a building holds `u` (entering, garrisoned or leaving). */
+export const inBuilding = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind === "building";
+
 /** The own squads a carrier holds (boarding, aboard or getting out), in
  *  the side's own order: the one owner of who rides in what, which the
  *  Seats row counts, the readouts stack under the carrier's card and

@@ -4,7 +4,7 @@
  *  fire policy) are not listed: they reach the whole selection.
  *  The one owner of "can this unit do it", for the bar, the keys and the
  *  right-click alike. */
-import { passengersOf, type OwnUnitView } from "../sim/observationView";
+import { inBuilding, passengersOf, type OwnUnitView } from "../sim/observationView";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
 
 export type ReachCommand =
@@ -31,7 +31,7 @@ const CAN: Record<
   /** Infantry: garrisons are a fighting position for squads. */
   garrison: (u, units) => units.isInfantry(u.kind),
   /** It is inside a building. */
-  exit_building: (u) => !!u.hold,
+  exit_building: inBuilding,
   /** Infantry ride carriers, as they garrison buildings. */
   board: (u, units) => units.isInfantry(u.kind),
   /** Its type has seats. */

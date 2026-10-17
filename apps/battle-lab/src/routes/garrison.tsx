@@ -3,7 +3,7 @@ import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
-import type { ObservationView } from "@web/battle/sim/observationView";
+import { inBuilding, type ObservationView } from "@web/battle/sim/observationView";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
 import { AckLog } from "../AckLog";
@@ -149,7 +149,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
 
   if (!meshes) return null;
   const own = observation?.own ?? [];
-  const garrisoned = control.selectedUnits.some((u) => u.hold !== null);
+  const garrisoned = control.selectedUnits.some(inBuilding);
   return (
     <>
       <RejectedOrder acks={control.acks} />
