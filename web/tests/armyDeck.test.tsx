@@ -76,6 +76,42 @@ test("card selection replaces the current selection and Shift toggles individual
   expect(rifle.getAttribute("aria-pressed")).toBe("false");
 });
 
+test("a selected card asks the camera to centre while an unselected card only selects", () => {
+  const tank = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });
+  const rifle = specimenUnit(TEST_CATALOG, "test_rifle", { id: 22 });
+  const onCenter = vi.fn();
+  function Harness() {
+    const [selected, setSelected] = useState([11]);
+    return (
+      <ArmyDeck
+        own={[tank, rifle]}
+        selected={selected}
+        onSelect={setSelected}
+        onCenter={onCenter}
+        rules={game as unknown as PanelRules}
+        captions={null}
+      />
+    );
+  }
+  const view = render(<Harness />);
+  const tankCard = view.getByRole("button", { name: "Tank #11" });
+  const rifleCard = view.getByRole("button", { name: "Rifle Section #22" });
+  fireEvent.click(tankCard);
+  expect(onCenter).toHaveBeenCalledOnce();
+  expect(onCenter).toHaveBeenCalledWith(tank);
+  onCenter.mockClear();
+  fireEvent.click(rifleCard);
+  expect(rifleCard.getAttribute("aria-pressed")).toBe("true");
+  expect(onCenter).not.toHaveBeenCalled();
+  fireEvent.click(rifleCard);
+  expect(onCenter).toHaveBeenCalledOnce();
+  expect(onCenter).toHaveBeenCalledWith(rifle);
+  onCenter.mockClear();
+  fireEvent.click(rifleCard, { shiftKey: true });
+  expect(rifleCard.getAttribute("aria-pressed")).toBe("false");
+  expect(onCenter).not.toHaveBeenCalled();
+});
+
 test("hover and focus expose live unit facts, health and casualty removal without claiming Escape", () => {
   const tank = specimenUnit(TEST_CATALOG, "test_tank", { id: 11 });
   const rifle = specimenUnit(TEST_CATALOG, "test_rifle", {

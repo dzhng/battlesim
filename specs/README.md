@@ -12,6 +12,8 @@ ladder with parallel named-model production.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
 
+[Unit card camera focus](done/unit-card-camera-focus/README.md) (shipped) lets a selected army-deck card, or any double-clicked card, centre the camera on its unit while keeping the `N` / `Shift+N` framing.
+
 [Team skirmish](team-skirmish/README.md) (planned) turns the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
