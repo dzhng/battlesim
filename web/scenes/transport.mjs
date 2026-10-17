@@ -184,12 +184,14 @@ const newestSeq = (page) => lab(page, () => window.__lab.route.acks()[0]?.seq ??
  *  as a 3× crop round its destination, at the default and a far view. */
 async function orderLine(ctx, page, goal, name) {
   await advance(page, 6);
-  await page.mouse.move(1260, 400);
+  // The pointer on the lab's panel, off the ground: no range ruler.
+  const panel = await page.getByTestId("transport-panel").boundingBox();
+  await page.mouse.move(panel.x + panel.width / 2, panel.y + panel.height / 2);
   await page.keyboard.down("Space");
   const framing = await lab(page, () => window.__lab.camera());
   const shot = decode(await snapshot(ctx, page, `${name}-default.png`));
   const at = await project(page, [goal[0], goal[1], 0]);
-  await writeCrop(shot, ctx.evidencePath(`${name}-crop-3x.png`), at[0], at[1], 60, 40, 3);
+  await writeCrop(shot, ctx.evidencePath(`${name}-crop-3x.png`), at[0], at[1], 80, 55, 3);
   await lab(page, (c) => window.__lab.setCamera({ ...c, distance: 700 }), framing);
   const far = decode(await snapshot(ctx, page, `${name}-far.png`));
   const atFar = await project(page, [goal[0], goal[1], 0]);
