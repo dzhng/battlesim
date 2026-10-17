@@ -173,7 +173,7 @@ pub fn forced_exit_spot(
     ignored_props: &[crate::world::PropId],
 ) -> Option<crate::math::V3> {
     nearest_free(from, search_m, |p| {
-        let solid = |prop: &Prop| !ignored_props.contains(&prop.id);
+        let reachable_solid = |prop: &Prop| !ignored_props.contains(&prop.id);
         world.traversable_at(p.x, p.y)
             && world
                 .surface_at(p.x, p.y)
@@ -181,12 +181,12 @@ pub fn forced_exit_spot(
             && !world
                 .props_near(p, radius)
                 .iter()
-                .any(|prop| solid(prop) && prop.footprint().contains(p, radius))
+                .any(|prop| prop.footprint().contains(p, radius))
             && !hulls.iter().any(|hull| hull.distance(p) <= radius)
             && !soldiers
                 .iter()
                 .any(|soldier| (*soldier - p).length() < ESCAPE_SPACING_M)
-            && reachable(world, from, p, radius, &solid)
+            && reachable(world, from, p, radius, &reachable_solid)
     })
     .and_then(|p| {
         world

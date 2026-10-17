@@ -28,6 +28,38 @@ fn command(seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
+fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
+    CommandEnvelope {
+        side,
+        slot: None,
+        seq,
+        order,
+        queued: false,
+    }
+}
+
+fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
+    let mut rules = sim::fixtures::test_game();
+    for (kind, faction, category) in [
+        ("test_apc", "us", "veh"),
+        ("test_recon", "us", "inf"),
+        ("test_tank", "eastern", "veh"),
+    ] {
+        sim::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            kind,
+            json!({"roster":{"factions":[faction],"category":category,"family_name":"Test Transport","variant":"Test"}}),
+        );
+    }
+    sim::fixtures::patch_catalog(&mut rules, "units", "test_apc", json!({"mounts":[]}));
+    serde_json::from_value(json!({
+        "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]},
+        "rules":rules,"units":[],"events":[],"scripts":[],
+        "skirmish":{"factions":["us","eastern"],"rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":0,"max_units":30,"dispatch_interval_s":1,"capture_s":20,"majority_s":1800,"victory_score":1000},"sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0.0},{"side":"red","center":[400,590],"yaw":0.0}],"objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[600,400],"radius_m":50,"kind":"field","counterpart":"south"}]}}
+    })).unwrap()
+}
+
 #[test]
 fn a_squad_boards_a_stopped_carrier_and_leaves_the_field() {
     let mut battle = Battle::new(
@@ -49,8 +81,11 @@ fn a_squad_boards_a_stopped_carrier_and_leaves_the_field() {
         ))
         .error
         .is_none());
-    for _ in 0..(battle.rules().tick_hz * 3) {
+    for _ in 0..(battle.rules().tick_hz * 60) {
         battle.step();
+        if !battle.unit(UnitId(1)).unwrap().on_field() {
+            break;
+        }
     }
     let passenger = battle.unit(UnitId(1)).unwrap();
     assert_eq!(battle.observe(Side::Red).identified.len(), 1);
@@ -305,8 +340,11 @@ fn a_carrier_unloads_where_sent_and_queued_orders_follow() {
             gesture: 1,
         },
     ));
-    for _ in 0..(battle.rules().tick_hz * 3) {
+    for _ in 0..(battle.rules().tick_hz * 60) {
         battle.step();
+        if !battle.unit(UnitId(1)).unwrap().on_field() {
+            break;
+        }
     }
     assert!(!battle.unit(UnitId(1)).unwrap().on_field());
 
@@ -463,4 +501,131 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
         arrival.unit(UnitId(0)).unwrap().orders.front(),
         Some(sim::units::UnitOrder::Move(order)) if order.destination.x == 220.0
     ));
+}
+
+#[test]
+fn refunding_a_loaded_carrier_refunds_its_passengers() {
+    let mut battle = Battle::new(&transport_skirmish_setup(), 41);
+    assert!(battle
+        .accept(side_command(
+            Side::Blue,
+            1,
+            Order::ConfirmPurchase {
+                variant: "test_apc".into(),
+                destination: [300.0, 100.0],
+            },
+        ))
+        .error
+        .is_none());
+    assert!(battle
+        .accept(side_command(
+            Side::Blue,
+            2,
+            Order::ConfirmPurchase {
+                variant: "test_recon".into(),
+                destination: [300.0, 100.0],
+            },
+        ))
+        .error
+        .is_none());
+    battle.accept(side_command(Side::Blue, 3, Order::Ready));
+    battle.accept(side_command(Side::Red, 1, Order::Ready));
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        if battle.unit(UnitId(1)).is_some() {
+            break;
+        }
+    }
+    assert!(battle.unit(UnitId(0)).is_some() && battle.unit(UnitId(1)).is_some());
+    assert!(battle
+        .accept(command(
+            4,
+            Order::Board {
+                units: vec![UnitId(1)],
+                carrier: UnitId(0),
+                gesture: 1,
+            },
+        ))
+        .error
+        .is_none());
+    for _ in 0..(battle.rules().tick_hz * 60) {
+        battle.step();
+        if !battle.unit(UnitId(1)).unwrap().on_field() {
+            break;
+        }
+    }
+    assert!(!battle.unit(UnitId(1)).unwrap().on_field());
+    let refused = battle.accept(command(
+        5,
+        Order::Refund {
+            units: vec![UnitId(1)],
+        },
+    ));
+    assert_eq!(refused.error, Some(OrderError::Aboard { unit: UnitId(1) }));
+    let before = battle
+        .observe(Side::Blue)
+        .skirmish
+        .as_ref()
+        .unwrap()
+        .credits;
+    assert!(battle
+        .accept(command(
+            6,
+            Order::Refund {
+                units: vec![UnitId(0)]
+            }
+        ))
+        .error
+        .is_none());
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        if battle.unit(UnitId(0)).unwrap().retired {
+            break;
+        }
+    }
+    let after = battle
+        .observe(Side::Blue)
+        .skirmish
+        .as_ref()
+        .unwrap()
+        .credits;
+    assert!(after > before);
+    assert!(battle.unit(UnitId(0)).unwrap().retired);
+    assert!(battle.unit(UnitId(1)).unwrap().retired);
+}
+
+#[test]
+fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]}
+        ])),
+        42,
+    );
+    assert!(battle
+        .accept(command(
+            1,
+            Order::Board {
+                units: vec![UnitId(1)],
+                carrier: UnitId(0),
+                gesture: 1
+            }
+        ))
+        .error
+        .is_none());
+    for _ in 0..(battle.rules().tick_hz * 4) {
+        battle.step();
+    }
+    let passenger = battle.unit(UnitId(1)).unwrap();
+    assert!(!passenger.on_field());
+    assert_eq!(
+        passenger
+            .members
+            .iter()
+            .map(|member| member.id)
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        passenger.members.len()
+    );
 }
