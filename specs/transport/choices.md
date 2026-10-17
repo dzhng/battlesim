@@ -27,3 +27,10 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **`Hold` has a temporary `Deref`/`DerefMut` to `Garrison`** so building code reads unchanged. It panics on a non-building host.
   - This is short-lived scaffolding: slice 06 removes it when `Host::Carrier` arrives, and building code then reaches its `Place` explicitly.
 - **The digest proof was replay-based.** The garrison and buildings modules ran before and after (54 and 32 tests), the 1800 per-tick replay digests matched, and `cargo test -p sim` passed. A probe listing every battle's final digest wasn't practical through the private test helpers.
+
+## Slice 01
+- **A falling helicopter stops on a bridge deck only if the deck was below the airframe on the previous tick.** One flying under the deck falls to the riverbed.
+  - Alternative: always stop on the deck.
+  - Why: an airframe below a deck must not be caught by it.
+- **Bridge slabs don't count as obstacles while the airframe falls,** so it can land on them. They also don't block the wreck's resting place on a deck. Other immovable props stay obstacles.
+  - Reverse: `crash.rs`, `Crash::fall` and `resting_place`.

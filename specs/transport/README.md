@@ -1,6 +1,6 @@
 # Transport
 
-**Status:** in progress. 02 and 05 landed; 01, 03 and 04 are in flight (Codex, separate worktrees).
+**Status:** in progress. 01, 02 and 05 landed; 03 and 04 are in flight (Codex, separate worktrees).
 **Updated:** 2026-10-16.
 
 Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier has 3, 8 or 16 seats. Squads board it in 1 s, ride hidden from the enemy, and get out on an explicit Unload order. When a carrier dies, its passengers bail out hurt, and some die. A building collapse now works the same way. The skirmish AI moves its infantry by transport.
@@ -25,7 +25,7 @@ Update this section, and tick the list, before you end each pass.
 
 ### TODO
 
-- [ ] [01](slices/01-crash-on-bridge-deck.md) A helicopter shot down over a bridge rests on the deck (L11). Skip if it stops being simple.
+- [x] [01](slices/01-crash-on-bridge-deck.md) A helicopter shot down over a bridge rests on the deck (L11). Skip if it stops being simple.
 - [x] [02](slices/02-one-hold.md) One owner for a unit inside something: garrison becomes the building case of a general hold. No outcome change.
 - [ ] [03](slices/03-hold-and-refusal-contract.md) The observation, publication and refusal contract for holds. Captures are re-recorded once, here.
 - [ ] [04](slices/04-bail-out.md) The bail-out library, applied to building collapse (named outcome change).
