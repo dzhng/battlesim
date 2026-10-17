@@ -13,13 +13,6 @@ import { Icon } from "./icons";
 import { GAME_CURSOR_SIZE } from "./gameCursor";
 import type { ReadoutRect } from "./readoutLayout";
 
-/** One per-unit refusal as published (`ObservationView.refusals`): its
- *  tick, and a key of its own. */
-export interface RefusalEvent extends RefusalView {
-  key: number;
-  tick: number;
-}
-
 /** How long a refusal stays. */
 const SHOWN_MS = 2200;
 /** Beyond the complete arrow+badge, with space for its dark edge. */
@@ -62,8 +55,9 @@ export function RejectedOrder({
   cardBox,
 }: {
   acks: readonly AckEntry[];
-  /** The side's per-unit refusals, newest first. */
-  refusals?: readonly RefusalEvent[];
+  /** The side's per-unit refusals, newest first: each a new object, so a
+   *  repeat of the same refusal shows again. */
+  refusals?: readonly RefusalView[];
   /** Where a unit's card (or its carrier's) is drawn: a per-unit refusal
    *  stands beside it. */
   cardBox?: (unit: number) => ReadoutRect | null;

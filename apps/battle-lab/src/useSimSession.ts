@@ -3,8 +3,7 @@ import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
 import type { LearnedGround } from "@web/battle/sim/presentation";
-import type { ObservationView } from "@web/battle/sim/observationView";
-import type { RefusalEvent } from "@web/battle/present/rejectedOrder";
+import type { ObservationView, RefusalView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 import type { SideName } from "@web/battle/sim/protocol";
 
@@ -42,7 +41,6 @@ export interface ScriptedSim {
 }
 
 const REFUSAL_LOG = 8;
-let refusalCount = 0;
 
 /** One worker authority for a lab scenario. Publications are consumed (their
  *  credit returned) as soon as they are decoded, unless the lab holds credit
@@ -65,7 +63,7 @@ export function useSimSession({
   const [observation, setObservation] = useState<ObservationView | null>(null);
   /** The side's newest per-unit refusals, newest first: every publication's,
    *  though React renders only the latest observation. */
-  const [refusals, setRefusals] = useState<readonly RefusalEvent[]>([]);
+  const [refusals, setRefusals] = useState<readonly RefusalView[]>([]);
   const [status, setStatus] = useState<{ status: AuthorityStatus; slow: boolean }>({
     status: "loading",
     slow: false,
@@ -139,13 +137,7 @@ export function useSimSession({
       latest.current = publication.observation;
       ground.current = publication.ground;
       const refused = publication.observation.refusals;
-      if (refused.length)
-        setRefusals((log) =>
-          [
-            ...refused.map((r) => ({ ...r, key: ++refusalCount, tick: publication.tick })),
-            ...log,
-          ].slice(0, REFUSAL_LOG),
-        );
+      if (refused.length) setRefusals((log) => [...refused, ...log].slice(0, REFUSAL_LOG));
       if (warm) {
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });

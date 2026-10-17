@@ -44,14 +44,19 @@ export function afterOrder(
   return next;
 }
 
+/** The points of each carrier's goal and queue, as `o` publishes them. */
+const ahead = (o: ObservationView, id: number): readonly Point[] => {
+  const u = o.own.find((unit) => unit.id === id);
+  return u ? [...(u.goal ? [u.goal] : []), ...u.queue] : [];
+};
+
 /** `points` less those whose order has landed by `o` and that its
  *  carrier's goal and queue no longer name; `points` itself when none go. */
 export function retire(points: UnloadPoints, o: ObservationView): UnloadPoints {
   let next: Map<number, readonly UnloadPoint[]> | null = null;
   for (const [id, list] of points) {
-    const u = o.own.find((unit) => unit.id === id);
-    const ahead = u ? [...(u.goal ? [u.goal] : []), ...u.queue] : [];
-    const kept = list.filter((p) => o.tick < p.landsAt || ahead.some((q) => samePoint(p.at, q)));
+    const there = ahead(o, id);
+    const kept = list.filter((p) => o.tick < p.landsAt || there.some((q) => samePoint(p.at, q)));
     if (kept.length === list.length) continue;
     next ??= new Map(points);
     if (kept.length) next.set(id, kept);
@@ -60,6 +65,14 @@ export function retire(points: UnloadPoints, o: ObservationView): UnloadPoints {
   return next ?? points;
 }
 
-/** Each carrier's unload points, as the order line reads them. */
-export const unloadMarks = (points: UnloadPoints) =>
-  new Map([...points].map(([id, list]) => [id, list.map((p) => p.at)]));
+/** Each carrier's goal and queue points that unload, exactly as `o`
+ *  publishes them, for the order line to mark. */
+export function unloadMarks(points: UnloadPoints, o: ObservationView | null) {
+  const marks = new Map<number, readonly Point[]>();
+  if (!o) return marks;
+  for (const [id, list] of points) {
+    const there = ahead(o, id).filter((q) => list.some((p) => samePoint(p.at, q)));
+    if (there.length) marks.set(id, there);
+  }
+  return marks;
+}

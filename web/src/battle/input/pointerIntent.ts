@@ -96,14 +96,12 @@ function carriageIntent(
   const target = pick.unit === null ? undefined : own.find((u) => u.id === pick.unit);
   if (!target) return null;
   const queued = pick.shift;
-  const ids = (units: readonly OwnUnitView[]) =>
-    units.filter((u) => u.id !== target.id).map((u) => u.id);
   if (reach("collect", [target], catalog, own).length) {
-    const units = ids(reach("board", selected, catalog, own));
+    const units = reach("board", selected, catalog, own).map((u) => u.id);
     if (units.length) return { kind: "board", units, carrier: target.id, queued };
   }
   if (reach("board", [target], catalog, own).length) {
-    const units = ids(reach("collect", selected, catalog, own));
+    const units = reach("collect", selected, catalog, own).map((u) => u.id);
     if (units.length) return { kind: "collect", units, squads: [target.id], queued };
   }
   return null;

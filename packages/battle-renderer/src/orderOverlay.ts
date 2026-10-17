@@ -185,8 +185,8 @@ export interface OrderView {
    *  to that end's marker, as one joins the airframe to its own. 0 or
    *  absent: no ghost, no line. */
   ghostAloft?: number;
-  /** The points among its goal and queue where its order lets its
-   *  passengers out: their destination marks carry the unload mark. */
+  /** Those of its goal and queue points, as published, where its order
+   *  lets its passengers out: their marks carry the unload mark. */
   unloads?: readonly P2[];
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
@@ -695,9 +695,9 @@ function unloadMark(mesh: MeshBuilder, pen: Pen, c: UnitCircle, bearing: number,
   }
 }
 
-/** Is `p` one of `points` (the published goal against an order's)? */
+/** Is `p` one of `points` (both the published goal and queue's own)? */
 const among = (points: readonly P2[] | undefined, p: P2) =>
-  !!points?.some((q) => Math.abs(q[0] - p[0]) < 0.05 && Math.abs(q[1] - p[1]) < 0.05);
+  !!points?.some((q) => q[0] === p[0] && q[1] === p[1]);
 
 /** A destination and its facing while the player holds a right-drag. */
 export function buildDestinationPreview(

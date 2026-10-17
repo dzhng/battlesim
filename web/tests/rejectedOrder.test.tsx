@@ -25,7 +25,7 @@ test("a unit refused on its own says why beside its card, not the cursor", () =>
   render(
     <RejectedOrder
       acks={[]}
-      refusals={[{ key: 1, tick: 40, unit: 6, reason: "no_room_to_unload" }]}
+      refusals={[{ unit: 6, reason: "no_room_to_unload" }]}
       cardBox={(unit) => (unit === 6 ? box : null)}
     />,
   );
@@ -42,7 +42,7 @@ test("each new carriage refusal reads in player words", () => {
     const view = render(
       <RejectedOrder
         acks={[]}
-        refusals={[{ key: 2, tick: 1, unit: 3, reason }]}
+        refusals={[{ unit: 3, reason }]}
         cardBox={() => ({ x0: 0, y0: 0, x1: 10, y1: 10 })}
       />,
     );

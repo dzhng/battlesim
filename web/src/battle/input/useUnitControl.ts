@@ -5,10 +5,12 @@
  * Attack-ground confirms with left-click and cancels with right-click
  * (Ctrl+right-click attack-moves at once; a right-click behind a single
  * selected vehicle reverses), right-click on a building to garrison it (Shift
- * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
- * the acknowledgement log. Keys come from `CommandBindings`. Building clicks
- * send the complete selection for authoritative entry and outside gathering;
- * deploy and leaving a building reach only capable units (`commandReach.ts`). Labs and the
+ * queues), right-click on an own carrier or squad to board or collect (Shift
+ * queues), Unload (U then a left-click, or U twice), leaving buildings, stop,
+ * the fire-policy toggle, deploy/pack, and the acknowledgement log. Keys come
+ * from `CommandBindings`. Building clicks send the complete selection for
+ * authoritative entry and outside gathering; deploy, boarding, unloading and
+ * leaving a building reach only capable units (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. Its events (`UnitControlEvents`)
  * let the battle hear orders, their acknowledgements and the selection's growth
  * (the order flash, and the units' spoken answers). */
@@ -104,7 +106,10 @@ export function useUnitControl(
   if (liveUnloadPoints !== unloadPoints) setUnloadPoints(liveUnloadPoints);
   /** Where each carrier's orders let its passengers out: the order line's
    *  unload mark. */
-  const unloads = useMemo(() => unloadMarks(liveUnloadPoints), [liveUnloadPoints]);
+  const unloads = useMemo(
+    () => unloadMarks(liveUnloadPoints, observation),
+    [liveUnloadPoints, observation],
+  );
   const [mode, setModeState] = useState<CommandMode>("move");
   // The armed mode as last set, ahead of the render: a key pressed right
   // after another reads what the first one did.
