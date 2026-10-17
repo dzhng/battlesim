@@ -32,7 +32,6 @@ pub struct PlayerState {
     pub ready: bool,
     pub reservations: VecDeque<Reservation>,
     pub next_purchase: u32,
-    pub next_dispatch: Tick,
     pub totals: MatchTotals,
 }
 
@@ -42,6 +41,9 @@ pub struct Skirmish {
     pub settlement: crate::settlement::Settlement,
     pub phase: Phase,
     pub players: Vec<PlayerState>,
+    /// Independent ground-arrival clocks and round-robin cursors for entries.
+    pub next_dispatch: Vec<Tick>,
+    pub dispatch_turn: Vec<usize>,
     pub entered: BTreeMap<UnitId, EnteredUnit>,
     pub report: MatchReport,
     income_remainder: u64,
@@ -49,6 +51,7 @@ pub struct Skirmish {
 
 impl Skirmish {
     pub fn new(setup: SkirmishSetup, source: &[Player]) -> Self {
+        let entry_count = setup.sites.entries.len();
         let budget = u64::from(setup.rules.credits_per_minute)
             * u64::from(setup.rules.starting_minutes)
             * CREDIT_SCALE;
@@ -63,12 +66,22 @@ impl Skirmish {
                 ready: false,
                 reservations: VecDeque::new(),
                 next_purchase: 0,
-                next_dispatch: 0,
                 totals: MatchTotals::default(),
             })
             .collect::<Vec<_>>();
         let objectives =
             crate::objectives::Objectives::new(setup.sites.objectives.len(), &setup.rules);
+        let dispatch_turn = setup
+            .sites
+            .entries
+            .iter()
+            .map(|entry| {
+                source
+                    .iter()
+                    .position(|player| player.side == entry.side)
+                    .unwrap_or_default()
+            })
+            .collect();
         Self {
             setup,
             objectives,
@@ -79,6 +92,8 @@ impl Skirmish {
                 events: Vec::new(),
             },
             players,
+            next_dispatch: vec![0; entry_count],
+            dispatch_turn,
             entered: BTreeMap::new(),
             income_remainder: 0,
         }
@@ -91,6 +106,24 @@ impl Skirmish {
             .iter()
             .enumerate()
             .filter(move |(_, p)| p.side == side)
+    }
+
+    pub fn next_entry_player(&self, entry: crate::entries::EntryIndex, current: usize) -> usize {
+        let side = self.setup.sites.entries[entry.0].side;
+        (1..=self.players.len())
+            .map(|step| (current + step) % self.players.len())
+            .find(|&index| self.players[index].side == side)
+            .unwrap_or(current)
+    }
+
+    pub fn entry_turn_has_purchase(&self, entry: crate::entries::EntryIndex) -> bool {
+        self.players
+            .get(self.dispatch_turn[entry.0])
+            .is_some_and(|player| {
+                player.reservations.iter().any(|reservation| {
+                    reservation.data.entry == entry.0 && reservation.data.arrival_tick.is_none()
+                })
+            })
     }
     pub fn advance(&mut self, tick: Tick, hz: u32) {
         if self.phase == Phase::Preparation {
@@ -149,15 +182,16 @@ impl Skirmish {
             report: (self.phase == Phase::Finished).then(|| self.report.clone()),
         }
     }
-    pub fn reserve(
+    pub fn reserve_at(
         &mut self,
         player: usize,
         kind: TypeIndex,
         destination: [f64; 2],
         price: u32,
-        tick: Tick,
+        entry_tick: (crate::entries::EntryIndex, Tick),
         living: u32,
     ) -> Result<PurchaseId, OrderError> {
+        let (entry, tick) = entry_tick;
         let p = self
             .players
             .get_mut(player)
@@ -180,6 +214,7 @@ impl Skirmish {
             data: PendingPurchase {
                 id,
                 kind,
+                entry: entry.0,
                 destination,
                 confirmed_tick: tick,
                 blocked: false,
@@ -273,9 +308,11 @@ impl Skirmish {
             d.u64(p.side.index() as u64)
                 .u64(p.wallet)
                 .u64(p.ready as u64)
-                .u64(p.next_purchase as u64)
-                .u64(p.next_dispatch)
-                .u64(p.reservations.len() as u64);
+                .u64(p.next_purchase as u64);
+            if self.setup.sites.entries.len() == 2 {
+                d.u64(self.next_dispatch[crate::entries::centre(&self.setup.sites, p.side).0]);
+            }
+            d.u64(p.reservations.len() as u64);
             for r in &p.reservations {
                 d.u64(r.data.id.0 as u64)
                     .u64(r.data.kind.0 as u64)
@@ -285,6 +322,14 @@ impl Skirmish {
                     .u64(r.data.blocked as u64)
                     .u64(r.price as u64)
                     .u64(r.data.arrival_tick.unwrap_or(u64::MAX));
+                if self.setup.sites.entries.len() > 2 {
+                    d.u64(r.data.entry as u64);
+                }
+            }
+        }
+        if self.setup.sites.entries.len() > 2 {
+            for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
+                d.u64(*clock).u64(*turn as u64);
             }
         }
         d.u64(self.entered.len() as u64);

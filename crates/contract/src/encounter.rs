@@ -173,12 +173,6 @@ impl EncounterSites {
 }
 
 impl SkirmishSites {
-    /// The centre arm is the first entry in the ordered centre/left/right list.
-    /// Slice 05 will replace this temporary single-entry consumer with owner
-    /// selection; until then all simulation callers use the centre arm.
-    pub fn centre_entry(&self, side: crate::ids::Side) -> Option<&EntrySite> {
-        self.entries.iter().find(|entry| entry.side == side)
-    }
     pub fn all_reserved_objectives(&self) -> impl Iterator<Item = &ObjectiveSite> {
         self.objectives.iter().chain(&self.candidates)
     }

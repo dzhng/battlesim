@@ -29,6 +29,7 @@ mod door_guns;
 mod drive;
 mod encounter;
 mod endurance;
+mod entries;
 mod exact_numbers;
 mod finite_ammo;
 mod fire_through;

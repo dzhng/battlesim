@@ -12,10 +12,9 @@ pub struct BackEdge {
 }
 
 pub fn back_edge(side: Side, sites: &SkirmishSites, world: &WorldGeometry) -> BackEdge {
-    let center = sites
-        .centre_entry(side)
-        .map(|entry| v2(entry.center[0], entry.center[1]))
-        .expect("combatant entry site");
+    let centre = crate::entries::centre(sites, side);
+    let entry = crate::entries::site(sites, centre);
+    let center = v2(entry.center[0], entry.center[1]);
     let w = world.width();
     let h = world.depth();
     let candidates = [

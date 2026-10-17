@@ -28,6 +28,189 @@ pub(crate) fn setup() -> contract::scenario::ScenarioDefinition {
     match_on(deck())
 }
 
+fn two_entry_setup() -> contract::scenario::ScenarioDefinition {
+    let mut setup = setup();
+    let mut blue_two = setup.players[0].clone();
+    blue_two.id = "blue-2".into();
+    let mut red_two = setup.players[1].clone();
+    red_two.id = "red-2".into();
+    setup.players.extend([blue_two, red_two]);
+    let sites = &mut setup.skirmish.as_mut().unwrap().sites;
+    sites.entries[0].center = [100.0, 10.0];
+    sites.entries[1].center = [700.0, 590.0];
+    sites.entries.extend([
+        contract::encounter::EntrySite {
+            side: Side::Blue,
+            center: [700.0, 10.0],
+            yaw: std::f64::consts::FRAC_PI_2,
+        },
+        contract::encounter::EntrySite {
+            side: Side::Red,
+            center: [100.0, 590.0],
+            yaw: -std::f64::consts::FRAC_PI_2,
+        },
+    ]);
+    setup
+}
+
+#[test]
+fn multi_entry_purchases_use_their_route_owner() {
+    let setup = two_entry_setup();
+    let mut battle = Battle::new(&setup, 3);
+    let mut buy = |side: Side, player: &str, seq: u64, destination: [f64; 2]| {
+        battle.accept(CommandEnvelope {
+            side,
+            player: Some(player.into()),
+            seq,
+            order: Order::ConfirmPurchase {
+                variant: "test_tank".into(),
+                destination,
+            },
+            queued: false,
+        })
+    };
+    assert!(buy(Side::Blue, "blue-1", 1, [700.0, 50.0]).error.is_none());
+    assert!(buy(Side::Blue, "blue-2", 1, [100.0, 50.0]).error.is_none());
+    for (side, player, seq) in [
+        (Side::Blue, "blue-1", 2),
+        (Side::Blue, "blue-2", 2),
+        (Side::Red, "red-1", 1),
+        (Side::Red, "red-2", 1),
+    ] {
+        assert!(battle
+            .accept(CommandEnvelope {
+                side,
+                player: Some(player.into()),
+                seq,
+                order: Order::Ready,
+                queued: false,
+            })
+            .error
+            .is_none());
+    }
+    for _ in 0..(3 * battle.rules().tick_hz) {
+        battle.step();
+    }
+    let own = &battle.observe(Side::Blue).own;
+    assert!(own.iter().any(|unit| unit.position[0] > 650.0));
+    assert!(own.iter().any(|unit| unit.position[0] < 150.0));
+}
+
+#[test]
+fn a_returning_unit_reselects_the_nearest_entry_after_moving() {
+    let mut battle = Battle::new(&two_entry_setup(), 4);
+    let buy = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: Some("blue-2".into()),
+        seq: 1,
+        order: Order::ConfirmPurchase {
+            variant: "test_tank".into(),
+            destination: [100.0, 50.0],
+        },
+        queued: false,
+    });
+    assert!(buy.error.is_none());
+    for (side, player, seq) in [
+        (Side::Blue, "blue-1", 1),
+        (Side::Blue, "blue-2", 2),
+        (Side::Red, "red-1", 1),
+        (Side::Red, "red-2", 1),
+    ] {
+        assert!(battle
+            .accept(CommandEnvelope {
+                side,
+                player: Some(player.into()),
+                seq,
+                order: Order::Ready,
+                queued: false,
+            })
+            .error
+            .is_none());
+    }
+    for _ in 0..(3 * battle.rules().tick_hz) {
+        battle.step();
+    }
+    let unit = battle
+        .observe(Side::Blue)
+        .own
+        .iter()
+        .find(|unit| unit.position[0] < 150.0)
+        .expect("the purchase arrived at the left entry")
+        .id;
+    assert!(battle
+        .accept(CommandEnvelope {
+            side: Side::Blue,
+            player: Some("blue-2".into()),
+            seq: 3,
+            order: Order::Move {
+                units: vec![unit],
+                gesture: 1,
+                goal: [700.0, 300.0],
+                route: contract::command::RoutePolicy::Fastest,
+                direction: Default::default(),
+                facing: None,
+            },
+            queued: false,
+        })
+        .error
+        .is_none());
+    for _ in 0..(180 * battle.rules().tick_hz) {
+        battle.step();
+        if battle
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .any(|observed| observed.id == unit && observed.position[0] > 600.0)
+        {
+            break;
+        }
+    }
+    assert!(
+        battle
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .any(|observed| observed.id == unit && observed.position[0] > 600.0),
+        "unit did not reach the right side: {:?}",
+        battle.observe(Side::Blue).own
+    );
+    assert!(battle
+        .accept(CommandEnvelope {
+            side: Side::Blue,
+            player: Some("blue-2".into()),
+            seq: 4,
+            order: Order::Refund { units: vec![unit] },
+            queued: false,
+        })
+        .error
+        .is_none());
+    for _ in 0..(60 * battle.rules().tick_hz) {
+        battle.step();
+        if battle
+            .observe(Side::Blue)
+            .own
+            .iter()
+            .all(|observed| observed.id != unit)
+        {
+            break;
+        }
+    }
+    assert!(battle
+        .observe(Side::Blue)
+        .own
+        .iter()
+        .all(|observed| observed.id != unit));
+    assert!(
+        battle
+            .observe(Side::Blue)
+            .skirmish
+            .as_ref()
+            .unwrap()
+            .credits
+            > 800.0
+    );
+}
+
 /// The test units, with a U.S. deck of a tank and a supply truck.
 fn deck() -> serde_json::Value {
     let mut rules = sim::fixtures::test_game();
@@ -251,7 +434,14 @@ fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
     let mut skirmish = sim::skirmish::Skirmish::new(setup.skirmish.unwrap(), &players);
     assert!(skirmish.report.events.is_empty());
     skirmish
-        .reserve(0, common::unit_kind("test_tank"), [400.0, 300.0], 200, 1, 0)
+        .reserve_at(
+            0,
+            common::unit_kind("test_tank"),
+            [400.0, 300.0],
+            200,
+            (sim::entries::EntryIndex(0), 1),
+            0,
+        )
         .unwrap();
     skirmish.record_spawn(
         0,
@@ -320,7 +510,14 @@ fn view_exposes_each_observed_players_economy_and_hides_the_enemy_side() {
         player.wallet = credits * sim::skirmish::CREDIT_SCALE;
     }
     skirmish
-        .reserve(2, common::unit_kind("test_tank"), [400.0, 300.0], 200, 7, 4)
+        .reserve_at(
+            2,
+            common::unit_kind("test_tank"),
+            [400.0, 300.0],
+            200,
+            (sim::entries::EntryIndex(0), 7),
+            4,
+        )
         .unwrap();
 
     let view = skirmish.view(Side::Blue, 0, 30, &[3, 4, 4, 6]);

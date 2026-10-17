@@ -170,6 +170,7 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
         .push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(1),
             kind,
+            entry: 0,
             destination: *destination,
             confirmed_tick: 0,
             blocked: false,
@@ -214,6 +215,7 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
                     view.pending.push(contract::skirmish::PendingPurchase {
                         id: contract::skirmish::PurchaseId(view.pending.len() as u32),
                         kind,
+                        entry: 0,
                         destination,
                         confirmed_tick: frame.tick,
                         blocked: false,
@@ -351,6 +353,7 @@ fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality()
         .push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(1),
             kind: rules.catalog.index("test_supply").unwrap(),
+            entry: 0,
             destination: entry.center,
             confirmed_tick: 0,
             blocked: false,
@@ -420,6 +423,7 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
         .push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(1),
             kind: supply,
+            entry: 0,
             destination: entry.center,
             confirmed_tick: 0,
             blocked: false,
@@ -686,6 +690,7 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     view.pending.push(contract::skirmish::PendingPurchase {
         id: contract::skirmish::PurchaseId(1),
         kind: rules.catalog.index("test_supply").unwrap(),
+        entry: 0,
         destination: entry.center,
         confirmed_tick: 0,
         blocked: false,
@@ -773,6 +778,7 @@ fn the_ai_sends_bought_jets_on_attack_move() {
     view.pending.push(contract::skirmish::PendingPurchase {
         id: contract::skirmish::PurchaseId(1),
         kind: rules.catalog.index("test_supply").unwrap(),
+        entry: 0,
         destination: entry.center,
         confirmed_tick: 0,
         blocked: false,
@@ -823,6 +829,7 @@ fn confirm_purchases(
         view.pending.push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(view.pending.len() as u32),
             kind,
+            entry: 0,
             destination: *destination,
             confirmed_tick: tick,
             blocked: false,

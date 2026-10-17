@@ -193,7 +193,6 @@ fn settle(
             ready: false,
             reservations: VecDeque::new(),
             next_purchase: 0,
-            next_dispatch: 0,
             totals: Default::default(),
         },
         sim::skirmish::PlayerState {
@@ -205,7 +204,6 @@ fn settle(
             ready: false,
             reservations: VecDeque::new(),
             next_purchase: 0,
-            next_dispatch: 0,
             totals: Default::default(),
         },
     ];
@@ -251,7 +249,6 @@ fn player_bonus_split_conserves_pool_and_ignores_death_order() {
             ready: false,
             reservations: VecDeque::new(),
             next_purchase: 0,
-            next_dispatch: 0,
             totals: Default::default(),
         })
         .collect()

@@ -84,6 +84,7 @@ fn two_player_publication_keeps_player_rows_and_pending_owner() {
             confirmed_tick: 4,
             blocked: false,
             arrival_tick: None,
+            entry: 0,
         });
     let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
     let patch = publication::GroundHeader {

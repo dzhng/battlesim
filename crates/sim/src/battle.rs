@@ -2,7 +2,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use contract::bundle::ControllerKind;
-use contract::catalog::{AltitudeLayer, Destroyed};
+use contract::catalog::{AltitudeLayer, Destroyed, TypeIndex};
 use contract::command::{
     BuildingPlacement, BuildingPreviewRequest, CommandAck, CommandEnvelope, Engagement,
     MovePlacement, MovePreviewRequest, Order, OrderError, RoutePolicy, TargetRef,
@@ -706,10 +706,11 @@ impl Battle {
     /// refund, so a combat order cannot strand an airframe after its tank is
     /// effectively empty.
     fn trigger_fuel_withdrawals(&mut self) {
-        let Some(skirmish) = &self.skirmish else {
+        let Some(sites) = self.skirmish.as_ref().map(|s| s.setup.sites.clone()) else {
             return;
         };
-        for unit in &mut self.units {
+        for index in 0..self.units.len() {
+            let unit = &self.units[index];
             if !unit.alive() || unit.retired || unit.withdrawing {
                 continue;
             }
@@ -720,18 +721,20 @@ impl Battle {
                 continue;
             };
             let entry = if unit.fixed_wing() {
-                let edge =
-                    crate::air::edge::back_edge(unit.side, &skirmish.setup.sites, &self.world);
+                let edge = crate::air::edge::back_edge(unit.side, &sites, &self.world);
                 crate::air::edge::entry(&edge, unit.position.xy()).0
             } else {
-                skirmish
-                    .setup
-                    .sites
-                    .entries
-                    .iter()
-                    .find(|e| e.side == unit.side)
-                    .map(|e| v2(e.center[0], e.center[1]))
-                    .unwrap()
+                let selected = crate::entries::select(
+                    &sites,
+                    unit.side,
+                    unit.kind,
+                    [unit.position.x, unit.position.y],
+                    |entry, kind, point| {
+                        self.entry_route_time(unit.side, kind, entry.center, point)
+                    },
+                );
+                let entry = crate::entries::site(&sites, selected);
+                v2(entry.center[0], entry.center[1])
             };
             let units::Motion::Air(flight) = unit.motion else {
                 continue;
@@ -746,6 +749,7 @@ impl Battle {
             if air_state.fuel_s > return_s {
                 continue;
             }
+            let unit = &mut self.units[index];
             if let Some(air) = unit.air.as_mut() {
                 air.afterburner = false;
             }
@@ -777,12 +781,9 @@ impl Battle {
         for player_index in 0..skirmish.players.len() {
             let side = skirmish.players[player_index].side;
             let index = side.index();
-            let entry = skirmish
-                .setup
-                .sites
-                .centre_entry(side)
-                .expect("combatant entry site");
-            let (entry_site, entry_yaw) = (v2(entry.center[0], entry.center[1]), entry.yaw);
+            let centre = crate::entries::centre(&skirmish.setup.sites, side);
+            let centre_site = crate::entries::site(&skirmish.setup.sites, centre);
+            let entry_site = v2(centre_site.center[0], centre_site.center[1]);
             let edge = crate::air::edge::back_edge(side, &skirmish.setup.sites, &self.world);
             // A bought aircraft's wait off the map is its own (D38, D41): its
             // clock starts with combat, and it enters when the clock runs out,
@@ -846,61 +847,90 @@ impl Battle {
             }
             // The queue fields one unit per dispatch interval, in order, among
             // the purchases that don't wait off the map.
-            if self.tick >= skirmish.players[player_index].next_dispatch {
-                if let Some(next) = skirmish.players[player_index]
+            for _ in 0..skirmish.setup.sites.entries.len() {
+                let next = skirmish.players[player_index]
                     .reservations
                     .iter()
-                    .position(|r| r.data.arrival_tick.is_none())
-                {
-                    let reservation = &mut skirmish.players[player_index].reservations[next];
-                    let t = self.rules.catalog.get(reservation.data.kind);
-                    // An aircraft flies in at cruise height over whatever
-                    // stands there; a ground unit needs its entry site clear.
-                    let clear = match units::ground_mobility(t, &self.rules) {
-                        None => true,
-                        Some(mobility) => {
-                            let at = entry_site;
-                            let candidate = footprint(t, &self.rules, at, entry_yaw);
-                            stands_on(
-                                &self.world,
-                                self.sides[index].grid(&self.world, self.authored_props),
-                                &self.rules,
-                                t,
-                                &mobility,
-                                at,
-                                entry_yaw,
-                            )
-                            .is_ok()
-                                && self
-                                    .units
-                                    .iter()
-                                    .filter(|u| u.alive() && !u.airborne())
-                                    .all(|u| {
-                                        apart(
-                                            &candidate,
-                                            &footprint(
-                                                self.rules.catalog.get(u.kind),
-                                                &self.rules,
-                                                u.position.xy(),
-                                                u.yaw,
-                                            ),
-                                            0.0,
-                                        )
-                                    })
+                    .position(|r| {
+                        if r.data.arrival_tick.is_some() {
+                            return false;
                         }
-                    };
-                    reservation.data.blocked = !clear;
-                    if clear {
-                        arrived.push(
-                            skirmish.players[player_index]
-                                .reservations
-                                .remove(next)
-                                .unwrap(),
-                        );
-                        skirmish.players[player_index].next_dispatch = self.tick
-                            + u64::from(skirmish.setup.rules.dispatch_interval_s)
-                                * u64::from(self.rules.tick_hz);
+                        let entry = r.data.entry;
+                        let due = skirmish.next_dispatch[entry];
+                        self.tick >= due
+                            && (skirmish.dispatch_turn[entry] == player_index
+                                || !skirmish
+                                    .entry_turn_has_purchase(crate::entries::EntryIndex(entry)))
+                    });
+                if let Some(next) = next {
+                    let entry_index = crate::entries::EntryIndex(
+                        skirmish.players[player_index].reservations[next].data.entry,
+                    );
+                    let selected = crate::entries::site(&skirmish.setup.sites, entry_index);
+                    let selected_point = v2(selected.center[0], selected.center[1]);
+                    let selected_yaw = selected.yaw;
+                    let due = skirmish.next_dispatch[entry_index.0];
+                    let turn = skirmish.dispatch_turn[entry_index.0] == player_index
+                        || !skirmish.entry_turn_has_purchase(entry_index);
+                    if self.tick >= due && turn {
+                        let reservation = &mut skirmish.players[player_index].reservations[next];
+                        let t = self.rules.catalog.get(reservation.data.kind);
+                        // An aircraft flies in at cruise height over whatever
+                        // stands there; a ground unit needs its entry site clear.
+                        let clear = match units::ground_mobility(t, &self.rules) {
+                            None => true,
+                            Some(mobility) => {
+                                let at = selected_point;
+                                let candidate = footprint(t, &self.rules, at, selected_yaw);
+                                stands_on(
+                                    &self.world,
+                                    self.sides[index].grid(&self.world, self.authored_props),
+                                    &self.rules,
+                                    t,
+                                    &mobility,
+                                    at,
+                                    selected_yaw,
+                                )
+                                .is_ok()
+                                    && self
+                                        .units
+                                        .iter()
+                                        .filter(|u| u.alive() && !u.airborne())
+                                        .all(|u| {
+                                            apart(
+                                                &candidate,
+                                                &footprint(
+                                                    self.rules.catalog.get(u.kind),
+                                                    &self.rules,
+                                                    u.position.xy(),
+                                                    u.yaw,
+                                                ),
+                                                0.0,
+                                            )
+                                        })
+                            }
+                        };
+                        reservation.data.blocked = !clear;
+                        if clear {
+                            arrived.push(
+                                skirmish.players[player_index]
+                                    .reservations
+                                    .remove(next)
+                                    .unwrap(),
+                            );
+                            let next_tick = self.tick
+                                + u64::from(skirmish.setup.rules.dispatch_interval_s)
+                                    * u64::from(self.rules.tick_hz);
+                            skirmish.next_dispatch[entry_index.0] = next_tick;
+                            skirmish.dispatch_turn[entry_index.0] =
+                                skirmish.next_entry_player(entry_index, player_index);
+                        } else {
+                            skirmish.dispatch_turn[entry_index.0] =
+                                skirmish.next_entry_player(entry_index, player_index);
+                        }
                     }
+                } else {
+                    break;
                 }
             }
             for reservation in arrived {
@@ -909,13 +939,26 @@ impl Battle {
                     reservation.data.destination[0],
                     reservation.data.destination[1],
                 );
-                let aircraft = matches!(units::motion(t, &self.rules), units::Motion::Air(_));
+                let fixed_wing = matches!(
+                    units::motion(t, &self.rules),
+                    units::Motion::Air(f) if f.model == contract::catalog::FlightModel::FixedWing
+                );
+                let selected_entry = if fixed_wing {
+                    centre
+                } else {
+                    crate::entries::EntryIndex(reservation.data.entry)
+                };
+                let selected_site = crate::entries::site(&skirmish.setup.sites, selected_entry);
                 // Every aircraft enters already flying, at its back-edge point
                 // nearest the entry site (D39); a ground unit at the site.
-                let (at, yaw) = if aircraft {
-                    crate::air::edge::arrival(&edge, entry_site, destination)
+                let (at, yaw) = if matches!(units::motion(t, &self.rules), units::Motion::Air(_)) {
+                    let selected_point = v2(selected_site.center[0], selected_site.center[1]);
+                    crate::air::edge::arrival(&edge, selected_point, destination)
                 } else {
-                    (entry_site, entry_yaw)
+                    (
+                        v2(selected_site.center[0], selected_site.center[1]),
+                        selected_site.yaw,
+                    )
                 };
                 let setup = contract::scenario::UnitSetup {
                     side,
@@ -997,15 +1040,19 @@ impl Battle {
             } else if unit.movement_goal().is_some() {
                 continue;
             }
-            let entry = skirmish.setup.sites.centre_entry(unit.side).unwrap();
-            // Helicopter retirement follows completed ordinary movement at the admitted base.
+            let entered = &skirmish.entered[&unit.id];
+            // Rotor retirement follows completed ordinary movement at any side entry.
             let half = unit.hull.map_or(2.0, |half| half.x.max(half.y));
             if !unit.fixed_wing()
-                && (unit.position.xy() - v2(entry.center[0], entry.center[1])).length() > half * 2.0
+                && !crate::entries::retire_at(
+                    &skirmish.setup.sites,
+                    unit.side,
+                    [unit.position.x, unit.position.y],
+                    half,
+                )
             {
                 continue;
             }
-            let entered = &skirmish.entered[&unit.id];
             let (health, ammo) = crate::withdrawal::condition(unit, &self.rules, &self.arsenal);
             let fuel = crate::withdrawal::fuel(unit, &self.rules);
             let age = self.tick.saturating_sub(entered.entered_tick) as f64
@@ -1489,6 +1536,62 @@ impl Battle {
         };
         let time = grid.route_time(from, &route, &mobility);
         time.is_finite().then_some(time)
+    }
+
+    /// Travel time for a catalog unit from an entry site to a point, using the
+    /// side's planning geometry. Entry selection uses the same route owner as
+    /// ordinary movement admission.
+    fn entry_route_time(
+        &self,
+        side: Side,
+        kind: TypeIndex,
+        from: [f64; 2],
+        destination: [f64; 2],
+    ) -> Option<f64> {
+        let t = self.rules.catalog.get(kind);
+        let from = v2(from[0], from[1]);
+        let goal = v2(destination[0], destination[1]);
+        let mobility = match units::motion(t, &self.rules) {
+            units::Motion::Ground(m) => m,
+            units::Motion::Air(f) => return Some((goal - from).length() / f.cruise_mps),
+        };
+        let mut known = self.sides[side.index()].clone();
+        let grid = known.grid(&self.world, self.authored_props);
+        let (plan, _) = crate::navigation::plan(
+            grid,
+            &self.roads,
+            crate::navigation::Leg {
+                from,
+                goal,
+                m: &mobility,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &self.rules.navigation,
+        );
+        let crate::navigation::Plan::Route(route) = plan else {
+            return None;
+        };
+        let time = grid.route_time(from, &route, &mobility);
+        time.is_finite().then_some(time)
+    }
+
+    fn select_entry(
+        &self,
+        side: Side,
+        kind: TypeIndex,
+        point: [f64; 2],
+    ) -> crate::entries::EntryIndex {
+        let sites = self
+            .skirmish
+            .as_ref()
+            .expect("skirmish entry selection")
+            .setup
+            .sites
+            .clone();
+        crate::entries::select(&sites, side, kind, point, |entry, kind, destination| {
+            self.entry_route_time(side, kind, entry.center, destination)
+        })
     }
 
     /// Validate and schedule a command for the next step. Every command whose
@@ -2569,16 +2672,12 @@ impl Battle {
                 )
             })
             .collect();
-        let entries = skirmish.setup.sites.entries.clone();
+        let sites = skirmish.setup.sites.clone();
         for (index, id, side, faction, opening) in players {
             let Some(mut ai) = self.skirmish_ai.remove(&id) else {
                 continue;
             };
-            let entry = entries
-                .iter()
-                .find(|e| e.side == side)
-                .cloned()
-                .expect("combatant entry site");
+            let entry = crate::entries::site(&sites, crate::entries::centre(&sites, side)).clone();
             let mut frame = self.observations[side.index()].clone();
             let lens = crate::skirmish_ai::PlayerLens {
                 frame: &frame,
@@ -3731,12 +3830,12 @@ impl Battle {
                         && u.owner.as_deref() == command.player.as_deref()
                 })
                 .count() as u32;
-            self.skirmish.as_mut().unwrap().reserve(
+            self.skirmish.as_mut().unwrap().reserve_at(
                 player.expect("validated skirmish player"),
                 preview.kind,
                 preview.destination,
                 self.rules.catalog.get(preview.kind).cost,
-                planning_tick + 1,
+                (crate::entries::EntryIndex(preview.entry), planning_tick + 1),
                 living,
             )?;
         }
@@ -3763,23 +3862,37 @@ impl Battle {
         let mut stops = BTreeMap::new();
         let placement = match &command.order {
             Order::Refund { units } => {
-                let skirmish = self.skirmish.as_ref().unwrap();
+                let sites = self.skirmish.as_ref().unwrap().setup.sites.clone();
                 Some(MovePlacement {
                     gesture: 0,
                     destinations: units
                         .iter()
                         .map(|unit| {
-                            let entry = skirmish.setup.sites.centre_entry(command.side).unwrap();
-                            let (goal, facing) = if self.units[unit.0 as usize].fixed_wing() {
-                                let edge = crate::air::edge::back_edge(
+                            let current = &self.units[unit.0 as usize];
+                            let selected = if current.fixed_wing() {
+                                crate::entries::centre(&sites, command.side)
+                            } else {
+                                crate::entries::select(
+                                    &sites,
                                     command.side,
-                                    &skirmish.setup.sites,
-                                    &self.world,
-                                );
-                                let (point, heading) = crate::air::edge::entry(
-                                    &edge,
-                                    self.units[unit.0 as usize].position.xy(),
-                                );
+                                    current.kind,
+                                    [current.position.x, current.position.y],
+                                    |entry, kind, point| {
+                                        self.entry_route_time(
+                                            command.side,
+                                            kind,
+                                            entry.center,
+                                            point,
+                                        )
+                                    },
+                                )
+                            };
+                            let entry = crate::entries::site(&sites, selected);
+                            let (goal, facing) = if current.fixed_wing() {
+                                let edge =
+                                    crate::air::edge::back_edge(command.side, &sites, &self.world);
+                                let (point, heading) =
+                                    crate::air::edge::entry(&edge, current.position.xy());
                                 ([point.x, point.y], heading)
                             } else {
                                 (entry.center, entry.yaw)
@@ -4171,7 +4284,13 @@ impl Battle {
         if side == Side::Neutral {
             return Err(OrderError::NotSkirmish);
         }
-        let skirmish = self.skirmish.as_ref().ok_or(OrderError::NotSkirmish)?;
+        let sites = self
+            .skirmish
+            .as_ref()
+            .ok_or(OrderError::NotSkirmish)?
+            .setup
+            .sites
+            .clone();
         let kind = self
             .rules
             .catalog
@@ -4199,11 +4318,16 @@ impl Battle {
         {
             return Err(OrderError::OutOfBounds);
         }
-        let entry = skirmish
-            .setup
-            .sites
-            .centre_entry(side)
-            .ok_or(OrderError::NotSkirmish)?;
+        let fixed_wing = matches!(
+            units::motion(self.rules.catalog.get(kind), &self.rules),
+            units::Motion::Air(f) if f.model == contract::catalog::FlightModel::FixedWing
+        );
+        let entry_index = if fixed_wing {
+            crate::entries::centre(&sites, side)
+        } else {
+            self.select_entry(side, kind, destination)
+        };
+        let entry = crate::entries::site(&sites, entry_index);
         let (from, yaw) = (v2(entry.center[0], entry.center[1]), entry.yaw);
         let t = self.rules.catalog.get(kind);
         // A ground unit is sent where a move there from its entry would end:
@@ -4245,6 +4369,7 @@ impl Battle {
         let next = self.units.len() as u32;
         Ok(contract::skirmish::PurchasePreview {
             kind,
+            entry: entry_index.0,
             destination,
             // A look while it is placed, not where its soldiers will stand: one
             // draw wherever it is put, so the ghost slides with the cursor.

@@ -93,6 +93,8 @@ pub struct PurchaseId(pub u32);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PurchasePreview {
     pub kind: TypeIndex,
+    /// The entry chosen for this purchase while it is being reserved.
+    pub entry: usize,
     pub destination: [f64; 2],
     pub spots: Vec<[f64; 2]>,
 }
@@ -101,6 +103,9 @@ pub struct PurchasePreview {
 pub struct PendingPurchase {
     pub id: PurchaseId,
     pub kind: TypeIndex,
+    /// The entry chosen once, when the purchase is reserved (D37).
+    #[serde(default)]
+    pub entry: usize,
     pub destination: [f64; 2],
     pub confirmed_tick: Tick,
     pub blocked: bool,
