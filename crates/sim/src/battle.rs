@@ -5318,6 +5318,7 @@ impl Battle {
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
                         goal: u.movement_goal().map(|(g, _)| [g.x, g.y]),
+                        goal_unloads: u.movement_goal().is_some() && u.unloads_after(0),
                         policy: u.movement_goal().map(|(_, p)| p),
                         direction: u.movement_goal().map(|_| u.direction()),
                         reversing: u.reversing,
@@ -5326,14 +5327,8 @@ impl Battle {
                         // could name it anyway (Q14: contact reveals nothing).
                         blocker: u.blocker.filter(|b| self.units[b.0 as usize].side == side),
                         route: u.route.iter().flatten().map(|p| [p.x, p.y]).collect(),
-                        queue: u
-                            .orders
-                            .iter()
-                            .skip(1)
-                            .filter_map(|o| {
-                                o.movement().map(|m| [m.destination.x, m.destination.y])
-                            })
-                            .collect(),
+                        queue: u.queued_steps().map(|(p, _)| [p.x, p.y]).collect(),
+                        queue_unloads: u.queued_steps().map(|(_, unloads)| unloads).collect(),
                         members: u
                             .members
                             .iter()

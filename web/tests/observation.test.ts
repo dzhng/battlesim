@@ -471,6 +471,12 @@ test("every frozen animation field and ground value decodes, integers exact past
     "test_at",
   ]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
+  // Which of the unit's goal and queued steps let passengers out.
+  expect([o.own[0].goalUnloads, o.own[0].queueUnloads]).toEqual([true, [false, true]]);
+  expect(o.own[0].queue).toEqual([
+    [50, 20],
+    [60, 24],
+  ]);
   // A heard helicopter's report keeps its height and band through the wire.
   expect(o.contacts).toEqual([
     {
