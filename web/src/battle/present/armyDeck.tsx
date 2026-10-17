@@ -2,6 +2,8 @@ import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { aboardCarrier, type SkirmishView, type OwnUnitView } from "../sim/observationView";
 import { useSessionCatalog } from "../catalog/context";
 import { StrengthMeter, UnitFace } from "./unitFace";
+import { stateIcon } from "@packages/scene-assets/src/icons";
+import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { CommandBar, unitName } from "./readouts";
@@ -121,7 +123,8 @@ export function ArmyDeck({
               const name = `${unitName(units, unit)} #${unit.id}`;
               const strength = unitStrength(units, unit);
               // A squad a carrier holds is still the player's, but can't be
-              // ordered (D10): its card is dimmed, and picks its carrier.
+              // ordered (D10): its card is dimmed and marked with the seat it
+              // rides in, and picks its carrier.
               const carrier = aboardCarrier(unit)
                 ? own.find((u) => u.id === unit.hold!.host.id)
                 : undefined;
@@ -175,6 +178,7 @@ export function ArmyDeck({
                   <UnitFace kind={unit.kind}>
                     <StrengthMeter name={name} strength={strength} />
                   </UnitFace>
+                  {carrier && <Icon path={stateIcon("seats")} className="hud-army-aboard" />}
                 </button>
               );
             })}

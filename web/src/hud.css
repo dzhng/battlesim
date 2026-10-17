@@ -1178,6 +1178,12 @@ html {
 .hud-army-card .ro-icon {
   margin: 0;
 }
+/* A riding squad's seat mark, in its card's top corner. */
+.hud-army-card .hud-army-aboard {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
 .hud-unit-role svg {
   width: 25px;
   height: 25px;
