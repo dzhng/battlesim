@@ -1077,6 +1077,7 @@
     "flare_service_s": 2,
     "stock_per_flare": 2
   },
+  "carriage": { "board_s": 1, "reach_m": 3.0, "unload_search_m": 5 },
   "garrison": {
     "enter_exit_s": 2,
     "survival_probability_on_collapse": 0.5,

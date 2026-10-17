@@ -691,6 +691,8 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
         unit.hold
             .as_ref()
             .unwrap()
+            .building()
+            .unwrap()
             .slots
             .iter()
             .all(|s| s.position.z < b.world().prop(3).unwrap().top_z()),
@@ -700,6 +702,8 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     assert!(
         unit.hold
             .as_ref()
+            .unwrap()
+            .building()
             .unwrap()
             .slots
             .iter()
@@ -825,7 +829,7 @@ fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
     }
     let u = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(u.garrisoned());
-    let g = u.hold.as_ref().unwrap();
+    let g = u.hold.as_ref().unwrap().building().unwrap();
     let eyes = sim::garrison::facade_eyes(u, &setup.rules);
     assert!(eyes.len() <= 4);
     for f in 0..4 {

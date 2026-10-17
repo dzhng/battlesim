@@ -57,6 +57,8 @@ export type Order =
     }
   /** Leave the building after a stationary timer. */
   | { kind: "exit_building"; units: number[] }
+  | { kind: "board"; units: number[]; carrier: number; gesture: number }
+  | { kind: "collect"; units: number[]; squads: number[]; gesture: number }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {

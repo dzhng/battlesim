@@ -116,7 +116,7 @@ pub fn shove(
     let into_hull = units
         .iter()
         .enumerate()
-        .filter(|(j, u)| *j != pusher && u.alive())
+        .filter(|(j, u)| *j != pusher && u.on_field())
         .filter_map(|(_, u)| u.ground_footprint())
         .any(|h| deeper(&h));
     (!into_prop && !into_hull).then_some(Shove {

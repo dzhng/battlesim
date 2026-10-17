@@ -9,6 +9,27 @@ The calls the implementing agent made where the plan was silent, one entry per c
 
 Decisions the user made live in [map.md](map.md); change them there.
 
+## Slice 06 on_field audit
+
+`Unit::alive()` remains the accounting predicate. World-facing readers use
+`Unit::on_field()`, which excludes a living passenger in a carrier's
+`Inside` or `Exiting` phase.
+
+| Reader | Verdict | Reason |
+|---|---|---|
+| bodies, blasts, near-miss suppression, shoves, crowding, `clear_of`, treads | `on_field` | A passenger has no independent collision body. |
+| sensing, fog sweep, hearing, radar, shouts | `on_field` | A closed carrier is the only observed source. |
+| objectives and supply service | `on_field` | A passenger cannot capture or receive service through the hull. |
+| encounter referee attackers and zone presence | `on_field` | Referee presence is physical presence. |
+| unit cap, `Load`, casualty settlement and withdrawal accounting | `alive` | A passenger remains a living purchased unit until it exits or dies. |
+| scripts, order validation, pursuit and weapon settlement | `alive` | These paths account for identity and health; target-facing paths separately reject or skip aboard units. |
+
+## Slice 06
+
+- **Carrier reach is 3 m.** Alternative: reuse the building's 4 m entry distance. Why: the slice delegates a reach below 4 m; the hull's footprint supplies the final approach room while the authored threshold remains a closer boarding distance. Reach: boarding and collection admission. Reverse: change `fixtures/game.json` and the carriage rule checks.
+- **Test carriers explicitly clear inherited roster metadata.** Alternative: let `test_apc` and `test_scout_car` inherit `test_jeep`'s later test roster patches. Why: test-only carriers must not become extra skirmish cards when a test patches `test_jeep` into a deck. Reach: test catalogs and AI unit-selection fixtures. Reverse: remove the `roster: null` fields and update every deck test's candidate filtering.
+- **Collect approaches to the carrier hull's reach envelope and boards when stopped.** Alternative: drive to the squad centroid exactly and rely on the generic route stop. Why: the carrier needs a physical hull-side approach and a stopped 1 s timer; the envelope avoids a permanent last-metre stall. Reach: `Collect` movement and the transport scene. Reverse: move the approach calculation into the carrier order owner.
+
 
 ## Slice 05
 - **Recon prices stay the same after dropping a scout.**

@@ -30,7 +30,7 @@ impl Referee {
             libm::hypot(u.position.x - c[0], u.position.y - c[1]) <= rules.success_zone_radius_m
         };
         // A combat unit carries a weapon: its components say so, not its role.
-        let combat = |u: &Unit| u.alive() && !catalog.mounts(u.kind).is_empty();
+        let combat = |u: &Unit| u.on_field() && !catalog.mounts(u.kind).is_empty();
         let attackers: Vec<&Unit> = units
             .iter()
             .filter(|u| u.side == rules.attacker && combat(u))
@@ -38,7 +38,7 @@ impl Referee {
         let held = attackers.iter().any(|u| inside(u))
             && !units
                 .iter()
-                .any(|u| u.side != rules.attacker && u.alive() && inside(u));
+                .any(|u| u.side != rules.attacker && u.on_field() && inside(u));
         self.held_ticks = if held { self.held_ticks + 1 } else { 0 };
         if matches!(self.result, None | Some(EncounterResult::Inconclusive)) {
             if self.held_ticks as f64 >= rules.hold_s * hz {

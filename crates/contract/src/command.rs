@@ -186,6 +186,18 @@ pub enum Order {
     ExitBuilding {
         units: Vec<UnitId>,
     },
+    /// Walk selected squads to their own carrier and board after the timer.
+    Board {
+        units: Vec<UnitId>,
+        carrier: UnitId,
+        gesture: u64,
+    },
+    /// Drive the carrier to selected squads and take them aboard.
+    Collect {
+        units: Vec<UnitId>,
+        squads: Vec<UnitId>,
+        gesture: u64,
+    },
     /// Double right-click: switch the orders issued by `gesture` to `route`.
     /// A gesture whose orders have all completed is an acknowledged no-op.
     UpgradeMove {
@@ -266,6 +278,12 @@ pub enum OrderError {
     /// Another of the side's squads holds the building, is entering it, or
     /// is on its way in.
     BuildingOccupied,
+    /// The unit is already riding in a carrier.
+    Aboard {
+        unit: UnitId,
+    },
+    /// The named host cannot carry passengers.
+    NotACarrier,
 }
 
 impl OrderError {
@@ -297,6 +315,8 @@ impl OrderError {
             Self::CapacityFull => "capacity_full",
             Self::OneSquadPerBuilding => "one_squad_per_building",
             Self::BuildingOccupied => "building_occupied",
+            Self::Aboard { .. } => "aboard",
+            Self::NotACarrier => "not_a_carrier",
         }
     }
 }

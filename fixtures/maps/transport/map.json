@@ -1,0 +1,20 @@
+{
+  "size": [640, 480],
+  "fog_cell_m": 8,
+  "height_grid_m": 4,
+  "slope_cutoff_deg": 35,
+  "props": [
+    {"id": 1, "kind": "crate", "center": [300, 330], "yaw": 0.3, "half_extents": [2, 2, 1]},
+    {"id": 2, "kind": "crate", "center": [420, 170], "yaw": -0.2, "half_extents": [2, 2, 1]}
+  ],
+  "buildings": [
+    {
+      "owner": 0,
+      "kind": "building",
+      "template_id": "china-corner-shop-3f",
+      "frame": {"translation": [360.0, 250.0, 0.0], "yaw": 0.0},
+      "parts": [{"part": "body", "prop": 0}]
+    }
+  ],
+  "template_catalog_hash": "b785d1f2e6e416cbb2f68863ee492f158ac5108b8b5ce9a3e03b25be6849b8ad","regional_family": "china"
+}

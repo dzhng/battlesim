@@ -33,7 +33,7 @@ pub fn due(observer: &Unit, tick: u64) -> bool {
 /// once the observer or target has fallen, or too few seen soldiers survive.
 pub fn kept(s: &Sighting, units: &[Unit], rules: &Rules) -> Option<Sighting> {
     let (observer, target) = (&units[s.observer.0 as usize], &units[s.target.0 as usize]);
-    if !observer.alive() || !target.alive() {
+    if !observer.on_field() || !target.on_field() {
         return None;
     }
     if s.members.is_empty() {
@@ -138,7 +138,7 @@ pub fn side_sees_round(
 ) -> bool {
     units.iter().any(|u| {
         u.side == side
-            && u.alive()
+            && u.on_field()
             && sees_point(
                 world,
                 eye(u, rules),
@@ -232,7 +232,7 @@ pub fn evaluate(
     // Each with its samples and their concealment, which no observer changes.
     let targets: Vec<(&Unit, f64, Vec<Sample>)> = units
         .iter()
-        .filter(|u| u.side != side && u.alive())
+        .filter(|u| u.side != side && u.on_field())
         .map(|u| {
             let samples = samples(u)
                 .into_iter()
@@ -243,7 +243,7 @@ pub fn evaluate(
         .collect();
     for observer in units
         .iter()
-        .filter(|u| u.side == side && u.alive() && due(u))
+        .filter(|u| u.side == side && u.on_field() && due(u))
     {
         // An observer that doesn't see the ground still runs the same
         // optical pass for air targets, so air-to-air sensing remains

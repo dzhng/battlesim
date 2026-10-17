@@ -141,7 +141,7 @@ pub fn service(
 ) {
     let radius = rules.service.radius_m;
     let sources: Vec<usize> = (0..units.len())
-        .filter(|&i| units[i].alive() && units[i].stock.is_some())
+        .filter(|&i| units[i].on_field() && units[i].stock.is_some())
         .collect();
     for r in 0..units.len() {
         let unit = &units[r];
@@ -155,7 +155,7 @@ pub fn service(
                     && (units[s].position.xy() - unit.position.xy()).length() <= radius
             })
             .collect();
-        if unit.alive() && unit.stock.is_none() && !reach.is_empty() {
+        if unit.on_field() && unit.stock.is_none() && !reach.is_empty() {
             let ready: Vec<usize> = reach
                 .into_iter()
                 .filter(|&s| deployment::fully_deployed(&units[s]) && !moved[s])

@@ -829,7 +829,7 @@ impl Battle {
                                 && self
                                     .units
                                     .iter()
-                                    .filter(|u| u.alive() && !u.airborne())
+                                    .filter(|u| u.on_field() && !u.airborne())
                                     .all(|u| {
                                         apart(
                                             &candidate,
@@ -1399,26 +1399,26 @@ impl Battle {
     /// ones rejected for their content, so a replay reproduces the same acks.
     pub fn accept(&mut self, command: CommandEnvelope) -> CommandAck {
         let applied_tick = self.tick + 1;
-        let ack = |error, placement, building| CommandAck {
+        let ack = |error, placement, building, refused| CommandAck {
             seq: command.seq,
             applied_tick,
             error,
-            refused: Vec::new(),
+            refused,
             placement,
             building,
         };
         if self.replaying.is_some() {
-            return ack(Some(OrderError::ReplayInProgress), None, None);
+            return ack(Some(OrderError::ReplayInProgress), None, None, Vec::new());
         }
         self.admit(command.clone(), applied_tick).map_or_else(
-            |e| ack(Some(e), None, None),
-            |(placement, building)| {
+            |e| ack(Some(e), None, None, Vec::new()),
+            |(placement, building, refused)| {
                 let error = placement
                     .as_ref()
                     .filter(|p| p.destinations.iter().all(|d| !d.placed))
                     .filter(|_| building.as_ref().is_none_or(|b| b.entrant.is_none()))
                     .map(|_| OrderError::NoValidDestination);
-                ack(error, placement, building)
+                ack(error, placement, building, refused)
             },
         )
     }
@@ -1440,7 +1440,7 @@ impl Battle {
         &mut self,
         command: CommandEnvelope,
         applied_tick: Tick,
-    ) -> Result<(Option<MovePlacement>, Option<BuildingPlacement>), OrderError> {
+    ) -> Result<Admission, OrderError> {
         let side = command.side.index();
         if command.seq != self.next_seq[side] {
             return Err(OrderError::OutOfSequence {
@@ -1455,8 +1455,9 @@ impl Battle {
         let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
         let placement = prepared.placement.clone();
         let building = prepared.building.as_ref().map(|p| p.placement.clone());
+        let refused = prepared.refused.clone();
         self.pending.push(prepared);
-        Ok((placement, building))
+        Ok((placement, building, refused))
     }
 
     /// A side-scoped target reference as the sim's own target, if the side
@@ -1678,6 +1679,43 @@ impl Battle {
                     &self.rules,
                 );
             }
+            Order::Board { units, carrier, .. } => {
+                self.validate_command_units(command, units)?;
+                if units
+                    .iter()
+                    .any(|id| self.units[id.0 as usize].hull.is_some())
+                {
+                    return Err(OrderError::NotInfantry { unit: units[0] });
+                }
+                let Some(c) = self.units.get(carrier.0 as usize) else {
+                    return Err(OrderError::NotACarrier);
+                };
+                if c.side != command.side
+                    || c.unit_type(&self.rules).capabilities.carriage.is_none()
+                {
+                    return Err(OrderError::NotACarrier);
+                }
+                units
+            }
+            Order::Collect { units, squads, .. } => {
+                self.validate_command_units(command, units)?;
+                for &squad in squads {
+                    self.validate_command_units(command, &[squad])?;
+                    if self.units[squad.0 as usize].hull.is_some() {
+                        return Err(OrderError::NotInfantry { unit: squad });
+                    }
+                }
+                if units.iter().any(|id| {
+                    self.units[id.0 as usize]
+                        .unit_type(&self.rules)
+                        .capabilities
+                        .carriage
+                        .is_none()
+                }) {
+                    return Err(OrderError::NotACarrier);
+                }
+                units
+            }
             Order::Stop { units }
             | Order::OccupyBuilding { units, .. }
             | Order::SetAfterburner { units, .. }
@@ -1719,6 +1757,7 @@ impl Battle {
                 None => return Err(OrderError::UnknownUnit { unit }),
                 Some(u) if u.side != side => return Err(OrderError::NotOwnUnit { unit }),
                 Some(u) if !u.alive() => return Err(OrderError::Destroyed { unit }),
+                Some(u) if !u.on_field() => return Err(OrderError::Aboard { unit }),
                 Some(_) => {}
             }
         }
@@ -1805,7 +1844,9 @@ impl Battle {
                 | Order::SetDeployment { units, .. }
                 | Order::Garrison { units, .. }
                 | Order::OccupyBuilding { units, .. }
-                | Order::ExitBuilding { units } => units.retain(|id| {
+                | Order::ExitBuilding { units }
+                | Order::Board { units, .. }
+                | Order::Collect { units, .. } => units.retain(|id| {
                     self.units
                         .get(id.0 as usize)
                         .is_none_or(|u| u.side != script.side || u.alive())
@@ -1843,6 +1884,7 @@ impl Battle {
             &self.rules,
             self.seed,
         );
+        crate::carriage::advance(&mut self.units, &self.rules);
         self.update_pursuit();
         damage::recover(&mut self.units, &self.rules, self.tick);
         // Progress moves before movement, so the gate opens on the tick packing completes.
@@ -2372,7 +2414,7 @@ impl Battle {
         for unit in self
             .units
             .iter()
-            .filter(|u| u.alive() && !u.garrisoned() && !u.airborne())
+            .filter(|u| u.on_field() && !u.garrisoned() && !u.airborne())
         {
             match unit.hull {
                 Some(half) => {
@@ -2497,7 +2539,7 @@ impl Battle {
         for (i, unit) in self.units.iter().enumerate() {
             let soldiers = first..first + unit.members.len();
             first = soldiers.end;
-            if !unit.alive() {
+            if !unit.on_field() {
                 continue;
             }
             match unit.hull {
@@ -2741,7 +2783,7 @@ impl Battle {
             .clone();
         let wreck_of = self.rules.catalog.id(unit.kind).to_string();
         let hulls: Vec<Obb2> = (self.units.iter())
-            .filter(|o| o.alive())
+            .filter(|o| o.on_field())
             .filter_map(|o| o.ground_footprint())
             .collect();
         let rest = crate::crash::resting_place(
@@ -2889,7 +2931,7 @@ impl Battle {
             let hulls: Vec<Obb2> = self
                 .units
                 .iter()
-                .filter(|o| o.id != id && o.alive())
+                .filter(|o| o.id != id && o.on_field())
                 .filter_map(|o| o.ground_footprint())
                 .collect();
             let soldiers: Vec<V2> = self
@@ -3362,7 +3404,7 @@ impl Battle {
         let mut candidates = Vec::new();
         let mut remembered = Vec::new();
         let mut views = Vec::new();
-        for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
+        for unit in self.units.iter().filter(|u| u.side == side && u.on_field()) {
             // What doesn't see the ground never lights its fog; the optical
             // sensing pass still handles air targets separately.
             if !sensing::sees_ground(unit) {
@@ -3462,7 +3504,7 @@ impl Battle {
 
     fn prepare(
         &mut self,
-        command: CommandEnvelope,
+        mut command: CommandEnvelope,
         planning_tick: Tick,
     ) -> Result<PreparedCommand, OrderError> {
         self.validate(&command)?;
@@ -3608,11 +3650,58 @@ impl Battle {
             }
             _ => None,
         };
+        let mut refused = Vec::new();
+        if let Order::Board {
+            units,
+            carrier,
+            gesture,
+        } = &mut command.order
+        {
+            let mut ordered = units.clone();
+            ordered.sort_by(|a, b| {
+                let ca = (self.units[a.0 as usize].position.xy()
+                    - self.units[carrier.0 as usize].position.xy())
+                .length();
+                let cb = (self.units[b.0 as usize].position.xy()
+                    - self.units[carrier.0 as usize].position.xy())
+                .length();
+                ca.total_cmp(&cb).then(a.cmp(b))
+            });
+            let capacity = self
+                .rules
+                .catalog
+                .get(self.units[carrier.0 as usize].kind)
+                .capabilities
+                .carriage
+                .map_or(0, |c| c.seats as usize);
+            let used: usize = self.units.iter().filter(|u| matches!(u.hold.as_ref().map(|h| h.host), Some(crate::hold::Host::Carrier(id)) if id == *carrier)).map(|u| u.members.iter().filter(|s| s.alive()).count()).sum();
+            let mut left = capacity.saturating_sub(used);
+            let mut accepted = Vec::new();
+            for id in ordered {
+                let need = self.units[id.0 as usize]
+                    .members
+                    .iter()
+                    .filter(|s| s.alive())
+                    .count();
+                if need <= left {
+                    left -= need;
+                    accepted.push(id);
+                } else {
+                    refused.push(contract::command::Refusal {
+                        unit: id,
+                        reason: OrderError::CapacityFull,
+                    });
+                }
+            }
+            *units = accepted;
+            let _ = gesture;
+        }
         Ok(PreparedCommand {
             command,
             placement,
             building,
             stops,
+            refused,
         })
     }
 
@@ -3833,6 +3922,33 @@ impl Battle {
             Order::ExitBuilding { units } => {
                 for id in units {
                     push(&mut movers[id.0 as usize], UnitOrder::Exit);
+                }
+            }
+            Order::Board {
+                units,
+                carrier,
+                gesture,
+            } => {
+                for id in units {
+                    push(
+                        &mut movers[id.0 as usize],
+                        UnitOrder::Board { carrier, gesture },
+                    );
+                }
+            }
+            Order::Collect {
+                units,
+                squads,
+                gesture,
+            } => {
+                for id in units {
+                    push(
+                        &mut movers[id.0 as usize],
+                        UnitOrder::Collect {
+                            squads: squads.clone(),
+                            gesture,
+                        },
+                    );
                 }
             }
             Order::SetEngagement { units, policy } => {
@@ -4892,7 +5008,14 @@ struct PreparedCommand {
     building: Option<garrison::BuildingPlan>,
     /// Where a placed unit stops short ([`crate::units::StopShort`]).
     stops: BTreeMap<UnitId, crate::units::StopShort>,
+    refused: Vec<contract::command::Refusal>,
 }
+
+type Admission = (
+    Option<MovePlacement>,
+    Option<BuildingPlacement>,
+    Vec<contract::command::Refusal>,
+);
 
 #[cfg(test)]
 mod tests {

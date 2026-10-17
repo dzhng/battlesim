@@ -220,6 +220,7 @@ export interface UnitType {
    *  are keyed by it, never by unit id. Null for a squad. */
   vehicle_class: string | null;
   capabilities: {
+    carriage?: { seats: number };
     deploy?: { seconds: number; pack_seconds?: number };
     supply?: { stock: number };
     active_protection?: {

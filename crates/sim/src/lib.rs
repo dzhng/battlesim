@@ -4,6 +4,7 @@
 pub mod air;
 pub mod arrangement;
 pub mod battle;
+pub mod carriage;
 mod cell_page;
 pub mod cover;
 pub mod crash;

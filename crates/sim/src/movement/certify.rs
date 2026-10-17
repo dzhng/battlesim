@@ -81,7 +81,7 @@ fn carry(
         return false;
     };
     let left = distances_to_end(&way);
-    let others = || units.iter().filter(|o| o.id != unit.id && o.alive());
+    let others = || units.iter().filter(|o| o.id != unit.id && o.on_field());
     let radius = unit.footprint_radius(ctx.rules.physics.soldier_radius_m);
     let mut stop = reach;
     for other in others().filter(|o| o.ground_footprint().is_some() && o.orders.is_empty()) {
@@ -368,7 +368,7 @@ pub(crate) fn certify_orders(
                 stand(unit);
             }
         }
-        let step_cost = units.iter().filter(|u| u.alive()).count().max(1) as u64;
+        let step_cost = units.iter().filter(|u| u.on_field()).count().max(1) as u64;
         let mut approaches = vec![None; slots.len()];
         // Orders left identify the queued leg; its long-distance decision
         // freezes before planning, and only actual movement earns a carry.
@@ -387,7 +387,7 @@ pub(crate) fn certify_orders(
         let progress = |u: &Unit| {
             let owned = u.side == own;
             (
-                u.alive().then_some((u.position, u.yaw)),
+                u.on_field().then_some((u.position, u.yaw)),
                 u.deployment.as_ref().filter(|_| owned).map(|d| d.current),
                 u.hold.as_ref().filter(|_| owned).map(|g| g.phase),
             )
@@ -495,7 +495,7 @@ pub(crate) fn certify_orders(
                     h.contains(slot.point.unwrap(), 0.0)
                         && units.iter().all(|other| {
                             other.id == unit.id
-                                || !other.alive()
+                                || !other.on_field()
                                 || other.ground_footprint().is_none_or(|o| !h.overlaps(&o))
                         })
                         && world.props_near(h.center, h.half.length()).iter().all(|p| {

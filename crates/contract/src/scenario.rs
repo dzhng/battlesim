@@ -660,6 +660,7 @@ pub struct Rules {
     pub ground: GroundRules,
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
+    pub carriage: CarriageRules,
     pub hull_limits: HullLimits,
     pub air_speed_limits_kmh: AirSpeedLimits,
     pub air: AirRules,
@@ -969,6 +970,7 @@ struct UncheckedRules {
     ground: GroundRules,
     buildings: BuildingRules,
     garrison: GarrisonRules,
+    carriage: CarriageRules,
     hull_limits: HullLimits,
     air_speed_limits_kmh: AirSpeedLimits,
     air: AirRules,
@@ -988,6 +990,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ("forests", r.forests.check(&r.catalog)),
             ("formation", r.formation.check()),
             ("commands", r.commands.check()),
+            ("carriage", r.carriage.check()),
             ("air", r.air.check()),
             ("shouts", r.shouts.check()),
         ] {
@@ -1021,6 +1024,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ground: r.ground,
             buildings: r.buildings,
             garrison: r.garrison,
+            carriage: r.carriage,
             hull_limits: r.hull_limits,
             air_speed_limits_kmh: r.air_speed_limits_kmh,
             air: r.air,
@@ -1184,6 +1188,30 @@ pub struct GarrisonRules {
     pub window_swap_s: f64,
     /// A soldier who changed windows keeps his new one at least this long.
     pub window_hold_s: f64,
+}
+
+/// Timing and reach for squads boarding a carrier.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CarriageRules {
+    pub board_s: f64,
+    pub reach_m: f64,
+    pub unload_search_m: f64,
+}
+
+impl CarriageRules {
+    fn check(&self) -> Result<(), String> {
+        for (name, value) in [
+            ("board_s", self.board_s),
+            ("reach_m", self.reach_m),
+            ("unload_search_m", self.unload_search_m),
+        ] {
+            if !value.is_finite() || value <= 0.0 {
+                return Err(format!("carriage.{name} must be finite and positive"));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Infantry suppression (P14): a hidden level in [0, 1] that near misses

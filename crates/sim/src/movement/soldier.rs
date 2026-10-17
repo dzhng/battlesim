@@ -285,7 +285,7 @@ impl Crowd {
         for (i, u) in units.iter().enumerate() {
             base.push(at.len());
             let standing = !u.is_vehicle() && !u.garrisoned();
-            if standing && u.alive() {
+            if standing && u.on_field() {
                 standing_units.push(i);
                 radii[i] = u.footprint_radius(radius);
             }

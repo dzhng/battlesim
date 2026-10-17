@@ -24,6 +24,7 @@ use contract::map::MoverClass;
 use contract::observation::{HoldPhase, HoldState, HostRef};
 
 pub use crate::hold::Phase;
+use crate::hold::{Host, Place};
 use contract::scenario::Rules;
 
 use crate::arrangement;
@@ -735,6 +736,19 @@ pub fn collapse(
 /// What the owning side sees of a squad's garrison.
 pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldState> {
     let hold = unit.hold.as_ref()?;
+    if let Host::Carrier(id) = hold.host {
+        let timer = ticks(hold.host.timing(rules).enter_exit_s, rules) as f64;
+        let (phase, progress) = match hold.phase {
+            Phase::Entering(n) => (HoldPhase::Entering, n as f64 / timer),
+            Phase::Inside => (HoldPhase::Inside, 1.0),
+            Phase::Exiting(n) => (HoldPhase::Exiting, n as f64 / timer),
+        };
+        return Some(HoldState {
+            host: HostRef::Carrier { id: id.0 },
+            phase,
+            progress,
+        });
+    }
     let building = hold.host.building();
     let footprint = world.structure_footprint(building)?;
     let timer = ticks(hold.host.timing(rules).enter_exit_s, rules) as f64;
@@ -758,23 +772,32 @@ pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldSt
 pub fn digest(unit: &Unit, d: &mut Digest) {
     d.u64(unit.hold.is_some() as u64);
     if let Some(hold) = &unit.hold {
-        let g = hold.building().expect("building hold");
         let (tag, n) = match hold.phase {
             Phase::Entering(n) => (0, n),
             Phase::Inside => (2, 0),
             Phase::Exiting(n) => (3, n),
         };
-        d.u64(hold.host.building() as u64).u64(tag).u64(n as u64);
-        d.f64(g.entry.x).f64(g.entry.y);
-        d.u64(g.slots.len() as u64).u64(g.seats.len() as u64);
-        for s in &g.seats {
-            d.u64(s.map_or(u64::MAX, |s| s as u64));
-        }
-        for s in &g.slots {
-            d.u64(s.changed.unwrap_or(u64::MAX));
-            d.f64(s.position.x).f64(s.position.y).f64(s.position.z);
-            if s.edge != s.slot.facade as usize {
-                d.bytes(b"physical firing edge").u64(s.edge as u64);
+        match (&hold.host, &hold.place) {
+            (Host::Carrier(id), Place::Carrier) => {
+                d.u64(u64::MAX).u64(id.0 as u64).u64(tag).u64(n as u64);
+            }
+            (Host::Building(_), Place::Building(g)) => {
+                d.u64(hold.host.building() as u64).u64(tag).u64(n as u64);
+                d.f64(g.entry.x).f64(g.entry.y);
+                d.u64(g.slots.len() as u64).u64(g.seats.len() as u64);
+                for s in &g.seats {
+                    d.u64(s.map_or(u64::MAX, |s| s as u64));
+                }
+                for s in &g.slots {
+                    d.u64(s.changed.unwrap_or(u64::MAX));
+                    d.f64(s.position.x).f64(s.position.y).f64(s.position.z);
+                    if s.edge != s.slot.facade as usize {
+                        d.bytes(b"physical firing edge").u64(s.edge as u64);
+                    }
+                }
+            }
+            _ => {
+                d.u64(u64::MAX).u64(tag).u64(n as u64);
             }
         }
     }

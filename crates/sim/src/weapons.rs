@@ -803,7 +803,9 @@ fn friendly_in_line(
     );
     units
         .iter()
-        .filter(|u| u.side == shooter.side && u.id != shooter.id && u.hull.is_some() && u.alive())
+        .filter(|u| {
+            u.side == shooter.side && u.id != shooter.id && u.hull.is_some() && u.on_field()
+        })
         .filter(|u| Some(u.id) != leaning_round)
         .any(|u| {
             // One frame per hull: its rotation is not recomputed per sample.
@@ -1832,7 +1834,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
     let tolerance = ctx.rules.movement.bearing_tolerance_deg.to_radians();
     let mut shots = Vec::new();
     for i in 0..units.len() {
-        if !units[i].alive() {
+        if !units[i].on_field() {
             continue;
         }
         let specs = ctx.arsenal.specs(units[i].kind);

@@ -1,0 +1,15 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_apc","position":[220,240],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_scout_car","position":[220,270],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_rifle","position":[200,240],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_recon","position":[200,270],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_rifle","position":[500,250],"engagement":"return_fire_only"}
+  ],
+  "events": [],
+  "scripts": [
+    {"tick":1,"side":"blue","order":{"kind":"board","units":[2],"carrier":0,"gesture":6001}},
+    {"tick":1,"side":"blue","order":{"kind":"collect","units":[1],"squads":[3],"gesture":6002}},
+    {"tick":900,"side":"blue","order":{"kind":"move","units":[0,1],"gesture":6003,"goal":[420,250],"route":"shortest"}}
+  ]
+}

@@ -70,7 +70,12 @@ pub fn task(
                 AirTask::Attack { target: *target }
             }
         }
-        Some(UnitOrder::Garrison { .. } | UnitOrder::Exit) => AirTask::Hold,
+        Some(
+            UnitOrder::Garrison { .. }
+            | UnitOrder::Exit
+            | UnitOrder::Board { .. }
+            | UnitOrder::Collect { .. },
+        ) => AirTask::Hold,
         None => reaction(unit, knowledge),
     }
 }

@@ -207,7 +207,7 @@ fn separation(ctx: &MovementContext, units: &[Unit], i: usize) -> V2 {
     let here = units[i].position.xy();
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
-        if j == i || !other.alive() || !other.airborne() {
+        if j == i || !other.on_field() || !other.airborne() {
             continue;
         }
         let away = here - other.position.xy();

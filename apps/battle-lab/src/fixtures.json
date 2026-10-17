@@ -156,6 +156,13 @@
     "map": "air-jet"
   },
   {
+    "id": "transport",
+    "route": "/labs/transport",
+    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective.",
+    "map": "transport",
+    "catalog": "test"
+  },
+  {
     "id": "garrison",
     "route": "/labs/garrison",
     "describe": "Buildings as fighting positions: the closest eligible blue squad enters a building while selected companions gather outside; direct entry admits one squad whole, enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned. Includes delayed admission, queued cursor, refusal callout and edge-readout cursor checks.",

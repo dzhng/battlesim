@@ -1,0 +1,21 @@
+{
+  "category": "test",
+  "status": "released",
+  "label": "Transport lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [
+    640,
+    480
+  ],
+  "tags": [
+    "prop",
+    "building"
+  ],
+  "source": "authored",
+  "seed": null,
+  "encounters": [
+    "board"
+  ],
+  "benchmarks": []
+}

@@ -71,6 +71,7 @@ mod soldier_bodies;
 mod supply;
 mod suppression;
 mod top_attack;
+mod transport;
 mod weapons;
 mod world_geometry;
 

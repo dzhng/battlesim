@@ -203,6 +203,16 @@ pub enum UnitOrder {
     },
     /// Leave the current building.
     Exit,
+    /// Board a moving carrier; carriage advances the target each tick.
+    Board {
+        carrier: UnitId,
+        gesture: u64,
+    },
+    /// Drive to squads and collect them.
+    Collect {
+        squads: Vec<UnitId>,
+        gesture: u64,
+    },
 }
 
 impl UnitOrder {
@@ -608,6 +618,17 @@ impl Unit {
         }
     }
 
+    /// Alive and physically present in the world. A squad inside a carrier is
+    /// still counted for accounting, but cannot collide, sense, fight, hear or
+    /// affect objectives until it exits.
+    pub fn on_field(&self) -> bool {
+        self.alive()
+            && !self.hold.as_ref().is_some_and(|hold| {
+                matches!(hold.host, crate::hold::Host::Carrier(_))
+                    && matches!(hold.phase, Phase::Inside | Phase::Exiting(_))
+            })
+    }
+
     /// Its type's record.
     pub fn unit_type<'a>(&self, rules: &'a Rules) -> &'a UnitType {
         rules.catalog.get(self.kind)
@@ -722,6 +743,15 @@ impl Unit {
                 }
                 UnitOrder::Exit => {
                     d.u64(4);
+                }
+                UnitOrder::Board { carrier, gesture } => {
+                    d.u64(5).u64(carrier.0 as u64).u64(*gesture);
+                }
+                UnitOrder::Collect { squads, gesture } => {
+                    d.u64(6).u64(*gesture).u64(squads.len() as u64);
+                    for squad in squads {
+                        d.u64(squad.0 as u64);
+                    }
                 }
             }
         }
@@ -889,7 +919,7 @@ impl Unit {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
             UnitOrder::Garrison { approach, .. } => Some((*approach, RoutePolicy::Shortest)),
-            UnitOrder::Exit => None,
+            UnitOrder::Exit | UnitOrder::Board { .. } | UnitOrder::Collect { .. } => None,
         }
     }
 

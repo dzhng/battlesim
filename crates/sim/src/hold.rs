@@ -1,12 +1,10 @@
 //! A unit's host and stationary hold state.
 
-use contract::scenario::Rules;
-use std::ops::{Deref, DerefMut};
-
 use crate::garrison::Garrison;
 use crate::math::V2;
 use crate::units::{Unit, UnitOrder};
 use crate::world::PropId;
+use contract::scenario::Rules;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
@@ -20,6 +18,7 @@ pub enum Phase {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Host {
     Building(PropId),
+    Carrier(contract::ids::UnitId),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -35,12 +34,24 @@ impl Host {
                 enter_exit_s: rules.garrison.enter_exit_s,
                 reach_m: rules.garrison.entry_distance_m,
             },
+            Self::Carrier(_) => Timing {
+                enter_exit_s: rules.carriage.board_s,
+                reach_m: rules.carriage.reach_m,
+            },
         }
     }
 
     pub fn building(self) -> PropId {
         match self {
             Self::Building(id) => id,
+            Self::Carrier(_) => panic!("carrier hold has no building"),
+        }
+    }
+
+    pub fn carrier(self) -> Option<contract::ids::UnitId> {
+        match self {
+            Self::Carrier(id) => Some(id),
+            Self::Building(_) => None,
         }
     }
 }
@@ -49,12 +60,14 @@ impl Host {
 #[derive(Clone, Debug)]
 pub enum Place {
     Building(Garrison),
+    Carrier,
 }
 
 impl Place {
     pub fn entry(&self) -> V2 {
         match self {
             Self::Building(garrison) => garrison.entry,
+            Self::Carrier => V2::default(),
         }
     }
 }
@@ -70,27 +83,17 @@ impl Hold {
     pub fn building(&self) -> Option<&Garrison> {
         match (&self.host, &self.place) {
             (Host::Building(_), Place::Building(garrison)) => Some(garrison),
+            (Host::Carrier(_), Place::Carrier) => None,
+            _ => None,
         }
     }
 
     pub fn building_mut(&mut self) -> Option<&mut Garrison> {
         match (&self.host, &mut self.place) {
             (Host::Building(_), Place::Building(garrison)) => Some(garrison),
+            (Host::Carrier(_), Place::Carrier) => None,
+            _ => None,
         }
-    }
-}
-
-impl Deref for Hold {
-    type Target = Garrison;
-
-    fn deref(&self) -> &Self::Target {
-        self.building().expect("building hold")
-    }
-}
-
-impl DerefMut for Hold {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.building_mut().expect("building hold")
     }
 }
 
@@ -121,7 +124,10 @@ pub(crate) fn advance(
             continue;
         }
         let want = garrison::want(&units[i]);
-        let phase = units[i].hold.as_ref().map(|h| (h.host.building(), h.phase));
+        let phase = units[i].hold.as_ref().and_then(|h| match h.host {
+            Host::Building(building) => Some((building, h.phase)),
+            Host::Carrier(_) => None,
+        });
         let timer = phase.map_or(1, |(building, _)| {
             ticks(Host::Building(building).timing(rules).enter_exit_s, rules)
         });
