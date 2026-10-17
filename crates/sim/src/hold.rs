@@ -212,7 +212,7 @@ pub(crate) fn advance(
                             Phase::Entering(n + 1);
                     }
                     Phase::Entering(_) => {
-                        if crate::carriage::admit(units, i, carrier, rules) {
+                        if crate::carriage::fits(units, carrier, rules) {
                             units[i].hold.as_mut().expect("carrier hold").phase = Phase::Inside;
                             if matches!(units[i].orders.front(), Some(UnitOrder::Board { .. })) {
                                 units[i].orders.pop_front();

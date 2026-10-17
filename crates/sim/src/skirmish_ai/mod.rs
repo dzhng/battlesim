@@ -500,8 +500,9 @@ impl BalancedDoctrine {
         // The cheapest cards of `role` (all of `category` when no role is
         // named, or the deck has no card of it), the `ordinal`-th of them.
         // An unarmed carrier only carries: pairing alone buys it.
-        let unarmed_carrier =
-            |k: TypeIndex| transport::seats(rules, k) > 0 && rules.catalog.mounts(k).is_empty();
+        let unarmed_carrier = |k: TypeIndex| {
+            crate::carriage::seats(rules, k) > 0 && rules.catalog.mounts(k).is_empty()
+        };
         let pick = |role: Option<&str>, category: Category, ordinal: usize| {
             let mut matching: Vec<_> = role
                 .map(|role| {
@@ -724,7 +725,7 @@ impl BalancedDoctrine {
             // Support, carriers and the squads they will carry wait at base:
             // a squad rides out from there (D17).
             let waits = rules.catalog.get(kind).has_role("logistics")
-                || transport::seats(rules, kind) > 0
+                || crate::carriage::seats(rules, kind) > 0
                 || transport::carrier_for(rules, &eligible, rules.catalog.get(kind).squad_size())
                     .is_some();
             let destination = if waits {
@@ -764,7 +765,8 @@ impl BalancedDoctrine {
             });
         }
         if view.phase == Phase::Active {
-            let carries = |u: &contract::observation::OwnUnit| transport::seats(rules, u.kind) > 0;
+            let carries =
+                |u: &contract::observation::OwnUnit| crate::carriage::seats(rules, u.kind) > 0;
             // Carriers take their turn last, once every squad has claimed
             // its ride.
             let mut own: Vec<_> = frame.own.iter().collect();

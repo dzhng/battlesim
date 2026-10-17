@@ -4263,22 +4263,12 @@ impl Battle {
                 .length();
                 ca.total_cmp(&cb).then(a.cmp(b))
             });
-            let capacity = self
-                .rules
-                .catalog
-                .get(self.units[carrier.0 as usize].kind)
-                .capabilities
-                .carriage
-                .map_or(0, |c| c.seats as usize);
-            let used: usize = self.units.iter().filter(|u| matches!(u.hold.as_ref().map(|h| h.host), Some(crate::hold::Host::Carrier(id)) if id == *carrier)).map(|u| u.members.iter().filter(|s| s.alive()).count()).sum();
+            let capacity = crate::carriage::seats(&self.rules, self.units[carrier.0 as usize].kind);
+            let used = crate::carriage::seats_used(&self.units, *carrier);
             let mut left = capacity.saturating_sub(used);
             let mut accepted = Vec::new();
             for id in ordered {
-                let need = self.units[id.0 as usize]
-                    .members
-                    .iter()
-                    .filter(|s| s.alive())
-                    .count();
+                let need = crate::carriage::living(&self.units[id.0 as usize]);
                 if need <= left {
                     left -= need;
                     accepted.push(id);

@@ -1,5 +1,6 @@
 //! Boarding and passenger movement for ground carriers.
 
+use contract::catalog::TypeIndex;
 use contract::ids::UnitId;
 use contract::scenario::Rules;
 
@@ -47,15 +48,34 @@ pub(crate) fn transport_hold_in_progress(units: &[Unit], carrier: UnitId) -> boo
     entering || unloading || pending
 }
 
-fn seats(unit: &Unit, rules: &Rules) -> usize {
-    unit.unit_type(rules)
+/// The seats `kind` carries; 0 for a unit that carries no one.
+pub(crate) fn seats(rules: &Rules, kind: TypeIndex) -> usize {
+    rules
+        .catalog
+        .get(kind)
         .capabilities
         .carriage
         .map_or(0, |c| c.seats as usize)
 }
 
-fn living(unit: &Unit) -> usize {
+/// The seats a squad takes: one per living soldier.
+pub(crate) fn living(unit: &Unit) -> usize {
     unit.members.iter().filter(|s| s.alive()).count()
+}
+
+/// The seats taken on `carrier`: every squad holding on it, getting out,
+/// aboard or still getting in. A squad getting in has its seats reserved, so
+/// two squads can never both be admitted into the last ones.
+pub(crate) fn seats_used(units: &[Unit], carrier: UnitId) -> usize {
+    units
+        .iter()
+        .filter(|u| {
+            u.hold
+                .as_ref()
+                .is_some_and(|h| h.host == Host::Carrier(carrier))
+        })
+        .map(living)
+        .sum()
 }
 
 pub(crate) fn stationary(unit: &Unit) -> bool {
@@ -92,23 +112,9 @@ pub(crate) fn at_loading_height(world: &WorldGeometry, host: &Unit, rules: &Rule
     !host.airborne() || crate::movement::air::low_hover_settled(world, host, rules)
 }
 
-pub(crate) fn capacity(units: &[Unit], carrier: UnitId, candidate: usize, rules: &Rules) -> bool {
-    let used: usize = units
-        .iter()
-        .filter(|u| {
-            matches!(
-                u.hold.as_ref().map(|h| h.host),
-                Some(Host::Carrier(id)) if id == carrier
-            )
-        })
-        .map(living)
-        .sum();
-    used.saturating_sub(living(&units[candidate])) + living(&units[candidate])
-        <= seats(&units[carrier.0 as usize], rules)
-}
-
-pub(crate) fn admit(units: &[Unit], passenger: usize, carrier: UnitId, rules: &Rules) -> bool {
-    capacity(units, carrier, passenger, rules)
+/// Whether every squad holding on `carrier` fits its seats.
+pub(crate) fn fits(units: &[Unit], carrier: UnitId, rules: &Rules) -> bool {
+    seats_used(units, carrier) <= seats(rules, units[carrier.0 as usize].kind)
 }
 
 fn push_target_move(unit: &mut Unit, target: V2, gesture: u64) {
@@ -300,7 +306,7 @@ pub(crate) fn advance(
             UnitOrder::Board { carrier, gesture } => {
                 let Some((c_side, c_pos, c_seats)) = units
                     .get(carrier.0 as usize)
-                    .map(|c| (c.side, c.position.xy(), seats(c, rules)))
+                    .map(|c| (c.side, c.position.xy(), seats(rules, c.kind)))
                 else {
                     units[i].orders.pop_front();
                     refusals[units[i].side.index()].push(contract::command::Refusal {
@@ -330,7 +336,7 @@ pub(crate) fn advance(
                 }
             }
             UnitOrder::Collect { squads, gesture } => {
-                if seats(&units[i], rules) == 0 {
+                if seats(rules, units[i].kind) == 0 {
                     units[i].orders.pop_front();
                     refusals[units[i].side.index()].push(contract::command::Refusal {
                         unit: units[i].id,
