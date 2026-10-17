@@ -24,6 +24,13 @@ pub struct Player {
     pub human_capable: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OpeningPurchase {
+    pub variant: String,
+    pub destination: [f64; 2],
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct PlayerIndex(pub u16);

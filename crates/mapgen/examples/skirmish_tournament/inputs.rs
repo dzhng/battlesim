@@ -129,8 +129,8 @@ pub(crate) fn prepare_row(
                 id: "blue-1".into(),
                 side: Side::Blue,
                 faction: Some(inputs.factions[0]),
-                controller: ControllerKind::Human,
-                human_capable: true,
+                controller: ControllerKind::ActiveAi,
+                human_capable: false,
             },
             Player {
                 id: "red-1".into(),
@@ -144,6 +144,7 @@ pub(crate) fn prepare_row(
             // The real skirmish's economy and timing, from their one owner.
             rules: sim::skirmish::starter_rules(),
             sites,
+            openings: std::collections::BTreeMap::new(),
         }),
         map,
         rules: inputs.rules.clone(),

@@ -1,26 +1,26 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–01 and 07 done).
+**Status:** in progress (slices 00–02 and 07 done).
 **Updated:** 2026-10-17.
 
 ## Next Agent Prompt
 
-**Done:** slices 00 and 01. Slice 00's probe changed the plan:
-- both sides now get the same number of entries (D52);
-- arm spacing and river avoidance are hard tests (D53).
+**Done:** slices 00, 01, 02 and 07.
+- Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
+- Slice 01 landed the player contract. D54 makes Neutral players factionless.
+- Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
+- Slice 07 landed the pure lobby model and moved the builder onto `scenario.players`.
 
-Slice 01 landed the player contract with every digest unchanged, using the four-piece temporary seam described under "Single owners". It also added D54: Neutral players have no faction.
+**Next:**
+- Slice 03 (publication): the side view still shows one player's economy.
+- Resume slice 04 (entry arms). Its Codex session was paused for disk space in worktree `team-entries`, branch `team-skirmish/team-entries`.
+- 05 waits on 02 and 04.
 
-Slice 07 landed the serializable lobby model and moved the scenario builder to `scenario.players` with unit ownership on `unit.owner`. Its request and URL functions remain explicitly stubbed until slice 06 defines those seams.
-
-**Next:** run slices 02 and 04 in parallel. Slice 06 still gates the lobby's admitted request and battle-link grammar; slice 08 can follow 07 and 04.
-
-**Known environment failures.** These fail identically on main in a worktree without LFS source assets, so don't chase them as regressions:
+**Known environment failures.** A worktree needs `git lfs pull --include 'assets/runtime,assets/third-party,packages/scene-assets,web/scenes'` before browser tests and scenes, which is about 0.75 GB. After that, only these fail, identically on main, because they need LFS source art:
 - `icons.test.ts` (3 tests);
-- `soundCatalog.test.ts`;
-- `navigationBrowser.test.ts`.
+- `soundCatalog.test.ts`.
 
-`battleFailure.test.ts` is flaky under machine load: the headless browser's no-WebGPU error races the replay refusal. Fix it in its own commit.
+`battleFailure.test.ts` is flaky under heavy machine load: the headless browser's no-WebGPU error races the replay refusal. Fix it in its own commit.
 
 Before touching code, read three things:
 - this README;
@@ -40,7 +40,7 @@ Slices:
 
 - [x] 00: probe multi-entry admission, timings, throughput ([slice](slices/00-probe.md))
 - [x] 01: one player contract, mechanical port ([slice](slices/01-player-contract.md))
-- [ ] 02: simulation per-player ownership ([slice](slices/02-sim-ownership.md))
+- [x] 02: simulation per-player ownership ([slice](slices/02-sim-ownership.md))
 - [ ] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
 - [ ] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
 - [ ] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))

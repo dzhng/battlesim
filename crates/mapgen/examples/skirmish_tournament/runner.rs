@@ -5,7 +5,6 @@ use contract::command::{CommandEnvelope, Order};
 use contract::ids::Side;
 use contract::observation::ObservationFrame;
 use contract::scenario::Rules;
-use sim::skirmish_ai::BalancedDoctrine;
 use std::collections::BTreeMap;
 
 pub(crate) fn run_safe(inputs: &Inputs, row: Row) -> Report {
@@ -80,10 +79,6 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         .map(|skirmish| skirmish.sites.objectives.len() as u32)
         .unwrap_or_default();
     let mut battle = sim::battle::Battle::from_prepared(&setup, row.seed, prepared);
-    let mut policies = [
-        BalancedDoctrine::new(contract::random::mix(row.seed ^ 0xB1)),
-        BalancedDoctrine::new(contract::random::mix(row.seed ^ 0xB2)),
-    ];
     let mut seq = [1u64, 1u64];
     let mut next_buy = [0usize; 2];
     let mut stagnant = 0;
@@ -92,26 +87,9 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         let mut refused_this_tick = 0;
         for side in Side::COMBATANTS {
             let frame = battle.observe(side).clone();
-            let orders = policies[side.index()].decide(
-                side,
-                report.factions[side.index()],
-                setup
-                    .skirmish
-                    .as_ref()
-                    .unwrap()
-                    .sites
-                    .entries
-                    .iter()
-                    .find(|entry| entry.side == side)
-                    .expect("one entry for each tournament side"),
-                &frame,
-                &setup.rules,
-                &mut |id, goal| battle.route_time(side, id, goal),
-            );
-            // Each order with its place in the side's scripted list, if it
-            // is a scripted purchase.
-            let mut orders: Vec<(Option<usize>, Order)> =
-                orders.into_iter().map(|order| (None, order)).collect();
+            // Active-AI players are driven by the battle's policy owner. The
+            // tournament host only injects an explicitly scripted opening.
+            let mut orders: Vec<(Option<usize>, Order)> = Vec::new();
             if let Some(list) = &inputs.buy[side.index()] {
                 orders.retain(|(_, order)| !matches!(order, Order::ConfirmPurchase { .. }));
                 orders.extend(
@@ -142,7 +120,14 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 report.attempted_orders += 1;
                 let ack = battle.accept(CommandEnvelope {
                     side,
-                    player: None,
+                    player: Some(
+                        if side == Side::Blue {
+                            "blue-1"
+                        } else {
+                            "red-1"
+                        }
+                        .into(),
+                    ),
                     seq: seq[side.index()],
                     order,
                     queued: false,
@@ -299,7 +284,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     report.air = battle
         .match_report()
         .map(|match_report| air_summary(&setup.rules, match_report));
-    report.doctrine_pivots = [policies[0].pivot_count(), policies[1].pivot_count()];
+    report.doctrine_pivots = [0, 0];
     report.replay_digest = contract::identity::json_hash(&battle.replay()).ok();
     let replay = battle.replay();
     report.replay_match =

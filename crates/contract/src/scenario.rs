@@ -1582,15 +1582,12 @@ impl ScenarioDefinition {
             &self.players,
             skirmish.rules.max_players_per_side as usize,
         )?;
-        // Removed in slice 02 (skirmish re-baseline 1), when per-player ownership lands.
-        if Side::COMBATANTS.into_iter().any(|side| {
-            self.players
-                .iter()
-                .filter(|player| player.side == side)
-                .count()
-                > 1
-        }) {
-            return Err("one player per side until per-player ownership lands".into());
+        for player_id in skirmish.openings.keys() {
+            if !self.players.iter().any(|player| player.id == *player_id) {
+                return Err(format!(
+                    "opening {player_id} does not name a skirmish player"
+                ));
+            }
         }
         crate::players::validate_entry_counts(&self.players, &skirmish.sites.entries)
     }

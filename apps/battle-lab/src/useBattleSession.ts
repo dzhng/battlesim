@@ -75,6 +75,7 @@ import {
   sideInstances,
   type DrawnInstances,
 } from "./sideInstances";
+import { commandingPlayer } from "./commandingPlayer";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
@@ -187,11 +188,11 @@ export function useBattleSession({
   const catalog = useSessionCatalog();
   // The session draws, reads and loads its own catalog's units; a scenario
   // fielding a unit the catalog lacks is refused by name, not left undrawn.
-  const { map, rules, rulesText, skirmish, units, fielded } = useMemo(() => {
+  const { map, rules, rulesText, skirmish, units, fielded, players } = useMemo(() => {
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
-      players?: { side: SideName; faction?: Faction }[];
+      players?: { id: string; side: SideName; faction?: Faction; controller: string }[];
       skirmish?: object;
       units?: { kind: string }[];
     };
@@ -201,6 +202,7 @@ export function useBattleSession({
       rulesText: JSON.stringify(parsed.rules),
       units: admitScenario(parsed, catalog),
       fielded: (parsed.units ?? []).map((u) => u.kind),
+      players: parsed.players ?? [],
     };
   }, [scenario, catalog]);
   const world = useStaticWorld(map, rules);
@@ -236,15 +238,10 @@ export function useBattleSession({
     replay,
     scripted,
     prepared,
-    player,
+    player: commandingPlayer(players, side, player),
     side,
   });
   presentationRef.current = sim.client?.presentation ?? null;
-  const players = useMemo(
-    () =>
-      (JSON.parse(scenario) as { players?: { side: SideName; faction?: Faction }[] }).players ?? [],
-    [scenario],
-  );
   const sideFaction = (which: SideName) =>
     players.find((player) => player.side === which)?.faction ?? null;
   const faction = sideFaction(side);

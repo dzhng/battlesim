@@ -117,7 +117,7 @@ fn wasm_controller_admission_keeps_empty_human_slots_passive() {
 }
 
 #[test]
-fn wasm_scenario_contract_refuses_multi_player_sides_without_panicking() {
+fn wasm_scenario_contract_accepts_multi_player_sides_without_panicking() {
     let fixture: serde_json::Value = serde_json::from_str(include_str!(
         "../../../fixtures/parity/skirmish-objectives.json"
     ))
@@ -126,13 +126,17 @@ fn wasm_scenario_contract_refuses_multi_player_sides_without_panicking() {
     let mut extra = scenario["players"][0].clone();
     extra["id"] = serde_json::json!("blue-2");
     scenario["players"].as_array_mut().unwrap().push(extra);
+    scenario["skirmish"]["sites"]["entries"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"side":"blue","center":[200,10],"yaw":1.57}));
+    scenario["skirmish"]["sites"]["entries"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"side":"red","center":[200,590],"yaw":-1.57}));
     let result: serde_json::Value = serde_json::from_str(
         &game_wasm::check_scenario_player_contract(&scenario.to_string()),
     )
     .unwrap();
-    assert_eq!(result["status"], "error");
-    assert!(result["diagnostics"][0]["message"]
-        .as_str()
-        .unwrap()
-        .contains("one player per side until per-player ownership lands"));
+    assert_eq!(result["status"], "ok");
 }

@@ -1393,7 +1393,7 @@ fn pack_record(
         ends.push(out.len());
     }
     if let Some(report) = frame.skirmish.as_ref().and_then(|s| s.report.as_ref()) {
-        for totals in report.totals {
+        for totals in &report.totals {
             out.extend([
                 totals.spawned as f32,
                 totals.spent as f32,

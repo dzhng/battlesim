@@ -300,6 +300,7 @@ pub struct Battle {
     script_trace: Vec<ScriptTrace>,
     replay_script_trace: BTreeMap<Tick, ScriptTrace>,
     controllers: BTreeMap<String, ControllerKind>,
+    player_ids: Vec<String>,
     controller_transitions: Vec<ControllerTransition>,
     replay_controller_transitions: BTreeMap<Tick, Vec<ControllerTransition>>,
     knowledge: [SideKnowledge; 3],
@@ -336,11 +337,11 @@ pub struct Battle {
     blasts: Vec<(Side, Blast)>,
     next_seq: [u64; 3],
     order_bucket: [(u64, Tick); 3],
+    player_next_seq: Vec<u64>,
+    player_order_bucket: Vec<(u64, Tick)>,
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
-    skirmish_ai: Option<crate::skirmish_ai::BalancedDoctrine>,
-    skirmish_ai_player: Option<(Side, contract::catalog::Faction)>,
-    skirmish_factions: [Option<contract::catalog::Faction>; 3],
+    skirmish_ai: BTreeMap<String, crate::skirmish_ai::BalancedDoctrine>,
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
@@ -369,6 +370,28 @@ pub struct Battle {
     /// Downed aircraft still falling, in the order they went down.
     crashes: Vec<crate::crash::Crash>,
     air_transits: [Vec<AirTransit>; 3],
+    ai_receipts: Vec<AiReceipt>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AiReceipt {
+    pub tick: Tick,
+    pub player: String,
+    pub accepted: bool,
+    pub error: Option<OrderError>,
+}
+
+fn policy_for_player(
+    seed: u64,
+    index: usize,
+    player: &contract::players::Player,
+) -> Option<crate::skirmish_ai::BalancedDoctrine> {
+    (player.controller == contract::players::ControllerKind::ActiveAi).then(|| {
+        let stream = contract::random::mix(
+            seed ^ (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ 0x4241_4c41_4e43_4544,
+        );
+        crate::skirmish_ai::BalancedDoctrine::new(stream)
+    })
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen, leg by leg
@@ -614,27 +637,12 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     // commands mean, so a replay is pinned to them too.
     let opponent = serde_json::to_string(&setup.opponent).expect("opponent serializes");
     let encounter = serde_json::to_string(&setup.encounter).expect("encounter serializes");
-    // Removed in slice 02 (skirmish re-baseline 1).
-    // Keep the replay identity stable while the public setup moves its player
-    // list to ScenarioDefinition. Slice 01 still has one player per side, so
-    // the old faction-only setup is the equivalent digest input.
-    let skirmish = setup
+    let skirmish_identity = setup
         .skirmish
         .as_ref()
-        .map(|s| {
-            let factions = Side::COMBATANTS
-                .into_iter()
-                .map(|side| {
-                    contract::players::side_faction(&setup.players, side)
-                        .expect("admitted skirmish side has a player")
-                })
-                .collect::<Vec<_>>();
-            serde_json::to_string(&serde_json::json!({
-                "factions": factions,
-                "rules": &s.rules,
-                "sites": &s.sites,
-            }))
-            .expect("skirmish serializes")
+        .map(|_| {
+            serde_json::to_string(&setup.players).expect("players serialize")
+                + &serde_json::to_string(&setup.skirmish).expect("skirmish serializes")
         })
         .unwrap_or_default();
     digest::of_str(
@@ -646,7 +654,7 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
             + &victory
             + &opponent
             + &encounter
-            + &skirmish),
+            + &skirmish_identity),
     )
 }
 
@@ -655,6 +663,16 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 }
 
 impl Battle {
+    fn player_faction(&self, side: Side) -> Option<contract::catalog::Faction> {
+        self.player_ids.iter().find_map(|id| {
+            self.skirmish.as_ref().and_then(|s| {
+                s.players
+                    .iter()
+                    .find(|p| p.id == *id && p.side == side)
+                    .map(|p| p.faction)
+            })
+        })
+    }
     /// A dogfight ends when either aircraft can no longer fight or they
     /// draw apart past the break range.
     fn break_dogfights(&mut self) {
@@ -756,7 +774,8 @@ impl Battle {
             return;
         }
         let hz = f64::from(self.rules.tick_hz);
-        for side in [Side::Blue, Side::Red] {
+        for player_index in 0..skirmish.players.len() {
+            let side = skirmish.players[player_index].side;
             let index = side.index();
             let entry = skirmish
                 .setup
@@ -770,7 +789,7 @@ impl Battle {
             // A bought aircraft's wait off the map is its own (D38, D41): its
             // clock starts with combat, and it enters when the clock runs out,
             // whatever the queue holds. Until then its approach is drawn.
-            for reservation in &mut skirmish.reservations[index] {
+            for reservation in &mut skirmish.players[player_index].reservations {
                 let t = self.rules.catalog.get(reservation.data.kind);
                 if reservation.data.arrival_tick.is_some() {
                     continue;
@@ -779,7 +798,9 @@ impl Battle {
                     continue;
                 };
                 let mut rng = contract::random::Rng::new(contract::random::mix(
-                    self.seed ^ u64::from(reservation.data.id.0),
+                    self.seed
+                        ^ u64::from(reservation.data.id.0)
+                        ^ (player_index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15),
                 ));
                 let [min, max] = arrival.delay_s;
                 let delay_s = min + (max - min) * rng.unit();
@@ -787,11 +808,16 @@ impl Battle {
             }
             let mut arrived = Vec::new();
             let mut i = 0;
-            while i < skirmish.reservations[index].len() {
-                let reservation = &skirmish.reservations[index][i];
+            while i < skirmish.players[player_index].reservations.len() {
+                let reservation = &skirmish.players[player_index].reservations[i];
                 match reservation.data.arrival_tick {
                     Some(due) if due <= self.tick => {
-                        arrived.push(skirmish.reservations[index].remove(i).unwrap());
+                        arrived.push(
+                            skirmish.players[player_index]
+                                .reservations
+                                .remove(i)
+                                .unwrap(),
+                        );
                         continue;
                     }
                     Some(due) => {
@@ -822,12 +848,13 @@ impl Battle {
             }
             // The queue fields one unit per dispatch interval, in order, among
             // the purchases that don't wait off the map.
-            if self.tick >= skirmish.next_dispatch[index] {
-                if let Some(next) = skirmish.reservations[index]
+            if self.tick >= skirmish.players[player_index].next_dispatch {
+                if let Some(next) = skirmish.players[player_index]
+                    .reservations
                     .iter()
                     .position(|r| r.data.arrival_tick.is_none())
                 {
-                    let reservation = &mut skirmish.reservations[index][next];
+                    let reservation = &mut skirmish.players[player_index].reservations[next];
                     let t = self.rules.catalog.get(reservation.data.kind);
                     // An aircraft flies in at cruise height over whatever
                     // stands there; a ground unit needs its entry site clear.
@@ -866,8 +893,13 @@ impl Battle {
                     };
                     reservation.data.blocked = !clear;
                     if clear {
-                        arrived.push(skirmish.reservations[index].remove(next).unwrap());
-                        skirmish.next_dispatch[index] = self.tick
+                        arrived.push(
+                            skirmish.players[player_index]
+                                .reservations
+                                .remove(next)
+                                .unwrap(),
+                        );
+                        skirmish.players[player_index].next_dispatch = self.tick
                             + u64::from(skirmish.setup.rules.dispatch_interval_s)
                                 * u64::from(self.rules.tick_hz);
                     }
@@ -889,7 +921,7 @@ impl Battle {
                 };
                 let setup = contract::scenario::UnitSetup {
                     side,
-                    owner: None,
+                    owner: Some(skirmish.players[player_index].id.clone()),
                     kind: self.rules.catalog.id(reservation.data.kind).to_string(),
                     position: [at.x, at.y],
                     yaw,
@@ -924,9 +956,16 @@ impl Battle {
                     crate::skirmish::EnteredUnit {
                         price: reservation.price,
                         entered_tick: self.tick,
+                        player: player_index,
                     },
                 );
-                skirmish.record_spawn(side, unit.id, unit.kind, reservation.price, self.tick);
+                skirmish.record_spawn(
+                    player_index,
+                    unit.id,
+                    unit.kind,
+                    reservation.price,
+                    self.tick,
+                );
                 self.units.push(unit);
             }
         }
@@ -993,9 +1032,10 @@ impl Battle {
                 );
             let credits = (f64::from(entered.price) * refund * crate::skirmish::CREDIT_SCALE as f64)
                 .round() as u64;
-            skirmish.wallets[unit.side.index()] += credits;
+            let player = entered.player;
+            skirmish.players[player].wallet += credits;
             skirmish.record_refund(
-                unit.side,
+                player,
                 unit.id,
                 unit.kind,
                 credits as f64 / crate::skirmish::CREDIT_SCALE as f64,
@@ -1107,16 +1147,6 @@ impl Battle {
             .victory
             .as_deref()
             .map(|source| CompiledScript::compile(source).expect("scenario victory was admitted"));
-        let skirmish_ai_player = setup.skirmish.as_ref().and_then(|_| {
-            setup
-                .players
-                .iter()
-                .find(|p| {
-                    p.side != Side::Neutral
-                        && p.controller == contract::players::ControllerKind::ActiveAi
-                })
-                .and_then(|p| p.faction.map(|faction| (p.side, faction)))
-        });
         let occlusion = OcclusionGrid::new(&world, setup.map.fog_cell_m);
         let structures = Structures::default();
         let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
@@ -1124,7 +1154,10 @@ impl Battle {
             SideKnowledge::new(seed ^ OBSERVATION_STREAM ^ i as u64, &ground)
         });
         let mut battle = Battle {
-            skirmish: setup.skirmish.clone().map(crate::skirmish::Skirmish::new),
+            skirmish: setup
+                .skirmish
+                .clone()
+                .map(|s| crate::skirmish::Skirmish::new(s, &setup.players)),
             authored_props: world.props().count() as PropId,
             world,
             rules,
@@ -1145,6 +1178,7 @@ impl Battle {
             script_trace: Vec::new(),
             replay_script_trace: BTreeMap::new(),
             controllers: BTreeMap::new(),
+            player_ids: setup.players.iter().map(|p| p.id.clone()).collect(),
             controller_transitions: Vec::new(),
             replay_controller_transitions: BTreeMap::new(),
             knowledge,
@@ -1172,22 +1206,28 @@ impl Battle {
                 u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz),
                 0,
             ); 3],
-            opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
-            skirmish_ai_player,
-            skirmish_factions: std::array::from_fn(|i| {
-                let side = Side::ALL[i];
-                setup
-                    .skirmish
-                    .as_ref()
-                    .and_then(|_| contract::players::side_faction(&setup.players, side))
-            }),
-            skirmish_ai: skirmish_ai_player.map(|(side, _)| {
-                let stream = contract::random::mix(
-                    seed ^ (side.index() as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
-                        ^ 0x4241_4c41_4e43_4544,
+            player_next_seq: vec![1; setup.players.len()],
+            player_order_bucket: vec![
+                (
+                    u64::from(setup.rules.commands.orders_per_s) * u64::from(setup.rules.tick_hz),
+                    0
                 );
-                crate::skirmish_ai::BalancedDoctrine::new(stream)
-            }),
+                setup.players.len()
+            ],
+            opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
+            skirmish_ai: if setup.skirmish.is_some() {
+                setup
+                    .players
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, player)| {
+                        policy_for_player(seed, index, player)
+                            .map(|policy| (player.id.clone(), policy))
+                    })
+                    .collect()
+            } else {
+                BTreeMap::new()
+            },
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),
@@ -1207,12 +1247,38 @@ impl Battle {
             fallen: BTreeMap::new(),
             crashes: Vec::new(),
             air_transits: Default::default(),
+            ai_receipts: Vec::new(),
         };
+
+        // Controllers are installed at tick 0 for every player, including a player
+        // that has not bought a unit yet. This is the authoritative controller set.
+        if setup.skirmish.is_some() {
+            for player in &setup.players {
+                let transition = ControllerTransition {
+                    tick: 0,
+                    player: player.id.clone(),
+                    controller: player.controller.clone(),
+                };
+                battle.apply_controller(&transition);
+                battle.controller_transitions.push(transition);
+            }
+        }
         let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
         if let Some(skirmish) = &mut battle.skirmish {
             for unit in &battle.units {
+                let player = unit
+                    .owner
+                    .as_deref()
+                    .and_then(|id| skirmish.player_index(id))
+                    .unwrap_or_else(|| {
+                        skirmish
+                            .side_players(unit.side)
+                            .next()
+                            .map(|(i, _)| i)
+                            .expect("combatant player")
+                    });
                 skirmish.record_spawn(
-                    unit.side,
+                    player,
                     unit.id,
                     unit.kind,
                     battle.rules.catalog.get(unit.kind).cost,
@@ -1461,10 +1527,14 @@ impl Battle {
         )
     }
 
-    fn spend_order(&mut self, side: usize, tick: Tick) -> bool {
+    fn spend_order(&mut self, side: usize, player: Option<usize>, tick: Tick) -> bool {
         let per_s = u64::from(self.rules.commands.orders_per_s);
         let hz = u64::from(self.rules.tick_hz);
-        let (left, at) = &mut self.order_bucket[side];
+        let bucket = player.map_or_else(
+            || &mut self.order_bucket[side],
+            |i| &mut self.player_order_bucket[i],
+        );
+        let (left, at) = bucket;
         *left = (*left + tick.saturating_sub(*at) * per_s).min(per_s * hz);
         *at = (*at).max(tick);
         if *left < hz {
@@ -1480,14 +1550,21 @@ impl Battle {
         applied_tick: Tick,
     ) -> Result<(Option<MovePlacement>, Option<BuildingPlacement>), OrderError> {
         let side = command.side.index();
-        if command.seq != self.next_seq[side] {
-            return Err(OrderError::OutOfSequence {
-                expected: self.next_seq[side],
-            });
+        let player = self
+            .skirmish
+            .as_ref()
+            .and_then(|s| command.player.as_deref().and_then(|id| s.player_index(id)));
+        let expected = player.map_or(self.next_seq[side], |i| self.player_next_seq[i]);
+        if command.seq != expected {
+            return Err(OrderError::OutOfSequence { expected });
         }
-        self.next_seq[side] += 1;
+        if let Some(i) = player {
+            self.player_next_seq[i] += 1;
+        } else {
+            self.next_seq[side] += 1;
+        }
         self.accepted.push((applied_tick, command.clone()));
-        if !self.spend_order(side, applied_tick) {
+        if !self.spend_order(side, player, applied_tick) {
             return Err(OrderError::RateLimited);
         }
         let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
@@ -1523,14 +1600,8 @@ impl Battle {
                 player: slot,
                 controller,
             };
-            if self
-                .units
-                .iter()
-                .any(|unit| unit.owner.as_deref() == Some(transition.player.as_str()))
-            {
-                self.apply_controller(&transition);
-                self.controller_transitions.push(transition);
-            }
+            self.apply_controller(&transition);
+            self.controller_transitions.push(transition);
         }
     }
 
@@ -1558,7 +1629,7 @@ impl Battle {
     }
 
     fn controller_turn(&mut self) {
-        if self.replaying.is_some() || self.controllers.is_empty() {
+        if self.replaying.is_some() || self.controllers.is_empty() || self.skirmish.is_some() {
             return;
         }
         enum Intent {
@@ -1656,6 +1727,16 @@ impl Battle {
         if command.side == Side::Neutral {
             return Err(OrderError::PassiveSide);
         }
+        let skirmish_player = if let Some(skirmish) = &self.skirmish {
+            let id = command.player.as_deref().ok_or(OrderError::MissingPlayer)?;
+            let index = skirmish.player_index(id).ok_or(OrderError::MissingPlayer)?;
+            if skirmish.players[index].side != command.side {
+                return Err(OrderError::WrongFaction);
+            }
+            Some(index)
+        } else {
+            None
+        };
         let units = match &command.order {
             Order::Refund { units } => {
                 let Some(skirmish) = &self.skirmish else {
@@ -1667,12 +1748,25 @@ impl Battle {
                 }
                 units
             }
-            Order::Ready | Order::ConfirmPurchase { .. } | Order::CancelPending { .. } => {
-                return self
+            Order::Ready | Order::ConfirmPurchase { .. } => {
+                return skirmish_player.map(|_| ()).ok_or(OrderError::NotSkirmish);
+            }
+            Order::CancelPending { purchase } => {
+                let index = skirmish_player.ok_or(OrderError::NotSkirmish)?;
+                if self
                     .skirmish
                     .as_ref()
-                    .map(|_| ())
-                    .ok_or(OrderError::NotSkirmish)
+                    .unwrap()
+                    .players
+                    .iter()
+                    .enumerate()
+                    .any(|(other, p)| {
+                        other != index && p.reservations.iter().any(|r| r.data.id == *purchase)
+                    })
+                {
+                    return Err(OrderError::WrongFaction);
+                }
+                return Ok(());
             }
             Order::Move { units, goal, .. } | Order::AttackMove { units, goal, .. } => {
                 if self.world.height_at(goal[0], goal[1]).is_none() {
@@ -2460,34 +2554,110 @@ impl Battle {
             return;
         }
         let mut commands = Vec::new();
-        if let Some(mut ai) = self.skirmish_ai.take() {
-            let setup = &self.skirmish.as_ref().unwrap().setup;
-            let (side, faction) = self.skirmish_ai_player.expect("skirmish AI player");
-            let entry = setup
-                .sites
-                .entries
+        let Some(skirmish) = &self.skirmish else {
+            return;
+        };
+        let players: Vec<_> = skirmish
+            .players
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| p.controller == contract::players::ControllerKind::ActiveAi)
+            .map(|(i, p)| {
+                (
+                    i,
+                    p.id.clone(),
+                    p.side,
+                    p.faction,
+                    skirmish
+                        .setup
+                        .openings
+                        .get(&p.id)
+                        .cloned()
+                        .unwrap_or_default(),
+                )
+            })
+            .collect();
+        let entries = skirmish.setup.sites.entries.clone();
+        for (index, id, side, faction, opening) in players {
+            let Some(mut ai) = self.skirmish_ai.remove(&id) else {
+                continue;
+            };
+            let entry = entries
                 .iter()
                 .find(|e| e.side == side)
                 .cloned()
-                .unwrap();
-            let frame = self.observations[side.index()].clone();
+                .expect("combatant entry site");
+            let mut frame = self.observations[side.index()].clone();
+            let lens = crate::skirmish_ai::PlayerLens {
+                frame: &frame,
+                me: contract::players::PlayerIndex(index as u16),
+            };
+            let _ = lens.own().count();
+            frame
+                .own
+                .retain(|unit| unit.owner == Some(contract::players::PlayerIndex(index as u16)));
+            if let Some(view) = frame.skirmish.as_mut() {
+                if let Some(state) = self.skirmish.as_ref().and_then(|s| s.players.get(index)) {
+                    view.credits = state.wallet as f64 / crate::skirmish::CREDIT_SCALE as f64;
+                    view.unit_count = frame.own.len() as u32 + state.reservations.len() as u32;
+                    view.pending = state.reservations.iter().map(|r| r.data.clone()).collect();
+                }
+            }
             let rules = self.rules.clone();
-            let orders = ai.decide(side, faction, &entry, &frame, &rules, |id, destination| {
-                self.route_time(side, id, destination)
-            });
-            self.skirmish_ai = Some(ai);
-            commands.extend(orders.into_iter().map(|order| (side, order)));
+            let orders = if self.tick == 0
+                && frame.own.is_empty()
+                && frame
+                    .skirmish
+                    .as_ref()
+                    .is_some_and(|view| view.pending.is_empty())
+                && !opening.is_empty()
+            {
+                opening
+                    .into_iter()
+                    .map(|purchase| Order::ConfirmPurchase {
+                        variant: purchase.variant,
+                        destination: purchase.destination,
+                    })
+                    .collect()
+            } else {
+                ai.decide(
+                    side,
+                    faction,
+                    &entry,
+                    &frame,
+                    &rules,
+                    |unit, destination| self.route_time(side, unit, destination),
+                )
+            };
+            self.skirmish_ai.insert(id.clone(), ai);
+            for (seq, order) in (self.player_next_seq[index]..).zip(orders) {
+                commands.push((index, id.clone(), side, seq, order));
+            }
         }
-        for (side, order) in commands {
-            let seq = self.next_seq[side.index()];
-            let _ = self.accept(CommandEnvelope {
+        for (_, player, side, seq, order) in commands {
+            let ack = self.accept(CommandEnvelope {
                 side,
-                player: None,
+                player: Some(player.clone()),
                 seq,
                 order,
                 queued: false,
             });
+            debug_assert!(
+                ack.error.is_none(),
+                "skirmish AI order refused for {player}: {:?}",
+                ack.error
+            );
+            self.ai_receipts.push(AiReceipt {
+                tick: self.tick,
+                player,
+                accepted: ack.error.is_none(),
+                error: ack.error,
+            });
         }
+    }
+
+    pub fn ai_receipts(&self) -> &[AiReceipt] {
+        &self.ai_receipts
     }
 
     /// `unit` fired: every opposing side learns an uncertain firing area and
@@ -2847,6 +3017,13 @@ impl Battle {
                         side: source.side,
                         id: source.unit,
                         kind: unit.kind,
+                        player: {
+                            let owner = unit.owner.as_deref();
+                            debug_assert!(owner.is_some(), "skirmish killer unit has no owner");
+                            owner
+                                .and_then(|id| skirmish.player_index(id))
+                                .map(|i| contract::players::PlayerIndex(i as u16))
+                        },
                     })
                 });
                 let victim_cost = skirmish.entered.get(&death.victim).map_or_else(
@@ -2869,11 +3046,24 @@ impl Battle {
                         side: victim.side,
                         id: victim.id,
                         kind: victim.kind,
+                        player: victim
+                            .owner
+                            .as_deref()
+                            .and_then(|id| skirmish.player_index(id))
+                            .map(|i| contract::players::PlayerIndex(i as u16)),
                     },
                     victim_cost,
                     killer,
                     killer_cost,
                     self.tick,
+                    death
+                        .source
+                        .and_then(|source| self.units.get(source.unit.0 as usize))
+                        .and_then(|unit| {
+                            let owner = unit.owner.as_deref();
+                            debug_assert!(owner.is_some(), "skirmish killer unit has no owner");
+                            owner.and_then(|id| skirmish.player_index(id))
+                        }),
                 );
             }
             let deaths: Vec<_> = destroyed
@@ -2892,9 +3082,23 @@ impl Battle {
                 .collect();
             let starting_budget = u64::from(skirmish.setup.rules.credits_per_minute)
                 * u64::from(skirmish.setup.rules.starting_minutes);
-            skirmish
-                .settlement
-                .settle(&deaths, starting_budget, &mut skirmish.wallets);
+            let killer_players = self
+                .units
+                .iter()
+                .filter_map(|unit| {
+                    let owner = unit.owner.as_deref();
+                    debug_assert!(owner.is_some(), "skirmish unit has no owner");
+                    owner
+                        .and_then(|id| skirmish.player_index(id))
+                        .map(|player| (unit.id, player))
+                })
+                .collect();
+            skirmish.settlement.settle_players(
+                &deaths,
+                starting_budget,
+                &killer_players,
+                &mut skirmish.players,
+            );
         }
         for death in destroyed {
             let id = death.victim;
@@ -3503,14 +3707,19 @@ impl Battle {
         planning_tick: Tick,
     ) -> Result<PreparedCommand, OrderError> {
         self.validate(&command)?;
+        let player = self
+            .skirmish
+            .as_ref()
+            .and_then(|s| command.player.as_deref().and_then(|id| s.player_index(id)));
         if matches!(command.order, Order::Ready) {
-            self.skirmish.as_mut().unwrap().ready[command.side.index()] = true;
+            self.skirmish.as_mut().unwrap().players[player.expect("validated skirmish player")]
+                .ready = true;
         }
         if let Order::CancelPending { purchase } = command.order {
             self.skirmish
                 .as_mut()
                 .unwrap()
-                .cancel(command.side, purchase);
+                .cancel(player.expect("validated skirmish player"), purchase)?;
         }
         if let Order::ConfirmPurchase {
             variant,
@@ -3521,10 +3730,14 @@ impl Battle {
             let living = self
                 .units
                 .iter()
-                .filter(|u| u.side == command.side && u.alive())
+                .filter(|u| {
+                    u.side == command.side
+                        && u.alive()
+                        && u.owner.as_deref() == command.player.as_deref()
+                })
                 .count() as u32;
             self.skirmish.as_mut().unwrap().reserve(
-                command.side,
+                player.expect("validated skirmish player"),
                 preview.kind,
                 preview.destination,
                 self.rules.catalog.get(preview.kind).cost,
@@ -3980,11 +4193,13 @@ impl Battle {
             .catalog
             .card(variant)
             .ok_or(OrderError::UnitUnavailable)?;
-        if !card
-            .roster
-            .factions
-            .contains(&self.skirmish_factions[side.index()].ok_or(OrderError::WrongFaction)?)
-        {
+        if !card.roster.factions.contains(
+            &self
+                .skirmish
+                .as_ref()
+                .and_then(|_| self.player_faction(side))
+                .ok_or(OrderError::WrongFaction)?,
+        ) {
             return Err(OrderError::WrongFaction);
         }
         if !destination.iter().all(|n| n.is_finite())
@@ -4401,6 +4616,7 @@ impl Battle {
                 .map(|s| s.target)
                 .collect();
             let fog = &self.fog[side.index()];
+            let player_ids = self.player_ids.clone();
             let frame = &mut self.observations[side.index()];
             frame.tick = self.tick;
             frame.identified.clear();
@@ -4544,6 +4760,11 @@ impl Battle {
                             }
                         }),
                         id: u.id,
+                        owner: u
+                            .owner
+                            .as_deref()
+                            .and_then(|id| player_ids.iter().position(|candidate| candidate == id))
+                            .map(|index| contract::players::PlayerIndex(index as u16)),
                         kind: u.kind,
                         position: [u.position.x, u.position.y, u.position.z],
                         yaw: u.yaw,
@@ -4681,15 +4902,15 @@ impl Battle {
                 .as_ref()
                 .filter(|_| side != Side::Neutral)
                 .map(|s| {
-                    s.view(
-                        side,
-                        self.tick,
-                        self.rules.tick_hz,
-                        self.units
-                            .iter()
-                            .filter(|u| u.side == side && u.alive())
-                            .count() as u32,
-                    )
+                    let mut living = vec![0; s.players.len()];
+                    for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
+                        if let Some(player) =
+                            unit.owner.as_deref().and_then(|id| s.player_index(id))
+                        {
+                            living[player] += 1;
+                        }
+                    }
+                    s.view(side, self.tick, self.rules.tick_hz, &living)
                 });
             frame.guided.clear();
             frame
@@ -5924,18 +6145,37 @@ mod settlement_tests {
             seats: vec![None; battle.units[1].members.len()],
             entry: center,
         });
+        let players = vec![
+            contract::players::Player {
+                id: "blue-1".into(),
+                side: Side::Blue,
+                faction: Some(contract::catalog::Faction::Us),
+                controller: contract::players::ControllerKind::Human,
+                human_capable: true,
+            },
+            contract::players::Player {
+                id: "red-1".into(),
+                side: Side::Red,
+                faction: Some(contract::catalog::Faction::Eastern),
+                controller: contract::players::ControllerKind::PassiveAi,
+                human_capable: false,
+            },
+        ];
+        battle.units[0].owner = Some("blue-1".into());
+        battle.units[1].owner = Some("red-1".into());
         battle.skirmish = Some(crate::skirmish::Skirmish::new(serde_json::from_value(json!({
-        "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},
+        "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"max_players_per_side":10,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},
             "sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0},{"side":"red","center":[400,590],"yaw":0}],
                 "objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},
                     {"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},
                     {"id":"north","center":[600,400],"radius_m":50,"kind":"field","counterpart":"south"}]}
-        })).unwrap()));
+        })).unwrap(), &players));
         battle.skirmish.as_mut().unwrap().entered.insert(
             UnitId(1),
             crate::skirmish::EnteredUnit {
                 price: 200,
                 entered_tick: 0,
+                player: 1,
             },
         );
         battle.tick = 1;

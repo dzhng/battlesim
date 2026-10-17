@@ -1013,6 +1013,7 @@ impl PreparedWorld {
             sites: sites
                 .skirmish
                 .ok_or_else(|| JsError::new("skirmish sites are missing"))?,
+            openings: std::collections::BTreeMap::new(),
         };
         setup.sites.validate().map_err(js_error)?;
         Ok(serde_json::json!({"players": players, "units": [], "skirmish": setup}).to_string())

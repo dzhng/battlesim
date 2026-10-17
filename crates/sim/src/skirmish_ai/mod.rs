@@ -23,6 +23,26 @@ pub trait SkirmishPolicy {
     ) -> Vec<Order>;
 }
 
+/// A policy's view of one player. The simulation remains side-observing, while
+/// economy and own-unit queries are narrowed to the player's ownership.
+#[derive(Clone, Copy)]
+pub struct PlayerLens<'a> {
+    pub frame: &'a ObservationFrame,
+    pub me: contract::players::PlayerIndex,
+}
+
+impl<'a> PlayerLens<'a> {
+    pub fn own(&'a self) -> impl Iterator<Item = &'a contract::observation::OwnUnit> + 'a {
+        self.frame
+            .own
+            .iter()
+            .filter(move |unit| unit.owner == Some(self.me))
+    }
+    pub fn economy(&self) -> Option<&'a contract::skirmish::SkirmishView> {
+        self.frame.skirmish.as_ref()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Doctrine {
     #[default]

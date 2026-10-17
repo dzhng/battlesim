@@ -5,6 +5,7 @@ use contract::players::{
     entry_count, side_faction, validate_entry_counts, validate_players, validate_players_per_side,
     ControllerKind, Player,
 };
+use serde_json::json;
 
 fn player(id: &str, side: Side, faction: Faction) -> Player {
     Player {
@@ -14,6 +15,33 @@ fn player(id: &str, side: Side, faction: Faction) -> Player {
         controller: ControllerKind::ActiveAi,
         human_capable: false,
     }
+}
+
+#[test]
+fn skirmish_openings_must_name_a_player() {
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/skirmish-objectives.json"
+    ))
+    .unwrap();
+    value["scenario"]["skirmish"]["openings"] = serde_json::json!({
+        "ghost": [{"variant":"test_tank","destination":[0,0]}]
+    });
+    let setup: contract::scenario::ScenarioDefinition =
+        serde_json::from_value(value["scenario"].clone()).unwrap();
+    assert!(setup
+        .validate_player_contract()
+        .unwrap_err()
+        .contains("opening ghost"));
+}
+
+#[test]
+fn match_rules_require_max_players_per_side() {
+    let value = json!({
+        "credits_per_minute": 1, "starting_minutes": 1, "preparation_s": 1,
+        "max_units": 30, "dispatch_interval_s": 1, "capture_s": 1,
+        "majority_s": 1, "victory_score": 1
+    });
+    assert!(serde_json::from_value::<contract::skirmish::MatchRules>(value).is_err());
 }
 
 #[test]

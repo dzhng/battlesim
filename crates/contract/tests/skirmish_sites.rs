@@ -56,7 +56,7 @@ fn skirmish_setup_refuses_the_removed_ai_side_field() {
             "credits_per_minute": 1,
             "starting_minutes": 1,
             "preparation_s": 1,
-            "max_units": 1,
+            "max_units": 1, "max_players_per_side": 10,
             "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000
         },
         "sites": {

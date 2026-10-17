@@ -7,6 +7,7 @@ use sim::damage::{self, DamageContext};
 use sim::flight::{BodyId, FlightEvent, Impact, ProjectileId, Struck};
 use sim::math::v3;
 use std::collections::BTreeMap;
+use std::collections::VecDeque;
 
 #[test]
 fn lethal_damage_keeps_the_rounds_dead_shooter() {
@@ -165,7 +166,7 @@ fn economic(victim: u32, side: Side, price: u32) -> sim::settlement::EconomicDea
         side,
         price,
         source: Some(damage::LethalSource {
-            unit: UnitId(99),
+            unit: UnitId(victim + 1000),
             side: if side == Side::Blue {
                 Side::Red
             } else {
@@ -176,15 +177,122 @@ fn economic(victim: u32, side: Side, price: u32) -> sim::settlement::EconomicDea
     }
 }
 
+fn settle(
+    settlement: &mut sim::settlement::Settlement,
+    deaths: &[sim::settlement::EconomicDeath],
+    starting_budget: u64,
+    wallets: &mut [u64; 2],
+) {
+    let mut players = [
+        sim::skirmish::PlayerState {
+            id: "blue".into(),
+            side: Side::Blue,
+            faction: contract::catalog::Faction::Us,
+            controller: contract::players::ControllerKind::ActiveAi,
+            wallet: wallets[0],
+            ready: false,
+            reservations: VecDeque::new(),
+            next_purchase: 0,
+            next_dispatch: 0,
+            totals: Default::default(),
+        },
+        sim::skirmish::PlayerState {
+            id: "red".into(),
+            side: Side::Red,
+            faction: contract::catalog::Faction::Eastern,
+            controller: contract::players::ControllerKind::ActiveAi,
+            wallet: wallets[1],
+            ready: false,
+            reservations: VecDeque::new(),
+            next_purchase: 0,
+            next_dispatch: 0,
+            totals: Default::default(),
+        },
+    ];
+    let killer_players = deaths
+        .iter()
+        .filter_map(|death| {
+            death
+                .source
+                .map(|source| (source.unit, if source.side == Side::Blue { 0 } else { 1 }))
+        })
+        .collect();
+    settlement.settle_players(deaths, starting_budget, &killer_players, &mut players);
+    wallets[0] = players[0].wallet;
+    wallets[1] = players[1].wallet;
+}
+
 #[test]
 fn hostile_death_rewards_once_and_builds_only_original_price_bounty() {
     let mut settlement = sim::settlement::Settlement::default();
     let mut wallets = [0; 2];
     let deaths = [economic(1, Side::Red, 200)];
-    settlement.settle(&deaths, 1000, &mut wallets);
-    settlement.settle(&deaths, 1000, &mut wallets);
+    settle(&mut settlement, &deaths, 1000, &mut wallets);
+    settle(&mut settlement, &deaths, 1000, &mut wallets);
     assert_eq!(wallets, [50_000_000, 0]);
     assert_eq!(settlement.pools(), [100_000_000, 0]);
+}
+
+#[test]
+fn player_bonus_split_conserves_pool_and_ignores_death_order() {
+    fn players() -> Vec<sim::skirmish::PlayerState> {
+        [
+            ("blue-1", Side::Blue, contract::catalog::Faction::Us),
+            ("blue-2", Side::Blue, contract::catalog::Faction::Us),
+            ("red-1", Side::Red, contract::catalog::Faction::Eastern),
+        ]
+        .into_iter()
+        .map(|(id, side, faction)| sim::skirmish::PlayerState {
+            id: id.into(),
+            side,
+            faction,
+            controller: contract::players::ControllerKind::ActiveAi,
+            wallet: 0,
+            ready: false,
+            reservations: VecDeque::new(),
+            next_purchase: 0,
+            next_dispatch: 0,
+            totals: Default::default(),
+        })
+        .collect()
+    }
+
+    let mut first = sim::settlement::Settlement::default();
+    let mut second = sim::settlement::Settlement::default();
+    let mut first_players = players();
+    let mut second_players = players();
+    let seed = economic(1, Side::Blue, 1000);
+    let seed_killer = BTreeMap::from([(UnitId(1001), 2usize)]);
+    first.settle_players(&[seed], 1000, &seed_killer, &mut first_players);
+    second.settle_players(
+        &[economic(1, Side::Blue, 1000)],
+        1000,
+        &seed_killer,
+        &mut second_players,
+    );
+    let pool_before = first.pools()[Side::Red.index()];
+    let deaths = [economic(2, Side::Red, 100), economic(3, Side::Red, 200)];
+    let killers = BTreeMap::from([(UnitId(1002), 0usize), (UnitId(1003), 1usize)]);
+    first.settle_players(&deaths, 1000, &killers, &mut first_players);
+    second.settle_players(
+        &[economic(3, Side::Red, 200), economic(2, Side::Red, 100)],
+        1000,
+        &killers,
+        &mut second_players,
+    );
+    assert_eq!(
+        first_players[0].wallet, second_players[0].wallet,
+        "killer split must not depend on death order"
+    );
+    assert_eq!(first_players[1].wallet, second_players[1].wallet);
+    let base_rewards = 75_000_000;
+    let bonus_wallets = first_players[0].wallet + first_players[1].wallet - base_rewards;
+    let growth_into_victim_pool = 0;
+    let victim_losses = 150_000_000;
+    assert_eq!(
+        pool_before - first.pools()[Side::Red.index()] + growth_into_victim_pool - victim_losses,
+        bonus_wallets
+    );
 }
 
 #[test]
@@ -254,11 +362,12 @@ fn same_tick_trades_use_snapshot_pools_in_either_order() {
     let mut wa = [0; 2];
     let mut wb = [0; 2];
     let seed = [economic(1, Side::Red, 200), economic(2, Side::Blue, 200)];
-    a.settle(&seed, 1000, &mut wa);
-    b.settle(&seed, 1000, &mut wb);
+    settle(&mut a, &seed, 1000, &mut wa);
+    settle(&mut b, &seed, 1000, &mut wb);
     let deaths = [economic(3, Side::Red, 200), economic(4, Side::Blue, 400)];
-    a.settle(&deaths, 1000, &mut wa);
-    b.settle(
+    settle(&mut a, &deaths, 1000, &mut wa);
+    settle(
+        &mut b,
         &[economic(4, Side::Blue, 400), economic(3, Side::Red, 200)],
         1000,
         &mut wb,
@@ -273,13 +382,18 @@ fn same_tick_trades_use_snapshot_pools_in_either_order() {
 fn friendly_and_source_free_deaths_preserve_bounty_and_pay_nothing() {
     let mut settlement = sim::settlement::Settlement::default();
     let mut wallets = [0; 2];
-    settlement.settle(&[economic(1, Side::Blue, 200)], 1000, &mut wallets);
+    settle(
+        &mut settlement,
+        &[economic(1, Side::Blue, 200)],
+        1000,
+        &mut wallets,
+    );
     let before = wallets;
     let mut friendly = economic(2, Side::Red, 200);
     friendly.source.as_mut().unwrap().side = Side::Red;
     let mut free = economic(3, Side::Red, 200);
     free.source = None;
-    settlement.settle(&[friendly, free], 1000, &mut wallets);
+    settle(&mut settlement, &[friendly, free], 1000, &mut wallets);
     assert_eq!(wallets, before);
     assert_eq!(settlement.pools(), [0, 100_000_000]);
 }
@@ -307,7 +421,14 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
     let send = |battle: &mut Battle, side, seq, order| {
         let ack = battle.accept(CommandEnvelope {
             side,
-            player: None,
+            player: Some(
+                match side {
+                    Side::Blue => "blue-1",
+                    Side::Red => "red-1",
+                    Side::Neutral => "neutral",
+                }
+                .into(),
+            ),
             seq,
             order,
             queued: false,
@@ -388,10 +509,20 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
 fn aggregate_bonus_is_capped_at_snapshot_pool_and_supply_adds_once() {
     let mut settlement = sim::settlement::Settlement::default();
     let mut wallets = [0; 2];
-    settlement.settle(&[economic(1, Side::Blue, 200)], 1000, &mut wallets);
+    settle(
+        &mut settlement,
+        &[economic(1, Side::Blue, 200)],
+        1000,
+        &mut wallets,
+    );
     let mut truck = economic(2, Side::Red, 1000);
     truck.supply = true;
-    settlement.settle(&[truck, economic(3, Side::Red, 1000)], 1000, &mut wallets);
+    settle(
+        &mut settlement,
+        &[truck, economic(3, Side::Red, 1000)],
+        1000,
+        &mut wallets,
+    );
     assert_eq!(wallets, [850_000_000, 50_000_000]);
     assert_eq!(settlement.pools(), [1_000_000_000, 0]);
 }
@@ -401,8 +532,18 @@ fn fractional_bonus_carries_without_losing_sub_microcredits() {
     let mut settlement = sim::settlement::Settlement::default();
     let mut wallets = [0; 2];
     for k in 0..7 {
-        settlement.settle(&[economic(k * 2, Side::Blue, 1)], 7, &mut wallets);
-        settlement.settle(&[economic(k * 2 + 1, Side::Red, 1)], 7, &mut wallets);
+        settle(
+            &mut settlement,
+            &[economic(k * 2, Side::Blue, 1)],
+            7,
+            &mut wallets,
+        );
+        settle(
+            &mut settlement,
+            &[economic(k * 2 + 1, Side::Red, 1)],
+            7,
+            &mut wallets,
+        );
     }
     assert_eq!(wallets[0], 2_250_000);
 }
@@ -574,8 +715,106 @@ fn one_blast_preserves_source_for_multiple_full_unit_deaths() {
 fn a_large_pool_still_caps_each_victim_bonus_at_half_original_cost() {
     let mut settlement = sim::settlement::Settlement::default();
     let mut wallets = [0; 2];
-    settlement.settle(&[economic(1, Side::Blue, 4000)], 1000, &mut wallets);
-    settlement.settle(&[economic(2, Side::Red, 200)], 1000, &mut wallets);
+    settle(
+        &mut settlement,
+        &[economic(1, Side::Blue, 4000)],
+        1000,
+        &mut wallets,
+    );
+    settle(
+        &mut settlement,
+        &[economic(2, Side::Red, 200)],
+        1000,
+        &mut wallets,
+    );
     assert_eq!(wallets, [150_000_000, 1_000_000_000]);
     assert_eq!(settlement.pools(), [100_000_000, 1_800_000_000]);
+}
+
+/// The side-only settlement that shipped before players (main at slice 01),
+/// kept as the oracle: with one player per side, paying players must pay
+/// exactly what paying sides did, capped batches included.
+#[derive(Default)]
+struct SideOracle {
+    pools: [u64; 2],
+    remainder: [u64; 2],
+    processed: std::collections::BTreeSet<UnitId>,
+}
+
+impl SideOracle {
+    fn settle(
+        &mut self,
+        deaths: &[sim::settlement::EconomicDeath],
+        budget: u64,
+        wallets: &mut [u64; 2],
+    ) {
+        const SCALE: u64 = 1_000_000;
+        let snapshot = self.pools;
+        let (mut rewards, mut losses, mut growth) = ([0u64; 2], [0u64; 2], [0u64; 2]);
+        let mut numer = [0u128; 2];
+        for death in deaths {
+            if !self.processed.insert(death.victim) {
+                continue;
+            }
+            let Some(source) = death.source.filter(|s| s.side != death.side) else {
+                continue;
+            };
+            let (victim, killer) = (death.side.index(), source.side.index());
+            let cost = u64::from(death.price) * SCALE;
+            rewards[killer] += cost / 4 * if death.supply { 2 } else { 1 };
+            losses[victim] += cost / 2;
+            growth[killer] += cost / 2;
+            let d = u128::from(budget);
+            numer[victim] += (u128::from(snapshot[victim]) * u128::from(death.price))
+                .min(u128::from(snapshot[victim]) * d)
+                .min(u128::from(cost / 2) * d);
+        }
+        for victim in 0..2 {
+            let d = u128::from(budget);
+            let numerator = numer[victim].min(u128::from(snapshot[victim]) * d)
+                + u128::from(self.remainder[victim]);
+            let paid = (numerator / d).min(u128::from(snapshot[victim]));
+            self.remainder[victim] = (numerator - paid * d) as u64;
+            rewards[1 - victim] += paid as u64;
+            self.pools[victim] = snapshot[victim]
+                .saturating_sub(paid as u64)
+                .saturating_sub(losses[victim]);
+        }
+        for side in 0..2 {
+            self.pools[side] += growth[side];
+            wallets[side] += rewards[side];
+        }
+    }
+}
+
+#[test]
+fn one_player_per_side_pays_exactly_what_side_settlement_paid() {
+    // Capped batches first (the pool is smaller than the bonus owed), then
+    // small fractional kills that depend on the carried remainder.
+    let mut truck = economic(2, Side::Red, 1000);
+    truck.supply = true;
+    let batches: Vec<Vec<sim::settlement::EconomicDeath>> = vec![
+        vec![economic(1, Side::Blue, 200)],
+        vec![truck, economic(3, Side::Red, 1000)],
+        vec![economic(4, Side::Blue, 900), economic(5, Side::Blue, 700)],
+        vec![economic(6, Side::Red, 50)],
+        vec![economic(7, Side::Red, 3), economic(8, Side::Blue, 1)],
+        vec![economic(9, Side::Red, 1), economic(10, Side::Red, 1)],
+        vec![economic(11, Side::Blue, 333)],
+    ];
+    for budget in [7, 1000] {
+        let mut oracle = SideOracle::default();
+        let mut settlement = sim::settlement::Settlement::default();
+        let (mut expected, mut actual) = ([0u64; 2], [0u64; 2]);
+        for batch in &batches {
+            oracle.settle(batch, budget, &mut expected);
+            settle(&mut settlement, batch, budget, &mut actual);
+            assert_eq!(actual, expected, "wallets after a batch, budget {budget}");
+            assert_eq!(
+                settlement.pools(),
+                oracle.pools,
+                "pools after a batch, budget {budget}"
+            );
+        }
+    }
 }

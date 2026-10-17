@@ -641,8 +641,11 @@ impl Unit {
 
     /// Fold the unit's complete carried state into `d`.
     pub fn digest(&self, d: &mut Digest) {
-        d.u64(self.id.0 as u64)
-            .f64(self.position.x)
+        d.u64(self.id.0 as u64);
+        if let Some(owner) = &self.owner {
+            d.u64(crate::digest::of_str(owner));
+        }
+        d.f64(self.position.x)
             .f64(self.position.y)
             .f64(self.position.z)
             .f64(self.yaw);

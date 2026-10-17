@@ -2,24 +2,38 @@
 use contract::catalog::TypeIndex;
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
+use contract::players::{ControllerKind, Player};
 use contract::skirmish::{
     MatchEvent, MatchReport, MatchTotals, MatchUnit, PendingPurchase, Phase, PurchaseId,
     SkirmishSetup, SkirmishView,
 };
-use std::collections::BTreeMap;
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 
+#[derive(Clone, Debug)]
 pub struct Reservation {
     pub data: PendingPurchase,
     pub price: u32,
+    pub player: usize,
 }
-
-/// Microcredits retain deterministic fractional rewards; passive remainder is exact.
 pub const CREDIT_SCALE: u64 = 1_000_000;
-
 pub struct EnteredUnit {
     pub price: u32,
     pub entered_tick: Tick,
+    pub player: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct PlayerState {
+    pub id: String,
+    pub side: Side,
+    pub faction: contract::catalog::Faction,
+    pub controller: ControllerKind,
+    pub wallet: u64,
+    pub ready: bool,
+    pub reservations: VecDeque<Reservation>,
+    pub next_purchase: u32,
+    pub next_dispatch: Tick,
+    pub totals: MatchTotals,
 }
 
 pub struct Skirmish {
@@ -27,65 +41,97 @@ pub struct Skirmish {
     pub objectives: crate::objectives::Objectives,
     pub settlement: crate::settlement::Settlement,
     pub phase: Phase,
-    pub ready: [bool; 2],
-    pub wallets: [u64; 2],
-    income_remainder: u64,
-    pub reservations: [VecDeque<Reservation>; 2],
-    next_purchase: [u32; 2],
-    pub next_dispatch: [Tick; 2],
+    pub players: Vec<PlayerState>,
     pub entered: BTreeMap<UnitId, EnteredUnit>,
     pub report: MatchReport,
+    income_remainder: u64,
 }
 
 impl Skirmish {
-    pub fn new(setup: SkirmishSetup) -> Self {
+    pub fn new(setup: SkirmishSetup, source: &[Player]) -> Self {
         let budget = u64::from(setup.rules.credits_per_minute)
             * u64::from(setup.rules.starting_minutes)
             * CREDIT_SCALE;
+        let players = source
+            .iter()
+            .map(|p| PlayerState {
+                id: p.id.clone(),
+                side: p.side,
+                faction: p.faction.expect("validated combatant faction"),
+                controller: p.controller.clone(),
+                wallet: budget,
+                ready: false,
+                reservations: VecDeque::new(),
+                next_purchase: 0,
+                next_dispatch: 0,
+                totals: MatchTotals::default(),
+            })
+            .collect::<Vec<_>>();
         let objectives =
             crate::objectives::Objectives::new(setup.sites.objectives.len(), &setup.rules);
         Self {
+            setup,
             objectives,
             settlement: Default::default(),
-            setup,
             phase: Phase::Preparation,
-            ready: [false; 2],
-            wallets: [budget; 2],
-            income_remainder: 0,
-            reservations: Default::default(),
-            next_purchase: [0; 2],
-            next_dispatch: [0; 2],
-            entered: BTreeMap::new(),
             report: MatchReport {
-                totals: [MatchTotals::default(); 2],
+                totals: vec![MatchTotals::default(); players.len()],
                 events: Vec::new(),
             },
+            players,
+            entered: BTreeMap::new(),
+            income_remainder: 0,
         }
     }
-
+    pub fn player_index(&self, id: &str) -> Option<usize> {
+        self.players.iter().position(|p| p.id == id)
+    }
+    pub fn side_players(&self, side: Side) -> impl Iterator<Item = (usize, &PlayerState)> {
+        self.players
+            .iter()
+            .enumerate()
+            .filter(move |(_, p)| p.side == side)
+    }
     pub fn advance(&mut self, tick: Tick, hz: u32) {
         if self.phase == Phase::Preparation {
-            if self.ready.iter().all(|r| *r)
+            if self.players.iter().all(|p| p.ready)
                 || tick >= u64::from(self.setup.rules.preparation_s) * u64::from(hz)
             {
                 self.phase = Phase::Active;
             }
         } else if self.phase == Phase::Active {
-            let denominator = 60 * u64::from(hz);
-            let numerator = self.income_remainder
+            let den = 60 * u64::from(hz);
+            let num = self.income_remainder
                 + u64::from(self.setup.rules.credits_per_minute) * CREDIT_SCALE;
-            let income = numerator / denominator;
-            self.income_remainder = numerator % denominator;
-            for wallet in &mut self.wallets {
-                *wallet += income;
+            let income = num / den;
+            self.income_remainder = num % den;
+            for p in &mut self.players {
+                p.wallet += income;
             }
         }
     }
-
-    pub fn view(&self, side: Side, tick: Tick, hz: u32, living: u32) -> SkirmishView {
+    pub fn view(&self, side: Side, tick: Tick, hz: u32, living: &[u32]) -> SkirmishView {
+        let own: Vec<_> = self.side_players(side).collect();
+        // Temporary slice-02 economy view; slice 03 replaces this with the players table.
+        let selected = own
+            .iter()
+            .find(|(_, p)| p.controller == ControllerKind::Human)
+            .or_else(|| own.first());
+        let selected_index = selected.map_or(0, |(index, _)| *index);
+        let p = selected.map(|(_, p)| *p);
+        let (credits, pending) = p.map_or((0.0, Vec::new()), |p| {
+            (
+                p.wallet as f64 / CREDIT_SCALE as f64,
+                p.reservations.iter().map(|r| r.data.clone()).collect(),
+            )
+        });
+        let mut ready = [false; 2];
+        for s in Side::COMBATANTS {
+            ready[s.index()] = self.side_players(s).all(|(_, p)| p.ready);
+        }
         SkirmishView {
             phase: self.phase,
-            ready: self.ready,
+            ready,
             preparation_remaining_s: if self.phase == Phase::Preparation {
                 (u64::from(self.setup.rules.preparation_s) * u64::from(hz)).saturating_sub(tick)
                     as f64
@@ -93,43 +139,45 @@ impl Skirmish {
             } else {
                 0.0
             },
-            credits: self.wallets[side.index()] as f64 / CREDIT_SCALE as f64,
-            unit_count: living + self.reservations[side.index()].len() as u32,
+            credits,
+            unit_count: living.get(selected_index).copied().unwrap_or(0)
+                + p.map_or(0, |selected| selected.reservations.len() as u32),
             max_units: self.setup.rules.max_units,
             objectives: self.objectives.views(&self.setup.sites.objectives, hz),
             scores: self.objectives.scores(hz),
             result: self.objectives.result,
             report: (self.phase == Phase::Finished).then(|| self.report.clone()),
-            pending: self.reservations[side.index()]
-                .iter()
-                .map(|r| r.data.clone())
-                .collect(),
+            pending,
         }
     }
-
     pub fn reserve(
         &mut self,
-        side: Side,
+        player: usize,
         kind: TypeIndex,
         destination: [f64; 2],
         price: u32,
         tick: Tick,
         living: u32,
-    ) -> Result<(), OrderError> {
-        let index = side.index();
-        if living + self.reservations[index].len() as u32 >= self.setup.rules.max_units {
+    ) -> Result<PurchaseId, OrderError> {
+        let p = self
+            .players
+            .get_mut(player)
+            .ok_or(OrderError::MissingPlayer)?;
+        if living + p.reservations.len() as u32 >= self.setup.rules.max_units {
             return Err(OrderError::UnitLimitReached);
         }
-        let price_micros = u64::from(price) * CREDIT_SCALE;
-        if self.wallets[index] < price_micros {
+        let micros = u64::from(price) * CREDIT_SCALE;
+        if p.wallet < micros {
             return Err(OrderError::InsufficientCredits);
         }
-        self.wallets[index] -= price_micros;
-        self.report.totals[index].spent = self.report.totals[index].spent.saturating_add(price);
-        let id = PurchaseId(self.next_purchase[index]);
-        self.next_purchase[index] += 1;
-        self.reservations[index].push_back(Reservation {
+        p.wallet -= micros;
+        p.totals.spent += price;
+        self.report.totals[player].spent += price;
+        let id = PurchaseId(p.next_purchase);
+        p.next_purchase += 1;
+        p.reservations.push_back(Reservation {
             price,
+            player,
             data: PendingPurchase {
                 id,
                 kind,
@@ -139,35 +187,52 @@ impl Skirmish {
                 arrival_tick: None,
             },
         });
-        Ok(())
+        Ok(id)
     }
-
-    pub fn record_spawn(&mut self, side: Side, id: UnitId, kind: TypeIndex, cost: u32, tick: Tick) {
-        self.report.totals[side.index()].spawned =
-            self.report.totals[side.index()].spawned.saturating_add(1);
+    pub fn record_spawn(
+        &mut self,
+        player: usize,
+        id: UnitId,
+        kind: TypeIndex,
+        cost: u32,
+        tick: Tick,
+    ) {
+        let side = self.players[player].side;
+        self.players[player].totals.spawned += 1;
+        self.report.totals[player].spawned += 1;
         self.report.events.push(MatchEvent::Spawn {
             tick,
-            unit: MatchUnit { side, id, kind },
+            unit: MatchUnit {
+                side,
+                id,
+                kind,
+                player: Some(contract::players::PlayerIndex(player as u16)),
+            },
             cost,
         });
     }
-
     pub fn record_refund(
         &mut self,
-        side: Side,
+        player: usize,
         id: UnitId,
         kind: TypeIndex,
         credits: f64,
         tick: Tick,
     ) {
-        self.report.totals[side.index()].refunded += credits;
+        let side = self.players[player].side;
+        self.players[player].totals.refunded += credits;
+        self.report.totals[player].refunded += credits;
         self.report.events.push(MatchEvent::Refund {
             tick,
-            unit: MatchUnit { side, id, kind },
+            unit: MatchUnit {
+                side,
+                id,
+                kind,
+                player: Some(contract::players::PlayerIndex(player as u16)),
+            },
             credits,
         });
     }
-
     pub fn record_kill(
         &mut self,
         victim: MatchUnit,
@@ -175,19 +240,20 @@ impl Skirmish {
         killer: Option<MatchUnit>,
         killer_cost: Option<u32>,
         tick: Tick,
+        killer_player: Option<usize>,
     ) {
-        if let Some(killer) = killer {
-            if killer.side != victim.side {
-                self.report.totals[killer.side.index()].killed = self.report.totals
-                    [killer.side.index()]
-                .killed
-                .saturating_add(1);
+        if let Some(k) = killer {
+            if k.side != victim.side {
+                if let Some(i) = killer_player {
+                    self.players[i].totals.killed += 1;
+                    self.report.totals[i].killed += 1;
+                }
             }
             self.report.events.push(MatchEvent::Kill {
                 tick,
                 victim,
                 victim_cost,
-                killer: Some(killer),
+                killer: Some(k),
                 killer_cost,
             });
         } else {
@@ -200,119 +266,55 @@ impl Skirmish {
             });
         }
     }
-
-    pub fn digest(&self, digest: &mut crate::digest::Digest) {
-        self.objectives.digest(digest);
-        self.settlement.digest(digest);
-        digest
-            .u64(self.phase as u64)
-            .u64(self.ready[0] as u64)
-            .u64(self.ready[1] as u64)
-            .u64(self.wallets[0])
-            .u64(self.wallets[1])
-            .u64(self.income_remainder);
-        digest
-            .u64(self.next_purchase[0] as u64)
-            .u64(self.next_purchase[1] as u64);
-        digest.u64(self.next_dispatch[0]).u64(self.next_dispatch[1]);
-        digest.u64(self.entered.len() as u64);
-        for (id, unit) in &self.entered {
-            digest
-                .u64(id.0 as u64)
-                .u64(unit.price as u64)
-                .u64(unit.entered_tick);
-        }
-        for totals in self.report.totals {
-            digest
-                .u64(u64::from(totals.spawned))
-                .u64(u64::from(totals.spent))
-                .u64(u64::from(totals.killed))
-                .u64(totals.refunded.to_bits());
-        }
-        digest.u64(self.report.events.len() as u64);
-        for event in &self.report.events {
-            match event {
-                MatchEvent::Spawn { tick, unit, cost } => {
-                    digest
-                        .u64(0)
-                        .u64(*tick)
-                        .u64(unit.side.index() as u64)
-                        .u64(u64::from(unit.id.0))
-                        .u64(u64::from(unit.kind.0))
-                        .u64(u64::from(*cost));
-                }
-                MatchEvent::Refund {
-                    tick,
-                    unit,
-                    credits,
-                } => {
-                    digest
-                        .u64(1)
-                        .u64(*tick)
-                        .u64(unit.side.index() as u64)
-                        .u64(u64::from(unit.id.0))
-                        .u64(u64::from(unit.kind.0))
-                        .u64(credits.to_bits());
-                }
-                MatchEvent::Kill {
-                    tick,
-                    victim,
-                    victim_cost,
-                    killer,
-                    killer_cost,
-                } => {
-                    digest
-                        .u64(2)
-                        .u64(*tick)
-                        .u64(victim.side.index() as u64)
-                        .u64(u64::from(victim.id.0))
-                        .u64(u64::from(victim.kind.0))
-                        .u64(u64::from(*victim_cost));
-                    if let Some(unit) = killer {
-                        digest
-                            .u64(1)
-                            .u64(unit.side.index() as u64)
-                            .u64(u64::from(unit.id.0))
-                            .u64(u64::from(unit.kind.0))
-                            .u64(u64::from(killer_cost.unwrap_or_default()));
-                    } else {
-                        digest.u64(0);
-                    }
-                }
-            }
-        }
-        for side in &self.reservations {
-            digest.u64(side.len() as u64);
-            for r in side {
-                digest
-                    .u64(r.data.id.0 as u64)
+    pub fn digest(&self, d: &mut crate::digest::Digest) {
+        self.objectives.digest(d);
+        self.settlement.digest(d);
+        d.u64(self.phase as u64).u64(self.income_remainder);
+        for p in &self.players {
+            d.u64(p.side.index() as u64)
+                .u64(p.wallet)
+                .u64(p.ready as u64)
+                .u64(p.next_purchase as u64)
+                .u64(p.next_dispatch)
+                .u64(p.reservations.len() as u64);
+            for r in &p.reservations {
+                d.u64(r.data.id.0 as u64)
                     .u64(r.data.kind.0 as u64)
                     .f64(r.data.destination[0])
                     .f64(r.data.destination[1])
                     .u64(r.data.confirmed_tick)
                     .u64(r.data.blocked as u64)
-                    .u64(r.price as u64);
-                match r.data.arrival_tick {
-                    Some(tick) => digest.u64(1).u64(tick),
-                    None => digest.u64(0),
-                };
+                    .u64(r.price as u64)
+                    .u64(r.data.arrival_tick.unwrap_or(u64::MAX));
             }
         }
-    }
-
-    pub fn cancel(&mut self, side: Side, purchase: PurchaseId) {
-        let index = side.index();
-        if let Some(at) = self.reservations[index]
-            .iter()
-            .position(|r| r.data.id == purchase)
-        {
-            let reservation = self.reservations[index].remove(at).unwrap();
-            self.wallets[index] += u64::from(reservation.price) * CREDIT_SCALE;
+        d.u64(self.entered.len() as u64);
+        for (id, u) in &self.entered {
+            d.u64(id.0 as u64)
+                .u64(u.price as u64)
+                .u64(u.entered_tick)
+                .u64(u.player as u64);
         }
+        for t in &self.report.totals {
+            d.u64(u64::from(t.spawned))
+                .u64(u64::from(t.spent))
+                .u64(u64::from(t.killed))
+                .u64(t.refunded.to_bits());
+        }
+        d.u64(self.report.events.len() as u64);
+    }
+    pub fn cancel(&mut self, player: usize, purchase: PurchaseId) -> Result<(), OrderError> {
+        let p = self
+            .players
+            .get_mut(player)
+            .ok_or(OrderError::MissingPlayer)?;
+        if let Some(i) = p.reservations.iter().position(|r| r.data.id == purchase) {
+            let r = p.reservations.remove(i).expect("reservation index");
+            p.wallet += u64::from(r.price) * CREDIT_SCALE;
+        }
+        Ok(())
     }
 }
-
-/// Shared first-playtest match tuning for native and browser preparation.
 pub fn starter_rules() -> contract::skirmish::MatchRules {
     serde_json::from_str(include_str!("../../../fixtures/skirmish.json"))
         .expect("authored match rules")

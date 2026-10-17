@@ -1,5 +1,6 @@
 //! Player match setup and side-scoped economy publication.
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::catalog::TypeIndex;
 use crate::encounter::SkirmishSites;
@@ -20,20 +21,7 @@ pub struct MatchRules {
     pub majority_s: u32,
     /// The score a side wins at.
     pub victory_score: f64,
-    // Removed in slice 02 (skirmish re-baseline 1); retained for slice-01 digest identity.
-    #[serde(
-        default = "default_max_players_per_side",
-        skip_serializing_if = "is_default_max_players_per_side"
-    )]
     pub max_players_per_side: u32,
-}
-
-fn default_max_players_per_side() -> u32 {
-    10
-}
-
-fn is_default_max_players_per_side(value: &u32) -> bool {
-    *value == 10
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -41,6 +29,8 @@ fn is_default_max_players_per_side(value: &u32) -> bool {
 pub struct SkirmishSetup {
     pub rules: MatchRules,
     pub sites: SkirmishSites,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
 }
 
 #[derive(Deserialize)]
@@ -48,6 +38,8 @@ pub struct SkirmishSetup {
 struct UncheckedSetup {
     rules: MatchRules,
     sites: SkirmishSites,
+    #[serde(default)]
+    openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
 }
 
 impl TryFrom<UncheckedSetup> for SkirmishSetup {
@@ -76,6 +68,7 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
         Ok(Self {
             rules: value.rules,
             sites: value.sites,
+            openings: value.openings,
         })
     }
 }
@@ -135,8 +128,22 @@ pub struct SkirmishView {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MatchReport {
-    pub totals: [MatchTotals; 2],
+    pub totals: Vec<MatchTotals>,
     pub events: Vec<MatchEvent>,
+}
+
+impl MatchReport {
+    pub fn side_totals(&self, players: &[crate::players::Player]) -> [MatchTotals; 2] {
+        let mut totals = [MatchTotals::default(); 2];
+        for (player, player_totals) in players.iter().zip(&self.totals) {
+            let side = player.side.index();
+            totals[side].spawned += player_totals.spawned;
+            totals[side].spent += player_totals.spent;
+            totals[side].killed += player_totals.killed;
+            totals[side].refunded += player_totals.refunded;
+        }
+        totals
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -152,6 +159,8 @@ pub struct MatchUnit {
     pub side: Side,
     pub id: UnitId,
     pub kind: TypeIndex,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub player: Option<crate::players::PlayerIndex>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

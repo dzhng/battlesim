@@ -99,6 +99,7 @@ test("a preparation worker becomes the battle authority and replays its commands
           scenario: prepared.scenario,
           seed: 1,
           side: "blue",
+          player: "blue-1",
           transport: "worker",
           connect: prepared.connect,
         });

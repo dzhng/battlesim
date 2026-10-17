@@ -9,7 +9,14 @@ use sim::battle::Battle;
 fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side,
-        player: None,
+        player: Some(
+            match side {
+                Side::Blue => "blue-1",
+                Side::Red => "red-1",
+                Side::Neutral => "neutral",
+            }
+            .into(),
+        ),
         seq,
         order,
         queued: false,
@@ -49,7 +56,7 @@ fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition 
     serde_json::from_value(json!({
         "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules, "units": [],
-        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
+        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60, "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "side": "blue", "center": [400, 10], "yaw": 1.5707963267948966 },
                 { "side": "red", "center": [400, 590], "yaw": -1.5707963267948966 }
@@ -239,20 +246,14 @@ fn paid_reinforcement_enters_at_base_once_and_moves_to_its_destination() {
 #[test]
 fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
     let setup = setup();
-    let mut skirmish = sim::skirmish::Skirmish::new(setup.skirmish.unwrap());
+    let players = setup.players.clone();
+    let mut skirmish = sim::skirmish::Skirmish::new(setup.skirmish.unwrap(), &players);
     assert!(skirmish.report.events.is_empty());
     skirmish
-        .reserve(
-            Side::Blue,
-            common::unit_kind("test_tank"),
-            [400.0, 300.0],
-            200,
-            1,
-            0,
-        )
+        .reserve(0, common::unit_kind("test_tank"), [400.0, 300.0], 200, 1, 0)
         .unwrap();
     skirmish.record_spawn(
-        Side::Blue,
+        0,
         contract::ids::UnitId(0),
         common::unit_kind("test_tank"),
         200,
@@ -263,19 +264,22 @@ fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
             side: Side::Red,
             id: contract::ids::UnitId(1),
             kind: common::unit_kind("test_rifle"),
+            player: None,
         },
         110,
         Some(contract::skirmish::MatchUnit {
             side: Side::Blue,
             id: contract::ids::UnitId(0),
             kind: common::unit_kind("test_tank"),
+            player: None,
         }),
         Some(200),
         3,
+        None,
     );
     skirmish.phase = contract::skirmish::Phase::Finished;
-    let report = skirmish.view(Side::Red, 2, 30, 0).report.unwrap();
-    assert_eq!(report.totals[Side::Blue.index()].spent, 200);
+    let report = skirmish.view(Side::Red, 2, 30, &[0, 0]).report.unwrap();
+    assert_eq!(report.side_totals(&players)[Side::Blue.index()].spent, 200);
     assert!(report.events.iter().any(|event| matches!(
         event,
         contract::skirmish::MatchEvent::Spawn { unit, .. } if unit.side == Side::Blue
@@ -288,6 +292,28 @@ fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
             ..
         }
     )));
+}
+
+#[test]
+fn view_uses_the_sides_human_players_economy_until_players_table() {
+    let mut setup = setup();
+    let mut players = setup.players.clone();
+    players[0].controller = contract::players::ControllerKind::ActiveAi;
+    players[0].human_capable = false;
+    players.insert(
+        1,
+        contract::players::Player {
+            id: "blue-human".into(),
+            side: Side::Blue,
+            faction: Some(contract::catalog::Faction::Us),
+            controller: contract::players::ControllerKind::Human,
+            human_capable: true,
+        },
+    );
+    let mut skirmish = sim::skirmish::Skirmish::new(setup.skirmish.take().unwrap(), &players);
+    skirmish.players[0].wallet = 123 * sim::skirmish::CREDIT_SCALE;
+    skirmish.players[1].wallet = 456 * sim::skirmish::CREDIT_SCALE;
+    assert_eq!(skirmish.view(Side::Blue, 0, 30, &[0, 0, 0]).credits, 456.0);
 }
 
 #[test]
