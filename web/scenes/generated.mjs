@@ -758,7 +758,10 @@ async function playRefusal(ctx, deadline = false) {
       "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
   );
   await deploy.click();
-  await page.getByTestId("error").waitFor({ timeout: 30000 });
+  // A stalled worker is refused only when admission's own deadline runs out.
+  await page
+    .getByTestId("error")
+    .waitFor({ timeout: defaults.admission.generated_deadline_ms + 15000 });
   await page.getByRole("button", { name: "Details", exact: true }).click();
   const failure = await page.getByTestId("error").textContent();
   ctx.check(
