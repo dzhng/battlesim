@@ -2,15 +2,13 @@
 
 ## Contract unlocked
 
-All derived catalogs, parity fixtures, developer air-contract scenes, and player-facing weapon readouts reflect the hard-cut contract.
+The remaining player-facing part of the contract is a readable blocked-launch warning. The catalog regeneration, parity updates, AA-role deletion, and full/compact row assertions already landed with slices 1–3.
 
 ## Work
 
-- Regenerate `fixtures/catalog.json` and any browser-derived catalogs.
-- Remove `aa_tier`, unit `air_defense`, and old interception displays from `apps/battle-lab/src/routes/airWar.tsx` and `web/scenes/air-contracts.mjs`.
-- Verify target classes/can-intercept only appear where the existing weapon panel contract needs them; do not add a dashboard-style panel.
-- Verify full and compact cards show blocked-launch rows with the existing warning-color icon. (Landed and checked in slice 3: the `panels` scene and `web/tests/blockedTrajectory.test.tsx`.) An unprimed critique of the existing `blocked_shot` icon (2026-10-15) found it unreadable at panel size: its dashed line of fire fades out, its hatched bar blurs, its weight sits off-centre, and in amber it is easily mistaken for `no_ammo`. Redraw it under `game-ui` before calling the readout done.
+- Redraw the existing `blocked_shot` icon under `game-ui`. An unprimed critique (2026-10-15) found its dashed line of fire fades out, its hatched bar blurs, its weight sits off-centre, and its amber treatment is easily mistaken for `no_ammo`.
+- Keep the existing full/compact row contract and `BlockedTrajectory` reason; do not add a new panel, label, or dashboard surface.
 
 ## Gates
 
-Run focused web/readout tests, then the full Rust, web, browser, catalog, and parity checks once. Use `screenshot-critique` for changed visual shots; use `preview-shots` for human review when captures are produced. Run `review` before calling the feature done.
+Run the focused panel/readout test after the icon change, then run the full Rust, web, browser, catalog, and parity checks once. Use `screenshot-critique` as the last visual check and `preview-shots` for human review when captures are produced. Run `review` before calling the feature done.

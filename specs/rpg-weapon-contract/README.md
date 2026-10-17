@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: slices 1–3 landed (2026-10-15, branch `awf/weapon-contract`, as part of the [air-war-flight](../done/air-war-flight/README.md) closeout, air-war-flight [D53](../done/air-war-flight/flight-model-map.md)); interception became the `missile` target class per layer and guided rows may intercept (air-war-flight D54, branch `awf/intercept-layers`); slices 4–5 open. Reconciled with air-war-flight: the AA-flag deletion has landed; air classes use the existing flight model; timings follow the game-wide caps.
+Status: slices 1–3 landed (2026-10-15, as part of the [air-war-flight](../done/air-war-flight/README.md) closeout, air-war-flight D53–D55); the contract/catalog portion of slice 5 also landed with that work. Slice 4 (Eastern RPG content) and the blocked-shot icon follow-up remain open. Reconciled with air-war-flight: AA-role deletion, per-layer missile interception, launch clearance, explosive falloff, and their tests are already shipped.
 
 ## Goal
 
@@ -24,7 +24,7 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 2. **Immutable projectile layer** — launch-layer storage and interceptor range selection from it. Interception eligibility from weapon mounts already landed (D52).
 3. **Opt-in launcher clearance** — physical muzzle/initial-trajectory obstruction for artillery and the long-range SAM only; preserve ordinary direct-fire behavior and expose `BlockedTrajectory`.
 4. **Eastern RPG and roster data** — new three-round general-purpose RPG, dedicated AT row renames, Eastern squad loadout, and deterministic armour calibration.
-5. **Presentation/catalog closeout** — regenerate derived catalogs, remove AA-tier developer surfaces, and verify full/compact warning rows/icons.
+5. **Blocked-shot icon follow-up** — redraw the existing warning mark so blocked launcher paths are legible at panel size; catalog regeneration and AA-role cleanup are already shipped.
 
 ## Firewalls
 
@@ -52,6 +52,7 @@ The plan gives one owner to each concept: `LayerFire` for per-layer target eligi
 - ~~Guided interceptors never launch at a round.~~ Resolved by D54: a guided row listing `missile` launches at a round and homes on it; `aa_long` lists no `missile`, so it no longer wastes its lock on one.
 - The skirmish AI moves a launcher its cover keeps holding (D54, `relocate_after_s` / `relocate_m` in `fixtures/skirmish-ai.json`); a player's own units are theirs to move.
 - **`partial_from: 0.08` on every explosive row is a balance change** (user, through the coordinator, 2026-10-15): grenades, RPGs, ATGMs, SAMs, autocannon rounds, bombs and artillery now chip armour they cannot pierce. Retune in slice 4's sample run if it reads wrong.
+- Saved encounter overrides in `fixtures/maps/**/encounters/*.json` intentionally pin the older weapon values for approved recordings; they are scenario snapshots, not the runtime weapon-family rows, and should not be silently retuned with slice 4.
 - The kamikaze drones' unit ids still end `_anti_armor`; they name models, not the removed field.
 
 ## Next Agent Prompt
@@ -64,4 +65,4 @@ Implement slice 4 in `slices/04-eastern-rpg.md` on top of the landed contract (t
 - [x] Slice 2: projectile layer/interception (`slices/02-projectile-layer.md`)
 - [x] Slice 3: launcher clearance and blocked readout (`slices/03-launch-clearance.md`)
 - [ ] Slice 4: Eastern RPG and loadout (`slices/04-eastern-rpg.md`)
-- [ ] Slice 5: catalog/UI closeout (`slices/05-closeout.md`)
+- [ ] Slice 5: blocked-shot icon follow-up (`slices/05-closeout.md`)
