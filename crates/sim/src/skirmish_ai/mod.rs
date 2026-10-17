@@ -9,6 +9,8 @@ use contract::skirmish::Phase;
 use contract::weapons::{TargetClass, WeaponDefinition};
 use std::collections::BTreeMap;
 
+mod transport;
+
 /// A side-scoped skirmish policy. Implementations emit the same ordinary
 /// orders as a human controller; the battle host owns admission and replay.
 pub trait SkirmishPolicy {
@@ -94,6 +96,15 @@ struct Tuning {
     /// far: farther than the cover a unit is likely to stand under.
     relocate_after_s: f64,
     relocate_m: f64,
+    /// With no identified enemy in reach, its carriers let squads out this
+    /// share of the way from its entry to an objective short of it.
+    unload_share: f64,
+    /// A squad rides only when the ride sets it down at least this much
+    /// nearer its objective; nearer than that, it walks.
+    ride_min_m: f64,
+    /// A loaded carrier keeps its drop point until a new one lies farther
+    /// than this from it, and lets its squad out within this of it.
+    reaim_m: f64,
 }
 
 impl Tuning {
@@ -250,6 +261,117 @@ impl BalancedDoctrine {
         held.moves += 1;
         held.driving = true;
         Relocation::To(goal)
+    }
+
+    /// Where `unit` heads for `objective`: a recon unit's post short of it,
+    /// any other unit its centre.
+    fn heading(
+        &self,
+        rules: &Rules,
+        entry: &EntrySite,
+        unit: &contract::observation::OwnUnit,
+        objective: [f64; 2],
+    ) -> [f64; 2] {
+        if rules.catalog.get(unit.kind).has_role("recon") {
+            recon_post(unit, &self.tuning, objective, entry.center)
+        } else {
+            objective
+        }
+    }
+
+    /// Where a carrier at `from` lets a squad out for `goal` (D18), with
+    /// no enemy in reach `unload_share` of the way from entry to goal short
+    /// of it.
+    fn drop_point(
+        &self,
+        frame: &ObservationFrame,
+        rules: &Rules,
+        entry: &EntrySite,
+        goal: [f64; 2],
+        from: [f64; 2],
+    ) -> [f64; 2] {
+        let standoff = self.tuning.unload_share * distance(entry.center, goal);
+        transport::unload_point(frame, rules, goal, from, standoff)
+    }
+
+    /// Whether `unit`, a squad on foot, rides for `goal`: a ride from where
+    /// it stands would set it down `ride_min_m` nearer or more.
+    fn worth_riding(
+        &self,
+        frame: &ObservationFrame,
+        rules: &Rules,
+        entry: &EntrySite,
+        unit: &contract::observation::OwnUnit,
+        goal: [f64; 2],
+    ) -> bool {
+        if unit.members.is_empty() {
+            return false;
+        }
+        let here = [unit.position[0], unit.position[1]];
+        let out = self.drop_point(frame, rules, entry, goal, here);
+        distance(here, goal) - distance(out, goal) >= self.tuning.ride_min_m
+    }
+
+    /// A loaded carrier's order: drive its squad toward the fight (the
+    /// nearest enemy on the ground it can engage) or else its objective, and
+    /// let it out at the drop point, or where it is once it is there or in
+    /// an enemy's reach. None while anyone boards or leaves, or the order
+    /// already stands.
+    fn unload(
+        &self,
+        side: Side,
+        entry: &EntrySite,
+        frame: &ObservationFrame,
+        rules: &Rules,
+        carrier: &contract::observation::OwnUnit,
+    ) -> Option<Order> {
+        let passenger = transport::passengers(frame, carrier.id).min_by_key(|u| u.id)?;
+        if carrier.withdrawing || !transport::all_inside(frame, carrier.id) {
+            return None;
+        }
+        let here = [carrier.position[0], carrier.position[1]];
+        let available = || {
+            frame
+                .skirmish
+                .iter()
+                .flat_map(|view| &view.objectives)
+                .filter(|o| o.owner != Some(side))
+        };
+        let objective = self
+            .assigned
+            .get(&passenger.id)
+            .and_then(|id| available().find(|o| &o.id == id))
+            .or_else(|| {
+                available().min_by(|a, b| {
+                    distance(here, a.center)
+                        .total_cmp(&distance(here, b.center))
+                        .then(a.id.cmp(&b.id))
+                })
+            });
+        let order = |goal| Order::Unload {
+            units: vec![carrier.id],
+            goal,
+            gesture: frame.tick,
+            route: contract::command::RoutePolicy::Fastest,
+        };
+        let goal = match nearest_ground_target(frame, rules, passenger.kind, here) {
+            Some(target) => [target.position[0], target.position[1]],
+            None => match objective {
+                Some(objective) => self.heading(rules, entry, passenger, objective.center),
+                // Nothing to fight and every objective held: out here.
+                None => return carrier.goal.is_none().then(|| order(None)),
+            },
+        };
+        let out = self.drop_point(frame, rules, entry, goal, here);
+        let slack = self.tuning.reaim_m;
+        if distance(here, out) <= slack {
+            carrier.goal.is_none().then(|| order(None))
+        } else {
+            carrier
+                .goal
+                .is_none_or(|old| distance(old, out) > slack)
+                .then(|| order(Some(out)))
+        }
     }
 
     fn update_doctrine(&mut self, frame: &ObservationFrame, rules: &Rules, draw_unit: f64) {
@@ -466,6 +588,17 @@ impl BalancedDoctrine {
             AltitudeLayer::HighAir,
         );
         let desired: Vec<_> = high_air_defender.iter().copied().chain(desired).collect();
+        // Each squad's carrier follows it (D17), and rides on it: it is
+        // bought only for a squad the player holds or buys with it.
+        let desired: Vec<(TypeIndex, bool)> = desired
+            .into_iter()
+            .flat_map(|kind| {
+                let size = rules.catalog.get(kind).squad_size();
+                std::iter::once((kind, false)).chain(
+                    transport::carrier_for(rules, &eligible, size).map(|carrier| (carrier, true)),
+                )
+            })
+            .collect();
         let mut orders = Vec::new();
         // Only units that can take an objective count toward its load: a
         // helicopter sent to fight over a flag never holds it (D20).
@@ -482,20 +615,27 @@ impl BalancedDoctrine {
             let mut credits = view.credits;
             let mut slots = view.unit_count;
             let mut needed = BTreeMap::new();
+            let mut squad_held = false;
             desired
                 .iter()
                 .copied()
-                .filter(|&kind| {
+                .filter(|&(kind, rides)| {
                     let wanted = needed.entry(kind).or_insert(0);
                     *wanted += 1;
                     let cost = f64::from(rules.catalog.get(kind).cost);
-                    let buy = count(kind) < *wanted && cost <= credits && slots < view.max_units;
+                    let held = count(kind) >= *wanted;
+                    let buy = !held
+                        && (!rides || squad_held)
+                        && cost <= credits
+                        && slots < view.max_units;
                     if buy {
                         credits -= cost;
                         slots += 1;
                     }
+                    squad_held = held || buy;
                     buy
                 })
+                .map(|(kind, _)| kind)
                 .collect()
         } else if view.unit_count < view.max_units {
             let purchase = {
@@ -535,7 +675,21 @@ impl BalancedDoctrine {
                     {
                         best_air_defender(rules, &self.tuning, &eligible, draw_unit, layer)
                             .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
-                            .map(|k| (0, k))
+                            .map(|k| (Some(0), k))
+                    } else if let Some(want) = transport::want(
+                        rules,
+                        &eligible,
+                        frame
+                            .own
+                            .iter()
+                            .map(|u| u.kind)
+                            .chain(view.pending.iter().map(|p| p.kind)),
+                    ) {
+                        // One carrier per squad comes before the rotation,
+                        // and is saved for like its next role: a lost
+                        // transport is rebought, a lost squad replaced (D17).
+                        let (transport::Want::Carrier(k) | transport::Want::Squad(k)) = want;
+                        (f64::from(rules.catalog.get(k).cost) <= view.credits).then_some((None, k))
                     } else {
                         // The next role in the rotation is a plan the AI
                         // saves for: credits it can't yet spend on it wait,
@@ -545,12 +699,14 @@ impl BalancedDoctrine {
                         (0..roles.len())
                             .find_map(|offset| {
                                 let index = (self.reinforcement + offset) % roles.len();
-                                pick(roles[index].0, roles[index].1, 0).map(|k| (index, k))
+                                pick(roles[index].0, roles[index].1, 0).map(|k| (Some(index), k))
                             })
                             .filter(|&(_, k)| f64::from(rules.catalog.get(k).cost) <= view.credits)
                     };
                     selected.map(|(index, k)| {
-                        self.reinforcement = (index + 1) % roles.len();
+                        if let Some(index) = index {
+                            self.reinforcement = (index + 1) % roles.len();
+                        }
                         k
                     })
                 }
@@ -561,8 +717,13 @@ impl BalancedDoctrine {
         };
         let mut bought: Vec<[f64; 2]> = Vec::new();
         for kind in purchases {
-            let support = rules.catalog.get(kind).has_role("logistics");
-            let destination = if support {
+            // Support, carriers and the squads they will carry wait at base:
+            // a squad rides out from there (D17).
+            let waits = rules.catalog.get(kind).has_role("logistics")
+                || transport::seats(rules, kind) > 0
+                || transport::carrier_for(rules, &eligible, rules.catalog.get(kind).squad_size())
+                    .is_some();
+            let destination = if waits {
                 entry.center
             } else {
                 view.objectives
@@ -601,8 +762,26 @@ impl BalancedDoctrine {
         if view.phase == Phase::Active {
             let mut own: Vec<_> = frame.own.iter().collect();
             own.sort_by_key(|u| u.id);
+            let carries = |u: &contract::observation::OwnUnit| transport::seats(rules, u.kind) > 0;
+            // Carriers with no one aboard, free to collect a squad, and the
+            // squad each one is sent for at this decision.
+            let mut free: Vec<_> = own
+                .iter()
+                .copied()
+                .filter(|u| {
+                    carries(u)
+                        && !u.withdrawing
+                        && u.state != contract::observation::MoveState::RouteBlocked
+                        && transport::passengers(frame, u.id).next().is_none()
+                })
+                .collect();
+            let mut collect: BTreeMap<UnitId, UnitId> = BTreeMap::new();
             for unit in &own {
-                if rules.catalog.get(unit.kind).has_role("logistics") {
+                // Passengers take no orders; carriers take theirs below.
+                if rules.catalog.get(unit.kind).has_role("logistics")
+                    || transport::carrier_of(unit).is_some()
+                    || carries(unit)
+                {
                     continue;
                 }
                 match self.relocation(unit, frame.tick, rules, route_time) {
@@ -637,6 +816,21 @@ impl BalancedDoctrine {
                     {
                         if jet {
                             self.jet_targets.insert(unit.id, target.id);
+                        }
+                        // A squad far from a fight on the ground rides to it.
+                        let fight = [target.position[0], target.position[1]];
+                        if rules.catalog.get(target.kind).mobility.layer() == AltitudeLayer::Ground
+                            && self.worth_riding(frame, rules, entry, unit, fight)
+                            && transport::wait_for_ride(
+                                rules,
+                                unit,
+                                &mut free,
+                                &mut collect,
+                                &mut orders,
+                                route_time,
+                            )
+                        {
+                            continue;
                         }
                         orders.push(Order::Attack {
                             units: vec![unit.id],
@@ -679,61 +873,109 @@ impl BalancedDoctrine {
                 if available.is_empty() {
                     continue;
                 }
-                if self.assigned.get(&unit.id).is_some_and(|id| {
-                    available.iter().any(|o| {
-                        &o.id == id
-                            && (unit.goal.is_some()
-                                || distance([unit.position[0], unit.position[1]], o.center)
-                                    <= o.radius_m)
-                    })
-                }) {
+                let busy = self
+                    .assigned
+                    .get(&unit.id)
+                    .and_then(|id| available.iter().copied().find(|o| &o.id == id))
+                    .filter(|o| {
+                        unit.goal.is_some()
+                            || distance([unit.position[0], unit.position[1]], o.center)
+                                <= o.radius_m
+                    });
+                let objective = match busy {
+                    Some(objective) => objective,
+                    None => {
+                        let best = available
+                            .iter()
+                            .filter_map(|objective| {
+                                route_time(unit.id, objective.center)
+                                    .filter(|t| t.is_finite() && *t >= 0.0)
+                                    .map(|t| (*objective, t))
+                            })
+                            .min_by(|(a, at), (b, bt)| {
+                                let load = |id: &str| {
+                                    self.assigned
+                                        .iter()
+                                        .filter(|(unit_id, goal)| {
+                                            **unit_id != unit.id
+                                                && goal.as_str() == id
+                                                && holds(**unit_id)
+                                        })
+                                        .count()
+                                };
+                                load(&a.id)
+                                    .cmp(&load(&b.id))
+                                    .then(at.total_cmp(bt))
+                                    .then(a.id.cmp(&b.id))
+                            });
+                        let Some((objective, _)) = best else {
+                            continue;
+                        };
+                        self.assigned.insert(unit.id, objective.id.clone());
+                        objective
+                    }
+                };
+                // A squad heading far for its objective stops for the
+                // nearest free carrier to collect it (D17).
+                let heading = self.heading(rules, entry, unit, objective.center);
+                if self.worth_riding(frame, rules, entry, unit, heading)
+                    && transport::wait_for_ride(
+                        rules,
+                        unit,
+                        &mut free,
+                        &mut collect,
+                        &mut orders,
+                        route_time,
+                    )
+                {
                     continue;
                 }
-                let best = available
-                    .iter()
-                    .filter_map(|objective| {
-                        route_time(unit.id, objective.center)
-                            .filter(|t| t.is_finite() && *t >= 0.0)
-                            .map(|t| (*objective, t))
-                    })
-                    .min_by(|(a, at), (b, bt)| {
-                        let load = |id: &str| {
-                            self.assigned
-                                .iter()
-                                .filter(|(unit_id, goal)| {
-                                    **unit_id != unit.id && goal.as_str() == id && holds(**unit_id)
-                                })
-                                .count()
-                        };
-                        load(&a.id)
-                            .cmp(&load(&b.id))
-                            .then(at.total_cmp(bt))
-                            .then(a.id.cmp(&b.id))
-                    });
-                if let Some((objective, _)) = best {
-                    self.assigned.insert(unit.id, objective.id.clone());
-                    if rules.catalog.get(unit.kind).has_role("recon") {
-                        let goal = recon_post(unit, &self.tuning, objective.center, entry.center);
-                        if route_time(unit.id, goal).is_some() {
-                            orders.push(Order::Move {
-                                units: vec![unit.id],
-                                gesture: frame.tick,
-                                goal,
-                                route: contract::command::RoutePolicy::Fastest,
-                                direction: contract::command::MoveDirection::Forward,
-                                facing: Some(libm::atan2(
-                                    objective.center[1] - goal[1],
-                                    objective.center[0] - goal[0],
-                                )),
-                            });
-                            continue;
-                        }
+                if busy.is_some() {
+                    continue;
+                }
+                if rules.catalog.get(unit.kind).has_role("recon") {
+                    let goal = recon_post(unit, &self.tuning, objective.center, entry.center);
+                    if route_time(unit.id, goal).is_some() {
+                        orders.push(Order::Move {
+                            units: vec![unit.id],
+                            gesture: frame.tick,
+                            goal,
+                            route: contract::command::RoutePolicy::Fastest,
+                            direction: contract::command::MoveDirection::Forward,
+                            facing: Some(libm::atan2(
+                                objective.center[1] - goal[1],
+                                objective.center[0] - goal[0],
+                            )),
+                        });
+                        continue;
                     }
-                    orders.push(Order::AttackMove {
-                        units: vec![unit.id],
+                }
+                orders.push(Order::AttackMove {
+                    units: vec![unit.id],
+                    gesture: frame.tick,
+                    goal: objective.center,
+                });
+            }
+            // A carrier collects the squad it was sent for, drives a loaded
+            // squad to its drop point, or waits where it is for a squad.
+            for carrier in own.iter().copied().filter(|u| carries(u)) {
+                if let Some(&squad) = collect.get(&carrier.id) {
+                    let standing = own
+                        .iter()
+                        .find(|u| u.id == squad)
+                        .is_some_and(|squad| transport::coming_for(rules, carrier, squad));
+                    if standing {
+                        continue;
+                    }
+                    orders.push(Order::Collect {
+                        units: vec![carrier.id],
+                        squads: vec![squad],
                         gesture: frame.tick,
-                        goal: objective.center,
                     });
+                    continue;
+                }
+                if let Some(order) = self.unload(side, entry, frame, rules, carrier) {
+                    orders.push(order);
                 }
             }
             // Support stays between the road-edge base and the observed combat
@@ -839,6 +1081,27 @@ fn unit_can_engage_target(rules: &Rules, kind: TypeIndex, target: TypeIndex) -> 
     let target = rules.catalog.get(target);
     let (layer, class) = (target.mobility.layer(), target.target_class());
     unit_weapons(rules, kind).any(|weapon| weapon.engages(layer, Some(class)).is_some())
+}
+
+/// The nearest enemy to `from` that the side identifies on the ground and
+/// `kind` can engage: where a ride toward the fight goes.
+fn nearest_ground_target<'a>(
+    frame: &'a ObservationFrame,
+    rules: &Rules,
+    kind: TypeIndex,
+    from: [f64; 2],
+) -> Option<&'a contract::observation::IdentifiedUnit> {
+    frame
+        .identified
+        .iter()
+        .filter(|t| rules.catalog.get(t.kind).mobility.layer() == AltitudeLayer::Ground)
+        .filter(|t| unit_can_engage_target(rules, kind, t.kind))
+        .min_by(|a, b| {
+            let at = |t: &contract::observation::IdentifiedUnit| {
+                distance(from, [t.position[0], t.position[1]])
+            };
+            at(a).total_cmp(&at(b)).then(a.id.cmp(&b.id))
+        })
 }
 
 /// The weapon rows `kind`'s mounts carry.
