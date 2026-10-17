@@ -228,6 +228,10 @@ export const aboardCarrier = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind
 /** Whether a building holds `u` (entering, garrisoned or leaving). */
 export const inBuilding = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind === "building";
 
+/** The carrier holding `u`, or null when none does. */
+export const carrierOf = (u: Pick<OwnUnitView, "hold">) =>
+  u.hold?.host.kind === "carrier" ? u.hold.host.id : null;
+
 /** The own squads a carrier holds (boarding, aboard or getting out), in
  *  the side's own order: the one owner of who rides in what, which the
  *  Seats row counts, the readouts stack under the carrier's card and
@@ -236,7 +240,7 @@ export function passengersOf<U extends Pick<OwnUnitView, "hold">>(
   own: readonly U[],
   carrier: number,
 ): readonly U[] {
-  return own.filter((u) => aboardCarrier(u) && u.hold!.host.id === carrier);
+  return own.filter((u) => carrierOf(u) === carrier);
 }
 
 export interface HoldView {

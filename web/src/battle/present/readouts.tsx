@@ -17,7 +17,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { PresentedContact } from "./contactPresentation";
-import { passengersOf, type IdentifiedView, type OwnUnitView } from "../sim/observationView";
+import {
+  aboardCarrier,
+  passengersOf,
+  type IdentifiedView,
+  type OwnUnitView,
+} from "../sim/observationView";
 import type { useUnitControl } from "../input/useUnitControl";
 import type { CommandMode, PointerPick } from "../input/pointerIntent";
 import { CommandBindings } from "../input/commandBindings";
@@ -229,8 +234,6 @@ export function ReadoutLayer({
   const hoveredCard = useRef<string | null>(null);
   const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
-  /** The squads riding an own carrier: their cards stack under its. */
-  const riders = new Set(own.flatMap((c) => passengersOf(own, c.id).map((p) => p.id)));
   const zoomOpacity = useRef(1);
   const callouts: Callout[] = [
     ...ghosts.map(
@@ -246,7 +249,8 @@ export function ReadoutLayer({
       }),
     ),
     ...own
-      .filter((u) => !riders.has(u.id))
+      // A squad riding a carrier has its card stacked under the carrier's.
+      .filter((u) => !aboardCarrier(u))
       .map((u): Callout => {
         const picked = selected.includes(u.id);
         const passengers = passengersOf(own, u.id).map((p) => ({
