@@ -987,7 +987,12 @@ fn engage(
             Ok((s, _)) => Ok(s),
         }
     };
-    if let Some(garrison) = unit.garrison.as_ref().filter(|_| unit.garrisoned()) {
+    if let Some(garrison) = unit
+        .hold
+        .as_ref()
+        .filter(|_| unit.garrisoned())
+        .and_then(|hold| hold.building())
+    {
         let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
         let mut result = Err(ActionReason::NoFacingSlot);
         for k in candidates(unit, mount, spec) {
@@ -1833,9 +1838,9 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
         let specs = ctx.arsenal.specs(units[i].kind);
         // Entering or leaving a building suspends every weapon (contracts).
         if units[i]
-            .garrison
+            .hold
             .as_ref()
-            .is_some_and(|g| g.phase != crate::garrison::Phase::Inside)
+            .is_some_and(|g| g.phase != crate::hold::Phase::Inside)
         {
             for mount in &mut units[i].mounts {
                 mount.reason = ActionReason::ChangingPosition;
@@ -2691,7 +2696,11 @@ fn assess_windows(
     if current.is_ok() || !permitted(ctx, &prospective, target) {
         return current;
     }
-    let g = unit.garrison.as_ref().expect("a garrison requests windows");
+    let g = unit
+        .hold
+        .as_ref()
+        .and_then(|hold| hold.building())
+        .expect("a garrison requests windows");
     let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
     for member in candidates(unit, mount, spec) {
         for (seat, window) in g
@@ -2701,14 +2710,26 @@ fn assess_windows(
             .filter(|(_, w)| w.slot.faces(resolved.point.xy(), facing))
         {
             prospective.members[member].position = window.position;
-            prospective.garrison.as_mut().unwrap().seats[member] = Some(seat);
+            prospective
+                .hold
+                .as_mut()
+                .unwrap()
+                .building_mut()
+                .unwrap()
+                .seats[member] = Some(seat);
             let assessment = assess(ctx, &prospective, units, mount, spec, target, resolved);
             if assessment.is_ok() {
                 return assessment;
             }
         }
         prospective.members[member].position = unit.members[member].position;
-        prospective.garrison.as_mut().unwrap().seats[member] = g.seats[member];
+        prospective
+            .hold
+            .as_mut()
+            .unwrap()
+            .building_mut()
+            .unwrap()
+            .seats[member] = g.seats[member];
     }
     current
 }

@@ -220,7 +220,7 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
         "still leaving"
     );
     until(&mut b, 200, "the first squad out", |b| {
-        b.unit(UnitId(0)).unwrap().garrison.is_none()
+        b.unit(UnitId(0)).unwrap().hold.is_none()
     });
     c.ok(&mut b, Side::Blue, garrison(&[1]));
     until(&mut b, 1200, "the second squad inside", |b| inside(b, 1));
@@ -269,7 +269,7 @@ fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() 
     assert!(own(&b, Side::Blue, 0).unwrap().goal.is_none());
     c.ok(&mut b, Side::Blue, garrison(&[1]));
     until(&mut b, 1200, "the scouts inside", |b| inside(b, 1));
-    let g = b.unit(UnitId(1)).unwrap().garrison.clone().unwrap();
+    let g = b.unit(UnitId(1)).unwrap().hold.clone().unwrap();
     assert_eq!(g.seats.iter().flatten().count(), 4);
 }
 
@@ -357,7 +357,7 @@ fn occupants_publish_interior_bodies_at_distinct_window_slots() {
     {
         let id = 0;
         let u = b.unit(UnitId(id)).unwrap();
-        let g = u.garrison.as_ref().unwrap();
+        let g = u.hold.as_ref().unwrap();
         let positions: Vec<_> = u.member_positions().collect();
         assert_eq!(positions.len(), u.members.len(), "one body per soldier");
         for (k, q) in positions.iter().enumerate() {
@@ -547,7 +547,7 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
     let north_slots = b
         .unit(UnitId(0))
         .unwrap()
-        .garrison
+        .hold
         .as_ref()
         .unwrap()
         .slots
@@ -893,7 +893,7 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
     let survivors = living(&b, 0);
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
-        assert!(u.garrison.is_none());
+        assert!(u.hold.is_none());
         if !u.alive() {
             continue;
         }
@@ -1173,7 +1173,7 @@ fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
     until(&mut b, 1200, "inside", |b| inside(b, 0));
     run(&mut b, 3);
     let u = b.unit(UnitId(0)).unwrap();
-    let g = u.garrison.as_ref().unwrap();
+    let g = u.hold.as_ref().unwrap();
     let facades: BTreeSet<u8> = g
         .seats
         .iter()
@@ -1274,7 +1274,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
     }
     b.step();
     let u = b.unit(UnitId(0)).unwrap();
-    assert!(u.garrison.is_none());
+    assert!(u.hold.is_none());
     let p = building(&b);
     // Outside on the side it is heading to, every soldier clear of the shell.
     assert!(u.position.x < CENTRE[0] - HALF[0]);
@@ -1351,7 +1351,7 @@ fn garrison_orders_replay_every_tick_exactly() {
 /// The facade (0 east, 1 north, 2 west, 3 south) member `k` of squad `id`
 /// holds a window on, while inside.
 fn facade_of(b: &Battle, id: u32, k: usize) -> Option<u8> {
-    let g = b.unit(UnitId(id))?.garrison.clone()?;
+    let g = b.unit(UnitId(id))?.hold.clone()?;
     g.seats[k].map(|s| g.slots[s].slot.facade)
 }
 
@@ -1401,7 +1401,7 @@ fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
     let u = b.unit(UnitId(0)).unwrap();
     let m = &u.mounts[1];
     let soldier = u.members.iter().find(|s| Some(s.id) == m.operator).unwrap();
-    let g = u.garrison.as_ref().unwrap();
+    let g = u.hold.as_ref().unwrap();
     let member = u.members.iter().position(|s| s.id == soldier.id).unwrap();
     let seat = g.slots[g.seats[member].unwrap()].position;
     assert!(
@@ -1452,7 +1452,7 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
         Some(0),
         "the rifleman at the gunner's"
     );
-    let g = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap();
+    let g = b.unit(UnitId(0)).unwrap().hold.clone().unwrap();
     let moved = g.slots[g.seats[gunner].unwrap()]
         .changed
         .expect("he changed windows");
@@ -1722,7 +1722,14 @@ fn alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold() {
     let (mut b, mut c) = full_building(7);
     let hold = garrison_ticks("window_hold_s");
     let span = 900;
-    let mut last: Vec<Option<usize>> = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap().seats;
+    let mut last: Vec<Option<usize>> = b
+        .unit(UnitId(0))
+        .unwrap()
+        .hold
+        .clone()
+        .unwrap()
+        .seats
+        .clone();
     let mut changes = vec![0u64; last.len()];
     for t in 0..span {
         if t % 20 == 0 {
@@ -1730,7 +1737,14 @@ fn alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold() {
             c.ok(&mut b, Side::Blue, ground(0, [CENTRE[0], CENTRE[1] + y]));
         }
         b.step();
-        let seats = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap().seats;
+        let seats = b
+            .unit(UnitId(0))
+            .unwrap()
+            .hold
+            .clone()
+            .unwrap()
+            .seats
+            .clone();
         for (k, (now, was)) in seats.iter().zip(&last).enumerate() {
             if now != was {
                 changes[k] += 1;
@@ -1815,7 +1829,7 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
         hit.unit(UnitId(0)).unwrap().orders.is_empty(),
         "discovery ends the approach"
     );
-    assert!(hit.unit(UnitId(0)).unwrap().garrison.is_none());
+    assert!(hit.unit(UnitId(0)).unwrap().hold.is_none());
 }
 
 #[test]

@@ -685,7 +685,7 @@ pub(super) fn step_squad(
     for s in &mut unit.members {
         s.velocity = V2::default();
     }
-    if unit.garrison.is_some() {
+    if unit.hold.is_some() {
         return;
     }
     // Posts are for holding: a squad on the move walks its corridor and

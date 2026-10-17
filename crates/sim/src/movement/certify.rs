@@ -389,7 +389,7 @@ pub(crate) fn certify_orders(
             (
                 u.alive().then_some((u.position, u.yaw)),
                 u.deployment.as_ref().filter(|_| owned).map(|d| d.current),
-                u.garrison.as_ref().filter(|_| owned).map(|g| g.phase),
+                u.hold.as_ref().filter(|_| owned).map(|g| g.phase),
             )
         };
         loop {
@@ -414,7 +414,7 @@ pub(crate) fn certify_orders(
                     });
                 }
             }
-            crate::garrison::advance(
+            crate::hold::advance(
                 &world,
                 &sides,
                 ctx.authored,

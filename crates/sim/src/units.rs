@@ -9,7 +9,7 @@ use contract::observation::MoveState;
 use contract::scenario::{Armor, Face, Rules};
 
 use crate::digest::Digest;
-use crate::garrison::{Garrison, Phase};
+use crate::hold::{Hold, Phase};
 use crate::math::{Obb2, Rotation, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
@@ -275,8 +275,8 @@ pub struct Unit {
     pub suppressed_at: u64,
     /// Setup progress for units that deploy in place (L01); `None` otherwise.
     pub deployment: Option<crate::deployment::Deployment>,
-    /// The squad's building while entering, inside or leaving it (L08).
-    pub garrison: Option<Garrison>,
+    /// The host this unit is entering, inside or leaving (L08).
+    pub hold: Option<Hold>,
     /// A supply vehicle's remaining stock (L05); `None` for every other unit.
     pub stock: Option<u32>,
     pub protection: Option<crate::protection::State>,
@@ -583,9 +583,10 @@ impl Unit {
 
     /// At its building's perimeter slots (inside or leaving, not entering).
     pub fn garrisoned(&self) -> bool {
-        self.garrison
-            .as_ref()
-            .is_some_and(|g| matches!(g.phase, Phase::Inside | Phase::Exiting(_)))
+        self.hold.as_ref().is_some_and(|hold| {
+            matches!(hold.host, crate::hold::Host::Building(_))
+                && matches!(hold.phase, Phase::Inside | Phase::Exiting(_))
+        })
     }
 
     /// World positions of living members.
@@ -881,7 +882,7 @@ impl Unit {
     /// destination, an attack's pursuit point or a building's approach. A unit
     /// with a building (entering, inside or leaving) goes nowhere.
     pub fn movement_goal(&self) -> Option<(V2, RoutePolicy)> {
-        if self.garrison.is_some() {
+        if self.hold.is_some() {
             return None;
         }
         match self.orders.front()? {
@@ -895,7 +896,7 @@ impl Unit {
     /// Which way the current order drives: a reverse move backs (Q31).
     pub fn direction(&self) -> MoveDirection {
         match self.orders.front() {
-            Some(UnitOrder::Move(o)) if self.garrison.is_none() => o.direction,
+            Some(UnitOrder::Move(o)) if self.hold.is_none() => o.direction,
             _ => MoveDirection::Forward,
         }
     }

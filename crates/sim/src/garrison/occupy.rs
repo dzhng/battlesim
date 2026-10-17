@@ -241,9 +241,13 @@ pub(crate) fn occupy(
         } else {
             actual
         };
-        let g = u.garrison.as_ref().filter(|g| g.building == owner)?;
-        let held = matches!(g.phase, super::Phase::Inside);
-        let entering = matches!(g.phase, super::Phase::Entering(_));
+        let hold = u
+            .hold
+            .as_ref()
+            .filter(|hold| hold.host.building() == owner)?;
+        hold.building()?;
+        let held = matches!(hold.phase, crate::hold::Phase::Inside);
+        let entering = matches!(hold.phase, crate::hold::Phase::Entering(_));
         if request.queued {
             if !eligible[i] && !entry_work_keeps_building(actual, owner) {
                 return None;
@@ -264,7 +268,7 @@ pub(crate) fn occupy(
             } else {
                 EntryAction::Reassert
             };
-            Some((id, g.entry, action, held))
+            Some((id, hold.place.entry(), action, held))
         } else {
             None
         }
@@ -640,7 +644,9 @@ fn gather(
                         .and_then(Option::as_ref)
                         .is_some_and(|u| {
                             u.garrisoned()
-                                && u.garrison.as_ref().is_some_and(|g| g.building == owner)
+                                && u.hold
+                                    .as_ref()
+                                    .is_some_and(|hold| hold.host.building() == owner)
                         })
         })
         .map(|c| BuildingEntry {
