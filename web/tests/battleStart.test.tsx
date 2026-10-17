@@ -151,7 +151,7 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
 
   // The preference changes before admission chooses a concrete battle.
   fireEvent.click(menu.getByRole("radio", { name: "metro" }));
-  fireEvent.click(menu.getByRole("radio", { name: "xl" }));
+  fireEvent.click(menu.getByRole("radio", { name: "XL" }));
   expect(deploy()).toBe("/battle?play=1&type=metro&size=xl&faction=us");
   expect(menu.getByRole("radio", { name: "metro" }).getAttribute("aria-checked")).toBe("true");
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
