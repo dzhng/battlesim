@@ -246,14 +246,14 @@
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
+    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?blue= and ?red= carry ordered controller codes, while ?blue_faction= and ?red_faction= name the two side factions; ?battle= is the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
     "map": null,
     "catalog": "game",
     "loading": false
   },
   {
     "id": "unit-roster",
-    "route": "/battle?type=open&size=small&seed=1&faction=us",
+    "route": "/battle?type=open&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
     "map": null,
     "catalog": "game",

@@ -32,7 +32,10 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     for (const other of pages) expect(menu.queryByRole("button", { name: other })).toBeNull();
   };
   const entries: Record<string, Record<string, string>> = {
-    Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small&faction=us" },
+    Skirmish: {
+      Deploy:
+        "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
+    },
     Tutorial: {},
     Settings: {},
     Developer: {

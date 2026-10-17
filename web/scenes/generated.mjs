@@ -320,13 +320,17 @@ export async function run(ctx) {
   const asked = new URL(menu.href, ctx.url);
   ctx.check(
     "ordinary Play is unpinned, and an explicit seeded menu address deploys its exact chosen map",
-    menu.drawn === "/battle?play=1&type=mixed&size=small&faction=us" &&
+    menu.drawn ===
+      "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern" &&
       !menu.seedShown &&
       asked.pathname === "/battle" &&
       !asked.searchParams.has("play") &&
-      ["type", "size", "seed", "faction"].map((k) => asked.searchParams.get(k)).join() ===
-        `${MAP.type},${MAP.size},${MAP.seed},us` &&
-      menu.checked.join() === `${MAP.type},${MAP.size}` &&
+      ["type", "size", "seed", "blue", "blue_faction", "red", "red_faction"]
+        .map((k) => asked.searchParams.get(k))
+        .join() === `${MAP.type},${MAP.size},${MAP.seed},h,us,a,eastern` &&
+      // The size choices read S, M, L, XL (slice 07).
+      menu.checked.join() ===
+        `${MAP.type},${{ small: "S", medium: "M", large: "L", xl: "XL" }[MAP.size]}` &&
       menu.region === "random",
     JSON.stringify(menu),
   );
@@ -685,11 +689,20 @@ export async function run(ctx) {
     staleMessage,
   );
 
-  // A request for no such map says so, and starts no battle. It names a
-  // faction (a link without one is refused for that first), so the size is
-  // its one fault.
+  // A request for no such map says so, and starts no battle. It names both
+  // sides' players and factions (a link without them is refused for that
+  // first), so the size is its one fault.
   const refused = await ctx.newPage({ allowErrors: true });
-  await refused.goto(ctx.urlFor({ type: "metro", size: "tiny", faction: "us" }));
+  await refused.goto(
+    ctx.urlFor({
+      type: "metro",
+      size: "tiny",
+      blue: "h",
+      blue_faction: "us",
+      red: "a",
+      red_faction: "eastern",
+    }),
+  );
   await refused.getByTestId("error").waitFor();
   const message = await refused.getByTestId("error").textContent();
   await refused.getByRole("button", { name: "Details" }).click();
@@ -741,10 +754,14 @@ async function playRefusal(ctx, deadline = false) {
   const deploy = page.getByRole("link", { name: "Deploy" });
   ctx.check(
     "ordinary menu Play carries preferences without a promised seed",
-    (await deploy.getAttribute("href")) === "/battle?play=1&type=mixed&size=small&faction=us",
+    (await deploy.getAttribute("href")) ===
+      "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
   );
   await deploy.click();
-  await page.getByTestId("error").waitFor({ timeout: 30000 });
+  // A stalled worker is refused only when admission's own deadline runs out.
+  await page
+    .getByTestId("error")
+    .waitFor({ timeout: defaults.admission.generated_deadline_ms + 15000 });
   await page.getByRole("button", { name: "Details", exact: true }).click();
   const failure = await page.getByTestId("error").textContent();
   ctx.check(

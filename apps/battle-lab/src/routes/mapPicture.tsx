@@ -13,7 +13,8 @@ import { mapPreviews, type PreviewState } from "@web/battle/prepare/preview";
 import type { PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { generationRequest, MAP_SIZES, type MapSize } from "@web/maps/source";
-import { add, entriesPerSide, preset, type LobbyState } from "../lobby/model";
+import { add, preset, type LobbyState } from "../lobby/model";
+import { entryCountForPlayers } from "../skirmishSetup";
 
 const PAIRINGS: Record<string, () => LobbyState> = {
   "1v1": () => preset("1v1"),
@@ -46,7 +47,7 @@ function candidates(wasm: Wasm, cell: Cell) {
     { presets, templates },
     config.limits,
   );
-  const entries = entriesPerSide(lobby.players);
+  const entries = entryCountForPlayers(lobby.players);
   let next = 0;
   return {
     seed: () => String(++next),

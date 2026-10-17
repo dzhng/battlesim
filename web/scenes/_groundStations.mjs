@@ -112,7 +112,7 @@ export const STATION_MAPS = {
     },
   },
   generated: {
-    route: "/battle?type=mixed&size=medium&seed=2&faction=us",
+    route: "/battle?type=mixed&size=medium&seed=2&blue=h&blue_faction=us&red=a&red_faction=eastern",
     stations: {
       "overview-2500": ({ size }) => at([size[0] / 2, size[1] / 2], 2500, 1.1),
       "town-250": ({ town }) => at(town, 250),

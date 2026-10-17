@@ -1645,3 +1645,95 @@ fn a_jet_circles_where_its_attack_ended() {
         );
     }
 }
+
+/// Two jets strafe the same target in trail, the wingman a little above
+/// his lead. The wingman's rounds reach the lead's line only after the lead
+/// has flown on, so the lead's current pose is clear of them and the pose
+/// it flies into is not: the wingman holds rather than shoot it down.
+#[test]
+fn a_wingman_in_trail_never_strafes_through_his_lead() {
+    for behind_m in [50.0, 70.0, 100.0, 140.0] {
+        let mut battle = trail_strafe(behind_m);
+        let jets = [UnitId(0), UnitId(1)];
+        let mut fired = 0;
+        for _ in 0..1200 {
+            let blue: std::collections::BTreeMap<_, _> = battle
+                .rounds()
+                .filter(|(_, r)| jets.contains(&r.unit))
+                .map(|(p, r)| (p.id, r.unit))
+                .collect();
+            battle.step();
+            fired += battle
+                .rounds()
+                .filter(|(p, r)| r.unit == UnitId(1) && !blue.contains_key(&p.id))
+                .count();
+            for event in battle.flight_events() {
+                let sim::flight::FlightEvent::Impact(hit) = event else {
+                    continue;
+                };
+                let Some(shooter) = blue.get(&hit.projectile) else {
+                    continue;
+                };
+                let struck = |jet: &UnitId| {
+                    hit.struck
+                        == sim::flight::Struck::Body(sim::flight::BodyId(
+                            sim::weapons::VEHICLE_BODY_BASE + jet.0,
+                        ))
+                };
+                if let Some(jet) = jets.iter().find(|j| *j != shooter && struck(j)) {
+                    panic!(
+                        "{behind_m} m in trail: {shooter:?} shot {jet:?} at tick {}",
+                        battle.tick()
+                    );
+                }
+            }
+        }
+        // Holding is not a freeze: once his lead is clear he strafes too.
+        assert!(fired > 0, "{behind_m} m in trail: the wingman never fired");
+    }
+}
+
+/// A test-jet lead at (500, 2000) and its wingman `behind_m` behind it,
+/// both strafing the ground under a red tank 2.5 km east with their guns.
+/// The strafe band reaches well below cruise, so their seeded pass heights
+/// stand the wingman some metres above his lead.
+fn trail_strafe(behind_m: f64) -> sim::battle::Battle {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mounts": [{
+            "id": "test_mount_0", "name": "Test Mount", "weapons": ["air_gun"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [7, 0, 0]
+        }] }),
+    );
+    rules["air"]["high_air"]["floor_agl_m"] = json!(40);
+    rules["air"]["fixed_wing"]["strafe_ceiling_m"] = json!(240);
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [500, 2000], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_jet", "position": [500.0 - behind_m, 2000], "yaw": 0.0 },
+            { "side": "red", "kind": "test_tank", "position": [3000, 2000], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0), UnitId(1)],
+            target: TargetRef::Ground {
+                point: [3000.0, 2000.0, 0.0],
+            },
+        },
+    });
+    assert_eq!(ack.error, None);
+    battle
+}

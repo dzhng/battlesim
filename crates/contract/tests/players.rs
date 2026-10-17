@@ -93,6 +93,12 @@ fn entry_count_is_one_two_or_three() {
 }
 
 #[test]
+fn entry_count_follows_the_shared_size_fixture() {
+    assert_eq!(entry_count(4), 3);
+    assert_eq!(entry_count(5), 3);
+}
+
+#[test]
 fn wrong_entry_count_is_refused_for_the_player_topology() {
     let players = vec![
         player("blue-1", Side::Blue, Faction::Us),

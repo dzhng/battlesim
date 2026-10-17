@@ -1942,3 +1942,127 @@ fn fuel_return_uses_the_edge_distance() {
         far.1
     );
 }
+
+#[test]
+fn air_ingress_jet_returns_through_west_edge_and_refunds_its_owner() {
+    let rules = sim::fixtures::game();
+    let map = serde_json::to_value(sim::maps::load("air-jet").unwrap().definition).unwrap();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": map,
+        "rules": rules,
+        "units": [], "events": [], "scripts": [],
+        "players": [
+            { "id": "blue-1", "side": "blue", "faction": "us", "controller": "human", "human_capable": true },
+            { "id": "red-1", "side": "red", "faction": "eastern", "controller": "active_ai", "human_capable": false }
+        ],
+        "skirmish": {
+            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0,
+                "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1,
+                "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
+            "sites": {
+                "entries": [
+                    { "side": "blue", "center": [10, 1500], "yaw": 0 },
+                    { "side": "red", "center": [2990, 1500], "yaw": 3.141592653589793 }
+                ],
+                "objectives": [
+                    { "id": "center", "center": [1500, 1500], "radius_m": 40, "kind": "junction", "counterpart": null },
+                    { "id": "south", "center": [1500, 450], "radius_m": 40, "kind": "field", "counterpart": "north" },
+                    { "id": "north", "center": [1500, 2550], "radius_m": 40, "kind": "field", "counterpart": "south" }
+                ]
+            }
+        }
+    })).unwrap();
+    let mut battle = Battle::new(&setup, 6);
+    assert!(battle
+        .accept(command(Side::Blue, 1, Order::Ready))
+        .error
+        .is_none());
+    battle.step();
+    battle.step();
+    for (seq, destination) in [(2, [1500.0, 1500.0]), (3, [2500.0, 2400.0])] {
+        assert_eq!(
+            battle
+                .accept(command(
+                    Side::Blue,
+                    seq,
+                    Order::ConfirmPurchase {
+                        variant: "f_16c_block_50".into(),
+                        destination
+                    },
+                ))
+                .error,
+            None
+        );
+    }
+    battle.step();
+
+    let mut saw_withdrawal = false;
+    let mut saw_westbound_transit = false;
+    let mut blue_credits = battle
+        .observe(Side::Blue)
+        .skirmish
+        .as_ref()
+        .unwrap()
+        .players[0]
+        .credits;
+    let mut retirement_refund = None;
+    let mut outbound_tick = None;
+    let mut retired_tick = None;
+    let mut first_id = None;
+    let mut withdrawing = false;
+    for _ in 0..(300 * battle.rules().tick_hz) {
+        let steps = if withdrawing { 1 } else { 30 };
+        for _ in 0..steps {
+            battle.step();
+        }
+        let frame = battle.observe(Side::Blue);
+        let blue = frame
+            .skirmish
+            .as_ref()
+            .unwrap()
+            .players
+            .iter()
+            .find(|player| player.id == "blue-1")
+            .unwrap();
+        if first_id.is_none() {
+            first_id = frame
+                .own
+                .iter()
+                .find(|unit| battle.rules().catalog.id(unit.kind) == "f_16c_block_50")
+                .map(|unit| unit.id);
+        }
+        let jet = first_id.and_then(|id| frame.own.iter().find(|unit| unit.id == id));
+        if jet.is_some_and(|unit| unit.withdrawing) {
+            saw_withdrawal = true;
+            withdrawing = true;
+        }
+        saw_westbound_transit |= frame.air_transits.iter().any(|transit| {
+            matches!(transit.dir, contract::observation::AirTransitDirection::Out)
+                && transit.point[0] <= 10.0
+        });
+        if saw_westbound_transit && outbound_tick.is_none() {
+            outbound_tick = Some(battle.tick());
+        }
+        if first_id.is_some() && jet.is_none() {
+            retirement_refund = Some(blue.credits - blue_credits);
+            retired_tick = Some(battle.tick());
+            break;
+        }
+        blue_credits = blue.credits;
+        saw_withdrawal |= frame.own.iter().any(|unit| unit.withdrawing);
+    }
+    assert!(saw_withdrawal, "the F-16 never turned for home");
+    assert!(
+        saw_westbound_transit,
+        "the outbound transit did not use blue's west edge"
+    );
+    assert!(
+        matches!((outbound_tick, retired_tick), (Some(out), Some(retired)) if out <= retired),
+        "the jet retired before its outbound transit"
+    );
+    assert!(
+        retirement_refund.unwrap_or_default() > 350.0 * 0.15,
+        "the retired jet did not refund its owner: credits={:?}",
+        retirement_refund
+    );
+}

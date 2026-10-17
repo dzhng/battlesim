@@ -1,11 +1,11 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–05 and 07 done).
+**Status:** in progress (slices 00–07 done).
 **Updated:** 2026-10-17.
 
 ## Next Agent Prompt
 
-**Done:** slices 00, 01, 02, 04 and 07.
+**Done:** slices 00–07.
 - Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
 - Slice 01 landed the player contract. D54 makes Neutral players factionless.
 - Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
@@ -14,7 +14,7 @@
 - Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
 
 **Next:**
-- Slice 06 (setup constructor, request and links): 03 and 05 have landed. After it, run slice 05's deferred browser check, a 3v4 all-AI battle with units arriving at the nearest entry.
+- Slice 08 (lobby map picture, visual): use the admitted map and sites in the preview; run the visual gates.
 - Slice 04 follow-up: with three entries, both flank arms can land on the same side of the centre road. The slice 08 picture showed it on a Large 3v4. The fix is queued.
 - Slice 08 (lobby map picture, visual) can start now that 04 and 07 have landed.
 
@@ -46,7 +46,7 @@ Slices:
 - [x] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
 - [x] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
 - [x] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
-- [ ] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
+- [x] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
 - [x] 07: lobby model ([slice](slices/07-lobby-model.md))
 - [x] 08: lobby map picture ([slice](slices/08-map-picture.md))
 - [ ] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))

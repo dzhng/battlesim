@@ -19,6 +19,7 @@ import {
   unitName,
   type BuilderController,
   type BuilderUnit,
+  type BuilderSkirmish,
   type ScenarioBundleDraft,
 } from "./model";
 import type { Player } from "@web/battle/prepare/protocol";
@@ -77,6 +78,42 @@ export default function ScenarioBuilder() {
         ),
       },
     }));
+  }
+
+  async function changeMode(mode: ScenarioBundleDraft["mode"]) {
+    if (mode !== "economy") {
+      setDraft((current) => ({
+        ...current,
+        mode,
+        scenario: { ...current.scenario, skirmish: undefined },
+      }));
+      return;
+    }
+    setStatus({ kind: "idle", text: "Loading the simulation's skirmish site owner…" });
+    try {
+      const wasm = await loadWasm();
+      const sitesFor = (size: readonly [number, number], entriesPerSide: number) =>
+        (
+          JSON.parse(wasm.synthetic_sites(JSON.stringify(size), entriesPerSide)) as {
+            entries: BuilderSkirmish["sites"]["entries"];
+          }
+        ).entries;
+      setDraft((current) => ({
+        ...current,
+        mode,
+        scenario: {
+          ...current.scenario,
+          units: [],
+          skirmish: builderEconomy(current.scenario.map.size, current.scenario.players, sitesFor),
+        },
+      }));
+      setStatus({
+        kind: "ok",
+        text: "Economy mode uses the skirmish wallet; authored units were cleared.",
+      });
+    } catch (error) {
+      setStatus({ kind: "error", text: error instanceof Error ? error.message : String(error) });
+    }
   }
 
   function place(point: [number, number]) {
@@ -644,32 +681,7 @@ export default function ScenarioBuilder() {
           Mode
           <select
             value={draft.mode}
-            onChange={(event) => {
-              const mode = event.target.value as ScenarioBundleDraft["mode"];
-              if (mode === "economy")
-                setStatus({
-                  kind: "ok",
-                  text: "Economy mode uses the skirmish wallet; authored units were cleared.",
-                });
-              setDraft((current) => {
-                if (mode === "economy") {
-                  return {
-                    ...current,
-                    mode,
-                    scenario: {
-                      ...current.scenario,
-                      units: [],
-                      skirmish: builderEconomy(current.scenario.map.size),
-                    },
-                  };
-                }
-                return {
-                  ...current,
-                  mode,
-                  scenario: { ...current.scenario, skirmish: undefined },
-                };
-              });
-            }}
+            onChange={(event) => void changeMode(event.target.value as ScenarioBundleDraft["mode"])}
           >
             <option value="sandbox">sandbox</option>
             <option value="economy">economy</option>
