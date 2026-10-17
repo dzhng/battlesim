@@ -11,16 +11,7 @@
 import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import {
-  advance,
-  buildingsSettled,
-  hideHud,
-  lab,
-  menuShown,
-  obs,
-  openMenu,
-  openMenuPage,
-} from "./_lab.mjs";
+import { advance, buildingsSettled, hideHud, lab, menuShown, obs, openMenu } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
@@ -74,36 +65,28 @@ async function preparedBattle(page) {
   };
 }
 
-/** Start a battle as a player does: open the main menu, choose the map's
- *  type and size, and deploy. The menu shows no seed; the scene pins one by
- *  the menu's address so the map is the same every run. Returns what the
- *  menu and the loading screen showed. */
+/** Start a battle as a player does: open the skirmish lobby, choose the
+ *  map's type and size, wait for its map, and deploy. The scene pins the seed
+ *  by the menu's address so the map is the same every run. Returns what the
+ *  lobby and the loading screen showed. */
 async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = async () => {}) {
   await page.goto(new URL("/", ctx.url).href);
   await menuShown(page);
-  await openMenuPage(page, "Skirmish");
-  const drawn = await page.getByTestId("menu-deploy").getAttribute("href");
   await page.goto(new URL(`/?seed=${map.seed}`, ctx.url).href);
   await page.getByTestId("menu-deploy").waitFor();
   if (shots) await writeFile(ctx.evidencePath("menu-1920x1080.png"), await page.screenshot());
   await page.getByTestId(`menu-map-${map.type}`).click();
   await page.getByTestId(`menu-size-${map.size}`).click();
+  await page.locator('[data-testid=lobby-status][data-status="ready"]').waitFor();
   const menu = {
-    drawn,
-    seedShown: await page
-      .locator(".menu")
-      .innerText()
-      .then((t) => /seed/i.test(t)),
+    seed: await page.locator(".lobby-seed").innerText(),
     href: await page.getByTestId("menu-deploy").getAttribute("href"),
     checked: await page
       .locator(
         '[data-testid^="menu-map-"][aria-checked="true"], [data-testid^="menu-size-"][aria-checked="true"]',
       )
       .allTextContents(),
-    region: await page
-      .getByRole("radiogroup", { name: "region", exact: true })
-      .getByRole("radio", { checked: true })
-      .textContent(),
+    region: await page.getByTestId("menu-region").textContent(),
   };
   if (shots)
     await writeFile(ctx.evidencePath("menu-chosen-1920x1080.png"), await page.screenshot());
@@ -304,10 +287,10 @@ async function cameraOnMap(ctx, spec) {
 export async function run(ctx) {
   if (process.env.CAMERA_MAP) return cameraOnMap(ctx, process.env.CAMERA_MAP);
   if (process.env.STARTUP_MAP) return startupOf(ctx, process.env.STARTUP_MAP);
-  if (process.env.PLAY_REFUSAL) return playRefusal(ctx);
-  if (process.env.PLAY_DEADLINE) return playRefusal(ctx, true);
-  await playRefusal(ctx);
-  await playRefusal(ctx, true);
+  if (process.env.PREVIEW_REFUSAL) return previewRefusal(ctx);
+  if (process.env.PREVIEW_DEADLINE) return previewRefusal(ctx, true);
+  await previewRefusal(ctx);
+  await previewRefusal(ctx, true);
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const warnings = [];
   page.on("console", (m) => {
@@ -319,15 +302,9 @@ export async function run(ctx) {
   const { menu, loading } = await deployFromMenu(ctx, page, MAP, true);
   const asked = new URL(menu.href, ctx.url);
   ctx.check(
-    "ordinary Play is unpinned, and an explicit seeded menu address deploys its exact chosen map",
-    menu.drawn ===
-      "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern" &&
-      !menu.seedShown &&
-      asked.pathname === "/battle" &&
-      !asked.searchParams.has("play") &&
-      ["type", "size", "seed", "blue", "blue_faction", "red", "red_faction"]
-        .map((k) => asked.searchParams.get(k))
-        .join() === `${MAP.type},${MAP.size},${MAP.seed},h,us,a,eastern` &&
+    "the lobby deploys the map it previewed at the seed its address asked for",
+    asked.pathname === "/battle" &&
+      menu.seed.replaceAll(" ", "").toLowerCase() === `seed${MAP.seed}` &&
       // The size choices read S, M, L, XL (slice 07).
       menu.checked.join() ===
         `${MAP.type},${{ small: "S", medium: "M", large: "L", xl: "XL" }[MAP.size]}` &&
@@ -717,8 +694,9 @@ export async function run(ctx) {
   await writeFile(ctx.evidencePath("refused-1280x800.png"), await refused.screenshot());
 }
 
-/** Exhausted generation remains a refused skirmish, never a fixed map. */
-async function playRefusal(ctx, deadline = false) {
+/** Exhausted generation leaves the lobby without a map and Deploy shut,
+ *  never a fixed map in its place. */
+async function previewRefusal(ctx, deadline = false) {
   const page = await ctx.newPage();
   const defaults = JSON.parse(
     readFileSync(new URL("../../fixtures/generated-battle.json", import.meta.url)),
@@ -750,30 +728,19 @@ async function playRefusal(ctx, deadline = false) {
   }
   await page.goto(new URL("/", ctx.url).href);
   await menuShown(page);
-  await openMenuPage(page, "Skirmish");
-  const deploy = page.getByRole("link", { name: "Deploy" });
-  ctx.check(
-    "ordinary menu Play carries preferences without a promised seed",
-    (await deploy.getAttribute("href")) ===
-      "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-  );
-  await deploy.click();
+  await page.getByRole("button", { name: "Skirmish", exact: true }).click();
   // A stalled worker is refused only when admission's own deadline runs out.
   await page
-    .getByTestId("error")
+    .locator('[data-testid=lobby-status][data-status="failed"]')
     .waitFor({ timeout: defaults.admission.generated_deadline_ms + 15000 });
-  await page.getByRole("button", { name: "Details", exact: true }).click();
-  const failure = await page.getByTestId("error").textContent();
   ctx.check(
-    "exhausted generation refuses Play without switching to a saved map",
-    /The battle could not be prepared/.test(failure) &&
-      new URL(page.url()).searchParams.get("play") === "1" &&
-      !(await page.evaluate(() => window.__lab?.ready ?? false)),
-    `${page.url()} | ${failure}`,
+    `${deadline ? "a stalled preview" : "exhausted generation"} leaves the lobby without a map and Deploy shut`,
+    (await page.getByTestId("menu-deploy").getAttribute("aria-disabled")) === "true" &&
+      (await page.locator("[data-testid=lobby-map] svg").count()) === 0,
   );
   if (deadline)
     ctx.check("the stalled worker is not replaced by a saved map", workers === 1, workers);
-  const name = deadline ? "play-deadline" : "play-refused";
+  const name = deadline ? "preview-deadline" : "preview-refused";
   await writeFile(ctx.evidencePath(`${name}.png`), await page.screenshot());
   await page.close();
 }

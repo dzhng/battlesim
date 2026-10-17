@@ -13,6 +13,9 @@ const PANELS = ".hud-panel, .hud-card, .hud-rejected, .frame-rate";
 /** Never pinned: the menu's live 3D backdrop (its film, grade and veil, all
  *  of it) and the build's identity. */
 const MENU_UNPINNED = ".menu-backdrop, [data-testid=menu-build] { visibility: hidden !important; }";
+/** Also never pinned here: the lobby's map, a fresh seed each visit (the
+ *  map-picture scene judges the picture). */
+const LOBBY_UNPINNED = `${MENU_UNPINNED} .lobby-picture, .lobby-seed { visibility: hidden !important; }`;
 
 async function contained(ctx, page, name) {
   const out = await spills(page, PANELS);
@@ -383,7 +386,11 @@ export async function run(ctx) {
         (await page.getByRole("radio", { checked: true }).count()) === 1,
       );
     }
-    await ctx.matchBaseline(body, `menu-${entry}`, { style: MENU_UNPINNED });
+    if (entry === "skirmish")
+      await page.locator('[data-testid=lobby-status][data-status="ready"]').waitFor();
+    await ctx.matchBaseline(body, `menu-${entry}`, {
+      style: entry === "skirmish" ? LOBBY_UNPINNED : MENU_UNPINNED,
+    });
     await page.keyboard.press("Escape");
   }
   await page.close();

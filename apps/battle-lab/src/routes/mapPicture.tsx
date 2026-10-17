@@ -10,11 +10,10 @@ import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
 import { useSessionCatalog } from "@web/battle/catalog/context";
 import { mapPreviews, type PreviewState } from "@web/battle/prepare/preview";
-import type { PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import { generationRequest, MAP_SIZES, type MapSize } from "@web/maps/source";
+import { MAP_SIZES, type MapSize } from "@web/maps/source";
+import { lobbyCandidate } from "../lobby/candidate";
 import { add, preset, type LobbyState } from "../lobby/model";
-import { entryCountForPlayers } from "../skirmishSetup";
 
 const PAIRINGS: Record<string, () => LobbyState> = {
   "1v1": () => preset("1v1"),
@@ -38,27 +37,14 @@ const POLICY = { ...config.admission, generated_deadline_ms: 90_000 };
 const SIZE_LETTER: Record<MapSize, string> = { small: "S", medium: "M", large: "L", xl: "XL" };
 
 /** The preview's candidates for `cell`: the lobby's players on a mixed map of
- *  its size, with seeds counted from 1 so every visit draws the same maps. */
+ *  its size (below the size floor too, to show the refusal), with seeds
+ *  counted from 1 so every visit draws the same maps. */
 function candidates(wasm: Wasm, cell: Cell) {
   const lobby = PAIRINGS[cell.pairing]();
-  const base = generationRequest(
-    wasm,
-    { ...lobby.map, size: cell.size, profile: "skirmish" },
-    { presets, templates },
-    config.limits,
-  );
-  const entries = entryCountForPlayers(lobby.players);
   let next = 0;
   return {
     seed: () => String(++next),
-    candidate: (seed: string): PrepareBattleRequest => ({
-      map_source: {
-        kind: "generated",
-        request: { ...base, seed, ...(entries > 1 && { entries_per_side: entries }) },
-      },
-      players: lobby.players,
-      battle_seed: lobby.battleSeed,
-    }),
+    candidate: lobbyCandidate(wasm, { ...lobby, map: { ...lobby.map, size: cell.size } }),
   };
 }
 

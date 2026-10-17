@@ -1,5 +1,6 @@
-/** Ordinary unpinned Play selects an admitted preparation. Exact requests
- * still go straight to prepareBattle; this wrapper owns candidate workers. */
+/** The lobby's preview selects an admitted preparation from candidate seeds.
+ * Exact requests go straight to prepareBattle; this wrapper owns candidate
+ * workers. */
 import type defaults from "@fixtures/generated-battle.json";
 import { newSeed } from "../../maps/source";
 import { prepareBattle, PreparationFailed, type Preparation, type PreparedSession } from "./client";

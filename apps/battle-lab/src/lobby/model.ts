@@ -3,6 +3,7 @@ import skirmishSizes from "@fixtures/skirmish-sizes.json";
 import type { Player, PrepareBattleRequest, ControllerKind } from "@web/battle/prepare/protocol";
 import {
   MAP_SIZES,
+  MAP_TYPES,
   newSeed,
   type GenerationRequest,
   type MapChoice,
@@ -93,35 +94,41 @@ function ratchetSize(players: readonly Player[], size: MapSize): MapSize {
   return sizeRank(size) >= sizeRank(floor) ? size : floor;
 }
 
+/** The lobby with `players`: the floor follows them both ways (D18), and the
+ *  size rises to it but never falls with it. */
 function withPlayers(state: LobbyState, players: Player[]): LobbyState {
-  const floor =
-    sizeRank(state.sizeFloor) >= sizeRank(minimumSize(players))
-      ? state.sizeFloor
-      : minimumSize(players);
+  const floor = minimumSize(players);
   return {
     ...state,
     players: orderedPlayers(enforceHumanInvariant(players)),
     sizeFloor: floor,
-    map: {
-      ...state.map,
-      size: sizeRank(state.map.size) >= sizeRank(floor) ? state.map.size : floor,
-    },
+    map: { ...state.map, size: ratchetSize(players, state.map.size) },
   };
 }
 
-export function preset(kind: LobbyPreset): LobbyState {
+/** A fresh `kind` match; applied to `from`, it reseats that lobby, keeping its
+ *  map type, region and seed and each side's faction, with the size at the
+ *  preset's floor. */
+export function preset(kind: LobbyPreset, from?: LobbyState): LobbyState {
   const count = countForPreset[kind];
   const players = SIDES.flatMap((side) =>
-    Array.from({ length: count }, (_, index) =>
-      makePlayer(side, index + 1, side === "blue" && index === 0),
-    ),
+    Array.from({ length: count }, (_, index) => ({
+      ...makePlayer(side, index + 1, side === "blue" && index === 0),
+      ...(from && { faction: sideFaction(from, side) }),
+    })),
   );
+  const floor = minimumSize(players);
   return {
     players,
-    map: { ...DEFAULT_MAP, size: ratchetSize(players, DEFAULT_MAP.size) },
-    battleSeed: Number(game.seed),
-    sizeFloor: minimumSize(players),
+    map: { ...(from?.map ?? DEFAULT_MAP), size: floor },
+    battleSeed: from?.battleSeed ?? Number(game.seed),
+    sizeFloor: floor,
   };
+}
+
+/** The faction `side` fields in `state` (one per side). */
+export function sideFaction(state: LobbyState, side: LobbySide): Faction {
+  return state.players.find((player) => player.side === side)?.faction ?? factionFor(side);
 }
 
 export function add(state: LobbyState, side: LobbySide): LobbyState {
@@ -200,13 +207,23 @@ export function setFaction(state: LobbyState, side: LobbySide, faction: Faction)
 
 export function setSize(state: LobbyState, size: MapSize): LobbyState {
   if (!MAP_SIZES.includes(size)) throw new Error(`unknown map size: ${size}`);
-  const minimum = minimumSize(state.players);
-  const floor = sizeRank(state.sizeFloor) >= sizeRank(minimum) ? state.sizeFloor : minimum;
+  const floor = minimumSize(state.players);
   return {
     ...state,
     sizeFloor: floor,
-    map: { ...state.map, size: sizeRank(size) >= sizeRank(floor) ? size : floor },
+    map: { ...state.map, size: ratchetSize(state.players, size) },
   };
+}
+
+export function setType(state: LobbyState, type: MapType): LobbyState {
+  if (!MAP_TYPES.includes(type)) throw new Error(`unknown map type: ${type}`);
+  return { ...state, map: { ...state.map, type } };
+}
+
+/** Build the map in `region`'s style, or leave the region to the seed. */
+export function setRegion(state: LobbyState, region: string | undefined): LobbyState {
+  const { region: _, ...map } = state.map;
+  return { ...state, map: region === undefined ? map : { ...map, region } };
 }
 
 export function reroll(state: LobbyState, seed?: string): LobbyState {

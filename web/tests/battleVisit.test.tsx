@@ -1,22 +1,22 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router";
-import { preparedBattleHref } from "@apps/battle-lab/src/battleLinks";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabRouter } from "@apps/battle-lab/src/router";
 import type { PreparedSession } from "../src/battle/prepare/client";
-import type { AdmissionInputs } from "../src/battle/prepare/admission";
+import type { PreparationMessage } from "../src/battle/prepare/protocol";
 import { renderSettled } from "./support/router";
 
 const pending = vi.hoisted(() => ({
   finish: null as null | ((battle: PreparedSession) => void),
-  input: null as null | AdmissionInputs,
+  message: null as null | PreparationMessage,
   cancelled: false,
 }));
-// Control admission completion at its async boundary; routing, parsing,
-// the scenario builder and the loading/cancel surface stay real.
-vi.mock("@web/battle/prepare/admission", () => ({
-  admitBattle: (input: AdmissionInputs) => {
-    pending.input = input;
+// Control preparation's completion at its async boundary; routing, parsing,
+// the request builder and the loading/cancel surface stay real.
+vi.mock("@web/battle/prepare/client", async (actual) => ({
+  ...(await actual<object>()),
+  prepareBattle: (message: PreparationMessage) => {
+    pending.message = message;
     return {
       battle: new Promise<PreparedSession>((resolve) => {
         pending.finish = resolve;
@@ -24,26 +24,25 @@ vi.mock("@web/battle/prepare/admission", () => ({
       cancel: () => {
         pending.cancelled = true;
       },
-      attempts: [],
     };
   },
 }));
-// This suite stops at admission rather than booting a GPU and combat authority.
+// This suite stops at preparation rather than booting a GPU and combat authority.
 vi.mock("@apps/battle-lab/src/BattleView", () => ({ BattleView: () => <p>Battle admitted</p> }));
 
 afterEach(() => {
   cleanup();
   window.history.replaceState(null, "", "/");
   pending.finish = null;
-  pending.input = null;
+  pending.message = null;
   pending.cancelled = false;
 });
 
-test("Cancel discards admission even when its resolved continuation is already queued", async () => {
+test("Cancel discards preparation even when its resolved continuation is already queued", async () => {
   window.history.replaceState(
     null,
     "",
-    "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
+    "/battle?type=mixed&size=small&seed=42&blue=h&blue_faction=us&red=a&red_faction=eastern",
   );
   await renderSettled(
     <BrowserRouter unstable_useTransitions={false}>
@@ -51,9 +50,11 @@ test("Cancel discards admission even when its resolved continuation is already q
     </BrowserRouter>,
   );
   const cancel = await screen.findByRole("link", { name: "Cancel" });
-  // The loading cover shows before admission starts (its documents load first).
-  await vi.waitFor(() => expect(pending.input).not.toBeNull());
-  const request = pending.input!.candidate("42");
+  // The loading cover shows before preparation starts (its documents load first).
+  await vi.waitFor(() => expect(pending.message).not.toBeNull());
+  const message = pending.message!;
+  if (message.type !== "prepare") throw new Error("an exact battle prepares its request");
+  const request = message.request;
   await act(async () => {
     pending.finish!({
       scenario: "{}",
@@ -66,39 +67,5 @@ test("Cancel discards admission even when its resolved continuation is already q
   // Back on the menu, on the page that asks for the cancelled battle.
   expect(screen.getByRole("heading", { name: "Skirmish" })).toBeDefined();
   expect(window.location.pathname).toBe("/");
-  expect(window.location.search).toBe("?type=mixed&size=small");
-});
-
-test("successful ordinary admission publishes the exact address without returning to preparation", async () => {
-  window.history.replaceState(
-    { usr: { note: "keep" } },
-    "",
-    "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-  );
-  await renderSettled(
-    <BrowserRouter unstable_useTransitions={false}>
-      <LabRouter />
-    </BrowserRouter>,
-  );
-  await screen.findByRole("link", { name: "Cancel" });
-  await vi.waitFor(() => expect(pending.input).not.toBeNull());
-  const request = pending.input!.candidate("9007199254740993");
-  const bounds = [0, 0, 100, 100] as const;
-  await act(async () => {
-    pending.finish!({
-      scenario: "{}",
-      report: {
-        request,
-        start: { at: [0, 0], yaw: 0 },
-        size: [100, 100],
-        extents: { playable: bounds, physical: bounds, rendered: bounds },
-      } as PreparedSession["report"],
-      connect: () => ({ send() {}, close() {} }),
-    });
-  });
-  expect(screen.getByText("Battle admitted")).toBeDefined();
-  expect(screen.queryByTestId("loading")).toBeNull();
-  expect(window.location.pathname + window.location.search).toBe(preparedBattleHref(request));
-  expect(window.history.state.usr.note).toBe("keep");
-  expect(pending.cancelled).toBe(false);
+  expect(window.location.search).toBe("?type=mixed&size=small&seed=42");
 });
