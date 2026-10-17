@@ -1,0 +1,31 @@
+{
+  "units": [
+    {
+      "side": "blue",
+      "kind": "test_apc",
+      "position": [220, 240],
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "blue",
+      "kind": "test_scout_car",
+      "position": [220, 270],
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "blue",
+      "kind": "test_rifle",
+      "position": [200, 240],
+      "engagement": "return_fire_only"
+    },
+    { "side": "blue", "kind": "test_at", "position": [200, 270], "engagement": "return_fire_only" },
+    {
+      "side": "red",
+      "kind": "test_rifle",
+      "position": [500, 250],
+      "engagement": "return_fire_only"
+    }
+  ],
+  "events": [],
+  "scripts": []
+}

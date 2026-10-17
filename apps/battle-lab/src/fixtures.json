@@ -158,7 +158,7 @@
   {
     "id": "transport",
     "route": "/labs/transport",
-    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective.",
+    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective; their carriers' Seats rows and stacked rider cards. The controls variant drives the player's own controls: right-click boarding both ways under the board cursor, a squad refused for want of seats, its deck card while aboard, U then a click with the unload mark on its order line, and U twice.",
     "map": "transport",
     "catalog": "test"
   },
