@@ -74,7 +74,8 @@ pub fn task(
             UnitOrder::Garrison { .. }
             | UnitOrder::Exit
             | UnitOrder::Board { .. }
-            | UnitOrder::Collect { .. },
+            | UnitOrder::Collect { .. }
+            | UnitOrder::Unload,
         ) => AirTask::Hold,
         None => reaction(unit, knowledge),
     }

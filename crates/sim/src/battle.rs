@@ -1718,6 +1718,24 @@ impl Battle {
                 }
                 units
             }
+            Order::Unload { units, goal, .. } => {
+                self.validate_command_units(command, units)?;
+                if let Some(goal) = goal {
+                    if self.world.height_at(goal[0], goal[1]).is_none() {
+                        return Err(OrderError::OutOfBounds);
+                    }
+                }
+                if units.iter().any(|id| {
+                    self.units[id.0 as usize]
+                        .unit_type(&self.rules)
+                        .capabilities
+                        .carriage
+                        .is_none()
+                }) {
+                    return Err(OrderError::NotACarrier);
+                }
+                units
+            }
             Order::Stop { units }
             | Order::OccupyBuilding { units, .. }
             | Order::SetAfterburner { units, .. }
@@ -1848,7 +1866,8 @@ impl Battle {
                 | Order::OccupyBuilding { units, .. }
                 | Order::ExitBuilding { units }
                 | Order::Board { units, .. }
-                | Order::Collect { units, .. } => units.retain(|id| {
+                | Order::Collect { units, .. }
+                | Order::Unload { units, .. } => units.retain(|id| {
                     self.units
                         .get(id.0 as usize)
                         .is_none_or(|u| u.side != script.side || u.alive())
@@ -3654,6 +3673,28 @@ impl Battle {
                     destinations,
                 })
             }
+            Order::Unload {
+                units,
+                gesture,
+                goal: Some(goal),
+                route,
+            } => {
+                let (destinations, found) = self.place_move(
+                    command.side,
+                    &MovePreviewRequest {
+                        units: units.clone(),
+                        goal: *goal,
+                        route: *route,
+                        queued: command.queued,
+                        ..Default::default()
+                    },
+                )?;
+                stops = found;
+                Some(MovePlacement {
+                    gesture: *gesture,
+                    destinations,
+                })
+            }
             _ => None,
         };
         let mut refused = Vec::new();
@@ -3702,6 +3743,21 @@ impl Battle {
             *units = accepted;
             let _ = gesture;
         }
+        if let Order::Unload {
+            units, goal: None, ..
+        } = &command.order
+        {
+            for &unit in units {
+                if crate::carriage::unload_spots(&self.world, &self.units, unit, &self.rules)
+                    .is_none()
+                {
+                    refused.push(contract::command::Refusal {
+                        unit,
+                        reason: OrderError::NoRoomToUnload,
+                    });
+                }
+            }
+        }
         Ok(PreparedCommand {
             command,
             placement,
@@ -3735,6 +3791,7 @@ impl Battle {
             | Order::Garrison { units, .. }
             | Order::OccupyBuilding { units, .. }
             | Order::ExitBuilding { units }
+            | Order::Unload { units, .. }
             | Order::Refund { units } => Some(units),
             _ => None,
         };
@@ -3957,6 +4014,60 @@ impl Battle {
                             gesture,
                         },
                     );
+                }
+            }
+            Order::Unload {
+                units,
+                goal,
+                gesture,
+                route,
+            } => {
+                let refused: std::collections::BTreeSet<UnitId> = prepared
+                    .refused
+                    .iter()
+                    .filter(|refusal| refusal.reason == OrderError::NoRoomToUnload)
+                    .map(|refusal| refusal.unit)
+                    .collect();
+                for id in units {
+                    let unit = &mut movers[id.0 as usize];
+                    if refused.contains(&id) {
+                        Self::hold_position(unit);
+                        continue;
+                    }
+                    match goal {
+                        Some(_) => {
+                            let Some(placement) = prepared.placement.as_ref() else {
+                                continue;
+                            };
+                            let Some(destination) = placement
+                                .destinations
+                                .iter()
+                                .find(|slot| slot.unit == id && slot.placed)
+                                .map(|slot| v2(slot.goal[0], slot.goal[1]))
+                            else {
+                                if !queued {
+                                    Self::hold_position(unit);
+                                }
+                                continue;
+                            };
+                            push(
+                                unit,
+                                UnitOrder::Move(MoveOrder {
+                                    destination,
+                                    policy: route,
+                                    gesture,
+                                    direction: Default::default(),
+                                    facing: None,
+                                    short: prepared.stops.get(&id).cloned(),
+                                }),
+                            );
+                            unit.enqueue(UnitOrder::Unload, true);
+                        }
+                        None => {
+                            Self::hold_position(unit);
+                            unit.enqueue(UnitOrder::Unload, false);
+                        }
+                    }
                 }
             }
             Order::SetEngagement { units, policy } => {

@@ -4,8 +4,9 @@ use contract::ids::UnitId;
 use contract::scenario::Rules;
 
 use crate::hold::{Hold, Host, Phase, Place};
-use crate::math::V2;
+use crate::math::{V2, V3};
 use crate::units::{MoveOrder, Unit, UnitOrder};
+use crate::world::WorldGeometry;
 
 fn seats(unit: &Unit, rules: &Rules) -> usize {
     unit.unit_type(rules)
@@ -103,6 +104,96 @@ pub(crate) fn copy_passenger_positions(units: &mut [Unit]) {
     }
 }
 
+fn aboard(unit: &Unit, carrier: UnitId) -> bool {
+    unit.alive()
+        && unit
+            .hold
+            .as_ref()
+            .is_some_and(|hold| hold.host == Host::Carrier(carrier))
+}
+
+/// Find one reachable standing spot for every living passenger of `carrier`.
+/// The carrier's own hull is deliberately omitted from occupancy: soldiers
+/// leave from beneath it, while every other live hull and soldier remains a
+/// physical obstruction.
+pub(crate) fn unload_spots(
+    world: &WorldGeometry,
+    units: &[Unit],
+    carrier: UnitId,
+    rules: &Rules,
+) -> Option<Vec<V3>> {
+    let passengers: Vec<usize> = units
+        .iter()
+        .enumerate()
+        .filter(|(_, unit)| aboard(unit, carrier))
+        .map(|(index, _)| index)
+        .collect();
+    if passengers.is_empty() {
+        return Some(Vec::new());
+    }
+    let hulls: Vec<_> = units
+        .iter()
+        .enumerate()
+        .filter(|(index, unit)| *index != carrier.0 as usize && unit.alive())
+        .filter_map(|(_, unit)| unit.ground_footprint())
+        .collect();
+    let soldiers: Vec<V2> = units
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| !passengers.contains(index))
+        .flat_map(|(_, unit)| unit.member_positions().map(|position| position.xy()))
+        .collect();
+    let radius = rules.physics.soldier_radius_m;
+    let from = units[carrier.0 as usize].position.xy();
+    let mut occupied = soldiers;
+    let mut spots = Vec::new();
+    for &passenger in &passengers {
+        for _soldier in units[passenger].members.iter().filter(|s| s.alive()) {
+            let spot = crate::arrangement::forced_exit_spot(
+                world,
+                from,
+                rules.carriage.unload_search_m,
+                radius,
+                &hulls,
+                &occupied,
+                &[],
+            )?;
+            occupied.push(spot.xy());
+            spots.push(spot);
+        }
+    }
+    Some(spots)
+}
+
+/// Commit an unload after its shared hold timer has completed. Spot search is
+/// all-or-nothing, so a failed search leaves every passenger aboard.
+pub(crate) fn complete_unload(
+    world: &WorldGeometry,
+    units: &mut [Unit],
+    carrier: UnitId,
+    rules: &Rules,
+) -> bool {
+    let passengers: Vec<usize> = units
+        .iter()
+        .enumerate()
+        .filter(|(_, unit)| aboard(unit, carrier))
+        .map(|(index, _)| index)
+        .collect();
+    let Some(spots) = unload_spots(world, units, carrier, rules) else {
+        return false;
+    };
+    let mut spots = spots.into_iter();
+    for index in passengers {
+        let unit = &mut units[index];
+        for soldier in unit.members.iter_mut().filter(|s| s.alive()) {
+            soldier.position = spots.next().expect("unload spot count matches passengers");
+        }
+        unit.settle();
+        unit.hold = None;
+    }
+    true
+}
+
 /// Whether unit `i` is walking or driving toward its Board or Collect target
 /// and is already within the hold's reach of it. The approach aims at the
 /// target's centre, which a hull keeps it from ever standing on, so the walk
@@ -131,6 +222,18 @@ pub(crate) fn advance(
     refusals: &mut [Vec<contract::command::Refusal>; 3],
 ) {
     copy_passenger_positions(units);
+    let empty_unloads: Vec<bool> = units
+        .iter()
+        .map(|unit| {
+            matches!(unit.orders.front(), Some(UnitOrder::Unload))
+                && !units.iter().any(|passenger| aboard(passenger, unit.id))
+        })
+        .collect();
+    for (index, empty) in empty_unloads.into_iter().enumerate() {
+        if empty {
+            units[index].orders.pop_front();
+        }
+    }
     for i in 0..units.len() {
         if !units[i].alive() || units[i].hold.is_some() {
             continue;
