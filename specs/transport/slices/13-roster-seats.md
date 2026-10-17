@@ -20,10 +20,9 @@
 - In a skirmish, any carrier can be boarded.
 
 ## Verification
-- A catalog test asserts the D3 table exactly:
-  - every listed id has its seats;
-  - every supply truck has none;
-  - no description mentions passenger carriage.
+- **No test pins the seat table.** AGENTS.md: tests test mechanics, not configuration; a roster is data meant to change.
+- Instead, the orchestrator checks the data once by hand against D3, using a scratch listing of every unit's resolved `carriage.seats` from `fixtures/catalog.json`, and records the result in the slice's choices entry.
+- The mechanics are already pinned by slices 06–09's tests, which run on test carriers.
 - Re-bless `fixtures/catalog.json` and the parity records.
 - No outcome change: nothing boards until a player or the AI orders it.
 

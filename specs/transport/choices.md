@@ -26,6 +26,13 @@ Decisions the user made live in [map.md](map.md); change them there.
 
 ## Slice 06
 
+- **The carrier timer starts at `Entering(0)`.** Lowering the order and advancing the hold happen in the same tick, so starting at 0 keeps the full 1 s.
+- **The first pass ran its own carrier timer in `carriage.rs`, and its `Host::building()` panicked on carrier holds.** The orchestrator's review sent it back.
+  - The hold phase and timer now run only through `hold::advance`, with host hooks (`carriage::near_and_still`, `carriage::admit`).
+  - `Host::building()` returns an `Option`.
+  - Running out of seats at the end of the timer publishes `CapacityFull` in `ObservationFrame.refusals`.
+- **Old parity scenarios got `rules.carriage` from the game fixture** before being re-blessed.
+
 - **Carrier reach is 3 m.** Alternative: reuse the building's 4 m entry distance. Why: the slice delegates a reach below 4 m; the hull's footprint supplies the final approach room while the authored threshold remains a closer boarding distance. Reach: boarding and collection admission. Reverse: change `fixtures/game.json` and the carriage rule checks.
 - **Test carriers explicitly clear inherited roster metadata.** Alternative: let `test_apc` and `test_scout_car` inherit `test_jeep`'s later test roster patches. Why: test-only carriers must not become extra skirmish cards when a test patches `test_jeep` into a deck. Reach: test catalogs and AI unit-selection fixtures. Reverse: remove the `roster: null` fields and update every deck test's candidate filtering.
 - **Collect approaches to the carrier hull's reach envelope and boards when stopped.** Alternative: drive to the squad centroid exactly and rely on the generic route stop. Why: the carrier needs a physical hull-side approach and a stopped 1 s timer; the envelope avoids a permanent last-metre stall. Reach: `Collect` movement and the transport scene. Reverse: move the approach calculation into the carrier order owner.

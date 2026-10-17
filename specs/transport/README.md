@@ -1,6 +1,6 @@
 # Transport
 
-**Status:** in progress. 01–05 landed (captures re-recorded in `922f3416c`); 06 is in flight (Codex, separate worktrees).
+**Status:** in progress. 01–06 landed (captures re-recorded in `922f3416c`); 07 is in flight (Codex), and the transport lab's first browser run is being fixed in this checkout (Codex, separate worktrees).
 **Updated:** 2026-10-16.
 
 Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier has 3, 8 or 16 seats. Squads board it in 1 s, ride hidden from the enemy, and get out on an explicit Unload order. When a carrier dies, its passengers bail out hurt, and some die. A building collapse now works the same way. The skirmish AI moves its infantry by transport.
@@ -32,7 +32,7 @@ Update this section, and tick the list, before you end each pass.
 - [x] [03](slices/03-hold-and-refusal-contract.md) The observation, publication and refusal contract for holds. Captures are re-recorded once, here.
 - [x] [04](slices/04-bail-out.md) The bail-out library, applied to building collapse (named outcome change).
 - [x] [05](slices/05-recon-three.md) Recon patrols become 3 soldiers (named outcome change).
-- [ ] [06](slices/06-boarding.md) The carriage capability, boarding from both directions, and "on the field". Opens the transport lab.
+- [x] [06](slices/06-boarding.md) The carriage capability, boarding from both directions, and "on the field". Opens the transport lab.
 - [ ] [07](slices/07-unload.md) Unloading at a point, in place and queued; refused with no room.
 - [ ] [08](slices/08-carrier-destroyed.md) A destroyed carrier bails out its passengers; refunds take passengers along.
 - [ ] [09](slices/09-helicopters.md) Helicopters board and unload from the low hover; a downed helicopter keeps its passengers until impact.
