@@ -82,3 +82,21 @@ Decisions the user made live in [map.md](map.md); change them there.
   - The first pass dropped the rule. The orchestrator's review restored it, and a courtyard test now pins it.
 - **Soldier spacing for forced exits stays 1 m** (`arrangement::ESCAPE_SPACING_M`).
 - **Partial deaths go through the existing corpse and unit accounting;** the observation is unchanged.
+
+## Slice 10
+- **Riders are drawn inside the carrier's card** by one component, `PassengerCards`, used in battle and in the panel workbench. The stack is laid out, hidden and hovered as one card.
+  - Alternative: give each rider its own callout and add a second layout rule for nesting.
+  - Reach: a stack that doesn't fit hides as a whole.
+- **A state row can be marked `compact`,** meaning it stays on compact cards. Only `seats` is marked.
+  - The Seats row is a count, never turns amber, and keeps its words in far view.
+- **`passengersOf(own, carrier)` (`panelRows.ts`) is the one place that works out who rides what,** from `aboardCarrier(u)` (`observationView.ts`). Squads still boarding or getting out count toward seats and appear in the stack. Riders are listed in the side's unit order.
+- **A passenger's hold row depends on its host:** BOARDING or DISMOUNTING with a timer, and nothing while inside. Building rows are unchanged.
+- **Riders dim to 0.8 of the carrier's brightness** and line up with the row words, 6 px apart.
+- **Selection follows D10.**
+  - The control drops any squad in a carrier hold, in any phase, from every selection path.
+  - Clicking a rider's card selects the carrier.
+  - The first pass let a rider's card select the rider; the orchestrator's review overturned it (`cc3e23474`).
+- **The Seats icon is a generated car seat.** Five unprimed critiques went through a chair, a seated figure and a row of seats; the last critique still found the car seat unclear. **Open:** a clearer drawing is welcome.
+- **The transport lab camera sits 150 m out** (it was 380 m), centred on the carriers.
+- **The panel specimens give the test jeep 8 or 16 seats,** as the radar specimens already do.
+- **Two fixes outside the slice, each in its own commit:** stale generated icons (`e096f25a9`), and the panels scene's run split under the complexity budget (`cc095450a`).

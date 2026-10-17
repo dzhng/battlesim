@@ -23,6 +23,7 @@ Load `game-ui` first.
 - **Order wording** in `useUnitControl.ts:140-175` (tsc forces it to be complete).
 - **Refusal text.** `REFUSAL_TEXT` in `rejectedOrder.tsx:17-27` gets `NO ROOM TO UNLOAD`, `NOT A CARRIER` and `ABOARD`. Per-unit refusals come from `CommandAck.refused`; refusals on arrival come from `ObservationFrame.refusals`, shown at the carrier.
 - **Help.** `apps/battle-lab/src/Tutorial.tsx` lists the U key.
+- **Army deck:** a passenger squad's deck card shows it is aboard (dimmed), and clicking it selects its carrier, matching the card stack. It isn't hidden, because the deck is the player's whole army.
 - **Passengers can't be selected** (D10). Presentation doesn't draw them (slice 06), so picking never finds them, and a squad that boards drops out of the current selection. Box-selecting over a carrier selects only the carrier.
 - **Leave building is unchanged:** button only, no hotkey (D8).
 
