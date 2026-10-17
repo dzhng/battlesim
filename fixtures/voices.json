@@ -5949,6 +5949,7 @@
       "europe": "de_rifle_squad",
       "eastern": "ru_rifle_squad"
     },
+    "eastern_rifle_squad": "ru_rifle_squad",
     "europe_ajax_tracked_reconnaissance_vehicle": "uk_recon_vehicle_crew",
     "europe_atgm_team_akeron_mp": "fr_atgm_team",
     "europe_aw101_merlin_hc4": "de_transport_helicopter_pilot",
