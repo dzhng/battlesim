@@ -259,7 +259,7 @@ async function controls(ctx) {
     tooBig.order.kind === "board" &&
       tooBig.ack.refused.some((r) => r.unit === rifle && r.reason.reason === "capacity_full") &&
       refusal?.unit === rifle &&
-      refusal.text === "SQUAD TOO BIG FOR IT" &&
+      refusal.text === "TOO MANY TO FIT" &&
       refusal.besideCard,
     JSON.stringify({ ack: tooBig.ack, refusal }),
   );

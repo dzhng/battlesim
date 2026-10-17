@@ -36,7 +36,7 @@ const REFUSAL_TEXT: Record<string, string> = {
   destroyed: "UNIT LOST",
   not_infantry: "INFANTRY ONLY",
   not_a_building: "NOT A BUILDING",
-  capacity_full: "SQUAD TOO BIG FOR IT",
+  capacity_full: "TOO MANY TO FIT",
   one_squad_per_building: "ONE SQUAD PER BUILDING",
   building_occupied: "BUILDING TAKEN",
   no_room_to_unload: "NO ROOM TO UNLOAD",
