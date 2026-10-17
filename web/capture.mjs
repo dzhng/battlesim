@@ -355,7 +355,22 @@ async function captureWithDeterministic(page, args, server) {
     const framePath = join(framesDir, `frame-${String(outputIdx).padStart(6, "0")}.jpg`);
     const frameData = Buffer.from(screenshotResult.data, "base64");
     await writeFile(framePath, frameData);
-    frames.push({ path: framePath, virtualTimeMs, idx: outputIdx });
+    
+    // Compute hash for uniqueness check (first 8 chars of MD5)
+    const { createHash } = await import("node:crypto");
+    const hash = createHash("md5").update(frameData).digest("hex").slice(0, 8);
+    
+    // Get current sim/capture state for diagnostics
+    const state = await page.evaluate(() => window.__capture?.getDeterministicState?.());
+    
+    frames.push({ 
+      path: framePath, 
+      virtualTimeMs, 
+      idx: outputIdx,
+      hash,
+      tick: state?.tick ?? 0,
+      frame: state?.frame ?? outputIdx,
+    });
     
     // Progress
     if (outputIdx % 30 === 0 || outputIdx === totalOutputFrames - 1) {
@@ -363,7 +378,8 @@ async function captureWithDeterministic(page, args, server) {
       const pct = ((outputIdx + 1) / totalOutputFrames * 100).toFixed(0);
       const captureFps = (outputIdx + 1) / elapsed;
       const eta = elapsed / (outputIdx + 1) * (totalOutputFrames - outputIdx - 1);
-      process.stdout.write(`\r  Capturing: frame ${outputIdx + 1}/${totalOutputFrames} (${pct}%) at ${captureFps.toFixed(1)} fps, ETA ${Math.ceil(eta)}s    `);
+      const tickInfo = state ? ` tick=${state.tick}` : "";
+      process.stdout.write(`\r  Capturing: frame ${outputIdx + 1}/${totalOutputFrames} (${pct}%) at ${captureFps.toFixed(1)} fps, ETA ${Math.ceil(eta)}s${tickInfo}    `);
     }
   }
   const captureElapsed = (Date.now() - captureStart) / 1000;
@@ -376,21 +392,68 @@ async function captureWithDeterministic(page, args, server) {
   const audioCommands = await page.evaluate(() => window.__capture?.getRecordedAudioCommands?.() ?? []);
   console.log(`  Recorded ${audioCommands.length} audio commands`);
   
-  // Frame pacing analysis (should be perfect in deterministic mode)
+  // Frame pacing analysis: compute uniqueness from hashes
+  console.log("Analyzing frame uniqueness...");
+  const hashCounts = new Map();
+  const duplicateRuns = [];
+  let currentRunStart = -1;
+  let currentRunHash = null;
+  let duplicateCount = 0;
+  
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i];
+    const count = (hashCounts.get(frame.hash) ?? 0) + 1;
+    hashCounts.set(frame.hash, count);
+    
+    // Track runs of duplicate frames
+    if (i > 0 && frames[i].hash === frames[i - 1].hash) {
+      if (currentRunStart < 0) {
+        currentRunStart = i - 1;
+        currentRunHash = frame.hash;
+      }
+      duplicateCount++;
+    } else if (currentRunStart >= 0) {
+      // End of a duplicate run
+      const runLength = i - currentRunStart;
+      const runTimeS = currentRunStart / args.fps;
+      duplicateRuns.push({ startFrame: currentRunStart, endFrame: i - 1, length: runLength, timeS: runTimeS });
+      currentRunStart = -1;
+      currentRunHash = null;
+    }
+  }
+  // Handle run extending to end
+  if (currentRunStart >= 0) {
+    const runLength = frames.length - currentRunStart;
+    const runTimeS = currentRunStart / args.fps;
+    duplicateRuns.push({ startFrame: currentRunStart, endFrame: frames.length - 1, length: runLength, timeS: runTimeS });
+  }
+  
+  const uniqueHashes = hashCounts.size;
   const framePacing = {
     totalFrames: frames.length,
     outputFrames: frames.length,
-    uniqueFrames: frames.length,
-    duplicateFrames: 0,
+    uniqueFrames: uniqueHashes,
+    duplicateFrames: duplicateCount,
     droppedEarlyFrames: 0,
     droppedTailFrames: 0,
     longestGapMs: frameDurationMs,
     longestGapTimestamp: 0,
     gaps: [],
+    duplicateRuns,
   };
   
-  // Self-check: verify all frames are unique (deterministic mode guarantee)
-  console.log(`  Frame pacing: ${frames.length} frames, exactly ${args.fps} fps (deterministic)`);
+  // Log duplicates if any
+  if (duplicateCount > 0) {
+    console.log(`  WARNING: ${duplicateCount} duplicate frames detected (${uniqueHashes} unique / ${frames.length} total)`);
+    for (const run of duplicateRuns.slice(0, 5)) {
+      console.log(`    - Freeze at ${run.timeS.toFixed(2)}s: frames ${run.startFrame}-${run.endFrame} (${run.length} identical)`);
+    }
+    if (duplicateRuns.length > 5) {
+      console.log(`    - ... and ${duplicateRuns.length - 5} more runs`);
+    }
+  } else {
+    console.log(`  Frame uniqueness: all ${frames.length} frames unique`);
+  }
   
   // Write frames.json
   const framesJsonPath = resolve(args.output, `frames-${timestamp}.json`);
@@ -399,6 +462,7 @@ async function captureWithDeterministic(page, args, server) {
     fps: args.fps,
     frameDurationMs,
     totalFrames: frames.length,
+    uniqueFrames: uniqueHashes,
     reelDuration,
     outputDuration,
     prerollCutS: cutStartS,
@@ -406,6 +470,8 @@ async function captureWithDeterministic(page, args, server) {
       path: f.path,
       virtualTimeMs: f.virtualTimeMs,
       idx: f.idx,
+      hash: f.hash,
+      tick: f.tick,
     })),
     pacing: framePacing,
   };

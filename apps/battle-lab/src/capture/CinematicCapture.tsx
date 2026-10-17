@@ -316,6 +316,8 @@ export interface CaptureExtras {
   getAudioRenderParams?: () => { sampleRate: number; presentation: unknown; catalog: unknown } | null;
   /** [Deterministic mode] Render recorded audio offline and return as WAV blob. */
   renderOfflineAudio?: (durationS: number) => Promise<Blob | null>;
+  /** [Deterministic mode] Get current state for diagnostics. */
+  getDeterministicState?: () => { tick: number; frame: number; virtualTimeMs: number } | null;
 }
 
 /** Expose capture results to window for CLI automation. */
@@ -348,5 +350,6 @@ export function exposeCaptureToWindow(
     getRecordedAudioCommands: extras?.getRecordedAudioCommands,
     getAudioRenderParams: extras?.getAudioRenderParams,
     renderOfflineAudio: extras?.renderOfflineAudio,
+    getDeterministicState: extras?.getDeterministicState,
   };
 }

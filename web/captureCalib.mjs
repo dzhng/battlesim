@@ -117,13 +117,23 @@ export async function detectFlashOnsets(framesDir, triggerTimesMs, pageLoadEpoch
   }
   
   // Detect onsets: first frame with YAVG > 250 after a frame with YAVG < 200
-  const onsets = [];
+  // Dedupe onsets less than 50ms apart (same flash detected multiple times)
+  const rawOnsets = [];
   for (let i = 1; i < frameBrightness.length; i++) {
     const prev = frameBrightness[i - 1];
     const curr = frameBrightness[i];
     if (prev.yavg < 200 && curr.yavg > 250) {
       const onsetMs = (curr.cdpTimestamp * 1000) - pageLoadEpochMs - audioStartMs;
-      onsets.push({ onsetMs, cdpTimestamp: curr.cdpTimestamp, yavg: curr.yavg, frameIdx: curr.frameIdx });
+      rawOnsets.push({ onsetMs, cdpTimestamp: curr.cdpTimestamp, yavg: curr.yavg, frameIdx: curr.frameIdx });
+    }
+  }
+  
+  // Dedupe: keep only onsets at least 50ms apart
+  const onsets = [];
+  for (const onset of rawOnsets) {
+    const lastOnset = onsets[onsets.length - 1];
+    if (!lastOnset || onset.onsetMs - lastOnset.onsetMs >= 50) {
+      onsets.push(onset);
     }
   }
   
@@ -175,8 +185,8 @@ export async function detectClickOnsets(audioPath, triggerTimesMs, audioStartMs)
       const ptsTime = parseFloat(peakMatch[1]);
       const peakLevel = parseFloat(peakMatch[2]);
       const absoluteMs = (searchStartS + ptsTime) * 1000;
-      // Onset detection: > -10dB and at least 80ms since last
-      if (peakLevel > -10 && absoluteMs - lastOnsetMs > 80) {
+      // Onset detection: > -10dB and at least 50ms since last (same as flash dedup)
+      if (peakLevel > -10 && absoluteMs - lastOnsetMs > 50) {
         clicks.push({ timeMs: absoluteMs, peakDb: peakLevel });
         lastOnsetMs = absoluteMs;
       }
