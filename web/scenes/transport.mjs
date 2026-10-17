@@ -1,6 +1,16 @@
 // Slice 06: board and collect through the real transport lab.
 import { openBattle, advance, lab, until, snapshot } from "./_lab.mjs";
 
+/** The lab's view at its own framing and pulled out to a far view (where
+ *  cards may overprint), saved as `<name>-default.png` and `<name>-far.png`. */
+async function views(ctx, page, name) {
+  const framing = await lab(page, () => window.__lab.camera());
+  await snapshot(ctx, page, `${name}-default.png`);
+  await lab(page, (c) => window.__lab.setCamera({ ...c, distance: 1400 }), framing);
+  await snapshot(ctx, page, `${name}-far.png`);
+  await lab(page, (c) => window.__lab.setCamera(c), framing);
+}
+
 // The `board` encounter scripts the carriers' drive at tick 900; every squad
 // walks to (or is fetched by) its carrier and boards before then.
 const DRIVE_TICK = 900;
@@ -10,6 +20,7 @@ export async function run(ctx) {
   await advance(page, 2);
   const start = await lab(page, () => window.__lab.route.observation());
   ctx.check("transport lab loads", !!start && start.own.length >= 4, JSON.stringify(start));
+  await views(ctx, page, "empty");
   const squads = start.own.filter((u) => u.memberIds.length > 0).map((u) => u.id);
   const aboard = (o) =>
     squads.every((id) => {
@@ -25,6 +36,6 @@ export async function run(ctx) {
     !!boarded && passengers.length === squads.length,
     JSON.stringify(passengers),
   );
-  await snapshot(ctx, page, "boarded.png");
+  await views(ctx, page, "boarded");
   await page.close();
 }

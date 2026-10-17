@@ -10,9 +10,10 @@ import { TickStatus } from "../TickStatus";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import { gameCamera } from "../gameCamera";
 
+/** Close on the carriers and squads, so their cards read. */
 const CAMERA: Camera3DParams = {
-  target: [320, 250, 0],
-  distance: 380,
+  target: [235, 255, 0],
+  distance: 150,
   pitch: 0.95,
   yaw: -1.57,
   ...gameCamera.lens,
