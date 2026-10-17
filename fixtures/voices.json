@@ -5946,8 +5946,7 @@
     },
     "rifle_squad": {
       "us": "us_rifle_squad",
-      "europe": "de_rifle_squad",
-      "eastern": "ru_rifle_squad"
+      "europe": "de_rifle_squad"
     },
     "eastern_rifle_squad": "ru_rifle_squad",
     "europe_ajax_tracked_reconnaissance_vehicle": "uk_recon_vehicle_crew",

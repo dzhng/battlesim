@@ -8,7 +8,7 @@ Target eligibility belongs to the weapon row, so penetration never doubles as an
 
 Direct-fire weapons retain the game's destructive fire-through behavior. Artillery and long-range SAM rows opt into `requires_clear_launch_path`, which checks the muzzle-side initial corridor for trees, buildings, and other blocking props. This is separate from target visibility: a blocked launcher can show a warning while the destination remains a valid target.
 
-The Eastern squad is a separate roster card so the US and Europe shared rifle squad keeps its grenade loadout. Dedicated anti-armour rows are named `rpg_at_light` and `rpg_at_heavy`; `rpg_general` is the three-round Eastern squad weapon. Its initial tuning is 280 m range, 80 penetration, 50 damage, 35 structural damage, and 4 s reload; a deterministic sample against 100 side armour gives roughly 39 damage per good hit, so three hits can destroy that test tank.
+The Eastern squad is a separate roster card so the US and Europe shared rifle squad keeps its grenade loadout. The specialist anti-armour teams fire `rpg_at_light` and `rpg_at_heavy`; the squad fires `rpg_general`, a high-explosive rocket that kills men by blast and chips armour. It reaches further and hits harder than a grenade, and less far and less hard than a tank's HE round. It was calibrated so three good hits kill a test tank through 100 side armour; its stats live in `fixtures/game.json`, and the starting values are in the [choices ledger](choices.md).
 
 ## Invariants
 
@@ -21,9 +21,7 @@ The Eastern squad is a separate roster card so the US and Europe shared rifle sq
 
 ## Code and tests
 
-The main owners are `crates/contract/src/weapons.rs`, `crates/sim/src/weapons.rs`, the launch-clearance tests in `crates/sim/tests/launch_clearance.rs`, projectile/interception tests in `crates/sim/tests/`, and the fixture rows in `fixtures/game.json` and `fixtures/units/roster/`. The catalog test `eastern_rifle_squad_fields_general_purpose_rpg_and_dedicated_rows_are_renamed` pins the roster and naming contract. The blocked icon is `assets/icons/hud/blocked_shot.svg`.
-
-The managed browser could not provide a WebGPU adapter for a full panel capture, so the SVG was inspected in a standalone render; the focused panel/readout test passed. Full Rust verification passed; the full web run remains environment-sensitive where Git LFS assets and browser audio/WASM fixtures are unavailable.
+The main owners are `crates/contract/src/weapons.rs`, `crates/sim/src/weapons.rs`, the launch-clearance tests in `crates/sim/tests/launch_clearance.rs`, projectile/interception tests in `crates/sim/tests/`, and the fixture rows in `fixtures/game.json` and `fixtures/units/roster/`. The catalog test `each_faction_fields_one_rifle_squad_and_the_eastern_one_carries_a_weapon_for_men_and_armour` pins the loadout split. The blocked icon is `assets/icons/hud/blocked_shot.svg`.
 
 ## Dead ends
 
