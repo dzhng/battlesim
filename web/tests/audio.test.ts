@@ -1,11 +1,17 @@
 // @vitest-environment node
-import { beforeAll, expect, test } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadPresentation } from "@web/battle/sim/presentation";
+import game from "@fixtures/game.json";
+import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
+import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
+import type { SoundBank } from "@packages/battle-audio/src/soundBank";
+import { WebAudioSink } from "@packages/battle-audio/src/webAudioSink";
 import { sectorPan } from "@packages/battle-audio/src/soundFrame";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import { describeCue } from "../src/battle/present/captions";
 
 beforeAll(() => loadPresentation());
+afterEach(() => vi.unstubAllGlobals());
 
 test("captions carry exactly the cue's category, band and direction", () => {
   const text = describeCue(
@@ -70,4 +76,42 @@ test("cameraListener forward vector depends on yaw", () => {
   expect(Math.hypot(forward1[0], forward1[1])).toBeGreaterThan(0);
   expect(Math.hypot(forward2[0], forward2[1])).toBeGreaterThan(0);
   expect(forward1[0]).not.toBeCloseTo(forward2[0]);
+});
+
+test("the browser's master limiter and clip are the presentation's limiter", () => {
+  const made: Record<string, unknown[]> = {};
+  for (const name of ["DynamicsCompressorNode", "WaveShaperNode", "GainNode", "ConvolverNode"])
+    vi.stubGlobal(
+      name,
+      class {
+        constructor(_: unknown, options: unknown) {
+          (made[name] ??= []).push(options);
+        }
+        connect(node: unknown) {
+          return node;
+        }
+      },
+    );
+  const context = {
+    sampleRate: 8000,
+    destination: {},
+    createBuffer: () => ({ copyToChannel() {} }),
+  } as unknown as BaseAudioContext;
+  const limiter = { threshold_db: -9, attack_s: 0.004, release_s: 0.3, ratio: 8, clip_db: -3 };
+  const presentation = {
+    ...(game.presentation.audio as unknown as AudioPresentation),
+    limiter,
+  };
+  new WebAudioSink(context, presentation, {} as SoundCatalog, {} as SoundBank);
+
+  expect(made.DynamicsCompressorNode).toEqual([
+    { threshold: -9, knee: 0, ratio: 8, attack: 0.004, release: 0.3 },
+  ]);
+  const [{ curve }] = made.WaveShaperNode as { curve: Float32Array }[];
+  const ceiling = 10 ** (-3 / 20);
+  expect(Math.max(...curve)).toBeCloseTo(ceiling, 6);
+  expect(Math.min(...curve)).toBeCloseTo(-ceiling, 6);
+  // Below the ceiling the signal passes unchanged.
+  const quiet = curve.findIndex((y) => y > -0.5);
+  expect(curve[quiet]).toBeCloseTo((2 * quiet) / (curve.length - 1) - 1, 6);
 });

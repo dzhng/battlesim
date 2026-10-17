@@ -55,16 +55,17 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
-    // A fast 20:1 limiter from -2 dBFS; its attack still lets a transient's
-    // first milliseconds over, so a hard clip at -1 dBFS catches what remains.
+    // The presentation's limiter; its attack still lets a transient's first
+    // milliseconds over, so a hard clip catches what remains.
+    const l = presentation.limiter;
     const limiter = new DynamicsCompressorNode(context, {
-      threshold: -2,
+      threshold: l.threshold_db,
       knee: 0,
-      ratio: 20,
-      attack: 0.001,
-      release: 0.05,
+      ratio: l.ratio,
+      attack: l.attack_s,
+      release: l.release_s,
     });
-    const clipper = new WaveShaperNode(context, { curve: hardClipCurve(-1) });
+    const clipper = new WaveShaperNode(context, { curve: hardClipCurve(l.clip_db) });
     this.graph.push(limiter, clipper);
     limiter.connect(clipper).connect(context.destination);
     this.master = new GainNode(context, { gain: presentation.buses.master });

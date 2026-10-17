@@ -128,6 +128,28 @@ fn a_cannon_sounds_over_the_bed_louder_near_than_far_and_ends() {
 }
 
 #[test]
+fn a_near_cannon_is_held_under_the_limiters_clip() {
+    // A limiter low enough that a near cannon drives well into it.
+    const CLIP_DB: f64 = -12.0;
+    let tuned = player(|a| {
+        a["limiter"] = json!({
+            "threshold_db": -14.0, "attack_s": 0.001, "release_s": 0.05,
+            "ratio": 20.0, "clip_db": CLIP_DB
+        });
+    });
+    let (near, _) = cannon(tuned, Some([0.0, 20.0, 1.0]), 2.0);
+    let ceiling = 10f64.powf(CLIP_DB / 20.0) as f32;
+    let peak = span(&near, SHOT_S, SHOT_S + 0.5)
+        .iter()
+        .fold(0f32, |m, s| m.max(s.abs()));
+    assert!(
+        peak <= ceiling + 1e-6,
+        "peak {peak} over the clip {ceiling}"
+    );
+    assert!(peak > 0.9 * ceiling, "the shot reaches the clip: {peak}");
+}
+
+#[test]
 fn a_shot_to_the_right_is_heard_on_the_right() {
     let (east, _) = shipped(Some([60.0, 0.0, 1.0]), 2.0);
     let (west, _) = shipped(Some([-60.0, 0.0, 1.0]), 2.0);

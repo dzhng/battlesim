@@ -10,7 +10,8 @@
 //!   or right by an equal-power pan (by direction from the listener, or the
 //!   cue's sector), and sending its share into its bus's reverb;
 //! - buses (units, effects, ambience, voices) sum under the master,
-//!   through a limiter; the ambience bus, and its reverb's tail, dip under
+//!   through the presentation's limiter and a hard clip at its ceiling
+//!   (`presentation.audio.limiter`); the ambience bus, and its reverb's tail, dip under
 //!   a loud sound through a duck of their own, so its level stays as set;
 //! - voice lines are the line arbitration's (`presentation::sound::voices`):
 //!   its answers and the barks the sound heard, each a take of a voice pack
@@ -34,8 +35,10 @@ use std::time::Duration;
 use kira::backend::cpal::{CpalBackend, CpalBackendSettings};
 use kira::backend::{Backend, Renderer};
 use kira::effect::compressor::CompressorBuilder;
+use kira::effect::distortion::{DistortionBuilder, DistortionKind};
 use kira::effect::filter::{FilterBuilder, FilterHandle, FilterMode};
 use kira::effect::reverb::ReverbBuilder;
+use kira::effect::volume_control::VolumeControlBuilder;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle, StaticSoundSettings};
 use kira::sound::PlaybackState;
 use kira::track::{MainTrackBuilder, SendTrackBuilder, SendTrackHandle, TrackBuilder, TrackHandle};
@@ -276,20 +279,32 @@ impl Audio {
             .collect();
 
         let audio = &tables.audio;
-        // The master, through a limiter (the browser's compressor).
+        // The master's level, then the presentation's limiter (kira's
+        // compressor is hard-knee, as the browser's is set) and a hard clip at
+        // its ceiling for what the limiter's attack lets over, in the
+        // browser's order: kira scales a track by its volume after its
+        // effects, so the master's level is an effect ahead of them. Kira's
+        // hard clip clamps at 1 after its drive, so a drive of -clip_db
+        // clamps at clip_db.
+        let l = audio.limiter;
         let limiter = CompressorBuilder::new()
-            .threshold(-6.0)
-            .ratio(20.0)
-            .attack_duration(Duration::from_millis(2))
-            .release_duration(Duration::from_millis(200));
+            .threshold(l.threshold_db)
+            .ratio(l.ratio)
+            .attack_duration(Duration::from_secs_f64(l.attack_s))
+            .release_duration(Duration::from_secs_f64(l.release_s));
+        let clip = DistortionBuilder::new()
+            .kind(DistortionKind::HardClip)
+            .drive(Decibels(-l.clip_db as f32))
+            .mix(Mix::WET);
         let mut manager = AudioManager::<Output>::new(AudioManagerSettings {
             capacities: Capacities {
                 sub_track_capacity: 512,
                 ..Default::default()
             },
             main_track_builder: MainTrackBuilder::new()
-                .volume(decibels(audio.buses.master))
-                .with_effect(limiter),
+                .with_effect(VolumeControlBuilder::new(decibels(audio.buses.master)))
+                .with_effect(limiter)
+                .with_effect(clip),
             backend_settings: output,
             ..Default::default()
         })

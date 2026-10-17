@@ -108,6 +108,20 @@ pub struct Buses {
     pub voices: f64,
 }
 
+/// The master's limiter (hard knee), the last stage before the output: over
+/// `threshold_db` (dBFS) the level is compressed by `ratio`, reacting over
+/// `attack_s` and recovering over `release_s`; what its attack still lets
+/// over is clipped hard at `clip_db` (dBFS).
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Limiter {
+    pub threshold_db: f64,
+    pub attack_s: f64,
+    pub release_s: f64,
+    pub ratio: f64,
+    pub clip_db: f64,
+}
+
 /// Full within `ref_m`, then inverse (`rolloff`) down toward `floor`, a
 /// share never dropped below within `max_m`, and silent past it. A voice
 /// quieter than `cull` at the listener is not started.
@@ -203,6 +217,7 @@ pub struct ShoutCue {
 #[serde(deny_unknown_fields)]
 pub struct AudioPresentation {
     pub buses: Buses,
+    pub limiter: Limiter,
     /// The listener stands this share of the way from the camera's target
     /// to its eye.
     pub listener_eye_share: f64,

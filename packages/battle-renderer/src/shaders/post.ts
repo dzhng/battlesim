@@ -73,11 +73,13 @@ export const bloomCompositeWgsl = `(uv: vec2f, level0: texture_2d<f32>, level1: 
 }`;
 
 export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, linearSampler: sampler, grade: Grade) -> vec4f {
-  let hdr = textureSample(scene,linearSampler,uv)+textureSample(bloom,linearSampler,uv);
-  // The sky pass leaves alpha 0 where nothing covers it; the sky takes
+  let world = textureSample(scene,linearSampler,uv);
+  let hdr = world.rgb+textureSample(bloom,linearSampler,uv).rgb;
+  // The sky pass leaves the scene's alpha 0 where nothing covers it (the
+  // bloom's own alpha is no coverage, so it is not read); the sky takes
   // \`skyGradeMix\` of the grade, everything in front of it all of it.
-  let gradeShare = select(1.0, grade.skyGradeMix, hdr.a < 0.5);
-  let graded = mix(hdr.rgb, gradeColor(hdr.rgb,grade), gradeShare);
+  let gradeShare = select(1.0, grade.skyGradeMix, world.a < 0.5);
+  let graded = mix(hdr, gradeColor(hdr,grade), gradeShare);
   return vec4f(outputSrgb(agx(graded,grade.exposure)),1.0);
 }`;
 

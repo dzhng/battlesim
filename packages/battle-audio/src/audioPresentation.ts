@@ -62,9 +62,22 @@ export interface FireSound {
   smoulder_gain: number;
 }
 
+/** The master's limiter (hard knee): over `threshold_db` (dBFS) the level is
+ *  compressed by `ratio`, reacting over `attack_s` and recovering over
+ *  `release_s`; what its attack still lets over is clipped hard at `clip_db`. */
+export interface Limiter {
+  threshold_db: number;
+  attack_s: number;
+  release_s: number;
+  ratio: number;
+  clip_db: number;
+}
+
 export interface AudioPresentation {
   /** Bus levels, and the master's. */
   buses: Record<Bus | "master" | "music", number>;
+  /** The master's limiter and clip, the last stage before the output. */
+  limiter: Limiter;
   /** Where the listener stands: this share of the way from the camera's
    *  target to its eye (0 at the ground point looked at, 1 at the eye). */
   listener_eye_share: number;
