@@ -1,65 +1,170 @@
-# Arbitrary-slot skirmish lobby
+# Arbitrary-slot skirmish
 
-**Status:** planned; implementation has not started.
+**Status:** planned. Every decision is closed; implementation has not started.
 **Updated:** 2026-10-16.
 
 ## Next Agent Prompt
 
-Start with slice 01. Read this README and its slice file, inspect the named owners, write red tests first, and update this section before ending your pass.
+Start with slice 00, the probe. Its verdict decides whether slices 04–05 stand as written.
 
-- [ ] 01 — slot contract and validation
-- [ ] 02 — shared spawn groups and size admission
-- [ ] 03 — lobby model, URL identity, and preview lifecycle
-- [ ] 04 — desktop RTS lobby and generated 2D preview
-- [ ] 05 — battle integration and closeout
+Before touching code, read three things:
+- this README;
+- [`choices.md`](choices.md), which records every decision with who made it and why;
+- the slice file.
 
-## Goal and settled decisions
+Every choice is closed. Reopen one only by asking the user. Decisions marked "amended" are superseded by the decision they name.
 
-Build a desktop RTS lobby with Blue on the left, a real generated top-down map in the center, and Red on the right. Each side has one to five player slots. Presets seed 1v1, 3v3, or 5v5; Add/Delete creates asymmetric setups such as 3v4 or 2v3. Every slot is a player with a controller, independent wallet, roster, and spawn-group assignment. Single-player starts with exactly one Human slot on Blue and AI elsewhere; selecting Human in another Blue row transfers the role and changes the former row to AI. The reusable simulation setup must still represent all-AI benchmark and tournament matches.
+How to work each slice:
+- Write red tests first.
+- Keep a 1v1 playable in the browser after every slice.
+- Re-baseline digests only where D41 names it.
+- On visual slices, run the visual gates, with `screenshot-critique` last.
+- Before you end a pass, tick the slice below and rewrite this prompt for whoever comes next.
 
-The current game selects one faction per side. Slot data carries faction per slot so future custom and multiplayer modes can allow mixed factions; current preparation rejects mixed factions. Faction and slot configuration are admin-owned. Generated preview controls regenerate automatically, Reroll changes only the map seed, failures retry internally, and Deploy commits the exact admitted seed. Preview shows generated terrain, roads, water, forests, buildings, objectives, and up to three shared spawn groups per side. Ground uses the nearest legal road point; aircraft use existing `air::edge` derivation from the selected entry.
+Slices:
 
-The explicit size-floor table is: one active slot → Small; two → Medium; three or four → Large; five → XL. The user chose Medium for 2v2.
+- [ ] 00: probe multi-entry admission, timings, throughput ([slice](slices/00-probe.md))
+- [ ] 01: one player contract, mechanical port ([slice](slices/01-player-contract.md))
+- [ ] 02: simulation per-slot ownership ([slice](slices/02-sim-ownership.md))
+- [ ] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
+- [ ] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
+- [ ] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
+- [ ] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
+- [ ] 07: lobby model ([slice](slices/07-lobby-model.md))
+- [ ] 08: lobby map picture ([slice](slices/08-map-picture.md))
+- [ ] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
+- [ ] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
+- [ ] 11: per-player match report ([slice](slices/11-match-report.md))
+- [ ] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
+- [ ] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
+- [ ] 14: 5v5 AI-versus-AI closeout ([slice](slices/14-closeout.md))
 
-This is a hard cutover for generated skirmishes: no compatibility shim or migration for old two-faction URLs, fixtures, or setup. Existing replay compatibility remains only where the independent replay contract requires it.
+## Goal
 
-## Ownership and seams
+Team skirmish from 1v1 to 5v5, using one general system. A 1v1 is one slot per side, with no special case. Each slot is a real player with its own:
+- wallet;
+- 30-unit cap;
+- army and logistics;
+- ready flag;
+- controller.
 
-`contract` owns canonical slot/setup validation. Reuse existing command/unit ownership seams (`CommandEnvelope.slot`, `UnitSetup.owner`, controller transitions); do not reuse the authored-bundle `PlayerSlot` type directly. Extract shared slot/controller vocabulary only if both owners can use it without a second concept. `mapgen` owns geometry and reserved sites. `sim` owns placement, wallets, rosters, AI turns, observations, and digests. `web` owns preview lifecycle and URL identity. `battle-lab` owns presentation. The preview never invents geometry and the UI never reimplements placement legality.
+Allies share vision, objectives, score and a bounty pool.
 
-Required invariants: five-slot maximum per side; no empty deployed side; deterministic slot ordering; one faction per side in current preparation; one Human on Blue only in the single-player request; one to three shared spawn groups per side; active-slot size floor; exact seed identity; bounded hidden retry; stale preview results cannot replace current state.
+The lobby is a desktop order-of-battle screen. Blue's slot banners sit on the left, a real generated map in the centre, and Red's banners on the right. Presets seed 1v1, 3v3 and 5v5, and Add/Delete makes uneven matches. Single-player has exactly one Human, on Blue. AI players are full combined-arms armies. A per-side team planner coordinates them: lanes, staging, requests for help, and a shared stance.
+
+The end state reads as if team play had been designed in from the start: one player list, one entry owner, one setup constructor, one selection rule. No two-faction leftovers.
+
+Not in this plan:
+- online play (the model is ready for it: D26);
+- mixed factions within a side;
+- mobile layout;
+- native lobby and HUD ([native gaps](../native-gaps/README.md), item 10).
+
+There is no backward compatibility and no migration.
+
+## Contracts
+
+Changing any of these is a named decision in `choices.md`.
+
+**Terminology.** A *slot* is one player's seat on a side. In code it is `PlayerSlot`, held in the `players` list and named by `CommandEnvelope.slot` and `UnitSetup.owner`. These are existing contract names and they stay. Slice 01's rename of `occupied_slots` to `unit_count` removes the one clash, where "slots" meant unit count.
+
+- **Players (`contract::players`).** `PlayerSlot { id, side, faction, controller, human_capable }`, where `side` is Blue or Red (Neutral only in authored bundles).
+  - `ScenarioDefinition.players` is the only player list (D33).
+  - `PlayerIndex` is a slot's position in that list. It is derived, never stored (D32).
+  - `entry_count(players on a side)` gives 1, 2 or 3 entries (D8′). It is the one rule that both mapgen and the simulation read.
+- **`SkirmishSetup`** is `{ rules, sites }`; the players live in the scenario.
+  - Admission refuses a side with no players, duplicate ids, mixed factions within a side, more than `max_players_per_side` (D35), or an entry count other than `entry_count`.
+  - A setup with zero humans is valid (D34).
+- **`SkirmishSites.entries`** is a list of 1–3 entries per side, ordered centre, left, right. There is no slot-to-entry reference.
+- **Generation request** carries the entry count per side. That count is part of map identity, so the generator version is bumped. A 1-entry request generates today's map, byte for byte.
+- **`PrepareBattleRequest`** is `{ map_source, players, battle_seed }`.
+- **Commands.**
+  - In a skirmish, `CommandEnvelope.slot` is required.
+  - `seq` and the order rate limit are counted per slot.
+  - Ready, purchase and cancel orders are checked against the slot.
+  - Purchase IDs are scoped to the slot.
+- **Observation.** Still one per side.
+  - The skirmish view carries `players` with each own-side slot's credits, unit count, cap, pending purchases and ready flag (D31).
+  - `OwnUnit.owner` is a `PlayerIndex`.
+  - Report totals and events are per player. Scores stay per side.
+- **Units.** A bought unit spawns owned by the slot that bought it. A pending purchase stores the entry it will arrive at (D37). Death provenance records the killer's slot. `owner` is hashed into the unit digest (D44).
+- **URL.** A battle link carries the map choice, the battle seed and the player list. Anything else is refused (D42).
+
+## Single owners
+
+| Concept | Owner | Replaces |
+|---|---|---|
+| Player list and validation | `crates/contract/src/players.rs` (new) | `bundle.rs` slots, `factions: [_; 2]`, `ai_side` |
+| Entry count rule | `contract::players::entry_count` | (new) |
+| Entry geometry | `crates/mapgen/src/skirmish.rs`, its own `"entries"` stream | "first stroke on the edge" |
+| Map fairness admission | `crates/sim/src/map_analysis.rs` | two-entry `as_chunks::<2>` |
+| Arrival and return entry | `crates/sim/src/entries.rs` (new) | six `find(side)` sites and `runner.rs:98` |
+| Setup construction | `sim::skirmish::setup_for` | three hand-written constructors (D38) |
+| Economy, controllers, AI dispatch, settlement | `crates/sim` | side arrays |
+| Controller policy | one function in `battle.rs` (D45) | `controller_turn` and `BalancedDoctrine` both driving the same slot |
+| Team planner | `crates/sim/src/skirmish_ai/team.rs` (new) | (new) |
+| Map picture | `mapgen::inspect`, from a `MapDefinition`, exposed through wasm (D39) | (new) |
+| Lobby state, URL identity | `apps/battle-lab/src/lobby/` (new), `battleLinks.ts` | the builder's `BuilderSlot` duplicate |
+| Preview lifecycle | a preview controller over `web/src/battle/prepare/admission.ts` | (new) |
+| "Which units can I order" | `controlled(observation, slot)` in web (D47) | five ad-hoc `observation.own` filters |
+
+**One short-lived seam.** In slice 01 the simulation keeps its side-indexed internals, mapped from the single player per side. Slice 02 deletes that mapping. Nothing else is transitional.
+
+## Invariants
+
+- One player type, one player list. A second slot concept anywhere is a defect.
+- Every skirmish unit has an owner, and every skirmish command carries a slot. A refused AI order fails a debug assertion and appears in `ai_receipts()`.
+- Vision, objectives, score and the bounty pool belong to the side. Wallet, cap, ready, purchases, controller and AI belong to the slot.
+- Every ground or helicopter arrival, refund, fuel return and retirement uses `sim::entries`: the side's entry with the shortest drive for that unit type, ties to the centre. Jets arrive opposite the centre entry.
+- The team plan comes from the side's observation plus non-digested planner memory, evaluated in slot order. The command stream is the replay authority.
+- Digests follow D41: slice 01 changes none, and non-skirmish digests never change.
+- The preview is deterministic. Deploy re-prepares the admitted request and gets the same battle. A newer preview always cancels an older one.
 
 ## Slice graph
 
-### 01 — Slot contract and validation
+```
+00 probe ─┬─► 01 contract ─► 02 ownership ─┬─► 03 publication ─┬─► 06 setup/request/links ─► 07 lobby model ─► 08 map picture ─► 09 lobby screen
+          │                                │                    └─► 10 allies ─► 11 report
+          └─► 04 entry arms ───────────────┴─► 05 entry owner ─► 12 team lanes ─► 13 team support ─► 14 closeout (needs all)
+```
 
-Update `crates/contract/src/skirmish.rs`, `preparation.rs`, relevant scenario ownership types, and simulation setup/publication. Replace `[Faction; 2]`, `ai_side`, and side-only economy ownership with validated ordered slot rows. Add controller, faction, wallet/roster, five-slot, duplicate-ID, and deterministic serialization tests. Keep side objective ownership derived. Do not enforce the single-player human rule in reusable simulation setup.
+- **05** needs both 02 and 04.
+- **06** needs 03 and 05.
+- **10** needs 06, so a team battle can be launched by link.
+- **07** may start once 01 lands; it only needs the TypeScript mirror of the player type.
+- **08** needs 04 (multi-entry sites to draw) as well as 07.
+- **12** needs 05 (lanes come from entries) and 03 (the planner reads `OwnUnit.owner` and `goal`).
 
-### 02 — Shared spawn groups and size admission
+**Visual slices** are 08, 09, 10 and 11. Each judges one visual variable:
+- 08: map legibility at lobby size;
+- 09: lobby composition and state clarity;
+- 10: telling allies from your own units;
+- 11: report readability.
 
-Update `crates/contract/src/encounter.rs`, `crates/mapgen/src/skirmish.rs`, map analysis, air-edge use, and preparation. Generate new edge-road arms for one to three groups per side; validate spacing, fairness, reachability, and finite geometry for every entry. Each slot references a shared group. Enforce the explicit size table at admission. Add focused mapgen, contract, air, and preparation tests.
-
-### 03 — Lobby model, URL identity, and preview lifecycle
-
-Add a pure lobby model under `apps/battle-lab/src/skirmish/`; update `MainMenu.tsx`, `battleLinks.ts`, and preparation orchestration. Implement presets, Add/Delete, human transfer, side faction controls, size bumping, exact map/deploy seeds, stale cancellation, and bounded hidden retries. Deploy consumes only the admitted preview. Test reducer/model behavior and URL round trips.
-
-### 04 — Desktop lobby and generated preview
-
-Build the Blue/map/Red RTS layout. Render actual generated geometry and admitted sites in lightweight SVG/canvas, with loading, retrying, ready, Reroll, Add/Delete, controller, faction, and Deploy states. Use `game-ui` before player-facing changes. Visual variable: desktop column balance, map legibility, marker hierarchy, and lobby state clarity; mobile polish and battle HUD are out of scope. Add browser scenes and run `compare-screenshots`, `screenshot-critique` last, and `preview-shots`.
-
-### 05 — Battle integration and closeout
-
-Expose the active human slot wallet and roster, route AI slot purchases through simulation, update publication/HUD and fixtures, remove old binary assumptions, run asymmetric battle scenes and digest/replay checks, then run the full Rust/browser suite once and archive with `close-spec`.
+Each uses `game-ui` before building, then:
+1. `compare-screenshots` against its named target;
+2. `screenshot-critique`, unprimed, as the **last** check before acceptance;
+3. a non-blocking `preview-shots` review. Give the user about 5 minutes; if they're silent, decide on the evidence, record why in `choices.md`, close the shots and continue.
 
 ## Browser checkpoints
 
-Register a lobby scene proving default 1v1, 3v3/5v5 presets, 3v4 and 2v3 Add/Delete, human transfer, side faction restriction, preview on open and change, Reroll, hidden retry, size bumping, exact Deploy identity, and shared spawn markers. Visual slices must use `game-ui`, `compare-screenshots`, `screenshot-critique`, and `preview-shots`; review is non-blocking.
+- **After 01:** a 1v1 generated battle plays, with every digest unchanged.
+- **After 02:** the 1v1 HUD shows the human slot's own credits and cap.
+- **After 05:** a 3v4 all-AI benchmark battle shows units arriving at the entry nearest their order.
+- **After 09:** the lobby scene covers:
+  - the 1v1 default and the 3v3 and 5v5 presets;
+  - 3v4 and 2v3 via Add/Delete;
+  - human transfer and the size ratchet;
+  - preview on open and on change, Reroll, and a hidden retry;
+  - Deploy reproducing the exact map.
+- **After 10–11:** a 2v2 with you and one AI ally covers the ally look, the read-only ally panel, own-only selection and the per-player report.
+- **At 14:** the 5v5 AI-versus-AI runs.
 
-## Choices ledger
+## Research
 
-- Arbitrary slots, maximum five per side; presets are conveniences.
-- Per-slot wallet and roster; one faction per side in the current game, per-slot faction reserved for future modes.
-- Automatic generation, explicit Reroll, hidden retry, exact Deploy.
-- Blue/map/Red desktop RTS composition.
-- Hard cutover, no generated-skirmish migration layer.
-- User chose 2v2 floor: Medium.
+The team AI design draws on the Killzone 3 commander, Kohan II's goal pricing, Age of Empires II team scripts and UAlbertaBot's hysteresis. See [research.md](research.md).
+
+## Superseded artifacts
+
+- [`visualizations/unknowns-map.html`](visualizations/unknowns-map.html) records the planning walk. Its build order and implementation prompt are superseded by this README.
+- [`visualizations/lobby-directions.html`](visualizations/lobby-directions.html) is the lobby mock. Direction 3 is the chosen target (D22).

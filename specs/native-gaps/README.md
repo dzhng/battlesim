@@ -18,6 +18,7 @@ Each item is independent, so they slice one by one, roughly cheapest first:
 - [ ] Match the browser's music duck and reverb, if the difference is ever audible enough to matter.
 - [ ] Verify native on a second platform.
 - [ ] Revisit the 5–7% GPU frame gap if `wgpu` ships untracked resources.
+- [ ] Team skirmish on native: the lobby, the allied look in marks and cards, and the per-player report, once native has a UI.
 
 ## The gaps
 
@@ -36,6 +37,14 @@ Where an item proposes a move into Rust, it follows the project's rule: Rust dec
 7. **Native's music duck and reverb differ.** Native glides the music duck linearly and uses `kira`'s reverb; the browser glides by a time constant and convolves with a synthesized impulse. These are player differences only, not decisions.
 8. **Only macOS with Metal is verified.** Windows isn't a requirement, and no native dependency rules it out. Verify on a second platform when one matters.
 9. **Native's GPU frame is 5–7% longer than the browser's.** This is accepted: `wgpu` keeps Metal's per-resource hazard tracking, so later passes wait for the world's shading. If `wgpu` ships untracked resources, enable them and re-run the interleaved timing pairs (slice 25 step 8 in git history, method in the archive).
+
+10. **Native has no team-skirmish UI.** [Arbitrary-slot skirmish](../arbitrary-slot-skirmish/README.md) is desktop-browser only. Native already replays a team skirmish correctly, because the shared `crates/presentation` reads factions from the slot setup and draws allies' models from the same publication. What native lacks is everything the browser draws as UI:
+   - the order-of-battle lobby and its map preview (the lobby model under `apps/battle-lab/src/lobby/` is plain state, so a native lobby can reuse its rules);
+   - the allied colour (`presentation.hud`) and shape cue on ground marks and info cards;
+   - the read-only ally panel and own-only selection;
+   - the per-player match report.
+
+   Like items 5 and 6, this waits on native having a UI. Native never needs to start a team skirmish to replay one.
 
 ## Open questions for the walk
 

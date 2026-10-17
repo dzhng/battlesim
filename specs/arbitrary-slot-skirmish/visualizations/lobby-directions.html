@@ -1,0 +1,173 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+:root{--background:#0b1015;--foreground:#e6edf3;--muted-foreground:#8b98a5;--border:#2a3540;--card:#121a22;--primary:#73dbff;--primary-foreground:#04121a;--secondary:#1b2530;--secondary-foreground:#e6edf3;--code-background:#0e151c;--code-foreground:#cfe3f0;--radius:8px;--font-sans:system-ui,sans-serif;--font-mono:ui-monospace,Menlo,monospace}
+body{background:var(--background);padding:24px;max-width:1100px;margin:0 auto}
+:root{--acc:#73dbff;--enemy:#ff6152;--text:#e6f5ff;--dim:#8fadc2;--cred:#fac740;--glass:rgba(5,15,23,.72);--ally:#b9f0ff}
+body{margin:0;font-family:var(--font-sans);color:var(--foreground)}
+.wrap{display:flex;flex-direction:column;gap:28px}
+h3{margin:0 0 4px;font-size:15px}
+.note{font-size:12.5px;color:var(--muted-foreground);margin:0 0 8px;line-height:1.45}
+.stage{position:relative;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:#060b10 radial-gradient(120% 90% at 50% 40%,#0d1b26 0%,#05090d 70%);font-family:ui-monospace,"SF Mono",Menlo,monospace;color:var(--text);font-size:10px;letter-spacing:.04em}
+.stage *{box-sizing:border-box}
+.up{text-transform:uppercase}
+.blue{color:var(--acc)} .red{color:var(--enemy)} .dim{color:var(--dim)}
+.plate{background:var(--glass);border-left:2px solid var(--acc);padding:5px 7px;backdrop-filter:blur(4px)}
+.plate.r{border-left:none;border-right:2px solid var(--enemy);text-align:right}
+.row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(115,219,255,.12)}
+.plate.r .row{flex-direction:row-reverse;border-color:rgba(255,97,82,.14)}
+.idx{width:14px;height:14px;display:grid;place-items:center;border:1px solid currentColor;font-size:8px;flex:none}
+.ctl{padding:1px 5px;border:1px solid rgba(143,173,194,.5);color:var(--dim);font-size:8.5px}
+.ctl.you{border-color:var(--acc);color:#04121a;background:var(--acc);font-weight:700}
+.x{margin-left:auto;color:var(--dim);font-size:9px;opacity:.7}
+.plate.r .x{margin-left:0;margin-right:auto}
+.add{margin-top:5px;color:var(--dim);font-size:9px;border:1px dashed rgba(143,173,194,.45);padding:3px;text-align:center}
+.fac{font-size:12px;font-weight:700;letter-spacing:.12em;margin-bottom:2px}
+.seg{display:inline-flex;gap:0}
+.seg span{padding:2px 6px;border:1px solid rgba(143,173,194,.35);color:var(--dim);margin-right:-1px;font-size:9px}
+.seg span.on{color:#04121a;background:var(--acc);border-color:var(--acc);font-weight:700}
+.seg span.off{opacity:.35;text-decoration:line-through}
+.deploy{background:linear-gradient(90deg,#ffa529,#ffc04d);color:#140a00;font-weight:800;letter-spacing:.2em;padding:7px 16px;font-size:12px;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+.reroll{border:1px solid var(--acc);color:var(--acc);padding:4px 9px;font-size:9.5px}
+.status{font-size:9px;color:var(--dim)}
+.status b{color:var(--acc)}
+.mapbox{position:absolute;overflow:hidden}
+.mapbox svg{width:100%;height:100%;display:block}
+.chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.chip{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:3px 10px;cursor:pointer;user-select:none;background:var(--card)}
+.chip.on{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.q{border-top:1px solid var(--border);padding-top:14px}
+.opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.opt{border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;cursor:pointer;font-size:12.5px;background:var(--card);display:flex;gap:8px;align-items:center}
+.opt.on{outline:2px solid var(--primary)}
+.sw{width:22px;height:22px;border-radius:4px;flex:none;border:1px solid rgba(255,255,255,.2)}
+textarea{width:100%;box-sizing:border-box;min-height:120px;font-family:var(--font-mono);font-size:12px;background:var(--code-background);color:var(--code-foreground);border:1px solid var(--border);border-radius:var(--radius);padding:10px}
+button.copy{margin-top:6px;font-size:12px;padding:5px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--secondary);color:var(--secondary-foreground);cursor:pointer}
+.legend{position:absolute;font-size:8.5px;color:var(--dim);display:flex;gap:10px}
+.legend i{display:inline-block;width:8px;height:8px;margin-right:3px;vertical-align:-1px}
+</style></head><body>
+<div class="wrap">
+<div>
+<h2 style="margin:0 0 6px">Lobby directions (arbitrary-slot skirmish walk, 2026-10-16)</h2><p class="note"><b>Chosen:</b> Direction 3 overall layout; Blue edge faces the Blue column; allies pale ice #b9f0ff; rows show index, controller, delete (D22–D25).</p>
+<p class="note">Mock data: a 3v4 on a Large mixed map. Blue (U.S.) has You + 2 AI, so 3 entries; Red (Eastern) has 4 AI, which also gives 3 entries. The map is drawn fake but shaped like the generator's output: a main road edge to edge through a hub town, side roads, a river, forest, a junction objective plus field pairs. In every direction the map is turned so Blue's edge faces the Blue column.</p>
+</div>
+
+<div><h3>Direction 1: Briefing table</h3>
+<p class="note">Three full-height columns. The map is a square in the centre, and the setup controls run in one strip below it. Deploy sits bottom-right, where the eye ends up.</p>
+<div class="stage" id="d1"></div>
+<div class="chips" data-dir="1"></div></div>
+
+<div><h3>Direction 2: Map as the stage</h3>
+<p class="note">The map fills the screen. Each side's roster floats as a holo list over its own edge of the map, next to its entry markers, and the setup controls run along the top. Most like a game; the rosters cover some map.</p>
+<div class="stage" id="d2"></div>
+<div class="chips" data-dir="2"></div></div>
+
+<div><h3>Direction 3: Order of battle</h3>
+<p class="note">Each slot is a wide banner with a big index numeral, styled like a unit insignia. The map sits between the two banner stacks, with a tall "VS" spine. It reads the most like a versus screen and needs the most space per slot.</p>
+<div class="stage" id="d3"></div>
+<div class="chips" data-dir="3"></div></div>
+
+<div class="q"><h3>A. Map orientation</h3>
+<div class="opts" data-q="orient">
+<div class="opt on" data-v="Blue edge faces the Blue column (map turned 90°)">Blue edge faces the Blue column, map turned 90° (as drawn)</div>
+<div class="opt" data-v="North-up, same as in battle (Blue at the bottom)">North-up, the same as in battle (Blue at the bottom)</div>
+</div></div>
+
+<div class="q"><h3>B. Allied colour (D16 needs a new hue; game-ui says to ask before adding one)</h3>
+<div class="opts" data-q="ally">
+<div class="opt on" data-v="pale ice (#b9f0ff): a lighter Blue"><span class="sw" style="background:#b9f0ff"></span>Pale ice: a lighter Blue</div>
+<div class="opt" data-v="teal (#4fe0c0)"><span class="sw" style="background:#4fe0c0"></span>Teal</div>
+<div class="opt" data-v="violet (#a99cff)"><span class="sw" style="background:#a99cff"></span>Violet</div>
+<div class="opt" data-v="white (#e6f5ff)"><span class="sw" style="background:#e6f5ff"></span>White, the text colour (would take a second role)</div>
+</div>
+<p class="note">Already taken: Blue accent #73dbff, enemy #ff6152, good #8cf29e, credits #fac740, warn #ffcc66, pinned #ff8538 (from <code>fixtures/game.json</code> <code>presentation.hud</code>).</p></div>
+
+<div class="q"><h3>C. What should a slot row show?</h3>
+<div class="opts" data-q="row" data-multi="1">
+<div class="opt on" data-v="index numeral">Index numeral</div>
+<div class="opt on" data-v="controller (YOU/AI)">Controller (YOU/AI)</div>
+<div class="opt" data-v="a generated callsign (e.g. 'VIPER')">A generated callsign ("VIPER")</div>
+<div class="opt" data-v="AI personality/doctrine label">AI doctrine label</div>
+<div class="opt on" data-v="delete ×">Delete ×</div>
+</div></div>
+
+<div class="q"><h3>Your reply</h3>
+<textarea id="reply" readonly></textarea>
+<button class="copy" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('reply').value)">Copy</button></div>
+</div>
+
+<script>
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+// Map in "battle" coords 0..100, Blue edge at x=0 (left), Red edge at x=100 (right).
+function mapSVG(id){
+ const r=rng(7);let s=`<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid ${id===2?"slice":"meet"}">`;
+ s+=`<defs><pattern id="g${id}" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#16241c"/><circle cx="1" cy="1" r=".35" fill="#1d3024"/></pattern>
+ <radialGradient id="v${id}"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient></defs>`;
+ s+=`<rect width="100" height="100" fill="url(#g${id})"/>`;
+ // fields
+ for(let i=0;i<26;i++){const x=r()*100,y=r()*100,w=6+r()*12,h=5+r()*10;s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${r()<.5?'#1f2e1d':'#262f1c'}" opacity=".8" transform="rotate(${(r()-.5)*30} ${x} ${y})"/>`}
+ // forest blobs
+ for(let i=0;i<9;i++){const cx=8+r()*84,cy=8+r()*84;let p='';for(let k=0;k<9;k++){const a=k/9*6.283,rr=4+r()*5;p+=`${cx+Math.cos(a)*rr},${cy+Math.sin(a)*rr} `}s+=`<polygon points="${p}" fill="#0f2416" stroke="#163220" stroke-width=".4"/>`}
+ // river
+ s+=`<path d="M38,-2 C34,20 46,30 41,48 C36,66 52,74 47,102" fill="none" stroke="#1b4d6b" stroke-width="2.6"/><path d="M38,-2 C34,20 46,30 41,48 C36,66 52,74 47,102" fill="none" stroke="#2c6f93" stroke-width=".8" opacity=".6"/>`;
+ // roads: main spine edge to edge, side corridors
+ const road=(d,w)=>s+=`<path d="${d}" fill="none" stroke="#7b7563" stroke-width="${w+.8}" opacity=".55"/><path d="${d}" fill="none" stroke="#c9bf9f" stroke-width="${w}" opacity=".85"/>`;
+ road("M0,50 C18,47 30,54 50,50 S80,46 100,50",1.3);
+ road("M0,22 C14,25 28,33 50,50",.8); road("M0,79 C16,75 30,64 50,50",.8);
+ road("M100,20 C86,24 72,34 50,50",.8); road("M100,81 C84,77 68,64 50,50",.8);
+ road("M50,50 C52,30 60,18 64,-2",.6); road("M28,35 C30,60 26,75 22,102",.5);
+ // town blocks
+ for(let i=0;i<70;i++){const a=r()*6.283,d=Math.pow(r(),1.6)*11;const x=50+Math.cos(a)*d*1.3,y=50+Math.sin(a)*d;s+=`<rect x="${x}" y="${y}" width="${1+r()*1.6}" height="${1+r()*1.4}" fill="#a3a9ad" opacity=".75" transform="rotate(${r()*90} ${x} ${y})"/>`}
+ for(let i=0;i<30;i++){const c=[[22,30],[74,72],[70,26]][i%3];const x=c[0]+(r()-.5)*9,y=c[1]+(r()-.5)*7;s+=`<rect x="${x}" y="${y}" width="${.8+r()}" height="${.8+r()}" fill="#9aa0a4" opacity=".65"/>`}
+ s+=`<rect width="100" height="100" fill="url(#v${id})"/>`;
+ // objectives
+ const obj=[[50,50,'A',1],[50,26,'B',0],[50,75,'C',0],[30,40,'D',0],[70,60,'E',0]];
+ for(const[x,y,l,big]of obj){s+=`<circle cx="${x}" cy="${y}" r="${big?4.2:3.4}" fill="rgba(230,245,255,.08)" stroke="#e6f5ff" stroke-width=".45" stroke-dasharray="${big?'':'1.2 .8'}"/><text x="${x}" y="${y+1.3}" font-size="3.6" font-weight="700" text-anchor="middle" fill="#e6f5ff" font-family="ui-monospace,Menlo,monospace">${l}</text>`}
+ // entries
+ const ent=(x,y,c,dir,n)=>{const a=dir>0?`${x},${y-2.6} ${x+3.6},${y} ${x},${y+2.6}`:`${x},${y-2.6} ${x-3.6},${y} ${x},${y+2.6}`;s+=`<polygon points="${a}" fill="${c}" opacity=".95"/><text x="${x+dir*6}" y="${y+1}" font-size="2.7" text-anchor="middle" fill="${c}" font-family="ui-monospace,Menlo,monospace">${n}</text>`};
+ ent(1,22,'#73dbff',1,'N');ent(1,50,'#73dbff',1,'C');ent(1,79,'#73dbff',1,'S');
+ ent(99,20,'#ff6152',-1,'N');ent(99,50,'#ff6152',-1,'C');ent(99,81,'#ff6152',-1,'S');
+ return s+`</svg>`;
+}
+const blue=[["1","YOU",true],["2","AI"],["3","AI"]], red=[["1","AI"],["2","AI"],["3","AI"],["4","AI"]];
+function plate(side,rows,extra=''){const r=side==='r';return `<div class="plate ${r?'r':''}" ${extra}>
+ <div class="fac up ${r?'red':'blue'}">${r?'Red · Eastern ▾':'Blue · U.S. ▾'}</div>
+ ${rows.map(([i,c,y])=>`<div class="row"><span class="idx ${r?'red':'blue'}">${i}</span><span class="ctl ${y?'you':''}">${c} ▾</span><span class="x">✕</span></div>`).join('')}
+ <div class="add up">+ add player</div></div>`}
+const controls=`<span class="seg"><span>1v1</span><span>3v3</span><span>5v5</span></span>
+ <span class="seg"><span>open</span><span class="on">mixed</span><span>metro</span></span>
+ <span class="seg"><span class="off">S</span><span class="off">M</span><span class="on">L</span><span>XL</span></span>
+ <span class="seg"><span class="on">random</span><span>alpine</span><span>…</span></span>`;
+const status=`<span class="status"><b>●</b> READY · SEED 81 446 203</span>`;
+const legend=`<span><i style="background:#c9bf9f"></i>road</span><span><i style="background:#2c6f93"></i>water</span><span><i style="background:#0f2416;outline:1px solid #163220"></i>forest</span><span><i style="background:#a3a9ad"></i>buildings</span>`;
+
+d1.innerHTML=`<div style="position:absolute;inset:4% 3%;display:grid;grid-template-columns:22% 1fr 22%;grid-template-rows:auto 1fr auto;gap:10px">
+ <div class="up dim" style="grid-column:1/4;font-size:12px;letter-spacing:.3em">Skirmish <span class="dim" style="letter-spacing:.1em">· 3 v 4</span></div>
+ <div>${plate('b',blue)}</div>
+ <div class="mapbox" style="position:relative;border:1px solid rgba(115,219,255,.25)">${mapSVG(1)}<div class="legend" style="left:6px;bottom:4px">${legend}</div></div>
+ <div>${plate('r',red)}</div>
+ <div style="grid-column:1/4;display:flex;gap:10px;align-items:center">${controls}<span style="flex:1"></span>${status}<span class="reroll up">⟳ reroll</span><span class="deploy up">Deploy</span></div></div>`;
+
+d2.innerHTML=`<div class="mapbox" style="inset:0">${mapSVG(2)}</div>
+ <div style="position:absolute;top:0;left:0;right:0;padding:8px 12px;display:flex;gap:10px;align-items:center;background:linear-gradient(#05090ddd,#05090d00)"><span class="up" style="font-size:12px;letter-spacing:.3em">Skirmish</span>${controls}<span style="flex:1"></span>${status}<span class="reroll up">⟳ reroll</span></div>
+ <div style="position:absolute;left:9%;top:24%;width:19%">${plate('b',blue)}</div>
+ <div style="position:absolute;right:9%;top:20%;width:19%">${plate('r',red)}</div>
+ <div style="position:absolute;right:14px;bottom:14px"><span class="deploy up" style="font-size:14px;padding:9px 22px">Deploy</span></div>
+ <div class="legend" style="left:12px;bottom:10px">${legend}</div>`;
+
+const banner=(side,[i,c,y])=>{const r=side==='r';const col=r?'var(--enemy)':'var(--acc)';return `<div style="position:relative;height:13%;margin-bottom:2.2%;background:linear-gradient(${r?'270deg':'90deg'},${r?'rgba(255,97,82,.22)':'rgba(115,219,255,.2)'},rgba(5,15,23,.6));clip-path:polygon(${r?'6% 0,100% 0,100% 100%,0 100%':'0 0,100% 0,94% 100%,0 100%'});display:flex;align-items:center;${r?'flex-direction:row-reverse;':''}gap:8px;padding:0 10px">
+ <span style="font-size:22px;font-weight:800;color:${col};opacity:.9">${i}</span><span class="ctl ${y?'you':''}">${c} ▾</span><span class="dim up" style="font-size:8px">${r?'eastern':'u.s.'}</span><span class="x" style="${r?'margin-right:auto;margin-left:0':''}">✕</span></div>`};
+d3.innerHTML=`<div style="position:absolute;inset:5% 3% 15% 3%;display:grid;grid-template-columns:24% 1fr 24%;gap:12px">
+ <div><div class="fac up blue" style="font-size:13px;margin-bottom:6px">Blue · U.S. ▾</div>${blue.map(b=>banner('b',b)).join('')}<div class="add up">+ add player</div></div>
+ <div class="mapbox" style="position:relative;border:1px solid rgba(230,245,255,.18)">${mapSVG(3)}<div style="position:absolute;left:50%;top:-2px;transform:translateX(-50%);font-size:18px;font-weight:900;letter-spacing:.2em;color:#e6f5ff;text-shadow:0 0 8px #000">3 VS 4</div></div>
+ <div style="text-align:right"><div class="fac up red" style="font-size:13px;margin-bottom:6px">Red · Eastern ▾</div>${red.map(b=>banner('r',b)).join('')}<div class="add up">+ add player</div></div></div>
+ <div style="position:absolute;left:3%;right:3%;bottom:4%;display:flex;gap:10px;align-items:center">${controls}<span style="flex:1"></span>${status}<span class="reroll up">⟳ reroll</span><span class="deploy up">Deploy</span></div>`;
+
+const picks={};
+document.querySelectorAll('.chips').forEach(c=>{const d=c.dataset.dir;picks['d'+d]=[];['steal: overall layout','steal: map treatment','steal: slot rows','steal: controls strip','skip'].forEach(t=>{const e=document.createElement('span');e.className='chip';e.textContent=t;e.onclick=()=>{e.classList.toggle('on');const a=picks['d'+d];const i=a.indexOf(t);i<0?a.push(t):a.splice(i,1);upd()};c.appendChild(e)})});
+const ans={orient:"Blue edge faces the Blue column (map turned 90°)",ally:"pale ice (#b9f0ff): a lighter Blue",row:["index numeral","controller (YOU/AI)","delete ×"]};
+document.querySelectorAll('.opts').forEach(o=>{o.querySelectorAll('.opt').forEach(e=>e.onclick=()=>{const q=o.dataset.q;if(o.dataset.multi){e.classList.toggle('on');ans[q]=[...o.querySelectorAll('.opt.on')].map(x=>x.dataset.v)}else{o.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));e.classList.add('on');ans[q]=e.dataset.v}upd()})});
+function upd(){const L=[];for(const d of[1,2,3]){const p=picks['d'+d];L.push(`Direction ${d}: ${p.length?p.join(', '):'(no reaction)'}`)}
+L.push(`A. Orientation: ${ans.orient}`,`B. Ally colour: ${ans.ally}`,`C. Slot row shows: ${ans.row.join(', ')||'(none)'}`,`Anything missing from the lobby:`);reply.value=L.join('\n')}
+upd();
+</script></body></html>
