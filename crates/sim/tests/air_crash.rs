@@ -70,6 +70,22 @@ fn open(props: Value, forests: Value) -> Value {
         "props": props, "forests": forests })
 }
 
+fn bridge_map() -> Value {
+    json!({
+        "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "rivers": [{
+            "points": [{ "xy": [318, 0], "width_m": 24, "depth_m": 2 },
+                        { "xy": [318, 400], "width_m": 24, "depth_m": 2 }],
+            "surface_z": -0.5
+        }],
+        "bridges": [{
+            "deck": "bridge_deck", "center": [318, 200], "half_extents": [18, 5],
+            "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8
+        }],
+        "props": [], "forests": []
+    })
+}
+
 #[test]
 fn a_shot_down_helicopter_falls_forward_spinning_onto_the_ground() {
     let (b, died, fell) = shoot_down(open(json!([]), json!([])), [300.0, 80.0], json!([]));
@@ -91,6 +107,69 @@ fn a_shot_down_helicopter_falls_forward_spinning_onto_the_ground() {
         .map(|w| sim::math::wrap_angle(w[1] - w[0]).abs())
         .sum();
     assert!(turned > 3.0, "it turned only {turned:.2} rad as it fell");
+}
+
+#[test]
+fn a_helicopter_shot_down_over_a_bridge_rests_on_its_deck() {
+    let map: contract::map::MapDefinition = serde_json::from_value(bridge_map()).unwrap();
+    let world = sim::world::WorldGeometry::new(&map, &crate::common::rules());
+    let deck = world.surface_at(317.0, 200.0).unwrap();
+    assert_eq!(deck.kind, sim::world::SurfaceKind::Bridge);
+    let mut crash = sim::crash::Crash::new(
+        UnitId(0),
+        V3 {
+            x: 317.0,
+            y: 200.0,
+            z: 20.0,
+        },
+        V2 { x: 0.0, y: 0.0 },
+        0.0,
+        None,
+        vec![],
+    );
+    for _ in 0..300 {
+        if crash.fall(
+            &world,
+            V3 {
+                x: 0.0,
+                y: 0.0,
+                z: -9.81,
+            },
+            V3 {
+                x: 7.0,
+                y: 1.2,
+                z: 1.6,
+            },
+            1.0 / 30.0,
+        ) == sim::crash::Fall::Landed
+        {
+            break;
+        }
+    }
+    assert!(
+        (crash.position.z - deck.z).abs() < 1e-6,
+        "impact {:?}, deck {}",
+        crash.position,
+        deck.z
+    );
+
+    let (b, _, _) = shoot_down(bridge_map(), [300.0, 80.0], json!([]));
+    let (_, base, _) = wreck(&b);
+    let wreck = b
+        .world()
+        .props()
+        .find(|p| p.wreck_of.is_some())
+        .expect("a wreck where the helicopter fell");
+    let surface = b
+        .world()
+        .surface_at(wreck.center.x, wreck.center.y)
+        .unwrap();
+    assert_eq!(surface.kind, sim::world::SurfaceKind::Bridge);
+    assert!(
+        (base - surface.z).abs() < 1e-6,
+        "wreck base {base}, deck {}",
+        surface.z
+    );
 }
 
 #[test]
