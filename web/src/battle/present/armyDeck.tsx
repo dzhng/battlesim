@@ -206,7 +206,7 @@ export function ArmyDeck({
               );
             })}
           </div>
-          {control && <CommandBar control={control} hintHost={hintHost} />}
+          {control && <CommandBar control={control} own={own} hintHost={hintHost} />}
         </footer>
       )}
     </div>

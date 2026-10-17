@@ -190,6 +190,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     togglePolicy: () => setAction("Fire policy"),
     toggleDeployment: () => setAction("Deployment"),
     exitBuilding: () => setAction("Leave building"),
+    pressUnload: () => setAction("Unload"),
   };
   const skirmish = {
     phase: "preparation" as const,

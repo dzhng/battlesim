@@ -679,6 +679,7 @@ function CommandButton({
  *  Nothing selected, no bar. */
 export function CommandBar({
   control,
+  own,
   hintHost,
 }: {
   hintHost?: HTMLElement | null;
@@ -691,7 +692,10 @@ export function CommandBar({
     | "togglePolicy"
     | "toggleDeployment"
     | "exitBuilding"
+    | "pressUnload"
   > & { refund?: () => void; toggleAfterburner?: () => void };
+  /** Every own unit: the passengers Unload reaches carriers by. */
+  own: readonly OwnUnitView[];
 }) {
   const { units, weapons } = useSessionCatalog();
   const selected = control.selectedUnits;
@@ -699,9 +703,9 @@ export function CommandBar({
   const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   // Capability actions apply to eligible units; movement applies to everyone.
-  const [armed, deployers, inside] = (["attack", "deploy", "exit_building"] as ReachCommand[]).map(
-    (c) => reach(c, selected, units),
-  );
+  const [armed, deployers, inside, unloaders] = (
+    ["attack", "deploy", "exit_building", "unload"] as ReachCommand[]
+  ).map((c) => reach(c, selected, units, own));
   const hold = n > 0 && selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
   const aircraft = selected.filter((u) => u.fuelS != null);
@@ -769,6 +773,13 @@ export function CommandBar({
           disabled: n === 0,
           onClick: control.refund,
         })}
+      {command({
+        icon: hudIcon("unload"),
+        label: `Unload ${key("unload")}`,
+        pressed: control.mode === "unload",
+        disabled: unloaders.length === 0,
+        onClick: control.pressUnload,
+      })}
       {command({
         icon: hudIcon("leave_building"),
         label: "Leave building",

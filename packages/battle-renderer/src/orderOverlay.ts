@@ -185,6 +185,9 @@ export interface OrderView {
    *  to that end's marker, as one joins the airframe to its own. 0 or
    *  absent: no ghost, no line. */
   ghostAloft?: number;
+  /** The points among its goal and queue where its order lets its
+   *  passengers out: their destination marks carry the unload mark. */
+  unloads?: readonly P2[];
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
   /** The opacity its order marks (the Space view) draw at, in [0, 1]: 0 or
@@ -663,7 +666,34 @@ function orderPen(z: SurfaceHeight, style: OrderStyle, stroke: StrokeWidth): Pen
 export interface DestinationMarker extends UnitCircle {
   placed: boolean;
   opacity: number;
+  /** The order lets passengers out here: the unload mark. */
+  unload?: boolean;
 }
+
+/** An unload chevron: its length over its circle's radius, and at least
+ *  this many route widths, so it still reads when the view pulls out; its
+ *  spread over its length; its gap from the rim in route widths. */
+const UNLOAD_CHEVRON = 0.35;
+const UNLOAD_CHEVRON_LINES = 3.5;
+const UNLOAD_SPREAD = 1.2;
+const UNLOAD_GAP_LINES = 2;
+const STILL: readonly [number, number, number] = [0, 0, 0];
+
+/** The unload mark on a destination's circle: a chevron off each side of
+ *  `bearing` (the way it ends up facing), pointing out the way its
+ *  passengers get out. */
+function unloadMark(mesh: MeshBuilder, pen: Pen, c: UnitCircle, bearing: number, color: Rgba) {
+  const length = Math.max(c.r * UNLOAD_CHEVRON, pen.line * UNLOAD_CHEVRON_LINES);
+  for (const side of [-1, 1]) {
+    const out = bearing + (side * Math.PI) / 2;
+    const tip = along(c.c, out, c.r + pen.line * UNLOAD_GAP_LINES + length);
+    marchChevron(mesh, pen, tip, out, color, STILL, [length, length * UNLOAD_SPREAD]);
+  }
+}
+
+/** Is `p` one of `points` (the published goal against an order's)? */
+const among = (points: readonly P2[] | undefined, p: P2) =>
+  !!points?.some((q) => Math.abs(q[0] - p[0]) < 0.05 && Math.abs(q[1] - p[1]) < 0.05);
 
 /** A destination and its facing while the player holds a right-drag. */
 export function buildDestinationPreview(
@@ -676,8 +706,9 @@ export function buildDestinationPreview(
   const pen = orderPen(z, style, stroke);
   for (const mark of marks) {
     if (!mark.placed) continue;
-    const color = glowing(style.color, style.glow.order);
-    circleMarker(mesh, pen, mark, fadeAlpha(color, mark.opacity));
+    const color = fadeAlpha(glowing(style.color, style.glow.order), mark.opacity);
+    circleMarker(mesh, pen, mark, color);
+    if (mark.unload) unloadMark(mesh, pen, mark, mark.facing ?? 0, color);
   }
   return mesh.build();
 }
@@ -842,6 +873,7 @@ export function buildOrderOverlay(
       ring(paint, pen, u.goal, BLOCKED_R, blockedColor, { width: pen.line });
     } else if (dest) {
       circleMarker(paint, pen, dest, color);
+      if (among(u.unloads, u.goal)) unloadMark(paint, pen, dest, u.finalFacing, color);
       if (squad)
         for (const m of u.memberOrders)
           soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
@@ -851,6 +883,10 @@ export function buildOrderOverlay(
       const next: UnitCircle = { c: q, r: QUEUED_R, facing: null };
       routeBetween(paint, pen, prev, [q], next, queued, { dashed: true });
       ring(paint, pen, q, QUEUED_R, queued);
+      if (among(u.unloads, q)) {
+        const from = prev?.c ?? u.goal;
+        unloadMark(paint, pen, next, Math.atan2(q[1] - from[1], q[0] - from[0]), queued);
+      }
       prev = next;
     }
     // Its ghost over where its orders end, joined to that end's marker.

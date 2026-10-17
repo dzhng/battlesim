@@ -40,7 +40,7 @@ export async function run(ctx) {
   const desktop = await geometry(page);
   ctx.check(
     "every action's picture loads, at native size, its tip at the same pointer anchor",
-    desktop.length === 24 &&
+    desktop.length === 30 &&
       desktop.every(
         (s) => s.loaded && s.shows === s.action && s.tipError < 0.01 && s.size.join() === "32,32",
       ),

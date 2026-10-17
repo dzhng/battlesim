@@ -1,6 +1,6 @@
 // The player's pointer input at the input seam: `useUnitControl.onPointer`
 // with a pick, and the orders it sends to a recording client.
-import { act, fireEvent, renderHook } from "@testing-library/react";
+import { act, fireEvent, render, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { expect, test } from "vitest";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
@@ -8,6 +8,7 @@ import { SessionCatalogProvider } from "@web/battle/catalog/context";
 import { TEST_CATALOG } from "./catalog";
 import { contactUnder } from "../src/battle/input/contactPick";
 import { useUnitControl } from "../src/battle/input/useUnitControl";
+import { CommandBar } from "../src/battle/present/readouts";
 import type { PointerPick } from "../src/battle/input/pointerIntent";
 import type { SimClient } from "../src/battle/sim/client";
 import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/sim/observationView";
@@ -640,5 +641,214 @@ test("a selected squad drops out of the selection as it boards, and orders go to
   expect(hook.result.current.selected).toEqual([1]);
   await act(async () => hook.result.current.stop());
   expect(sent.map(({ order }) => "units" in order && order.units)).toEqual([[1]]);
+  hook.unmount();
+});
+
+/** A rifle squad (1), a supply truck (2), an APC (4) and an AT team (5) on
+ *  the field; with `riders`, an APC (6) carrying rifle squad 7. */
+async function carriers(riders = false) {
+  const observation = {
+    own: [
+      own(1, "test_rifle"),
+      own(2, "test_supply"),
+      own(4, "test_apc"),
+      own(5, "test_at"),
+      ...(riders
+        ? [
+            own(6, "test_apc"),
+            {
+              ...own(7, "test_rifle"),
+              hold: { host: { kind: "carrier", id: 6 }, phase: "inside", progress: 1 },
+            } as unknown as OwnUnitView,
+          ]
+        : []),
+    ],
+    contacts: [],
+  } as unknown as ObservationView;
+  const { client, sent } = recordingClient();
+  const hook = renderHook(() => useUnitControl(client, observation), { wrapper });
+  const click = async (pick: Partial<PointerPick>) => {
+    await act(async () =>
+      hook.result.current.onPointer({
+        unit: null,
+        button: "right",
+        shift: false,
+        ctrl: false,
+        x: 0,
+        y: 0,
+        time: 0,
+        ground: [50, 50],
+        ...pick,
+      }),
+    );
+  };
+  const key = async (code: string, shiftKey = false) =>
+    act(async () => fireEvent.keyDown(window, { code, shiftKey }));
+  return { hook, sent, click, key, observation };
+}
+
+test("right-clicking an own carrier boards the selected squads; right-clicking an own squad sends the selected carriers to collect it; Shift queues", async () => {
+  const { hook, sent, click } = await carriers();
+  act(() => hook.result.current.setSelected([1, 2]));
+  await click({ unit: 4 });
+  await click({ unit: 4, shift: true });
+  act(() => hook.result.current.setSelected([4, 2]));
+  await click({ unit: 5 });
+  await click({ unit: 5, shift: true });
+  expect(sent).toEqual([
+    { order: { kind: "board", units: [1], carrier: 4, gesture: 1 }, queued: false },
+    { order: { kind: "board", units: [1], carrier: 4, gesture: 2 }, queued: true },
+    { order: { kind: "collect", units: [4], squads: [5], gesture: 3 }, queued: false },
+    { order: { kind: "collect", units: [4], squads: [5], gesture: 4 }, queued: true },
+  ]);
+});
+
+test("U then a ground click unloads there, only the carriers holding passengers; Shift queues it; right-click cancels", async () => {
+  const { hook, sent, click, key } = await carriers(true);
+  act(() => hook.result.current.setSelected([1, 2, 4, 6]));
+  await key("KeyU");
+  expect(hook.result.current.mode).toBe("unload");
+  // The left-click confirms rather than selects, whatever is under it.
+  await click({ button: "left", unit: 1 });
+  expect(hook.result.current.mode).toBe("move");
+  expect(hook.result.current.selected).toEqual([1, 2, 4, 6]);
+  await key("KeyU");
+  await click({ button: "left", shift: true, ground: [70, 20] });
+  await key("KeyU");
+  await click({});
+  expect(hook.result.current.mode).toBe("move");
+  expect(sent).toEqual([
+    {
+      order: { kind: "unload", units: [6], goal: [50, 50], route: "shortest", gesture: 1 },
+      queued: false,
+    },
+    {
+      order: { kind: "unload", units: [6], goal: [70, 20], route: "shortest", gesture: 2 },
+      queued: true,
+    },
+  ]);
+});
+
+test("U pressed again while armed unloads in place at once, replacing the queue", async () => {
+  const { hook, sent, key } = await carriers(true);
+  act(() => hook.result.current.setSelected([1, 6]));
+  await key("KeyU");
+  await key("KeyU");
+  expect(hook.result.current.mode).toBe("move");
+  expect(sent).toEqual([
+    {
+      order: { kind: "unload", units: [6], goal: null, route: "shortest", gesture: 1 },
+      queued: false,
+    },
+  ]);
+});
+
+test("Unload is unavailable, by key and on the bar, without a carrier holding passengers", async () => {
+  const { hook, sent, key, observation } = await carriers(true);
+  act(() => hook.result.current.setSelected([1, 4]));
+  await key("KeyU");
+  expect(hook.result.current.mode).toBe("move");
+  const bar = () => <CommandBar control={hook.result.current} own={observation.own} />;
+  const view = render(bar(), { wrapper });
+  const unload = () => view.getByRole("button", { name: /^Unload/ });
+  expect(unload().hasAttribute("disabled")).toBe(true);
+  // With the loaded carrier selected the button arms Unload, and a second
+  // press unloads where it stands, as the key does.
+  act(() => hook.result.current.setSelected([1, 4, 6]));
+  view.rerender(bar());
+  expect(unload().hasAttribute("disabled")).toBe(false);
+  await act(async () => fireEvent.click(unload()));
+  expect(hook.result.current.mode).toBe("unload");
+  view.rerender(bar());
+  expect(unload().getAttribute("aria-pressed")).toBe("true");
+  await act(async () => fireEvent.click(unload()));
+  expect(sent.map(({ order }) => order)).toEqual([
+    { kind: "unload", units: [6], goal: null, route: "shortest", gesture: 1 },
+  ]);
+  view.unmount();
+});
+
+test("an accepted unload at a point marks that point while the carrier's goal or queue still names it", async () => {
+  // Each order lands ten ticks after the last.
+  let seq = 0;
+  const client = {
+    command: async (order: Order) => ({
+      seq: ++seq,
+      applied_tick: 10 * seq,
+      error: null,
+      refused: [],
+      placement:
+        order.kind === "unload" && order.goal
+          ? {
+              gesture: order.gesture,
+              destinations: order.units.map((unit) => ({
+                unit,
+                goal: order.goal,
+                facing: 0,
+                placed: true,
+                spots: [],
+              })),
+            }
+          : undefined,
+    }),
+  } as unknown as SimClient;
+  /** At `tick`, carrier 6 with a rider, heading for `goal` then `queue`. */
+  const carrier = (tick: number, goal: [number, number] | null, queue: [number, number][] = []) =>
+    ({
+      tick,
+      own: [
+        { ...own(6, "test_apc"), goal, queue },
+        {
+          ...own(7, "test_rifle"),
+          hold: { host: { kind: "carrier", id: 6 }, phase: "inside", progress: 1 },
+        },
+      ],
+      contacts: [],
+    }) as unknown as ObservationView;
+  const hook = renderHook(({ o }) => useUnitControl(client, o), {
+    wrapper,
+    initialProps: { o: carrier(0, null) },
+  });
+  act(() => hook.result.current.setSelected([6]));
+  act(() => hook.result.current.setMode("unload"));
+  const left = (ground: [number, number], shift = false) =>
+    act(async () =>
+      hook.result.current.onPointer({
+        unit: null,
+        button: "left",
+        shift,
+        ctrl: false,
+        x: 0,
+        y: 0,
+        time: 0,
+        ground,
+      }),
+    );
+  await left([50, 50]);
+  // Accepted, its order not yet landed: the carrier still publishes no goal.
+  hook.rerender({ o: carrier(5, null) });
+  hook.rerender({ o: carrier(10, [50, 50]) });
+  expect(hook.result.current.unloads.get(6)).toEqual([[50, 50]]);
+  act(() => hook.result.current.setMode("unload"));
+  await left([80, 10], true);
+  hook.rerender({ o: carrier(20, [50, 50], [[80, 10]]) });
+  expect(hook.result.current.unloads.get(6)).toEqual([
+    [50, 50],
+    [80, 10],
+  ]);
+  // Arrived and unloaded at the first: only the queued one is ahead.
+  hook.rerender({ o: carrier(40, [80, 10]) });
+  expect(hook.result.current.unloads.get(6)).toEqual([[80, 10]]);
+  // A plain move to that same point replaces the order: no unload there.
+  await act(async () =>
+    hook.result.current.issue({
+      kind: "move",
+      units: [6],
+      gesture: 9,
+      goal: [80, 10],
+      route: "shortest",
+    }),
+  );
+  expect(hook.result.current.unloads.get(6)).toBeUndefined();
   hook.unmount();
 });

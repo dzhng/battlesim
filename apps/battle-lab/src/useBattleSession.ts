@@ -860,7 +860,10 @@ export function useBattleSession({
       `${shown?.tick ?? 0}:${control.acks[0]?.seq ?? 0}`,
       `${semanticRevision.current.version}:${held?.generation ?? (waiting ? pending.generation : 0)}`,
     );
-    const showDestinations = queryIntent.kind === "move" || queryIntent.kind === "occupy_building";
+    const showDestinations =
+      queryIntent.kind === "move" ||
+      queryIntent.kind === "occupy_building" ||
+      queryIntent.kind === "unload";
     let preview = (held || waiting) && showDestinations ? marks : [];
     // A right-drag that sets facing shows each unit as it will stand; a plain
     // right-click does not.
@@ -885,7 +888,9 @@ export function useBattleSession({
       else if (
         !accepted.error &&
         released &&
-        (released.kind === "move" || released.kind === "occupy_building")
+        (released.kind === "move" ||
+          released.kind === "occupy_building" ||
+          released.kind === "unload")
       )
         // The accepted marks stand in for an order its units do not publish
         // yet, so the order overlay leaves those units out (`orderReveal`);
@@ -918,15 +923,19 @@ export function useBattleSession({
             catalog.weapons,
           )
         : null;
+    // An unload's destination carries the unload mark, held or released.
+    const unloading = (!held && pending ? released?.kind : queryIntent.kind) === "unload";
     pointerPaint.update(
       ruler,
-      active ? preview : [],
+      active ? (unloading ? preview.map((mark) => ({ ...mark, unload: true })) : preview) : [],
       surfaceZ,
       metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
       attackGround,
     );
     if (!active) return null;
-    if (!held && pick?.unit != null) return "default";
+    // Over an own unit the arrow is plain, unless the click would board it.
+    if (!held && pick?.unit != null && intent.kind !== "board" && intent.kind !== "collect")
+      return "default";
     if (!held && accepted && released && (shown?.tick ?? 0) < accepted.applied_tick) {
       const action = cursorForRelease(intent, released, accepted);
       if (action !== null) return action;

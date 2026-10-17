@@ -59,6 +59,15 @@ export type Order =
   | { kind: "exit_building"; units: number[] }
   | { kind: "board"; units: number[]; carrier: number; gesture: number }
   | { kind: "collect"; units: number[]; squads: number[]; gesture: number }
+  /** Drive to `goal` and unload there (Shift queues it), or with `goal`
+   *  null stop and unload in place, replacing the queue. */
+  | {
+      kind: "unload";
+      units: number[];
+      goal: [number, number] | null;
+      gesture: number;
+      route: RoutePolicy;
+    }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {

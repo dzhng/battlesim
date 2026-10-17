@@ -158,6 +158,7 @@ test("the army remains in replay and empty selection while commands follow only 
       togglePolicy: vi.fn(),
       toggleDeployment: vi.fn(),
       exitBuilding: vi.fn(),
+      pressUnload: vi.fn(),
     };
     return (
       <ArmyDeck
@@ -304,6 +305,7 @@ test("the command row exposes refund for a selected skirmish unit", () => {
     togglePolicy: vi.fn(),
     toggleDeployment: vi.fn(),
     exitBuilding: vi.fn(),
+    pressUnload: vi.fn(),
     refund,
   };
   const view = render(
