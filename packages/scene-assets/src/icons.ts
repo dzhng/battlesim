@@ -159,6 +159,12 @@ const HUD_ICONS = {
     '<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5L19 19M19 5l-3.5 3.5M8.5 15.5L5 19"/>',
   hold_fire: '<circle cx="12" cy="12" r="8"/><path d="M7 12h10"/>',
   leave_building: '<path d="M4 20V10l7-6 7 6"/><path d="M11 15h10"/><path d="M18 12l3 3-3 3"/>',
+  // A carrier's hull on its wheels, open at one end, with an arrow going
+  // in (board) or coming out (unload): leave building's arrow, on a hull.
+  board:
+    '<path d="M2 10.5h12"/><path d="M10 6.5l4 4-4 4"/><path d="M11 5h10v11H11"/><circle cx="14" cy="19.5" r="1.6" fill="currentColor"/><circle cx="18.5" cy="19.5" r="1.6" fill="currentColor"/>',
+  unload:
+    '<path d="M13 5H3v11h10"/><path d="M8 10.5h13"/><path d="M17 6.5l4 4-4 4"/><circle cx="5.5" cy="19.5" r="1.6" fill="currentColor"/><circle cx="10" cy="19.5" r="1.6" fill="currentColor"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   // The reinforcements filter: a lens and its handle.
   search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
