@@ -7,6 +7,7 @@ import {
   validateReel,
   type Reel,
 } from "@apps/battle-lab/src/capture/capture";
+import { reelPilot } from "@apps/battle-lab/src/capture/reelPilot";
 import { listMaps, type MapEntry } from "@web/maps/catalogue";
 
 /** A catalogue listing of `capture` maps and `test` maps, by id. */
@@ -86,6 +87,50 @@ test("a tracking shot names the unit it follows and frames by an offset from it"
   expect(sample.follow).toBe(7);
   expect(sample.pose.target).toEqual([0, 0]);
   expect(sampleReel(REEL, 5).follow).toBeNull();
+});
+
+/** A tracking shot on unit 3, held 4 m south of it, then a world shot. */
+const TRACKING: Reel = {
+  fade_s: 0.5,
+  shots: [
+    { seconds: 10, follow: 3, from: at(0, -4), to: at(0, -4) },
+    { seconds: 10, from: at(500, 500), to: at(500, 500) },
+  ],
+};
+
+test("the pilot frames a world shot as the reel samples it at each time", () => {
+  const pilot = reelPilot(REEL);
+  for (const t of [0, 0.25, 5, 10, 15, 25]) {
+    const { pose, black, done } = sampleReel(REEL, t);
+    expect(pilot(t, () => null)).toEqual({ pose, black, done });
+  }
+});
+
+test("a tracking shot opens on its unit and glides after it as it moves", () => {
+  const pilot = reelPilot(TRACKING);
+  let unit: [number, number] = [100, 50];
+  expect(pilot(1, () => unit).pose.target).toEqual([100, 46]);
+  unit = [120, 50];
+  // Half a second later it has closed most of the gap, not jumped onto it.
+  const glided = pilot(1.5, (id) => (id === 3 ? unit : null)).pose.target;
+  expect(glided[0]).toBeGreaterThan(110);
+  expect(glided[0]).toBeLessThan(120);
+  // A few seconds on it stands over the unit again.
+  expect(pilot(5, () => unit).pose.target[0]).toBeCloseTo(120, 1);
+  // The world shot after it ignores the unit.
+  expect(pilot(15, () => unit).pose.target).toEqual([500, 500]);
+});
+
+test("a followed unit that is gone leaves the camera where it last stood", () => {
+  const pilot = reelPilot(TRACKING);
+  pilot(1, () => [100, 50]);
+  const last = pilot(6, () => [140, 50]).pose.target;
+  expect(pilot(7, () => null).pose.target).toEqual(last);
+  expect(pilot(9, () => null).pose.target).toEqual(last);
+  // Gone before its shot opens: the shot frames where the last subject was.
+  const late = reelPilot({ fade_s: 0.5, shots: [TRACKING.shots[1], TRACKING.shots[0]] });
+  late(5, () => null);
+  expect(late(12, () => null).pose.target).toEqual([500, 496]);
 });
 
 test("a reel is admitted only when every shot can be drawn and its dips fit inside it", () => {
