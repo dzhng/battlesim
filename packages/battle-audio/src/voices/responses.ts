@@ -66,6 +66,9 @@ const ORDER_TRIGGERS: Record<string, ResponseTrigger> = {
   garrison: "enter_building",
   occupy_building: "enter_building",
   exit_building: "leave_building",
+  board: "board",
+  collect: "board",
+  unload: "unload",
   refund: "withdraw",
 };
 const POLICY_TRIGGERS: Record<string, ResponseTrigger> = {
@@ -87,6 +90,7 @@ export const REFUSALS: ReadonlySet<string> = new Set([
   "capacity_full",
   "one_squad_per_building",
   "building_occupied",
+  "no_room_to_unload",
 ]);
 
 /** The line an order asks for, or null when no unit answers it. */
@@ -131,7 +135,9 @@ export function responseFor(event: ResponseEvent): ResponseRequest | null {
       : event.kind === "accepted"
         ? orderTrigger(event.order)
         : REFUSALS.has(event.reason)
-          ? "refused"
+          ? event.reason === "no_room_to_unload"
+            ? "no_room_to_unload"
+            : "refused"
           : null;
   const unit = answerer(event.units, event.lead);
   if (!trigger || !unit) return null;
@@ -142,7 +148,15 @@ export function responseFor(event: ResponseEvent): ResponseRequest | null {
 /** A move's end shorter than this, in seconds under way, is a nudge, not an arrival. */
 export const ARRIVED_AFTER_S = 3;
 /** Orders whose end is an arrival. */
-const JOURNEYS = new Set(["move", "attack_move", "garrison", "occupy_building"]);
+const JOURNEYS = new Set([
+  "move",
+  "attack_move",
+  "garrison",
+  "occupy_building",
+  "board",
+  "collect",
+  "unload",
+]);
 /** Orders that end or replace a journey without arriving. */
 const HALTS = new Set(["stop", "attack", "refund", "exit_building"]);
 
