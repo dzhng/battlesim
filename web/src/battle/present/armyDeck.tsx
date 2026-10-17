@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import type { SkirmishView, OwnUnitView } from "../sim/observationView";
+import { aboardCarrier, type SkirmishView, type OwnUnitView } from "../sim/observationView";
 import { useSessionCatalog } from "../catalog/context";
 import { StrengthMeter, UnitFace } from "./unitFace";
 import { InfoPanel } from "./infoPanel";
@@ -120,6 +120,12 @@ export function ArmyDeck({
             {own.map((unit, index) => {
               const name = `${unitName(units, unit)} #${unit.id}`;
               const strength = unitStrength(units, unit);
+              // A squad a carrier holds is still the player's, but can't be
+              // ordered (D10): its card is dimmed, and picks its carrier.
+              const carrier = aboardCarrier(unit)
+                ? own.find((u) => u.id === unit.hold!.host.id)
+                : undefined;
+              const picks = carrier?.id ?? unit.id;
               return (
                 <button
                   type="button"
@@ -127,16 +133,19 @@ export function ArmyDeck({
                   className="hud-army-card"
                   style={cardOffset(index)}
                   data-unit={unit.id}
-                  aria-label={name}
+                  data-aboard={carrier ? "true" : undefined}
+                  aria-label={
+                    carrier ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}` : name
+                  }
                   aria-pressed={selected.includes(unit.id)}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
                   onClick={(event) =>
                     onSelect(
                       event.shiftKey
-                        ? selected.includes(unit.id)
-                          ? selected.filter((id) => id !== unit.id)
-                          : [...selected, unit.id]
-                        : [unit.id],
+                        ? selected.includes(picks)
+                          ? selected.filter((id) => id !== picks)
+                          : [...selected, picks]
+                        : [picks],
                     )
                   }
                   // Mouse selection keeps details tied to hover; Tab still offers focus details.
