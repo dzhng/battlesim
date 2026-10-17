@@ -3,13 +3,23 @@
 //! previous one. Only units present in both blend, and a soldier only with
 //! himself (by member id), so a soldier's motion is his own and never a
 //! formation slot's; nothing is extrapolated. A falling airframe blends with
-//! itself likewise. Own units and identified enemies blend alike.
+//! itself likewise. Own units and identified enemies blend alike. A squad
+//! riding a carrier is off the field and has no body: its owner reads it in
+//! the publication, but nothing of it is drawn, picked or heard.
 use std::sync::Arc;
 
-use sim::publication::reader::{Crash, Identified, Observation, OwnUnit};
+use sim::publication::reader::{Crash, Host, Identified, Observation, OwnUnit};
 
 use super::{delta_angle, lerp3};
 use crate::world::Vec3;
+
+/// Aboard a carrier past its entry timer: inside, or still inside while
+/// leaving it.
+fn riding(u: &OwnUnit) -> bool {
+    u.hold
+        .as_ref()
+        .is_some_and(|h| matches!(h.host, Host::Carrier { .. }) && &*h.phase != "entering")
+}
 
 /// One unit's body at the drawn moment.
 #[derive(Clone, Debug, Default)]
@@ -156,8 +166,9 @@ impl TickInterpolator {
             identified: Vec::new(),
             crashes: Vec::new(),
         });
-        out.own.resize_with(latest.own.len(), Pose::default);
-        for (pose, u) in out.own.iter_mut().zip(&latest.own) {
+        let on_field = || latest.own.iter().filter(|u| !riding(u));
+        out.own.resize_with(on_field().count(), Pose::default);
+        for (pose, u) in out.own.iter_mut().zip(on_field()) {
             let p = previous.and_then(|o| o.own.iter().find(|p| p.id == u.id));
             // Own units also blend their deployment progress.
             let deployment = u.deployment.as_ref().map(|d| {
