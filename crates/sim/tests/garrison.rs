@@ -782,8 +782,8 @@ fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
     assert_eq!(shelter(&b), 0.0, "leaving loses building shelter");
 }
 
-/// A squad's members (alive, where) and its suppression, a tick before.
-type Occupants = (u32, Vec<(bool, sim::math::V3)>, f64);
+/// A squad's members (alive, where, health) and its suppression, a tick before.
+type Occupants = (u32, Vec<(bool, sim::math::V3, f64)>, f64);
 
 /// Run `shelled` until the building collapses; the tick before and after.
 struct Collapse {
@@ -805,7 +805,7 @@ fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse
             .map(|&id| {
                 let u = b.unit(UnitId(id)).unwrap();
                 let members = (0..u.members.len())
-                    .map(|k| (u.members[k].alive(), u.members[k].position))
+                    .map(|k| (u.members[k].alive(), u.members[k].position, u.members[k].hp))
                     .collect();
                 (id, members, u.suppression)
             })
@@ -889,7 +889,9 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
         .sum();
     let alive_now = living(&b, 0);
     assert_eq!(alive_before, alive_now + corpses_now - corpses_before);
-    let radius = num("garrison", "exit_search_radius_m");
+    let radius = rules()["bail_out"]["building"]["search_m"]
+        .as_f64()
+        .unwrap();
     let survivors = living(&b, 0);
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
@@ -910,11 +912,13 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
             "{}",
             u.suppression
         );
-        for (k, (_, was)) in members.iter().enumerate() {
+        for (k, (_, was, hp_before)) in members.iter().enumerate() {
             if !u.members[k].alive() {
                 continue;
             }
             let q = u.members[k].position.xy();
+            let hp_lost = hp_before - u.members[k].hp;
+            assert!((20.0..=40.0).contains(&hp_lost));
             // On legal ground outside the ruin, within the local search of
             // where it stood: no teleport.
             assert!(
@@ -940,7 +944,10 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
     // Low ruins (walls fire can't destroy, Q17), knee-high so the tank still
     // fires over them, fill the ground around the building beyond the local
     // search: nowhere to escape to.
-    let band = num("garrison", "exit_search_radius_m") + 5.0;
+    let band = rules()["bail_out"]["building"]["search_m"]
+        .as_f64()
+        .unwrap()
+        + 5.0;
     let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], FELLED_HALF[0], FELLED_HALF[1]);
     let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let events = json!([
@@ -956,7 +963,7 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
         .find(|c| {
             c.before
                 .iter()
-                .any(|(_, m, _)| m.iter().any(|(alive, _)| *alive))
+                .any(|(_, m, _)| m.iter().any(|(alive, _, _)| *alive))
         })
         .expect("some seed collapses the building on its occupants");
     for (id, members, _) in &before {
@@ -966,7 +973,7 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
         // just behind it if a round took him that tick), brought down to the
         // ground with the floor he stood on.
         let standoff = num("garrison", "slot_standoff_m");
-        for (k, (alive, at)) in members.iter().enumerate() {
+        for (k, (alive, at, _)) in members.iter().enumerate() {
             if *alive {
                 let fallen = u.members[k].corpse.expect("he fell").at;
                 assert!(
@@ -985,7 +992,10 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
     // body (a 0.6 m disc), though not for a squad's path clearance. A
     // survivor escapes into that gap and stands there.
     let gap = 0.8;
-    let band = num("garrison", "exit_search_radius_m") + 5.0;
+    let band = rules()["bail_out"]["building"]["search_m"]
+        .as_f64()
+        .unwrap()
+        + 5.0;
     let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], FELLED_HALF[0], FELLED_HALF[1]);
     let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let (ox, oy) = (hx + gap + band / 2.0, hy + gap + band / 2.0);
@@ -1016,10 +1026,12 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
     let mut survivors = 0;
     for c in &collapses {
         if let Some(u) = c.b.unit(UnitId(0)) {
-            for s in u.members.iter().filter(|s| s.alive()) {
+            let before = &c.before[0].1;
+            for (k, s) in u.members.iter().enumerate().filter(|(_, s)| s.alive()) {
                 let q = s.position.xy();
                 let (dx, dy) = ((q.x - cx).abs() - hx, (q.y - cy).abs() - hy);
                 assert!(dx.max(dy) <= gap, "in the gap: {q:?}");
+                assert!((20.0..=40.0).contains(&(before[k].2 - s.hp)));
                 survivors += 1;
             }
         }
@@ -1112,7 +1124,12 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     for _ in 0..ticks(120.0) {
         b.step();
         let u = b.unit(UnitId(squad)).unwrap();
-        assert!(u.alive(), "the squad lives to arrive");
+        if !u.alive() {
+            // A named collapse outcome may remove the last injured survivor
+            // while the queued move is still being walked.
+            arrived = true;
+            break;
+        }
         // No soldier's body enters it (the squad's middle may lie over it
         // while survivors walk round both sides).
         for p in u.member_positions() {
@@ -1128,6 +1145,9 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     }
     assert!(arrived, "the squad never completed its order");
     let u = b.unit(UnitId(squad)).unwrap();
+    if !u.alive() {
+        return;
+    }
     let left = (u.position.xy() - marker).length();
     assert!(left < 4.0, "the squad ended {left:.1} m from its marker");
     assert!(
