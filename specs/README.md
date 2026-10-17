@@ -12,7 +12,7 @@ ladder with parallel named-model production.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) is a placeholder for passenger carriage by trucks and helicopters.
 
-[Arbitrary-slot skirmish](arbitrary-slot-skirmish/README.md) (planned) turns the 1v1 skirmish into team play from 1v1 to 5v5: player slots with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
+[Team skirmish](team-skirmish/README.md) (planned) turns the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield

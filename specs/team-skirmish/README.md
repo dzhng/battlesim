@@ -1,4 +1,4 @@
-# Arbitrary-slot skirmish
+# Team skirmish
 
 **Status:** planned. Every decision is closed; implementation has not started.
 **Updated:** 2026-10-16.
@@ -25,7 +25,7 @@ Slices:
 
 - [ ] 00: probe multi-entry admission, timings, throughput ([slice](slices/00-probe.md))
 - [ ] 01: one player contract, mechanical port ([slice](slices/01-player-contract.md))
-- [ ] 02: simulation per-slot ownership ([slice](slices/02-sim-ownership.md))
+- [ ] 02: simulation per-player ownership ([slice](slices/02-sim-ownership.md))
 - [ ] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
 - [ ] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
 - [ ] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
@@ -41,7 +41,7 @@ Slices:
 
 ## Goal
 
-Team skirmish from 1v1 to 5v5, using one general system. A 1v1 is one slot per side, with no special case. Each slot is a real player with its own:
+Team skirmish from 1v1 to 5v5, using one general system. A 1v1 is one player per side, with no special case. Each player has its own:
 - wallet;
 - 30-unit cap;
 - army and logistics;
@@ -50,7 +50,7 @@ Team skirmish from 1v1 to 5v5, using one general system. A 1v1 is one slot per s
 
 Allies share vision, objectives, score and a bounty pool.
 
-The lobby is a desktop order-of-battle screen. Blue's slot banners sit on the left, a real generated map in the centre, and Red's banners on the right. Presets seed 1v1, 3v3 and 5v5, and Add/Delete makes uneven matches. Single-player has exactly one Human, on Blue. AI players are full combined-arms armies. A per-side team planner coordinates them: lanes, staging, requests for help, and a shared stance.
+The lobby is a desktop order-of-battle screen. Blue's player banners sit on the left, a real generated map in the centre, and Red's banners on the right. Presets seed 1v1, 3v3 and 5v5, and Add/Delete makes uneven matches. Single-player has exactly one Human, on Blue. AI players are full combined-arms armies. A per-side team planner coordinates them: lanes, staging, requests for help, and a shared stance.
 
 The end state reads as if team play had been designed in from the start: one player list, one entry owner, one setup constructor, one selection rule. No two-faction leftovers.
 
@@ -66,57 +66,57 @@ There is no backward compatibility and no migration.
 
 Changing any of these is a named decision in `choices.md`.
 
-**Terminology.** A *slot* is one player's seat on a side. In code it is `PlayerSlot`, held in the `players` list and named by `CommandEnvelope.slot` and `UnitSetup.owner`. These are existing contract names and they stay. Slice 01's rename of `occupied_slots` to `unit_count` removes the one clash, where "slots" meant unit count.
+**Terminology.** A *player* is one seat on a side: its own wallet, cap, army, ready flag and controller. The code calls it `Player` too (D51). Slice 01 renames `PlayerSlot`, `CommandEnvelope.slot`, `AuthoredScript.slot` and `occupied_slots`, so the word "slot" keeps only its unrelated meanings (squad member and garrison seat).
 
-- **Players (`contract::players`).** `PlayerSlot { id, side, faction, controller, human_capable }`, where `side` is Blue or Red (Neutral only in authored bundles).
+- **Players (`contract::players`).** `Player { id, side, faction, controller, human_capable }`, where `side` is Blue or Red (Neutral only in authored bundles).
   - `ScenarioDefinition.players` is the only player list (D33).
-  - `PlayerIndex` is a slot's position in that list. It is derived, never stored (D32).
+  - `PlayerIndex` is a player's position in that list. It is derived, never stored (D32).
   - `entry_count(players on a side)` gives 1, 2 or 3 entries (D8′). It is the one rule that both mapgen and the simulation read.
 - **`SkirmishSetup`** is `{ rules, sites }`; the players live in the scenario.
   - Admission refuses a side with no players, duplicate ids, mixed factions within a side, more than `max_players_per_side` (D35), or an entry count other than `entry_count`.
   - A setup with zero humans is valid (D34).
-- **`SkirmishSites.entries`** is a list of 1–3 entries per side, ordered centre, left, right. There is no slot-to-entry reference.
+- **`SkirmishSites.entries`** is a list of 1–3 entries per side, ordered centre, left, right. There is no player-to-entry reference.
 - **Generation request** carries the entry count per side. That count is part of map identity, so the generator version is bumped. A 1-entry request generates today's map, byte for byte.
 - **`PrepareBattleRequest`** is `{ map_source, players, battle_seed }`.
 - **Commands.**
-  - In a skirmish, `CommandEnvelope.slot` is required.
-  - `seq` and the order rate limit are counted per slot.
-  - Ready, purchase and cancel orders are checked against the slot.
-  - Purchase IDs are scoped to the slot.
+  - In a skirmish, `CommandEnvelope.player` is required.
+  - `seq` and the order rate limit are counted per player.
+  - Ready, purchase and cancel orders are checked against the player.
+  - Purchase IDs are scoped to the player.
 - **Observation.** Still one per side.
-  - The skirmish view carries `players` with each own-side slot's credits, unit count, cap, pending purchases and ready flag (D31).
+  - The skirmish view carries `players` with each own-side player's credits, unit count, cap, pending purchases and ready flag (D31).
   - `OwnUnit.owner` is a `PlayerIndex`.
   - Report totals and events are per player. Scores stay per side.
-- **Units.** A bought unit spawns owned by the slot that bought it. A pending purchase stores the entry it will arrive at (D37). Death provenance records the killer's slot. `owner` is hashed into the unit digest (D44).
+- **Units.** A bought unit spawns owned by the player that bought it. A pending purchase stores the entry it will arrive at (D37). Death provenance records the killer's player. `owner` is hashed into the unit digest (D44).
 - **URL.** A battle link carries the map choice, the battle seed and the player list. Anything else is refused (D42).
 
 ## Single owners
 
 | Concept | Owner | Replaces |
 |---|---|---|
-| Player list and validation | `crates/contract/src/players.rs` (new) | `bundle.rs` slots, `factions: [_; 2]`, `ai_side` |
+| Player list and validation | `crates/contract/src/players.rs` (new) | `bundle.rs` players, `factions: [_; 2]`, `ai_side` |
 | Entry count rule | `contract::players::entry_count` | (new) |
 | Entry geometry | `crates/mapgen/src/skirmish.rs`, its own `"entries"` stream | "first stroke on the edge" |
 | Map fairness admission | `crates/sim/src/map_analysis.rs` | two-entry `as_chunks::<2>` |
 | Arrival and return entry | `crates/sim/src/entries.rs` (new) | six `find(side)` sites and `runner.rs:98` |
 | Setup construction | `sim::skirmish::setup_for` | three hand-written constructors (D38) |
 | Economy, controllers, AI dispatch, settlement | `crates/sim` | side arrays |
-| Controller policy | one function in `battle.rs` (D45) | `controller_turn` and `BalancedDoctrine` both driving the same slot |
+| Controller policy | one function in `battle.rs` (D45) | `controller_turn` and `BalancedDoctrine` both driving the same player |
 | Team planner | `crates/sim/src/skirmish_ai/team.rs` (new) | (new) |
 | Map picture | `mapgen::inspect`, from a `MapDefinition`, exposed through wasm (D39) | (new) |
 | Lobby state, URL identity | `apps/battle-lab/src/lobby/` (new), `battleLinks.ts` | the builder's `BuilderSlot` duplicate |
 | Preview lifecycle | a preview controller over `web/src/battle/prepare/admission.ts` | (new) |
-| "Which units can I order" | `controlled(observation, slot)` in web (D47) | five ad-hoc `observation.own` filters |
+| "Which units can I order" | `controlled(observation, player)` in web (D47) | five ad-hoc `observation.own` filters |
 
 **One short-lived seam.** In slice 01 the simulation keeps its side-indexed internals, mapped from the single player per side. Slice 02 deletes that mapping. Nothing else is transitional.
 
 ## Invariants
 
-- One player type, one player list. A second slot concept anywhere is a defect.
-- Every skirmish unit has an owner, and every skirmish command carries a slot. A refused AI order fails a debug assertion and appears in `ai_receipts()`.
-- Vision, objectives, score and the bounty pool belong to the side. Wallet, cap, ready, purchases, controller and AI belong to the slot.
+- One player type, one player list. A second player concept anywhere is a defect.
+- Every skirmish unit has an owner, and every skirmish command carries a player. A refused AI order fails a debug assertion and appears in `ai_receipts()`.
+- Vision, objectives, score and the bounty pool belong to the side. Wallet, cap, ready, purchases, controller and AI belong to the player.
 - Every ground or helicopter arrival, refund, fuel return and retirement uses `sim::entries`: the side's entry with the shortest drive for that unit type, ties to the centre. Jets arrive opposite the centre entry.
-- The team plan comes from the side's observation plus non-digested planner memory, evaluated in slot order. The command stream is the replay authority.
+- The team plan comes from the side's observation plus non-digested planner memory, evaluated in player order. The command stream is the replay authority.
 - Digests follow D41: slice 01 changes none, and non-skirmish digests never change.
 - The preview is deterministic. Deploy re-prepares the admitted request and gets the same battle. A newer preview always cancels an older one.
 
@@ -149,7 +149,7 @@ Each uses `game-ui` before building, then:
 ## Browser checkpoints
 
 - **After 01:** a 1v1 generated battle plays, with every digest unchanged.
-- **After 02:** the 1v1 HUD shows the human slot's own credits and cap.
+- **After 02:** the 1v1 HUD shows the human player's own credits and cap.
 - **After 05:** a 3v4 all-AI benchmark battle shows units arriving at the entry nearest their order.
 - **After 09:** the lobby scene covers:
   - the 1v1 default and the 3v3 and 5v5 presets;

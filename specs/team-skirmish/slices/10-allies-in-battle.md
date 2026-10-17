@@ -10,7 +10,7 @@ A human can fight alongside AI teammates without confusion or silently refused o
 
 ## Seam
 
-- **Selection (D47).** `controlled(observation, slot)` in web is the only "which units can I order" rule. It is used by:
+- **Selection (D47).** `controlled(observation, player)` in web is the only "which units can I order" rule. It is used by:
   - `useUnitControl.ts:80, 127, 207, 283`;
   - `pointerIntent.ts:46`.
 

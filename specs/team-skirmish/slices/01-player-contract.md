@@ -8,12 +8,12 @@ The contracts in the README, with exactly one player per side. The shape changes
 
 ## Seam
 
-- **`crates/contract/src/players.rs`** (new): `PlayerSlot`, with `faction` required; `PlayerIndex`; `entry_count`; player-list validation.
+- **`crates/contract/src/players.rs`** (new): `Player` (today's bundle `PlayerSlot`, renamed), with `faction` required; `PlayerIndex`; `entry_count`; player-list validation.
 - **`ScenarioDefinition.players`** is the single list. `UnitSetup.owner` names a player id.
 - **Bundles.** `bundle.rs` drops its own `slots` list and validates against `scenario.players`. Economy bundles derive the skirmish from those players. Bump `scenario-bundle-1`.
 - **`SkirmishSetup`** becomes `{ rules, sites }`. `PrepareBattleRequest.factions` becomes `players`.
 - **`SkirmishSetup::side_faction(side)`** is the one place that answers "this side's faction". It replaces `factions[i]` in the simulation, the AI and `presentation/src/fielded.rs:87`.
-- **Rename** `occupied_slots` to `unit_count` everywhere.
+- **Rename** so "slot" leaves the contract (D51): `PlayerSlot` → `Player`, `CommandEnvelope.slot` → `CommandEnvelope.player`, `AuthoredScript.slot` → `player`, `occupied_slots` → `unit_count`, everywhere in Rust, TypeScript, fixtures and docs.
 - **Fixture:** `fixtures/skirmish.json` gains `max_players_per_side: 10`.
 - **Short-lived seam:** the simulation keeps its side arrays, mapped from the one player per side. Slice 02 deletes this mapping.
 - **Browser:** sends players `[blue-1: Human, red-1: active AI]`, built from today's faction and enemy choices. Slice 06 replaces this.

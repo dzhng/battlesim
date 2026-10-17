@@ -48,7 +48,7 @@ button.copy{margin-top:6px;font-size:12px;padding:5px 12px;border-radius:var(--r
 </style></head><body>
 <div class="wrap">
 <div>
-<h2 style="margin:0 0 6px">Lobby directions (arbitrary-slot skirmish walk, 2026-10-16)</h2><p class="note"><b>Chosen:</b> Direction 3 overall layout; Blue edge faces the Blue column; allies pale ice #b9f0ff; rows show index, controller, delete (D22–D25).</p>
+<h2 style="margin:0 0 6px">Lobby directions (team skirmish walk, 2026-10-16)</h2><p class="note"><b>Chosen:</b> Direction 3 overall layout; Blue edge faces the Blue column; allies pale ice #b9f0ff; rows show index, controller, delete (D22–D25).</p>
 <p class="note">Mock data: a 3v4 on a Large mixed map. Blue (U.S.) has You + 2 AI, so 3 entries; Red (Eastern) has 4 AI, which also gives 3 entries. The map is drawn fake but shaped like the generator's output: a main road edge to edge through a hub town, side roads, a river, forest, a junction objective plus field pairs. In every direction the map is turned so Blue's edge faces the Blue column.</p>
 </div>
 
@@ -63,7 +63,7 @@ button.copy{margin-top:6px;font-size:12px;padding:5px 12px;border-radius:var(--r
 <div class="chips" data-dir="2"></div></div>
 
 <div><h3>Direction 3: Order of battle</h3>
-<p class="note">Each slot is a wide banner with a big index numeral, styled like a unit insignia. The map sits between the two banner stacks, with a tall "VS" spine. It reads the most like a versus screen and needs the most space per slot.</p>
+<p class="note">Each player is a wide banner with a big index numeral, styled like a unit insignia. The map sits between the two banner stacks, with a tall "VS" spine. It reads the most like a versus screen and needs the most space per player.</p>
 <div class="stage" id="d3"></div>
 <div class="chips" data-dir="3"></div></div>
 
@@ -82,7 +82,7 @@ button.copy{margin-top:6px;font-size:12px;padding:5px 12px;border-radius:var(--r
 </div>
 <p class="note">Already taken: Blue accent #73dbff, enemy #ff6152, good #8cf29e, credits #fac740, warn #ffcc66, pinned #ff8538 (from <code>fixtures/game.json</code> <code>presentation.hud</code>).</p></div>
 
-<div class="q"><h3>C. What should a slot row show?</h3>
+<div class="q"><h3>C. What should a player row show?</h3>
 <div class="opts" data-q="row" data-multi="1">
 <div class="opt on" data-v="index numeral">Index numeral</div>
 <div class="opt on" data-v="controller (YOU/AI)">Controller (YOU/AI)</div>
@@ -164,10 +164,10 @@ d3.innerHTML=`<div style="position:absolute;inset:5% 3% 15% 3%;display:grid;grid
  <div style="position:absolute;left:3%;right:3%;bottom:4%;display:flex;gap:10px;align-items:center">${controls}<span style="flex:1"></span>${status}<span class="reroll up">⟳ reroll</span><span class="deploy up">Deploy</span></div>`;
 
 const picks={};
-document.querySelectorAll('.chips').forEach(c=>{const d=c.dataset.dir;picks['d'+d]=[];['steal: overall layout','steal: map treatment','steal: slot rows','steal: controls strip','skip'].forEach(t=>{const e=document.createElement('span');e.className='chip';e.textContent=t;e.onclick=()=>{e.classList.toggle('on');const a=picks['d'+d];const i=a.indexOf(t);i<0?a.push(t):a.splice(i,1);upd()};c.appendChild(e)})});
+document.querySelectorAll('.chips').forEach(c=>{const d=c.dataset.dir;picks['d'+d]=[];['steal: overall layout','steal: map treatment','steal: player rows','steal: controls strip','skip'].forEach(t=>{const e=document.createElement('span');e.className='chip';e.textContent=t;e.onclick=()=>{e.classList.toggle('on');const a=picks['d'+d];const i=a.indexOf(t);i<0?a.push(t):a.splice(i,1);upd()};c.appendChild(e)})});
 const ans={orient:"Blue edge faces the Blue column (map turned 90°)",ally:"pale ice (#b9f0ff): a lighter Blue",row:["index numeral","controller (YOU/AI)","delete ×"]};
 document.querySelectorAll('.opts').forEach(o=>{o.querySelectorAll('.opt').forEach(e=>e.onclick=()=>{const q=o.dataset.q;if(o.dataset.multi){e.classList.toggle('on');ans[q]=[...o.querySelectorAll('.opt.on')].map(x=>x.dataset.v)}else{o.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));e.classList.add('on');ans[q]=e.dataset.v}upd()})});
 function upd(){const L=[];for(const d of[1,2,3]){const p=picks['d'+d];L.push(`Direction ${d}: ${p.length?p.join(', '):'(no reaction)'}`)}
-L.push(`A. Orientation: ${ans.orient}`,`B. Ally colour: ${ans.ally}`,`C. Slot row shows: ${ans.row.join(', ')||'(none)'}`,`Anything missing from the lobby:`);reply.value=L.join('\n')}
+L.push(`A. Orientation: ${ans.orient}`,`B. Ally colour: ${ans.ally}`,`C. Player row shows: ${ans.row.join(', ')||'(none)'}`,`Anything missing from the lobby:`);reply.value=L.join('\n')}
 upd();
 </script></body></html>

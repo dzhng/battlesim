@@ -18,7 +18,7 @@ The per-side observation carries a list of players and owned units, end to end, 
   - the presentation crate;
   - the lab mocks in `routes/ui.tsx` and `panels.tsx`.
 - **Fixtures.** Re-bless `fixtures/parity/publication/codec-vectors.json` and add one 2v2 golden frame.
-- **Web HUD.** It reads the viewing slot's row from `players`; no other HUD change in this slice.
+- **Web HUD.** It reads the viewing player's row from `players`; no other HUD change in this slice.
 
 ## What the human can run or see
 
@@ -28,7 +28,7 @@ A 1v1 plays. A 2v2 benchmark battle publishes owners, which can be checked in th
 
 - A 2v2 frame round-trips through writer and reader, with owners and player rows intact.
 - The reader refuses a layout mismatch.
-- The HUD picks its own row by slot.
+- The HUD picks its own row by player.
 
 ## Delegated
 

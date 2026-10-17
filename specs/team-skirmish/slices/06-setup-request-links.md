@@ -14,7 +14,7 @@ Any team battle can be launched by link: from the lobby later, and from the benc
   - the builder's `builderEconomy` (`apps/battle-lab/src/scenario-builder/model.ts:80`).
 - **Synthetic entry layouts** (`inputs.rs:145`, `model.ts:80`) get one owner, built from `entry_count`.
 - **Request.** TypeScript `PrepareBattleRequest` (`web/src/battle/prepare/protocol.ts:14`) carries `players`. `prepare.ts` stops splicing JSON strings and points the camera at the human's lane, or at Blue's centre when no human plays (D34).
-- **Links.** `battleLinks.ts` gains a player-list grammar: per side, in order, each slot's controller, plus each side's faction.
+- **Links.** `battleLinks.ts` gains a player-list grammar: per side, in order, each player's controller, plus each side's faction.
   - The benchmark (`apps/battle-lab/src/benchmark/prepare.ts`) and the endurance route build players.
   - The single-player link requires exactly one Human, on Blue.
   - An old-shape battle link is refused, naming the problem (D42).

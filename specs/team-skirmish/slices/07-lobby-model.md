@@ -10,9 +10,9 @@ The lobby's rules as plain serializable state, with no UI.
 
 - **Model.** `apps/battle-lab/src/lobby/model.ts` (new) holds the players (the contract's player shape), map choice, map seed and battle seed. Its pure operations:
   - `preset` (1v1, 3v3 or 5v5);
-  - `add(side)` and `remove(slot)`: at least 1 per side, at most the lobby's data limit of 5;
+  - `add(side)` and `remove(player)`: at least 1 per side, at most the lobby's data limit of 5;
   - `setController`;
-  - `seatHuman(slot)`, which turns the previous Human row into AI;
+  - `seatHuman(player)`, which turns the previous Human row into AI;
   - `setFaction(side)`;
   - `setSize`, which ratchets to the floor (D18);
   - `reroll`, which changes only the map seed;

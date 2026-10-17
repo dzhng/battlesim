@@ -38,7 +38,7 @@ Where an item proposes a move into Rust, it follows the project's rule: Rust dec
 8. **Only macOS with Metal is verified.** Windows isn't a requirement, and no native dependency rules it out. Verify on a second platform when one matters.
 9. **Native's GPU frame is 5–7% longer than the browser's.** This is accepted: `wgpu` keeps Metal's per-resource hazard tracking, so later passes wait for the world's shading. If `wgpu` ships untracked resources, enable them and re-run the interleaved timing pairs (slice 25 step 8 in git history, method in the archive).
 
-10. **Native has no team-skirmish UI.** [Arbitrary-slot skirmish](../arbitrary-slot-skirmish/README.md) is desktop-browser only. Native already replays a team skirmish correctly, because the shared `crates/presentation` reads factions from the slot setup and draws allies' models from the same publication. What native lacks is everything the browser draws as UI:
+10. **Native has no team-skirmish UI.** [Team skirmish](../team-skirmish/README.md) is desktop-browser only. Native already replays a team skirmish correctly, because the shared `crates/presentation` reads factions from the slot setup and draws allies' models from the same publication. What native lacks is everything the browser draws as UI:
    - the order-of-battle lobby and its map preview (the lobby model under `apps/battle-lab/src/lobby/` is plain state, so a native lobby can reuse its rules);
    - the allied colour (`presentation.hud`) and shape cue on ground marks and info cards;
    - the read-only ally panel and own-only selection;

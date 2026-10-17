@@ -15,14 +15,14 @@ AI players fight as concentrated combined-arms groups in their own lanes, so a t
 - **How it plans:**
   - **Influence:** a coarse per-side grid of friendly minus visible-enemy strength, built from the side frame only and blended with its previous value.
   - **Covered objectives:** an objective counts as covered when the human's units are heading to it, read from `OwnUnit.goal` by `owner`.
-  - **Assignment:** AI players are matched to lanes by brute-force over permutations, scored on distance and influence with an incumbency bonus. Ties go to the lower slot.
+  - **Assignment:** AI players are matched to lanes by brute-force over permutations, scored on distance and influence with an incumbency bonus. Ties go to the lower player.
   - **Memory:** incumbency is non-digested memory (D40).
 - **Doctrine.** `BalancedDoctrine` reads its assignment through `PlayerContext.lane`.
   - It orders purchases into its lane, so slice 05 brings them in at that lane's entry.
   - It gathers its main group at the staging point, then moves it as one group on the main objective. This replaces today's per-unit "least-loaded objective" spreading (`mod.rs:662–694`).
   - Scouts, outposts and defensive positions may spread.
   - It keeps a complete army with its own trucks and AA (D2).
-- **Tournament (D46).** The runner deletes its external doctrine pair (`runner.rs:82–100`). Every slot runs as an in-battle AI, and acceptance counts come from `ai_receipts()`. Add 3v3 and 5v5 rows.
+- **Tournament (D46).** The runner deletes its external doctrine pair (`runner.rs:82–100`). Every player runs as an in-battle AI, and acceptance counts come from `ai_receipts()`. Add 3v3 and 5v5 rows.
 - **Re-baseline 2 (D41).** Re-bless the skirmish digests and fixtures, and name it in the commit.
 
 ## What the human can run or see
