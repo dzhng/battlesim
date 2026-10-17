@@ -111,8 +111,8 @@ The user framed every rule as a war-film moment: a jet you can read from an RTS 
 - **The behaviour mock** [`visualizations/flight-mock.html`](visualizations/flight-mock.html): a Canvas2D sketch with sliders, written during the unknowns walk and copied here from the scratch folder. It shows move-goal circling, bomb passes, missile passes with the gun, a dogfight a third jet joins, fly-in and withdrawal, and the SAM chase. It was the comparison target for circling, passes, dogfights and the approach effect. The user flagged nothing in it, and its logic was checked: bombs land within 2 m, the gun never fires on bomb passes, and it does fire on missile passes and in dogfights.
 - **Aircraft references** in the repo's `assets/references/<family>/` drove the model pass. Thin sets (F-15EX, F-35A/B, Su-30SM2, Su-57, Tornado IDS, J-20) were filled with Duet-generated views, marked `-generated` in the file name and `"source": "generated"` in the family's `references.json`. Each family was judged against them with `compare-screenshots` and unprimed critiques.
 - **The panel marks** in [`assets/panel-marks/`](assets/panel-marks/): `pair-radar-3x.png` and `pair-dogfight-3x.png` compare the old and new radar dish and dogfight marks at 3×, and `after-aircraft-2x.png` is the aircraft-states sheet after the change, at 2× (its TRAVERSING card has since been deleted). The approved standard is the baseline `web/scenes/baselines/panels/panels-aircraft-states.png`, re-approved with the radar-receiver panel.
-- **No baseline exists for jets in flight.** The air scenes assert the side's observation and write traces and GIFs to the scratch folder; the closeout's three AI-vs-AI skirmish GIFs (D44) live there too.
-- **Market Town's menu reel** was re-recorded after D57 retimed it from its first shot; the new footage awaits the user's approval.
+- **No baseline exists for jets in flight.** The air scenes assert the side's observation and write their traces and GIFs to the scratch folder, which is not kept; the closeout's three AI-vs-AI skirmish GIFs (D44) were reviewed and discarded with it.
+- **Market Town's menu reel** was re-recorded after D57 retimed it from its first shot; the user approved the new footage.
 
 ## Balance at closeout
 
@@ -131,4 +131,3 @@ Measured with `skirmish_tournament` shaped battles (seeds 1, 2, 4 and 5, all six
 - **Radar networks**, launchers that see far only through separate radar units: [air-defence radar](../../air-defence-radar/README.md), deferred.
 - **[rpg-weapon-contract](../../rpg-weapon-contract/README.md) slices 4–5** remain.
 - **Drones** (low-air fixed-wing at about 100 m) need their own spec to give low air fixed-wing heights (D37).
-- **The re-recorded Market Town menu reel** awaits the user's approval of the new footage.

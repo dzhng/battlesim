@@ -17,6 +17,11 @@ Set-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
 Require-Command "git" "Install Git for Windows."
 Require-Command "git-lfs" "Install Git LFS for Windows."
 Require-Command "bun" "Install Bun (for example: winget install --id Oven-sh.Bun --exact --scope user). Restart PowerShell after installation."
+Require-Command "rustup" "Install rustup with https://rustup.rs, then open a new PowerShell."
+Require-Command "cargo" "Install rustup with https://rustup.rs, then open a new PowerShell."
+Require-Command "wasm-pack" "Install wasm-pack with: cargo install wasm-pack --version 0.13.1"
+
+rustup target add wasm32-unknown-unknown
 
 if ($PullRuntime) {
     git lfs pull --include "assets/runtime/**,assets/third-party/**"
@@ -25,8 +30,6 @@ if ($PullRuntime) {
 bun run setup
 
 if ($Native) {
-    Require-Command "rustup" "Install rustup with https://rustup.rs, then open a new PowerShell."
-    Require-Command "cargo" "Install rustup with https://rustup.rs, then open a new PowerShell."
     rustup target add x86_64-pc-windows-msvc
     cargo build -p native-client --release --target x86_64-pc-windows-msvc
 }
