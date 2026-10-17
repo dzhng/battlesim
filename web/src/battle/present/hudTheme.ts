@@ -13,6 +13,9 @@ export interface HudTheme {
   /** The observing side's accent: the callouts, their leader lines, and
    *  borders. */
   accent: Readonly<Vec3>;
+  /** Pale ice: the observing side's units another player on it owns (its
+   *  allies'), told from the player's own by form as well (D24). */
+  ally: Readonly<Vec3>;
   /** The other side's accent. */
   enemy: Readonly<Vec3>;
   text: Readonly<Vec3>;
@@ -57,6 +60,7 @@ export const gameCalloutGlow: number = validateCalloutGlow(game.presentation.ove
 
 const COLOURS = [
   "accent",
+  "ally",
   "enemy",
   "text",
   "dim",

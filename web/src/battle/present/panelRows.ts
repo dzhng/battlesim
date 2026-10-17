@@ -419,6 +419,9 @@ export interface Panel {
   /** A mark before the name (under `assets/icons/`): an unidentified
    *  report's; null for a known type. */
   mark: string | null;
+  /** The player that owns an ally's unit, as its panel names it ("BLUE 2 ·
+   *  AI", `allyOwners`); absent on the player's own and the enemy's. */
+  owner?: string;
   weapons: WeaponRow[];
   states: StateRow[];
 }

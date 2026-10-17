@@ -119,7 +119,7 @@ export async function fieldedBattle(input: {
   tickHz: number;
   sun: { azimuth: number; elevation: number };
   soldier: { soldier_radius_m: number; soldier_height_m: number };
-  xray: { own: readonly number[]; selected: readonly number[] };
+  xray: { own: readonly number[]; selected: readonly number[]; ally: readonly number[] };
   blocked: readonly number[];
 }): Promise<PresentedBattle> {
   const catalog = input.runtime.catalog;

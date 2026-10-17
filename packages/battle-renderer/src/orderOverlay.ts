@@ -66,6 +66,8 @@ export interface OrderStyle {
   /** A selected unit's own marker (its circle and arrowhead) and its
    *  soldiers' markers. */
   selected: Rgba;
+  /** An ally's unit's marker: the HUD's allied colour (D24). */
+  ally: Rgba;
   /** How far each role's paint glows past its colour's full value (up to 2,
    *  the paint's range): the order marks (and a blocked route), and the
    *  selection's. Tuned apart, since the tone mapper pulls each hue toward
@@ -134,10 +136,10 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.drop_line_hold >= 0 &&
     style.drop_line_hold < style.drop_line_reach &&
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
-    [style.color, style.blocked, style.selected].every(isRgba);
+    [style.color, style.blocked, style.selected, style.ally].every(isRgba);
   if (!ok)
     throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_alpha and drop_line_reach in (0, 1], drop_line_hold in [0, drop_line_reach)`,
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected, ally and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_alpha and drop_line_reach in (0, 1], drop_line_hold in [0, drop_line_reach)`,
     );
   return style;
 }
@@ -187,6 +189,10 @@ export interface OrderView {
   ghostAloft?: number;
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
+  /** Another player on the side owns it (an ally's): its marker is a
+   *  broken ring with no facing, in the style's `ally` colour, and none of
+   *  its orders show. */
+  ally?: boolean;
   /** The opacity its order marks (the Space view) draw at, in [0, 1]: 0 or
    *  absent draws none, and a selected unit then shows only the selection's
    *  own markers. */
@@ -725,6 +731,26 @@ export function buildDeploymentMarker(
   return mesh.build();
 }
 
+/** An ally's unit's marker, selected (to read its panel) or aloft: form
+ *  before colour, it is hollow where yours is whole. Its circle is a broken
+ *  ring with no arrowhead, its soldiers' plain rings, an aircraft's drop
+ *  line as yours; it draws nothing of its orders, which are not yours. */
+function allyMarker(
+  paint: MeshBuilder,
+  soldiers: MeshBuilder,
+  lines: MeshBuilder,
+  pen: Pen,
+  u: OrderView,
+  color: Rgba,
+) {
+  const circle = unitCircle(u, pen.style);
+  if (circle) ring(paint, pen, circle.c, circle.r, color, { width: pen.line, dashed: true });
+  if (circle && u.airborne) dropLine(lines, pen, u.position, color);
+  if (u.selected)
+    for (const m of u.members)
+      soldierMark(soldiers, pen, [m[0], m[1]], null, color, pen.soldierSelected);
+}
+
 /** The player's entry chevrons are ground paint so a placement ghost can
  * render over them in the world pass. */
 export function buildOrderOverlay(
@@ -745,7 +771,19 @@ export function buildOrderOverlay(
   const order = glowing(style.color, style.glow.order);
   const selected = glowing(style.selected, style.glow.selected);
   const cannot = glowing(style.blocked, style.glow.order);
+  const ally = glowing(style.ally, style.glow.selected);
   for (const u of units) {
+    if (u.ally) {
+      allyMarker(
+        paint,
+        soldiers,
+        lines,
+        pen,
+        u,
+        u.selected ? ally : fadeAlpha(ally, style.current_alpha),
+      );
+      continue;
+    }
     // Its order marks (the Space view) at their opacity, or none; the
     // selection's own markers either way.
     const reveal = u.reveal ?? 0;

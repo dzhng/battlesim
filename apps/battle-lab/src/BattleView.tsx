@@ -206,12 +206,14 @@ export function BattleView({
               reveal: session.revealed,
               contacts,
               facing: contactFacing.facing,
+              allies: session.allies,
             },
             border,
             metresPerPx,
           )
         : undefined,
     [
+      session.allies,
       contactFacing.facing,
       session.units,
       world,
@@ -309,6 +311,7 @@ export function BattleView({
         selected={control.selected}
         handle={session.readouts}
         ghosts={session.ghostReadouts}
+        allies={session.allies}
       />
       <RangeRulerLabels handle={rulerLabels} />
       {/* The army roster and command row keep their place as selection changes. */}
@@ -340,7 +343,7 @@ export function BattleView({
         )}
         <MenuButton onOpen={() => pause.show(true)} />
         <ArmyDeck
-          own={observation?.own ?? []}
+          own={control.controlled}
           selected={control.selected}
           onSelect={control.setSelected}
           rules={session.rules}

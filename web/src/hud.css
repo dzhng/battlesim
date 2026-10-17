@@ -425,6 +425,14 @@ html {
 .ro-leaders.ro-enemy {
   --leader: var(--hud-enemy);
 }
+/* An ally's leader is broken where yours is whole: form before colour. */
+.ro-leaders.ro-ally {
+  --leader: var(--hud-ally);
+}
+.ro-leader.ro-ally {
+  stroke: rgb(var(--hud-ally) / 0.95);
+  stroke-dasharray: 6 4;
+}
 .ro-leader:is(.ro-enemy, .ro-contact) {
   stroke: rgb(var(--hud-enemy) / 0.95);
 }
@@ -472,6 +480,9 @@ html {
 .ro-unit.ro-selected {
   opacity: 1;
 }
+.ro-unit.ro-ally {
+  --tone: var(--hud-ally);
+}
 .ro-unit.ro-enemy,
 .ro-unit.ro-contact {
   --tone: var(--hud-enemy);
@@ -507,6 +518,17 @@ html {
   text-shadow:
     0 0 2px rgb(0 0 0 / 0.95),
     0 0 6px rgb(var(--tone) / calc(0.7 * var(--hud-callout-glow)));
+}
+/* The player that owns an ally's unit, under its name: a steady fact, in the
+   panel's tone, quieter than the name. */
+.ro-owner {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  padding-bottom: 2px;
+  color: rgb(var(--tone) / 0.8);
+  text-shadow: 0 0 2px rgb(0 0 0 / 0.95);
 }
 /* An unidentified report's mark stands in the rows' icon slot, and its word
    starts where theirs do (the slot's margin and the rows' gap). The slot
@@ -1278,8 +1300,8 @@ html {
   text-shadow: var(--hud-text-halo);
 }
 
-[data-zoom="compressed"] > .ro-body .ro-section,
-.ro-body[data-zoom="compressed"] .ro-section {
+[data-zoom="compressed"] > .ro-body :is(.ro-section, .ro-owner),
+.ro-body[data-zoom="compressed"] :is(.ro-section, .ro-owner) {
   display: none;
 }
 .ro-body[data-zoom="compressed"] .ro-loading {

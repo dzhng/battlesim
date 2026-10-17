@@ -575,3 +575,87 @@ test("attack-move sends the entire selection, including unarmed units, by click 
     { order: { kind: "attack_move", units: [2], goal: [50, 50], gesture: 3 }, queued: false },
   ]);
 });
+
+/** A 2v2's blue side as `blue-1` sees it: units 1 and 3 its own, unit 2 its
+ *  ally `blue-2`'s, all of one type. */
+function teamControl() {
+  const unit = (id: number, owner: number) => ({ ...own(id, "test_rifle"), owner });
+  const observation = {
+    own: [unit(1, 0), unit(2, 1), unit(3, 0)],
+    contacts: [],
+    skirmish: {
+      players: [
+        { index: 0, id: "blue-1", controller: "human" },
+        { index: 1, id: "blue-2", controller: "active_ai" },
+      ],
+    },
+  } as unknown as ObservationView;
+  const { client, sent } = recordingClient();
+  const hook = renderHook(() => useUnitControl(client, observation, undefined, true, "blue-1"), {
+    wrapper,
+  });
+  const left = (unit: number | null, time: number, shift = false) =>
+    act(() =>
+      hook.result.current.onPointer({
+        unit,
+        button: "left",
+        shift,
+        ctrl: false,
+        x: 0,
+        y: 0,
+        time,
+        ground: [0, 0],
+      }),
+    );
+  const right = (time: number) =>
+    act(async () =>
+      hook.result.current.onPointer({
+        unit: null,
+        button: "right",
+        shift: false,
+        ctrl: false,
+        x: 0,
+        y: 0,
+        time,
+        ground: [50, 50],
+      }),
+    );
+  return { hook, sent, left, right };
+}
+
+test("a box or a double-click over your units and your ally's selects only yours", () => {
+  const { hook, left } = teamControl();
+  act(() => hook.result.current.selectInRect(() => true, false));
+  expect(hook.result.current.selected).toEqual([1, 3]);
+  // Select similar: every unit of its type that is yours.
+  left(1, 1000);
+  left(1, 1100);
+  expect(hook.result.current.selected).toEqual([1, 3]);
+  hook.unmount();
+});
+
+test("an ally can be selected to read its panel, but no command leaves with its unit", async () => {
+  const { hook, sent, left, right } = teamControl();
+  // Clicking an ally selects it alone: nothing in the selection takes orders.
+  left(1, 0);
+  left(2, 5000, true);
+  expect(hook.result.current.selected).toEqual([2]);
+  expect(hook.result.current.selectedUnits).toEqual([]);
+  await right(6000);
+  await act(async () => hook.result.current.stop());
+  await act(async () => hook.result.current.togglePolicy());
+  act(() => {
+    fireEvent.keyDown(window, { code: "KeyX", key: "x" });
+  });
+  expect(hook.result.current.mode).toBe("move");
+  expect(sent).toEqual([]);
+  // Your unit clicked next replaces the ally; an ally given from outside
+  // (the army row, a lab) never reaches an order.
+  left(3, 7000, true);
+  expect(hook.result.current.selected).toEqual([3]);
+  act(() => hook.result.current.setSelected([1, 2]));
+  await right(8000);
+  await act(async () => hook.result.current.stop());
+  expect(sent.map(({ order }) => "units" in order && order.units)).toEqual([[1], [1]]);
+  hook.unmount();
+});

@@ -4,6 +4,7 @@ import type { Order } from "../sim/protocol";
 import { isAttackMoveClick } from "./commandBindings";
 import { reach } from "./commandReach";
 import { inReverseZone } from "./reverseZone";
+import { controlled } from "./controlled";
 
 export interface PointerPick {
   unit: number | null;
@@ -37,13 +38,16 @@ export type PointerIntent =
   | { kind: "none" }
   | { kind: "blocked"; disarm: boolean };
 
-/** A held intent keeps its target and selection, while observed losses still apply. */
+/** A held intent keeps its target and selection, while observed losses still
+ *  apply; only units `player` orders stay in it (`controlled`). */
 export function reconcilePointerIntent(
   intent: PointerIntent,
   observation: ObservationView | null,
+  player: string | undefined,
 ): PointerIntent {
   if (!("units" in intent)) return intent;
-  const units = intent.units.filter((id) => observation?.own.some((unit) => unit.id === id));
+  const yours = controlled(observation, player);
+  const units = intent.units.filter((id) => yours.some((unit) => unit.id === id));
   if (!units.length) return { kind: "none" };
   if (intent.kind === "attack" && intent.target.kind === "contact") {
     const target = intent.target.id;

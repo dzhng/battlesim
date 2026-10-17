@@ -42,6 +42,7 @@ fn world(root: &Path, game: &Value, side: Side) -> WorldInput {
             xray: Xray {
                 own: [0.0; 4],
                 selected: [0.0; 4],
+                ally: [0.0; 4],
             },
             blocked: [0.0; 4],
         }),

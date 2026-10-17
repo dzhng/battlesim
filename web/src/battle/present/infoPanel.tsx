@@ -230,6 +230,7 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
         )}
         <Pips fill={panel.strength} />
       </span>
+      {panel.owner && <span className="ro-owner">{panel.owner}</span>}
       {panel.weapons.length > 0 && (
         <div
           className="ro-section ro-weapons"
@@ -264,9 +265,9 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   );
 }
 
-/** Who a panel belongs to: its tone (own cyan, enemy and contact red)
- *  follows. */
-export type PanelOwner = "own" | "enemy" | "contact";
+/** Who a panel belongs to: its tone (own cyan, an ally's pale ice, enemy
+ *  and contact red) follows. */
+export type PanelOwner = "own" | "ally" | "enemy" | "contact";
 
 /** The callout round a panel, in its owner's tone, brighter when selected:
  *  the battle's callouts and the panel workbench frame panels only through

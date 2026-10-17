@@ -50,7 +50,7 @@ Slices:
 - [x] 07: lobby model ([slice](slices/07-lobby-model.md))
 - [x] 08: lobby map picture ([slice](slices/08-map-picture.md))
 - [ ] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
-- [ ] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
+- [x] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
 - [ ] 11: per-player match report ([slice](slices/11-match-report.md))
 - [ ] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
 - [ ] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
