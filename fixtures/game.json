@@ -1740,7 +1740,7 @@
         "highlight_tint": [1.27, 1.05, 0.77],
         "lift": [0.03, 0.03, 0.026]
       },
-      "bloom": { "strength": 0.3, "radius": 0.55, "threshold": 0.55, "smooth_width": 0.5 },
+      "bloom": { "strength": 0.3, "radius": 0.55, "threshold": 1.5, "smooth_width": 0.5 },
       "cascades": {
         "count": 4,
         "map_size": 2048,
