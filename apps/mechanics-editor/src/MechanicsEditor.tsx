@@ -208,7 +208,6 @@ function referenceChoices(field: GameplayField, editor: EditorState, entry: Json
   return [];
 }
 
-// eslint-disable-next-line complexity -- this control owns the field-kind matrix so each input preserves one editor contract.
 function ValueInput({
   target,
   field,

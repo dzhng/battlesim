@@ -209,7 +209,6 @@ export async function createBattleFrame(
         get staticGeneration() {
           return staticGeneration;
         },
-        // eslint-disable-next-line complexity -- one render pass owns the ordered world, fog, overlay, and high-air composition.
         render(output: GPUTextureView, high: GPUTextureView | null = null) {
           if (disposed || !framed) return;
           const width = cameraRecord[CameraAt.width];

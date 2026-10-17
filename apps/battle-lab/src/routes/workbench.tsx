@@ -392,7 +392,7 @@ export default function Workbench() {
       window.__lab?.setCamera?.(next);
     }
     // Only when the model changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [framing, ready]);
 
   const bake = useCallback(async () => {

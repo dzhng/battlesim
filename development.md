@@ -79,16 +79,21 @@ and subsystem READMEs own their exact command details.
 
 ## Checks and hooks
 
-After setup, Husky runs [lint-staged.config.mjs](lint-staged.config.mjs) before
-each commit. It formats staged files and blocks staged JavaScript or TypeScript
-that fails Oxlint or exceeds the complexity budget; staged Rust also runs Cargo
-fmt and Clippy.
+After setup, a pre-commit hook formats and lints the staged files;
+[lint-staged.config.mjs](lint-staged.config.mjs) owns what runs.
 
-Cyclomatic complexity is an error at 20. A function may exceed that budget only
-when its branches form one cohesive state machine, renderer pass, or
-data-packaging pipeline. Such an exception needs an inline ESLint disable
-comment naming that ownership and why extraction would obscure it. The full
-complexity check must finish with zero errors and zero warnings.
+Cyclomatic complexity has a loose budget, owned by
+[web/eslint.config.mjs](web/eslint.config.mjs). It is a tripwire for functions
+that have grown too large to follow, not a target: a long function that reads
+top to bottom is better than the same logic scattered across helpers that pass
+state back and forth. Split a function when its branches fall into named steps
+with their own inputs, never just to get under the number.
+
+An inline `eslint-disable-next-line complexity` comment is technical debt: a
+function nobody has found a clean split for yet. Keep them rare. The comment
+says what blocks the split, not why the function is fine as it is. Read every
+one you touch as a cue to try the split again. When a function drops back under
+the budget, the lint fails on the stale comment until you delete it.
 
 Use the repository's check ladder:
 

@@ -581,7 +581,6 @@ export function useBattleSession({
     ),
   );
   const frame = useCallback(
-    // eslint-disable-next-line complexity -- frame composition must read one publication and update all dependent overlays atomically.
     (now: number, viewport: ViewportCamera, generation: number): ViewportFrame | null => {
       // React's `observation` only says the session has a battle (it is reset
       // with the battle). Everything this frame draws or decides reads the

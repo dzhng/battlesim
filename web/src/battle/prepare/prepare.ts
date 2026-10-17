@@ -84,7 +84,6 @@ type LaidEncounter =
 
 /** Throws `PreparationRefused` when the request, the map or the encounter
  *  is refused. */
-// eslint-disable-next-line complexity -- preparation is one ordered admission transaction from request through map, encounter, and world publication.
 export async function prepare(
   wasm: PreparationModule,
   memory: WebAssembly.Memory,

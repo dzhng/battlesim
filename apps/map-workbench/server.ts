@@ -260,7 +260,6 @@ export class WorkbenchStore {
     }, signal);
   }
   generate(request: RunRequest, signal?: AbortSignal): Promise<Report> {
-    // eslint-disable-next-line complexity -- generation coordinates validation, native reporting, retention, and artifact lifecycle in one transaction.
     return this.serial(async (owned) => {
       const choice = request?.choice;
       if (

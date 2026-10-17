@@ -909,7 +909,6 @@ export async function createModelLayer(
   growRecords(1);
   growCards(1);
 
-  // eslint-disable-next-line complexity -- installation validates and swaps one complete GPU model generation atomically.
   async function install(installed: InstalledAppearances | null) {
     // Build the new generation beside the old one and swap at the end, so a
     // frame drawn meanwhile still binds live buffers.

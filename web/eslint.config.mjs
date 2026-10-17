@@ -1,5 +1,4 @@
 import tsParser from "@typescript-eslint/parser";
-import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
   {
@@ -12,15 +11,9 @@ export default [
       ecmaVersion: "latest",
       sourceType: "module",
     },
-    plugins: {
-      "react-hooks": reactHooks,
-    },
+    linterOptions: { reportUnusedDisableDirectives: "error" },
     rules: {
-      complexity: ["error", { max: 20, variant: "classic" }],
+      complexity: ["error", { max: 30, variant: "classic" }],
     },
-  },
-  {
-    files: ["apps/battle-lab/src/routes/workbench.tsx"],
-    linterOptions: { reportUnusedDisableDirectives: "off" },
   },
 ];

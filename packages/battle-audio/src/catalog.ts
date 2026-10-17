@@ -208,6 +208,7 @@ function validProvenanceIdentity(name: string, source: SourceProvenance): boolea
 
 function validProvenanceDownload(source: SourceProvenance): boolean {
   return (
+    !!source.download &&
     typeof source.processing === "string" &&
     source.processing.length > 0 &&
     typeof source.download.tool === "string" &&
