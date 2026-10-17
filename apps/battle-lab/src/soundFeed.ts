@@ -17,13 +17,17 @@ export const gameAudio = game.presentation.audio as unknown as AudioPresentation
 /** The game's recordings (`fixtures/sounds.json`). */
 export const gameSoundCatalog: SoundCatalog = gameSounds;
 
-/** A battle's sound, heard as `presentation.audio` says. */
-export function createBattleAudio(tickHz: number, audio: AppAudio): BattleAudio {
-  return audio.createBattle({
-    tickHz,
-    presentation: gameAudio,
-    weapons: game.weapons,
-    smokeTimes: game.presentation.effects.smoke,
-    cookOff: game.presentation.effects.cook_off,
-  });
+/** A battle's sound, heard as `presentation.audio` says; its score shuffles
+ *  by the battle's `seed`. */
+export function createBattleAudio(tickHz: number, audio: AppAudio, seed: number): BattleAudio {
+  return audio.createBattle(
+    {
+      tickHz,
+      presentation: gameAudio,
+      weapons: game.weapons,
+      smokeTimes: game.presentation.effects.smoke,
+      cookOff: game.presentation.effects.cook_off,
+    },
+    seed,
+  );
 }
