@@ -92,6 +92,36 @@
             "[shouting] Get out the back, go!"
           ]
         },
+        "board": {
+          "steady": [
+            "Boarding.",
+            "Squad, mount up."
+          ],
+          "stressed": [
+            "[urgent] Board now, move!",
+            "[shouting] Get in, get in!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Dismounting.",
+            "Squad, get out."
+          ],
+          "stressed": [
+            "[urgent] Out, out, move!",
+            "[shouting] Dismount, go!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, nowhere to put us."
+          ],
+          "stressed": [
+            "[urgent] No room, we cannot get out!",
+            "[shouting] We are boxed in, move!"
+          ]
+        },
         "withdraw": {
           "steady": [
             "Falling back.",
@@ -384,6 +414,36 @@
           "stressed": [
             "[urgent] Out, now!",
             "[shouting] Get out, move!"
+          ]
+        },
+        "board": {
+          "steady": [
+            "Boarding the carrier.",
+            "Loading up."
+          ],
+          "stressed": [
+            "[urgent] Board, quickly!",
+            "[shouting] Get us aboard!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Dismounting now.",
+            "Out of the carrier."
+          ],
+          "stressed": [
+            "[urgent] Out, move!",
+            "[shouting] Dismount, go!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no space here."
+          ],
+          "stressed": [
+            "[urgent] No room, we are stuck!",
+            "[shouting] Nowhere to get out!"
           ]
         },
         "withdraw": {
@@ -680,6 +740,36 @@
             "[shouting] Lift, lift, go!"
           ]
         },
+        "board": {
+          "steady": [
+            "Loading troops.",
+            "Troops boarding."
+          ],
+          "stressed": [
+            "[urgent] Get them aboard, now!",
+            "[shouting] Load up, go!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Dismounting troops.",
+            "Troops clear."
+          ],
+          "stressed": [
+            "[urgent] Get them out, now!",
+            "[shouting] Everybody out, go!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no clear landing spot."
+          ],
+          "stressed": [
+            "[urgent] No room, we cannot put them down!",
+            "[shouting] Nowhere to land, pull away!"
+          ]
+        },
         "withdraw": {
           "steady": [
             "Breaking off, heading home.",
@@ -972,6 +1062,36 @@
           "stressed": [
             "[urgent] Everyone in, ramp up!",
             "[shouting] Mount up, we're leaving!"
+          ]
+        },
+        "board": {
+          "steady": [
+            "Loading the squad.",
+            "Ramp down, board."
+          ],
+          "stressed": [
+            "[urgent] Load up, quickly!",
+            "[shouting] Get in the back!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Dropping the ramp.",
+            "Squad dismounting."
+          ],
+          "stressed": [
+            "[urgent] Ramp down, get out!",
+            "[shouting] Dismount, go, go!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no clear ramp."
+          ],
+          "stressed": [
+            "[urgent] No room, keep them aboard!",
+            "[shouting] We cannot drop the ramp here!"
           ]
         },
         "withdraw": {
@@ -1268,6 +1388,36 @@
             "[shouting] Get out, go!"
           ]
         },
+        "board": {
+          "steady": [
+            "Boarding the carrier.",
+            "Loading up."
+          ],
+          "stressed": [
+            "[urgent] Board, quickly!",
+            "[shouting] Get aboard, go!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Dismounting.",
+            "Out of the carrier."
+          ],
+          "stressed": [
+            "[urgent] Out, now!",
+            "[shouting] Dismount, move!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no space here."
+          ],
+          "stressed": [
+            "[urgent] No room, we are stuck!",
+            "[shouting] Nowhere to get out!"
+          ]
+        },
         "withdraw": {
           "steady": [
             "Falling back.",
@@ -1560,6 +1710,36 @@
           "stressed": [
             "[urgent] Out, quickly!",
             "[shouting] Get out, go!"
+          ]
+        },
+        "board": {
+          "steady": [
+            "Boarding now.",
+            "Loading up, stay low."
+          ],
+          "stressed": [
+            "[urgent] Board, move!",
+            "[shouting] Get in, go!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Dismounting.",
+            "Out and moving."
+          ],
+          "stressed": [
+            "[urgent] Out, quickly!",
+            "[shouting] Dismount, go!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, nowhere to set us down."
+          ],
+          "stressed": [
+            "[urgent] No room, we cannot get out!",
+            "[shouting] We are trapped in here!"
           ]
         },
         "withdraw": {
@@ -1856,6 +2036,36 @@
             "[urgent] Out, they're coming!"
           ]
         },
+        "board": {
+          "steady": [
+            "[whispers] Boarding, quiet.",
+            "[whispers] Loading up, stay dark."
+          ],
+          "stressed": [
+            "[urgent whisper] Board, now.",
+            "[urgent whisper] Get in, move."
+          ]
+        },
+        "unload": {
+          "steady": [
+            "[whispers] Dismounting, quiet.",
+            "[whispers] Out and moving."
+          ],
+          "stressed": [
+            "[urgent whisper] Out, now.",
+            "[urgent] Everybody out, move!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "[whispers] Negative, no room to unload.",
+            "[whispers] No clear place to get out."
+          ],
+          "stressed": [
+            "[urgent whisper] No room, we are stuck.",
+            "[urgent whisper] Nowhere to go, hold."
+          ]
+        },
         "withdraw": {
           "steady": [
             "[whispers] Pulling back.",
@@ -2148,6 +2358,36 @@
           "stressed": [
             "[urgent whisper] Out, quickly.",
             "[urgent] Back out, go!"
+          ]
+        },
+        "board": {
+          "steady": [
+            "[whispers] Loading the squad.",
+            "[whispers] Squad aboard."
+          ],
+          "stressed": [
+            "[urgent whisper] Load them, quickly.",
+            "[urgent] Get them aboard!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "[whispers] Letting them out.",
+            "[whispers] Squad dismounting."
+          ],
+          "stressed": [
+            "[urgent whisper] Out, now.",
+            "[urgent] Get them clear!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "[whispers] Negative, no room to unload.",
+            "[whispers] No clear spot for them."
+          ],
+          "stressed": [
+            "[urgent whisper] No room, keep them aboard.",
+            "[urgent] We cannot put them out here!"
           ]
         },
         "withdraw": {
@@ -2444,6 +2684,36 @@
             "[shouting] Get out of there!"
           ]
         },
+        "board": {
+          "steady": [
+            "Boarding.",
+            "Squad, mount up."
+          ],
+          "stressed": [
+            "[urgent] Board, move!",
+            "[shouting] Get in, go!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Dismounting.",
+            "Out, follow me."
+          ],
+          "stressed": [
+            "[urgent] Out, out, quickly!",
+            "[shouting] Dismount, go!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, nowhere to put us."
+          ],
+          "stressed": [
+            "[urgent] No room, we cannot get out!",
+            "[shouting] We are stuck in here!"
+          ]
+        },
         "withdraw": {
           "steady": [
             "Falling back.",
@@ -2736,6 +3006,36 @@
           "stressed": [
             "[urgent whisper] Out, now, they know.",
             "[urgent] Get out, move!"
+          ]
+        },
+        "board": {
+          "steady": [
+            "[whispers] Boarding, quiet.",
+            "[whispers] Loading up."
+          ],
+          "stressed": [
+            "[urgent whisper] Board, now.",
+            "[urgent whisper] Get in, move."
+          ]
+        },
+        "unload": {
+          "steady": [
+            "[whispers] Dismounting.",
+            "[whispers] Out the back."
+          ],
+          "stressed": [
+            "[urgent whisper] Out, now.",
+            "[urgent] Dismount, move!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "[whispers] Negative, no room to unload.",
+            "[whispers] No clear place to get out."
+          ],
+          "stressed": [
+            "[urgent whisper] No room, we are stuck.",
+            "[urgent whisper] Nowhere to go, hold."
           ]
         },
         "withdraw": {
@@ -3032,6 +3332,36 @@
             "[shouting] Go, out of here!"
           ]
         },
+        "board": {
+          "steady": [
+            "Loading the squad.",
+            "Passengers aboard."
+          ],
+          "stressed": [
+            "[urgent] Load them, quick!",
+            "[shouting] Get in, we are moving!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Unloading the squad.",
+            "Passengers out."
+          ],
+          "stressed": [
+            "[urgent] Out, everyone out!",
+            "[shouting] Clear the truck, move!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no clear pull-off."
+          ],
+          "stressed": [
+            "[urgent] No room, we cannot unload!",
+            "[shouting] We are boxed in, hold on!"
+          ]
+        },
         "withdraw": {
           "steady": [
             "Heading back.",
@@ -3324,6 +3654,36 @@
           "stressed": [
             "[urgent] Back out, back out of there!",
             "[shouting] Driver, get us clear!"
+          ]
+        },
+        "board": {
+          "steady": [
+            "Loading infantry.",
+            "Infantry aboard."
+          ],
+          "stressed": [
+            "[urgent] Load them, driver!",
+            "[shouting] Get them in, go!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Unloading infantry.",
+            "Infantry dismounting."
+          ],
+          "stressed": [
+            "[urgent] Ramp down, get out!",
+            "[shouting] Everybody out, move!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no clear ground."
+          ],
+          "stressed": [
+            "[urgent] No room, keep them aboard!",
+            "[shouting] We cannot unload here!"
           ]
         },
         "withdraw": {
@@ -3620,6 +3980,36 @@
             "[shouting] Everybody in, we're going!"
           ]
         },
+        "board": {
+          "steady": [
+            "Loading troops.",
+            "Troops aboard."
+          ],
+          "stressed": [
+            "[urgent] Get them aboard, now!",
+            "[shouting] Everybody in, go!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Troops dismounting.",
+            "Clear to unload."
+          ],
+          "stressed": [
+            "[urgent] Get off, get off!",
+            "[shouting] Everybody out, go!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no clear landing spot."
+          ],
+          "stressed": [
+            "[urgent] No room, we cannot put them down!",
+            "[shouting] Too tight, pull away!"
+          ]
+        },
         "withdraw": {
           "steady": [
             "Breaking off, heading home.",
@@ -3914,6 +4304,36 @@
             "[shouting] Pull up, get altitude!"
           ]
         },
+        "board": {
+          "steady": [
+            "Unable, no passengers aboard.",
+            "Negative, cannot carry troops."
+          ],
+          "stressed": [
+            "[urgent] No boarding, stay clear!",
+            "[shouting] We cannot load anyone!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Unable, no passengers to unload.",
+            "Negative, nowhere to set down."
+          ],
+          "stressed": [
+            "[urgent] Cannot unload, stay clear!",
+            "[shouting] We cannot put anyone down!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no place to set down."
+          ],
+          "stressed": [
+            "[urgent] No room, abort the drop!",
+            "[shouting] Nowhere to land, pull up!"
+          ]
+        },
         "withdraw": {
           "steady": [
             "Bingo fuel, returning to base.",
@@ -4206,6 +4626,36 @@
           "stressed": [
             "[urgent] Out, get us out!",
             "[shouting] Move, move, clear it!"
+          ]
+        },
+        "board": {
+          "steady": [
+            "Loading the squad.",
+            "Squad aboard."
+          ],
+          "stressed": [
+            "[urgent] Load up, quickly!",
+            "[shouting] Get in, go!"
+          ]
+        },
+        "unload": {
+          "steady": [
+            "Unloading the squad.",
+            "Squad dismounting."
+          ],
+          "stressed": [
+            "[urgent] Out, move!",
+            "[shouting] Dismount, clear the road!"
+          ]
+        },
+        "no_room_to_unload": {
+          "steady": [
+            "Negative, no room to unload.",
+            "Unable, no clear ground."
+          ],
+          "stressed": [
+            "[urgent] No room, keep them aboard!",
+            "[shouting] We cannot unload here!"
           ]
         },
         "withdraw": {

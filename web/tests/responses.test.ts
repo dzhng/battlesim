@@ -33,6 +33,9 @@ test("each accepted order is answered with its own line, as a response", () => {
       { kind: "garrison" },
       { kind: "occupy_building" },
       { kind: "exit_building" },
+      { kind: "board" },
+      { kind: "collect" },
+      { kind: "unload" },
       { kind: "refund" },
     ].map(answer),
   ).toEqual([
@@ -45,6 +48,9 @@ test("each accepted order is answered with its own line, as a response", () => {
     "enter_building",
     "enter_building",
     "leave_building",
+    "board",
+    "board",
+    "unload",
     "withdraw",
   ]);
   // Orders no unit answers: the match's own, and a gesture's upgrade.
@@ -105,6 +111,7 @@ test("a refusal the player caused is answered; a refusal of the match or the inp
     "building_occupied",
   ])
     expect(refused(reason)).toBe("refused");
+  expect(refused("no_room_to_unload")).toBe("no_room_to_unload");
   for (const reason of [
     "rate_limited",
     "out_of_sequence",
