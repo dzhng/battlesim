@@ -112,11 +112,17 @@ pub struct PendingPurchase {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SkirmishView {
     pub phase: Phase,
+    pub players: Vec<PlayerView>,
+    #[serde(skip)]
     pub ready: [bool; 2],
     pub preparation_remaining_s: f64,
+    #[serde(skip)]
     pub credits: f64,
+    #[serde(skip)]
     pub unit_count: u32,
+    #[serde(skip)]
     pub max_units: u32,
+    #[serde(skip)]
     pub pending: Vec<PendingPurchase>,
     pub objectives: Vec<ObjectiveView>,
     pub scores: [f64; 2],
@@ -124,6 +130,18 @@ pub struct SkirmishView {
     /// The complete match report is revealed once the referee finishes the match.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub report: Option<MatchReport>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PlayerView {
+    pub index: crate::players::PlayerIndex,
+    pub id: String,
+    pub controller: crate::players::ControllerKind,
+    pub ready: bool,
+    pub credits: f64,
+    pub unit_count: u32,
+    pub cap: u32,
+    pub pending: Vec<PendingPurchase>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -160,7 +178,7 @@ pub struct MatchUnit {
     pub id: UnitId,
     pub kind: TypeIndex,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub player: Option<crate::players::PlayerIndex>,
+    pub owner: Option<crate::players::PlayerIndex>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

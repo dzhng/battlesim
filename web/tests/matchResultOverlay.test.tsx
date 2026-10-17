@@ -8,15 +8,22 @@ afterEach(cleanup);
 
 const match: SkirmishView = {
   phase: "finished",
-  ready: [true, true],
+  players: [
+    {
+      index: 0,
+      id: "blue-1",
+      controller: "human",
+      ready: true,
+      credits: 420,
+      unitCount: 2,
+      cap: 30,
+      pending: [],
+    },
+  ],
   preparationRemainingS: 0,
-  credits: 420,
-  unitCount: 2,
-  maxUnits: 30,
   scores: [700, 300],
   result: "blue",
   objectives: [],
-  pending: [],
   report: {
     totals: [
       { spawned: 2, spent: 600, killed: 3, refunded: 120 },

@@ -40,15 +40,22 @@ const GAME_RULES = game as unknown as PanelRules;
 
 const MATCH: SkirmishView = {
   phase: "active",
-  ready: [true, true],
+  players: [
+    {
+      index: 0,
+      id: "blue-1",
+      controller: "human",
+      ready: true,
+      credits: 769,
+      unitCount: 6,
+      cap: 30,
+      pending: [],
+    },
+  ],
   preparationRemainingS: 0,
-  credits: 769,
   scores: [120, 85],
   result: null,
   objectives: [],
-  unitCount: 6,
-  maxUnits: 30,
-  pending: [],
   report: null,
 };
 
@@ -159,9 +166,9 @@ function Status({ match }: { match: SkirmishView }) {
           <button
             type="button"
             className="hud-menu-choice hud-purchase-ready"
-            disabled={match.ready[0]}
+            disabled={match.players[0]?.ready ?? false}
           >
-            {match.ready[0] ? "READY" : "START BATTLE"}
+            {match.players[0]?.ready ? "READY" : "START BATTLE"}
           </button>
         </div>
       )}
@@ -190,6 +197,7 @@ function Purchase({ match }: { match: SkirmishView }) {
             cards={CARDS}
             faction="us"
             match={match}
+            player={match.players[0]}
             onChoose={() => {}}
             rules={rules}
           />
@@ -253,7 +261,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
         match={{
           ...MATCH,
           phase: "preparation",
-          ready: [false, false],
+          players: [{ ...MATCH.players[0], ready: false }],
           preparationRemainingS: 42,
           scores: [0, 0],
         }}
@@ -267,7 +275,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
         match={{
           ...MATCH,
           phase: "preparation",
-          ready: [true, false],
+          players: [{ ...MATCH.players[0], ready: true }],
           preparationRemainingS: 42,
           scores: [0, 0],
         }}
@@ -305,12 +313,22 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
   },
   {
     id: "purchase",
-    draw: () => <Purchase match={{ ...MATCH, phase: "preparation", ready: [false, false] }} />,
+    draw: () => (
+      <Purchase
+        match={{ ...MATCH, phase: "preparation", players: [{ ...MATCH.players[0], ready: false }] }}
+      />
+    ),
   },
   {
     id: "purchase-short-of-credits",
     draw: () => (
-      <Purchase match={{ ...MATCH, phase: "preparation", ready: [false, false], credits: 110 }} />
+      <Purchase
+        match={{
+          ...MATCH,
+          phase: "preparation",
+          players: [{ ...MATCH.players[0], ready: false, credits: 110 }],
+        }}
+      />
     ),
   },
   { id: "objectives", draw: () => <Objectives /> },

@@ -25,9 +25,11 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
     expect(JSON.parse(battle.accept(JSON.stringify(record.commands[0]))).error).toBeNull();
     battle.step();
     const prep = frame("blue").skirmish!;
-    expect(prep.credits).toBe(800);
-    expect(prep.pending).toEqual([
+    expect(prep.players).toHaveLength(1);
+    expect(prep.players[0].credits).toBe(800);
+    expect(prep.players[0].pending).toEqual([
       {
+        owner: 0,
         id: 0,
         kind: "test_tank",
         destination: [400, 300],
@@ -36,7 +38,7 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
         arrivalTick: 0,
       },
     ]);
-    expect(frame("red").skirmish).toMatchObject({ credits: 1000, pending: [] });
+    expect(frame("red").skirmish?.players[0]).toMatchObject({ credits: 1000, pending: [] });
     for (const command of record.commands.slice(1))
       expect(JSON.parse(battle.accept(JSON.stringify(command))).error).toBeNull();
     for (let t = 0; t < record.ticks - 1; t++) battle.step();
@@ -49,7 +51,8 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
       paired.free();
     }
     const active = frame("blue");
-    expect(active.skirmish).toMatchObject({ phase: "active", unitCount: 1, pending: [] });
+    expect(active.skirmish).toMatchObject({ phase: "active" });
+    expect(active.skirmish?.players[0]).toMatchObject({ unitCount: 1, pending: [] });
     expect(active.own).toHaveLength(1);
     expect(active.own[0].position[1]).toBeGreaterThan(10);
     expect(active.own[0].position[1]).toBeLessThan(100);

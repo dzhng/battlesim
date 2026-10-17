@@ -32,6 +32,16 @@ fn empty_match() -> (Rules, ObservationFrame, EntrySite) {
     let mut frame = battle.observe(Side::Red).clone();
     frame.skirmish = Some(contract::skirmish::SkirmishView {
         phase: contract::skirmish::Phase::Preparation,
+        players: vec![contract::skirmish::PlayerView {
+            index: contract::players::PlayerIndex(0),
+            id: "red-1".into(),
+            controller: contract::players::ControllerKind::ActiveAi,
+            ready: false,
+            credits: 1000.0,
+            unit_count: 0,
+            cap: 30,
+            pending: vec![],
+        }],
         ready: [false; 2],
         preparation_remaining_s: 45.0,
         credits: 1000.0,

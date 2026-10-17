@@ -31,7 +31,34 @@ const view = (tick: number, own: OwnUnitView[], pending: string[] = []) =>
   ({
     tick,
     own,
-    skirmish: { pending: pending.map((kind, i) => ({ id: i, kind })) },
+    skirmish: {
+      phase: "preparation",
+      players: [
+        {
+          index: 0,
+          id: "blue-1",
+          controller: "human",
+          ready: false,
+          credits: 1000,
+          unitCount: 0,
+          cap: 30,
+          pending: pending.map((kind, i) => ({
+            id: i,
+            kind,
+            owner: 0,
+            destination: [0, 0],
+            confirmedTick: 0,
+            blocked: false,
+            arrivalTick: 0,
+          })),
+        },
+      ],
+      preparationRemainingS: 60,
+      scores: [0, 0],
+      result: null,
+      objectives: [],
+      report: null,
+    },
   }) as unknown as ObservationView;
 
 function setup(faction: "us" | "eastern" | null = "eastern") {

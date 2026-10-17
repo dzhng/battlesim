@@ -111,27 +111,27 @@ impl Skirmish {
         }
     }
     pub fn view(&self, side: Side, tick: Tick, hz: u32, living: &[u32]) -> SkirmishView {
-        let own: Vec<_> = self.side_players(side).collect();
-        // Temporary slice-02 economy view; slice 03 replaces this with the players table.
-        let selected = own
-            .iter()
-            .find(|(_, p)| p.controller == ControllerKind::Human)
-            .or_else(|| own.first());
-        let selected_index = selected.map_or(0, |(index, _)| *index);
-        let p = selected.map(|(_, p)| *p);
-        let (credits, pending) = p.map_or((0.0, Vec::new()), |p| {
-            (
-                p.wallet as f64 / CREDIT_SCALE as f64,
-                p.reservations.iter().map(|r| r.data.clone()).collect(),
-            )
-        });
-        let mut ready = [false; 2];
-        for s in Side::COMBATANTS {
-            ready[s.index()] = self.side_players(s).all(|(_, p)| p.ready);
-        }
+        let players: Vec<_> = self
+            .side_players(side)
+            .map(|(index, p)| contract::skirmish::PlayerView {
+                index: contract::players::PlayerIndex(index as u16),
+                id: p.id.clone(),
+                controller: p.controller.clone(),
+                ready: p.ready,
+                credits: p.wallet as f64 / CREDIT_SCALE as f64,
+                unit_count: living.get(index).copied().unwrap_or(0) + p.reservations.len() as u32,
+                cap: self.setup.rules.max_units,
+                pending: p.reservations.iter().map(|r| r.data.clone()).collect(),
+            })
+            .collect();
+        let first = players.first();
+        let legacy_credits = first.map_or(0.0, |p| p.credits);
+        let legacy_unit_count = first.map_or(0, |p| p.unit_count);
+        let legacy_pending = first.map_or_else(Vec::new, |p| p.pending.clone());
         SkirmishView {
             phase: self.phase,
-            ready,
+            players,
+            ready: [false; 2],
             preparation_remaining_s: if self.phase == Phase::Preparation {
                 (u64::from(self.setup.rules.preparation_s) * u64::from(hz)).saturating_sub(tick)
                     as f64
@@ -139,15 +139,14 @@ impl Skirmish {
             } else {
                 0.0
             },
-            credits,
-            unit_count: living.get(selected_index).copied().unwrap_or(0)
-                + p.map_or(0, |selected| selected.reservations.len() as u32),
+            credits: legacy_credits,
+            unit_count: legacy_unit_count,
             max_units: self.setup.rules.max_units,
+            pending: legacy_pending,
             objectives: self.objectives.views(&self.setup.sites.objectives, hz),
             scores: self.objectives.scores(hz),
             result: self.objectives.result,
             report: (self.phase == Phase::Finished).then(|| self.report.clone()),
-            pending,
         }
     }
     pub fn reserve(
@@ -206,7 +205,7 @@ impl Skirmish {
                 side,
                 id,
                 kind,
-                player: Some(contract::players::PlayerIndex(player as u16)),
+                owner: Some(contract::players::PlayerIndex(player as u16)),
             },
             cost,
         });
@@ -228,7 +227,7 @@ impl Skirmish {
                 side,
                 id,
                 kind,
-                player: Some(contract::players::PlayerIndex(player as u16)),
+                owner: Some(contract::players::PlayerIndex(player as u16)),
             },
             credits,
         });

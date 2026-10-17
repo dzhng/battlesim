@@ -1,6 +1,6 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–02, 04 and 07 done).
+**Status:** in progress (slices 00–04 and 07 done).
 **Updated:** 2026-10-17.
 
 ## Next Agent Prompt
@@ -14,7 +14,6 @@
 - Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
 
 **Next:**
-- Slice 03 (publication): it is being finished in worktree `team-publication`.
 - Slice 05 (simulation entry owner): 02 and 04 have landed. It replaces the temporary `centre_entry` reads.
 - Slice 08 (lobby map picture, visual) can start now that 04 and 07 have landed.
 
@@ -22,7 +21,7 @@
 - `icons.test.ts` (3 tests);
 - `soundCatalog.test.ts`.
 
-`battleFailure.test.ts` is flaky under heavy machine load: the headless browser's no-WebGPU error races the replay refusal. Fix it in its own commit.
+`battleFailure.test.ts` and `cityBenchmark.test.ts` are flaky under heavy machine load (both pass alone): the headless browser's no-WebGPU error races the replay refusal. Fix it in its own commit.
 
 Before touching code, read three things:
 - this README;
@@ -43,7 +42,7 @@ Slices:
 - [x] 00: probe multi-entry admission, timings, throughput ([slice](slices/00-probe.md))
 - [x] 01: one player contract, mechanical port ([slice](slices/01-player-contract.md))
 - [x] 02: simulation per-player ownership ([slice](slices/02-sim-ownership.md))
-- [ ] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
+- [x] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
 - [x] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
 - [ ] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
 - [ ] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))

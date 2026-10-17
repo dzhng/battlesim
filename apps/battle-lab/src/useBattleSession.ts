@@ -262,7 +262,8 @@ export function useBattleSession({
     if (purchasing) kinds.add(purchasing);
     for (const unit of observation?.own ?? []) kinds.add(unit.kind);
     for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
-    for (const pending of observation?.skirmish?.pending ?? []) kinds.add(pending.kind);
+    for (const pending of observation?.skirmish?.players.flatMap((player) => player.pending) ?? [])
+      kinds.add(pending.kind);
     return [...kinds].sort().join("\0");
   }, [fielded, observation, purchasing]);
   const requestedKinds = useMemo(
@@ -572,7 +573,11 @@ export function useBattleSession({
   const [placedGhostList] = useState(() =>
     byReference(
       (match: ObservationView["skirmish"]): UnitGhost[] =>
-        (match?.phase === "preparation" ? match.pending : []).map((pending) => {
+        (match?.phase === "preparation"
+          ? ((match.players.find((candidate) => candidate.id === player) ?? match.players[0])
+              ?.pending ?? [])
+          : []
+        ).map((pending) => {
           const [x, y] = pending.destination;
           const placed = placedGhosts.current.find(
             (g) =>

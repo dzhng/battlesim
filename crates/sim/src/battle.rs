@@ -2589,10 +2589,13 @@ impl Battle {
                 .own
                 .retain(|unit| unit.owner == Some(contract::players::PlayerIndex(index as u16)));
             if let Some(view) = frame.skirmish.as_mut() {
+                view.players
+                    .retain(|player| player.index == contract::players::PlayerIndex(index as u16));
                 if let Some(state) = self.skirmish.as_ref().and_then(|s| s.players.get(index)) {
                     view.credits = state.wallet as f64 / crate::skirmish::CREDIT_SCALE as f64;
                     view.unit_count = frame.own.len() as u32 + state.reservations.len() as u32;
                     view.pending = state.reservations.iter().map(|r| r.data.clone()).collect();
+                    view.ready[side.index()] = state.ready;
                 }
             }
             let rules = self.rules.clone();
@@ -2601,7 +2604,7 @@ impl Battle {
                 && frame
                     .skirmish
                     .as_ref()
-                    .is_some_and(|view| view.pending.is_empty())
+                    .is_some_and(|view| view.players.first().is_none_or(|p| p.pending.is_empty()))
                 && !opening.is_empty()
             {
                 opening
@@ -3009,7 +3012,7 @@ impl Battle {
                         side: source.side,
                         id: source.unit,
                         kind: unit.kind,
-                        player: {
+                        owner: {
                             let owner = unit.owner.as_deref();
                             debug_assert!(owner.is_some(), "skirmish killer unit has no owner");
                             owner
@@ -3038,7 +3041,7 @@ impl Battle {
                         side: victim.side,
                         id: victim.id,
                         kind: victim.kind,
-                        player: victim
+                        owner: victim
                             .owner
                             .as_deref()
                             .and_then(|id| skirmish.player_index(id))

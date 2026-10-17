@@ -7,11 +7,12 @@ import { InfoPanel } from "./infoPanel";
 import { purchasePanel, type PanelRules } from "./panelRows";
 import { cardPurchasable, enterChoice, filterCards, type BuyFacts } from "./purchaseFilter";
 import { UnitFace } from "./unitFace";
-import type { SkirmishView } from "../sim/observationView";
+import type { PlayerView, SkirmishView } from "../sim/observationView";
 interface PickerProps {
   cards: readonly UnitCard[];
   faction: Faction;
   match: SkirmishView;
+  player?: PlayerView;
   onChoose: (variant: string) => void;
   /** What a purchase's info card is built with, as the deck's are. */
   rules: PanelRules;
@@ -30,7 +31,9 @@ const HOVER_INTENT_MS = 250;
 const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
 /** The Reinforcements button and the credits. The menu exists only while
  *  open, so every opening starts fresh: first category, empty filter. */
-export function PurchasePicker({ match, ...menu }: PickerProps) {
+export function PurchasePicker({ match, player, ...menu }: PickerProps) {
+  const viewingPlayer = player ?? match.players[0];
+  if (!viewingPlayer) return null;
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   return (
@@ -47,13 +50,14 @@ export function PurchasePicker({ match, ...menu }: PickerProps) {
           Reinforcements
         </button>
         <span className="hud-credits" aria-label="Credits">
-          {Math.floor(match.credits)} CR
+          {Math.floor(viewingPlayer.credits)} CR
         </span>
       </div>
       {open && (
         <PurchaseMenu
           {...menu}
           match={match}
+          player={viewingPlayer}
           onChoose={(variant) => {
             menu.onChoose(variant);
             setOpen(false);
@@ -68,13 +72,14 @@ export function PurchasePicker({ match, ...menu }: PickerProps) {
   );
 }
 
-interface MenuProps extends PickerProps {
+interface MenuProps extends Omit<PickerProps, "player"> {
+  player: PlayerView;
   /** Escape with an empty filter closes the menu and returns focus. */
   onClose: () => void;
 }
 
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
-function PurchaseMenu({ cards, faction, match, onChoose, rules, onClose }: MenuProps) {
+function PurchaseMenu({ cards, faction, match, player, onChoose, rules, onClose }: MenuProps) {
   const catalog = useSessionCatalog();
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
@@ -83,9 +88,9 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules, onClose }: MenuP
   // The field takes focus on open, so typing filters at once.
   useEffect(() => search.current?.focus(), []);
   const facts: BuyFacts = {
-    credits: match.credits,
-    unitCount: match.unitCount,
-    maxUnits: match.maxUnits,
+    credits: player.credits,
+    unitCount: player.unitCount,
+    maxUnits: player.cap,
     finished: match.phase === "finished",
   };
   const available = cards.filter((c) => c.roster.factions.includes(faction));
@@ -179,7 +184,7 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules, onClose }: MenuP
               <UnitFace kind={shown.id}>
                 <Price
                   cost={Math.min(...variants.map((v) => v.cost))}
-                  credits={match.credits}
+                  credits={facts.credits}
                   unsold={unavailable}
                 />
               </UnitFace>
@@ -267,7 +272,7 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules, onClose }: MenuP
                     {card.disabled_reason !== null && <small>Unavailable</small>}
                     <Price
                       cost={card.cost}
-                      credits={match.credits}
+                      credits={facts.credits}
                       unsold={card.disabled_reason !== null}
                     />
                   </span>

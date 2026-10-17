@@ -5,14 +5,21 @@ import type { SkirmishView } from "@web/battle/sim/observationView";
 afterEach(cleanup);
 const match: SkirmishView = {
   phase: "preparation",
-  ready: [false, false],
+  players: [
+    {
+      index: 0,
+      id: "blue-1",
+      controller: "human",
+      ready: false,
+      credits: 1000,
+      unitCount: 0,
+      cap: 30,
+      pending: [],
+    },
+  ],
   preparationRemainingS: 59.2,
-  credits: 1000,
-  unitCount: 0,
-  maxUnits: 30,
   scores: [0, 0],
   result: null,
-  pending: [],
   objectives: [],
   report: null,
 };

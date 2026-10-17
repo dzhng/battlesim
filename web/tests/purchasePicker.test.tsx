@@ -25,12 +25,19 @@ const card = (id: string, variant: string, reason: string | null = null): UnitCa
 });
 const match: SkirmishView = {
   phase: "preparation",
-  ready: [false, false],
+  players: [
+    {
+      index: 0,
+      id: "blue-1",
+      controller: "human",
+      ready: false,
+      credits: 1000,
+      unitCount: 0,
+      cap: 30,
+      pending: [],
+    },
+  ],
   preparationRemainingS: 60,
-  credits: 1000,
-  unitCount: 0,
-  maxUnits: 30,
-  pending: [],
   scores: [0, 0],
   result: null,
   objectives: [],
@@ -125,7 +132,12 @@ test("purchase availability follows observed credits and reserved slots", () => 
   };
   // A one-variant family is bought by clicking it, once it is affordable
   // and a slot is free.
-  const view = render(<PurchasePicker {...props} match={{ ...match, credits: 199 }} />);
+  const view = render(
+    <PurchasePicker
+      {...props}
+      match={{ ...match, players: [{ ...match.players[0], credits: 199 }] }}
+    />,
+  );
   const family = () => view.getByRole("button", { name: "M1 Abrams" });
   const open = () => {
     fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
@@ -134,10 +146,20 @@ test("purchase availability follows observed credits and reserved slots", () => 
   open();
   fireEvent.click(family());
   expect(choose).not.toHaveBeenCalled();
-  view.rerender(<PurchasePicker {...props} match={{ ...match, credits: 200, unitCount: 30 }} />);
+  view.rerender(
+    <PurchasePicker
+      {...props}
+      match={{ ...match, players: [{ ...match.players[0], credits: 200, unitCount: 30 }] }}
+    />,
+  );
   fireEvent.click(family());
   expect(choose).not.toHaveBeenCalled();
-  view.rerender(<PurchasePicker {...props} match={{ ...match, credits: 200, unitCount: 29 }} />);
+  view.rerender(
+    <PurchasePicker
+      {...props}
+      match={{ ...match, players: [{ ...match.players[0], credits: 200, unitCount: 29 }] }}
+    />,
+  );
   fireEvent.click(family());
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
 });

@@ -161,6 +161,9 @@ export function BattleView({
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
+  const viewingPlayer =
+    observation?.skirmish?.players.find((candidate) => candidate.id === player) ??
+    observation?.skirmish?.players[0];
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
@@ -328,10 +331,10 @@ export function BattleView({
             <button
               type="button"
               className="hud-menu-choice hud-purchase-ready"
-              disabled={observation.skirmish.ready[0]}
+              disabled={viewingPlayer?.ready ?? false}
               onClick={session.purchase.ready}
             >
-              {observation.skirmish.ready[0] ? "READY" : "START BATTLE"}
+              {viewingPlayer?.ready ? "READY" : "START BATTLE"}
             </button>
           </div>
         )}
@@ -341,7 +344,7 @@ export function BattleView({
           selected={control.selected}
           onSelect={control.setSelected}
           rules={session.rules}
-          pending={observation?.skirmish?.pending}
+          pending={viewingPlayer?.pending}
           tick={observation?.tick}
           control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
@@ -352,6 +355,7 @@ export function BattleView({
                   cards={session.purchase.cards}
                   faction={session.purchase.faction}
                   match={observation.skirmish}
+                  player={viewingPlayer}
                   onChoose={session.purchase.choose}
                   rules={session.rules}
                 />

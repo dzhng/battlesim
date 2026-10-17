@@ -163,8 +163,9 @@ fn confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation()
     assert_eq!(status.unit_count, 5);
     assert_eq!(status.pending.len(), 5);
     assert!(status
-        .pending
+        .players
         .iter()
+        .flat_map(|player| player.pending.iter())
         .all(|p| p.destination == [400.0, 300.0]));
 }
 
@@ -264,14 +265,14 @@ fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
             side: Side::Red,
             id: contract::ids::UnitId(1),
             kind: common::unit_kind("test_rifle"),
-            player: None,
+            owner: None,
         },
         110,
         Some(contract::skirmish::MatchUnit {
             side: Side::Blue,
             id: contract::ids::UnitId(0),
             kind: common::unit_kind("test_tank"),
-            player: None,
+            owner: None,
         }),
         Some(200),
         3,
@@ -295,25 +296,54 @@ fn terminal_report_records_spawn_actions_and_spend_for_both_sides() {
 }
 
 #[test]
-fn view_uses_the_sides_human_players_economy_until_players_table() {
+fn view_exposes_each_observed_players_economy_and_hides_the_enemy_side() {
     let mut setup = setup();
-    let mut players = setup.players.clone();
-    players[0].controller = contract::players::ControllerKind::ActiveAi;
-    players[0].human_capable = false;
-    players.insert(
-        1,
+    setup.players.extend([
         contract::players::Player {
-            id: "blue-human".into(),
+            id: "blue-2".into(),
             side: Side::Blue,
             faction: Some(contract::catalog::Faction::Us),
-            controller: contract::players::ControllerKind::Human,
-            human_capable: true,
+            controller: contract::players::ControllerKind::ActiveAi,
+            human_capable: false,
         },
-    );
+        contract::players::Player {
+            id: "red-2".into(),
+            side: Side::Red,
+            faction: Some(contract::catalog::Faction::Eastern),
+            controller: contract::players::ControllerKind::PassiveAi,
+            human_capable: false,
+        },
+    ]);
+    let players = setup.players.clone();
     let mut skirmish = sim::skirmish::Skirmish::new(setup.skirmish.take().unwrap(), &players);
-    skirmish.players[0].wallet = 123 * sim::skirmish::CREDIT_SCALE;
-    skirmish.players[1].wallet = 456 * sim::skirmish::CREDIT_SCALE;
-    assert_eq!(skirmish.view(Side::Blue, 0, 30, &[0, 0, 0]).credits, 456.0);
+    for (player, credits) in skirmish.players.iter_mut().zip([111_u64, 222, 333, 444]) {
+        player.wallet = credits * sim::skirmish::CREDIT_SCALE;
+    }
+    skirmish
+        .reserve(2, common::unit_kind("test_tank"), [400.0, 300.0], 200, 7, 4)
+        .unwrap();
+
+    let view = skirmish.view(Side::Blue, 0, 30, &[3, 4, 4, 6]);
+    assert_eq!(
+        view.players
+            .iter()
+            .map(|player| player.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["blue-1", "blue-2"]
+    );
+    assert_eq!(view.players[0].index.0, 0);
+    assert_eq!(view.players[0].credits, 111.0);
+    assert_eq!(view.players[0].unit_count, 3);
+    assert!(view.players[0].pending.is_empty());
+    assert_eq!(view.players[1].index.0, 2);
+    assert_eq!(view.players[1].credits, 133.0);
+    assert_eq!(view.players[1].unit_count, 5);
+    assert_eq!(view.players[1].pending.len(), 1);
+    assert_eq!(view.players[1].pending[0].id.0, 0);
+    assert!(view
+        .players
+        .iter()
+        .all(|player| !player.id.starts_with("red-")));
 }
 
 #[test]
@@ -355,7 +385,7 @@ fn occupied_entry_keeps_the_next_paid_unit_pending_without_overlap() {
 }
 
 #[test]
-fn packed_match_header_exposes_only_the_observed_wallet_and_pending_count() {
+fn packed_match_header_exposes_players_and_pending_counts() {
     let mut battle = Battle::new(&setup(), 1);
     battle.accept(command(
         Side::Blue,
@@ -369,7 +399,13 @@ fn packed_match_header_exposes_only_the_observed_wallet_and_pending_count() {
     let layout: serde_json::Value =
         serde_json::from_str(&sim::publication::layout_json(&battle)).unwrap();
     let fields = layout["header"].as_array().unwrap();
-    for (side, credits, pending) in [(Side::Blue, 800.0, 1.0), (Side::Red, 1000.0, 0.0)] {
+    assert!(fields.iter().all(|field| {
+        !matches!(
+            field.as_str(),
+            Some("credits" | "unitCount" | "maxUnits" | "readyBlue" | "readyRed")
+        )
+    }));
+    for (side, players, pending) in [(Side::Blue, 1.0, 1.0), (Side::Red, 1.0, 0.0)] {
         let mut values = Vec::new();
         let patch = sim::publication::GroundHeader {
             epoch: 0,
@@ -398,7 +434,7 @@ fn packed_match_header_exposes_only_the_observed_wallet_and_pending_count() {
                 .position(|f| f.as_str() == Some(name))
                 .expect("match header field")]
         };
-        assert_eq!(read("credits"), credits);
+        assert_eq!(read("playersCount"), players);
         assert_eq!(read("pendingCount"), pending);
         assert_eq!(read("skirmishPhase"), 0.0);
     }
@@ -1373,8 +1409,9 @@ fn a_waiting_aircraft_leaves_the_queue_and_waits_on_its_own_clock() {
     let cards: Vec<f64> = published
         .skirmish
         .unwrap()
-        .pending
+        .players
         .iter()
+        .flat_map(|player| player.pending.iter())
         .filter(|p| &*p.kind == "test_jet")
         .map(|p| p.arrival_tick)
         .collect();
