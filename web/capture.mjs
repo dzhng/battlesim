@@ -94,13 +94,11 @@ Options:
   --webm             Output WebM instead of MP4 (skip ffmpeg transcoding)
   --output=<path>    Output directory (default throwaway/capture/)
   --scene=<name>     Scene to capture: menu (default) or skirmish
-  --deterministic    Use virtual clock for exact frame timing (no stutter)
-  --realtime         Use real-time capture (default, may have stutter)
   --keep-raw         Keep raw audio, calibration frames, and detailed frames.json
+  --deterministic    [EXPERIMENTAL] Virtual clock capture (may timeout, follow-up)
 
 Examples:
   bun run --cwd web capture
-  bun run --cwd web capture --deterministic  # Perfect 60fps, no stutter
   bun run --cwd web capture --preset=ground-level
   bun run --cwd web capture --width=3840 --height=2160 --preset=orbit
   bun run --cwd web capture --scene=skirmish
