@@ -20,8 +20,8 @@ mod sweep;
 
 pub use release::{release, Release};
 pub use solve::{
-    fire_round, predicted_path, scatter_aim, solve_fire, solve_launch_past, Aim, ArcKind,
-    FiringSolution, NoSolution,
+    fire_round, predicted_path, scatter_aim, solve_fire, solve_launch_past, timed_path, Aim,
+    ArcKind, FiringSolution, NoSolution,
 };
 
 use contract::ballistics::{Delivery, FlightRules, GuidedRules, Trajectory, WeaponBallistics};
