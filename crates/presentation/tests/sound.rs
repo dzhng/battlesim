@@ -200,48 +200,50 @@ fn same(actual: &Value, wanted: &Value, at: &str) {
     }
 }
 
+/// Run with `UPDATE_SOUND_VECTORS=1 cargo test -p presentation every_command`
+/// to regenerate the fixture after intentional audio configuration changes.
 #[test]
 fn every_command_equals_the_recorded_ones() {
-    let v: Value = serde_json::from_str(
-        &std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tests/fixtures/sound-vectors.json"
-        ))
-        .unwrap(),
-    )
-    .unwrap();
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/sound-vectors.json"
+    );
+    let mut v: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let update = std::env::var_os("UPDATE_SOUND_VECTORS").is_some();
     let mut s = sound();
     s.set_durations(serde_json::from_value(v["durations"].clone()).unwrap())
         .unwrap();
     let mut commands = 0;
-    for (i, step) in v["steps"].as_array().unwrap().iter().enumerate() {
-        let got: &[Command] = if let Some(note) = step.get("note") {
+    let steps = v["steps"].as_array_mut().unwrap();
+    for (i, step) in steps.iter_mut().enumerate() {
+        let got: Vec<Command> = if let Some(note) = step.get("note") {
             let scripted: Scripted = serde_json::from_value(note.clone()).unwrap();
             let launches = scripted.launches();
-            let got = s
-                .note(&scripted.heard(&launches), step["now"].as_f64().unwrap())
-                .to_vec();
-            same(
-                &serde_json::to_value(&got).unwrap(),
-                &step["commands"],
-                &format!("step {i}"),
-            );
-            commands += got.len();
-            continue;
+            s.note(&scripted.heard(&launches), step["now"].as_f64().unwrap())
+                .to_vec()
         } else {
             let u = &step["update"];
             let motion: Motion = serde_json::from_value(u["motion"].clone()).unwrap();
             let listener: Listener = serde_json::from_value(u["listener"].clone()).unwrap();
             let f = |k: &str| u[k].as_f64().unwrap();
             s.update(f("clock"), f("wall"), f("now"), &motion, listener)
+                .to_vec()
         };
-        // The browser's sink took a listener of [x, y, z] arrays.
-        same(
-            &serde_json::to_value(got).unwrap(),
-            &step["commands"],
-            &format!("step {i}"),
-        );
+        if update {
+            step["commands"] = serde_json::to_value(&got).unwrap();
+        } else {
+            same(
+                &serde_json::to_value(&got).unwrap(),
+                &step["commands"],
+                &format!("step {i}"),
+            );
+        }
         commands += got.len();
+    }
+    if update {
+        v["stats"] = serde_json::to_value(s.stats()).unwrap();
+        std::fs::write(path, serde_json::to_string(&v).unwrap()).unwrap();
+        panic!("fixture updated; rerun without UPDATE_SOUND_VECTORS");
     }
     assert!(commands > 3000, "{commands} commands compared");
     let stats = serde_json::to_value(s.stats()).unwrap();

@@ -34,9 +34,13 @@
 //!
 //! Voices: a budget with loops capped apart; each voice's priority is its
 //! level at the listener, so a louder new sound takes the quietest voice's
-//! place and a quieter one is dropped. The player only carries out the
-//! [`Command`]s: it starts, glides and stops voices, and places them by
-//! direction (distance is decided here).
+//! place and a quieter one is dropped. A sound loud at the listener (a near
+//! cannon, a blast) dips the ambience bus, which recovers once the dip is
+//! reached ([`Command::Duck`], `presentation.audio.ambience`), so the bed
+//! makes room for it as a film mix does; distant fire never reaches it.
+//!
+//! The player only carries out the [`Command`]s: it starts, glides and
+//! stops voices, and places them by direction (distance is decided here).
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
@@ -274,9 +278,23 @@ pub enum Command {
     /// then free it.
     #[serde(rename = "music_stop")]
     MusicStop { at: f64, fade: f64 },
-    /// Dip the music bus by `depth` (0 restores it) from `at`, gliding there
-    /// with time constant `glide` seconds.
-    Duck { at: f64, depth: f64, glide: f64 },
+    /// Dip `bus` by `depth`, a share of its level (0 restores it), from
+    /// `at`, gliding there with time constant `glide` seconds.
+    Duck {
+        at: f64,
+        bus: Ducked,
+        depth: f64,
+        glide: f64,
+    },
+}
+
+/// A bus a [`Command::Duck`] dips: the score's under a voice line
+/// ([`super::music`]), or the ambience under a loud sound.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Ducked {
+    Music,
+    Ambience,
 }
 
 #[derive(Clone, Copy, Debug, Default, Serialize)]
@@ -540,6 +558,8 @@ pub struct Sound {
     /// HighAir ids currently present; the transition from empty to non-empty
     /// is one air-alarm episode for this side.
     high_air: BTreeSet<u64>,
+    /// While the ambience is dipped: the player time its recovery starts.
+    ambience_dipped: Option<f64>,
 }
 
 /// Where a flying round's stretch ends, as a loop's key.
@@ -677,6 +697,7 @@ impl Sound {
             stats: Stats::default(),
             out: Vec::new(),
             high_air: BTreeSet::new(),
+            ambience_dipped: None,
         }
     }
 
@@ -768,6 +789,7 @@ impl Sound {
     }
 
     fn clear(&mut self, now: f64) {
+        self.recover_ambience(now, true);
         for v in self
             .transients
             .iter()
@@ -1220,6 +1242,7 @@ impl Sound {
         }
         self.held = held;
         self.transients.retain(|v| v.end > now);
+        self.recover_ambience(now, held);
         if held {
             return &self.out; // loops hold as they are
         }
@@ -1227,6 +1250,44 @@ impl Sound {
         self.flush(clock, now);
         self.update_loops(clock, now, motion, step);
         &self.out
+    }
+
+    /// Dips the ambience under a sound starting at `at`, `level` loud at
+    /// the listener on `bus`, if it is loud enough; a dip under way is held
+    /// until this one is reached too. A sound never dips its own bus.
+    fn duck_ambience(&mut self, at: f64, level: f64, bus: Bus) {
+        let a = &self.tables.audio.ambience;
+        if bus == Bus::Ambience || level < a.duck_over {
+            return;
+        }
+        let recover = at + a.duck.attack_s;
+        if self.ambience_dipped.is_none() {
+            self.out.push(Command::Duck {
+                at,
+                bus: Ducked::Ambience,
+                depth: a.duck.depth.clamp(0.0, 1.0),
+                glide: a.duck.attack_s,
+            });
+        }
+        self.ambience_dipped = Some(self.ambience_dipped.map_or(recover, |t| t.max(recover)));
+    }
+
+    /// Lets a dipped ambience recover from `now` once its dip is reached, or
+    /// at once when `now_anyway` (a hold, a new battle).
+    fn recover_ambience(&mut self, now: f64, now_anyway: bool) {
+        let Some(t) = self.ambience_dipped else {
+            return;
+        };
+        if now < t && !now_anyway {
+            return;
+        }
+        self.ambience_dipped = None;
+        self.out.push(Command::Duck {
+            at: now,
+            bus: Ducked::Ambience,
+            depth: 0.0,
+            glide: self.tables.audio.ambience.duck.release_s,
+        });
     }
 
     /// A footstep each `stride_m` a soldier walks; a jump past `max_step_m`
@@ -1330,6 +1391,7 @@ impl Sound {
                 .map_or(e.far_share, |p| self.far_share(p));
             let air = self.tables.audio.air;
             let end = at + self.duration(&sound, e.variant) / e.rate;
+            self.duck_ambience(at, priority, e.bus);
             self.out.push(Command::Start {
                 id,
                 voice: Voice {

@@ -31,6 +31,8 @@ whether the browser moves onto native's Rust `wgpu` renderer, so the game has on
 renderer instead of two. [Native gaps](native-gaps/README.md) is a placeholder
 for the known limitations native shipped with.
 
+[Capture](done/capture/README.md) (shipped) turns a JSON capture file (camera and scenes over saved encounters) into MP4s for marketing videos, through the same scene player the main-menu backdrop uses.
+
 [Performance](performance/README.md) is a placeholder for measured, deferred
 optimizations (GPU memory, model packing, loading), kept until a player-visible
 problem calls for one.

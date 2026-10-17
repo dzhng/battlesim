@@ -174,7 +174,7 @@ function validateRosterAssignments(catalog: VoiceCatalog, roster: unknown) {
   for (const [unit, raw] of Object.entries(roster as Record<string, unknown>)) {
     const row = own(raw);
     const roles = Array.isArray(row.roles) ? row.roles : [];
-    if (unit.startsWith("test_") || unit.startsWith("menu_") || roles.length === 0) continue;
+    if (unit.startsWith("test_") || unit.startsWith("capture_") || roles.length === 0) continue;
     const assignment = catalog.assignments[unit];
     if (!assignment) throw new Error(`playable unit ${unit}: no voice assignment`);
     const factions = own(row.roster).factions;
@@ -199,7 +199,7 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
   return catalog;
 }
 /** The set a unit type speaks with when `faction` fields it: its assignment, by
- *  faction for a shared row; null for a unit with none (test and menu rows). */
+ *  faction for a shared row; null for a unit with none (test and capture rows). */
 export function assignedSet(
   assignments: VoiceCatalog["assignments"],
   unit: string,

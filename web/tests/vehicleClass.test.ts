@@ -19,7 +19,7 @@ test("the view carries each type's class: a vehicle's from its physics, none for
 test("every ground vehicle class the game fields has its own engine sound and track gauge", async () => {
   const gauges = game.presentation.pose.gauge as Record<string, number>;
   const classes = new Set<string>();
-  for (const set of ["game", "menu", "test"] as const)
+  for (const set of ["game", "capture", "test"] as const)
     for (const unit of (await nodeCatalogSet(set)).units.view.units)
       if (unit.vehicle_class && !unit.vehicle_class.includes("air"))
         classes.add(unit.vehicle_class);

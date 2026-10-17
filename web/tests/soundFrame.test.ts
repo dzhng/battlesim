@@ -76,6 +76,10 @@ class FakeSink implements VoiceSink {
     this.voices.delete(id);
   }
   listen() {}
+  readonly ducks: { depth: number; glide: number; at: number }[] = [];
+  duck(depth: number, glide: number, at: number) {
+    this.ducks.push({ depth, glide, at });
+  }
   /** Voices sounding now. */
   live(loop?: boolean) {
     return [...this.voices.values()].filter(
@@ -93,12 +97,12 @@ const BASELINES: SoundCatalog["sounds"] = Object.fromEntries(
   ]),
 );
 
-function setup() {
+function setup(presentation: AudioPresentation = AUDIO) {
   const sink = new FakeSink();
   const frame = new SoundFrame(
     {
       tickHz: HZ,
-      presentation: AUDIO,
+      presentation,
       catalog: {
         sources: {},
         clips: {},
@@ -437,6 +441,32 @@ test("the side's own shot at the farthest zoom sounds at the floor at least, and
   }
 });
 
+test("a shot loud at the listener dips the ambience, which recovers once dipped; a quiet one never does", () => {
+  const duck = { depth: 0.5, attack_s: 0.05, release_s: 1 };
+  // Only a shot this loud at the listener dips the bed: a near tank gun is,
+  // a rifle never (its whole gain is below it).
+  const { sink, frame } = setup({
+    ...AUDIO,
+    ambience: { ...AUDIO.ambience, duck, duck_over: AUDIO.shots.rifle.gain * 2 },
+  });
+  const at = [LISTENER.position[0], LISTENER.position[1] + 5, 1];
+  const fire = (kind: string) => (tick: number) => ({
+    tick,
+    launches: tick % 30 === 1 ? [launch(1, null, at, kind)] : [],
+    segments: [],
+    blasts: [],
+    smokes: [],
+  });
+  run(frame, sink, 1, 60, fire("rifle"));
+  expect(sink.ducks).toEqual([]);
+  run(frame, sink, 61, 120, fire("tank_ap"));
+  expect(sink.ducks).toHaveLength(4);
+  const [dip, recover] = sink.ducks;
+  expect(dip).toMatchObject({ depth: duck.depth, glide: duck.attack_s });
+  expect(recover).toMatchObject({ depth: 0, glide: duck.release_s });
+  expect(recover.at).toBeGreaterThanOrEqual(dip.at + duck.attack_s - 1e-9);
+});
+
 test("weapon row choices change reports without changing observed cadence or hidden cues", () => {
   const catalog = {
     sources: {},
@@ -700,14 +730,15 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
   const missile = strike("atgm", true);
   expect(missile.map((v) => v.sound).sort()).toEqual(["armour-shell-hit", "recorded-explosion"]);
   expect(new Set(missile.map((v) => v.at)).size).toBe(1);
-  // The same armour, struck at the same place: a shell lands 2.5 times harder than a rifle round.
+  // The same armour, struck at the same place: a shell lands harder than a rifle round, by their scales.
   const [shell] = strike("tank_ap", false);
   const [bullet] = strike("rifle", false);
   expect(shell.sound).toBe("armour-shell-hit");
   expect(bullet.sound).toBe("armour-rifle-hit");
   expect(shell.gain / bullet.gain).toBeCloseTo(
-    AUDIO.impact_scale.tank_ap / AUDIO.impact_scale.default,
+    AUDIO.impact_scale.tank_ap / AUDIO.impact_scale.rifle,
   );
+  expect(shell.gain).toBeGreaterThan(bullet.gain);
 });
 
 test("a cook-off booms as its ammunition goes and clangs where its turret lands", () => {

@@ -6,8 +6,8 @@
 //   committed, as `fixtures/catalog.json`.
 // - test: the game's plus the test units tests, labs, scenes and art checks
 //   run (`fixtures/units/test`, `test_*`, never game content).
-// - menu: the game's plus the test units and the menu reel's own units
-//   (`fixtures/units/menu`), which extend them.
+// - capture: the game's plus the test units and the capture reel's own units
+//   (`fixtures/units/capture`), which extend them.
 //
 // The browser factory (`sets.ts`) and the Node one (`node.ts`) read the
 // files their own way and compose them here. Relative imports only: the
@@ -18,16 +18,16 @@ import {
   type WeaponRow,
 } from "../../../../packages/scene-assets/src/units.ts";
 
-export type CatalogSetName = "game" | "test" | "menu";
+export type CatalogSetName = "game" | "test" | "capture";
 
 /** Each set's own folders under `fixtures/`, beyond the game's: the folders
  *  `sim::fixtures::CatalogSet` reads natively (the browser's `sets.ts` globs
- *  them by literal path). The menu's units extend the test units, so the
- *  menu set holds both. */
+ *  them by literal path). The capture set's units extend the test units, so the
+ *  capture set holds both. */
 export const SET_FOLDERS: Record<CatalogSetName, readonly string[]> = {
   game: [],
   test: ["units/test"],
-  menu: ["units/test", "units/menu"],
+  capture: ["units/test", "units/capture"],
 };
 
 /** Whether the catalog document at `path` (from the repository root) is the

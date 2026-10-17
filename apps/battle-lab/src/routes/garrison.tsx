@@ -82,13 +82,6 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
   }),
 };
 
-/** The tick of the encounter's scripted order of `kind`. */
-function scriptTick(battle: SavedBattle, kind: Order["kind"]): number {
-  const script = battle.encounter.scripts.find((s) => s.order.kind === kind);
-  if (!script) throw new Error(`the garrison encounter scripts no ${kind} order`);
-  return script.tick;
-}
-
 export default function Garrison() {
   if (new URLSearchParams(window.location.search).has("cursor")) return <CursorOrders />;
   return <GarrisonEncounter />;
@@ -152,10 +145,6 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
   const diagnostics = {
     ...session.probes,
     demo: (name: string) => runDemo(name),
-    /** The tick red's squad starts its walk up to spot the occupants. */
-    spotterWalksUp: scriptTick(battle, "move"),
-    /** The tick red's tank switches to fire at will: after every entry. */
-    tankOpensFire: scriptTick(battle, "set_engagement"),
   };
 
   if (!meshes) return null;

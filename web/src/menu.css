@@ -66,6 +66,17 @@
   position: absolute;
   inset: 0;
 }
+/* The capture route's stage: the battle in full colour under the renderer's
+   own grade, filling the viewport, and its cuts dipping to black as a film's
+   do, not to the menu's ground. */
+.capture-stage,
+.capture-stage-picture {
+  position: fixed;
+  inset: 0;
+}
+.capture-stage .menu-backdrop-veil {
+  background: #000;
+}
 /* With room beside it, the plate stands at the left and the battle plays
    across the rest of the screen. */
 @media (min-width: 1100px) {

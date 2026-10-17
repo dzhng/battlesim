@@ -10,7 +10,7 @@ import { MusicPlayer } from "./music/musicPlayer";
 import type { VoiceRequest } from "./voices/chatter";
 
 /** The menu's countryside bed, under its music (the catalog's `menu` mood). */
-export const MENU_AMBIENCE = { sound: "countryside", gain: 0.08 } as const;
+export const MENU_AMBIENCE = { sound: "countryside", gain: 0.02 } as const;
 export const MENU_CUES = {
   hover: { sound: "recorded-clack-14", gain: 0.12 },
   click: { sound: "recorded-clack-17", gain: 0.3 },
@@ -29,6 +29,8 @@ export class AppAudio {
   /** The running battle's score, from its first drawn update. */
   private score: BattleMusic | null = null;
   private battle: BattleAudio | null = null;
+  /** The battle's seed, which its score shuffles by. */
+  private scoreSeed = 0;
   private screen: AudioScreen = "other";
   private menuReady = false;
   private menuPreparing = false;
@@ -164,8 +166,11 @@ export class AppAudio {
     });
   }
 
-  createBattle(options: Omit<SoundFrameOptions, "catalog">) {
+  /** A battle's sound; its score shuffles by `seed`, the battle's own, so a
+   *  replayed battle (a capture's scene) plays the same score. */
+  createBattle(options: Omit<SoundFrameOptions, "catalog">, seed: number) {
     this.battle?.dispose();
+    this.scoreSeed = seed;
     const battle = new BattleAudio({ ...options, catalog: this.options.catalog }, this);
     this.battle = battle;
     this.combatStarted = false;
@@ -183,9 +188,8 @@ export class AppAudio {
       this.syncMenu();
       const { music } = this.options.presentation;
       const { tension, combat } = this.options.catalog.music.moods;
-      // Each battle's score shuffles by its own seed, drawn by the page.
       this.score = this.music
-        ? new BattleMusic(music, { tension, combat }, this.music, Math.random() * 2 ** 32)
+        ? new BattleMusic(music, { tension, combat }, this.music, this.scoreSeed)
         : null;
     }
     this.score?.update(this.context.currentTime, barks, speaking);

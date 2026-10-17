@@ -24,7 +24,7 @@ export async function renderSettled(ui: ReactNode, options?: RenderOptions): Pro
   let view!: RenderResult;
   await act(async () => {
     view = renderView(ui, options);
-    await Promise.allSettled([catalogSet("game"), catalogSet("test"), catalogSet("menu")]);
+    await Promise.allSettled([catalogSet("game"), catalogSet("test"), catalogSet("capture")]);
   });
   return view;
 }

@@ -76,8 +76,8 @@ export async function run(ctx) {
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
   await snapshot(ctx, page, "vehicle-families.png");
-  // Hovering a family opens its variants' info cards standing on its card,
-  // 3 px above it, over the picker; clicking the card would buy at once.
+  // Hovering a family opens its variants' info cards over the picker;
+  // clicking the card would buy at once.
   const abrams = page.getByRole("button", { name: "M1 Abrams", exact: true });
   await abrams.hover();
   await snapshot(ctx, page, "abrams-variants.png");

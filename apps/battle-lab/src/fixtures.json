@@ -1,11 +1,20 @@
 [
   {
+    "id": "capture",
+    "route": "/labs/capture",
+    "describe": "Films one scene of a capture file (fixtures/captures/<name>.json) for the capture CLI: ?capture=<name>&scene=<i>&cards=0|1, and record=1 to record the stage with tab capture.",
+    "map": null,
+    "tool": true,
+    "catalog": "capture",
+    "loading": false
+  },
+  {
     "id": "graphics-test",
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
     "map": null,
     "timeout_s": 300,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "native-parity-capture",
@@ -15,7 +24,7 @@
     "timeout_s": 600,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "graphics-fps",
@@ -26,7 +35,7 @@
     "timeout_s": 900,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "cursor",

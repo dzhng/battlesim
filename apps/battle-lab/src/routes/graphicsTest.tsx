@@ -5,7 +5,7 @@ import { MENU_REEL_WORKLOAD } from "@web/battle/benchmark/menuReel";
 import type { FrameCount, PresentationLayer } from "@web/battle/benchmark/visualPresentation";
 import { listMaps } from "@web/maps/catalogue";
 import game from "@fixtures/game.json";
-import { filmCamera, validateBackdrop, type BackdropScene } from "../menuReel";
+import { filmCamera, validateCapture, type CaptureScene } from "../capture/capture";
 import { savedBattle } from "../savedMaps";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useBattleSession } from "../useBattleSession";
@@ -19,7 +19,7 @@ import { createReelReport, type ReelReport } from "../benchmark/reelReport";
 import { FrameChart } from "../benchmark/FrameChart";
 import { graphicsProfiles, type GraphicsTier } from "../graphicsSettings";
 
-const scenes = validateBackdrop(MENU_REEL_WORKLOAD, listMaps()).scenes;
+const scenes = validateCapture({ scenes: MENU_REEL_WORKLOAD.scenes }, listMaps()).scenes;
 // The rig films every scene's closest framing, however few scenes run.
 const cameraConfig = filmCamera(
   gameCamera.config,
@@ -43,13 +43,13 @@ const REEL_LAYERS: readonly PresentationLayer[] = [
 
 /** The scenes `?scenes=<map,…>` names, in that order (every scene without
  *  it), or the refusal naming a map the reel does not film. */
-function chooseScenes(names: string | null): readonly BackdropScene[] | string {
+function chooseScenes(names: string | null): readonly CaptureScene[] | string {
   if (names === null) return scenes;
   const chosen = names.split(",").map((name) => scenes.find((s) => s.map === name) ?? name);
   const unknown = chosen.filter((s) => typeof s === "string");
   if (unknown.length > 0 || chosen.length === 0)
     return `The graphics test films ${scenes.map((s) => s.map).join(", ")}; not ${unknown.join(", ")}.`;
-  return chosen as BackdropScene[];
+  return chosen as CaptureScene[];
 }
 
 /** The page's state for scripted runs. */
@@ -205,7 +205,7 @@ function ReelScene({
   onDone,
   onFailure,
 }: {
-  scene: BackdropScene;
+  scene: CaptureScene;
   plates: boolean;
   counts: boolean;
   fog: boolean;
@@ -245,7 +245,7 @@ function ReelBattle({
   quality,
   onDone,
 }: {
-  scene: BackdropScene;
+  scene: CaptureScene;
   scenario: string;
   plates: boolean;
   /** Count what chosen frames drew (`createReelRun`'s `counts`). */

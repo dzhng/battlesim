@@ -28,7 +28,7 @@ const capture: PresentationCapture = {
     id: "menu-reel",
     fingerprint: "deadbeef",
     scene: "market-town",
-    map: "menu",
+    map: "capture",
     encounter: "menu",
     seed: 1,
   },

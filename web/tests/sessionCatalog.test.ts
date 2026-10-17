@@ -178,9 +178,9 @@ test("a page and a native tool resolve each set to the same units", async () => 
   // The browser globs each set's folders by literal path; the native reader
   // walks `SET_FOLDERS`. A folder one names and the other misses would field
   // a unit in one and refuse it in the other.
-  for (const set of ["test", "menu"] as const) {
+  for (const set of ["test", "capture"] as const) {
     const [page, tool] = await Promise.all([resolveCatalogSet(set), nodeCatalogSet(set)]);
     expect([...page.units.ids].sort()).toEqual([...tool.units.ids].sort());
-    expect(page.units.ids).toContain(set === "menu" ? "menu_us_tank" : "test_tank");
+    expect(page.units.ids).toContain(set === "capture" ? "capture_us_tank" : "test_tank");
   }
 });

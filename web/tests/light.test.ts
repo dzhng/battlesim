@@ -112,3 +112,8 @@ test("a cloud field past full is refused by name", () => {
     ),
   ).toThrow(/sky\.clouds\.coverage/);
 });
+
+test("the grade's switch is a boolean the validation accepts either way", () => {
+  expect(validateLight(withLight((l) => (l.grade.enabled = false)))).toBeTruthy();
+  expect(validateLight(withLight((l) => (l.grade.enabled = true)))).toBeTruthy();
+});
