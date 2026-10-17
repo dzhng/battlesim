@@ -213,6 +213,8 @@ pub enum UnitOrder {
         squads: Vec<UnitId>,
         gesture: u64,
     },
+    /// Unload passengers from the carrier at its current position.
+    Unload,
 }
 
 impl UnitOrder {
@@ -753,6 +755,9 @@ impl Unit {
                         d.u64(squad.0 as u64);
                     }
                 }
+                UnitOrder::Unload => {
+                    d.u64(7);
+                }
             }
         }
         d.opt_v2(self.pursuit.map(|p| p.to));
@@ -919,7 +924,10 @@ impl Unit {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
             UnitOrder::Garrison { approach, .. } => Some((*approach, RoutePolicy::Shortest)),
-            UnitOrder::Exit | UnitOrder::Board { .. } | UnitOrder::Collect { .. } => None,
+            UnitOrder::Exit
+            | UnitOrder::Board { .. }
+            | UnitOrder::Collect { .. }
+            | UnitOrder::Unload => None,
         }
     }
 

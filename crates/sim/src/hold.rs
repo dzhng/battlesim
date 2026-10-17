@@ -1,5 +1,7 @@
 //! A unit's host and stationary hold state.
 
+use std::collections::BTreeSet;
+
 use crate::garrison::Garrison;
 use crate::units::{Unit, UnitOrder};
 use crate::world::PropId;
@@ -116,6 +118,7 @@ pub(crate) fn advance(
     seed: u64,
     refusals: &mut [Vec<contract::command::Refusal>; 3],
 ) {
+    let mut unload_checked = BTreeSet::new();
     for i in 0..units.len() {
         if !units[i].alive() {
             continue;
@@ -171,6 +174,9 @@ pub(crate) fn advance(
                     units[i].orders.front(),
                     Some(UnitOrder::Board { carrier: target, .. }) if *target == carrier
                 );
+                let unloading = units
+                    .get(carrier.0 as usize)
+                    .is_some_and(|host| matches!(host.orders.front(), Some(UnitOrder::Unload)));
                 if matches!(phase, Phase::Entering(_))
                     && (!order_matches
                         || !crate::carriage::near_and_still(units, i, carrier, rules))
@@ -208,7 +214,45 @@ pub(crate) fn advance(
                             });
                         }
                     }
-                    Phase::Inside | Phase::Exiting(_) => {}
+                    Phase::Inside if unloading => {
+                        units[i].hold.as_mut().expect("carrier hold").phase = Phase::Exiting(1);
+                    }
+                    Phase::Inside => {}
+                    Phase::Exiting(_) if !unloading => {
+                        units[i].hold.as_mut().expect("carrier hold").phase = Phase::Inside;
+                    }
+                    Phase::Exiting(n) if n < timer => {
+                        units[i].hold.as_mut().expect("carrier hold").phase = Phase::Exiting(n + 1);
+                    }
+                    Phase::Exiting(_) => {
+                        if !unload_checked.insert(carrier) {
+                            continue;
+                        }
+                        let unloaded =
+                            crate::carriage::complete_unload(world, units, carrier, rules);
+                        let carrier_orders = units
+                            .get_mut(carrier.0 as usize)
+                            .map(|host| &mut host.orders);
+                        if let Some(orders) = carrier_orders {
+                            if matches!(orders.front(), Some(UnitOrder::Unload)) {
+                                orders.pop_front();
+                            }
+                        }
+                        if !unloaded {
+                            for passenger in units.iter_mut().filter(|unit| {
+                                unit.hold
+                                    .as_ref()
+                                    .is_some_and(|hold| hold.host == Host::Carrier(carrier))
+                            }) {
+                                passenger.hold.as_mut().expect("carrier hold").phase =
+                                    Phase::Inside;
+                            }
+                            refusals[units[i].side.index()].push(contract::command::Refusal {
+                                unit: carrier,
+                                reason: contract::command::OrderError::NoRoomToUnload,
+                            });
+                        }
+                    }
                 }
             }
             Host::Building(building) => {

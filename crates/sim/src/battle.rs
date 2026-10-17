@@ -914,10 +914,11 @@ impl Battle {
     }
 
     fn retire_withdrawals(&mut self) {
-        let Some(skirmish) = &mut self.skirmish else {
+        let Some(mut skirmish) = self.skirmish.take() else {
             return;
         };
-        for unit in &mut self.units {
+        let mut retiring = Vec::new();
+        for (index, unit) in self.units.iter().enumerate() {
             if !unit.alive() || !unit.withdrawing {
                 continue;
             }
@@ -955,7 +956,36 @@ impl Battle {
             {
                 continue;
             }
-            let entered = &skirmish.entered[&unit.id];
+            retiring.push(index);
+        }
+        let carriers: Vec<UnitId> = retiring
+            .iter()
+            .map(|&index| self.units[index].id)
+            .filter(|&carrier| {
+                self.units[carrier.0 as usize]
+                    .unit_type(&self.rules)
+                    .capabilities
+                    .carriage
+                    .is_some()
+            })
+            .collect();
+        for carrier in carriers {
+            retiring.extend(self.units.iter().enumerate().filter_map(|(index, unit)| {
+                (unit.alive()
+                    && unit
+                        .hold
+                        .as_ref()
+                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(carrier)))
+                .then_some(index)
+            }));
+        }
+        retiring.sort_unstable();
+        retiring.dedup();
+        for index in retiring {
+            let unit = &mut self.units[index];
+            let Some(entered) = skirmish.entered.get(&unit.id) else {
+                continue;
+            };
             let (health, ammo) = crate::withdrawal::condition(unit, &self.rules, &self.arsenal);
             let fuel = crate::withdrawal::fuel(unit, &self.rules);
             let age = self.tick.saturating_sub(entered.entered_tick) as f64
@@ -987,6 +1017,7 @@ impl Battle {
             unit.orders.clear();
             unit.route = None;
         }
+        self.skirmish = Some(skirmish);
     }
 
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
@@ -1718,6 +1749,24 @@ impl Battle {
                 }
                 units
             }
+            Order::Unload { units, goal, .. } => {
+                self.validate_command_units(command, units)?;
+                if let Some(goal) = goal {
+                    if self.world.height_at(goal[0], goal[1]).is_none() {
+                        return Err(OrderError::OutOfBounds);
+                    }
+                }
+                if units.iter().any(|id| {
+                    self.units[id.0 as usize]
+                        .unit_type(&self.rules)
+                        .capabilities
+                        .carriage
+                        .is_none()
+                }) {
+                    return Err(OrderError::NotACarrier);
+                }
+                units
+            }
             Order::Stop { units }
             | Order::OccupyBuilding { units, .. }
             | Order::SetAfterburner { units, .. }
@@ -1848,7 +1897,8 @@ impl Battle {
                 | Order::OccupyBuilding { units, .. }
                 | Order::ExitBuilding { units }
                 | Order::Board { units, .. }
-                | Order::Collect { units, .. } => units.retain(|id| {
+                | Order::Collect { units, .. }
+                | Order::Unload { units, .. } => units.retain(|id| {
                     self.units
                         .get(id.0 as usize)
                         .is_none_or(|u| u.side != script.side || u.alive())
@@ -2820,9 +2870,10 @@ impl Battle {
     }
 
     /// Hostile damage or suppression grants return fire; a destroyed vehicle
-    /// leaves a permanent wreck (M06, M07); a death a side was watching ends
-    /// its track, while an unseen death discloses nothing. The vehicle's own
-    /// side knows where it died, and a side that watched it die saw the wreck
+    /// leaves a permanent wreck (M06, M07) and carries its passenger deaths
+    /// into the same causal stream. A death a side was watching ends its
+    /// track, while an unseen death discloses nothing. The vehicle's own side
+    /// knows where it died, and a side that watched it die saw the wreck
     /// appear: both learn the wreck at once, so a vehicle never vanishes from
     /// the picture of a side that knew where it stood.
     fn consequences(&mut self, outcome: damage::Outcome) {
@@ -2830,14 +2881,6 @@ impl Battle {
             self.units[victim.0 as usize].attackers.insert(shooter);
         }
         let mut destroyed = outcome.destroyed;
-        for death in &destroyed {
-            // A kill bark is for an enemy; a friendly loss is not a kill.
-            if let Some(source) = death.source.filter(|s| {
-                self.units[s.unit.0 as usize].side != self.units[death.victim.0 as usize].side
-            }) {
-                self.shout_kills.insert(source.unit);
-            }
-        }
         // Structural damage in event order; a prop is destroyed once (L10, Q17).
         for hit in outcome.structural {
             if self.structures.damage(&self.world, hit.prop, hit.amount) {
@@ -2847,6 +2890,101 @@ impl Battle {
                         source: hit.source,
                     },
                 ));
+            }
+        }
+        let mut death_index = 0;
+        while death_index < destroyed.len() {
+            let death = destroyed[death_index];
+            death_index += 1;
+            let id = death.victim;
+            let unit = &self.units[id.0 as usize];
+            let own = unit.side;
+            // Each side that saw it die, with the id it knew it by.
+            let mut knowing = vec![(own, id.0)];
+            for side in Side::ALL.into_iter().filter(|&s| s != own) {
+                let knowledge = &mut self.knowledge[side.index()];
+                if knowledge.identifies(id, self.tick - 1) {
+                    let handle = knowledge.track(id).expect("an identified track").id;
+                    knowledge.saw_destroyed(id);
+                    knowing.push((side, handle.0));
+                }
+            }
+            // A downed aircraft falls first; its wreck lies where it lands.
+            if let Some(air) = unit.air {
+                self.crashes.push(crate::crash::Crash::new(
+                    id,
+                    unit.position,
+                    air.velocity.xy(),
+                    unit.yaw,
+                    death.source,
+                    knowing,
+                ));
+                continue;
+            }
+            let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
+            let hulls: Vec<Obb2> = self
+                .units
+                .iter()
+                .filter(|o| o.id != id && o.on_field())
+                .filter_map(|o| o.ground_footprint())
+                .collect();
+            let soldiers: Vec<V2> = self
+                .units
+                .iter()
+                .filter(|o| {
+                    o.id != id
+                        && !o
+                            .hold
+                            .as_ref()
+                            .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(id))
+                })
+                .flat_map(|o| o.member_positions().map(|p| p.xy()))
+                .collect();
+            let rest = crate::movement::drive::death_roll(
+                &self.world,
+                &self.rules,
+                unit,
+                &hulls,
+                &soldiers,
+            );
+            let unit_hull = unit.hull;
+            let ground_carrier = unit_hull.is_some() && unit.air.is_none();
+            let unit_yaw = unit.yaw;
+            let wreck_of = self.rules.catalog.id(unit.kind).to_string();
+            let unit_z = unit.position.z;
+            let wreck = match (unit_hull, wreck) {
+                (Some(half), Some(kind)) => Some(self.add_prop(&PropDefinition {
+                    kind,
+                    center: [rest.x, rest.y],
+                    yaw: unit_yaw,
+                    half_extents: [half.x, half.y, half.z],
+                    base_z: Some(unit_z),
+                    wreck_of: Some(wreck_of),
+                })),
+                _ => None,
+            };
+            if ground_carrier {
+                if let Some(wreck) = wreck {
+                    self.bail_out_carrier(id, rest, wreck, death.source, &mut destroyed);
+                }
+            }
+            if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
+                for (side, _) in knowing {
+                    self.sides[side.index()].learn(
+                        prop,
+                        self.authored_props,
+                        self.rules.pushing.relearn_m,
+                        true,
+                    );
+                }
+            }
+        }
+        for death in &destroyed {
+            // A kill bark is for an enemy; a friendly loss is not a kill.
+            if let Some(source) = death.source.filter(|s| {
+                self.units[s.unit.0 as usize].side != self.units[death.victim.0 as usize].side
+            }) {
+                self.shout_kills.insert(source.unit);
             }
         }
         if let Some(skirmish) = &mut self.skirmish {
@@ -2907,72 +3045,97 @@ impl Battle {
                 .settlement
                 .settle(&deaths, starting_budget, &mut skirmish.wallets);
         }
-        for death in destroyed {
-            let id = death.victim;
-            let unit = &self.units[id.0 as usize];
-            let own = unit.side;
-            // Each side that saw it die, with the id it knew it by.
-            let mut knowing = vec![(own, id.0)];
-            for side in Side::ALL.into_iter().filter(|&s| s != own) {
-                let knowledge = &mut self.knowledge[side.index()];
-                if knowledge.identifies(id, self.tick - 1) {
-                    let handle = knowledge.track(id).expect("an identified track").id;
-                    knowledge.saw_destroyed(id);
-                    knowing.push((side, handle.0));
-                }
+    }
+
+    /// A ground carrier's wreck is the escape origin. Passengers are kept out
+    /// of combat by `on_field` until this runs, so the killing burst cannot
+    /// spend damage rolls on them. The carrier hull is omitted from the
+    /// occupancy (its wreck is ignored) while every other body remains solid.
+    fn bail_out_carrier(
+        &mut self,
+        carrier: UnitId,
+        rest: V2,
+        wreck: PropId,
+        source: Option<damage::LethalSource>,
+        destroyed: &mut Vec<damage::UnitDeath>,
+    ) {
+        let passengers: Vec<usize> = self
+            .units
+            .iter()
+            .enumerate()
+            .filter(|(_, unit)| {
+                unit.alive()
+                    && unit
+                        .hold
+                        .as_ref()
+                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(carrier))
+            })
+            .map(|(index, _)| index)
+            .collect();
+        if passengers.is_empty() {
+            return;
+        }
+        let passenger_ids: BTreeSet<UnitId> =
+            passengers.iter().map(|&i| self.units[i].id).collect();
+        let hulls: Vec<Obb2> = self
+            .units
+            .iter()
+            .filter(|unit| unit.id != carrier && unit.on_field())
+            .filter_map(|unit| unit.ground_footprint())
+            .collect();
+        let mut soldiers: Vec<V2> = self
+            .units
+            .iter()
+            .filter(|unit| unit.id != carrier && !passenger_ids.contains(&unit.id))
+            .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
+            .collect();
+        let ignored_props = [wreck];
+        let rule = crate::bail_out::row(&self.rules, contract::scenario::BailOutHost::Ground);
+        for index in passengers {
+            for member in self.units[index]
+                .members
+                .iter_mut()
+                .filter(|member| member.alive())
+            {
+                member.position = v3(rest.x, rest.y, member.position.z);
             }
-            // A downed aircraft falls first; its wreck lies where it lands.
-            if let Some(air) = unit.air {
-                self.crashes.push(crate::crash::Crash::new(
-                    id,
-                    unit.position,
-                    air.velocity.xy(),
-                    unit.yaw,
-                    death.source,
-                    knowing,
-                ));
-                continue;
-            }
-            let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
-            let hulls: Vec<Obb2> = self
-                .units
-                .iter()
-                .filter(|o| o.id != id && o.on_field())
-                .filter_map(|o| o.ground_footprint())
-                .collect();
-            let soldiers: Vec<V2> = self
-                .units
-                .iter()
-                .filter(|o| o.id != id)
-                .flat_map(|o| o.member_positions().map(|p| p.xy()))
-                .collect();
-            let rest = crate::movement::drive::death_roll(
+            self.units[index].position = v3(rest.x, rest.y, self.units[index].position.z);
+            let host = self.units[index]
+                .hold
+                .as_ref()
+                .expect("carrier passenger hold")
+                .host;
+            let result = crate::bail_out::apply(
                 &self.world,
-                &self.rules,
-                unit,
-                &hulls,
-                &soldiers,
+                &mut self.units[index],
+                host,
+                rule,
+                self.seed,
+                self.tick,
+                crate::bail_out::Occupancy {
+                    radius: self.rules.physics.soldier_radius_m,
+                    hulls: &hulls,
+                    soldiers: &soldiers,
+                    ignored_props: &ignored_props,
+                },
             );
-            let wreck = match (unit.hull, wreck) {
-                (Some(half), Some(kind)) => Some(self.add_prop(&PropDefinition {
-                    kind,
-                    center: [rest.x, rest.y],
-                    yaw: unit.yaw,
-                    half_extents: [half.x, half.y, half.z],
-                    base_z: Some(unit.position.z),
-                    wreck_of: Some(self.rules.catalog.id(unit.kind).to_string()),
-                })),
-                _ => None,
-            };
-            if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
-                for (side, _) in knowing {
-                    self.sides[side.index()].learn(
-                        prop,
-                        self.authored_props,
-                        self.rules.pushing.relearn_m,
-                        true,
-                    );
-                }
+            let unit = &mut self.units[index];
+            unit.hold = None;
+            if matches!(unit.orders.front(), Some(UnitOrder::Board { .. })) {
+                unit.orders.pop_front();
+            }
+            if result.all_died() {
+                unit.orders.clear();
+                unit.route = None;
+                destroyed.push(damage::UnitDeath {
+                    victim: unit.id,
+                    source,
+                });
+            } else {
+                unit.settle();
+                unit.suppression = unit.suppression.max(self.rules.suppression.pinned.level);
+                unit.suppressed_at = self.tick;
+                soldiers.extend(unit.member_positions().map(|position| position.xy()));
             }
         }
     }
@@ -3654,6 +3817,28 @@ impl Battle {
                     destinations,
                 })
             }
+            Order::Unload {
+                units,
+                gesture,
+                goal: Some(goal),
+                route,
+            } => {
+                let (destinations, found) = self.place_move(
+                    command.side,
+                    &MovePreviewRequest {
+                        units: units.clone(),
+                        goal: *goal,
+                        route: *route,
+                        queued: command.queued,
+                        ..Default::default()
+                    },
+                )?;
+                stops = found;
+                Some(MovePlacement {
+                    gesture: *gesture,
+                    destinations,
+                })
+            }
             _ => None,
         };
         let mut refused = Vec::new();
@@ -3702,6 +3887,21 @@ impl Battle {
             *units = accepted;
             let _ = gesture;
         }
+        if let Order::Unload {
+            units, goal: None, ..
+        } = &command.order
+        {
+            for &unit in units {
+                if crate::carriage::unload_spots(&self.world, &self.units, unit, &self.rules)
+                    .is_none()
+                {
+                    refused.push(contract::command::Refusal {
+                        unit,
+                        reason: OrderError::NoRoomToUnload,
+                    });
+                }
+            }
+        }
         Ok(PreparedCommand {
             command,
             placement,
@@ -3735,6 +3935,7 @@ impl Battle {
             | Order::Garrison { units, .. }
             | Order::OccupyBuilding { units, .. }
             | Order::ExitBuilding { units }
+            | Order::Unload { units, .. }
             | Order::Refund { units } => Some(units),
             _ => None,
         };
@@ -3957,6 +4158,60 @@ impl Battle {
                             gesture,
                         },
                     );
+                }
+            }
+            Order::Unload {
+                units,
+                goal,
+                gesture,
+                route,
+            } => {
+                let refused: std::collections::BTreeSet<UnitId> = prepared
+                    .refused
+                    .iter()
+                    .filter(|refusal| refusal.reason == OrderError::NoRoomToUnload)
+                    .map(|refusal| refusal.unit)
+                    .collect();
+                for id in units {
+                    let unit = &mut movers[id.0 as usize];
+                    if refused.contains(&id) {
+                        Self::hold_position(unit);
+                        continue;
+                    }
+                    match goal {
+                        Some(_) => {
+                            let Some(placement) = prepared.placement.as_ref() else {
+                                continue;
+                            };
+                            let Some(destination) = placement
+                                .destinations
+                                .iter()
+                                .find(|slot| slot.unit == id && slot.placed)
+                                .map(|slot| v2(slot.goal[0], slot.goal[1]))
+                            else {
+                                if !queued {
+                                    Self::hold_position(unit);
+                                }
+                                continue;
+                            };
+                            push(
+                                unit,
+                                UnitOrder::Move(MoveOrder {
+                                    destination,
+                                    policy: route,
+                                    gesture,
+                                    direction: Default::default(),
+                                    facing: None,
+                                    short: prepared.stops.get(&id).cloned(),
+                                }),
+                            );
+                            unit.enqueue(UnitOrder::Unload, true);
+                        }
+                        None => {
+                            Self::hold_position(unit);
+                            unit.enqueue(UnitOrder::Unload, false);
+                        }
+                    }
                 }
             }
             Order::SetEngagement { units, policy } => {
