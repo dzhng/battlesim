@@ -155,3 +155,12 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **Riders inside a carrier don't block a skirmish entry site;** main's per-entry dispatch counts only units on the field.
 - **A retiring carrier still takes its passengers,** each refunded to its own buying player under main's per-player wallets.
 - **The capture re-record waits for slice 11b,** which changes the publication layout again, so the captures are recorded once.
+
+## Slice 09
+- **One rule decides whether a carrier can load or unload:** `carriage::at_loading_height`. A ground carrier always can; a helicopter can only when settled at low hover, meaning zero velocity and exactly at low-hover height. Boarding and the start of an unload both ask it.
+- **A Board order sent to a helicopter brings it down to low hover,** before any boarding timer exists. The timer needs the helicopter already low, so waiting for the timer would never start.
+- **A shot-down helicopter's passengers fall with it** (they follow `crash.position`) and bail out where it hits the ground, with the air row. Each squad gets its own `squad_loss` roll, seeded with that squad's id. A shared roll would kill or spare every squad aboard together. The ground row has no squad loss, so ground draws are unchanged.
+- **A helicopter that leaves the map with passengers kills them** (`DeathCause::LeftMap`, credited to the helicopter's killer). Their corpses stay off the map at the crash point. A retiring helicopter takes its passengers along, refunded.
+- **One `Battle::passengers_of(carrier)` lookup** replaces four copies.
+- **Test fixture:** `test_transport_heli` (16 seats). `test_heli` still carries no one.
+- **Risk:** boarding needs the exact low-hover height over the surface. Where a building or tree holds a helicopter higher, a Board order can wait forever with no refusal. The lab's helicopter variant will show whether this matters.
