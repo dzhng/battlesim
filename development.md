@@ -62,7 +62,7 @@ dragon's teeth are small heavy bodies that block vehicles, and a new obstacle is
 a prop catalog entry, not new code.
 
 A weapon's mechanisms (guidance, seekers, decoys, clear-launch checks,
-interceptability) are opt-in flags that compose. A radar contact's source
+interceptability, firing on its own) are opt-in flags that compose. A radar contact's source
 changes only its evidence, never who may fire at it.
 
 Roles and families group the roster and pick symbols and voices; they never
