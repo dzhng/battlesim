@@ -76,7 +76,9 @@ export interface ObservationLayout {
   coverTiers: string[];
   /** Which way a soldier leans out round his cover: left, right. */
   leanSides: string[];
-  garrisonPhases: string[];
+  hostKinds: string[];
+  holdPhases: string[];
+  orderErrors: string[];
   serviceStatuses: string[];
   /** Suppression tiers: none, suppressed, pinned. */
   suppressionTiers: SuppressionTier[];
@@ -149,7 +151,7 @@ export interface OwnUnitView {
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
   /** The squad's building while entering, inside or leaving it; null otherwise. */
-  garrison: GarrisonView | null;
+  hold: HoldView | null;
   /** A supply vehicle's remaining stock; null for other units. */
   stock: number | null;
   /** Why this unit is or is not being served by a supply vehicle. */
@@ -208,18 +210,22 @@ export interface SightView {
   range: number;
 }
 
-/** A squad's hold on a building: which one, the phase and its timer progress. */
-export interface GarrisonView {
-  /** The building's prop id in the static map. */
-  building: number;
+/** A unit's host while entering, inside or leaving it. */
+export type HoldHostView =
+  | { kind: "building"; id: number; center: Point2; half: Point2 }
+  | { kind: "carrier"; id: number };
+
+export interface HoldView {
+  host: HoldHostView;
   /** entering, inside or exiting. */
   phase: string;
   /** Entering or leaving progress in [0, 1]; 1 while inside. */
   progress: number;
-  /** The building's footprint on the ground: its centre and half extents in
-   *  its own frame (every corner lies `hypot(half)` from the centre). */
-  center: Point2;
-  half: Point2;
+}
+
+export interface RefusalView {
+  unit: number;
+  reason: string;
 }
 
 /** A deploying unit's one progress value and the end state it heads to. */
@@ -536,6 +542,7 @@ export interface ObservationView {
   identified: IdentifiedView[];
   contacts: ContactView[];
   audible: SoundCueView[];
+  refusals: RefusalView[];
   knownProps: readonly KnownPropView[];
   projectiles: ProjectileView[];
   blasts: BlastView[];

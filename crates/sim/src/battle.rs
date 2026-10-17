@@ -1403,6 +1403,7 @@ impl Battle {
             seq: command.seq,
             applied_tick,
             error,
+            refused: Vec::new(),
             placement,
             building,
         };
@@ -4380,6 +4381,9 @@ impl Battle {
                         > low_hover
             }));
             frame.audible.clone_from(&self.audible[side.index()]);
+            // Refusals are transient evidence for this completed tick. Later
+            // transport slices append per-unit failures before publication.
+            frame.refusals.clear();
             frame.shouts.clone_from(&own_shouts[side.index()]);
             for other in Side::ALL.into_iter().filter(|other| *other != side) {
                 frame.shouts.extend(shouts::heard(
@@ -4613,7 +4617,7 @@ impl Battle {
                             && u.attackers.is_empty(),
                         stock: u.stock,
                         service: u.service,
-                        garrison: garrison::state(&self.world, u, &self.rules),
+                        hold: garrison::state(&self.world, u, &self.rules),
                         sight: {
                             let s = sight::of(u, &self.rules);
                             UnitSight {

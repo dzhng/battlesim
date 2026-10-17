@@ -138,7 +138,7 @@ export function remainsLayer(
 /** Occupant pads of squads holding buildings. */
 export function garrisonLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
   return buildGarrisonOverlay(
-    o.own.flatMap((u) => (u.garrison ? [{ members: u.members, phase: u.garrison.phase }] : [])),
+    o.own.flatMap((u) => (u.hold ? [{ members: u.members, phase: u.hold.phase }] : [])),
     z,
   );
 }
@@ -185,7 +185,7 @@ export function orderView(
   selected: boolean,
   reveal = 0,
 ): OrderView {
-  const g = u.garrison;
+  const g = u.hold;
   return {
     ...u,
     // Its footprint sizes its marker: a hull's half length, 0 for a squad;
@@ -193,7 +193,10 @@ export function orderView(
     hullHalfLength: units.hull(u.kind)?.half_extents_m[0] ?? 0,
     fixedWing: fixedWing(units.type(u.kind)),
     airborne: airborne(units.type(u.kind)),
-    building: g && g.phase !== "entering" ? { center: g.center, half: g.half } : null,
+    building:
+      g?.host.kind === "building" && g.phase !== "entering"
+        ? { center: g.host.center, half: g.host.half }
+        : null,
     selected,
     reveal,
   };

@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use contract::command::{CommandEnvelope, Engagement, Order, OrderError, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
-use contract::observation::{ActionReason, GarrisonPhase, OwnUnit};
+use contract::observation::{ActionReason, HoldPhase, OwnUnit};
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId, Struck};
@@ -100,8 +100,8 @@ fn own(b: &Battle, side: Side, id: u32) -> Option<OwnUnit> {
         .cloned()
 }
 
-fn phase(b: &Battle, side: Side, id: u32) -> Option<GarrisonPhase> {
-    own(b, side, id)?.garrison.map(|g| g.phase)
+fn phase(b: &Battle, side: Side, id: u32) -> Option<HoldPhase> {
+    own(b, side, id)?.hold.map(|g| g.phase)
 }
 
 fn inside(b: &Battle, id: u32) -> bool {
@@ -213,7 +213,7 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
     // Leaving frees the building, once the squad is out.
     c.ok(&mut b, Side::Blue, exit(&[0]));
     run(&mut b, 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Exiting));
+    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Exiting));
     assert_eq!(
         c.send(&mut b, Side::Blue, garrison(&[1]), false),
         Some(OrderError::BuildingOccupied),
@@ -290,7 +290,7 @@ fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
     until(&mut b, 1200, "red inside", |b| inside(b, 1));
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1500, "blue entering", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     until(&mut b, 600, "blue's order lapsed", |b| {
         phase(b, Side::Blue, 0).is_none()
@@ -310,7 +310,7 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     let walk = until(&mut b, 1200, "entering", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     assert!(walk > 30, "it walked to the building first");
     let p = building(&b);
@@ -327,7 +327,7 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     for _ in 1..timer {
         b.step();
         let u = own(&b, Side::Blue, 0).unwrap();
-        assert_eq!(u.garrison.unwrap().phase, GarrisonPhase::Entering);
+        assert_eq!(u.hold.unwrap().phase, HoldPhase::Entering);
         assert_eq!(
             [u.position[0], u.position[1]],
             start,
@@ -340,10 +340,13 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     }
     b.step();
     let u = own(&b, Side::Blue, 0).unwrap();
-    let g = u.garrison.unwrap();
-    assert_eq!(g.phase, GarrisonPhase::Inside);
+    let g = u.hold.unwrap();
+    assert_eq!(g.phase, HoldPhase::Inside);
     assert_eq!(g.progress, 1.0);
-    assert_eq!((g.center, g.half), (CENTRE, HALF));
+    let contract::observation::HostRef::Building { center, half, .. } = g.host else {
+        panic!("garrison host is a building");
+    };
+    assert_eq!((center, half), (CENTRE, HALF));
     assert!(u.goal.is_none() && u.queue.is_empty());
 }
 
@@ -410,7 +413,7 @@ fn identified_occupants_publish_interior_bodies_while_exit_waits_inside() {
     c.ok(&mut b, Side::Blue, exit(&[0]));
     run(&mut b, 2);
     let own = own(&b, Side::Blue, 0).unwrap();
-    assert_eq!(own.garrison.unwrap().phase, GarrisonPhase::Exiting);
+    assert_eq!(own.hold.unwrap().phase, HoldPhase::Exiting);
     for at in &own.members {
         assert!(
             (outside_by(&p, v2(at[0], at[1])) + standoff).abs() < 1e-9,
@@ -1244,7 +1247,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
     // Stop while leaving keeps the squad inside.
     c.ok(&mut b, Side::Blue, exit(&[0]));
     run(&mut b, timer / 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Exiting));
+    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Exiting));
     c.ok(
         &mut b,
         Side::Blue,
@@ -1253,7 +1256,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
         },
     );
     run(&mut b, 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Inside));
+    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Inside));
     // A move order leaves first, after the whole timer, then walks on.
     let goal = [200.0, 300.0];
     c.ok(

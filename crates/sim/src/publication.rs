@@ -24,9 +24,10 @@ use contract::catalog::AltitudeLayer;
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
-    ActionReason, AirTransitDirection, ContactSource, EncounterResult, GarrisonPhase, Intensity,
-    LeanSide, MemberLean, MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus,
-    ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SuppressionTier, WeaponPose,
+    ActionReason, AirTransitDirection, ContactSource, EncounterResult, HoldPhase, HostRef,
+    Intensity, LeanSide, MemberLean, MoveState, ObservationFrame, Posture, SegmentHit,
+    ServiceStatus, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SuppressionTier,
+    WeaponPose,
 };
 use contract::scenario::CoverTier;
 
@@ -106,10 +107,39 @@ const SUPPRESSION_TIERS: [SuppressionTier; 3] = [
     SuppressionTier::Suppressed,
     SuppressionTier::Pinned,
 ];
-const GARRISON_PHASES: [GarrisonPhase; 3] = [
-    GarrisonPhase::Entering,
-    GarrisonPhase::Inside,
-    GarrisonPhase::Exiting,
+const HOLD_PHASES: [HoldPhase; 3] = [HoldPhase::Entering, HoldPhase::Inside, HoldPhase::Exiting];
+const HOST_KINDS: [&str; 2] = ["building", "carrier"];
+/// All refusal names are reserved in this first layout so later transport
+/// slices can publish their new reasons without another layout migration.
+const ORDER_ERROR_NAMES: [&str; 28] = [
+    "passive_side",
+    "not_skirmish",
+    "match_finished",
+    "unit_unavailable",
+    "wrong_faction",
+    "insufficient_credits",
+    "unit_limit_reached",
+    "out_of_sequence",
+    "no_units",
+    "unknown_unit",
+    "not_own_unit",
+    "wrong_slot",
+    "missing_slot",
+    "out_of_bounds",
+    "no_valid_destination",
+    "replay_in_progress",
+    "rate_limited",
+    "unknown_target",
+    "air_contact",
+    "destroyed",
+    "not_infantry",
+    "not_a_building",
+    "capacity_full",
+    "one_squad_per_building",
+    "building_occupied",
+    "not_a_carrier",
+    "no_room_to_unload",
+    "aboard",
 ];
 const REASONS: [ActionReason; 16] = [
     ActionReason::Firing,
@@ -168,12 +198,13 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 45] = [
+const HEADER: [&str; 46] = [
     "tick",
     "ownCount",
     "identifiedCount",
     "contactCount",
     "audibleCount",
+    "refusalCount",
     "knownPropCount",
     "projectileCount",
     "blastCount",
@@ -257,6 +288,7 @@ const CONTACT_FIELDS: [&str; 16] = [
     "rangeM",
 ];
 const AUDIBLE_FIELDS: [&str; 5] = ["listener", "category", "sector", "band", "moving"];
+const REFUSAL_FIELDS: [&str; 3] = ["unitLo", "unitHi", "reason"];
 const PROJECTILE_FIELDS: [&str; 10] = [
     "pointCount",
     "ricochetCount",
@@ -336,7 +368,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 53] = [
+const OWN_FIELDS: [&str; 54] = [
     "id",
     "kind",
     "x",
@@ -361,14 +393,15 @@ const OWN_FIELDS: [&str; 53] = [
     "concealed",
     "deployProgress",
     "deployTarget",
-    "garrisonBuildingLo",
-    "garrisonBuildingHi",
-    "garrisonPhase",
-    "garrisonProgress",
-    "garrisonX",
-    "garrisonY",
-    "garrisonHalfX",
-    "garrisonHalfY",
+    "hostKind",
+    "hostLo",
+    "hostHi",
+    "holdPhase",
+    "holdProgress",
+    "hostX",
+    "hostY",
+    "hostHalfX",
+    "hostHalfY",
     "stock",
     "service",
     "sightForward",
@@ -490,6 +523,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     },
     rows("contacts", "contactCount", &CONTACT_FIELDS),
     rows("audible", "audibleCount", &AUDIBLE_FIELDS),
+    rows("refusals", "refusalCount", &REFUSAL_FIELDS),
     GroupLayout {
         name: "projectiles",
         count: "projectileCount",
@@ -660,7 +694,9 @@ pub fn layout_json(battle: &Battle) -> String {
         "postures": names(&POSTURES),
         "coverTiers": names(&COVER_TIERS),
         "leanSides": names(&LEAN_SIDES),
-        "garrisonPhases": names(&GARRISON_PHASES),
+        "hostKinds": HOST_KINDS,
+        "holdPhases": names(&HOLD_PHASES),
+        "orderErrors": ORDER_ERROR_NAMES,
         "serviceStatuses": names(&SERVICE_STATUSES),
         "suppressionTiers": names(&SUPPRESSION_TIERS),
         "encounterResults": names(&ENCOUNTER_RESULTS),
@@ -680,9 +716,9 @@ pub fn layout_json(battle: &Battle) -> String {
         // NaN while he is tucked in. areaX, areaY and areaM are a squad's
         // anchor and area radius, NaN for a vehicle.
         // deployProgress and deployTarget are -1 for units that never deploy.
-        // Both garrisonBuilding limbs, phase and progress are -1 without a
-        // building; garrisonX, garrisonY (its centre) and garrisonHalfX,
-        // garrisonHalfY (its footprint's half extents) are NaN.
+        // hostKind, both host limbs, holdPhase and holdProgress are -1 without
+        // a hold. hostX, hostY, hostHalfX and hostHalfY carry a building
+        // footprint and are NaN for a carrier or no hold.
         // Known body IDs and associations use exact limbs; absent pairs are (-1,-1).
         // sightForward is the bearing sight looks along at this tick (never
         // interpolated); reach toward bearing b is sightRange * m, with
@@ -948,6 +984,7 @@ fn pack_record(
         frame.identified.len() as f32,
         frame.contacts.len() as f32,
         frame.audible.len() as f32,
+        frame.refusals.len() as f32,
         frame.known_props.len() as f32,
         frame.projectiles.len() as f32,
         frame.blasts.len() as f32,
@@ -1024,7 +1061,19 @@ fn pack_record(
         frame.shouts.len() as f32,
     ]);
     for u in &frame.own {
-        let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
+        let (host_kind, host_id, host_center, host_half) = match u.hold.map(|h| h.host) {
+            Some(HostRef::Building { id, center, half }) => {
+                (tag(&HOST_KINDS, &"building"), Some(id), center, half)
+            }
+            Some(HostRef::Carrier { id }) => (
+                tag(&HOST_KINDS, &"carrier"),
+                Some(id),
+                [f64::NAN; 2],
+                [f64::NAN; 2],
+            ),
+            None => (-1.0, None, [f64::NAN; 2], [f64::NAN; 2]),
+        };
+        let [host_lo, host_hi] = limbs_or_absent(host_id);
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
@@ -1051,14 +1100,15 @@ fn pack_record(
             u.concealed as u8 as f32,
             u.deployment.map_or(-1.0, |d| d.progress as f32),
             u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
-            garrison_lo,
-            garrison_hi,
-            u.garrison.map_or(-1.0, |g| tag(&GARRISON_PHASES, &g.phase)),
-            u.garrison.map_or(-1.0, |g| g.progress as f32),
-            u.garrison.map_or(f32::NAN, |g| g.center[0] as f32),
-            u.garrison.map_or(f32::NAN, |g| g.center[1] as f32),
-            u.garrison.map_or(f32::NAN, |g| g.half[0] as f32),
-            u.garrison.map_or(f32::NAN, |g| g.half[1] as f32),
+            host_kind,
+            host_lo,
+            host_hi,
+            u.hold.map_or(-1.0, |h| tag(&HOLD_PHASES, &h.phase)),
+            u.hold.map_or(-1.0, |h| h.progress as f32),
+            host_center[0] as f32,
+            host_center[1] as f32,
+            host_half[0] as f32,
+            host_half[1] as f32,
             u.stock.map_or(-1.0, |n| n as f32),
             tag(&SERVICE_STATUSES, &u.service),
             u.sight.forward as f32,
@@ -1216,6 +1266,20 @@ fn pack_record(
             a.sector as f32,
             tag(&SOUND_BANDS, &a.band),
             a.moving as u8 as f32,
+        ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for refusal in &frame.refusals {
+        let [lo, hi] = limbs(refusal.unit.0);
+        out.extend([
+            lo,
+            hi,
+            ORDER_ERROR_NAMES
+                .iter()
+                .position(|name| *name == refusal.reason.reason_name())
+                .expect("every order error has a publication name") as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {
@@ -1634,6 +1698,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     }
     add(frame.contacts.len(), CONTACT_FIELDS.len())?;
     add(frame.audible.len(), AUDIBLE_FIELDS.len())?;
+    add(frame.refusals.len(), REFUSAL_FIELDS.len())?;
     add(frame.projectiles.len(), PROJECTILE_FIELDS.len())?;
     for p in &frame.projectiles {
         add(p.path.len(), 3)?;
@@ -1967,7 +2032,7 @@ fn write_group_operations(
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 17;
+pub const GROUPS: usize = 18;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.

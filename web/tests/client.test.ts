@@ -196,7 +196,7 @@ test("an invalid building preview rejects only that query and commands still wor
     const command = client.command({ kind: "stop", units: [2] });
     const sent = requests.find((request) => request.type === "command");
     expect(sent?.command.order).toEqual({ kind: "stop", units: [2] });
-    deliver({ type: "ack", ack: { seq: 1, applied_tick: 2, error: null } });
+    deliver({ type: "ack", ack: { seq: 1, applied_tick: 2, error: null, refused: [] } });
     expect(await command).toMatchObject({ seq: 1, error: null });
   } finally {
     client.dispose();

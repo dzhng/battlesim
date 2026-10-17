@@ -120,7 +120,7 @@ fn queued_reentry_after_an_entering_squads_attack_and_exit_remains_unproven() {
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 500, "selected squad entering", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     let contact = b.observe(Side::Blue).contacts[0].clone();
     for order in [
@@ -293,7 +293,7 @@ fn a_building_entry_can_use_the_rest_of_a_facade_when_its_nearest_projection_is_
         .expect("an exposed alternative entry");
     assert!((entry.approach[1] - 300.0).abs() > 5.0, "{entry:?}");
     until(&mut b, 1400, "arrival at the exposed entry", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     // The squad's middle starts in when it comes within reach of the wall,
     // which its drawn arrangement shifts: near the accepted approach, well
@@ -680,7 +680,7 @@ fn replacement_entry_cancels_a_pending_exit_but_does_not_preserve_an_actual_exit
         b.step();
         assert_eq!(
             phase(&b, Side::Blue, 0),
-            Some(GarrisonPhase::Inside),
+            Some(HoldPhase::Inside),
             "superseded pending exit must not run"
         );
     }
@@ -693,7 +693,7 @@ fn replacement_entry_cancels_a_pending_exit_but_does_not_preserve_an_actual_exit
     });
     assert_eq!(ack.error, None);
     b.step();
-    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Exiting));
+    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Exiting));
     let plan = b
         .preview_building(
             Side::Blue,
@@ -896,7 +896,7 @@ fn a_selected_entering_squad_keeps_its_entry_before_an_indefinite_attack_suffix(
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "selected squad already entering", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
@@ -935,7 +935,7 @@ fn an_entering_squad_with_a_leaving_suffix_is_unproven_for_queued_reentry() {
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "selected squad already entering", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     let walk = Order::Move {
         units: vec![UnitId(0)],
@@ -1070,7 +1070,7 @@ fn exhausted_entry_proof_remains_unproven_when_gathering_succeeds() {
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 500, "current entry began", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     let plan = b
         .preview_building(
@@ -1184,7 +1184,7 @@ fn replacement_entry_reasserts_an_inside_hold_before_its_finite_leaving_suffix()
         b.step();
         assert_eq!(
             phase(&b, Side::Blue, 0),
-            Some(GarrisonPhase::Inside),
+            Some(HoldPhase::Inside),
             "replacement supersedes the leaving suffix"
         );
     }

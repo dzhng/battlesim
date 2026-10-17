@@ -268,12 +268,55 @@ pub enum OrderError {
     BuildingOccupied,
 }
 
+impl OrderError {
+    /// The stable wire name used by refusal publications.
+    pub const fn reason_name(&self) -> &'static str {
+        match self {
+            Self::PassiveSide => "passive_side",
+            Self::NotSkirmish => "not_skirmish",
+            Self::MatchFinished => "match_finished",
+            Self::UnitUnavailable => "unit_unavailable",
+            Self::WrongFaction => "wrong_faction",
+            Self::InsufficientCredits => "insufficient_credits",
+            Self::UnitLimitReached => "unit_limit_reached",
+            Self::OutOfSequence { .. } => "out_of_sequence",
+            Self::NoUnits => "no_units",
+            Self::UnknownUnit { .. } => "unknown_unit",
+            Self::NotOwnUnit { .. } => "not_own_unit",
+            Self::WrongSlot { .. } => "wrong_slot",
+            Self::MissingSlot => "missing_slot",
+            Self::OutOfBounds => "out_of_bounds",
+            Self::NoValidDestination => "no_valid_destination",
+            Self::ReplayInProgress => "replay_in_progress",
+            Self::RateLimited => "rate_limited",
+            Self::UnknownTarget => "unknown_target",
+            Self::AirContact => "air_contact",
+            Self::Destroyed { .. } => "destroyed",
+            Self::NotInfantry { .. } => "not_infantry",
+            Self::NotABuilding => "not_a_building",
+            Self::CapacityFull => "capacity_full",
+            Self::OneSquadPerBuilding => "one_squad_per_building",
+            Self::BuildingOccupied => "building_occupied",
+        }
+    }
+}
+
+/// One selected unit refused an order. Command-level validation stays in
+/// [`CommandAck::error`]; this is the per-unit channel used when a group order
+/// partially succeeds or a later step is refused by the simulation.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Refusal {
+    pub unit: UnitId,
+    pub reason: OrderError,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CommandAck {
     pub seq: u64,
     /// The tick whose step applies the command (accepted or not, the tick it was judged against).
     pub applied_tick: Tick,
     pub error: Option<OrderError>,
+    pub refused: Vec<Refusal>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub placement: Option<MovePlacement>,
     #[serde(skip_serializing_if = "Option::is_none")]

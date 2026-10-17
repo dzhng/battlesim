@@ -9,7 +9,7 @@ import type { UnitCatalog } from "@packages/scene-assets/src/units";
 
 export type ReachCommand = "attack" | "deploy" | "garrison" | "exit_building";
 
-type Reach = Pick<OwnUnitView, "kind" | "garrison">;
+type Reach = Pick<OwnUnitView, "id" | "kind" | "hold" | "deployment">;
 
 const CAN: Record<ReachCommand, (u: Reach, units: UnitCatalog) => boolean> = {
   /** Its type has mounts. Targeted attacks and attack-ground go only
@@ -21,7 +21,7 @@ const CAN: Record<ReachCommand, (u: Reach, units: UnitCatalog) => boolean> = {
   /** Infantry: garrisons are a fighting position for squads. */
   garrison: (u, units) => units.isInfantry(u.kind),
   /** It is inside a building. */
-  exit_building: (u) => !!u.garrison,
+  exit_building: (u) => !!u.hold,
 };
 
 /** The units of `selection` that `command` reaches, in selection order. */

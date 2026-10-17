@@ -155,6 +155,7 @@ test("a paused formation preview returns only own destinations without issuing a
         seq: 1,
         applied_tick: 2,
         error: null,
+        refused: [],
         placement: {
           gesture: 1,
           destinations: [{ unit: 0, placed: true, goal: [120, 150], facing: 0, spots: [] }],

@@ -361,7 +361,7 @@ export function panelSpecimens(
   add(s, "supply full", panelOf(specimenUnit(catalog, "test_rifle", { service: "full" })));
   add(s, "cannot supply", panelOf(specimenUnit(catalog, "test_at", { service: "moving" })));
   const inside = (phase: string, progress: number) => ({
-    garrison: { building: 3, phase, progress },
+    hold: { host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] }, phase, progress },
     concealed: phase === "inside" || phase === "exiting",
   });
   add(

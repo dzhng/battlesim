@@ -130,7 +130,11 @@ function DeckReview({ onBack }: { onBack: () => void }) {
       name: "Garrison exit",
       units: [
         specimenUnit(catalog, "test_rifle", {
-          garrison: { building: 3, phase: "inside", progress: 1, center: [0, 0], half: [10, 10] },
+          hold: {
+            host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+            phase: "inside",
+            progress: 1,
+          },
         }),
       ],
     },
