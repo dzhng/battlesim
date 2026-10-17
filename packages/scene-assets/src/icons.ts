@@ -90,6 +90,12 @@ const STATE_ICONS = {
   pinned:
     '<path d="M4 4h16"/><path d="M4 9l8 4 8-4"/><path d="M4 14l8 4 8-4"/><path d="M4 21h16"/>',
   building: '<path d="M4 20V10l8-6 8 6v10z"/><path d="M10 20v-6h4v6"/>',
+  // A vehicle seat in profile, solid: its headrest, its back and its
+  // cushion. A chair on legs read as an "h" or an animal, a seated figure
+  // as the accessibility sign, and a row of seats as a comb. A carrier's
+  // seats, and a squad getting in or out.
+  seats:
+    '<path d="M5.5 2h4v3h-4z" fill="currentColor"/><path d="M5.5 7h4l1.5 7H5.5z" fill="currentColor"/><path d="M5.5 15.5H18a2.25 2.25 0 0 1 0 4.5H5.5z" fill="currentColor"/>',
   waiting: '<path d="M9 6v12M15 6v12"/>',
   route_blocked: '<path d="M3 12h11"/><path d="M10 8l4 4-4 4"/><path d="M19 5v14"/>',
   hidden: CLOSED_EYE,

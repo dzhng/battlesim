@@ -37,8 +37,14 @@ import {
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { clamp, vec3 } from "math";
 import type { Box2 } from "math/shapes";
-import { InfoPanel, PanelCallout, type PanelOwner } from "./infoPanel";
-import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
+import {
+  InfoPanel,
+  PanelCallout,
+  PassengerCards,
+  type PanelOwner,
+  type PassengerCard,
+} from "./infoPanel";
+import { contactPanel, enemyPanel, ownPanel, passengersOf, type PanelRules } from "./panelRows";
 
 /** The element the high-air models' canvas lies in, between the two card
  *  planes: a battle view draws its high-air models there when the page has
@@ -136,9 +142,30 @@ interface Callout {
    *  plane, above the ground and low-air cards and the high-air models. */
   highAir: boolean;
   content: ReactNode;
+  /** The squads a carrier holds, their compact cards stacked under its own. */
+  passengers?: PassengerCard[];
   opacity?: number;
   retiring?: boolean;
   ghost?: boolean;
+}
+
+/** A carrier's underline lies this far below its own panel, in the gap
+ *  above its riders' cards (`.ro-aboard`'s top margin). */
+const RIDER_RULE_PX = 3;
+/** Whether `c` paints as selected: it is, or (a carrier's stack) any of
+ *  its riders is. */
+const raised = (c: Callout) => c.selected || !!c.passengers?.some((p) => p.selected);
+
+/** The box a callout's leader underlines, drawn at `box`: the callout's,
+ *  or for a carrier's card hanging above its unit, its own panel's, so the
+ *  rule runs above its riders' cards and the line names the carrier. */
+function underlined(
+  b: { node: HTMLElement; y: number; riders: boolean },
+  box: ReadoutRect,
+): ReadoutRect {
+  const body = b.node.firstElementChild as HTMLElement | null;
+  if (!b.riders || !body || box.y1 > b.y) return box;
+  return { ...box, y1: box.y0 + body.offsetTop + body.offsetHeight + RIDER_RULE_PX };
 }
 
 /** A unit panel's anchor: this high over its unit, about its head. */
@@ -151,7 +178,9 @@ const HEAD_M = 2;
  *  each other on short, uncrossed leaders, and a selected or hovered panel
  *  paints above the others. A card near the viewport's edge hides. Far
  *  views allow overlap in camera-depth order. Nudges ease on the
- *  presentation clock. */
+ *  presentation clock. A squad riding a carrier has no callout of its own:
+ *  its compact card stacks under the carrier's, inside that callout, and is
+ *  picked before it. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -187,6 +216,12 @@ export function ReadoutLayer({
   const hoveredCard = useRef<string | null>(null);
   const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
+  // Each rider's card, inside its carrier's callout.
+  const riderNodes = useRef(new Map<number, HTMLDivElement>());
+  /** Each rider's carrier, by the rider's id. */
+  const riding = new Map(
+    own.flatMap((c) => passengersOf(own, c.id).map((p) => [p.id, c.id] as const)),
+  );
   const callouts: Callout[] = [
     ...ghosts.map(
       (g): Callout => ({
@@ -200,18 +235,26 @@ export function ReadoutLayer({
         content: <InfoPanel panel={ownPanel(units, g.unit, own, rules)} zoom="far" />,
       }),
     ),
-    ...own.map((u): Callout => {
-      const picked = selected.includes(u.id);
-      return {
-        key: `own-${u.id}`,
-        owner: "own",
-        id: u.id,
-        at: u.position,
-        selected: picked,
-        highAir: highAir(units.type(u.kind)),
-        content: <InfoPanel panel={ownPanel(units, u, own, rules)} />,
-      };
-    }),
+    ...own
+      .filter((u) => !riding.has(u.id))
+      .map((u): Callout => {
+        const picked = selected.includes(u.id);
+        const passengers = passengersOf(own, u.id).map((p) => ({
+          id: p.id,
+          panel: ownPanel(units, p, own, rules),
+          selected: selected.includes(p.id),
+        }));
+        return {
+          key: `own-${u.id}`,
+          owner: "own",
+          id: u.id,
+          at: u.position,
+          selected: picked,
+          highAir: highAir(units.type(u.kind)),
+          content: <InfoPanel panel={ownPanel(units, u, own, rules)} />,
+          ...(passengers.length ? { passengers } : {}),
+        };
+      }),
     ...identified.map(
       (e): Callout => ({
         key: `enemy-${e.id}`,
@@ -240,11 +283,21 @@ export function ReadoutLayer({
   ];
   const calloutsRef = useRef(callouts);
   calloutsRef.current = callouts;
-  const visibleBox = (key: string): ReadoutRect | null => {
-    const node = nodes.current.get(key);
-    if (!node || node.style.display === "none") return null;
+  const carrierOf = useRef(riding);
+  carrierOf.current = riding;
+  const boxOf = (node: Element): ReadoutRect => {
     const r = node.getBoundingClientRect();
     return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
+  };
+  const visibleBox = (key: string): ReadoutRect | null => {
+    const node = nodes.current.get(key);
+    return !node || node.style.display === "none" ? null : boxOf(node);
+  };
+  /** A rider's card, shown while its carrier's callout is. */
+  const riderBox = (id: number): ReadoutRect | null => {
+    const host = carrierOf.current.get(id);
+    const node = riderNodes.current.get(id);
+    return host === undefined || !node || !visibleBox(`own-${host}`) ? null : boxOf(node);
   };
   /** The card under `hover`, else the unit or enemy it points at. The card
    *  hovered last frame keeps hold while the pointer is in its compact or
@@ -267,7 +320,7 @@ export function ReadoutLayer({
         ? previous
         : (card?.key ??
           (hover.unit !== null
-            ? `own-${hover.unit}`
+            ? `own-${carrierOf.current.get(hover.unit) ?? hover.unit}`
             : hover.enemy != null
               ? `enemy-${hover.enemy}`
               : null))
@@ -315,10 +368,14 @@ export function ReadoutLayer({
       const priority = [...calloutsRef.current].sort(
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
+      const inside = (r: ReadoutRect | null) =>
+        !!r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1;
       for (const c of priority) {
         if (c.retiring || c.ghost) continue;
-        const r = visibleBox(c.key);
-        if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
+        // A rider's card lies on its carrier's: it is picked first.
+        const rider = c.passengers?.find((p) => inside(riderBox(p.id)));
+        if (rider) return { unit: rider.id, enemy: null, contact: null };
+        if (inside(visibleBox(c.key)))
           return {
             unit: c.owner === "own" ? c.id : null,
             enemy: c.owner === "enemy" ? c.id : null,
@@ -328,7 +385,7 @@ export function ReadoutLayer({
       return null;
     },
     inRect(unit, rect) {
-      const r = visibleBox(`own-${unit}`);
+      const r = carrierOf.current.has(unit) ? riderBox(unit) : visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
@@ -345,6 +402,8 @@ export function ReadoutLayer({
         selected: boolean;
         highAir: boolean;
         opacity: number;
+        /** It carries riders' cards under its own panel. */
+        riders: boolean;
       }[] = [];
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
@@ -358,7 +417,8 @@ export function ReadoutLayer({
           anchored.push({
             id: c.key,
             node,
-            selected: c.selected,
+            selected: raised(c),
+            riders: !!c.passengers,
             highAir: c.highAir,
             opacity: c.opacity ?? 1,
             x: at[0],
@@ -499,7 +559,7 @@ export function ReadoutLayer({
         else delete group.dataset.hovered;
         // The leader: a small ring on the unit, a line off it to the
         // callout's near corner, then along its edge nearest the unit.
-        const [from, corner, foot] = leaderOf(b, box);
+        const [from, corner, foot] = leaderOf(b, underlined(b, box));
         const r = LEADER_RING_PX;
         const xy = (p: [number, number]) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
         leaders.current
@@ -518,7 +578,7 @@ export function ReadoutLayer({
     },
   }));
   const bind = useCallback(
-    <E extends Element>(map: Map<string, E>, key: string) =>
+    <E extends Element, K>(map: Map<K, E>, key: K) =>
       (el: E | null) => {
         if (el) map.set(key, el);
         else map.delete(key);
@@ -543,6 +603,9 @@ export function ReadoutLayer({
         data-contact={c.owner === "contact" ? c.id : undefined}
       >
         {c.content}
+        {c.passengers && (
+          <PassengerCards cards={c.passengers} bind={(id) => bind(riderNodes.current, id)} />
+        )}
       </PanelCallout>
       <svg className={`ro-leaders${c.owner !== "own" ? " ro-enemy" : ""}`} aria-hidden="true">
         <path

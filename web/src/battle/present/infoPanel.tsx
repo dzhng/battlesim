@@ -187,6 +187,7 @@ function StateRowView({ row }: { row: StateRow }) {
       data-state={row.state}
       data-tone={row.tone ?? undefined}
       data-progress={row.progress ?? ""}
+      data-compact={row.compact || undefined}
     >
       <Mark icon={row.icon} timer={timer} className="ro-state-mark" />
       <span className="ro-word ro-state-word">{row.word}</span>
@@ -260,6 +261,46 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
           <span style={{ width: `${Math.round(loading * 100)}%` }} />
         </div>
       )}
+    </div>
+  );
+}
+
+/** One squad riding a carrier: its panel, and whether it is selected. */
+export interface PassengerCard {
+  id: number;
+  panel: Panel;
+  selected: boolean;
+}
+
+/** The compact cards of the squads a carrier holds, stacked under the
+ *  carrier's panel inside its callout, so the stack is laid out, hidden and
+ *  hovered as the carrier's one card. A rider's card is always compact,
+ *  whatever view the carrier's is in: `data-zoom` on each holds it there,
+ *  and the readout layer never changes it. `bind` hands each card's
+ *  element to the battle's picking. */
+export function PassengerCards({
+  cards,
+  bind,
+}: {
+  cards: readonly PassengerCard[];
+  bind?: (id: number) => Ref<HTMLDivElement>;
+}) {
+  if (cards.length === 0) return null;
+  return (
+    <div className="ro-aboard">
+      {cards.map((c) => (
+        <PanelCallout
+          key={c.id}
+          ref={bind?.(c.id)}
+          owner="own"
+          selected={c.selected}
+          data-zoom="compressed"
+          data-unit={c.id}
+          data-passenger=""
+        >
+          <InfoPanel panel={c.panel} zoom="compressed" />
+        </PanelCallout>
+      ))}
     </div>
   );
 }

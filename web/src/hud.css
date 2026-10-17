@@ -472,6 +472,35 @@ html {
 .ro-unit.ro-selected {
   opacity: 1;
 }
+/* The squads a carrier holds: their compact cards stacked under its own,
+   set in to its rows' words (past the icon slot, its margins and the row
+   gap), so they read as filling its seats. The carrier's backing covers
+   the stack; each rider dims or brightens on its own selection, so the
+   carrier's dimming is its own panel's alone. */
+.ro-aboard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 7px 0 1px 25px;
+}
+/* A rider's card stays below its carrier's in the stack: dimmer until it
+   is selected, so the carrier's name leads. */
+.ro-aboard > .ro-unit {
+  position: relative;
+  padding: 0;
+}
+.ro-aboard > .ro-unit:not(.ro-selected) {
+  opacity: 0.65;
+}
+.ro-aboard > .ro-unit::before {
+  content: none;
+}
+.ro-unit:has(> .ro-aboard) {
+  opacity: 1;
+}
+.ro-unit:has(> .ro-aboard):not(.ro-selected) > .ro-body {
+  opacity: 0.82;
+}
 .ro-unit.ro-enemy,
 .ro-unit.ro-contact {
   --tone: var(--hud-enemy);
@@ -770,6 +799,11 @@ html {
 [data-zoom="far"] .ro-section:not([data-repeat-icons]) .ro-row {
   display: flex;
   gap: 2px;
+}
+/* A row that stays on a compact card keeps its words far out too. */
+[data-zoom="far"] .ro-section:not([data-repeat-icons]) .ro-row[data-compact] > .ro-word {
+  display: inline;
+  margin-left: 3px;
 }
 [data-zoom="far"]
   .ro-section:not([data-repeat-icons])
@@ -1278,8 +1312,10 @@ html {
   text-shadow: var(--hud-text-halo);
 }
 
-[data-zoom="compressed"] > .ro-body .ro-section,
-.ro-body[data-zoom="compressed"] .ro-section {
+/* A compact card is its name, and only the rows that say what the unit is
+   (`data-compact`: a carrier's seats). */
+:is([data-zoom="compressed"] > .ro-body, .ro-body[data-zoom="compressed"])
+  :is(.ro-section:not(:has(> [data-compact])), .ro-row:not([data-compact])) {
   display: none;
 }
 .ro-body[data-zoom="compressed"] .ro-loading {

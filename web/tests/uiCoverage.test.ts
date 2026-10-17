@@ -32,7 +32,7 @@ const PLAYER_FACING = [
 /** Drawn by the game but not pinned by a picture, each with why. */
 const UNPINNED: Record<string, string> = {
   ReadoutLayer:
-    "callouts placed over the live 3D battlefield; their panels are pinned by the panel workbench, their placement pinned by tests/readoutLayout.test.ts and checked by scenes/readouts.mjs",
+    "callouts placed over the live 3D battlefield; their panels are pinned by the panel workbench, their placement pinned by tests/readoutLayout.test.ts, their riders stacked under carriers by tests/passengerCards.test.tsx, and checked by scenes/readouts.mjs and scenes/transport.mjs",
   AppCursor:
     "the app shell's pointer: the system draws it, so no screenshot shows it; the cursor lab pins each action's image",
 };

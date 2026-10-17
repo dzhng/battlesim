@@ -6,7 +6,7 @@ import { useLabLoading } from "../LabLoading";
 // panels are DOM over the battlefield. The scene (`web/scenes/panels.mjs`)
 // shoots the contact sheet.
 import game from "@fixtures/game.json";
-import { InfoPanel, PanelCallout } from "@web/battle/present/infoPanel";
+import { InfoPanel, PanelCallout, PassengerCards } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect, useState } from "react";
 import { useSessionCatalog } from "@web/battle/catalog/context";
@@ -31,6 +31,7 @@ const OVER_GRASS = [
   "key cases/two launchers, separate reloads",
   "key cases/two launchers, enemy equipment",
   "key cases/turret and hull HMG",
+  "carriers/full, 16 seats",
 ];
 
 function Card({ s }: { s: Specimen }) {
@@ -39,6 +40,7 @@ function Card({ s }: { s: Specimen }) {
       <figcaption>{s.label}</figcaption>
       <PanelCallout owner={s.owner} selected={s.selected}>
         <InfoPanel panel={s.panel} zoom={s.zoom} />
+        {s.passengers && <PassengerCards cards={s.passengers} />}
       </PanelCallout>
     </figure>
   );

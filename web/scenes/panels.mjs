@@ -178,7 +178,8 @@ const panels = (page) =>
       owner: card.querySelector(".ro-unit").dataset.owner,
       name: card.querySelector(".ro-name")?.textContent.trim() ?? "",
       firstIsName: card.querySelector(".ro-body")?.firstElementChild?.classList.contains("ro-name"),
-      sections: [...card.querySelectorAll(".ro-section")].map((s) =>
+      // The specimen's own panel's, not its riders' under it.
+      sections: [...card.querySelector(".ro-body").querySelectorAll(".ro-section")].map((s) =>
         s.classList.contains("ro-weapons") ? "weapons" : "states",
       ),
       ammo: [...card.querySelectorAll("[data-ammo]")].map((r) => ({
@@ -246,6 +247,52 @@ async function sheet(ctx, page, file) {
   }
   await page.evaluate(() => (document.querySelector(".pw").scrollTop = 0));
   await page.setViewportSize({ width: 1500, height: 900 });
+}
+
+/** A carrier's card says its seats in every view, a compact one nothing
+ *  else; its riders' cards sit under it, set in, each compact whatever view
+ *  the carrier's is in; an enemy carrier's never says seats. */
+async function checkCarriers(ctx, page) {
+  const carriers = await page.locator('[data-specimen^="carriers/"]').evaluateAll((cards) =>
+    cards.map((card) => {
+      const shown = (e) => !!e && e.getClientRects().length > 0;
+      const unit = card.querySelector(".ro-unit");
+      const body = unit.querySelector(":scope > .ro-body");
+      const seats = body.querySelector('[data-state="seats"]');
+      const riders = [...unit.querySelectorAll(":scope > .ro-aboard > .ro-unit")];
+      const own = body.getBoundingClientRect();
+      return {
+        id: card.dataset.specimen,
+        enemy: unit.dataset.owner === "enemy",
+        compact: body.dataset.zoom === "compressed",
+        seats: shown(seats) ? seats.textContent.trim() : null,
+        otherRows: [...body.querySelectorAll(".ro-row")].filter((r) => r !== seats && shown(r))
+          .length,
+        riders: riders.map((r) => {
+          const box = r.getBoundingClientRect();
+          return {
+            rows: [...r.querySelectorAll(".ro-row")].filter(shown).length,
+            under: box.top >= own.bottom - 0.5,
+            setIn: box.left > own.left,
+          };
+        }),
+      };
+    }),
+  );
+  const carrierCards = carriers.filter((c) => !c.enemy && !c.id.includes("squad"));
+  ctx.check(
+    "a carrier's card shows SEATS n/N in every view, alone when compact, with its riders' compact cards set in under it; an enemy's shows none",
+    carrierCards.length >= 5 &&
+      carrierCards.every(
+        (c) =>
+          /^SEATS \d+\/\d+$/.test(c.seats ?? "") &&
+          (!c.compact || c.otherRows === 0) &&
+          c.riders.every((r) => r.rows === 0 && r.under && r.setIn),
+      ) &&
+      carrierCards.some((c) => c.riders.length >= 3) &&
+      carriers.some((c) => c.enemy && c.seats === null),
+    JSON.stringify(carriers),
+  );
 }
 
 /** The battle deck's every case at two widths, plain, hovered and focused:
@@ -684,6 +731,7 @@ export async function run(ctx) {
     ),
     JSON.stringify(blocked),
   );
+  await checkCarriers(ctx, page);
   await sheet(ctx, page, "sheet.png");
   for (const [id, file] of [
     ["own states/hidden in foliage", "hidden-expanded.png"],
@@ -692,6 +740,10 @@ export async function run(ctx) {
     ["key cases/two launchers, enemy equipment", "twin-enemy.png"],
     ["key cases/turret and hull HMG", "twin-hmg.png"],
     ["far out/two launchers selected", "twin-far.png"],
+    ["carriers/full, 16 seats", "carrier-full.png"],
+    ["carriers/full, 16 seats, compact", "carrier-full-compact.png"],
+    ["carriers/partly full, compact", "carrier-partly-compact.png"],
+    ["carriers/empty, compact", "carrier-empty-compact.png"],
   ]) {
     await page
       .locator(`[data-specimen="${id}"]`)
