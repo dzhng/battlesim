@@ -33,7 +33,12 @@ import { combineWorldMeshes, type Mesh } from "@packages/battle-renderer/src/mes
 import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { PresentedContact } from "@web/battle/present/contactPresentation";
-import type { IdentifiedView, ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
+import {
+  aboardCarrier,
+  type IdentifiedView,
+  type ObservationView,
+  type OwnUnitView,
+} from "@web/battle/sim/observationView";
 import type { RevealedOrders } from "@web/battle/present/orderReveal";
 import { gameContactStyle } from "./gameFog";
 import { ghostAloft } from "./unitGhosts";
@@ -222,6 +227,8 @@ export function orderLayer(
   const aloft = ghostAloft(units, game.air);
   return buildOrderOverlay(
     o.own
+      // A squad a carrier holds has no marks of its own: it is off the field.
+      .filter((u) => !aboardCarrier(u))
       .filter((u) => selected.includes(u.id) || reveal.has(u.id) || airborne(units.type(u.kind)))
       .map((u) => ({
         ...orderView(units, u, selected.includes(u.id), reveal.get(u.id)),
