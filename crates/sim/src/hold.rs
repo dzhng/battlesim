@@ -177,9 +177,12 @@ pub(crate) fn advance(
                 let unloading = units
                     .get(carrier.0 as usize)
                     .is_some_and(|host| matches!(host.orders.front(), Some(UnitOrder::Unload)));
+                let hover_settled = units.get(carrier.0 as usize).is_some_and(|host| {
+                    !host.airborne() || crate::movement::air::low_hover_settled(world, host, rules)
+                });
                 if matches!(phase, Phase::Entering(_))
                     && (!order_matches
-                        || !crate::carriage::near_and_still(units, i, carrier, rules))
+                        || !crate::carriage::near_and_still(world, units, i, carrier, rules))
                 {
                     let host_missing = units
                         .get(carrier.0 as usize)
@@ -214,7 +217,7 @@ pub(crate) fn advance(
                             });
                         }
                     }
-                    Phase::Inside if unloading => {
+                    Phase::Inside if unloading && hover_settled => {
                         units[i].hold.as_mut().expect("carrier hold").phase = Phase::Exiting(1);
                     }
                     Phase::Inside => {}

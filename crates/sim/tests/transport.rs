@@ -1,5 +1,7 @@
 //! Passenger carriage behavior through the public battle authority.
-use contract::command::{CommandEnvelope, Order, OrderError};
+use contract::command::{
+    CommandEnvelope, Engagement, MoveDirection, Order, OrderError, RoutePolicy,
+};
 use contract::ids::{Side, UnitId};
 use contract::observation::HoldPhase;
 use serde_json::json;
@@ -36,6 +38,238 @@ fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
         order,
         queued: false,
     }
+}
+
+fn transport_heli_crash(seed: u64, leaves_map: bool) -> Battle {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_transport_heli",
+        json!({ "body": { "hull": { "hp": 1.0 } } }),
+    );
+    if leaves_map {
+        rules["weapons"]["autocannon"]["range_m"] = json!(50.0);
+        rules["weapons"]["autocannon"]["targets"]["low_air"]["range_m"] = json!(50.0);
+        rules["weapons"]["autocannon"]["scatter_mrad"] = json!(100.0);
+    }
+    let start = [100.0, 200.0];
+    let goal = if leaves_map {
+        [599.0, 200.0]
+    } else {
+        [500.0, 200.0]
+    };
+    let map = json!({"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]});
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": map,
+        "rules": rules,
+        "units": [
+            {"side":"blue","kind":"test_transport_heli","position":start,"engagement":"return_fire_only"},
+            {"side":"blue","kind":"test_rifle","position":start,"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_gun_jeep","position":if leaves_map {[580.0,200.0]} else {[500.0,80.0]},"engagement":"return_fire_only"}
+        ],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, seed);
+    assert_eq!(
+        battle
+            .accept(command(
+                1,
+                Order::Board {
+                    units: vec![UnitId(1)],
+                    carrier: UnitId(0),
+                    gesture: 1
+                },
+            ))
+            .error,
+        None
+    );
+    for _ in 0..battle.rules().tick_hz * 10 {
+        battle.step();
+        if battle
+            .unit(UnitId(1))
+            .and_then(|unit| unit.hold.as_ref())
+            .is_some_and(|hold| hold.phase == sim::hold::Phase::Inside)
+        {
+            break;
+        }
+    }
+    assert!(!battle.unit(UnitId(1)).unwrap().on_field());
+    if leaves_map {
+        assert_eq!(battle.accept(heli_move(2, goal)).error, None);
+        for _ in 0..battle.rules().tick_hz * 30 {
+            battle.step();
+            if battle.unit(UnitId(0)).unwrap().position.x > 530.0 {
+                break;
+            }
+        }
+    }
+    assert_eq!(
+        battle
+            .accept(side_command(
+                Side::Red,
+                1,
+                Order::SetEngagement {
+                    units: vec![UnitId(2)],
+                    policy: Engagement::FireAtWill
+                },
+            ))
+            .error,
+        None
+    );
+    if !leaves_map {
+        assert_eq!(battle.accept(heli_move(2, goal)).error, None);
+    }
+    for _ in 0..battle.rules().tick_hz * 30 {
+        battle.step();
+        if let Some(crash) = battle.crashes().first() {
+            let passenger = battle.unit(UnitId(1)).unwrap().position;
+            assert!(
+                (passenger - crash.position).length() < 1e-9,
+                "passenger follows the falling crash"
+            );
+            assert!(
+                battle
+                    .unit(UnitId(1))
+                    .unwrap()
+                    .member_positions()
+                    .all(|position| (position - crash.position).length() < 1e-9),
+                "passenger members follow the falling crash"
+            );
+        }
+        if !battle.unit(UnitId(0)).unwrap().alive() && battle.crashes().is_empty() {
+            break;
+        }
+    }
+    assert!(!battle.unit(UnitId(0)).unwrap().alive());
+    battle
+}
+
+fn heli_move(seq: u64, goal: [f64; 2]) -> CommandEnvelope {
+    command(
+        seq,
+        Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 3,
+            goal,
+            route: RoutePolicy::Shortest,
+            direction: MoveDirection::Forward,
+            facing: None,
+        },
+    )
+}
+
+#[test]
+fn a_helicopter_boards_and_unloads_from_its_low_hover() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_transport_heli","position":[300,300]},
+            {"side":"blue","kind":"test_rifle","position":[300,300]},
+        ])),
+        17,
+    );
+    assert_eq!(
+        battle
+            .accept(command(
+                1,
+                Order::Board {
+                    units: vec![UnitId(1)],
+                    carrier: UnitId(0),
+                    gesture: 1
+                },
+            ))
+            .error,
+        None
+    );
+    let boarded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|unit| unit.hold.as_ref())
+            .is_some_and(|hold| hold.phase == sim::hold::Phase::Inside)
+    });
+    assert!(boarded, "the squad never boarded from the low hover");
+    let hover = battle
+        .unit(UnitId(0))
+        .expect("transport helicopter")
+        .position
+        .z;
+    assert!(
+        hover < battle.rules().air.low_air.cruise_agl_m,
+        "boarding started before the helicopter sank: {hover}"
+    );
+
+    assert_eq!(
+        battle
+            .accept(command(
+                2,
+                Order::Unload {
+                    units: vec![UnitId(0)],
+                    goal: None,
+                    gesture: 2,
+                    route: RoutePolicy::Shortest,
+                },
+            ))
+            .error,
+        None
+    );
+    let unloaded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .is_some_and(|unit| unit.hold.is_none())
+    });
+    assert!(unloaded, "the squad never unloaded from the hover");
+    let surface = battle
+        .world()
+        .surface_at(300.0, 300.0)
+        .expect("flat map surface");
+    assert!(
+        battle
+            .unit(UnitId(1))
+            .unwrap()
+            .member_positions()
+            .all(|position| (position.z - surface.z).abs() < 1e-6),
+        "unloaded soldiers must stand on the ground beneath the hover"
+    );
+}
+
+#[test]
+fn a_helicopter_shot_down_keeps_its_passengers_until_it_hits_the_ground() {
+    let air = contract::scenario::BailOutHost::Air;
+    let mut saw_squad_loss = false;
+    let mut saw_survivors = false;
+    for seed in 1..=64 {
+        let battle = transport_heli_crash(seed, false);
+        let passenger = battle.unit(UnitId(1)).expect("passenger squad");
+        if passenger.alive() {
+            saw_survivors = true;
+        } else {
+            saw_squad_loss = true;
+        }
+        assert!(
+            battle.rules().bail_out[&air].squad_loss.is_some(),
+            "air bail-out must own the squad-loss roll"
+        );
+        if saw_squad_loss && saw_survivors {
+            break;
+        }
+    }
+    assert!(
+        saw_squad_loss,
+        "no seed exercised the air squad-loss outcome"
+    );
+    assert!(saw_survivors, "no seed exercised surviving air passengers");
+
+    let off_map = transport_heli_crash(1, true);
+    assert!(
+        !off_map.unit(UnitId(1)).unwrap().alive(),
+        "a crash leaving the map kills every passenger: heli {:?}, passenger {:?}, crashes {}",
+        off_map.unit(UnitId(0)).unwrap().position,
+        off_map.unit(UnitId(1)).unwrap().position,
+        off_map.crashes().len()
+    );
 }
 
 fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {

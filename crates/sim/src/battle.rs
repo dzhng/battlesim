@@ -1928,7 +1928,12 @@ impl Battle {
         self.break_dogfights();
         self.dispatch_reinforcements();
         completed(TickPhase::Orders);
-        crate::carriage::advance(&mut self.units, &self.rules, &mut self.refusals);
+        crate::carriage::advance(
+            &self.world,
+            &mut self.units,
+            &self.rules,
+            &mut self.refusals,
+        );
         crate::hold::advance(
             &self.world,
             &self.sides,
@@ -2767,19 +2772,86 @@ impl Battle {
         let dt = 1.0 / self.rules.tick_hz as f64;
         let gravity = self.projectiles.gravity();
         let mut landed = Vec::new();
+        let mut left_map = Vec::new();
         for mut crash in std::mem::take(&mut self.crashes) {
             let half = self.units[crash.unit.0 as usize]
                 .hull
                 .expect("an airframe's hull");
             match crash.fall(&self.world, gravity, half, dt) {
-                crate::crash::Fall::Landed => landed.push(crash),
-                crate::crash::Fall::Falling => self.crashes.push(crash),
-                crate::crash::Fall::LeftMap => {}
+                crate::crash::Fall::Landed => {
+                    self.copy_crash_passenger_positions(&crash);
+                    landed.push(crash);
+                }
+                crate::crash::Fall::Falling => {
+                    self.copy_crash_passenger_positions(&crash);
+                    self.crashes.push(crash);
+                }
+                crate::crash::Fall::LeftMap => {
+                    self.copy_crash_passenger_positions(&crash);
+                    left_map.extend(self.kill_crash_passengers(&crash));
+                }
             }
         }
         for crash in landed {
             self.land(crash);
         }
+        if !left_map.is_empty() {
+            self.consequences(damage::Outcome {
+                destroyed: left_map,
+                ..Default::default()
+            });
+        }
+    }
+
+    /// Passengers remain aboard while a downed helicopter falls, so their
+    /// bodies follow the crash rather than the airframe's last live pose.
+    fn copy_crash_passenger_positions(&mut self, crash: &crate::crash::Crash) {
+        for unit in self.units.iter_mut().filter(|unit| {
+            unit.alive()
+                && unit
+                    .hold
+                    .as_ref()
+                    .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(crash.unit))
+        }) {
+            for member in unit.members.iter_mut().filter(|member| member.alive()) {
+                member.position = crash.position;
+            }
+            unit.position = crash.position;
+        }
+    }
+
+    /// Leaving the map is fatal to every passenger, and the airframe's killer
+    /// remains the causal source of each reported squad death.
+    fn kill_crash_passengers(&mut self, crash: &crate::crash::Crash) -> Vec<damage::UnitDeath> {
+        let passengers: Vec<usize> = self
+            .units
+            .iter()
+            .enumerate()
+            .filter(|(_, unit)| {
+                unit.alive()
+                    && unit
+                        .hold
+                        .as_ref()
+                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(crash.unit))
+            })
+            .map(|(index, _)| index)
+            .collect();
+        passengers
+            .into_iter()
+            .map(|index| {
+                let unit = &mut self.units[index];
+                for member in unit.members.iter_mut().filter(|member| member.alive()) {
+                    member.fall(crash.position, unit.yaw, None);
+                }
+                unit.hold = None;
+                unit.orders.clear();
+                unit.route = None;
+                damage::UnitDeath {
+                    victim: unit.id,
+                    source: crash.source,
+                }
+            })
+            .collect()
     }
 
     /// A downed aircraft meets the ground (D3, D31): it bursts as the crash
@@ -2857,6 +2929,21 @@ impl Battle {
             base_z: None,
             wreck_of: Some(wreck_of),
         });
+        let mut passenger_deaths = Vec::new();
+        self.bail_out_carrier(
+            crash.unit,
+            rest,
+            wreck,
+            crash.source,
+            &mut passenger_deaths,
+            contract::scenario::BailOutHost::Air,
+        );
+        if !passenger_deaths.is_empty() {
+            self.consequences(damage::Outcome {
+                destroyed: passenger_deaths,
+                ..Default::default()
+            });
+        }
         if let Some(prop) = self.world.prop(wreck) {
             for (side, _) in crash.knowing {
                 self.sides[side.index()].learn(
@@ -2965,7 +3052,14 @@ impl Battle {
             };
             if ground_carrier {
                 if let Some(wreck) = wreck {
-                    self.bail_out_carrier(id, rest, wreck, death.source, &mut destroyed);
+                    self.bail_out_carrier(
+                        id,
+                        rest,
+                        wreck,
+                        death.source,
+                        &mut destroyed,
+                        contract::scenario::BailOutHost::Ground,
+                    );
                 }
             }
             if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
@@ -3058,6 +3152,7 @@ impl Battle {
         wreck: PropId,
         source: Option<damage::LethalSource>,
         destroyed: &mut Vec<damage::UnitDeath>,
+        host_kind: contract::scenario::BailOutHost,
     ) {
         let passengers: Vec<usize> = self
             .units
@@ -3090,7 +3185,7 @@ impl Battle {
             .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
             .collect();
         let ignored_props = [wreck];
-        let rule = crate::bail_out::row(&self.rules, contract::scenario::BailOutHost::Ground);
+        let rule = crate::bail_out::row(&self.rules, host_kind);
         for index in passengers {
             for member in self.units[index]
                 .members

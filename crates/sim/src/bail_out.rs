@@ -74,7 +74,16 @@ pub fn apply(
 ) -> Result {
     let mut rng = Rng::new(mix(seed ^ BAIL_OUT_STREAM ^ host.key() ^ tick));
     let mut fates = Vec::new();
-    let squad_loss = rule.squad_loss.is_some_and(|chance| rng.unit() < chance);
+    let squad_loss = rule.squad_loss.is_some_and(|chance| {
+        // A carrier event owns one independent squad-level draw per passenger
+        // squad; the injury draws below remain on the event stream.
+        let mut squad_rng = Rng::new(mix(seed
+            ^ BAIL_OUT_STREAM
+            ^ host.key()
+            ^ tick
+            ^ u64::from(unit.id.0)));
+        squad_rng.unit() < chance
+    });
     let mut taken = Vec::new();
     for (member, soldier) in unit.members.iter_mut().enumerate() {
         if !soldier.alive() {
