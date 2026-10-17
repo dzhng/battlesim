@@ -66,7 +66,7 @@ For 3D models and textures, use Blender if it's available. Prefer a Blender MCP 
 
 ## Verification
 
-- **Use one injectable clock** for animation. Never use `performance.now()`, `Date` or unseeded randomness inside a pass. A held clock gives deterministic captures.
+- **Use one injectable clock** for animation. Never use `performance.now()`, `Date` or unseeded randomness inside a pass. A held clock gives deterministic screenshots.
 - **Test packing and CPU mirrors of shader math in unit tests.** Then render the narrowest real scene in a browser running on the real GPU (not a software fallback), and look at the image.
 - **Stats aren't pixels.** Pair counts with a pixel or crop check that proves the subject was drawn and framed. Match a streak to its published endpoint, not colour alone when classes share a style. Follow fast motion for consecutive-frame crops so leaving a static camera does not masquerade as fading.
 - **Derive checks from contracts,** not copied constants. Change a pixel threshold only with a written reason.

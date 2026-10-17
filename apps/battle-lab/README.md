@@ -16,7 +16,7 @@ A lab stands on a saved `test` map (its registry entry names it, and
 [`fixtureMap`](src/fixtures.ts) refuses any other category) or on a generated
 or synthetic world, and fields test units. The battle view itself is judged on
 the street test map's battle (`/labs/street`), a test's own encounter, so no
-lab plays on the game's content or the menu's. Player pages (`/battle`) only
+lab plays on the game's content or a capture's. Player pages (`/battle`) only
 ever prepare generated maps.
 
 [Visit ownership](src/navigation.tsx) keeps client navigation separate from
@@ -54,7 +54,7 @@ battle. Exhausted generation returns a refusal; it never substitutes a fixed map
 played in order and then over again, each a saved encounter on its own `capture` map
 (a capture refuses any other) run by
 the ordinary session, silent and inert. Each is played by
-[the scene player](src/capture/ScenePlayer.tsx), the capture tool's too, which
+[the scene player](src/capture/ScenePlayer.tsx), the [capture tool](src/capture/README.md)'s too, which
 flies [its reel](src/capture/capture.ts) through the viewport's pilot; the menu grades it in CSS to the
 HUD's `film` amber, which the plate's blue reads against. It shows blue's
 observation like any battle, without the player's x-ray. Its preparation reports
@@ -72,7 +72,7 @@ framing, so a shot in a narrow street may stand nearer than a player may zoom.
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. A session also owns its unit catalog: [the router](src/router.tsx)
 gives player battles and replays the game's set and labs the test set (the menu
-backdrop takes the menu's), the session refuses a scenario fielding a unit its
+backdrop and the capture route take the capture set), the session refuses a scenario fielding a unit its
 catalog lacks, and views read the catalog from the session or its context, never
 from a module-level import. [Lab loading](src/LabLoading.tsx) uses the player
 loading screen across preparation, the first observation and the first drawn

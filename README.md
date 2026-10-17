@@ -32,7 +32,9 @@ owner of the thing you want to change:
 Development tools edit those existing owners: the [mechanics editor](apps/mechanics-editor/README.md),
 [map workbench](apps/map-workbench/README.md) and [sound workbench](apps/sound-workbench/README.md).
 They share [fixture publication](apps/fixture-publication/README.md), which keeps
-reviewed saves consistent and recovers interrupted writes.
+reviewed saves consistent and recovers interrupted writes. The
+[capture tool](apps/battle-lab/src/capture/README.md) films saved encounters into
+marketing videos from a JSON file; the main menu's backdrop is one of its captures.
 
 [The root task runner](package.json) composes Rust and web commands; [the Rust
 workspace](Cargo.toml) and [web manifest](web/package.json) own members,
