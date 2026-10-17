@@ -132,9 +132,12 @@ fn push_target_move(unit: &mut Unit, target: V2, gesture: u64) {
     }));
 }
 
+/// Carry every squad riding inside a carrier along with it. A squad still
+/// getting in stands on the ground beside the carrier; one getting out rides
+/// until [`complete_unload`] puts it on ground spots.
 pub(crate) fn copy_passenger_positions(units: &mut [Unit]) {
     for i in 0..units.len() {
-        let Some(carrier) = units[i].hold.as_ref().and_then(|h| h.host.carrier()) else {
+        let Some(carrier) = units[i].hold.as_ref().and_then(|h| h.riding()) else {
             continue;
         };
         let Some((host_position, yaw)) = units.get(carrier.0 as usize).map(|h| (h.position, h.yaw))

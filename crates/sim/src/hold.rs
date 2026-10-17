@@ -95,6 +95,15 @@ impl Hold {
     pub fn building_mut(&mut self) -> Option<&mut Garrison> {
         self.place.building_mut()
     }
+
+    /// The carrier this squad rides inside, off the field: aboard, or still
+    /// inside while it gets out. A squad still getting in stands beside it.
+    pub fn riding(&self) -> Option<contract::ids::UnitId> {
+        match (self.host, self.phase) {
+            (Host::Carrier(id), Phase::Inside | Phase::Exiting(_)) => Some(id),
+            _ => None,
+        }
+    }
 }
 
 use crate::arrangement;

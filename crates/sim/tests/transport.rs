@@ -184,6 +184,72 @@ fn heli_move(seq: u64, goal: [f64; 2]) -> CommandEnvelope {
 }
 
 #[test]
+fn soldiers_boarding_a_hovering_helicopter_stay_on_the_ground_until_inside() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_transport_heli","position":[300,300]},
+            {"side":"blue","kind":"test_rifle","position":[300,300]},
+        ])),
+        17,
+    );
+    assert_eq!(
+        battle
+            .accept(command(
+                1,
+                Order::Board {
+                    units: vec![UnitId(1)],
+                    carrier: UnitId(0),
+                    gesture: 1
+                },
+            ))
+            .error,
+        None
+    );
+    let mut entering_ticks = 0;
+    let boarded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        let squad = battle.unit(UnitId(1)).expect("boarding squad");
+        match squad.hold.as_ref().map(|hold| hold.phase) {
+            Some(sim::hold::Phase::Inside) => return true,
+            Some(sim::hold::Phase::Entering(_)) => entering_ticks += 1,
+            _ => {}
+        }
+        for position in squad.member_positions() {
+            let ground = battle
+                .world()
+                .surface_at(position.x, position.y)
+                .expect("flat map surface")
+                .z;
+            assert!(
+                (position.z - ground).abs() < 1e-6,
+                "a soldier not yet inside floats at {} above ground {ground}",
+                position.z
+            );
+        }
+        false
+    });
+    assert!(boarded, "the squad never boarded the hovering helicopter");
+    assert!(
+        entering_ticks > 0,
+        "the squad never stood beside the helicopter to board"
+    );
+    let hover = battle
+        .unit(UnitId(0))
+        .expect("transport helicopter")
+        .position
+        .z;
+    let ground = battle
+        .world()
+        .surface_at(300.0, 300.0)
+        .expect("flat map surface")
+        .z;
+    assert!(
+        hover > ground + 1.0,
+        "the helicopter boarded on the ground, not in a hover: {hover}"
+    );
+}
+
+#[test]
 fn a_helicopter_boards_and_unloads_from_its_low_hover() {
     let mut battle = Battle::new(
         &setup(json!([
