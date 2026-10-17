@@ -28,19 +28,18 @@ export default function Transport() {
 
 function TransportLab({ battle }: { battle: SavedBattle }) {
   const session = useBattleSession({ ...battle, seed: 21 });
-  const { world, meshes, surfaceZ, sim } = session;
+  const { meshes, surfaceZ, sim } = session;
   const { observation } = sim;
-  const height = (x: number, y: number) => surfaceZ(x, y) ?? 0;
   const worldFeed = useFeed(meshes);
   const overlay = useMemo(() => {
     if (!observation) return undefined;
     return combineWorldMeshes([
       tracerLayer(observation),
-      orderLayer(session.units, observation, session.control.selected, session.revealed, height),
+      orderLayer(session.units, observation, session.control.selected, session.revealed, surfaceZ),
     ]);
   }, [observation, session.units, session.control.selected, session.revealed, surfaceZ]);
   const overlayFeed = useFeed(overlay);
-  if (!world) return null;
+  if (!meshes) return null;
   return (
     <>
       <LabViewport
@@ -48,9 +47,11 @@ function TransportLab({ battle }: { battle: SavedBattle }) {
         world={worldFeed}
         {...session.known}
         overlay={overlayFeed}
+        fog={session.fogFeed}
         {...session.viewport}
         initialCamera={CAMERA}
         {...session.input}
+        onFrame={session.placePanels}
         diagnostics={session.probes}
       />
       <ReadoutLayer
@@ -59,7 +60,7 @@ function TransportLab({ battle }: { battle: SavedBattle }) {
         selected={session.control.selected}
         handle={session.readouts}
       />
-      <aside className="hud-panel lab-panel" data-testid="transport-panel">
+      <aside className="hud-panel lab-panel" data-occludes-readouts data-testid="transport-panel">
         <strong>Passenger transport</strong>
         <div className="lab-hint">
           Board and Collect are scripted from both directions. Passengers leave the field while
