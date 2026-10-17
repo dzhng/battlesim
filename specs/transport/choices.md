@@ -32,6 +32,10 @@ Decisions the user made live in [map.md](map.md); change them there.
   - `Host::building()` returns an `Option`.
   - Running out of seats at the end of the timer publishes `CapacityFull` in `ObservationFrame.refusals`.
 - **Old parity scenarios got `rules.carriage` from the game fixture** before being re-blessed.
+- **After its timer, a squad riding in a carrier has no body.** Drawing, picking and sound all take poses from one interpolated sample, and that sample leaves out own units riding in a carrier (`178927cf2`). Passengers stay in `frame.own`.
+- **A Board approach ends once the carrier is within the hold's reach** (`reach_m` plus the hull). Before, the squad walked at the carrier's centre and stalled against its hull (`09fb08609`).
+- **The lab's collect case uses the 3-man `test_at` team.** The 4-man `test_recon` doesn't fit the scout car's 3 seats.
+- **The lab has no objective yet.** The slice asked for driving past an enemy and through an objective; only the enemy is there.
 
 - **Carrier reach is 3 m.** Alternative: reuse the building's 4 m entry distance. Why: the slice delegates a reach below 4 m; the hull's footprint supplies the final approach room while the authored threshold remains a closer boarding distance. Reach: boarding and collection admission. Reverse: change `fixtures/game.json` and the carriage rule checks.
 - **Test carriers explicitly clear inherited roster metadata.** Alternative: let `test_apc` and `test_scout_car` inherit `test_jeep`'s later test roster patches. Why: test-only carriers must not become extra skirmish cards when a test patches `test_jeep` into a deck. Reach: test catalogs and AI unit-selection fixtures. Reverse: remove the `roster: null` fields and update every deck test's candidate filtering.

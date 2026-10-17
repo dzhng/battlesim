@@ -24,6 +24,9 @@ Load `game-ui` and `renderer` first.
   - an enemy carrier.
 - The transport lab shows the same in a battle.
 
+## Lab framing
+The transport lab's camera (`apps/battle-lab/src/routes/transport.tsx`, 380 m out) leaves carriers as specks. Frame it close enough that the carriers and their cards read, before shooting.
+
 ## Verification
 - Re-bless the `panels` baselines. `web/tests/uiCoverage.test.ts` passes, with the new component pinned.
 - A focused layout test for nested callouts.
