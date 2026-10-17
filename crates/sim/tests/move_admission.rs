@@ -78,7 +78,7 @@ fn hidden_enemy_hulls_do_not_change_preview_or_future_battle_state() {
             battle
                 .accept(CommandEnvelope {
                     side: Side::Blue,
-                    slot: None,
+                    player: None,
                     seq: 1,
                     queued: false,
                     order: move_to(&[0], [90.0, 61.0]),
@@ -112,7 +112,7 @@ fn an_accepted_queued_destination_runs_after_its_pending_waypoint() {
         battle
             .accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 1,
                 queued: false,
                 order: move_to(&[0], first),
@@ -122,7 +122,7 @@ fn an_accepted_queued_destination_runs_after_its_pending_waypoint() {
     );
     let queued = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         queued: true,
         order: move_to(&[0], last),
@@ -156,7 +156,7 @@ fn the_same_boxed_vehicle_can_depart_with_its_blocker_in_a_group() {
     let mut battle = boxed();
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: move_to(&[0, 1], [88.0, 41.0]),
@@ -216,7 +216,7 @@ fn a_move_through_more_trees_is_valid_after_clearing_a_forest_lane() {
         battle
             .accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 1,
                 queued: false,
                 order: move_to(&[0], [185.0, 40.0]),
@@ -260,7 +260,7 @@ fn a_move_through_more_trees_is_valid_after_clearing_a_forest_lane() {
     );
     let accepted = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         queued: false,
         order: move_to(&[0], [330.0, 40.0]),
@@ -294,7 +294,7 @@ fn opposing_groups_keep_their_markers_when_traffic_requires_a_detour() {
         );
         let ack = battle.accept(CommandEnvelope {
             side,
-            slot: None,
+            player: None,
             seq: 1,
             queued: false,
             order: Order::Move {
@@ -421,7 +421,7 @@ fn cross_map_moves_on_a_generated_map_are_placed_and_then_arrive() {
         }
         let ack = battle.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq,
             order,
             queued: false,
@@ -482,7 +482,7 @@ fn a_far_destination_across_an_unbridged_river_is_refused() {
     );
     let ack = unbridged.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: move_to(&[0, 1], [2800.0, 120.0]),
         queued: false,
@@ -571,7 +571,7 @@ fn four_infantry_squads_and_a_supply_truck_can_move_across_open_ground() {
         );
         let ack = battle.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             order: move_to(&[0, 1, 2, 3, 4], goal),
             queued: false,
@@ -628,7 +628,7 @@ fn a_mixed_infantry_group_can_take_a_fast_road_move_and_upgrade_its_normal_move(
         assert!(preview.iter().all(|d| d.placed), "{route:?}: {preview:?}");
         let ack = battle.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             order,
             queued: false,
@@ -642,7 +642,7 @@ fn a_mixed_infantry_group_can_take_a_fast_road_move_and_upgrade_its_normal_move(
             }
             let upgrade = battle.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 2,
                 queued: false,
                 order: Order::UpgradeMove {
@@ -730,7 +730,7 @@ fn a_vehicle_sent_onto_cars_parked_against_a_wall_parks_on_the_clear_ground_besi
     let goal = [60.0, 79.0];
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: move_to(&[0], goal),
         queued: false,
@@ -793,7 +793,7 @@ fn a_vehicle_sent_into_a_walled_lawn_with_no_way_in_parks_outside_its_nearest_wa
     let goal = [60.0, 72.0];
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: move_to(&[0], goal),
         queued: false,
@@ -832,7 +832,7 @@ fn a_vehicle_sent_into_a_walled_lawn_through_its_gate_parks_where_it_was_sent() 
     let goal = [60.0, 72.0];
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: move_to(&[0], goal),
         queued: false,
@@ -857,7 +857,7 @@ fn a_group_sent_into_a_court_lined_with_parked_cars_is_placed_whole() {
     ]));
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: move_to(&[0, 1, 2], [48.0, 79.0]),
         queued: false,
@@ -895,7 +895,7 @@ fn a_squad_sent_into_a_closed_yard_stops_outside_it() {
     assert_eq!(placed(&mut b, &[1], [200.0, 120.0]), [true]);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: move_to(&[1], [200.0, 120.0]),
         queued: false,
@@ -986,7 +986,7 @@ fn a_truck_gives_up_on_a_lane_its_shove_cannot_clear() {
         let mut battle = lane(blocked);
         let ack = battle.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             order: move_to(&[0], [1100.0, 120.0]),
             queued: false,
@@ -1039,7 +1039,7 @@ fn a_truck_gives_up_on_a_corner_too_tight_to_turn() {
     let mut battle = Battle::new(&setup, 1);
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: move_to(&[0], [502.0, 400.0]),
@@ -1065,7 +1065,7 @@ fn a_vehicle_boxed_by_a_parked_one_never_drives_through_it() {
     let mut battle = boxed();
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: move_to(&[0], [70.0, 41.0]),
         queued: false,
@@ -1116,7 +1116,7 @@ fn a_squad_ringed_in_by_standing_soldiers_never_walks_through_them() {
     let mut battle = Battle::new(&setup, 1);
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: move_to(&[0], [100.0, 60.0]),

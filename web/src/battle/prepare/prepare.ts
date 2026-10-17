@@ -1,5 +1,5 @@
 /** Preparing a battle: the request is checked by the simulation, its map is
- *  generated through the one map owner, both factions are fielded on the map's admitted skirmish
+ *  generated through the one map owner, both players' forces are fielded on the map's admitted skirmish
  *  sites (a map without them is refused), and the result is the scenario
  *  JSON any battle authority runs. This module only carries text between those: every generation and
  *  placement rule is the Wasm module's. Pure over the module and the map
@@ -20,6 +20,7 @@ import type {
 export interface PreparationModule extends MapGenerator {
   city_stress_preparation(map: string, rules: string, seed: bigint, late: boolean): string;
   check_prepare_request(request: string): string;
+  check_scenario_player_contract(scenario: string): string;
   PreparedWorld: {
     new (map: string, rules: string): PreparedWorld;
     from_scenario(scenario: string): PreparedWorld;
@@ -30,7 +31,7 @@ export interface PreparationModule extends MapGenerator {
  *  admitted on it and the battle then takes it. */
 export interface PreparedWorld {
   admit_skirmish(sites: string): string;
-  skirmish_fields(sites: string, factions: string): string;
+  skirmish_fields(sites: string, players: string): string;
   extents(): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
@@ -51,7 +52,7 @@ export function prepareReplay(wasm: PreparationModule, battle: PreparedBattle): 
 type Outcome<T> = ({ status: "ok" } & T) | { status: "error"; diagnostics: PrepareDiagnostic[] };
 
 /** A request the simulation's check refused (`request`), a map its owner
- *  refused (`map`) or a map that cannot field the factions (`encounter`),
+ *  refused (`map`) or a map that cannot field the players (`encounter`),
  *  with the diagnostics. */
 export class PreparationRefused extends Error {
   constructor(
@@ -191,17 +192,19 @@ export async function prepare(
           },
         ]);
       laid = {
-        fields: world.skirmish_fields(map.sites, JSON.stringify(checked.factions)).slice(1),
+        fields: world.skirmish_fields(map.sites, JSON.stringify(checked.players)).slice(1),
       };
       start = { at: base.center, yaw: base.yaw };
     }
     const buildings = map.definition.buildings ?? [];
+    const scenario =
+      "scenario" in laid
+        ? laid.scenario
+        : `{"map":${map.json},"rules":${documents.rules},${laid.fields}`;
+    accepted<{}>("encounter", wasm.check_scenario_player_contract(scenario));
     return {
       world,
-      scenario:
-        "scenario" in laid
-          ? laid.scenario
-          : `{"map":${map.json},"rules":${documents.rules},${laid.fields}`,
+      scenario,
       report: {
         ...("metadata" in laid && {
           stress: { ...laid.stress, livingUnits: laid.metadata.livingUnits },

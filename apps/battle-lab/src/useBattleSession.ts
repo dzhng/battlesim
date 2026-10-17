@@ -140,8 +140,8 @@ export interface BattleSessionOptions {
   scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
-  /** Player slot issuing orders in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing orders in a player-owned scenario. */
+  player?: string;
   /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
@@ -176,7 +176,7 @@ export function useBattleSession({
   replay,
   scripted,
   side = "blue",
-  slot,
+  player,
   sound = false,
   inputEnabled = true,
   xray = true,
@@ -191,7 +191,8 @@ export function useBattleSession({
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
-      skirmish?: { factions: [Faction, Faction] };
+      players?: { side: SideName; faction?: Faction }[];
+      skirmish?: object;
       units?: { kind: string }[];
     };
     return {
@@ -235,11 +236,18 @@ export function useBattleSession({
     replay,
     scripted,
     prepared,
-    slot,
+    player,
     side,
   });
   presentationRef.current = sim.client?.presentation ?? null;
-  const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
+  const players = useMemo(
+    () =>
+      (JSON.parse(scenario) as { players?: { side: SideName; faction?: Faction }[] }).players ?? [],
+    [scenario],
+  );
+  const sideFaction = (which: SideName) =>
+    players.find((player) => player.side === which)?.faction ?? null;
+  const faction = sideFaction(side);
   /** The chosen reinforcement must be requested before the cursor asks the
    *  presentation to draw its ghost.  Keep this in React state so the art
    *  request advances on the same render as the picker choice. */
@@ -264,7 +272,13 @@ export function useBattleSession({
     () => (requestedKindKey ? requestedKindKey.split("\0") : []),
     [requestedKindKey],
   );
-  const factionsForArt = useMemo(() => (skirmish ? new Set(skirmish.factions) : null), [skirmish]);
+  const factionsForArt = useMemo(
+    () =>
+      skirmish
+        ? new Set(players.flatMap((player) => (player.faction ? [player.faction] : [])))
+        : null,
+    [skirmish, players],
+  );
   const sceneryForArt = useMemo(() => {
     if (!scenarioArt) return undefined;
     const candidate = map as { props?: unknown[]; forests?: unknown[] } | null;
@@ -277,7 +291,7 @@ export function useBattleSession({
   // requested kinds still scope the simulation's descriptions and voices;
   // the renderer's unit art is resident for the complete catalog.
   // Outside a skirmish the factions are unknown, so shouts are silent.
-  const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
+  const enemy = skirmish ? sideFaction(side === "blue" ? "red" : "blue") : null;
   useEffect(() => {
     if (!audio || !faction || !enemy) return;
     const rows = units.ids.map((id) => ({ id, factions: units.type(id).roster?.factions ?? [] }));
@@ -513,7 +527,9 @@ export function useBattleSession({
   // catalog is loaded: its units and effects, which Rust resolves from the
   // files the page reads. Another fielded kind loads again, the last battle
   // drawn meanwhile; another scenario or side draws none until its own.
-  const factions = skirmish?.factions;
+  const factions = skirmish
+    ? ([sideFaction("blue")!, sideFaction("red")!] as [string, string])
+    : undefined;
   const presentation = sim.client?.presentation ?? null;
   const artLoaded = appearances !== null;
   const [fieldedFor, setFielded] = useState<{
@@ -1163,7 +1179,7 @@ export function useBattleSession({
     control,
     purchase: skirmish
       ? {
-          faction: skirmish.factions[side === "blue" ? 0 : 1],
+          faction: faction!,
           cards: units.cards,
           placing: purchasing,
           choose: choosePurchase,

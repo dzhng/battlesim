@@ -190,7 +190,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     ready: [false, false] as [boolean, boolean],
     preparationRemainingS: 60,
     credits: 769,
-    occupiedSlots: selection.units.length,
+    unitCount: selection.units.length,
     maxUnits: 30,
     pending: [],
     scores: [0, 0] as [number, number],

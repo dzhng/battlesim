@@ -1,8 +1,9 @@
 use contract::bundle::{
-    base64_encode, BundleAsset, BundleMapIdentity, BundleMode, ControllerKind, PlayerSlot,
-    ScenarioBundle, VictoryDefinition, FORMAT_VERSION,
+    base64_encode, BundleAsset, BundleMapIdentity, BundleMode, ControllerKind, ScenarioBundle,
+    VictoryDefinition, FORMAT_VERSION,
 };
 use contract::ids::Side;
+use contract::players::Player;
 use contract::scenario::ScenarioDefinition;
 
 fn bundle() -> ScenarioBundle {
@@ -13,6 +14,22 @@ fn bundle() -> ScenarioBundle {
     let scenario: ScenarioDefinition = serde_json::from_value(fixture["scenario"].clone()).unwrap();
     let mut scenario = scenario;
     scenario.skirmish = None;
+    scenario.players = vec![
+        Player {
+            id: "blue-1".into(),
+            side: Side::Blue,
+            faction: Some(contract::catalog::Faction::Us),
+            human_capable: true,
+            controller: ControllerKind::Human,
+        },
+        Player {
+            id: "red-1".into(),
+            side: Side::Red,
+            faction: Some(contract::catalog::Faction::Eastern),
+            human_capable: false,
+            controller: ControllerKind::ActiveAi,
+        },
+    ];
     let map_hash = contract::identity::json_hash(&scenario.map).unwrap();
     let rules_hash = contract::identity::json_hash(&scenario.rules).unwrap();
     let bytes = b"RIFF";
@@ -25,14 +42,6 @@ fn bundle() -> ScenarioBundle {
         },
         rules_hash,
         scenario,
-        slots: vec![PlayerSlot {
-            id: "blue-1".into(),
-            side: Side::Blue,
-            human_capable: true,
-            faction: None,
-            controller: ControllerKind::Human,
-            units: Vec::new(),
-        }],
         mode: BundleMode::Sandbox,
         victory: VictoryDefinition {
             source: "return true".into(),
@@ -75,25 +84,22 @@ fn bundle_refuses_changed_embedded_bytes_and_unknown_fields() {
 }
 
 #[test]
-fn bundle_refuses_noncanonical_id_order_but_allows_multiple_human_capable_slots() {
+fn bundle_allows_multiple_human_capable_players() {
     let mut bundle = bundle();
-    bundle.slots.push(PlayerSlot {
+    bundle.scenario.players.push(Player {
         id: "alpha".into(),
         side: Side::Red,
         human_capable: true,
-        faction: None,
+        faction: Some(contract::catalog::Faction::Eastern),
         controller: ControllerKind::Human,
-        units: Vec::new(),
     });
-    let error = bundle.validate().unwrap_err();
-    assert!(error.to_string().contains("strictly sorted"));
-    bundle.slots.sort_by(|a, b| a.id.cmp(&b.id));
     assert!(bundle.validate().is_ok());
     assert_eq!(
         bundle.effective_controllers(Some("blue-1")).unwrap(),
         vec![
-            ("alpha".to_string(), ControllerKind::PassiveAi),
             ("blue-1".to_string(), ControllerKind::Human),
+            ("red-1".to_string(), ControllerKind::ActiveAi),
+            ("alpha".to_string(), ControllerKind::PassiveAi),
         ]
     );
 }
@@ -107,7 +113,7 @@ fn bundle_refuses_invalid_executable_sources_before_play() {
             id: "bad-script".into(),
             source: "while true { event(\"x\"); }".into(),
             side: Side::Blue,
-            slot: None,
+            player: None,
         });
     let error = bundle.validate().unwrap_err();
     assert!(error.to_string().contains("unknown statement"));
@@ -118,18 +124,21 @@ fn controller_requests_normalize_to_one_human_or_passive_ai() {
     let bundle = bundle();
     assert_eq!(
         bundle.effective_controllers(Some("blue-1")).unwrap(),
-        vec![("blue-1".to_string(), ControllerKind::Human)]
+        vec![
+            ("blue-1".to_string(), ControllerKind::Human),
+            ("red-1".to_string(), ControllerKind::ActiveAi),
+        ]
     );
 }
 
 #[test]
-fn neutral_slots_cannot_become_human_controllers() {
+fn neutral_players_cannot_become_human_controllers() {
     let mut bundle = bundle();
-    bundle.slots[0].side = Side::Neutral;
-    bundle.slots[0].controller = ControllerKind::PassiveAi;
-    bundle.slots[0].human_capable = true;
+    bundle.scenario.players[0].side = Side::Neutral;
+    bundle.scenario.players[0].controller = ControllerKind::PassiveAi;
+    bundle.scenario.players[0].human_capable = true;
     let error = bundle.validate().unwrap_err();
-    assert!(error.to_string().contains("cannot be human-capable"));
+    assert!(error.to_string().contains("neutral"));
 }
 
 #[test]
@@ -143,7 +152,7 @@ fn bundle_keeps_authored_scripts_and_victory_in_one_envelope_owner() {
 }
 
 #[test]
-fn scenario_projection_materializes_slot_owner_without_changing_bundle_identity() {
+fn scenario_projection_preserves_player_owner_without_changing_bundle_identity() {
     let bundle = bundle();
     let scenario: serde_json::Value =
         serde_json::from_str(&bundle.scenario_json().unwrap()).unwrap();
@@ -154,7 +163,7 @@ fn scenario_projection_materializes_slot_owner_without_changing_bundle_identity(
         .units
         .push(contract::scenario::UnitSetup {
             side: Side::Blue,
-            owner: None,
+            owner: Some("blue-1".into()),
             kind: "test_rifle".into(),
             position: [20.0, 20.0],
             yaw: 0.0,
@@ -162,7 +171,6 @@ fn scenario_projection_materializes_slot_owner_without_changing_bundle_identity(
             condition: None,
             stock: None,
         });
-    with_unit.slots[0].units.push(contract::ids::UnitId(0));
     let projected: serde_json::Value =
         serde_json::from_str(&with_unit.scenario_json().unwrap()).unwrap();
     assert_eq!(projected["units"][0]["owner"], "blue-1");
@@ -178,7 +186,7 @@ fn authoring_accepts_editor_unit_ids_but_canonical_uploads_do_not_carry_them() {
         "position": [20.0, 20.0],
         "yaw": 0.0
     }]);
-    draft["slots"][0]["units"] = serde_json::json!([0]);
+    draft["scenario"]["units"][0]["owner"] = serde_json::json!("blue-1");
 
     let authored = ScenarioBundle::from_authoring_json(&serde_json::to_string(&draft).unwrap())
         .expect("the editor id is an authoring-only field");

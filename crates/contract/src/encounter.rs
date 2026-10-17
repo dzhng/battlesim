@@ -70,7 +70,7 @@ pub struct EncounterSites {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SkirmishSites {
-    pub entries: [EntrySite; 2],
+    pub entries: Vec<EntrySite>,
     pub objectives: Vec<ObjectiveSite>,
     /// Reserved alternatives; simulation admission publishes the selected objectives.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -178,14 +178,30 @@ impl SkirmishSites {
     }
     pub fn validate(&self) -> Result<(), String> {
         let finite = |points: &[[f64; 2]]| points.iter().flatten().all(|v| v.is_finite());
-        if self.entries[0].side != crate::ids::Side::Blue
-            || self.entries[1].side != crate::ids::Side::Red
+        if self.entries.is_empty()
+            || self.entries.len() > 6
             || self
                 .entries
                 .iter()
                 .any(|e| !finite(&[e.center]) || !e.yaw.is_finite())
+            || [crate::ids::Side::Blue, crate::ids::Side::Red]
+                .into_iter()
+                .any(|side| {
+                    let count = self
+                        .entries
+                        .iter()
+                        .filter(|entry| entry.side == side)
+                        .count();
+                    count == 0 || count > 3
+                })
+            || self
+                .entries
+                .iter()
+                .any(|entry| entry.side == crate::ids::Side::Neutral)
         {
-            return Err("skirmish entries require finite blue/red geometry".into());
+            return Err(
+                "skirmish entries require one to three finite blue/red entries per side".into(),
+            );
         }
         if !matches!(self.objectives.len(), 3 | 5 | 7) {
             return Err("skirmish requires three, five or seven objectives".into());
@@ -572,6 +588,7 @@ impl EncounterSetup {
         rules: crate::scenario::Rules,
     ) -> crate::scenario::ScenarioDefinition {
         crate::scenario::ScenarioDefinition {
+            players: Vec::new(),
             skirmish: None,
             map,
             rules,

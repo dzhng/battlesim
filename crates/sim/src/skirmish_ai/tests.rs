@@ -35,7 +35,7 @@ fn empty_match() -> (Rules, ObservationFrame, EntrySite) {
         ready: [false; 2],
         preparation_remaining_s: 45.0,
         credits: 1000.0,
-        occupied_slots: 0,
+        unit_count: 0,
         max_units: 30,
         pending: vec![],
         objectives: vec![contract::skirmish::ObjectiveView {
@@ -198,9 +198,9 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
                 } => {
                     let kind = rules.catalog.index(&variant).unwrap();
                     let price = f64::from(rules.catalog.get(kind).cost);
-                    assert!(price <= view.credits && view.occupied_slots < view.max_units);
+                    assert!(price <= view.credits && view.unit_count < view.max_units);
                     view.credits -= price;
-                    view.occupied_slots += 1;
+                    view.unit_count += 1;
                     view.pending.push(contract::skirmish::PendingPurchase {
                         id: contract::skirmish::PurchaseId(view.pending.len() as u32),
                         kind,
@@ -230,7 +230,7 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
     let mut capped = frame.clone();
     let view = capped.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.occupied_slots = view.max_units;
+    view.unit_count = view.max_units;
     capped.tick += 5 * u64::from(rules.tick_hz);
     assert!(!ai
         .decide(
@@ -331,7 +331,7 @@ fn seeded_policy_instances_repeat_the_same_opening_commands() {
 fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality() {
     let (rules, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().occupied_slots = 1;
+    frame.skirmish.as_mut().unwrap().unit_count = 1;
     frame.skirmish.as_mut().unwrap().credits = 500.0;
     frame
         .skirmish
@@ -400,7 +400,7 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
     let heli = rules.catalog.index("test_heli").unwrap();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
     frame.skirmish.as_mut().unwrap().credits = 1_000.0;
-    frame.skirmish.as_mut().unwrap().occupied_slots = 1;
+    frame.skirmish.as_mut().unwrap().unit_count = 1;
     let supply = rules.catalog.index("test_supply").unwrap();
     frame
         .skirmish
@@ -672,7 +672,7 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
     view.credits = 500.0;
-    view.occupied_slots = 1;
+    view.unit_count = 1;
     view.pending.push(contract::skirmish::PendingPurchase {
         id: contract::skirmish::PurchaseId(1),
         kind: rules.catalog.index("test_supply").unwrap(),
@@ -759,7 +759,7 @@ fn the_ai_sends_bought_jets_on_attack_move() {
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
     view.credits = 500.0;
-    view.occupied_slots = 1;
+    view.unit_count = 1;
     view.pending.push(contract::skirmish::PendingPurchase {
         id: contract::skirmish::PurchaseId(1),
         kind: rules.catalog.index("test_supply").unwrap(),
@@ -807,9 +807,9 @@ fn confirm_purchases(
         };
         let kind = rules.catalog.index(variant).unwrap();
         let price = f64::from(rules.catalog.get(kind).cost);
-        assert!(price <= view.credits && view.occupied_slots < view.max_units);
+        assert!(price <= view.credits && view.unit_count < view.max_units);
         view.credits -= price;
-        view.occupied_slots += 1;
+        view.unit_count += 1;
         view.pending.push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(view.pending.len() as u32),
             kind,
@@ -1364,7 +1364,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
             "props": [{ "kind": "wall", "center": [400, 446], "yaw": 0,
                 "half_extents": [5.0, 0.5, 7.0] }] },
         "rules": rules,
-        "units": [{ "side": "red", "kind": "test_jeep", "position": [400, 450], "yaw": -1.5707963267948966 }],
+        "units": [{ "side": "red", "kind": "test_jeep", "position": [400, 450], "yaw": -std::f64::consts::FRAC_PI_2 }],
         "events": [], "scripts": []
     }))
     .unwrap();
@@ -1400,7 +1400,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
             seq += 1;
             let ack = battle.accept(contract::command::CommandEnvelope {
                 side: Side::Red,
-                slot: None,
+                player: None,
                 seq,
                 order,
                 queued: false,

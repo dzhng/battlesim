@@ -67,7 +67,7 @@ fn dist(a: [f64; 2], b: [f64; 2]) -> f64 {
 fn order(b: &mut Battle, seq: u64, goal: [f64; 2]) {
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq,
         order: Order::Move {
             units: vec![UnitId(0)],
@@ -271,7 +271,7 @@ fn a_road_with_no_bridge_is_no_road_across() {
     let mut b = Battle::new(&scenario(map, jeep([100.0, 200.0]), json!([])), 1);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],
@@ -312,7 +312,7 @@ fn head_on(map: Value) -> u64 {
     for (seq, (unit, goal)) in [(0, 2920.0), (1, 80.0)].into_iter().enumerate() {
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: seq as u64 + 1,
             order: Order::Move {
                 units: vec![UnitId(unit)],
@@ -397,7 +397,7 @@ fn two_columns_meeting_on_a_narrow_track_all_get_past() {
     for (unit, goal) in goals.into_iter().enumerate() {
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: unit as u64 + 1,
             order: Order::Move {
                 units: vec![UnitId(unit as u32)],
@@ -450,7 +450,7 @@ fn a_queued_leg_is_measured_from_where_it_starts_not_from_where_it_was_ordered()
         order(&mut b, 1, [600.0, 100.0]);
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 2,
             order: Order::Move {
                 units: vec![UnitId(0)],
@@ -498,7 +498,7 @@ fn a_fast_move_takes_the_road_round_a_wood_and_beats_the_straight_move_through_i
     ] {
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: unit as u64 + 1,
             order: Order::Move {
                 units: vec![UnitId(unit)],

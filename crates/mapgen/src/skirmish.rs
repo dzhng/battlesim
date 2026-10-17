@@ -54,7 +54,7 @@ pub(crate) fn reserve(
             yaw: libm::atan2(delta[1], delta[0]),
         })
     };
-    let entries = [edge(Side::Blue, extent)?, edge(Side::Red, 0.0)?];
+    let entries = vec![edge(Side::Blue, extent)?, edge(Side::Red, 0.0)?];
     let mut objectives = vec![ObjectiveSite {
         id: "objective-0".into(),
         center: hub,

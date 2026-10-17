@@ -95,7 +95,15 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
             let orders = policies[side.index()].decide(
                 side,
                 report.factions[side.index()],
-                &setup.skirmish.as_ref().unwrap().sites.entries[side.index()],
+                setup
+                    .skirmish
+                    .as_ref()
+                    .unwrap()
+                    .sites
+                    .entries
+                    .iter()
+                    .find(|entry| entry.side == side)
+                    .expect("one entry for each tournament side"),
                 &frame,
                 &setup.rules,
                 &mut |id, goal| battle.route_time(side, id, goal),
@@ -134,7 +142,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 report.attempted_orders += 1;
                 let ack = battle.accept(CommandEnvelope {
                     side,
-                    slot: None,
+                    player: None,
                     seq: seq[side.index()],
                     order,
                     queued: false,
@@ -334,7 +342,7 @@ fn scripted_purchases(
         })
         .unwrap_or(middle);
     let bar = list.iter().position(|card| card == "|");
-    let (mut credits, mut slots) = (view.credits, view.occupied_slots);
+    let (mut credits, mut slots) = (view.credits, view.unit_count);
     let mut orders = Vec::new();
     while view.phase != contract::skirmish::Phase::Finished && slots < view.max_units {
         let index = match bar {

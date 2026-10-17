@@ -38,6 +38,29 @@ pub fn check_prepare_request(request_json: &str) -> String {
     contract::preparation::check_request_json(request_json)
 }
 
+/// Check the assembled scenario contract before a prepared world is consumed
+/// by the battle authority. This keeps admission refusals on the normal
+/// preparation diagnostic path instead of allowing a constructor panic.
+#[wasm_bindgen]
+pub fn check_scenario_player_contract(scenario_json: &str) -> String {
+    let result = serde_json::from_str::<ScenarioDefinition>(scenario_json)
+        .map_err(|error| error.to_string())
+        .and_then(|scenario| scenario.validate_player_contract());
+    match result {
+        Ok(()) => serde_json::json!({ "status": "ok" }).to_string(),
+        Err(message) => serde_json::json!({
+            "status": "error",
+            "diagnostics": [{
+                "code": "invalid_scenario",
+                "feature": "players",
+                "location": "$.players",
+                "message": message,
+            }],
+        })
+        .to_string(),
+    }
+}
+
 /// Validate a downloaded ScenarioBundle without consulting repository
 /// fixtures. The bundle module owns canonical bytes, identities, topology,
 /// and embedded asset admission.
@@ -84,14 +107,14 @@ pub fn run_scenario_script(
     side: &str,
     observation_json: &str,
     seed: f64,
-    slot: Option<String>,
+    player: Option<String>,
 ) -> Result<String, JsError> {
     let side = parse_side(side)?;
     let observation: contract::observation::ObservationFrame =
         serde_json::from_str(observation_json).map_err(js_error)?;
     let input = contract::script::ScriptInput::new(side, &observation, seed as u64);
-    let input = match slot {
-        Some(slot) => input.with_slot(slot),
+    let input = match player {
+        Some(player) => input.with_player(player),
         None => input,
     };
     let script = contract::script::CompiledScript::compile(source).map_err(js_error)?;
@@ -99,7 +122,7 @@ pub fn run_scenario_script(
 }
 
 /// Resolve the effective controller state for a play session. The caller
-/// supplies the one human-capable slot selected on the play screen.
+/// supplies the one human-capable player selected on the play screen.
 #[wasm_bindgen]
 pub fn scenario_bundle_controllers(
     bundle_json: &str,
@@ -153,11 +176,12 @@ pub fn scenario_bundle_details(bundle_json: &str) -> Result<String, JsError> {
             })
         })
         .collect();
-    let human_capable_slots: Vec<_> = bundle
-        .slots
+    let human_capable_players: Vec<_> = bundle
+        .scenario
+        .players
         .iter()
-        .filter(|slot| slot.human_capable)
-        .map(|slot| slot.id.clone())
+        .filter(|player| player.human_capable)
+        .map(|player| player.id.clone())
         .collect();
     Ok(serde_json::json!({
         "scenario": scenario_json,
@@ -167,7 +191,7 @@ pub fn scenario_bundle_details(bundle_json: &str) -> Result<String, JsError> {
             .map_err(js_error)?,
         "counts": counts,
         "assets": assets,
-        "human_capable_slots": human_capable_slots,
+        "human_capable_players": human_capable_players,
         "start": start,
         "town": serde_json::Value::Null,
     })
@@ -979,25 +1003,19 @@ impl PreparedWorld {
         serde_json::to_string(&admitted).map_err(js_error)
     }
     /// Scenario fields for a faction match, without an authored encounter army.
-    pub fn skirmish_fields(
-        &self,
-        sites_json: &str,
-        factions_json: &str,
-    ) -> Result<String, JsError> {
+    pub fn skirmish_fields(&self, sites_json: &str, players_json: &str) -> Result<String, JsError> {
         let sites: contract::encounter::EncounterSites =
             serde_json::from_str(sites_json).map_err(js_error)?;
-        let factions: [contract::catalog::Faction; 2] =
-            serde_json::from_str(factions_json).map_err(js_error)?;
+        let players: Vec<contract::players::Player> =
+            serde_json::from_str(players_json).map_err(js_error)?;
         let setup = contract::skirmish::SkirmishSetup {
-            factions,
-            ai_side: Some(Side::Red),
             rules: sim::skirmish::starter_rules(),
             sites: sites
                 .skirmish
                 .ok_or_else(|| JsError::new("skirmish sites are missing"))?,
         };
         setup.sites.validate().map_err(js_error)?;
-        Ok(serde_json::json!({"units": [], "skirmish": setup}).to_string())
+        Ok(serde_json::json!({"players": players, "units": [], "skirmish": setup}).to_string())
     }
 
     #[wasm_bindgen(constructor)]
@@ -1075,6 +1093,7 @@ impl PreparedWorld {
         {
             return Err(JsError::new("prepared map and rules do not match scenario"));
         }
+        setup.validate_player_contract().map_err(js_error)?;
         Ok(setup)
     }
 }

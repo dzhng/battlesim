@@ -28,7 +28,7 @@ const match: SkirmishView = {
   ready: [false, false],
   preparationRemainingS: 60,
   credits: 1000,
-  occupiedSlots: 0,
+  unitCount: 0,
   maxUnits: 30,
   pending: [],
   scores: [0, 0],
@@ -134,14 +134,10 @@ test("purchase availability follows observed credits and reserved slots", () => 
   open();
   fireEvent.click(family());
   expect(choose).not.toHaveBeenCalled();
-  view.rerender(
-    <PurchasePicker {...props} match={{ ...match, credits: 200, occupiedSlots: 30 }} />,
-  );
+  view.rerender(<PurchasePicker {...props} match={{ ...match, credits: 200, unitCount: 30 }} />);
   fireEvent.click(family());
   expect(choose).not.toHaveBeenCalled();
-  view.rerender(
-    <PurchasePicker {...props} match={{ ...match, credits: 200, occupiedSlots: 29 }} />,
-  );
+  view.rerender(<PurchasePicker {...props} match={{ ...match, credits: 200, unitCount: 29 }} />);
   fireEvent.click(family());
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
 });

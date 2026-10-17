@@ -484,7 +484,7 @@ export interface SkirmishView {
   scores: [number, number];
   result: "blue" | "red" | "draw" | null;
   objectives: ObjectiveView[];
-  occupiedSlots: number;
+  unitCount: number;
   maxUnits: number;
   pending: {
     id: number;

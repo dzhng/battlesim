@@ -6,5 +6,6 @@
   "dispatch_interval_s": 1,
   "capture_s": 20,
   "majority_s": 1800,
-  "victory_score": 1000
+  "victory_score": 1000,
+  "max_players_per_side": 10
 }

@@ -515,6 +515,6 @@ test("purchase preview resolves through the authority without spending or advanc
   ) as ObservationLayout;
   const p = h.publications()[0];
   const view = new ScenePresentation(layout).decode(new Float32Array(p.buffer, 0, p.length))!;
-  expect(view.skirmish).toMatchObject({ credits: 1000, occupiedSlots: 0, pending: [] });
+  expect(view.skirmish).toMatchObject({ credits: 1000, unitCount: 0, pending: [] });
   expect(view.own).toEqual([]);
 });

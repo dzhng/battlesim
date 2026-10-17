@@ -460,7 +460,7 @@ impl BalancedDoctrine {
         // ready at once and the player's own readiness starts the battle.
         let purchases: Vec<TypeIndex> = if view.phase == Phase::Preparation {
             let mut credits = view.credits;
-            let mut slots = view.occupied_slots;
+            let mut slots = view.unit_count;
             let mut needed = BTreeMap::new();
             desired
                 .iter()
@@ -477,7 +477,7 @@ impl BalancedDoctrine {
                     buy
                 })
                 .collect()
-        } else if view.occupied_slots < view.max_units {
+        } else if view.unit_count < view.max_units {
             let purchase = {
                 let truck = pick(Some("logistics"), Category::Sup, 0);
                 if truck.is_some()

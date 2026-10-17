@@ -148,7 +148,7 @@ view!(Encounter {
     result: Name
 });
 view!(Skirmish { phase: Option<&'static str>, ready: [bool; 2], preparation_remaining_s: f64, credits: f64,
-    scores: [f64; 2], result: Option<&'static str>, objectives: Vec<Objective>, occupied_slots: f64,
+    scores: [f64; 2], result: Option<&'static str>, objectives: Vec<Objective>, unit_count: f64,
     max_units: f64, pending: Vec<PendingPurchase>, report: Option<Report> });
 view!(Objective { id: Name, center: Point2, radius_m: f64, owner: Option<&'static str>,
     capturing: Option<&'static str>, capture_progress: f64, contested: bool });
@@ -748,7 +748,7 @@ impl Reader {
                 scores: [f!(h, HEADER, "scoreBlue"), f!(h, HEADER, "scoreRed")],
                 result: optional_fixed(&["blue", "red", "draw"], f!(h, HEADER, "matchResult")),
                 objectives: map(&rows[group("objectives")], |r| self.objective(r))?,
-                occupied_slots: f!(h, HEADER, "occupiedSlots"),
+                unit_count: f!(h, HEADER, "unitCount"),
                 max_units: f!(h, HEADER, "maxUnits"),
                 pending: map(&rows[group("pendingPurchases")], |r| self.pending(r))?,
                 report: if reported {

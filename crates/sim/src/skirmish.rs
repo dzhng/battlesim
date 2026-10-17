@@ -94,7 +94,7 @@ impl Skirmish {
                 0.0
             },
             credits: self.wallets[side.index()] as f64 / CREDIT_SCALE as f64,
-            occupied_slots: living + self.reservations[side.index()].len() as u32,
+            unit_count: living + self.reservations[side.index()].len() as u32,
             max_units: self.setup.rules.max_units,
             objectives: self.objectives.views(&self.setup.sites.objectives, hz),
             scores: self.objectives.scores(hz),

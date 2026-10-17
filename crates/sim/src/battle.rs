@@ -239,7 +239,7 @@ pub struct Replay {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ControllerTransition {
     pub tick: Tick,
-    pub slot: String,
+    pub player: String,
     pub controller: ControllerKind,
 }
 
@@ -339,6 +339,8 @@ pub struct Battle {
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
     skirmish_ai: Option<crate::skirmish_ai::BalancedDoctrine>,
+    skirmish_ai_player: Option<(Side, contract::catalog::Faction)>,
+    skirmish_factions: [Option<contract::catalog::Faction>; 3],
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
@@ -612,10 +614,28 @@ fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
     // commands mean, so a replay is pinned to them too.
     let opponent = serde_json::to_string(&setup.opponent).expect("opponent serializes");
     let encounter = serde_json::to_string(&setup.encounter).expect("encounter serializes");
+    // Removed in slice 02 (skirmish re-baseline 1).
+    // Keep the replay identity stable while the public setup moves its player
+    // list to ScenarioDefinition. Slice 01 still has one player per side, so
+    // the old faction-only setup is the equivalent digest input.
     let skirmish = setup
         .skirmish
         .as_ref()
-        .map(|s| serde_json::to_string(s).expect("skirmish serializes"))
+        .map(|s| {
+            let factions = Side::COMBATANTS
+                .into_iter()
+                .map(|side| {
+                    contract::players::side_faction(&setup.players, side)
+                        .expect("admitted skirmish side has a player")
+                })
+                .collect::<Vec<_>>();
+            serde_json::to_string(&serde_json::json!({
+                "factions": factions,
+                "rules": &s.rules,
+                "sites": &s.sites,
+            }))
+            .expect("skirmish serializes")
+        })
         .unwrap_or_default();
     digest::of_str(
         &(map
@@ -1003,6 +1023,9 @@ impl Battle {
         seed: u64,
         prepared: crate::encounter::PreparedMap,
     ) -> Self {
+        setup
+            .validate_player_contract()
+            .expect("admitted scenario has a valid player contract");
         let rules = setup.rules.clone();
         assert!(
             setup.skirmish.is_none() || setup.units.iter().all(|unit| unit.side != Side::Neutral),
@@ -1076,7 +1099,7 @@ impl Battle {
                     CompiledScript::compile(&script.source)
                         .expect("scenario authored script was admitted"),
                     script.side,
-                    script.slot.clone(),
+                    script.player.clone(),
                 )
             })
             .collect();
@@ -1084,6 +1107,16 @@ impl Battle {
             .victory
             .as_deref()
             .map(|source| CompiledScript::compile(source).expect("scenario victory was admitted"));
+        let skirmish_ai_player = setup.skirmish.as_ref().and_then(|_| {
+            setup
+                .players
+                .iter()
+                .find(|p| {
+                    p.side != Side::Neutral
+                        && p.controller == contract::players::ControllerKind::ActiveAi
+                })
+                .and_then(|p| p.faction.map(|faction| (p.side, faction)))
+        });
         let occlusion = OcclusionGrid::new(&world, setup.map.fog_cell_m);
         let structures = Structures::default();
         let ground = GroundLayer::new(world.width(), world.depth(), &rules.ground);
@@ -1140,14 +1173,20 @@ impl Battle {
                 0,
             ); 3],
             opponent: setup.opponent.clone().map(|o| (o, Defender::default())),
-            skirmish_ai: setup.skirmish.as_ref().and_then(|s| {
-                s.ai_side.map(|side| {
-                    let stream = contract::random::mix(
-                        seed ^ (side.index() as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
-                            ^ 0x4241_4c41_4e43_4544,
-                    );
-                    crate::skirmish_ai::BalancedDoctrine::new(stream)
-                })
+            skirmish_ai_player,
+            skirmish_factions: std::array::from_fn(|i| {
+                let side = Side::ALL[i];
+                setup
+                    .skirmish
+                    .as_ref()
+                    .and_then(|_| contract::players::side_faction(&setup.players, side))
+            }),
+            skirmish_ai: skirmish_ai_player.map(|(side, _)| {
+                let stream = contract::random::mix(
+                    seed ^ (side.index() as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15)
+                        ^ 0x4241_4c41_4e43_4544,
+                );
+                crate::skirmish_ai::BalancedDoctrine::new(stream)
             }),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
@@ -1241,7 +1280,7 @@ impl Battle {
             for (slot, controller) in &replay.controllers {
                 battle.apply_controller(&ControllerTransition {
                     tick: 0,
-                    slot: slot.clone(),
+                    player: slot.clone(),
                     controller: controller.clone(),
                 });
             }
@@ -1481,13 +1520,13 @@ impl Battle {
         for (slot, controller) in controllers {
             let transition = ControllerTransition {
                 tick: self.tick,
-                slot,
+                player: slot,
                 controller,
             };
             if self
                 .units
                 .iter()
-                .any(|unit| unit.owner.as_deref() == Some(transition.slot.as_str()))
+                .any(|unit| unit.owner.as_deref() == Some(transition.player.as_str()))
             {
                 self.apply_controller(&transition);
                 self.controller_transitions.push(transition);
@@ -1497,13 +1536,13 @@ impl Battle {
 
     fn apply_controller(&mut self, transition: &ControllerTransition) {
         self.controllers
-            .insert(transition.slot.clone(), transition.controller.clone());
+            .insert(transition.player.clone(), transition.controller.clone());
         for unit in &mut self.units {
             if unit.side == Side::Neutral {
                 unit.engagement = Engagement::ReturnFireOnly;
                 continue;
             }
-            if unit.owner.as_deref() != Some(transition.slot.as_str()) {
+            if unit.owner.as_deref() != Some(transition.player.as_str()) {
                 continue;
             }
             match transition.controller {
@@ -1593,7 +1632,7 @@ impl Battle {
             };
             let _ = self.accept(CommandEnvelope {
                 side,
-                slot: Some(slot),
+                player: Some(slot),
                 seq,
                 order,
                 queued: false,
@@ -1699,10 +1738,10 @@ impl Battle {
             let Some(owner) = self.units[unit.0 as usize].owner.as_deref() else {
                 continue;
             };
-            match command.slot.as_deref() {
-                None => return Err(OrderError::MissingSlot),
+            match command.player.as_deref() {
+                None => return Err(OrderError::MissingPlayer),
                 Some(slot) if slot == owner => {}
-                Some(_) => return Err(OrderError::WrongSlot { unit }),
+                Some(_) => return Err(OrderError::WrongPlayer { unit }),
             }
         }
         Ok(())
@@ -1816,7 +1855,7 @@ impl Battle {
             }
             let command = CommandEnvelope {
                 side: script.side,
-                slot: None,
+                player: None,
                 seq: 0,
                 order: script.order,
                 queued: script.queued,
@@ -1997,7 +2036,7 @@ impl Battle {
                 self.seed ^ 0x5343_5249_5054_0000 ^ self.tick ^ side.index() as u64,
             );
             let input = match slot.as_deref() {
-                Some(slot) => input.with_slot(slot.to_owned()),
+                Some(slot) => input.with_player(slot.to_owned()),
                 None => input,
             };
             match script.run(&input) {
@@ -2055,7 +2094,7 @@ impl Battle {
                 let seq = self.next_seq[command.side.index()];
                 let _ = self.accept(CommandEnvelope {
                     side: command.side,
-                    slot: command.slot,
+                    player: command.player,
                     seq,
                     order: command.order,
                     queued: command.queued,
@@ -2408,7 +2447,7 @@ impl Battle {
             let seq = self.next_seq[side.index()];
             let _ = self.accept(CommandEnvelope {
                 side,
-                slot: None,
+                player: None,
                 seq,
                 order,
                 queued: false,
@@ -2423,8 +2462,7 @@ impl Battle {
         let mut commands = Vec::new();
         if let Some(mut ai) = self.skirmish_ai.take() {
             let setup = &self.skirmish.as_ref().unwrap().setup;
-            let side = setup.ai_side.unwrap();
-            let faction = setup.factions[side.index()];
+            let (side, faction) = self.skirmish_ai_player.expect("skirmish AI player");
             let entry = setup
                 .sites
                 .entries
@@ -2444,7 +2482,7 @@ impl Battle {
             let seq = self.next_seq[side.index()];
             let _ = self.accept(CommandEnvelope {
                 side,
-                slot: None,
+                player: None,
                 seq,
                 order,
                 queued: false,
@@ -3945,7 +3983,7 @@ impl Battle {
         if !card
             .roster
             .factions
-            .contains(&skirmish.setup.factions[side.index()])
+            .contains(&self.skirmish_factions[side.index()].ok_or(OrderError::WrongFaction)?)
         {
             return Err(OrderError::WrongFaction);
         }
@@ -5695,7 +5733,7 @@ mod tests {
             let mut battle = Battle::new(&setup, 11);
             let ack = battle.accept(CommandEnvelope {
                 side: Side::Red,
-                slot: None,
+                player: None,
                 seq: 1,
                 queued: false,
                 order: Order::Garrison {
@@ -5887,8 +5925,7 @@ mod settlement_tests {
             entry: center,
         });
         battle.skirmish = Some(crate::skirmish::Skirmish::new(serde_json::from_value(json!({
-            "factions":["us","eastern"],
-            "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},
+        "rules":{"credits_per_minute":200,"starting_minutes":5,"preparation_s":60,"max_units":30,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},
             "sites":{"entries":[{"side":"blue","center":[400,10],"yaw":0},{"side":"red","center":[400,590],"yaw":0}],
                 "objectives":[{"id":"center","center":[400,300],"radius_m":50,"kind":"junction","counterpart":null},
                     {"id":"south","center":[200,200],"radius_m":50,"kind":"field","counterpart":"north"},

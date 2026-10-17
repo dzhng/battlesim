@@ -1,7 +1,7 @@
 //! Player match setup and side-scoped economy publication.
 use serde::{Deserialize, Serialize};
 
-use crate::catalog::{Faction, TypeIndex};
+use crate::catalog::TypeIndex;
 use crate::encounter::SkirmishSites;
 use crate::ids::{Side, Tick, UnitId};
 
@@ -20,14 +20,25 @@ pub struct MatchRules {
     pub majority_s: u32,
     /// The score a side wins at.
     pub victory_score: f64,
+    // Removed in slice 02 (skirmish re-baseline 1); retained for slice-01 digest identity.
+    #[serde(
+        default = "default_max_players_per_side",
+        skip_serializing_if = "is_default_max_players_per_side"
+    )]
+    pub max_players_per_side: u32,
+}
+
+fn default_max_players_per_side() -> u32 {
+    10
+}
+
+fn is_default_max_players_per_side(value: &u32) -> bool {
+    *value == 10
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(try_from = "UncheckedSetup")]
 pub struct SkirmishSetup {
-    pub factions: [Faction; 2],
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ai_side: Option<Side>,
     pub rules: MatchRules,
     pub sites: SkirmishSites,
 }
@@ -35,9 +46,6 @@ pub struct SkirmishSetup {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UncheckedSetup {
-    factions: [Faction; 2],
-    #[serde(default)]
-    ai_side: Option<Side>,
     rules: MatchRules,
     sites: SkirmishSites,
 }
@@ -45,9 +53,6 @@ struct UncheckedSetup {
 impl TryFrom<UncheckedSetup> for SkirmishSetup {
     type Error = String;
     fn try_from(value: UncheckedSetup) -> Result<Self, Self::Error> {
-        if value.ai_side == Some(Side::Neutral) {
-            return Err("skirmish does not support neutral ai_side".into());
-        }
         let r = &value.rules;
         if r.credits_per_minute == 0
             || r.starting_minutes == 0
@@ -60,6 +65,7 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
                 .checked_mul(u64::from(r.starting_minutes))
                 .and_then(|n| n.checked_mul(1_000_000))
                 .is_none()
+            || r.max_players_per_side == 0
         {
             return Err(
                 "skirmish requires positive affordable economy, dispatch and objective rules"
@@ -68,8 +74,6 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
         }
         value.sites.validate()?;
         Ok(Self {
-            factions: value.factions,
-            ai_side: value.ai_side,
             rules: value.rules,
             sites: value.sites,
         })
@@ -118,7 +122,7 @@ pub struct SkirmishView {
     pub ready: [bool; 2],
     pub preparation_remaining_s: f64,
     pub credits: f64,
-    pub occupied_slots: u32,
+    pub unit_count: u32,
     pub max_units: u32,
     pub pending: Vec<PendingPurchase>,
     pub objectives: Vec<ObjectiveView>,

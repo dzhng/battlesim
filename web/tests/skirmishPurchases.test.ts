@@ -49,7 +49,7 @@ test("native purchases replay in WASM and publish the side wallet, queue and phy
       paired.free();
     }
     const active = frame("blue");
-    expect(active.skirmish).toMatchObject({ phase: "active", occupiedSlots: 1, pending: [] });
+    expect(active.skirmish).toMatchObject({ phase: "active", unitCount: 1, pending: [] });
     expect(active.own).toHaveLength(1);
     expect(active.own[0].position[1]).toBeGreaterThan(10);
     expect(active.own[0].position[1]).toBeLessThan(100);

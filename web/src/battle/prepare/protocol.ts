@@ -1,6 +1,6 @@
 /** The contract of battle preparation: one request to a preparation worker,
  *  which resolves the map through the one map owner (`@web/maps/source`),
- *  fields both factions on it and hands back the scenario a battle runs. The
+ *  fields both players' forces on it and hands back the scenario a battle runs. The
  *  worker keeps the world it built and then runs that battle on it, so its
  *  later requests are the simulation's; closing it cancels a pending request
  *  and frees everything preparation allocated. */
@@ -13,14 +13,20 @@ import type { MapExtents } from "@packages/battle-renderer/src/worldMesh";
  *  Everything preparation needs to create a new battle; nothing is defaulted. */
 export interface PrepareBattleRequest {
   map_source: MapSource;
-  /** The player's faction, then the enemy's. */
-  factions: [
-    import("@packages/scene-assets/src/units").Faction,
-    import("@packages/scene-assets/src/units").Faction,
-  ];
+  /** The admitted players, in stable authoring order. */
+  players: Player[];
   /** The battle's own random input: a whole number a JS number holds
    *  exactly, as the battle's constructor takes it. */
   battle_seed: number;
+}
+
+export type ControllerKind = "human" | "active_ai" | "passive_ai";
+export interface Player {
+  id: string;
+  side: "blue" | "red" | "neutral";
+  faction?: import("@packages/scene-assets/src/units").Faction;
+  controller: ControllerKind;
+  human_capable: boolean;
 }
 
 /** The build's documents preparation reads, as text: none of them is part

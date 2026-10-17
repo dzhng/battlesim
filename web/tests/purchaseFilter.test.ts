@@ -41,7 +41,7 @@ const JEEP = card("jeep", "humvee", "HMMWV", "Base", 80);
 
 const facts = (over: Partial<BuyFacts> = {}): BuyFacts => ({
   credits: 1000,
-  occupiedSlots: 0,
+  unitCount: 0,
   maxUnits: 30,
   finished: false,
   ...over,
@@ -73,8 +73,8 @@ test("a card is purchasable only when nothing blocks it", () => {
   expect(cardPurchasable(TANK_BASE, facts())).toBe(true);
   expect(cardPurchasable(TANK_BASE, facts({ credits: 199 }))).toBe(false);
   expect(cardPurchasable(TANK_BASE, facts({ credits: 200 }))).toBe(true);
-  expect(cardPurchasable(TANK_BASE, facts({ occupiedSlots: 30 }))).toBe(false);
-  expect(cardPurchasable(TANK_BASE, facts({ occupiedSlots: 29 }))).toBe(true);
+  expect(cardPurchasable(TANK_BASE, facts({ unitCount: 30 }))).toBe(false);
+  expect(cardPurchasable(TANK_BASE, facts({ unitCount: 29 }))).toBe(true);
   expect(cardPurchasable(TANK_BASE, facts({ finished: true }))).toBe(false);
   expect(cardPurchasable(TANK_TROPHY, facts())).toBe(false);
 });

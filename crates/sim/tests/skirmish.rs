@@ -9,7 +9,7 @@ use sim::battle::Battle;
 fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side,
-        slot: None,
+        player: None,
         seq,
         order,
         queued: false,
@@ -49,9 +49,7 @@ fn match_on(rules: serde_json::Value) -> contract::scenario::ScenarioDefinition 
     serde_json::from_value(json!({
         "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules, "units": [],
-        "skirmish": {
-            "factions": ["us", "eastern"],
-            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
+        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "side": "blue", "center": [400, 10], "yaw": 1.5707963267948966 },
                 { "side": "red", "center": [400, 590], "yaw": -1.5707963267948966 }
@@ -90,7 +88,7 @@ fn preparation_starts_empty_and_freezes_the_credit_wallet() {
     let status = frame.skirmish.as_ref().unwrap();
     assert_eq!(status.phase, contract::skirmish::Phase::Preparation);
     assert_eq!(status.credits, 1000.0);
-    assert_eq!(status.occupied_slots, 0);
+    assert_eq!(status.unit_count, 0);
 }
 
 #[test]
@@ -155,7 +153,7 @@ fn confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation()
     assert!(frame.own.is_empty());
     let status = frame.skirmish.as_ref().unwrap();
     assert_eq!(status.credits, 0.0);
-    assert_eq!(status.occupied_slots, 5);
+    assert_eq!(status.unit_count, 5);
     assert_eq!(status.pending.len(), 5);
     assert!(status
         .pending
@@ -198,7 +196,7 @@ fn cancelling_a_pending_purchase_returns_the_price_and_slot_once() {
     battle.step();
     let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
     assert_eq!(status.credits, 1000.0);
-    assert_eq!(status.occupied_slots, 0);
+    assert_eq!(status.unit_count, 0);
     assert!(status.pending.is_empty());
 }
 
@@ -228,7 +226,7 @@ fn paid_reinforcement_enters_at_base_once_and_moves_to_its_destination() {
     assert_eq!(frame.own[0].goal, Some([400.0, 300.0]));
     let status = frame.skirmish.as_ref().unwrap();
     assert_eq!(status.credits, 800.0);
-    assert_eq!(status.occupied_slots, 1);
+    assert_eq!(status.unit_count, 1);
     assert!(status.pending.is_empty());
     for _ in 0..5 * battle.rules().tick_hz {
         battle.step();
@@ -319,7 +317,7 @@ fn occupied_entry_keeps_the_next_paid_unit_pending_without_overlap() {
     assert_eq!(frame.own[0].position[0], 400.0);
     assert!((frame.own[0].position[1] - 10.0).abs() < 1.0);
     let status = frame.skirmish.as_ref().unwrap();
-    assert_eq!(status.occupied_slots, 2);
+    assert_eq!(status.unit_count, 2);
     assert_eq!(status.pending.len(), 1);
     assert!(status.pending[0].blocked);
     assert_eq!(status.pending[0].id.0, 1);
@@ -558,7 +556,7 @@ fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_
     for side in Side::COMBATANTS {
         let status = battle.observe(side).skirmish.as_ref().unwrap();
         assert_eq!(status.credits, 1000.0);
-        assert_eq!(status.occupied_slots, 0);
+        assert_eq!(status.unit_count, 0);
         assert!(status.pending.is_empty());
     }
 }
@@ -600,7 +598,7 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
     battle.step();
     let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
     assert_eq!(status.credits, 4000.0);
-    assert_eq!(status.occupied_slots, 30);
+    assert_eq!(status.unit_count, 30);
     assert_eq!(status.pending.len(), 30);
 }
 
@@ -692,7 +690,7 @@ fn against_an_opponent_with(extra: serde_json::Value) -> contract::scenario::Sce
         } } }));
     }
     let mut setup = match_on(rules);
-    setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
+    setup.players[1].controller = contract::players::ControllerKind::ActiveAi;
     setup
 }
 
@@ -717,7 +715,7 @@ fn against_an_opponent_with_artillery() -> contract::scenario::ScenarioDefinitio
         "roster": { "factions": ["eastern"], "category": "sup", "family_name": "Test artillery", "variant": "Test" }
     } } }));
     let mut setup = match_on(rules);
-    setup.skirmish.as_mut().unwrap().ai_side = Some(Side::Red);
+    setup.players[1].controller = contract::players::ControllerKind::ActiveAi;
     setup
 }
 
@@ -785,7 +783,7 @@ fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every
         red.credits < 1000.0,
         "the AI spends its ordinary opening wallet"
     );
-    assert!(red.occupied_slots > 0 && red.occupied_slots <= 30);
+    assert!(red.unit_count > 0 && red.unit_count <= 30);
     let record = live.replay();
     assert!(record
         .accepted
@@ -906,7 +904,7 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
             .skirmish
             .as_ref()
             .unwrap()
-            .occupied_slots,
+            .unit_count,
         1
     );
     assert!(
@@ -927,7 +925,7 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
     }
     let returned = battle.observe(Side::Blue).clone();
     assert!(returned.own.is_empty(), "the unit physically reached base");
-    assert_eq!(returned.skirmish.as_ref().unwrap().occupied_slots, 0);
+    assert_eq!(returned.skirmish.as_ref().unwrap().unit_count, 0);
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
     let refund = returned.skirmish.as_ref().unwrap().credits
         - before.skirmish.as_ref().unwrap().credits
@@ -1001,7 +999,7 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
     }
     let status = battle.observe(Side::Blue);
     assert!(!status.own[0].withdrawing);
-    assert_eq!(status.skirmish.as_ref().unwrap().occupied_slots, 1);
+    assert_eq!(status.skirmish.as_ref().unwrap().unit_count, 1);
     assert!((status.skirmish.as_ref().unwrap().credits - credits - 50.0).abs() < 0.00001);
 }
 
@@ -1163,7 +1161,7 @@ fn changing_the_return_route_cancels_withdrawal_without_a_refund() {
     }
     let status = battle.observe(Side::Blue);
     assert!(!status.own[0].withdrawing);
-    assert_eq!(status.skirmish.as_ref().unwrap().occupied_slots, 1);
+    assert_eq!(status.skirmish.as_ref().unwrap().unit_count, 1);
     assert!((status.skirmish.as_ref().unwrap().credits - credits - 50.0).abs() < 0.00001);
 }
 
@@ -1223,7 +1221,7 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
             .any(|unit| unit.id == returning && unit.withdrawing),
         "occupied physical entry must keep the return pending"
     );
-    assert_eq!(status.skirmish.as_ref().unwrap().occupied_slots, 2);
+    assert_eq!(status.skirmish.as_ref().unwrap().unit_count, 2);
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
     assert!((status.skirmish.as_ref().unwrap().credits - before - passive).abs() < 0.00001);
 }

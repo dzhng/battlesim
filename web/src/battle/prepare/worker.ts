@@ -34,7 +34,7 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
         const controllers = wasm.scenario_bundle_controllers(
           prepared.canonical,
           message.active_human === undefined
-            ? prepared.report.human_capable_slots[0]
+            ? prepared.report.human_capable_players[0]
             : (message.active_human ?? undefined),
         );
         authority = workerAuthority(scope, async () => ({

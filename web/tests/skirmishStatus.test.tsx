@@ -8,7 +8,7 @@ const match: SkirmishView = {
   ready: [false, false],
   preparationRemainingS: 59.2,
   credits: 1000,
-  occupiedSlots: 0,
+  unitCount: 0,
   maxUnits: 30,
   scores: [0, 0],
   result: null,

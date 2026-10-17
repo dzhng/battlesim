@@ -26,6 +26,7 @@ Each player is a full player inside the simulation.
 - **Random streams.** The aircraft arrival delay and the AI RNG mix `PlayerIndex` in (`:752`, `:1145`).
 - **Settlement (D43).** Bonus totals are kept per (victim side, killer player) and split in player order. `LethalSource` gains the owner (`damage.rs:363`). The pool stays per side.
 - **Digest.** The unit digest hashes `owner` (D44).
+- **Remove the slice 01 seam.** Delete the side mapping, the `{factions, rules, sites}` projection in `scenario_digest`, the skip-if-10 on `MatchRules.max_players_per_side` (which becomes a required field), and the one-player-per-side refusal in scenario validation.
 - **Re-baseline 1 (D41).** Re-bless `fixtures/parity/skirmish-*.json` and record the before and after digests in the commit.
 
 ## What the human can run or see

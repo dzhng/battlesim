@@ -203,7 +203,7 @@ const HEADER: [&str; 45] = [
     "readyRed",
     "preparationRemainingS",
     "credits",
-    "occupiedSlots",
+    "unitCount",
     "maxUnits",
     "pendingCount",
     "reportTotalsCount",
@@ -991,10 +991,7 @@ fn pack_record(
             .as_ref()
             .map_or(0.0, |s| s.preparation_remaining_s as f32),
         frame.skirmish.as_ref().map_or(0.0, |s| s.credits as f32),
-        frame
-            .skirmish
-            .as_ref()
-            .map_or(0.0, |s| s.occupied_slots as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| s.unit_count as f32),
         frame.skirmish.as_ref().map_or(0.0, |s| s.max_units as f32),
         frame
             .skirmish

@@ -30,7 +30,7 @@ The delegation covered the planning walk only. It does not authorise implementat
 | D5 | The team planner sets a shared stance (push, hold, fall back) and times pushes together. | **user** |
 | D6 | *(Amended by D40.)* The team plan is rebuilt from the side's observation in player order and is never digested. The command stream replays. | **territory**: invariant from `specs/done/skirmish-ai/README.md` |
 | D7 | A supply truck resupplies every friendly unit within reach, allies included (current `supply.rs` rule). Each AI buys and keeps its own trucks with its army. | **user** |
-| D8′ | A side's entries are shared, with no player assignment. Entry count follows player count: 1 player → 1 entry, 2 → 2, 3 or more → 3 (centre, left, right). Ground units and helicopters arrive at the side's entry with the shortest drive to where they were ordered; ties go to the centre. | **user** (corrected the original group-assignment plan) |
+| D8′ | *(Amended by D52.)* A side's entries are shared, with no player assignment. Entry count follows player count: 1 player → 1 entry, 2 → 2, 3 or more → 3 (centre, left, right). Ground units and helicopters arrive at the side's entry with the shortest drive to where they were ordered; ties go to the centre. | **user** (corrected the original group-assignment plan) |
 | D9 | Each AI keeps the bulk of its army as one cohesive combined-arms group in its lane. Only scouts, outposts and defensive positions scatter. | **user**: spread units get picked apart |
 | D10′ | More players means more objectives taken at once. The team planner hands out lanes; an AI fights its lane by ordering purchases there, and D8′ brings them in at that lane's entry. | **user** |
 | D11 | *(Amended by D41.)* D9 applies at every match size. Skirmish digests and fixtures are re-baselined exactly twice, each a named decision: once when the setup changes shape, once when AI grouping changes (D41 names the slices). Non-skirmish digests stay identical throughout. | **user** |
@@ -67,7 +67,7 @@ A research pass ([research.md](research.md)) also fed the team AI slices. The ro
 |---|---|---|
 | D31 | Observations stay one per side. The side's skirmish view carries a `players` list with every own-side player's economy (credits, unit count, cap, pending, ready). The HUD shows only yours (D16). Amends L5's "per-viewing-player view". | **agent**: drafts A and C agreed. Allies already share vision, the team planner reads the side frame (D6), and a second observation per player would duplicate the side's one. |
 | D32 | A player's string `id` is its identity for authoring and URLs. `PlayerIndex`, its position in the player list, is always derived and never stored. The digest, RNG streams and the binary publication use the index. | **agent** (draft C): the publication is numeric (`publication.rs:339`). |
-| D33 | `ScenarioDefinition.players` is the single player list. `PlayerSlot` becomes `Player` in a `contract::players` module with `faction` required. The bundle's separate `slots` list (`bundle.rs:89`) is deleted, and `UnitSetup.owner` names a player id. Refines D29. | **agent** (draft C): one list, so a bundle can't carry it twice. |
+| D33 | *(Amended by D54.)* `ScenarioDefinition.players` is the single player list. `PlayerSlot` becomes `Player` in a `contract::players` module with `faction` required. The bundle's separate `slots` list (`bundle.rs:89`) is deleted, and `UnitSetup.owner` names a player id. Refines D29. | **agent** (draft C): one list, so a bundle can't carry it twice. |
 | D34 | A setup may have zero humans; the AI-vs-AI benchmark and tournament need that. "Exactly one Human, on Blue" is enforced only by the lobby model and the single-player link. A battle with no human is viewed through Blue's observation. | **agent**: drafts A and C, D28. |
 | D35 | Admission refuses more than `max_players_per_side` (fixture data, 10). It's a loose work bound, not a target. The lobby's 5 per side is lobby data. Amends D21. | **agent** (draft B): unbounded player counts mean unbounded planner, publication and dispatch work. |
 | D36 | Mapgen lays the left and right entry arms in a dedicated pass with its own named stream (`"entries"`), not by promoting the random corridors. Centre, left and right are told apart by position along the edge. A 1-entry request keeps byte-identical map hashes. Supersedes the "entry roads" fact below. | **agent** (draft C): today's "first stroke at `y == edge`" (`mapgen/src/skirmish.rs:35`) can already match a corridor. A separate stream keeps 1-entry maps identical. |
@@ -86,6 +86,9 @@ A research pass ([research.md](research.md)) also fed the team AI slices. The ro
 | D49 | Slice 00 is a throwaway probe that gates the plan. It measures multi-entry admission rates, prepare timings and opening throughput before any contract work. | **agent** (draft B): if the map fairness assumption is wrong, the plan should die cheaply. |
 | D50 | The number of objectives stays driven by map size (`mapgen/src/skirmish.rs:65`). The size floor (D18) is what gives bigger matches more objectives. | **agent** (draft B noticed it); no new rule is needed. |
 | D51 | One word: **player**. The code uses `Player`, `players`, `CommandEnvelope.player` and `AuthoredScript.player`; `occupied_slots` becomes `unit_count`; the spec folder is `specs/team-skirmish/`. `UnitSetup.owner` stays, because it names the owning player. | **user**: "pick one and stick to it". "Slot" already had six meanings (L11). |
+| D52 | Both sides get the same number of entries: `entry_count` of the larger side's player count. A 2v3 map has 3 entries per side. Amends D8′ ("count follows each side's own players"). | **agent**, from the slice 00 probe ([assets/probe-report.md](assets/probe-report.md)). Symmetric pairings were admitted at the 1v1 rate (3v3 and 5v5 both 2/7, like 1v1). The uneven 2v3 was admitted 0/7, and every refusal was a fairness failure: the side with more entries always has a faster best route. Equal entries keep every map mirror-fair, and a side with fewer players simply has a spare road. Reversible if you prefer per-side counts with a different fairness rule. |
+| D53 | The probe's arm pass failed 150 m spacing and river-mouth avoidance on L and XL. Slice 04 treats both as hard admission tests, not tuning. An XL 5v5 takes about 4.2 s to generate and prepare, so the preview (slice 08) must show a loading state from the first frame. | **territory**: probe evidence. The spike code is frozen on branch `spike/team-skirmish-probe` at `f9d14d2e5`. |
+| D54 | `Player.faction` is optional in the type. Validation requires a faction for every Blue or Red player and refuses one on a Neutral player. Amends D33's "faction required". | **agent**: the Codex review of slice 01 found the builder's default Neutral player has no meaningful faction. Neutral units are world props and civilians, not a faction's army, so they get no faction rather than an invented one. |
 
 ## Landmines from the sweep
 
@@ -115,3 +118,34 @@ These are facts, not decisions. Slice 00 records each one here.
 - **Entry arms.** Whether the dedicated arm pass (D36) yields legal, spaced, river-safe left and right entries.
 - **Opening throughput.** Dispatch only runs once the match is Active (`battle.rs:735`). Drafts estimated about 15 s per entry for a 5v5 opening, against about 9 s today. Measure it.
 - **Prepare timings.** Skirmish-profile prepare time per size (`report.timings`). The preview's responsiveness depends on them.
+
+### Slice 00 results (2026-10-17)
+
+The probe ran over all 7 corpus rows, seeds 1–7 ([full report](assets/probe-report.md)):
+
+| Pairing | Admitted | Generate and prepare | Opening field time (estimate) |
+|---|---|---|---|
+| 1v1 | 2/7 | S: 627 ms | 9 s |
+| 2v3 | 0/7 | L: 710 ms | 9 s |
+| 3v3 | 2/7 | L: 890 ms | 9 s |
+| 5v5 | 2/7 | XL: 4.2 s | 15 s |
+
+These answer the four facts above:
+- **Fairness admission:** fine with equal entry counts; fails with unequal ones, which led to D52.
+- **Entry arms:** the rough pass failed spacing and river checks on larger maps, so slice 04 makes both hard tests (D53).
+- **Opening throughput:** the 15 s estimate is well inside the preparation timer.
+- **Timings:** acceptable, as long as the preview shows a loading state (D53).
+
+The sample is small: 7 rows, 4 of them saved maps with synthetic objectives. Slice 04 re-measures admission on its real arm pass.
+
+## Implementation choices
+
+Decisions the implementation made where the spec was silent, with a verdict on each.
+
+| Slice | Choice | Verdict |
+|---|---|---|
+| 01 | The publication wire field is `unitCount` and the JSON contract field is `unit_count`, following each layer's existing casing. | Sound: it matches the codec's existing camelCase. |
+| 01 | A `human` player must also be `human_capable`; validation refuses one that isn't. | Sound: it keeps the bundle's earlier rule and lets online seats (D26) mark a player human-capable before anyone takes the seat. |
+| 01 | Players from today's links are named `blue-1` (Human) and `red-1` (active AI). Parity fixtures use `red-1` as a passive AI, which matches their earlier behaviour of having no AI opponent. | Sound. Slice 06 replaces the link grammar. |
+| 01 | Wasm preparation checks the scenario's player contract before constructing the battle, and returns a normal refusal instead of panicking. | Sound. It is the one admission point, and it fixed a panic found in review. |
+| 01 | The bundle format version is now `scenario-bundle-2`. | Sound: hard cutover, no migration. |

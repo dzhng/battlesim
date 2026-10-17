@@ -139,7 +139,7 @@ export async function run(ctx) {
     ctx,
     reserved.own.length === 0 &&
       reserved.skirmish.credits === 650 &&
-      reserved.skirmish.occupiedSlots === 1,
+      reserved.skirmish.unitCount === 1,
     "cursor confirmation atomically reserves one variant during preparation",
   );
   // A held left drag places at its press and turns the unit toward its

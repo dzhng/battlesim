@@ -46,7 +46,7 @@ const MATCH: SkirmishView = {
   scores: [120, 85],
   result: null,
   objectives: [],
-  occupiedSlots: 6,
+  unitCount: 6,
   maxUnits: 30,
   pending: [],
   report: null,

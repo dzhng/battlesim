@@ -84,7 +84,7 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules, onClose }: MenuP
   useEffect(() => search.current?.focus(), []);
   const facts: BuyFacts = {
     credits: match.credits,
-    occupiedSlots: match.occupiedSlots,
+    unitCount: match.unitCount,
     maxUnits: match.maxUnits,
     finished: match.phase === "finished",
   };

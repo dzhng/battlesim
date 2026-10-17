@@ -56,7 +56,7 @@ export function BattleView({
   seed,
   prepared,
   scenarioArt,
-  slot,
+  player,
   side,
   replay,
   scripted,
@@ -78,8 +78,8 @@ export function BattleView({
   prepared?: PreparedConnectionSession;
   /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
   scenarioArt?: boolean;
-  /** Player slot issuing commands in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing commands in a player-owned scenario. */
+  player?: string;
   /** Side whose observation and command stream this player controls. */
   side?: import("@web/battle/sim/protocol").SideName;
   /** A recorded battle to replay: input is off. */
@@ -145,7 +145,7 @@ export function BattleView({
     seed,
     prepared,
     scenarioArt,
-    slot,
+    player,
     side,
     onDecoded: (observation, digest) => {
       noteCues(observation);

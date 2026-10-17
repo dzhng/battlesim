@@ -3,6 +3,7 @@ use contract::catalog::Faction;
 use contract::encounter::{EntrySite, ObjectiveSite, ObjectiveSiteKind, SkirmishSites};
 use contract::generation::{GenerationProfile, GenerationRequest, MapSize, MapType};
 use contract::ids::Side;
+use contract::players::{ControllerKind, Player};
 use contract::scenario::{Rules, ScenarioDefinition};
 use contract::skirmish::SkirmishSetup;
 use contract::templates::TemplateGeometryCatalog;
@@ -123,9 +124,23 @@ pub(crate) fn prepare_row(
         }
     };
     let setup = ScenarioDefinition {
+        players: vec![
+            Player {
+                id: "blue-1".into(),
+                side: Side::Blue,
+                faction: Some(inputs.factions[0]),
+                controller: ControllerKind::Human,
+                human_capable: true,
+            },
+            Player {
+                id: "red-1".into(),
+                side: Side::Red,
+                faction: Some(inputs.factions[1]),
+                controller: ControllerKind::ActiveAi,
+                human_capable: false,
+            },
+        ],
         skirmish: Some(SkirmishSetup {
-            factions: inputs.factions,
-            ai_side: None,
             // The real skirmish's economy and timing, from their one owner.
             rules: sim::skirmish::starter_rules(),
             sites,
@@ -146,7 +161,7 @@ pub(crate) fn prepare_row(
 fn synthetic_sites(map: &contract::map::MapDefinition) -> SkirmishSites {
     let [width, depth] = map.size;
     SkirmishSites {
-        entries: [
+        entries: vec![
             EntrySite {
                 side: Side::Blue,
                 center: [width * 0.5, 12.0],

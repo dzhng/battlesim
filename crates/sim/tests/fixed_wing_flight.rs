@@ -94,7 +94,7 @@ fn switching_the_afterburner_off_eases_back_to_cruise_over_its_ramp() {
     let toggle = |battle: &mut sim::battle::Battle, seq, enabled| {
         battle.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq,
             queued: false,
             order: Order::SetAfterburner {
@@ -142,7 +142,7 @@ fn afterburner_burns_fuel_at_its_multiplier() {
         .battle();
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::SetAfterburner {
@@ -477,7 +477,7 @@ fn a_queued_order_follows_once_the_circle_is_reached() {
     let second = v2(2_000.0, 1_500.0);
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Move {
@@ -491,7 +491,7 @@ fn a_queued_order_follows_once_the_circle_is_reached() {
     });
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         queued: true,
         order: Order::Move {
@@ -520,7 +520,7 @@ fn an_idle_jet_circles_the_goal_it_reached() {
     let goal = v2(1_300.0, 1_700.0);
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Move {

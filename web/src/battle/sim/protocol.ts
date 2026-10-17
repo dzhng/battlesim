@@ -61,8 +61,8 @@ export type Order =
 
 export interface CommandEnvelope {
   side: SideName;
-  /** Player slot issuing the order in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing the order in a player-owned scenario. */
+  player?: string;
   seq: number;
   order: Order;
   queued: boolean;
@@ -145,8 +145,8 @@ export type SimRequest =
       scenario: string;
       seed: number;
       side: SideName;
-      /** Player slot issuing commands for a slot-owned scenario. */
-      slot?: string;
+      /** Player issuing commands for a player-owned scenario. */
+      player?: string;
       /** Replay these accepted commands instead of taking input. */
       replay?: string;
     }

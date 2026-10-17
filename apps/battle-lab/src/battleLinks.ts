@@ -12,7 +12,7 @@
 // `&region=<family>`; without it the seed draws the region. A missing faction
 // or any other parameter is refused by name, never defaulted or ignored.
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
-import type { PrepareBattleRequest } from "@web/battle/prepare/protocol";
+import type { Player, PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import game from "@fixtures/game.json";
 import presets from "@fixtures/map-presets.json";
 import {
@@ -28,14 +28,13 @@ import {
 export type AskedBattle =
   | {
       kind: "generated";
-      /** The player's faction, then the enemy's. */
-      factions: [Faction, Faction];
+      players: [Player, Player];
       map: MapChoice;
       battleSeed: number;
     }
   | {
       kind: "play";
-      factions: [Faction, Faction];
+      players: [Player, Player];
       map: Omit<MapChoice, "seed">;
       battleSeed: number;
     }
@@ -105,8 +104,10 @@ export const playHref = (choice: Omit<BattleChoice, "seed">) => `/battle?play=1&
 export function preparedBattleHref(request: PrepareBattleRequest): string {
   const source = request.map_source;
   const params = new URLSearchParams(query(source.request));
-  params.set("faction", request.factions[0]);
-  params.set("enemy", request.factions[1]);
+  const blue = request.players.find((player) => player.side === "blue");
+  const red = request.players.find((player) => player.side === "red");
+  if (blue?.faction) params.set("faction", blue.faction);
+  if (red?.faction) params.set("enemy", red.faction);
   params.set("battle", String(request.battle_seed));
   return `/battle?${params}`;
 }
@@ -135,9 +136,16 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   if (!one(faction, FACTIONS)) return { error: "faction must be us, europe or eastern" };
   if (enemy !== null && !one(enemy, FACTIONS))
     return { error: "enemy must be us, europe or eastern" };
-  const factions: [Faction, Faction] = [
-    faction,
-    enemy ?? (faction === "eastern" ? "us" : "eastern"),
+  const enemyFaction = enemy ?? (faction === "eastern" ? "us" : "eastern");
+  const players: [Player, Player] = [
+    { id: "blue-1", side: "blue", faction, controller: "human", human_capable: true },
+    {
+      id: "red-1",
+      side: "red",
+      faction: enemyFaction,
+      controller: "active_ai",
+      human_capable: false,
+    },
   ];
   const type = params.get("type") ?? ("mixed" satisfies MapType);
   const size = params.get("size") ?? ("small" satisfies MapSize);
@@ -149,8 +157,8 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
     return { error: `region must be one of ${REGIONS.join(", ")}` };
   const chosen = region === null ? {} : { region };
   if (params.has("play"))
-    return { kind: "play", factions, map: { type, size, ...chosen }, battleSeed };
+    return { kind: "play", players, map: { type, size, ...chosen }, battleSeed };
   if (mapSeed === null)
     return { error: "seed must be a whole number from 0 to 18446744073709551615" };
-  return { kind: "generated", factions, map: { type, size, seed: mapSeed, ...chosen }, battleSeed };
+  return { kind: "generated", players, map: { type, size, seed: mapSeed, ...chosen }, battleSeed };
 }

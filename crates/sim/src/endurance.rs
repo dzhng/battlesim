@@ -279,6 +279,7 @@ fn scenario_in_arena(
         }
     }
     Ok(ScenarioDefinition {
+        players: Vec::new(),
         skirmish: None,
         map,
         rules,

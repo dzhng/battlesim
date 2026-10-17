@@ -13,12 +13,12 @@ import {
   builderEconomy,
   BUILDER_FACTIONS,
   createBuilderDraft,
-  nextSlotId,
+  nextPlayerId,
   parseBuilderDraft,
   removeBuilderUnit,
   unitName,
   type BuilderController,
-  type BuilderSlot,
+  type BuilderPlayer,
   type BuilderUnit,
   type ScenarioBundleDraft,
 } from "./model";
@@ -44,16 +44,20 @@ function colorFor(side: BuilderUnit["side"]): string {
   return side === "blue" ? "blue" : side === "red" ? "red" : "neutral";
 }
 
-function assignUnit(slots: BuilderSlot[], unit: BuilderUnit, ownerId: string): BuilderSlot[] {
-  return slots.map((slot) => {
-    const units = slot.units.filter((id) => id !== unit.id);
-    if (slot.id === ownerId && !units.includes(unit.id)) units.push(unit.id);
-    return { ...slot, units: units.sort((a, b) => a - b) };
+function assignUnit(players: BuilderPlayer[], unit: BuilderUnit, ownerId: string): BuilderPlayer[] {
+  return players.map((player) => {
+    const units = player.units.filter((id) => id !== unit.id);
+    if (player.id === ownerId && !units.includes(unit.id)) units.push(unit.id);
+    return { ...player, units: units.sort((a, b) => a - b) };
   });
 }
 
-function updateSlot(slots: BuilderSlot[], id: string, patch: Partial<BuilderSlot>): BuilderSlot[] {
-  return slots.map((slot) => (slot.id === id ? { ...slot, ...patch } : slot));
+function updatePlayer(
+  players: BuilderPlayer[],
+  id: string,
+  patch: Partial<BuilderPlayer>,
+): BuilderPlayer[] {
+  return players.map((player) => (player.id === id ? { ...player, ...patch } : player));
 }
 
 export default function ScenarioBuilder() {
@@ -61,7 +65,7 @@ export default function ScenarioBuilder() {
   const initial = useMemo(() => createBuilderDraft(rules, units), [rules, units]);
   const [draft, setDraft] = useState<ScenarioBundleDraft>(() => initial);
   const [selected, setSelected] = useState<number | null>(0);
-  const [selectedSlot, setSelectedSlot] = useState("blue-1");
+  const [selectedPlayer, setSelectedPlayer] = useState("blue-1");
   const [paletteKind, setPaletteKind] = useState(() => units.ids[0] ?? "");
   const [status, setStatus] = useState<Status>({
     kind: "idle",
@@ -97,7 +101,7 @@ export default function ScenarioBuilder() {
     }
     if (!paletteKind) return;
     const nextId = draft.scenario.units.reduce((max, unit) => Math.max(max, unit.id), -1) + 1;
-    const owner = draft.slots.find((slot) => slot.id === selectedSlot) ?? draft.slots[0];
+    const owner = draft.players.find((player) => player.id === selectedPlayer) ?? draft.players[0];
     const side = owner?.side ?? selectedUnit?.side ?? "blue";
     const unit: BuilderUnit = {
       id: nextId,
@@ -112,7 +116,7 @@ export default function ScenarioBuilder() {
         ...current.scenario,
         units: [...current.scenario.units, unit].sort((a, b) => a.id - b.id),
       },
-      slots: assignUnit(current.slots, unit, owner?.id ?? "blue-1"),
+      players: assignUnit(current.players, unit, owner?.id ?? "blue-1"),
     }));
     setSelected(nextId);
   }
@@ -139,12 +143,12 @@ export default function ScenarioBuilder() {
         unit.id === selectedUnit.id ? { ...unit, side, yaw: side === "red" ? Math.PI : 0 } : unit,
       );
       const moved = next.find((unit) => unit.id === selectedUnit.id)!;
-      const replacement = current.slots.find((slot) => slot.side === side);
+      const replacement = current.players.find((player) => player.side === side);
       if (!replacement) return current;
       return {
         ...current,
         scenario: { ...current.scenario, units: next },
-        slots: assignUnit(current.slots, moved, replacement.id),
+        players: assignUnit(current.players, moved, replacement.id),
       };
     });
   }
@@ -157,7 +161,21 @@ export default function ScenarioBuilder() {
         throw new Error("this build has no scenario authoring boundary yet");
       const next = cloneDraft(draft);
       next.runtime_build = APP_COMMIT;
-      const canonical = wasm.author_scenario_bundle(JSON.stringify(next));
+      const players = next.players.map(({ units: _units, ...player }) => player);
+      const ownerByUnit = new Map<number, string>();
+      for (const player of next.players)
+        for (const id of player.units) ownerByUnit.set(id, player.id);
+      const authoring = {
+        ...next,
+        scenario: {
+          ...next.scenario,
+          players,
+          units: next.scenario.units.map((unit) => ({ ...unit, owner: ownerByUnit.get(unit.id) })),
+        },
+        authored_scripts: next.authored_scripts,
+      } as Record<string, unknown>;
+      delete authoring.players;
+      const canonical = wasm.author_scenario_bundle(JSON.stringify(authoring));
       downloadScenarioBundle(canonical, "scenario.json");
       const identity = validateScenarioBundle(wasm, canonical);
       setStatus({
@@ -181,8 +199,8 @@ export default function ScenarioBuilder() {
       const loaded = parseBuilderDraft(text);
       setDraft(loaded);
       setSelected(loaded.scenario.units[0]?.id ?? null);
-      setSelectedSlot(
-        loaded.slots.find((slot) => slot.human_capable)?.id ?? loaded.slots[0]?.id ?? "",
+      setSelectedPlayer(
+        loaded.players.find((player) => player.human_capable)?.id ?? loaded.players[0]?.id ?? "",
       );
       setStatus({ kind: "ok", text: `Loaded ${identity.sha256.slice(0, 12)}… in memory` });
     } catch (error) {
@@ -391,15 +409,15 @@ export default function ScenarioBuilder() {
             </option>
           ))}
         </select>
-        <h2>Slots and controllers</h2>
+        <h2>Players and controllers</h2>
         <div className="scenario-builder-actions">
           <button
             type="button"
             onClick={() =>
               setDraft((current) => {
                 const side = "blue" as const;
-                const id = nextSlotId(current.slots, side);
-                const newSlot: BuilderSlot = {
+                const id = nextPlayerId(current.players, side);
+                const newPlayer: BuilderPlayer = {
                   id,
                   side,
                   faction: "us",
@@ -409,74 +427,77 @@ export default function ScenarioBuilder() {
                 };
                 return {
                   ...current,
-                  slots: [...current.slots, newSlot].sort((a, b) => a.id.localeCompare(b.id)),
+                  players: [...current.players, newPlayer].sort((a, b) => a.id.localeCompare(b.id)),
                 };
               })
             }
           >
-            Add human slot
+            Add human player
           </button>
           <button
             type="button"
-            disabled={draft.slots.length <= 1}
+            disabled={draft.players.length <= 1}
             onClick={() =>
               setDraft((current) => {
-                const removable = current.slots.find(
-                  (slot) => slot.id === selectedSlot && slot.units.length === 0,
+                const removablePlayer = current.players.find(
+                  (player) => player.id === selectedPlayer && player.units.length === 0,
                 );
-                if (!removable) {
-                  setStatus({ kind: "error", text: "Select an empty slot before removing it." });
+                if (!removablePlayer) {
+                  setStatus({ kind: "error", text: "Select an empty player before removing it." });
                   return current;
                 }
-                const slots = current.slots.filter((slot) => slot.id !== removable.id);
-                setSelectedSlot(slots[0]?.id ?? "");
-                return { ...current, slots };
+                const players = current.players.filter(
+                  (player) => player.id !== removablePlayer.id,
+                );
+                setSelectedPlayer(players[0]?.id ?? "");
+                return { ...current, players };
               })
             }
           >
-            Remove empty slot
+            Remove empty player
           </button>
         </div>
-        <div className="scenario-builder-slots">
-          {draft.slots.map((slot) => (
-            <div className="scenario-builder-slot" data-side={slot.side} key={slot.id}>
+        <div className="scenario-builder-players">
+          {draft.players.map((player) => (
+            <div className="scenario-builder-player" data-side={player.side} key={player.id}>
               <i aria-hidden="true" />
               <label>
                 <span>
-                  {slot.id} · {slot.units.length} units
+                  {player.id} · {player.units.length} units
                   <button
                     type="button"
                     className="scenario-builder-place"
-                    aria-label={`Place unit for ${slot.id}`}
-                    aria-pressed={selectedSlot === slot.id}
-                    onClick={() => setSelectedSlot(slot.id)}
+                    aria-label={`Place unit for ${player.id}`}
+                    aria-pressed={selectedPlayer === player.id}
+                    onClick={() => setSelectedPlayer(player.id)}
                   >
-                    {selectedSlot === slot.id ? "placing" : "place"}
+                    {selectedPlayer === player.id ? "placing" : "place"}
                   </button>
                 </span>
                 <select
-                  aria-label={`${slot.id} side`}
-                  value={slot.side}
+                  aria-label={`${player.id} side`}
+                  value={player.side}
                   onChange={(event) => {
-                    const side = event.target.value as BuilderSlot["side"];
+                    const side = event.target.value as BuilderPlayer["side"];
                     setDraft((current) => {
-                      const nextSlot = {
+                      const nextPlayer = {
                         side,
-                        faction: side === "neutral" ? undefined : (slot.faction ?? "us"),
-                        controller: side === "neutral" ? ("passive_ai" as const) : slot.controller,
-                        human_capable: side === "neutral" ? false : slot.human_capable,
+                        faction: player.faction ?? "us",
+                        controller:
+                          side === "neutral" ? ("passive_ai" as const) : player.controller,
+                        human_capable: side === "neutral" ? false : player.human_capable,
                       };
                       return {
                         ...current,
                         scenario: {
                           ...current.scenario,
                           units: current.scenario.units.map((unit) =>
-                            slot.units.includes(unit.id)
+                            player.units.includes(unit.id)
                               ? { ...unit, side, yaw: side === "red" ? Math.PI : 0 }
                               : unit,
                           ),
                         },
-                        slots: updateSlot(current.slots, slot.id, nextSlot),
+                        players: updatePlayer(current.players, player.id, nextPlayer),
                       };
                     });
                   }}
@@ -487,15 +508,15 @@ export default function ScenarioBuilder() {
                     </option>
                   ))}
                 </select>
-                {slot.side !== "neutral" && (
+                {player.side !== "neutral" && (
                   <select
-                    aria-label={`${slot.id} faction`}
-                    value={slot.faction ?? "us"}
+                    aria-label={`${player.id} faction`}
+                    value={player.faction ?? "us"}
                     onChange={(event) =>
                       setDraft((current) => ({
                         ...current,
-                        slots: updateSlot(current.slots, slot.id, {
-                          faction: event.target.value as BuilderSlot["faction"],
+                        players: updatePlayer(current.players, player.id, {
+                          faction: event.target.value as BuilderPlayer["faction"],
                         }),
                       }))
                     }
@@ -510,12 +531,12 @@ export default function ScenarioBuilder() {
                 <label className="scenario-builder-check">
                   <input
                     type="checkbox"
-                    checked={slot.human_capable}
-                    disabled={slot.side === "neutral"}
+                    checked={player.human_capable}
+                    disabled={player.side === "neutral"}
                     onChange={(event) =>
                       setDraft((current) => ({
                         ...current,
-                        slots: updateSlot(current.slots, slot.id, {
+                        players: updatePlayer(current.players, player.id, {
                           human_capable: event.target.checked,
                         }),
                       }))
@@ -524,20 +545,20 @@ export default function ScenarioBuilder() {
                   human-capable
                 </label>
                 <select
-                  aria-label={`${slot.id} controller`}
-                  value={slot.controller}
+                  aria-label={`${player.id} controller`}
+                  value={player.controller}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
-                      slots: updateSlot(current.slots, slot.id, {
+                      players: updatePlayer(current.players, player.id, {
                         controller: event.target.value as BuilderController,
                       }),
                     }))
                   }
                 >
-                  {(slot.side === "neutral"
+                  {(player.side === "neutral"
                     ? (["passive_ai"] as BuilderController[])
-                    : slot.human_capable
+                    : player.human_capable
                       ? CONTROLLERS
                       : (["active_ai", "passive_ai"] as BuilderController[])
                   ).map((controller) => (
@@ -638,7 +659,7 @@ export default function ScenarioBuilder() {
                       units: [],
                       skirmish: builderEconomy(current.scenario.map.size),
                     },
-                    slots: current.slots.map((slot) => ({ ...slot, units: [] })),
+                    players: current.players.map((player) => ({ ...player, units: [] })),
                   };
                 }
                 return {
@@ -739,24 +760,24 @@ export default function ScenarioBuilder() {
               </select>
             </label>
             <label>
-              Script slot
+              Script player
               <select
-                value={script.slot ?? ""}
+                value={script.player ?? ""}
                 onChange={(event) =>
                   setDraft((current) => ({
                     ...current,
                     authored_scripts: current.authored_scripts.map((item, i) =>
-                      i === index ? { ...item, slot: event.target.value || null } : item,
+                      i === index ? { ...item, player: event.target.value || null } : item,
                     ),
                   }))
                 }
               >
-                <option value="">No command slot (events/victory only)</option>
-                {draft.slots
-                  .filter((slot) => slot.side === script.side)
-                  .map((slot) => (
-                    <option key={slot.id} value={slot.id}>
-                      {slot.id}
+                <option value="">No command player (events/victory only)</option>
+                {draft.players
+                  .filter((player) => player.side === script.side)
+                  .map((player) => (
+                    <option key={player.id} value={player.id}>
+                      {player.id}
                     </option>
                   ))}
               </select>

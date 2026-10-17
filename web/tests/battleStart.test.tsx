@@ -49,7 +49,16 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   );
   expect(asked).toEqual({
     kind: "generated",
-    factions: ["europe", "eastern"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "europe", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     map,
     battleSeed: expect.any(Number),
   });
@@ -73,13 +82,31 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
         limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
       },
     },
-    factions: ["eastern", "europe"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "eastern", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "europe",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     battle_seed: 1,
   });
   expect(admitted).not.toMatch(/recipe|encounter/);
   expect(askedBattle(new URL(admitted, "http://game").search)).toEqual({
     kind: "generated",
-    factions: ["eastern", "europe"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "eastern", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "europe",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     map: paris,
     battleSeed: 1,
   });
@@ -275,7 +302,16 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
         limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
       },
     },
-    factions: ["us", "eastern"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     battle_seed: 7,
   });
   const seeds = ["11", ABOVE_NUMBER];
@@ -306,7 +342,16 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
   const address = preparedBattleHref(admitted.report.request);
   expect(askedBattle(new URL(address, "http://game").search)).toEqual({
     kind: "generated",
-    factions: ["us", "eastern"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     map: { type: "metro", size: "large", seed: ABOVE_NUMBER },
     battleSeed: 7,
   });
@@ -359,7 +404,19 @@ test("faction choice round-trips with an admitted exact skirmish address", () =>
     faction: "europe",
   });
   const asked = askedBattle(new URL(href, "http://game").search);
-  expect(asked).toMatchObject({ map: { seed: "17" }, factions: ["europe", "eastern"] });
+  expect(asked).toMatchObject({
+    map: { seed: "17" },
+    players: [
+      { id: "blue-1", side: "blue", faction: "europe", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
+  });
   expect(askedBattle("?faction=unknown")).toEqual({
     error: "faction must be us, europe or eastern",
   });

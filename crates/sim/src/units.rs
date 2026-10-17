@@ -226,7 +226,7 @@ pub struct Unit {
     pub id: UnitId,
     pub side: Side,
     /// Player slot that may issue commands for this unit, when the scenario
-    /// is a portable slot-owned bundle.
+    /// is a portable player-owned bundle.
     pub owner: Option<String>,
     /// Its unit type, the catalog's index.
     pub kind: TypeIndex,

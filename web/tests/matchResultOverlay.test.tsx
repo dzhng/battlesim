@@ -11,7 +11,7 @@ const match: SkirmishView = {
   ready: [true, true],
   preparationRemainingS: 0,
   credits: 420,
-  occupiedSlots: 2,
+  unitCount: 2,
   maxUnits: 30,
   scores: [700, 300],
   result: "blue",

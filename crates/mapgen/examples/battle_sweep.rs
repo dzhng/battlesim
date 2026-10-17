@@ -292,7 +292,7 @@ fn run_case(inputs: &Inputs, request: &GenerationRequest, seconds: u64) -> Value
                         .collect();
                     let command = CommandEnvelope {
                         side: inputs.recipe.attacker,
-                        slot: None,
+                        player: None,
                         seq: 1,
                         queued: false,
                         order: Order::Move {
@@ -474,7 +474,7 @@ mod tests {
         .unwrap();
         let command = CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             queued: false,
             order: Order::Move {
