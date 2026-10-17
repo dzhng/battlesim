@@ -4,6 +4,7 @@ use contract::command::{
 };
 use contract::ids::{Side, UnitId};
 use contract::observation::HoldPhase;
+use contract::scenario::BailOutHost;
 use serde_json::json;
 use sim::battle::Battle;
 
@@ -388,7 +389,8 @@ fn a_helicopter_shot_down_keeps_its_passengers_until_it_hits_the_ground() {
                     (at.xy() - impact.xy()).length() < (at.xy() - hit.xy()).length(),
                     "seed {seed}: a survivor at {at:?} stands nearer the hit {hit:?} than the impact {impact:?}"
                 );
-                assert!((at.xy() - impact.xy()).length() < 15.0);
+                let search = battle.rules().bail_out[&BailOutHost::Air].search_m;
+                assert!((at.xy() - impact.xy()).length() <= search + 1e-9);
             }
         } else {
             saw_squad_loss = true;
@@ -1348,7 +1350,7 @@ fn carrier_destroyed_once(
 fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
     let (battle, health) =
         carrier_destroyed_once(1, None, |phase| phase == sim::hold::Phase::Inside);
-    let rule = &battle.rules().bail_out[&contract::scenario::BailOutHost::Ground];
+    let rule = &battle.rules().bail_out[&BailOutHost::Ground];
     let squad = battle.unit(UnitId(1)).unwrap();
     assert!(
         squad.hold.is_none(),
