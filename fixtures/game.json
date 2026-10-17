@@ -1729,7 +1729,7 @@
         "mist_opacity": 0.08
       },
       "backdrop": { "reach_m": 40000 },
-      "exposure": 2.6,
+      "exposure": 1.7,
       "grade": {
         "enabled": true,
         "saturation": 1.1,
