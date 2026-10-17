@@ -371,23 +371,30 @@ pub(crate) fn advance(
                 if within_reach(&units[i], &units[target_id.0 as usize], rules)
                     && stationary(&units[i])
                 {
+                    // Every listed squad is handed a Board order; one already
+                    // beside the carrier and still starts its hold now, the
+                    // rest walk over first.
                     let carrier_id = units[i].id;
                     for id in squads {
                         let k = id.0 as usize;
                         let eligible = units.get(k).is_some_and(|s| {
                             s.alive() && s.side == units[i].side && s.hold.is_none()
                         });
-                        if eligible {
-                            let squad = &mut units[k];
+                        if !eligible {
+                            continue;
+                        }
+                        let near = near_and_still(world, units, k, carrier_id, rules);
+                        let squad = &mut units[k];
+                        squad.orders.clear();
+                        squad.orders.push_front(UnitOrder::Board {
+                            carrier: carrier_id,
+                            gesture,
+                        });
+                        if near {
                             squad.hold = Some(Hold {
                                 host: Host::Carrier(carrier_id),
                                 phase: Phase::Entering(1),
                                 place: Place::Carrier,
-                            });
-                            squad.orders.clear();
-                            squad.orders.push_front(UnitOrder::Board {
-                                carrier: carrier_id,
-                                gesture,
                             });
                         }
                     }

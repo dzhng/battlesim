@@ -625,6 +625,52 @@ fn a_carrier_drives_to_a_squad_and_takes_it_aboard() {
 }
 
 #[test]
+fn a_collected_squad_out_of_reach_walks_over_before_it_boards() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[250,200]},
+            {"side":"blue","kind":"test_recon","position":[220,200]},
+            {"side":"blue","kind":"test_recon","position":[220,240]}
+        ])),
+        10,
+    );
+    assert!(battle
+        .accept(command(
+            1,
+            Order::Collect {
+                units: vec![UnitId(0)],
+                squads: vec![UnitId(1), UnitId(2)],
+                gesture: 1
+            }
+        ))
+        .error
+        .is_none());
+    // A soldier on foot covers well under a metre a tick; the far squad is
+    // 40 m from the first one the carrier reaches.
+    let mut last = battle.unit(UnitId(2)).unwrap().position.xy();
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        let squad = battle.unit(UnitId(2)).unwrap();
+        if !squad.on_field() {
+            break;
+        }
+        let moved = (squad.position.xy() - last).length();
+        assert!(moved < 1.0, "the far squad jumped {moved} m in one tick");
+        last = squad.position.xy();
+    }
+    for _ in 0..(battle.rules().tick_hz * 10) {
+        battle.step();
+    }
+    for id in [UnitId(1), UnitId(2)] {
+        assert_eq!(
+            battle.unit(id).unwrap().hold.as_ref().map(|h| h.phase),
+            Some(sim::hold::Phase::Inside),
+            "every collected squad ends up aboard"
+        );
+    }
+}
+
+#[test]
 fn transport_orders_replay_every_tick_exactly() {
     let setup = setup(json!([
         {"side":"blue","kind":"test_apc","position":[200,200]},
