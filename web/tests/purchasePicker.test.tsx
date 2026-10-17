@@ -353,3 +353,41 @@ test("Escape clears the filter first, then closes and returns focus to its butto
   expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
   expect(document.activeElement).toBe(toggle);
 });
+
+test("V opens the shop and stays a search character in the field", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+    />,
+  );
+  const toggle = view.getByRole("button", { name: "Reinforcements" });
+  expect(toggle.getAttribute("aria-keyshortcuts")).toBe("V");
+  expect(toggle.textContent).toContain("(V)");
+  fireEvent.keyDown(window, { code: "KeyV" });
+  const field = view.getByRole("textbox", { name: "Search units" });
+  // The field owns its typing: the press is not consumed and the shop stays open.
+  expect(fireEvent.keyDown(field, { code: "KeyV", cancelable: true })).toBe(true);
+  expect(view.getByRole("textbox", { name: "Search units" })).toBeTruthy();
+  // The button is the close, as it was before the key.
+  fireEvent.click(toggle);
+  expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
+});
+
+test("V does nothing while the battle is covered", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+      enabled={false}
+    />,
+  );
+  fireEvent.keyDown(window, { code: "KeyV" });
+  expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
+});
