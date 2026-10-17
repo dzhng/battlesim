@@ -3113,15 +3113,12 @@ impl Battle {
         }
     }
 
-    /// The live squads riding in `carrier`, in unit order.
+    /// The live squads riding in `carrier`, in unit order. A squad still
+    /// getting in stands beside it and shares none of its fate.
     fn passengers_of(&self, carrier: UnitId) -> Vec<usize> {
         (self.units.iter().enumerate())
             .filter(|(_, unit)| {
-                unit.alive()
-                    && unit
-                        .hold
-                        .as_ref()
-                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(carrier))
+                unit.alive() && unit.hold.as_ref().and_then(|hold| hold.riding()) == Some(carrier)
             })
             .map(|(index, _)| index)
             .collect()

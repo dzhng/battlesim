@@ -1201,6 +1201,25 @@ fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
     }
 }
 
+#[test]
+fn a_squad_still_getting_in_is_spared_when_its_carrier_is_destroyed() {
+    // Boarding outlasts the gun jeep's kill, so the carrier dies mid-boarding.
+    let (battle, health) = carrier_destroyed_once(Some(30.0), |phase| {
+        matches!(phase, sim::hold::Phase::Entering(_))
+    });
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(squad.on_field());
+    assert_eq!(
+        squad.members.iter().map(|s| s.hp).collect::<Vec<_>>(),
+        health,
+        "a squad standing beside the carrier is not hurt as if it rode inside"
+    );
+    assert!(
+        squad.suppression < battle.rules().suppression.pinned.level,
+        "a squad standing beside the carrier is not pinned by a bail-out"
+    );
+}
+
 /// Blue's published unload flags for unit `id`: its goal's, then each
 /// queued step's.
 fn published_unloads(battle: &Battle, id: UnitId) -> (bool, Vec<bool>) {
