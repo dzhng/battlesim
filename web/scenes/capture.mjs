@@ -3,10 +3,12 @@
 // the capture CLI films it, and streams its WebM back through the CLI's
 // handoff (`captureChunk`, then `captureDone`). ffprobe must find a VP9 video
 // stream at the viewport's size and a stereo Opus stream. The scene owns its
-// browser because the runner's is headless and muted. Mac only, like the CLI.
+// browser (the CLI's, `TAB_CAPTURE_BROWSER`) because the runner's is headless
+// and muted. Mac only, like the CLI.
 import { execFileSync } from "node:child_process";
 import { open } from "node:fs/promises";
 import { launchBrowser } from "../browser.mjs";
+import { TAB_CAPTURE_BROWSER } from "../capture/recording.mjs";
 import { openScenePage } from "../scene.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
@@ -16,16 +18,7 @@ const REEL_S = 8;
 const TIMEOUT_MS = 120_000;
 
 export async function run(ctx) {
-  const browser = await launchBrowser({
-    args: [
-      "--auto-accept-this-tab-capture",
-      "--autoplay-policy=no-user-gesture-required",
-      "--disable-background-timer-throttling",
-      "--disable-backgrounding-occluded-windows",
-      "--disable-renderer-backgrounding",
-    ],
-    launch: { headless: false, ignoreDefaultArgs: ["--mute-audio"] },
-  });
+  const browser = await launchBrowser(TAB_CAPTURE_BROWSER);
   const file = ctx.evidencePath(`${CAPTURE}.webm`);
   const webm = await open(file, "w");
   try {

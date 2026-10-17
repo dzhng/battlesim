@@ -5,6 +5,21 @@
 // name, never wait out: `--auto-accept-this-tab-capture` is the only thing
 // standing between the page and a permission prompt nobody will answer.
 
+/** The browser a recording runs in (`launchBrowser`'s options): headful, the
+ * tab capture granted without a prompt, autoplay allowed, never throttled in
+ * the background, and the tab's own sound, which Playwright mutes by default,
+ * left on. */
+export const TAB_CAPTURE_BROWSER = {
+  args: [
+    "--auto-accept-this-tab-capture",
+    "--autoplay-policy=no-user-gesture-required",
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+  ],
+  launch: { headless: false, ignoreDefaultArgs: ["--mute-audio"] },
+};
+
 /** Startup before the reel's first frame: the page, the battle's assets, the
  * warm-up simulation and the stage. A cold dev server takes about 15 s. */
 export const STARTUP_ALLOWANCE_S = 180;

@@ -176,7 +176,8 @@ pub fn game() -> Value {
 
 /// [`test_game`] with the saved test map `id` (`fixtures/maps/<id>`),
 /// resolved, under `map`: for a test that needs ground. A map that is not a
-/// capture map is refused, so no test stands on a capture battlefield.
+/// test's (a capture map) is refused, so no test stands on a capture
+/// battlefield.
 pub fn with_map(id: &str) -> Value {
     let catalogue = crate::maps::Catalogue::shipped();
     let category = catalogue.category(id).unwrap_or_else(|e| panic!("{e}"));

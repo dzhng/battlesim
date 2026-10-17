@@ -53,7 +53,7 @@ Least complexity and least technical debt decide every trade-off. Output is 16:9
 ```
 
 - `follow` is an index into the encounter's `units`, and names one of the filming side's (blue) units. The camera follows your own units only. The client sees only blue's observation, and enemy follow was never needed (the user, 2026-10-17).
-- `validateCapture` keeps every shot field. Today `menuReel.ts:61-66` drops `ease`, `logDistance` and `zoomDuration`.
+- `validateCapture` keeps every shot field, including `ease`, `logDistance` and `zoomDuration`, which the old `menuReel.ts` dropped.
 - It refuses non-capture maps and unknown fields, by name.
 
 **Map category `capture`** replaces `menu`, and the unit catalog set and the `menu_` unit prefix become `capture` and `capture_`. Only capture maps are filmable. Test maps never are: copy one into a capture map instead (the user: "a test map should stay a test map"). Capture maps change often; test maps stay static.

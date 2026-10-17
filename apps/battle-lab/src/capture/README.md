@@ -36,15 +36,21 @@ field, a non-capture map or a bad value, naming the field. The other files in
 
 ```jsonc
 {
-  "scenes": [            // played in order; several are joined into one MP4, dipping through black between them
+  "scenes": [
+    // played in order; several are joined into one MP4, dipping through black between them
     {
-      "map": "market-town",  // a capture map's folder name
-      "encounter": "menu",   // file stem under that map's encounters/
-      "seed": 1,             // the battle's seed; the music shuffles by it too
-      "warm_s": 3,           // seconds simulated before the first frame
-      "reel": { "fade_s": 0.6, "shots": [ /* … */ ] }
-    }
-  ]
+      "map": "market-town", // a capture map's folder name
+      "encounter": "menu", // file stem under that map's encounters/
+      "seed": 1, // the battle's seed; the music shuffles by it too
+      "warm_s": 3, // seconds simulated before the first frame
+      "reel": {
+        "fade_s": 0.6,
+        "shots": [
+          /* … */
+        ],
+      },
+    },
+  ],
 }
 ```
 
@@ -54,14 +60,14 @@ black, cuts through black and ends on black. Every shot must last at least
 
 A **shot** is one camera move from `from` to `to`:
 
-| Field | Meaning |
-|---|---|
-| `seconds` | The shot's length, dips included. |
-| `from`, `to` | Poses: `target` `[x, y]` on the ground in metres, `distance` from it in metres, `yaw` and `pitch` in radians. Pitch is the angle down to the target: about 0.1 skims the ground, 1.2 looks almost straight down. Yaw 0 → 2π is one full orbit. |
-| `follow` | Optional. Tracks one unit: its index in the encounter's `units`, which must be a `blue` unit. The film is blue's view, so it can't follow what blue can't see. `target` is then an offset in metres from the unit, and the camera glides after it. When the unit dies, the camera holds where it last stood. Without `follow`, `target` is a world position on the map. |
-| `ease` | Optional. `"linear"` (default) or `"cubic"`, an ease-in-out. |
-| `logDistance` | Optional. Interpolates distance in log space, so a long zoom feels even rather than rushing at the end. |
-| `zoomDuration` | Optional. The move takes this many seconds and then holds `to` for the rest of the shot. Defaults to `seconds`. |
+| Field          | Meaning                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `seconds`      | The shot's length, dips included.                                                                                                                                                                                                                                                                                                                                       |
+| `from`, `to`   | Poses: `target` `[x, y]` on the ground in metres, `distance` from it in metres, `yaw` and `pitch` in radians. Pitch is the angle down to the target: about 0.1 skims the ground, 1.2 looks almost straight down. Yaw 0 → 2π is one full orbit.                                                                                                                          |
+| `follow`       | Optional. Tracks one unit: its index in the encounter's `units`, which must be a `blue` unit. The film is blue's view, so it can't follow what blue can't see. `target` is then an offset in metres from the unit, and the camera glides after it. When the unit dies, the camera holds where it last stood. Without `follow`, `target` is a world position on the map. |
+| `ease`         | Optional. `"linear"` (default) or `"cubic"`, an ease-in-out.                                                                                                                                                                                                                                                                                                            |
+| `logDistance`  | Optional. Interpolates distance in log space, so a long zoom feels even rather than rushing at the end.                                                                                                                                                                                                                                                                 |
+| `zoomDuration` | Optional. The move takes this many seconds and then holds `to` for the rest of the shot. Defaults to `seconds`.                                                                                                                                                                                                                                                         |
 
 A pose may come closer than a player can zoom: the film's camera rig reaches in
 to the closest distance in the capture.
@@ -87,25 +93,44 @@ existing `menu` encounter.
    side, low (pitch 0.16), and drift in to 40 m while turning 0.3 rad:
 
    ```json
-   { "seconds": 8, "follow": 0,
+   {
+     "seconds": 8,
+     "follow": 0,
      "from": { "target": [-1, 8], "distance": 45, "yaw": -0.126, "pitch": 0.16 },
-     "to":   { "target": [-1, 8], "distance": 39.6, "yaw": -0.426, "pitch": 0.147 } }
+     "to": { "target": [-1, 8], "distance": 39.6, "yaw": -0.426, "pitch": 0.147 }
+   }
    ```
 
 3. **Add a wide shot.** A world-fixed view over the town for 6 s, with no
    `follow`, so `target` is a map position:
 
    ```json
-   { "seconds": 6,
+   {
+     "seconds": 6,
      "from": { "target": [3585, 1940], "distance": 62, "yaw": -1.45, "pitch": 0.14 },
-     "to":   { "target": [3575, 1935], "distance": 56, "yaw": -1.6, "pitch": 0.13 } }
+     "to": { "target": [3575, 1935], "distance": 56, "yaw": -1.6, "pitch": 0.13 }
+   }
    ```
 
 4. **Wrap it** in a scene and save it as `fixtures/captures/push.json`:
 
    ```json
-   { "scenes": [ { "map": "market-town", "encounter": "menu", "seed": 1, "warm_s": 3,
-       "reel": { "fade_s": 0.6, "shots": [ /* step 2, step 3 */ ] } } ] }
+   {
+     "scenes": [
+       {
+         "map": "market-town",
+         "encounter": "menu",
+         "seed": 1,
+         "warm_s": 3,
+         "reel": {
+           "fade_s": 0.6,
+           "shots": [
+             /* step 2, step 3 */
+           ]
+         }
+       }
+     ]
+   }
    ```
 
 5. **Check it** with the test above, then **preview** it live on the dev server

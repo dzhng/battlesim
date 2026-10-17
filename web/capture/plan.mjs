@@ -12,7 +12,7 @@ const CAPTURES = "fixtures/captures";
 /** Return `{name, jobs, joined, report}`. Each job is
  * `{scene, url, seconds, webm, mp4}`: the capture route to record, the
  * scripted length (sum of shot seconds) and its output paths. `joined` is the
- * crossfaded MP4 of every scene, or null for a single scene. */
+ * one MP4 of every scene, or null for a single scene. */
 export function planCapture(capture, args, { root = REPO_ROOT } = {}) {
   const name = basename(args.file, ".json");
   if (dirname(args.file) !== join(root, CAPTURES)) {

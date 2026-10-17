@@ -4,8 +4,8 @@
 //
 // Each scene plays on the /labs/capture route in headful Chromium, which
 // records its stage, cards and sound with tab capture and streams the WebM
-// here. ffmpeg turns each into a constant-rate H.264/AAC MP4, crossfades them
-// into one when there are several, and `<name>.report.json` says how each
+// here. ffmpeg turns each into a constant-rate H.264/AAC MP4, joins them
+// through a dip to black when there are several, and `<name>.report.json` says how each
 // scene recorded. The pure stages live in capture/; this file is their IO.
 //
 // Recording is wall-clock real time on the user's Mac: never headless, never
@@ -22,7 +22,12 @@ import { planCapture } from "./capture/plan.mjs";
 import { transcodeArgs } from "./capture/transcode.mjs";
 import { joinArgs } from "./capture/join.mjs";
 import { buildReport, frameStats } from "./capture/report.mjs";
-import { CaptureError, recordingVerdict, recordTimeoutMs } from "./capture/recording.mjs";
+import {
+  CaptureError,
+  recordingVerdict,
+  recordTimeoutMs,
+  TAB_CAPTURE_BROWSER,
+} from "./capture/recording.mjs";
 
 const PROGRESS_MS = 10_000;
 const fromRoot = (file) => relative(REPO_ROOT, file);
@@ -48,17 +53,7 @@ async function main() {
   const recordings = [];
   try {
     const release = await holdGpuLock();
-    const browser = await launchBrowser({
-      args: [
-        "--auto-accept-this-tab-capture",
-        "--autoplay-policy=no-user-gesture-required",
-        "--disable-background-timer-throttling",
-        "--disable-backgrounding-occluded-windows",
-        "--disable-renderer-backgrounding",
-      ],
-      // The recording is the tab's own sound, which Playwright mutes by default.
-      launch: { headless: false, ignoreDefaultArgs: ["--mute-audio"] },
-    });
+    const browser = await launchBrowser(TAB_CAPTURE_BROWSER);
     try {
       for (const job of plan.jobs)
         recordings.push(await recordScene(browser, server.url, job, args));

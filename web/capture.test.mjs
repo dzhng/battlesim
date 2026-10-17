@@ -132,8 +132,12 @@ test("join: chained xfade/acrossfade with offsets from each scene's length", () 
   expect(argv.filter((a, i) => argv[i - 1] === "-i")).toEqual(["a.mp4", "b.mp4", "c.mp4"]);
   expect(argv.at(-1)).toBe("all.mp4");
   const graph = after(argv, "-filter_complex");
-  expect(graph).toContain(`[0:v][1:v]xfade=transition=fadeblack:duration=${d}:offset=${10 - d}[v1]`);
-  expect(graph).toContain(`[v1][2:v]xfade=transition=fadeblack:duration=${d}:offset=${18 - 2 * d}[v2]`);
+  expect(graph).toContain(
+    `[0:v][1:v]xfade=transition=fadeblack:duration=${d}:offset=${10 - d}[v1]`,
+  );
+  expect(graph).toContain(
+    `[v1][2:v]xfade=transition=fadeblack:duration=${d}:offset=${18 - 2 * d}[v2]`,
+  );
   expect(graph).toContain(`[0:a][1:a]acrossfade=d=${d}[a1]`);
   expect(graph).toContain(`[a1][2:a]acrossfade=d=${d}[a2]`);
   expect(argv.filter((a, i) => argv[i - 1] === "-map")).toEqual(["[v2]", "[a2]"]);
