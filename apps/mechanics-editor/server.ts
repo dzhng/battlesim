@@ -70,41 +70,6 @@ function entry(catalog: JsonObject, section: string, id: string): JsonObject {
   return object(records[id]);
 }
 
-/** One draft operation's shape: a well-formed edit or restore of one
- *  editable gameplay field, named once in the draft (`seen` holds the
- *  addresses before it), with a valid value when it sets one. */
-function checkChange(change: MechanicsChange, seen: Set<string>): void {
-  if (
-    !change ||
-    typeof change !== "object" ||
-    Array.isArray(change) ||
-    (change.restore !== undefined && typeof change.restore !== "boolean") ||
-    (change.unit !== undefined &&
-      (change.section !== "soldiers" || typeof change.unit !== "string")) ||
-    (change.restore && Object.hasOwn(change, "value"))
-  )
-    throw new MechanicsError("Invalid edit operation");
-  if (
-    !["units", "soldiers", "weapons"].includes(change.section) ||
-    typeof change.id !== "string" ||
-    !Array.isArray(change.path) ||
-    change.path.some(
-      (key) => typeof key !== "string" || ["__proto__", "prototype", "constructor"].includes(key),
-    )
-  )
-    throw new MechanicsError("Invalid field address");
-  const address = JSON.stringify([change.section, change.id, change.unit, change.path]);
-  if (seen.has(address)) throw new MechanicsError("A draft must contain one final value per field");
-  seen.add(address);
-  if (!gameplayField(change.section, change.path))
-    throw new MechanicsError("This field is not an editable gameplay value");
-  if (!change.restore) {
-    if (!Object.hasOwn(change, "value")) throw new MechanicsError("An edit needs a value");
-    const error = validateGameplayValue(change.section, change.path, change.value!);
-    if (error) throw new MechanicsError(error);
-  }
-}
-
 /** Every edit takes effect in the resolved `catalog`: the selected unit
  *  still carries each edited soldier kind (by its local variant id in
  *  `soldierIds`), and no inheritance or upgrade overrides the new value. */
@@ -346,6 +311,7 @@ export class MechanicsStore {
     });
   }
 
+  // eslint-disable-next-line complexity -- debt: per-change validation records each field address in `seen` midway; a clean split needs it to return the address so this loop owns `seen`, keeping the error order
   private async candidate(draft: MechanicsDraft): Promise<MechanicsPreview> {
     if (!draft || typeof draft !== "object" || Array.isArray(draft))
       throw new MechanicsError("A draft must be a JSON object");
@@ -373,7 +339,37 @@ export class MechanicsStore {
     const seen = new Set<string>();
     const soldierIds: Record<string, string> = {};
     for (const change of draft.changes) {
-      checkChange(change, seen);
+      if (
+        !change ||
+        typeof change !== "object" ||
+        Array.isArray(change) ||
+        (change.restore !== undefined && typeof change.restore !== "boolean") ||
+        (change.unit !== undefined &&
+          (change.section !== "soldiers" || typeof change.unit !== "string")) ||
+        (change.restore && Object.hasOwn(change, "value"))
+      )
+        throw new MechanicsError("Invalid edit operation");
+      if (
+        !["units", "soldiers", "weapons"].includes(change.section) ||
+        typeof change.id !== "string" ||
+        !Array.isArray(change.path) ||
+        change.path.some(
+          (key) =>
+            typeof key !== "string" || ["__proto__", "prototype", "constructor"].includes(key),
+        )
+      )
+        throw new MechanicsError("Invalid field address");
+      const address = JSON.stringify([change.section, change.id, change.unit, change.path]);
+      if (seen.has(address))
+        throw new MechanicsError("A draft must contain one final value per field");
+      seen.add(address);
+      if (!gameplayField(change.section, change.path))
+        throw new MechanicsError("This field is not an editable gameplay value");
+      if (!change.restore) {
+        if (!Object.hasOwn(change, "value")) throw new MechanicsError("An edit needs a value");
+        const error = validateGameplayValue(change.section, change.path, change.value!);
+        if (error) throw new MechanicsError(error);
+      }
       const effective = entry(state.catalog, change.section, change.id);
       let target = raw(change.section, change.id).row;
       if (change.section === "soldiers") {
