@@ -68,6 +68,13 @@
       ],
       "sound": { "profile": "vehicle", "loudness_m": 900 },
       "appearance": "test_heli"
+    },
+    "test_transport_heli": {
+      "extends": "test_heli",
+      "name": "Transport Heli",
+      "description": "A utility helicopter with sixteen passenger seats.",
+      "capabilities": { "carriage": { "seats": 16 } },
+      "roster": null
     }
   }
 }

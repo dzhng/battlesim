@@ -8,7 +8,7 @@
 //! `ceiling_agl_m`. It turns on the spot toward where it flies, or to its
 //! ordered facing at rest. Aircraft never collide; ones closer than
 //! `separation_m` drift apart. Idle at a set-up supply truck it sinks to the
-//! low hover (D10) and is served there; any order or engagement lifts it back.
+//! low hover (D10), as does a carrier hold; an unrelated order lifts it back.
 
 use super::{arrive, may_advance, MovementContext, SideGeometry, GOAL_REPLAN_M};
 use crate::math::{v2, V2};
@@ -49,6 +49,7 @@ pub(super) fn step_aircraft(
     let side = units[i].side.index();
     plan(ctx, &mut units[i], &mut sides[side]);
     let drift = separation(ctx, units, i);
+    let low = sinks(units, i);
     let unit = &mut units[i];
     let here = unit.position.xy();
     let cruise_mps = flight.cruise_mps;
@@ -103,7 +104,6 @@ pub(super) fn step_aircraft(
     } else {
         v2(0.0, 0.0)
     };
-    let low = sinks(unit);
     let air = unit.air.as_mut().expect("an aircraft's flight state");
     let change = wanted - air.velocity.xy();
     let most = accel * dt;
@@ -148,18 +148,40 @@ pub(super) fn step_aircraft(
     }
 }
 
-/// The resupply sink (D10): with no order and no target, inside a set-up
-/// supply truck's zone, it holds the low hover. `service` is last tick's,
-/// since supply serves after movement; an order or an engagement since then
-/// lifts it this tick. Its height alone never counts as moving (D37), so
-/// sinking never turns that status to `Moving`.
-fn sinks(unit: &Unit) -> bool {
-    unit.orders.is_empty()
+/// The one low-hover predicate (D10, transport D6): resupply keeps its
+/// existing no-order/no-engagement rule, while a carrier hold also sinks the
+/// helicopter through boarding or unloading regardless of engagement. An
+/// unrelated order lifts it. Its height alone never counts as moving (D37).
+fn sinks(units: &[Unit], index: usize) -> bool {
+    let unit = &units[index];
+    let resupply = unit.orders.is_empty()
         && !crate::weapons::engaged(unit)
         && matches!(
             unit.service,
             ServiceStatus::Serving | ServiceStatus::NoStock | ServiceStatus::Full
-        )
+        );
+    let transport = crate::carriage::transport_hold_in_progress(units, unit.id);
+    resupply || transport
+}
+
+/// A rotor carrier may start its carriage timer only after it has settled at
+/// the low hover.  The hold starts before movement on a tick, so both its
+/// horizontal and vertical velocity must already be at rest here.
+pub(crate) fn low_hover_settled(
+    world: &crate::world::WorldGeometry,
+    unit: &Unit,
+    rules: &Rules,
+) -> bool {
+    let Some(air) = unit.air else {
+        return false;
+    };
+    if unit.fixed_wing() || air.velocity.length() > 1e-6 {
+        return false;
+    }
+    let ground = world
+        .surface_at(unit.position.x, unit.position.y)
+        .map_or(0.0, |surface| surface.z);
+    (unit.position.z - (ground + low_hover(rules))).abs() <= 1e-6
 }
 
 /// The low hover's height over the ground (D27): just over the top of the

@@ -1068,14 +1068,7 @@ impl Battle {
             })
             .collect();
         for carrier in carriers {
-            retiring.extend(self.units.iter().enumerate().filter_map(|(index, unit)| {
-                (unit.alive()
-                    && unit
-                        .hold
-                        .as_ref()
-                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(carrier)))
-                .then_some(index)
-            }));
+            retiring.extend(self.passengers_of(carrier));
         }
         retiring.sort_unstable();
         retiring.dedup();
@@ -2156,7 +2149,12 @@ impl Battle {
         self.break_dogfights();
         self.dispatch_reinforcements();
         completed(TickPhase::Orders);
-        crate::carriage::advance(&mut self.units, &self.rules, &mut self.refusals);
+        crate::carriage::advance(
+            &self.world,
+            &mut self.units,
+            &self.rules,
+            &mut self.refusals,
+        );
         crate::hold::advance(
             &self.world,
             &self.sides,
@@ -3069,19 +3067,64 @@ impl Battle {
         let dt = 1.0 / self.rules.tick_hz as f64;
         let gravity = self.projectiles.gravity();
         let mut landed = Vec::new();
+        let mut left_map = Vec::new();
         for mut crash in std::mem::take(&mut self.crashes) {
             let half = self.units[crash.unit.0 as usize]
                 .hull
                 .expect("an airframe's hull");
-            match crash.fall(&self.world, gravity, half, dt) {
+            let fall = crash.fall(&self.world, gravity, half, dt);
+            // Passengers stay aboard while it falls, so they follow the
+            // crash rather than the airframe's last live pose.
+            let passengers = self.passengers_of(crash.unit);
+            for &index in &passengers {
+                let unit = &mut self.units[index];
+                for member in unit.members.iter_mut().filter(|member| member.alive()) {
+                    member.position = crash.position;
+                }
+                unit.position = crash.position;
+            }
+            match fall {
                 crate::crash::Fall::Landed => landed.push(crash),
                 crate::crash::Fall::Falling => self.crashes.push(crash),
-                crate::crash::Fall::LeftMap => {}
+                // It takes them with it, credited to whoever brought it down.
+                crate::crash::Fall::LeftMap => {
+                    for index in passengers {
+                        let unit = &mut self.units[index];
+                        crate::bail_out::lost_with_host(unit, crash.position);
+                        unit.hold = None;
+                        unit.orders.clear();
+                        unit.route = None;
+                        left_map.push(damage::UnitDeath {
+                            victim: unit.id,
+                            source: crash.source,
+                        });
+                    }
+                }
             }
         }
         for crash in landed {
             self.land(crash);
         }
+        if !left_map.is_empty() {
+            self.consequences(damage::Outcome {
+                destroyed: left_map,
+                ..Default::default()
+            });
+        }
+    }
+
+    /// The live squads riding in `carrier`, in unit order.
+    fn passengers_of(&self, carrier: UnitId) -> Vec<usize> {
+        (self.units.iter().enumerate())
+            .filter(|(_, unit)| {
+                unit.alive()
+                    && unit
+                        .hold
+                        .as_ref()
+                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(carrier))
+            })
+            .map(|(index, _)| index)
+            .collect()
     }
 
     /// A downed aircraft meets the ground (D3, D31): it bursts as the crash
@@ -3159,6 +3202,21 @@ impl Battle {
             base_z: None,
             wreck_of: Some(wreck_of),
         });
+        let mut passenger_deaths = Vec::new();
+        self.bail_out_carrier(
+            crash.unit,
+            rest,
+            wreck,
+            crash.source,
+            &mut passenger_deaths,
+            contract::scenario::BailOutHost::Air,
+        );
+        if !passenger_deaths.is_empty() {
+            self.consequences(damage::Outcome {
+                destroyed: passenger_deaths,
+                ..Default::default()
+            });
+        }
         if let Some(prop) = self.world.prop(wreck) {
             for (side, _) in crash.knowing {
                 self.sides[side.index()].learn(
@@ -3267,7 +3325,14 @@ impl Battle {
             };
             if ground_carrier {
                 if let Some(wreck) = wreck {
-                    self.bail_out_carrier(id, rest, wreck, death.source, &mut destroyed);
+                    self.bail_out_carrier(
+                        id,
+                        rest,
+                        wreck,
+                        death.source,
+                        &mut destroyed,
+                        contract::scenario::BailOutHost::Ground,
+                    );
                 }
             }
             if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
@@ -3383,7 +3448,8 @@ impl Battle {
         }
     }
 
-    /// A ground carrier's wreck is the escape origin. Passengers are kept out
+    /// A carrier's wreck is the escape origin, under the bail-out row for its
+    /// kind (`host_kind`: ground or air). Passengers are kept out
     /// of combat by `on_field` until this runs, so the killing burst cannot
     /// spend damage rolls on them. The carrier hull is omitted from the
     /// occupancy (its wreck is ignored) while every other body remains solid.
@@ -3394,20 +3460,9 @@ impl Battle {
         wreck: PropId,
         source: Option<damage::LethalSource>,
         destroyed: &mut Vec<damage::UnitDeath>,
+        host_kind: contract::scenario::BailOutHost,
     ) {
-        let passengers: Vec<usize> = self
-            .units
-            .iter()
-            .enumerate()
-            .filter(|(_, unit)| {
-                unit.alive()
-                    && unit
-                        .hold
-                        .as_ref()
-                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(carrier))
-            })
-            .map(|(index, _)| index)
-            .collect();
+        let passengers = self.passengers_of(carrier);
         if passengers.is_empty() {
             return;
         }
@@ -3426,7 +3481,7 @@ impl Battle {
             .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
             .collect();
         let ignored_props = [wreck];
-        let rule = crate::bail_out::row(&self.rules, contract::scenario::BailOutHost::Ground);
+        let rule = crate::bail_out::row(&self.rules, host_kind);
         for index in passengers {
             for member in self.units[index]
                 .members

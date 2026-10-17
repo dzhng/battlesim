@@ -8,6 +8,45 @@ use crate::math::{V2, V3};
 use crate::units::{MoveOrder, Unit, UnitOrder};
 use crate::world::WorldGeometry;
 
+/// Whether a carrier has a carriage hold that should pull a helicopter down
+/// to its low hover.  A pending Board order is included because the hold can
+/// only be created after the helicopter has settled; an Unload order keeps an
+/// already-aboard squad's timer alive until its Exiting phase starts.
+pub(crate) fn transport_hold_in_progress(units: &[Unit], carrier: UnitId) -> bool {
+    let Some(host) = units.get(carrier.0 as usize) else {
+        return false;
+    };
+    if !host.orders.is_empty() && !matches!(host.orders.front(), Some(UnitOrder::Unload)) {
+        return false;
+    }
+    let entering = units.iter().any(|unit| {
+        unit.alive()
+            && unit.hold.as_ref().is_some_and(|hold| {
+                hold.host == Host::Carrier(carrier)
+                    && matches!(hold.phase, Phase::Entering(_) | Phase::Exiting(_))
+            })
+    });
+    let unloading = (matches!(host.orders.front(), Some(UnitOrder::Unload))
+        && units.iter().any(|unit| {
+            unit.alive()
+                && unit
+                    .hold
+                    .as_ref()
+                    .is_some_and(|hold| hold.host == Host::Carrier(carrier))
+        }));
+    let pending = host.orders.is_empty()
+        && units.iter().any(|unit| {
+            unit.alive()
+                && unit.orders.iter().take(2).any(|order| {
+                    matches!(
+                        order,
+                        UnitOrder::Board { carrier: target, .. } if *target == carrier
+                    )
+                })
+        });
+    entering || unloading || pending
+}
+
 fn seats(unit: &Unit, rules: &Rules) -> usize {
     unit.unit_type(rules)
         .capabilities
@@ -30,6 +69,7 @@ pub(crate) fn within_reach(carrier: &Unit, passenger: &Unit, rules: &Rules) -> b
 }
 
 pub(crate) fn near_and_still(
+    world: &WorldGeometry,
     units: &[Unit],
     passenger: usize,
     carrier: UnitId,
@@ -42,6 +82,14 @@ pub(crate) fn near_and_still(
         && stationary(host)
         && stationary(&units[passenger])
         && within_reach(host, &units[passenger], rules)
+        && at_loading_height(world, host, rules)
+}
+
+/// The one rule for whether squads can step on or off a carrier (transport
+/// D6): a ground carrier always can; a helicopter only once it has settled
+/// at its low hover.
+pub(crate) fn at_loading_height(world: &WorldGeometry, host: &Unit, rules: &Rules) -> bool {
+    !host.airborne() || crate::movement::air::low_hover_settled(world, host, rules)
 }
 
 pub(crate) fn capacity(units: &[Unit], carrier: UnitId, candidate: usize, rules: &Rules) -> bool {
@@ -217,6 +265,7 @@ fn approach_arrived(units: &[Unit], i: usize, rules: &Rules) -> bool {
 /// Lower Board and Collect orders into movement or a shared hold. Timer and
 /// phase progression belongs to [`crate::hold::advance`].
 pub(crate) fn advance(
+    world: &WorldGeometry,
     units: &mut [Unit],
     rules: &Rules,
     refusals: &mut [Vec<contract::command::Refusal>; 3],
@@ -265,7 +314,7 @@ pub(crate) fn advance(
                     });
                     continue;
                 }
-                if near_and_still(units, i, carrier, rules) {
+                if near_and_still(world, units, i, carrier, rules) {
                     units[i].hold = Some(Hold {
                         host: Host::Carrier(carrier),
                         phase: Phase::Entering(0),

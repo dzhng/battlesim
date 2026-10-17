@@ -74,7 +74,16 @@ pub fn apply(
 ) -> Result {
     let mut rng = Rng::new(mix(seed ^ BAIL_OUT_STREAM ^ host.key() ^ tick));
     let mut fates = Vec::new();
-    let squad_loss = rule.squad_loss.is_some_and(|chance| rng.unit() < chance);
+    let squad_loss = rule.squad_loss.is_some_and(|chance| {
+        // A carrier event owns one independent squad-level draw per passenger
+        // squad; the injury draws below remain on the event stream.
+        let mut squad_rng = Rng::new(mix(seed
+            ^ BAIL_OUT_STREAM
+            ^ host.key()
+            ^ tick
+            ^ u64::from(unit.id.0)));
+        squad_rng.unit() < chance
+    });
     let mut taken = Vec::new();
     for (member, soldier) in unit.members.iter_mut().enumerate() {
         if !soldier.alive() {
@@ -138,6 +147,23 @@ pub fn apply(
             hp_lost,
         });
     }
+    Result { fates }
+}
+
+/// A host that leaves the map takes its passengers with it: there is no
+/// ground to bail out onto, so every live member dies where the host was.
+pub fn lost_with_host(unit: &mut Unit, at: V3) -> Result {
+    let yaw = unit.yaw;
+    let fates = (unit.members.iter_mut().enumerate())
+        .filter(|(_, soldier)| soldier.alive())
+        .map(|(member, soldier)| {
+            soldier.fall(at, yaw, None);
+            Fate::Died {
+                member,
+                cause: DeathCause::LeftMap,
+            }
+        })
+        .collect();
     Result { fates }
 }
 
