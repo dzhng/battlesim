@@ -115,6 +115,7 @@
     "europe_aw101_merlin_hc4": {
       "name": "Merlin HC4",
       "description": "HC4",
+      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "europe",
       "family": "aw101_merlin",
       "roles": [
@@ -244,7 +245,8 @@
     },
     "europe_boxer_apc": {
       "name": "Boxer APC",
-      "description": "APC; ground combat platform, passenger carriage not implemented",
+      "description": "APC; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "europe",
       "family": "boxer",
       "roles": [
@@ -328,7 +330,8 @@
     },
     "europe_boxer_rct30": {
       "name": "Boxer RCT30",
-      "description": "RCT30; ground combat platform, passenger carriage not implemented",
+      "description": "RCT30; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "europe",
       "family": "boxer",
       "roles": [
@@ -412,7 +415,7 @@
     },
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": {
       "name": "Skyranger 30",
-      "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
+      "description": "Gun-and-missile air-defense vehicle",
       "faction": "europe",
       "family": "boxer_skyranger_30",
       "roles": [
@@ -673,6 +676,7 @@
     "europe_ch_47_chinook_hc6": {
       "name": "Chinook HC6",
       "description": "HC6",
+      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "europe",
       "family": "ch_47_chinook",
       "roles": [
@@ -994,7 +998,8 @@
     },
     "europe_cv90_cv9040c": {
       "name": "CV9040C",
-      "description": "CV9040C; ground combat platform, passenger carriage not implemented",
+      "description": "CV9040C; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "europe",
       "family": "cv90",
       "roles": [
@@ -1077,7 +1082,8 @@
     },
     "europe_cv90_mk_iv": {
       "name": "CV90 Mk IV",
-      "description": "Mk IV; ground combat platform, passenger carriage not implemented",
+      "description": "Mk IV; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "europe",
       "family": "cv90",
       "roles": [
@@ -2533,6 +2539,7 @@
     "europe_nh90_tth": {
       "name": "NH90 TTH",
       "description": "TTH",
+      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "europe",
       "family": "nh90",
       "roles": [
@@ -2608,7 +2615,8 @@
     },
     "europe_puma_level_c": {
       "name": "Puma Level C",
-      "description": "Level C; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "europe",
       "family": "puma",
       "roles": [
@@ -3077,7 +3085,8 @@
     },
     "europe_vbci_infantry_fighting_vehicle": {
       "name": "VBCI",
-      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
+      "description": "Infantry fighting vehicle",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "europe",
       "family": "vbci",
       "roles": [
@@ -3162,6 +3171,7 @@
     "europe_vbl_machine_gun_scout": {
       "name": "VBL",
       "description": "Machine-gun scout",
+      "capabilities": { "carriage": { "seats": 3 } },
       "faction": "europe",
       "family": "vbl",
       "roles": [
