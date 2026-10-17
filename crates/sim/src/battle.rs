@@ -3463,18 +3463,18 @@ impl Battle {
         if passengers.is_empty() {
             return;
         }
-        let passenger_ids: BTreeSet<UnitId> =
-            passengers.iter().map(|&i| self.units[i].id).collect();
         let hulls: Vec<Obb2> = self
             .units
             .iter()
             .filter(|unit| unit.id != carrier && unit.on_field())
             .filter_map(|unit| unit.ground_footprint())
             .collect();
+        // Soldiers riding any carrier, these passengers included, take up no
+        // ground.
         let mut soldiers: Vec<V2> = self
             .units
             .iter()
-            .filter(|unit| unit.id != carrier && !passenger_ids.contains(&unit.id))
+            .filter(|unit| unit.on_field())
             .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
             .collect();
         let ignored_props = [wreck];

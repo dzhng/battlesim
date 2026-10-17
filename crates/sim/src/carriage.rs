@@ -188,11 +188,11 @@ pub(crate) fn unload_spots(
         .filter(|(index, unit)| *index != carrier.0 as usize && unit.alive())
         .filter_map(|(_, unit)| unit.ground_footprint())
         .collect();
+    // Soldiers riding any carrier, these passengers included, take up no ground.
     let soldiers: Vec<V2> = units
         .iter()
-        .enumerate()
-        .filter(|(index, _)| !passengers.contains(index))
-        .flat_map(|(_, unit)| unit.member_positions().map(|position| position.xy()))
+        .filter(|unit| unit.on_field())
+        .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
         .collect();
     let radius = rules.physics.soldier_radius_m;
     let from = units[carrier.0 as usize].position.xy();

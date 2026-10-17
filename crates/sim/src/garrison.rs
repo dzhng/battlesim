@@ -678,7 +678,7 @@ pub fn collapse(
         let soldiers: Vec<_> = units
             .iter()
             .enumerate()
-            .filter(|(other, _)| *other != index)
+            .filter(|(other, unit)| *other != index && unit.on_field())
             .flat_map(|(_, other)| other.member_positions().map(|p| p.xy()))
             .collect();
         let rule = crate::bail_out::row(rules, contract::scenario::BailOutHost::Building);

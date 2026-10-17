@@ -808,6 +808,81 @@ fn boarding_takes_as_long_whoever_gives_the_order() {
     assert_eq!(boarded, collected);
 }
 
+/// Where the APC's squad (unit 2) stands after it boards the APC (unit 1)
+/// and unloads in place, with a transport helicopter (unit 0) hovering over
+/// the APC. The helicopter carries the rifle squad (unit 3) when `riding`;
+/// otherwise that squad stands far off.
+fn unloaded_under_a_helicopter(riding: bool) -> Vec<sim::math::V3> {
+    let rifles = if riding { [260, 200] } else { [500, 400] };
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_transport_heli","position":[260,200]},
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]},
+            {"side":"blue","kind":"test_rifle","position":rifles}
+        ])),
+        7,
+    );
+    let mut seq = 0;
+    let mut next = || {
+        seq += 1;
+        seq
+    };
+    let board = |seq, squad, carrier| {
+        command(
+            seq,
+            Order::Board {
+                units: vec![squad],
+                carrier,
+                gesture: 1,
+            },
+        )
+    };
+    assert_eq!(
+        battle.accept(board(next(), UnitId(2), UnitId(1))).error,
+        None
+    );
+    if riding {
+        assert_eq!(
+            battle.accept(board(next(), UnitId(3), UnitId(0))).error,
+            None
+        );
+    }
+    let aboard = |battle: &Battle, id: UnitId| !battle.unit(id).unwrap().on_field();
+    let loaded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        aboard(&battle, UnitId(2)) && (!riding || aboard(&battle, UnitId(3)))
+    });
+    assert!(loaded, "the squads never boarded");
+    assert_eq!(battle.accept(heli_move(next(), [200.0, 200.0])).error, None);
+    for _ in 0..battle.rules().tick_hz * 20 {
+        battle.step();
+    }
+    let over = battle.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 200.0);
+    assert!(over.length() < 1.0, "the helicopter is not over the APC");
+    let unload = Order::Unload {
+        units: vec![UnitId(1)],
+        goal: None,
+        gesture: 4,
+        route: RoutePolicy::Shortest,
+    };
+    assert_eq!(battle.accept(command(next(), unload)).error, None);
+    let out = (0..battle.rules().tick_hz * 10).any(|_| {
+        battle.step();
+        battle.unit(UnitId(2)).unwrap().hold.is_none()
+    });
+    assert!(out, "the squad never unloaded");
+    battle.unit(UnitId(2)).unwrap().member_positions().collect()
+}
+
+#[test]
+fn soldiers_riding_another_carrier_take_up_no_ground() {
+    assert_eq!(
+        unloaded_under_a_helicopter(true),
+        unloaded_under_a_helicopter(false)
+    );
+}
+
 #[test]
 fn transport_orders_replay_every_tick_exactly() {
     let setup = setup(json!([
