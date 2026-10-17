@@ -2,7 +2,7 @@
  *  Activated by URL params like `?capture=default` or `?capture=tank-follow`.
  *  When active, the game records video using MediaRecorder and writes an mp4. */
 
-import type { MenuReel } from "../menuReel";
+import type { Reel } from "./capture";
 
 /** Capture mode:
  *  - "browser": canvas-based recording with MediaRecorder
@@ -70,11 +70,11 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
 }
 
 /** Camera presets for cinematic capture.
- *  Each preset is a MenuReel with shots that can follow units or use fixed positions. */
+ *  Each preset is a Reel with shots that can follow units or use fixed positions. */
 export interface CapturePreset {
   name: string;
   description: string;
-  reel: MenuReel;
+  reel: Reel;
 }
 
 /** The hero camera: a single continuous zoom from strategic height to ground level.
@@ -87,7 +87,7 @@ export interface CapturePreset {
  *  Follows unit 1 (the driving tank) with target offset [-1, 8].
  *  Distance is log-linear for smooth zoom feel; yaw/pitch/target are linear.
  *  Info cards fade in as the camera descends (90m → 48m, handled by the game). */
-export const DEFAULT_CINEMATIC_REEL: MenuReel = {
+export const DEFAULT_CINEMATIC_REEL: Reel = {
   fade_s: 0,
   shots: [
     // 2.0s preroll: hold start pose while audio tap starts and calibration runs
@@ -199,7 +199,7 @@ export function resolveFollowId(
 }
 
 /** Calculate the total duration of a reel in seconds. */
-export function reelDuration(reel: MenuReel): number {
+export function reelDuration(reel: Reel): number {
   return reel.shots.reduce((sum, shot) => sum + shot.seconds, 0);
 }
 

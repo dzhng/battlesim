@@ -11,7 +11,7 @@
 import { Suspense, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import type { GameRules } from "@web/battle/catalog/compose";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
-import backdrop from "@fixtures/menu-backdrop.json";
+import menuCapture from "@fixtures/captures/menu.json";
 import { listMaps } from "@web/maps/catalogue";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -22,10 +22,10 @@ import { LabViewport, type ViewportPilot } from "./LabViewport";
 import {
   filmCamera,
   sampleReel,
-  validateBackdrop,
-  type BackdropScene,
-  type MenuReel,
-} from "./menuReel";
+  validateCapture,
+  type CaptureScene,
+  type Reel,
+} from "./capture/capture";
 import { savedBattle } from "./savedMaps";
 import { buildFailed, useBuiltScenario } from "./useBuiltScenario";
 import { useBattleSession } from "./useBattleSession";
@@ -45,7 +45,7 @@ import {
   subscribeGraphicsDetection,
 } from "./graphicsDetection";
 
-const SCENES = validateBackdrop(backdrop, listMaps()).scenes;
+const SCENES = validateCapture(menuCapture, listMaps()).scenes;
 const FILM_CAMERA = filmCamera(
   gameCamera.config,
   SCENES.map((s) => s.reel),
@@ -54,8 +54,8 @@ const FILM_CAMERA = filmCamera(
 /** Each scene's saved scenario under the capture catalog's `rules`, fetched
  *  once: the next scene's is asked for while the current one plays, so the
  *  cut to it waits on starting and warming its battle, not on the download. */
-const scenarios = new Map<BackdropScene, Promise<string>>();
-function sceneScenario(scene: BackdropScene, rules: GameRules): Promise<string> {
+const scenarios = new Map<CaptureScene, Promise<string>>();
+function sceneScenario(scene: CaptureScene, rules: GameRules): Promise<string> {
   let s = scenarios.get(scene);
   if (!s) {
     s = savedBattle(scene.map, scene.encounter, rules).then((b) => b.scenario);
@@ -67,7 +67,7 @@ function sceneScenario(scene: BackdropScene, rules: GameRules): Promise<string> 
 }
 
 /** Under reduced motion the camera holds the first framing for the reel's length. */
-function reelFor(reel: MenuReel, reduced: boolean): MenuReel {
+function reelFor(reel: Reel, reduced: boolean): Reel {
   if (!reduced) return reel;
   const seconds = reel.shots.reduce((sum, shot) => sum + shot.seconds, 0);
   const still = reel.shots[0].from;
@@ -215,7 +215,7 @@ interface ReelBattle {
  *  tick and `hold` settles, plays the shots, and at the end, behind the veil,
  *  hands over to the next scene (`onEnd`). */
 function createReelPilot(
-  scene: BackdropScene,
+  scene: CaptureScene,
   veil: RefObject<HTMLDivElement | null>,
   plate: RefObject<HTMLElement | null>,
   hold: () => Promise<void>,
@@ -309,7 +309,7 @@ function BackdropBattle({
   onProbeFrame,
   probeGeneration,
 }: {
-  scene: BackdropScene;
+  scene: CaptureScene;
   scenario: string;
   plate: RefObject<HTMLElement | null>;
   shown: Promise<void>;

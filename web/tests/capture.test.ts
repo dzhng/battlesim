@@ -3,30 +3,31 @@ import {
   sampleReel,
   plateShot,
   filmCamera,
-  validateBackdrop,
+  validateCapture,
   validateReel,
-  type MenuReel,
-} from "@apps/battle-lab/src/menuReel";
-import type { MapEntry } from "@web/maps/catalogue";
+  type Reel,
+} from "@apps/battle-lab/src/capture/capture";
+import { listMaps, type MapEntry } from "@web/maps/catalogue";
 
 /** A catalogue listing of `capture` maps and `test` maps, by id. */
-const listing = (menu: string[], test: string[] = []): MapEntry[] =>
-  [...menu.map((id) => [id, "capture"] as const), ...test.map((id) => [id, "test"] as const)].map(
-    ([id, category]) => ({
-      id,
-      category,
-      status: "released",
-      label: id,
-      character: "arena",
-      biome: "summer",
-      size_m: [100, 100],
-      tags: [],
-      source: "authored",
-      seed: null,
-      encounters: ["e"],
-      benchmarks: [],
-    }),
-  );
+const listing = (capture: string[], test: string[] = []): MapEntry[] =>
+  [
+    ...capture.map((id) => [id, "capture"] as const),
+    ...test.map((id) => [id, "test"] as const),
+  ].map(([id, category]) => ({
+    id,
+    category,
+    status: "released",
+    label: id,
+    character: "arena",
+    biome: "summer",
+    size_m: [100, 100],
+    tags: [],
+    source: "authored",
+    seed: null,
+    encounters: ["e"],
+    benchmarks: [],
+  }));
 
 const at = (x: number, y: number, distance = 100, yaw = 0, pitch = 0.5) => ({
   target: [x, y] as [number, number],
@@ -36,7 +37,7 @@ const at = (x: number, y: number, distance = 100, yaw = 0, pitch = 0.5) => ({
 });
 
 /** Two shots of 10 s, half-second dips at every cut. */
-const REEL: MenuReel = {
+const REEL: Reel = {
   fade_s: 0.5,
   shots: [
     { seconds: 10, from: at(0, 0, 100, 0), to: at(100, 0, 50, 1) },
@@ -77,7 +78,7 @@ test("a control plate is the first frame at or past each shot's middle, where th
 });
 
 test("a tracking shot names the unit it follows and frames by an offset from it", () => {
-  const tracking: MenuReel = {
+  const tracking: Reel = {
     fade_s: 0.5,
     shots: [{ seconds: 10, follow: 7, from: at(-10, 0), to: at(10, 0) }],
   };
@@ -111,7 +112,7 @@ test("after the last shot the reel is done and holds black on its last framing",
   });
 });
 
-test("a backdrop is scenes in order, each a saved battle and its own reel; none is refused", () => {
+test("a capture is scenes in order, each a saved battle and its own reel; none is refused", () => {
   const scene = (map: string) => ({
     map,
     encounter: "e",
@@ -120,18 +121,18 @@ test("a backdrop is scenes in order, each a saved battle and its own reel; none 
     reel: { fade_s: 0.5, shots: [{ seconds: 4, from: at(0, 0), to: at(1, 1) }] },
   });
   const maps = listing(["town", "city", "x"]);
-  const backdrop = validateBackdrop({ scenes: [scene("town"), scene("city")] }, maps);
-  expect(backdrop.scenes.map((s) => [s.map, s.reel.shots.length])).toEqual([
+  const capture = validateCapture({ scenes: [scene("town"), scene("city")] }, maps);
+  expect(capture.scenes.map((s) => [s.map, s.reel.shots.length])).toEqual([
     ["town", 1],
     ["city", 1],
   ]);
-  expect(() => validateBackdrop({ scenes: [] }, maps)).toThrow(/scenes/);
-  expect(() => validateBackdrop({ scenes: [{ ...scene("x"), map: "" }] }, maps)).toThrow(
+  expect(() => validateCapture({ scenes: [] }, maps)).toThrow(/scenes/);
+  expect(() => validateCapture({ scenes: [{ ...scene("x"), map: "" }] }, maps)).toThrow(
     /scenes\[0\]\.map/,
   );
 });
 
-test("the menu films only capture maps: a test map is refused by name", () => {
+test("a capture films only capture maps: a test map is refused by name", () => {
   const scene = (map: string) => ({
     map,
     encounter: "e",
@@ -140,15 +141,15 @@ test("the menu films only capture maps: a test map is refused by name", () => {
     reel: { fade_s: 0.5, shots: [{ seconds: 4, from: at(0, 0), to: at(1, 1) }] },
   });
   const maps = listing(["town"], ["range"]);
-  expect(() => validateBackdrop({ scenes: [scene("town"), scene("range")] }, maps)).toThrow(
-    'menu backdrop scenes[1].map: the saved map "range" is a test map, not a capture map',
+  expect(() => validateCapture({ scenes: [scene("town"), scene("range")] }, maps)).toThrow(
+    'capture scenes[1].map: the saved map "range" is a test map, not a capture map',
   );
-  expect(() => validateBackdrop({ scenes: [scene("nowhere")] }, maps)).toThrow(
+  expect(() => validateCapture({ scenes: [scene("nowhere")] }, maps)).toThrow(
     /scenes\[0\]\.map: no saved map "nowhere"/,
   );
 });
 
-test("the backdrop's camera reaches as close as its closest framing, and is the player's otherwise", () => {
+test("a capture's camera reaches as close as its closest framing, and is the player's otherwise", () => {
   const player = {
     zoom_min: 25,
     zoom_max: 2000,
@@ -171,4 +172,71 @@ test("the backdrop's camera reaches as close as its closest framing, and is the 
   ]);
   expect(near.zoom_max).toBe(2000);
   expect(filmCamera(player, [reel(30)])).toBe(player);
+});
+
+test("a shot keeps its easing, log-distance zoom and zoom duration", () => {
+  const shot = {
+    seconds: 10,
+    follow: 3,
+    from: at(0, 0, 700),
+    to: at(0, 0, 40),
+    ease: "cubic",
+    logDistance: true,
+    zoomDuration: 8,
+  };
+  expect(validateReel({ fade_s: 0, shots: [shot] }).shots[0]).toEqual(shot);
+  const refused = (edit: Record<string, unknown>) => () =>
+    validateReel({ fade_s: 0, shots: [{ ...shot, ...edit }] });
+  expect(refused({ ease: "bounce" })).toThrow("capture reel.shots[0].ease");
+  expect(refused({ logDistance: "yes" })).toThrow("capture reel.shots[0].logDistance");
+  expect(refused({ zoomDuration: 11 })).toThrow("capture reel.shots[0].zoomDuration");
+  expect(refused({ zoomDuration: 0 })).toThrow("capture reel.shots[0].zoomDuration");
+});
+
+test("a field a capture doesn't have is refused by its path", () => {
+  const scene = {
+    map: "town",
+    encounter: "e",
+    seed: 1,
+    warm_s: 2,
+    reel: { fade_s: 0.5, shots: [{ seconds: 4, from: at(0, 0), to: at(1, 1) }] },
+  };
+  const maps = listing(["town"]);
+  const refused = (edit: (c: { scenes: (typeof scene)[] } & Record<string, unknown>) => void) => {
+    const capture = structuredClone({ scenes: [scene] }) as Parameters<typeof edit>[0];
+    edit(capture);
+    return () => validateCapture(capture, maps);
+  };
+  expect(refused((c) => (c.loop = true))).toThrow("capture loop: not a capture field");
+  expect(refused((c) => Object.assign(c.scenes[0], { units: [] }))).toThrow(
+    "capture scenes[0].units: not a capture field",
+  );
+  expect(refused((c) => Object.assign(c.scenes[0].reel, { speed: 2 }))).toThrow(
+    "capture scenes[0].reel.speed: not a capture field",
+  );
+  expect(refused((c) => Object.assign(c.scenes[0].reel.shots[0], { fov: 1 }))).toThrow(
+    "capture scenes[0].reel.shots[0].fov: not a capture field",
+  );
+  expect(refused((c) => Object.assign(c.scenes[0].reel.shots[0].to, { roll: 0 }))).toThrow(
+    "capture scenes[0].reel.shots[0].to.roll: not a capture field",
+  );
+});
+
+test("every capture file validates against the map catalogue", () => {
+  const files = import.meta.glob<unknown>("../../fixtures/captures/*.json", {
+    eager: true,
+    import: "default",
+  });
+  const names = Object.keys(files).map((path) => path.split("/").at(-1));
+  expect(names).toEqual(
+    expect.arrayContaining([
+      "menu.json",
+      "default.json",
+      "top-down.json",
+      "ground-level.json",
+      "orbit.json",
+    ]),
+  );
+  for (const [path, json] of Object.entries(files))
+    expect(() => validateCapture(json, listMaps()), path).not.toThrow();
 });

@@ -11,7 +11,7 @@ import {
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d";
 import { liveCamera } from "@packages/renderer-core/src/viewportCamera";
-import { plateShot, sampleReel, type BackdropScene } from "../menuReel";
+import { plateShot, sampleReel, type CaptureScene } from "../capture/capture";
 import type { ScriptedSim } from "../useSimSession";
 import type { FramePlate, ViewportPilot } from "../LabViewport";
 import {
@@ -59,7 +59,7 @@ export function grassCells(
 }
 
 export interface ReelResult {
-  scene: BackdropScene;
+  scene: CaptureScene;
   outcome: BenchmarkOutcome;
   recording: BenchmarkRecording;
   startTick: number;
@@ -88,7 +88,7 @@ const COUNT_BETWEEN = 4;
  *  `COUNT_BETWEEN` of the rest: a second client's counts there catch a clock
  *  read a hair off. */
 export function createReelRun(
-  scene: BackdropScene,
+  scene: CaptureScene,
   tickHz: number,
   onDone: (result: ReelResult) => void,
   { plates = false, counts = false }: { plates?: boolean; counts?: boolean } = {},

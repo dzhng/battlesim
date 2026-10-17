@@ -19,7 +19,7 @@ import { appResources } from "../appResources";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 import { LabViewport, type ViewportPilot, type ViewportGpu } from "../LabViewport";
-import { sampleReel } from "../menuReel";
+import { sampleReel } from "../capture/capture";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";

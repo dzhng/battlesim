@@ -14,7 +14,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
-import backdrop from "@fixtures/menu-backdrop.json";
+import menuCapture from "@fixtures/captures/menu.json";
 import { listMaps } from "@web/maps/catalogue";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
@@ -23,7 +23,7 @@ import { appResources } from "../appResources";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 import { LabViewport, type ViewportPilot, type ViewportGpu } from "../LabViewport";
-import { validateBackdrop, sampleReel, type BackdropScene } from "../menuReel";
+import { validateCapture, sampleReel, type CaptureScene } from "../capture/capture";
 import { savedBattle } from "../savedMaps";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useBattleSession } from "../useBattleSession";
@@ -47,7 +47,7 @@ import {
   type CaptureState,
 } from "../capture/CinematicCapture";
 
-const SCENES = validateBackdrop(backdrop, listMaps()).scenes;
+const SCENES = validateCapture(menuCapture, listMaps()).scenes;
 
 export default function CapturePage() {
   const settings = parseCaptureParams(window.location.search);
@@ -286,7 +286,7 @@ function CaptureBattle({
   onRenderOfflineAudio,
   onGetDeterministicState,
 }: {
-  scene: BackdropScene;
+  scene: CaptureScene;
   scenario: string;
   settings: CaptureSettings;
   reel: ReturnType<typeof getCapturePreset>["reel"];

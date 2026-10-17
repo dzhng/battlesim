@@ -51,10 +51,10 @@ actual admitted identity. A refused explicit seed cannot silently become another
 battle. Exhausted generation returns a refusal; it never substitutes a fixed map.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
-played in order and then over again, each a saved encounter on its own `menu` map
-(the reel refuses any other) run by
+played in order and then over again, each a saved encounter on its own `capture` map
+(a capture refuses any other) run by
 the ordinary session, silent and inert. Each is filmed by
-[the reel](src/menuReel.ts) through the viewport's pilot and graded in CSS to the
+[its reel](src/capture/capture.ts) through the viewport's pilot and graded in CSS to the
 HUD's `film` amber, which the plate's blue reads against. It shows blue's
 observation like any battle, without the player's x-ray. Its preparation reports
 to the same loading stages as a lab, and the menu's loading screen stands in the

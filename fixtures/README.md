@@ -17,10 +17,12 @@ places them on admitted geometry. Players never field a recipe: the map workbenc
 and native reports plan one on a generated map to judge it, and tests use them.
 [Generated-battle settings](generated-battle.json) own preparation policy. [Camera lab settings](camera-lab.json)
 belong to the isolated camera experiment, not a second gameplay camera policy.
-[The menu backdrop](menu-backdrop.json) lists the scenes the main menu films, in order:
-each a saved battle (an ordinary saved encounter, scripted orders and all, on its own
-map) and its reel of camera shots;
-a tracking shot frames by an offset from one of blue's units. Each encounter is staged
+[Captures](captures/) say how saved encounters are filmed, camera and scenes only:
+each scene a saved battle (an ordinary saved encounter, scripted orders and all, on
+its own `capture` map) and its reel of camera shots. The capture tool plays any of
+them; [the menu backdrop](captures/menu.json) is the one the main menu films. A
+tracking shot frames by an offset from the unit it `follow`s, named by its index in
+the encounter's `units`. Each encounter is staged
 like a film, not balanced: set-pieces open fire on a schedule, set by how far each
 force starts from its enemy, so every cut has guns firing in frame. Cannon fire and
 blasts read at film distance; rifle fire barely does. A changed encounter or rule
