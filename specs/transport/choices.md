@@ -196,3 +196,6 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **Risks:**
   - An armed carrier in a fight breaks off to fetch a squad. The adjustment, if it looks wrong, is to prefer idle carriers.
   - An in-place unload refused for lack of room is retried at every decision.
+- **The lab's `heli` variant** shows one board-and-unload trip: hover at 6.1 m, SEATS 8/16 in flight, all 8 soldiers out at the goal. The shot-down helicopter has tests but no shots.
+- **Not changed:** the Seats row counts a squad that is still boarding. Boarding is a timed stand-still beside every kind of carrier.
+- **Found:** soldiers under a hovering helicopter were drawn over its fuselage. That is a renderer depth bug for any low aircraft over infantry, sent to a renderer fix.
