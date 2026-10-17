@@ -1,7 +1,8 @@
 import type { MapDefinition } from "@web/maps/resolve";
 import type { GameRules } from "@web/battle/catalog/compose";
-import { FACTIONS, type Faction, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { FACTIONS, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
+import type { Player } from "@web/battle/prepare/protocol";
 import matchRules from "@fixtures/skirmish.json";
 
 export type BuilderController = "human" | "active_ai" | "passive_ai";
@@ -15,15 +16,6 @@ export interface BuilderUnit {
   yaw: number;
   engagement?: Engagement;
   owner?: string;
-}
-
-export interface BuilderPlayer {
-  id: string;
-  side: SideName;
-  faction?: Faction;
-  controller: BuilderController;
-  human_capable: boolean;
-  units: number[];
 }
 
 export interface BuilderAsset {
@@ -44,12 +36,12 @@ export interface ScenarioBundleDraft {
     map: MapDefinition;
     rules: GameRules;
     units: BuilderUnit[];
+    players: Player[];
     events: unknown[];
     scripts: unknown[];
     opponent?: unknown;
     encounter?: unknown;
   };
-  players: BuilderPlayer[];
   mode: BuilderMode;
   victory: { source: string };
   authored_scripts: { id: string; source: string; side: SideName; player?: string | null }[];
@@ -129,7 +121,7 @@ export function emptyBuilderMap(): MapDefinition {
   };
 }
 
-export function nextPlayerId(players: readonly BuilderPlayer[], side: SideName): string {
+export function nextPlayerId(players: readonly Player[], side: SideName): string {
   const prefix = `${side}-`;
   let n = 1;
   while (players.some((player) => player.id === `${prefix}${n}`)) n++;
@@ -140,8 +132,8 @@ export function createBuilderDraft(rules: GameRules, units: UnitCatalog): Scenar
   const blueKind = units.ids[0] ?? "";
   const redKind = blueKind;
   const authored: BuilderUnit[] = [
-    { id: 0, side: "blue", kind: blueKind, position: [120, 240], yaw: 0 },
-    { id: 1, side: "red", kind: redKind, position: [520, 240], yaw: Math.PI },
+    { id: 0, side: "blue", kind: blueKind, position: [120, 240], yaw: 0, owner: "blue-1" },
+    { id: 1, side: "red", kind: redKind, position: [520, 240], yaw: Math.PI, owner: "red-1" },
   ];
   return {
     format_version: "scenario-bundle-2",
@@ -152,34 +144,31 @@ export function createBuilderDraft(rules: GameRules, units: UnitCatalog): Scenar
       map: emptyBuilderMap(),
       rules,
       units: authored,
+      players: [
+        {
+          id: "blue-1",
+          side: "blue",
+          faction: "us",
+          controller: "human",
+          human_capable: true,
+        },
+        {
+          id: "neutral-1",
+          side: "neutral",
+          controller: "passive_ai",
+          human_capable: false,
+        },
+        {
+          id: "red-1",
+          side: "red",
+          faction: "eastern",
+          controller: "active_ai",
+          human_capable: false,
+        },
+      ],
       events: [],
       scripts: [],
     },
-    players: [
-      {
-        id: "blue-1",
-        side: "blue",
-        faction: "us",
-        controller: "human",
-        human_capable: true,
-        units: [0],
-      },
-      {
-        id: "neutral-1",
-        side: "neutral",
-        controller: "passive_ai",
-        human_capable: false,
-        units: [],
-      },
-      {
-        id: "red-1",
-        side: "red",
-        faction: "eastern",
-        controller: "active_ai",
-        human_capable: false,
-        units: [1],
-      },
-    ],
     mode: "sandbox",
     victory: { source: "return false" },
     authored_scripts: [],
@@ -204,39 +193,22 @@ export function removeBuilderUnit(
         .filter((unit) => unit.id !== removedId)
         .map((unit, index) => ({ ...unit, id: index })),
     },
-    players: draft.players.map((player) => ({
-      ...player,
-      units: player.units
-        .filter((id) => id !== removedId)
-        .map((id) => (id > removedId ? id - 1 : id)),
-    })),
   };
 }
 
 export function parseBuilderDraft(text: string): ScenarioBundleDraft {
-  const parsed = JSON.parse(text) as ScenarioBundleDraft & {
-    scenario: ScenarioBundleDraft["scenario"] & {
-      players?: Omit<BuilderPlayer, "units">[];
-    };
-  };
+  const parsed = JSON.parse(text) as ScenarioBundleDraft;
   if (
     !parsed ||
     parsed.format_version !== "scenario-bundle-2" ||
     !parsed.scenario ||
     !Array.isArray(parsed.scenario.units) ||
-    (!Array.isArray(parsed.players) && !Array.isArray(parsed.scenario.players))
+    !Array.isArray(parsed.scenario.players)
   )
     throw new Error("the uploaded package is not a scenario bundle draft");
   parsed.scenario.units = parsed.scenario.units.map((unit, index) => ({
     ...unit,
     id: Number.isInteger(unit.id) ? unit.id : index,
-  }));
-  parsed.players = (parsed.players ?? parsed.scenario.players ?? []).map((player) => ({
-    ...player,
-    units: parsed.scenario.units
-      .filter((unit) => unit.owner === player.id)
-      .map((unit) => unit.id)
-      .sort((a, b) => a - b),
   }));
   return parsed;
 }

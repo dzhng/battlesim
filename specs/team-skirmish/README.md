@@ -1,6 +1,6 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–01 done).
+**Status:** in progress (slices 00–01 and 07 done).
 **Updated:** 2026-10-17.
 
 ## Next Agent Prompt
@@ -11,7 +11,9 @@
 
 Slice 01 landed the player contract with every digest unchanged, using the four-piece temporary seam described under "Single owners". It also added D54: Neutral players have no faction.
 
-**Next:** run slices 02 and 04 in parallel. Slice 07 can also start, since 01 has landed.
+Slice 07 landed the serializable lobby model and moved the scenario builder to `scenario.players` with unit ownership on `unit.owner`. Its request and URL functions remain explicitly stubbed until slice 06 defines those seams.
+
+**Next:** run slices 02 and 04 in parallel. Slice 06 still gates the lobby's admitted request and battle-link grammar; slice 08 can follow 07 and 04.
 
 **Known environment failures.** These fail identically on main in a worktree without LFS source assets, so don't chase them as regressions:
 - `icons.test.ts` (3 tests);
@@ -43,7 +45,7 @@ Slices:
 - [ ] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
 - [ ] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
 - [ ] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
-- [ ] 07: lobby model ([slice](slices/07-lobby-model.md))
+- [x] 07: lobby model ([slice](slices/07-lobby-model.md))
 - [ ] 08: lobby map picture ([slice](slices/08-map-picture.md))
 - [ ] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
 - [ ] 10: allies in battle ([slice](slices/10-allies-in-battle.md))

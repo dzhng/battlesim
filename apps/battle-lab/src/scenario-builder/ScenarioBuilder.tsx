@@ -18,10 +18,10 @@ import {
   removeBuilderUnit,
   unitName,
   type BuilderController,
-  type BuilderPlayer,
   type BuilderUnit,
   type ScenarioBundleDraft,
 } from "./model";
+import type { Player } from "@web/battle/prepare/protocol";
 import "./builder.css";
 
 const SIDES = ["blue", "red", "neutral"] as const;
@@ -44,19 +44,7 @@ function colorFor(side: BuilderUnit["side"]): string {
   return side === "blue" ? "blue" : side === "red" ? "red" : "neutral";
 }
 
-function assignUnit(players: BuilderPlayer[], unit: BuilderUnit, ownerId: string): BuilderPlayer[] {
-  return players.map((player) => {
-    const units = player.units.filter((id) => id !== unit.id);
-    if (player.id === ownerId && !units.includes(unit.id)) units.push(unit.id);
-    return { ...player, units: units.sort((a, b) => a - b) };
-  });
-}
-
-function updatePlayer(
-  players: BuilderPlayer[],
-  id: string,
-  patch: Partial<BuilderPlayer>,
-): BuilderPlayer[] {
+function updatePlayer(players: Player[], id: string, patch: Partial<Player>): Player[] {
   return players.map((player) => (player.id === id ? { ...player, ...patch } : player));
 }
 
@@ -101,7 +89,9 @@ export default function ScenarioBuilder() {
     }
     if (!paletteKind) return;
     const nextId = draft.scenario.units.reduce((max, unit) => Math.max(max, unit.id), -1) + 1;
-    const owner = draft.players.find((player) => player.id === selectedPlayer) ?? draft.players[0];
+    const owner =
+      draft.scenario.players.find((player) => player.id === selectedPlayer) ??
+      draft.scenario.players[0];
     const side = owner?.side ?? selectedUnit?.side ?? "blue";
     const unit: BuilderUnit = {
       id: nextId,
@@ -109,6 +99,7 @@ export default function ScenarioBuilder() {
       kind: paletteKind,
       position: point,
       yaw: side === "red" ? Math.PI : 0,
+      owner: owner?.id ?? "blue-1",
     };
     setDraft((current) => ({
       ...current,
@@ -116,7 +107,6 @@ export default function ScenarioBuilder() {
         ...current.scenario,
         units: [...current.scenario.units, unit].sort((a, b) => a.id - b.id),
       },
-      players: assignUnit(current.players, unit, owner?.id ?? "blue-1"),
     }));
     setSelected(nextId);
   }
@@ -143,12 +133,16 @@ export default function ScenarioBuilder() {
         unit.id === selectedUnit.id ? { ...unit, side, yaw: side === "red" ? Math.PI : 0 } : unit,
       );
       const moved = next.find((unit) => unit.id === selectedUnit.id)!;
-      const replacement = current.players.find((player) => player.side === side);
+      const replacement = current.scenario.players.find((player) => player.side === side);
       if (!replacement) return current;
       return {
         ...current,
-        scenario: { ...current.scenario, units: next },
-        players: assignUnit(current.players, moved, replacement.id),
+        scenario: {
+          ...current.scenario,
+          units: next.map((unit) =>
+            unit.id === moved.id ? { ...unit, owner: replacement.id } : unit,
+          ),
+        },
       };
     });
   }
@@ -161,20 +155,10 @@ export default function ScenarioBuilder() {
         throw new Error("this build has no scenario authoring boundary yet");
       const next = cloneDraft(draft);
       next.runtime_build = APP_COMMIT;
-      const players = next.players.map(({ units: _units, ...player }) => player);
-      const ownerByUnit = new Map<number, string>();
-      for (const player of next.players)
-        for (const id of player.units) ownerByUnit.set(id, player.id);
-      const authoring = {
-        ...next,
-        scenario: {
-          ...next.scenario,
-          players,
-          units: next.scenario.units.map((unit) => ({ ...unit, owner: ownerByUnit.get(unit.id) })),
-        },
-        authored_scripts: next.authored_scripts,
-      } as Record<string, unknown>;
-      delete authoring.players;
+      const authoring = { ...next, authored_scripts: next.authored_scripts } as Record<
+        string,
+        unknown
+      >;
       const canonical = wasm.author_scenario_bundle(JSON.stringify(authoring));
       downloadScenarioBundle(canonical, "scenario.json");
       const identity = validateScenarioBundle(wasm, canonical);
@@ -200,7 +184,9 @@ export default function ScenarioBuilder() {
       setDraft(loaded);
       setSelected(loaded.scenario.units[0]?.id ?? null);
       setSelectedPlayer(
-        loaded.players.find((player) => player.human_capable)?.id ?? loaded.players[0]?.id ?? "",
+        loaded.scenario.players.find((player) => player.human_capable)?.id ??
+          loaded.scenario.players[0]?.id ??
+          "",
       );
       setStatus({ kind: "ok", text: `Loaded ${identity.sha256.slice(0, 12)}… in memory` });
     } catch (error) {
@@ -416,18 +402,22 @@ export default function ScenarioBuilder() {
             onClick={() =>
               setDraft((current) => {
                 const side = "blue" as const;
-                const id = nextPlayerId(current.players, side);
-                const newPlayer: BuilderPlayer = {
+                const id = nextPlayerId(current.scenario.players, side);
+                const newPlayer: Player = {
                   id,
                   side,
                   faction: "us",
                   controller: "human",
                   human_capable: true,
-                  units: [],
                 };
                 return {
                   ...current,
-                  players: [...current.players, newPlayer].sort((a, b) => a.id.localeCompare(b.id)),
+                  scenario: {
+                    ...current.scenario,
+                    players: [...current.scenario.players, newPlayer].sort((a, b) =>
+                      a.id.localeCompare(b.id),
+                    ),
+                  },
                 };
               })
             }
@@ -436,21 +426,23 @@ export default function ScenarioBuilder() {
           </button>
           <button
             type="button"
-            disabled={draft.players.length <= 1}
+            disabled={draft.scenario.players.length <= 1}
             onClick={() =>
               setDraft((current) => {
-                const removablePlayer = current.players.find(
-                  (player) => player.id === selectedPlayer && player.units.length === 0,
+                const removablePlayer = current.scenario.players.find(
+                  (player) =>
+                    player.id === selectedPlayer &&
+                    !current.scenario.units.some((unit) => unit.owner === player.id),
                 );
                 if (!removablePlayer) {
                   setStatus({ kind: "error", text: "Select an empty player before removing it." });
                   return current;
                 }
-                const players = current.players.filter(
+                const players = current.scenario.players.filter(
                   (player) => player.id !== removablePlayer.id,
                 );
                 setSelectedPlayer(players[0]?.id ?? "");
-                return { ...current, players };
+                return { ...current, scenario: { ...current.scenario, players } };
               })
             }
           >
@@ -458,12 +450,13 @@ export default function ScenarioBuilder() {
           </button>
         </div>
         <div className="scenario-builder-players">
-          {draft.players.map((player) => (
+          {draft.scenario.players.map((player) => (
             <div className="scenario-builder-player" data-side={player.side} key={player.id}>
               <i aria-hidden="true" />
               <label>
                 <span>
-                  {player.id} · {player.units.length} units
+                  {player.id} ·{" "}
+                  {draft.scenario.units.filter((unit) => unit.owner === player.id).length} units
                   <button
                     type="button"
                     className="scenario-builder-place"
@@ -478,11 +471,11 @@ export default function ScenarioBuilder() {
                   aria-label={`${player.id} side`}
                   value={player.side}
                   onChange={(event) => {
-                    const side = event.target.value as BuilderPlayer["side"];
+                    const side = event.target.value as Player["side"];
                     setDraft((current) => {
                       const nextPlayer = {
                         side,
-                        faction: player.faction ?? "us",
+                        ...(side === "neutral" ? {} : { faction: player.faction ?? "us" }),
                         controller:
                           side === "neutral" ? ("passive_ai" as const) : player.controller,
                         human_capable: side === "neutral" ? false : player.human_capable,
@@ -492,12 +485,12 @@ export default function ScenarioBuilder() {
                         scenario: {
                           ...current.scenario,
                           units: current.scenario.units.map((unit) =>
-                            player.units.includes(unit.id)
+                            unit.owner === player.id
                               ? { ...unit, side, yaw: side === "red" ? Math.PI : 0 }
                               : unit,
                           ),
+                          players: updatePlayer(current.scenario.players, player.id, nextPlayer),
                         },
-                        players: updatePlayer(current.players, player.id, nextPlayer),
                       };
                     });
                   }}
@@ -515,9 +508,12 @@ export default function ScenarioBuilder() {
                     onChange={(event) =>
                       setDraft((current) => ({
                         ...current,
-                        players: updatePlayer(current.players, player.id, {
-                          faction: event.target.value as BuilderPlayer["faction"],
-                        }),
+                        scenario: {
+                          ...current.scenario,
+                          players: updatePlayer(current.scenario.players, player.id, {
+                            faction: event.target.value as Player["faction"],
+                          }),
+                        },
                       }))
                     }
                   >
@@ -536,9 +532,12 @@ export default function ScenarioBuilder() {
                     onChange={(event) =>
                       setDraft((current) => ({
                         ...current,
-                        players: updatePlayer(current.players, player.id, {
-                          human_capable: event.target.checked,
-                        }),
+                        scenario: {
+                          ...current.scenario,
+                          players: updatePlayer(current.scenario.players, player.id, {
+                            human_capable: event.target.checked,
+                          }),
+                        },
                       }))
                     }
                   />
@@ -550,9 +549,12 @@ export default function ScenarioBuilder() {
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
-                      players: updatePlayer(current.players, player.id, {
-                        controller: event.target.value as BuilderController,
-                      }),
+                      scenario: {
+                        ...current.scenario,
+                        players: updatePlayer(current.scenario.players, player.id, {
+                          controller: event.target.value as BuilderController,
+                        }),
+                      },
                     }))
                   }
                 >
@@ -659,7 +661,6 @@ export default function ScenarioBuilder() {
                       units: [],
                       skirmish: builderEconomy(current.scenario.map.size),
                     },
-                    players: current.players.map((player) => ({ ...player, units: [] })),
                   };
                 }
                 return {
@@ -773,7 +774,7 @@ export default function ScenarioBuilder() {
                 }
               >
                 <option value="">No command player (events/victory only)</option>
-                {draft.players
+                {draft.scenario.players
                   .filter((player) => player.side === script.side)
                   .map((player) => (
                     <option key={player.id} value={player.id}>

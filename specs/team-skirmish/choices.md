@@ -149,3 +149,6 @@ Decisions the implementation made where the spec was silent, with a verdict on e
 | 01 | Players from today's links are named `blue-1` (Human) and `red-1` (active AI). Parity fixtures use `red-1` as a passive AI, which matches their earlier behaviour of having no AI opponent. | Sound. Slice 06 replaces the link grammar. |
 | 01 | Wasm preparation checks the scenario's player contract before constructing the battle, and returns a normal refusal instead of panicking. | Sound. It is the one admission point, and it fixed a panic found in review. |
 | 01 | The bundle format version is now `scenario-bundle-2`. | Sound: hard cutover, no migration. |
+| 07 | The lobby state is `{ players, map, battleSeed }`, and players stay sorted by side, then by id number. | Sound: one serializable shape, in deterministic order. |
+| 07 | Until slice 06, `toUrl` and `fromUrl` carry the players as JSON, and `toRequest` fills placeholder generator fields. Each is marked for slice 06. | Provisional. Slice 06 replaces all three with the link grammar and `setup_for`. |
+| 07 | The lobby's limit of 5 players per side is one named constant, `MAX_PLAYERS_PER_SIDE`, in the lobby model. | Sound: one owner. It is lobby data, separate from admission's `max_players_per_side` (D35). |
