@@ -165,3 +165,15 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **Test fixture:** `test_transport_heli` (16 seats). `test_heli` still carries no one.
 - **Risk:** boarding needs the exact low-hover height over the surface. Where a building or tree holds a helicopter higher, a Board order can wait forever with no refusal. The lab's helicopter variant will show whether this matters.
 - **The market-town menu reel was re-recorded** (`BLESS_MENU_REEL=1`). Main's reel puts a garrison collapse at tick 2093, and the building bail-out lets two soldiers live where the old coin flip killed them. Every shot still opens on a living unit; the footage after that tick needs the user's look.
+
+## Slice 13
+- **Seats sit on each roster row, not on the shared base profiles.** Those profiles also cover vehicles that carry no one (M-SHORAD, Skyranger, Patriot, NASAMS, Pantsir, S-300, Buk, Mi-28, Ajax).
+- **D3's list is read literally:** 32 carriers (5 × 16, 20 × 8, 7 × 3). Only the variants D3 names carry anyone:
+  - the MH-6M yes, the AH-6M no;
+  - the Mi-35M yes, the Mi-28NM no;
+  - the Stryker ICV, Dragoon and RV yes; the ATGM, Mortar and M-SHORAD no;
+  - the LAV-AT, Gepard, Ajax, Fennek and Jaguar no.
+- **"Passenger carriage not implemented" became "infantry carrier"** in 18 descriptions. The air-defence rows lose the clause.
+- **The orchestrator checked the seat table by hand** against D3; no test pins it.
+- **The skirmish parity records keep their frozen catalog text,** old descriptions included. They are test inputs; the digests didn't move.
+- **The purchase picker shows no seat count:** its cards have no capability line.
