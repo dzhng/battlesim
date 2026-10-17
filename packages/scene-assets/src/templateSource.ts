@@ -108,7 +108,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 /** Read a set's `templates.json`: its structure only. A file that cannot be
  *  read as a set at all comes back null. */
-// eslint-disable-next-line complexity -- this validator reports the complete template source contract in one pass so findings retain row context.
 export function readTemplateSet(
   bytes: Uint8Array,
   path: string,
@@ -421,6 +420,127 @@ export interface PackedTemplates {
 
 const fmt = (n: number) => n.toFixed(3);
 
+/** A destroyed template is known in exactly one damage state: the one its
+ *  floors call for (`damageState`). */
+function damageStateFindings(
+  path: string,
+  template: TemplateSetSource["templates"][number],
+  canonical: TemplateDescriptor,
+  collapse: BuildingCollapse,
+): Finding[] {
+  const findings: Finding[] = [];
+  const add = (message: string, fix: string) =>
+    findings.push(error("templates.state", `${path}: ${message}`, fix));
+  const id = template.descriptor.id;
+  const ends = damageState(canonical, collapse);
+  const other = ends === "ruin" ? "gutted" : "ruin";
+  const what = `template ${id} (${floorCount(canonical)} floors) ${ends === "ruin" ? "collapses" : "stands gutted"}`;
+  if (!template.states[ends]?.length)
+    add(
+      `${what}, and has no "${ends}" rows`,
+      ends === "ruin"
+        ? "give it the rows of its remains: the same plan, broken down to the ruin height"
+        : "give it the rows of its burnt shell, standing at full height",
+    );
+  if (template.states[other])
+    add(
+      `${what}, and has "${other}" rows`,
+      `drop its "${other}" state: a building of more than ${collapse.max_floors} floors stands gutted, and any other collapses`,
+    );
+  return findings;
+}
+
+/** The catalogue and the sets, one against the other: each dressed
+ *  template is its row in the admitted catalogue, and, once every set has
+ *  been read, each row is dressed. */
+function catalogueFindings(
+  admitted: AdmittedTemplates,
+  dressed: ReadonlyMap<string, { sets: string[]; canonical: string }>,
+  unread: boolean,
+): Finding[] {
+  const findings: Finding[] = [];
+  const rows = new Map(admitted.templates.map((t) => [t.id, JSON.stringify(t)]));
+  for (const [id, entry] of dressed) {
+    const row = rows.get(id);
+    if (row !== entry.canonical)
+      findings.push(
+        error(
+          "templates.catalogue",
+          `set ${entry.sets.join(", ")}: template ${id} ${row === undefined ? "is not in the physical catalogue" : "differs from its row in the physical catalogue"}`,
+          "the catalogue's rows are the sets' descriptors: run `bun run --cwd web asset -- catalogue`",
+        ),
+      );
+  }
+  // Which templates lack art is only known once every set has been read.
+  for (const id of unread ? [] : rows.keys())
+    if (!dressed.has(id))
+      findings.push(
+        error(
+          "templates.coverage",
+          `template ${id} is in the physical catalogue, but no set has art for it`,
+          "the catalogue's rows are the sets' descriptors: add it to a set, or run `bun run --cwd web asset -- catalogue` to drop its row",
+        ),
+      );
+  return findings;
+}
+
+/** A set names the set and kit its catalog entry does, on a baked kit. */
+function kitFindings(path: string, input: TemplateSetInput, set: TemplateSetSource): Finding[] {
+  const findings: Finding[] = [];
+  const add = (message: string, fix: string) =>
+    findings.push(error("templates.kit", `${path}: ${message}`, fix));
+  if (set.set !== input.name || set.kit !== input.entry.kit)
+    add(
+      `the file says set "${set.set}" on kit "${set.kit}"; the catalog lists it as set "${input.name}" on kit "${input.entry.kit}"`,
+      "make assets/catalog.json's city_sets entry and the set's own names agree",
+    );
+  if (!input.kit)
+    add(
+      `kit "${input.entry.kit}" is not a baked kit appearance`,
+      `add a { "unit": "kit" } appearance "${input.entry.kit}" for the set's kit.glb, and fix its findings`,
+    );
+  return findings;
+}
+
+/** Triangles `rows` draw at each tier, finest first, by their kit modules. */
+function tierTriangles(
+  rows: readonly number[][],
+  moduleOf: (index: number) => StaticBundle["states"][number] | undefined,
+): number[] {
+  const triangles = Array.from({ length: TIER_COUNT }, () => 0);
+  for (const row of rows) {
+    const module = moduleOf(row[0]);
+    for (let t = 0; module && t < TIER_COUNT; t++)
+      if (row[8] & (1 << t)) triangles[t] += triangleCount(module.tiers[t]);
+  }
+  return triangles;
+}
+
+/** A template's stats row: what it draws intact, and in its damage state. */
+function templateStats(
+  set: string,
+  template: TemplateSetSource["templates"][number],
+  drawn: ReadonlyMap<TemplateState, number[]>,
+): TemplateLibraryStats["templates"][number] {
+  const damaged = TEMPLATE_STATES.find((state) => state !== "intact" && drawn.has(state));
+  return {
+    id: template.descriptor.id,
+    set,
+    status: template.status,
+    rows: template.states.intact?.length ?? 0,
+    triangles: drawn.get("intact") ?? Array.from({ length: TIER_COUNT }, () => 0),
+    ...(damaged
+      ? {
+          damage: {
+            state: damaged,
+            rows: template.states[damaged]!.length,
+            triangles: drawn.get(damaged)!,
+          },
+        }
+      : {}),
+  };
+}
+
 /**
  * Hold every set to its kit, the physical contract and the physical
  * catalogue (`catalogue`, its rows), and pack them all into one library.
@@ -430,7 +550,6 @@ const fmt = (n: number) => n.toFixed(3);
  * remains a ruin is held to. Deterministic: sets in name order, templates in
  * id order, rows as written.
  */
-// eslint-disable-next-line complexity -- packing must preserve one deterministic ordering across sets, kits, modules, rows, and damage states.
 export function packTemplateSets(
   inputs: readonly TemplateSetInput[],
   catalogue: readonly unknown[],
@@ -458,18 +577,7 @@ export function packTemplateSets(
     const set = read.set;
     if (!set || read.findings.length) unread = true;
     if (!set) continue;
-    if (set.set !== input.name || set.kit !== input.entry.kit)
-      add(
-        "templates.kit",
-        `the file says set "${set.set}" on kit "${set.kit}"; the catalog lists it as set "${input.name}" on kit "${input.entry.kit}"`,
-        "make assets/catalog.json's city_sets entry and the set's own names agree",
-      );
-    if (!input.kit)
-      add(
-        "templates.kit",
-        `kit "${input.entry.kit}" is not a baked kit appearance`,
-        `add a { "unit": "kit" } appearance "${input.entry.kit}" for the set's kit.glb, and fix its findings`,
-      );
+    findings.push(...kitFindings(path, input, set));
     const kitStates = new Map(input.kit?.bundle.states.map((s) => [s.name, s]) ?? []);
     // The set's module indices, as the library's.
     const slots = set.modules.map((module) => {
@@ -508,26 +616,7 @@ export function packTemplateSets(
         dressed.set(id, entry);
       }
       const drawn = new Map<TemplateState, number[]>();
-      if (canonical) {
-        // Destroyed, a template is known in exactly one state: the one its floors call for.
-        const ends = damageState(canonical, collapse);
-        const other = ends === "ruin" ? "gutted" : "ruin";
-        const what = `template ${id} (${floorCount(canonical)} floors) ${ends === "ruin" ? "collapses" : "stands gutted"}`;
-        if (!template.states[ends]?.length)
-          add(
-            "templates.state",
-            `${what}, and has no "${ends}" rows`,
-            ends === "ruin"
-              ? "give it the rows of its remains: the same plan, broken down to the ruin height"
-              : "give it the rows of its burnt shell, standing at full height",
-          );
-        if (template.states[other])
-          add(
-            "templates.state",
-            `${what}, and has "${other}" rows`,
-            `drop its "${other}" state: a building of more than ${collapse.max_floors} floors stands gutted, and any other collapses`,
-          );
-      }
+      if (canonical) findings.push(...damageStateFindings(path, template, canonical, collapse));
       for (const state of TEMPLATE_STATES) {
         const rows = template.states[state];
         if (!rows) continue;
@@ -568,15 +657,8 @@ export function packTemplateSets(
                 : "keep the art on its parts: move the row, or change the descriptor it is made to; widen the set's fit only for what a real building overhangs",
             );
         }
-        const triangles = Array.from({ length: TIER_COUNT }, () => 0);
-        for (const row of rows) {
-          const module = moduleOf(row[0]);
-          for (let t = 0; module && t < TIER_COUNT; t++)
-            if (row[8] & (1 << t)) triangles[t] += triangleCount(module.tiers[t]);
-        }
-        drawn.set(state, triangles);
+        drawn.set(state, tierTriangles(rows, moduleOf));
       }
-      const damaged = TEMPLATE_STATES.find((state) => state !== "intact" && drawn.has(state));
       packed.push({
         art: { id, set: input.name, status: template.status, states: {} },
         rows: Object.fromEntries(
@@ -586,22 +668,7 @@ export function packTemplateSets(
           }),
         ),
       });
-      stats.push({
-        id,
-        set: input.name,
-        status: template.status,
-        rows: template.states.intact?.length ?? 0,
-        triangles: drawn.get("intact") ?? Array.from({ length: TIER_COUNT }, () => 0),
-        ...(damaged
-          ? {
-              damage: {
-                state: damaged,
-                rows: template.states[damaged]!.length,
-                triangles: drawn.get(damaged)!,
-              },
-            }
-          : {}),
-      });
+      stats.push(templateStats(input.name, template, drawn));
     }
   }
 
@@ -618,30 +685,7 @@ export function packTemplateSets(
       ),
     );
   }
-  if (admitted) {
-    const rows = new Map(admitted.templates.map((t) => [t.id, JSON.stringify(t)]));
-    for (const [id, entry] of dressed) {
-      const row = rows.get(id);
-      if (row !== entry.canonical)
-        findings.push(
-          error(
-            "templates.catalogue",
-            `set ${entry.sets.join(", ")}: template ${id} ${row === undefined ? "is not in the physical catalogue" : "differs from its row in the physical catalogue"}`,
-            "the catalogue's rows are the sets' descriptors: run `bun run --cwd web asset -- catalogue`",
-          ),
-        );
-    }
-    // Which templates lack art is only known once every set has been read.
-    for (const id of unread ? [] : rows.keys())
-      if (!dressed.has(id))
-        findings.push(
-          error(
-            "templates.coverage",
-            `template ${id} is in the physical catalogue, but no set has art for it`,
-            "the catalogue's rows are the sets' descriptors: add it to a set, or run `bun run --cwd web asset -- catalogue` to drop its row",
-          ),
-        );
-  }
+  if (admitted) findings.push(...catalogueFindings(admitted, dressed, unread));
   for (const [id, entry] of dressed)
     if (entry.sets.length > 1)
       findings.push(

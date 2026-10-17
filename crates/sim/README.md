@@ -98,7 +98,7 @@ A mismatch is an explicit refusal, not a best-effort replay under new rules.
 `cargo test -p sim --test sim <test-or-module>` gives a narrow deterministic check.
 Use `cargo test -p sim` for the crate. Test the behavior first, then verify the
 digest for changes intended to preserve outcomes. Full workspace gates and when
-to run them are defined by the root [checking policy](../../development.md#checks-and-hooks).
+to run them are defined by the [check ladder](../../development.md#check-ladder).
 
 A test of a mechanic runs on the test units (`test_*`, `fixtures/units/test`,
 never game content), loaded by `fixtures::test_game`, and adds a fake unit when

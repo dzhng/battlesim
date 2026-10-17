@@ -115,86 +115,42 @@ export function preparedBattleHref(request: PrepareBattleRequest): string {
 export const menuHref = (choice: MapChoice | Omit<MapChoice, "seed"> | null) =>
   choice ? `/?${query(choice)}` : "/";
 
-function battleParameterError(params: URLSearchParams): string | null {
-  const unknown = [...params.keys()].find((name) => !PARAMETERS.has(name));
-  return unknown === undefined ? null : `${unknown} is not a battle parameter`;
-}
-
-function playParameterError(params: URLSearchParams): string | null {
-  return params.has("play") && (params.get("play") !== "1" || params.has("seed"))
-    ? "play must be 1 and cannot name an exact seed"
-    : null;
-}
-
-function battleSeed(params: URLSearchParams): number | { error: string } {
-  const value = Number(params.get("battle") ?? game.seed);
-  return Number.isSafeInteger(value) && value >= 0
-    ? value
-    : { error: `battle must be a whole number from 0 to ${Number.MAX_SAFE_INTEGER}` };
-}
-
-function battleFactions(params: URLSearchParams): [Faction, Faction] | { error: string } {
-  const faction = params.get("faction");
-  const enemy = params.get("enemy");
-  if (!one(faction, FACTIONS)) return { error: "faction must be us, europe or eastern" };
-  if (enemy !== null && !one(enemy, FACTIONS))
-    return { error: "enemy must be us, europe or eastern" };
-  return [faction, enemy ?? (faction === "eastern" ? "us" : "eastern")];
-}
-
-function battleMap(
-  params: URLSearchParams,
-): { type: MapType; size: MapSize; region?: string; seed: string | null } | { error: string } {
-  const type = params.get("type") ?? ("mixed" satisfies MapType);
-  const size = params.get("size") ?? ("small" satisfies MapSize);
-  if (!one(type, MAP_TYPES)) return { error: `type must be one of ${MAP_TYPES.join(", ")}` };
-  if (!one(size, MAP_SIZES)) return { error: `size must be one of ${MAP_SIZES.join(", ")}` };
-  const region = params.get("region");
-  if (region !== null && !one(region, REGIONS))
-    return { error: `region must be one of ${REGIONS.join(", ")}` };
-  return {
-    type,
-    size,
-    ...(region === null ? {} : { region }),
-    seed: canonicalSeed(params.get("seed") ?? "1"),
-  };
-}
-
 /** The battle `search` asks for, or which parameter it gets wrong. Nothing
  *  is guessed for a parameter that is missing or wrong, and a parameter the
  *  battle does not read is refused, so a stale link cannot pass as another
  *  battle. */
 export function askedBattle(search: string): AskedBattle | { error: string } {
   const params = new URLSearchParams(search);
-  const parameterError = battleParameterError(params);
-  if (parameterError) return { error: parameterError };
+  const unknown = [...params.keys()].find((name) => !PARAMETERS.has(name));
+  if (unknown !== undefined) return { error: `${unknown} is not a battle parameter` };
   if (params.has("replay")) return { kind: "replay" };
-  const playError = playParameterError(params);
-  if (playError) return { error: playError };
-  const parsedBattleSeed = battleSeed(params);
-  if (typeof parsedBattleSeed !== "number") return parsedBattleSeed;
-  const factions = battleFactions(params);
-  if ("error" in factions) return factions;
-  const map = battleMap(params);
-  if ("error" in map) return map;
+  if (params.has("play") && (params.get("play") !== "1" || params.has("seed")))
+    return { error: "play must be 1 and cannot name an exact seed" };
+  const seed = (name: string, fallback: string) => canonicalSeed(params.get(name) ?? fallback);
+  const battleSeed = Number(params.get("battle") ?? game.seed);
+  if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)
+    return { error: `battle must be a whole number from 0 to ${Number.MAX_SAFE_INTEGER}` };
+  const faction = params.get("faction");
+  const enemy = params.get("enemy");
+  if (!one(faction, FACTIONS)) return { error: "faction must be us, europe or eastern" };
+  if (enemy !== null && !one(enemy, FACTIONS))
+    return { error: "enemy must be us, europe or eastern" };
+  const factions: [Faction, Faction] = [
+    faction,
+    enemy ?? (faction === "eastern" ? "us" : "eastern"),
+  ];
+  const type = params.get("type") ?? ("mixed" satisfies MapType);
+  const size = params.get("size") ?? ("small" satisfies MapSize);
+  const mapSeed = seed("seed", "1");
+  if (!one(type, MAP_TYPES)) return { error: `type must be one of ${MAP_TYPES.join(", ")}` };
+  if (!one(size, MAP_SIZES)) return { error: `size must be one of ${MAP_SIZES.join(", ")}` };
+  const region = params.get("region");
+  if (region !== null && !one(region, REGIONS))
+    return { error: `region must be one of ${REGIONS.join(", ")}` };
+  const chosen = region === null ? {} : { region };
   if (params.has("play"))
-    return {
-      kind: "play",
-      factions,
-      map: { type: map.type, size: map.size, ...(map.region ? { region: map.region } : {}) },
-      battleSeed: parsedBattleSeed,
-    };
-  if (map.seed === null)
+    return { kind: "play", factions, map: { type, size, ...chosen }, battleSeed };
+  if (mapSeed === null)
     return { error: "seed must be a whole number from 0 to 18446744073709551615" };
-  return {
-    kind: "generated",
-    factions,
-    map: {
-      type: map.type,
-      size: map.size,
-      seed: map.seed,
-      ...(map.region ? { region: map.region } : {}),
-    },
-    battleSeed: parsedBattleSeed,
-  };
+  return { kind: "generated", factions, map: { type, size, seed: mapSeed, ...chosen }, battleSeed };
 }

@@ -49,7 +49,7 @@ export type BattleLoadStage = "world" | "renderer" | "playable";
 const ZOOM_BASE = 1.25;
 const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(ZOOM_BASE));
 
-// eslint-disable-next-line complexity -- one player-facing composition owns viewport, HUD, pause, and loading state.
+// eslint-disable-next-line complexity -- debt: most branches are `observation?.` and `input &&` guards on HUD props; split by moving the `.hud` block into a component that takes a non-null observation and the input flag.
 export function BattleView({
   fixture,
   scenario,

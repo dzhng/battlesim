@@ -125,10 +125,17 @@ export function createAuthority(host: AuthorityHost): Authority {
   function pump() {
     if (disposed || !battle || !started) return;
     if (battle.finished()) {
-      finishScript(battle.tick());
+      if (script) {
+        host.post({ type: "advanced", id: script.id, tick: battle.tick() });
+        script = null;
+      }
       return setStatus("finished");
     }
-    if (runScript()) return;
+    if (script) {
+      while (script && credits.length > 0) stepAndPublish();
+      if (script) return setStatus("waiting-consumer");
+      nextTickAt = host.now();
+    }
     if (battle.finished()) return setStatus("finished");
     if (hidden) return setStatus("hidden");
     if (paused) return setStatus("paused");
@@ -160,169 +167,6 @@ export function createAuthority(host: AuthorityHost): Authority {
     host.schedule(Math.max(0, nextTickAt - host.now()));
   }
 
-  function finishScript(tick: number) {
-    if (!script) return;
-    host.post({ type: "advanced", id: script.id, tick });
-    script = null;
-  }
-
-  function runScript() {
-    if (!script) return false;
-    while (script && credits.length > 0) stepAndPublish();
-    if (script) {
-      setStatus("waiting-consumer");
-      return true;
-    }
-    nextTickAt = host.now();
-    return false;
-  }
-
-  type PreviewRequest = Extract<
-    SimRequest,
-    { type: "purchase_preview" | "move_preview" | "building_preview" }
-  >;
-  type ImmediateRequest = Extract<
-    SimRequest,
-    { type: "command" | "replay" | "side" | "controllers" }
-  >;
-
-  function initialize(request: Extract<SimRequest, { type: "init" }>) {
-    side = request.side;
-    tickHz = JSON.parse(request.scenario).rules.tick_hz;
-    tickMs = 1000 / tickHz;
-    // A refused scenario or replay throws while building: report it too.
-    void host
-      .load()
-      .then((module) => {
-        if (disposed) return;
-        sim = module;
-        battle = request.replay
-          ? module.replayBattle(request.scenario, request.replay)
-          : module.createBattle(request.scenario, request.seed);
-        for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
-        host.post({
-          type: "ready",
-          layout: battle.observation_layout(),
-          tickHz,
-          tick: battle.tick(),
-        });
-        setStatus("ready");
-        for (const queued of backlog.splice(0)) handle(queued);
-      })
-      .catch((error: unknown) => fail(error));
-  }
-
-  function handlePreview(request: PreviewRequest) {
-    switch (request.type) {
-      case "purchase_preview":
-        host.post({
-          type: "purchase_preview",
-          id: request.id,
-          placement: JSON.parse(
-            battle!.preview_purchase(request.side, request.variant, ...request.destination),
-          ),
-        });
-        return;
-      case "move_preview":
-        host.post({
-          type: "move_preview",
-          id: request.id,
-          destinations: JSON.parse(
-            battle!.preview_move(request.side, JSON.stringify(request.move)),
-          ),
-        });
-        return;
-      case "building_preview":
-        // A changing selection can invalidate a preview without failing the battle.
-        try {
-          host.post({
-            type: "building_preview",
-            id: request.id,
-            placement: JSON.parse(
-              battle!.preview_building(request.side, JSON.stringify(request.building)),
-            ),
-          });
-        } catch (error) {
-          host.post({
-            type: "building_preview",
-            id: request.id,
-            placement: null,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-        return;
-    }
-  }
-
-  function handleImmediate(request: ImmediateRequest) {
-    switch (request.type) {
-      case "command":
-        host.post({
-          type: "ack",
-          ack: JSON.parse(battle!.accept(JSON.stringify(request.command))),
-        });
-        return;
-      case "replay":
-        host.post({ type: "replay", json: battle!.replay_json() });
-        return;
-      case "side":
-        side = request.side;
-        battle!.resync_observation();
-        return;
-      case "controllers":
-        battle!.set_controllers(request.controllers);
-        return;
-    }
-  }
-
-  function dispatch(request: SimRequest) {
-    if (request.type === "init") {
-      initialize(request);
-      return false;
-    }
-    if (
-      request.type === "command" ||
-      request.type === "replay" ||
-      request.type === "side" ||
-      request.type === "controllers"
-    ) {
-      handleImmediate(request);
-      return false;
-    }
-    if (
-      request.type === "purchase_preview" ||
-      request.type === "move_preview" ||
-      request.type === "building_preview"
-    ) {
-      handlePreview(request);
-      return false;
-    }
-    switch (request.type) {
-      case "start":
-        started = true;
-        nextTickAt = host.now();
-        break;
-      case "credit":
-        credits.push(request.buffer);
-        break;
-      case "pause":
-        paused = true;
-        break;
-      case "resume":
-        paused = false;
-        nextTickAt = host.now();
-        break;
-      case "hidden":
-        hidden = request.hidden;
-        if (!hidden) nextTickAt = host.now();
-        break;
-      case "advance":
-        script = { id: request.id, target: battle!.tick() + request.ticks };
-        break;
-    }
-    return true;
-  }
-
   function handle(request: SimRequest) {
     if (disposed) return;
     if (request.type === "dispose") {
@@ -335,7 +179,110 @@ export function createAuthority(host: AuthorityHost): Authority {
       return;
     }
     try {
-      if (dispatch(request)) pump();
+      switch (request.type) {
+        case "init": {
+          side = request.side;
+          tickHz = JSON.parse(request.scenario).rules.tick_hz;
+          tickMs = 1000 / tickHz;
+          // A refused scenario or replay throws while building: report it too.
+          void host
+            .load()
+            .then((module) => {
+              if (disposed) return;
+              sim = module;
+              battle = request.replay
+                ? module.replayBattle(request.scenario, request.replay)
+                : module.createBattle(request.scenario, request.seed);
+              for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
+              host.post({
+                type: "ready",
+                layout: battle.observation_layout(),
+                tickHz,
+                tick: battle.tick(),
+              });
+              setStatus("ready");
+              for (const queued of backlog.splice(0)) handle(queued);
+            })
+            .catch((error: unknown) => fail(error));
+          return;
+        }
+        case "start":
+          started = true;
+          nextTickAt = host.now();
+          break;
+        case "command":
+          host.post({
+            type: "ack",
+            ack: JSON.parse(battle!.accept(JSON.stringify(request.command))),
+          });
+          return;
+        case "purchase_preview":
+          host.post({
+            type: "purchase_preview",
+            id: request.id,
+            placement: JSON.parse(
+              battle!.preview_purchase(request.side, request.variant, ...request.destination),
+            ),
+          });
+          return;
+        case "move_preview":
+          host.post({
+            type: "move_preview",
+            id: request.id,
+            destinations: JSON.parse(
+              battle!.preview_move(request.side, JSON.stringify(request.move)),
+            ),
+          });
+          return;
+        case "building_preview": {
+          // A changing selection can invalidate a preview without failing the battle.
+          try {
+            host.post({
+              type: "building_preview",
+              id: request.id,
+              placement: JSON.parse(
+                battle!.preview_building(request.side, JSON.stringify(request.building)),
+              ),
+            });
+          } catch (error) {
+            host.post({
+              type: "building_preview",
+              id: request.id,
+              placement: null,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          return;
+        }
+        case "credit":
+          credits.push(request.buffer);
+          break;
+        case "pause":
+          paused = true;
+          break;
+        case "resume":
+          paused = false;
+          nextTickAt = host.now();
+          break;
+        case "hidden":
+          hidden = request.hidden;
+          if (!hidden) nextTickAt = host.now();
+          break;
+        case "advance":
+          script = { id: request.id, target: battle!.tick() + request.ticks };
+          break;
+        case "replay":
+          host.post({ type: "replay", json: battle!.replay_json() });
+          return;
+        case "side":
+          side = request.side;
+          battle!.resync_observation();
+          return;
+        case "controllers":
+          battle!.set_controllers(request.controllers);
+          return;
+      }
+      pump();
     } catch (error) {
       fail(error);
     }

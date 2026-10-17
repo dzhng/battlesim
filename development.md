@@ -1,8 +1,8 @@
 # Developing battlegame
 
-This document owns the engineering principles behind the game. The root
-[README](README.md) explains the product; subsystem READMEs own commands and
-contracts for their code.
+This document holds the engineering detail behind the principles in
+[AGENTS.md](AGENTS.md). The root [README](README.md) explains the product;
+subsystem READMEs own commands and contracts for their code.
 
 ## Where a concept belongs
 
@@ -17,7 +17,7 @@ side receives only the publications its own units can see.
 | [WebAssembly boundary](crates/game-wasm/README.md)        | Native/browser parity, geometry queries, publication memory, and binding lifetime.              |
 | [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.  |
 | [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.   |
-| [Battle lab](apps/battle-lab/README.md)                   | Player pages and focused developer fixtures composed from the shared battle view.               |
+| [Battle lab](apps/battle-lab/README.md)                   | Player pages, shareable battle addresses, and focused developer fixtures.                       |
 | [Renderer primitives](packages/renderer-core/README.md)   | Camera/depth contracts, device admission, and GPU allocation accounting.                        |
 | [Battle renderer](packages/battle-renderer/README.md)     | Observed feeds, terrain, models, lights, fog, effects, overlays, and GPU lifetime.              |
 | [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                       |
@@ -25,18 +25,31 @@ side receives only the publications its own units can see.
 | [Pipelines](crates/pipelines/README.md)                   | Browser shaders and pipeline settings consumed by the renderer and native client.               |
 | [Fixtures](fixtures/README.md)                            | Authored rules, unit/prop catalogs, generator presets, saved maps, and sound assignments.       |
 | [Assets](assets/README.md)                                | Source media, prepared runtime files, review sheets, and third-party provenance.                |
-| [Fixture publication](apps/fixture-publication/README.md) | Reviewed fixture saves, generated catalogs, and interrupted-write recovery.                     |
 | [Native client](native/client/README.md)                  | The `wgpu` client over the shared presentation frames and renderer pipelines.                   |
+| [Mechanics editor](apps/mechanics-editor/README.md)       | Developer tool: edits resolved rules and unit families.                                         |
+| [Map workbench](apps/map-workbench/README.md)             | Developer tool: tunes generation on a live top-down plan.                                       |
+| [Sound workbench](apps/sound-workbench/README.md)         | Developer tool: auditions the sound library and edits recipes and assignments.                  |
+| [Fixture publication](apps/fixture-publication/README.md) | Reviewed fixture saves from the developer tools, and interrupted-write recovery.                |
 
-Find the existing owner before introducing a new abstraction. Commands, flags,
-paths, and dependency versions belong in the manifest or README that owns them,
-not in this document.
+Commands, flags, paths, and dependency versions belong in the manifest or README
+that owns them, not in this document.
+
+Content has three owners, and none reaches another's place. Game battles are
+generated and field the roster's units. Test units (`test_*`) and `test` maps
+belong to tests, labs, and benchmarks; menu units and `menu` maps belong to the
+menu backdrop. A saved map's metadata says which it is
+([saved maps](fixtures/README.md#saved-maps)). The developer menu's entries are
+tools, labelled as such, and stay in production builds;
+[browser checks](web/README.md#checks-and-evidence) say which lab pages are
+tests and which are tools.
+
+Players know the game by a public name that may change at any time, owned by
+[`gameName.ts`](apps/battle-lab/src/gameName.ts). Code, packages, and the
+repository keep their working names and never take it.
 
 ## Game rules
 
-Rules come from physical properties, not named special cases. Express a
-restriction through the data each unit or weapon carries; do not add a rule
-that repeats the same restriction by role or label.
+The physical properties that rules read:
 
 - Obstacles are bodies with shape, weight class, mover blocking, cover tier, and
   integrity.
@@ -45,34 +58,49 @@ that repeats the same restriction by role or label.
   interceptability.
 - Units own their hull, senses, movement, flight model, and carried capabilities.
 
-The target is Hollywood realism. Keep what a viewer expects in a war film, even
-when it is exaggerated. Drop what looks silly on screen, even when a more exact
-physical model could defend it. Hard-coded rules are reserved for clearly
-game-shaped mechanics such as garrisons, suppression, objectives, and the
-neutral side's return-fire policy.
+Roles and families group the roster and pick symbols and voices; they never
+decide behaviour. If a rule asks "is this an X unit?", find the property that
+makes it one and read that instead.
 
-Before proposing a mechanic or changing who can see, move, shoot, block, push,
-destroy, or be hit, use the [tweak-mechanics](.agents/skills/tweak-mechanics/SKILL.md)
-workflow.
+A catalog row describes a body, while its placement supplies geometry
+ownership. Garrison seats and building-scaled integrity require a placed
+building aggregate; ordinary props, generated forest bodies, bridge decks, and
+vehicle wrecks have no such owner. Aggregate bodies stay immovable until the
+simulation can move all their parts together.
 
-## Working loop
+Use first principles where they stay simple, and hard-code a clear game rule
+where a principled version would be complex or look silly on screen. This is
+the one list of deliberate hard-coded rules:
 
-Optimize for the time to feedback you can trust. Run the narrowest check that
-answers the question: one test, one file, one crate, or one scene. Run the full
-closeout checks once, when a spec's implementation is finished. A change that
-reaches the whole system does not move that full run earlier while more work is
-still coming.
+- cover only helps infantry, and crouching is an animation;
+- garrisons are a named fighting-position mechanic;
+- a soldier's own rounds pass untouched through the tall cover he leans round
+  to fire (he steps out past its edge, fires a burst, and tucks back in);
+  everyone else's rounds still hit it;
+- suppression pins squads only; a vehicle's crew isn't suppressed;
+- active protection (a Trophy) is a simple capability, not an interceptor
+  weapon: while it has charges, any interceptable missile that comes within its
+  standoff is destroyed, with no sight, cone, or range of its own;
+- who can hold an objective follows the unit card's category (recon, infantry,
+  and vehicles), a game rule rather than a physical one;
+- the neutral side only returns fire, whatever its units author, and takes no
+  commands;
+- the skirmish AI and the scripted encounter defender choose their behaviour by
+  role tags (logistics, artillery, recon, AT, MBT). They are opponents'
+  playbooks, not rules of the battle.
 
-Write the test first for behavior changes and regressions. Test what the game
-does and how it fails, not which helper or branch happened to implement it. The
-simulation is deterministic: a refactor or performance change that should not
-alter behavior must preserve battle digests and replays, or name the decision
-that changes them.
+## Check ladder
 
-Do not loosen an acceptance requirement to make a check pass. Say what a narrow
-pass proves, what it assumes, and what remains unfinished. Long-running checks
-belong in the background with a visible progress marker and a stopping point;
-never repeat an unchanged failure.
+1. Run the smallest focused test or checker that can move: one test, one file,
+   one crate, or one scene.
+2. Run the owning package or scene checks when the slice is coherent.
+3. Run the full repository closeout checks once the spec is complete.
+
+Played battles, browser scenes, and the balance report are the expensive runs.
+Rendering, UI, sound, and docs need no battle. A rule change needs a quick
+sample while iterating, and the full balance report runs once, at closeout.
+Measure simulation cost in units that don't move with machine load, such as
+instructions retired, not wall time.
 
 The root task runner owns the repository-wide commands. The package manifests
 and subsystem READMEs own their exact command details.
@@ -95,43 +123,21 @@ says what blocks the split, not why the function is fine as it is. Read every
 one you touch as a cue to try the split again. When a function drops back under
 the budget, the lint fails on the stale comment until you delete it.
 
-Use the repository's check ladder:
-
-1. Run the smallest focused test or checker that can move.
-2. Run the owning package or scene checks when the slice is coherent.
-3. Run the full repository closeout checks once the spec is complete.
-
-Rendering and UI changes need visual evidence. Get an unprimed second opinion
-with [screenshot-critique](.agents/skills/screenshot-critique/SKILL.md), compare
-before and after with [compare-screenshots](.agents/skills/compare-screenshots/SKILL.md),
-and show the result with [preview-shots](.agents/skills/preview-shots/SKILL.md).
-Before changing player-facing UI, use [game-ui](.agents/skills/game-ui/SKILL.md);
-before changing GPU passes, buffers, shaders, or frame orchestration, use
-[renderer](.agents/skills/renderer/SKILL.md).
-
 ## Player-facing work
-
-Look at the picture. A passing test does not prove that a marker, HUD panel,
-callout, range ring, colour, or contact glyph reads correctly on screen.
 
 Keep player-facing UI in the visual language of a tactical battlefield: clear
 hierarchy, readable state, grounded marks, and restrained colour. It should feel
 like a command view, not a business dashboard.
 
-## Parallel work and scratch output
+## Scratch output
 
-Every parallel checkout multiplies dependencies and build output. Fetch only
-large files the task needs, share installed dependencies when safe, and never
-share build output between checkouts with different sources. Remove a checkout
-and its build output when its branch is merged.
-
-Put screenshots, logs, probes, and candidate renders in the ignored scratch
-folder. Do not put disposable evidence in specs or source directories.
+The ignored scratch folder is `throwaway/`.
 
 ## Plans and docs
 
-Active plans live under [specs](specs/). A plan's README is its live handoff;
-finished specs preserve durable rationale. Use [write-spec](.agents/skills/write-spec/SKILL.md)
-for large or risky features, [refactor-clean](.agents/skills/refactor-clean/SKILL.md)
-when a change exposes duplicate or stale ownership, and [review](.agents/skills/review/SKILL.md)
-before calling a substantive slice done.
+Active plans live under [specs](specs/README.md). A plan's README is its live
+handoff, and its choices ledger records decisions made where the plan was
+silent; finished specs preserve durable rationale. Use
+[write-spec](.agents/skills/write-spec/SKILL.md) for large or risky features and
+[review](.agents/skills/review/SKILL.md) before calling a substantive slice
+done.

@@ -147,65 +147,36 @@ export function grassSpecErrors(spec: GrassSpec): string[] {
     if (!(Array.isArray(r) && r.length === 2 && r[0] >= lo && r[1] >= r[0] && r[1] <= hi))
       out.push(`${what} must be [low, high] within [${lo}, ${hi}]`);
   };
+  const within = (what: string, v: number, lo: number, hi: number) => {
+    if (!(v >= lo && v <= hi)) out.push(`${what} must be within [${lo}, ${hi}]`);
+  };
   if (!(Number.isInteger(spec.blades) && spec.blades >= 1 && spec.blades <= GRASS_MAX_BLADES))
     out.push(`blades must be a whole number within [1, ${GRASS_MAX_BLADES}]`);
   range("height_m", spec.height_m, 0.02, 3);
   range("lean", spec.lean, 0, 0.8);
-  out.push(...grassScalarErrors(spec));
-  out.push(...grassShapeErrors(spec));
-  out.push(...grassOptionalErrors(spec));
-  out.push(...grassColorErrors(spec));
-  return out;
-}
-
-function grassScalarErrors(spec: GrassSpec): string[] {
-  return [
-    spec.radius_m >= 0 && spec.radius_m <= 1 ? null : "radius_m must be within [0, 1]",
-    spec.width_m > 0 && spec.width_m <= 0.2 ? null : "width_m must be within (0, 0.2]",
-    spec.jitter >= 0 && spec.jitter <= 0.5 ? null : "jitter must be within [0, 0.5]",
-    spec.wind >= 0 && spec.wind <= 1 ? null : "wind must be within [0, 1]",
-  ].filter((error): error is string => error !== null);
-}
-
-function grassShapeErrors(spec: GrassSpec): string[] {
-  return [
-    spec.shape && !(spec.shape.taper >= 0.5 && spec.shape.taper <= 8)
-      ? "shape.taper must be within [0.5, 8]"
-      : null,
-    spec.shape && !(spec.shape.belly >= 0 && spec.shape.belly <= 4)
-      ? "shape.belly must be within [0, 4]"
-      : null,
-    spec.head && !(spec.head.from > 0 && spec.head.from < 1 && spec.head.width >= 1)
-      ? "head.from must be within (0, 1) and head.width at least 1"
-      : null,
-  ].filter((error): error is string => error !== null);
-}
-
-function grassOptionalErrors(spec: GrassSpec): string[] {
-  return [
-    spec.droop !== undefined && !(spec.droop >= 0 && spec.droop <= 0.6)
-      ? "droop must be within [0, 0.6]"
-      : null,
-    spec.head && !(spec.head.chance >= 0 && spec.head.chance <= 1)
-      ? "head.chance must be within [0, 1]"
-      : null,
-    spec.dry && !(spec.dry.chance >= 0 && spec.dry.chance <= 1)
-      ? "dry.chance must be within [0, 1]"
-      : null,
-  ].filter((error): error is string => error !== null);
-}
-
-function grassColorErrors(spec: GrassSpec): string[] {
+  within("radius_m", spec.radius_m, 0, 1);
+  if (!(spec.width_m > 0 && spec.width_m <= 0.2)) out.push("width_m must be within (0, 0.2]");
+  within("jitter", spec.jitter, 0, 0.5);
+  within("wind", spec.wind, 0, 1);
+  if (spec.droop !== undefined) within("droop", spec.droop, 0, 0.6);
+  if (spec.shape) {
+    within("shape.taper", spec.shape.taper, 0.5, 8);
+    within("shape.belly", spec.shape.belly, 0, 4);
+  }
+  if (spec.head) {
+    if (!(spec.head.from > 0 && spec.head.from < 1 && spec.head.width >= 1))
+      out.push("head.from must be within (0, 1) and head.width at least 1");
+    within("head.chance", spec.head.chance, 0, 1);
+  }
+  if (spec.dry) within("dry.chance", spec.dry.chance, 0, 1);
   const colours = [spec.colors?.root, spec.colors?.mid, spec.colors?.tip];
   if (spec.dry) colours.push(spec.dry.colors?.root, spec.dry.colors?.mid, spec.dry.colors?.tip);
   if (spec.head?.color) colours.push(spec.head.color);
-  return colours.every(
-    (c) => Array.isArray(c) && c.length === 3 && c.every((v) => v >= 0 && v <= 1),
-  )
-    ? []
-    : [
-        "colors (and dry.colors) .root, .mid and .tip, and head.color, must be sRGB [r, g, b] in [0, 1]",
-      ];
+  if (!colours.every((c) => Array.isArray(c) && c.length === 3 && c.every((v) => v >= 0 && v <= 1)))
+    out.push(
+      "colors (and dry.colors) .root, .mid and .tip, and head.color, must be sRGB [r, g, b] in [0, 1]",
+    );
+  return out;
 }
 
 interface Blade {

@@ -3,7 +3,7 @@
 // on their skeleton's joint order and bounded by its clips.
 
 import { sha256Hex } from "./glb.ts";
-import { publishBundle, publishGzip } from "./gzip.ts";
+import { publishBundle, publishGzip, type Publication } from "./gzip.ts";
 import { textureLayerCounts, textureLayerFindings, type TextureLayerCounts } from "./texture.ts";
 import {
   KIT_BUNDLE_MAX_BYTES,
@@ -96,7 +96,96 @@ export function kitBytesFindings(name: string, bytes: number): Finding[] {
 /** The template art library's name in a bake report. */
 export const TEMPLATE_LIBRARY_REPORT = "template art";
 
-// eslint-disable-next-line complexity -- the bake pipeline owns dependency ordering, validation, publication, and texture accounting as one transaction.
+/** A skeleton's or appearance's report: its findings, and its published
+ *  bundle when it baked. */
+function bundleReport(
+  name: string,
+  what: "skeleton" | "appearance",
+  { findings, stats }: { findings: Finding[]; stats: Stats | null },
+  out: { hash: string; bytes: number } | null,
+): BakeReport {
+  return { name, what, findings, stats, hash: out?.hash ?? null, bytes: out?.bytes ?? 0 };
+}
+
+/** An appearance's runtime entry: its bundle and the catalog fields the
+ *  game reads at runtime, each only when the catalog sets it. */
+function runtimeAppearance(
+  entry: Catalog["appearances"][string],
+  kind: Bundle["kind"],
+  bundle: string,
+): RuntimeCatalog["appearances"][string] {
+  return {
+    unit: entry.unit,
+    kind: kind as RuntimeCatalog["appearances"][string]["kind"],
+    bundle,
+    ...(entry.skeleton ? { skeleton: entry.skeleton } : {}),
+    ...(entry.scenery ? { scenery: entry.scenery } : {}),
+    ...(entry.footprint_half_m ? { footprint_half_m: entry.footprint_half_m } : {}),
+    ...(entry.mounts ? { mounts: entry.mounts } : {}),
+    ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
+    ...(entry.paints ? { paints: entry.paints } : {}),
+    ...(entry.wreck ? { wreck: entry.wreck } : {}),
+    ...(entry.factions ? { factions: entry.factions } : {}),
+  };
+}
+
+/** The catalog's city sets packed into the one template art library on the
+ *  baked `kits`, published into `output` when nothing refuses it; its report,
+ *  or null when the catalog has no city sets. */
+async function bakeTemplateLibrary(
+  catalog: Catalog,
+  readSource: (path: string) => Promise<Uint8Array>,
+  context: BakeContext,
+  kits: ReadonlyMap<string, { bundle: StaticBundle; hash: string }>,
+  output: Publication,
+): Promise<BakeReport | null> {
+  const sets = Object.entries(catalog.city_sets ?? {});
+  if (!sets.length) return null;
+  if (!context.templates)
+    throw new Error("the catalog has city sets: the bake needs the physical template catalogue");
+  const collapse = context.authority.collapse;
+  if (!collapse)
+    throw new Error(
+      "the catalog has city sets: the bake needs the rule a building collapses by (a prop type's destroyed.into.building)",
+    );
+  const inputs: TemplateSetInput[] = [];
+  for (const [name, entry] of sets)
+    inputs.push({
+      name,
+      entry,
+      bytes: await readSource(entry.templates),
+      kit: catalog.appearances[entry.kit]?.unit === "kit" ? (kits.get(entry.kit) ?? null) : null,
+    });
+  const packed = packTemplateSets(
+    inputs,
+    context.templates.catalogue,
+    context.templates.physical,
+    catalog.tolerances.ground_m,
+    collapse,
+  );
+  let out: { hash: string; bytes: number } | null = null;
+  if (packed.library) {
+    const library = await sealTemplateLibrary(packed.library);
+    const bytes = encodeTemplateLibrary(library);
+    out = { hash: await sha256Hex(bytes), bytes: bytes.byteLength };
+    await publishGzip(output, out.hash, bytes, templateLibraryPath);
+    output.runtime.templates = {
+      library: out.hash,
+      art_hash: library.art_hash,
+      covers: library.covers,
+    };
+  }
+  return {
+    name: TEMPLATE_LIBRARY_REPORT,
+    what: "library",
+    findings: packed.findings,
+    stats: null,
+    ...(packed.stats ? { templates: packed.stats } : {}),
+    hash: out?.hash ?? null,
+    bytes: out?.bytes ?? 0,
+  };
+}
+
 export async function bakeCatalog(
   catalog: Catalog,
   readSource: (path: string) => Promise<Uint8Array>,
@@ -146,14 +235,7 @@ export async function bakeCatalog(
       clipsById.set(id, result.bundle);
       runtime.skeletons[id] = out.hash;
     }
-    reports.push({
-      name: id,
-      what: "skeleton",
-      findings: result.findings,
-      stats: result.stats,
-      hash: out?.hash ?? null,
-      bytes: out?.bytes ?? 0,
-    });
+    reports.push(bundleReport(id, "skeleton", result, out));
   }
 
   for (const name of Object.keys(catalog.appearances).sort()) {
@@ -199,76 +281,21 @@ export async function bakeCatalog(
     if (result.bundle && result.bundle.kind !== "clips")
       result.findings.push(...paintFindings(name, entry, result.bundle.materials));
     const out = result.bundle && !hasErrors(result.findings) ? await emit(result.bundle) : null;
-    if (entry.unit === "kit" && out) result.findings.push(...kitBytesFindings(name, out.bytes));
-    if (entry.unit === "kit" && result.bundle?.kind === "static" && out)
-      kits.set(name, { bundle: result.bundle, hash: out.hash });
+    if (entry.unit === "kit" && out) {
+      result.findings.push(...kitBytesFindings(name, out.bytes));
+      if (result.bundle?.kind === "static")
+        kits.set(name, { bundle: result.bundle, hash: out.hash });
+    }
     if (result.bundle && out)
-      runtime.appearances[name] = {
-        unit: entry.unit,
-        kind: result.bundle.kind as RuntimeCatalog["appearances"][string]["kind"],
-        bundle: out.hash,
-        ...(entry.skeleton ? { skeleton: entry.skeleton } : {}),
-        ...(entry.scenery ? { scenery: entry.scenery } : {}),
-        ...(entry.footprint_half_m ? { footprint_half_m: entry.footprint_half_m } : {}),
-        ...(entry.mounts ? { mounts: entry.mounts } : {}),
-        ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
-        ...(entry.paints ? { paints: entry.paints } : {}),
-        ...(entry.wreck ? { wreck: entry.wreck } : {}),
-        ...(entry.factions ? { factions: entry.factions } : {}),
-      };
-    reports.push({
-      name,
-      what: "appearance",
-      findings: result.findings,
-      stats: result.stats,
-      hash: out?.hash ?? null,
-      bytes: out?.bytes ?? 0,
-    });
+      runtime.appearances[name] = runtimeAppearance(entry, result.bundle.kind, out.hash);
+    reports.push(bundleReport(name, "appearance", result, out));
   }
   // The city sets, packed into the one template art library. A bake of named
   // entries leaves it out: it is whole or absent.
-  const sets = Object.entries(catalog.city_sets ?? {});
-  if (sets.length && !only?.length) {
-    if (!context.templates)
-      throw new Error("the catalog has city sets: the bake needs the physical template catalogue");
-    const collapse = context.authority.collapse;
-    if (!collapse)
-      throw new Error(
-        "the catalog has city sets: the bake needs the rule a building collapses by (a prop type's destroyed.into.building)",
-      );
-    const inputs: TemplateSetInput[] = [];
-    for (const [name, entry] of sets)
-      inputs.push({
-        name,
-        entry,
-        bytes: await readSource(entry.templates),
-        kit: catalog.appearances[entry.kit]?.unit === "kit" ? (kits.get(entry.kit) ?? null) : null,
-      });
-    const packed = packTemplateSets(
-      inputs,
-      context.templates.catalogue,
-      context.templates.physical,
-      catalog.tolerances.ground_m,
-      collapse,
-    );
-    let out: { hash: string; bytes: number } | null = null;
-    if (packed.library) {
-      const library = await sealTemplateLibrary(packed.library);
-      const bytes = encodeTemplateLibrary(library);
-      out = { hash: await sha256Hex(bytes), bytes: bytes.byteLength };
-      await publishGzip(output, out.hash, bytes, templateLibraryPath);
-      runtime.templates = { library: out.hash, art_hash: library.art_hash, covers: library.covers };
-    }
-    reports.push({
-      name: TEMPLATE_LIBRARY_REPORT,
-      what: "library",
-      findings: packed.findings,
-      stats: null,
-      ...(packed.stats ? { templates: packed.stats } : {}),
-      hash: out?.hash ?? null,
-      bytes: out?.bytes ?? 0,
-    });
-  }
+  const library = only?.length
+    ? null
+    : await bakeTemplateLibrary(catalog, readSource, context, kits, output);
+  if (library) reports.push(library);
   // Every array holds what every page could install, on the target machine.
   const textureLayers = textureLayerCounts(textures);
   const layerFindings = textureLayerFindings(textureLayers, TEXTURE_ARRAY_LAYERS_FLOOR);

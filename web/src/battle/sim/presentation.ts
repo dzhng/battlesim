@@ -64,35 +64,6 @@ import type {
 } from "@packages/battle-renderer/src/frame/scarTexture";
 import type { GroundLayout, ObservationLayout, ObservationView } from "./observationView";
 
-function sameBuildingArt(
-  previous: ReturnType<typeof buildingArt>,
-  next: ReturnType<typeof buildingArt>,
-): boolean {
-  return (
-    previous?.library === next?.library &&
-    (next?.bounds ?? []).every((b, i) => (b === null) === (previous?.bounds[i] === null))
-  );
-}
-
-function buildingFrameChanged(
-  buildings: SceneBuildings | null,
-  previous: SceneBuildings | null,
-  style: BuildingStyle,
-  previousStyle: BuildingStyle | null,
-  sun: PresentedSun,
-  previousSun: PresentedSun | null,
-): boolean {
-  return (
-    buildings?.placed !== previous?.placed ||
-    buildings?.partBuilding !== previous?.partBuilding ||
-    buildings?.shells !== previous?.shells ||
-    style !== previousStyle ||
-    sun.azimuth !== previousSun?.azimuth ||
-    sun.elevation !== previousSun?.elevation ||
-    sun.farM !== previousSun?.farM
-  );
-}
-
 let loaded: Promise<{ memory: WebAssembly.Memory }> | null = null;
 let memory: WebAssembly.Memory | null = null;
 
@@ -551,10 +522,22 @@ export class ScenePresentation {
       if (this.staged?.props) this.stale = true;
       const next = buildingArt(installed);
       const art = this.art;
-      if (!sameBuildingArt(art, next)) [this.art, this.stale] = [next, true];
+      const same =
+        art?.library === next?.library &&
+        (next?.bounds ?? []).every((b, i) => (b === null) === (art!.bounds[i] === null));
+      if (!same) [this.art, this.stale] = [next, true];
     }
     const last = this.buildings;
-    if (buildingFrameChanged(buildings, last, style, this.style, sun, this.sun)) this.stale = true;
+    if (
+      buildings?.placed !== last?.placed ||
+      buildings?.partBuilding !== last?.partBuilding ||
+      buildings?.shells !== last?.shells ||
+      style !== this.style ||
+      sun.azimuth !== this.sun?.azimuth ||
+      sun.elevation !== this.sun?.elevation ||
+      sun.farM !== this.sun?.farM
+    )
+      this.stale = true;
     [this.buildings, this.style, this.sun] = [buildings, style, sun];
   }
 

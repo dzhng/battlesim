@@ -705,31 +705,27 @@ export function validateGameplayValue(
   if (value === null)
     return f.optional && f.kind !== "strings" ? undefined : "A value is required.";
   if (f.kind === "boolean") return typeof value === "boolean" ? undefined : "Choose on or off.";
-  if (f.kind === "enum" || f.kind === "reference") return validateChoice(f, value);
-  if (f.kind === "strings") return validateStrings(f, value);
+  if (f.kind === "enum")
+    return typeof value === "string" && f.choices?.includes(value)
+      ? undefined
+      : "Choose a supported value.";
+  if (f.kind === "reference")
+    return typeof value === "string" && value.length > 0
+      ? undefined
+      : "Choose an existing reference.";
+  if (f.kind === "strings" && f.choices)
+    return Array.isArray(value) &&
+      value.length > 0 &&
+      value.every((v) => typeof v === "string" && f.choices?.includes(v))
+      ? undefined
+      : `Use a comma-separated list of: ${f.choices.join(", ")}.`;
+  if (f.kind === "strings")
+    return Array.isArray(value) && value.every((v) => typeof v === "string" && v.length > 0)
+      ? undefined
+      : "Use a comma-separated list of reference ids.";
   if (f.kind === "object") return validateObject(section, path, value);
   if (f.kind === "mounts") return validateMounts(section, path, value);
   return validateNumbers(f, value);
-}
-
-function validateChoice(f: GameplayField, value: Json): string | undefined {
-  return typeof value === "string" &&
-    (f.kind === "reference" ? value.length > 0 : f.choices?.includes(value))
-    ? undefined
-    : f.kind === "reference"
-      ? "Choose an existing reference."
-      : "Choose a supported value.";
-}
-
-function validateStrings(f: GameplayField, value: Json): string | undefined {
-  if (!Array.isArray(value)) return "Use a comma-separated list of reference ids.";
-  if (f.choices)
-    return value.length > 0 && value.every((v) => typeof v === "string" && f.choices?.includes(v))
-      ? undefined
-      : `Use a comma-separated list of: ${f.choices.join(", ")}.`;
-  return value.every((v) => typeof v === "string" && v.length > 0)
-    ? undefined
-    : "Use a comma-separated list of reference ids.";
 }
 
 function validateObject(
@@ -756,6 +752,7 @@ function validateMounts(
     if (!isObject(row) || typeof row.id !== "string" || !row.id.trim() || ids.has(row.id))
       return "Every mount needs a unique id.";
     ids.add(row.id);
+    // Its label is the catalog's to judge (`contract::labels`), on preview.
     for (const [key, child] of Object.entries(row)) {
       if (key === "id" || key === "name") continue;
       const error = validateGameplayValue(section, [...path, row.id, key], child);
@@ -783,52 +780,6 @@ function validateNumbers(f: GameplayField, value: Json): string | undefined {
 }
 
 export type ParsedField = { value: Json; error?: never } | { error: string; value?: never };
-
-type RawField = { value: Json } | { error: string };
-
-function parsedNumber(f: GameplayField, number: number, entry: JsonObject): RawField {
-  const range = entry.range_m;
-  if (f.conversion === "spread" && (typeof range !== "number" || range <= 0))
-    return { error: "Set a positive engagement range first." };
-  return {
-    value:
-      f.conversion === "spread"
-        ? (number * 1000) / Number(range)
-        : f.conversion === "cadence"
-          ? 60 / number
-          : f.conversion === "percent"
-            ? number / 100
-            : number,
-  };
-}
-
-function rawFieldValue(f: GameplayField, trimmed: string, entry: JsonObject): RawField {
-  if (f.kind === "boolean")
-    return { value: trimmed === "true" ? true : trimmed === "false" ? false : trimmed };
-  if (f.kind === "strings")
-    return {
-      value: trimmed
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean),
-    };
-  if (f.kind === "enum" || f.kind === "reference" || (f.kind === "ammo" && trimmed === "unlimited"))
-    return { value: trimmed };
-  if (f.kind === "object" || f.kind === "mounts") {
-    try {
-      return { value: JSON.parse(trimmed) as Json };
-    } catch {
-      return { error: "Enter valid JSON." };
-    }
-  }
-  if (f.kind === "vector") {
-    const parts = trimmed.split(",");
-    if (parts.some((v) => !v.trim())) return { error: "Enter all three numbers." };
-    return { value: parts.map((v) => Number(v.trim()) / (f.conversion === "dimensions" ? 2 : 1)) };
-  }
-  return parsedNumber(f, Number(trimmed), entry);
-}
-
 export function parseFieldValue(f: GameplayField, text: string, entry: JsonObject): ParsedField {
   const trimmed = text.trim();
   if (!trimmed)
@@ -841,9 +792,44 @@ export function parseFieldValue(f: GameplayField, text: string, entry: JsonObjec
   // Preserve the original bits when a rounded human display is submitted unchanged.
   if (current !== undefined && trimmed === displayFieldValue(f, current, entry))
     return { value: current };
-  const parsed = rawFieldValue(f, trimmed, entry);
-  if ("error" in parsed) return parsed;
-  const value = parsed.value;
+  let value: Json;
+  if (f.kind === "boolean")
+    value = trimmed === "true" ? true : trimmed === "false" ? false : trimmed;
+  else if (f.kind === "strings")
+    value = trimmed
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+  else if (
+    f.kind === "enum" ||
+    f.kind === "reference" ||
+    (f.kind === "ammo" && trimmed === "unlimited")
+  )
+    value = trimmed;
+  else if (f.kind === "object" || f.kind === "mounts") {
+    try {
+      value = JSON.parse(trimmed) as Json;
+    } catch {
+      return { error: "Enter valid JSON." };
+    }
+  } else if (f.kind === "vector") {
+    const parts = trimmed.split(",");
+    if (parts.some((v) => !v.trim())) return { error: "Enter all three numbers." };
+    value = parts.map((v) => Number(v.trim()) / (f.conversion === "dimensions" ? 2 : 1));
+  } else {
+    const number = Number(trimmed);
+    const range = entry.range_m;
+    if (f.conversion === "spread" && (typeof range !== "number" || range <= 0))
+      return { error: "Set a positive engagement range first." };
+    value =
+      f.conversion === "spread"
+        ? (number * 1000) / Number(range)
+        : f.conversion === "cadence"
+          ? 60 / number
+          : f.conversion === "percent"
+            ? number / 100
+            : number;
+  }
   // The section is only needed for allowlisting; callers already have this descriptor.
   const section = (Object.keys(GAMEPLAY_FIELDS) as Section[]).find(
     (s) => gameplayField(s, f.path)?.label === f.label,

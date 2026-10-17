@@ -45,22 +45,18 @@ bun run dev
 
 `bun run setup` installs dependencies, installs the repository's pre-commit
 checks, prepares Playwright Chromium, and checks the audio-test prerequisites.
-The developer menu includes the battle lab, tutorial, mechanics editor, map
-workbench, and sound workbench.
+On Windows, [`tools/setup-windows.ps1`](tools/setup-windows.ps1) checks the
+required tools and prepares the browser or [native](native/client/README.md)
+client.
+
+A battle's address is shareable: it names the admitted map and the player's
+choices, so a seeded battle opens the same fight again. The developer menu
+holds the battle lab, tutorial, and development tools.
 
 ## Find your way around
 
-The [specs](specs/) hold active plans and the durable rationale for shipped
-features. The subsystem READMEs own their contracts:
-
-- [Simulation](crates/sim/README.md) — deterministic rules, replays, and reports.
-- [Contracts](crates/contract/README.md) — commands, observations, and content identities.
-- [Browser application](web/README.md) — workers, input, presentation, and browser checks.
-- [Battle renderer](packages/battle-renderer/README.md) — terrain, models, effects, fog, and overlays.
-- [Scene assets](packages/scene-assets/README.md) — authored appearance, baking, and loading.
-- [Fixtures](fixtures/README.md) — rules data, units, props, maps, and sound assignments.
-
-For the engineering model, game rules, check ladder, and contributor workflow,
-read [development.md](development.md). Agents should start with
-[AGENTS.md](AGENTS.md), which points to both this product overview and the
-development principles.
+[development.md](development.md) owns the engineering model: which subsystem
+owns each concept (with a link to each subsystem's README), the game rules, the
+check ladder, and the contributor workflow. The [specs](specs/README.md) hold
+active plans and the durable rationale for shipped features. Agents should start
+with [AGENTS.md](AGENTS.md).

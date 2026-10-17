@@ -168,7 +168,7 @@ export interface ScenarioRules extends PanelRules, RulerRules {
   air: AirLayers;
 }
 
-// eslint-disable-next-line complexity -- this hook is the single owner of battle lifecycle, observation, input, and presentation state.
+// eslint-disable-next-line complexity -- debt: lifecycle, observation, input and presentation share 19 refs; split needs those refs grouped by concern first, so each concern can become its own hook.
 export function useBattleSession({
   scenario,
   seed,
@@ -775,7 +775,7 @@ export function useBattleSession({
       version: semanticRevision.current.version + 1,
     };
   }
-  // eslint-disable-next-line complexity -- cursor resolution combines selection, placement, and drag semantics against the same drawn frame.
+  // eslint-disable-next-line complexity -- debt: purchase placement, held-drag intent, pending-order marks and ruler all read the same closure refs; the purchase-ghost branch could leave first, but the rest needs a pure intent resolver that returns marks instead of writing refs.
   const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
     // The battle as the last frame drew it: the picks and drawn positions
     // below are that frame's, so its units and tick are too. Nothing drawn

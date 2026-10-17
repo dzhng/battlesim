@@ -273,8 +273,39 @@ export function skeletonLayout(
   }
   const skin = scene.skins[0];
   const isJoint = new Set(skin.joints);
-  const { weighted, anchored } = jointUsage(scene, skin.joints, isJoint);
-  const kept = pruneJoints(scene, skin.joints, keep, weighted, anchored);
+  const weighted = new Set<number>();
+  const anchored = new Set<number>();
+  for (const node of scene.nodes.filter((n) => n.live)) {
+    if (node.mesh !== null && node.skin === 0)
+      for (const primitive of scene.meshes[node.mesh]?.primitives ?? []) {
+        if (!primitive.joints || !primitive.weights) continue;
+        for (let i = 0; i < primitive.joints.length; i++)
+          if (primitive.weights[i] > 0) weighted.add(skin.joints[primitive.joints[i]]);
+      }
+    if (!isJoint.has(node.index) && node.skin === null) {
+      const joint = nearestAncestor(scene, node.index, (n) => isJoint.has(n.index));
+      if (joint >= 0) anchored.add(joint);
+    }
+  }
+  const kept = new Set(skin.joints);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const j of kept) {
+      const node = scene.nodes[j];
+      const hasKeptChild = node.children.some((c) => kept.has(c));
+      if (
+        /_leaf(_[lr])?$/.test(node.name) &&
+        !keep.has(node.name) &&
+        !weighted.has(j) &&
+        !anchored.has(j) &&
+        !hasKeptChild
+      ) {
+        kept.delete(j);
+        changed = true;
+      }
+    }
+  }
   const order: number[] = [];
   const visit = (index: number) => {
     if (kept.has(index)) order.push(index);
@@ -299,52 +330,6 @@ export function skeletonLayout(
     return mul(inverse(parentJointWorld), gltfParentWorld);
   });
   return { nodes: order, joints, prefix };
-}
-
-function jointUsage(scene: Scene, joints: number[], isJoint: Set<number>) {
-  const weighted = new Set<number>();
-  const anchored = new Set<number>();
-  for (const node of scene.nodes.filter((n) => n.live)) {
-    if (node.mesh !== null && node.skin === 0)
-      for (const primitive of scene.meshes[node.mesh]?.primitives ?? []) {
-        if (!primitive.joints || !primitive.weights) continue;
-        for (let i = 0; i < primitive.joints.length; i++)
-          if (primitive.weights[i] > 0) weighted.add(joints[primitive.joints[i]]);
-      }
-    if (!isJoint.has(node.index) && node.skin === null) {
-      const joint = nearestAncestor(scene, node.index, (n) => isJoint.has(n.index));
-      if (joint >= 0) anchored.add(joint);
-    }
-  }
-  return { weighted, anchored };
-}
-
-function pruneJoints(
-  scene: Scene,
-  joints: number[],
-  keep: ReadonlySet<string>,
-  weighted: Set<number>,
-  anchored: Set<number>,
-) {
-  const kept = new Set(joints);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const j of kept) {
-      const node = scene.nodes[j];
-      const removable =
-        /_leaf(_[lr])?$/.test(node.name) &&
-        !keep.has(node.name) &&
-        !weighted.has(j) &&
-        !anchored.has(j) &&
-        !node.children.some((c) => kept.has(c));
-      if (removable) {
-        kept.delete(j);
-        changed = true;
-      }
-    }
-  }
-  return kept;
 }
 
 /** Joint order of `layout` mapped onto a reference joint list by name; null when they differ. */

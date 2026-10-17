@@ -184,51 +184,16 @@ export interface AppearanceInput {
   types?: string[];
 }
 
-function sourceBytesFor(input: AppearanceInput, sources: [string, string][]): number {
-  let bytes = 0;
-  for (const [, path] of sources) {
-    const data = input.files[path];
-    if (!data) throw new Error(`${input.name}: no bytes supplied for ${path}`);
-    bytes += data.byteLength;
-  }
-  return bytes;
-}
-
-function requiredStateFindings(
+/** One state of a static appearance, imported, built and judged against its
+ *  scenery kind's row; null when it does not build. */
+async function staticState(
   input: AppearanceInput,
-  required: readonly string[] | null,
-  findings: Finding[],
-) {
-  if (!required) {
-    findings.push(
-      finding(
-        "structure.scenery_kind",
-        `${input.name}: scenery kind "${input.entry.scenery ?? "(none)"}" is not one of ${Object.keys(SCENERY_KINDS).join(", ")}`,
-        "name a scenery kind in the catalog entry, or add a row to SCENERY_KINDS (packages/scene-assets/src/scenery.ts)",
-      ),
-    );
-    return;
-  }
-  for (const state of required)
-    if (!input.entry.states?.[state])
-      findings.push(
-        finding(
-          "structure.states",
-          `${input.name}: no "${state}" state`,
-          `add states.${state} to the catalog entry`,
-        ),
-      );
-}
-
-async function validateStaticState(
-  input: AppearanceInput,
-  context: ValidationContext,
+  [state, path]: [string, string],
   materials: MaterialTable,
-  state: string,
-  path: string,
+  context: ValidationContext,
   tolerances: Tolerances,
   findings: Finding[],
-): Promise<{ name: string; tiers: MeshData[]; bounds: Bounds } | null> {
+): Promise<StaticBundle["states"][number] | null> {
   const imported = importScene(input.files[path], path, input.entry.basis_yaw_deg);
   findings.push(...imported.findings);
   if (!imported.scene) return null;
@@ -237,47 +202,45 @@ async function validateStaticState(
   findings.push(...built.findings);
   if (!built.tiers) return null;
   const bounds = positionsBounds(built.tiers[0].positions);
-  staticStateFindings(
-    input,
-    context,
-    state,
-    path,
-    built.tiers,
-    bounds,
-    tolerances,
-    findings,
-    imported.scene,
-  );
-  return { name: state, tiers: built.tiers, bounds };
-}
-
-function staticStateFindings(
-  input: AppearanceInput,
-  context: ValidationContext,
-  state: string,
-  path: string,
-  tiers: MeshData[],
-  bounds: Bounds,
-  tolerances: Tolerances,
-  findings: Finding[],
-  scene: Scene,
-) {
+  const judged = { name: state, tiers: built.tiers, bounds };
   const rule = SCENERY_KINDS[input.entry.scenery ?? ""];
-  if (staticStateSpecialFindings(input, state, path, tiers, scene, rule, findings)) return;
-  if (rule?.blades) findings.push(...grassStripFindings(path, tiers));
-  findings.push(...groundFindings(path, bounds.min[2], tolerances));
+  const debris = rule?.debris?.state === state ? rule.debris : null;
+  // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
+  // takes the default row (no vehicle class sets a ratio of its own yet).
+  // A piece or its debris is part of its whole's tiers, so only the whole
+  // is held to the ratio: a thrown turret's far tier is a few boxes either way.
+  if (input.entry.scenery === "wreck")
+    findings.push(
+      ...tierFindings(
+        path,
+        imported.scene,
+        built.tiers.map(triangleCount),
+        rule?.pieces?.includes(state) || debris ? 1 : unitArtRule(null).tier_ratio,
+      ),
+    );
+  // Debris is held to its own allowance, not to the ground or the box.
+  if (debris) {
+    findings.push(
+      ...debrisFindings(path, imported.scene, built.tiers[0], input.entry.footprint_half_m, debris),
+    );
+    return judged;
+  }
+  // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
+  if (rule?.pieces?.includes(state)) return judged;
+  if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
+  findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
   if (rule?.footprint.kind === "tree")
-    findings.push(...canopyFindings(path, tiers, context.authority, tolerances));
+    findings.push(...canopyFindings(path, built.tiers, context.authority, tolerances));
   if (rule?.tier_triangles)
     findings.push(
       ...budgetFindings(
         path,
-        tiers.map(triangleCount),
+        built.tiers.map(triangleCount),
         rule,
         "the kind's row (packages/scene-assets/src/scenery.ts), with a paired frame-cost row,",
       ),
     );
-  if (rule?.size) findings.push(...sizeFindings(path, tiers[0], rule.size));
+  if (rule?.size) findings.push(...sizeFindings(path, built.tiers[0], rule.size));
   if (rule?.top_m !== undefined && bounds.max[2] > rule.top_m + tolerances.ground_m)
     findings.push(
       finding(
@@ -286,59 +249,43 @@ function staticStateFindings(
         "lower the art under the kind's top_m (packages/scene-assets/src/scenery.ts)",
       ),
     );
+  return judged;
 }
 
-function staticStateSpecialFindings(
-  input: AppearanceInput,
-  state: string,
-  path: string,
-  tiers: MeshData[],
-  scene: Scene,
-  rule: SceneryRule | undefined,
-  findings: Finding[],
-): boolean {
-  const debris = rule?.debris?.state === state ? rule.debris : null;
-  if (input.entry.scenery === "wreck")
-    findings.push(
-      ...tierFindings(
-        path,
-        scene,
-        tiers.map(triangleCount),
-        rule?.pieces?.includes(state) || debris ? 1 : unitArtRule(null).tier_ratio,
-      ),
-    );
-  if (debris) {
-    findings.push(...debrisFindings(path, scene, tiers[0], input.entry.footprint_half_m, debris));
-    return true;
-  }
-  return rule?.pieces?.includes(state) ?? false;
-}
-
+/** A static appearance: every state of its scenery kind, judged one by one
+ *  and then together. */
 async function validateStaticAppearance(
   input: AppearanceInput,
-  context: ValidationContext,
   sources: [string, string][],
+  sourceBytes: number,
+  context: ValidationContext,
+  tolerances: Tolerances,
 ): Promise<Validation<StaticBundle>> {
   const { entry } = input;
-  const tolerances = { ...context.tolerances, ...entry.tolerances };
   const findings: Finding[] = [];
-  const sourceBytes = sourceBytesFor(input, sources);
-
   const materials = new MaterialTable();
   const states: { name: string; tiers: MeshData[]; bounds: Bounds }[] = [];
   const required = SCENERY_KINDS[entry.scenery ?? ""]?.states ?? null;
-  requiredStateFindings(input, required, findings);
-  for (const [state, path] of sources) {
-    const stateResult = await validateStaticState(
-      input,
-      context,
-      materials,
-      state,
-      path,
-      tolerances,
-      findings,
+  if (!required)
+    findings.push(
+      finding(
+        "structure.scenery_kind",
+        `${input.name}: scenery kind "${entry.scenery ?? "(none)"}" is not one of ${Object.keys(SCENERY_KINDS).join(", ")}`,
+        "name a scenery kind in the catalog entry, or add a row to SCENERY_KINDS (packages/scene-assets/src/scenery.ts)",
+      ),
     );
-    if (stateResult) states.push(stateResult);
+  for (const state of required ?? [])
+    if (!entry.states?.[state])
+      findings.push(
+        finding(
+          "structure.states",
+          `${input.name}: no "${state}" state`,
+          `add states.${state} to the catalog entry`,
+        ),
+      );
+  for (const source of sources) {
+    const state = await staticState(input, source, materials, context, tolerances, findings);
+    if (state) states.push(state);
   }
   // The kind's first state leads (what an impostor and a sheet show, even
   // where a wreck's `debris` sorts before its `default`), the rest by name.
@@ -392,9 +339,16 @@ export async function validateAppearance(
     kind === "static"
       ? Object.entries(entry.states ?? {})
       : [["source", entry.source ?? ""] as [string, string]];
-  const sourceBytes = sourceBytesFor(input, sources);
+  let sourceBytes = 0;
+  for (const [, path] of sources) {
+    const bytes = input.files[path];
+    if (!bytes) throw new Error(`${input.name}: no bytes supplied for ${path}`);
+    sourceBytes += bytes.byteLength;
+  }
 
-  if (kind === "static") return validateStaticAppearance(input, context, sources);
+  if (kind === "static")
+    return validateStaticAppearance(input, sources, sourceBytes, context, tolerances);
+
   const path = entry.source ?? "";
   const imported = importScene(input.files[path], path, entry.basis_yaw_deg);
   findings.push(...imported.findings);
@@ -966,50 +920,6 @@ export function typeFindings(
   };
   const worlds = articulatedWorlds(nodes);
 
-  const ctx = {
-    label,
-    id,
-    type,
-    hull,
-    nodes,
-    units,
-    index,
-    worlds,
-    out,
-    tolerances,
-    isUnder,
-    missing,
-    chain,
-    up,
-  };
-  runningGearFindings(ctx);
-  const { roles } = mountFindings(ctx, draws);
-  deploymentFindings(ctx);
-  hullFindings(ctx, roles);
-  partFindings(ctx);
-  return out;
-}
-
-type TypeFindingContext = {
-  label: string;
-  id: string;
-  type: UnitType;
-  hull: NonNullable<ReturnType<UnitCatalog["hull"]>>;
-  nodes: ArticulatedNode[];
-  units: UnitCatalog;
-  index: Map<string, number>;
-  worlds: ReturnType<typeof articulatedWorlds>;
-  isUnder: (child: number, ancestor: number) => boolean;
-  out: Finding[];
-  tolerances: Tolerances;
-  missing: (name: string) => void;
-  chain: (parent: string, child: string) => void;
-  up: (name: string) => void;
-};
-
-function runningGearFindings(ctx: TypeFindingContext) {
-  const { type, nodes, index, label, out, missing } = ctx;
-
   // Running gear.
   if ("tracked" in type.mobility) {
     for (const name of ["track_L", "track_R"]) {
@@ -1039,10 +949,8 @@ function runningGearFindings(ctx: TypeFindingContext) {
         ),
       );
   }
-}
 
-function mountFindings(ctx: TypeFindingContext, draws: MountDraws | null) {
-  const { id, label, type, nodes, index, worlds, tolerances, out, missing, chain, up } = ctx;
+  // Mounts, by the rig the model declares for each.
   out.push(...mountDrawFindings(label, type, draws));
   const roles = mountRoles(type, draws).map((role) => (isArticulation(role) ? role : "hand"));
   const drawn: (MountNodes | null)[] = roles.map((role) =>
@@ -1074,11 +982,7 @@ function mountFindings(ctx: TypeFindingContext, draws: MountDraws | null) {
       mounts: mountMuzzles(type.mounts),
     }),
   );
-  return { roles, drawn };
-}
 
-function deploymentFindings(ctx: TypeFindingContext) {
-  const { label, type, nodes, index, out, missing, chain, up, tolerances } = ctx;
   // Stationary service does not imply legs or a mast. Declared deployment
   // hardware retains its chain and motion checks.
   const declaresDeployment = nodes.some(
@@ -1104,10 +1008,7 @@ function deploymentFindings(ctx: TypeFindingContext) {
     }
     out.push(...deployFindings(label, nodes, index, tolerances));
   }
-}
 
-function hullFindings(ctx: TypeFindingContext, roles: (Articulation | "hand")[]) {
-  const { label, id, type, hull, nodes, index, worlds, out, tolerances, isUnder } = ctx;
   // The hull box, without what its mounts carry beyond it, its dressing or
   // its rotors (a rotor's disc is not its airframe's size). Dressing nested
   // in dressing is measured with the outer node.
@@ -1143,10 +1044,8 @@ function hullFindings(ctx: TypeFindingContext, roles: (Articulation | "hand")[])
         allowance,
       ),
     );
-}
 
-function partFindings(ctx: TypeFindingContext) {
-  const { label, type, units, nodes, out } = ctx;
+  // Each part's hardware.
   for (const part of type.parts ?? []) {
     const patterns = units.view.parts[part]?.nodes ?? [];
     const absent = patterns.filter((p) => !nodes.some((n) => matchesNode(p, n.name)));
@@ -1159,6 +1058,7 @@ function partFindings(ctx: TypeFindingContext) {
         ),
       );
   }
+  return out;
 }
 
 /** A hull model's mount declarations against its type: every mount with a

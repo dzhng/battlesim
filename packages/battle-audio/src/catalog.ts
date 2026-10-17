@@ -155,20 +155,23 @@ function finite(value: unknown, low: number, high: number): boolean {
 function validateSources(catalog: SoundCatalog) {
   for (const [name, source] of Object.entries(catalog.sources)) {
     record(source, `source ${name}`);
-    const valid = isGenerated(source)
-      ? typeof source.generator === "string" &&
-        typeof source.model === "string" &&
-        typeof source.prompt === "string" &&
-        finite(source.length_s, 1, 600) &&
-        /^\d{4}-\d{2}-\d{2}$/.test(source.date) &&
-        source.plan === "Duet ElevenLabs" &&
-        /^assets\/source\/audio\/(music|effects)\/[a-zA-Z0-9_.-]+$/.test(source.path)
-      : typeof source.label === "string" &&
-        typeof source.author === "string" &&
-        (LICENSES as readonly string[]).includes(source.license) &&
-        source.url.startsWith("https://") &&
-        /^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path);
-    if (!id.test(name) || !hash.test(source.sha256) || !valid)
+    if (
+      !id.test(name) ||
+      !hash.test(source.sha256) ||
+      !(isGenerated(source)
+        ? typeof source.generator === "string" &&
+          typeof source.model === "string" &&
+          typeof source.prompt === "string" &&
+          finite(source.length_s, 1, 600) &&
+          /^\d{4}-\d{2}-\d{2}$/.test(source.date) &&
+          source.plan === "Duet ElevenLabs" &&
+          /^assets\/source\/audio\/(music|effects)\/[a-zA-Z0-9_.-]+$/.test(source.path)
+        : typeof source.label === "string" &&
+          typeof source.author === "string" &&
+          (LICENSES as readonly string[]).includes(source.license) &&
+          source.url.startsWith("https://") &&
+          /^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path))
+    )
       throw new Error(`source ${name}: invalid provenance`);
   }
 }
@@ -176,52 +179,36 @@ function validateSources(catalog: SoundCatalog) {
 function validateProvenance(catalog: SoundCatalog) {
   for (const [name, source] of Object.entries(catalog.provenance ?? {})) {
     record(source, `provenance ${name}`);
-    if (!validProvenanceReceipt(name, source))
+    const frames = source.source_frames;
+    if (
+      !id.test(name) ||
+      typeof source.label !== "string" ||
+      typeof source.author !== "string" ||
+      !(LICENSES as readonly string[]).includes(source.license) ||
+      !source.url.startsWith("https://") ||
+      (source.sha256 !== null && !hash.test(source.sha256)) ||
+      !Array.isArray(frames) ||
+      frames.length !== 2 ||
+      !frames.every(Number.isSafeInteger) ||
+      frames[0] < 0 ||
+      frames[1] <= frames[0] ||
+      typeof source.processing !== "string" ||
+      source.processing.length === 0 ||
+      !source.download ||
+      typeof source.download.tool !== "string" ||
+      typeof source.download.version !== "string" ||
+      !["candidate-not-downloaded", "downloaded-unassigned"].includes(source.download.status) ||
+      (source.download.status === "candidate-not-downloaded" &&
+        (source.sha256 !== null || source.path !== undefined)) ||
+      (source.download.status === "downloaded-unassigned" &&
+        (source.sha256 === null ||
+          !hash.test(source.sha256) ||
+          typeof source.path !== "string" ||
+          !/^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path))) ||
+      typeof source.notes !== "string"
+    )
       throw new Error(`provenance ${name}: invalid source receipt`);
   }
-}
-
-function validProvenanceReceipt(name: string, source: SourceProvenance): boolean {
-  const frames = source.source_frames;
-  return (
-    validProvenanceIdentity(name, source) &&
-    Array.isArray(frames) &&
-    frames.length === 2 &&
-    frames.every(Number.isSafeInteger) &&
-    frames[0] >= 0 &&
-    frames[1] > frames[0] &&
-    validProvenanceDownload(source) &&
-    typeof source.notes === "string"
-  );
-}
-
-function validProvenanceIdentity(name: string, source: SourceProvenance): boolean {
-  return (
-    id.test(name) &&
-    typeof source.label === "string" &&
-    typeof source.author === "string" &&
-    (LICENSES as readonly string[]).includes(source.license) &&
-    source.url.startsWith("https://") &&
-    (source.sha256 === null || hash.test(source.sha256))
-  );
-}
-
-function validProvenanceDownload(source: SourceProvenance): boolean {
-  return (
-    !!source.download &&
-    typeof source.processing === "string" &&
-    source.processing.length > 0 &&
-    typeof source.download.tool === "string" &&
-    typeof source.download.version === "string" &&
-    ["candidate-not-downloaded", "downloaded-unassigned"].includes(source.download.status) &&
-    (source.download.status !== "candidate-not-downloaded" ||
-      (source.sha256 === null && source.path === undefined)) &&
-    (source.download.status !== "downloaded-unassigned" ||
-      (source.sha256 !== null &&
-        hash.test(source.sha256) &&
-        typeof source.path === "string" &&
-        /^assets\/third-party\/audio\/[a-zA-Z0-9_.-]+$/.test(source.path)))
-  );
 }
 
 function validateClips(catalog: SoundCatalog) {
@@ -238,13 +225,12 @@ function validateClips(catalog: SoundCatalog) {
     c.source_rate > 0;
   for (const [name, clip] of Object.entries(catalog.clips)) {
     record(clip, `clip ${name}`);
-    const layered = "layers" in clip;
-    const validMedia =
-      id.test(name) &&
-      typeof clip.label === "string" &&
-      typeof clip.category === "string" &&
-      roles.includes(clip.role) &&
-      (layered
+    if (
+      !id.test(name) ||
+      typeof clip.label !== "string" ||
+      typeof clip.category !== "string" ||
+      !roles.includes(clip.role) ||
+      !("layers" in clip
         ? Array.isArray(clip.layers) &&
           clip.layers.length > 0 &&
           clip.layers.every(
@@ -255,57 +241,55 @@ function validateClips(catalog: SoundCatalog) {
               finite(l.semitones, -36, 36) &&
               (l.lowpass_hz === null || finite(l.lowpass_hz, 20, 24000)),
           )
-        : crop(clip)) &&
-      Number.isSafeInteger(clip.frames) &&
-      clip.frames > 0 &&
-      Number.isSafeInteger(clip.sample_rate) &&
-      clip.sample_rate > 0 &&
-      hash.test(clip.sha256) &&
-      clip.url === `/audio/clips/${name}.wav` &&
-      typeof clip.loop === "boolean" &&
-      typeof clip.processing === "string";
-    if (!validMedia) throw new Error(`clip ${name}: invalid media or source range`);
-    validateBurst(name, clip);
+        : crop(clip)) ||
+      !Number.isSafeInteger(clip.frames) ||
+      clip.frames <= 0 ||
+      !Number.isSafeInteger(clip.sample_rate) ||
+      clip.sample_rate <= 0 ||
+      !hash.test(clip.sha256) ||
+      clip.url !== `/audio/clips/${name}.wav` ||
+      typeof clip.loop !== "boolean" ||
+      typeof clip.processing !== "string"
+    )
+      throw new Error(`clip ${name}: invalid media or source range`);
+    const burst = "burst" in clip ? clip.burst : undefined;
+    if (
+      burst !== undefined &&
+      ("layers" in clip ||
+        !(clip.role === "shot" && !clip.loop) ||
+        !Array.isArray(burst.shots) ||
+        burst.shots.length < 2 ||
+        !burst.shots.every(
+          (shot) =>
+            Array.isArray(shot) &&
+            shot.length === 2 &&
+            shot.every(Number.isSafeInteger) &&
+            clip.source_frames[0] <= shot[0] &&
+            shot[0] < shot[1] &&
+            shot[1] <= clip.source_frames[1],
+        ) ||
+        !finite(burst.interval_s, 0.02, 1))
+    )
+      throw new Error(`clip ${name}: invalid burst`);
   }
-}
-
-function validateBurst(name: string, clip: SoundClip) {
-  const burst = "burst" in clip ? clip.burst : undefined;
-  const valid =
-    burst === undefined ||
-    (!("layers" in clip) &&
-      clip.role === "shot" &&
-      !clip.loop &&
-      Array.isArray(burst.shots) &&
-      burst.shots.length >= 2 &&
-      burst.shots.every(
-        (shot) =>
-          Array.isArray(shot) &&
-          shot.length === 2 &&
-          shot.every(Number.isSafeInteger) &&
-          clip.source_frames[0] <= shot[0] &&
-          shot[0] < shot[1] &&
-          shot[1] <= clip.source_frames[1],
-      ) &&
-      finite(burst.interval_s, 0.02, 1));
-  if (!valid) throw new Error(`clip ${name}: invalid burst`);
 }
 
 function validateSounds(catalog: SoundCatalog) {
   for (const [name, sound] of Object.entries(catalog.sounds)) {
     record(sound, `sound ${name}`);
-    const valid =
-      id.test(name) &&
-      typeof sound.label === "string" &&
-      Array.isArray(sound.clips) &&
-      !sound.clips.some((c) => typeof c !== "string" || !Object.hasOwn(catalog.clips, c)) &&
-      new Set(sound.clips).size === sound.clips.length &&
-      (sound.synth === null || Object.hasOwn(SOUNDS, sound.synth)) &&
-      (!!sound.clips.length || sound.synth !== null) &&
-      finite(sound.gain, 0, 2) &&
-      finite(sound.synth_gain, 0, 1) &&
-      typeof sound.loop === "boolean";
-    if (!valid) throw new Error(`sound ${name}: invalid recipe or unknown clip`);
+    if (
+      !id.test(name) ||
+      typeof sound.label !== "string" ||
+      !Array.isArray(sound.clips) ||
+      sound.clips.some((c) => typeof c !== "string" || !Object.hasOwn(catalog.clips, c)) ||
+      new Set(sound.clips).size !== sound.clips.length ||
+      (sound.synth !== null && !Object.hasOwn(SOUNDS, sound.synth)) ||
+      (!sound.clips.length && sound.synth === null) ||
+      !finite(sound.gain, 0, 2) ||
+      !finite(sound.synth_gain, 0, 1) ||
+      typeof sound.loop !== "boolean"
+    )
+      throw new Error(`sound ${name}: invalid recipe or unknown clip`);
     const first = clipCadence(catalog.clips[sound.clips[0]]);
     if (sound.clips.some((c) => !same(clipCadence(catalog.clips[c]), first)))
       throw new Error(`sound ${name}: alternatives play different bursts`);
@@ -332,6 +316,7 @@ function validateRouting(catalog: SoundCatalog) {
           `${where}: firing cannot use ${catalog.clips[invalid].role} clip ${invalid}`,
         );
     }
+    // Near or far is chosen per voice; which rounds a voice covers is not.
     if (!same(firingCadence(catalog, choice.near), firingCadence(catalog, choice.far)))
       throw new Error(`${where}: near and far play different bursts`);
   };
@@ -342,13 +327,14 @@ function validateRouting(catalog: SoundCatalog) {
       if (!Object.hasOwn(catalog.sounds, name) || catalog.sounds[name].loop)
         throw new Error(`impact ${hit} ${kind}: unknown or looping sound`);
   }
-  for (const [slot, name] of Object.entries(catalog.effects))
+  for (const [slot, name] of Object.entries(catalog.effects)) {
     if (
       !Object.hasOwn(SOUNDS, slot) ||
       !Object.hasOwn(catalog.sounds, name) ||
       catalog.sounds[name].loop !== SOUNDS[slot].loop
     )
       throw new Error(`effect ${slot}: unknown sound or loop mismatch`);
+  }
 }
 
 function validateMusic(catalog: SoundCatalog) {

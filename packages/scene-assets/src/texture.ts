@@ -34,12 +34,10 @@ async function inflate(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-function pngChunks(bytes: Uint8Array): {
-  width: number;
-  height: number;
-  channels: number;
-  idat: Uint8Array[];
-} {
+/** Decode an 8-bit, non-interlaced PNG (grey, grey-alpha, RGB or RGBA) to RGBA8. */
+export async function decodePng(bytes: Uint8Array): Promise<Rgba8> {
+  if (bytes.byteLength < 8 || PNG_SIGNATURE.some((b, i) => bytes[i] !== b))
+    throw new Error("not a PNG");
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let offset = 8;
   let width = 0;
@@ -63,15 +61,7 @@ function pngChunks(bytes: Uint8Array): {
     offset += 12 + length;
   }
   if (!channels || !width || !height) throw new Error("PNG has no header");
-  return { width, height, channels, idat };
-}
-
-function unfilterRows(
-  raw: Uint8Array,
-  width: number,
-  height: number,
-  channels: number,
-): Uint8Array {
+  const raw = await inflate(concat(idat));
   const stride = width * channels;
   if (raw.byteLength < height * (stride + 1)) throw new Error("PNG data is truncated");
   const rows = new Uint8Array(height * stride);
@@ -80,37 +70,24 @@ function unfilterRows(
     const line = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
     const out = rows.subarray(y * stride, (y + 1) * stride);
     const up = y > 0 ? rows.subarray((y - 1) * stride, y * stride) : null;
-    for (let i = 0; i < stride; i++) out[i] = filteredByte(filter, line, out, up, i, channels);
+    for (let i = 0; i < stride; i++) {
+      const a = i >= channels ? out[i - channels] : 0;
+      const b = up ? up[i] : 0;
+      const c = up && i >= channels ? up[i - channels] : 0;
+      let v = line[i];
+      if (filter === 1) v += a;
+      else if (filter === 2) v += b;
+      else if (filter === 3) v += (a + b) >> 1;
+      else if (filter === 4) {
+        const p = a + b - c;
+        const pa = Math.abs(p - a);
+        const pb = Math.abs(p - b);
+        const pc = Math.abs(p - c);
+        v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      } else if (filter !== 0) throw new Error(`PNG row filter ${filter}`);
+      out[i] = v & 255;
+    }
   }
-  return rows;
-}
-
-function filteredByte(
-  filter: number,
-  line: Uint8Array,
-  out: Uint8Array,
-  up: Uint8Array | null,
-  i: number,
-  channels: number,
-): number {
-  const a = i >= channels ? out[i - channels] : 0;
-  const b = up ? up[i] : 0;
-  const c = up && i >= channels ? up[i - channels] : 0;
-  let v = line[i];
-  if (filter === 1) v += a;
-  else if (filter === 2) v += b;
-  else if (filter === 3) v += (a + b) >> 1;
-  else if (filter === 4) {
-    const p = a + b - c;
-    const pa = Math.abs(p - a);
-    const pb = Math.abs(p - b);
-    const pc = Math.abs(p - c);
-    v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
-  } else if (filter !== 0) throw new Error(`PNG row filter ${filter}`);
-  return v & 255;
-}
-
-function rgbaPixels(rows: Uint8Array, width: number, height: number, channels: number): Uint8Array {
   const pixels = new Uint8Array(width * height * 4);
   for (let p = 0; p < width * height; p++) {
     const s = p * channels;
@@ -120,16 +97,7 @@ function rgbaPixels(rows: Uint8Array, width: number, height: number, channels: n
     pixels[p * 4 + 2] = grey ? rows[s] : rows[s + 2];
     pixels[p * 4 + 3] = channels === 2 ? rows[s + 1] : channels === 4 ? rows[s + 3] : 255;
   }
-  return pixels;
-}
-
-/** Decode an 8-bit, non-interlaced PNG (grey, grey-alpha, RGB or RGBA) to RGBA8. */
-export async function decodePng(bytes: Uint8Array): Promise<Rgba8> {
-  if (bytes.byteLength < 8 || PNG_SIGNATURE.some((b, i) => bytes[i] !== b))
-    throw new Error("not a PNG");
-  const { width, height, channels, idat } = pngChunks(bytes);
-  const rows = unfilterRows(await inflate(concat(idat)), width, height, channels);
-  return { width, height, pixels: rgbaPixels(rows, width, height, channels) };
+  return { width, height, pixels };
 }
 
 function concat(parts: Uint8Array[]): Uint8Array {

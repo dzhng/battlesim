@@ -109,7 +109,18 @@ export function decodeTemplateLibrary(bytes: Uint8Array): TemplateArtLibrary {
 function assertShape(library: TemplateArtLibrary) {
   const bad = (why: string) => new Error(`template library: ${why}`);
   const { rows } = library;
-  if (!libraryShapeValid(library, rows)) throw bad("malformed");
+  if (
+    typeof library.art_hash !== "string" ||
+    typeof library.covers !== "string" ||
+    !Array.isArray(library.kits) ||
+    !Array.isArray(library.modules) ||
+    !Array.isArray(library.templates) ||
+    !(rows?.module instanceof Uint16Array) ||
+    !(rows.transform instanceof Float32Array) ||
+    !(rows.tiers instanceof Uint8Array) ||
+    !(rows.tint instanceof Uint8Array)
+  )
+    throw bad("malformed");
   const count = rows.module.length;
   if (
     rows.transform.length !== count * ROW_TRANSFORM_FLOATS ||
@@ -120,34 +131,10 @@ function assertShape(library: TemplateArtLibrary) {
   if (library.modules.some((m) => !library.kits[m.kit])) throw bad("a module names no kit");
   for (const module of rows.module)
     if (module >= library.modules.length) throw bad("a row names no module");
-  for (const template of library.templates) validateTemplateRanges(template, count, bad);
-}
-
-function libraryShapeValid(
-  library: TemplateArtLibrary,
-  rows: TemplateArtLibrary["rows"] | undefined,
-) {
-  return (
-    typeof library.art_hash === "string" &&
-    typeof library.covers === "string" &&
-    Array.isArray(library.kits) &&
-    Array.isArray(library.modules) &&
-    Array.isArray(library.templates) &&
-    rows?.module instanceof Uint16Array &&
-    rows.transform instanceof Float32Array &&
-    rows.tiers instanceof Uint8Array &&
-    rows.tint instanceof Uint8Array
-  );
-}
-
-function validateTemplateRanges(
-  template: TemplateArtLibrary["templates"][number],
-  count: number,
-  bad: (why: string) => Error,
-) {
-  for (const range of Object.values(template.states))
-    if (!(range.first >= 0 && range.count >= 0 && range.first + range.count <= count))
-      throw bad(`template ${template.id} has rows past the end`);
+  for (const template of library.templates)
+    for (const range of Object.values(template.states))
+      if (!(range.first >= 0 && range.count >= 0 && range.first + range.count <= count))
+        throw bad(`template ${template.id} has rows past the end`);
 }
 
 // ---------------------------------------------------------------- resolving

@@ -128,7 +128,7 @@ function initialPose(model: LoadedModel | null): BenchPose | null {
   return sheetPose(bundle, skeleton);
 }
 
-// eslint-disable-next-line complexity -- this developer route owns the complete model inspection session and its camera/render controls.
+// eslint-disable-next-line complexity -- debt: 23 useState hooks for model, camera and render controls in one component; split the control panels into subcomponents once their state is grouped (a reducer or one hook per panel).
 export default function Workbench() {
   // The test set: test units' art is judged here as roster art is.
   const session = useSessionCatalog();

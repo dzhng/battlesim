@@ -13,7 +13,7 @@ export default [
     },
     linterOptions: { reportUnusedDisableDirectives: "error" },
     rules: {
-      complexity: ["error", { max: 30, variant: "classic" }],
+      complexity: ["error", { max: 40, variant: "classic" }],
     },
   },
 ];

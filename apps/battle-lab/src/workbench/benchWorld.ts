@@ -210,69 +210,6 @@ function propLabel(kind: string, classes: PropClasses | null): string {
   }`;
 }
 
-function soldierFootprint(edges: Edges): Footprint {
-  cylinder(edges, physics.soldier_radius_m, 0, physics.soldier_height_m);
-  return {
-    edges,
-    label: `soldier: ${m(physics.soldier_radius_m)} m radius, ${m(physics.soldier_height_m)} m tall`,
-  };
-}
-
-function vehicleFootprint(edges: Edges, units: UnitCatalog, type: string | null): Footprint {
-  const hull = type ? units.hull(type) : null;
-  if (!hull) return { edges, label: "a vehicle of no unit type: no hit box" };
-  box(edges, hull.half_extents_m);
-  return {
-    edges,
-    label: `${type} hit box ${hull.half_extents_m.map((h) => m(2 * h)).join(" × ")} m`,
-  };
-}
-
-function propFootprint(
-  edges: Edges,
-  units: UnitCatalog,
-  scenery: string,
-  rule: (typeof SCENERY_KINDS)[string],
-  classes: PropClasses | null,
-  authored: Vec3 | null,
-): Footprint | null {
-  const drawn = rule?.footprint.kind === "prop" ? propsDrawnBy(units.view.props, scenery) : [];
-  const prop = drawn.find((p) => placedProp(p, classes)) ?? drawn[0] ?? null;
-  if (!prop) return null;
-  const half = authored ?? placedProp(prop, classes);
-  if (half) box(edges, half);
-  return {
-    edges,
-    label: `${propLabel(prop, classes)} · ${
-      half
-        ? `box ${half.map((h) => m(2 * h)).join(" × ")} m (${authored ? "its footprint" : "the map's first"})`
-        : "none placed in the map"
-    }`,
-  };
-}
-
-function treeFootprint(edges: Edges): Footprint {
-  const tree = game.forests.rule;
-  cylinder(edges, tree.trunk_radius_m, 0, tree.trunk_height_m, 12);
-  cylinder(edges, tree.canopy_radius_m, tree.canopy_height_m, tree.canopy_height_m, 24);
-  return {
-    edges,
-    label: `forest tree: trunk ${m(2 * tree.trunk_radius_m)} m × ${m(tree.trunk_height_m)} m, crown ${m(tree.canopy_radius_m)} m, canopy at ${m(tree.canopy_height_m)} m, ${m(tree.trunk_spacing_m)} m apart · trunks stop rounds and vehicles, not soldiers; a heavy vehicle knocks them down`,
-  };
-}
-
-function grassFootprint(edges: Edges, scenery: string): Footprint {
-  cylinder(edges, GRASS_RULER_RADIUS_M, 0, GRASS_MAX_HEIGHT_M);
-  return {
-    edges,
-    label: `${scenery}: no simulation body · ruler ${m(GRASS_MAX_HEIGHT_M)} m, the tallest any grass or crop is drawn`,
-    ruler: {
-      min: [-GRASS_RULER_RADIUS_M, -GRASS_RULER_RADIUS_M, 0],
-      max: [GRASS_RULER_RADIUS_M, GRASS_RULER_RADIUS_M, GRASS_MAX_HEIGHT_M],
-    },
-  };
-}
-
 /** What the simulation knows of the thing an appearance draws; a vehicle's
  *  hit box is its unit type's (`type`) hull. */
 export function footprint(
@@ -284,14 +221,62 @@ export function footprint(
   type: string | null = null,
 ): Footprint {
   const edges: Edges = [];
-  if (unit === "soldier") return soldierFootprint(edges);
-  if (unit === "vehicle") return vehicleFootprint(edges, units, type);
+  if (unit === "soldier") {
+    cylinder(edges, physics.soldier_radius_m, 0, physics.soldier_height_m);
+    return {
+      edges,
+      label: `soldier: ${m(physics.soldier_radius_m)} m radius, ${m(physics.soldier_height_m)} m tall`,
+    };
+  }
+  if (unit === "vehicle") {
+    const hull = type ? units.hull(type) : null;
+    if (!hull) return { edges, label: "a vehicle of no unit type: no hit box" };
+    box(edges, hull.half_extents_m);
+    return {
+      edges,
+      label: `${type} hit box ${hull.half_extents_m.map((h) => m(2 * h)).join(" × ")} m`,
+    };
+  }
   const rule = scenery ? SCENERY_KINDS[scenery] : undefined;
-  if (scenery && rule) {
-    const prop = propFootprint(edges, units, scenery, rule, classes, authored);
-    if (prop) return prop;
-    if (rule.footprint.kind === "tree") return treeFootprint(edges);
-    if (rule.blades) return grassFootprint(edges, scenery);
+  // The prop types it draws, by the prop catalog's `drawn_by`: the first the
+  // map places stands for them.
+  const drawn =
+    scenery && rule?.footprint.kind === "prop" ? propsDrawnBy(units.view.props, scenery) : [];
+  const prop = drawn.find((p) => placedProp(p, classes)) ?? drawn[0] ?? null;
+  if (prop) {
+    // The box the art is authored to (the catalog's footprint), else the
+    // map's first placement of the kind.
+    const half = authored ?? placedProp(prop, classes);
+    if (half) box(edges, half);
+    return {
+      edges,
+      label: `${propLabel(prop, classes)} · ${
+        half
+          ? `box ${half.map((h) => m(2 * h)).join(" × ")} m (${authored ? "its footprint" : "the map's first"})`
+          : "none placed in the map"
+      }`,
+    };
+  }
+  if (rule?.footprint.kind === "tree") {
+    const tree = game.forests.rule;
+    cylinder(edges, tree.trunk_radius_m, 0, tree.trunk_height_m, 12);
+    cylinder(edges, tree.canopy_radius_m, tree.canopy_height_m, tree.canopy_height_m, 24);
+    return {
+      edges,
+      label: `forest tree: trunk ${m(2 * tree.trunk_radius_m)} m × ${m(tree.trunk_height_m)} m, crown ${m(tree.canopy_radius_m)} m, canopy at ${m(tree.canopy_height_m)} m, ${m(tree.trunk_spacing_m)} m apart · trunks stop rounds and vehicles, not soldiers; a heavy vehicle knocks them down`,
+    };
+  }
+  if (rule?.blades) {
+    // No body, so the mark is a ruler: the height no grass or crop may pass.
+    cylinder(edges, GRASS_RULER_RADIUS_M, 0, GRASS_MAX_HEIGHT_M);
+    return {
+      edges,
+      label: `${scenery}: no simulation body · ruler ${m(GRASS_MAX_HEIGHT_M)} m, the tallest any grass or crop is drawn`,
+      ruler: {
+        min: [-GRASS_RULER_RADIUS_M, -GRASS_RULER_RADIUS_M, 0],
+        max: [GRASS_RULER_RADIUS_M, GRASS_RULER_RADIUS_M, GRASS_MAX_HEIGHT_M],
+      },
+    };
   }
   return { edges, label: scenery ? `${scenery}: no simulation body` : "no simulation body" };
 }

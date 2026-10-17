@@ -16,7 +16,6 @@ import {
   type Catalog,
   type SkeletonClips,
   type SkeletonEntry,
-  type PoseRef,
 } from "./schema.ts";
 import {
   validateAppearance,
@@ -70,76 +69,18 @@ export function inferUnit(bytes: Uint8Array): AppearanceUnit {
   return "scenery";
 }
 
-async function looseSkeletonResult(
-  path: string,
-  bytes: Uint8Array,
-  named: [string, SkeletonEntry],
-): Promise<LooseResult> {
-  const [id, entry] = named;
-  const clips = await validateSkeleton(id, entry, bytes);
-  return {
-    path,
-    unit: "soldier",
-    kind: "skinned",
-    yaw: entry.basis_yaw_deg,
-    entryName: id,
-    clips: { ...clips, path, id },
-    mounts: null,
-    appearance: null,
-  };
-}
-
-function looseEntry(
-  path: string,
-  named: [string, AppearanceEntry] | undefined,
-  unit: AppearanceUnit,
-  kind: BundleKind,
-  yaw: number,
-  options: LooseOptions,
-  typeMounts: MountDraws | undefined,
-): AppearanceEntry {
-  if (named) return named[1];
-  if (kind === "static") {
-    return {
-      unit,
-      states: {
-        [(options.scenery && SCENERY_KINDS[options.scenery]?.states[0]) || "default"]: path,
-      },
-      basis_yaw_deg: yaw,
-      ...(options.scenery ? { scenery: options.scenery } : {}),
-    };
-  }
-  return { unit, source: path, basis_yaw_deg: yaw, ...(typeMounts ? { mounts: typeMounts } : {}) };
-}
-
-async function looseFiles(
-  path: string,
-  bytes: Uint8Array,
-  entry: AppearanceEntry,
-  readSource: (path: string) => Promise<Uint8Array>,
-): Promise<Record<string, Uint8Array>> {
-  const files: Record<string, Uint8Array> = { [path]: bytes };
-  for (const state of Object.values(entry.states ?? {}))
-    if (!(state in files)) files[state] = await readSource(state);
-  return files;
-}
-
+/** A skinned model's clips, judged against its catalog skeleton, or, when it
+ *  has none or the caller brings its own clips, against every clip they hold. */
 async function looseClips(
-  path: string,
-  bytes: Uint8Array,
-  named: [string, AppearanceEntry] | undefined,
+  model: { path: string; bytes: Uint8Array; yaw: number; skeleton: string | undefined },
   catalog: Pick<Catalog, "skeletons">,
   options: LooseOptions,
-  yaw: number,
   readSource: (path: string) => Promise<Uint8Array>,
-): Promise<{
-  result: LooseResult["clips"];
-  skeleton?: { clips: SkeletonClips; aim_reference: PoseRef };
-}> {
-  const skeletonEntry = named?.[1].skeleton ? catalog.skeletons[named[1].skeleton] : null;
-  const clipsPath = options.clips?.path ?? skeletonEntry?.source ?? path;
+) {
+  const skeletonEntry = model.skeleton ? catalog.skeletons[model.skeleton] : null;
+  const clipsPath = options.clips?.path ?? skeletonEntry?.source ?? model.path;
   const clipBytes =
-    options.clips?.bytes ?? (clipsPath === path ? bytes : await readSource(clipsPath));
+    options.clips?.bytes ?? (clipsPath === model.path ? model.bytes : await readSource(clipsPath));
   let declared: SkeletonEntry | null = skeletonEntry && !options.clips ? skeletonEntry : null;
   if (!declared) {
     const loops = options.loops ?? [];
@@ -148,55 +89,19 @@ async function looseClips(
     );
     declared = {
       source: clipsPath,
-      basis_yaw_deg: yaw,
+      basis_yaw_deg: model.yaw,
       sample_hz: 30,
       aim_reference: { clip: "stand_aim", phase: 0 },
       clips: Object.fromEntries(names.map((n) => [n, { loop: loops.includes(n) }])),
     };
   }
-  const id = named?.[1].skeleton ?? "adhoc";
+  const id = model.skeleton ?? "adhoc";
   const clips = await validateSkeleton(id, declared, clipBytes);
   return {
     result: { ...clips, path: clipsPath, id },
-    ...(clips.preview
-      ? { skeleton: { clips: clips.preview, aim_reference: declared.aim_reference } }
-      : {}),
-  };
-}
-
-function namedAppearance(catalog: Pick<Catalog, "appearances">, path: string) {
-  return Object.entries(catalog.appearances).find(
-    ([, e]) => e.source === path || Object.values(e.states ?? {}).includes(path),
-  ) as [string, AppearanceEntry] | undefined;
-}
-
-function typeMounts(
-  catalog: Pick<Catalog, "appearances">,
-  context: ValidationContext,
-  options: LooseOptions,
-): MountDraws | undefined {
-  if (!options.type || !context.authority.units.has(options.type)) return undefined;
-  const typeModel = context.authority.units.type(options.type).appearance;
-  return typeModel ? catalog.appearances[typeModel]?.mounts : undefined;
-}
-
-function looseResult(
-  path: string,
-  named: [string, AppearanceEntry] | undefined,
-  unit: AppearanceUnit,
-  kind: BundleKind,
-  yaw: number,
-  entry: AppearanceEntry,
-): LooseResult {
-  return {
-    path,
-    unit,
-    kind,
-    yaw,
-    entryName: named?.[0] ?? null,
-    clips: null,
-    mounts: entry.mounts ?? null,
-    appearance: null,
+    skeleton: clips.preview
+      ? { clips: clips.preview, aim_reference: declared.aim_reference }
+      : undefined,
   };
 }
 
@@ -210,27 +115,67 @@ export async function validateLoose(
     throw new Error(`no source reader for ${p}`);
   },
 ): Promise<LooseResult> {
-  const named = namedAppearance(catalog, path);
+  const named = Object.entries(catalog.appearances).find(
+    ([, e]) => e.source === path || Object.values(e.states ?? {}).includes(path),
+  );
   const skeletonNamed = Object.entries(catalog.skeletons).find(([, s]) => s.source === path);
-  if (skeletonNamed && !options.unit) return looseSkeletonResult(path, bytes, skeletonNamed);
+  if (skeletonNamed && !options.unit) {
+    const [id, entry] = skeletonNamed;
+    const clips = await validateSkeleton(id, entry, bytes);
+    return {
+      path,
+      unit: "soldier",
+      kind: "skinned",
+      yaw: entry.basis_yaw_deg,
+      entryName: id,
+      clips: { ...clips, path, id },
+      mounts: null,
+      appearance: null,
+    };
+  }
   const unit = options.unit ?? named?.[1].unit ?? inferUnit(bytes);
   const kind = UNIT_BUNDLE_KIND[unit];
   if (!kind) throw new Error(`unknown unit ${unit}`);
   const yaw = options.yaw ?? named?.[1].basis_yaw_deg ?? 0;
-  const entry = looseEntry(
+  // A new model for a type is rigged like the type's own model.
+  const units = context.authority.units;
+  const typeModel =
+    options.type && units.has(options.type) ? units.type(options.type).appearance : undefined;
+  const typeMounts = typeModel ? catalog.appearances[typeModel]?.mounts : undefined;
+  const entry: AppearanceEntry =
+    named?.[1] ??
+    (kind === "static"
+      ? {
+          unit,
+          states: {
+            [(options.scenery && SCENERY_KINDS[options.scenery]?.states[0]) || "default"]: path,
+          },
+          basis_yaw_deg: yaw,
+          ...(options.scenery ? { scenery: options.scenery } : {}),
+        }
+      : { unit, source: path, basis_yaw_deg: yaw, ...(typeMounts ? { mounts: typeMounts } : {}) });
+  const result: LooseResult = {
     path,
-    named,
     unit,
     kind,
     yaw,
-    options,
-    typeMounts(catalog, context, options),
-  );
-  const result = looseResult(path, named, unit, kind, yaw, entry);
-  const files = await looseFiles(path, bytes, entry, readSource);
-  let skeleton: { clips: SkeletonClips; aim_reference: PoseRef } | undefined;
+    entryName: named?.[0] ?? null,
+    clips: null,
+    mounts: entry.mounts ?? null,
+    appearance: null,
+  };
+  const files: Record<string, Uint8Array> = { [path]: bytes };
+  // A catalog entry of several states (a wreck and its pieces) is judged whole.
+  for (const state of Object.values(entry.states ?? {}))
+    if (!(state in files)) files[state] = await readSource(state);
+  let skeleton;
   if (kind === "skinned") {
-    const clips = await looseClips(path, bytes, named, catalog, options, yaw, readSource);
+    const clips = await looseClips(
+      { path, bytes, yaw, skeleton: named?.[1].skeleton },
+      catalog,
+      options,
+      readSource,
+    );
     result.clips = clips.result;
     // Fit is measured on whatever clips built, so body findings show even
     // when the clips have errors.

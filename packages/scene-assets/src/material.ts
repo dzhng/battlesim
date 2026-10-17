@@ -168,98 +168,73 @@ function coverageRange(material: Material, textures: Texture[]): [number, number
  */
 export function materialFindings(label: string, bundle: Exclude<Bundle, SkeletonClips>): Finding[] {
   const out: Finding[] = [];
-  const addFor =
-    (m: Material): AddFinding =>
-    (code, message, fix) =>
+  bundle.materials.forEach((m, i) => {
+    const add: AddFinding = (code, message, fix) =>
       out.push({
         code,
         severity: "error",
         message: `${label}: material "${m.name}" ${message}`,
         fix,
       });
-  bundle.materials.forEach((m, i) => {
     const { coverage } = m;
     const [least, most] = coverageRange(m, bundle.textures);
-    const addMaterial = addFor(m);
-    coverageFindings(m, coverage, least, most, addMaterial);
-    roleFindings(m, bundle, i, addMaterial);
-    interiorFindings(m, bundle, coverage, addMaterial);
+    const source =
+      "its coverage value is the base colour's alpha times the normal texture's alpha: author it there";
+    if (coverage.kind === "cutout") {
+      if (!(coverage.cutoff >= 0 && coverage.cutoff <= 1))
+        add(
+          "material.coverage",
+          `is a cutout at ${coverage.cutoff}`,
+          "set alphaCutoff from 0 to 1",
+        );
+      else if (!(least < coverage.cutoff && most >= coverage.cutoff))
+        add(
+          "material.coverage_source",
+          `is a cutout at ${coverage.cutoff}, but its coverage runs from ${least.toFixed(3)} to ${most.toFixed(3)}: ${most < coverage.cutoff ? "none of it is drawn" : "nothing is cut"}`,
+          source,
+        );
+    }
+    if (coverage.kind === "blended") {
+      if (!(least < 1)) add("material.coverage_source", "is blended, but whole everywhere", source);
+      if (m.wear)
+        add(
+          "material.wear",
+          "is blended and wears: a worn patch has no coverage of its own",
+          "make it a cutout or opaque, or export it without wear",
+        );
+    }
+    if (judgedDark(m)) {
+      const { albedo, roughness } = drawnSurface(bundle, i);
+      const lit = luminance(albedo);
+      const tone = `draws at luminance ${lit.toFixed(3)} (albedo ${albedo.map((x) => x.toFixed(3)).join(", ")})`;
+      if (m.role === "rubber" && lit > RUBBER_MAX_LUMINANCE)
+        add(
+          "material.role_rubber",
+          `is rubber and ${tone}, over ${RUBBER_MAX_LUMINANCE}: it reads grey, not black`,
+          "keep dust and paint off the rubber (`parts.tyre`); a dusty tread is dust low down, not a film",
+        );
+      if (m.role === "glass" && (lit > GLASS_MAX_LUMINANCE || roughness > GLASS_MAX_ROUGHNESS))
+        add(
+          "material.role_glass",
+          `is glass and ${tone} at roughness ${roughness.toFixed(3)}, over ${GLASS_MAX_LUMINANCE} or ${GLASS_MAX_ROUGHNESS}: it reads as a coloured block, not glass`,
+          "draw glass near black and smooth (`parts.glass`): what it shows is what it reflects",
+        );
+    }
+    if (m.interior === undefined) return;
+    const fix =
+      "an interior material is opaque and untextured, on a static appearance: it shows its atlas cell and nothing else";
+    if (bundle.kind !== "static")
+      add("material.interior", `is a room, on a ${bundle.kind} body`, fix);
+    if (coverage.kind !== "opaque")
+      add("material.interior", `is a room, and ${coverage.kind}`, fix);
+    if (m.textures || m.wear)
+      add(
+        "material.interior",
+        `is a room, and has ${m.textures ? "textures" : "wear"} of its own`,
+        fix,
+      );
   });
   return out;
-}
-
-function coverageFindings(
-  m: Material,
-  coverage: Material["coverage"],
-  least: number,
-  most: number,
-  add: AddFinding,
-) {
-  const source =
-    "its coverage value is the base colour's alpha times the normal texture's alpha: author it there";
-  if (coverage.kind === "cutout") {
-    if (!(coverage.cutoff >= 0 && coverage.cutoff <= 1))
-      add("material.coverage", `is a cutout at ${coverage.cutoff}`, "set alphaCutoff from 0 to 1");
-    else if (!(least < coverage.cutoff && most >= coverage.cutoff))
-      add(
-        "material.coverage_source",
-        `is a cutout at ${coverage.cutoff}, but its coverage runs from ${least.toFixed(3)} to ${most.toFixed(3)}: ${most < coverage.cutoff ? "none of it is drawn" : "nothing is cut"}`,
-        source,
-      );
-  }
-  if (coverage.kind === "blended") {
-    if (!(least < 1)) add("material.coverage_source", "is blended, but whole everywhere", source);
-    if (m.wear)
-      add(
-        "material.wear",
-        "is blended and wears: a worn patch has no coverage of its own",
-        "make it a cutout or opaque, or export it without wear",
-      );
-  }
-}
-
-function roleFindings(
-  m: Material,
-  bundle: Exclude<Bundle, SkeletonClips>,
-  i: number,
-  add: AddFinding,
-) {
-  if (!judgedDark(m)) return;
-  const { albedo, roughness } = drawnSurface(bundle, i);
-  const lit = luminance(albedo);
-  const tone = `draws at luminance ${lit.toFixed(3)} (albedo ${albedo.map((x) => x.toFixed(3)).join(", ")})`;
-  if (m.role === "rubber" && lit > RUBBER_MAX_LUMINANCE)
-    add(
-      "material.role_rubber",
-      `is rubber and ${tone}, over ${RUBBER_MAX_LUMINANCE}: it reads grey, not black`,
-      "keep dust and paint off the rubber (`parts.tyre`); a dusty tread is dust low down, not a film",
-    );
-  if (m.role === "glass" && (lit > GLASS_MAX_LUMINANCE || roughness > GLASS_MAX_ROUGHNESS))
-    add(
-      "material.role_glass",
-      `is glass and ${tone} at roughness ${roughness.toFixed(3)}, over ${GLASS_MAX_LUMINANCE} or ${GLASS_MAX_ROUGHNESS}: it reads as a coloured block, not glass`,
-      "draw glass near black and smooth (`parts.glass`): what it shows is what it reflects",
-    );
-}
-
-function interiorFindings(
-  m: Material,
-  bundle: Exclude<Bundle, SkeletonClips>,
-  coverage: Material["coverage"],
-  add: AddFinding,
-) {
-  if (m.interior === undefined) return;
-  const fix =
-    "an interior material is opaque and untextured, on a static appearance: it shows its atlas cell and nothing else";
-  if (bundle.kind !== "static")
-    add("material.interior", `is a room, on a ${bundle.kind} body`, fix);
-  if (coverage.kind !== "opaque") add("material.interior", `is a room, and ${coverage.kind}`, fix);
-  if (m.textures || m.wear)
-    add(
-      "material.interior",
-      `is a room, and has ${m.textures ? "textures" : "wear"} of its own`,
-      fix,
-    );
 }
 
 /** A decoded material carries a coverage, an interior sheet the atlas has and

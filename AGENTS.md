@@ -1,11 +1,10 @@
 # Working in this repo
 
-Read [`README.md`](README.md) first: what the game is, how the repo fits
-together, and how to run it. Read [`development.md`](development.md) before
-changing code: it owns the architecture, game-rule principles, validation
-ladder, visual-work rules, and contributor workflow. Active plans live with
-their specs, and each one says what to do next. If a folder you're working in
-has a README, read it before continuing. The READMEs are written for you.
+Read [`README.md`](README.md) first: what the game is and how to run it. Read
+[`development.md`](development.md) before changing code: it owns where each
+concept lives, the game rules in detail, and the check ladder. Active plans live
+with their specs, and each one says what to do next. If a folder you're working
+in has a README, read it before continuing. The READMEs are written for you.
 
 These are the principles. Commands, flags and paths live with the code that
 owns them: the READMEs, the manifests, and each tool's own usage text.
@@ -26,10 +25,18 @@ changes a decision that matters and the repository cannot settle it.
 
 ## Proving a change
 
-Follow the check ladder in [`development.md`](development.md): optimize for the
-fastest feedback you can trust, run the narrowest check that answers the
-question, and run the full closeout checks once a spec's implementation is
-finished.
+Optimize for iteration speed. The measure is the time to feedback you can trust,
+not the amount of process you ran. Climb the
+[check ladder](development.md#check-ladder) only as far as the question needs:
+the narrowest check that answers it is the proof for everyday work, including a
+commit, a merge, and a push.
+
+**Run everything once, when a spec's implementation is finished.** A change that
+reaches the whole system does not bring that run forward on its own; run it
+sooner only when the next piece of work can't be trusted without it.
+
+Every expensive run must answer a question a cheaper one can't. Reuse a result
+that is still valid, and rerun only what a change could have invalidated.
 
 Write the test first for behavior changes and regressions. Use
 [`write-tests`](.agents/skills/write-tests/SKILL.md) and test what the game does
@@ -39,8 +46,15 @@ The simulation is deterministic, and the battle digest is the proof. A change
 that should not alter outcomes must leave digests and replays unchanged, or be
 a named decision.
 
+A failure you see is yours to fix, whether or not your change caused it. Fix an
+unrelated failure in its own commit.
+
 Never loosen a requirement to make a check pass. Say what you verified, what
-you assumed, and what is unfinished. Do not repeat an unchanged failure.
+you assumed, and what is unfinished.
+
+Don't wait on a long run. Start it in the background and keep working. Give it
+a visible sign of progress and a point where you stop, and never repeat a
+failure unchanged.
 
 ## What the player sees
 
@@ -65,15 +79,14 @@ Rules come from physical properties, not named special cases. Express a
 restriction through the data each unit or weapon carries, never through a rule
 that repeats the same restriction by role or label. The target is Hollywood
 realism: keep what a viewer expects in a war film and drop what looks silly on
-screen.
+screen. The few deliberate hard-coded rules are listed in
+[`development.md`](development.md#game-rules), and nowhere else.
 
 The simulation is the one authority; everything else observes it. Each side
 sees only what its own units can see.
 
 Before proposing or changing a game mechanic, use
-[`tweak-mechanics`](.agents/skills/tweak-mechanics/SKILL.md). The detailed game
-rules and their deliberate exceptions live in
-[`development.md`](development.md#game-rules).
+[`tweak-mechanics`](.agents/skills/tweak-mechanics/SKILL.md).
 
 ## One owner per concept
 
@@ -81,6 +94,11 @@ Use what the repo already chose before writing your own. Find the existing owner
 of a concept before creating another. Prefer one general rule to a special
 case, data to constants scattered through code, and a simple structure to an
 abstraction nobody needs yet.
+
+Spend margin on simplicity. When something has room to spare against its
+budget (frame time, startup, memory, bandwidth), use that room to keep the
+design simple, and take out machinery the margin shows wasn't needed. When
+something replaces an old mechanism, delete the old one.
 
 Before writing TypeScript vectors, matrices, shapes, noise, or seeded
 randomness, load [`math`](.agents/skills/math/SKILL.md). When a change exposes a
@@ -94,7 +112,8 @@ and build output multiply with each one.
 
 - Fetch only the large files your task needs.
 - Share installed dependencies when safe; never share build output between
-  checkouts whose sources differ.
+  checkouts whose sources differ. They overwrite each other's builds, and the
+  symptom is an error from someone else's change.
 - Remove a checkout and its build output when its branch is merged.
 - Put scratch output—evidence, logs, probes, and candidate renders—in the
   ignored scratch folder, never in specs or source directories.
@@ -102,8 +121,7 @@ and build output multiply with each one.
 ## Skills
 
 Skills hold the procedures behind these principles. Load the one that covers
-your work before you start. The complete development workflow and its skill
-links live in [`development.md`](development.md).
+your work before you start.
 
 Before changing this file, invoke
 [`audit-agents`](.agents/skills/audit-agents/SKILL.md).

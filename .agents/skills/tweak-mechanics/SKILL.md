@@ -18,8 +18,9 @@ description: Change or add a game mechanic or rule — who can shoot, see, move,
    - **Follow it to the end state.** What does the world look like after the action plays out? A collapsed house is still a ruin in the way, and a cleared lane stays cleared.
    - **Is the data believable on screen?** For each property value the rule reads, ask the viewer's question. Would this stop a bullet? Could you see through it? Would a truck push it? A false value multiplies through every rule that reads it.
    - **What does the other side see and exploit?**
-   
+
    **Done when** every pairing that matters has a narrated moment and a verdict. "Nothing odd" needs a one-line reason.
+
 4. **Walk the neighbouring rules.** For each other rule on the same path (sight and occlusion, cover and concealment, blocking, destruction, targeting, orders against automatic behaviour, knowledge and fog), check three things:
    - **double counting:** two mechanisms modelling one real effect;
    - **freezes:** a unit waiting forever on something that never clears;
@@ -42,9 +43,10 @@ description: Change or add a game mechanic or rule — who can shoot, see, move,
   - **redundant:** no configured unit reaches the other branch. Delete it.
   - **load-bearing:** removing it changes today's behaviour. Ask the user; the answer usually becomes data on the units it should apply to.
   - **physically unsupported:** the mechanic can't work for the other kind yet (no flight law for it, say). Refuse the combination when the catalog loads, naming the rule, instead of ignoring it in play.
-  - **deliberate game rule:** a rule the README or the decision ledger names on purpose. Keep it.
+  - **deliberate game rule:** a rule [`development.md`](../../../development.md#game-rules) or the decision ledger names on purpose. Keep it.
 
   **Tell:** a guard whose other branch no configured unit reaches. This repo has removed such guards on emitting radars (ground only), interceptors (not on aircraft) and flares (aircraft only).
+
 - **Give each real-world effect one mechanism.** If two columns both model "hard to hit behind this", decide which one owns it.
 - **A hold rule needs an exit.** Any "don't act because X" must name what clears X.
 - **Standing room and turning room are different.** Check a straight approach separately from a turn: a maneuver's swept area must not become permanent exclusion space around a parked hull. A rejected look-ahead step must retain its obstruction even when actual displacement is zero, or traffic recovery may never run. Check departure with moving group members before treating their current positions as permanent obstacles.

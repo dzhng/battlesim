@@ -15,8 +15,65 @@ function artifact(body: Record<string, unknown>): string {
   return body.artifactId;
 }
 
+/** A browser POST's JSON object, from this workbench's own page, within the
+ *  size limit, naming no filesystem path. */
+async function readRequestObject(
+  request: IncomingMessage,
+  host: string,
+): Promise<Record<string, unknown>> {
+  if (
+    request.headers.origin !== `http://${host}` ||
+    !/^application\/json(?:\s*;|$)/i.test(request.headers["content-type"] ?? "")
+  )
+    throw new WorkbenchError("Requests must come from this local workbench", 403);
+  if (Number(request.headers["content-length"] ?? 0) > 4 * 1024 * 1024)
+    throw new WorkbenchError("Request body exceeds the workbench limit", 413);
+  const chunks: Buffer[] = [];
+  let bytes = 0;
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    bytes += buffer.length;
+    if (bytes > 4 * 1024 * 1024)
+      throw new WorkbenchError("Request body exceeds the workbench limit", 413);
+    chunks.push(buffer);
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = object(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+  } catch {
+    throw new WorkbenchError("Expected a JSON request object");
+  }
+  if (Object.hasOwn(body, "artifactDir") || Object.hasOwn(body, "path"))
+    throw new WorkbenchError("Browser requests cannot name filesystem paths");
+  return body;
+}
+
+/** The POST endpoint at `path` run on its request object. */
+function post(
+  store: WorkbenchStore,
+  path: string | undefined,
+  body: Record<string, unknown>,
+  signal: AbortSignal,
+): Promise<unknown> {
+  switch (path) {
+    case `${namespace}/generate`:
+      return store.generate(body as unknown as RunRequest, signal);
+    case `${namespace}/inspect`:
+      return store.inspect(artifact(body), body.crop as string | undefined, signal);
+    case `${namespace}/sight`:
+      return store.sight(artifact(body), signal);
+    case `${namespace}/preview`:
+      return store.preview(body as unknown as Draft, signal);
+    case `${namespace}/save`:
+      return store.save(body as unknown as SaveReview, signal);
+    case `${namespace}/export`:
+      return store.export(artifact(body), signal);
+    default:
+      throw new WorkbenchError("Unknown workbench endpoint", 404);
+  }
+}
+
 export function workbenchMiddleware(store: WorkbenchStore) {
-  // eslint-disable-next-line complexity -- this local-only boundary validates one request and dispatches the complete endpoint contract.
   return async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
     const path = request.url?.split("?")[0];
     if (path !== namespace && !path?.startsWith(`${namespace}/`)) return next();
@@ -40,54 +97,8 @@ export function workbenchMiddleware(store: WorkbenchStore) {
         return;
       }
       if (request.method !== "POST") throw new WorkbenchError("Unknown workbench endpoint", 404);
-      if (
-        request.headers.origin !== `http://${host}` ||
-        !/^application\/json(?:\s*;|$)/i.test(request.headers["content-type"] ?? "")
-      )
-        throw new WorkbenchError("Requests must come from this local workbench", 403);
-      if (Number(request.headers["content-length"] ?? 0) > 4 * 1024 * 1024)
-        throw new WorkbenchError("Request body exceeds the workbench limit", 413);
-      const chunks: Buffer[] = [];
-      let bytes = 0;
-      for await (const chunk of request) {
-        const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-        bytes += buffer.length;
-        if (bytes > 4 * 1024 * 1024)
-          throw new WorkbenchError("Request body exceeds the workbench limit", 413);
-        chunks.push(buffer);
-      }
-      let body: Record<string, unknown>;
-      try {
-        body = object(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-      } catch {
-        throw new WorkbenchError("Expected a JSON request object");
-      }
-      if (Object.hasOwn(body, "artifactDir") || Object.hasOwn(body, "path"))
-        throw new WorkbenchError("Browser requests cannot name filesystem paths");
-      const signal = controller.signal;
-      let result: unknown;
-      switch (path) {
-        case `${namespace}/generate`:
-          result = await store.generate(body as unknown as RunRequest, signal);
-          break;
-        case `${namespace}/inspect`:
-          result = await store.inspect(artifact(body), body.crop as string | undefined, signal);
-          break;
-        case `${namespace}/sight`:
-          result = await store.sight(artifact(body), signal);
-          break;
-        case `${namespace}/preview`:
-          result = await store.preview(body as unknown as Draft, signal);
-          break;
-        case `${namespace}/save`:
-          result = await store.save(body as unknown as SaveReview, signal);
-          break;
-        case `${namespace}/export`:
-          result = await store.export(artifact(body), signal);
-          break;
-        default:
-          throw new WorkbenchError("Unknown workbench endpoint", 404);
-      }
+      const body = await readRequestObject(request, host);
+      const result = await post(store, path, body, controller.signal);
       if (!response.destroyed) response.end(JSON.stringify(result));
     } catch (error) {
       if (!response.destroyed) {

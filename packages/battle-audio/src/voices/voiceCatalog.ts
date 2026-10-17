@@ -110,13 +110,14 @@ function validateVoiceRoles(catalog: VoiceCatalog) {
     }
     if (Object.keys(lines).some((trigger) => !triggerSet.has(trigger)))
       throw new Error(`role ${role}: unknown trigger`);
-    for (const trigger of ALL_TRIGGERS)
+    for (const trigger of ALL_TRIGGERS) {
       if (
         trigger !== "selected" &&
         trigger !== "arrived" &&
         JSON.stringify(lines[trigger]).includes("{callsign}")
       )
         throw new Error(`role ${role} ${trigger}: callsign is only legal in R1 and R11`);
+    }
   }
 }
 
@@ -160,14 +161,14 @@ function validateVoiceAssignments(catalog: VoiceCatalog) {
   for (const [unit, assignment] of Object.entries(catalog.assignments)) {
     if (typeof assignment === "string") {
       if (!catalog.sets[assignment]) throw new Error(`assignment ${unit}: unknown set`);
-    } else {
+    } else
       for (const [faction, set] of Object.entries(own(assignment)))
         if (!catalog.sets[String(set)])
           throw new Error(`assignment ${unit}/${faction}: unknown set`);
-    }
   }
 }
 
+// The caller may pass a roster map to enforce resolution. Deferred rows with no roles are not playable.
 function validateRosterAssignments(catalog: VoiceCatalog, roster: unknown) {
   if (!roster || typeof roster !== "object") return;
   for (const [unit, raw] of Object.entries(roster as Record<string, unknown>)) {

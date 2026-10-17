@@ -42,7 +42,93 @@ function changedSettings(
   return [{ path, before: display(before), after: display(after) }];
 }
 
-// eslint-disable-next-line complexity -- this route owns the shared catalog, audition cancellation, and tab-specific editing state.
+/** The saved generation's state and the draft's preview and discard. */
+function Publication({
+  snapshot,
+  draft,
+  busy,
+  preview,
+  reload,
+}: {
+  snapshot: Snapshot | null;
+  draft: SoundCatalog | null;
+  busy: boolean;
+  preview: () => void;
+  reload: () => void;
+}) {
+  const dirty = snapshot && draft && JSON.stringify(snapshot.catalog) !== JSON.stringify(draft);
+  return (
+    <div className="sw-publication">
+      <span>{dirty ? "UNSAVED DRAFT" : "SAVED GENERATION"}</span>
+      <button disabled={!draft || busy} onClick={preview}>
+        {busy ? "Working…" : "Preview changes"}
+      </button>
+      <button disabled={!snapshot || busy} onClick={reload}>
+        Discard draft and reload
+      </button>
+    </div>
+  );
+}
+
+/** The reviewed candidate: each changed setting, the exact file bytes, and
+ *  the save that publishes it. */
+function ReviewPanel({
+  review,
+  busy,
+  save,
+  close,
+}: {
+  review: Review;
+  busy: boolean;
+  save: () => void;
+  close: () => void;
+}) {
+  return (
+    <section className="sw-review">
+      <h2>Reviewed JSON</h2>
+      <p>
+        {review.files.length
+          ? "Save this exact candidate to the repository. Running battles keep their current sound generation."
+          : "No source changes. Saving preserves the original bytes."}
+      </p>
+      {review.files.map((file) => (
+        <div key={file.path}>
+          <section aria-label="Changed sound settings" className="sw-changes">
+            <h3>Changed settings</h3>
+            {changedSettings(JSON.parse(file.before), JSON.parse(file.after)).map((change) => (
+              <div key={change.path} className="sw-change">
+                <code>{change.path}</code>
+                <div>
+                  <span>{change.before}</span>
+                  <b aria-label="changes to"> → </b>
+                  <strong>{change.after}</strong>
+                </div>
+              </div>
+            ))}
+          </section>
+          <details>
+            <summary>{file.path} · exact before / after</summary>
+            <div className="sw-diff">
+              <div>
+                <h3>Before</h3>
+                <pre>{file.before}</pre>
+              </div>
+              <div>
+                <h3>After</h3>
+                <pre>{file.after}</pre>
+              </div>
+            </div>
+          </details>
+        </div>
+      ))}
+      <button disabled={busy} onClick={save}>
+        Save reviewed JSON
+      </button>
+      <button onClick={close}>Close review</button>
+    </section>
+  );
+}
+
 export function SoundWorkbench({
   api = workbenchAPI,
   voices = voiceAPI,
@@ -178,8 +264,6 @@ export function SoundWorkbench({
     });
     setSelected({ kind: "sound", id: name });
   };
-  const dirty = snapshot && draft && JSON.stringify(snapshot.catalog) !== JSON.stringify(draft);
-
   return (
     <main className="sound-workbench" data-sound-workbench>
       <header className="sw-header">
@@ -189,31 +273,23 @@ export function SoundWorkbench({
           <p>Audition the library. Choose the sound of each unit and weapon mount.</p>
         </div>
         {tab !== "voices" && tab !== "music" && tab !== "chatter" && (
-          <div className="sw-publication">
-            <span>{dirty ? "UNSAVED DRAFT" : "SAVED GENERATION"}</span>
-            <button
-              disabled={!draft || busy}
-              onClick={() =>
-                void action(async () => {
-                  validateSoundCatalog(draft);
-                  setReview(await api.preview({ revision: snapshot!.revision, catalog: draft! }));
-                })
-              }
-            >
-              {busy ? "Working…" : "Preview changes"}
-            </button>
-            <button
-              disabled={!snapshot || busy}
-              onClick={() =>
-                void action(async () => {
-                  accept(await api.snapshot());
-                  setMessage("Reloaded saved sources. Draft discarded.");
-                })
-              }
-            >
-              Discard draft and reload
-            </button>
-          </div>
+          <Publication
+            snapshot={snapshot}
+            draft={draft}
+            busy={busy}
+            preview={() =>
+              void action(async () => {
+                validateSoundCatalog(draft);
+                setReview(await api.preview({ revision: snapshot!.revision, catalog: draft! }));
+              })
+            }
+            reload={() =>
+              void action(async () => {
+                accept(await api.snapshot());
+                setMessage("Reloaded saved sources. Draft discarded.");
+              })
+            }
+          />
         )}
       </header>
       <nav className="sw-tabs" aria-label="Workbench views">
@@ -306,63 +382,22 @@ export function SoundWorkbench({
             )}
           </fieldset>
           {review && (
-            <section className="sw-review">
-              <h2>Reviewed JSON</h2>
-              <p>
-                {review.files.length
-                  ? "Save this exact candidate to the repository. Running battles keep their current sound generation."
-                  : "No source changes. Saving preserves the original bytes."}
-              </p>
-              {review.files.map((file) => (
-                <div key={file.path}>
-                  <section aria-label="Changed sound settings" className="sw-changes">
-                    <h3>Changed settings</h3>
-                    {changedSettings(JSON.parse(file.before), JSON.parse(file.after)).map(
-                      (change) => (
-                        <div key={change.path} className="sw-change">
-                          <code>{change.path}</code>
-                          <div>
-                            <span>{change.before}</span>
-                            <b aria-label="changes to"> → </b>
-                            <strong>{change.after}</strong>
-                          </div>
-                        </div>
-                      ),
-                    )}
-                  </section>
-                  <details>
-                    <summary>{file.path} · exact before / after</summary>
-                    <div className="sw-diff">
-                      <div>
-                        <h3>Before</h3>
-                        <pre>{file.before}</pre>
-                      </div>
-                      <div>
-                        <h3>After</h3>
-                        <pre>{file.after}</pre>
-                      </div>
-                    </div>
-                  </details>
-                </div>
-              ))}
-              <button
-                disabled={busy}
-                onClick={() =>
-                  void action(async () => {
-                    accept(
-                      await api.save({
-                        candidateId: review.candidateId,
-                        revision: review.revision,
-                      }),
-                    );
-                    setMessage("Saved. Reload or open a battle page to use this generation.");
-                  })
-                }
-              >
-                Save reviewed JSON
-              </button>
-              <button onClick={() => setReview(null)}>Close review</button>
-            </section>
+            <ReviewPanel
+              review={review}
+              busy={busy}
+              save={() =>
+                void action(async () => {
+                  accept(
+                    await api.save({
+                      candidateId: review.candidateId,
+                      revision: review.revision,
+                    }),
+                  );
+                  setMessage("Saved. Reload or open a battle page to use this generation.");
+                })
+              }
+              close={() => setReview(null)}
+            />
           )}
         </>
       )}

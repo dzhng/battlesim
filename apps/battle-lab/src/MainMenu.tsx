@@ -243,31 +243,6 @@ function PageView({ page, back, children }: { page: Page; back: () => void; chil
   );
 }
 
-function detectionCopy(
-  detection: ReturnType<typeof graphicsDetectionState>,
-  loading: boolean,
-  visible: boolean,
-) {
-  const detail =
-    detection.status === "running" && detection.currentTier
-      ? `Testing ${detection.currentTier.toUpperCase()} graphics · ${Math.min(
-          detection.completed + 1,
-          GRAPHICS_TIERS.length,
-        )} of ${GRAPHICS_TIERS.length} presets`
-      : detection.status === "complete" && detection.tier
-        ? `Graphics set to ${detection.tier.toUpperCase()}`
-        : detection.status === "idle" && visible
-          ? "Preparing graphics test…"
-          : undefined;
-  return {
-    detail,
-    failure:
-      detection.status === "failed" && !loading && visible
-        ? { message: "Graphics detection failed.", details: [detection.error ?? "Unknown error"] }
-        : null,
-  };
-}
-
 export function MainMenu() {
   const [asked] = useState(() => askedChoice(window.location.search));
   // An address asking for a battle opens on the page that starts it.
@@ -293,11 +268,21 @@ export function MainMenu() {
     ? [...LOADING_STAGES, { id: "graphics", label: "Detecting Graphics" }]
     : LOADING_STAGES;
   const detectionCurrent = !loading && detectionStageVisible ? "graphics" : progress.current;
-  const { detail: detectionDetail, failure: detectionFailure } = detectionCopy(
-    detection,
-    loading,
-    detectionStageVisible,
-  );
+  const detectionDetail =
+    detection.status === "running" && detection.currentTier
+      ? `Testing ${detection.currentTier.toUpperCase()} graphics · ${Math.min(
+          detection.completed + 1,
+          GRAPHICS_TIERS.length,
+        )} of ${GRAPHICS_TIERS.length} presets`
+      : detection.status === "complete" && detection.tier
+        ? `Graphics set to ${detection.tier.toUpperCase()}`
+        : detection.status === "idle" && detectionStageVisible
+          ? "Preparing graphics test…"
+          : undefined;
+  const detectionFailure =
+    detection.status === "failed" && showDetection
+      ? { message: "Graphics detection failed.", details: [detection.error ?? "Unknown error"] }
+      : null;
   const [shown] = useState(() => {
     let resolve = () => {};
     const promise = new Promise<void>((r) => (resolve = r));

@@ -63,39 +63,6 @@ export function dragFacing(pick: Pick<PointerPick, "ground" | "facingTo">): numb
   return Math.hypot(dx, dy) < MIN_FACING_DRAG_M ? undefined : Math.atan2(dy, dx);
 }
 
-function armedUnits(selected: readonly OwnUnitView[], catalog: UnitCatalog): number[] {
-  return reach("attack", selected, catalog).map((u) => u.id);
-}
-
-function attackGroundIntent(
-  pick: PointerPick,
-  selected: readonly OwnUnitView[],
-  catalog: UnitCatalog,
-  queued: boolean,
-): PointerIntent | null {
-  if (!pick.ground) return { kind: "blocked", disarm: false };
-  const units = armedUnits(selected, catalog);
-  return units.length
-    ? { kind: "attack", units, target: { kind: "ground", point: [...pick.ground, 0] }, queued }
-    : { kind: "blocked", disarm: true };
-}
-
-function attackTargetIntent(
-  pick: PointerPick,
-  selected: readonly OwnUnitView[],
-  catalog: UnitCatalog,
-  queued: boolean,
-): PointerIntent | null {
-  const units = armedUnits(selected, catalog);
-  if (pick.enemy != null)
-    return units.length
-      ? { kind: "attack", units, target: { kind: "identified", id: pick.enemy }, queued }
-      : { kind: "blocked", disarm: true };
-  if (pick.contact != null && !pick.contactAirborne && units.length)
-    return { kind: "attack", units, target: { kind: "contact", id: pick.contact }, queued };
-  return null;
-}
-
 /** Hover and dispatch describe one intent; only dispatch mints its gesture. */
 export function pointerIntent(
   pick: PointerPick,
@@ -106,14 +73,30 @@ export function pointerIntent(
   if (selected.length === 0) return { kind: "none" };
   const queued = pick.shift;
   const units = selected.map((u) => u.id);
-  if (mode === "attack_ground") return attackGroundIntent(pick, selected, catalog, queued)!;
+  const armed = () => reach("attack", selected, catalog).map((u) => u.id);
+  if (mode === "attack_ground") {
+    if (!pick.ground) return { kind: "blocked", disarm: false };
+    const units = armed();
+    return units.length
+      ? { kind: "attack", units, target: { kind: "ground", point: [...pick.ground, 0] }, queued }
+      : { kind: "blocked", disarm: true };
+  }
   if (isAttackMoveClick(pick)) {
     return pick.ground
       ? { kind: "attack_move", units, goal: pick.ground, queued }
       : { kind: "blocked", disarm: !!pick.ground };
   }
-  const attack = attackTargetIntent(pick, selected, catalog, queued);
-  if (attack) return attack;
+  if (pick.enemy != null) {
+    const units = armed();
+    return units.length
+      ? { kind: "attack", units, target: { kind: "identified", id: pick.enemy }, queued }
+      : { kind: "blocked", disarm: true };
+  }
+  if (pick.contact != null && !pick.contactAirborne) {
+    const units = armed();
+    if (units.length)
+      return { kind: "attack", units, target: { kind: "contact", id: pick.contact }, queued };
+  }
   const facing = dragFacing(pick);
   if (pick.building != null && (mode === "move" || mode === "garrison")) {
     return {

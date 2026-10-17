@@ -33,7 +33,7 @@ const defaultAPI = workbenchAPI();
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const same = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
 
-// eslint-disable-next-line complexity -- the workbench is one editor state machine whose draft, preview, sample, and artifact lifetimes are coupled.
+// eslint-disable-next-line complexity -- debt: 28 useState hooks share one draft, run, review and inspection lifecycle; split it once a reducer owns that lifecycle, then the panels can be subcomponents.
 export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loaded, setLoaded] = useState<Snapshot | null>(null);
