@@ -955,6 +955,7 @@ export function LabViewport({
         let modifiers = { ctrl: false, shift: false };
         const pointerRay = () => (pointer ? handle.rayAt!(pointer.x, pointer.y) : null);
         let lastFrame = performance.now();
+        // eslint-disable-next-line complexity -- the frame loop is one ordered render pipeline; splitting stages would hide their shared mutable frame state.
         const loop = (now: number) => {
           if (signal.aborted) return;
           const dt = Math.min(0.1, (now - lastFrame) / 1000);

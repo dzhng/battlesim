@@ -909,6 +909,7 @@ export async function createModelLayer(
   growRecords(1);
   growCards(1);
 
+  // eslint-disable-next-line complexity -- installation validates and swaps one complete GPU model generation atomically.
   async function install(installed: InstalledAppearances | null) {
     // Build the new generation beside the old one and swap at the end, so a
     // frame drawn meanwhile still binds live buffers.
@@ -1279,6 +1280,7 @@ export async function createModelLayer(
   /** Choose, sort and upload a lab's models' draws. With `view` null every
    *  model draws at its own tier (0 unless given) and nothing is culled.
    *  The presentation frame's runs are `setFrame`'s, the props' `setProps`'. */
+  // eslint-disable-next-line complexity -- packing translates one presentation frame into tightly coupled model and prop runs.
   function pack(view: Float32Array | null) {
     hasXrayMeshes = frameXray;
     const total = units.length;
@@ -1459,6 +1461,7 @@ export async function createModelLayer(
    *  uploaded, each batch draws as one run, and a card batch's records are
    *  kept for the next pack with their atlas layer set. The static world's
    *  batches are the buildings layer's (`setStaticFrame`). */
+  // eslint-disable-next-line complexity -- frame admission updates all model, effect, and static-batch cursors from one publication.
   function setFrame(frame: ReturnType<typeof frameViews> | null) {
     frameRunCount = 0;
     frameCardCount = 0;

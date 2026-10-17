@@ -208,6 +208,7 @@ function referenceChoices(field: GameplayField, editor: EditorState, entry: Json
   return [];
 }
 
+// eslint-disable-next-line complexity -- this control owns the field-kind matrix so each input preserves one editor contract.
 function ValueInput({
   target,
   field,
@@ -509,6 +510,7 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
   );
 }
 
+// eslint-disable-next-line complexity -- the editor owns draft, preview, conflict, and save transitions as one state machine.
 export default function MechanicsEditor() {
   const [snapshot, setSnapshot] = useState<MechanicsSnapshot | null>(null);
   const [draft, setDraft] = useState<MechanicsDraft | null>(null);

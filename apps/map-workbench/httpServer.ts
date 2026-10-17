@@ -16,6 +16,7 @@ function artifact(body: Record<string, unknown>): string {
 }
 
 export function workbenchMiddleware(store: WorkbenchStore) {
+  // eslint-disable-next-line complexity -- this local-only boundary validates one request and dispatches the complete endpoint contract.
   return async (request: IncomingMessage, response: ServerResponse, next: () => void) => {
     const path = request.url?.split("?")[0];
     if (path !== namespace && !path?.startsWith(`${namespace}/`)) return next();

@@ -755,6 +755,7 @@ export function buildDeploymentMarker(
 
 /** The player's entry chevrons are ground paint so a placement ghost can
  * render over them in the world pass. */
+// eslint-disable-next-line complexity -- one overlay pass keeps unit rings, soldiers, routes, and aircraft marks in painter order.
 export function buildOrderOverlay(
   units: readonly OrderView[],
   z: SurfaceHeight,

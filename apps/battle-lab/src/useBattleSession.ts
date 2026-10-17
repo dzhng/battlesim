@@ -168,6 +168,7 @@ export interface ScenarioRules extends PanelRules, RulerRules {
   air: AirLayers;
 }
 
+// eslint-disable-next-line complexity -- this hook is the single owner of battle lifecycle, observation, input, and presentation state.
 export function useBattleSession({
   scenario,
   seed,
@@ -580,6 +581,7 @@ export function useBattleSession({
     ),
   );
   const frame = useCallback(
+    // eslint-disable-next-line complexity -- frame composition must read one publication and update all dependent overlays atomically.
     (now: number, viewport: ViewportCamera, generation: number): ViewportFrame | null => {
       // React's `observation` only says the session has a battle (it is reset
       // with the battle). Everything this frame draws or decides reads the
@@ -774,6 +776,7 @@ export function useBattleSession({
       version: semanticRevision.current.version + 1,
     };
   }
+  // eslint-disable-next-line complexity -- cursor resolution combines selection, placement, and drag semantics against the same drawn frame.
   const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
     // The battle as the last frame drew it: the picks and drawn positions
     // below are that frame's, so its units and tick are too. Nothing drawn

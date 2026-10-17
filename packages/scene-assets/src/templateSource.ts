@@ -108,6 +108,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 /** Read a set's `templates.json`: its structure only. A file that cannot be
  *  read as a set at all comes back null. */
+// eslint-disable-next-line complexity -- this validator reports the complete template source contract in one pass so findings retain row context.
 export function readTemplateSet(
   bytes: Uint8Array,
   path: string,
@@ -429,6 +430,7 @@ const fmt = (n: number) => n.toFixed(3);
  * remains a ruin is held to. Deterministic: sets in name order, templates in
  * id order, rows as written.
  */
+// eslint-disable-next-line complexity -- packing must preserve one deterministic ordering across sets, kits, modules, rows, and damage states.
 export function packTemplateSets(
   inputs: readonly TemplateSetInput[],
   catalogue: readonly unknown[],

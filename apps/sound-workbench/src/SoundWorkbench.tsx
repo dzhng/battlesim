@@ -42,6 +42,7 @@ function changedSettings(
   return [{ path, before: display(before), after: display(after) }];
 }
 
+// eslint-disable-next-line complexity -- this route owns the shared catalog, audition cancellation, and tab-specific editing state.
 export function SoundWorkbench({
   api = workbenchAPI,
   voices = voiceAPI,

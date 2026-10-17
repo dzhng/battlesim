@@ -96,6 +96,7 @@ export function kitBytesFindings(name: string, bytes: number): Finding[] {
 /** The template art library's name in a bake report. */
 export const TEMPLATE_LIBRARY_REPORT = "template art";
 
+// eslint-disable-next-line complexity -- the bake pipeline owns dependency ordering, validation, publication, and texture accounting as one transaction.
 export async function bakeCatalog(
   catalog: Catalog,
   readSource: (path: string) => Promise<Uint8Array>,

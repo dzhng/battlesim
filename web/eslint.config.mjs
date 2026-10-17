@@ -16,9 +16,7 @@ export default [
       "react-hooks": reactHooks,
     },
     rules: {
-      // The full-repository report is advisory while existing code is above the
-      // threshold. The pre-commit hook promotes warnings on staged files to errors.
-      complexity: ["warn", { max: 20, variant: "classic" }],
+      complexity: ["error", { max: 20, variant: "classic" }],
     },
   },
   {

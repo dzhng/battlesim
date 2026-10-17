@@ -258,6 +258,7 @@ export function ReadoutLayer({
       const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
+    // eslint-disable-next-line complexity -- panel placement resolves all readout collision and priority rules against one frame.
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
       const contains = (r: ReadoutRect | null | undefined) =>
         !!r && !!hover && hover.x >= r.x0 && hover.x <= r.x1 && hover.y >= r.y0 && hover.y <= r.y1;

@@ -203,6 +203,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
     }
   };
 
+  // eslint-disable-next-line complexity -- this is the single wire-reply dispatcher, so each protocol variant settles shared client state here.
   const receive = (reply: SimReply) => {
     if (disposed) return;
     if (reply.type === "publication") heldBuffers.add(reply.buffer);

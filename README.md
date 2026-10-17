@@ -152,8 +152,10 @@ the simulation and browser READMEs explain which evidence each command provides.
 After setup, Husky runs the root `lint-staged` configuration before each commit.
 It formats staged files and blocks staged JavaScript or TypeScript that fails
 Oxlint or exceeds the complexity budget; staged Rust also runs Cargo fmt and
-Clippy. The full-repository complexity report remains available through
-`bun run lint:complexity` while existing findings are reduced.
+Clippy. Cyclomatic complexity is an error at 20. A function may exceed that
+budget only when its branching is one cohesive state machine, renderer pass,
+or data-packaging pipeline; the function must carry an inline ESLint disable
+comment that names that ownership and why extraction would obscure it.
 Use the narrowest check that can move while iterating and run the full closeout
 checks when a spec is finished, as [AGENTS.md](AGENTS.md) requires.
 

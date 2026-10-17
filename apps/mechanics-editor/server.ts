@@ -255,6 +255,7 @@ export class MechanicsStore {
     });
   }
 
+  // eslint-disable-next-line complexity -- candidate creation coordinates one validated draft through native preview and publication inputs.
   private async candidate(draft: MechanicsDraft): Promise<MechanicsPreview> {
     if (!draft || typeof draft !== "object" || Array.isArray(draft))
       throw new MechanicsError("A draft must be a JSON object");

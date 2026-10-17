@@ -128,6 +128,7 @@ function initialPose(model: LoadedModel | null): BenchPose | null {
   return sheetPose(bundle, skeleton);
 }
 
+// eslint-disable-next-line complexity -- this developer route owns the complete model inspection session and its camera/render controls.
 export default function Workbench() {
   // The test set: test units' art is judged here as roster art is.
   const session = useSessionCatalog();
