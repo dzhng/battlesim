@@ -20,6 +20,7 @@ struct Grade {
   splitTone: f32,
   shadowLift: f32,
   exposure: f32,
+  skyGradeMix: f32,
   shadowTint: vec4f,
   highlightTint: vec4f,
   lift: vec4f,

@@ -12,7 +12,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { SessionCatalogScope, useSessionCatalog } from "@web/battle/catalog/context";
+import { SessionCatalogScope } from "@web/battle/catalog/context";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import { appResources } from "../appResources";
@@ -171,7 +171,7 @@ function CaptureBattle({
     sound: settings.audio,
   });
 
-  const { sim, audio, hear } = session;
+  const { sim, audio } = session;
 
   const unitAt = useCallback(
     (id: number) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null,

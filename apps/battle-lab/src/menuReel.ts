@@ -113,10 +113,6 @@ export function plateShot(reel: MenuReel, previous: number, now: number): number
   return null;
 }
 
-function between(a: CameraPose, b: CameraPose, s: number): CameraPose {
-  return betweenEased(a, b, s, false);
-}
-
 function betweenEased(a: CameraPose, b: CameraPose, s: number, logDistance: boolean): CameraPose {
   const at = (u: number, v: number) => u + (v - u) * s;
   // Log-linear distance: exp(lerp(ln(a), ln(b), s)) for smooth zoom feel

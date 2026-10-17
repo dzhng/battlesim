@@ -45,16 +45,14 @@ import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows
  *  one (`BattleFrame.render`'s high target), and with the world otherwise. */
 export const HIGH_PLANE_ATTR = "data-high-plane";
 
-/** Camera distance thresholds for fading info cards when zoomed in close.
- *  Cards are fully visible above `CARD_FADE_START_M`, linearly fade to
- *  fully hidden below `CARD_FADE_END_M`. When players zoom in this close
- *  they're appreciating the view, not commanding, so cards get out of the way. */
+/** A camera this close to the ground is watching the battle, not commanding
+ *  it: cards are whole from `CARD_FADE_START_M` of camera distance out and
+ *  fade away linearly to nothing at `CARD_FADE_END_M`, so a close shot is
+ *  clean film. */
 export const CARD_FADE_START_M = 90;
 export const CARD_FADE_END_M = 48;
 
-/** Compute the zoom-based opacity multiplier for info cards.
- *  Returns 1 above CARD_FADE_START_M, 0 below CARD_FADE_END_M, and
- *  linearly interpolates between. */
+/** The cards' opacity at camera distance `cameraDistance`. */
 export function cardZoomOpacity(cameraDistance: number): number {
   if (cameraDistance >= CARD_FADE_START_M) return 1;
   if (cameraDistance <= CARD_FADE_END_M) return 0;
@@ -256,7 +254,7 @@ export function ReadoutLayer({
   };
   useImperativeHandle(handle, () => ({
     pick(x, y) {
-      // Fully faded cards don't intercept clicks.
+      // Cards faded out by a close camera take no clicks.
       if (zoomOpacity.current <= 0) return null;
       const priority = [...calloutsRef.current].sort(
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
@@ -274,12 +272,11 @@ export function ReadoutLayer({
       return null;
     },
     inRect(unit, rect) {
+      if (zoomOpacity.current <= 0) return false;
       const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
-      // Fade cards when zoomed in close: players appreciating the view don't
-      // need the command overlay.
       zoomOpacity.current = cardZoomOpacity(camera.distance);
 
       const contains = (r: ReadoutRect | null | undefined) =>
@@ -517,11 +514,9 @@ export function ReadoutLayer({
         const group = b.node.parentElement!;
         if (inFront) group.dataset.overlapping = "true";
         else delete group.dataset.overlapping;
-        // Apply zoom fade: cards fade out when camera is close to the ground.
         const finalOpacity = b.opacity * (softened ? 0.65 : 1) * zoomOpacity.current;
         group.style.opacity = String(finalOpacity);
         group.style.filter = softened ? "blur(0.6px)" : "";
-        // Fully faded cards don't intercept clicks.
         group.style.pointerEvents = finalOpacity <= 0 ? "none" : "";
       }
     },

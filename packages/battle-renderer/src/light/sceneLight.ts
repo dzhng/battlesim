@@ -43,8 +43,7 @@ export interface HazeSettings {
 
 /** Applied to HDR before AgX. Tints multiply linear rgb. */
 export interface GradeSettings {
-  /** Whether the authored grade is applied. When false, only exposure and
-   *  AgX tone mapping are used (neutral look). Defaults to true. */
+  /** Off leaves only exposure and AgX (default on). */
   enabled?: boolean;
   saturation: number;
   contrast: number;
@@ -104,9 +103,9 @@ export interface LightPresentation extends PostSettings {
    *  shadow fill. A warm fill stands in for light bounced off sunlit ground,
    *  which the sky-only environment lacks, so shade under a blue sky stays
    *  darkened ground instead of turning teal.
-   *  `saturation` and `tint` are applied to the sky color before tone mapping.
-   *  `grade_mix` controls how much the grade's highlight_tint affects the sky
-   *  (0 = sky exempt from warm grading, 1 = fully graded). */
+   *  `saturation` (default 1) and `tint` (default white) shape the clear sky
+   *  before tone mapping; `grade_mix` is how much of the grade the sky takes
+   *  (default 1), so a warm grade can sit on the land under a blue sky. */
   sky: {
     turbidity: number;
     radiance: number;
@@ -174,7 +173,7 @@ export function validateLight(light: LightPresentation): LightPresentation {
     if (typeof value === "number") {
       if (!Number.isFinite(value)) bad(path, "must be finite");
     } else if (typeof value === "boolean") {
-      // Booleans are allowed (e.g., grade.enabled)
+      // A switch, such as `grade.enabled`.
     } else if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}[${i}]`));
     else if (value && typeof value === "object")
       for (const [k, v] of Object.entries(value)) walk(v, path ? `${path}.${k}` : k);

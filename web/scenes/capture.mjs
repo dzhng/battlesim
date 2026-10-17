@@ -2,7 +2,7 @@
 // Use: bun run --cwd web scene -- capture
 // The scene writes the recorded video to throwaway/evidence/capture/
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 
 export async function run(ctx) {
   const page = await ctx.newPage({

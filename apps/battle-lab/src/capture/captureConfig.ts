@@ -53,10 +53,8 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
   if (!capture) return null;
 
   const modeParam = params.get("capture-mode");
-  const mode: CaptureMode = 
-    modeParam === "browser" ? "browser" : 
-    modeParam === "deterministic" ? "deterministic" : 
-    "page";
+  const mode: CaptureMode =
+    modeParam === "browser" ? "browser" : modeParam === "deterministic" ? "deterministic" : "page";
 
   return {
     preset: capture === "true" ? "default" : capture,
@@ -69,11 +67,6 @@ export function parseCaptureParams(search: string): CaptureSettings | null {
     maxDuration: parseInt(params.get("capture-max") ?? String(DEFAULT_CAPTURE.maxDuration), 10),
     mode,
   };
-}
-
-/** Check if we're in capture mode from URL. */
-export function isCaptureMode(search = window.location.search): boolean {
-  return new URLSearchParams(search).has("capture");
 }
 
 /** Camera presets for cinematic capture.

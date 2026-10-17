@@ -144,19 +144,24 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
   const [reelEndTime, setReelEndTime] = useState<number | null>(null);
   const [audioStartTime, setAudioStartTime] = useState<number | null>(null);
   const [audioLatency, setAudioLatency] = useState<number>(0);
-  // Calibration bursts: arrays of timestamps for start and end calibration
-  const [calibrationTimes, setCalibrationTimes] = useState<number[]>([]);
+  // Timestamps of the end-of-reel calibration bursts.
   const [endCalibrationTimes, setEndCalibrationTimes] = useState<number[]>([]);
   // Ref to the triggerCalibrationBurst function provided by CaptureBattle
-  const triggerCalibrationBurstRef = useRef<((count: number, intervalMs: number) => Promise<number[]>) | null>(null);
+  const triggerCalibrationBurstRef = useRef<
+    ((count: number, intervalMs: number) => Promise<number[]>) | null
+  >(null);
   // Deterministic mode function refs
   const stepFrameRef = useRef<((virtualTimeMs: number) => Promise<void>) | null>(null);
   const enterDeterministicModeRef = useRef<(() => void) | null>(null);
   const stopAudioRef = useRef<(() => void) | null>(null);
   const getRecordedAudioCommandsRef = useRef<(() => unknown[]) | null>(null);
-  const getAudioRenderParamsRef = useRef<(() => { sampleRate: number; presentation: unknown; catalog: unknown } | null) | null>(null);
+  const getAudioRenderParamsRef = useRef<
+    (() => { sampleRate: number; presentation: unknown; catalog: unknown } | null) | null
+  >(null);
   const renderOfflineAudioRef = useRef<((durationS: number) => Promise<Blob | null>) | null>(null);
-  const getDeterministicStateRef = useRef<(() => { tick: number; frame: number; virtualTimeMs: number } | null) | null>(null);
+  const getDeterministicStateRef = useRef<
+    (() => { tick: number; frame: number; virtualTimeMs: number } | null) | null
+  >(null);
 
   useEffect(() => {
     exposeCaptureToWindow(state, downloadBlob, {
@@ -171,7 +176,6 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       audioStartTime,
       audioLatency,
       triggerCalibrationBurst: triggerCalibrationBurstRef.current ?? undefined,
-      calibrationTimes,
       endCalibrationTimes,
       stepFrame: stepFrameRef.current ?? undefined,
       enterDeterministicMode: enterDeterministicModeRef.current ?? undefined,
@@ -180,7 +184,19 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
       renderOfflineAudio: renderOfflineAudioRef.current ?? undefined,
       getDeterministicState: getDeterministicStateRef.current ?? undefined,
     });
-  }, [state, downloadBlob, duration, audioBlob, fireEvents, followUnitId, reelReadyTime, reelEndTime, audioStartTime, audioLatency, calibrationTimes, endCalibrationTimes]);
+  }, [
+    state,
+    downloadBlob,
+    duration,
+    audioBlob,
+    fireEvents,
+    followUnitId,
+    reelReadyTime,
+    reelEndTime,
+    audioStartTime,
+    audioLatency,
+    endCalibrationTimes,
+  ]);
 
   if (refused || !battle || buildFailed(battle)) return null;
 
@@ -210,7 +226,6 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
         onCalibrationBurst={(fn) => {
           triggerCalibrationBurstRef.current = fn;
         }}
-        onCalibrationTimes={setCalibrationTimes}
         onEndCalibrationTimes={setEndCalibrationTimes}
         isTrackedVehicle={isTrackedVehicle}
         onStepFrame={(fn) => {
@@ -235,7 +250,11 @@ function CaptureSession({ settings }: { settings: CaptureSettings }) {
           getDeterministicStateRef.current = fn;
         }}
       />
-      <CaptureOverlay state={state} onDownload={downloadBlob} hidden={settings.mode === "page" || settings.mode === "deterministic"} />
+      <CaptureOverlay
+        state={state}
+        onDownload={downloadBlob}
+        hidden={settings.mode === "page" || settings.mode === "deterministic"}
+      />
     </>
   );
 }
@@ -257,7 +276,6 @@ function CaptureBattle({
   onReelEndTime,
   onAudioStart,
   onCalibrationBurst,
-  onCalibrationTimes,
   onEndCalibrationTimes,
   isTrackedVehicle,
   onStepFrame,
@@ -284,7 +302,6 @@ function CaptureBattle({
   onReelEndTime?: (time: number) => void;
   onAudioStart?: (time: number, latency: number) => void;
   onCalibrationBurst?: (fn: (count: number, intervalMs: number) => Promise<number[]>) => void;
-  onCalibrationTimes?: (times: number[]) => void;
   onEndCalibrationTimes?: (times: number[]) => void;
   isTrackedVehicle: (kind: string) => boolean;
   // Deterministic mode callbacks
@@ -292,9 +309,13 @@ function CaptureBattle({
   onEnterDeterministicMode?: (fn: () => void) => void;
   onStopAudio?: (fn: () => void) => void;
   onGetRecordedAudioCommands?: (fn: () => unknown[]) => void;
-  onGetAudioRenderParams?: (fn: () => { sampleRate: number; presentation: unknown; catalog: unknown } | null) => void;
+  onGetAudioRenderParams?: (
+    fn: () => { sampleRate: number; presentation: unknown; catalog: unknown } | null,
+  ) => void;
   onRenderOfflineAudio?: (fn: (durationS: number) => Promise<Blob | null>) => void;
-  onGetDeterministicState?: (fn: () => { tick: number; frame: number; virtualTimeMs: number } | null) => void;
+  onGetDeterministicState?: (
+    fn: () => { tick: number; frame: number; virtualTimeMs: number } | null,
+  ) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gpuRef = useRef<ViewportGpu | null>(null);
@@ -321,7 +342,7 @@ function CaptureBattle({
   const stoppingRef = useRef(false);
   /** Ref to the calibration overlay element. */
   const calibrationOverlayRef = useRef<HTMLDivElement | null>(null);
-  
+
   // Deterministic mode state
   /** Whether deterministic mode is active (virtual clock). */
   const deterministicActiveRef = useRef(false);
@@ -361,7 +382,7 @@ function CaptureBattle({
     sound: settings.audio,
   });
 
-  const { sim, audio, hear } = session;
+  const { sim, audio } = session;
 
   // Calibration burst function: fires count flash/click pairs at intervalMs apart
   // Returns array of performance.now() timestamps for each flash
@@ -413,22 +434,22 @@ function CaptureBattle({
   const stepFrame = useCallback(
     async (virtualTimeMs: number): Promise<void> => {
       virtualTimeRef.current = virtualTimeMs;
-      
+
       // Calculate the target tick for this virtual time
       // tick_hz = 30 ticks/second, virtualTimeMs is in milliseconds
-      const targetTick = Math.floor(virtualTimeMs / 1000 * game.tick_hz);
+      const targetTick = Math.floor((virtualTimeMs / 1000) * game.tick_hz);
       const currentTick = deterministicTickRef.current;
-      
+
       // Step the sim forward to the target tick
       if (targetTick > currentTick && sim.client) {
         const ticksToAdvance = targetTick - currentTick;
         await sim.client.advance(ticksToAdvance);
         deterministicTickRef.current = targetTick;
       }
-      
+
       // Increment frame counter for fire event timestamps
       deterministicFrameRef.current++;
-      
+
       // Wait for the next RAF frame to render with the new state
       return new Promise((resolve) => {
         stepFrameResolveRef.current = resolve;
@@ -444,21 +465,21 @@ function CaptureBattle({
     virtualTimeRef.current = 0;
     deterministicTickRef.current = 0;
     deterministicFrameRef.current = 0;
-    
+
     // Reset fire tracker for deterministic capture
     fireTracker?.reset();
-    
+
     // Enable audio recording mode
     if (audio) {
       audio.enableRecording();
     }
-    
+
     // Pause the sim - we'll step it incrementally in stepFrame
     if (sim.client) {
       sim.client.pause();
       console.log(`[deterministic] Sim paused, ready for incremental capture`);
     }
-    
+
     // Mark ready immediately in deterministic mode
     if (reelReadyTimeRef.current === null) {
       reelReadyTimeRef.current = performance.now();
@@ -555,7 +576,8 @@ function CaptureBattle({
 
   const startRecording = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || recordingStartedRef.current) return;
+    // Deterministic frames are taken by the CLI, one screenshot per step.
+    if (!canvas || recordingStartedRef.current || isDeterministicMode) return;
     recordingStartedRef.current = true;
 
     try {
@@ -681,7 +703,16 @@ function CaptureBattle({
         message: `Failed to start recording: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
-  }, [settings, duration, setState, audio, isPageMode, onAudioBlob]);
+  }, [
+    settings,
+    duration,
+    setState,
+    audio,
+    isPageMode,
+    isDeterministicMode,
+    onAudioBlob,
+    onAudioStart,
+  ]);
 
   // In page mode, expose startRecording for CDP to call
   useEffect(() => {
@@ -706,8 +737,6 @@ function CaptureBattle({
   const heldPoseRef = useRef<CameraPose | null>(null);
   /** Reel start time: set to reelReadyTime when ready, so reel clock starts at ready signal. */
   const reelStartTimeRef = useRef<number | null>(null);
-  /** Whether end calibration has been triggered. */
-  const endCalibTriggeredRef = useRef(false);
   /** Ref to callbacks for triggering end calibration from within setTimeout. */
   const onEndCalibrationTimesRef = useRef(onEndCalibrationTimes);
   onEndCalibrationTimesRef.current = onEndCalibrationTimes;
@@ -718,7 +747,7 @@ function CaptureBattle({
       const effectiveNow = deterministicActiveRef.current
         ? (reelReadyTimeRef.current ?? performance.now()) + virtualTimeRef.current
         : now;
-      
+
       // Track first pose call for initialization, but use reelStartTime for elapsed
       if (pilotStartRef.current === null) {
         pilotStartRef.current = effectiveNow;
@@ -729,7 +758,7 @@ function CaptureBattle({
       // This removes the drift between first pose() and reel-ready
       const startTime = reelStartTimeRef.current ?? pilotStartRef.current;
       const elapsed = deterministicActiveRef.current
-        ? virtualTimeRef.current / 1000  // Deterministic: virtual time is already relative
+        ? virtualTimeRef.current / 1000 // Deterministic: virtual time is already relative
         : (effectiveNow - startTime) / 1000;
       const sample = sampleReel(reel, elapsed);
 
@@ -739,7 +768,9 @@ function CaptureBattle({
         if (reelEndTimeRef.current === null) {
           reelEndTimeRef.current = now;
           onReelEndTimeRef.current?.(now);
-          console.log(`[capture] reel done at ${now.toFixed(1)}ms (elapsed=${elapsed.toFixed(2)}s)`);
+          console.log(
+            `[capture] reel done at ${now.toFixed(1)}ms (elapsed=${elapsed.toFixed(2)}s)`,
+          );
         }
         // Trigger end calibration burst once, then schedule stop after it completes
         // Extended tail: 1.5s total = ~500ms for end calibration + buffer
@@ -750,7 +781,9 @@ function CaptureBattle({
           setTimeout(async () => {
             try {
               const endTimes = await triggerCalibrationBurst(5, 150);
-              console.log(`[capture] end calibration burst fired: ${endTimes.map((t) => t.toFixed(0)).join(", ")}`);
+              console.log(
+                `[capture] end calibration burst fired: ${endTimes.map((t) => t.toFixed(0)).join(", ")}`,
+              );
               onEndCalibrationTimesRef.current?.(endTimes);
             } catch (e) {
               console.error(`[capture] end calibration failed:`, e);
@@ -782,7 +815,9 @@ function CaptureBattle({
           const tracked = trackedRef.current;
           if (tracked?.follow !== followedId) {
             // Initialize smoothed position directly to live position (no lag on first frame)
-            trackedRef.current = live ? { follow: followedId, at: [live[0], live[1]], time: effectiveNow } : null;
+            trackedRef.current = live
+              ? { follow: followedId, at: [live[0], live[1]], time: effectiveNow }
+              : null;
             if (live) followInitializedRef.current = true;
           }
           if (trackedRef.current) {
@@ -847,12 +882,14 @@ function CaptureBattle({
           }
         }
       }
-      
+
       // Calculate elapsed time consistently for both modes
       const startTime = reelStartTimeRef.current ?? pilotStartRef.current;
       const elapsed = deterministicActiveRef.current
         ? virtualTimeRef.current / 1000
-        : (startTime !== null ? (now - startTime) / 1000 : 0);
+        : startTime !== null
+          ? (now - startTime) / 1000
+          : 0;
 
       // Track weapon fire events for the sidecar JSON (both modes)
       const observation = sim.latest.current;
@@ -867,7 +904,7 @@ function CaptureBattle({
         // In deterministic mode: use frame index / fps for precise time relative to cut
         // In realtime mode: use wall clock
         const eventTime = deterministicActiveRef.current
-          ? (deterministicFrameRef.current / settings.fps) * 1000  // Convert frame index to ms
+          ? (deterministicFrameRef.current / settings.fps) * 1000 // Convert frame index to ms
           : now;
         const newEvents = fireTracker.update(observation, eventTime);
         if (newEvents.length > 0) {
@@ -882,7 +919,7 @@ function CaptureBattle({
         resolve();
         return; // Skip UI state updates in deterministic mode
       }
-      
+
       if (pilotStartRef.current === null || stateRef.current.status !== "recording") return;
       setState({ status: "recording", elapsed, duration });
     },
@@ -930,7 +967,7 @@ function CaptureBattle({
       }}
     >
       <div
-        className={`menu-backdrop-film${isPageMode ? " capture-mode" : ""}`}
+        className={`menu-backdrop-film${isPageMode || isDeterministicMode ? " capture-mode" : ""}`}
         ref={(el) => {
           if (el) {
             const canvas = el.querySelector("canvas");

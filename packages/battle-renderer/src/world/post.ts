@@ -64,11 +64,6 @@ export async function createTypegpuPost(
     throw new Error("Five-level parity bloom requires a framebuffer at least 64×64");
   if (outputFormat.endsWith("-srgb"))
     throw new Error("Post shader already applies sRGB transfer; output must not encode twice");
-  // Surface pipeline validation errors that would otherwise fail silently.
-  device.onuncapturederror = (event) => {
-    console.error("WebGPU uncaptured error:", event.error);
-  };
-  device.pushErrorScope("validation");
   const root = tgpu.initFromDevice({ device });
   const owned: { destroy(): void }[] = [];
   let disposed = false;
@@ -347,11 +342,6 @@ export async function createTypegpuPost(
     );
     const pipelinesReady = Promise.all(init);
     await Promise.all([pipelinesReady, admission()]);
-    // Check for validation errors from pipeline creation.
-    const validationError = await device.popErrorScope();
-    if (validationError) {
-      console.error("WebGPU validation error during post pipeline creation:", validationError);
-    }
     return {
       encode(encoder: GPUCommandEncoder, output: GPUTextureView, mode: PostMode = "look") {
         if (disposed) throw new Error("TypeGPU post is disposed");

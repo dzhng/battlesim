@@ -700,14 +700,15 @@ test("a missile striking armour sounds the strike and its explosion; tank rounds
   const missile = strike("atgm", true);
   expect(missile.map((v) => v.sound).sort()).toEqual(["armour-shell-hit", "recorded-explosion"]);
   expect(new Set(missile.map((v) => v.at)).size).toBe(1);
-  // The same armour, struck at the same place: a shell lands 2.5 times harder than a rifle round.
+  // The same armour, struck at the same place: a shell lands harder than a rifle round, by their scales.
   const [shell] = strike("tank_ap", false);
   const [bullet] = strike("rifle", false);
   expect(shell.sound).toBe("armour-shell-hit");
   expect(bullet.sound).toBe("armour-rifle-hit");
   expect(shell.gain / bullet.gain).toBeCloseTo(
-    AUDIO.impact_scale.tank_ap / AUDIO.impact_scale.default,
+    AUDIO.impact_scale.tank_ap / AUDIO.impact_scale.rifle,
   );
+  expect(shell.gain).toBeGreaterThan(bullet.gain);
 });
 
 test("a cook-off booms as its ammunition goes and clangs where its turret lands", () => {

@@ -19,9 +19,8 @@ export const MIE_G = 0.8;
 export const EYE_ALTITUDE_KM = 0.2;
 
 /** Clear-sky multiple scattering is sky-coloured, which keeps the
- *  low-altitude band from washing to cream. Tuned for a brighter, lighter
- *  azure sky (David's ebbtide_sky grade: pale near the horizon, light azure
- *  overhead, without needing a post-process sky gradient overlay). */
+ *  low-altitude band from washing to cream. Lifted toward a light azure:
+ *  pale near the horizon, light overhead. */
 export const MS_TINT: readonly [number, number, number] = [0.55, 0.78, 1.15];
 /** Where a low sun's warm aureole fades out and is full, as the cosine from
  *  the sun. AgX compresses chroma, so golden-hour pixels need this warmth
@@ -31,18 +30,8 @@ export const LOW_SUN_AUREOLE_COS_INNER = 0.76;
 /** Overcast dome: high-key near-white grey (David's locked overcast mood:
  *  cool, flat, HIGH-KEY — the sky IS the light source). The gradient runs
  *  BRIGHTER toward the horizon (mist register, matching the reference and
- *  the visual reference), not the darker CIE-standard horizon.
- *  Clear-sky zenith is azure; overcast blends toward neutral white-blue. */
+ *  the visual reference), not the darker CIE-standard horizon. */
 export const OVERCAST_ZENITH_RADIANCE: readonly [number, number, number] = [1.04, 1.08, 1.14];
 /** Sun disc: ~1.2° visual radius (readable at game framing). */
 export const SUN_DISC_COS_INNER = 0.99985;
 export const SUN_DISC_COS_OUTER = 0.99955;
-
-/** @deprecated Legacy constants — now driven by SkyLight uniform from
- *  `presentation.light.sky` in game.json. These remain for reference only;
- *  the shader reads skyLight.skySaturation/skyTint/skyGradeMix at runtime.
- *  Default saturation 0.45 (= 1 - 0.55 desaturate), tint [1.02, 1.0, 0.97],
- *  grade_mix 1.0 preserves the original look. */
-export const SKY_DESATURATE = 0.55;
-export const SKY_TINT: readonly [number, number, number] = [1.02, 1.0, 0.97];
-export const SKY_GRADE_MIX = 1.0;

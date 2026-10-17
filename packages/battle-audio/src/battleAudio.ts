@@ -388,7 +388,9 @@ export class BattleAudio {
     const commands = this.getRecordedCommands();
     if (commands.length === 0) return null;
 
-    console.log(`[audio] Rendering ${commands.length} commands offline for ${durationS.toFixed(2)}s`);
+    console.log(
+      `[audio] Rendering ${commands.length} commands offline for ${durationS.toFixed(2)}s`,
+    );
 
     // Create offline context
     const channelCount = 2;
@@ -396,11 +398,7 @@ export class BattleAudio {
     const offline = new OfflineAudioContext(channelCount, length, sampleRate);
 
     // Create a new WebAudioSink connected to the offline context
-    const offlineSink = new WebAudioSink(
-      offline,
-      this.options.presentation,
-      this.options.catalog,
-    );
+    const offlineSink = new WebAudioSink(offline, this.options.presentation, this.options.catalog);
 
     // Collect all unique sounds used in the commands
     const soundsUsed = new Set<string>();
@@ -519,14 +517,14 @@ export class BattleAudio {
   playCalibrationClick(): boolean {
     const ctx = this.sink?.context;
     if (!ctx || !(ctx instanceof AudioContext)) return false;
-    
+
     // Create a loud, sharp click: 20ms of 2kHz sine at full amplitude
     const sampleRate = ctx.sampleRate;
     const duration = 0.02; // 20ms - long enough to detect reliably
     const samples = Math.ceil(sampleRate * duration);
     const buffer = ctx.createBuffer(1, samples, sampleRate);
     const data = buffer.getChannelData(0);
-    
+
     // Generate a sharp impulse with instant attack, quick decay
     // First 1ms at full amplitude, then exponential decay
     const attackSamples = Math.ceil(sampleRate * 0.001); // 1ms attack
@@ -544,11 +542,11 @@ export class BattleAudio {
       }
       data[i] = Math.sin(2 * Math.PI * freq * t) * envelope;
     }
-    
+
     // Create a gain node for extra loudness (the click should be unmistakable)
     const gain = ctx.createGain();
     gain.gain.value = 2.0; // +6dB boost
-    
+
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(gain);

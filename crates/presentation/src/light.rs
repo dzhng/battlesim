@@ -90,31 +90,26 @@ pub struct SkySettings {
     pub radiance: f64,
     /// Multiplies the sky's environment light per linear channel: the shadow fill.
     pub fill: [f64; 3],
-    /// Sky saturation applied before tonemap (1.0 = original, 0 = greyscale).
-    /// Replaces the hardcoded SKY_DESATURATE; default 0.45 (= 1 - 0.55).
-    #[serde(default = "default_sky_saturation")]
+    /// The clear sky's saturation before tone mapping: 1 leaves it as the
+    /// physical model makes it, 0 is its luminance alone.
+    #[serde(default = "one")]
     pub saturation: f64,
-    /// Sky tint multiplier (linear rgb) applied before tonemap.
-    /// Replaces the hardcoded SKY_TINT; default [1.02, 1.0, 0.97].
-    #[serde(default = "default_sky_tint")]
+    /// Multiplies the clear sky per linear channel before tone mapping.
+    #[serde(default = "white")]
     pub tint: [f64; 3],
-    /// How much the post grade affects the sky (0 = ungraded, 1 = fully graded).
-    /// Default 1.0 preserves the current look where sky receives full grading.
-    #[serde(default = "default_sky_grade_mix")]
+    /// How much of the grade the sky takes: 1 all of it, 0 none, so a warm
+    /// grade can sit on the land under a sky that keeps its own colour.
+    #[serde(default = "one")]
     pub grade_mix: f64,
     pub clouds: CloudSettings,
 }
 
-fn default_sky_saturation() -> f64 {
-    0.45
-}
-
-fn default_sky_tint() -> [f64; 3] {
-    [1.02, 1.0, 0.97]
-}
-
-fn default_sky_grade_mix() -> f64 {
+fn one() -> f64 {
     1.0
+}
+
+fn white() -> [f64; 3] {
+    [1.0; 3]
 }
 
 /// The haze's curve over the physical extinction.
@@ -174,9 +169,8 @@ pub struct CloudSettings {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GradeSettings {
-    /// Whether the authored grade is applied. When false, only exposure and
-    /// AgX tone mapping are used (neutral look).
-    #[serde(default = "default_true")]
+    /// Whether the grade applies; off leaves only exposure and AgX.
+    #[serde(default = "yes")]
     pub enabled: bool,
     pub saturation: f64,
     pub contrast: f64,
@@ -187,7 +181,7 @@ pub struct GradeSettings {
     pub lift: [f64; 3],
 }
 
-fn default_true() -> bool {
+fn yes() -> bool {
     true
 }
 
@@ -361,12 +355,9 @@ impl LightSettings {
             cloud_lit: folded(transmittance, c.radiance, 1.0),
             cloud_silver: (c.radiance * 0.6) as f32,
             cloud_base: folded(c.shade, c.radiance, 0.7),
-            // Sky color adjustments applied before tonemap.
             sky_saturation: self.sky.saturation as f32,
-            sky_grade_mix: self.sky.grade_mix as f32,
-            pad1: [0.0; 3],
             sky_tint: f32s(self.sky.tint),
-            pad2: 0.0,
+            pad1: 0.0,
         }
     }
 
@@ -384,40 +375,22 @@ impl LightSettings {
         }
     }
 
-    /// The grade's uniform. When the grade is disabled, returns neutral values
-    /// so only exposure and AgX tone mapping apply.
+    /// The grade's uniform; a disabled grade leaves only exposure and AgX.
     pub fn grade(&self) -> Grade {
         let g = &self.grade;
+        let on = if g.enabled { 1.0 } else { 0.0 };
         let rgb = |v: [f64; 3], w: f64| f32s([v[0], v[1], v[2], w]);
-        if g.enabled {
-            Grade {
-                saturation: g.saturation as f32,
-                contrast: g.contrast as f32,
-                split_tone: g.split_tone as f32,
-                shadow_lift: g.shadow_lift as f32,
-                exposure: self.exposure as f32,
-                sky_grade_mix: self.sky.grade_mix as f32,
-                pad: [0.0; 2],
-                shadow_tint: rgb(g.shadow_tint, 1.0),
-                highlight_tint: rgb(g.highlight_tint, 1.0),
-                lift: rgb(g.lift, 0.0),
-            }
-        } else {
-            // Neutral grade: only exposure and AgX tone mapping apply.
-            // Saturation 0.0 is neutral: the shader computes 1.0 + sat * f(midtone),
-            // so sat=0 gives multiplier 1.0 (no change), not sat=1 which would boost.
-            Grade {
-                saturation: 0.0,
-                contrast: 0.0,
-                split_tone: 0.0,
-                shadow_lift: 0.0,
-                exposure: self.exposure as f32,
-                sky_grade_mix: self.sky.grade_mix as f32,
-                pad: [0.0; 2],
-                shadow_tint: [1.0, 1.0, 1.0, 1.0],
-                highlight_tint: [1.0, 1.0, 1.0, 1.0],
-                lift: [0.0, 0.0, 0.0, 0.0],
-            }
+        Grade {
+            saturation: (g.saturation * on) as f32,
+            contrast: (g.contrast * on) as f32,
+            split_tone: (g.split_tone * on) as f32,
+            shadow_lift: (g.shadow_lift * on) as f32,
+            exposure: self.exposure as f32,
+            sky_grade_mix: self.sky.grade_mix as f32,
+            pad: [0.0; 2],
+            shadow_tint: rgb(g.shadow_tint, 1.0),
+            highlight_tint: rgb(g.highlight_tint, 1.0),
+            lift: rgb(g.lift, 0.0),
         }
     }
 }

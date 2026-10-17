@@ -74,12 +74,11 @@ export const bloomCompositeWgsl = `(uv: vec2f, level0: texture_2d<f32>, level1: 
 
 export const postFinalWgsl = `(uv: vec2f, scene: texture_2d<f32>, bloom: texture_2d<f32>, linearSampler: sampler, grade: Grade) -> vec4f {
   let hdr = textureSample(scene,linearSampler,uv)+textureSample(bloom,linearSampler,uv);
-  // Sky pixels have alpha=0 (set by sky.ts); world objects have alpha=1.
-  let isSky = select(0.0, 1.0, hdr.a < 0.5);
-  // For sky pixels, mix between fully graded and ungraded based on skyGradeMix.
-  let graded = gradeColor(hdr.rgb,grade);
-  let finalColor = mix(hdr.rgb, graded, 1.0 - isSky * (1.0 - grade.skyGradeMix));
-  return vec4f(outputSrgb(agx(finalColor,grade.exposure)),1.0);
+  // The sky pass leaves alpha 0 where nothing covers it; the sky takes
+  // \`skyGradeMix\` of the grade, everything in front of it all of it.
+  let gradeShare = select(1.0, grade.skyGradeMix, hdr.a < 0.5);
+  let graded = mix(hdr.rgb, gradeColor(hdr.rgb,grade), gradeShare);
+  return vec4f(outputSrgb(agx(graded,grade.exposure)),1.0);
 }`;
 
 /** The high-air plane's look: a layer over the world's, so the same bloom,

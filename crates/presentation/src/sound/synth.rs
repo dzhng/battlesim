@@ -836,8 +836,22 @@ fn distant_battle(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
         let start = len(at, sr);
         // High gain for booms to create large dynamic swings
         let gain = 0.9 + 0.1 * rng.sample();
-        mix(&mut channels[0], &boom, sr, gain * (1.0 - pan * 0.35), one, start);
-        mix(&mut channels[1], &boom, sr, gain * (0.65 + pan * 0.35), one, start);
+        mix(
+            &mut channels[0],
+            &boom,
+            sr,
+            gain * (1.0 - pan * 0.35),
+            one,
+            start,
+        );
+        mix(
+            &mut channels[1],
+            &boom,
+            sr,
+            gain * (0.65 + pan * 0.35),
+            one,
+            start,
+        );
     }
 
     // MG bursts: 2-3 short rattles, well-separated
@@ -868,8 +882,22 @@ fn distant_battle(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
             }
             let start = len(shot_at, sr);
             let gain = 0.6 + 0.25 * rng.sample();
-            mix(&mut channels[0], &pop, sr, gain * (1.0 - pan * 0.5), one, start);
-            mix(&mut channels[1], &pop, sr, gain * (0.5 + pan * 0.5), one, start);
+            mix(
+                &mut channels[0],
+                &pop,
+                sr,
+                gain * (1.0 - pan * 0.5),
+                one,
+                start,
+            );
+            mix(
+                &mut channels[1],
+                &pop,
+                sr,
+                gain * (0.5 + pan * 0.5),
+                one,
+                start,
+            );
         }
     }
 
@@ -894,8 +922,22 @@ fn distant_battle(sr: f64, rng: &mut Mulberry32) -> Vec<Vec<f32>> {
         }
         let start = len(at, sr);
         let gain = 0.4 + 0.2 * rng.sample();
-        mix(&mut channels[0], &pop, sr, gain * (1.0 - pan * 0.6), one, start);
-        mix(&mut channels[1], &pop, sr, gain * (0.4 + pan * 0.6), one, start);
+        mix(
+            &mut channels[0],
+            &pop,
+            sr,
+            gain * (1.0 - pan * 0.6),
+            one,
+            start,
+        );
+        mix(
+            &mut channels[1],
+            &pop,
+            sr,
+            gain * (0.4 + pan * 0.6),
+            one,
+            start,
+        );
     }
 
     // Normalize to peak, but since wash is very quiet and events are loud,
