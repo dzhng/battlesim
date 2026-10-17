@@ -1082,15 +1082,37 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
     assert!(battle.unit(UnitId(1)).unwrap().retired);
 }
 
-#[test]
-fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
-    let mut battle = Battle::new(
-        &setup(json!([
-            {"side":"blue","kind":"test_apc","position":[200,200]},
-            {"side":"blue","kind":"test_recon","position":[195,200]}
-        ])),
-        42,
+/// Blue's 1 hp APC with a recon squad boarding it (for `board_s` when given),
+/// destroyed by a red gun jeep once the squad's hold reaches a phase `ready`
+/// accepts, and still in such a phase when the carrier dies. Returns the
+/// battle on the tick the carrier died and each soldier's health before.
+fn carrier_destroyed_once(
+    board_s: Option<f64>,
+    ready: fn(sim::hold::Phase) -> bool,
+) -> (Battle, Vec<f64>) {
+    let mut rules = sim::fixtures::test_game();
+    if let Some(board_s) = board_s {
+        rules["carriage"]["board_s"] = json!(board_s);
+    }
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_apc",
+        json!({ "body": { "hull": { "hp": 1.0 } } }),
     );
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]});
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": map,
+        "rules": rules,
+        "units": [
+            {"side":"blue","kind":"test_apc","position":[200,200],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"test_recon","position":[195,200],"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_gun_jeep","position":[260,200],"engagement":"return_fire_only"}
+        ],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 42);
     assert!(battle
         .accept(command(
             1,
@@ -1102,20 +1124,81 @@ fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
         ))
         .error
         .is_none());
-    for _ in 0..(battle.rules().tick_hz * 4) {
+    let reached = (0..battle.rules().tick_hz * 10).any(|_| {
         battle.step();
-    }
-    let passenger = battle.unit(UnitId(1)).unwrap();
-    assert!(!passenger.on_field());
-    assert_eq!(
-        passenger
-            .members
-            .iter()
-            .map(|member| member.id)
-            .collect::<std::collections::BTreeSet<_>>()
-            .len(),
-        passenger.members.len()
+        let squad = battle.unit(UnitId(1)).unwrap();
+        squad.hold.as_ref().is_some_and(|hold| ready(hold.phase))
+    });
+    assert!(reached, "the squad never reached the boarding phase");
+    let health = battle
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .map(|s| s.hp)
+        .collect();
+    let carrier = battle
+        .observe(Side::Red)
+        .identified
+        .iter()
+        .find(|u| u.kind == battle.unit(UnitId(0)).unwrap().kind)
+        .map(|u| u.id)
+        .expect("red sees the carrier");
+    let attack = CommandEnvelope {
+        side: Side::Red,
+        player: None,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![UnitId(2)],
+            target: contract::command::TargetRef::Identified { id: carrier },
+        },
+        queued: false,
+    };
+    assert_eq!(battle.accept(attack).error, None);
+    let destroyed = (0..battle.rules().tick_hz * 10).any(|_| {
+        let phase = battle
+            .unit(UnitId(1))
+            .unwrap()
+            .hold
+            .as_ref()
+            .map(|h| h.phase);
+        assert!(
+            phase.is_some_and(ready),
+            "the squad left the boarding phase before its carrier died: {phase:?}"
+        );
+        battle.step();
+        !battle.unit(UnitId(0)).unwrap().alive()
+    });
+    assert!(destroyed, "the gun jeep never destroyed the carrier");
+    (battle, health)
+}
+
+#[test]
+fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
+    let (battle, health) = carrier_destroyed_once(None, |phase| phase == sim::hold::Phase::Inside);
+    let rule = &battle.rules().bail_out[&contract::scenario::BailOutHost::Ground];
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(
+        squad.hold.is_none(),
+        "no rider stays in a destroyed carrier"
     );
+    for (soldier, before) in squad.members.iter().zip(health) {
+        if !soldier.alive() {
+            continue;
+        }
+        let lost = before - soldier.hp;
+        assert!(
+            lost >= rule.hp_lost[0] - 1e-9 && lost <= rule.hp_lost[1] + 1e-9,
+            "a soldier who got out lost {lost} hp"
+        );
+    }
+    if squad.alive() {
+        assert!(squad.on_field(), "the survivors stand on the field");
+        assert!(
+            squad.suppression >= battle.rules().suppression.pinned.level,
+            "the survivors are pinned"
+        );
+    }
 }
 
 /// Blue's published unload flags for unit `id`: its goal's, then each
