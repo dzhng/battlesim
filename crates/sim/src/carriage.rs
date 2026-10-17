@@ -320,7 +320,7 @@ pub(crate) fn advance(
                 if near_and_still(world, units, i, carrier, rules) {
                     units[i].hold = Some(Hold {
                         host: Host::Carrier(carrier),
-                        phase: Phase::Entering(0),
+                        phase: Phase::Entering(1),
                         place: Place::Carrier,
                     });
                 } else {

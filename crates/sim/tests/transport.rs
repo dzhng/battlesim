@@ -721,6 +721,50 @@ fn a_collected_squad_out_of_reach_walks_over_before_it_boards() {
     }
 }
 
+/// Ticks unit 1 spends getting into carrier 0 after `order`.
+fn ticks_getting_in(order: Order) -> usize {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]}
+        ])),
+        7,
+    );
+    assert!(battle.accept(command(1, order)).error.is_none());
+    let mut entering = 0;
+    for _ in 0..(battle.rules().tick_hz * 10) {
+        battle.step();
+        match battle
+            .unit(UnitId(1))
+            .unwrap()
+            .hold
+            .as_ref()
+            .map(|h| h.phase)
+        {
+            Some(sim::hold::Phase::Entering(_)) => entering += 1,
+            Some(sim::hold::Phase::Inside) => return entering,
+            _ => {}
+        }
+    }
+    panic!("the squad never got in");
+}
+
+#[test]
+fn boarding_takes_as_long_whoever_gives_the_order() {
+    let boarded = ticks_getting_in(Order::Board {
+        units: vec![UnitId(1)],
+        carrier: UnitId(0),
+        gesture: 1,
+    });
+    let collected = ticks_getting_in(Order::Collect {
+        units: vec![UnitId(0)],
+        squads: vec![UnitId(1)],
+        gesture: 1,
+    });
+    assert!(boarded > 0);
+    assert_eq!(boarded, collected);
+}
+
 #[test]
 fn transport_orders_replay_every_tick_exactly() {
     let setup = setup(json!([
