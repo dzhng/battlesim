@@ -1024,7 +1024,12 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
         json!({"destroyed":{"into":{"building":{"height_fraction":0.25,"max_height_m":6,"collapse_max_floors":6,"gutted_prop":"gutted"}}}}),
     );
     setup.rules = serde_json::from_value(rows).unwrap();
-    setup.rules.garrison.survival_probability_on_collapse = 1.0;
+    setup
+        .rules
+        .bail_out
+        .get_mut(&contract::scenario::BailOutHost::Building)
+        .unwrap()
+        .death = 0.0;
     setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
@@ -1187,7 +1192,12 @@ fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
     for entrance in geometry.entrances.iter_mut() {
         entrance.position[2] += 2.0;
     }
-    setup.rules.garrison.survival_probability_on_collapse = 0.0;
+    setup
+        .rules
+        .bail_out
+        .get_mut(&contract::scenario::BailOutHost::Building)
+        .unwrap()
+        .death = 1.0;
     setup.rules.weapons.get_mut("tank_he").unwrap().damage = 0.0;
     setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);

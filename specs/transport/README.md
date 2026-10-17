@@ -1,6 +1,6 @@
 # Transport
 
-**Status:** in progress. 01, 02 and 05 landed; 03 and 04 are in flight (Codex, separate worktrees).
+**Status:** in progress. 01–05 landed (captures re-recorded in `922f3416c`); 06 is in flight (Codex, separate worktrees).
 **Updated:** 2026-10-16.
 
 Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier has 3, 8 or 16 seats. Squads board it in 1 s, ride hidden from the enemy, and get out on an explicit Unload order. When a carrier dies, its passengers bail out hurt, and some die. A building collapse now works the same way. The skirmish AI moves its infantry by transport.
@@ -21,14 +21,16 @@ The user is not a blocker (2026-10-16: "Just do your best"). Every human checkpo
 - The main-menu reel must not change. Menu units extend test units (`fixtures/units/menu/units.json`), so never give an existing test unit seats; add new test carriers.
 - Run the full check ladder once, at slice 15. Each slice runs only the narrowest rung that answers its question.
 
+**Known environment gap:** `native/client/tests/audio.rs` fails until the audio clips are fetched from LFS (`assets/runtime/audio/clips`). It is unrelated to transport; fetch them before the closeout run.
+
 Update this section, and tick the list, before you end each pass.
 
 ### TODO
 
 - [x] [01](slices/01-crash-on-bridge-deck.md) A helicopter shot down over a bridge rests on the deck (L11). Skip if it stops being simple.
 - [x] [02](slices/02-one-hold.md) One owner for a unit inside something: garrison becomes the building case of a general hold. No outcome change.
-- [ ] [03](slices/03-hold-and-refusal-contract.md) The observation, publication and refusal contract for holds. Captures are re-recorded once, here.
-- [ ] [04](slices/04-bail-out.md) The bail-out library, applied to building collapse (named outcome change).
+- [x] [03](slices/03-hold-and-refusal-contract.md) The observation, publication and refusal contract for holds. Captures are re-recorded once, here.
+- [x] [04](slices/04-bail-out.md) The bail-out library, applied to building collapse (named outcome change).
 - [x] [05](slices/05-recon-three.md) Recon patrols become 3 soldiers (named outcome change).
 - [ ] [06](slices/06-boarding.md) The carriage capability, boarding from both directions, and "on the field". Opens the transport lab.
 - [ ] [07](slices/07-unload.md) Unloading at a point, in place and queued; refused with no room.

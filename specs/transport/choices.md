@@ -55,3 +55,19 @@ Decisions the user made live in [map.md](map.md); change them there.
   - Why: an airframe below a deck must not be caught by it.
 - **Bridge slabs don't count as obstacles while the airframe falls,** so it can land on them. They also don't block the wreck's resting place on a deck. Other immovable props stay obstacles.
   - Reverse: `crash.rs`, `Crash::fall` and `resting_place`.
+
+## Slice 03
+- **The own row carries the host as `hostKind` plus the host id and geometry columns.** One layout serves building and carrier hosts, so slice 06 adds no new columns.
+- **The refusal reason table is fixed and published,** so slices 06 and 07 add reasons without another layout change.
+- **Hold progress stays a 0–1 fraction,** keeping the existing UI behaviour.
+- **The captures were re-recorded from one new browser run** (`922f3416c`).
+  - The market-town window has had no script since it was first made, so a scratch example (not committed) rebuilt it from a native replay. It was checked byte for byte against the run's layout and samples.
+  - That window's content also moved, because commit `ee1651c09` had retimed the menu battle after the previous capture. The new window matches the current game.
+  - The paris-corner poses moved because this run drew fewer frames (2461 against 4473); they are sampled at frame times.
+
+## Slice 04
+- **Bail-out rows are keyed by an enum of physical host kinds** (`BailOutHost`: building, ground, air) in `rules.bail_out`. The caller picks the row through `bail_out::row`; `hold::Host` only supplies the event's random key.
+- **A survivor's spot must be reachable from where he stood,** with the destroyed host's own parts ignored. This keeps the old rule: no appearing behind a neighbouring wall.
+  - The first pass dropped the rule. The orchestrator's review restored it, and a courtyard test now pins it.
+- **Soldier spacing for forced exits stays 1 m** (`arrangement::ESCAPE_SPACING_M`).
+- **Partial deaths go through the existing corpse and unit accounting;** the observation is unchanged.

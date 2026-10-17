@@ -1080,13 +1080,16 @@
   "carriage": { "board_s": 1, "reach_m": 3.0, "unload_search_m": 5 },
   "garrison": {
     "enter_exit_s": 2,
-    "survival_probability_on_collapse": 0.5,
-    "exit_search_radius_m": 20,
     "entry_distance_m": 4,
     "slot_standoff_m": 0.45,
     "slot_facing_min_deg": 6,
     "window_swap_s": 1,
     "window_hold_s": 4
+  },
+  "bail_out": {
+    "building": { "death": 0.25, "hp_lost": [20, 40], "search_m": 8 },
+    "ground": { "death": 0.1, "hp_lost": [10, 30], "search_m": 5 },
+    "air": { "squad_loss": 0.5, "death": 0.25, "hp_lost": [30, 60], "search_m": 5 }
   },
   "physics": {
     "gravity_mps2": 9.81,
