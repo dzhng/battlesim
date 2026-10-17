@@ -115,7 +115,7 @@ pub(super) fn step_aircraft(
     air.fuel_s = (air.fuel_s - dt).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
-    let target = height_target(ctx, next, velocity, flight, reach, low);
+    let target = height_target(ctx.world, ctx.rules, next, velocity, flight, reach, low);
     // It sinks as fast as it climbs.
     let climb = (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt);
     unit.position = next.with_z(unit.position.z + climb);
@@ -165,23 +165,24 @@ fn sinks(units: &[Unit], index: usize) -> bool {
 }
 
 /// A rotor carrier may start its carriage timer only after it has settled at
-/// the low hover.  The hold starts before movement on a tick, so both its
-/// horizontal and vertical velocity must already be at rest here.
+/// the low hover: at rest, at the height its flight holds there, lifted over
+/// any prop or canopy under it.  The hold starts before movement on a tick,
+/// so both its horizontal and vertical velocity must already be at rest here.
 pub(crate) fn low_hover_settled(
     world: &crate::world::WorldGeometry,
     unit: &Unit,
     rules: &Rules,
 ) -> bool {
-    let Some(air) = unit.air else {
+    let (Some(air), Motion::Air(flight)) = (unit.air, unit.motion) else {
         return false;
     };
     if unit.fixed_wing() || air.velocity.length() > 1e-6 {
         return false;
     }
-    let ground = world
-        .surface_at(unit.position.x, unit.position.y)
-        .map_or(0.0, |surface| surface.z);
-    (unit.position.z - (ground + low_hover(rules))).abs() <= 1e-6
+    let reach = unit.hull.map_or(0.0, |h| h.x);
+    let at = unit.position.xy();
+    let hover = height_target(world, rules, at, v2(0.0, 0.0), flight, reach, true);
+    (unit.position.z - hover).abs() <= 1e-6
 }
 
 /// The low hover's height over the ground (D27): just over the top of the
@@ -278,17 +279,18 @@ fn turn(unit: &mut Unit, flight: Flight, velocity: V2, back: bool, dt: f64) {
 /// forest canopy it will pass within `reach` of before it could climb the
 /// whole band; never above the ceiling over `at`.
 fn height_target(
-    ctx: &MovementContext,
+    world: &crate::world::WorldGeometry,
+    rules: &Rules,
     at: V2,
     velocity: V2,
     flight: Flight,
     reach: f64,
     low: bool,
 ) -> f64 {
-    let air = &ctx.rules.air;
+    let air = &rules.air;
     let (agl, clearance, ceiling) = if low {
         (
-            low_hover(ctx.rules),
+            low_hover(rules),
             LOW_HOVER_CLEARANCE_M,
             air.rotor.ceiling_agl_m,
         )
@@ -300,7 +302,6 @@ fn height_target(
             air.rotor.ceiling_agl_m.max(flight.cruise_agl_m),
         )
     };
-    let world = ctx.world;
     let ground = |p: V2| world.height_at(p.x, p.y).unwrap_or(0.0);
     let ahead = velocity.length() * (ceiling - agl).max(0.0) / flight.climb_mps;
     let dir = if velocity.length() > 1e-9 {
@@ -308,7 +309,7 @@ fn height_target(
     } else {
         v2(0.0, 0.0)
     };
-    let canopy = ctx.rules.forests.rule.canopy_height_m;
+    let canopy = rules.forests.rule.canopy_height_m;
     let steps = (ahead / LOOKAHEAD_STEP_M).ceil() as usize;
     let mut wanted = f64::NEG_INFINITY;
     for k in 0..=steps {

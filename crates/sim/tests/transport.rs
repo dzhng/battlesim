@@ -250,6 +250,49 @@ fn soldiers_boarding_a_hovering_helicopter_stay_on_the_ground_until_inside() {
 }
 
 #[test]
+fn a_helicopter_lifted_over_a_prop_still_boards_from_its_hover() {
+    // A tall lamp beside the pickup lifts the low hover over its top.
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "props":[{"kind":"lamp","center":[303,300],"yaw":0,"half_extents":[0.15,0.15,6]}],"buildings":[]});
+    let mut battle = Battle::new(
+        &setup_with_map(
+            map,
+            json!([
+                {"side":"blue","kind":"test_transport_heli","position":[300,300]},
+                {"side":"blue","kind":"test_rifle","position":[297,300]},
+            ]),
+            json!([]),
+        ),
+        17,
+    );
+    assert_eq!(
+        battle
+            .accept(command(
+                1,
+                Order::Board {
+                    units: vec![UnitId(1)],
+                    carrier: UnitId(0),
+                    gesture: 1
+                },
+            ))
+            .error,
+        None
+    );
+    let boarded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|unit| unit.hold.as_ref())
+            .is_some_and(|hold| hold.phase == sim::hold::Phase::Inside)
+    });
+    let hover = battle.unit(UnitId(0)).unwrap().position.z;
+    assert!(
+        boarded,
+        "the squad never boarded under the lifted hover at {hover} m"
+    );
+}
+
+#[test]
 fn a_helicopter_boards_and_unloads_from_its_low_hover() {
     let mut battle = Battle::new(
         &setup(json!([
