@@ -21,11 +21,13 @@ const CAMERA: Camera3DParams = {
 };
 
 /** `board` scripts boarding from both directions; `controls` scripts
- *  nothing, for the player's own controls. */
+ *  nothing, for the player's own controls; `heli` scripts a transport
+ *  helicopter collecting a squad and unloading it further on. */
 const VARIANTS = {
   board: "Board and Collect are scripted from both directions.",
   controls:
     "Right-click a carrier with squads selected to board, or a squad with a carrier selected to collect it. U then left-click unloads there; U twice unloads in place.",
+  heli: "A transport helicopter collects a squad and unloads it further on, each at a low hover.",
 } as const;
 type Variant = keyof typeof VARIANTS;
 const VARIANT_NAMES = Object.keys(VARIANTS) as Variant[];
