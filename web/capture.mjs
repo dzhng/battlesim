@@ -27,7 +27,7 @@ import { mkdir, writeFile, unlink, access, stat, readFile } from "node:fs/promis
 import { resolve, basename, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { startServer } from "./scene.mjs";
+import { startServer, ensureNativeTools } from "./scene.mjs";
 import { launchBrowser } from "./browser.mjs";
 
 const HERE = new URL(".", import.meta.url);
@@ -1810,6 +1810,11 @@ async function main() {
 
   await mkdir(args.output, { recursive: true });
 
+  // Build native tools (mechanics validator, map workbench) before starting
+  // A stale tool would read today's schema with yesterday's code and fail
+  console.log("Building native tools...");
+  await ensureNativeTools();
+
   const server = await startServer(false);
   console.log(`Server running at ${server.url}`);
 
@@ -1840,6 +1845,22 @@ async function main() {
     const url = `${server.url}${route}?${params}`;
     console.log(`Opening ${url}`);
 
+    // Forward page console messages to stderr for debugging
+    page.on("console", (msg) => {
+      const type = msg.type();
+      const text = msg.text();
+      // Skip noisy messages
+      if (text.includes("DevTools") || text.includes("[HMR]")) return;
+      if (type === "error" || type === "warning") {
+        console.error(`[page ${type}] ${text}`);
+      }
+    });
+
+    // Forward page errors to stderr
+    page.on("pageerror", (error) => {
+      console.error(`[page error] ${error.message}`);
+    });
+
     // Monitor network errors, especially /__mechanics validation failures
     let networkError = null;
     page.on("response", async (response) => {
@@ -1865,17 +1886,51 @@ async function main() {
 
     // Wait for lab to be ready
     console.log("Waiting for scene to prepare...");
+    // Poll for state periodically to report progress
+    const pollStart = Date.now();
+    let lastState = null;
+    const pollInterval = setInterval(async () => {
+      try {
+        const state = await page.evaluate(() => ({
+          hasLab: !!window.__lab,
+          ready: window.__lab?.ready ?? false,
+          error: window.__lab?.error ?? null,
+          hasCapture: !!window.__capture,
+          captureState: window.__capture?.state ?? null,
+          captureDuration: window.__capture?.duration ?? null,
+        }));
+        if (JSON.stringify(state) !== JSON.stringify(lastState)) {
+          const elapsed = ((Date.now() - pollStart) / 1000).toFixed(1);
+          console.log(`  [${elapsed}s] lab=${state.hasLab}, ready=${state.ready}, error=${state.error}, capture=${state.captureState}`);
+          lastState = state;
+        }
+      } catch {
+        // Page might be navigating
+      }
+    }, 5000);
+    
     try {
       await page.waitForFunction(() => window.__lab?.ready || window.__lab?.error, undefined, {
         timeout: 120_000,
       });
     } catch (waitError) {
+      clearInterval(pollInterval);
+      // Gather diagnostic info on timeout
+      const diag = await page.evaluate(() => ({
+        hasLab: !!window.__lab,
+        ready: window.__lab?.ready ?? false,
+        error: window.__lab?.error ?? null,
+        hasCapture: !!window.__capture,
+        captureState: window.__capture?.state ?? null,
+      })).catch(() => ({ error: "could not evaluate" }));
+      console.error("  Timeout diagnostics:", JSON.stringify(diag));
       // Check if we have a network error that explains the timeout
       if (networkError) {
         throw new Error(networkError);
       }
       throw waitError;
     }
+    clearInterval(pollInterval);
 
     // Check for network error after wait
     if (networkError) {
