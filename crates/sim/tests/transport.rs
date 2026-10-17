@@ -72,6 +72,39 @@ fn a_squad_boards_a_stopped_carrier_and_leaves_the_field() {
 }
 
 #[test]
+fn a_squad_walks_to_a_distant_carrier_and_boards_it() {
+    // The squad can never stand on the carrier's centre (the hull is in the
+    // way), so its walk has to end where the hold's reach admits it.
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[220,240]},
+            {"side":"blue","kind":"test_rifle","position":[200,240]},
+            {"side":"red","kind":"test_rifle","position":[600,200]}
+        ])),
+        7,
+    );
+    assert!(battle
+        .accept(command(
+            1,
+            Order::Board {
+                units: vec![UnitId(1)],
+                carrier: UnitId(0),
+                gesture: 1
+            }
+        ))
+        .error
+        .is_none());
+    let aboard = (0..battle.rules().tick_hz * 40).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|u| u.hold.as_ref())
+            .is_some_and(|h| h.phase == sim::hold::Phase::Inside)
+    });
+    assert!(aboard, "the squad never boarded the carrier 20 m away");
+}
+
+#[test]
 fn orders_aimed_at_a_passenger_are_refused_as_aboard() {
     let mut battle = Battle::new(
         &setup(json!([

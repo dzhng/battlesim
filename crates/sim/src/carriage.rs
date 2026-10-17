@@ -103,6 +103,26 @@ pub(crate) fn copy_passenger_positions(units: &mut [Unit]) {
     }
 }
 
+/// Whether unit `i` is walking or driving toward its Board or Collect target
+/// and is already within the hold's reach of it. The approach aims at the
+/// target's centre, which a hull keeps it from ever standing on, so the walk
+/// ends here and the hold's own stillness test takes over.
+fn approach_arrived(units: &[Unit], i: usize, rules: &Rules) -> bool {
+    if !matches!(units[i].orders.front(), Some(UnitOrder::Move(_))) {
+        return false;
+    }
+    let other = |id: &UnitId| units.get(id.0 as usize).filter(|u| u.alive());
+    match units[i].orders.get(1) {
+        Some(UnitOrder::Board { carrier, .. }) => {
+            other(carrier).is_some_and(|c| within_reach(c, &units[i], rules))
+        }
+        Some(UnitOrder::Collect { squads, .. }) => squads
+            .iter()
+            .any(|id| other(id).is_some_and(|s| within_reach(&units[i], s, rules))),
+        _ => false,
+    }
+}
+
 /// Lower Board and Collect orders into movement or a shared hold. Timer and
 /// phase progression belongs to [`crate::hold::advance`].
 pub(crate) fn advance(
@@ -115,12 +135,7 @@ pub(crate) fn advance(
         if !units[i].alive() || units[i].hold.is_some() {
             continue;
         }
-        if matches!(units[i].orders.front(), Some(UnitOrder::Move(_)))
-            && matches!(units[i].orders.get(1), Some(UnitOrder::Collect { .. }))
-            && units[i].route.is_none()
-            && units[i].drive_speed_mps.abs() < 1e-6
-            && matches!(units[i].orders.get(1), Some(UnitOrder::Collect { squads, .. }) if squads.iter().any(|id| units.get(id.0 as usize).is_some_and(|s| s.alive() && within_reach(&units[i], s, rules))))
-        {
+        if approach_arrived(units, i, rules) {
             units[i].orders.pop_front();
         }
         let Some(order) = units[i].orders.front().cloned() else {
