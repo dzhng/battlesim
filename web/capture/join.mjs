@@ -5,7 +5,7 @@
 // size, frame rate, pixel format and sample rate, which xfade requires.
 import { AAC, X264 } from "./transcode.mjs";
 
-/** Crossfade between scenes, in seconds: long enough to read as a dissolve,
+/** The dip between scenes, in seconds: long enough to read as a cut,
  * short enough not to eat either scene's last or first beat. */
 export const CROSSFADE_S = 0.5;
 
