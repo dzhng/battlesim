@@ -120,6 +120,11 @@ A unit's `sensors.high_air_m` is optional: absent, it sees high air unaided,
 by `game.json`'s `sensors.unaided_high_air_m` for its body and flight; an
 authored 0 is blind to high air; a unit whose radar emits sees it by the
 radar and never authors one.
+A unit's `capabilities.carriage.seats` (3, 8 or 16) makes it a carrier; nothing
+else does. The rules' `carriage` row sets the boarding timer and reach, and their
+`bail_out` rows, one per kind of host (building, ground, air), set how a garrison
+or riders come out of a destroyed host: death odds, the health lost and how far
+to search for a place to stand.
 
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. Every soldier carries an unlimited `squad` gun, and every finite weapon is a `special` extra, so no squad runs dry: a sniper whose rifle is empty still has his carbine or rifle ([squad weapons](../specs/done/squad-weapons/README.md)). A single-operator mount may name `operator_appearance` with paired active and carried appearance sets: the equipment worn by its current living carrier while using that weapon or his rifle, including after a handoff. Variant identity stays the same across both sets. The observation publishes the carrier and each soldier’s active weapon only when visible. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
 - **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `game.json` extend the same way. The merge:

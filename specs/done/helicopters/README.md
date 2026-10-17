@@ -142,4 +142,4 @@ Balance was out of scope: the user asked only that helicopters not be clearly un
 
 ## What comes next
 
-[Transport](../../transport/README.md), still a placeholder, plans to carry infantry in ground carriers and helicopters, and to land helicopters through `movement::air::low_hover`. Landing on a point can use the settle: the aircraft ends exactly on its goal once it has eased back.
+[Transport](../../transport/README.md) carries infantry in ground carriers and helicopters; a helicopter loads and unloads only once settled at its low hover.

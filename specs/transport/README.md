@@ -1,7 +1,7 @@
 # Transport
 
-**Status:** in progress. 01–08, 10 and 11 landed; 09 (helicopters) and 12 (voice packs) are in flight (Codex); 11b follows 09 (Codex, separate worktrees).
-**Updated:** 2026-10-16.
+**Status:** in progress. Slices 01–14 and 11b have landed, and main is merged in. 15 (closeout) is running: the review fixes, then the full check ladder once, then `close-spec`.
+**Updated:** 2026-10-17.
 
 Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier has 3, 8 or 16 seats. Squads board it in 1 s, ride hidden from the enemy, and get out on an explicit Unload order. When a carrier dies, its passengers bail out hurt, and some die. A building collapse now works the same way. The skirmish AI moves its infantry by transport.
 
@@ -11,17 +11,15 @@ Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier ha
 
 You are implementing passenger transport. Start at the first unchecked slice below, read its file, and follow it. Before your first slice, read [map.md](map.md) (decisions and landmines), this README's contracts and invariants, `development.md` and the skills it names (`tweak-mechanics` for slices 04, 06–09; `game-ui` and `renderer` before slices 10–11; `write-tests` before any test).
 
-**How the work runs (user, 2026-10-16):** Codex implements every non-visual slice (delegated with worktree isolation); the orchestrator reviews, integrates, and browser-verifies the visual slices 10 and 11 itself.
+**How the work runs (user, 2026-10-17):** Claude subagents implement the slices in their own worktrees (the user switched from Codex to wrap up sooner); the orchestrator reviews, integrates and verifies.
 
 The user is not a blocker (2026-10-16: "Just do your best"). Every human checkpoint is non-blocking: open the shots with `preview-shots`, wait about 5 minutes, then decide on the evidence, record the call in [choices.md](choices.md), close the shots and continue. Record every decision the plan left to you in [choices.md](choices.md).
 
 **Warnings:**
 - Hard cutover. No backward compatibility, no `serde(default)` kept for old data, no migrations. Re-bless records and re-record captures instead.
 - Battles without transport keep their digests, except the two named outcome changes: slice 04 (collapse becomes injury plus a death roll) and slice 05 (recon patrols drop to 3 soldiers). A digest change anywhere else is a bug.
-- The main-menu reel must not change. Menu units extend test units (`fixtures/units/menu/units.json`), so never give an existing test unit seats; add new test carriers.
+- The main-menu reel must not change. Capture units extend test units (`fixtures/units/capture/units.json`), so never give an existing test unit seats; add new test carriers.
 - Run the full check ladder once, at slice 15. Each slice runs only the narrowest rung that answers its question.
-
-**Known environment gap:** `native/client/tests/audio.rs` fails until the audio clips are fetched from LFS (`assets/runtime/audio/clips`). It is unrelated to transport; fetch them before the closeout run.
 
 Update this section, and tick the list, before you end each pass.
 
@@ -35,13 +33,13 @@ Update this section, and tick the list, before you end each pass.
 - [x] [06](slices/06-boarding.md) The carriage capability, boarding from both directions, and "on the field". Opens the transport lab.
 - [x] [07](slices/07-unload.md) Unloading at a point, in place and queued; refused with no room.
 - [x] [08](slices/08-carrier-destroyed.md) A destroyed carrier bails out its passengers; refunds take passengers along.
-- [ ] [09](slices/09-helicopters.md) Helicopters board and unload from the low hover; a downed helicopter keeps its passengers until impact.
+- [x] [09](slices/09-helicopters.md) Helicopters board and unload from the low hover; a downed helicopter keeps its passengers until impact.
 - [x] [10](slices/10-cards.md) The Seats row and passenger cards under their carrier.
 - [x] [11](slices/11-controls.md) Right-click boarding, the board cursor, the Unload button and U key, the unload marker, refusal text.
-- [ ] [11b](slices/11b-publish-unload-steps.md) The simulation publishes which queued step unloads; delete the browser's `unloadPoints.ts`. Captures are re-recorded once more.
-- [ ] [12](slices/12-voices.md) Spoken lines for boarding, unloading and the new refusal.
-- [ ] [13](slices/13-roster-seats.md) The roster's carriers get their seats.
-- [ ] [14](slices/14-skirmish-ai.md) The skirmish AI pairs transports with squads.
+- [x] [11b](slices/11b-publish-unload-steps.md) The simulation publishes which queued step unloads; delete the browser's `unloadPoints.ts`. Captures are re-recorded once more.
+- [x] [12](slices/12-voices.md) Spoken lines for boarding, unloading and the new refusal.
+- [x] [13](slices/13-roster-seats.md) The roster's carriers get their seats.
+- [x] [14](slices/14-skirmish-ai.md) The skirmish AI pairs transports with squads.
 - [ ] 15 Closeout: run the whole check ladder once, then `close-spec`.
 
 ## Slice graph

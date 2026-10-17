@@ -71,7 +71,7 @@ decide behaviour. If a rule asks "is this an X unit?", find the property that
 makes it one and read that instead.
 
 A catalog row describes a body, while its placement supplies geometry
-ownership. Garrison seats and building-scaled integrity require a placed
+ownership. Garrison slots and building-scaled integrity require a placed
 building aggregate; ordinary props, generated forest bodies, bridge decks, and
 vehicle wrecks have no such owner. Aggregate bodies stay immovable until the
 simulation can move all their parts together.
@@ -82,6 +82,9 @@ the one list of deliberate hard-coded rules:
 
 - cover only helps infantry, and crouching is an animation;
 - garrisons are a named fighting-position mechanic;
+- carriers come in three sizes only (3, 8 or 16 seats); riders can't fire, be
+  seen, be selected or be ordered; an explicit unload with no room to stand is
+  refused rather than costing lives, while a destroyed host's bail-out may kill;
 - a soldier's own rounds pass untouched through the tall cover he leans round
   to fire (he steps out past its edge, fires a burst, and tucks back in);
   everyone else's rounds still hit it;
