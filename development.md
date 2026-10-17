@@ -9,20 +9,24 @@ contracts for their code.
 The simulation is the one authority. Everything else observes it, and each
 side receives only the publications its own units can see.
 
-| Owner                                                   | Responsibility                                                                                  |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [Contracts](crates/contract/README.md)                  | Shared commands, observations, map admission, physical templates, and exact content identities. |
-| [Simulation](crates/sim/README.md)                      | Deterministic battle rules, replay digests, encounter placement, and native reports.            |
-| [Map generation](crates/mapgen/README.md)               | Seeded layout, physical compilation, admission, and generation reports.                         |
-| [WebAssembly boundary](crates/game-wasm/README.md)      | Native/browser parity, geometry queries, publication memory, and binding lifetime.              |
-| [Presentation](crates/presentation/README.md)           | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.  |
-| [Browser application](web/README.md)                    | Workers, map adapters, player input, readouts, build configuration, and browser verification.   |
-| [Battle lab](apps/battle-lab/README.md)                 | Player pages and focused developer fixtures composed from the shared battle view.               |
-| [Renderer primitives](packages/renderer-core/README.md) | Camera/depth contracts, device admission, and GPU allocation accounting.                        |
-| [Battle renderer](packages/battle-renderer/README.md)   | Observed feeds, terrain, models, lights, fog, effects, overlays, and GPU lifetime.              |
-| [Scene assets](packages/scene-assets/README.md)         | Appearance contracts, validation, baking, loading, and Blender authoring.                       |
-| [Battle audio](packages/battle-audio/README.md)         | Recorded and synthetic sound preparation, calibration, and playback.                            |
-| [Fixtures](fixtures/README.md)                          | Authored rules, unit/prop catalogs, generator presets, saved maps, and sound assignments.       |
+| Owner                                                     | Responsibility                                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [Contracts](crates/contract/README.md)                    | Shared commands, observations, map admission, physical templates, and exact content identities. |
+| [Simulation](crates/sim/README.md)                        | Deterministic battle rules, replay digests, encounter placement, and native reports.            |
+| [Map generation](crates/mapgen/README.md)                 | Seeded layout, physical compilation, admission, and generation reports.                         |
+| [WebAssembly boundary](crates/game-wasm/README.md)        | Native/browser parity, geometry queries, publication memory, and binding lifetime.              |
+| [Presentation](crates/presentation/README.md)             | Per-side frame publications: interpolation, poses, effects, cook-offs, tiers, and cast lights.  |
+| [Browser application](web/README.md)                      | Workers, map adapters, player input, readouts, build configuration, and browser verification.   |
+| [Battle lab](apps/battle-lab/README.md)                   | Player pages and focused developer fixtures composed from the shared battle view.               |
+| [Renderer primitives](packages/renderer-core/README.md)   | Camera/depth contracts, device admission, and GPU allocation accounting.                        |
+| [Battle renderer](packages/battle-renderer/README.md)     | Observed feeds, terrain, models, lights, fog, effects, overlays, and GPU lifetime.              |
+| [Scene assets](packages/scene-assets/README.md)           | Appearance contracts, validation, baking, loading, and Blender authoring.                       |
+| [Battle audio](packages/battle-audio/README.md)           | Recorded and synthetic sound preparation, calibration, and playback.                            |
+| [Pipelines](crates/pipelines/README.md)                   | Browser shaders and pipeline settings consumed by the renderer and native client.               |
+| [Fixtures](fixtures/README.md)                            | Authored rules, unit/prop catalogs, generator presets, saved maps, and sound assignments.       |
+| [Assets](assets/README.md)                                | Source media, prepared runtime files, review sheets, and third-party provenance.                |
+| [Fixture publication](apps/fixture-publication/README.md) | Reviewed fixture saves, generated catalogs, and interrupted-write recovery.                     |
+| [Native client](native/client/README.md)                  | The `wgpu` client over the shared presentation frames and renderer pipelines.                   |
 
 Find the existing owner before introducing a new abstraction. Commands, flags,
 paths, and dependency versions belong in the manifest or README that owns them,

@@ -41,7 +41,7 @@ This folder is the record of **why** it is built this way. The code is the recor
 
   The same rule later turned unit and prop types into catalog data: behaviour comes from a type's components, never its id ([`fixtures/README.md`](../../../fixtures/README.md)).
 
-- **Hollywood realism, not ballistics.** Where a principled rule looked silly on screen, a plain game rule replaced it. This spec added one: a soldier's own rounds pass the cover he leans round. The root README keeps the list of hard-coded rules, and nowhere else does.
+- **Hollywood realism, not ballistics.** Where a principled rule looked silly on screen, a plain game rule replaced it. This spec added one: a soldier's own rounds pass the cover he leans round. [`development.md`](../../../development.md#game-rules) owns the current rule principles.
 
 ## Invariants (what must keep holding)
 
