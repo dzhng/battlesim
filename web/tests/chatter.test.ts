@@ -68,6 +68,7 @@ test("a battle's lines are heard from its sound frame's listener", () => {
     set() {},
     stop() {},
     listen() {},
+    duck() {},
   };
   const frame = new SoundFrame(
     {

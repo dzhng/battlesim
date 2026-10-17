@@ -9,7 +9,7 @@ use native_client::audio::{self, Audio, OutputSettings};
 use presentation::assets::RUNTIME;
 use presentation::effects::launches::Launch;
 use presentation::effects::publication::EffectPublication;
-use presentation::sound::frame::{Heard, Listener, Motion, Shout};
+use presentation::sound::frame::{distance_gain, Heard, Listener, Motion, Shout};
 use presentation::sound::voices::Speakers;
 use serde_json::{json, Value};
 
@@ -18,8 +18,12 @@ fn read(name: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()
 }
 
-fn player() -> Audio {
-    let setup = audio::setup(&read("game.json"), &read("sounds.json"));
+/// The player for `game.json` with `tune` applied to its
+/// `presentation.audio`.
+fn player(tune: impl Fn(&mut Value)) -> Audio {
+    let mut game = read("game.json");
+    tune(&mut game["presentation"]["audio"]);
+    let setup = audio::setup(&game, &read("sounds.json"));
     let output = OutputSettings::Buffer(audio::SAMPLE_RATE);
     Audio::new(&setup, Path::new(RUNTIME), output).unwrap()
 }
@@ -29,10 +33,12 @@ const HERE: Listener = Listener {
     forward: [0.0, 1.0, 0.0],
 };
 
-/// A cannon fired at `at` on tick 1, heard for `seconds`: the rendered
-/// samples, after the bed's first second (heard alone, as a floor).
-fn cannon(at: [f64; 3], seconds: f64) -> (Vec<f32>, Audio) {
-    let mut a = player();
+/// When the cannon fires, player seconds: the bed sounds alone before it.
+const SHOT_S: f64 = 1.0;
+
+/// `seconds` of the bed, with a cannon fired at `at` at [`SHOT_S`] (none:
+/// the bed alone), heard at [`HERE`] by `a`: the rendered samples.
+fn cannon(mut a: Audio, at: Option<[f64; 3]>, seconds: f64) -> (Vec<f32>, Audio) {
     let effects = EffectPublication {
         tick: 1.0,
         segments: Vec::new(),
@@ -42,19 +48,22 @@ fn cannon(at: [f64; 3], seconds: f64) -> (Vec<f32>, Audio) {
         cook_offs: Vec::new(),
         flare_deploys: Vec::new(),
     };
-    let launches = [Launch {
-        shooter: 2.0,
-        mount: 0,
-        soldier: None,
-        at,
-        dir: [0.0, 1.0, 0.0],
-        kind: "tank_ap".into(),
-        hull: true,
-    }];
+    let launches: Vec<Launch> = at
+        .into_iter()
+        .map(|at| Launch {
+            shooter: 2.0,
+            mount: 0,
+            soldier: None,
+            at,
+            dir: [0.0, 1.0, 0.0],
+            kind: "tank_ap".into(),
+            hull: true,
+        })
+        .collect();
     let mut now = 0.0;
     let dt = 1.0 / 60.0;
     while now < seconds {
-        if (now - 1.0).abs() < dt / 2.0 {
+        if (now - SHOT_S).abs() < dt / 2.0 {
             let heard = Heard {
                 effects: &effects,
                 launches: &launches,
@@ -64,7 +73,7 @@ fn cannon(at: [f64; 3], seconds: f64) -> (Vec<f32>, Audio) {
             let c = a.sound_mut().note(&heard, now).to_vec();
             a.run(&c, now);
         }
-        let clock = (now - 1.0).max(0.0);
+        let clock = (now - SHOT_S).max(0.0);
         let c = a
             .sound_mut()
             .update(clock, now, now, &Motion::default(), HERE)
@@ -74,6 +83,11 @@ fn cannon(at: [f64; 3], seconds: f64) -> (Vec<f32>, Audio) {
     }
     a.render(now);
     (a.samples().to_vec(), a)
+}
+
+/// The shipped game's cannon, as [`cannon`].
+fn shipped(at: Option<[f64; 3]>, seconds: f64) -> (Vec<f32>, Audio) {
+    cannon(player(|_| {}), at, seconds)
 }
 
 fn rms(samples: &[f32]) -> f64 {
@@ -88,11 +102,14 @@ fn span(samples: &[f32], from: f64, to: f64) -> &[f32] {
 
 #[test]
 fn a_cannon_sounds_over_the_bed_louder_near_than_far_and_ends() {
-    let (near, a) = cannon([0.0, 20.0, 1.0], 4.0);
-    let (far, _) = cannon([0.0, 1500.0, 1.0], 4.0);
-    let bed = rms(span(&near, 0.2, 0.9));
-    let shot = |s: &[f32]| rms(span(s, 1.0, 1.4));
-    assert!(bed > 0.0, "the countryside bed sounds");
+    let (near, a) = shipped(Some([0.0, 20.0, 1.0]), 4.0);
+    let (far, _) = shipped(Some([0.0, 1500.0, 1.0]), 4.0);
+    // The bed's long-run level: one whole loop of it, quiet stretches and
+    // far booms alike.
+    let (bed, _) = shipped(None, 21.0);
+    let bed = rms(span(&bed, 1.0, 21.0));
+    let shot = |s: &[f32]| rms(span(s, SHOT_S, SHOT_S + 0.4));
+    assert!(bed > 1e-3, "the countryside bed sounds: {bed}");
     assert!(
         shot(&near) > 4.0 * bed,
         "near {} over bed {bed}",
@@ -112,14 +129,66 @@ fn a_cannon_sounds_over_the_bed_louder_near_than_far_and_ends() {
 
 #[test]
 fn a_shot_to_the_right_is_heard_on_the_right() {
-    let (east, _) = cannon([60.0, 0.0, 1.0], 2.0);
-    let (west, _) = cannon([-60.0, 0.0, 1.0], 2.0);
+    let (east, _) = shipped(Some([60.0, 0.0, 1.0]), 2.0);
+    let (west, _) = shipped(Some([-60.0, 0.0, 1.0]), 2.0);
     let side = |s: &[f32], ch: usize| {
-        let w = span(s, 1.0, 1.4);
+        let w = span(s, SHOT_S, SHOT_S + 0.4);
         rms(&w.iter().skip(ch).step_by(2).copied().collect::<Vec<_>>())
     };
     assert!(side(&east, 1) > 2.0 * side(&east, 0));
     assert!(side(&west, 0) > 2.0 * side(&west, 1));
+}
+
+#[test]
+fn the_bed_dips_under_a_loud_shot_and_recovers_but_not_under_a_far_one() {
+    const NEAR: [f64; 3] = [0.0, 60.0, 1.0];
+    const FAR: [f64; 3] = [0.0, 1500.0, 1.0];
+    const DEPTH: f64 = 0.5;
+    const ATTACK_S: f64 = 0.03;
+    const RELEASE_S: f64 = 1.0;
+    // A dip only the near shot is loud enough at the listener for: its
+    // threshold halfway (in level) between the two shots' levels there.
+    let tables = player(|_| {}).sound_mut().tables().clone();
+    let level = |p: [f64; 3]| {
+        let d = ((p[0] - HERE.position[0]).powi(2)
+            + (p[1] - HERE.position[1]).powi(2)
+            + (p[2] - HERE.position[2]).powi(2))
+        .sqrt();
+        tables.shot("tank_ap").gain * distance_gain(&tables, d)
+    };
+    let over = (level(NEAR) * level(FAR)).sqrt();
+    assert!(level(NEAR) > 1.5 * over, "the shots are apart");
+    let tuned = |bed: bool| {
+        player(move |a| {
+            a["ambience"]["duck"] = json!({
+                "depth": DEPTH, "attack_s": ATTACK_S, "release_s": RELEASE_S
+            });
+            a["ambience"]["duck_over"] = json!(over);
+            if !bed {
+                a["ambience"]["gain"] = json!(0.0);
+            }
+        })
+    };
+    const END: f64 = SHOT_S + ATTACK_S + RELEASE_S + 1.5;
+    let (alone, _) = cannon(tuned(true), None, END);
+    // The bed as heard with each shot: the mix less the shot heard alone.
+    let heard = |at| {
+        let (mix, _) = cannon(tuned(true), Some(at), END);
+        let (shot, _) = cannon(tuned(false), Some(at), END);
+        minus(&mix, &shot)
+    };
+    let (near, far) = (heard(NEAR), heard(FAR));
+    let share =
+        |bed: &[f32], from: f64, to: f64| rms(span(bed, from, to)) / rms(span(&alone, from, to));
+
+    let before = share(&near, 0.2, SHOT_S);
+    assert!((before - 1.0).abs() < 1e-3, "before the shot {before}");
+    let under = share(&near, SHOT_S + ATTACK_S, SHOT_S + 0.3);
+    assert!(under < 1.0 - 0.6 * DEPTH, "under the near shot {under}");
+    let after = share(&near, SHOT_S + ATTACK_S + RELEASE_S + 0.2, END);
+    assert!((after - 1.0).abs() < 0.03, "after the release {after}");
+    let distant = share(&far, SHOT_S, SHOT_S + 0.4);
+    assert!((distant - 1.0).abs() < 0.03, "under the far shot {distant}");
 }
 
 /// The one track the score test's tension mood holds, and the set and unit

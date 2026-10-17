@@ -4,7 +4,9 @@
 // direction only: the frame owns distance) or, for a hearing cue, a stereo
 // pan; voices sum into their bus, and each also sends (by the frame's wet)
 // into its bus's distance reverb, whose tail joins the bus; the buses sum
-// into the master, and the master through a limiter to the output. The
+// into the master (the ambience through its own duck gain, so a dip under a
+// loud sound never overwrites its level), and the master through a limiter
+// to the output. The
 // listener is the camera's (`Listener`). Works on an `AudioContext` or an
 // `OfflineAudioContext` alike: every change is scheduled at a sink time.
 import { BUSES, type AudioPresentation, type Bus } from "./audioPresentation";
@@ -32,6 +34,8 @@ export class WebAudioSink implements VoiceSink {
   readonly bank: SoundBank;
   readonly master: GainNode;
   readonly buses: Record<Bus, GainNode>;
+  /** 1 − the ambience bus's current duck depth. */
+  readonly ambienceDuck: GainNode;
   /** Each bus's distance-reverb input: voices send here by their wet. */
   private readonly reverbs: Record<Bus, GainNode>;
   private readonly voices = new Map<number, LiveVoice>();
@@ -72,11 +76,14 @@ export class WebAudioSink implements VoiceSink {
     this.master = new GainNode(context, { gain: presentation.buses.master });
     this.graph.push(this.master);
     this.master.connect(this.limiter);
+    this.ambienceDuck = new GainNode(context, { gain: 1 });
+    this.graph.push(this.ambienceDuck);
+    this.ambienceDuck.connect(this.master);
     this.buses = Object.fromEntries(
       BUSES.map((b) => {
         const g = new GainNode(context, { gain: presentation.buses[b] });
         this.graph.push(g);
-        g.connect(this.master);
+        g.connect(b === "ambience" ? this.ambienceDuck : this.master);
         return [b, g];
       }),
     ) as Record<Bus, GainNode>;
@@ -238,6 +245,13 @@ export class WebAudioSink implements VoiceSink {
     L.upX.setValueAtTime(0, at);
     L.upY.setValueAtTime(0, at);
     L.upZ.setValueAtTime(1, at);
+  }
+
+  duck(depth: number, glide: number, at: number) {
+    const d = Math.min(1, Math.max(0, depth));
+    const gain = this.ambienceDuck.gain;
+    gain.cancelScheduledValues(at);
+    gain.setTargetAtTime(1 - d, at, Math.max(0.001, glide));
   }
 
   /** Remove every voice, including sources still fading after a stop. */

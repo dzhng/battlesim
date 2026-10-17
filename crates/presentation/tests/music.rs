@@ -9,7 +9,7 @@
 //! `duck`). The cases are five seeds over a 20-minute battle of fights
 //! coming and going with barks that don't count, the calm span's edges and
 //! every combat trigger, a mood without tracks, and two tracks a mood.
-use presentation::sound::frame::Command;
+use presentation::sound::frame::{Command, Ducked};
 use presentation::sound::music::{Mood, Moods, MusicRules, Score};
 use presentation::sound::voices::{Request, Tier};
 use serde_json::Value;
@@ -104,6 +104,7 @@ fn every_decision_equals_the_recorded_vectors() {
                         let depth = n("depth");
                         want.push(Command::Duck {
                             at: t,
+                            bus: Ducked::Music,
                             depth,
                             glide: if depth > 0.0 {
                                 n("attack")
@@ -255,6 +256,7 @@ fn the_music_dips_while_a_line_sounds_and_recovers_after() {
         score.hear(0.1, &[], true),
         [Command::Duck {
             at: 0.1,
+            bus: Ducked::Music,
             depth: duck.depth,
             glide: duck.attack_s
         }]
@@ -264,6 +266,7 @@ fn the_music_dips_while_a_line_sounds_and_recovers_after() {
         score.hear(1.5, &[], false),
         [Command::Duck {
             at: 1.5,
+            bus: Ducked::Music,
             depth: 0.0,
             glide: duck.release_s
         }]

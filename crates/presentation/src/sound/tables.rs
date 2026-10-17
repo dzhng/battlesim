@@ -41,6 +41,30 @@ pub struct OneShot {
     pub gain: f64,
 }
 
+/// How far a bus dips (a share of its level), and how fast it dips and
+/// recovers (time constants, seconds): the music under a voice line, the
+/// ambience under a loud shot.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Duck {
+    pub depth: f64,
+    pub attack_s: f64,
+    pub release_s: f64,
+}
+
+/// The bed: always on, never positional. Under a sound at least
+/// `duck_over` loud at the listener (its level there, as the voice budget
+/// ranks it) the ambience bus dips by `duck`, and recovers once the dip is
+/// reached, as a film mix makes room for a near shot.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Ambience {
+    pub sound: String,
+    pub gain: f64,
+    pub duck: Duck,
+    pub duck_over: f64,
+}
+
 /// A vehicle class's loops: engine (idle to load), running gear (by speed),
 /// turret traverse and reverse beeper. A null sound is none.
 #[derive(Clone, Debug, Deserialize)]
@@ -204,7 +228,7 @@ pub struct AudioPresentation {
     pub music: MusicRules,
     /// How unit voice lines are chosen ([`super::voices`]).
     pub voices: ChatterRules,
-    pub ambience: OneShot,
+    pub ambience: Ambience,
     /// The one alarm raised when a side's first fixed-wing aircraft enters.
     pub air_alarm: OneShot,
     /// A positional warning for a visible missile steering onto an own unit.

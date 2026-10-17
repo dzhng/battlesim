@@ -2,7 +2,8 @@
 // how loud is decided in Rust (`presentation::sound::frame`, through the
 // presentation module): it reads the publication as the effects take it,
 // the frame's emitters and the side's hearing cues, and gives commands
-// (start, glide, stop a voice; listen from here). This carries them out on a
+// (start, glide, stop a voice; listen from here; dip the ambience under a
+// loud sound). This carries them out on a
 // `VoiceSink` (`webAudioSink.ts`), so the mix runs, and is tested, without
 // an audio device. The presentation module must be loaded first
 // (`loadPresentation`).
@@ -162,6 +163,9 @@ export interface VoiceSink {
   /** Fade out over `fade` seconds from `at`, then free. */
   stop(id: number, at: number, fade: number): void;
   listen(listener: Listener, at: number): void;
+  /** Dip the ambience bus by `depth`, a share of its level (0 restores
+   *  it), from `at`, gliding there with time constant `glide` seconds. */
+  duck(depth: number, glide: number, at: number): void;
 }
 
 export interface SoundStats {
@@ -204,7 +208,8 @@ type Command =
   | ({ op: "start"; id: number } & VoiceSpec)
   | ({ op: "set"; id: number; at: number } & VoiceParams)
   | { op: "stop"; id: number; at: number; fade: number }
-  | ({ op: "listen"; at: number } & Listener);
+  | ({ op: "listen"; at: number } & Listener)
+  | { op: "duck"; at: number; bus: "ambience"; depth: number; glide: number };
 
 /** Stereo position of a direction sector for a listener looking along `forward`. */
 export const sectorPan = (sector: number, forward: P3): number =>
@@ -288,6 +293,7 @@ export class SoundFrame {
         const { op: _, id, at, ...params } = c;
         this.sink.set(id, params, at);
       } else if (c.op === "stop") this.sink.stop(c.id, c.at, c.fade);
+      else if (c.op === "duck") this.sink.duck(c.depth, c.glide, c.at);
       else this.sink.listen({ position: c.position, forward: c.forward }, c.at);
     }
   }
