@@ -82,7 +82,14 @@ pub(crate) fn near_and_still(
         && stationary(host)
         && stationary(&units[passenger])
         && within_reach(host, &units[passenger], rules)
-        && (!host.airborne() || crate::movement::air::low_hover_settled(world, host, rules))
+        && at_loading_height(world, host, rules)
+}
+
+/// The one rule for whether squads can step on or off a carrier (transport
+/// D6): a ground carrier always can; a helicopter only once it has settled
+/// at its low hover.
+pub(crate) fn at_loading_height(world: &WorldGeometry, host: &Unit, rules: &Rules) -> bool {
+    !host.airborne() || crate::movement::air::low_hover_settled(world, host, rules)
 }
 
 pub(crate) fn capacity(units: &[Unit], carrier: UnitId, candidate: usize, rules: &Rules) -> bool {

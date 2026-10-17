@@ -150,6 +150,23 @@ pub fn apply(
     Result { fates }
 }
 
+/// A host that leaves the map takes its passengers with it: there is no
+/// ground to bail out onto, so every live member dies where the host was.
+pub fn lost_with_host(unit: &mut Unit, at: V3) -> Result {
+    let yaw = unit.yaw;
+    let fates = (unit.members.iter_mut().enumerate())
+        .filter(|(_, soldier)| soldier.alive())
+        .map(|(member, soldier)| {
+            soldier.fall(at, yaw, None);
+            Fate::Died {
+                member,
+                cause: DeathCause::LeftMap,
+            }
+        })
+        .collect();
+    Result { fates }
+}
+
 fn fall(world: &WorldGeometry, soldier: &mut Soldier, at: V3, yaw: f64) {
     soldier.fall(
         at.xy()

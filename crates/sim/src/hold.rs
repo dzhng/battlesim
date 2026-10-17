@@ -177,9 +177,9 @@ pub(crate) fn advance(
                 let unloading = units
                     .get(carrier.0 as usize)
                     .is_some_and(|host| matches!(host.orders.front(), Some(UnitOrder::Unload)));
-                let hover_settled = units.get(carrier.0 as usize).is_some_and(|host| {
-                    !host.airborne() || crate::movement::air::low_hover_settled(world, host, rules)
-                });
+                let hover_settled = units
+                    .get(carrier.0 as usize)
+                    .is_some_and(|host| crate::carriage::at_loading_height(world, host, rules));
                 if matches!(phase, Phase::Entering(_))
                     && (!order_matches
                         || !crate::carriage::near_and_still(world, units, i, carrier, rules))

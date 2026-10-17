@@ -40,7 +40,14 @@ fn side_command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     }
 }
 
-fn transport_heli_crash(seed: u64, leaves_map: bool) -> Battle {
+/// Where a shot-down transport helicopter was hit, and where it came down.
+struct HeliCrash {
+    battle: Battle,
+    hit: Option<sim::math::V3>,
+    impact: Option<sim::math::V3>,
+}
+
+fn transport_heli_crash(seed: u64, leaves_map: bool) -> HeliCrash {
     let mut rules = sim::fixtures::test_game();
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -121,9 +128,13 @@ fn transport_heli_crash(seed: u64, leaves_map: bool) -> Battle {
     if !leaves_map {
         assert_eq!(battle.accept(heli_move(2, goal)).error, None);
     }
+    let mut hit = None;
+    let mut impact = None;
     for _ in 0..battle.rules().tick_hz * 30 {
         battle.step();
         if let Some(crash) = battle.crashes().first() {
+            hit.get_or_insert(battle.unit(UnitId(0)).unwrap().position);
+            impact = Some(crash.position);
             let passenger = battle.unit(UnitId(1)).unwrap().position;
             assert!(
                 (passenger - crash.position).length() < 1e-9,
@@ -143,7 +154,11 @@ fn transport_heli_crash(seed: u64, leaves_map: bool) -> Battle {
         }
     }
     assert!(!battle.unit(UnitId(0)).unwrap().alive());
-    battle
+    HeliCrash {
+        battle,
+        hit,
+        impact,
+    }
 }
 
 fn heli_move(seq: u64, goal: [f64; 2]) -> CommandEnvelope {
@@ -237,39 +252,95 @@ fn a_helicopter_boards_and_unloads_from_its_low_hover() {
 
 #[test]
 fn a_helicopter_shot_down_keeps_its_passengers_until_it_hits_the_ground() {
-    let air = contract::scenario::BailOutHost::Air;
     let mut saw_squad_loss = false;
     let mut saw_survivors = false;
     for seed in 1..=64 {
-        let battle = transport_heli_crash(seed, false);
+        let HeliCrash {
+            battle,
+            hit,
+            impact,
+        } = transport_heli_crash(seed, false);
+        let (hit, impact) = (hit.expect("seen falling"), impact.expect("seen falling"));
         let passenger = battle.unit(UnitId(1)).expect("passenger squad");
         if passenger.alive() {
             saw_survivors = true;
+            assert!(passenger.on_field() && passenger.hold.is_none());
+            // They come out around where it came down, not where it was hit.
+            for at in passenger.member_positions() {
+                assert!(
+                    (at.xy() - impact.xy()).length() < (at.xy() - hit.xy()).length(),
+                    "seed {seed}: a survivor at {at:?} stands nearer the hit {hit:?} than the impact {impact:?}"
+                );
+                assert!((at.xy() - impact.xy()).length() < 15.0);
+            }
         } else {
             saw_squad_loss = true;
+            assert!(passenger.members.iter().all(|member| !member.alive()));
         }
-        assert!(
-            battle.rules().bail_out[&air].squad_loss.is_some(),
-            "air bail-out must own the squad-loss roll"
-        );
         if saw_squad_loss && saw_survivors {
             break;
         }
     }
-    assert!(
-        saw_squad_loss,
-        "no seed exercised the air squad-loss outcome"
-    );
-    assert!(saw_survivors, "no seed exercised surviving air passengers");
+    assert!(saw_squad_loss, "no seed lost the whole squad in the crash");
+    assert!(saw_survivors, "no seed let the squad survive the crash");
 
-    let off_map = transport_heli_crash(1, true);
+    let off_map = transport_heli_crash(1, true).battle;
+    let passenger = off_map.unit(UnitId(1)).unwrap();
     assert!(
-        !off_map.unit(UnitId(1)).unwrap().alive(),
-        "a crash leaving the map kills every passenger: heli {:?}, passenger {:?}, crashes {}",
-        off_map.unit(UnitId(0)).unwrap().position,
-        off_map.unit(UnitId(1)).unwrap().position,
-        off_map.crashes().len()
+        !passenger.alive() && passenger.members.iter().all(|member| !member.alive()),
+        "a crash that leaves the map takes every passenger with it"
     );
+}
+
+#[test]
+fn a_retiring_helicopter_takes_its_passengers_with_it() {
+    let mut battle = Battle::new(&transport_skirmish_setup(), 41);
+    for (seq, variant) in [(1, "test_transport_heli"), (2, "test_recon")] {
+        let bought = battle.accept(side_command(
+            Side::Blue,
+            seq,
+            Order::ConfirmPurchase {
+                variant: variant.into(),
+                destination: [300.0, 100.0],
+            },
+        ));
+        assert_eq!(bought.error, None);
+    }
+    battle.accept(side_command(Side::Blue, 3, Order::Ready));
+    battle.accept(side_command(Side::Red, 1, Order::Ready));
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        if battle.unit(UnitId(1)).is_some() {
+            break;
+        }
+    }
+    let board = battle.accept(command(
+        4,
+        Order::Board {
+            units: vec![UnitId(1)],
+            carrier: UnitId(0),
+            gesture: 1,
+        },
+    ));
+    assert_eq!(board.error, None);
+    let boarded = (0..battle.rules().tick_hz * 60).any(|_| {
+        battle.step();
+        !battle.unit(UnitId(1)).unwrap().on_field()
+    });
+    assert!(boarded, "the squad never boarded the helicopter");
+    let refund = battle.accept(command(
+        5,
+        Order::Refund {
+            units: vec![UnitId(0)],
+        },
+    ));
+    assert_eq!(refund.error, None);
+    let retired = (0..battle.rules().tick_hz * 60).any(|_| {
+        battle.step();
+        battle.unit(UnitId(0)).unwrap().retired
+    });
+    assert!(retired, "the helicopter never retired");
+    assert!(battle.unit(UnitId(1)).unwrap().retired);
 }
 
 fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
@@ -278,6 +349,7 @@ fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
         ("test_apc", "us", "veh"),
         ("test_recon", "us", "inf"),
         ("test_tank", "eastern", "veh"),
+        ("test_transport_heli", "us", "hel"),
     ] {
         sim::fixtures::patch_catalog(
             &mut rules,
