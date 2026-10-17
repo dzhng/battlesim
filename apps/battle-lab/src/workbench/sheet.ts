@@ -341,6 +341,40 @@ function describe(model: LoadedModel, bundle: Appearance): string {
   return `${model.name} · ${model.unit} (${bundle.kind}) · triangles ${tiers} · size ${m(framingBounds(model))} m (every pose ${m(bundle.bounds)})`;
 }
 
+async function renderStrips(
+  renderer: SheetRenderer,
+  model: LoadedModel,
+  bundle: Appearance,
+  skeleton: SkeletonClips | null,
+  framing: Bounds,
+  tint: ReturnType<typeof sideTint>,
+): Promise<SheetResult["strips"]> {
+  const strips: SheetResult["strips"] = [];
+  for (const strip of sheetStrips(bundle, skeleton)) {
+    const { c, g: sg } = canvas(strip.frames.length * STRIP_TILE, 34 + STRIP_TILE);
+    sg.fillStyle = "#e8ebef";
+    sg.font = "bold 16px system-ui, sans-serif";
+    sg.fillText(`${model.name} · ${strip.name}`, 8, 22);
+    for (const [k, frame] of strip.frames.entries()) {
+      const pose = frame.pose;
+      const oneShot =
+        pose.kind === "skinned" && !skeleton?.clips.find((c) => c.name === pose.clip)?.loop;
+      const on = bundle.kind === "skinned" && oneShot ? bundle.bounds : framing;
+      const image = await renderer.tile(
+        model,
+        frame.pose,
+        frame.view,
+        on,
+        { hitBox: true, sockets: false },
+        tint,
+      );
+      paste(sg, image, k * STRIP_TILE, 34, STRIP_TILE, frame.label);
+    }
+    strips.push({ name: strip.name, canvas: c });
+  }
+  return strips;
+}
+
 /** The contact sheet, strips and stats of one loaded model. */
 export async function renderSheet(
   device: GPUDevice,
@@ -378,30 +412,7 @@ export async function renderSheet(
       paste(g, image, (i % cols) * TILE, HEADER + Math.floor(i / cols) * TILE, TILE, view);
     }
 
-    const strips: SheetResult["strips"] = [];
-    for (const strip of sheetStrips(bundle, skeleton)) {
-      const { c, g: sg } = canvas(strip.frames.length * STRIP_TILE, 34 + STRIP_TILE);
-      sg.fillStyle = "#e8ebef";
-      sg.font = "bold 16px system-ui, sans-serif";
-      sg.fillText(`${model.name} · ${strip.name}`, 8, 22);
-      for (const [k, frame] of strip.frames.entries()) {
-        // A one-shot body clip (the fall) frames every pose; loops frame the stand.
-        const pose = frame.pose;
-        const oneShot =
-          pose.kind === "skinned" && !skeleton?.clips.find((c) => c.name === pose.clip)?.loop;
-        const on = bundle.kind === "skinned" && oneShot ? bundle.bounds : framing;
-        const image = await renderer.tile(
-          model,
-          frame.pose,
-          frame.view,
-          on,
-          { hitBox: true, sockets: false },
-          tint,
-        );
-        paste(sg, image, k * STRIP_TILE, 34, STRIP_TILE, frame.label);
-      }
-      strips.push({ name: strip.name, canvas: c });
-    }
+    const strips = await renderStrips(renderer, model, bundle, skeleton, framing, tint);
 
     const surface = await renderSurface(renderer, model, pose, framing, tint);
 

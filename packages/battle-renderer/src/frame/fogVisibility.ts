@@ -973,23 +973,11 @@ export async function createFogVisibility(
     groups,
     stats(): FogVisibilityStats {
       const rust = source?.fog_stats();
-      const s = rust
-        ? (JSON.parse(rust) as Omit<FogVisibilityStats, "tileListBytes" | "tiles">)
-        : null;
-      const eyesMax = tiles?.lists ? tiles.lists.size / WORD / (tiles.tilesX * tiles.tilesY) : 0;
-      return {
-        enabled: (s?.enabled ?? false) && active,
-        eyes: s?.eyes ?? 0,
-        slots: s?.slots ?? 0,
-        occluders: s?.occluders ?? 0,
-        rebuilt: s?.rebuilt ?? 0,
-        pending: s?.pending ?? 0,
-        rebuiltTotal: s?.rebuiltTotal ?? 0,
-        mapBytes: s?.mapBytes ?? 0,
-        terrainMapBytes: s?.terrainMapBytes ?? 0,
-        tileListBytes: tiles?.lists ? tiles.tilesX * tiles.tilesY * (eyesMax + 1) * WORD : 0,
-        tiles: tiles?.lists ? [tiles.tilesX, tiles.tilesY] : [0, 0],
-      };
+      return fogStats(
+        rust ? (JSON.parse(rust) as Omit<FogVisibilityStats, "tileListBytes" | "tiles">) : null,
+        tiles,
+        active,
+      );
     },
     /** Fog at `points` against every eye, after building any maps still due. */
     async probe(points: readonly FogProbeInput[]): Promise<Uint8Array> {
@@ -1060,6 +1048,32 @@ export async function createFogVisibility(
         out.destroy();
       }
     },
+  };
+}
+
+function fogStats(
+  source: Omit<FogVisibilityStats, "tileListBytes" | "tiles"> | null,
+  tiles: FogTiles | null,
+  active: boolean,
+): FogVisibilityStats {
+  const s = source ?? {
+    enabled: false,
+    eyes: 0,
+    slots: 0,
+    occluders: 0,
+    rebuilt: 0,
+    pending: 0,
+    rebuiltTotal: 0,
+    mapBytes: 0,
+    terrainMapBytes: 0,
+  };
+  const lists = tiles?.lists;
+  const eyesMax = lists ? lists.size / WORD / (tiles.tilesX * tiles.tilesY) : 0;
+  return {
+    ...s,
+    enabled: s.enabled && active,
+    tileListBytes: lists ? tiles.tilesX * tiles.tilesY * (eyesMax + 1) * WORD : 0,
+    tiles: lists ? [tiles.tilesX, tiles.tilesY] : [0, 0],
   };
 }
 export type FogVisibility = Awaited<ReturnType<typeof createFogVisibility>>;

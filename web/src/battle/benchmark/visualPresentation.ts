@@ -210,12 +210,10 @@ const isFrameCount = (value: unknown): boolean =>
   isEffects(value.effects) &&
   isDrawn(value.drawn);
 
-/** `value` as a manifest, or a refusal naming the part at fault. */
-export function validateVisualPresentation(value: unknown): VisualPresentation {
-  if (!hasKeys(value, MANIFEST_KEYS)) throw new Error("visual presentation is malformed");
-  if (value.schema !== "native-visual-presentation")
-    throw new Error(`unsupported visual presentation schema ${JSON.stringify(value.schema)}`);
-  const id = value.identity;
+type JsonRecord = Record<string, unknown>;
+
+function validatePresentationHeader(value: JsonRecord) {
+  const id = value.identity as JsonRecord;
   if (
     !hasKeys(id, IDENTITY_KEYS) ||
     ![id.scene, id.map, id.encounter].every(text) ||
@@ -224,7 +222,7 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     !isHash(id.captureHash)
   )
     throw new Error("visual presentation identity is malformed");
-  const view = value.viewport;
+  const view = value.viewport as JsonRecord;
   if (
     !hasKeys(view, ["width", "height", "scale"]) ||
     !Number.isInteger(view.width) ||
@@ -234,7 +232,7 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     view.scale !== 1
   )
     throw new Error("visual presentation viewport is malformed");
-  const lens = value.lens;
+  const lens = value.lens as JsonRecord;
   if (
     !hasKeys(lens, ["fovY", "near", "depth", "far"]) ||
     !(positive(lens.fovY) && (lens.fovY as number) < Math.PI) ||
@@ -243,6 +241,9 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     lens.far !== "infinite"
   )
     throw new Error("visual presentation lens is malformed");
+}
+
+function validatePresentationCounts(value: JsonRecord) {
   const layers = value.layers;
   if (
     !Array.isArray(layers) ||
@@ -261,38 +262,29 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
         g.cells.length === GRASS_CELLS[0] * GRASS_CELLS[1] &&
         g.cells.every(count),
     ) ||
-    new Set(grass.map((g) => g.plate)).size !== grass.length
+    new Set(grass.map((g) => (g as JsonRecord).plate)).size !== grass.length
   )
     throw new Error(
       `visual presentation grass counts need one row of ${GRASS_CELLS[0] * GRASS_CELLS[1]} whole counts per plate`,
     );
-  const instances = value.instanceCounts;
-  if (
-    !Array.isArray(instances) ||
-    !instances.every(isInstanceCount) ||
-    !distinct(instances.map((row) => row.plate))
-  )
-    throw new Error(
-      "visual presentation instance counts need one row per plate, a count per kit module and tier, per scenery population, appearance and tier, and per prop appearance and tier",
-    );
-  const models = value.modelCounts;
-  if (
-    !Array.isArray(models) ||
-    !models.every(isModelCount) ||
-    !distinct(models.map((row) => row.plate))
-  )
-    throw new Error(
-      "visual presentation model counts need one row per plate of whole soldiers, vehicles, aircraft, corpses and fading corpses",
-    );
-  const effects = value.effectCounts;
-  if (
-    !Array.isArray(effects) ||
-    !effects.every(isEffectCount) ||
-    !distinct(effects.map((row) => row.plate))
-  )
-    throw new Error(
-      "visual presentation effect counts need one row per plate of whole effects by kind, instances by shape and lights",
-    );
+  validateCountRows(
+    value.instanceCounts,
+    isInstanceCount,
+    "instance",
+    "a count per kit module and tier, per scenery population, appearance and tier, and per prop appearance and tier",
+  );
+  validateCountRows(
+    value.modelCounts,
+    isModelCount,
+    "model",
+    "whole soldiers, vehicles, aircraft, corpses and fading corpses",
+  );
+  validateCountRows(
+    value.effectCounts,
+    isEffectCount,
+    "effect",
+    "whole effects by kind, instances by shape and lights",
+  );
   const frames = value.frameCounts;
   if (
     !Array.isArray(frames) ||
@@ -302,6 +294,29 @@ export function validateVisualPresentation(value: unknown): VisualPresentation {
     throw new Error(
       "visual presentation frame counts need one row per counted frame, in frame order, of its models, effects and drawn instances",
     );
+}
+
+function validateCountRows(
+  rows: unknown,
+  valid: (value: unknown) => boolean,
+  name: string,
+  detail: string,
+) {
+  if (
+    !Array.isArray(rows) ||
+    !rows.every(valid) ||
+    !distinct(rows.map((row) => (row as JsonRecord).plate))
+  )
+    throw new Error(`visual presentation ${name} counts need one row per plate of ${detail}`);
+}
+
+/** `value` as a manifest, or a refusal naming the part at fault. */
+export function validateVisualPresentation(value: unknown): VisualPresentation {
+  if (!hasKeys(value, MANIFEST_KEYS)) throw new Error("visual presentation is malformed");
+  if (value.schema !== "native-visual-presentation")
+    throw new Error(`unsupported visual presentation schema ${JSON.stringify(value.schema)}`);
+  validatePresentationHeader(value);
+  validatePresentationCounts(value);
   return value as unknown as VisualPresentation;
 }
 

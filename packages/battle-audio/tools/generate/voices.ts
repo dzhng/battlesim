@@ -13,6 +13,7 @@ import {
   type Intensity,
   type Trigger,
   type VoiceCatalog,
+  type VoiceSet,
   type VoiceTake,
 } from "../../src/voices/voiceCatalog";
 import type { Generated } from "../../src/catalog";
@@ -155,6 +156,15 @@ export function bedResolver(root: string, lock: VoiceLock) {
 const servedPath = (root: string, take: VoiceTake, sha: string) =>
   join(root, "assets/runtime", voiceUrl(take, sha));
 
+function selectedTake(lock: VoiceLock, select: VoiceSelection, candidate: VoiceTake): boolean {
+  const record = lock.takes[takeId(candidate)];
+  return (
+    (select.only !== "missing" || !record) &&
+    (select.only !== "flagged" || Boolean(record?.match.flagged)) &&
+    (select.only !== "bad" || Boolean(record && verdictOf(record) === "bad"))
+  );
+}
+
 /** Every take the selection names whose voice is saved, in catalog order. */
 export function selectTakes(catalog: VoiceCatalog, lock: VoiceLock, select: VoiceSelection) {
   const takes: VoiceTake[] = [];
@@ -168,10 +178,7 @@ export function selectTakes(catalog: VoiceCatalog, lock: VoiceLock, select: Voic
         for (const intensity of select.intensities ?? (["steady", "stressed"] as const))
           for (const take of select.take === undefined ? [0, 1] : [select.take]) {
             const candidate = { set, voice: voice.id, trigger, intensity, take };
-            const record = lock.takes[takeId(candidate)];
-            if (select.only === "missing" && record) continue;
-            if (select.only === "flagged" && !record?.match.flagged) continue;
-            if (select.only === "bad" && !(record && verdictOf(record) === "bad")) continue;
+            if (!selectedTake(lock, select, candidate)) continue;
             if (voice.voice_id) takes.push(candidate);
             else unvoiced++;
           }
@@ -213,6 +220,74 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
   let unflushed = 0;
   const line = (take: VoiceTake, status: string) =>
     log(`[${++done}/${takes.length}] ${takeId(take)} ${status}`);
+  const flush = () => {
+    if (unflushed < FLUSH_EVERY) return;
+    writeLock(lockPath, lock);
+    unflushed = 0;
+  };
+  const matchNotes = (match: TakeRecord["match"]) => {
+    if (match.flagged) result.flagged++;
+    return [
+      ...(match.missing.length ? [`missing ${match.missing.join(",")}`] : []),
+      ...(match.overlong ? ["overlong"] : []),
+    ];
+  };
+
+  async function acquireRaw(
+    take: VoiceTake,
+    text: string,
+    voiceId: string,
+    rawFile: string,
+  ): Promise<Uint8Array | string> {
+    if (existsSync(join(root, rawFile))) return readFileSync(join(root, rawFile));
+    if (!client) return "needs generation";
+    if (result.characters + text.length > (run.maxChars ?? Infinity)) return "over budget";
+    result.characters += text.length;
+    if (run.dryRun) return `would generate (${text.length} chars)`;
+    const raw = await tts.run(() => client.tts(voiceId, text, VOICE_SETTINGS, TTS_MODEL));
+    result.calls++;
+    writeAtomic(join(root, rawFile), raw);
+    return raw;
+  }
+
+  async function serveTake(
+    take: VoiceTake,
+    set: VoiceSet,
+    raw: Uint8Array,
+    rawFile: string,
+    processing: string,
+    kept: TakeRecord | undefined,
+  ) {
+    const profile = profiles.profiles[set.processing];
+    if (!profile) throw new Error(`profile ${set.processing}: not defined by assets.py`);
+    const bed = bedOf(profile.bed);
+    return kept?.processing_key === processing &&
+      existsSync(servedPath(root, take, kept.served_sha256))
+      ? { sha: kept.served_sha256, duration: kept.duration_s }
+      : await local.run(async () => {
+          const output = join(dirname(servedPath(root, take, processing)), `.${processing}.mp3`);
+          mkdirSync(dirname(output), { recursive: true });
+          const { duration_s } = await run.processor({
+            profile: set.processing,
+            input: join(root, rawFile),
+            bed: bed?.path ?? null,
+            output,
+          });
+          const sha = sha256(readFileSync(output));
+          renameSync(output, servedPath(root, take, sha));
+          return { sha, duration: duration_s };
+        });
+  }
+
+  async function transcriptFor(
+    raw: Uint8Array,
+    previous: TakeRecord | undefined,
+  ): Promise<string | null> {
+    if (previous?.transcript) return previous.transcript;
+    if (!client) return null;
+    result.calls++;
+    return (await stt.run(() => client.stt(raw))).text;
+  }
 
   async function produce(take: VoiceTake): Promise<string> {
     const set = catalog.sets[take.set];
@@ -229,17 +304,9 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
     });
     const rawFile = `${RAW}/${take.set}/${takeFile(take, generation)}`;
     const previous = lock.takes[id];
-    let raw: Uint8Array;
-    if (existsSync(join(root, rawFile))) raw = readFileSync(join(root, rawFile));
-    else {
-      if (!client) return "needs generation";
-      if (result.characters + text.length > (run.maxChars ?? Infinity)) return "over budget";
-      result.characters += text.length;
-      if (run.dryRun) return `would generate (${text.length} chars)`;
-      raw = await tts.run(() => client.tts(voiceId, text, VOICE_SETTINGS, TTS_MODEL));
-      result.calls++;
-      writeAtomic(join(root, rawFile), raw);
-    }
+    const acquired = await acquireRaw(take, text, voiceId, rawFile);
+    if (typeof acquired === "string") return acquired;
+    const raw = acquired;
     if (run.dryRun) return "cached";
     const rawSha = sha256(raw);
     // The lock row still describes these raw bytes, so its later steps may hold too.
@@ -250,36 +317,16 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
 
     const profile = profiles.profiles[set.processing];
     if (!profile) throw new Error(`profile ${set.processing}: not defined by assets.py`);
-    const bed = bedOf(profile.bed);
     const processing = processingKey({
       rawSha,
       profile: { name: set.processing, ...profile },
-      bedSha: bed?.sha256 ?? null,
+      bedSha: bedOf(profile.bed)?.sha256 ?? null,
       encoder: profiles.encoder,
     });
-    const served =
-      kept?.processing_key === processing && existsSync(servedPath(root, take, kept.served_sha256))
-        ? { sha: kept.served_sha256, duration: kept.duration_s }
-        : await local.run(async () => {
-            const output = join(dirname(servedPath(root, take, processing)), `.${processing}.mp3`);
-            mkdirSync(dirname(output), { recursive: true });
-            const { duration_s } = await run.processor({
-              profile: set.processing,
-              input: join(root, rawFile),
-              bed: bed?.path ?? null,
-              output,
-            });
-            const sha = sha256(readFileSync(output));
-            renameSync(output, servedPath(root, take, sha));
-            return { sha, duration: duration_s };
-          });
+    const served = await serveTake(take, set, raw, rawFile, processing, kept);
 
-    let transcript = kept?.transcript ?? null;
-    if (transcript === null) {
-      if (!client) return "needs transcription";
-      transcript = (await stt.run(() => client.stt(raw))).text;
-      result.calls++;
-    }
+    const transcript = await transcriptFor(raw, kept);
+    if (transcript === null) return "needs transcription";
     const match = matches(text, transcript, {
       callsign: set.callsign,
       length: { durationS: served.duration, talkS: talkTime(take.trigger) },
@@ -312,15 +359,9 @@ export async function generateVoices(run: VoiceRun): Promise<VoiceRunResult> {
     if (previous && previous.served_sha256 !== served.sha)
       rmSync(servedPath(root, take, previous.served_sha256), { force: true });
     lock.takes[id] = record;
-    if (++unflushed >= FLUSH_EVERY) {
-      writeLock(lockPath, lock);
-      unflushed = 0;
-    }
-    if (match.flagged) result.flagged++;
-    const notes = [
-      ...(match.missing.length ? [`missing ${match.missing.join(",")}`] : []),
-      ...(match.overlong ? ["overlong"] : []),
-    ];
+    unflushed++;
+    flush();
+    const notes = matchNotes(match);
     return `${match.flagged ? "flagged" : "ok"} ${served.duration.toFixed(1)}s match ${match.score.toFixed(2)}${notes.map((note) => ` ${note}`).join("")}`;
   }
 

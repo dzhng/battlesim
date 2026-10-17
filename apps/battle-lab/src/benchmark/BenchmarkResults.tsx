@@ -26,6 +26,44 @@ const TITLE: Record<BenchmarkReport["outcome"]["status"], string> = {
   failed: "Run failed",
 };
 
+function PhaseTable({ report }: { report: BenchmarkReport }) {
+  const cell = (s: Summary | null, pick: (s: Summary) => number, digits = 1) =>
+    s ? fmt(pick(s), digits) : "—";
+  return (
+    <>
+      <h2>By camera phase</h2>
+      <table className="bench-table">
+        <thead>
+          <tr>
+            <th scope="col">Phase</th>
+            <th scope="col">Frames</th>
+            <th scope="col">Avg FPS</th>
+            <th scope="col">p50 ms</th>
+            <th scope="col">p95 ms</th>
+            <th scope="col">p99 ms</th>
+            <th scope="col">CPU p95 ms</th>
+            <th scope="col">GPU frame ms</th>
+          </tr>
+        </thead>
+        <tbody>
+          {report.phases.map((p) => (
+            <tr key={p.name}>
+              <th scope="row">{p.name}</th>
+              <td>{p.frameMs?.count ?? 0}</td>
+              <td>{fmt(p.averageFps)}</td>
+              <td>{cell(p.frameMs, (s) => s.p50)}</td>
+              <td>{cell(p.frameMs, (s) => s.p95)}</td>
+              <td>{cell(p.frameMs, (s) => s.p99)}</td>
+              <td>{cell(p.cpuMs, (s) => s.p95, 2)}</td>
+              <td>{fmt(p.gpu?.meanMs, 2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
 export function BenchmarkResults({
   report,
   onAgain,
@@ -48,8 +86,6 @@ export function BenchmarkResults({
     ["GPU frame, mean", fmt(report.gpu?.meanMs, 2), "ms"],
     ["Frames over 33 ms", String(report.framesOver33ms)],
   ];
-  const cell = (s: Summary | null, pick: (s: Summary) => number, digits = 1) =>
-    s ? fmt(pick(s), digits) : "—";
   return (
     <main className="bench-results" data-testid="benchmark-results">
       <div className="bench-body">
@@ -77,35 +113,7 @@ export function BenchmarkResults({
         <FrameChart report={report} />
         <p className="bench-note">{report.measurement}</p>
 
-        <h2>By camera phase</h2>
-        <table className="bench-table">
-          <thead>
-            <tr>
-              <th scope="col">Phase</th>
-              <th scope="col">Frames</th>
-              <th scope="col">Avg FPS</th>
-              <th scope="col">p50 ms</th>
-              <th scope="col">p95 ms</th>
-              <th scope="col">p99 ms</th>
-              <th scope="col">CPU p95 ms</th>
-              <th scope="col">GPU frame ms</th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.phases.map((p) => (
-              <tr key={p.name}>
-                <th scope="row">{p.name}</th>
-                <td>{p.frameMs?.count ?? 0}</td>
-                <td>{fmt(p.averageFps)}</td>
-                <td>{cell(p.frameMs, (s) => s.p50)}</td>
-                <td>{cell(p.frameMs, (s) => s.p95)}</td>
-                <td>{cell(p.frameMs, (s) => s.p99)}</td>
-                <td>{cell(p.cpuMs, (s) => s.p95, 2)}</td>
-                <td>{fmt(p.gpu?.meanMs, 2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <PhaseTable report={report} />
 
         <div className="bench-facts">
           <section>

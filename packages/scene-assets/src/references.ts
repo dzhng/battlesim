@@ -138,6 +138,111 @@ const isText = (v: unknown): v is string => typeof v === "string";
 const isFilled = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 const stem = (file: string) => file.replace(/\.[^.]+$/, "");
 
+type ReferenceError = (code: ReferenceCode, message: string) => void;
+
+function validateReferenceProvenance(
+  entry: ReferenceEntry,
+  label: string,
+  files: Set<string | undefined>,
+  generatedFiles: Set<string | undefined>,
+  error: ReferenceError,
+) {
+  const isGenerated = entry.source === "generated";
+  if (isGenerated) {
+    if (entry.licence !== GENERATED_LICENCE)
+      error(
+        "references.licence",
+        `${label} is generated, so its licence is "${GENERATED_LICENCE}", not ${JSON.stringify(entry.licence)}`,
+      );
+    const lacks = [
+      !isFilled(entry.model) && "model",
+      !isFilled(entry.prompt) && "prompt",
+      !(Array.isArray(entry.inputs) && entry.inputs.length && entry.inputs.every(isFilled)) &&
+        "inputs",
+      !Number.isInteger(entry.seed) && "seed",
+    ].filter(Boolean);
+    if (lacks.length)
+      error("references.generated", `${label} is generated but lacks ${lacks.join(", ")}`);
+    for (const input of Array.isArray(entry.inputs) ? entry.inputs : [])
+      if (isFilled(input) && (!files.has(input) || generatedFiles.has(input)))
+        error(
+          "references.generated",
+          `${label} is generated from ${input}, which is not a real reference in this library`,
+        );
+    if (!stem(entry.file).endsWith("-generated"))
+      error(
+        "references.generated",
+        `${label} is generated but its name lacks the -generated suffix`,
+      );
+  } else {
+    if (!allowedLicence(entry.licence))
+      error(
+        "references.licence",
+        `${label} licence ${JSON.stringify(entry.licence)} is none of ${REFERENCE_LICENCES.join(", ")} or a country port of one`,
+      );
+    const lacks = (["page", "author"] as const).filter((k) => !isFilled(entry[k]));
+    if (lacks.length) error("references.entry", `${label} lacks ${lacks.join(", ")}`);
+    if (stem(entry.file).endsWith("-generated"))
+      error("references.generated", `${label} is a ${entry.source} named as generated`);
+  }
+  return isGenerated;
+}
+
+async function validateReferenceFile(
+  at: string,
+  entry: ReferenceEntry,
+  label: string,
+  read: (file: string) => Uint8Array | null,
+  error: ReferenceError,
+  findings: ReferenceFinding[],
+) {
+  const bytes = /[/\\]/.test(entry.file) ? null : read(entry.file);
+  if (!bytes) {
+    error("references.file", `${label} is not in the folder`);
+    return;
+  }
+  const hash = await contentSha256(bytes);
+  if (hash !== entry.sha256.toLowerCase())
+    error("references.sha256", `${label} hashes to ${hash}, not ${entry.sha256}`);
+  if (lfsPointerOid(bytes) !== null) {
+    findings.push({
+      code: "references.unpulled",
+      severity: "warning",
+      message: `${at}: ${label} is an LFS pointer: its hash is checked, its size is not (git lfs pull --include="${at}/${entry.file}")`,
+    });
+    return;
+  }
+  const size = imageSize(bytes);
+  if (!size) error("references.image", `${label} is not a JPEG or PNG`);
+  else if (Math.max(size.width, size.height) > REFERENCE_MAX_EDGE_PX)
+    error(
+      "references.image",
+      `${label} is ${size.width} × ${size.height} px; its long edge is over ${REFERENCE_MAX_EDGE_PX} px`,
+    );
+}
+
+function parseReferenceLibrary(text: string, error: ReferenceError): ReferenceLibrary | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    error("references.json", `references.json does not parse: ${(e as Error).message}`);
+    return null;
+  }
+  const library = parsed as Partial<ReferenceLibrary> | null;
+  if (
+    !library ||
+    typeof library !== "object" ||
+    !Array.isArray(library.entries) ||
+    !Array.isArray(library.gaps) ||
+    !library.gaps.every(isText)
+  ) {
+    error("references.json", `references.json is not { "entries": [...], "gaps": [strings] }`);
+    return null;
+  }
+  return { entries: library.entries as ReferenceEntry[], gaps: library.gaps as string[] };
+}
+
 /** Every way `text`, the references.json of `family`, breaks the library's
  *  contract. `read` gives a file of the family's folder by name, or null if
  *  it is not there. An LFS pointer is judged by its oid, which is the sha256
@@ -151,24 +256,8 @@ export async function checkReferences(
   const at = `assets/references/${family}`;
   const error = (code: ReferenceCode, message: string) =>
     findings.push({ code, severity: "error", message: `${at}: ${message}` });
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch (e) {
-    error("references.json", `references.json does not parse: ${(e as Error).message}`);
-    return findings;
-  }
-  const library = parsed as Partial<ReferenceLibrary> | null;
-  if (
-    !library ||
-    typeof library !== "object" ||
-    !Array.isArray(library.entries) ||
-    !Array.isArray(library.gaps) ||
-    !library.gaps.every(isText)
-  ) {
-    error("references.json", `references.json is not { "entries": [...], "gaps": [strings] }`);
-    return findings;
-  }
+  const library = parseReferenceLibrary(text, error);
+  if (!library) return findings;
 
   const files = new Set(library.entries.map((e) => e?.file));
   const generatedFiles = new Set(
@@ -205,76 +294,13 @@ export async function checkReferences(
       );
       continue;
     }
-    const isGenerated = entry.source === "generated";
-
-    // Provenance: a real image names its page and author under a licence we
-    // may redistribute; a generated one is ours, labelled, and says how it was made.
-    if (isGenerated) {
-      if (entry.licence !== GENERATED_LICENCE)
-        error(
-          "references.licence",
-          `${label} is generated, so its licence is "${GENERATED_LICENCE}", not ${JSON.stringify(entry.licence)}`,
-        );
-      const lacks = [
-        !isFilled(entry.model) && "model",
-        !isFilled(entry.prompt) && "prompt",
-        !(Array.isArray(entry.inputs) && entry.inputs.length && entry.inputs.every(isFilled)) &&
-          "inputs",
-        !Number.isInteger(entry.seed) && "seed",
-      ].filter(Boolean);
-      if (lacks.length)
-        error("references.generated", `${label} is generated but lacks ${lacks.join(", ")}`);
-      for (const input of Array.isArray(entry.inputs) ? entry.inputs : [])
-        if (isFilled(input) && (!files.has(input) || generatedFiles.has(input)))
-          error(
-            "references.generated",
-            `${label} is generated from ${input}, which is not a real reference in this library`,
-          );
-      if (!stem(entry.file).endsWith("-generated"))
-        error(
-          "references.generated",
-          `${label} is generated but its name lacks the -generated suffix`,
-        );
-    } else {
-      if (!allowedLicence(entry.licence))
-        error(
-          "references.licence",
-          `${label} licence ${JSON.stringify(entry.licence)} is none of ${REFERENCE_LICENCES.join(", ")} or a country port of one`,
-        );
-      const lacks = (["page", "author"] as const).filter((k) => !isFilled(entry[k]));
-      if (lacks.length) error("references.entry", `${label} lacks ${lacks.join(", ")}`);
-      if (stem(entry.file).endsWith("-generated"))
-        error("references.generated", `${label} is a ${entry.source} named as generated`);
-    }
+    const isGenerated = validateReferenceProvenance(entry, label, files, generatedFiles, error);
     if (REFERENCE_VIEWS.includes(entry.view)) {
       const key = `${entry.variant}\u0000${entry.view}`;
       shown.set(key, (shown.get(key) ?? false) || !isGenerated);
     }
 
-    // The file itself.
-    const bytes = /[/\\]/.test(entry.file) ? null : read(entry.file);
-    if (!bytes) {
-      error("references.file", `${label} is not in the folder`);
-      continue;
-    }
-    const hash = await contentSha256(bytes);
-    if (hash !== entry.sha256.toLowerCase())
-      error("references.sha256", `${label} hashes to ${hash}, not ${entry.sha256}`);
-    if (lfsPointerOid(bytes) !== null) {
-      findings.push({
-        code: "references.unpulled",
-        severity: "warning",
-        message: `${at}: ${label} is an LFS pointer: its hash is checked, its size is not (git lfs pull --include="${at}/${entry.file}")`,
-      });
-      continue;
-    }
-    const size = imageSize(bytes);
-    if (!size) error("references.image", `${label} is not a JPEG or PNG`);
-    else if (Math.max(size.width, size.height) > REFERENCE_MAX_EDGE_PX)
-      error(
-        "references.image",
-        `${label} is ${size.width} × ${size.height} px; its long edge is over ${REFERENCE_MAX_EDGE_PX} px`,
-      );
+    await validateReferenceFile(at, entry, label, read, error, findings);
   }
 
   for (const [key, real] of shown)

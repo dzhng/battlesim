@@ -11,23 +11,23 @@ Content has three owners, and none reaches another's place. Game battles are gen
 The simulation is the one authority; everything else observes it. Start with the
 owner of the thing you want to change:
 
-| Owner | Responsibility and entry point |
-|---|---|
-| [Contracts](crates/contract/README.md) | Shared commands, observations, map admission, physical templates and exact content identities. |
-| [Simulation](crates/sim/README.md) | Deterministic battle rules, replay digests, encounter placement and native reports. |
-| [Map generation](crates/mapgen/README.md) | Seeded layout, physical compilation, admission and generation reports; shared by native tools and WebAssembly. |
-| [WebAssembly boundary](crates/game-wasm/README.md) | Native/browser parity, geometry queries, packed publication memory and binding lifetime. |
-| [Presentation](crates/presentation/README.md) | One side's publications to each drawn frame's records: interpolation, poses, effects, cook-offs, tiers and cast lights, shared by every client. |
-| [Browser application](web/README.md) | Workers, map adapters, player input/readouts, build configuration and browser verification. |
-| [Battle lab](apps/battle-lab/README.md) | Player pages and focused developer fixtures, composed from the same battle view. |
-| [Renderer primitives](packages/renderer-core/README.md) | Shared camera/depth contracts, device admission and GPU allocation accounting. |
-| [Battle renderer](packages/battle-renderer/README.md) | Observed feeds, terrain, models, light, fog, effects, overlays and GPU lifetime. |
-| [Pipelines](crates/pipelines/README.md) | The battle renderer's shaders and pipeline settings, exported for a native client and validated as `wgpu` compiles them. |
-| [Scene assets](packages/scene-assets/README.md) | Appearance contracts, validation, baking and loading; includes [Blender authoring](packages/scene-assets/README.md#authored-sources-blender). |
-| [Battle audio](packages/battle-audio/README.md) | Recorded and synthetic sound preparation, source calibration and playback from observed causes. |
-| [Fixtures](fixtures/README.md) | Authored rules, unit/prop catalogs, generator presets, saved maps and sound assignments. |
-| [Assets](assets/README.md) | Source media, prepared runtime files, review sheets and third-party provenance. |
-| [Native client](native/client/README.md) | The native client on `wgpu`: the browser's exported shaders and passes over the presentation crate's frames. |
+| Owner                                                   | Responsibility and entry point                                                                                                                  |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Contracts](crates/contract/README.md)                  | Shared commands, observations, map admission, physical templates and exact content identities.                                                  |
+| [Simulation](crates/sim/README.md)                      | Deterministic battle rules, replay digests, encounter placement and native reports.                                                             |
+| [Map generation](crates/mapgen/README.md)               | Seeded layout, physical compilation, admission and generation reports; shared by native tools and WebAssembly.                                  |
+| [WebAssembly boundary](crates/game-wasm/README.md)      | Native/browser parity, geometry queries, packed publication memory and binding lifetime.                                                        |
+| [Presentation](crates/presentation/README.md)           | One side's publications to each drawn frame's records: interpolation, poses, effects, cook-offs, tiers and cast lights, shared by every client. |
+| [Browser application](web/README.md)                    | Workers, map adapters, player input/readouts, build configuration and browser verification.                                                     |
+| [Battle lab](apps/battle-lab/README.md)                 | Player pages and focused developer fixtures, composed from the same battle view.                                                                |
+| [Renderer primitives](packages/renderer-core/README.md) | Shared camera/depth contracts, device admission and GPU allocation accounting.                                                                  |
+| [Battle renderer](packages/battle-renderer/README.md)   | Observed feeds, terrain, models, light, fog, effects, overlays and GPU lifetime.                                                                |
+| [Pipelines](crates/pipelines/README.md)                 | The battle renderer's shaders and pipeline settings, exported for a native client and validated as `wgpu` compiles them.                        |
+| [Scene assets](packages/scene-assets/README.md)         | Appearance contracts, validation, baking and loading; includes [Blender authoring](packages/scene-assets/README.md#authored-sources-blender).   |
+| [Battle audio](packages/battle-audio/README.md)         | Recorded and synthetic sound preparation, source calibration and playback from observed causes.                                                 |
+| [Fixtures](fixtures/README.md)                          | Authored rules, unit/prop catalogs, generator presets, saved maps and sound assignments.                                                        |
+| [Assets](assets/README.md)                              | Source media, prepared runtime files, review sheets and third-party provenance.                                                                 |
+| [Native client](native/client/README.md)                | The native client on `wgpu`: the browser's exported shaders and passes over the presentation crate's frames.                                    |
 
 Development tools edit those existing owners: the [mechanics editor](apps/mechanics-editor/README.md),
 [map workbench](apps/map-workbench/README.md) and [sound workbench](apps/sound-workbench/README.md).
@@ -108,7 +108,7 @@ It's a game, not a physics simulation. The target is **Hollywood realism**: the 
 You need [Bun](https://bun.sh), [rustup](https://rustup.rs) (it installs the pinned Rust and its `wasm32-unknown-unknown` target from [`rust-toolchain.toml`](rust-toolchain.toml), the same release the deployment builds with), [wasm-pack](https://rustwasm.github.io/wasm-pack/), and a WebGPU browser.
 
 ```bash
-bun run setup   # install web dependencies and Playwright Chromium
+bun run setup   # install hook and web dependencies, then Playwright Chromium
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
@@ -149,6 +149,11 @@ and balance measurements.
 
 [The task runner](package.json) owns the check, verification and visual commands;
 the simulation and browser READMEs explain which evidence each command provides.
+After setup, Husky runs the root `lint-staged` configuration before each commit.
+It formats staged files and blocks staged JavaScript or TypeScript that fails
+Oxlint or exceeds the complexity budget; staged Rust also runs Cargo fmt and
+Clippy. The full-repository complexity report remains available through
+`bun run lint:complexity` while existing findings are reduced.
 Use the narrowest check that can move while iterating and run the full closeout
 checks when a spec is finished, as [AGENTS.md](AGENTS.md) requires.
 

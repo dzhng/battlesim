@@ -73,17 +73,9 @@ function* pathPoints(d: string): Generator<[number, number]> {
       [qx, qy] = [x, y];
       yield [x, y];
     } else if (C === "C" || C === "S") {
-      const [c1x, c1y] = C === "C" ? [ox + next(), oy + next()] : [2 * x - qx, 2 * y - qy];
-      const [c2x, c2y, px, py] = [ox + next(), oy + next(), ox + next(), oy + next()];
-      for (let k = 0; k <= SAMPLES; k++) {
-        const t = k / SAMPLES;
-        const u = 1 - t;
-        yield [
-          u * u * u * x + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t * t * t * px,
-          u * u * u * y + 3 * u * u * t * c1y + 3 * u * t * t * c2y + t * t * t * py,
-        ];
-      }
-      [qx, qy, x, y] = [c2x, c2y, px, py];
+      const curve = cubicCommand(C, x, y, qx, qy, ox, oy, next);
+      yield* curve.points;
+      [qx, qy, x, y] = curve.state;
     } else if (C === "Q") {
       const [cx, cy, px, py] = [ox + next(), oy + next(), ox + next(), oy + next()];
       yield* quad(x, y, cx, cy, px, py);
@@ -95,6 +87,30 @@ function* pathPoints(d: string): Generator<[number, number]> {
       [x, y, qx, qy] = [px, py, px, py];
     } else throw new Error(`inkBounds: path command "${cmd}" is not read`);
   }
+}
+
+function cubicCommand(
+  command: "C" | "S",
+  x: number,
+  y: number,
+  qx: number,
+  qy: number,
+  ox: number,
+  oy: number,
+  next: () => number,
+): { points: [number, number][]; state: [number, number, number, number] } {
+  const [c1x, c1y] = command === "C" ? [ox + next(), oy + next()] : [2 * x - qx, 2 * y - qy];
+  const [c2x, c2y, px, py] = [ox + next(), oy + next(), ox + next(), oy + next()];
+  const points: [number, number][] = [];
+  for (let k = 0; k <= SAMPLES; k++) {
+    const t = k / SAMPLES;
+    const u = 1 - t;
+    points.push([
+      u * u * u * x + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t * t * t * px,
+      u * u * u * y + 3 * u * u * t * c1y + 3 * u * t * t * c2y + t * t * t * py,
+    ]);
+  }
+  return { points, state: [c2x, c2y, px, py] };
 }
 
 function* quad(x0: number, y0: number, cx: number, cy: number, x1: number, y1: number) {

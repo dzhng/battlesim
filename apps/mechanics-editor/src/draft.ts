@@ -172,44 +172,66 @@ export interface FieldOrigin {
   parentValue?: Json;
 }
 
-/** Source provenance is a leaf lookup along authored parents, not a second merger. */
-export function fieldOrigin(
+type AuthoredSource = { row: JsonObject; file: string };
+
+function authoredSource(
   snapshot: EditableSources,
   target: EditTarget,
+  id: string,
+): AuthoredSource | undefined {
+  return snapshot.documents.flatMap((doc) => {
+    const row = valueAt(doc.value, [target.section, id]);
+    return isObject(row) ? [{ row, file: doc.path }] : [];
+  })[0];
+}
+
+function inheritedOrigin(
+  first: AuthoredSource | undefined,
+  source: (id: string) => AuthoredSource | undefined,
   path: readonly string[],
-): FieldOrigin {
-  const source = (id: string) =>
-    snapshot.documents.flatMap((doc) => {
-      const row = valueAt(doc.value, [target.section, id]);
-      return isObject(row) ? [{ row, file: doc.path }] : [];
-    })[0];
-  const first = source(target.id);
+  local: boolean,
+) {
   let owner = first;
-  let ownerId = target.id;
+  let ownerId: string | undefined;
   let parentValue: Json | undefined;
   const chain = new Set<string>();
-  const local = first ? valueAt(first.row, path) !== undefined : false;
   let current = first;
   while (current && typeof current.row.extends === "string" && !chain.has(current.row.extends)) {
     const id = current.row.extends;
     chain.add(id);
     current = source(id);
     if (current && valueAt(current.row, path) !== undefined) {
-      if (parentValue === undefined) parentValue = valueAt(current.row, path);
+      parentValue ??= valueAt(current.row, path);
       if (!local && owner === first) {
         owner = current;
         ownerId = id;
       }
     }
   }
+  return { owner, ownerId, parentValue };
+}
+
+/** Source provenance is a leaf lookup along authored parents, not a second merger. */
+export function fieldOrigin(
+  snapshot: EditableSources,
+  target: EditTarget,
+  path: readonly string[],
+): FieldOrigin {
+  const source = (id: string) => authoredSource(snapshot, target, id);
+  const first = source(target.id);
+  const local = first ? valueAt(first.row, path) !== undefined : false;
+  const {
+    owner,
+    ownerId = target.id,
+    parentValue: authoredParent,
+  } = inheritedOrigin(first, source, path, local);
   const descriptor = gameplayField(target.section, path);
-  const authoredParent = parentValue;
   const parentId = first?.row.extends;
   const resolvedParent =
     typeof parentId === "string"
       ? resolvedEntries(snapshot.catalog, target.section)[parentId]
       : undefined;
-  if (resolvedParent) parentValue = valueAt(resolvedParent, path);
+  const parentValue = resolvedParent ? valueAt(resolvedParent, path) : authoredParent;
   // Native rows include parser defaults and inherited mounts (by id). Abstract
   // parents may be absent; optional leaves can still be removed for admission.
   const restoresDefault =

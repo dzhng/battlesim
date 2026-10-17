@@ -109,8 +109,16 @@ export interface OrderStyle {
 }
 
 export function validateOrderStyle(style: OrderStyle): OrderStyle {
+  if (!validOrderDimensions(style) || !validOrderColors(style))
+    throw new Error(
+      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_alpha and drop_line_reach in (0, 1], drop_line_hold in [0, drop_line_reach)`,
+    );
+  return style;
+}
+
+function validOrderDimensions(style: OrderStyle): boolean {
   const unit = (v: number) => v > 0 && v <= 1;
-  const ok =
+  return (
     style.line_px > 0 &&
     style.mark_px > 0 &&
     style.soldier_mark_px > 0 &&
@@ -118,28 +126,48 @@ export function validateOrderStyle(style: OrderStyle): OrderStyle {
     style.cover_pip_m > 0 &&
     unit(style.queued_alpha) &&
     unit(style.current_alpha) &&
+    validOrderMotion(style) &&
+    validOrderMarkers(style) &&
+    validOrderDropLine(style, unit)
+  );
+}
+
+function validOrderMotion(style: OrderStyle): boolean {
+  return (
     style.march?.cycles_per_s >= 0 &&
     style.march?.amplitude >= 0 &&
     style.march?.amplitude <= 1 &&
-    unit(style.area_draw_scale) &&
-    [style.glow?.order, style.glow?.selected].every((g) => g > 0 && g <= 2) &&
+    style.area_draw_scale > 0 &&
+    style.area_draw_scale <= 1 &&
+    [style.glow?.order, style.glow?.selected].every((g) => g > 0 && g <= 2)
+  );
+}
+
+function validOrderMarkers(style: OrderStyle): boolean {
+  return (
     style.cover_glow >= 1 &&
     style.cover_glow <= 2 &&
     style.vehicle_marker_margin_m > 0 &&
-    style.building_marker_margin_m > 0 &&
+    style.building_marker_margin_m > 0
+  );
+}
+
+function validOrderDropLine(style: OrderStyle, unit: (v: number) => boolean): boolean {
+  return (
     style.drop_line_px > 0 &&
     style.drop_line_spacing > 1 &&
     unit(style.drop_line_alpha) &&
     unit(style.drop_line_reach) &&
     style.drop_line_hold >= 0 &&
-    style.drop_line_hold < style.drop_line_reach &&
+    style.drop_line_hold < style.drop_line_reach
+  );
+}
+
+function validOrderColors(style: OrderStyle): boolean {
+  return (
     (["light", "medium", "heavy"] as const).every((k) => isRgba(style.cover?.[k])) &&
-    [style.color, style.blocked, style.selected].every(isRgba);
-  if (!ok)
-    throw new Error(
-      `presentation.overlay.orders: positive widths, alphas in (0, 1], rgba color, blocked, selected and cover.{light, medium, heavy}, march.{cycles_per_s ≥ 0, amplitude in [0, 1]}, area_draw_scale in (0, 1], glow.{order, selected} in (0, 2], cover_glow in [1, 2], vehicle_marker_margin_m, building_marker_margin_m and drop_line_px > 0, drop_line_spacing > 1, drop_line_alpha and drop_line_reach in (0, 1], drop_line_hold in [0, drop_line_reach)`,
-    );
-  return style;
+    [style.color, style.blocked, style.selected].every(isRgba)
+  );
 }
 
 interface MemberOrderMark {

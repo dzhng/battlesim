@@ -170,9 +170,8 @@ export function joinTextures(content: Uint8Array, textures: readonly Texture[]):
   return bundle;
 }
 
-function assertMesh(mesh: MeshData, skinned: boolean, where: string) {
-  const vertices = mesh.positions?.length / 3;
-  const ok =
+function meshShapeValid(mesh: MeshData, skinned: boolean, vertices: number): boolean {
+  return (
     mesh.positions instanceof Float32Array &&
     Number.isInteger(vertices) &&
     mesh.normals instanceof Int16Array &&
@@ -190,8 +189,13 @@ function assertMesh(mesh: MeshData, skinned: boolean, where: string) {
       (mesh.joints instanceof Uint8Array &&
         mesh.joints.length === vertices * 4 &&
         mesh.weights instanceof Uint16Array &&
-        mesh.weights.length === vertices * 4));
-  if (!ok) throw new Error(`${where}: malformed mesh`);
+        mesh.weights.length === vertices * 4))
+  );
+}
+
+function assertMesh(mesh: MeshData, skinned: boolean, where: string) {
+  const vertices = mesh.positions?.length / 3;
+  if (!meshShapeValid(mesh, skinned, vertices)) throw new Error(`${where}: malformed mesh`);
   for (const index of mesh.indices)
     if (index >= vertices) throw new Error(`${where}: index out of range`);
   const drawn = mesh.draws.reduce((n, d) => n + d.count, 0);
