@@ -1,15 +1,13 @@
-// C69: the river lab. The water is where the simulation's distance says, a
-// squad and a tank cross it only by the bridge, and the drawn river is
-// measured for SG2's question: does a river carved into the 4 m grid read
-// round, or stepped? C70's water's edge is measured here too (BANKS_ONLY=1
+// C69: the river lab. The drawn river is measured for SG2's question: does
+// a river carved into the 4 m grid read round, or stepped? C70's water's edge is measured here too (BANKS_ONLY=1
 // alone): its bands against the grass beside them, the grass thinning across
 // the bare earth, and a waterline that holds still.
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { chroma, linear, luminance, median } from "./_colour.mjs";
-import { advance, aim, lab, obs, openBattle, snapshot } from "./_lab.mjs";
+import { aim, lab, openBattle, snapshot } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
-import { BIOME, classAt, groundUnder, openStations, shoot } from "./_groundStations.mjs";
+import { BIOME, classAt, openStations, shoot } from "./_groundStations.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 /** Looking north, as the lab opens. */
@@ -17,8 +15,6 @@ const YAW = -Math.PI / 2;
 /** The play camera's framing (Defilade's): 65 m at 0.85 rad. */
 const PLAY = { distance: 65, pitch: 0.85, yaw: YAW };
 const TOP = { distance: 250, pitch: 1.5, yaw: YAW };
-/** The lab's opening frame: the whole river. */
-const OPENING = { target: [300, 240, 0], distance: 430, pitch: 0.95, yaw: YAW };
 /** SG2's bar: the largest step in the bank's shading, as a share of the flat
  *  ground's luminance. */
 const FACET_STEP_MAX = 0.08;
@@ -31,15 +27,11 @@ const HUE_APART_MIN = 6;
 /** The shallows on one bank may be this many times as pale against the
  *  channel as on the other: the banks are lit from different sides. */
 const SHALLOWS_SIDES_MAX = 1.25;
-/** How far from the water's edge C70's bands are measured (its crop). */
-const BAND_REACH_M = 8;
 /** A waterline pixel flickers when its luminance jumps by this much between
  *  two frames a centimetre apart (the water and the bank differ by more);
  *  the share of them that may, for the edges a nudge moves across a pixel. */
 const FLICKER_STEP = 0.04;
 const FLICKER_SHARE_MAX = 0.005;
-
-const surfaceAt = (page, p) => lab(page, (q) => window.__lab.route.surfaceAt(q[0], q[1]), p);
 
 /** The mean luminance of the 3×3 pixels round `p` (or the square `reach`
  *  pixels each way). */

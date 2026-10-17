@@ -96,42 +96,6 @@ pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String
     serde_json::from_value(fixture).map_err(|e| format!("rules: {e}"))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::rules;
-    use std::path::PathBuf;
-
-    struct Scratch(PathBuf);
-
-    impl Drop for Scratch {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-
-    #[test]
-    fn unknown_map_category_is_refused_by_name() {
-        let root = std::env::temp_dir().join(format!(
-            "battlegame-presentation-unknown-category-{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
-        let _scratch = Scratch(root.clone());
-        let map = root.join("fixtures/maps/unknown");
-        std::fs::create_dir_all(&map).unwrap();
-        let shipped = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
-        std::fs::copy(shipped.join("game.json"), root.join("fixtures/game.json")).unwrap();
-        std::fs::write(
-            map.join("meta.json"),
-            r#"{"category":"mystery","biome":"temperate"}"#,
-        )
-        .unwrap();
-
-        let error = rules(&root, "unknown").unwrap_err();
-        assert_eq!(error, "unknown map category \"mystery\"");
-    }
-}
-
 /// The simulation's world a saved map's ground was built by.
 pub use sim::world::WorldGeometry as World;
 
@@ -308,4 +272,40 @@ pub fn placed_buildings(
         shells,
     };
     Ok((placed, style))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rules;
+    use std::path::PathBuf;
+
+    struct Scratch(PathBuf);
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn unknown_map_category_is_refused_by_name() {
+        let root = std::env::temp_dir().join(format!(
+            "battlegame-presentation-unknown-category-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let _scratch = Scratch(root.clone());
+        let map = root.join("fixtures/maps/unknown");
+        std::fs::create_dir_all(&map).unwrap();
+        let shipped = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
+        std::fs::copy(shipped.join("game.json"), root.join("fixtures/game.json")).unwrap();
+        std::fs::write(
+            map.join("meta.json"),
+            r#"{"category":"mystery","biome":"temperate"}"#,
+        )
+        .unwrap();
+
+        let error = rules(&root, "unknown").unwrap_err();
+        assert_eq!(error, "unknown map category \"mystery\"");
+    }
 }

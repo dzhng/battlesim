@@ -263,7 +263,7 @@ fn an_encounters_overrides_retune_its_own_battle_and_no_other() {
         "units": [
             { "side": "blue", "kind": "test_scenario_tank", "position": [60, 120] },
             { "side": "blue", "kind": "test_tank", "position": [60, 100] },
-            { "side": "red", "kind": "test_tank", "position": [260, 150], "yaw": 3.14159 }
+            { "side": "red", "kind": "test_tank", "position": [260, 150], "yaw": std::f64::consts::PI }
         ],
         "overrides": {
             "weapons": {
@@ -382,7 +382,7 @@ fn an_overridden_encounter_plays_its_paired_record() {
     let mut digests = vec![format!("{:016x}", battle.digest())];
     while battle.tick() < record["ticks"].as_u64().unwrap() {
         battle.step();
-        if battle.tick() % every == 0 {
+        if battle.tick().is_multiple_of(every) {
             digests.push(format!("{:016x}", battle.digest()));
         }
     }
