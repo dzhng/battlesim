@@ -198,6 +198,15 @@ pub enum Order {
         squads: Vec<UnitId>,
         gesture: u64,
     },
+    /// Drive carriers to a point and unload, or unload in place when no goal
+    /// is supplied. Shift queues a goal unload; an in-place unload replaces
+    /// the queue.
+    Unload {
+        units: Vec<UnitId>,
+        goal: Option<[f64; 2]>,
+        gesture: u64,
+        route: RoutePolicy,
+    },
     /// Double right-click: switch the orders issued by `gesture` to `route`.
     /// A gesture whose orders have all completed is an acknowledged no-op.
     UpgradeMove {
@@ -284,6 +293,8 @@ pub enum OrderError {
     },
     /// The named host cannot carry passengers.
     NotACarrier,
+    /// No reachable standing spots exist for every passenger.
+    NoRoomToUnload,
 }
 
 impl OrderError {
@@ -317,6 +328,7 @@ impl OrderError {
             Self::BuildingOccupied => "building_occupied",
             Self::Aboard { .. } => "aboard",
             Self::NotACarrier => "not_a_carrier",
+            Self::NoRoomToUnload => "no_room_to_unload",
         }
     }
 }
