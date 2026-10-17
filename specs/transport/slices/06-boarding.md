@@ -10,7 +10,7 @@ Load `tweak-mechanics` first. This is the riskiest slice; probe the risk first (
 - **Commands:** `Board` and `Collect` (README contracts). Per-unit refusals use slice 03's `Refusal`.
   - If the selected squads need more seats than are free, the closest whole squads that fit board, and each other squad gets `CapacityFull` in `CommandAck.refused`.
   - `validate_units` (`battle.rs:1712`) refuses any order aimed at a passenger with `Aboard { unit }`.
-- **Hold:** `Host::Carrier(UnitId)` joins the hold.
+- **Hold:** `Host::Carrier(UnitId)` joins the hold. Delete slice 02's temporary `Deref`/`DerefMut` from `Hold` to `Garrison`; building code reaches `Place::Building` explicitly.
   - Its timing comes from `rules.carriage`.
   - Both units must be stopped and within `reach_m` for the 1 s timer to run; any other order cancels it, as for buildings.
   - The seat check runs again when the timer ends. Supply can add a soldier during the timer, the same way garrison re-checks at `garrison.rs:549`.

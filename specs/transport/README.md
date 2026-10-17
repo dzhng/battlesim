@@ -1,6 +1,6 @@
 # Transport
 
-**Status:** planned, not started. 14 slices; slice 01 is next.
+**Status:** in progress. 02 and 05 landed; 01, 03 and 04 are in flight (Codex, separate worktrees).
 **Updated:** 2026-10-16.
 
 Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier has 3, 8 or 16 seats. Squads board it in 1 s, ride hidden from the enemy, and get out on an explicit Unload order. When a carrier dies, its passengers bail out hurt, and some die. A building collapse now works the same way. The skirmish AI moves its infantry by transport.
@@ -10,6 +10,8 @@ Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier ha
 ## Next Agent Prompt
 
 You are implementing passenger transport. Start at the first unchecked slice below, read its file, and follow it. Before your first slice, read [map.md](map.md) (decisions and landmines), this README's contracts and invariants, `development.md` and the skills it names (`tweak-mechanics` for slices 04, 06–09; `game-ui` and `renderer` before slices 10–11; `write-tests` before any test).
+
+**How the work runs (user, 2026-10-16):** Codex implements every non-visual slice (delegated with worktree isolation); the orchestrator reviews, integrates, and browser-verifies the visual slices 10 and 11 itself.
 
 The user is not a blocker (2026-10-16: "Just do your best"). Every human checkpoint is non-blocking: open the shots with `preview-shots`, wait about 5 minutes, then decide on the evidence, record the call in [choices.md](choices.md), close the shots and continue. Record every decision the plan left to you in [choices.md](choices.md).
 
@@ -24,10 +26,10 @@ Update this section, and tick the list, before you end each pass.
 ### TODO
 
 - [ ] [01](slices/01-crash-on-bridge-deck.md) A helicopter shot down over a bridge rests on the deck (L11). Skip if it stops being simple.
-- [ ] [02](slices/02-one-hold.md) One owner for a unit inside something: garrison becomes the building case of a general hold. No outcome change.
+- [x] [02](slices/02-one-hold.md) One owner for a unit inside something: garrison becomes the building case of a general hold. No outcome change.
 - [ ] [03](slices/03-hold-and-refusal-contract.md) The observation, publication and refusal contract for holds. Captures are re-recorded once, here.
 - [ ] [04](slices/04-bail-out.md) The bail-out library, applied to building collapse (named outcome change).
-- [ ] [05](slices/05-recon-three.md) Recon patrols become 3 soldiers (named outcome change).
+- [x] [05](slices/05-recon-three.md) Recon patrols become 3 soldiers (named outcome change).
 - [ ] [06](slices/06-boarding.md) The carriage capability, boarding from both directions, and "on the field". Opens the transport lab.
 - [ ] [07](slices/07-unload.md) Unloading at a point, in place and queued; refused with no room.
 - [ ] [08](slices/08-carrier-destroyed.md) A destroyed carrier bails out its passengers; refunds take passengers along.
