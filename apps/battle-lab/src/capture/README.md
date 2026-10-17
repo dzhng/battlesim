@@ -36,7 +36,7 @@ field, a non-capture map or a bad value, naming the field. The other files in
 
 ```jsonc
 {
-  "scenes": [            // played in order; several are crossfaded into one MP4
+  "scenes": [            // played in order; several are joined into one MP4, dipping through black between them
     {
       "map": "market-town",  // a capture map's folder name
       "encounter": "menu",   // file stem under that map's encounters/
@@ -132,7 +132,7 @@ real time. It writes to `throwaway/capture/` by default:
 
 - `<name>-scene<i>.mp4`: one constant-rate H.264/AAC MP4 per scene, next to the
   WebM it was made from;
-- `<name>.mp4`: all scenes joined with a short crossfade, when there are several;
+- `<name>.mp4`: all scenes joined, dipping through black for 0.5 s between them, when there are several;
 - `<name>.report.json`: the capture file, and for each output its length,
   average fps, worst frame gap and whether it has audio, plus warnings.
 

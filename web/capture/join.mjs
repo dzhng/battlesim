@@ -1,5 +1,7 @@
 // ffmpeg argv: scene MP4s → one MP4 chained with xfade (video) and
-// acrossfade (audio). Inputs are transcode outputs, so they already share
+// acrossfade (audio). The picture dips through black, as the reel's own cuts
+// do: scenes are unrelated shots, and a plain dissolve between them reads as
+// a muddy double exposure. Inputs are transcode outputs, so they already share
 // size, frame rate, pixel format and sample rate, which xfade requires.
 import { AAC, X264 } from "./transcode.mjs";
 
@@ -38,7 +40,7 @@ export function joinArgs({ inputs, output, fps }) {
   offsets.forEach((offset, k) => {
     const i = k + 1;
     graph.push(
-      `[${video}][${i}:v]xfade=transition=fade:duration=${CROSSFADE_S}:offset=${offset}[v${i}]`,
+      `[${video}][${i}:v]xfade=transition=fadeblack:duration=${CROSSFADE_S}:offset=${offset}[v${i}]`,
       `[${audio}][${i}:a]acrossfade=d=${CROSSFADE_S}[a${i}]`,
     );
     video = `v${i}`;

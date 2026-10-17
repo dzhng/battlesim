@@ -28,6 +28,7 @@ export function planCapture(capture, args, { root = REPO_ROOT } = {}) {
       scene: String(i),
       cards: args.cards ? "1" : "0",
       record: "1",
+      fps: String(args.fps),
     })}`,
     seconds: scene.reel.shots.reduce((sum, shot) => sum + shot.seconds, 0),
     webm: out(`${name}-scene${i}.webm`),

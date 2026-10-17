@@ -4,7 +4,7 @@
 // the cuts dipping to black. With `record=1` it records the stage and hands
 // the WebM to the capture CLI.
 //
-//   /labs/capture?capture=<name>&scene=<i>&cards=0|1[&record=1]
+//   /labs/capture?capture=<name>&scene=<i>&cards=0|1[&record=1&fps=<n>]
 //
 // `<name>` is a file stem under fixtures/captures/; the stage fills the
 // viewport, so the viewport is the film's size. When recording, the CLI
@@ -30,7 +30,7 @@ const CAPTURES = import.meta.glob<unknown>("../../../../fixtures/captures/*.json
   import: "default",
 });
 
-/** The frame rate asked of the tab capture: the most the page draws. */
+/** The frame rate asked of the tab capture without `fps`: the most the page draws. */
 const RECORD_FPS = 60;
 
 type CaptureResult = (TabRecording & { audio: boolean }) | { error: string };
@@ -46,6 +46,7 @@ interface CaptureParams {
   scene: number;
   cards: boolean;
   record: boolean;
+  fps: number;
 }
 
 function captureParams(search: string): CaptureParams {
@@ -55,6 +56,7 @@ function captureParams(search: string): CaptureParams {
     scene: Number(params.get("scene") ?? 0),
     cards: params.get("cards") !== "0",
     record: params.get("record") === "1",
+    fps: Number(params.get("fps") ?? RECORD_FPS),
   };
 }
 
@@ -150,7 +152,7 @@ function CaptureStage({
       : !stage.current
         ? Promise.reject(new Error("the stage is not mounted"))
         : recordTab(stage.current, {
-            fps: RECORD_FPS,
+            fps: params.fps,
             until: run.ended,
             onStart: run.start,
             onChunk: async (chunk) => captureChunk(await base64(chunk)),

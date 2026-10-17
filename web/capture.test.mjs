@@ -57,14 +57,14 @@ test("capture plan: one recording job per scene, a join only for several scenes"
   expect(plan.jobs).toEqual([
     {
       scene: 0,
-      url: "/labs/capture?capture=trailer&scene=0&cards=0&record=1",
+      url: "/labs/capture?capture=trailer&scene=0&cards=0&record=1&fps=60",
       seconds: 15.5,
       webm: "/out/trailer-scene0.webm",
       mp4: "/out/trailer-scene0.mp4",
     },
     {
       scene: 1,
-      url: "/labs/capture?capture=trailer&scene=1&cards=0&record=1",
+      url: "/labs/capture?capture=trailer&scene=1&cards=0&record=1&fps=60",
       seconds: 8,
       webm: "/out/trailer-scene1.webm",
       mp4: "/out/trailer-scene1.mp4",
@@ -75,9 +75,10 @@ test("capture plan: one recording job per scene, a join only for several scenes"
 
   const single = planCapture(
     { scenes: [scene([3])] },
-    parseCaptureArgs(["fixtures/captures/one.json"]),
+    parseCaptureArgs(["fixtures/captures/one.json", "--fps=30"]),
   );
   expect(single.jobs[0].url).toContain("cards=1");
+  expect(single.jobs[0].url).toContain("fps=30");
   expect(single.joined).toBeNull();
 
   expect(() => planCapture({ scenes: [] }, args)).toThrow(/no scenes/);
@@ -131,8 +132,8 @@ test("join: chained xfade/acrossfade with offsets from each scene's length", () 
   expect(argv.filter((a, i) => argv[i - 1] === "-i")).toEqual(["a.mp4", "b.mp4", "c.mp4"]);
   expect(argv.at(-1)).toBe("all.mp4");
   const graph = after(argv, "-filter_complex");
-  expect(graph).toContain(`[0:v][1:v]xfade=transition=fade:duration=${d}:offset=${10 - d}[v1]`);
-  expect(graph).toContain(`[v1][2:v]xfade=transition=fade:duration=${d}:offset=${18 - 2 * d}[v2]`);
+  expect(graph).toContain(`[0:v][1:v]xfade=transition=fadeblack:duration=${d}:offset=${10 - d}[v1]`);
+  expect(graph).toContain(`[v1][2:v]xfade=transition=fadeblack:duration=${d}:offset=${18 - 2 * d}[v2]`);
   expect(graph).toContain(`[0:a][1:a]acrossfade=d=${d}[a1]`);
   expect(graph).toContain(`[a1][2:a]acrossfade=d=${d}[a2]`);
   expect(argv.filter((a, i) => argv[i - 1] === "-map")).toEqual(["[v2]", "[a2]"]);

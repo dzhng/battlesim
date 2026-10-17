@@ -1,14 +1,12 @@
 # Capture: scripted battle videos from a JSON file
 
-Status: slices 01–05 landed 2026-10-17. Slice 05 is still waiting on its real recording runs.
+Status: slices 01–05 done 2026-10-17; closeout in progress.
 
 ## Next Agent Prompt
 
 You are resuming the capture rework. Read this README, then the slice you pick up.
 
-- **Next pickup:**
-  - Finish slice 05: pass `--fps` through to the route (the route has no fps parameter yet and always records at 60), then do the real runs on `short.json` and `menu.json`, with ffprobe and a critique of the join.
-  - Then [slice 06](slices/06-closeout.md). Its `frame` re-approval is already done (5492fdbeb).
+- **Next pickup:** slice 06 closeout: review, the full run, then close-spec. The menu recorded through the CLI: `throwaway/capture/menu.mp4` (156 s, two scenes). Its report warns that scene 0 averaged 46.7 fps, recorded while the machine was loaded.
 - **Measured on a quiet machine (slice 04):**
   - Top-down records at 58.4 fps at 1080p.
   - At 1440p it records 45.5 fps against the page's own 45.8, so the recorder keeps up with the page and the renderer is the limit. Faster 1440p rendering is outside this spec, and the report warns.
@@ -19,7 +17,7 @@ You are resuming the capture rework. Read this README, then the slice you pick u
   - [x] 02 Capture file and the `capture` module ([slice](slices/02-capture-module.md))
   - [x] 03 One `ScenePlayer` for menu and capture, seeded score ([slice](slices/03-scene-player.md))
   - [x] 04 Capture route records the stage with tab capture ([slice](slices/04-tab-recorder.md))
-  - [ ] 05 CLI writes the MP4s and the report ([slice](slices/05-cli.md))
+  - [x] 05 CLI writes the MP4s and the report ([slice](slices/05-cli.md))
   - [ ] 06 Menu reel through the new path, approvals, docs, full run, close-spec ([slice](slices/06-closeout.md))
 - Update this section (status, pickup, ticks, blockers) before you end every pass.
 
@@ -89,7 +87,7 @@ The grade is always on.
 
 **Outputs.**
 - One MP4 per scene.
-- One joined MP4 with a short `xfade`/`acrossfade` crossfade, when there's more than one scene.
+- One joined MP4, when there's more than one scene. Between scenes it dips through black for 0.5 s (`xfade=fadeblack` with `acrossfade`), as the reel's own cuts do. A plain dissolve between unrelated shots read as a muddy double exposure (decided on the evidence, 2026-10-17).
 - `<name>.report.json`: the capture file, each output, length, average and worst fps, whether audio is present, and warnings.
 
 **Slow machines degrade gracefully.** Below target fps the video gets choppier but never drifts out of sync or speed, because the recording is wall-clock real time. The report warns when average fps is below 90% of target.
