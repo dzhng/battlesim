@@ -4,6 +4,7 @@ import { FACTIONS, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
 import matchRules from "@fixtures/skirmish.json";
+import { entryCountForPlayers } from "../skirmishSetup";
 
 export type BuilderController = "human" | "active_ai" | "passive_ai";
 export type BuilderMode = "sandbox" | "economy";
@@ -54,10 +55,7 @@ export interface BuilderSkirmish {
   /** The match rules (`contract::skirmish::MatchRules`). */
   rules: typeof matchRules;
   sites: {
-    entries: [
-      { side: "blue"; center: [number, number]; yaw: number },
-      { side: "red"; center: [number, number]; yaw: number },
-    ];
+    entries: { side: "blue" | "red"; center: [number, number]; yaw: number }[];
     objectives: {
       id: string;
       center: [number, number];
@@ -69,15 +67,21 @@ export interface BuilderSkirmish {
   };
 }
 
-export function builderEconomy(size: readonly [number, number]): BuilderSkirmish {
+export type SyntheticSites = (
+  size: readonly [number, number],
+  entriesPerSide: number,
+) => BuilderSkirmish["sites"]["entries"];
+
+export function builderEconomy(
+  size: readonly [number, number],
+  players: readonly Player[],
+  sitesFor: SyntheticSites,
+): BuilderSkirmish {
   const [width, depth] = size;
   return {
     rules: { ...matchRules, starting_minutes: 2, preparation_s: 20 },
     sites: {
-      entries: [
-        { side: "blue", center: [width / 2, 12], yaw: Math.PI / 2 },
-        { side: "red", center: [width / 2, depth - 12], yaw: -Math.PI / 2 },
-      ],
+      entries: sitesFor(size, entryCountForPlayers(players)),
       objectives: [
         {
           id: "center",

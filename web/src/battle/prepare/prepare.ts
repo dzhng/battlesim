@@ -31,7 +31,7 @@ export interface PreparationModule extends MapGenerator {
  *  admitted on it and the battle then takes it. */
 export interface PreparedWorld {
   admit_skirmish(sites: string, players: string): string;
-  skirmish_fields(sites: string, players: string): string;
+  skirmish_scenario(sites: string, players: string): string;
   extents(): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
@@ -186,7 +186,13 @@ export async function prepare(
       laid = { scenario: stressScenario, metadata, stress };
       start = metadata.start;
     } else {
-      const base = skirmish?.entries.find((e) => e.side === "blue");
+      const blueEntries = skirmish?.entries.filter((e) => e.side === "blue") ?? [];
+      const human = checked.players.find(
+        (player) => player.side === "blue" && player.controller === "human",
+      );
+      const bluePlayers = checked.players.filter((player) => player.side === "blue");
+      const lane = human ? Math.max(0, bluePlayers.indexOf(human)) : 0;
+      const base = blueEntries[lane % Math.max(blueEntries.length, 1)];
       if (!base)
         throw new PreparationRefused("encounter", [
           {
@@ -197,15 +203,12 @@ export async function prepare(
           },
         ]);
       laid = {
-        fields: world.skirmish_fields(map.sites, JSON.stringify(checked.players)).slice(1),
+        fields: world.skirmish_scenario(map.sites, JSON.stringify(checked.players)),
       };
       start = { at: base.center, yaw: base.yaw };
     }
     const buildings = map.definition.buildings ?? [];
-    const scenario =
-      "scenario" in laid
-        ? laid.scenario
-        : `{"map":${map.json},"rules":${documents.rules},${laid.fields}`;
+    const scenario = "scenario" in laid ? laid.scenario : laid.fields;
     accepted<{}>("encounter", wasm.check_scenario_player_contract(scenario));
     return {
       world,

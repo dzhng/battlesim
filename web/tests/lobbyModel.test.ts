@@ -108,9 +108,10 @@ describe("lobby model", () => {
     expect(roundTrip).toEqual(state);
   });
 
-  test("request keeps today's map source seam until slice 06", () => {
+  test("request carries the shared entry count and ordered players", () => {
     const request = toRequest(preset("1v1"));
     expect(request.players).toHaveLength(2);
     expect(request.battle_seed).toBeTypeOf("number");
+    expect(request.map_source.request.entries_per_side).toBe(1);
   });
 });

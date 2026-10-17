@@ -37,6 +37,7 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameCamera } from "../gameCamera";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
+import { entryCountForPlayers } from "../skirmishSetup";
 
 const GENERATOR = { presets, templates };
 
@@ -135,7 +136,12 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
         kind: "generated",
         request: generationRequest(
           wasm,
-          { ...a.map, profile: "skirmish", seed: a.kind === "play" ? "0" : a.map.seed },
+          {
+            ...a.map,
+            profile: "skirmish",
+            seed: a.kind === "play" ? "0" : a.map.seed,
+            entries_per_side: entryCountForPlayers(a.players),
+          },
           GENERATOR,
           config.limits,
         ),

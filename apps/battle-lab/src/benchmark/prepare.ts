@@ -11,6 +11,7 @@ import type { Wasm } from "@web/battle/sim/module";
 import { cityContactTour } from "@web/battle/benchmark/camera";
 import type { BenchmarkPreset, BenchmarkScenario } from "@web/battle/benchmark/presets";
 import type { GameRules } from "@web/battle/catalog/compose";
+import { playersFor } from "../skirmishSetup";
 
 function benchmarkPreparation(
   wasm: Wasm,
@@ -25,16 +26,7 @@ function benchmarkPreparation(
         request: generationRequest(wasm, scenario.generated, { presets, templates }, config.limits),
       },
       // The stress scene fields its own forces; the request still names two.
-      players: [
-        { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
-        {
-          id: "red-1",
-          side: "red",
-          faction: "eastern",
-          controller: "active_ai",
-          human_capable: false,
-        },
-      ],
+      players: playersFor(1, 1),
       battle_seed: scenario.seed,
     },
     documents: { presets, templates, rules: JSON.stringify(rules) },

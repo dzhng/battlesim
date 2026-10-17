@@ -35,14 +35,40 @@ pub struct OpeningPurchase {
 #[serde(transparent)]
 pub struct PlayerIndex(pub u16);
 
-/// Number of shared entry arms for a side with this many players.
+#[derive(Deserialize)]
+struct SkirmishSizeTier {
+    min_players: usize,
+    #[serde(default)]
+    max_players: Option<usize>,
+    entry_count: usize,
+}
+
+fn skirmish_size_data() -> &'static [SkirmishSizeTier] {
+    static DATA: std::sync::OnceLock<Vec<SkirmishSizeTier>> = std::sync::OnceLock::new();
+    DATA.get_or_init(|| {
+        #[derive(Deserialize)]
+        struct Fixture {
+            tiers: Vec<SkirmishSizeTier>,
+        }
+        serde_json::from_str::<Fixture>(include_str!("../../../fixtures/skirmish-sizes.json"))
+            .expect("valid skirmish-sizes fixture")
+            .tiers
+    })
+}
+
+/// Number of shared entry arms for a side with this many players. The
+/// authored size fixture is the single owner shared with the lobby.
 pub fn entry_count(players: usize) -> usize {
-    match players {
-        0 => 0,
-        1 => 1,
-        2 => 2,
-        _ => 3,
+    if players == 0 {
+        return 0;
     }
+    skirmish_size_data()
+        .iter()
+        .find(|tier| {
+            tier.min_players <= players && tier.max_players.is_none_or(|max| players <= max)
+        })
+        .map(|tier| tier.entry_count)
+        .expect("skirmish size fixture covers every player count")
 }
 
 /// Validate the topology shared by authored bundles and skirmish requests.

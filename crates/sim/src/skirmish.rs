@@ -9,6 +9,81 @@ use contract::skirmish::{
 };
 use std::collections::{BTreeMap, VecDeque};
 
+/// Construct the one skirmish setup shape used by generated battles,
+/// tournament inputs, and authored economy scenarios.
+pub fn setup_for<P: AsRef<[Player]>>(
+    players: P,
+    sites: contract::encounter::SkirmishSites,
+) -> SkirmishSetup {
+    let players = players.as_ref();
+    debug_assert!(contract::players::validate_players(players).is_ok());
+    debug_assert!(contract::players::validate_entry_counts(players, &sites.entries).is_ok());
+    SkirmishSetup {
+        rules: starter_rules(),
+        sites,
+        openings: BTreeMap::new(),
+    }
+}
+
+/// Synthetic sites for fixtures that have a map but no authored encounter.
+/// Entries follow the generated map order: centre, then left-to-right flanks,
+/// for each side.
+pub fn synthetic_sites(
+    size: [f64; 2],
+    entries_per_side: usize,
+) -> contract::encounter::SkirmishSites {
+    use contract::encounter::{EntrySite, ObjectiveSite, ObjectiveSiteKind, SkirmishSites};
+    use contract::ids::Side;
+    let [width, depth] = size;
+    let fractions: &[f64] = match entries_per_side {
+        1 => &[0.5],
+        2 => &[0.35, 0.65],
+        _ => &[0.2, 0.5, 0.8],
+    };
+    let mut entries = Vec::with_capacity(fractions.len() * 2);
+    for side in [Side::Blue, Side::Red] {
+        for &fraction in fractions {
+            let (y, yaw) = if side == Side::Blue {
+                (12.0, 1.57)
+            } else {
+                (depth - 12.0, -1.57)
+            };
+            entries.push(EntrySite {
+                side,
+                center: [width * fraction, y],
+                yaw,
+            });
+        }
+    }
+    SkirmishSites {
+        entries,
+        objectives: vec![
+            ObjectiveSite {
+                id: "center".into(),
+                center: [width * 0.5, depth * 0.5],
+                radius_m: 50.0,
+                kind: ObjectiveSiteKind::Junction,
+                counterpart: None,
+            },
+            ObjectiveSite {
+                id: "west".into(),
+                center: [width * 0.25, depth * 0.5],
+                radius_m: 50.0,
+                kind: ObjectiveSiteKind::Field,
+                counterpart: Some("east".into()),
+            },
+            ObjectiveSite {
+                id: "east".into(),
+                center: [width * 0.75, depth * 0.5],
+                radius_m: 50.0,
+                kind: ObjectiveSiteKind::Field,
+                counterpart: Some("west".into()),
+            },
+        ],
+        candidates: vec![],
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Reservation {
     pub data: PendingPurchase,

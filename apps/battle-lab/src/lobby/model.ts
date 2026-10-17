@@ -3,7 +3,6 @@ import skirmishSizes from "@fixtures/skirmish-sizes.json";
 import type { Player, PrepareBattleRequest, ControllerKind } from "@web/battle/prepare/protocol";
 import {
   MAP_SIZES,
-  MAP_TYPES,
   newSeed,
   type GenerationRequest,
   type MapChoice,
@@ -11,6 +10,8 @@ import {
   type MapType,
 } from "@web/maps/source";
 import type { Faction } from "@packages/scene-assets/src/units";
+import { entryCountForPlayers } from "../skirmishSetup";
+import { askedBattle, battleHref } from "../battleLinks";
 
 export type LobbySide = "blue" | "red";
 export type LobbyPreset = "1v1" | "3v3" | "5v5";
@@ -90,16 +91,6 @@ function sizeRank(size: MapSize): number {
 function ratchetSize(players: readonly Player[], size: MapSize): MapSize {
   const floor = minimumSize(players);
   return sizeRank(size) >= sizeRank(floor) ? size : floor;
-}
-
-function entryCount(players: number): number {
-  return players <= 1 ? 1 : players === 2 ? 2 : 3;
-}
-
-/** The entries each side gets for these players: one count for both sides,
- *  from the larger side (D52). */
-export function entriesPerSide(players: readonly Player[]): number {
-  return entryCount(Math.max(sideCount(players, "blue"), sideCount(players, "red")));
 }
 
 function withPlayers(state: LobbyState, players: Player[]): LobbyState {
@@ -235,7 +226,7 @@ function mapInputs(state: LobbyState): {
     size: state.map.size,
     ...(state.map.region === undefined ? {} : { region: state.map.region }),
     seed: state.map.seed,
-    entries: entriesPerSide(state.players),
+    entries: entryCountForPlayers(state.players),
   };
 }
 
@@ -252,13 +243,13 @@ export function isMapInputChange(before: LobbyState, after: LobbyState): boolean
 }
 
 export function toRequest(state: LobbyState): PrepareBattleRequest {
-  // Slice 06 will replace this placeholder generation request with its admitted setup seam.
   const request = {
     ...state.map,
     profile: "skirmish" as const,
     generator_version: "",
     preset_revision: "",
     template_catalog_hash: "",
+    entries_per_side: entryCountForPlayers(state.players),
     limits: { max_authored_parts: 0, max_bay_positions: 0, max_ground_points: 0 },
   } satisfies GenerationRequest;
   return {
@@ -269,47 +260,31 @@ export function toRequest(state: LobbyState): PrepareBattleRequest {
 }
 
 export function toUrl(state: LobbyState): string {
-  // Slice 06 will replace this temporary lobby URL grammar with the battle link grammar.
-  const params = new URLSearchParams({
-    type: state.map.type,
-    size: state.map.size,
-    seed: state.map.seed,
-    battle: String(state.battleSeed),
-    floor: state.sizeFloor,
-    players: JSON.stringify(state.players),
-  });
-  if (state.map.region !== undefined) params.set("region", state.map.region);
-  return `?${params}`;
+  const blue = state.players.find((player) => player.side === "blue");
+  return battleHref(
+    { ...state.map, faction: blue?.faction ?? "us" },
+    state.players,
+    state.battleSeed,
+  ).replace(/^\/battle/, "");
 }
 
 export function fromUrl(url: string): LobbyState {
-  // Slice 06 will replace this temporary lobby URL parser with the battle link grammar.
-  const params = new URL(url, "https://lobby.invalid").searchParams;
-  const players = JSON.parse(params.get("players") ?? "null") as Player[] | null;
-  const type = params.get("type");
-  const size = params.get("size");
-  if (!players || !MAP_TYPES.includes(type as MapType) || !MAP_SIZES.includes(size as MapSize))
-    throw new Error("invalid lobby URL");
-  const battleSeed = Number(params.get("battle"));
-  if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)
-    throw new Error("invalid lobby battle seed");
-  const normalizedPlayers = orderedPlayers(enforceHumanInvariant(players));
+  const asked = askedBattle(new URL(url, "https://lobby.invalid").search);
+  if ("error" in asked) throw new Error(asked.error);
+  if (asked.kind === "replay") throw new Error("a replay link has no lobby players");
+  const normalizedPlayers = orderedPlayers(asked.players);
   const minimum = minimumSize(normalizedPlayers);
-  const floorParam = params.get("floor") as MapSize | null;
-  const sizeFloor =
-    floorParam && MAP_SIZES.includes(floorParam) && sizeRank(floorParam) >= sizeRank(minimum)
-      ? floorParam
-      : minimum;
+  const sizeFloor = minimum;
   return {
     players: normalizedPlayers,
     map: {
-      type: type as MapType,
-      size: sizeRank(size as MapSize) >= sizeRank(sizeFloor) ? (size as MapSize) : sizeFloor,
-      seed: params.get("seed") ?? "1",
+      type: asked.map.type,
+      size: sizeRank(asked.map.size) >= sizeRank(sizeFloor) ? asked.map.size : sizeFloor,
+      seed: "seed" in asked.map ? asked.map.seed : "1",
       profile: "skirmish",
-      ...(params.get("region") === null ? {} : { region: params.get("region")! }),
+      ...(asked.map.region === undefined ? {} : { region: asked.map.region }),
     },
-    battleSeed,
+    battleSeed: asked.battleSeed,
     sizeFloor,
   };
 }
