@@ -63,7 +63,7 @@ export default function CapturePage() {
 
   return (
     <Suspense fallback={null}>
-      <SessionCatalogScope set="menu">
+      <SessionCatalogScope set="capture">
         <CaptureSession settings={settings} />
       </SessionCatalogScope>
     </Suspense>

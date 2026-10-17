@@ -48,14 +48,14 @@ subject change. After re-recording the log, render the reel and show the user
 the footage to approve.
 
 The backdrop is directed footage, not a battle. It may field any units, including
-the [menu's own](units/menu/) (`menu_*`, in the menu's catalog set only) with
+the [capture set's own](units/capture/) (`capture_*`, in the capture catalog set only) with
 whatever stats, hulls, weapons, scripts and positions it needs, and anything in it
 may change. What may not change is an approved shot: its camera, framing, timing
 and what happens in it (who fires, which round or missile flies, who is hit, who
 dies, and when). [The exact-shot test](../crates/sim/tests/menu_reel.rs) holds
 each scene's battle to the event log recorded from the approved reel, and no shot
 may open on a unit it follows that has already fallen. A battle this chaotic can
-only keep its log if its physics stays the same, so a menu unit extends the test
+only keep its log if its physics stays the same, so a capture unit extends the test
 unit whose part it plays, hull and all, and changes its look; one shared random
 stream means any physical difference retimes the whole scene. So each scene's
 encounter pins, in its `overrides`, every stat of every weapon its cast fires, at
@@ -76,7 +76,7 @@ A saved map is one folder, `maps/<id>/`, under [the saved-map catalog](maps/), a
 - **`map.json`** is the physical map in its saved form (`contract::map::SavedMap`): ground, relief, water, surfaces, forests, props and buildings. A building is stored as what is its own: `owner`, `kind`, `template_id`, `frame` (translation and yaw) and `parts` (each named part's prop id). Its geometry, category and regional family are the template's and are not stored. The map names its own region once, `regional_family`, which every building's template must share (absent only on a map without buildings): the renderer and the asset loader read the region there and nowhere else. Only the resolver reads this file.
 - **`SOURCES.json`** pins what the map is and where it came from (`contract::maps::MapSources`): its content identity (an authored map's hash, or a generated map's whole generation identity), its physical catalogue (`catalogue.library`, the file name of the template library in this folder, and `catalogue.template_ids`, the templates of it the map uses: an authored map lists them, so only a change to one of its own templates moves it), and a receipt for each input it was made from. A receipt is `repository` (path, revision, sha256) or `supplied` (label, sha256).
 - **`meta.json`** is what a listing shows without loading the map: category, status, label, character, biome, size, feature tags, source, seed, and the names of its encounters and benchmarks. [`web/src/maps/catalogue.ts`](../web/src/maps/catalogue.ts) owns the schema, the validator and `listMaps`. Every field the map itself also states is checked against the map, so a listing cannot drift from what loads.
-- **The category says what a saved map is for** (`contract::maps::MapCategory`): `test` (a test's, a lab's or a benchmark's ground) or `menu` (a battlefield the menu backdrop films); anything else is refused by both readers. No saved map is the game's: player battles are generated and never name one. The menu backdrop takes only `menu` maps, and labs and native tests only `test` maps (`fixtureMap`, `sim::fixtures::with_map`), so a test needing content another owner has gets its own copy of the map rather than borrowing that owner's.
+- **The category says what a saved map is for** (`contract::maps::MapCategory`): `test` (a test's, a lab's or a benchmark's ground) or `capture` (a battlefield the capture tool and menu film); anything else is refused by both readers. No saved map is the game's: player battles are generated and never name one. The capture tool and menu film take only `capture` maps, and labs and native tests only `test` maps (`fixtureMap`, `sim::fixtures::with_map`), so a test needing content another owner has gets its own copy of the map rather than borrowing that owner's.
 
 - **`encounters/<name>.json`** is an encounter laid on the map (`contract::scenario::EncounterDefinition`): units, events and scripted orders, and optionally an opponent, a completion rule and `overrides`. A scenario is the resolved map, the rules and one encounter. The endurance battle is not a file: the simulation builds it from the rules and the resolved map (`sim::endurance`).
 
@@ -138,8 +138,8 @@ them to panels and the range ruler), rather than reinterpreting authored familie
 A battle runs one of three document sets (`sim::fixtures::CatalogSet`): the
 game's, the only one committed as `catalog.json` and holding only what roster
 cards reach; the test set, which adds the [test units](units/test/) (`test_*`)
-that tests, labs, scenes and art checks field; and the menu set, which adds the
-test units and the menu reel's own units. The test and menu sets are resolved when asked for and
+that tests, labs, scenes and art checks field; and the capture set, which adds the
+test units and the capture reel's own units. The test and capture sets are resolved when asked for and
 never written, so one generated file stays the editors' and publication's. The
 browser's [session factory](../web/src/battle/catalog/) is the one reader of
 `catalog.json`, and each battle session owns the set its page runs. After a catalog
@@ -247,7 +247,7 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 `BLESS_PARITY=1` on the Rust test that reads a record re-records its native half, for a named behaviour change; the web test then holds Wasm to it.
 
-The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`game.json` with the menu catalog), and they match the run's own samples except for the fog revision counters.
+The [capture files](parity/capture/) are browser runs of the menu reel (`native-parity-capture`), re-recorded whole, never edited: a change to the publication layout means a new run. The paris-corner run is copied as it is, and gzipped for the native counts. The market-town window is seven samples of that battle from a fresh publisher, so its first sample is a full snapshot. The run gives its layout and its first tick's frame record. The samples come from replaying the battle natively (`game.json` with the capture catalog), and they match the run's own samples except for the fog revision counters.
 
 The generation corpus pins its [physical rules](parity/map-layout/physical-rules.json) as well as its requests. Changes to shipped unit vision can change the sight certificate and forest placement; they must not silently change the inputs behind a frozen output. Current-rule generation and preparation remain covered separately.
 

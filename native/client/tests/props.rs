@@ -34,7 +34,7 @@ fn the_scenes_vehicles_leave_their_own_wrecks_and_the_map_its_own_regions_looks(
     let replay = Replay::open(Path::new(RUN), &library).unwrap();
     let rows = prop_rows(&replay);
     assert!(!rows.is_empty(), "the map's props are placed");
-    // The scene's tank is a menu unit: its wreck is the hull's own.
+    // The scene's tank is a capture unit: its wreck is the hull's own.
     assert!(
         rows.iter().any(|r| r == "us_m1_abrams_sep_v2_wreck"),
         "the tank's own wreck is among the props' looks: {rows:?}"
@@ -53,13 +53,13 @@ fn the_scenes_vehicles_leave_their_own_wrecks_and_the_map_its_own_regions_looks(
 }
 
 #[test]
-fn a_menu_maps_props_are_placed_under_the_menus_units() {
+fn a_capture_maps_props_are_placed_under_the_capture_units() {
     let root = Path::new(ROOT);
     let ground = files::ground(root, "paris-corner").unwrap();
     let layout: Value = serde_json::from_str(&ground.layout).unwrap();
-    // The scene's tank is a menu unit: its wreck is drawn as its own hull's.
+    // The scene's tank is a capture unit: its wreck is drawn as its own hull's.
     assert_eq!(
-        layout["unitAppearance"]["menu_us_tank"], "us_m1_abrams_sep_v2",
-        "the layout names the menu's units"
+        layout["unitAppearance"]["capture_us_tank"], "us_m1_abrams_sep_v2",
+        "the layout names the capture units"
     );
 }

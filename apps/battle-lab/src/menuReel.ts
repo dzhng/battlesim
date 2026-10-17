@@ -183,7 +183,7 @@ export function validateBackdrop(
         if (typeof s[k] !== "string" || !s[k])
           throw new Error(`menu backdrop scenes[${i}].${k}: a saved map's name`);
       try {
-        categoryMap(maps, s.map, "menu");
+        categoryMap(maps, s.map, "capture");
       } catch (e) {
         throw new Error(`menu backdrop scenes[${i}].map: ${(e as Error).message}`);
       }

@@ -1,16 +1,15 @@
 # Capture: scripted battle videos from a JSON file
 
-Status: planned 2026-10-16 on branch `cursor/zoom-fade-info-cards-4b65` (PR #2). Spike passed; no slice started.
+Status: slice 01 done 2026-10-17 (rename landed; parity capture re-recorded whole; menu-reel logs re-blessed after watching both scenes).
 
 ## Next Agent Prompt
 
 You are resuming the capture rework. Read this README, then the slice you pick up.
 
-- **Next pickup:** [slice 01, rename](slices/01-rename-menu-to-capture.md).
-- **Known red test:** `cargo test -p sim --test sim menu_reel` fails today. In `market-town-menu`, event 1256 is recorded as `270 fire 22 hmg` but plays as `270 fire 1 tank_he`. The branch retimed `fixtures/menu-backdrop.json` orders without re-recording the logs. Slice 01 re-records it, but only after watching the reel; never bless a log you haven't looked at.
+- **Next pickup:** [slice 02, capture module](slices/02-capture-module.md). The pure CLI stages of slice 05 and the `frame` re-approval of slice 06 don't depend on 02–04 and can run alongside.
 - **Machine:** recording runs headful Chrome on the user's Mac. The spike proved it there. Don't try it headless or in CI.
 - **TODO:**
-  - [ ] 01 Rename the map category, unit set and unit prefix `menu` → `capture`, re-record the parity and menu-reel logs ([slice](slices/01-rename-menu-to-capture.md))
+  - [x] 01 Rename the map category, unit set and unit prefix `menu` → `capture`, re-record the parity and menu-reel logs ([slice](slices/01-rename-menu-to-capture.md))
   - [ ] 02 Capture file and the `capture` module ([slice](slices/02-capture-module.md))
   - [ ] 03 One `ScenePlayer` for menu and capture, any-side follow, seeded score ([slice](slices/03-scene-player.md))
   - [ ] 04 Capture route records the stage with tab capture ([slice](slices/04-tab-recorder.md))

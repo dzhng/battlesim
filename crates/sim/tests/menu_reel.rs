@@ -23,18 +23,18 @@ use sim::fixtures::{self, CatalogSet};
 use sim::flight::{FlightEvent, Struck};
 use sim::weapons::VEHICLE_BODY_BASE;
 
-/// The units the approved reel was filmed with, and the menu units that
+/// The units the approved reel was filmed with, and the capture units that
 /// play their parts now (same behaviour, a roster look): `(side, filmed,
 /// playing)`. A filmed kind not listed plays itself.
 const CAST: [(&str, &str, &str); 8] = [
-    ("Blue", "test_tank", "menu_us_tank"),
-    ("Blue", "test_jeep", "menu_us_jeep"),
-    ("Blue", "test_rifle", "menu_rifle"),
-    ("Blue", "test_at", "menu_us_at"),
-    ("Blue", "test_recon", "menu_us_recon"),
-    ("Red", "test_rifle", "menu_rifle"),
-    ("Red", "test_at", "menu_eastern_at"),
-    ("Red", "test_tank", "menu_eastern_tank"),
+    ("Blue", "test_tank", "capture_us_tank"),
+    ("Blue", "test_jeep", "capture_us_jeep"),
+    ("Blue", "test_rifle", "capture_rifle"),
+    ("Blue", "test_at", "capture_us_at"),
+    ("Blue", "test_recon", "capture_us_recon"),
+    ("Red", "test_rifle", "capture_rifle"),
+    ("Red", "test_at", "capture_eastern_at"),
+    ("Red", "test_tank", "capture_eastern_tank"),
 ];
 
 /// One scene of the backdrop: its saved battle and the shots that film it.
@@ -95,10 +95,10 @@ fn scenes() -> Vec<Scene> {
 }
 
 /// The rules the menu's battles run: `game.json` with the menu's catalog.
-fn menu_rules() -> Rules {
+fn capture_rules() -> Rules {
     let path = fixtures::dir().join("game.json");
     let mut game: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
-    game["catalog"] = Value::Array(fixtures::catalog_documents(CatalogSet::Menu));
+    game["catalog"] = Value::Array(fixtures::catalog_documents(CatalogSet::Capture));
     serde_json::from_value(game).unwrap()
 }
 
@@ -109,7 +109,7 @@ fn menu_rules() -> Rules {
 /// ground, a prop, a hull or a soldier, `fell <unit> soldier <slot>` and
 /// `died <unit>`.
 fn event_log(scene: &Scene) -> String {
-    let rules = menu_rules();
+    let rules = capture_rules();
     let end = scene.windows(rules.tick_hz as f64).last().unwrap().1;
     let scenario = sim::maps::scenario(&scene.map, &scene.encounter, rules).unwrap();
     let mut battle = Battle::new(&scenario, scene.seed);
@@ -218,7 +218,7 @@ fn plays_as_recorded(map: &str) {
         std::fs::write(&path, &log).unwrap();
     }
     let recorded = recast(&std::fs::read_to_string(&path).unwrap());
-    let windows = scene.windows(menu_rules().tick_hz as f64);
+    let windows = scene.windows(capture_rules().tick_hz as f64);
     let shot_at = |tick: u64| windows.iter().position(|w| w.0 <= tick && tick < w.1);
     for (n, (want, got)) in recorded.lines().zip(log.lines()).enumerate() {
         if want != got {

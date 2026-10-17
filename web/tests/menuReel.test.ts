@@ -9,9 +9,9 @@ import {
 } from "@apps/battle-lab/src/menuReel";
 import type { MapEntry } from "@web/maps/catalogue";
 
-/** A catalogue listing of `menu` maps and `test` maps, by id. */
+/** A catalogue listing of `capture` maps and `test` maps, by id. */
 const listing = (menu: string[], test: string[] = []): MapEntry[] =>
-  [...menu.map((id) => [id, "menu"] as const), ...test.map((id) => [id, "test"] as const)].map(
+  [...menu.map((id) => [id, "capture"] as const), ...test.map((id) => [id, "test"] as const)].map(
     ([id, category]) => ({
       id,
       category,
@@ -131,7 +131,7 @@ test("a backdrop is scenes in order, each a saved battle and its own reel; none 
   );
 });
 
-test("the menu films only menu maps: a test map is refused by name", () => {
+test("the menu films only capture maps: a test map is refused by name", () => {
   const scene = (map: string) => ({
     map,
     encounter: "e",
@@ -141,7 +141,7 @@ test("the menu films only menu maps: a test map is refused by name", () => {
   });
   const maps = listing(["town"], ["range"]);
   expect(() => validateBackdrop({ scenes: [scene("town"), scene("range")] }, maps)).toThrow(
-    'menu backdrop scenes[1].map: the saved map "range" is a test map, not a menu map',
+    'menu backdrop scenes[1].map: the saved map "range" is a test map, not a capture map',
   );
   expect(() => validateBackdrop({ scenes: [scene("nowhere")] }, maps)).toThrow(
     /scenes\[0\]\.map: no saved map "nowhere"/,

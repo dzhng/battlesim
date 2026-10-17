@@ -1,7 +1,7 @@
 // The main menu's backdrop: live battles on saved battlefields, one scene
 // after another, each filmed by its reel's camera moves and graded to the
 // menu's amber. Silent (the menu's music plays over it) and inert: input
-// belongs to the menu. Each is the menu's own battle, so leaving the menu
+// belongs to the menu. Each is the capture catalog's battle, so leaving the menu
 // releases its worker and scene like any battle's; when a scene's reel ends
 // the next scene's battle starts behind the veil (its saved scenario fetched
 // while the last one played), and after the last the first starts again.
@@ -51,7 +51,7 @@ const FILM_CAMERA = filmCamera(
   SCENES.map((s) => s.reel),
 );
 
-/** Each scene's saved scenario under the menu catalog's `rules`, fetched
+/** Each scene's saved scenario under the capture catalog's `rules`, fetched
  *  once: the next scene's is asked for while the current one plays, so the
  *  cut to it waits on starting and warming its battle, not on the download. */
 const scenarios = new Map<BackdropScene, Promise<string>>();
@@ -90,11 +90,11 @@ interface BackdropProps {
   onDetectionSceneReady?: () => void;
 }
 
-/** The backdrop's battles run on the menu's own catalog. */
+/** The backdrop's battles run on the capture catalog. */
 export function MenuBackdrop(props: BackdropProps) {
   return (
     <Suspense fallback={null}>
-      <SessionCatalogScope set="menu">
+      <SessionCatalogScope set="capture">
         <BackdropScenes {...props} />
       </SessionCatalogScope>
     </Suspense>
