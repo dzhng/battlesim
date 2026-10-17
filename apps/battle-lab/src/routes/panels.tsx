@@ -36,7 +36,7 @@ const OVER_GRASS = [
 
 function Card({ s }: { s: Specimen }) {
   return (
-    <figure className="pw-card" data-specimen={s.id}>
+    <figure className="pw-card" data-specimen={s.id} data-carries={s.passengers?.length}>
       <figcaption>{s.label}</figcaption>
       <PanelCallout owner={s.owner} selected={s.selected}>
         <InfoPanel panel={s.panel} zoom={s.zoom} />

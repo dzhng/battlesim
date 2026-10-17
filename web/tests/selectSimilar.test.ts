@@ -72,6 +72,15 @@ test("a mixed selection's deploy reaches only the units that deploy", () => {
   expect(reach("garrison", selection, UNITS, selection).map((u) => u.id)).toEqual([9]);
   expect(reach("exit_building", selection, UNITS, selection).map((u) => u.id)).toEqual([9]);
   expect(reach("deploy", selection.slice(0, 1), UNITS, selection)).toEqual([]);
+  // A squad riding a carrier is held, but not in a building.
+  const riding = {
+    id: 11,
+    kind: "test_rifle",
+    hold: { host: { kind: "carrier", id: 0 }, phase: "inside", progress: 1 },
+  } as unknown as OwnUnitView;
+  expect(reach("exit_building", [...selection, riding], UNITS, selection).map((u) => u.id)).toEqual(
+    [9],
+  );
 });
 
 test("an attack reaches only the units whose type has mounts", () => {

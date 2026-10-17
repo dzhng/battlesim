@@ -35,6 +35,7 @@ import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { PresentedContact } from "@web/battle/present/contactPresentation";
 import {
   aboardCarrier,
+  inBuilding,
   type IdentifiedView,
   type ObservationView,
   type OwnUnitView,
@@ -143,7 +144,7 @@ export function remainsLayer(
 /** Occupant pads of squads holding buildings. */
 export function garrisonLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
   return buildGarrisonOverlay(
-    o.own.flatMap((u) => (u.hold ? [{ members: u.members, phase: u.hold.phase }] : [])),
+    o.own.flatMap((u) => (inBuilding(u) ? [{ members: u.members, phase: u.hold!.phase }] : [])),
     z,
   );
 }

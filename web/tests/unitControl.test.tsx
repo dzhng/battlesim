@@ -748,6 +748,13 @@ test("Unload is unavailable, by key and on the bar, without a carrier holding pa
   act(() => hook.result.current.setSelected([1, 4]));
   await key("KeyU");
   expect(hook.result.current.mode).toBe("move");
+  // Armed, then the loaded carrier leaves the selection: U disarms.
+  act(() => hook.result.current.setSelected([1, 6]));
+  await key("KeyU");
+  expect(hook.result.current.mode).toBe("unload");
+  act(() => hook.result.current.setSelected([1, 4]));
+  await key("KeyU");
+  expect(hook.result.current.mode).toBe("move");
   const bar = () => <CommandBar control={hook.result.current} own={observation.own} />;
   const view = render(bar(), { wrapper });
   const unload = () => view.getByRole("button", { name: /^Unload/ });

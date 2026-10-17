@@ -7,7 +7,8 @@
 //   the one that answered the selection) when the order includes it, else the
 //   group's highest-value unit, ties to the lower id;
 // - an order is answered once it is accepted (R2–R10), or refused when the
-//   refusal is the player's doing (R12);
+//   refusal is the player's doing (R12); a unit an order refuses on its own
+//   answers with its refusal, apart from the order's answer;
 // - an arrival (R11) is a move's end after a real journey, reported once per
 //   journey by the first of its units to get there (`Arrivals`).
 import type { VoiceRequest } from "./chatter";
@@ -44,13 +45,16 @@ export type ResponseEvent =
       lead?: number | null;
       id: number;
     }
-  /** The authority refused order `id`, for `reason` (`OrderError.reason`). */
+  /** The authority refused `units` for `reason` (`OrderError.reason`): a
+   *  whole order, the units an order left out, or a refusal on arrival.
+   *  `group` names the moment (`order/<seq>`, `tick/<tick>`); a moment's
+   *  refusals for one reason are one answer. */
   | {
       kind: "refused";
       reason: string;
       units: readonly ResponseUnit[];
       lead?: number | null;
-      id: number;
+      group: string;
     }
   /** `unit` reached the end of journey `group` (`Arrivals`). */
   | { kind: "arrived"; unit: ResponseUnit; group: string };
@@ -142,7 +146,13 @@ export function responseFor(event: ResponseEvent): ResponseRequest | null {
   const unit = answerer(event.units, event.lead);
   if (!trigger || !unit) return null;
   // Selections in quick succession are one answer, as an order's units are.
-  return request(unit, trigger, event.kind === "selected" ? "selected" : `order/${event.id}`);
+  const group =
+    event.kind === "selected"
+      ? "selected"
+      : event.kind === "accepted"
+        ? `order/${event.id}`
+        : `refused/${event.group}/${event.reason}`;
+  return request(unit, trigger, group);
 }
 
 /** A move's end shorter than this, in seconds under way, is a nudge, not an arrival. */

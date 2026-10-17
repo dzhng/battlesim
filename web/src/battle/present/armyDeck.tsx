@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { aboardCarrier, type PendingPurchaseView, type OwnUnitView } from "../sim/observationView";
+import { carrierOf, type PendingPurchaseView, type OwnUnitView } from "../sim/observationView";
 import { useSessionCatalog } from "../catalog/context";
 import { StrengthMeter, UnitFace } from "./unitFace";
 import { stateIcon } from "@packages/scene-assets/src/icons";
@@ -125,9 +125,8 @@ export function ArmyDeck({
               // A squad a carrier holds is still the player's, but can't be
               // ordered (D10): its card is dimmed and marked with the seat it
               // rides in, and picks its carrier.
-              const carrier = aboardCarrier(unit)
-                ? own.find((u) => u.id === unit.hold!.host.id)
-                : undefined;
+              const host = carrierOf(unit);
+              const carrier = host === null ? undefined : own.find((u) => u.id === host);
               const picks = carrier?.id ?? unit.id;
               return (
                 <button

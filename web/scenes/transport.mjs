@@ -297,18 +297,49 @@ async function orderLine(ctx, page, goal, name) {
   await page.keyboard.up("Space");
 }
 
+/** The lab's carriers and squads paired by the catalog's seats against
+ *  each squad's living soldiers: `squad` has more than carrier `small`
+ *  seats but fits carrier `roomy`, and squad `fits` fits `small`. */
+async function pairs(page, start) {
+  const repo = new URL("../../", import.meta.url).pathname;
+  const kinds = [...new Set(start.own.map((u) => u.kind))];
+  const types = await page.evaluate(
+    async ({ repo, kinds }) => {
+      const { catalogSet } = await import(`/@fs/${repo}web/src/battle/catalog/sets.ts`);
+      const { units } = await catalogSet("test");
+      return kinds.map((kind) => ({
+        kind,
+        seats: units.type(kind).capabilities.carriage?.seats ?? 0,
+        infantry: units.isInfantry(kind),
+      }));
+    },
+    { repo, kinds },
+  );
+  const type = (u) => types.find((t) => t.kind === u.kind);
+  const carriers = start.own.filter((u) => type(u).seats > 0);
+  const squads = start.own.filter((u) => type(u).infantry);
+  for (const squad of squads)
+    for (const small of carriers.filter((c) => type(c).seats < squad.members.length)) {
+      const roomy = carriers.find((c) => type(c).seats >= squad.members.length);
+      const fits = squads.find((s) => s !== squad && s.members.length <= type(small).seats);
+      if (roomy && fits)
+        return { squad: squad.id, small: small.id, roomy: roomy.id, fits: fits.id };
+    }
+  throw new Error(`no too-big pair among the lab's units: ${JSON.stringify(types)}`);
+}
+
 async function controls(ctx) {
   const url = new URL(ctx.url);
   url.searchParams.set("variant", "controls");
   const page = await openBattle(ctx, { url: url.href });
   await advance(page, 2);
   const start = await obs(page);
-  const id = (kind) => start.own.find((u) => u.kind === kind).id;
-  const [apc, car, rifle, team] = ["test_apc", "test_scout_car", "test_rifle", "test_at"].map(id);
+  const { squad, small, roomy, fits } = await pairs(page, start);
 
-  // A squad too big for the scout car's seats: refused, said at the squad.
-  await select(page, [rifle]);
-  let at = await over(page, car);
+  // A squad with more living soldiers than a carrier's seats: refused, said
+  // at the squad.
+  await select(page, [squad]);
+  let at = await over(page, small);
   await page.mouse.move(...at);
   ctx.check(
     "a selected squad over an own carrier shows the board cursor",
@@ -356,65 +387,65 @@ async function controls(ctx) {
   ctx.check(
     "boarding a carrier with too few seats is refused at the squad, beside its card",
     tooBig.order.kind === "board" &&
-      tooBig.ack.refused.some((r) => r.unit === rifle && r.reason.reason === "capacity_full") &&
-      refusal?.unit === rifle &&
+      tooBig.ack.refused.some((r) => r.unit === squad && r.reason.reason === "capacity_full") &&
+      refusal?.unit === squad &&
       refusal.text === "TOO MANY TO FIT" &&
       refusal.besideCard,
     JSON.stringify({ ack: tooBig.ack, refusal }),
   );
 
   // Squads selected, right-click an own carrier: they board it.
-  at = await over(page, apc);
+  at = await over(page, roomy);
   await page.mouse.move(...at);
   await cursorBecomes(page, "board");
   seq = await newestSeq(page);
   await page.mouse.click(...at, { button: "right" });
   const board = await ackAfter(page, seq);
-  const boarded = await until(page, (o) => host(o, rifle) === apc, 900, 30);
+  const boarded = await until(page, (o) => host(o, squad) === roomy, 900, 30);
   ctx.check(
     "right-clicking an own carrier with a squad selected boards it, and the squad leaves the selection",
     board.order.kind === "board" &&
-      board.order.carrier === apc &&
+      board.order.carrier === roomy &&
       !!boarded &&
       (await lab(page, () => window.__lab.route.selected())).length === 0,
     JSON.stringify({ order: board.order, ack: board.ack }),
   );
   // Its deck card stays, dimmed as aboard, and picks its carrier.
-  const card = page.locator(`.hud-army-card[data-unit="${rifle}"]`);
+  const card = page.locator(`.hud-army-card[data-unit="${squad}"]`);
   const aboardCard = await card.getAttribute("data-aboard");
   await card.click();
   ctx.check(
     "a riding squad's deck card is marked aboard and selects its carrier",
     aboardCard === "true" &&
       JSON.stringify(await lab(page, () => window.__lab.route.selected())) ===
-        JSON.stringify([apc]),
+        JSON.stringify([roomy]),
     String(aboardCard),
   );
   await snapshot(ctx, page, "controls-aboard-deck.png");
 
   // A carrier selected, right-click an own squad: it drives over and collects it.
-  await select(page, [car]);
-  at = await over(page, team);
+  await select(page, [small]);
+  at = await over(page, fits);
   await page.mouse.move(...at);
   const collectCursor = await cursorBecomes(page, "board");
   seq = await newestSeq(page);
   await page.mouse.click(...at, { button: "right" });
   const collect = await ackAfter(page, seq);
-  const collected = await until(page, (o) => host(o, team) === car, 1200, 30);
+  const collected = await until(page, (o) => host(o, fits) === small, 1200, 30);
   ctx.check(
     "right-clicking an own squad with a carrier selected collects it, under the board cursor",
     collectCursor &&
       collect.order.kind === "collect" &&
-      JSON.stringify(collect.order.squads) === JSON.stringify([team]) &&
+      JSON.stringify(collect.order.squads) === JSON.stringify([fits]) &&
       !!collected,
     JSON.stringify({ order: collect.order, ack: collect.ack }),
   );
 
-  // The loaded APC: an ordinary move line, then U and a click to the same
+  // The loaded roomy carrier: an ordinary move line, then U and a click to the same
   // point, whose line carries the unload mark.
-  const from = (await obs(page)).own.find((u) => u.id === apc).position;
+  const from = (await obs(page)).own.find((u) => u.id === roomy).position;
   const goal = [from[0] + 45, from[1] - 20];
-  await select(page, [apc]);
+  await select(page, [roomy]);
   const goalAt = await project(page, [goal[0], goal[1], 0]);
   await page.mouse.click(...goalAt, { button: "right" });
   await orderLine(ctx, page, goal, "move-line");
@@ -430,12 +461,12 @@ async function controls(ctx) {
   await orderLine(ctx, page, goal, "unload-line");
   const out = await until(
     page,
-    (o) => host(o, rifle) === null && !o.own.find((u) => u.id === rifle).hold,
+    (o) => host(o, squad) === null && !o.own.find((u) => u.id === squad).hold,
     1500,
     30,
   );
-  const landed = out?.own.find((u) => u.id === rifle);
-  const carrierAt = out?.own.find((u) => u.id === apc).position;
+  const landed = out?.own.find((u) => u.id === squad);
+  const carrierAt = out?.own.find((u) => u.id === roomy).position;
   ctx.check(
     "U then a ground click drives the carrier there and unloads it",
     armed === "true" &&
@@ -456,15 +487,15 @@ async function controls(ctx) {
     }),
   );
 
-  // U twice: the scout car stops and unloads where it stands.
-  await select(page, [car]);
+  // U twice: the small carrier stops and unloads where it stands.
+  await select(page, [small]);
   seq = await newestSeq(page);
   await page.keyboard.press("KeyU");
   await page.keyboard.press("KeyU");
   const inPlace = await ackAfter(page, seq);
-  const stood = (await obs(page)).own.find((u) => u.id === car).position;
-  const freed = await until(page, (o) => !o.own.find((u) => u.id === team).hold, 600, 15);
-  const there = freed?.own.find((u) => u.id === team).position;
+  const stood = (await obs(page)).own.find((u) => u.id === small).position;
+  const freed = await until(page, (o) => !o.own.find((u) => u.id === fits).hold, 600, 15);
+  const there = freed?.own.find((u) => u.id === fits).position;
   ctx.check(
     "U twice unloads the carrier in place at once",
     inPlace.order.kind === "unload" &&

@@ -98,7 +98,7 @@ test("a stressed unit answers in its stressed voice", () => {
 
 test("a refusal the player caused is answered; a refusal of the match or the input path is not", () => {
   const refused = (reason: string) =>
-    responseFor({ kind: "refused", reason, units: [TANK], id: 4 })?.trigger ?? null;
+    responseFor({ kind: "refused", reason, units: [TANK], group: "order/4" })?.trigger ?? null;
   for (const reason of [
     "no_valid_destination",
     "out_of_bounds",
