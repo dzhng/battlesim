@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: slices 1–4 landed (2026-10-16); only the blocked-shot icon follow-up remains open. Reconciled with air-war-flight: AA-role deletion, per-layer missile interception, launch clearance, explosive falloff, and their tests are already shipped.
+Status: shipped (2026-10-16). Reconciled with air-war-flight: AA-role deletion, per-layer missile interception, launch clearance, explosive falloff, the Eastern general-purpose RPG, and their tests are landed.
 
 ## Goal
 
@@ -24,7 +24,7 @@ Make weapon behavior data-owned and explicit while adding an Eastern-only multip
 2. **Immutable projectile layer** — launch-layer storage and interceptor range selection from it. Interception eligibility from weapon mounts already landed (D52).
 3. **Opt-in launcher clearance** — physical muzzle/initial-trajectory obstruction for artillery and the long-range SAM only; preserve ordinary direct-fire behavior and expose `BlockedTrajectory`.
 4. **Eastern RPG and roster data** — new three-round general-purpose RPG, dedicated AT row renames, Eastern squad loadout, and deterministic armour calibration.
-5. **Blocked-shot icon follow-up** — redraw the existing warning mark so blocked launcher paths are legible at panel size; catalog regeneration and AA-role cleanup are already shipped.
+5. **Blocked-shot icon follow-up** — redraw the existing warning mark so blocked launcher paths are legible at panel size; catalog regeneration and AA-role cleanup are shipped.
 
 ## Firewalls
 
@@ -55,9 +55,9 @@ The plan gives one owner to each concept: `LayerFire` for per-layer target eligi
 - Saved encounter overrides in `fixtures/maps/**/encounters/*.json` intentionally pin the older weapon values for approved recordings; they are scenario snapshots, not the runtime weapon-family rows, and should not be silently retuned with slice 4.
 - The kamikaze drones' unit ids still end `_anti_armor`; they name models, not the removed field.
 
-## Next Agent Prompt
+## Closeout note
 
-Implement slice 5 in `slices/05-closeout.md`: finish the blocked-shot icon follow-up, run the visual checks, and close the spec when the full verification pass is green. Update this README's status, checklist and next prompt before ending your pass.
+The icon redraw is complete and the focused panel/readout check passes. The managed browser could not provide a WebGPU adapter for a full panel capture, so the standalone SVG render was used for visual inspection; the limitation is recorded with the verification results rather than changing the player-facing contract.
 
 ## Checklist
 
@@ -65,4 +65,4 @@ Implement slice 5 in `slices/05-closeout.md`: finish the blocked-shot icon follo
 - [x] Slice 2: projectile layer/interception (`slices/02-projectile-layer.md`)
 - [x] Slice 3: launcher clearance and blocked readout (`slices/03-launch-clearance.md`)
 - [x] Slice 4: Eastern RPG and loadout (`slices/04-eastern-rpg.md`)
-- [ ] Slice 5: blocked-shot icon follow-up (`slices/05-closeout.md`)
+- [x] Slice 5: blocked-shot icon follow-up (`slices/05-closeout.md`)
