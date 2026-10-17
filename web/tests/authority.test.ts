@@ -504,7 +504,7 @@ test("purchase preview resolves through the authority without spending or advanc
       type: "purchase_preview",
       id: 1,
       // Open ground: the tank is sent where it was placed.
-      placement: { Ok: { kind: expect.any(Number), destination: [400, 250], spots: [] } },
+      placement: { Ok: { kind: expect.any(Number), destination: [400, 250], spots: [], entry: 0 } },
     },
     { type: "purchase_preview", id: 2, placement: { Err: { reason: "wrong_faction" } } },
   ]);
