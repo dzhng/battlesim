@@ -35,7 +35,21 @@ export const downloads = {
 
 /** `fetch`, its body counted into `downloads` as it arrives. */
 export async function countedFetch(input: RequestInfo | URL, init?: RequestInit) {
-  const response = await fetch(input, init);
+  let response: Response;
+  try {
+    response = await fetch(input, init);
+  } catch (error) {
+    // Chromium private windows can reject a successful response when its
+    // HTTP-cache write fails. The bytes are useful without persistence, so
+    // retry once with caching disabled before reporting a network failure.
+    if (
+      init?.cache === "no-store" ||
+      (error instanceof DOMException && error.name === "AbortError") ||
+      !(error instanceof TypeError)
+    )
+      throw error;
+    response = await fetch(input, { ...init, cache: "no-store" });
+  }
   if (!response.ok || !response.body) return response;
   const size = Number(response.headers.get("content-length")) || 0;
   set({ active: now.active + 1, loaded: now.loaded, total: now.total + size });

@@ -34,6 +34,7 @@ import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
 import { graphicsDetectionState, subscribeGraphicsDetection } from "./graphicsDetection";
 import { GRAPHICS_TIERS, graphicsSettings } from "./graphicsSettings";
+import { allowRuntimePrefetch } from "./gameAppearances";
 
 interface Entry {
   label: string;
@@ -262,6 +263,10 @@ export function MainMenu() {
   useEffect(() => {
     if (!loading && detectionNeeded) setShowDetection(true);
   }, [loading, detectionNeeded]);
+  useEffect(() => {
+    if (loading || (detectionNeeded && detection.status !== "complete")) return;
+    allowRuntimePrefetch();
+  }, [loading, detectionNeeded, detection.status]);
   const detectionStageVisible = detectionNeeded || showDetection;
   const displayLoading = loading || detectionNeeded || showDetection;
   const stages = detectionStageVisible
