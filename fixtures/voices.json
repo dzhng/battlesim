@@ -743,7 +743,7 @@
         "board": {
           "steady": [
             "Loading troops.",
-            "Troops boarding."
+            "Troops, get aboard."
           ],
           "stressed": [
             "[urgent] Get them aboard, now!",
@@ -7474,6 +7474,10 @@
     "us_fighter_pilot/soldier/hit/stressed/1": 1,
     "us_fighter_pilot/soldier/kill/steady/0": 1,
     "us_fighter_pilot/soldier/opens_fire/stressed/0": 1,
-    "us_fighter_pilot/soldier/under_fire/stressed/1": 1
+    "us_fighter_pilot/soldier/under_fire/stressed/1": 1,
+    "fr_attack_helicopter_pilot/lead/board/steady/0": 2,
+    "fr_attack_helicopter_pilot/lead/board/steady/1": 3,
+    "ru_tank_crew/lead/board/stressed/0": 1,
+    "ru_tank_crew/lead/board/stressed/1": 1
   }
 }
