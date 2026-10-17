@@ -9310,7 +9310,6 @@
               "slots": [
                 "eastern_scouts_light_patrol__marksman",
                 "eastern_scouts_light_patrol__scout",
-                "eastern_scouts_light_patrol__scout",
                 "eastern_scouts_light_patrol__scout"
               ]
             }
@@ -15521,7 +15520,6 @@
               "slots": [
                 "europe_recon_patrol_light_patrol__marksman",
                 "europe_recon_patrol_light_patrol__scout",
-                "europe_recon_patrol_light_patrol__scout",
                 "europe_recon_patrol_light_patrol__scout"
               ]
             }
@@ -17113,7 +17111,6 @@
               "slots": [
                 "us_army_scouts_light_patrol__marksman",
                 "us_army_scouts_light_patrol__scout",
-                "us_army_scouts_light_patrol__scout",
                 "us_army_scouts_light_patrol__scout"
               ]
             }
@@ -18213,7 +18210,6 @@
               "slots": [
                 "us_force_recon_recon_patrol__grenadier",
                 "us_force_recon_recon_patrol__marksman",
-                "us_force_recon_recon_patrol__scout",
                 "us_force_recon_recon_patrol__scout"
               ]
             }
@@ -28414,7 +28410,6 @@
           "slots": [
             "eastern_scouts_light_patrol__marksman",
             "eastern_scouts_light_patrol__scout",
-            "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout"
           ]
         }
@@ -28436,8 +28431,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,
@@ -35094,7 +35088,6 @@
           "slots": [
             "europe_recon_patrol_light_patrol__marksman",
             "europe_recon_patrol_light_patrol__scout",
-            "europe_recon_patrol_light_patrol__scout",
             "europe_recon_patrol_light_patrol__scout"
           ]
         }
@@ -35116,8 +35109,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,
@@ -36985,7 +36977,6 @@
           "slots": [
             "us_army_scouts_light_patrol__marksman",
             "us_army_scouts_light_patrol__scout",
-            "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout"
           ]
         }
@@ -37007,8 +36998,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,
@@ -38241,7 +38231,6 @@
           "slots": [
             "us_force_recon_recon_patrol__grenadier",
             "us_force_recon_recon_patrol__marksman",
-            "us_force_recon_recon_patrol__scout",
             "us_force_recon_recon_patrol__scout"
           ]
         }
@@ -38263,8 +38252,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,

@@ -407,7 +407,6 @@
           "slots": [
             "us_army_scouts_light_patrol__marksman",
             "us_army_scouts_light_patrol__scout",
-            "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout"
           ]
         }
@@ -983,7 +982,6 @@
           "slots": [
             "us_force_recon_recon_patrol__grenadier",
             "us_force_recon_recon_patrol__marksman",
-            "us_force_recon_recon_patrol__scout",
             "us_force_recon_recon_patrol__scout"
           ]
         }
