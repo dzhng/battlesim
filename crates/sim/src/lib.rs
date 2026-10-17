@@ -19,6 +19,7 @@ pub mod formation;
 pub mod garrison;
 pub mod ground;
 pub mod hearing;
+pub mod hold;
 pub mod knowledge;
 pub mod lean;
 pub mod map_analysis;

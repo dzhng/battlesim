@@ -151,7 +151,7 @@ fn queued_reentry_after_an_entering_squads_attack_and_exit_remains_unproven() {
         Some(sim::units::UnitOrder::Exit)
     ));
     until(&mut b, 1200, "original queue leaves the building", |b| {
-        b.observe(Side::Blue).contacts.is_empty() && b.unit(UnitId(0)).unwrap().garrison.is_none()
+        b.observe(Side::Blue).contacts.is_empty() && b.unit(UnitId(0)).unwrap().hold.is_none()
     });
 }
 

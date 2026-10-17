@@ -215,7 +215,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
         8,
         "back to authored strength inside"
     );
-    let g = squad.garrison.as_ref().unwrap();
+    let g = squad.hold.as_ref().unwrap();
     let mut seats = Vec::new();
     for (k, s) in squad.members.iter().enumerate().filter(|(_, s)| s.alive()) {
         let seat = g.seat(k).expect("every living soldier holds a slot");

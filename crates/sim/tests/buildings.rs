@@ -689,7 +689,7 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     let unit = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(unit.garrisoned());
     assert!(
-        unit.garrison
+        unit.hold
             .as_ref()
             .unwrap()
             .slots
@@ -699,7 +699,7 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     );
 
     assert!(
-        unit.garrison
+        unit.hold
             .as_ref()
             .unwrap()
             .slots
@@ -718,7 +718,7 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     while b.tick() < 403 {
         b.step();
     }
-    assert!(b.unit(contract::ids::UnitId(0)).unwrap().garrison.is_none());
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().hold.is_none());
     assert!(b.world().prop(3).is_none() && b.world().prop(4).is_none());
     assert_eq!(
         (b.world().structure_owner(5), b.world().structure_owner(6)),
@@ -830,7 +830,7 @@ fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
     }
     let u = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(u.garrisoned());
-    let g = u.garrison.as_ref().unwrap();
+    let g = u.hold.as_ref().unwrap();
     let eyes = sim::garrison::facade_eyes(u, &setup.rules);
     assert!(eyes.len() <= 4);
     for f in 0..4 {
@@ -1044,7 +1044,7 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
     while b.tick() < 410 {
         b.step();
     }
-    assert!(b.unit(contract::ids::UnitId(0)).unwrap().garrison.is_none());
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().hold.is_none());
     let shells: Vec<_> = b
         .world()
         .props()

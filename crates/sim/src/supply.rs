@@ -274,8 +274,11 @@ fn serve(
             let hp = rules.catalog.soldier(&t.slots().expect("a squad")[slot]).hp;
             *next_soldier += 1;
             unit.members.push(Soldier::new(*next_soldier, slot, at, hp));
-            if let (Some(g), Some((k, _))) = (unit.garrison.as_mut(), seat) {
-                g.seats.push(Some(k));
+            if let (Some(hold), Some((k, _))) = (unit.hold.as_mut(), seat) {
+                hold.building_mut()
+                    .expect("building hold")
+                    .seats
+                    .push(Some(k));
             }
             unit.settle();
         }

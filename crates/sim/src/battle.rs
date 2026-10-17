@@ -573,7 +573,7 @@ fn spawn_unit(
         suppression: 0.0,
         suppressed_at: 0,
         deployment: deployment::initial(t, rules),
-        garrison: None,
+        hold: None,
         stock: t.capabilities.supply.map(|s| u.stock.unwrap_or(s.stock)),
         protection: t
             .capabilities
@@ -1834,7 +1834,7 @@ impl Battle {
         self.break_dogfights();
         self.dispatch_reinforcements();
         completed(TickPhase::Orders);
-        garrison::advance(
+        crate::hold::advance(
             &self.world,
             &self.sides,
             self.authored_props,
@@ -3140,9 +3140,9 @@ impl Battle {
                 };
                 // Entering or leaving a building is a transition that releases too.
                 let settled = unit
-                    .garrison
+                    .hold
                     .as_ref()
-                    .is_none_or(|g| matches!(g.phase, garrison::Phase::Inside));
+                    .is_none_or(|g| matches!(g.phase, crate::hold::Phase::Inside));
                 // A launcher that guides only standing still lets go as it moves.
                 let on_the_move = self.rounds.get(&s.projectile).is_some_and(|r| {
                     self.arsenal.weapons[r.weapon].def.ballistics.guidance
@@ -4292,7 +4292,7 @@ impl Battle {
     ) -> MemberOrder {
         let here = s.position.xy();
         let spot = s.spot.or(s.post).unwrap_or(here);
-        let sheltered = u.garrison.is_some();
+        let sheltered = u.hold.is_some();
         let cover_now = u
             .cover
             .threat
@@ -5773,7 +5773,7 @@ mod tests {
                 &mut battle.damage_rng,
             );
             assert_eq!(battle.units[0].alive(), !whole_squad);
-            assert_eq!(battle.units[0].garrison.is_none(), whole_squad);
+            assert_eq!(battle.units[0].hold.is_none(), whole_squad);
             battle.sweep_fog(Side::Blue);
             battle.observe_all();
             let remembered = battle
@@ -5879,12 +5879,14 @@ mod settlement_tests {
         for member in &mut battle.units[1].members {
             member.position = center.with_z(0.0);
         }
-        battle.units[1].garrison = Some(garrison::Garrison {
-            building,
-            phase: garrison::Phase::Inside,
-            slots: Vec::new(),
-            seats: vec![None; battle.units[1].members.len()],
-            entry: center,
+        battle.units[1].hold = Some(crate::hold::Hold {
+            host: crate::hold::Host::Building(building),
+            phase: crate::hold::Phase::Inside,
+            place: crate::hold::Place::Building(garrison::Garrison {
+                slots: Vec::new(),
+                seats: vec![None; battle.units[1].members.len()],
+                entry: center,
+            }),
         });
         battle.skirmish = Some(crate::skirmish::Skirmish::new(serde_json::from_value(json!({
             "factions":["us","eastern"],

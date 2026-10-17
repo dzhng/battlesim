@@ -658,13 +658,13 @@ fn casualties(
             if !s.alive() && s.corpse.is_none() {
                 let at = unit.members[k].position;
                 let support = unit
-                    .garrison
+                    .hold
                     .as_ref()
                     .filter(|_| {
                         unit.garrisoned()
                             && at.z > ctx.world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)
                     })
-                    .map(|g| g.building);
+                    .map(|hold| hold.host.building());
                 let body = crate::garrison::body_position(unit, k, ctx.rules);
                 unit.members[k].fall(body, unit.yaw, support);
             }
@@ -675,7 +675,7 @@ fn casualties(
         if was_alive[i] && !unit.alive() {
             unit.orders.clear();
             unit.route = None;
-            unit.garrison = None;
+            unit.hold = None;
             destroyed.push(UnitDeath {
                 victim: unit.id,
                 source: lethal[i],

@@ -520,7 +520,7 @@ pub(crate) fn advance(
             let unit = &mut units[i];
             let advancing = may_advance(ctx, unit);
             let side = &mut sides[unit.side.index()];
-            if !advancing && unit.garrison.is_none() && (unit.route.is_none() || unit.halted()) {
+            if !advancing && unit.hold.is_none() && (unit.route.is_none() || unit.halted()) {
                 take_cover::hold(ctx, unit, side, &field);
             }
             soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
@@ -681,7 +681,7 @@ fn way_left(here: V2, route: &[V2]) -> f64 {
 /// takes the fastest policy, and keeps it however short the leg has become
 /// when it plans again. Pursuit and a building's approach are never legs.
 fn prefer_roads(ctx: &MovementContext, unit: &mut Unit) {
-    if unit.planned_goal.is_some() || unit.garrison.is_some() {
+    if unit.planned_goal.is_some() || unit.hold.is_some() {
         return;
     }
     let from = route_start(unit, |_| true);
