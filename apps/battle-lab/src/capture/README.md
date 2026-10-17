@@ -160,6 +160,8 @@ real time. It writes to `throwaway/capture/` by default:
 - `<name>.mp4`: all scenes joined, dipping through black for 0.5 s between them, when there are several;
 - `<name>.report.json`: the capture file, and for each output its length,
   average fps, worst frame gap and whether it has audio, plus warnings.
+  ffprobe measures all of them on the recorded WebM; the page hands over only
+  the chunks and `{seconds}` (or `{error}`).
 
 Recording is wall clock, so a slow machine records choppier, never slower or
 out of sync. The report warns when a scene averages below 90% of the target
@@ -186,4 +188,5 @@ rather than hanging. The CLI takes the repository's GPU lock while it records,
 so a run waits for other rendering jobs.
 
 The `capture` browser scene (`bun run --cwd web scene -- capture`) proves the
-recording path on its own. It is a tool, so the full verify skips it.
+recording path on its own, through the CLI's own receiver, and reports the
+frame rate as the CLI measures it. It is a tool, so the full verify skips it.

@@ -13,7 +13,6 @@
 // repository's GPU lock while recording, so don't wrap it in `lockf` too.
 import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { open } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { launchBrowser } from "./browser.mjs";
 import { ensureNativeTools, fatalGpuMessage, openScenePage, startServer } from "./scene.mjs";
@@ -24,12 +23,14 @@ import { joinArgs } from "./capture/join.mjs";
 import { buildReport, frameStats } from "./capture/report.mjs";
 import {
   CaptureError,
+  ffprobe,
+  receiveRecording,
   recordingVerdict,
   recordTimeoutMs,
   TAB_CAPTURE_BROWSER,
+  videoFrameTimes,
 } from "./capture/recording.mjs";
 
-const PROGRESS_MS = 10_000;
 const fromRoot = (file) => relative(REPO_ROOT, file);
 
 async function main() {
@@ -104,58 +105,32 @@ async function main() {
   console.log(`report: ${fromRoot(plan.report)}`);
 }
 
-/** Play one scene on the route and write its WebM; resolves with the route's
- * `{frames, worstGapMs, seconds, audio}` or throws a CaptureError. */
+/** Play one scene on the route and write its WebM; resolves `{audio}` as
+ * ffprobe finds the WebM, or throws a CaptureError. */
 async function recordScene(browser, base, job, { width, height }) {
   const page = await openScenePage(browser, { viewport: { width, height } });
-  const webm = await open(job.webm, "w");
-  let bytes = 0;
-  let written = Promise.resolve();
-  let finish;
-  const finished = new Promise((resolve) => (finish = resolve));
-  const timeoutMs = recordTimeoutMs(job.seconds);
-  const timer = setTimeout(() => finish(undefined), timeoutMs);
-  const started = Date.now();
-  const progress = setInterval(() => {
-    const s = Math.round((Date.now() - started) / 1000);
-    console.log(`  scene ${job.scene}: ${s} s, ${(bytes / 1e6).toFixed(1)} MB recorded`);
-  }, PROGRESS_MS);
   try {
-    // In play order: each write waits for the one before it. The page's
-    // promise resolves to nothing: a write's result holds the chunk, which
-    // Playwright would serialize back into the page byte by byte.
-    await page.exposeFunction("captureChunk", async (base64) => {
-      const chunk = Buffer.from(base64, "base64");
-      bytes += chunk.length;
-      written = written.then(() => webm.write(chunk));
-      await written;
-    });
-    await page.exposeFunction("captureDone", (result) => finish(result));
-    page.on("crash", () => finish({ error: "the page crashed" }));
-    page.on("pageerror", (error) => console.error(`  [page error] ${error.message}`));
-    page.on("console", (message) => {
-      if (message.type() !== "error") return;
-      console.error(`  [page] ${message.text()}`);
-      if (fatalGpuMessage(message.text())) finish({ error: message.text() });
-    });
     console.log(`scene ${job.scene}: recording ${job.seconds} s from ${job.url}`);
-    await page.goto(`${base}${job.url}`);
-    const result = await finished;
-    await written;
+    const timeoutMs = recordTimeoutMs(job.seconds);
+    const { result, bytes } = await receiveRecording(page, {
+      url: `${base}${job.url}`,
+      file: job.webm,
+      timeoutMs,
+      label: `scene ${job.scene}`,
+      fatal: fatalGpuMessage,
+    });
     const verdict = recordingVerdict({ scene: job.scene, result, bytes, timeoutMs });
     if (verdict instanceof Error) throw verdict;
-    if (!streamTypes(job.webm).includes("audio")) {
+    const audio = streamTypes(job.webm).includes("audio");
+    if (!audio) {
       throw new CaptureError(
         "TabCaptureNoAudio",
         `scene ${job.scene}: the WebM has no audio stream`,
       );
     }
-    return verdict;
+    return { audio };
   } finally {
-    clearTimeout(timer);
-    clearInterval(progress);
     await page.close();
-    await webm.close();
   }
 }
 
@@ -191,26 +166,9 @@ function ffmpeg(argv) {
   execFileSync("ffmpeg", argv, { stdio: ["ignore", "inherit", "inherit"] });
 }
 
-function ffprobe(file, entries) {
-  return execFileSync("ffprobe", ["-v", "error", ...entries, "-of", "csv=p=0", file], {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
-}
-
 const streamTypes = (file) => ffprobe(file, ["-show_entries", "stream=codec_type"]).split("\n");
 
 const mediaSeconds = (file) => Number(ffprobe(file, ["-show_entries", "format=duration"]));
-
-/** Presentation times of the recorded video frames, ascending. */
-function videoFrameTimes(file) {
-  return ffprobe(file, ["-select_streams", "v:0", "-show_entries", "packet=pts_time"])
-    .split("\n")
-    .filter(Boolean)
-    .map(Number)
-    .filter(Number.isFinite)
-    .sort((a, b) => a - b);
-}
 
 main().catch((error) => {
   console.error(`capture failed: ${error.name}: ${error.message}`);

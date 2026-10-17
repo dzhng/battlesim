@@ -69,7 +69,7 @@ The menu mounts it live under its grey film look. The capture route mounts it to
 **Recording** is Chrome tab capture in real time:
 1. The page calls `getDisplayMedia({preferCurrentTab:true, audio:true, video:{frameRate}})`, auto-accepted by the launch flag `--auto-accept-this-tab-capture`.
 2. It crops with `CropTarget.fromElement(stage)` + `track.cropTo`.
-3. `MediaRecorder` writes VP9+Opus WebM.
+3. `MediaRecorder` writes VP9+Opus WebM, streamed to the CLI chunk by chunk (`captureChunk`), then `captureDone({seconds})` or `{error}`. The page measures nothing else: the CLI reads frame rate and audio off the WebM with ffprobe.
 4. The CLI transcodes that to constant-frame-rate H.264/AAC MP4.
 
 It records what the player sees: WebGPU, DOM info cards, the grade, the dip layer, and all sound including music.
@@ -88,7 +88,7 @@ The grade is always on.
 **Outputs.**
 - One MP4 per scene.
 - One joined MP4, when there's more than one scene. Between scenes it dips through black for 0.5 s (`xfade=fadeblack` with `acrossfade`), as the reel's own cuts do. A plain dissolve between unrelated shots read as a muddy double exposure (decided on the evidence, 2026-10-17).
-- `<name>.report.json`: the capture file, each output, length, average and worst fps, whether audio is present, and warnings.
+- `<name>.report.json`: the capture file, each output, length, average fps and worst frame gap, whether audio is present (ffprobe's word; a scene without it fails), and warnings.
 
 **Slow machines degrade gracefully.** Below target fps the video gets choppier but never drifts out of sync or speed, because the recording is wall-clock real time. The report warns when average fps is below 90% of target.
 

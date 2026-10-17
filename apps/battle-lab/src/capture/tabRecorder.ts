@@ -40,10 +40,6 @@ export class TabRecorderError extends Error {
 }
 
 export interface TabRecording {
-  /** Video frames the capture delivered while recording. */
-  frames: number;
-  /** Longest wait between two delivered frames. */
-  worstGapMs: number;
   /** Wall-clock length of the recording. */
   seconds: number;
 }
@@ -109,7 +105,6 @@ export async function recordTab(
       throw new TabRecorderError("crop-unsupported", "the capture track has no cropTo");
     await track.cropTo(await cropTarget.fromElement(stage));
 
-    const counter = await countFrames(track);
     const recorder = new MediaRecorder(stream, {
       mimeType: MIME_TYPE,
       videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
@@ -123,57 +118,18 @@ export async function recordTab(
     const stopped = new Promise<void>((resolve) => (recorder.onstop = () => resolve()));
     recorder.start(CHUNK_MS);
     const started = performance.now();
-    counter.reset();
     onStart?.();
     try {
       await until;
     } finally {
       recorder.stop();
       await stopped;
-      counter.stop();
     }
     const seconds = (performance.now() - started) / 1000;
     // The last chunk arrives before `stop`; its delivery may still be on its way.
     await sent;
-    return { ...counter.result(), seconds };
+    return { seconds };
   } finally {
     for (const track of stream.getTracks()) track.stop();
   }
-}
-
-/** Counts the frames the capture delivers, by playing the track into a
- *  detached video element and listening for each presented frame. */
-async function countFrames(track: MediaStreamTrack) {
-  const video = document.createElement("video");
-  video.muted = true;
-  video.srcObject = new MediaStream([track]);
-  await video.play();
-  let frames = 0;
-  let worstGapMs = 0;
-  let last: number | null = null;
-  let presented: number | null = null;
-  let handle = 0;
-  const onFrame: VideoFrameRequestCallback = (now, metadata) => {
-    // presentedFrames counts frames the element skipped between callbacks.
-    frames += presented === null ? 1 : metadata.presentedFrames - presented;
-    presented = metadata.presentedFrames;
-    const at = metadata.captureTime ?? now;
-    if (last !== null) worstGapMs = Math.max(worstGapMs, at - last);
-    last = at;
-    handle = video.requestVideoFrameCallback(onFrame);
-  };
-  handle = video.requestVideoFrameCallback(onFrame);
-  return {
-    reset() {
-      frames = 0;
-      worstGapMs = 0;
-      last = null;
-      presented = null;
-    },
-    stop() {
-      video.cancelVideoFrameCallback(handle);
-      video.srcObject = null;
-    },
-    result: () => ({ frames, worstGapMs }),
-  };
 }

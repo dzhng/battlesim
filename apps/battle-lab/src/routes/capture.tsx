@@ -10,8 +10,7 @@
 // viewport, so the viewport is the film's size. When recording, the CLI
 // exposes two functions before the page loads:
 //   captureChunk(base64)  each WebM chunk, in order; the next waits for it;
-//   captureDone(result)   once: `{frames, worstGapMs, seconds, audio}`, or
-//                         `{error}` naming what failed.
+//   captureDone(result)   once: `{seconds}`, or `{error}` naming what failed.
 // Recording starts while the battle holds at its warm tick, behind the veil,
 // and stops on the reel's end, behind it again.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -33,7 +32,7 @@ const CAPTURES = import.meta.glob<unknown>("../../../../fixtures/captures/*.json
 /** The frame rate asked of the tab capture without `fps`: the most the page draws. */
 const RECORD_FPS = 60;
 
-type CaptureResult = (TabRecording & { audio: boolean }) | { error: string };
+type CaptureResult = TabRecording | { error: string };
 
 interface CaptureHandoff {
   captureChunk?: (base64: string) => Promise<void>;
@@ -157,11 +156,7 @@ function CaptureStage({
             onStart: run.start,
             onChunk: async (chunk) => captureChunk(await base64(chunk)),
           });
-    // `recordTab` refuses a capture without the tab's sound.
-    recording.then(
-      (result) => finish({ ...result, audio: true }),
-      (error: unknown) => finish({ error: describe(error) }),
-    );
+    recording.then(finish, (error: unknown) => finish({ error: describe(error) }));
   };
   return (
     <ScenePlayer

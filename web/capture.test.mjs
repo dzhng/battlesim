@@ -82,6 +82,10 @@ test("capture plan: one recording job per scene, a join only for several scenes"
   expect(single.joined).toBeNull();
 
   expect(() => planCapture({ scenes: [] }, args)).toThrow(/no scenes/);
+  // A malformed file is refused by name, never a bare TypeError.
+  expect(() => planCapture({ scenes: [scene([3]), { map: "market-town" }] }, args)).toThrow(
+    "capture scenes[1].reel.shots: none",
+  );
   // The route loads captures by name from fixtures/captures/ only.
   expect(() => planCapture({ scenes: [scene([3])] }, parseCaptureArgs(["one.json"]))).toThrow(
     /fixtures\/captures/,
@@ -148,28 +152,25 @@ test("join: chained xfade/acrossfade with offsets from each scene's length", () 
   expect(() => joinOffsets([10, d / 2])).toThrow(/scene 1/);
 });
 
-test("report: warns below 90% of the target fps and when audio is missing", () => {
-  const output = (scene, avgFps, audio = true) => ({
+test("report: warns below 90% of the target fps", () => {
+  const output = (scene, avgFps) => ({
     scene,
     file: `s${scene}.mp4`,
     seconds: 10,
     avgFps,
     worstGapMs: 40,
-    audio,
+    audio: true,
   });
   const report = buildReport({
     capture: "fixtures/captures/menu.json",
     fps: 60,
-    outputs: [output(0, 54), output(1, 53.9), output(2, 59.8, false)],
+    outputs: [output(0, 54), output(1, 53.9), output(2, 59.8)],
     joined: "menu.mp4",
   });
   expect(report.capture).toBe("fixtures/captures/menu.json");
   expect(report.joined).toBe("menu.mp4");
   expect(report.outputs).toHaveLength(3);
-  expect(report.warnings).toEqual([
-    "scene 1: avg 53.9 fps is below 90% of 60",
-    "scene 2: no audio track",
-  ]);
+  expect(report.warnings).toEqual(["scene 1: avg 53.9 fps is below 90% of 60"]);
   expect(buildReport({ capture: "c", fps: 60, outputs: [output(0, 60)] }).joined).toBeNull();
 });
 
@@ -182,11 +183,11 @@ test("frame stats: average fps and the worst gap from recorded frame times", () 
   expect(frameStats([0])).toEqual({ avgFps: 0, worstGapMs: 0 });
 });
 
-test("recording verdict: a hang, a failure or a silent recording fails by name", () => {
+test("recording verdict: a hang, a failure or an empty recording fails by name", () => {
   const timeoutMs = recordTimeoutMs(10);
   expect(timeoutMs).toBeGreaterThan(10_000);
   const verdict = (result, bytes) => recordingVerdict({ scene: 1, result, bytes, timeoutMs });
-  const ok = { frames: 600, worstGapMs: 35, seconds: 10, audio: true };
+  const ok = { seconds: 10 };
   expect(verdict(ok, 1000)).toBe(ok);
 
   const named = (error) => error instanceof CaptureError && `${error.name}: ${error.message}`;
@@ -198,6 +199,5 @@ test("recording verdict: a hang, a failure or a silent recording fails by name",
   expect(named(verdict({ error: "no-audio-track: x" }, 0))).toBe(
     "TabCaptureFailed: scene 1: no-audio-track: x",
   );
-  expect(named(verdict({ ...ok, audio: false }, 1000))).toMatch(/^TabCaptureNoAudio/);
   expect(named(verdict(ok, 0))).toMatch(/^TabCaptureEmpty/);
 });
