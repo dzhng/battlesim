@@ -3,6 +3,7 @@
 //! weapons, flight, damage, orders, deployment and supply.
 pub mod air;
 pub mod arrangement;
+pub mod bail_out;
 pub mod battle;
 mod cell_page;
 pub mod cover;

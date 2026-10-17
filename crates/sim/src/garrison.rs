@@ -36,8 +36,6 @@ use contract::random::Rng;
 mod occupy;
 pub(crate) use occupy::{occupy, BuildingPlan, EntryAction};
 
-/// Escaping soldiers keep at least this far apart.
-const ESCAPE_SPACING_M: f64 = 1.0;
 /// Exit places are sampled this far apart around the building.
 const EXIT_STEP_M: f64 = 2.0;
 /// A leaving squad's middle stands this far beyond the building's walls.
@@ -634,26 +632,22 @@ pub fn faces(unit: &Unit, k: usize, point: V3, rules: &Rules, tick: Tick) -> boo
             .is_some_and(|s| s.slot.faces(point.xy(), facing))
 }
 
-/// A building collapsed (L10) and its ruin stands in its place: each
-/// occupant survives with the configured probability and escapes on foot to
-/// the nearest legal free ground within the local search, carrying heavy
-/// suppression; one with no legal escape dies where it stood. Squads still
-/// entering stand outside and are unharmed. Returns units destroyed.
+/// A building collapsed (L10) and its ruin stands in its place. Every living
+/// occupant takes the building bail-out injury, then either escapes to a clear
+/// surface or dies; survivors leave pinned. Squads still entering stand outside.
 pub fn collapse(
     world: &WorldGeometry,
     units: &mut [Unit],
     target: PropId,
     rules: &Rules,
-    rng: &mut Rng,
+    seed: u64,
     tick: Tick,
 ) -> Vec<UnitId> {
-    let g = &rules.garrison;
-    let mut taken: Vec<V2> = Vec::new();
     let mut destroyed = Vec::new();
-    for unit in units.iter_mut() {
+    for index in 0..units.len() {
         // A whole squad may already be dead and have relinquished its hold.
         // The fallen retain their floor's owner until that support disappears.
-        for member in &mut unit.members {
+        for member in &mut units[index].members {
             if let Some(fallen) = &mut member.corpse {
                 if fallen.support_building == Some(target) {
                     fallen.at.z = world
@@ -663,71 +657,58 @@ pub fn collapse(
                 }
             }
         }
-        if unit
+        if units[index]
             .hold
             .as_ref()
             .is_none_or(|hold| hold.host.building() != target)
         {
             continue;
         }
-        if !unit.garrisoned() {
-            unit.hold = None; // still outside: its order lapses next tick
+        if !units[index].garrisoned() {
+            units[index].hold = None;
             continue;
         }
-        let mut out: Vec<(usize, V2)> = Vec::new();
-        for k in 0..unit.members.len() {
-            if !unit.members[k].alive() {
-                continue;
-            }
-            let at = unit.members[k].position;
-            let lives = rng.unit() < g.survival_probability_on_collapse;
-            let from = at.xy();
-            // He scrambles out as one body: wherever a soldier's disc
-            // fits, not where the squad's path clearance does.
-            let radius = rules.physics.soldier_radius_m;
-            let place = lives
-                .then(|| {
-                    arrangement::nearest_free(from, g.exit_search_radius_m, |p| {
-                        taken.iter().all(|t| (*t - p).length() >= ESCAPE_SPACING_M)
-                            && arrangement::standing_room(world, p, radius, &solid)
-                            && arrangement::reachable(world, from, p, radius, &solid)
-                    })
-                })
-                .flatten();
-            match place {
-                Some(p) => {
-                    taken.push(p);
-                    out.push((k, p));
-                }
-                None => {
-                    unit.members[k].fall(
-                        at.xy()
-                            .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
-                        unit.yaw,
-                        None,
-                    );
-                }
-            }
+        let hulls: Vec<_> = units
+            .iter()
+            .filter(|other| other.id != units[index].id && other.alive())
+            .filter_map(Unit::ground_footprint)
+            .collect();
+        let soldiers: Vec<_> = units
+            .iter()
+            .enumerate()
+            .filter(|(other, _)| *other != index)
+            .flat_map(|(_, other)| other.member_positions().map(|p| p.xy()))
+            .collect();
+        let rule = rules
+            .bail_out
+            .get(&contract::scenario::BailOutHost::Building)
+            .expect("building bail-out rule");
+        let from = units[index].position;
+        let result = crate::bail_out::apply(
+            world,
+            &mut units[index],
+            crate::bail_out::Host::Building(target),
+            from,
+            rule,
+            seed,
+            tick,
+            rules.physics.soldier_radius_m,
+            &hulls,
+            &soldiers,
+        );
+        units[index].hold = None;
+        if matches!(units[index].orders.front(), Some(UnitOrder::Exit)) {
+            units[index].orders.pop_front();
         }
-        unit.hold = None;
-        if matches!(unit.orders.front(), Some(UnitOrder::Exit)) {
-            unit.orders.pop_front();
-        }
-        if out.is_empty() {
-            unit.orders.clear();
-            unit.route = None;
-            destroyed.push(unit.id);
+        if result.all_died() {
+            units[index].orders.clear();
+            units[index].route = None;
+            destroyed.push(units[index].id);
             continue;
         }
-        // Each survivor stands where he escaped to.
-        for (k, p) in out {
-            let z = world.surface_at(p.x, p.y).map_or(0.0, |s| s.z);
-            unit.members[k].position = p.with_z(z);
-        }
-        unit.settle();
-        // They come out pinned: the level at least reaches the pinned tier's.
-        unit.suppression = unit.suppression.max(rules.suppression.pinned.level);
-        unit.suppressed_at = tick;
+        units[index].settle();
+        units[index].suppression = units[index].suppression.max(rules.suppression.pinned.level);
+        units[index].suppressed_at = tick;
     }
     destroyed
 }
