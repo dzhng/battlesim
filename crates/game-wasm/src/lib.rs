@@ -198,6 +198,17 @@ pub fn scenario_bundle_details(bundle_json: &str) -> Result<String, JsError> {
     .to_string())
 }
 
+/// The lobby's picture of an admitted map (`mapgen::inspect::skirmish_picture`):
+/// `map_json` is its `MapDefinition`, `sites_json` the admitted
+/// `SkirmishSites`. Answers the SVG text.
+#[wasm_bindgen]
+pub fn skirmish_picture(map_json: &str, sites_json: &str) -> Result<String, JsError> {
+    let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+    let sites: contract::encounter::SkirmishSites =
+        serde_json::from_str(sites_json).map_err(js_error)?;
+    Ok(mapgen::inspect::skirmish_picture(&map, &sites))
+}
+
 /// The generator version a generation request pins: a request naming another
 /// is refused, so a caller that wants this build's maps asks here.
 #[wasm_bindgen]

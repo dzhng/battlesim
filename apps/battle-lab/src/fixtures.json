@@ -292,6 +292,15 @@
     "loading": false
   },
   {
+    "id": "map-picture",
+    "route": "/labs/map-picture",
+    "describe": "The lobby's map picture alone: real admitted maps for 1v1, 3v4 and 5v5 at S, M, L and XL, each through the lobby's preview controller at lobby size, with the refusal a pairing below a size's floor gets; ?cell=3v4-large draws one.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "timeout_s": 300
+  },
+  {
     "id": "map-workbench",
     "route": "/labs/map-workbench",
     "describe": "Local generation and numerical validation tuning: searchable controls, authoritative plan, exact save review, retained inputs and seed samples.",

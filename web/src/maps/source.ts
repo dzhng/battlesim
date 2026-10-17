@@ -39,6 +39,8 @@ export interface GenerationRequest extends MapChoice {
   generator_version: string;
   preset_revision: string;
   template_catalog_hash: string;
+  /** Entries on each side (D52); absent means one. */
+  entries_per_side?: number;
   limits: CompileLimits;
 }
 

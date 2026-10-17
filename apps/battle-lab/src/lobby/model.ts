@@ -96,6 +96,12 @@ function entryCount(players: number): number {
   return players <= 1 ? 1 : players === 2 ? 2 : 3;
 }
 
+/** The entries each side gets for these players: one count for both sides,
+ *  from the larger side (D52). */
+export function entriesPerSide(players: readonly Player[]): number {
+  return entryCount(Math.max(sideCount(players, "blue"), sideCount(players, "red")));
+}
+
 function withPlayers(state: LobbyState, players: Player[]): LobbyState {
   const floor =
     sizeRank(state.sizeFloor) >= sizeRank(minimumSize(players))
@@ -229,9 +235,7 @@ function mapInputs(state: LobbyState): {
     size: state.map.size,
     ...(state.map.region === undefined ? {} : { region: state.map.region }),
     seed: state.map.seed,
-    entries: entryCount(
-      Math.max(sideCount(state.players, "blue"), sideCount(state.players, "red")),
-    ),
+    entries: entriesPerSide(state.players),
   };
 }
 

@@ -48,6 +48,8 @@ export interface PrepareMessage {
   documents: PrepareDocuments;
   /** Lab-only synthetic contact workload; normal battles omit it. */
   stress?: StressPreparation;
+  /** Also draw the lobby's picture of the admitted map (`PreparedBattle.preview`). */
+  preview?: boolean;
 }
 
 /** Replay preparation reads only the saved scenario, never today's fixtures. */
@@ -88,6 +90,18 @@ export type RefusalStage = "request" | PrepareStage | BundlePrepareStage;
 export interface PreparedBattle {
   scenario: string;
   report: PreparationReport;
+  /** Present when the message asked for `preview`. */
+  preview?: PreparedPicture;
+}
+
+/** The lobby's picture of a prepared map (D39), with what it was drawn from. */
+export interface PreparedPicture {
+  /** The admitted `MapDefinition`, as JSON text. */
+  map: string;
+  /** The admitted `SkirmishSites`, as JSON text. */
+  sites: string;
+  /** `mapgen::inspect::skirmish_picture`'s SVG. */
+  svg: string;
 }
 
 export interface PreparationReport {

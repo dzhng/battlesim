@@ -48,7 +48,7 @@ Slices:
 - [x] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
 - [ ] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
 - [x] 07: lobby model ([slice](slices/07-lobby-model.md))
-- [ ] 08: lobby map picture ([slice](slices/08-map-picture.md))
+- [x] 08: lobby map picture ([slice](slices/08-map-picture.md))
 - [ ] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
 - [ ] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
 - [ ] 11: per-player match report ([slice](slices/11-match-report.md))

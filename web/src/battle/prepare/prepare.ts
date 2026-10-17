@@ -41,12 +41,15 @@ export interface PreparationResult {
   scenario: string;
   report: PreparedBattle["report"];
   world: PreparedWorld;
+  /** The map and its admitted skirmish sites as JSON text, which the lobby's
+   *  picture is drawn from: null for a replay or a stress scene. */
+  picture: { map: string; sites: string } | null;
 }
 
 /** Restore the captured world. The battle's replay constructor still checks
  *  the engine, scenario and rules identities before accepting commands. */
 export function prepareReplay(wasm: PreparationModule, battle: PreparedBattle): PreparationResult {
-  return { ...battle, world: wasm.PreparedWorld.from_scenario(battle.scenario) };
+  return { ...battle, world: wasm.PreparedWorld.from_scenario(battle.scenario), picture: null };
 }
 
 type Outcome<T> = ({ status: "ok" } & T) | { status: "error"; diagnostics: PrepareDiagnostic[] };
@@ -207,6 +210,7 @@ export async function prepare(
     return {
       world,
       scenario,
+      picture: skirmish && !stress ? { map: map.json, sites: JSON.stringify(skirmish) } : null,
       report: {
         ...("metadata" in laid && {
           stress: { ...laid.stress, livingUnits: laid.metadata.livingUnits },
