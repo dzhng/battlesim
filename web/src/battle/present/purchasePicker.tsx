@@ -1,8 +1,11 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Faction, UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
+import { hudIcon } from "@packages/scene-assets/src/icons";
 import { useSessionCatalog } from "../catalog/context";
+import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
 import { purchasePanel, type PanelRules } from "./panelRows";
+import { cardPurchasable, enterChoice, filterCards, type BuyFacts } from "./purchaseFilter";
 import { UnitFace } from "./unitFace";
 import type { SkirmishView } from "../sim/observationView";
 interface PickerProps {
@@ -26,13 +29,15 @@ const HOVER_INTENT_MS = 250;
 
 const CATEGORIES: readonly UnitCategory[] = ["rec", "inf", "veh", "sup", "hel", "air"];
 /** The Reinforcements button and the credits. The menu exists only while
- *  open, so every opening starts fresh: first category, no family shown. */
+ *  open, so every opening starts fresh: first category, empty filter. */
 export function PurchasePicker({ match, ...menu }: PickerProps) {
   const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
   return (
     <div className="hud-reinforcements" data-occludes-readouts>
       <div className="hud-purchase-controls">
         <button
+          ref={button}
           type="button"
           className="hud-menu-choice"
           aria-label="Reinforcements"
@@ -53,17 +58,38 @@ export function PurchasePicker({ match, ...menu }: PickerProps) {
             menu.onChoose(variant);
             setOpen(false);
           }}
+          onClose={() => {
+            setOpen(false);
+            button.current?.focus();
+          }}
         />
       )}
     </div>
   );
 }
 
+interface MenuProps extends PickerProps {
+  /** Escape with an empty filter closes the menu and returns focus. */
+  onClose: () => void;
+}
+
 /** Catalog families organize browsing; only a concrete available variant starts placement. */
-function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
+function PurchaseMenu({ cards, faction, match, onChoose, rules, onClose }: MenuProps) {
   const catalog = useSessionCatalog();
   const [category, setCategory] = useState<UnitCategory>("rec");
   const [family, setFamily] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const search = useRef<HTMLInputElement>(null);
+  // The field takes focus on open, so typing filters at once.
+  useEffect(() => search.current?.focus(), []);
+  const facts: BuyFacts = {
+    credits: match.credits,
+    occupiedSlots: match.occupiedSlots,
+    maxUnits: match.maxUnits,
+    finished: match.phase === "finished",
+  };
+  const available = cards.filter((c) => c.roster.factions.includes(faction));
+  const searching = query.trim() !== "";
   // The menu hangs from its family's card's top-left corner, measured
   // after every render from the card itself (whatever chose the family),
   // inside the picker's border, where absolute positions start.
@@ -92,19 +118,25 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
     if (menuOpen && id !== family) pendingHover.current = setTimeout(show, HOVER_INTENT_MS);
     else show();
   };
-  const available = cards.filter((c) => c.roster.factions.includes(faction));
+  // A search spans the roster; browsing shows the category. Both feed the
+  // same family grouping.
+  const pool = searching
+    ? filterCards(available, query)
+    : available.filter((c) => c.roster.category === category);
   const families = new Map<string, UnitCard[]>();
-  for (const card of available.filter((c) => c.roster.category === category)) {
+  for (const card of pool) {
     const group = families.get(card.family) ?? [];
     group.push(card);
     families.set(card.family, group);
   }
   const chosen = families.get(family ?? "") ?? [];
-  const finished = match.phase === "finished";
+  // Enter buys the sole family's first available variant; with several
+  // families shown, it no-ops.
+  const enter = searching ? enterChoice(pool, facts) : null;
   // A tab is shown as soon as the pointer or focus reaches it; a click does
   // the same, for touch. Passing back over the shown tab changes nothing.
   const showCategory = (c: UnitCategory) => {
-    if (c === category) return;
+    if (searching || c === category) return;
     setCategory(c);
     cancelHover();
     setFamily(null);
@@ -115,19 +147,17 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
       aria-label="Faction units"
       onMouseLeave={() => hover(null, false)}
     >
-      <div className="hud-purchase-families" role="tabpanel" aria-label={category.toUpperCase()}>
+      <div
+        className="hud-purchase-families"
+        role="tabpanel"
+        aria-label={searching ? "Search results" : category.toUpperCase()}
+      >
         {[...families].map(([id, variants]) => {
           // Every card has its generated silhouette, keyed by card id: a
           // unit type's from its model, a disabled card's from its source.
           const unavailable = variants.every((v) => v.disabled_reason !== null);
           const shown = variants.find((v) => v.disabled_reason === null) ?? variants[0];
-          const firstAvailable = variants.find(
-            (v) =>
-              finished === false &&
-              v.disabled_reason === null &&
-              v.cost <= match.credits &&
-              match.occupiedSlots < match.maxUnits,
-          );
+          const firstAvailable = variants.find((v) => cardPurchasable(v, facts));
           return (
             <button
               key={id}
@@ -136,6 +166,8 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
               aria-label={variants[0].roster.family_name}
               aria-pressed={id === family}
               data-family={id}
+              // A click never takes the text cursor out of the field.
+              onMouseDown={(event) => event.preventDefault()}
               onMouseEnter={() => hover(id, chosen.length > 0)}
               onFocus={() => hover(id, false)}
               onClick={() => {
@@ -154,24 +186,56 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
             </button>
           );
         })}
+        {searching && families.size === 0 && <p className="hud-purchase-empty">NO MATCH</p>}
       </div>
       {/* The tabs stand under the cards, so a family's info cards, standing
-          on its card, never cover them. */}
-      <div className="hud-purchase-categories" role="tablist" aria-label="Unit categories">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c}
-            type="button"
-            role="tab"
-            className="hud-menu-choice"
-            aria-selected={c === category}
-            onMouseEnter={() => showCategory(c)}
-            onFocus={() => showCategory(c)}
-            onClick={() => showCategory(c)}
-          >
-            {c.toUpperCase()}
-          </button>
-        ))}
+          on its card, never cover them. The filter stands at the row's right,
+          beside the tabs, and dims them while it owns the search. */}
+      <div className="hud-purchase-filter">
+        <div className="hud-purchase-categories" role="tablist" aria-label="Unit categories">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="tab"
+              className="hud-menu-choice"
+              disabled={searching}
+              aria-selected={!searching && c === category}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => showCategory(c)}
+              onFocus={() => showCategory(c)}
+              onClick={() => showCategory(c)}
+            >
+              {c.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <label className="hud-purchase-search">
+          <Icon path={hudIcon("search")} />
+          <input
+            ref={search}
+            type="text"
+            aria-label="Search units"
+            placeholder="SEARCH"
+            autoComplete="off"
+            spellCheck={false}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && enter) {
+                event.preventDefault();
+                onChoose(enter.id);
+              }
+              if (event.key === "Escape") {
+                // Keep the page's own Escape (the pause menu) out of a field
+                // the player is using: clear first, then close.
+                event.preventDefault();
+                if (query) setQuery("");
+                else onClose();
+              }
+            }}
+          />
+        </label>
       </div>
       {/* The hovered family's info cards, one per variant (one for a
           family of one), stacked in a hover menu standing on its card,
@@ -194,12 +258,7 @@ function PurchaseMenu({ cards, faction, match, onChoose, rules }: PickerProps) {
                   key={card.id}
                   type="button"
                   className="hud-panel hud-card hud-purchase-info"
-                  disabled={
-                    finished ||
-                    card.disabled_reason !== null ||
-                    card.cost > match.credits ||
-                    match.occupiedSlots >= match.maxUnits
-                  }
+                  disabled={!cardPurchasable(card, facts)}
                   aria-label={`${card.roster.variant} — ${card.cost} credits${card.disabled_reason !== null ? " — Unavailable" : ""}`}
                   onClick={() => onChoose(card.id)}
                 >

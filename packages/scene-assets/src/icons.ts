@@ -154,6 +154,8 @@ const HUD_ICONS = {
   hold_fire: '<circle cx="12" cy="12" r="8"/><path d="M7 12h10"/>',
   leave_building: '<path d="M4 20V10l7-6 7 6"/><path d="M11 15h10"/><path d="M18 12l3 3-3 3"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  // The reinforcements filter: a lens and its handle.
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
   // A bare chevron: back out of a menu page, unlike reverse's barred arrow.
   back: '<path d="M15 4l-8 8 8 8"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',

@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render as renderView } from "@testing-library/react
 import { WithTestCatalog } from "./catalog";
 import { afterEach, expect, test, vi } from "vitest";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
-import type { UnitCard } from "@packages/scene-assets/src/units";
+import type { UnitCard, UnitCategory } from "@packages/scene-assets/src/units";
 import type { SkirmishView } from "@web/battle/sim/observationView";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import game from "@fixtures/game.json";
@@ -198,4 +198,158 @@ test("a one-variant family's info card buys it, as its card does", () => {
   fireEvent.mouseEnter(view.getByRole("button", { name: "M1 Abrams" }));
   fireEvent.click(view.getByRole("button", { name: "SEP v2 — 200 credits" }));
   expect(choose).toHaveBeenCalledExactlyOnceWith("base");
+});
+
+/** A card for an invented family, so tests can span categories. */
+const familyCard = (
+  id: string,
+  family: string,
+  family_name: string,
+  variant: string,
+  category: UnitCategory,
+): UnitCard => ({
+  ...card(id, variant),
+  family,
+  roster: { factions: ["us"], family_name, category, variant },
+});
+
+test("typing a family or variant name narrows the grid to that family", () => {
+  const cards = [
+    familyCard("base", "abrams", "M1 Abrams", "SEP v2", "veh"),
+    familyCard("jeep", "humvee", "HMMWV", "Base", "veh"),
+  ];
+  const view = render(
+    <PurchasePicker cards={cards} faction="us" match={match} onChoose={vi.fn()} rules={RULES} />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  const field = view.getByRole("textbox", { name: "Search units" });
+  fireEvent.change(field, { target: { value: "hmmwv" } });
+  expect(view.queryByRole("button", { name: "M1 Abrams" })).toBeNull();
+  expect(view.getByRole("button", { name: "HMMWV" })).toBeTruthy();
+  // A variant name finds its family too.
+  fireEvent.change(field, { target: { value: "sep v2" } });
+  expect(view.getByRole("button", { name: "M1 Abrams" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "HMMWV" })).toBeNull();
+});
+
+test("a search spans every category and dims the tabs", () => {
+  const cards = [
+    familyCard("rifle", "rifle_section", "Rifle Section", "Base", "inf"),
+    familyCard("base", "abrams", "M1 Abrams", "SEP v2", "veh"),
+  ];
+  const view = render(
+    <PurchasePicker cards={cards} faction="us" match={match} onChoose={vi.fn()} rules={RULES} />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  expect(view.queryByRole("button", { name: "Rifle Section" })).toBeNull();
+  fireEvent.change(view.getByRole("textbox", { name: "Search units" }), {
+    target: { value: "rifle" },
+  });
+  // The infantry family shows although the VEH tab is the one shown.
+  expect(view.getByRole("button", { name: "Rifle Section" })).toBeTruthy();
+  expect(view.queryByRole("button", { name: "M1 Abrams" })).toBeNull();
+  expect(view.getByRole("tab", { name: "VEH" }).hasAttribute("disabled")).toBe(true);
+});
+
+test("an unmatched search says so, and clearing restores the shown category", () => {
+  const cards = [
+    familyCard("rifle", "rifle_section", "Rifle Section", "Base", "inf"),
+    familyCard("base", "abrams", "M1 Abrams", "SEP v2", "veh"),
+  ];
+  const view = render(
+    <PurchasePicker cards={cards} faction="us" match={match} onChoose={vi.fn()} rules={RULES} />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  fireEvent.click(view.getByRole("tab", { name: "VEH" }));
+  const field = view.getByRole("textbox", { name: "Search units" });
+  fireEvent.change(field, { target: { value: "zzz" } });
+  expect(view.getByText("NO MATCH")).toBeTruthy();
+  expect(view.queryByRole("button", { name: "M1 Abrams" })).toBeNull();
+  fireEvent.change(field, { target: { value: "" } });
+  expect(view.queryByText("NO MATCH")).toBeNull();
+  expect(view.getByRole("button", { name: "M1 Abrams" })).toBeTruthy();
+  expect(view.getByRole("tab", { name: "VEH" }).getAttribute("aria-selected")).toBe("true");
+});
+
+test("Enter buys the sole matching family's first available variant", () => {
+  const choose = vi.fn();
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={choose}
+      rules={RULES}
+    />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  const field = view.getByRole("textbox", { name: "Search units" });
+  fireEvent.change(field, { target: { value: "abrams" } });
+  fireEvent.keyDown(field, { key: "Enter" });
+  expect(choose).toHaveBeenCalledExactlyOnceWith("base");
+});
+
+test("Enter buys the exact variant a variant-name search found", () => {
+  const choose = vi.fn();
+  const cards = [
+    familyCard("base", "humvee", "HMMWV", "Base", "veh"),
+    familyCard("hmg", "humvee", "HMMWV", "HMG", "veh"),
+  ];
+  const view = render(
+    <PurchasePicker cards={cards} faction="us" match={match} onChoose={choose} rules={RULES} />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  const field = view.getByRole("textbox", { name: "Search units" });
+  fireEvent.change(field, { target: { value: "hmg" } });
+  fireEvent.keyDown(field, { key: "Enter" });
+  // The HMG variant, not the family's first available (Base).
+  expect(choose).toHaveBeenCalledExactlyOnceWith("hmg");
+});
+
+test("Enter stays out of the way with several families or nothing to buy", () => {
+  const cards = [
+    familyCard("base", "abrams", "M1 Abrams", "SEP v2", "veh"),
+    {
+      ...familyCard("jeep", "humvee", "HMMWV", "Base", "veh"),
+      disabled_reason: "Protection deferred",
+    },
+  ];
+  const choose = vi.fn();
+  const view = render(
+    <PurchasePicker cards={cards} faction="us" match={match} onChoose={choose} rules={RULES} />,
+  );
+  fireEvent.click(view.getByRole("button", { name: "Reinforcements" }));
+  const field = view.getByRole("textbox", { name: "Search units" });
+  fireEvent.change(field, { target: { value: "m" } });
+  fireEvent.keyDown(field, { key: "Enter" });
+  expect(choose).not.toHaveBeenCalled();
+  // One family, but its only variant is unavailable.
+  fireEvent.change(field, { target: { value: "hmmwv" } });
+  fireEvent.keyDown(field, { key: "Enter" });
+  expect(choose).not.toHaveBeenCalled();
+});
+
+test("Escape clears the filter first, then closes and returns focus to its button", () => {
+  const view = render(
+    <PurchasePicker
+      cards={[card("base", "SEP v2")]}
+      faction="us"
+      match={match}
+      onChoose={vi.fn()}
+      rules={RULES}
+    />,
+  );
+  const toggle = view.getByRole("button", { name: "Reinforcements" });
+  fireEvent.click(toggle);
+  const field = () => view.getByRole("textbox", { name: "Search units" });
+  fireEvent.change(field(), { target: { value: "abrams" } });
+  // The pause menu owns Escape unless the field cancels it.
+  expect(fireEvent.keyDown(field(), { key: "Escape" })).toBe(false);
+  expect((field() as HTMLInputElement).value).toBe("");
+  expect(view.getByRole("button", { name: "Reinforcements" })).toBeTruthy();
+  expect(fireEvent.keyDown(field(), { key: "Escape" })).toBe(false);
+  expect(view.queryByRole("textbox", { name: "Search units" })).toBeNull();
+  expect(document.activeElement).toBe(toggle);
 });

@@ -1347,8 +1347,57 @@ html {
   /* Absolute positioning starts inside the deck's one-pixel border. */
   bottom: calc(100% + var(--hud-deck-popup-gap) + 1px);
 }
-.hud-purchase-categories {
+/* The picker's control row: tabs left, free-text filter right. */
+.hud-purchase-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 12px;
+}
+.hud-purchase-categories {
+  margin-top: 0;
+}
+.hud-purchase-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: rgb(var(--hud-accent) / 0.85);
+  cursor: text;
+}
+.hud-purchase-search .ro-icon {
+  width: 13px;
+  height: 13px;
+}
+/* A holo input line, not a browser box: one glowing rule under caps. Its text
+   carries no halo, as the panel's other labels don't. */
+.hud-purchase-search input[type="text"] {
+  width: 120px;
+  padding: 2px 6px 3px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgb(var(--hud-accent) / 0.4);
+  border-radius: 0;
+  /* The HUD face is caps; uppercase keeps typed text in it. */
+  text-transform: uppercase;
+}
+.hud-purchase-search input[type="text"]:focus-visible {
+  outline: none;
+  border-bottom-color: rgb(var(--hud-accent));
+  box-shadow: 0 3px 6px -4px rgb(var(--hud-accent) / 0.8);
+}
+.hud-purchase-search input::placeholder {
+  color: rgb(var(--hud-text) / 0.45);
+}
+/* A search that matched nothing says so where the cards would be. */
+.hud-purchase-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 22px 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-align: center;
+  color: rgb(var(--hud-text) / 0.6);
 }
 .hud-purchase-categories [aria-selected="true"] {
   color: rgb(var(--hud-accent));
