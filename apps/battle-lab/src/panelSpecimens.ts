@@ -15,7 +15,6 @@ import {
   contactPanel,
   enemyPanel,
   ownPanel,
-  passengersOf,
   weaponRows,
   type Panel,
   type PanelRules,
@@ -26,7 +25,7 @@ import {
   type PanelZoom,
   type PassengerCard,
 } from "@web/battle/present/infoPanel";
-import type { MountView, OwnUnitView } from "@web/battle/sim/observationView";
+import { passengersOf, type MountView, type OwnUnitView } from "@web/battle/sim/observationView";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
 
 export interface Specimen {

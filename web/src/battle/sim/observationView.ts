@@ -220,6 +220,17 @@ export type HoldHostView =
  *  not on the field, and the player can't select or order it (D10). */
 export const aboardCarrier = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind === "carrier";
 
+/** The own squads a carrier holds (boarding, aboard or getting out), in
+ *  the side's own order: the one owner of who rides in what, which the
+ *  Seats row counts, the readouts stack under the carrier's card and
+ *  Unload reaches. */
+export function passengersOf<U extends Pick<OwnUnitView, "hold">>(
+  own: readonly U[],
+  carrier: number,
+): readonly U[] {
+  return own.filter((u) => aboardCarrier(u) && u.hold!.host.id === carrier);
+}
+
 export interface HoldView {
   host: HoldHostView;
   /** entering, inside or exiting. */

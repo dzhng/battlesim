@@ -17,7 +17,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { PresentedContact } from "./contactPresentation";
-import type { IdentifiedView, OwnUnitView } from "../sim/observationView";
+import { passengersOf, type IdentifiedView, type OwnUnitView } from "../sim/observationView";
 import type { useUnitControl } from "../input/useUnitControl";
 import type { CommandMode, PointerPick } from "../input/pointerIntent";
 import { CommandBindings } from "../input/commandBindings";
@@ -44,7 +44,7 @@ import {
   type PanelOwner,
   type PassengerCard,
 } from "./infoPanel";
-import { contactPanel, enemyPanel, ownPanel, passengersOf, type PanelRules } from "./panelRows";
+import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
 
 /** The element the high-air models' canvas lies in, between the two card
  *  planes: a battle view draws its high-air models there when the page has

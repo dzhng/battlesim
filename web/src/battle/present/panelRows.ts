@@ -15,7 +15,7 @@ import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/sr
 import type { MountRow, UnitCard, UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "../catalog/compose";
 import {
-  aboardCarrier,
+  passengersOf,
   type ContactView,
   type MountView,
   type OwnUnitView,
@@ -189,13 +189,6 @@ const HOLD_ROWS: Record<string, Record<string, (progress: number) => StateRow | 
     exiting: (p) => row("dismounting", { progress: p }),
   },
 };
-
-/** The own squads a carrier holds (boarding, aboard or getting out), in
- *  the side's own order: the one owner of who rides in what, which the
- *  Seats row counts and the readouts stack under the carrier's card. */
-export function passengersOf(own: readonly OwnUnitView[], carrier: number): readonly OwnUnitView[] {
-  return own.filter((u) => aboardCarrier(u) && u.hold!.host.id === carrier);
-}
 
 /** A carrier's Seats row: the living soldiers of the squads it holds
  *  against its catalog seats; null for a unit that carries no one. */
