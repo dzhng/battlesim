@@ -5403,7 +5403,7 @@ impl Battle {
                             && u.attackers.is_empty(),
                         stock: u.stock,
                         service: u.service,
-                        hold: garrison::state(&self.world, u, &self.rules),
+                        hold: crate::hold::state(&self.world, u, &self.rules),
                         sight: {
                             let s = sight::of(u, &self.rules);
                             UnitSight {

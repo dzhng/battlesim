@@ -797,7 +797,7 @@ impl Unit {
             Some(a) => d.u64(1).f64(a.at.x).f64(a.at.y).u64(a.halt as u64),
             None => d.u64(0),
         };
-        crate::garrison::digest(self, d);
+        crate::hold::digest(self, d);
         d.u64(self.members.len() as u64);
         for s in &self.members {
             d.u64(s.id as u64)
