@@ -19,8 +19,9 @@ export const MIE_G = 0.8;
 export const EYE_ALTITUDE_KM = 0.2;
 
 /** Clear-sky multiple scattering is sky-coloured, which keeps the
- *  low-altitude band from washing to cream. */
-export const MS_TINT: readonly [number, number, number] = [0.5, 0.7, 1.0];
+ *  low-altitude band from washing to cream. Lifted toward a light azure:
+ *  pale near the horizon, light overhead. */
+export const MS_TINT: readonly [number, number, number] = [0.55, 0.78, 1.15];
 /** Where a low sun's warm aureole fades out and is full, as the cosine from
  *  the sun. AgX compresses chroma, so golden-hour pixels need this warmth
  *  before tone mapping. */
@@ -30,7 +31,7 @@ export const LOW_SUN_AUREOLE_COS_INNER = 0.76;
  *  cool, flat, HIGH-KEY — the sky IS the light source). The gradient runs
  *  BRIGHTER toward the horizon (mist register, matching the reference and
  *  the visual reference), not the darker CIE-standard horizon. */
-export const OVERCAST_ZENITH_RADIANCE: readonly [number, number, number] = [1.02, 1.05, 1.1];
+export const OVERCAST_ZENITH_RADIANCE: readonly [number, number, number] = [1.04, 1.08, 1.14];
 /** Sun disc: ~1.2° visual radius (readable at game framing). */
 export const SUN_DISC_COS_INNER = 0.99985;
 export const SUN_DISC_COS_OUTER = 0.99955;

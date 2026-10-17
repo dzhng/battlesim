@@ -15,8 +15,8 @@ use crate::damage;
 use crate::deployment;
 use crate::digest::Digest;
 use crate::flight::{
-    predicted_path, Aim, BodyId, FiringSolution, FlightConfig, Launch, LaunchProfile, NoSolution,
-    ProjectileId, Shooter,
+    predicted_path, timed_path, Aim, BodyId, FiringSolution, FlightConfig, Launch, LaunchProfile,
+    NoSolution, ProjectileId, Shooter,
 };
 use crate::knowledge::SideKnowledge;
 use crate::lean;
@@ -777,8 +777,11 @@ fn muzzle(unit: &Unit, mount: &Mount, spec: &MountSpec, rules: &Rules, bearing: 
     placed_muzzle(unit.position, unit.yaw, spec, muzzle, carried, bearing)
 }
 
-/// P11: withhold when a friendly vehicle sits on the predicted path or in the
-/// blast at `burst`. Friendly infantry never withholds a shot (it can still be hit).
+/// P11: withhold when a friendly vehicle will be on the predicted path as the
+/// round passes, or in the blast at `burst` when it bursts. Each hull is
+/// judged where its own velocity carries it by then, so a wingman in trail
+/// holds for the lead he would hit, not for where the lead was when he fired.
+/// Friendly infantry never withholds a shot (it can still be hit).
 /// `leaning_round` is the hull a soldier leans round: his lean point
 /// clears it, so it never withholds his shot.
 #[allow(clippy::too_many_arguments)]
@@ -794,7 +797,7 @@ fn friendly_in_line(
 ) -> bool {
     let margin = ctx.rules.physics.friendly_prefire_margin_m;
     let (def, profile) = (&weapon.def, &weapon.profile);
-    let path = predicted_path(
+    let path = timed_path(
         &ctx.arsenal.config,
         profile,
         origin,
@@ -809,17 +812,21 @@ fn friendly_in_line(
         .filter(|u| Some(u.id) != leaning_round)
         .any(|u| {
             // One frame per hull: its rotation is not recomputed per sample.
+            // The path is read in the hull's own moving frame instead.
             let hull = u.hull_frame();
+            let drift = u.flight_velocity();
+            let relative = |(p, t): (V3, f64)| p - drift * t;
             path.windows(2).any(|w| {
+                let (a, b) = (relative(w[0]), relative(w[1]));
                 // A chord that never comes near the hull has no sample near it.
-                if !hull.may_come_within(w[0], w[1], margin) {
+                if !hull.may_come_within(a, b, margin) {
                     return false;
                 }
                 // Sample each chord densely enough for a hull-sized margin.
-                let n = ((w[1] - w[0]).length() / 1.0).ceil().max(1.0) as usize;
-                (0..=n)
-                    .any(|k| hull.distance(w[0] + (w[1] - w[0]) * (k as f64 / n as f64)) < margin)
-            }) || (def.blast_radius_m > 0.0 && hull.distance(burst) < def.blast_radius_m)
+                let n = ((b - a).length() / 1.0).ceil().max(1.0) as usize;
+                (0..=n).any(|k| hull.distance(a + (b - a) * (k as f64 / n as f64)) < margin)
+            }) || (def.blast_radius_m > 0.0
+                && hull.distance(burst - drift * s.time_of_flight_s) < def.blast_radius_m)
         })
 }
 

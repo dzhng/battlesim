@@ -14,6 +14,7 @@ pub mod deployment;
 pub mod digest;
 pub mod encounter;
 pub mod endurance;
+pub mod entries;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod fixtures;
 pub mod flight;

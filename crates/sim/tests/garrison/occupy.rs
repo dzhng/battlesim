@@ -18,7 +18,7 @@ fn a_building_group_enters_one_squad_and_gathers_its_selected_companions() {
     .expect("combined building intent");
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order,
         queued: false,
@@ -134,7 +134,7 @@ fn queued_reentry_after_an_entering_squads_attack_and_exit_remains_unproven() {
     }
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 4,
         order: occupy(&[0, 1], 1),
         queued: true,
@@ -179,7 +179,7 @@ fn a_building_group_ranks_reachable_route_distance_instead_of_distance_to_the_wa
     );
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: occupy(&[0, 1], 1),
         queued: false,
@@ -196,7 +196,7 @@ fn a_combined_building_admission_reserves_its_entry_before_the_next_tick() {
     let mut b = battle(west_squads(&["test_recon", "test_recon"]), 1);
     let first = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: occupy(&[0], 1),
         queued: false,
@@ -205,7 +205,7 @@ fn a_combined_building_admission_reserves_its_entry_before_the_next_tick() {
     assert_eq!(first.building.unwrap().entrant.unwrap().unit, UnitId(0));
     let second = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         order: garrison(&[1]),
         queued: false,
@@ -213,7 +213,7 @@ fn a_combined_building_admission_reserves_its_entry_before_the_next_tick() {
     assert_eq!(second.error, Some(OrderError::BuildingOccupied));
     let third = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 3,
         order: occupy(&[1], 2),
         queued: false,
@@ -241,7 +241,7 @@ fn a_selected_holder_keeps_its_work_while_a_queued_building_group_gathers_others
     b.step();
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 3,
         order: occupy(&[0, 1], 1),
         queued: true,
@@ -280,7 +280,7 @@ fn a_building_entry_can_use_the_rest_of_a_facade_when_its_nearest_projection_is_
     );
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: occupy(&[0], 1),
         queued: false,
@@ -319,7 +319,7 @@ fn a_future_garrison_behind_an_indefinite_attack_is_unproven_until_replaced() {
         b.step();
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 3,
             order: occupy(&[0], 1),
             queued,
@@ -363,7 +363,7 @@ fn a_nearby_entry_is_not_starved_by_farther_candidates_earlier_in_unit_order() {
     let mut b = Battle::new(&setup, 1);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: occupy(&[0, 1], 1),
         queued: false,
@@ -455,7 +455,7 @@ fn queued_building_entry_ranks_predicted_origins_and_preserves_an_indefinite_com
     c.ok(&mut b, Side::Blue, ground(2, [600.0, 300.0]));
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 4,
         order: occupy(&[0, 1, 2], 3),
         queued: true,
@@ -574,7 +574,7 @@ fn combined_building_queries_are_pure_and_queued_exit_orders_replay_every_tick()
             seq += 1;
             let command = CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq,
                 order,
                 queued,
@@ -634,7 +634,7 @@ fn a_replacement_building_group_can_replace_an_unreachable_selected_entry_reserv
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         order: occupy(&[0, 1], 1),
         queued: false,
@@ -669,7 +669,7 @@ fn replacement_entry_cancels_a_pending_exit_but_does_not_preserve_an_actual_exit
     c.ok(&mut b, Side::Blue, exit(&[0]));
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 3,
         order: occupy(&[0, 1], 1),
         queued: false,
@@ -686,7 +686,7 @@ fn replacement_entry_cancels_a_pending_exit_but_does_not_preserve_an_actual_exit
     }
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 4,
         order: exit(&[0]),
         queued: false,
@@ -735,7 +735,7 @@ fn an_unseen_enemy_occupant_cannot_change_a_building_group_plan() {
     let (mut occupied, mut empty) = (Battle::new(&setup, 1), Battle::new(&setup, 1));
     let ack = occupied.accept(CommandEnvelope {
         side: Side::Red,
-        slot: None,
+        player: None,
         seq: 1,
         order: garrison(&[2]),
         queued: false,
@@ -764,7 +764,7 @@ fn an_unseen_enemy_occupant_cannot_change_a_building_group_plan() {
     assert!(plan.entrant.is_some() && plan.destinations.iter().all(|d| d.placed));
     let ack = occupied.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: occupy(&[0, 1], 1),
         queued: false,
@@ -796,7 +796,7 @@ fn unfinished_shorter_routes_withhold_entry_and_keep_useful_gathering() {
     let mut b = Battle::new(&setup, 1);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: occupy(&[0, 1], 1),
         queued: false,
@@ -842,7 +842,7 @@ fn known_occupied_and_too_small_buildings_gather_the_whole_selection() {
         let seq = if occupied {
             let ack = b.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 1,
                 order: garrison(&[0]),
                 queued: false,
@@ -855,7 +855,7 @@ fn known_occupied_and_too_small_buildings_gather_the_whole_selection() {
         };
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq,
             order: occupy(&[1, 2], 1),
             queued: false,
@@ -900,7 +900,7 @@ fn a_selected_entering_squad_keeps_its_entry_before_an_indefinite_attack_suffix(
     });
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         order: ground(0, [600.0, 300.0]),
         queued: true,
@@ -908,7 +908,7 @@ fn a_selected_entering_squad_keeps_its_entry_before_an_indefinite_attack_suffix(
     assert_eq!(ack.error, None);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 3,
         order: occupy(&[0, 1], 1),
         queued: true,
@@ -949,7 +949,7 @@ fn an_entering_squad_with_a_leaving_suffix_is_unproven_for_queued_reentry() {
         assert_eq!(
             b.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq,
                 order,
                 queued: true
@@ -960,7 +960,7 @@ fn an_entering_squad_with_a_leaving_suffix_is_unproven_for_queued_reentry() {
     }
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 4,
         order: occupy(&[0, 1], 2),
         queued: true,
@@ -1016,7 +1016,7 @@ fn an_inside_holder_with_finite_leaving_work_before_an_attack_cannot_promise_que
         assert_eq!(
             b.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq,
                 order,
                 queued: true
@@ -1027,7 +1027,7 @@ fn an_inside_holder_with_finite_leaving_work_before_an_attack_cannot_promise_que
     }
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 5,
         order: occupy(&[0, 1], 2),
         queued: true,
@@ -1117,7 +1117,7 @@ fn an_unfinished_finite_predecessor_cannot_be_skipped_for_a_different_entrant() 
     assert_eq!(
         b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             order: walk,
             queued: false
@@ -1162,7 +1162,7 @@ fn replacement_entry_reasserts_an_inside_hold_before_its_finite_leaving_suffix()
         assert_eq!(
             b.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq,
                 order,
                 queued: true
@@ -1173,7 +1173,7 @@ fn replacement_entry_reasserts_an_inside_hold_before_its_finite_leaving_suffix()
     }
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 4,
         order: occupy(&[0, 1], 2),
         queued: false,

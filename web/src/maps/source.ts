@@ -22,6 +22,8 @@ export interface MapChoice {
   seed: string;
   /** One of the presets' `parcels.regional_families`; absent, the seed draws one. */
   region?: string;
+  /** Shared skirmish entry arms per side; omitted for standard maps. */
+  entries_per_side?: number;
 }
 
 /** Mirrors `contract::generation::CompileLimits`: the compiler's admission. */
@@ -39,6 +41,8 @@ export interface GenerationRequest extends MapChoice {
   generator_version: string;
   preset_revision: string;
   template_catalog_hash: string;
+  /** Entries on each side (D52); absent means one. */
+  entries_per_side?: number;
   limits: CompileLimits;
 }
 
@@ -127,6 +131,7 @@ export function generationRequest(
     type: choice.type,
     size: choice.size,
     profile: choice.profile ?? "standard",
+    ...(choice.entries_per_side !== undefined && { entries_per_side: choice.entries_per_side }),
     ...(choice.region !== undefined && { region: choice.region }),
     limits,
   };

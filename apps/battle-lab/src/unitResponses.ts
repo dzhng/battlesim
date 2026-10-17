@@ -43,7 +43,8 @@ export class UnitResponses {
   observed(observation: ObservationView) {
     this.own = observation.own;
     const kinds = new Set(observation.own.map((unit) => unit.kind));
-    for (const { kind } of observation.skirmish?.pending ?? []) kinds.add(kind);
+    for (const { kind } of observation.skirmish?.players.flatMap((player) => player.pending) ?? [])
+      kinds.add(kind);
     this.audio.loadVoices([...kinds].flatMap((kind) => this.setOf(kind) ?? []));
     const moving = observation.own.map((unit) => ({
       id: unit.id,

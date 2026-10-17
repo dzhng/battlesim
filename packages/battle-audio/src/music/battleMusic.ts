@@ -6,13 +6,14 @@
 // every track out (a crossfade is the two over the same span), and a duck
 // dips the bus.
 import { Score } from "@wasm/presentation/presentation_wasm.js";
+import type { Duck } from "../audioPresentation";
 import type { VoiceRequest } from "../voices/chatter";
 import type { Mood } from "./musicCatalog";
 
 /** `presentation.audio.music`: read by Rust, typed here for the workbench. */
 export interface BattleMusicRules {
   /** How far the music dips under a voice line, and how fast it dips and recovers. */
-  duck: { depth: number; attack_s: number; release_s: number };
+  duck: Duck;
   /** A qualifying bark at most this old switches tension to combat. */
   combat_window_s: number;
   /** Combat returns to tension after this long without one. */
@@ -29,7 +30,7 @@ export type BattleMood = Exclude<Mood, "menu">;
 export type MusicCommand =
   | { op: "music"; at: number; track: string; fade: number }
   | { op: "music_stop"; at: number; fade: number }
-  | { op: "duck"; at: number; depth: number; glide: number };
+  | { op: "duck"; at: number; bus: "music"; depth: number; glide: number };
 
 /** What carries the commands out: the page's `MusicPlayer`, or a recorder. */
 export interface MusicBus {

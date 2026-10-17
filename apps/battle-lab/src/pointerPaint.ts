@@ -302,7 +302,9 @@ export class PointerPaint {
       rulerKey +
       ":" +
       preview
-        .map((p) => [p.unit, ...p.c, p.r, p.facing ?? 0, p.placed, p.opacity, metresPerPx].join())
+        .map((p) =>
+          [p.unit, ...p.c, p.r, p.facing ?? 0, p.placed, p.opacity, !!p.unload, metresPerPx].join(),
+        )
         .join(";");
     const spreadKey = attackGround
       ? `:${attackGround.center.join(",")}:${attackGround.radius_m.toFixed(3)}:${metresPerPx}`
@@ -367,6 +369,19 @@ export function previewForIntent(intent: PointerIntent): PointerPreview | null {
         kind: "move",
         request: { units: intent.units, goal: intent.goal, queued: intent.queued },
       };
+    // Unloading at a point is placed as the move that takes it there.
+    case "unload":
+      return intent.goal
+        ? {
+            kind: "move",
+            request: {
+              units: intent.units,
+              goal: intent.goal,
+              route: intent.route,
+              queued: intent.queued,
+            },
+          }
+        : null;
     case "occupy_building": {
       return {
         kind: "building",
@@ -391,10 +406,13 @@ export function cursorForIntent(
   if (intent.kind === "none") return "default";
   if (intent.kind === "blocked") return "blocked";
   if (intent.kind === "attack") return intent.target.kind === "ground" ? "attack_ground" : "attack";
+  // Boarding is the simulation's to admit; its refusal names the squads left out.
+  if (intent.kind === "board" || intent.kind === "collect") return "board";
   if (paint.state === "blocked") return "blocked";
   if (paint.state !== "ready") return "default";
   if (intent.kind === "occupy_building") return paint.building?.entrant ? "garrison" : "default";
   if (intent.kind === "attack_move") return "attack_move";
+  if (intent.kind === "unload") return "unload";
   return intent.route === "fastest"
     ? "fast_move"
     : intent.direction === "reverse"
@@ -409,7 +427,8 @@ export function intentForOrder(order: Order, queued: boolean): PointerIntent | n
       return { ...order, queued };
     case "move":
     case "attack_move":
-    case "occupy_building": {
+    case "occupy_building":
+    case "unload": {
       const { gesture: _, ...intent } = order;
       return { ...intent, queued };
     }

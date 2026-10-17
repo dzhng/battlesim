@@ -34,7 +34,7 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
         const controllers = wasm.scenario_bundle_controllers(
           prepared.canonical,
           message.active_human === undefined
-            ? prepared.report.human_capable_slots[0]
+            ? prepared.report.human_capable_players[0]
             : (message.active_human ?? undefined),
         );
         authority = workerAuthority(scope, async () => ({
@@ -56,7 +56,7 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
         });
         return;
       }
-      const { world, scenario, report } =
+      const { world, scenario, report, picture } =
         message.type === "prepare-replay"
           ? prepareReplay(wasm, message.battle)
           : await prepare(
@@ -73,7 +73,12 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
         createBattle: (scenario, seed) => world.into_battle(scenario, seed),
         replayBattle: (scenario, replay) => world.into_replay(scenario, replay),
       }));
-      self.postMessage({ type: "prepared", battle: { scenario, report } });
+      // The lobby's picture is drawn here, beside the map it is of (D39).
+      const preview =
+        message.type === "prepare" && message.preview && picture
+          ? { ...picture, svg: wasm.skirmish_picture(picture.map, picture.sites) }
+          : undefined;
+      self.postMessage({ type: "prepared", battle: { scenario, report, preview } });
     })
     .catch((error: unknown) => {
       self.postMessage(

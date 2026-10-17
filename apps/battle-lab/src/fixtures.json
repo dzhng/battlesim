@@ -1,11 +1,20 @@
 [
   {
+    "id": "capture",
+    "route": "/labs/capture",
+    "describe": "Films one scene of a capture file (fixtures/captures/<name>.json) for the capture CLI: ?capture=<name>&scene=<i>&cards=0|1, and record=1 to record the stage with tab capture.",
+    "map": null,
+    "tool": true,
+    "catalog": "capture",
+    "loading": false
+  },
+  {
     "id": "graphics-test",
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
     "map": null,
     "timeout_s": 300,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "native-parity-capture",
@@ -15,7 +24,7 @@
     "timeout_s": 600,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "graphics-fps",
@@ -26,7 +35,7 @@
     "timeout_s": 900,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "cursor",
@@ -158,7 +167,7 @@
   {
     "id": "transport",
     "route": "/labs/transport",
-    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective.",
+    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective; their carriers' Seats rows and stacked rider cards. The controls variant drives the player's own controls: right-click boarding both ways under the board cursor, a squad refused for want of seats, its deck card while aboard, U then a click with the unload mark on its order line, and U twice.",
     "map": "transport",
     "catalog": "test"
   },
@@ -237,14 +246,14 @@
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
+    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?blue= and ?red= carry ordered controller codes, while ?blue_faction= and ?red_faction= name the two side factions; ?battle= is the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
     "map": null,
     "catalog": "game",
     "loading": false
   },
   {
     "id": "unit-roster",
-    "route": "/battle?type=open&size=small&seed=1&faction=us",
+    "route": "/battle?type=open&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
     "map": null,
     "catalog": "game",
@@ -297,6 +306,15 @@
     "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events.",
     "map": null,
     "loading": false
+  },
+  {
+    "id": "map-picture",
+    "route": "/labs/map-picture",
+    "describe": "The lobby's map picture alone: real admitted maps for 1v1, 3v4 and 5v5 at S, M, L and XL, each through the lobby's preview controller at lobby size, with the refusal a pairing below a size's floor gets; ?cell=3v4-large draws one.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "timeout_s": 300
   },
   {
     "id": "map-workbench",

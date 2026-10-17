@@ -13,7 +13,7 @@
 // entry site, heading for its destination (D39); and the low-fuel aircraft's
 // outbound pose leaves at the blue back edge before the refund appears.
 import { writeFile } from "node:fs/promises";
-import { gpuWarnings, obs, advance, aim } from "./_lab.mjs";
+import { gpuWarnings, obs, own, advance, aim } from "./_lab.mjs";
 import { openAir, command, field, HIGH_AIR_CRUISE, shoot } from "./_air.mjs";
 import { game, unitType } from "./_units.mjs";
 const JET = "f_16c_block_50";
@@ -42,15 +42,15 @@ export async function run(ctx) {
   await advance(page, 2);
   // Income lands every active tick, so each credit reading below is off by
   // one tick of it: measure that tick while nothing is bought.
-  const idle = (await obs(page)).skirmish.credits;
+  const idle = own(await obs(page)).credits;
   await advance(page, 1);
-  const before = (await obs(page)).skirmish.credits;
+  const before = own(await obs(page)).credits;
   const tickIncome = before - idle;
   for (const destination of DESTINATIONS)
     await command(page, { kind: "confirm_purchase", variant: JET, destination });
   await advance(page, 1);
   o = await obs(page);
-  const cost = before - o.skirmish.credits;
+  const cost = before - own(o).credits;
   const price = unitType(JET).cost;
   ctx.check(
     "both purchases debit immediately",
@@ -66,7 +66,7 @@ export async function run(ctx) {
 
   // While the jets wait off the map, each pending card counts down to the
   // arrival tick its pending record publishes.
-  const waiting = o.skirmish.pending.filter((p) => p.kind === JET);
+  const waiting = own(o).pending.filter((p) => p.kind === JET);
   // The battle is paused: wait for the deck to draw this observation.
   await page
     .waitForFunction(
@@ -84,7 +84,7 @@ export async function run(ctx) {
     waiting.length === 2 &&
       waiting.every((p) => p.arrivalTick > o.tick) &&
       cards.map((c) => c.replace(/\s+/g, " ").trim()).join("|") === due.join("|"),
-    JSON.stringify({ cards, due, pending: o.skirmish.pending, tick: o.tick }),
+    JSON.stringify({ cards, due, pending: own(o).pending, tick: o.tick }),
   );
   const deck = page.locator(".hud-army-deck");
   await writeFile(ctx.evidencePath("air-ingress-pending.png"), await deck.screenshot());
@@ -160,7 +160,7 @@ export async function run(ctx) {
   let withdrawing = null;
   let outbound = null;
   let retired = null;
-  let wallet = (await obs(page)).skirmish.credits;
+  let wallet = own(await obs(page)).credits;
   // Coarse steps until the return starts, then tick by tick: the departure is
   // published on the single tick the jet crosses its edge.
   for (let i = 0; i < 7200 && !retired; i += withdrawing ? 1 : 30) {
@@ -171,8 +171,8 @@ export async function run(ctx) {
       withdrawing = { tick: now.tick, fuel: jet.fuelS, position: jet.position };
     if (now.airTransits.some((t) => t.dir === "out"))
       outbound = { tick: now.tick, transits: now.airTransits.filter((t) => t.dir === "out") };
-    if (!jet) retired = { tick: now.tick, refund: now.skirmish.credits - wallet };
-    wallet = now.skirmish.credits;
+    if (!jet) retired = { tick: now.tick, refund: own(now).credits - wallet };
+    wallet = own(now).credits;
   }
   ctx.check(
     "low fuel starts the return",

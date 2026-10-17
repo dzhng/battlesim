@@ -51,6 +51,20 @@ import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows
  *  one (`BattleFrame.render`'s high target), and with the world otherwise. */
 export const HIGH_PLANE_ATTR = "data-high-plane";
 
+/** A camera this close to the ground is watching the battle, not commanding
+ *  it: cards are whole from `CARD_FADE_START_M` of camera distance out and
+ *  fade away linearly to nothing at `CARD_FADE_END_M`, so a close shot is
+ *  clean film. */
+export const CARD_FADE_START_M = 90;
+export const CARD_FADE_END_M = 48;
+
+/** The cards' opacity at camera distance `cameraDistance`. */
+export function cardZoomOpacity(cameraDistance: number): number {
+  if (cameraDistance >= CARD_FADE_START_M) return 1;
+  if (cameraDistance <= CARD_FADE_END_M) return 0;
+  return (cameraDistance - CARD_FADE_END_M) / (CARD_FADE_START_M - CARD_FADE_END_M);
+}
+
 /** World point → page CSS pixel, or null when behind the eye. */
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
@@ -115,6 +129,9 @@ export interface ReadoutLayerHandle {
     y: number,
   ): { unit: number | null; enemy: number | null; contact: number | null } | null;
   inRect(unit: number, rect: ReadoutRect): boolean;
+  /** Where own `unit`'s card is drawn, or its carrier's for a rider; null
+   *  while neither shows. */
+  cardBox(unit: number): ReadoutRect | null;
   /** Re-anchor every panel; call once per animation frame. `clock` is that
    *  frame's presentation clock in seconds, which eases a panel's nudge
    *  (null snaps it). */
@@ -214,6 +231,7 @@ export function ReadoutLayer({
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
   /** The squads riding an own carrier: their cards stack under its. */
   const riders = new Set(own.flatMap((c) => passengersOf(own, c.id).map((p) => p.id)));
+  const zoomOpacity = useRef(1);
   const callouts: Callout[] = [
     ...ghosts.map(
       (g): Callout => ({
@@ -340,12 +358,17 @@ export function ReadoutLayer({
       const group = b.node.parentElement!;
       if (inFront) group.dataset.overlapping = "true";
       else delete group.dataset.overlapping;
-      group.style.opacity = String(b.opacity * (softened ? 0.65 : 1));
+      // A close camera fades every card out (`cardZoomOpacity`); a faded card takes no clicks.
+      const opacity = b.opacity * (softened ? 0.65 : 1) * zoomOpacity.current;
+      group.style.opacity = String(opacity);
       group.style.filter = softened ? "blur(0.6px)" : "";
+      group.style.pointerEvents = opacity <= 0 ? "none" : "";
     }
   };
   useImperativeHandle(handle, () => ({
     pick(x, y) {
+      // Cards faded out by a close camera take no clicks.
+      if (zoomOpacity.current <= 0) return null;
       const priority = [...calloutsRef.current].sort(
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
@@ -363,10 +386,16 @@ export function ReadoutLayer({
       return null;
     },
     inRect(unit, rect) {
+      if (zoomOpacity.current <= 0) return false;
       const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
+    cardBox(unit) {
+      const carrier = calloutsRef.current.find((c) => c.passengers?.some((p) => p.id === unit));
+      return visibleBox(carrier?.key ?? `own-${unit}`);
+    },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
+      zoomOpacity.current = cardZoomOpacity(camera.distance);
       hoveredCard.current = hoveredKey(hover);
       eyePosition(_readout_eye, camera);
       const overlap = camera.distance > 1000;
@@ -679,6 +708,7 @@ function CommandButton({
  *  Nothing selected, no bar. */
 export function CommandBar({
   control,
+  own,
   hintHost,
 }: {
   hintHost?: HTMLElement | null;
@@ -691,7 +721,10 @@ export function CommandBar({
     | "togglePolicy"
     | "toggleDeployment"
     | "exitBuilding"
+    | "pressUnload"
   > & { refund?: () => void; toggleAfterburner?: () => void };
+  /** Every own unit: the passengers Unload reaches carriers by. */
+  own: readonly OwnUnitView[];
 }) {
   const { units, weapons } = useSessionCatalog();
   const selected = control.selectedUnits;
@@ -699,9 +732,9 @@ export function CommandBar({
   const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   // Capability actions apply to eligible units; movement applies to everyone.
-  const [armed, deployers, inside] = (["attack", "deploy", "exit_building"] as ReachCommand[]).map(
-    (c) => reach(c, selected, units),
-  );
+  const [armed, deployers, inside, unloaders] = (
+    ["attack", "deploy", "exit_building", "unload"] as ReachCommand[]
+  ).map((c) => reach(c, selected, units, own));
   const hold = n > 0 && selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
   const aircraft = selected.filter((u) => u.fuelS != null);
@@ -769,6 +802,13 @@ export function CommandBar({
           disabled: n === 0,
           onClick: control.refund,
         })}
+      {command({
+        icon: hudIcon("unload"),
+        label: `Unload ${key("unload")}`,
+        pressed: control.mode === "unload",
+        disabled: unloaders.length === 0,
+        onClick: control.pressUnload,
+      })}
       {command({
         icon: hudIcon("leave_building"),
         label: "Leave building",

@@ -43,6 +43,8 @@ export interface HazeSettings {
 
 /** Applied to HDR before AgX. Tints multiply linear rgb. */
 export interface GradeSettings {
+  /** Off leaves only exposure and AgX (default on). */
+  enabled?: boolean;
   saturation: number;
   contrast: number;
   split_tone: number;
@@ -100,8 +102,19 @@ export interface LightPresentation extends PostSettings {
   /** `fill` multiplies the sky's environment light, per linear channel: the
    *  shadow fill. A warm fill stands in for light bounced off sunlit ground,
    *  which the sky-only environment lacks, so shade under a blue sky stays
-   *  darkened ground instead of turning teal. */
-  sky: { turbidity: number; radiance: number; fill: Rgb; clouds: CloudSettings };
+   *  darkened ground instead of turning teal.
+   *  `saturation` (default 1) and `tint` (default white) shape the clear sky
+   *  before tone mapping; `grade_mix` is how much of the grade the sky takes
+   *  (default 1), so a warm grade can sit on the land under a blue sky. */
+  sky: {
+    turbidity: number;
+    radiance: number;
+    fill: Rgb;
+    saturation?: number;
+    tint?: Rgb;
+    grade_mix?: number;
+    clouds: CloudSettings;
+  };
   haze: HazeSettings;
   /** The land past the map edge reaches this far out. Its look is the
    *  biome's (`fixtures/biomes/summer.json`). */
@@ -159,10 +172,12 @@ export function validateLight(light: LightPresentation): LightPresentation {
   const walk = (value: unknown, path: string) => {
     if (typeof value === "number") {
       if (!Number.isFinite(value)) bad(path, "must be finite");
+    } else if (typeof value === "boolean") {
+      // A switch, such as `grade.enabled`.
     } else if (Array.isArray(value)) value.forEach((v, i) => walk(v, `${path}[${i}]`));
     else if (value && typeof value === "object")
       for (const [k, v] of Object.entries(value)) walk(v, path ? `${path}.${k}` : k);
-    else bad(path, "must be a number");
+    else bad(path, "must be a number or boolean");
   };
   walk(light, "");
   const within = (path: string, v: number, lo: number, hi: number) => {
@@ -174,6 +189,10 @@ export function validateLight(light: LightPresentation): LightPresentation {
   within("sky.turbidity", light.sky.turbidity, 1, 12);
   within("sky.radiance", light.sky.radiance, 0, 1000);
   light.sky.fill.forEach((c, i) => within(`sky.fill[${i}]`, c, 0, 4));
+  if (light.sky.saturation !== undefined) within("sky.saturation", light.sky.saturation, 0, 3);
+  if (light.sky.tint !== undefined)
+    light.sky.tint.forEach((c, i) => within(`sky.tint[${i}]`, c, 0, 4));
+  if (light.sky.grade_mix !== undefined) within("sky.grade_mix", light.sky.grade_mix, 0, 1);
   const clouds = light.sky.clouds;
   within("sky.clouds.coverage", clouds.coverage, 0, 1);
   within("sky.clouds.height_m", clouds.height_m, 100, 20000);

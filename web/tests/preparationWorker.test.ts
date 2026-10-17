@@ -72,7 +72,22 @@ test("a preparation worker becomes the battle authority and replays its commands
             type: "prepare",
             request: {
               map_source: { kind: "generated", request: map },
-              factions: ["us", "eastern"],
+              players: [
+                {
+                  id: "blue-1",
+                  side: "blue",
+                  faction: "us",
+                  controller: "human",
+                  human_capable: true,
+                },
+                {
+                  id: "red-1",
+                  side: "red",
+                  faction: "eastern",
+                  controller: "active_ai",
+                  human_capable: false,
+                },
+              ],
               battle_seed: 1,
             },
             documents: { ...documents, rules },
@@ -84,6 +99,7 @@ test("a preparation worker becomes the battle authority and replays its commands
           scenario: prepared.scenario,
           seed: 1,
           side: "blue",
+          player: "blue-1",
           transport: "worker",
           connect: prepared.connect,
         });

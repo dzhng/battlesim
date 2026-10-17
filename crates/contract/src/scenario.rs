@@ -1533,7 +1533,7 @@ pub struct AuthoredScript {
     #[serde(default = "default_script_side")]
     pub side: Side,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub slot: Option<String>,
+    pub player: Option<String>,
 }
 
 fn default_script_side() -> Side {
@@ -1544,7 +1544,7 @@ fn default_script_side() -> Side {
 #[serde(deny_unknown_fields)]
 pub struct UnitSetup {
     pub side: Side,
-    /// Scenario-bundle player slot that owns this unit. Legacy authored
+    /// Scenario-bundle player that owns this unit. Legacy authored
     /// encounters omit it and remain side-owned; portable bundles materialize
     /// it before the battle starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1597,6 +1597,8 @@ fn is_zero(v: &f64) -> bool {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ScenarioDefinition {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub players: Vec<crate::players::Player>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skirmish: Option<crate::skirmish::SkirmishSetup>,
     pub map: MapDefinition,
@@ -1616,6 +1618,27 @@ pub struct ScenarioDefinition {
     /// An encounter's local completion condition (holding its objective).
     #[serde(default)]
     pub encounter: Option<EncounterRules>,
+}
+
+impl ScenarioDefinition {
+    pub fn validate_player_contract(&self) -> Result<(), String> {
+        let Some(skirmish) = &self.skirmish else {
+            return Ok(());
+        };
+        crate::players::validate_players(&self.players)?;
+        crate::players::validate_players_per_side(
+            &self.players,
+            skirmish.rules.max_players_per_side as usize,
+        )?;
+        for player_id in skirmish.openings.keys() {
+            if !self.players.iter().any(|player| player.id == *player_id) {
+                return Err(format!(
+                    "opening {player_id} does not name a skirmish player"
+                ));
+            }
+        }
+        crate::players::validate_entry_counts(&self.players, &skirmish.sites.entries)
+    }
 }
 
 /// The encounter half of a scenario: the forces, events and scripted orders
@@ -1651,6 +1674,7 @@ impl EncounterDefinition {
             .overridden(&self.overrides)
             .map_err(|e| format!("overrides: {e}"))?;
         Ok(ScenarioDefinition {
+            players: Vec::new(),
             skirmish: None,
             map,
             rules,

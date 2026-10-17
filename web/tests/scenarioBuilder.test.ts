@@ -1,52 +1,42 @@
 // @vitest-environment node
-import { expect, test } from "vitest";
-import {
-  createBuilderDraft,
-  parseBuilderDraft,
-  cloneDraft,
-  removeBuilderUnit,
-} from "../../apps/battle-lab/src/scenario-builder/model";
-import {
-  canonicalScenarioBundle,
-  validateScenarioBundle,
-  type ScenarioBundleWasm,
-} from "../src/battle/scenarioBundle";
+import { readFileSync } from "node:fs";
+import { beforeAll, expect, test } from "vitest";
+import * as wasm from "@wasm/game_wasm.js";
+import { builderEconomy } from "@apps/battle-lab/src/scenario-builder/model";
+import { playersFor } from "@apps/battle-lab/src/skirmishSetup";
 
-const rules = { catalog: [] } as never;
-const units = { ids: ["blue-scout", "red-scout"], type: (id: string) => ({ name: id }) } as never;
+const size = [3000, 3000] as const;
+let syntheticSites: (
+  size: readonly [number, number],
+  entries: number,
+) => {
+  side: "blue" | "red";
+  center: [number, number];
+  yaw: number;
+}[];
 
-test("builder draft round trips through the explicit JSON boundary", () => {
-  const draft = createBuilderDraft(rules, units);
-  draft.scenario.units[0].position = [24, 42];
-  const parsed = parseBuilderDraft(JSON.stringify(draft));
-  expect(parsed.scenario.units[0].position).toEqual([24, 42]);
-  expect(cloneDraft(parsed)).toEqual(parsed);
+beforeAll(() => {
+  const module = wasm.initSync({
+    module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
+  });
+  syntheticSites = (mapSize, entries) =>
+    JSON.parse(wasm.synthetic_sites(JSON.stringify(mapSize), entries)).entries;
+  // Keep the initialized module alive for this file's calls.
+  expect(module.memory).toBeDefined();
 });
 
-test("removing a unit keeps editor ids aligned with canonical slot ownership", () => {
-  const draft = createBuilderDraft(rules, units);
-  draft.scenario.units.push({ id: 2, side: "blue", kind: "blue-scout", position: [1, 1], yaw: 0 });
-  draft.slots[0].units.push(2);
-  const removed = removeBuilderUnit(draft, 1);
-  expect(removed.scenario.units.map((unit) => unit.id)).toEqual([0, 1]);
-  expect(removed.slots.map((slot) => slot.units)).toEqual([[0, 1], [], []]);
-});
-
-test("bundle upload refuses invalid bytes and returns the owner identity", () => {
-  const wasm: ScenarioBundleWasm = {
-    check_scenario_bundle: (json) =>
-      json === "valid"
-        ? JSON.stringify({
-            status: "ok",
-            identity: { sha256: "a", map_hash: "b", rules_hash: "c" },
-          })
-        : JSON.stringify({
-            status: "error",
-            diagnostics: [{ code: "malformed", location: "$", message: "invalid package" }],
-          }),
-    canonical_scenario_bundle: () => "valid",
-  };
-  expect(validateScenarioBundle(wasm, "valid").sha256).toBe("a");
-  expect(canonicalScenarioBundle(wasm, "valid")).toBe("valid");
-  expect(() => validateScenarioBundle(wasm, "bad")).toThrow("invalid package");
-});
+test.each([
+  [1, 1],
+  [2, 2],
+  [3, 3],
+] as const)(
+  "builder economy uses Rust synthetic sites centre-first for %s entries",
+  (count, entries) => {
+    const players = playersFor(count, count);
+    const builder = builderEconomy(size, players, syntheticSites);
+    expect(builder.sites.entries).toEqual(syntheticSites(size, entries));
+    expect(builder.sites.entries.filter((entry) => entry.side === "blue")[0]).toEqual(
+      builder.sites.entries[0],
+    );
+  },
+);

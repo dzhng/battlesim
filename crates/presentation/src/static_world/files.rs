@@ -8,6 +8,7 @@ use crate::static_world::ground::{self, Source, Tuning};
 use crate::static_world::library::{kit_bounds, state_corners, Bounds, Library};
 use crate::static_world::props::{Art, PropInput, STAND_IN_KIT, STAND_IN_MODULE};
 use crate::world::BuildingStyle;
+use contract::maps::MapCategory;
 use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
@@ -42,8 +43,8 @@ pub struct MapGround {
 
 /// The ground of saved map `map` (`fixtures/maps/<map>`), built by the
 /// simulation's own world code under the rules of the battle fought on it
-/// (the game's, with the units of the map's own category: a menu map's the
-/// menu's, a test map's the tests'), in the map's biome (`meta.json`) and
+/// (the game's, with the units of the map's own category: a capture map's the
+/// capture set's, a test map's the tests'), in the map's biome (`meta.json`) and
 /// regional finish, with `fixtures/game.json`'s `presentation` tunings: what
 /// the page reads from `WorldView` and hands `set_ground`.
 pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
@@ -81,14 +82,15 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
 }
 
 /// The rules of a battle fought on saved map `map`: the game's, with the
-/// units of the map's own category (a menu map's the menu's, a test map's
-/// the tests').
+/// units of the map's own category (a capture map's the capture set's, a
+/// test map's the tests').
 pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String> {
     let meta = json(&root.join("fixtures/maps").join(map).join("meta.json"))?;
-    let set = match meta["category"].as_str() {
-        Some("menu") => sim::fixtures::CatalogSet::Menu,
-        Some("test") => sim::fixtures::CatalogSet::Test,
-        _ => sim::fixtures::CatalogSet::Game,
+    let category: MapCategory = serde_json::from_value(meta["category"].clone())
+        .map_err(|e| format!("{map}/meta.json category: {e}"))?;
+    let set = match category {
+        MapCategory::Capture => sim::fixtures::CatalogSet::Capture,
+        MapCategory::Test => sim::fixtures::CatalogSet::Test,
     };
     let mut fixture = sim::fixtures::game();
     fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));

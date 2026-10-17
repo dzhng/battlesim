@@ -5,7 +5,7 @@ import type { UnitCard } from "@packages/scene-assets/src/units";
 /** What the battle observes about buying right now. */
 export interface BuyFacts {
   credits: number;
-  occupiedSlots: number;
+  unitCount: number;
   maxUnits: number;
   finished: boolean;
 }
@@ -17,7 +17,7 @@ export function cardPurchasable(card: UnitCard, facts: BuyFacts): boolean {
     !facts.finished &&
     card.disabled_reason === null &&
     card.cost <= facts.credits &&
-    facts.occupiedSlots < facts.maxUnits
+    facts.unitCount < facts.maxUnits
   );
 }
 

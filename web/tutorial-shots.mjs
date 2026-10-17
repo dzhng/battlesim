@@ -33,7 +33,7 @@ import { unitType } from "./scenes/_units.mjs";
 const HERE = new URL(".", import.meta.url);
 const OUT = new URL("../assets/runtime/tutorial/", HERE).pathname;
 const WORK = new URL("../throwaway/tutorial-shots/", HERE).pathname;
-const BATTLE = "/battle?type=mixed&size=small&seed=1&faction=us";
+const BATTLE = "/battle?type=mixed&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern";
 const VIEWPORT = { width: 1600, height: 900 };
 const SCALE = 2;
 const FPS = 30;

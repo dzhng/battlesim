@@ -32,18 +32,20 @@ fn every_saved_map_resolves_by_id_to_the_identity_its_sources_pin() {
 }
 
 #[test]
-fn every_saved_map_says_whether_it_is_a_tests_or_the_menus() {
+fn every_saved_map_says_whether_it_is_a_tests_or_the_capture_maps() {
     let catalogue = Catalogue::shipped();
-    let menu: Vec<String> = catalogue
+    let capture: Vec<String> = catalogue
         .ids()
         .into_iter()
-        .filter(|id| catalogue.category(id).unwrap_or_else(|e| panic!("{e}")) == MapCategory::Menu)
+        .filter(|id| {
+            catalogue.category(id).unwrap_or_else(|e| panic!("{e}")) == MapCategory::Capture
+        })
         .collect();
-    assert_eq!(menu, ["market-town", "paris-corner"]);
+    assert_eq!(capture, ["market-town", "paris-corner"]);
 }
 
 #[test]
-fn a_listing_that_does_not_say_test_or_menu_is_refused() {
+fn a_listing_that_does_not_say_test_or_capture_is_refused() {
     let dir = Scratch::new("listing");
     for other in [r#""lab""#, r#""playable""#, r#""benchmark""#, "null"] {
         std::fs::write(
@@ -77,13 +79,13 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
         serde_json::from_value::<contract::scenario::Rules>(game).unwrap()
     };
     let test_rules = rules_of(sim::fixtures::CatalogSet::Test);
-    let menu_rules = rules_of(sim::fixtures::CatalogSet::Menu);
+    let capture_rules = rules_of(sim::fixtures::CatalogSet::Capture);
     let mut encounters = 0;
     for id in catalogue.ids() {
         let map = catalogue.load(&id).unwrap().definition;
         let rules = match catalogue.category(&id).unwrap() {
             contract::maps::MapCategory::Test => &test_rules,
-            contract::maps::MapCategory::Menu => &menu_rules,
+            contract::maps::MapCategory::Capture => &capture_rules,
         };
         for name in catalogue.encounters(&id).unwrap() {
             let encounter = catalogue

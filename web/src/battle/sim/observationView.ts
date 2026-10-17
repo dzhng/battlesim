@@ -98,6 +98,7 @@ export interface OwnUnitView {
   /** Defensive charges and running cooldown progress; private to the owning side. */
   protection: { charges: number; cooldown: number | null } | null;
   id: number;
+  owner?: number | null;
   kind: string;
   position: Point3;
   yaw: number;
@@ -500,24 +501,34 @@ export interface ObjectiveView {
 
 export interface SkirmishView {
   phase: "preparation" | "active" | "finished";
-  ready: [boolean, boolean];
+  players: PlayerView[];
   preparationRemainingS: number;
-  credits: number;
   scores: [number, number];
   result: "blue" | "red" | "draw" | null;
   objectives: ObjectiveView[];
-  occupiedSlots: number;
-  maxUnits: number;
-  pending: {
-    id: number;
-    kind: string;
-    destination: Point2;
-    confirmedTick: number;
-    blocked: boolean;
-    /** The tick a waiting aircraft reaches the map; 0 when it doesn't wait. */
-    arrivalTick: number;
-  }[];
   report: MatchReportView | null;
+}
+
+export interface PlayerView {
+  index: number;
+  id: string;
+  controller: "human" | "active_ai" | "passive_ai";
+  ready: boolean;
+  credits: number;
+  unitCount: number;
+  cap: number;
+  pending: PendingPurchaseView[];
+}
+
+export interface PendingPurchaseView {
+  owner?: number;
+  id: number;
+  kind: string;
+  destination: Point2;
+  confirmedTick: number;
+  blocked: boolean;
+  /** The tick a waiting aircraft reaches the map; 0 when it doesn't wait. */
+  arrivalTick: number;
 }
 
 export interface MatchReportView {
@@ -532,6 +543,7 @@ export type MatchEventView =
       side: "blue" | "red";
       unitId: number;
       unitKind: string;
+      owner?: number | null;
       amount: number;
     }
   | {
@@ -540,6 +552,7 @@ export type MatchEventView =
       side: "blue" | "red";
       unitId: number;
       unitKind: string;
+      owner?: number | null;
       amount: number;
     }
   | {
@@ -548,8 +561,15 @@ export type MatchEventView =
       side: "blue" | "red";
       unitId: number;
       unitKind: string;
+      owner?: number | null;
       victimCost: number;
-      killer: { side: "blue" | "red"; unitId: number; unitKind: string; cost: number } | null;
+      killer: {
+        side: "blue" | "red";
+        unitId: number;
+        unitKind: string;
+        owner?: number | null;
+        cost: number;
+      } | null;
     };
 
 export interface ObservationView {

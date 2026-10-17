@@ -242,7 +242,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     );
     let ack = b.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: serde_json::from_value(json!({ "kind": "garrison", "units": [0], "building": 0 }))
             .unwrap(),

@@ -19,3 +19,34 @@ test("an order dropped by the rate limit says nothing", () => {
   );
   expect(screen.queryByRole("status")).toBeNull();
 });
+
+test("a unit refused on its own says why beside its card, not the cursor", () => {
+  const box = { x0: 300, y0: 200, x1: 420, y1: 230 };
+  render(
+    <RejectedOrder
+      acks={[]}
+      refusals={[{ unit: 6, reason: "no_room_to_unload" }]}
+      cardBox={(unit) => (unit === 6 ? box : null)}
+    />,
+  );
+  const message = screen.getByRole("status");
+  expect(message.textContent?.trim()).toBe("NO ROOM TO UNLOAD");
+  expect(message.style.transform).toBe("translate(426px, 200px)");
+});
+
+test("each new carriage refusal reads in player words", () => {
+  for (const [reason, text] of [
+    ["not_a_carrier", "NOT A CARRIER"],
+    ["aboard", "ABOARD"],
+  ]) {
+    const view = render(
+      <RejectedOrder
+        acks={[]}
+        refusals={[{ unit: 3, reason }]}
+        cardBox={() => ({ x0: 0, y0: 0, x1: 10, y1: 10 })}
+      />,
+    );
+    expect(screen.getByRole("status").textContent?.trim()).toBe(text);
+    view.unmount();
+  }
+});

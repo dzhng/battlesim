@@ -7,11 +7,17 @@ import {
 } from "./graphicsSettings";
 
 export const GRAPHICS_TARGET = { averageFps: 45 } as const;
+// Safari can deliver a valid but slow stream while the menu scene is under
+// memory pressure; reject only streams too short to estimate at all.
+const MIN_FRAME_SAMPLES = 15;
 export function judgeIntervals(
   intervalsMs: readonly number[],
   _tier?: GraphicsTier,
 ): TierBenchmarkInput {
-  if (intervalsMs.length < 30 || intervalsMs.some((v) => !Number.isFinite(v) || v <= 0))
+  if (
+    intervalsMs.length < MIN_FRAME_SAMPLES ||
+    intervalsMs.some((v) => !Number.isFinite(v) || v <= 0)
+  )
     throw new Error("Graphics auto-detect produced insufficient or invalid frame samples.");
   const sorted = [...intervalsMs].sort((a, b) => b - a);
   const lowCount = Math.max(1, Math.ceil(sorted.length * 0.01));

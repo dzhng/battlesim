@@ -68,10 +68,10 @@ test("a mixed selection's deploy reaches only the units that deploy", () => {
       },
     },
   ] as unknown as OwnUnitView[];
-  expect(reach("deploy", selection, UNITS).map((u) => u.id)).toEqual([7]);
-  expect(reach("garrison", selection, UNITS).map((u) => u.id)).toEqual([9]);
-  expect(reach("exit_building", selection, UNITS).map((u) => u.id)).toEqual([9]);
-  expect(reach("deploy", selection.slice(0, 1), UNITS)).toEqual([]);
+  expect(reach("deploy", selection, UNITS, selection).map((u) => u.id)).toEqual([7]);
+  expect(reach("garrison", selection, UNITS, selection).map((u) => u.id)).toEqual([9]);
+  expect(reach("exit_building", selection, UNITS, selection).map((u) => u.id)).toEqual([9]);
+  expect(reach("deploy", selection.slice(0, 1), UNITS, selection)).toEqual([]);
 });
 
 test("an attack reaches only the units whose type has mounts", () => {
@@ -82,6 +82,6 @@ test("an attack reaches only the units whose type has mounts", () => {
     { id: 7, kind: "test_supply", hold: null },
     { id: 9, kind: "test_rifle", hold: null },
   ] as unknown as OwnUnitView[];
-  expect(reach("attack", selection, UNITS).map((u) => u.id)).toEqual([0, 9]);
-  expect(reach("attack", selection.slice(1, 2), UNITS)).toEqual([]);
+  expect(reach("attack", selection, UNITS, selection).map((u) => u.id)).toEqual([0, 9]);
+  expect(reach("attack", selection.slice(1, 2), UNITS, selection)).toEqual([]);
 });

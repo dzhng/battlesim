@@ -240,6 +240,13 @@ export function Tutorial() {
             bar brings them out.
           </li>
           <li>
+            <kbd>Right-click</kbd> your own transport with infantry selected to board it, or
+            right-click your own squad with a transport selected to drive over and pick it up.
+            Riders can&apos;t fight, and bail out hurt if their transport is destroyed.{" "}
+            <kbd>{keyOf(CommandBindings.unload)}</kbd> then left-click drives there and lets them
+            out; press <kbd>{keyOf(CommandBindings.unload)}</kbd> twice to unload where it stands.
+          </li>
+          <li>
             <kbd>{CommandBindings.stop.label}</kbd> stops the selection where it stands.
           </li>
         </ul>
@@ -289,7 +296,8 @@ export function Tutorial() {
         <p>
           The same commands are buttons on the command bar, which appears at the bottom when units
           are selected; hover a button to see its key. A command goes only to the selected units
-          that can carry it out. An order the game refuses says why beside the cursor.
+          that can carry it out. An order the game refuses says why beside the cursor, or beside the
+          unit it left out.
         </p>
       </Section>
 

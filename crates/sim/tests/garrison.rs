@@ -1128,7 +1128,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     assert!(shown[0].placed, "10 m past the far wall: {shown:?}");
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         order: Order::Move {
             units: vec![UnitId(squad)],
@@ -1183,7 +1183,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
 }
 
 #[test]
-fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
+fn occupants_see_only_from_unit_count_and_are_seen_only_there() {
     // An AT squad of three walks in from the north, the building hiding the
     // south; red squads stand in the open south and north. It turns to the
     // north squad it knows of, and nobody holds the south facade.
@@ -1847,7 +1847,7 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
     assert_eq!(hit.observe(Side::Blue), calm.observe(Side::Blue));
     let command = CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Garrison {

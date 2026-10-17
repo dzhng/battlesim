@@ -1,7 +1,9 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import type { SkirmishView, OwnUnitView } from "../sim/observationView";
+import { aboardCarrier, type PendingPurchaseView, type OwnUnitView } from "../sim/observationView";
 import { useSessionCatalog } from "../catalog/context";
 import { StrengthMeter, UnitFace } from "./unitFace";
+import { stateIcon } from "@packages/scene-assets/src/icons";
+import { Icon } from "./icons";
 import { InfoPanel } from "./infoPanel";
 import { ownPanel, unitStrength, type PanelRules } from "./panelRows";
 import { CommandBar, unitName } from "./readouts";
@@ -25,7 +27,7 @@ export function ArmyDeck({
   control?: Parameters<typeof CommandBar>[0]["control"];
   captions: ReactNode;
   reinforcements?: ReactNode;
-  pending?: SkirmishView["pending"];
+  pending?: PendingPurchaseView[];
   /** The observed tick, which a waiting aircraft's countdown runs from. */
   tick?: number;
 }) {
@@ -120,6 +122,13 @@ export function ArmyDeck({
             {own.map((unit, index) => {
               const name = `${unitName(units, unit)} #${unit.id}`;
               const strength = unitStrength(units, unit);
+              // A squad a carrier holds is still the player's, but can't be
+              // ordered (D10): its card is dimmed and marked with the seat it
+              // rides in, and picks its carrier.
+              const carrier = aboardCarrier(unit)
+                ? own.find((u) => u.id === unit.hold!.host.id)
+                : undefined;
+              const picks = carrier?.id ?? unit.id;
               return (
                 <button
                   type="button"
@@ -127,16 +136,19 @@ export function ArmyDeck({
                   className="hud-army-card"
                   style={cardOffset(index)}
                   data-unit={unit.id}
-                  aria-label={name}
+                  data-aboard={carrier ? "true" : undefined}
+                  aria-label={
+                    carrier ? `${name}, aboard ${unitName(units, carrier)} #${carrier.id}` : name
+                  }
                   aria-pressed={selected.includes(unit.id)}
                   aria-describedby={detail?.id === unit.id ? tooltipId : undefined}
                   onClick={(event) =>
                     onSelect(
                       event.shiftKey
-                        ? selected.includes(unit.id)
-                          ? selected.filter((id) => id !== unit.id)
-                          : [...selected, unit.id]
-                        : [unit.id],
+                        ? selected.includes(picks)
+                          ? selected.filter((id) => id !== picks)
+                          : [...selected, picks]
+                        : [picks],
                     )
                   }
                   // Mouse selection keeps details tied to hover; Tab still offers focus details.
@@ -166,6 +178,7 @@ export function ArmyDeck({
                   <UnitFace kind={unit.kind}>
                     <StrengthMeter name={name} strength={strength} />
                   </UnitFace>
+                  {carrier && <Icon path={stateIcon("seats")} className="hud-army-aboard" />}
                 </button>
               );
             })}
@@ -206,7 +219,7 @@ export function ArmyDeck({
               );
             })}
           </div>
-          {control && <CommandBar control={control} hintHost={hintHost} />}
+          {control && <CommandBar control={control} own={own} hintHost={hintHost} />}
         </footer>
       )}
     </div>

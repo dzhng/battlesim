@@ -4,7 +4,6 @@ import { attackCursor } from "./_cursorOrders.mjs";
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, openBattle } from "./_lab.mjs";
-import { game } from "./_units.mjs";
 
 const own = (o, id) => o.own.find((u) => u.id === id);
 

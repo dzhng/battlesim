@@ -1,6 +1,6 @@
 // The player's production faction skirmish, through its ordinary picker and cursor.
 import { modelGhostAgreement } from "./_modelGhost.mjs";
-import { advance, obs, presented, snapshot, until } from "./_lab.mjs";
+import { advance, obs, own, presented, snapshot, until } from "./_lab.mjs";
 const check = (ctx, ok, name, detail) => ctx.check(name, ok, detail);
 export async function run(ctx) {
   await modelGhostAgreement(ctx);
@@ -68,16 +68,12 @@ export async function run(ctx) {
   );
   await snapshot(ctx, page, "search-enter-ghost.png");
   await page.keyboard.press("Escape");
-  check(
-    ctx,
-    (await obs(page)).skirmish.credits === 1000,
-    "Escape cancels the searched purchase free",
-  );
+  check(ctx, own(await obs(page)).credits === 1000, "Escape cancels the searched purchase free");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
   await snapshot(ctx, page, "vehicle-families.png");
-  // Hovering a family opens its variants' info cards standing on its card,
-  // 3 px above it, over the picker; clicking the card would buy at once.
+  // Hovering a family opens its variants' info cards over the picker;
+  // clicking the card would buy at once.
   const abrams = page.getByRole("button", { name: "M1 Abrams", exact: true });
   await abrams.hover();
   await snapshot(ctx, page, "abrams-variants.png");
@@ -108,11 +104,7 @@ export async function run(ctx) {
   await snapshot(ctx, page, "purchase-ghost.png");
   await ctx.matchBaseline(page, "purchase-ghost");
   await page.keyboard.press("Escape");
-  check(
-    ctx,
-    (await obs(page)).skirmish.credits === 1000,
-    "free placement and Escape spend no credits",
-  );
+  check(ctx, own(await obs(page)).credits === 1000, "free placement and Escape spend no credits");
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   // The picker reopens on its first tab; pointing at a tab switches to it.
   await page.getByRole("tab", { name: "VEH", exact: true }).hover();
@@ -123,7 +115,13 @@ export async function run(ctx) {
   const cameraAtPlacement = await page.evaluate(() => window.__lab.camera());
   await page.mouse.click(640, 340);
   await advance(page, 1);
-  await page.waitForFunction(() => window.__lab.route.observation().skirmish.pending.length === 1);
+  await page.waitForFunction(
+    () =>
+      (
+        window.__lab.route.observation().skirmish.players.find((p) => p.controller === "human") ??
+        window.__lab.route.observation().skirmish.players[0]
+      ).pending.length === 1,
+  );
   check(
     ctx,
     !(await page.getByTestId("loading").isVisible()),
@@ -137,9 +135,7 @@ export async function run(ctx) {
   const reserved = await obs(page);
   check(
     ctx,
-    reserved.own.length === 0 &&
-      reserved.skirmish.credits === 650 &&
-      reserved.skirmish.occupiedSlots === 1,
+    reserved.own.length === 0 && own(reserved).credits === 650 && own(reserved).unitCount === 1,
     "cursor confirmation atomically reserves one variant during preparation",
   );
   // A held left drag places at its press and turns the unit toward its
@@ -169,7 +165,13 @@ export async function run(ctx) {
   );
   await page.mouse.up();
   await advance(page, 1);
-  await page.waitForFunction(() => window.__lab.route.observation().skirmish.pending.length === 2);
+  await page.waitForFunction(
+    () =>
+      (
+        window.__lab.route.observation().skirmish.players.find((p) => p.controller === "human") ??
+        window.__lab.route.observation().skirmish.players[0]
+      ).pending.length === 2,
+  );
   await snapshot(ctx, page, "journey-placed-facing.png");
   await ctx.matchBaseline(page, "journey-placed-facing");
   await page.getByRole("button", { name: "START BATTLE", exact: true }).click();

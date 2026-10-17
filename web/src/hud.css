@@ -1112,7 +1112,10 @@ html {
   width: 100%;
   overflow: visible;
 }
-.hud-panel button.hud-army-pending {
+/* Not on the field: a purchase waiting to deploy, or a squad riding a
+   carrier (its card picks the carrier). */
+.hud-panel button.hud-army-pending,
+.hud-panel button.hud-army-card[data-aboard] {
   opacity: 0.45;
 }
 /* A bought aircraft waiting off the map: its face stays dimmed as pending,
@@ -1174,6 +1177,12 @@ html {
 }
 .hud-army-card .ro-icon {
   margin: 0;
+}
+/* A riding squad's seat mark, in its card's top corner. */
+.hud-army-card .hud-army-aboard {
+  position: absolute;
+  top: 5px;
+  right: 5px;
 }
 .hud-unit-role svg {
   width: 25px;

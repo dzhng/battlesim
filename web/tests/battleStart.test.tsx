@@ -49,7 +49,16 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   );
   expect(asked).toEqual({
     kind: "generated",
-    factions: ["europe", "eastern"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "europe", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     map,
     battleSeed: expect.any(Number),
   });
@@ -73,13 +82,31 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
         limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
       },
     },
-    factions: ["eastern", "europe"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "eastern", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "europe",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     battle_seed: 1,
   });
   expect(admitted).not.toMatch(/recipe|encounter/);
   expect(askedBattle(new URL(admitted, "http://game").search)).toEqual({
     kind: "generated",
-    factions: ["eastern", "europe"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "eastern", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "europe",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     map: paris,
     battleSeed: 1,
   });
@@ -87,24 +114,30 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   // A wrong, missing or unknown parameter is refused by name: nothing is
   // guessed in its place, and nothing is silently ignored.
   for (const [search, names] of [
-    ["?type=open&size=small&seed=1", /^faction /],
-    ["?play=1&type=open&size=small", /^faction /],
-    ["?type=open&size=small&seed=1&enemy=us", /^faction /],
-    ["?faction=atlantis&seed=1", /^faction /],
-    ["?faction=us&enemy=atlantis&seed=1", /^enemy /],
-    ["?faction=us&type=huge&size=small&seed=1", /^type /],
-    ["?faction=us&type=open&size=tiny&seed=1", /^size /],
-    ["?faction=us&type=open&size=small&seed=18446744073709551616", /^seed /],
-    ["?faction=us&seed=1&battle=9007199254740993", /^battle /],
-    ["?faction=us&seed=1&battle=-1", /^battle /],
-    ["?faction=us&seed=1&region=atlantis", /^region /],
-    ["?faction=us&play=1&region=", /^region /],
+    ["?type=open&size=small&seed=1", /^missing players/],
+    ["?play=1&type=open&size=small", /^missing players/],
+    ["?type=open&size=small&seed=1&enemy=us", /^enemy /],
+    ["?faction=atlantis&seed=1", /faction is not/],
+    ["?faction=us&enemy=atlantis&seed=1", /^faction is not/],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&type=huge&size=small&seed=1", /^type /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&type=open&size=tiny&seed=1", /^size /],
+    [
+      "?blue=h&red=a&blue_faction=us&red_faction=eastern&type=open&size=small&seed=18446744073709551616",
+      /^seed /,
+    ],
+    [
+      "?blue=h&red=a&blue_faction=us&red_faction=eastern&seed=1&battle=9007199254740993",
+      /^battle /,
+    ],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&seed=1&battle=-1", /^battle /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&seed=1&region=atlantis", /^region /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&play=1&region=", /^region /],
     // Parameters the battle does not read.
-    ["?faction=us&seed=1&recipe=assault", /^recipe /],
-    ["?faction=us&seed=1&encounter=1", /^encounter /],
-    ["?faction=us&map=street", /^map /],
-    ["?faction=us&seed=1&profile=skirmish", /^profile /],
-    ["?faction=us&seed=1&sneed=2", /^sneed /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&seed=1&recipe=assault", /^recipe /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&seed=1&encounter=1", /^encounter /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&map=street", /^map /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&seed=1&profile=skirmish", /^profile /],
+    ["?blue=h&red=a&blue_faction=us&red_faction=eastern&seed=1&sneed=2", /^sneed /],
   ] as const) {
     const refused = askedBattle(search);
     expect("error" in refused && refused.error, search).toMatch(names);
@@ -115,7 +148,9 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
   const menu = await visit(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&faction=us");
+  expect(deploy()).toBe(
+    "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
+  );
   expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
     kind: "play",
     map: { type: "mixed", size: "small" },
@@ -124,8 +159,10 @@ test("ordinary menu Play asks for the chosen type and size without pinning a see
 
   // The preference changes before admission chooses a concrete battle.
   fireEvent.click(menu.getByRole("radio", { name: "metro" }));
-  fireEvent.click(menu.getByRole("radio", { name: "xl" }));
-  expect(deploy()).toBe("/battle?play=1&type=metro&size=xl&faction=us");
+  fireEvent.click(menu.getByRole("radio", { name: "XL" }));
+  expect(deploy()).toBe(
+    "/battle?play=1&type=metro&size=xl&blue=h&blue_faction=us&red=a&red_faction=eastern",
+  );
   expect(menu.getByRole("radio", { name: "metro" }).getAttribute("aria-checked")).toBe("true");
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
 });
@@ -139,29 +176,35 @@ test("the menu leaves the region to the seed unless the player picks one of the 
     expect(menu.getByRole("radio", { name: region })).toBeTruthy();
   // The player reads the china family as Taiwan; the address keeps its data name.
   fireEvent.click(menu.getByRole("radio", { name: "taiwan" }));
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=china&faction=us");
+  expect(deploy()).toBe(
+    "/battle?play=1&type=mixed&size=small&region=china&blue=h&blue_faction=us&red=a&red_faction=eastern",
+  );
 
   fireEvent.click(menu.getByRole("radio", { name: "new york" }));
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&region=new_york&faction=us");
+  expect(deploy()).toBe(
+    "/battle?play=1&type=mixed&size=small&region=new_york&blue=h&blue_faction=us&red=a&red_faction=eastern",
+  );
   expect(askedBattle(new URL(deploy(), "http://game").search)).toMatchObject({
     kind: "play",
     map: { type: "mixed", size: "small", region: "new_york" },
   });
   fireEvent.click(menu.getByRole("radio", { name: "random" }));
-  expect(deploy()).toBe("/battle?play=1&type=mixed&size=small&faction=us");
+  expect(deploy()).toBe(
+    "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
+  );
 });
 
 test("the menu opens on the battle a cancelled or refused request asked for", async () => {
   window.history.replaceState(null, "", `/?type=open&size=medium&seed=${ABOVE_NUMBER}`);
   const menu = await visit(createElement(MainMenu));
   expect(menu.getByTestId("menu-deploy").getAttribute("href")).toBe(
-    `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}&faction=us`,
+    `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}&blue=h&blue_faction=us&red=a&red_faction=eastern`,
   );
   cleanup();
   window.history.replaceState(null, "", `/?type=open&size=medium&region=paris`);
   const again = await visit(createElement(MainMenu));
   expect(again.getByTestId("menu-deploy").getAttribute("href")).toBe(
-    `/battle?play=1&type=open&size=medium&region=paris&faction=us`,
+    `/battle?play=1&type=open&size=medium&region=paris&blue=h&blue_faction=us&red=a&red_faction=eastern`,
   );
 });
 
@@ -170,7 +213,9 @@ test("the menu offers fresh skirmishes without prebuilt battlefields", async () 
   expect(menu.queryByRole("button", { name: "Battlefields" })).toBeNull();
   fireEvent.click(menu.getByRole("button", { name: "Skirmish" }));
   const deploy = menu.getByRole("link", { name: "Deploy" });
-  expect(deploy.getAttribute("href")).toBe("/battle?play=1&type=mixed&size=small&faction=us");
+  expect(deploy.getAttribute("href")).toBe(
+    "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
+  );
   expect(deploy.getAttribute("target")).toBe("_self");
 });
 
@@ -275,7 +320,16 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
         limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
       },
     },
-    factions: ["us", "eastern"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     battle_seed: 7,
   });
   const seeds = ["11", ABOVE_NUMBER];
@@ -306,7 +360,16 @@ test("ordinary admission closes refused workers, and exact winner identity keeps
   const address = preparedBattleHref(admitted.report.request);
   expect(askedBattle(new URL(address, "http://game").search)).toEqual({
     kind: "generated",
-    factions: ["us", "eastern"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     map: { type: "metro", size: "large", seed: ABOVE_NUMBER },
     battleSeed: 7,
   });
@@ -359,8 +422,18 @@ test("faction choice round-trips with an admitted exact skirmish address", () =>
     faction: "europe",
   });
   const asked = askedBattle(new URL(href, "http://game").search);
-  expect(asked).toMatchObject({ map: { seed: "17" }, factions: ["europe", "eastern"] });
-  expect(askedBattle("?faction=unknown")).toEqual({
-    error: "faction must be us, europe or eastern",
+  expect(asked).toMatchObject({
+    map: { seed: "17" },
+    players: [
+      { id: "blue-1", side: "blue", faction: "europe", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
   });
+  expect(askedBattle("?faction=unknown")).toEqual({ error: "faction is not a battle parameter" });
 });

@@ -37,14 +37,14 @@ impl<'de> Deserialize<'de> for MapId {
 
 /// What a saved map is for, as its `meta.json` `category` says. Players
 /// never fight on a saved map (their battles are generated), so a saved map
-/// is a test's or the menu's own; any other value is refused.
+/// is a test's or a capture's own; any other value is refused.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MapCategory {
     /// Ground a test, a lab or a benchmark runs on.
     Test,
-    /// A battlefield the main menu's backdrop films.
-    Menu,
+    /// A battlefield the capture tool and menu film.
+    Capture,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -52,7 +52,7 @@ pub enum MapCategory {
 pub enum MapSource {
     /// A map the generator makes from `request`. It needs no catalogue
     /// folder: the request, with the build that reads it, is the map. A
-    /// battle never names a saved map: those are tests' and the menu's.
+    /// battle never names a saved map: those are tests' and captures'.
     Generated { request: GenerationRequest },
 }
 

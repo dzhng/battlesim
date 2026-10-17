@@ -100,3 +100,25 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **The transport lab camera sits 150 m out** (it was 380 m), centred on the carriers.
 - **The panel specimens give the test jeep 8 or 16 seats,** as the radar specimens already do.
 - **Two fixes outside the slice, each in its own commit:** stale generated icons (`e096f25a9`), and the panels scene's run split under the complexity budget (`cc095450a`).
+
+## Slice 07
+- **The unload spot search starts at the carrier's centre** and ignores only the carrier's own hull.
+- **Unloading in place always replaces the queue, even when it is refused;** the carrier stops at once.
+- **Unloading an empty carrier is dropped as a no-op,** so the order can't get stuck.
+
+## Slice 08
+- **Bail-out starts at the carrier's wreck rest point.** The wreck is ignored only for reachability, since soldiers start inside it; survivors always stand outside every solid footprint.
+  - The first pass let survivors stand inside the wreck. The orchestrator's review fixed it (`a2e6f55d2`), and the slice's missing tests were added there.
+- **Only squads wiped out entirely enter `destroyed`,** which pays the kill reward. Soldiers lost from a squad that survives follow the existing corpse accounting.
+- **A withdrawal refund includes only living passengers with a purchase receipt.**
+
+## Slice 11
+- **The board, collect and unload intents fire only in the default (move) mode.** In attack-move or reverse, right-clicking a unit falls through to a move.
+- **An armed Unload has its own "unload" cursor badge.** Pressing the Unload button again while armed is the same as pressing U again.
+- **The unload mark is the ordinary move line plus two chevrons off each side of the destination,** set perpendicular to the final facing.
+- **A per-unit refusal shows beside that unit's card,** or its carrier's card for a rider, for 2.2 s. `capacity_full` reads TOO MANY TO FIT.
+- **A riding squad's army-deck card is dimmed, carries the seat mark, and selects its carrier.**
+- **The browser remembers its own accepted unload points (`unloadPoints.ts`),** because the publication doesn't say which queued step unloads.
+  - Unsound: it makes the browser a second owner of the queue. Slice 11b replaces it with a published flag.
+- **Two fixes outside the slice:** squads aboard no longer draw order marks; the garrison, fog and cover-sheet scenes read `hold`, not the retired `garrison` field.
+- **Lint debt not fixed:** `bun run lint` reports old unused-variable errors in the river, street, projectiles, weapons and garrison scenes. Fix in its own commit before closeout.

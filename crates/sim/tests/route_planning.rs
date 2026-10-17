@@ -63,7 +63,7 @@ fn go(units: &[u32], goal: [f64; 2]) -> Order {
 fn send(b: &mut Battle, seq: u64, order: Order) {
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq,
         order,
         queued: false,
@@ -463,7 +463,7 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_the_tank_parks_outside_o
     assert!(matches!(journey.plan(), Some(Plan::Blocked(_))));
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order,
         queued: false,

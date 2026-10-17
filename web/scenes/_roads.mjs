@@ -55,6 +55,11 @@ const groundPixels = (mask, keep) => classPixels(mask, (c) => isOpen(c) && keep(
  *  a shadow on it. */
 const HUE_APART = 6;
 const DARKER_APART = 0.85;
+/** A track's grass strip turns its middle this many degrees of hue toward
+ *  green from its ruts at the ground camera, and at the tactical camera the
+ *  middle and the ruts are within this of one hue. */
+const STRIP_HUE_DEG = 5;
+const PLAIN_HUE_DEG = 2;
 
 /** L-G3 at one station: the road's core against the grass beside it. */
 function coreAgainstGrass({ shot, mask }) {
@@ -120,17 +125,21 @@ function rutContrast({ bare, mask }, { row, half }) {
   };
 }
 
-/** How green over red a track's middle is against its ruts, in a
- *  bare-ground frame. */
-function stripGreen({ bare, mask }, { row, half }) {
-  const green = (pixels) => {
+/** The hue of a track's middle and of its ruts, in a bare-ground frame: the
+ *  angle of their mean colour in the a*b* plane, in degrees from red toward
+ *  yellow and on to green. A grass strip turns the track's brown toward green
+ *  at much the same chroma, so it shows as hue; a channel ratio of displayed
+ *  values would also move with how far the grade lifts and brightens the
+ *  ground toward white. */
+function stripHue({ bare, mask }, { row, half }) {
+  const hue = (pixels) => {
     const { rgb, count } = meanColour(bare, pixels);
-    return { ratio: rgb[1] / rgb[0], count };
+    const [a, b] = chroma(rgb.map(linear));
+    return { hue: (Math.atan2(b, a) * 180) / Math.PI, count };
   };
-  return {
-    middle: green(lane(mask, half, 0, row.centre_strip.half_width_m / 2)),
-    ruts: green(lane(mask, half, row.ruts.offsets_m[0], 0.07)),
-  };
+  const middle = hue(lane(mask, half, 0, row.centre_strip.half_width_m / 2));
+  const ruts = hue(lane(mask, half, row.ruts.offsets_m[0], 0.07));
+  return { middle, ruts, greener: middle.hue - ruts.hue };
 }
 
 /** Clumps per metre-wide band beside the street's straight road east of the
@@ -233,9 +242,9 @@ export async function roadLooks(ctx) {
   // The lab's dirt track, from the ground camera and the tactical one.
   const dirtTrack = roadOf("river", 1);
   const close = await stationFrame(river, "river", "track-25");
-  const strip = stripGreen(close, dirtTrack);
+  const strip = stripHue(close, dirtTrack);
   const far = await stationFrame(river, "river", "track-250");
-  const farStrip = stripGreen(far, dirtTrack);
+  const farStrip = stripHue(far, dirtTrack);
   const ruts = {
     "track-25": rutContrast(close, dirtTrack),
     "track-250": rutContrast(far, dirtTrack),
@@ -310,9 +319,9 @@ export async function roadLooks(ctx) {
     "a narrow dirt track's middle is a strip of grass between its ruts, and plain track at the tactical camera",
     strip.middle.count > 300 &&
       strip.ruts.count > 300 &&
-      strip.middle.ratio > strip.ruts.ratio + 0.05 &&
+      strip.greener > STRIP_HUE_DEG &&
       farStrip.middle.count > 300 &&
-      Math.abs(farStrip.middle.ratio - farStrip.ruts.ratio) < 0.02,
+      Math.abs(farStrip.greener) < PLAIN_HUE_DEG,
     JSON.stringify({ "track-25": strip, "track-250": farStrip }),
   );
   ctx.check(

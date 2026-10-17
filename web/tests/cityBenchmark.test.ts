@@ -56,7 +56,16 @@ test(
           kind: "generated",
           request: expect.objectContaining({ type: "metro", size: "xl", seed: "4" }),
         },
-        factions: ["us", "eastern"],
+        players: [
+          { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+          {
+            id: "red-1",
+            side: "red",
+            faction: "eastern",
+            controller: "active_ai",
+            human_capable: false,
+          },
+        ],
         battle_seed: 4,
       });
       expect(asked!.stress).toEqual({ kind: "city-arena-2", late: false });

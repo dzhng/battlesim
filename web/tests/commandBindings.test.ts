@@ -24,6 +24,7 @@ test("each command key maps to its command, per the user's table", () => {
   expect(commandForKey(press("KeyF"))).toBe("toggle_fire_policy");
   expect(commandForKey(press("KeyG"))).toBe("attack_ground");
   expect(commandForKey(press("KeyT"))).toBe("toggle_deployment");
+  expect(commandForKey(press("KeyU"))).toBe("unload");
   expect(commandForKey(press("Escape"))).toBe("disarm");
 });
 

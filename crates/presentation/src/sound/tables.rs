@@ -41,6 +41,30 @@ pub struct OneShot {
     pub gain: f64,
 }
 
+/// How far a bus dips (a share of its level), and how fast it dips and
+/// recovers (time constants, seconds): the music under a voice line, the
+/// ambience under a loud shot.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Duck {
+    pub depth: f64,
+    pub attack_s: f64,
+    pub release_s: f64,
+}
+
+/// The bed: always on, never positional. Under a sound at least
+/// `duck_over` loud at the listener (its level there, as the voice budget
+/// ranks it) the ambience bus dips by `duck`, and recovers once the dip is
+/// reached, as a film mix makes room for a near shot.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Ambience {
+    pub sound: String,
+    pub gain: f64,
+    pub duck: Duck,
+    pub duck_over: f64,
+}
+
 /// A vehicle class's loops: engine (idle to load), running gear (by speed),
 /// turret traverse and reverse beeper. A null sound is none.
 #[derive(Clone, Debug, Deserialize)]
@@ -82,6 +106,20 @@ pub struct Buses {
     /// The music bus's level: streamed tracks, outside the voice budget.
     pub music: f64,
     pub voices: f64,
+}
+
+/// The master's limiter (hard knee), the last stage before the output: over
+/// `threshold_db` (dBFS) the level is compressed by `ratio`, reacting over
+/// `attack_s` and recovering over `release_s`; what its attack still lets
+/// over is clipped hard at `clip_db` (dBFS).
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Limiter {
+    pub threshold_db: f64,
+    pub attack_s: f64,
+    pub release_s: f64,
+    pub ratio: f64,
+    pub clip_db: f64,
 }
 
 /// Full within `ref_m`, then inverse (`rolloff`) down toward `floor`, a
@@ -179,6 +217,7 @@ pub struct ShoutCue {
 #[serde(deny_unknown_fields)]
 pub struct AudioPresentation {
     pub buses: Buses,
+    pub limiter: Limiter,
     /// The listener stands this share of the way from the camera's target
     /// to its eye.
     pub listener_eye_share: f64,
@@ -204,7 +243,7 @@ pub struct AudioPresentation {
     pub music: MusicRules,
     /// How unit voice lines are chosen ([`super::voices`]).
     pub voices: ChatterRules,
-    pub ambience: OneShot,
+    pub ambience: Ambience,
     /// The one alarm raised when a side's first fixed-wing aircraft enters.
     pub air_alarm: OneShot,
     /// A positional warning for a visible missile steering onto an own unit.
