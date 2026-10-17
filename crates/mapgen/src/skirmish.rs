@@ -65,16 +65,14 @@ pub(crate) fn reserve(
     let mut ordered = Vec::with_capacity(entries.len());
     for side in [Side::Blue, Side::Red] {
         let mut side_entries: Vec<_> = entries.iter().filter(|entry| entry.side == side).collect();
+        let centre_exit = centre_entries
+            .iter()
+            .find(|entry| entry.side == side)
+            .expect("centre entry");
         let centre_index = side_entries
             .iter()
-            .enumerate()
-            .min_by(|(_, a), (_, b)| {
-                (a.center[0] - extent / 2.0)
-                    .abs()
-                    .total_cmp(&(b.center[0] - extent / 2.0).abs())
-            })
-            .map(|(index, _)| index)
-            .expect("centre entry");
+            .position(|entry| entry.center == centre_exit.center && entry.yaw == centre_exit.yaw)
+            .expect("centre exit remains in entries");
         let centre = side_entries.remove(centre_index);
         ordered.push(centre.clone());
         let mut flank: Vec<_> = side_entries.into_iter().cloned().collect();
@@ -252,65 +250,110 @@ fn add_entry_arms(
             .cloned()
             .collect::<Vec<_>>(),
     ];
-    for _ in 0..wanted {
-        let mut selected = None;
-        for band in bands.iter().copied() {
-            let fraction = (band + (rng.unit() - 0.5) * 0.04).clamp(0.12, 0.88);
-            let mut pair = Vec::new();
-            for (index, side) in [Side::Blue, Side::Red].into_iter().enumerate() {
-                let y = if side == Side::Blue { extent } else { 0.0 };
-                let inward = if side == Side::Blue { -1.0 } else { 1.0 };
-                let start = [extent * fraction, y];
-                if side_entries[index]
-                    .iter()
-                    .any(|e| distance(e.center, start) < 150.0)
-                    || water.gap(start, 90.0) < 90.0
-                {
-                    pair.clear();
-                    break;
-                }
-                let Some(target) = road_points
-                    .iter()
-                    .copied()
-                    .filter(|p| {
-                        (p[1] - y) * inward > 100.0 && (p[0] - start[0]).abs() < extent * 0.45
-                    })
-                    .min_by(|a, b| distance(start, *a).total_cmp(&distance(start, *b)))
-                else {
-                    pair.clear();
-                    break;
-                };
-                if water.segment_gap(start, target, 90.0) < 30.0 {
-                    pair.clear();
-                    break;
-                }
-                let delta = [target[0] - start[0], target[1] - start[1]];
-                pair.push((side, start, target, libm::atan2(delta[1], delta[0]), inward));
-            }
-            if pair.len() == 2 {
-                let mut entries = Vec::new();
-                for (side, start, target, yaw, inward) in pair {
-                    let shape = GroundShape::stroke(vec![start, target], 12.0)
-                        .map_err(|_| fail("entry arm geometry is not representable"))?;
-                    surfaces.push(SurfaceArea {
-                        kind: SurfaceKind::CountryRoad,
-                        shape,
-                    });
-                    entries.push(EntrySite {
-                        side,
-                        center: [start[0], start[1] + inward * 8.0],
-                        yaw,
-                    });
-                }
-                selected = Some(entries);
+    type ArmSegment = (Side, [f64; 2], [f64; 2], f64, f64);
+    struct ArmCandidate {
+        pair: Vec<ArmSegment>,
+    }
+    let centre_x = [side_entries[0][0].center[0], side_entries[1][0].center[0]];
+    let mut candidates = Vec::new();
+    for band in bands.iter().copied() {
+        let fraction = (band + (rng.unit() - 0.5) * 0.04).clamp(0.12, 0.88);
+        let mut pair = Vec::new();
+        for (index, side) in [Side::Blue, Side::Red].into_iter().enumerate() {
+            let y = if side == Side::Blue { extent } else { 0.0 };
+            let inward = if side == Side::Blue { -1.0 } else { 1.0 };
+            let start = [extent * fraction, y];
+            if side_entries[index]
+                .iter()
+                .any(|e| distance(e.center, start) < 150.0)
+                || water.gap(start, 90.0) < 90.0
+            {
+                pair.clear();
                 break;
             }
+            let Some(target) = road_points
+                .iter()
+                .copied()
+                .filter(|p| (p[1] - y) * inward > 100.0 && (p[0] - start[0]).abs() < extent * 0.45)
+                .min_by(|a, b| distance(start, *a).total_cmp(&distance(start, *b)))
+            else {
+                pair.clear();
+                break;
+            };
+            if water.segment_gap(start, target, 90.0) < 30.0 {
+                pair.clear();
+                break;
+            }
+            let delta = [target[0] - start[0], target[1] - start[1]];
+            pair.push((side, start, target, libm::atan2(delta[1], delta[0]), inward));
         }
-        let Some(entries) = selected else {
-            return Err(fail("no mirrored, spaced, river-safe entry arm pair fits"));
-        };
-        for entry in entries {
-            let index = usize::from(entry.side == Side::Red);
+        if pair.len() == 2 {
+            candidates.push(ArmCandidate { pair });
+        }
+    }
+    let is_left = |candidate: &ArmCandidate| {
+        candidate
+            .pair
+            .iter()
+            .enumerate()
+            .all(|(index, (_, start, _, _, _))| start[0] < centre_x[index])
+    };
+    let is_right = |candidate: &ArmCandidate| {
+        candidate
+            .pair
+            .iter()
+            .enumerate()
+            .all(|(index, (_, start, _, _, _))| start[0] > centre_x[index])
+    };
+    let selected: Vec<&ArmCandidate> = if wanted == 2 {
+        let mut left = candidates.iter().filter(|candidate| is_left(candidate));
+        let right: Vec<_> = candidates
+            .iter()
+            .filter(|candidate| is_right(candidate))
+            .collect();
+        left.find_map(|left| {
+            right
+                .iter()
+                .copied()
+                .find(|right| distance(left.pair[0].1, right.pair[0].1) >= 150.0)
+                .map(|right| vec![left, right])
+        })
+        .ok_or_else(|| fail("no mirrored, opposite-side entry arm pair fits"))?
+    } else {
+        let left_width = centre_x.iter().sum::<f64>() / 2.0;
+        let prefer_left = left_width > extent - left_width;
+        let preferred = candidates.iter().find(|candidate| {
+            if prefer_left {
+                is_left(candidate)
+            } else {
+                is_right(candidate)
+            }
+        });
+        let fallback = candidates.iter().find(|candidate| {
+            if prefer_left {
+                is_right(candidate)
+            } else {
+                is_left(candidate)
+            }
+        });
+        vec![preferred
+            .or(fallback)
+            .ok_or_else(|| fail("no mirrored, spaced, river-safe entry arm fits"))?]
+    };
+    for candidate in selected {
+        for (side, start, target, yaw, inward) in &candidate.pair {
+            let shape = GroundShape::stroke(vec![*start, *target], 12.0)
+                .map_err(|_| fail("entry arm geometry is not representable"))?;
+            surfaces.push(SurfaceArea {
+                kind: SurfaceKind::CountryRoad,
+                shape,
+            });
+            let entry = EntrySite {
+                side: *side,
+                center: [start[0], start[1] + inward * 8.0],
+                yaw: *yaw,
+            };
+            let index = usize::from(*side == Side::Red);
             side_entries[index].push(entry.clone());
             added.push(entry);
         }

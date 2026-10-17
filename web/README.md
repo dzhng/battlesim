@@ -93,6 +93,11 @@ loops. It keeps that first message and suppresses follow-on invalid-resource noi
 readiness timeouts include the page's published state so a slow or refused adapter
 does not look like an unexplained hang.
 
+The menu's graphics probe settles before the browser warms unused runtime art.
+That ordering keeps Safari's memory pressure from interrupting the frame sample
+stream while the first scene is being measured; a slow but valid stream remains
+usable evidence for selecting a lower tier.
+
 Every check that draws gets its browser from [the browser choice](browser.mjs):
 Playwright's Chromium, or inside WSL headless Windows Chrome, because WSL's own
 Chromium has only a software GPU. Its header names the setting that keeps
