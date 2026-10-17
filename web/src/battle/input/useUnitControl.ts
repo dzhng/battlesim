@@ -161,6 +161,10 @@ export function useUnitControl(
           return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "exit_building":
           return `leave building: ${order.units.map(unitName).join(", ")}`;
+        case "board":
+          return `board carrier ${unitName(order.carrier)} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+        case "collect":
+          return `collect ${order.squads.map(unitName).join(", ")} into ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "refund":
           return `return ${order.units.map(unitName).join(", ")} to base`;
         case "ready":
