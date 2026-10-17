@@ -72,11 +72,14 @@ pub fn apply(
     tick: Tick,
     occupancy: Occupancy<'_>,
 ) -> Result {
-    let mut rng = Rng::new(mix(seed ^ BAIL_OUT_STREAM ^ host.key() ^ tick));
+    // Each squad draws its injuries from its own stream within the event, so
+    // two squads leaving one host are hurt independently.
+    let event = mix(seed ^ BAIL_OUT_STREAM ^ host.key() ^ tick);
+    let mut rng = Rng::new(mix(event ^ u64::from(unit.id.0)));
     let mut fates = Vec::new();
     let squad_loss = rule.squad_loss.is_some_and(|chance| {
         // A carrier event owns one independent squad-level draw per passenger
-        // squad; the injury draws below remain on the event stream.
+        // squad, apart from its injury draws below.
         let mut squad_rng = Rng::new(mix(seed
             ^ BAIL_OUT_STREAM
             ^ host.key()
