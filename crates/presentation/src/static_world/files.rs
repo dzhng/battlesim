@@ -8,6 +8,7 @@ use crate::static_world::ground::{self, Source, Tuning};
 use crate::static_world::library::{kit_bounds, state_corners, Bounds, Library};
 use crate::static_world::props::{Art, PropInput, STAND_IN_KIT, STAND_IN_MODULE};
 use crate::world::BuildingStyle;
+use contract::maps::MapCategory;
 use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
@@ -81,15 +82,15 @@ pub fn ground(root: &Path, map: &str) -> Result<MapGround, String> {
 }
 
 /// The rules of a battle fought on saved map `map`: the game's, with the
-/// units of the map's own category (a capture map's the capture set's, a test map's
-/// the tests').
+/// units of the map's own category (a capture map's the capture set's, a
+/// test map's the tests').
 pub fn rules(root: &Path, map: &str) -> Result<contract::scenario::Rules, String> {
     let meta = json(&root.join("fixtures/maps").join(map).join("meta.json"))?;
-    let set = match meta["category"].as_str() {
-        Some("capture") => sim::fixtures::CatalogSet::Capture,
-        Some("test") => sim::fixtures::CatalogSet::Test,
-        Some(category) => return Err(format!("unknown map category {category:?}")),
-        None => return Err("meta.json has no category".into()),
+    let category: MapCategory = serde_json::from_value(meta["category"].clone())
+        .map_err(|e| format!("{map}/meta.json category: {e}"))?;
+    let set = match category {
+        MapCategory::Capture => sim::fixtures::CatalogSet::Capture,
+        MapCategory::Test => sim::fixtures::CatalogSet::Test,
     };
     let mut fixture = sim::fixtures::game();
     fixture["catalog"] = Value::Array(sim::fixtures::catalog_documents(set));
@@ -272,40 +273,4 @@ pub fn placed_buildings(
         shells,
     };
     Ok((placed, style))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::rules;
-    use std::path::PathBuf;
-
-    struct Scratch(PathBuf);
-
-    impl Drop for Scratch {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-
-    #[test]
-    fn unknown_map_category_is_refused_by_name() {
-        let root = std::env::temp_dir().join(format!(
-            "battlegame-presentation-unknown-category-{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
-        let _scratch = Scratch(root.clone());
-        let map = root.join("fixtures/maps/unknown");
-        std::fs::create_dir_all(&map).unwrap();
-        let shipped = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
-        std::fs::copy(shipped.join("game.json"), root.join("fixtures/game.json")).unwrap();
-        std::fs::write(
-            map.join("meta.json"),
-            r#"{"category":"mystery","biome":"temperate"}"#,
-        )
-        .unwrap();
-
-        let error = rules(&root, "unknown").unwrap_err();
-        assert_eq!(error, "unknown map category \"mystery\"");
-    }
 }

@@ -37,9 +37,10 @@
 //! place and a quieter one is dropped. A sound loud at the listener (a near
 //! cannon, a blast) dips the ambience bus, which recovers once the dip is
 //! reached ([`Command::Duck`], `presentation.audio.ambience`), so the bed
-//! makes room for it as a film mix does; distant fire never reaches it. The player only carries out the
-//! [`Command`]s: it starts, glides and stops voices, and places them by
-//! direction (distance is decided here).
+//! makes room for it as a film mix does; distant fire never reaches it.
+//!
+//! The player only carries out the [`Command`]s: it starts, glides and
+//! stops voices, and places them by direction (distance is decided here).
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 

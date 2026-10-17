@@ -1006,22 +1006,34 @@ const SOUNDS: &[(&str, Mono, bool)] = &[
     ("cue_footsteps", cue_footsteps, false),
 ];
 
-/// Stereo ambient beds.
-const BEDS: &[&str] = &["countryside", "distant_battle"];
+type Stereo = fn(f64, &mut Mulberry32) -> Vec<Vec<f32>>;
+
+/// Every ambient bed, by name: stereo, and always looping.
+const BEDS: &[(&str, Stereo)] = &[
+    ("countryside", countryside),
+    ("distant_battle", distant_battle),
+];
+
+fn bed(name: &str) -> Option<Stereo> {
+    BEDS.iter().find(|(n, _)| *n == name).map(|b| b.1)
+}
 
 /// Whether `name` is a synthesized sound.
 pub fn exists(name: &str) -> bool {
-    BEDS.contains(&name) || SOUNDS.iter().any(|(n, ..)| *n == name)
+    bed(name).is_some() || SOUNDS.iter().any(|(n, ..)| *n == name)
 }
 
 /// Every synthesized sound's name.
 pub fn names() -> impl Iterator<Item = &'static str> {
-    SOUNDS.iter().map(|(n, ..)| *n).chain(BEDS.iter().copied())
+    SOUNDS
+        .iter()
+        .map(|(n, ..)| *n)
+        .chain(BEDS.iter().map(|b| b.0))
 }
 
 /// Whether synthesized sound `name` loops; None for an unknown name.
 pub fn loops(name: &str) -> Option<bool> {
-    if BEDS.contains(&name) {
+    if bed(name).is_some() {
         return Some(true);
     }
     SOUNDS.iter().find(|(n, ..)| *n == name).map(|s| s.2)
@@ -1030,15 +1042,9 @@ pub fn loops(name: &str) -> Option<bool> {
 /// `name` at `sample_rate`: the same samples every time.
 pub fn synthesize(name: &str, sample_rate: f64) -> Result<Synth, String> {
     let mut rng = Key::new().text(name).rng();
-    if name == "countryside" {
+    if let Some(make) = bed(name) {
         return Ok(Synth {
-            channels: countryside(sample_rate, &mut rng),
-            looping: true,
-        });
-    }
-    if name == "distant_battle" {
-        return Ok(Synth {
-            channels: distant_battle(sample_rate, &mut rng),
+            channels: make(sample_rate, &mut rng),
             looping: true,
         });
     }

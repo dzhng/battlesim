@@ -3,10 +3,9 @@
 // presentation module): it reads the publication as the effects take it,
 // the frame's emitters and the side's hearing cues, and gives commands
 // (start, glide, stop a voice; listen from here; dip the ambience under a
-// loud sound). This carries them out on a
-// `VoiceSink` (`webAudioSink.ts`), so the mix runs, and is tested, without
-// an audio device. The presentation module must be loaded first
-// (`loadPresentation`).
+// loud sound). This carries them out on a `VoiceSink` (`webAudioSink.ts`),
+// so the mix runs, and is tested, without an audio device. The presentation
+// module must be loaded first (`loadPresentation`).
 import {
   SoundFrame as RustSoundFrame,
   sector_pan,

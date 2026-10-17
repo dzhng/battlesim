@@ -179,7 +179,10 @@ export async function modelGhostAgreement(ctx) {
           for (let p = 0; p < full.length; p += 4) {
             const delta = (a, b) =>
               Math.max(...[0, 1, 2].map((k) => Math.abs(a[p + k] - b[p + k])));
-            if (delta(drawnClear[1], drawnClear[0]) > 30 && delta(drawnFogged[1], drawnFogged[0]) > 30) {
+            if (
+              delta(drawnClear[1], drawnClear[0]) > 30 &&
+              delta(drawnFogged[1], drawnFogged[0]) > 30
+            ) {
               covered++;
               if (delta(full, fogFull) < 8) fogStable++;
             }

@@ -162,7 +162,9 @@ function PictureFrame({ cell, state }: { cell: Cell; state: PreviewState }) {
             </>
           ) : (
             <strong>
-              {state.status === "retrying" ? `Rerolling map · try ${state.attempt}` : "Generating map"}
+              {state.status === "retrying"
+                ? `Rerolling map · try ${state.attempt}`
+                : "Generating map"}
             </strong>
           )}
         </div>

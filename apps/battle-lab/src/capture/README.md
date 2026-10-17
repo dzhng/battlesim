@@ -148,7 +148,8 @@ bun run --cwd web capture fixtures/captures/<name>.json [--height=1080|1440] [--
 
 The usage text in [`web/capture/args.mjs`](../../../../web/capture/args.mjs)
 owns the flags. Output is 16:9, 1080p by default and 1440p at most; 60 fps by
-default; unit info cards on unless `--no-cards`; the colour grade is always on.
+default; unit info cards on unless `--no-cards` (as in the game, they fade out
+as the camera closes in, so a close shot is clean); the colour grade is always on.
 
 Each scene plays on the capture route ([`routes/capture.tsx`](../routes/capture.tsx))
 in a headful Chromium window, which records its stage, cards and every sound

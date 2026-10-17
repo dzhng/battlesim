@@ -45,7 +45,11 @@ const labelOf = (request: PrepareBattleRequest) => request.map_source.request.re
 const prepared = (request: PrepareBattleRequest): PreparedSession => ({
   scenario: "{}",
   report: { request } as PreparedSession["report"],
-  preview: { map: `map ${labelOf(request)}`, sites: "sites", svg: `<svg>${labelOf(request)}</svg>` },
+  preview: {
+    map: `map ${labelOf(request)}`,
+    sites: "sites",
+    svg: `<svg>${labelOf(request)}</svg>`,
+  },
   connect: () => ({ send: () => {}, close: () => {} }),
 });
 const refusal = () =>
@@ -72,20 +76,23 @@ function harness() {
   const runs: ReturnType<typeof pending>["run"][] = [];
   let seed = 0;
   let deadline: (() => void) | null = null;
-  const previews = mapPreviews({ documents, policy, onChange: (s) => states.push(s) }, {
-    seed: () => String(++seed),
-    prepare: (message) => {
-      const { run, preparation } = pending(message);
-      runs.push(run);
-      return preparation;
+  const previews = mapPreviews(
+    { documents, policy, onChange: (s) => states.push(s) },
+    {
+      seed: () => String(++seed),
+      prepare: (message) => {
+        const { run, preparation } = pending(message);
+        runs.push(run);
+        return preparation;
+      },
+      schedule: (run) => {
+        deadline = run;
+        return () => {
+          if (deadline === run) deadline = null;
+        };
+      },
     },
-    schedule: (run) => {
-      deadline = run;
-      return () => {
-        if (deadline === run) deadline = null;
-      };
-    },
-  });
+  );
   const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
   return { states, runs, previews, settled, expire: () => deadline?.() };
 }
@@ -115,7 +122,8 @@ test("a stale preview, answering after a newer request, is dropped", async () =>
   previews.show(candidate("old"));
   previews.show(candidate("new"));
   expect(runs[0].closed).toBe(true);
-  const request = (i: number) => (runs[i].message.type === "prepare" ? runs[i].message.request : null!);
+  const request = (i: number) =>
+    runs[i].message.type === "prepare" ? runs[i].message.request : null!;
   runs[0].resolve(prepared(request(0)));
   await settled();
   expect(previews.state.status).toBe("loading");
@@ -135,7 +143,9 @@ test("a refusal another seed can fix shows retrying, then ready", async () => {
   runs[1].resolve(prepared(request));
   await settled();
   expect(states.map((s) => s.status)).toEqual(["loading", "retrying", "ready"]);
-  expect(previews.state.status === "ready" && previews.state.preview.request.map_source.request.seed).toBe("2");
+  expect(
+    previews.state.status === "ready" && previews.state.preview.request.map_source.request.seed,
+  ).toBe("2");
 });
 
 test("a preview that runs past its deadline fails", async () => {

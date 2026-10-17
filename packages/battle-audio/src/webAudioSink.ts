@@ -6,9 +6,9 @@
 // into its bus's distance reverb, whose tail joins the bus; the buses sum
 // into the master (the ambience through its own duck gain, so a dip under a
 // loud sound never overwrites its level), and the master through a limiter
-// to the output. The
-// listener is the camera's (`Listener`). Works on an `AudioContext` or an
-// `OfflineAudioContext` alike: every change is scheduled at a sink time.
+// and a hard clip to the output. The listener is the camera's (`Listener`).
+// Works on an `AudioContext` or an `OfflineAudioContext` alike: every change
+// is scheduled at a sink time.
 import { BUSES, type AudioPresentation, type Bus } from "./audioPresentation";
 import type { Listener, VoiceParams, VoiceSink, VoiceSpec } from "./soundFrame";
 import { mulberry32 } from "math/random";
@@ -46,10 +46,6 @@ export class WebAudioSink implements VoiceSink {
   private readonly sounding = new Set<LiveVoice>();
   private readonly graph: AudioNode[] = [];
   private readonly ownsBank: boolean;
-  /** The limiter node (DynamicsCompressor). */
-  private readonly limiter: DynamicsCompressorNode;
-  /** Hard clipper after limiter: true brickwall at -1 dBFS. */
-  private readonly clipper: WaveShaperNode;
 
   constructor(
     readonly context: BaseAudioContext,
@@ -59,23 +55,21 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
-    // Brickwall limiter: prevents any signal from exceeding -2 dBFS.
-    // High ratio (20:1) with minimal knee for true peak limiting.
-    this.limiter = new DynamicsCompressorNode(context, {
+    // A fast 20:1 limiter from -2 dBFS; its attack still lets a transient's
+    // first milliseconds over, so a hard clip at -1 dBFS catches what remains.
+    const limiter = new DynamicsCompressorNode(context, {
       threshold: -2,
       knee: 0,
       ratio: 20,
       attack: 0.001,
       release: 0.05,
     });
-    // Hard clipper: WaveShaper that clips at -1 dBFS (≈0.891 amplitude).
-    // This is a true brickwall after the compressor to catch any remaining overs.
-    this.clipper = new WaveShaperNode(context, { curve: hardClipCurve(-1) });
-    this.graph.push(this.limiter, this.clipper);
-    this.limiter.connect(this.clipper).connect(context.destination);
+    const clipper = new WaveShaperNode(context, { curve: hardClipCurve(-1) });
+    this.graph.push(limiter, clipper);
+    limiter.connect(clipper).connect(context.destination);
     this.master = new GainNode(context, { gain: presentation.buses.master });
     this.graph.push(this.master);
-    this.master.connect(this.limiter);
+    this.master.connect(limiter);
     this.ambienceDuck = new GainNode(context, { gain: 1 });
     this.graph.push(this.ambienceDuck);
     this.ambienceDuck.connect(this.master);
@@ -283,8 +277,8 @@ export class WebAudioSink implements VoiceSink {
 
 const TAU = Math.PI * 2;
 
-/** Hard-clip WaveShaper curve at `dBFS` (e.g. -1 for -1 dBFS ceiling).
- *  Linear from -ceiling to +ceiling, flat beyond. */
+/** A WaveShaper curve that passes the signal unchanged up to `dBFS` and
+ *  holds it there beyond. */
 function hardClipCurve(dBFS: number): Float32Array {
   const ceiling = Math.pow(10, dBFS / 20);
   const n = 8192;
