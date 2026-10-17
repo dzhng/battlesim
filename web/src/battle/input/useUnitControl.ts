@@ -352,10 +352,14 @@ export function useUnitControl(
 
   /** Unload (D8): the first press arms it, for a click on the ground; a
    *  press while armed unloads where the carriers stand, replacing their
-   *  orders. Only carriers with passengers take it. */
+   *  orders. Only carriers with passengers take it: with none selected it
+   *  never arms, and disarms if it was. */
   const pressUnload = useCallback(() => {
     const units = reach("unload", selectedUnitsRef.current, catalog, ownUnits()).map((u) => u.id);
-    if (!units.length) return;
+    if (!units.length) {
+      if (modeRef.current === "unload") setMode("move");
+      return;
+    }
     if (modeRef.current !== "unload") {
       setMode("unload");
       return;
