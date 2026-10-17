@@ -56,9 +56,17 @@ test("similar units are the own units of the type, or of the type's first role",
 
 test("a mixed selection's deploy reaches only the units that deploy", () => {
   const selection = [
-    { id: 0, kind: "test_tank", garrison: null },
-    { id: 7, kind: "test_supply", garrison: null },
-    { id: 9, kind: "test_rifle", garrison: { building: 3, soldiers: 4, ports: 2 } },
+    { id: 0, kind: "test_tank", hold: null },
+    { id: 7, kind: "test_supply", hold: null },
+    {
+      id: 9,
+      kind: "test_rifle",
+      hold: {
+        host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+        phase: "inside",
+        progress: 1,
+      },
+    },
   ] as unknown as OwnUnitView[];
   expect(reach("deploy", selection, UNITS).map((u) => u.id)).toEqual([7]);
   expect(reach("garrison", selection, UNITS).map((u) => u.id)).toEqual([9]);
@@ -70,9 +78,9 @@ test("an attack reaches only the units whose type has mounts", () => {
   // The simulation pursues through the weapons pass, which never runs for a
   // unit with no mounts: an attack given to a supply truck froze it.
   const selection = [
-    { id: 0, kind: "test_tank", garrison: null },
-    { id: 7, kind: "test_supply", garrison: null },
-    { id: 9, kind: "test_rifle", garrison: null },
+    { id: 0, kind: "test_tank", hold: null },
+    { id: 7, kind: "test_supply", hold: null },
+    { id: 9, kind: "test_rifle", hold: null },
   ] as unknown as OwnUnitView[];
   expect(reach("attack", selection, UNITS).map((u) => u.id)).toEqual([0, 9]);
   expect(reach("attack", selection.slice(1, 2), UNITS)).toEqual([]);

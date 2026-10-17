@@ -27,7 +27,7 @@ use super::{
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
     OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS, RANGE_FIELDS,
-    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
+    REFUSAL_FIELDS, REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
 };
 
 pub type Point2 = [f64; 2];
@@ -48,7 +48,7 @@ macro_rules! view {
 view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, contacts: Vec<Contact>,
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
-    crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
+    refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
     fog: Arc<Fog>, ground_patch: GroundPatch });
 view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
@@ -59,7 +59,7 @@ view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Po
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
     engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool,
     member_hp: Vec<f64>, suppression: Name, concealed: bool, deployment: Option<Deployment>,
-    garrison: Option<Garrison>, stock: Option<f64>, service: Name, sight: Sight });
+    hold: Option<Hold>, stock: Option<f64>, service: Name, sight: Sight });
 view!(Protection { charges: f64, cooldown: Option<f64> });
 view!(MemberOrder { spot: Point2, cover_now: Option<Name>, cover_there: Option<Name> });
 view!(MemberLean {
@@ -76,7 +76,27 @@ view!(SightShape {
     side: f64,
     rear: f64
 });
-view!(Garrison { building: Option<f64>, phase: Name, progress: f64, center: Point2, half: Point2 });
+view!(Hold {
+    host: Host,
+    phase: Name,
+    progress: f64
+});
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Host {
+    Building {
+        id: f64,
+        center: Point2,
+        half: Point2,
+    },
+    Carrier {
+        id: f64,
+    },
+}
+view!(Refusal {
+    unit: f64,
+    reason: Name
+});
 view!(Deployment {
     progress: f64,
     target: Name
@@ -768,6 +788,7 @@ impl Reader {
             identified: map(&rows[group("identified")], |r| self.identified(r))?,
             contacts: map(&rows[group("contacts")], |r| self.contact(r))?,
             audible: map(&rows[group("audible")], |r| self.cue(r))?,
+            refusals: map(&rows[group("refusals")], |r| self.refusal(r))?,
             known_props: match statics {
                 Some((_, kept_props, _)) if kept(props) => kept_props.clone(),
                 _ => Arc::new(map(&rows[props], |r| self.known_prop(r))?),
@@ -904,15 +925,27 @@ impl Reader {
                     progress: v!(f, "deployProgress"),
                     target,
                 }),
-            garrison: self
-                .optional("garrisonPhases", v!(f, "garrisonPhase"))?
-                .map(|phase| Garrison {
-                    building: limbs(v!(f, "garrisonBuildingLo"), v!(f, "garrisonBuildingHi")),
-                    phase,
-                    progress: v!(f, "garrisonProgress"),
-                    center: [v!(f, "garrisonX"), v!(f, "garrisonY")],
-                    half: [v!(f, "garrisonHalfX"), v!(f, "garrisonHalfY")],
-                }),
+            hold: self
+                .optional("holdPhases", v!(f, "holdPhase"))?
+                .map(|phase| -> Result<Hold> {
+                    let id = limbs(v!(f, "hostLo"), v!(f, "hostHi")).unwrap_or(0.0);
+                    let kind = self.name("hostKinds", v!(f, "hostKind"))?;
+                    let host = if &*kind == "building" {
+                        Host::Building {
+                            id,
+                            center: [v!(f, "hostX"), v!(f, "hostY")],
+                            half: [v!(f, "hostHalfX"), v!(f, "hostHalfY")],
+                        }
+                    } else {
+                        Host::Carrier { id }
+                    };
+                    Ok(Hold {
+                        host,
+                        phase,
+                        progress: v!(f, "holdProgress"),
+                    })
+                })
+                .transpose()?,
             stock: present(v!(f, "stock")),
             service: self.name("serviceStatuses", v!(f, "service"))?,
             sight: Sight {
@@ -925,6 +958,14 @@ impl Reader {
                 },
                 range: v!(f, "sightRange"),
             },
+        })
+    }
+
+    fn refusal(&self, r: &Row) -> Result<Refusal> {
+        const FIELDS: &[&str] = &REFUSAL_FIELDS;
+        Ok(Refusal {
+            unit: limbs(v!(r.fields, "unitLo"), v!(r.fields, "unitHi")).unwrap_or(0.0),
+            reason: self.name("orderErrors", v!(r.fields, "reason"))?,
         })
     }
 

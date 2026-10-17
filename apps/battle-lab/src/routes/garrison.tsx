@@ -160,7 +160,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
 
   if (!meshes) return null;
   const own = observation?.own ?? [];
-  const garrisoned = control.selectedUnits.some((u) => u.garrison !== null);
+  const garrisoned = control.selectedUnits.some((u) => u.hold !== null);
   return (
     <>
       <RejectedOrder acks={control.acks} />

@@ -35,7 +35,7 @@ function recordingClient() {
   const client = {
     command: async (order: Order, queued = false) => {
       sent.push({ order, queued });
-      return { seq: sent.length, applied_tick: 0, error: null };
+      return { seq: sent.length, applied_tick: 0, error: null, refused: [] };
     },
   } as unknown as SimClient;
   return { client, sent };
@@ -290,6 +290,7 @@ test("every order's acknowledgement is heard with its order, a refusal too", asy
       seq: ++seq,
       applied_tick: 0,
       error: order.kind === "move" ? refusal : null,
+      refused: [],
     }),
   } as unknown as SimClient;
   const observation = { own: [own(1, "test_rifle")], contacts: [] } as unknown as ObservationView;
@@ -499,7 +500,7 @@ test("a captured contact that expires is refused locally instead of repicking th
 });
 
 test("an old client's delayed acknowledgement cannot repopulate a reset log", async () => {
-  let reply!: (ack: { seq: number; applied_tick: number; error: null }) => void;
+  let reply!: (ack: { seq: number; applied_tick: number; error: null; refused: [] }) => void;
   const old = {
     command: () =>
       new Promise((resolve) => {
@@ -521,7 +522,7 @@ test("an old client's delayed acknowledgement cannot repopulate a reset log", as
     hook.result.current.issue({ kind: "set_engagement", units: [1], policy: "return_fire_only" }),
   );
   await act(async () => {
-    reply({ seq: 99, applied_tick: 1, error: null });
+    reply({ seq: 99, applied_tick: 1, error: null, refused: [] });
     await pending;
   });
   expect(hook.result.current.acks.map((entry) => entry.order.kind)).toEqual(["set_engagement"]);

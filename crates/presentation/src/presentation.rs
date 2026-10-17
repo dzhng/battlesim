@@ -1493,7 +1493,7 @@ impl Loaded {
         let indoor: Vec<f64> = o
             .own
             .iter()
-            .filter(|u| u.garrison.as_ref().is_some_and(|g| &*g.phase != "entering"))
+            .filter(|u| u.hold.as_ref().is_some_and(|h| &*h.phase != "entering"))
             .map(|u| u.id)
             .collect();
         // Own units the world hides draw through it, the selection in its colour.

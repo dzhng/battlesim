@@ -192,7 +192,7 @@ export function ownStateRows(
   if (u.inDogfight) rows.push(row("dogfight"));
   if (u.flares) rows.push(row("flares", { n: u.flares.charges, progress: u.flares.cooldown }));
   if (u.withdrawing) rows.push(row("withdrawing"));
-  if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
+  if (u.hold) rows.push(GARRISON_ROWS[u.hold.phase]?.(u.hold.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
   // The published move state: `waiting` yields to vehicle traffic in the
@@ -457,7 +457,7 @@ export function arrivingUnit(catalog: SessionCatalog, kind: string): OwnUnitView
     suppression: "none",
     concealed: false,
     deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
-    garrison: null,
+    hold: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
     service: "out_of_range",
     hp: units.hull(kind)?.hp ?? 0,

@@ -836,12 +836,14 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
             wreck_of: Some(common::unit_kind("test_tank")),
         },
     ];
-    frame.own[0].garrison = Some(contract::observation::GarrisonState {
-        building: u32::MAX,
-        phase: contract::observation::GarrisonPhase::Inside,
+    frame.own[0].hold = Some(contract::observation::HoldState {
+        host: contract::observation::HostRef::Building {
+            id: u32::MAX,
+            center: [100.0, 200.0],
+            half: [4.0, 3.0],
+        },
+        phase: contract::observation::HoldPhase::Inside,
         progress: 1.0,
-        center: [100.0, 200.0],
-        half: [4.0, 3.0],
     });
     let header = publication::GroundHeader {
         epoch: 0,
@@ -883,10 +885,7 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
             [-1.0, -1.0]
         );
     }
-    assert_eq!(
-        integer(bits, &groups["own"][0].fields, "garrisonBuilding"),
-        u32::MAX
-    );
+    assert_eq!(integer(bits, &groups["own"][0].fields, "host"), u32::MAX);
 }
 
 /// The encoder's half of the codec vectors: every frame packs to exactly the
@@ -917,6 +916,9 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
         "soundCategories",
         "shoutTriggers",
         "intensities",
+        "hostKinds",
+        "holdPhases",
+        "orderErrors",
     ] {
         blessed["layout"][key] = current[key].clone();
     }

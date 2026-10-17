@@ -12,7 +12,7 @@ use contract::encounter::{
 use contract::identity::Seed;
 use contract::ids::Side;
 use contract::map::MapDefinition;
-use contract::observation::GarrisonPhase;
+use contract::observation::HoldPhase;
 use contract::scenario::Rules;
 use serde_json::{json, Value};
 use sim::battle::Battle;
@@ -348,8 +348,9 @@ fn a_planned_encounter_starts_a_battle_whose_garrisons_enter_their_buildings() {
         let red = battle.observe(Side::Red);
         for g in &garrisons {
             let squad = red.own.iter().find(|u| u.id.0 == g.unit).unwrap();
-            if squad.garrison.is_some_and(|held| {
-                (held.building, held.phase) == (g.building, GarrisonPhase::Inside)
+            if squad.hold.is_some_and(|held| {
+                matches!(held.host, contract::observation::HostRef::Building { id, .. } if id == g.building)
+                    && held.phase == HoldPhase::Inside
             }) {
                 entered.insert(g.unit);
             }

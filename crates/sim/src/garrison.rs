@@ -21,7 +21,7 @@ use std::collections::BTreeSet;
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::MoverClass;
-use contract::observation::{GarrisonPhase, GarrisonState};
+use contract::observation::{HoldPhase, HoldState, HostRef};
 
 pub use crate::hold::Phase;
 use contract::scenario::Rules;
@@ -733,22 +733,24 @@ pub fn collapse(
 }
 
 /// What the owning side sees of a squad's garrison.
-pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<GarrisonState> {
+pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldState> {
     let hold = unit.hold.as_ref()?;
     let building = hold.host.building();
     let footprint = world.structure_footprint(building)?;
     let timer = ticks(hold.host.timing(rules).enter_exit_s, rules) as f64;
     let (phase, progress) = match hold.phase {
-        Phase::Entering(n) => (GarrisonPhase::Entering, n as f64 / timer),
-        Phase::Inside => (GarrisonPhase::Inside, 1.0),
-        Phase::Exiting(n) => (GarrisonPhase::Exiting, n as f64 / timer),
+        Phase::Entering(n) => (HoldPhase::Entering, n as f64 / timer),
+        Phase::Inside => (HoldPhase::Inside, 1.0),
+        Phase::Exiting(n) => (HoldPhase::Exiting, n as f64 / timer),
     };
-    Some(GarrisonState {
-        building,
+    Some(HoldState {
+        host: HostRef::Building {
+            id: building,
+            center: [footprint.center.x, footprint.center.y],
+            half: [footprint.half.x, footprint.half.y],
+        },
         phase,
         progress,
-        center: [footprint.center.x, footprint.center.y],
-        half: [footprint.half.x, footprint.half.y],
     })
 }
 

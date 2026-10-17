@@ -120,10 +120,16 @@ export interface OrderError {
   [detail: string]: unknown;
 }
 
+export interface Refusal {
+  unit: number;
+  reason: OrderError;
+}
+
 export interface CommandAck {
   seq: number;
   applied_tick: number;
   error: OrderError | null;
+  refused: Refusal[];
   placement?: { gesture: number; destinations: MoveDestination[] };
   building?: BuildingPlacement;
 }

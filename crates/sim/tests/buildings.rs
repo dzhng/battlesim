@@ -378,14 +378,10 @@ fn different_clicked_parts_claim_one_building_in_the_same_tick() {
             break;
         }
     }
-    assert_eq!(
-        b.observe(Side::Blue).own[0]
-            .garrison
-            .as_ref()
-            .unwrap()
-            .building,
-        0
-    );
+    assert!(matches!(
+        b.observe(Side::Blue).own[0].hold.as_ref().unwrap().host,
+        contract::observation::HostRef::Building { id: 0, .. }
+    ));
 }
 
 #[test]
@@ -410,9 +406,12 @@ fn stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner() 
     }
     let unit = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(unit.garrisoned());
-    let observed = b.observe(Side::Blue).own[0].garrison.as_ref().unwrap();
+    let observed = b.observe(Side::Blue).own[0].hold.as_ref().unwrap();
     assert_eq!(
-        (observed.center, observed.half),
+        (match observed.host {
+            contract::observation::HostRef::Building { center, half, .. } => (center, half),
+            _ => unreachable!(),
+        }),
         ([402.0, 300.0], [6.0, 3.0]),
         "the delivered footprint must include every current physical part"
     );
@@ -707,14 +706,10 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
             .all(|s| s.position.z == 0.0),
         "only the original ground-floor bays remain below this two-metre shell"
     );
-    assert_eq!(
-        b.observe(Side::Blue).own[0]
-            .garrison
-            .as_ref()
-            .unwrap()
-            .building,
-        3
-    );
+    assert!(matches!(
+        b.observe(Side::Blue).own[0].hold.as_ref().unwrap().host,
+        contract::observation::HostRef::Building { id: 3, .. }
+    ));
     while b.tick() < 403 {
         b.step();
     }

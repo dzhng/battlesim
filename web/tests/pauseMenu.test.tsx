@@ -77,7 +77,7 @@ test("pause controls own shortcuts while armed Escape cancels before opening pau
     },
     async command(order: Order) {
       sent.push(order);
-      return { seq: sent.length, applied_tick: 0, error: null };
+      return { seq: sent.length, applied_tick: 0, error: null, refused: [] };
     },
   } as unknown as SimClient;
   const observation = {

@@ -56,6 +56,7 @@ const ack = (seq: number, reason?: string): CommandAck => ({
   seq,
   applied_tick: 0,
   error: reason ? { reason } : null,
+  refused: [],
 });
 
 test("the sets loaded are those the side's units and its pending purchases speak with, for its faction", () => {

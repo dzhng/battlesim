@@ -746,8 +746,8 @@ export function useBattleSession({
       u.id,
       u.kind,
       u.members.length,
-      u.garrison?.building,
-      u.garrison?.phase,
+      u.hold?.host.id,
+      u.hold?.phase,
       u.queue,
     ]),
   );

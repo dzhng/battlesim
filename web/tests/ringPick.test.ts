@@ -22,7 +22,7 @@ const own = (u: Partial<OwnUnitView>) =>
     members: [],
     memberOrders: [],
     area: null,
-    garrison: null,
+    hold: null,
     finalFacing: 0,
     direction: null,
     ...u,
