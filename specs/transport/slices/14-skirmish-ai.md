@@ -15,7 +15,8 @@ Load `tweak-mechanics` first.
   - A squad heading for an objective (`mod.rs:672-716`) first boards its carrier.
   - The carrier drives toward the objective and unloads at `unload_point`.
   - Squads already near their objective walk.
-- **`unload_point(frame, objective, catalog)`** (D18):
+  - (Corrected 2026-10-17 by the probe.) A squad sent at an identified enemy on the ground also rides when that enemy is far, and a loaded carrier heads for the nearest such enemy its squad can engage, else the objective. Without this, squads chased every identified enemy on foot after the opening wave and only 4 of 14 ever rode.
+- **`unload_point(frame, rules, objective, from, standoff)`** (D18; the code also needs the carrier's position and the no-threat standoff):
   - A pure function that stops short of the objective, outside the weapon reach of every enemy the side has **identified**.
   - It never uses hidden information (`specs/done/skirmish-ai/README.md:12-16`).
   - With no identified threat, it unloads a fixed share of the way short of the objective. That share is a new value in `fixtures/skirmish-ai.json`.
