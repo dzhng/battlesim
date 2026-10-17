@@ -437,18 +437,18 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.setSide("red"));
   const garrisoned = await until(
     page,
-    (f) => f.own.some((u) => u.garrison?.phase === "inside" && u.sight.eyes.length > 1),
+    (f) => f.own.some((u) => u.hold?.phase === "inside" && u.sight.eyes.length > 1),
     1800,
     30,
   );
   ctx.check(
     "red's squads garrison with one eye per facade they hold",
     !!garrisoned,
-    JSON.stringify(garrisoned?.own.map((u) => [u.kind, u.garrison?.phase, u.sight.eyes.length])),
+    JSON.stringify(garrisoned?.own.map((u) => [u.kind, u.hold?.phase, u.sight.eyes.length])),
   );
   if (garrisoned) {
     await page.evaluate(() => window.__lab.frame());
-    const squad = garrisoned.own.find((u) => u.garrison?.phase === "inside");
+    const squad = garrisoned.own.find((u) => u.hold?.phase === "inside");
     const eyes = await lab(
       page,
       (id) => window.__lab.route.fogInput().sight.eyes.filter((e) => e.key.startsWith(`${id}:`)),

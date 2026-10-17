@@ -216,12 +216,12 @@ export async function run(ctx) {
   let firstInside = null;
   o = await until(
     page,
-    (f) => squad(f, 2)?.garrison?.phase === "inside" || fellAt !== null,
+    (f) => squad(f, 2)?.hold?.phase === "inside" || fellAt !== null,
     1500,
     5,
     (f) => {
       watchHouse(f);
-      const g = squad(f, 2)?.garrison;
+      const g = squad(f, 2)?.hold;
       if (g?.phase === "entering" && g.progress > 0.2 && g.progress < 0.8 && !entering)
         entering = { ...g, tick: f.tick };
       if (g?.phase === "inside" && !firstInside) firstInside = f;
@@ -364,12 +364,12 @@ export async function run(ctx) {
   let exiting = false;
   o = await until(
     page,
-    (f) => squad(f, 2) && squad(f, 2).garrison === null,
+    (f) => squad(f, 2) && squad(f, 2).hold === null,
     300,
     5,
     (f) => {
       watchHouse(f);
-      exiting ||= squad(f, 2)?.garrison?.phase === "exiting";
+      exiting ||= squad(f, 2)?.hold?.phase === "exiting";
     },
   );
 
@@ -379,7 +379,7 @@ export async function run(ctx) {
   const joined = await demo(page, "Rifle squad #0 garrisons");
   o = await until(
     page,
-    (f) => squad(f, 0)?.garrison?.phase === "inside" || fellAt !== null,
+    (f) => squad(f, 0)?.hold?.phase === "inside" || fellAt !== null,
     1500,
     15,
     watchHouse,
@@ -388,7 +388,7 @@ export async function run(ctx) {
   // Red's squad has walked up by now: blue sees it, and it sees the occupants.
   const spotted = await until(
     page,
-    (f) => squad(f, 0)?.garrison?.phase === "inside" && !squad(f, 0).concealed,
+    (f) => squad(f, 0)?.hold?.phase === "inside" && !squad(f, 0).concealed,
     300,
     5,
     watchHouse,
@@ -446,7 +446,7 @@ export async function run(ctx) {
   // The last frame with occupants inside, before the fall: the shelling can
   // bring the building down during the firefight already.
   let before = null;
-  const inside = (f) => squad(f, 0)?.garrison?.phase === "inside";
+  const inside = (f) => squad(f, 0)?.hold?.phase === "inside";
   const fallen = (f) => f.knownProps.some((p) => p.kind === "ruin");
   for (let t = 0; t < 900 && !(enemyOnWall > 2 && hurt()) && !fallen(o); t += 3) {
     await advance(page, 3);
@@ -456,7 +456,7 @@ export async function run(ctx) {
     // past the house's corner, and their rounds grazing that corner are no
     // occupant's.
     const occupants = new Set(
-      o.own.filter((u) => u.garrison?.phase === "inside").flatMap((u) => u.memberIds),
+      o.own.filter((u) => u.hold?.phase === "inside").flatMap((u) => u.memberIds),
     );
     for (const p of o.projectiles) {
       if (p.own) {
@@ -498,7 +498,7 @@ export async function run(ctx) {
 
   if (!ruin) return page.close();
   const occupantsBefore = before
-    ? (squad(before, 0)?.garrison?.phase === "inside" && squad(before, 0).members) || []
+    ? (squad(before, 0)?.hold?.phase === "inside" && squad(before, 0).members) || []
     : [];
   const survivors = o ? [squad(o, 0)].filter(Boolean) : [];
 
