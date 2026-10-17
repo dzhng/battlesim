@@ -121,4 +121,37 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **The browser remembers its own accepted unload points (`unloadPoints.ts`),** because the publication doesn't say which queued step unloads.
   - Unsound: it makes the browser a second owner of the queue. Slice 11b replaces it with a published flag.
 - **Two fixes outside the slice:** squads aboard no longer draw order marks; the garrison, fog and cover-sheet scenes read `hold`, not the retired `garrison` field.
-- **Lint debt not fixed:** `bun run lint` reports old unused-variable errors in the river, street, projectiles, weapons and garrison scenes. Fix in its own commit before closeout.
+- **Lint debt:** cleared by main's `af245b425` (the scenes' orphaned values were checks that had moved elsewhere), taken in the main merge.
+
+## Slice 12
+- **Three new response lines, `board`, `unload` and `no_room_to_unload`, for every voice set,** in both moods with two takes each. Collect speaks `board`. `no_room_to_unload` has its own line, not the generic refusal.
+- **Board, collect and unload count as journeys,** so a trip that ends also gets the "arrived" line.
+- **Sets that never carry anyone (fighter and attack-helicopter pilots, tank crews) still got the lines.** No order ever triggers them; they keep every set complete.
+- **A take that fails the transcript check is left out of the pack, never packed.** Every line and mood still has at least one packed take: 725 packed, 31 left out.
+- **One rewording:** the attack-helicopter set's "Troops boarding." became "Troops, get aboard." (it kept being heard as "Troops balding"). Four retakes passed.
+- **Left out, for a listening pass** (set, line, mood, take: what the transcript heard):
+  - cn_fighter_pilot no_room_to_unload/stressed/1: "Nowhere to add. Call out"
+  - cn_ifv_crew, de_ifv_crew, it_ifv_crew, ru_ifv_crew unload/stressed/1 ("Dismount, go, go!"): heard as "Guess mount", "This round", "Yes, mount", "This round"
+  - cn_transport_helicopter_pilot board/steady/1: "Terms abort"
+  - de_atgm_team, ru_atgm_team, us_manpads_team board/stressed/0 ("Board, quickly!"): "Lord Brickley", "Move quickly!", "Report quickly"
+  - de_marksman_squad board/steady/0: "Loading now"; ru_marksman_squad board/steady/0: "[laughs]"
+  - de_recon_vehicle_crew board/steady/1: "Squatter board"
+  - de_rifle_squad board/steady/0: "Loading"; us_assault_squad board/steady/0: "Warning!"
+  - de_transport_helicopter_pilot board/steady/0: "Load in troops"; unload/steady/1: "We're here to unload"
+  - fr_attack_helicopter_pilot unload/steady/1: "It's crystal clear"
+  - fr_tank_crew no_room_to_unload/steady/1: "Enable no-hear ground"
+  - ru_attack_helicopter_pilot board/steady/0: "Loading tubes"
+  - ru_fighter_pilot, us_fighter_pilot no_room_to_unload/stressed/1: "Go ahead and land. Pull up", "Tell where to land. Call up!"
+  - ru_manpads_team no_room_to_unload/stressed/1: "You are to get out!"
+  - ru_recon_infantry board/steady/0: "Boarding complete."; board/stressed/0: "Mort, now"; unload/stressed/0: "Belt now"
+  - ru_rifle_squad board/stressed/0: "Mort, move!"
+  - ru_supply_driver unload/steady/1: "Passenger assault"
+  - ru_transport_helicopter_pilot no_room_to_unload/stressed/1: "Two tine, pull away"
+  - us_recon_infantry, us_sniper_team board/stressed/0: "Bored now"
+  - us_rifle_squad no_room_to_unload/steady/0: "[outro jingle]"
+- **Not done:** listening to the new lines in the sound workbench for tone and length against the building lines. Only a person can judge that.
+
+## Main merge (team skirmish, capture)
+- **Riders inside a carrier don't block a skirmish entry site;** main's per-entry dispatch counts only units on the field.
+- **A retiring carrier still takes its passengers,** each refunded to its own buying player under main's per-player wallets.
+- **The capture re-record waits for slice 11b,** which changes the publication layout again, so the captures are recorded once.
