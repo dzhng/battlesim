@@ -8,7 +8,6 @@ use contract::catalog::AltitudeLayer;
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
-use contract::weapons::TargetClass;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
@@ -976,43 +975,4 @@ fn a_hull_past_its_drives_limits_is_refused_at_load() {
     }
     // The shipped roster stands within them.
     serde_json::from_value::<Rules>(common::game()).unwrap();
-}
-
-#[test]
-fn each_faction_fields_one_rifle_squad_and_the_eastern_one_carries_a_weapon_for_men_and_armour() {
-    use contract::catalog::Faction;
-    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
-        sim::fixtures::CatalogSet::Game,
-    ))
-    .unwrap();
-    let rules: Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    let squads = |faction| {
-        catalog
-            .cards()
-            .filter(|card| card.family == "rifle_squad" && card.roster.factions.contains(&faction))
-            .map(|card| card.id)
-            .collect::<Vec<_>>()
-    };
-    assert_eq!(squads(Faction::Us), ["rifle_squad"]);
-    assert_eq!(squads(Faction::Europe), ["rifle_squad"]);
-    assert_eq!(squads(Faction::Eastern), ["eastern_rifle_squad"]);
-
-    // The Eastern squad's explosive still engages men, and it punches deeper
-    // into armour than the shared squad's grenade.
-    let explosives = |id| {
-        catalog
-            .mounts(catalog.index(id).unwrap())
-            .iter()
-            .flat_map(|mount| mount.def.weapons.iter())
-            .map(|weapon| &rules.weapons[weapon.as_str()])
-            .filter(|weapon| {
-                weapon.partial_from.is_some()
-                    && weapon
-                        .engages(AltitudeLayer::Ground, Some(TargetClass::Infantry))
-                        .is_some()
-            })
-            .map(|weapon| weapon.penetration)
-            .fold(0.0, f64::max)
-    };
-    assert!(explosives("eastern_rifle_squad") > explosives("rifle_squad"));
 }

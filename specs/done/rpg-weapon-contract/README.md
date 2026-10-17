@@ -21,7 +21,7 @@ The Eastern squad is a separate roster card so the US and Europe shared rifle sq
 
 ## Code and tests
 
-The main owners are `crates/contract/src/weapons.rs`, `crates/sim/src/weapons.rs`, the launch-clearance tests in `crates/sim/tests/launch_clearance.rs`, projectile/interception tests in `crates/sim/tests/`, and the fixture rows in `fixtures/game.json` and `fixtures/units/roster/`. The catalog test `each_faction_fields_one_rifle_squad_and_the_eastern_one_carries_a_weapon_for_men_and_armour` pins the loadout split. The blocked icon is `assets/icons/hud/blocked_shot.svg`.
+The main owners are `crates/contract/src/weapons.rs`, `crates/sim/src/weapons.rs`, the launch-clearance tests in `crates/sim/tests/launch_clearance.rs`, projectile/interception tests in `crates/sim/tests/`, and the fixture rows in `fixtures/game.json` and `fixtures/units/roster/`. The loadout is data and has no test of its own; the blast and armour-chip mechanics it relies on are tested in `crates/sim/tests/damage.rs` and `crates/sim/tests/weapons.rs`. The blocked icon is `assets/icons/hud/blocked_shot.svg`.
 
 ## Dead ends
 

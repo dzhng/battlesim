@@ -40,7 +40,9 @@ that is still valid, and rerun only what a change could have invalidated.
 
 Write the test first for behavior changes and regressions. Use
 [`write-tests`](.agents/skills/write-tests/SKILL.md) and test what the game does
-and how it fails, not how the code is shaped.
+and how it fails, not how the code is shaped. The tests test mechanics not
+configuration. A roster, a loadout or a stat is data that is meant to change; a
+test that pins one breaks on the next retune and proves nothing about the game.
 
 The simulation is deterministic, and the battle digest is the proof. A change
 that should not alter outcomes must leave digests and replays unchanged, or be
