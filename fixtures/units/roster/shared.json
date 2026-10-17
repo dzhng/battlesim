@@ -357,8 +357,7 @@
       "roster": {
         "factions": [
           "us",
-          "europe",
-          "eastern"
+          "europe"
         ],
         "category": "inf",
         "variant": "Standard infantry",

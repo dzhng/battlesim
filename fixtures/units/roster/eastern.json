@@ -1615,7 +1615,7 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner",
+            "eastern_rpg_team_rpg_29__roster_rpg_at_heavy_gunner",
             "eastern_rpg_team_rpg_29__at_rifleman",
             "eastern_rpg_team_rpg_29__at_rifleman"
           ]
@@ -1643,7 +1643,7 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_rpg_team_rpg_7__roster_rpg_light_gunner",
+            "eastern_rpg_team_rpg_7__roster_rpg_at_light_gunner",
             "eastern_rpg_team_rpg_7__at_rifleman",
             "eastern_rpg_team_rpg_7__at_rifleman"
           ]
@@ -3397,6 +3397,35 @@
           "turn_deg_s": 35,
           "turning_radius_m": 8,
           "reverse_fraction": 0.3
+        }
+      }
+    },
+    "eastern_rifle_squad": {
+      "name": "Rifle Squad",
+      "description": "Standard infantry with a general-purpose RPG.",
+      "faction": "eastern",
+      "family": "rifle_squad",
+      "roles": ["infantry"],
+      "cost": 90,
+      "roster": {
+        "factions": ["eastern"],
+        "category": "inf",
+        "variant": "Standard infantry",
+        "family_name": "Rifle Squad"
+      },
+      "extends": "roster_profile_rifle",
+      "body": {
+        "squad": {
+          "slots": [
+            "eastern_rifle_squad__rpg_gunner",
+            "rifle_squad__machine_gunner",
+            "rifle_squad__marksman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman"
+          ]
         }
       }
     }

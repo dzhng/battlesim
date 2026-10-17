@@ -411,6 +411,23 @@
       }
     },
     {
+      "cost": 90,
+      "description": "Standard infantry with a general-purpose RPG.",
+      "disabled_reason": null,
+      "family": "rifle_squad",
+      "id": "eastern_rifle_squad",
+      "name": "Rifle Squad",
+      "planned_weapons": [],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Rifle Squad",
+        "variant": "Standard infantry"
+      }
+    },
+    {
       "cost": 110,
       "description": "RPG-29",
       "disabled_reason": null,
@@ -1616,8 +1633,7 @@
         "category": "inf",
         "factions": [
           "us",
-          "europe",
-          "eastern"
+          "europe"
         ],
         "family_name": "Rifle Squad",
         "variant": "Standard infantry"
@@ -4692,6 +4708,52 @@
           ],
           "name": "Rifleman"
         },
+        "eastern_rifle_squad__rpg_gunner": {
+          "appearance": [
+            "rifle_squad_active_a",
+            "rifle_squad_active_b",
+            "rifle_squad_active_c"
+          ],
+          "description": "A rifleman carrying the squad's general-purpose RPG.",
+          "hp": 100.0,
+          "mounts": [
+            {
+              "id": "rifles",
+              "muzzle_m": null,
+              "name": "Rifle",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": false,
+              "squad": true,
+              "turret": false,
+              "weapons": [
+                "rifle"
+              ]
+            },
+            {
+              "id": "launcher",
+              "muzzle_m": null,
+              "name": "RPG HE",
+              "on": null,
+              "pivot_m": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "special": true,
+              "squad": false,
+              "turret": false,
+              "weapons": [
+                "rpg_general"
+              ]
+            }
+          ],
+          "name": "RPG HE gunner"
+        },
         "eastern_rpg_team_rpg_29__at_rifleman": {
           "appearance": [
             "eastern_rpg_team_rpg_29_guard_a",
@@ -4721,7 +4783,7 @@
           ],
           "name": "AT rifleman"
         },
-        "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner": {
+        "eastern_rpg_team_rpg_29__roster_rpg_at_heavy_gunner": {
           "appearance": [
             "eastern_rpg_team_rpg_29_guard_a",
             "eastern_rpg_team_rpg_29_guard_b",
@@ -4777,7 +4839,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "rpg_heavy"
+                "rpg_at_heavy"
               ]
             }
           ],
@@ -4812,7 +4874,7 @@
           ],
           "name": "AT rifleman"
         },
-        "eastern_rpg_team_rpg_7__roster_rpg_light_gunner": {
+        "eastern_rpg_team_rpg_7__roster_rpg_at_light_gunner": {
           "appearance": [
             "eastern_rpg_team_rpg_7_guard_a",
             "eastern_rpg_team_rpg_7_guard_b",
@@ -4868,7 +4930,7 @@
               "squad": false,
               "turret": false,
               "weapons": [
-                "rpg_light"
+                "rpg_at_light"
               ]
             }
           ],
@@ -8886,11 +8948,62 @@
             "profile": "vehicle"
           }
         },
+        "eastern_rifle_squad": {
+          "body": {
+            "squad": {
+              "slots": [
+                "eastern_rifle_squad__rpg_gunner",
+                "rifle_squad__machine_gunner",
+                "rifle_squad__marksman",
+                "rifle_squad__rifleman",
+                "rifle_squad__rifleman",
+                "rifle_squad__rifleman",
+                "rifle_squad__rifleman",
+                "rifle_squad__rifleman"
+              ]
+            }
+          },
+          "capabilities": {},
+          "cost": 90,
+          "description": "Standard infantry with a general-purpose RPG.",
+          "faction": "eastern",
+          "family": "rifle_squad",
+          "mobility": {
+            "foot": {
+              "offroad_kmh": 11.0,
+              "road_kmh": 14.0
+            }
+          },
+          "name": "Rifle Squad",
+          "roles": [
+            "infantry"
+          ],
+          "roster": {
+            "category": "inf",
+            "factions": [
+              "eastern"
+            ],
+            "family_name": "Rifle Squad",
+            "variant": "Standard infantry"
+          },
+          "sensors": {
+            "ground_m": 600.0,
+            "sight_shape": {
+              "front": 1.0,
+              "rear": 1.0,
+              "side": 1.0
+            }
+          },
+          "sound": {
+            "loudness_m": 200.0,
+            "profile": "infantry"
+          }
+        },
         "eastern_rpg_team_rpg_29": {
           "body": {
             "squad": {
               "slots": [
-                "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner",
+                "eastern_rpg_team_rpg_29__roster_rpg_at_heavy_gunner",
                 "eastern_rpg_team_rpg_29__at_rifleman",
                 "eastern_rpg_team_rpg_29__at_rifleman"
               ]
@@ -8936,7 +9049,7 @@
           "body": {
             "squad": {
               "slots": [
-                "eastern_rpg_team_rpg_7__roster_rpg_light_gunner",
+                "eastern_rpg_team_rpg_7__roster_rpg_at_light_gunner",
                 "eastern_rpg_team_rpg_7__at_rifleman",
                 "eastern_rpg_team_rpg_7__at_rifleman"
               ]
@@ -16393,8 +16506,7 @@
             "category": "inf",
             "factions": [
               "us",
-              "europe",
-              "eastern"
+              "europe"
             ],
             "family_name": "Rifle Squad",
             "variant": "Standard infantry"
@@ -23010,6 +23122,52 @@
       ],
       "name": "Rifleman"
     },
+    "eastern_rifle_squad__rpg_gunner": {
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ],
+      "description": "A rifleman carrying the squad's general-purpose RPG.",
+      "hp": 100.0,
+      "mounts": [
+        {
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "RPG HE",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "rpg_general"
+          ]
+        }
+      ],
+      "name": "RPG HE gunner"
+    },
     "eastern_rpg_team_rpg_29__at_rifleman": {
       "appearance": [
         "eastern_rpg_team_rpg_29_guard_a",
@@ -23039,7 +23197,7 @@
       ],
       "name": "AT rifleman"
     },
-    "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner": {
+    "eastern_rpg_team_rpg_29__roster_rpg_at_heavy_gunner": {
       "appearance": [
         "eastern_rpg_team_rpg_29_guard_a",
         "eastern_rpg_team_rpg_29_guard_b",
@@ -23095,7 +23253,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "rpg_heavy"
+            "rpg_at_heavy"
           ]
         }
       ],
@@ -23130,7 +23288,7 @@
       ],
       "name": "AT rifleman"
     },
-    "eastern_rpg_team_rpg_7__roster_rpg_light_gunner": {
+    "eastern_rpg_team_rpg_7__roster_rpg_at_light_gunner": {
       "appearance": [
         "eastern_rpg_team_rpg_7_guard_a",
         "eastern_rpg_team_rpg_7_guard_b",
@@ -23186,7 +23344,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "rpg_light"
+            "rpg_at_light"
           ]
         }
       ],
@@ -27674,7 +27832,173 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner",
+            "eastern_rifle_squad__rpg_gunner",
+            "rifle_squad__machine_gunner",
+            "rifle_squad__marksman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman",
+            "rifle_squad__rifleman"
+          ]
+        }
+      },
+      "capabilities": {},
+      "cost": 90,
+      "description": "Standard infantry with a general-purpose RPG.",
+      "faction": "eastern",
+      "family": "rifle_squad",
+      "id": "eastern_rifle_squad",
+      "mobility": {
+        "foot": {
+          "offroad_kmh": 11.0,
+          "road_kmh": 14.0
+        }
+      },
+      "mounts": [
+        {
+          "carriers": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "id": "rifles",
+          "muzzle_m": null,
+          "name": "Rifle",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": false,
+          "squad": true,
+          "turret": false,
+          "weapons": [
+            "rifle"
+          ]
+        },
+        {
+          "carriers": [
+            0
+          ],
+          "id": "launcher",
+          "muzzle_m": null,
+          "name": "RPG HE",
+          "on": null,
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "rpg_general"
+          ]
+        },
+        {
+          "carriers": [
+            1
+          ],
+          "id": "machine gun",
+          "muzzle_m": null,
+          "name": "LMG",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "machine_gunner_active_a",
+              "machine_gunner_active_b",
+              "machine_gunner_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "lmg"
+          ]
+        },
+        {
+          "carriers": [
+            2
+          ],
+          "id": "marksman rifle",
+          "muzzle_m": null,
+          "name": "Marksman Rifle",
+          "on": null,
+          "operator_appearance": {
+            "active": [
+              "marksman_active_a",
+              "marksman_active_b",
+              "marksman_active_c"
+            ],
+            "carried": [
+              "rifle_squad_active_a",
+              "rifle_squad_active_b",
+              "rifle_squad_active_c"
+            ]
+          },
+          "pivot_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "special": true,
+          "squad": false,
+          "turret": false,
+          "weapons": [
+            "marksman_rifle"
+          ]
+        }
+      ],
+      "name": "Rifle Squad",
+      "roles": [
+        "infantry"
+      ],
+      "roster": {
+        "category": "inf",
+        "factions": [
+          "eastern"
+        ],
+        "family_name": "Rifle Squad",
+        "variant": "Standard infantry"
+      },
+      "sensors": {
+        "ground_m": 600.0,
+        "sight_shape": {
+          "front": 1.0,
+          "rear": 1.0,
+          "side": 1.0
+        }
+      },
+      "sound": {
+        "loudness_m": 200.0,
+        "profile": "infantry"
+      },
+      "vehicle_class": null
+    },
+    {
+      "body": {
+        "squad": {
+          "slots": [
+            "eastern_rpg_team_rpg_29__roster_rpg_at_heavy_gunner",
             "eastern_rpg_team_rpg_29__at_rifleman",
             "eastern_rpg_team_rpg_29__at_rifleman"
           ]
@@ -27748,7 +28072,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "rpg_heavy"
+            "rpg_at_heavy"
           ]
         }
       ],
@@ -27782,7 +28106,7 @@
       "body": {
         "squad": {
           "slots": [
-            "eastern_rpg_team_rpg_7__roster_rpg_light_gunner",
+            "eastern_rpg_team_rpg_7__roster_rpg_at_light_gunner",
             "eastern_rpg_team_rpg_7__at_rifleman",
             "eastern_rpg_team_rpg_7__at_rifleman"
           ]
@@ -27856,7 +28180,7 @@
           "squad": false,
           "turret": false,
           "weapons": [
-            "rpg_light"
+            "rpg_at_light"
           ]
         }
       ],
@@ -36034,8 +36358,7 @@
         "category": "inf",
         "factions": [
           "us",
-          "europe",
-          "eastern"
+          "europe"
         ],
         "family_name": "Rifle Squad",
         "variant": "Standard infantry"
@@ -43022,7 +43345,7 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
-    "rpg_heavy": {
+    "rpg_at_heavy": {
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 3,
@@ -43063,7 +43386,7 @@
       "trajectory": "direct",
       "turn_deg_s": null
     },
-    "rpg_light": {
+    "rpg_at_light": {
       "accel_mps2": null,
       "aim_s": 2.0,
       "ammo": 4,
@@ -43096,6 +43419,48 @@
       "targets": {
         "ground": {
           "classes": [
+            "vehicle"
+          ]
+        }
+      },
+      "top_speed_mps": null,
+      "trajectory": "direct",
+      "turn_deg_s": null
+    },
+    "rpg_general": {
+      "accel_mps2": null,
+      "aim_s": 2.0,
+      "ammo": 3,
+      "anti_radiation": false,
+      "armor_piercing": false,
+      "blast_radius_m": 6.0,
+      "damage": 50.0,
+      "decoyable": false,
+      "default": false,
+      "description": "A general-purpose high-explosive rocket for infantry and light armour.",
+      "fires_on_its_own": false,
+      "gravity_scale": 1.7651,
+      "icon": "rpg",
+      "interceptable": false,
+      "lifetime_s": null,
+      "magazine": null,
+      "min_range_m": 5.0,
+      "name": "RPG HE",
+      "near_miss_suppression": 0.15,
+      "partial_from": 0.08,
+      "penetration": 80.0,
+      "range_m": 280.0,
+      "reload_s": 4.0,
+      "requires_clear_launch_path": false,
+      "scatter_mrad": 10.0,
+      "speed_mps": 400.0,
+      "stationary": false,
+      "structural_damage": 35.0,
+      "suppression_radius_m": 8.0,
+      "targets": {
+        "ground": {
+          "classes": [
+            "infantry",
             "vehicle"
           ]
         }

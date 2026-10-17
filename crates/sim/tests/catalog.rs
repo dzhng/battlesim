@@ -8,6 +8,7 @@ use contract::catalog::AltitudeLayer;
 use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::scenario::Rules;
+use contract::weapons::TargetClass;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
@@ -975,4 +976,58 @@ fn a_hull_past_its_drives_limits_is_refused_at_load() {
     }
     // The shipped roster stands within them.
     serde_json::from_value::<Rules>(common::game()).unwrap();
+}
+
+#[test]
+fn eastern_rifle_squad_fields_general_purpose_rpg_and_dedicated_rows_are_renamed() {
+    let catalog = contract::catalog::resolve(&sim::fixtures::catalog_documents(
+        sim::fixtures::CatalogSet::Game,
+    ))
+    .unwrap();
+    let rules: Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let rpg = &rules.weapons["rpg_general"];
+    assert_eq!(rpg.ammo, contract::weapons::AmmoCapacity::Rounds(3));
+    assert_eq!(rpg.partial_from, Some(0.08));
+    assert!(rpg
+        .engages(AltitudeLayer::Ground, Some(TargetClass::Infantry))
+        .is_some());
+    assert!(rpg
+        .engages(AltitudeLayer::Ground, Some(TargetClass::Vehicle))
+        .is_some());
+    assert!(catalog.index("eastern_rifle_squad").is_some());
+    assert!(catalog
+        .mounts(catalog.index("eastern_rifle_squad").unwrap())
+        .iter()
+        .flat_map(|mount| mount.def.weapons.iter())
+        .any(|weapon| weapon == "rpg_general"));
+    let game = sim::fixtures::game();
+    let weapons = game["weapons"].as_object().unwrap();
+    assert!(!weapons.contains_key("rpg_light"));
+    assert!(!weapons.contains_key("rpg_heavy"));
+    assert!(weapons.contains_key("rpg_at_light"));
+    assert!(weapons.contains_key("rpg_at_heavy"));
+
+    let eastern = catalog.card("eastern_rifle_squad").unwrap();
+    assert_eq!(
+        eastern.roster.factions,
+        [contract::catalog::Faction::Eastern]
+    );
+    let eastern_kind = catalog.index(eastern.id).unwrap();
+    let eastern_weapons: Vec<_> = catalog
+        .mounts(eastern_kind)
+        .iter()
+        .flat_map(|mount| mount.def.weapons.iter())
+        .collect();
+    assert!(eastern_weapons.iter().any(|id| *id == "rpg_general"));
+    assert!(!eastern_weapons.iter().any(|id| *id == "grenade"));
+
+    let shared = catalog.card("rifle_squad").unwrap();
+    assert!(shared
+        .roster
+        .factions
+        .contains(&contract::catalog::Faction::Us));
+    assert!(shared
+        .roster
+        .factions
+        .contains(&contract::catalog::Faction::Europe));
 }

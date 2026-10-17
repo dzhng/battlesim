@@ -1,6 +1,6 @@
 # Explicit weapon targets, launch clearance, and the Eastern squad RPG
 
-Status: slices 1–3 landed (2026-10-15, as part of the [air-war-flight](../done/air-war-flight/README.md) closeout, air-war-flight D53–D55); the contract/catalog portion of slice 5 also landed with that work. Slice 4 (Eastern RPG content) and the blocked-shot icon follow-up remain open. Reconciled with air-war-flight: AA-role deletion, per-layer missile interception, launch clearance, explosive falloff, and their tests are already shipped.
+Status: slices 1–4 landed (2026-10-16); only the blocked-shot icon follow-up remains open. Reconciled with air-war-flight: AA-role deletion, per-layer missile interception, launch clearance, explosive falloff, and their tests are already shipped.
 
 ## Goal
 
@@ -57,12 +57,12 @@ The plan gives one owner to each concept: `LayerFire` for per-layer target eligi
 
 ## Next Agent Prompt
 
-Implement slice 4 in `slices/04-eastern-rpg.md` on top of the landed contract (target classes, explicit `partial_from` on every explosive row, `requires_clear_launch_path`). The grenade's explicit `partial_from: 0.08` has already landed. Start with red tests on `test_*` units, then the roster data; judge the three-hit calibration in a sample run. Then slice 5. Update this README's status, checklist and next prompt before ending your pass.
+Implement slice 5 in `slices/05-closeout.md`: finish the blocked-shot icon follow-up, run the visual checks, and close the spec when the full verification pass is green. Update this README's status, checklist and next prompt before ending your pass.
 
 ## Checklist
 
 - [x] Slice 1: contract hard cutover (`slices/01-contract.md`)
 - [x] Slice 2: projectile layer/interception (`slices/02-projectile-layer.md`)
 - [x] Slice 3: launcher clearance and blocked readout (`slices/03-launch-clearance.md`)
-- [ ] Slice 4: Eastern RPG and loadout (`slices/04-eastern-rpg.md`)
+- [x] Slice 4: Eastern RPG and loadout (`slices/04-eastern-rpg.md`)
 - [ ] Slice 5: blocked-shot icon follow-up (`slices/05-closeout.md`)

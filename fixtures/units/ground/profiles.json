@@ -565,7 +565,7 @@
         }
       ]
     },
-    "roster_rpg_light_gunner": {
+    "roster_rpg_at_light_gunner": {
       "abstract": true,
       "extends": "roster_at_rifleman",
       "name": "Rpg Light gunner",
@@ -575,7 +575,7 @@
           "id": "launcher",
           "name": "RPG-7",
           "weapons": [
-            "rpg_light"
+            "rpg_at_light"
           ],
           "special": true,
           "operator_appearance": {
@@ -587,7 +587,7 @@
         }
       ]
     },
-    "roster_rpg_heavy_gunner": {
+    "roster_rpg_at_heavy_gunner": {
       "abstract": true,
       "extends": "roster_at_rifleman",
       "name": "Rpg Heavy gunner",
@@ -597,7 +597,7 @@
           "id": "launcher",
           "name": "RPG-29",
           "weapons": [
-            "rpg_heavy"
+            "rpg_at_heavy"
           ],
           "special": true,
           "operator_appearance": {
@@ -606,6 +606,22 @@
               "phase": 0
             }
           }
+        }
+      ]
+    },
+    "roster_rpg_general_gunner": {
+      "abstract": true,
+      "extends": "roster_rifleman",
+      "name": "RPG HE gunner",
+      "description": "A rifleman carrying the squad's general-purpose RPG.",
+      "mounts": [
+        {
+          "id": "launcher",
+          "name": "RPG HE",
+          "weapons": [
+            "rpg_general"
+          ],
+          "special": true
         }
       ]
     },
