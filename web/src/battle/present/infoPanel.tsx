@@ -265,35 +265,27 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   );
 }
 
-/** One squad riding a carrier: its panel, and whether it is selected. */
+/** One squad riding a carrier, and its panel. A rider is never selected
+ *  (D10): picking its card picks the carrier. */
 export interface PassengerCard {
   id: number;
   panel: Panel;
-  selected: boolean;
 }
 
 /** The compact cards of the squads a carrier holds, stacked under the
  *  carrier's panel inside its callout, so the stack is laid out, hidden and
  *  hovered as the carrier's one card. A rider's card is always compact,
  *  whatever view the carrier's is in: `data-zoom` on each holds it there,
- *  and the readout layer never changes it. `bind` hands each card's
- *  element to the battle's picking. */
-export function PassengerCards({
-  cards,
-  bind,
-}: {
-  cards: readonly PassengerCard[];
-  bind?: (id: number) => Ref<HTMLDivElement>;
-}) {
+ *  and the readout layer never changes it. */
+export function PassengerCards({ cards }: { cards: readonly PassengerCard[] }) {
   if (cards.length === 0) return null;
   return (
     <div className="ro-aboard">
       {cards.map((c) => (
         <PanelCallout
           key={c.id}
-          ref={bind?.(c.id)}
           owner="own"
-          selected={c.selected}
+          selected={false}
           data-zoom="compressed"
           data-unit={c.id}
           data-passenger=""

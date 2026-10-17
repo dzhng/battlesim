@@ -445,7 +445,6 @@ export function panelSpecimens(
       passengers: passengersOf(own, carrier.id).map((p) => ({
         id: p.id,
         panel: ownPanel(units, p, own, rules),
-        selected: false,
       })),
     });
   };

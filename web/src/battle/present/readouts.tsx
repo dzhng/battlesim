@@ -152,10 +152,6 @@ interface Callout {
 /** A carrier's underline lies this far below its own panel, in the gap
  *  above its riders' cards (`.ro-aboard`'s top margin). */
 const RIDER_RULE_PX = 3;
-/** Whether `c` paints as selected: it is, or (a carrier's stack) any of
- *  its riders is. */
-const raised = (c: Callout) => c.selected || !!c.passengers?.some((p) => p.selected);
-
 /** The box a callout's leader underlines, drawn at `box`: the callout's,
  *  or for a carrier's card hanging above its unit, its own panel's, so the
  *  rule runs above its riders' cards and the line names the carrier. */
@@ -179,8 +175,8 @@ const HEAD_M = 2;
  *  paints above the others. A card near the viewport's edge hides. Far
  *  views allow overlap in camera-depth order. Nudges ease on the
  *  presentation clock. A squad riding a carrier has no callout of its own:
- *  its compact card stacks under the carrier's, inside that callout, and is
- *  picked before it. */
+ *  its compact card stacks under the carrier's, inside that callout, and
+ *  picks the carrier. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -216,12 +212,8 @@ export function ReadoutLayer({
   const hoveredCard = useRef<string | null>(null);
   const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
-  // Each rider's card, inside its carrier's callout.
-  const riderNodes = useRef(new Map<number, HTMLDivElement>());
-  /** Each rider's carrier, by the rider's id. */
-  const riding = new Map(
-    own.flatMap((c) => passengersOf(own, c.id).map((p) => [p.id, c.id] as const)),
-  );
+  /** The squads riding an own carrier: their cards stack under its. */
+  const riders = new Set(own.flatMap((c) => passengersOf(own, c.id).map((p) => p.id)));
   const callouts: Callout[] = [
     ...ghosts.map(
       (g): Callout => ({
@@ -236,13 +228,12 @@ export function ReadoutLayer({
       }),
     ),
     ...own
-      .filter((u) => !riding.has(u.id))
+      .filter((u) => !riders.has(u.id))
       .map((u): Callout => {
         const picked = selected.includes(u.id);
         const passengers = passengersOf(own, u.id).map((p) => ({
           id: p.id,
           panel: ownPanel(units, p, own, rules),
-          selected: selected.includes(p.id),
         }));
         return {
           key: `own-${u.id}`,
@@ -283,21 +274,11 @@ export function ReadoutLayer({
   ];
   const calloutsRef = useRef(callouts);
   calloutsRef.current = callouts;
-  const carrierOf = useRef(riding);
-  carrierOf.current = riding;
-  const boxOf = (node: Element): ReadoutRect => {
-    const r = node.getBoundingClientRect();
-    return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
-  };
   const visibleBox = (key: string): ReadoutRect | null => {
     const node = nodes.current.get(key);
-    return !node || node.style.display === "none" ? null : boxOf(node);
-  };
-  /** A rider's card, shown while its carrier's callout is. */
-  const riderBox = (id: number): ReadoutRect | null => {
-    const host = carrierOf.current.get(id);
-    const node = riderNodes.current.get(id);
-    return host === undefined || !node || !visibleBox(`own-${host}`) ? null : boxOf(node);
+    if (!node || node.style.display === "none") return null;
+    const r = node.getBoundingClientRect();
+    return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
   };
   /** The card under `hover`, else the unit or enemy it points at. The card
    *  hovered last frame keeps hold while the pointer is in its compact or
@@ -320,7 +301,7 @@ export function ReadoutLayer({
         ? previous
         : (card?.key ??
           (hover.unit !== null
-            ? `own-${carrierOf.current.get(hover.unit) ?? hover.unit}`
+            ? `own-${hover.unit}`
             : hover.enemy != null
               ? `enemy-${hover.enemy}`
               : null))
@@ -368,14 +349,11 @@ export function ReadoutLayer({
       const priority = [...calloutsRef.current].sort(
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
-      const inside = (r: ReadoutRect | null) =>
-        !!r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1;
       for (const c of priority) {
         if (c.retiring || c.ghost) continue;
-        // A rider's card lies on its carrier's: it is picked first.
-        const rider = c.passengers?.find((p) => inside(riderBox(p.id)));
-        if (rider) return { unit: rider.id, enemy: null, contact: null };
-        if (inside(visibleBox(c.key)))
+        // A rider's card lies on its carrier's, so it picks the carrier.
+        const r = visibleBox(c.key);
+        if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
           return {
             unit: c.owner === "own" ? c.id : null,
             enemy: c.owner === "enemy" ? c.id : null,
@@ -385,7 +363,7 @@ export function ReadoutLayer({
       return null;
     },
     inRect(unit, rect) {
-      const r = carrierOf.current.has(unit) ? riderBox(unit) : visibleBox(`own-${unit}`);
+      const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
@@ -417,7 +395,7 @@ export function ReadoutLayer({
           anchored.push({
             id: c.key,
             node,
-            selected: raised(c),
+            selected: c.selected,
             riders: !!c.passengers,
             highAir: c.highAir,
             opacity: c.opacity ?? 1,
@@ -578,7 +556,7 @@ export function ReadoutLayer({
     },
   }));
   const bind = useCallback(
-    <E extends Element, K>(map: Map<K, E>, key: K) =>
+    <E extends Element>(map: Map<string, E>, key: string) =>
       (el: E | null) => {
         if (el) map.set(key, el);
         else map.delete(key);
@@ -603,9 +581,7 @@ export function ReadoutLayer({
         data-contact={c.owner === "contact" ? c.id : undefined}
       >
         {c.content}
-        {c.passengers && (
-          <PassengerCards cards={c.passengers} bind={(id) => bind(riderNodes.current, id)} />
-        )}
+        {c.passengers && <PassengerCards cards={c.passengers} />}
       </PanelCallout>
       <svg className={`ro-leaders${c.owner !== "own" ? " ro-enemy" : ""}`} aria-hidden="true">
         <path

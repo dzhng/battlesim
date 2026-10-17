@@ -14,7 +14,7 @@
  * (the order flash, and the units' spoken answers). */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { SimClient } from "../sim/client";
-import type { ObservationView, OwnUnitView } from "../sim/observationView";
+import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
 import { useHeldKey } from "./heldKeys";
@@ -76,11 +76,17 @@ export function useUnitControl(
         clicked !== null && added.includes(clicked) ? clicked : null,
       );
   }, [selected]);
+  // Only units on the field are selectable: a squad a carrier holds drops
+  // out however it got in (a click, a box, a double-click, or boarding).
   const selectedUnits = useMemo(
-    () => selected.flatMap((id) => observation?.own.find((u) => u.id === id) ?? []),
+    () =>
+      selected.flatMap(
+        (id) => observation?.own.find((u) => u.id === id && !aboardCarrier(u)) ?? [],
+      ),
     [observation, selected],
   );
-  // Reconcile before committing handlers: a casualty cannot poison the survivors' orders.
+  // Reconcile before committing handlers: a casualty or a boarding squad
+  // cannot poison the rest's orders.
   if (selectedUnits.length !== selected.length) setSelection(selectedUnits.map((u) => u.id));
   const [acks, setAcks] = useState<AckEntry[]>([]);
   const [mode, setModeState] = useState<CommandMode>("move");

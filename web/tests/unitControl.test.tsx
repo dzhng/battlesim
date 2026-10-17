@@ -576,3 +576,69 @@ test("attack-move sends the entire selection, including unarmed units, by click 
     { order: { kind: "attack_move", units: [2], goal: [50, 50], gesture: 3 }, queued: false },
   ]);
 });
+
+/** A rifle squad held by carrier 4, boarding or aboard. */
+const rider = (id: number, phase: "entering" | "inside") =>
+  ({
+    ...own(id, "test_rifle"),
+    hold: { host: { kind: "carrier", id: 4 }, phase, progress: phase === "inside" ? 1 : 0.5 },
+  }) as unknown as OwnUnitView;
+
+test("a squad a carrier holds, boarding or aboard, is selected by no click, box or double-click", () => {
+  const observation = {
+    own: [own(1, "test_rifle"), rider(2, "inside"), rider(3, "entering"), own(4, "test_apc")],
+    contacts: [],
+  } as unknown as ObservationView;
+  const { client } = recordingClient();
+  const heard: number[][] = [];
+  const hook = renderHook(
+    () => useUnitControl(client, observation, { onSelect: (added) => heard.push([...added]) }),
+    { wrapper },
+  );
+  const left = (unit: number, time: number, shift = false) =>
+    act(() =>
+      hook.result.current.onPointer({
+        unit,
+        button: "left",
+        shift,
+        ctrl: false,
+        x: 0,
+        y: 0,
+        time,
+        ground: [0, 0],
+      }),
+    );
+  left(2, 0);
+  expect(hook.result.current.selected).toEqual([]);
+  left(3, 1000, true);
+  expect(hook.result.current.selected).toEqual([]);
+  act(() => hook.result.current.selectInRect(() => true, false));
+  expect(hook.result.current.selected).toEqual([1, 4]);
+  // A double-click selects the rifle squads on the field alone.
+  left(1, 5000);
+  left(1, 5100);
+  expect(hook.result.current.selected).toEqual([1]);
+  act(() => hook.result.current.setSelected([1, 2, 3]));
+  expect(hook.result.current.selected).toEqual([1]);
+  expect(heard.flat().filter((id) => id === 2 || id === 3)).toEqual([]);
+  hook.unmount();
+});
+
+test("a selected squad drops out of the selection as it boards, and orders go to the rest", async () => {
+  const { client, sent } = recordingClient();
+  const observation = (boarding: boolean) =>
+    ({
+      own: [own(1, "test_rifle"), boarding ? rider(2, "entering") : own(2, "test_rifle")],
+      contacts: [],
+    }) as unknown as ObservationView;
+  const hook = renderHook(({ boarding }) => useUnitControl(client, observation(boarding)), {
+    wrapper,
+    initialProps: { boarding: false },
+  });
+  act(() => hook.result.current.setSelected([1, 2]));
+  hook.rerender({ boarding: true });
+  expect(hook.result.current.selected).toEqual([1]);
+  await act(async () => hook.result.current.stop());
+  expect(sent.map(({ order }) => "units" in order && order.units)).toEqual([[1]]);
+  hook.unmount();
+});

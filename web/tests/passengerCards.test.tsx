@@ -81,13 +81,20 @@ test("a passenger's card says nothing of a building it is not in", () => {
 });
 
 /** The readout layer over `own`, placed once with every card hanging from
- *  one screen point, as a carrier and its riders do. */
-function placed(own: OwnUnitView[], expanded: boolean, hover: number | null = null) {
+ *  one screen point, as a carrier and its riders do. `hover` is a unit the
+ *  pointer is on, or "card" for the pointer on the stack's cards (jsdom
+ *  lays every box at the origin). */
+function placed(own: OwnUnitView[], expanded: boolean, hover: number | "card" | null = null) {
   const handle = createRef<ReadoutLayerHandle>();
   const view = renderView(<ReadoutLayer own={own} rules={RULES} selected={[]} handle={handle} />, {
     wrapper: WithTestCatalog,
   });
-  const hovered = hover === null ? null : { x: -100, y: -100, unit: hover, enemy: null };
+  const hovered =
+    hover === null
+      ? null
+      : hover === "card"
+        ? { x: 0, y: 0, unit: null, enemy: null }
+        : { x: -100, y: -100, unit: hover, enemy: null };
   handle.current!.place(() => [500, 400], gameCamera.opening(), {}, null, expanded, hovered);
   return view;
 }
@@ -100,7 +107,7 @@ test("each passenger's compact card stacks under its carrier's, and stays compac
     [false, null],
     [true, null],
     [false, 1],
-    [false, 10],
+    [false, "card"],
   ] as const) {
     const view = placed(own, expanded, hover);
     const card = view.container.querySelector<HTMLElement>('[data-unit="1"]')!;
@@ -125,4 +132,27 @@ test("a squad on foot keeps its own callout beside a carrier", () => {
   const view = placed(own, false);
   expect(view.container.querySelectorAll(".ro-callout")).toHaveLength(2);
   expect(view.container.querySelector("[data-passenger]")).toBeNull();
+});
+
+test("a rider's card picks its carrier, never the rider", () => {
+  const carrier = specimenUnit(TEST_CATALOG, "test_apc", { id: 1 });
+  const handle = createRef<ReadoutLayerHandle>();
+  renderView(
+    <ReadoutLayer
+      own={[carrier, aboard(10, 1, [100, 100, 100])]}
+      rules={RULES}
+      selected={[]}
+      handle={handle}
+    />,
+    { wrapper: WithTestCatalog },
+  );
+  handle.current!.place(() => [500, 400], gameCamera.opening(), {}, null, false, null);
+  const rider = document.querySelector<HTMLElement>("[data-passenger]")!.getBoundingClientRect();
+  // The point is on the rider's card, which lies on its carrier's.
+  expect(handle.current!.pick(rider.left, rider.top)).toEqual({
+    unit: 1,
+    enemy: null,
+    contact: null,
+  });
+  expect(handle.current!.inRect(10, { x0: -1e6, x1: 1e6, y0: -1e6, y1: 1e6 })).toBe(false);
 });

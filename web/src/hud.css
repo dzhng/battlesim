@@ -474,33 +474,25 @@ html {
 }
 /* The squads a carrier holds: their compact cards stacked under its own,
    set in to its rows' words (past the icon slot, its margins and the row
-   gap), so they read as filling its seats. The carrier's backing covers
-   the stack; each rider dims or brightens on its own selection, so the
-   carrier's dimming is its own panel's alone. */
+   gap), so they read as filling its seats, and dimmer than the carrier's
+   own panel, so its name leads. The carrier's backing covers the stack.
+   A rider is never selected: its card brightens with its carrier's. */
 .ro-aboard {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin: 7px 0 1px 25px;
+  opacity: 0.8;
 }
-/* A rider's card stays below its carrier's in the stack: dimmer until it
-   is selected, so the carrier's name leads. */
 .ro-aboard > .ro-unit {
   position: relative;
   padding: 0;
-}
-.ro-aboard > .ro-unit:not(.ro-selected) {
-  opacity: 0.65;
+  opacity: 1;
 }
 .ro-aboard > .ro-unit::before {
   content: none;
 }
-.ro-unit:has(> .ro-aboard) {
-  opacity: 1;
-}
-.ro-unit:has(> .ro-aboard):not(.ro-selected) > .ro-body {
-  opacity: 0.82;
-}
+
 .ro-unit.ro-enemy,
 .ro-unit.ro-contact {
   --tone: var(--hud-enemy);

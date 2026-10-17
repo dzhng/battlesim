@@ -150,7 +150,8 @@ export interface OwnUnitView {
   concealed: boolean;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
-  /** The squad's building while entering, inside or leaving it; null otherwise. */
+  /** The squad's host (a building or a carrier) while entering, inside or
+   *  leaving it; null otherwise. */
   hold: HoldView | null;
   /** A supply vehicle's remaining stock; null for other units. */
   stock: number | null;
@@ -214,6 +215,10 @@ export interface SightView {
 export type HoldHostView =
   | { kind: "building"; id: number; center: Point2; half: Point2 }
   | { kind: "carrier"; id: number };
+
+/** Whether a carrier holds `u` (boarding, aboard or getting out): it is
+ *  not on the field, and the player can't select or order it (D10). */
+export const aboardCarrier = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind === "carrier";
 
 export interface HoldView {
   host: HoldHostView;
