@@ -115,6 +115,9 @@ export interface ReadoutLayerHandle {
     y: number,
   ): { unit: number | null; enemy: number | null; contact: number | null } | null;
   inRect(unit: number, rect: ReadoutRect): boolean;
+  /** Where own `unit`'s card is drawn, or its carrier's for a rider; null
+   *  while neither shows. */
+  cardBox(unit: number): ReadoutRect | null;
   /** Re-anchor every panel; call once per animation frame. `clock` is that
    *  frame's presentation clock in seconds, which eases a panel's nudge
    *  (null snaps it). */
@@ -365,6 +368,10 @@ export function ReadoutLayer({
     inRect(unit, rect) {
       const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
+    },
+    cardBox(unit) {
+      const carrier = calloutsRef.current.find((c) => c.passengers?.some((p) => p.id === unit));
+      return visibleBox(carrier?.key ?? `own-${unit}`);
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
       hoveredCard.current = hoveredKey(hover);

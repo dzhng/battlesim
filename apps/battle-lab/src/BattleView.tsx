@@ -362,7 +362,7 @@ export function BattleView({
           }
         />
       </div>
-      {input && <RejectedOrder acks={control.acks} />}
+      {input && <RejectedOrder acks={control.acks} {...session.refusals} />}
       {!sim.error && loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu

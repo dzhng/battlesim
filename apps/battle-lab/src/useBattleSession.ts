@@ -1208,6 +1208,12 @@ export function useBattleSession({
             }
           : null,
       ),
+    /** The refusal callout's inputs: the side's per-unit refusals, and
+     *  where a unit's card stands. */
+    refusals: {
+      refusals: sim.refusals,
+      cardBox: (unit: number) => readouts.current?.cardBox(unit) ?? null,
+    },
     ghostReadouts: visibleGhostReadouts,
     gpuAllocations,
     probes,

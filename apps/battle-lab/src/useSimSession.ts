@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
 import type { LearnedGround } from "@web/battle/sim/presentation";
 import type { ObservationView } from "@web/battle/sim/observationView";
+import type { RefusalEvent } from "@web/battle/present/rejectedOrder";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 import type { SideName } from "@web/battle/sim/protocol";
 
@@ -40,6 +41,9 @@ export interface ScriptedSim {
   onPublication?: (p: { tick: number; digest: string; packed: number[]; warm: boolean }) => void;
 }
 
+const REFUSAL_LOG = 8;
+let refusalCount = 0;
+
 /** One worker authority for a lab scenario. Publications are consumed (their
  *  credit returned) as soon as they are decoded, unless the lab holds credit
  *  to stall the producer; drawing interpolates between the last two frames.
@@ -59,6 +63,9 @@ export function useSimSession({
   /** Why the authority failed to start (for example a mismatched replay). */
   const [error, setError] = useState<string | null>(null);
   const [observation, setObservation] = useState<ObservationView | null>(null);
+  /** The side's newest per-unit refusals, newest first: every publication's,
+   *  though React renders only the latest observation. */
+  const [refusals, setRefusals] = useState<readonly RefusalEvent[]>([]);
   const [status, setStatus] = useState<{ status: AuthorityStatus; slow: boolean }>({
     status: "loading",
     slow: false,
@@ -113,6 +120,7 @@ export function useSimSession({
     }
     setClient(next);
     setObservation(null);
+    setRefusals([]);
     digest.current = null;
     latest.current = null;
     ground.current = null;
@@ -130,6 +138,14 @@ export function useSimSession({
       digest.current = publication.digest;
       latest.current = publication.observation;
       ground.current = publication.ground;
+      const refused = publication.observation.refusals;
+      if (refused.length)
+        setRefusals((log) =>
+          [
+            ...refused.map((r) => ({ ...r, key: ++refusalCount, tick: publication.tick })),
+            ...log,
+          ].slice(0, REFUSAL_LOG),
+        );
       if (warm) {
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });
@@ -182,6 +198,7 @@ export function useSimSession({
     client,
     error,
     observation,
+    refusals,
     status,
     latest,
     ground,
