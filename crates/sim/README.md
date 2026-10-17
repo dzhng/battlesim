@@ -35,7 +35,7 @@ claimed lean. An individual infantry mount may declare a bore offset; both its
 pivot and muzzle turn with the operator bearing. Known enemy threat assessment
 uses the observed center and declared offset, never a hidden operator position.
 
-Rules follow physical components, with the game's [first-principles policy](../../README.md#rules-from-first-principles)
+Rules follow physical components, with the game's [first-principles policy](../../development.md#game-rules)
 explaining where deliberate cinematic exceptions belong.
 
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
@@ -98,7 +98,7 @@ A mismatch is an explicit refusal, not a best-effort replay under new rules.
 `cargo test -p sim --test sim <test-or-module>` gives a narrow deterministic check.
 Use `cargo test -p sim` for the crate. Test the behavior first, then verify the
 digest for changes intended to preserve outcomes. Full workspace gates and when
-to run them are defined by the root [checking policy](../../README.md#checks).
+to run them are defined by the root [checking policy](../../development.md#checks-and-hooks).
 
 A test of a mechanic runs on the test units (`test_*`, `fixtures/units/test`,
 never game content), loaded by `fixtures::test_game`, and adds a fake unit when

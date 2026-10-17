@@ -28,7 +28,7 @@ startup alone does not prove its performance budget.
 
 [The web manifest](package.json) owns browser dependencies, WebAssembly compilation,
 build and test commands; [the root manifest](../package.json) composes prerequisites.
-Use the root [startup instructions](../README.md#running-it) for a first checkout.
+Use the root [startup instructions](../README.md#try-it) for a first checkout.
 [WebAssembly build and memory ownership](../crates/game-wasm/README.md) explains
 generated bindings and how publications cross the boundary.
 

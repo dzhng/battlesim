@@ -11,7 +11,7 @@ Use the localhost address printed by Vite. The editor opens at `/mechanics`
 (default: <http://localhost:5173/mechanics>). If that port is occupied, stop the
 other server or run `bun run dev:mechanics --port 5175`. The normal `bun run dev`
 also serves the editor; open it through the developer menu or visit `/mechanics`.
-Prerequisites are in the root [Running it](../../README.md#running-it) section.
+Prerequisites are in the root [Running it](../../README.md#try-it) section.
 
 1. Search for the exact unit, then edit its spreadsheet cells or expand its row.
    Each field explains its effect and units. Shared weapon edits affect every
