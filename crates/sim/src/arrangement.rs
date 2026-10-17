@@ -158,10 +158,11 @@ pub fn nearest_free(from: V2, radius: f64, fits: impl Fn(V2) -> bool) -> Option<
     None
 }
 
-/// The nearest legal standing spot for a forced exit.  Unlike ordinary
+/// The nearest legal standing spot for a forced exit. Unlike ordinary
 /// formation placement this sees the authoritative occupancy: every prop,
-/// live ground hull and living soldier keeps its clearance.  The returned
-/// height is always the walkable surface, including bridge decks.
+/// live ground hull and living soldier keeps its clearance, and the soldier
+/// must be able to reach the spot without crossing an unignored prop. The
+/// returned height is always the walkable surface, including bridge decks.
 pub fn forced_exit_spot(
     world: &WorldGeometry,
     from: V2,
@@ -169,8 +170,10 @@ pub fn forced_exit_spot(
     radius: f64,
     hulls: &[crate::math::Obb2],
     soldiers: &[V2],
+    ignored_props: &[crate::world::PropId],
 ) -> Option<crate::math::V3> {
     nearest_free(from, search_m, |p| {
+        let solid = |prop: &Prop| !ignored_props.contains(&prop.id);
         world.traversable_at(p.x, p.y)
             && world
                 .surface_at(p.x, p.y)
@@ -178,11 +181,12 @@ pub fn forced_exit_spot(
             && !world
                 .props_near(p, radius)
                 .iter()
-                .any(|prop| prop.footprint().contains(p, radius))
+                .any(|prop| solid(prop) && prop.footprint().contains(p, radius))
             && !hulls.iter().any(|hull| hull.distance(p) <= radius)
             && !soldiers
                 .iter()
                 .any(|soldier| (*soldier - p).length() < ESCAPE_SPACING_M)
+            && reachable(world, from, p, radius, &solid)
     })
     .and_then(|p| {
         world

@@ -1,33 +1,39 @@
-//! Forced exits from a destroyed host.  Each event owns its random stream so
+//! Forced exits from a destroyed host. Each event owns its random stream so
 //! a bail-out cannot perturb combat damage or any later damage decision.
 
 use contract::ids::Tick;
 use contract::random::{mix, Rng};
-use contract::scenario::BailOutRow;
+use contract::scenario::{BailOutHost, BailOutRow, Rules};
 
 use crate::arrangement;
+use crate::hold::Host;
 use crate::math::{V2, V3};
-use crate::units::Unit;
+use crate::units::{Soldier, Unit};
 use crate::world::{PropId, WorldGeometry};
 
 /// Stream tag reserved for forced-exit events.
 pub const BAIL_OUT_STREAM: u64 = 0x6261_696c_6f75_7421;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Host {
-    Building(PropId),
-    Ground(u32),
-    Air(u32),
-}
-
 impl Host {
     fn key(self) -> u64 {
         match self {
-            Host::Building(id) => u64::from(id),
-            Host::Ground(id) => (1_u64 << 32) | u64::from(id),
-            Host::Air(id) => (2_u64 << 32) | u64::from(id),
+            Self::Building(id) => u64::from(id),
+            // Slice 06 will add Carrier(UnitId) with another distinct key.
         }
     }
+}
+
+/// Select the row for the host's physical kind. Callers decide whether a hull
+/// is ground or air; the hold host only supplies event identity.
+pub fn row(rules: &Rules, kind: BailOutHost) -> &BailOutRow {
+    rules.bail_out.get(&kind).expect("bail-out rule")
+}
+
+pub struct Occupancy<'a> {
+    pub radius: f64,
+    pub hulls: &'a [crate::math::Obb2],
+    pub soldiers: &'a [V2],
+    pub ignored_props: &'a [PropId],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -55,20 +61,16 @@ impl Result {
     }
 }
 
-/// Apply one host's bail-out to a squad.  The caller clears the hold and
-/// orders after this returns; this function owns health, corpses and spots.
-#[allow(clippy::too_many_arguments)]
+/// Apply one host's bail-out to a squad. The caller clears the hold and orders
+/// after this returns; this function owns health, corpses and spots.
 pub fn apply(
     world: &WorldGeometry,
     unit: &mut Unit,
     host: Host,
-    _from: V3,
     rule: &BailOutRow,
     seed: u64,
     tick: Tick,
-    radius: f64,
-    hulls: &[crate::math::Obb2],
-    soldiers: &[V2],
+    occupancy: Occupancy<'_>,
 ) -> Result {
     let mut rng = Rng::new(mix(seed ^ BAIL_OUT_STREAM ^ host.key() ^ tick));
     let mut fates = Vec::new();
@@ -80,12 +82,7 @@ pub fn apply(
         }
         let at = soldier.position;
         if squad_loss {
-            soldier.fall(
-                at.xy()
-                    .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
-                unit.yaw,
-                None,
-            );
+            fall(world, soldier, at, unit.yaw);
             fates.push(Fate::Died {
                 member,
                 cause: DeathCause::SquadLost,
@@ -93,12 +90,7 @@ pub fn apply(
             continue;
         }
         if rng.unit() < rule.death {
-            soldier.fall(
-                at.xy()
-                    .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
-                unit.yaw,
-                None,
-            );
+            fall(world, soldier, at, unit.yaw);
             fates.push(Fate::Died {
                 member,
                 cause: DeathCause::Roll,
@@ -108,33 +100,30 @@ pub fn apply(
         let hp_lost = rule.hp_lost[0] + (rule.hp_lost[1] - rule.hp_lost[0]) * rng.unit();
         soldier.hp -= hp_lost;
         if !soldier.alive() {
-            soldier.fall(
-                at.xy()
-                    .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
-                unit.yaw,
-                None,
-            );
+            fall(world, soldier, at, unit.yaw);
             fates.push(Fate::Died {
                 member,
                 cause: DeathCause::Roll,
             });
             continue;
         }
-        let occupied: Vec<V2> = soldiers
+        let occupied: Vec<V2> = occupancy
+            .soldiers
             .iter()
             .copied()
             .chain(taken.iter().copied())
             .filter(|p| (*p - at.xy()).length() > f64::EPSILON)
             .collect();
-        let Some(place) =
-            arrangement::forced_exit_spot(world, at.xy(), rule.search_m, radius, hulls, &occupied)
-        else {
-            soldier.fall(
-                at.xy()
-                    .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
-                unit.yaw,
-                None,
-            );
+        let Some(place) = arrangement::forced_exit_spot(
+            world,
+            at.xy(),
+            rule.search_m,
+            occupancy.radius,
+            occupancy.hulls,
+            &occupied,
+            occupancy.ignored_props,
+        ) else {
+            fall(world, soldier, at, unit.yaw);
             fates.push(Fate::Died {
                 member,
                 cause: DeathCause::NoRoom,
@@ -150,4 +139,13 @@ pub fn apply(
         });
     }
     Result { fates }
+}
+
+fn fall(world: &WorldGeometry, soldier: &mut Soldier, at: V3, yaw: f64) {
+    soldier.fall(
+        at.xy()
+            .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
+        yaw,
+        None,
+    );
 }

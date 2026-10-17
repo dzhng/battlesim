@@ -642,6 +642,7 @@ pub fn collapse(
     rules: &Rules,
     seed: u64,
     tick: Tick,
+    ignored_props: &[PropId],
 ) -> Vec<UnitId> {
     let mut destroyed = Vec::new();
     for index in 0..units.len() {
@@ -679,22 +680,21 @@ pub fn collapse(
             .filter(|(other, _)| *other != index)
             .flat_map(|(_, other)| other.member_positions().map(|p| p.xy()))
             .collect();
-        let rule = rules
-            .bail_out
-            .get(&contract::scenario::BailOutHost::Building)
-            .expect("building bail-out rule");
-        let from = units[index].position;
+        let rule = crate::bail_out::row(rules, contract::scenario::BailOutHost::Building);
+        let host = units[index].hold.as_ref().expect("building hold").host;
         let result = crate::bail_out::apply(
             world,
             &mut units[index],
-            crate::bail_out::Host::Building(target),
-            from,
+            host,
             rule,
             seed,
             tick,
-            rules.physics.soldier_radius_m,
-            &hulls,
-            &soldiers,
+            crate::bail_out::Occupancy {
+                radius: rules.physics.soldier_radius_m,
+                hulls: &hulls,
+                soldiers: &soldiers,
+                ignored_props,
+            },
         );
         units[index].hold = None;
         if matches!(units[index].orders.front(), Some(UnitOrder::Exit)) {

@@ -941,20 +941,22 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
 
 #[test]
 fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
-    // Low ruins (walls fire can't destroy, Q17), knee-high so the tank still
-    // fires over them, fill the ground around the building beyond the local
-    // search: nowhere to escape to.
-    let band = rules()["bail_out"]["building"]["search_m"]
+    // Low walls fire can never destroy (Q17), knee-high so the tank still
+    // fires over them. The walls leave only a 0.8 m courtyard gap: the clear
+    // ground beyond each wall is inside search_m, but unreachable on foot.
+    let gap = 0.8;
+    let thickness = 0.8;
+    let extent = rules()["bail_out"]["building"]["search_m"]
         .as_f64()
         .unwrap()
         + 5.0;
     let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], FELLED_HALF[0], FELLED_HALF[1]);
     let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let events = json!([
-        wall(cx + hx + band / 2.0, cy, band / 2.0, hy + band),
-        wall(cx - hx - band / 2.0, cy, band / 2.0, hy + band),
-        wall(cx, cy + hy + band / 2.0, hx, band / 2.0),
-        wall(cx, cy - hy - band / 2.0, hx, band / 2.0),
+        wall(cx + hx + gap + thickness / 2.0, cy, thickness / 2.0, extent,),
+        wall(cx - hx - gap - thickness / 2.0, cy, thickness / 2.0, extent,),
+        wall(cx, cy + hy + gap + thickness / 2.0, extent, thickness / 2.0,),
+        wall(cx, cy - hy - gap - thickness / 2.0, extent, thickness / 2.0,),
     ]);
     // Which seed brings the building down with someone inside depends on
     // every draw before it, so it is searched for, not pinned.
@@ -968,19 +970,29 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
         .expect("some seed collapses the building on its occupants");
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
-        assert!(!u.alive(), "squad {id} had nowhere to go");
+        assert!(
+            u.members.iter().any(|member| !member.alive()),
+            "squad {id} had no occupant blocked by the wall"
+        );
         // Everyone alive before lies where they stood (at his window, or
         // just behind it if a round took him that tick), brought down to the
         // ground with the floor he stood on.
         let standoff = num("garrison", "slot_standoff_m");
         for (k, (alive, at, _)) in members.iter().enumerate() {
-            if *alive {
+            if *alive && !u.members[k].alive() {
                 let fallen = u.members[k].corpse.expect("he fell").at;
                 assert!(
                     (fallen.xy() - at.xy()).length() <= 2.0 * standoff + 1e-9,
                     "{fallen:?} is not where {at:?} stood"
                 );
                 assert_eq!(fallen.z, b.world().height_at(at.x, at.y).unwrap());
+            } else if *alive {
+                let q = u.members[k].position.xy();
+                assert!(
+                    (q.x - cx).abs() <= hx + gap + thickness
+                        && (q.y - cy).abs() <= hy + gap + thickness,
+                    "survivor crossed a wall: {q:?}"
+                );
             }
         }
     }

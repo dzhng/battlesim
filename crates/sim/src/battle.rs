@@ -2216,7 +2216,8 @@ impl Battle {
         };
         let parts = self.world.structure_parts(owner);
         let replacements: Vec<_> = parts
-            .into_iter()
+            .iter()
+            .copied()
             .filter_map(|part| self.destroy_part(part, toward).map(|new| (part, new)))
             .collect();
         self.world.replace_building_parts(owner, &replacements);
@@ -2228,6 +2229,7 @@ impl Battle {
             &self.rules,
             self.seed,
             self.tick,
+            &parts,
         )
     }
 
