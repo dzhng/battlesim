@@ -164,3 +164,4 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **One `Battle::passengers_of(carrier)` lookup** replaces four copies.
 - **Test fixture:** `test_transport_heli` (16 seats). `test_heli` still carries no one.
 - **Risk:** boarding needs the exact low-hover height over the surface. Where a building or tree holds a helicopter higher, a Board order can wait forever with no refusal. The lab's helicopter variant will show whether this matters.
+- **The market-town menu reel was re-recorded** (`BLESS_MENU_REEL=1`). Main's reel puts a garrison collapse at tick 2093, and the building bail-out lets two soldiers live where the old coin flip killed them. Every shot still opens on a living unit; the footage after that tick needs the user's look.
