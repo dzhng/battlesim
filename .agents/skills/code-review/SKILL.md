@@ -54,7 +54,7 @@ Review the diff or specified files against these principles.
 - When a change makes something guaranteed (e.g. a variable is now always set, a file is always created, a function always returns), audit downstream code that still guards against the old "maybe" state.
 - Redundant null checks, fallback defaults, and `if (x)` guards on values that can no longer be null are misleading — they imply a possibility that doesn't exist.
 - Prefer `const` over `let` when reassignment is no longer needed.
-- **Never suppress a signal — fix the root cause.** `_` prefix on unused params, `// @ts-ignore`, `eslint-disable`, `as any` — these all hide real issues. If a parameter is unused, DELETE it and cascade the removal to every caller. If a type doesn't match, fix the type. Run the checker, fix every error, repeat. Mechanical changes across many files is exactly what an agent excels at — there is no "too many callers."
+- **Never suppress a signal — fix the root cause.** `_` prefix on unused params, `// @ts-ignore`, `eslint-disable`, `as any` — these all hide real issues. The one sanctioned exception is a complexity exemption that follows [Checks and hooks](../../../development.md#checks-and-hooks): rare, and worded as debt. If a parameter is unused, DELETE it and cascade the removal to every caller. If a type doesn't match, fix the type. Run the checker, fix every error, repeat. Mechanical changes across many files is exactly what an agent excels at — there is no "too many callers."
 
 ## 8. When changes are tangled, start clean
 
@@ -190,7 +190,7 @@ Before hand-writing a type, adding a cast, pinning a value, or restructuring cod
 - **A comment you discover is false is a defect.** Fix it in place. A wrong comment outlives the diff that would have corrected it and actively misleads — worse than no comment at all.
 - **Fix latent bugs your change surfaces.** Work that makes a rarely-run path run every time will expose ordering bugs, unreachable cleanup, and assertions that never fired. That is your bug now: it became reachable because of you.
 - **Verify before you "improve".** Confirm the thing is actually dead, wrong, or broken before deleting or rewriting it — grep for consumers, run the test. A confident deletion of something load-bearing is far worse than the untidiness you were fixing.
-- The limits: don't smuggle unrelated *behavior* changes into a feature commit, and don't rewrite a neighbouring module because you dislike its shape. This rule covers mechanical tidiness, dead code, false comments, and bugs you made reachable — not opportunistic redesign.
+- The limits: don't smuggle unrelated _behavior_ changes into a feature commit, and don't rewrite a neighbouring module because you dislike its shape. This rule covers mechanical tidiness, dead code, false comments, and bugs you made reachable — not opportunistic redesign.
 - The reviewer test: after this change lands, is any file in the repo **worse off**, or carrying a known-wrong statement, than before it started? If yes, the pass isn't done.
 
 ## Your task

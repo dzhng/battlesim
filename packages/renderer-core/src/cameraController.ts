@@ -158,7 +158,22 @@ export class CameraController {
    *  nothing moves, so an idle viewport never redraws. */
   step(camera: Camera3DParams, intent: CameraIntent, dt: number): Camera3DParams {
     const c = this.config;
-    const { right, forward, turn, pitchTurn } = cameraAxes(intent);
+    let right = intent.edge?.[0] ?? 0;
+    let forward = intent.edge?.[1] ?? 0;
+    let turn = 0;
+    let pitchTurn = 0;
+    for (const code of intent.held ?? []) {
+      const key = CAMERA_KEYS[code];
+      if (!key) continue;
+      if (key[0] === "right") right += key[1];
+      else if (key[0] === "forward") forward += key[1];
+      else if (key[0] === "turn") turn += key[1];
+      else pitchTurn += key[1];
+    }
+    right = clamp(right, -1, 1);
+    forward = clamp(forward, -1, 1);
+    turn = clamp(turn, -1, 1);
+    pitchTurn = clamp(pitchTurn, -1, 1);
     const wheel = intent.wheel ?? 0;
     const [dragX, dragY] = intent.drag ?? [0, 0];
     if (!right && !forward && !turn && !pitchTurn && !wheel && !dragX && !dragY) return camera;
@@ -196,25 +211,4 @@ export class CameraController {
     if (this.groundAt) z = this.groundAt(x, y);
     return { ...camera, target: [x, y, z], distance, pitch, yaw };
   }
-}
-
-function cameraAxes(intent: CameraIntent) {
-  let right = intent.edge?.[0] ?? 0;
-  let forward = intent.edge?.[1] ?? 0;
-  let turn = 0;
-  let pitchTurn = 0;
-  for (const code of intent.held ?? []) {
-    const key = CAMERA_KEYS[code];
-    if (!key) continue;
-    if (key[0] === "right") right += key[1];
-    else if (key[0] === "forward") forward += key[1];
-    else if (key[0] === "turn") turn += key[1];
-    else pitchTurn += key[1];
-  }
-  return {
-    right: clamp(right, -1, 1),
-    forward: clamp(forward, -1, 1),
-    turn: clamp(turn, -1, 1),
-    pitchTurn: clamp(pitchTurn, -1, 1),
-  };
 }

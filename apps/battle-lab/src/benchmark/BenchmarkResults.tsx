@@ -10,8 +10,6 @@ const fmt = (v: number | null | undefined, digits = 1) =>
   v === null || v === undefined ? "—" : v.toFixed(digits);
 const mib = (bytes: number | null | undefined) =>
   bytes === null || bytes === undefined ? "—" : `${(bytes / 2 ** 20).toFixed(1)} MiB`;
-const cell = (s: Summary | null, pick: (s: Summary) => number, digits = 1) =>
-  s ? fmt(pick(s), digits) : "—";
 
 function exportReport(report: BenchmarkReport) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(report)], { type: "application/json" }));
@@ -28,112 +26,6 @@ const TITLE: Record<BenchmarkReport["outcome"]["status"], string> = {
   failed: "Run failed",
 };
 
-function PhaseTable({ report }: { report: BenchmarkReport }) {
-  return (
-    <>
-      <h2>By camera phase</h2>
-      <table className="bench-table">
-        <thead>
-          <tr>
-            <th scope="col">Phase</th>
-            <th scope="col">Frames</th>
-            <th scope="col">Avg FPS</th>
-            <th scope="col">p50 ms</th>
-            <th scope="col">p95 ms</th>
-            <th scope="col">p99 ms</th>
-            <th scope="col">CPU p95 ms</th>
-            <th scope="col">GPU frame ms</th>
-          </tr>
-        </thead>
-        <tbody>
-          {report.phases.map((p) => (
-            <tr key={p.name}>
-              <th scope="row">{p.name}</th>
-              <td>{p.frameMs?.count ?? 0}</td>
-              <td>{fmt(p.averageFps)}</td>
-              <td>{cell(p.frameMs, (s) => s.p50)}</td>
-              <td>{cell(p.frameMs, (s) => s.p95)}</td>
-              <td>{cell(p.frameMs, (s) => s.p99)}</td>
-              <td>{cell(p.cpuMs, (s) => s.p95, 2)}</td>
-              <td>{fmt(p.gpu?.meanMs, 2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
-  );
-}
-
-function BenchmarkFacts({ report }: { report: BenchmarkReport }) {
-  const { scenario, simulation, ticks, memory, identity } = report;
-  return (
-    <div className="bench-facts">
-      <section>
-        <h2>Simulation</h2>
-        <dl>
-          <dt>Ticks</dt>
-          <dd>
-            {simulation.startTick.toLocaleString("en-US")} →{" "}
-            {simulation.endTick.toLocaleString("en-US")} ({fmt(simulation.simulatedSeconds)} s
-            simulated)
-          </dd>
-          <dt>Step time</dt>
-          <dd>
-            p50 {cell(ticks.stepMs, (s) => s.p50, 2)} · p95 {cell(ticks.stepMs, (s) => s.p95, 2)} ·
-            max {cell(ticks.stepMs, (s) => s.max, 2)} ms
-          </dd>
-          <dt>Publication</dt>
-          <dd>
-            {ticks.publicationBytes
-              ? `${Math.round(ticks.publicationBytes.mean).toLocaleString("en-US")} B mean · ${ticks.publicationBytes.max.toLocaleString("en-US")} B max`
-              : "—"}
-          </dd>
-          <dt>Battle</dt>
-          <dd>
-            {scenario.variant} · seed {scenario.seed}
-          </dd>
-        </dl>
-      </section>
-      <section>
-        <h2>Memory</h2>
-        <dl>
-          <dt>GPU buffers</dt>
-          <dd>
-            {mib(memory.last?.bufferBytes)} in {memory.last?.buffers ?? "—"} (peak{" "}
-            {mib(memory.peakBufferBytes)})
-          </dd>
-          <dt>GPU textures</dt>
-          <dd>
-            {mib(memory.last?.textureBytes)} in {memory.last?.textures ?? "—"}
-          </dd>
-          <dt>JS heap</dt>
-          <dd>
-            {memory.peakHeapBytes === null
-              ? "not reported"
-              : `${mib(memory.last?.heapBytes)} at the end (peak ${mib(memory.peakHeapBytes)})`}
-          </dd>
-          <dt>Main thread</dt>
-          <dd>
-            CPU p50 {cell(report.cpuMs, (s) => s.p50, 2)} · p95{" "}
-            {cell(report.cpuMs, (s) => s.p95, 2)} ms per frame
-          </dd>
-        </dl>
-      </section>
-      <section>
-        <h2>Machine</h2>
-        <dl>
-          <dt>GPU</dt>
-          <dd>{identity?.adapter || "—"}</dd>
-          <dt>Window</dt>
-          <dd>{identity ? `${identity.viewport.join(" × ")} at DPR ${identity.dpr}` : "—"}</dd>
-          <dt>GPU timing</dt>
-          <dd>{identity?.timestampQuery ? "timestamp-query frame total" : "unavailable"}</dd>
-        </dl>
-      </section>
-    </div>
-  );
-}
-
 export function BenchmarkResults({
   report,
   onAgain,
@@ -141,7 +33,7 @@ export function BenchmarkResults({
   report: BenchmarkReport;
   onAgain: () => void;
 }) {
-  const { outcome, scenario } = report;
+  const { outcome, scenario, simulation, ticks, memory, identity } = report;
   const title =
     TITLE[outcome.status] ||
     (report.length === "short" ? "Short run result" : "Five-minute result");
@@ -156,6 +48,8 @@ export function BenchmarkResults({
     ["GPU frame, mean", fmt(report.gpu?.meanMs, 2), "ms"],
     ["Frames over 33 ms", String(report.framesOver33ms)],
   ];
+  const cell = (s: Summary | null, pick: (s: Summary) => number, digits = 1) =>
+    s ? fmt(pick(s), digits) : "—";
   return (
     <main className="bench-results" data-testid="benchmark-results">
       <div className="bench-body">
@@ -183,9 +77,100 @@ export function BenchmarkResults({
         <FrameChart report={report} />
         <p className="bench-note">{report.measurement}</p>
 
-        <PhaseTable report={report} />
+        <h2>By camera phase</h2>
+        <table className="bench-table">
+          <thead>
+            <tr>
+              <th scope="col">Phase</th>
+              <th scope="col">Frames</th>
+              <th scope="col">Avg FPS</th>
+              <th scope="col">p50 ms</th>
+              <th scope="col">p95 ms</th>
+              <th scope="col">p99 ms</th>
+              <th scope="col">CPU p95 ms</th>
+              <th scope="col">GPU frame ms</th>
+            </tr>
+          </thead>
+          <tbody>
+            {report.phases.map((p) => (
+              <tr key={p.name}>
+                <th scope="row">{p.name}</th>
+                <td>{p.frameMs?.count ?? 0}</td>
+                <td>{fmt(p.averageFps)}</td>
+                <td>{cell(p.frameMs, (s) => s.p50)}</td>
+                <td>{cell(p.frameMs, (s) => s.p95)}</td>
+                <td>{cell(p.frameMs, (s) => s.p99)}</td>
+                <td>{cell(p.cpuMs, (s) => s.p95, 2)}</td>
+                <td>{fmt(p.gpu?.meanMs, 2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-        <BenchmarkFacts report={report} />
+        <div className="bench-facts">
+          <section>
+            <h2>Simulation</h2>
+            <dl>
+              <dt>Ticks</dt>
+              <dd>
+                {simulation.startTick.toLocaleString("en-US")} →{" "}
+                {simulation.endTick.toLocaleString("en-US")} ({fmt(simulation.simulatedSeconds)} s
+                simulated)
+              </dd>
+              <dt>Step time</dt>
+              <dd>
+                p50 {cell(ticks.stepMs, (s) => s.p50, 2)} · p95{" "}
+                {cell(ticks.stepMs, (s) => s.p95, 2)} · max {cell(ticks.stepMs, (s) => s.max, 2)} ms
+              </dd>
+              <dt>Publication</dt>
+              <dd>
+                {ticks.publicationBytes
+                  ? `${Math.round(ticks.publicationBytes.mean).toLocaleString("en-US")} B mean · ${ticks.publicationBytes.max.toLocaleString("en-US")} B max`
+                  : "—"}
+              </dd>
+              <dt>Battle</dt>
+              <dd>
+                {scenario.variant} · seed {scenario.seed}
+              </dd>
+            </dl>
+          </section>
+          <section>
+            <h2>Memory</h2>
+            <dl>
+              <dt>GPU buffers</dt>
+              <dd>
+                {mib(memory.last?.bufferBytes)} in {memory.last?.buffers ?? "—"} (peak{" "}
+                {mib(memory.peakBufferBytes)})
+              </dd>
+              <dt>GPU textures</dt>
+              <dd>
+                {mib(memory.last?.textureBytes)} in {memory.last?.textures ?? "—"}
+              </dd>
+              <dt>JS heap</dt>
+              <dd>
+                {memory.peakHeapBytes === null
+                  ? "not reported"
+                  : `${mib(memory.last?.heapBytes)} at the end (peak ${mib(memory.peakHeapBytes)})`}
+              </dd>
+              <dt>Main thread</dt>
+              <dd>
+                CPU p50 {cell(report.cpuMs, (s) => s.p50, 2)} · p95{" "}
+                {cell(report.cpuMs, (s) => s.p95, 2)} ms per frame
+              </dd>
+            </dl>
+          </section>
+          <section>
+            <h2>Machine</h2>
+            <dl>
+              <dt>GPU</dt>
+              <dd>{identity?.adapter || "—"}</dd>
+              <dt>Window</dt>
+              <dd>{identity ? `${identity.viewport.join(" × ")} at DPR ${identity.dpr}` : "—"}</dd>
+              <dt>GPU timing</dt>
+              <dd>{identity?.timestampQuery ? "timestamp-query frame total" : "unavailable"}</dd>
+            </dl>
+          </section>
+        </div>
       </div>
       <nav className="bench-actions" aria-label="Benchmark actions">
         <button type="button" onClick={onAgain}>

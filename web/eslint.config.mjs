@@ -5,7 +5,7 @@ export default [
     ignores: ["**/node_modules/**", "**/src/wasm/**", "**/dist/**"],
   },
   {
-    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: "latest",

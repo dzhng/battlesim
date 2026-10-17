@@ -12,7 +12,7 @@
     "build": "bun run build:wasm && bun run build:web",
     "build:wasm": "bun run --cwd web build:wasm",
     "build:web": "bun run --cwd web build",
-    "prepare": "husky",
+    "prepare": "bun tools/install-git-hooks.mjs",
     "lint:complexity": "web/node_modules/.bin/eslint --config web/eslint.config.mjs packages apps web/src",
     "lint:staged": "lint-staged",
     "lint": "bun run lint:complexity && cargo clippy --workspace --all-targets -- -D warnings && web/node_modules/.bin/oxlint -c web/.oxlintrc.json packages apps web",
@@ -28,7 +28,6 @@
     "generate": "bun packages/battle-audio/tools/generate/cli.ts"
   },
   "devDependencies": {
-    "husky": "9.1.7",
     "lint-staged": "16.2.7"
   }
 }

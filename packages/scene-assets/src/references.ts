@@ -139,8 +139,7 @@ const isFilled = (v: unknown): v is string => typeof v === "string" && v.trim() 
 const stem = (file: string) => file.replace(/\.[^.]+$/, "");
 
 /** Provenance: a real image names its page and author under a licence we may
- *  redistribute; a generated one is ours, labelled, and says how it was made.
- *  Returns whether the entry is generated. */
+ *  redistribute; a generated one is ours, labelled, and says how it was made. */
 function checkProvenance(
   entry: ReferenceEntry,
   label: string,
@@ -148,8 +147,7 @@ function checkProvenance(
   generatedFiles: Set<string | undefined>,
   error: (code: ReferenceCode, message: string) => void,
 ) {
-  const isGenerated = entry.source === "generated";
-  if (isGenerated) {
+  if (entry.source === "generated") {
     if (entry.licence !== GENERATED_LICENCE)
       error(
         "references.licence",
@@ -186,7 +184,6 @@ function checkProvenance(
     if (stem(entry.file).endsWith("-generated"))
       error("references.generated", `${label} is a ${entry.source} named as generated`);
   }
-  return isGenerated;
 }
 
 /** Every way `text`, the references.json of `family`, breaks the library's
@@ -256,7 +253,8 @@ export async function checkReferences(
       );
       continue;
     }
-    const isGenerated = checkProvenance(entry, label, files, generatedFiles, error);
+    checkProvenance(entry, label, files, generatedFiles, error);
+    const isGenerated = entry.source === "generated";
     if (REFERENCE_VIEWS.includes(entry.view)) {
       const key = `${entry.variant}\u0000${entry.view}`;
       shown.set(key, (shown.get(key) ?? false) || !isGenerated);

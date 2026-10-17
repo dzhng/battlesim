@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type RefObject,
 } from "react";
 import { isGameDocument } from "../../../web/src/battle/catalog/compose";
 import {
@@ -510,114 +509,6 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
   );
 }
 
-/** Why the last request failed, with the way back to the edit that caused
- *  it; a conflict keeps the draft until the user reloads. */
-function FailureNotice({
-  error,
-  conflict,
-  lastEdit,
-  hasLastEdit,
-}: {
-  error: string;
-  conflict: boolean;
-  lastEdit: RefObject<HTMLElement | null>;
-  hasLastEdit: boolean;
-}) {
-  return (
-    <div className="me-error" role="alert">
-      <strong>
-        {conflict ? "Sources changed outside this editor" : "Changes could not be accepted"}
-      </strong>
-      <p>{error}</p>
-      {hasLastEdit && lastEdit.current?.isConnected && (
-        <button
-          type="button"
-          onClick={() => {
-            if (!lastEdit.current?.isConnected) return;
-            let details = lastEdit.current.closest("details");
-            while (details) {
-              details.open = true;
-              details = details.parentElement?.closest("details") ?? null;
-            }
-            lastEdit.current.scrollIntoView({ block: "center", behavior: "smooth" });
-            lastEdit.current.focus({ preventScroll: true });
-          }}
-        >
-          Back to last edit
-        </button>
-      )}
-      {conflict && (
-        <p>Your draft is preserved. Reloading discards it and reads the current files.</p>
-      )}
-    </div>
-  );
-}
-
-/** The validated publication a save would write: affected units, warnings,
- *  each change and the exact file bytes. */
-function SavePreview({
-  preview,
-  units,
-  changes,
-}: {
-  preview: MechanicsPreview;
-  units: Record<string, JsonObject>;
-  changes: readonly MechanicsChange[];
-}) {
-  return (
-    <section className="me-preview" aria-label="Save preview">
-      <div className="me-preview-heading">
-        <div>
-          <span className="me-eyebrow">Validated publication</span>
-          <h2>Preview authored changes</h2>
-        </div>
-        <span>
-          {preview.files.length} files · {preview.affectedUnits.length} affected{" "}
-          {preview.affectedUnits.length === 1 ? "unit" : "units"}
-        </span>
-      </div>
-      <p>These exact formatted replacements will be saved. Running battles continue.</p>
-      <div className="me-impact">
-        <strong>Affected units</strong>{" "}
-        {preview.affectedUnits
-          .map((id) => (units[id] ? `${rowName(id, units[id])} (${id})` : id))
-          .join(", ") || "None"}
-      </div>
-      {preview.warnings.map((warning, index) => (
-        <p className="me-warning" key={index}>
-          {warning}
-        </p>
-      ))}
-      <ul className="me-change-list">
-        {changes.map((change) => (
-          <ChangeSummary key={changeKey(change, change.path)} change={change} preview={preview} />
-        ))}
-      </ul>
-      {preview.files.map((file) => (
-        <details className="me-file" key={file.path}>
-          <summary>
-            {file.path}
-            <span>Exact JSON</span>
-          </summary>
-          <p className="me-json-hint">
-            Scroll each JSON panel down and sideways to inspect the full replacement.
-          </p>
-          <div className="me-file-columns">
-            <div>
-              <h4>Before</h4>
-              <pre>{file.before}</pre>
-            </div>
-            <div>
-              <h4>After · saved bytes</h4>
-              <pre>{file.after}</pre>
-            </div>
-          </div>
-        </details>
-      ))}
-    </section>
-  );
-}
-
 export default function MechanicsEditor() {
   const [snapshot, setSnapshot] = useState<MechanicsSnapshot | null>(null);
   const [draft, setDraft] = useState<MechanicsDraft | null>(null);
@@ -911,12 +802,32 @@ export default function MechanicsEditor() {
         </div>
       </div>
       {error && (
-        <FailureNotice
-          error={error}
-          conflict={conflict}
-          lastEdit={lastEdit}
-          hasLastEdit={hasLastEdit}
-        />
+        <div className="me-error" role="alert">
+          <strong>
+            {conflict ? "Sources changed outside this editor" : "Changes could not be accepted"}
+          </strong>
+          <p>{error}</p>
+          {hasLastEdit && lastEdit.current?.isConnected && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!lastEdit.current?.isConnected) return;
+                let details = lastEdit.current.closest("details");
+                while (details) {
+                  details.open = true;
+                  details = details.parentElement?.closest("details") ?? null;
+                }
+                lastEdit.current.scrollIntoView({ block: "center", behavior: "smooth" });
+                lastEdit.current.focus({ preventScroll: true });
+              }}
+            >
+              Back to last edit
+            </button>
+          )}
+          {conflict && (
+            <p>Your draft is preserved. Reloading discards it and reads the current files.</p>
+          )}
+        </div>
       )}
       {reloadArmed && (
         <div className="me-reload" role="alert">
@@ -1050,7 +961,60 @@ export default function MechanicsEditor() {
             )}
           </div>
           {preview && (
-            <SavePreview preview={preview.value} units={units} changes={editor.draft.changes} />
+            <section className="me-preview" aria-label="Save preview">
+              <div className="me-preview-heading">
+                <div>
+                  <span className="me-eyebrow">Validated publication</span>
+                  <h2>Preview authored changes</h2>
+                </div>
+                <span>
+                  {preview.value.files.length} files · {preview.value.affectedUnits.length} affected{" "}
+                  {preview.value.affectedUnits.length === 1 ? "unit" : "units"}
+                </span>
+              </div>
+              <p>These exact formatted replacements will be saved. Running battles continue.</p>
+              <div className="me-impact">
+                <strong>Affected units</strong>{" "}
+                {preview.value.affectedUnits
+                  .map((id) => (units[id] ? `${rowName(id, units[id])} (${id})` : id))
+                  .join(", ") || "None"}
+              </div>
+              {preview.value.warnings.map((warning, index) => (
+                <p className="me-warning" key={index}>
+                  {warning}
+                </p>
+              ))}
+              <ul className="me-change-list">
+                {editor.draft.changes.map((change) => (
+                  <ChangeSummary
+                    key={changeKey(change, change.path)}
+                    change={change}
+                    preview={preview.value}
+                  />
+                ))}
+              </ul>
+              {preview.value.files.map((file) => (
+                <details className="me-file" key={file.path}>
+                  <summary>
+                    {file.path}
+                    <span>Exact JSON</span>
+                  </summary>
+                  <p className="me-json-hint">
+                    Scroll each JSON panel down and sideways to inspect the full replacement.
+                  </p>
+                  <div className="me-file-columns">
+                    <div>
+                      <h4>Before</h4>
+                      <pre>{file.before}</pre>
+                    </div>
+                    <div>
+                      <h4>After · saved bytes</h4>
+                      <pre>{file.after}</pre>
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </section>
           )}
         </EditorContext.Provider>
       )}

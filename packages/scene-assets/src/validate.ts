@@ -185,22 +185,23 @@ export interface AppearanceInput {
 }
 
 /** One state of a static appearance, imported, built and judged against its
- *  scenery kind's row; null when it does not build. */
+ *  scenery kind's row, with its findings; the state is null when it does not
+ *  build. */
 async function staticState(
   input: AppearanceInput,
   [state, path]: [string, string],
   materials: MaterialTable,
   context: ValidationContext,
   tolerances: Tolerances,
-  findings: Finding[],
-): Promise<StaticBundle["states"][number] | null> {
+): Promise<{ state: StaticBundle["states"][number] | null; findings: Finding[] }> {
+  const findings: Finding[] = [];
   const imported = importScene(input.files[path], path, input.entry.basis_yaw_deg);
   findings.push(...imported.findings);
-  if (!imported.scene) return null;
+  if (!imported.scene) return { state: null, findings };
   findings.push(...(await bindTextures(imported.scene, path)));
   const built = buildStaticState(imported.scene, path, materials);
   findings.push(...built.findings);
-  if (!built.tiers) return null;
+  if (!built.tiers) return { state: null, findings };
   const bounds = positionsBounds(built.tiers[0].positions);
   const judged = { name: state, tiers: built.tiers, bounds };
   const rule = SCENERY_KINDS[input.entry.scenery ?? ""];
@@ -223,10 +224,10 @@ async function staticState(
     findings.push(
       ...debrisFindings(path, imported.scene, built.tiers[0], input.entry.footprint_half_m, debris),
     );
-    return judged;
+    return { state: judged, findings };
   }
   // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
-  if (rule?.pieces?.includes(state)) return judged;
+  if (rule?.pieces?.includes(state)) return { state: judged, findings };
   if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
   findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
   if (rule?.footprint.kind === "tree")
@@ -249,7 +250,7 @@ async function staticState(
         "lower the art under the kind's top_m (packages/scene-assets/src/scenery.ts)",
       ),
     );
-  return judged;
+  return { state: judged, findings };
 }
 
 /** A static appearance: every state of its scenery kind, judged one by one
@@ -284,8 +285,9 @@ async function validateStaticAppearance(
         ),
       );
   for (const source of sources) {
-    const state = await staticState(input, source, materials, context, tolerances, findings);
-    if (state) states.push(state);
+    const judged = await staticState(input, source, materials, context, tolerances);
+    findings.push(...judged.findings);
+    if (judged.state) states.push(judged.state);
   }
   // The kind's first state leads (what an impostor and a sheet show, even
   // where a wreck's `debris` sorts before its `default`), the rest by name.

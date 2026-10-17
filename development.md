@@ -1,13 +1,8 @@
 # Developing battlegame
 
-This document holds the engineering detail behind the principles in
-[AGENTS.md](AGENTS.md). The root [README](README.md) explains the product;
-subsystem READMEs own commands and contracts for their code.
+Subsystem READMEs own commands and contracts for their code.
 
 ## Where a concept belongs
-
-The simulation is the one authority. Everything else observes it, and each
-side receives only the publications its own units can see.
 
 | Owner                                                     | Responsibility                                                                                  |
 | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
@@ -58,6 +53,18 @@ The physical properties that rules read:
   interceptability.
 - Units own their hull, senses, movement, flight model, and carried capabilities.
 
+Rules follow from those properties alone. A mover can go where its footprint
+fits and can clear a body its push class exceeds. A body is cover when it stands
+between a soldier and the threat, breaks when its integrity runs out, and stops a
+round only if it is authored to. A gun holds fire only for what its rounds can't
+break or can't see past. So there is no "wall" or "tank trap" in the code:
+dragon's teeth are small heavy bodies that block vehicles, and a new obstacle is
+a prop catalog entry, not new code.
+
+A weapon's mechanisms (guidance, seekers, decoys, clear-launch checks,
+interceptability) are opt-in flags that compose. A radar contact's source
+changes only its evidence, never who may fire at it.
+
 Roles and families group the roster and pick symbols and voices; they never
 decide behaviour. If a rule asks "is this an X unit?", find the property that
 makes it one and read that instead.
@@ -103,12 +110,15 @@ Measure simulation cost in units that don't move with machine load, such as
 instructions retired, not wall time.
 
 The root task runner owns the repository-wide commands. The package manifests
-and subsystem READMEs own their exact command details.
+and subsystem READMEs own their exact command details. Packages and apps are
+source directories; the [web manifest](web/package.json) owns their JavaScript
+dependencies.
 
 ## Checks and hooks
 
-After setup, a pre-commit hook formats and lints the staged files;
-[lint-staged.config.mjs](lint-staged.config.mjs) owns what runs.
+After setup, a pre-commit hook formats and lints what the commit touches;
+[lint-staged.config.mjs](lint-staged.config.mjs) owns what runs. It sits beside
+Git LFS's hooks, so setup never redirects Git's hooks directory.
 
 Cyclomatic complexity has a loose budget, owned by
 [web/eslint.config.mjs](web/eslint.config.mjs). It is a tripwire for functions
@@ -121,13 +131,9 @@ An inline `eslint-disable-next-line complexity` comment is technical debt: a
 function nobody has found a clean split for yet. Keep them rare. The comment
 says what blocks the split, not why the function is fine as it is. Read every
 one you touch as a cue to try the split again. When a function drops back under
-the budget, the lint fails on the stale comment until you delete it.
-
-## Player-facing work
-
-Keep player-facing UI in the visual language of a tactical battlefield: clear
-hierarchy, readable state, grounded marks, and restrained colour. It should feel
-like a command view, not a business dashboard.
+the budget, the lint fails on the stale comment until you delete it. For the
+same reason, suppress an Oxlint rule with an `oxlint-disable` comment: ESLint
+reports an `eslint-disable` for a rule it doesn't run.
 
 ## Scratch output
 

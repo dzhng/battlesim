@@ -252,7 +252,6 @@ export function ReadoutLayer({
   const hoveredKey = (hover: ReadoutHover | null): string | null => {
     const contains = (r: ReadoutRect | null | undefined) =>
       !!r && !!hover && hover.x >= r.x0 && hover.x <= r.x1 && hover.y >= r.y0 && hover.y <= r.y1;
-    // Retain the original hit area when expansion moves the hovered card.
     const previous = hoveredCard.current;
     const held =
       previous &&
