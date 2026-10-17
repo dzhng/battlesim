@@ -24,8 +24,8 @@ impl Host {
     fn key(self) -> u64 {
         match self {
             Host::Building(id) => u64::from(id),
-            Host::Ground(id) => u64::from(id),
-            Host::Air(id) => u64::from(id),
+            Host::Ground(id) => (1_u64 << 32) | u64::from(id),
+            Host::Air(id) => (2_u64 << 32) | u64::from(id),
         }
     }
 }

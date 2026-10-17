@@ -17,6 +17,8 @@ use contract::random::Rng;
 const DRAWS: usize = 24;
 /// Rings of the nearest-free search are this far apart.
 const RING_STEP_M: f64 = 0.5;
+/// Minimum separation between soldiers placed by a forced exit.
+pub const ESCAPE_SPACING_M: f64 = 1.0;
 
 /// The random draws for one arrangement: fixed by the battle's seed, the
 /// squad and `draw` (which arrangement), so a replay draws the same spots.
@@ -180,7 +182,7 @@ pub fn forced_exit_spot(
             && !hulls.iter().any(|hull| hull.distance(p) <= radius)
             && !soldiers
                 .iter()
-                .any(|soldier| (*soldier - p).length() < 2.0 * radius)
+                .any(|soldier| (*soldier - p).length() < ESCAPE_SPACING_M)
     })
     .and_then(|p| {
         world
