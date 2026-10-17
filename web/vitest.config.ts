@@ -11,6 +11,7 @@ export default mergeConfig(
         "tests/**/*.test.{ts,tsx}",
         "scene.test.mjs",
         "browser.test.mjs",
+        "capture.test.mjs",
         "scenes/_*.test.mjs",
       ],
       globals: false,
