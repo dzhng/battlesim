@@ -185,9 +185,12 @@ export interface OrderView {
    *  to that end's marker, as one joins the airframe to its own. 0 or
    *  absent: no ghost, no line. */
   ghostAloft?: number;
-  /** Those of its goal and queue points, as published, where its order
-   *  lets its passengers out: their marks carry the unload mark. */
-  unloads?: readonly P2[];
+  /** Its goal's order lets its passengers out there: the goal's mark
+   *  carries the unload mark. */
+  goalUnloads?: boolean;
+  /** Whether each `queue` step lets its passengers out there, as the
+   *  goal's. */
+  queueUnloads?: readonly boolean[];
   /** In the player's selection: the marker under it is `selected`'s. */
   selected?: boolean;
   /** The opacity its order marks (the Space view) draw at, in [0, 1]: 0 or
@@ -695,10 +698,6 @@ function unloadMark(mesh: MeshBuilder, pen: Pen, c: UnitCircle, bearing: number,
   }
 }
 
-/** Is `p` one of `points` (both the published goal and queue's own)? */
-const among = (points: readonly P2[] | undefined, p: P2) =>
-  !!points?.some((q) => q[0] === p[0] && q[1] === p[1]);
-
 /** A destination and its facing while the player holds a right-drag. */
 export function buildDestinationPreview(
   marks: readonly DestinationMarker[],
@@ -877,17 +876,17 @@ export function buildOrderOverlay(
       ring(paint, pen, u.goal, BLOCKED_R, blockedColor, { width: pen.line });
     } else if (dest) {
       circleMarker(paint, pen, dest, color);
-      if (among(u.unloads, u.goal)) unloadMark(paint, pen, dest, u.finalFacing, color);
+      if (u.goalUnloads) unloadMark(paint, pen, dest, u.finalFacing, color);
       if (squad)
         for (const m of u.memberOrders)
           soldierMark(soldiers, pen, m.spot, pipOf(m.coverThere), color);
     }
     let prev: UnitCircle | null = dest;
-    for (const q of u.queue) {
+    for (const [k, q] of u.queue.entries()) {
       const next: UnitCircle = { c: q, r: QUEUED_R, facing: null };
       routeBetween(paint, pen, prev, [q], next, queued, { dashed: true });
       ring(paint, pen, q, QUEUED_R, queued);
-      if (among(u.unloads, q)) {
+      if (u.queueUnloads?.[k]) {
         const from = prev?.c ?? u.goal;
         unloadMark(paint, pen, next, Math.atan2(q[1] - from[1], q[0] - from[0]), queued);
       }

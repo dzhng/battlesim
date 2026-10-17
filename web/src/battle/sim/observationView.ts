@@ -103,6 +103,8 @@ export interface OwnUnitView {
   position: Point3;
   yaw: number;
   goal: Point2 | null;
+  /** The current movement order lets its passengers out at `goal`. */
+  goalUnloads: boolean;
   policy: string | null;
   /** Which way the current move drives (Q31); null without a move. */
   direction: MoveDirection | null;
@@ -114,6 +116,8 @@ export interface OwnUnitView {
   blocker: number | null;
   route: Point2[];
   queue: Point2[];
+  /** Whether each `queue` order lets its passengers out at its destination. */
+  queueUnloads: boolean[];
   members: Point3[];
   /** Each living soldier's id, in `members` order. */
   memberIds: number[];

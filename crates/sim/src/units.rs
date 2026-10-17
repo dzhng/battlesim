@@ -919,6 +919,22 @@ impl Unit {
     /// Where movement should head now and by which policy: an ordered
     /// destination, an attack's pursuit point or a building's approach. A unit
     /// with a building (entering, inside or leaving) goes nowhere.
+    /// The order at `index` lets the passengers out where it ends: an
+    /// Unload follows it.
+    pub fn unloads_after(&self, index: usize) -> bool {
+        matches!(self.orders.get(index + 1), Some(UnitOrder::Unload))
+    }
+
+    /// The destinations of the movement orders queued behind the current
+    /// one, each with whether it lets the passengers out there.
+    pub fn queued_steps(&self) -> impl Iterator<Item = (V2, bool)> + '_ {
+        self.orders
+            .iter()
+            .enumerate()
+            .skip(1)
+            .filter_map(|(k, o)| o.movement().map(|m| (m.destination, self.unloads_after(k))))
+    }
+
     pub fn movement_goal(&self) -> Option<(V2, RoutePolicy)> {
         if self.hold.is_some() {
             return None;

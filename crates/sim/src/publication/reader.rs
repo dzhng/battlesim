@@ -27,7 +27,8 @@ use super::{
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
     OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS,
-    RANGE_FIELDS, REFUSAL_FIELDS, REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
+    QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS,
+    SHOUT_FIELDS,
 };
 
 pub type Point2 = [f64; 2];
@@ -50,11 +51,11 @@ view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, c
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
     refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
     fog: Arc<Fog>, ground_patch: GroundPatch });
-view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
+view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, goal_unloads: bool, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
     fuel_s: Option<f64>, afterburner: bool, in_dogfight: bool,
     flares: Option<Protection>,
-    blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
+    blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, queue_unloads: Vec<bool>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
     engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool,
@@ -890,6 +891,7 @@ impl Reader {
             position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
             yaw: v!(f, "yaw"),
             goal: (!v!(f, "goalX").is_nan()).then(|| [v!(f, "goalX"), v!(f, "goalY")]),
+            goal_unloads: v!(f, "goalUnloads") == 1.0,
             policy: self.optional("policies", v!(f, "policy"))?,
             direction: self.optional("directions", v!(f, "direction"))?,
             reversing: v!(f, "reversing") == 1.0,
@@ -900,7 +902,12 @@ impl Reader {
             state: self.name("moveStates", v!(f, "state"))?,
             blocker: present(v!(f, "blocker")),
             route: points(route),
-            queue: points(queue),
+            queue: each::<{ QUEUE_FIELDS.len() }>(queue)
+                .map(|&[x, y, _]| [x as f64, y as f64])
+                .collect(),
+            queue_unloads: each::<{ QUEUE_FIELDS.len() }>(queue)
+                .map(|&[_, _, unloads]| unloads == 1.0)
+                .collect(),
             members: points(members),
             member_ids: member_column(member_ids, |p| limbs(p[0] as f64, p[1] as f64)),
             member_slots: member_column(member_ids, |p| p[2] as f64),

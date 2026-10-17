@@ -207,14 +207,9 @@ export function orderView(
   };
 }
 
-/** Where each own carrier's orders let its passengers out
- *  (`useUnitControl`'s `unloads`). */
-export type UnloadPoints = ReadonlyMap<number, readonly (readonly [number, number])[]>;
-const NO_UNLOADS: UnloadPoints = new Map();
-
 /** The selection's markers under the units in `selected`, the order
  *  marks (the Space view) of each unit `reveal` shows, at its opacity
- *  (`OrderReveal`), with an unload mark where `unloads` says a carrier's
+ *  (`OrderReveal`), with an unload mark where a carrier's published
  *  order lets its passengers out, and every own aircraft's marker and drop line. With
  *  `ghosts` (Space held: each revealed unit's ghost stands where its orders
  *  end) an aircraft's ghost is joined to that end's marker by its drop
@@ -229,7 +224,6 @@ export function orderLayer(
   z: SurfaceHeight,
   metresPerPx = OPENING_METRES_PER_PX,
   ghosts = false,
-  unloads: UnloadPoints = NO_UNLOADS,
 ): WorldMeshes {
   const aloft = ghostAloft(units, game.air);
   return buildOrderOverlay(
@@ -240,7 +234,6 @@ export function orderLayer(
       .map((u) => ({
         ...orderView(units, u, selected.includes(u.id), reveal.get(u.id)),
         ghostAloft: ghosts && reveal.has(u.id) ? aloft(u.kind) : 0,
-        unloads: unloads.get(u.id),
       })),
     z,
     gameOrderStyle,
@@ -289,20 +282,18 @@ export function buildBattleOverlay(
     reveal,
     contacts,
     facing,
-    unloads,
   }: {
     showOrders: boolean;
     reveal: RevealedOrders;
     contacts: readonly PresentedContact[];
     facing: ContactFacing;
-    unloads: UnloadPoints;
   },
   border: Mesh | null = null,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
   const contactMarks = contactLayer(contacts, z, facing);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
-  const orders = orderLayer(units, o, selected, reveal, z, metresPerPx, showOrders, unloads);
+  const orders = orderLayer(units, o, selected, reveal, z, metresPerPx, showOrders);
   const aircraft = aircraftLayer(units, o, z, metresPerPx);
   const deployment = scenario.deployment
     ? buildDeploymentMarker(

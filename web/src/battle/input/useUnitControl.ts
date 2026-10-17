@@ -31,13 +31,6 @@ import {
 } from "./pointerIntent";
 import { reach } from "./commandReach";
 import { SelectClicks, similarUnits } from "./selectSimilar";
-import {
-  afterOrder,
-  NO_UNLOAD_POINTS,
-  retire,
-  unloadMarks,
-  type UnloadPoints,
-} from "./unloadPoints";
 import { useSessionCatalog } from "../catalog/context";
 
 export interface AckEntry {
@@ -99,17 +92,6 @@ export function useUnitControl(
   // cannot poison the rest's orders.
   if (selectedUnits.length !== selected.length) setSelection(selectedUnits.map((u) => u.id));
   const [acks, setAcks] = useState<AckEntry[]>([]);
-  const [unloadPoints, setUnloadPoints] = useState<UnloadPoints>(NO_UNLOAD_POINTS);
-  // Points passed or replaced retire as the observation shows it, before
-  // anything reads them (as the selection reconciles above).
-  const liveUnloadPoints = observation ? retire(unloadPoints, observation) : unloadPoints;
-  if (liveUnloadPoints !== unloadPoints) setUnloadPoints(liveUnloadPoints);
-  /** Where each carrier's orders let its passengers out: the order line's
-   *  unload mark. */
-  const unloads = useMemo(
-    () => unloadMarks(liveUnloadPoints, observation),
-    [liveUnloadPoints, observation],
-  );
   const [mode, setModeState] = useState<CommandMode>("move");
   // The armed mode as last set, ahead of the render: a key pressed right
   // after another reads what the first one did.
@@ -140,7 +122,6 @@ export function useUnitControl(
     clientRef.current = client;
     setSelection([]);
     setAcks([]);
-    setUnloadPoints(NO_UNLOAD_POINTS);
     setMode("move");
     gestures.current = new MoveGestures();
     clicks.current = new SelectClicks();
@@ -223,7 +204,6 @@ export function useUnitControl(
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
       if (clientRef.current === client) {
-        setUnloadPoints((points) => afterOrder(points, order, ack, queued));
         setAcks((log) => [{ seq: ack.seq, label, order, ack }, ...log].slice(0, LOG_LENGTH));
         eventsRef.current?.onAck?.(order, ack, queued);
       }
@@ -442,7 +422,6 @@ export function useUnitControl(
     toggleAfterburner,
     exitBuilding,
     pressUnload,
-    unloads,
     togglePolicy,
     mode,
     setMode,

@@ -793,6 +793,8 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     );
     follow_command.queued = true;
     assert!(arrival.accept(follow_command).error.is_none());
+    arrival.step();
+    assert_eq!(published_unloads(&arrival, UnitId(0)), (true, vec![false]));
     let mut seen = false;
     let mut saw_exiting = false;
     for _ in 0..(arrival.rules().tick_hz * 5) {
@@ -812,6 +814,9 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     }
     assert!(saw_exiting);
     assert!(seen);
+    // Refused: the step that would have unloaded is gone, and nothing
+    // ahead unloads.
+    assert_eq!(published_unloads(&arrival, UnitId(0)), (false, vec![]));
     assert!(!arrival.unit(UnitId(1)).unwrap().on_field());
     assert!(arrival.unit(UnitId(1)).unwrap().alive());
     assert!(matches!(
@@ -948,4 +953,93 @@ fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
             .len(),
         passenger.members.len()
     );
+}
+
+/// Blue's published unload flags for unit `id`: its goal's, then each
+/// queued step's.
+fn published_unloads(battle: &Battle, id: UnitId) -> (bool, Vec<bool>) {
+    let observation = battle.observe(Side::Blue);
+    let own = observation.own.iter().find(|u| u.id == id).unwrap();
+    assert_eq!(own.queue.len(), own.queue_unloads.len());
+    (own.goal_unloads, own.queue_unloads.clone())
+}
+
+#[test]
+fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_rifle","position":[195,200]}
+        ])),
+        16,
+    );
+    battle.accept(command(
+        1,
+        Order::Board {
+            units: vec![UnitId(1)],
+            carrier: UnitId(0),
+            gesture: 1,
+        },
+    ));
+    for _ in 0..(battle.rules().tick_hz * 60) {
+        battle.step();
+        if !battle.unit(UnitId(1)).unwrap().on_field() {
+            break;
+        }
+    }
+    assert!(!battle.unit(UnitId(1)).unwrap().on_field());
+    let drive = |seq, goal| Order::Move {
+        units: vec![UnitId(0)],
+        gesture: seq,
+        goal,
+        route: Default::default(),
+        direction: Default::default(),
+        facing: None,
+    };
+    assert!(battle
+        .accept(command(2, drive(2, [240.0, 200.0])))
+        .error
+        .is_none());
+    let mut unload = command(
+        3,
+        Order::Unload {
+            units: vec![UnitId(0)],
+            goal: Some([280.0, 200.0]),
+            gesture: 3,
+            route: Default::default(),
+        },
+    );
+    unload.queued = true;
+    assert!(battle.accept(unload).error.is_none());
+    let mut onward = command(4, drive(4, [320.0, 200.0]));
+    onward.queued = true;
+    assert!(battle.accept(onward).error.is_none());
+    battle.step();
+    assert_eq!(
+        published_unloads(&battle, UnitId(0)),
+        (false, vec![true, false])
+    );
+
+    // The unload step becomes the goal: the flag goes with it.
+    let mut heading_to_unload = false;
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        if battle.observe(Side::Blue).own[0].queue.len() == 1 {
+            heading_to_unload = true;
+            break;
+        }
+    }
+    assert!(heading_to_unload);
+    assert_eq!(published_unloads(&battle, UnitId(0)), (true, vec![false]));
+
+    // Unloaded and driving on: no step unloads any more.
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        if battle.unit(UnitId(1)).unwrap().on_field() {
+            break;
+        }
+    }
+    assert!(battle.unit(UnitId(1)).unwrap().on_field());
+    battle.step();
+    assert_eq!(published_unloads(&battle, UnitId(0)), (false, vec![]));
 }

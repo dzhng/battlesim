@@ -377,7 +377,7 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 55] = [
+const OWN_FIELDS: [&str; 56] = [
     "id",
     "owner",
     "kind",
@@ -433,6 +433,7 @@ const OWN_FIELDS: [&str; 55] = [
     "protectionCharges",
     "protectionCooldownProgress",
     "smoking",
+    "goalUnloads",
 ];
 const IDENTIFIED_FIELDS: [&str; 13] = [
     "id",
@@ -451,6 +452,8 @@ const IDENTIFIED_FIELDS: [&str; 13] = [
 ];
 const XY_FIELDS: [&str; 2] = ["x", "y"];
 const XYZ_FIELDS: [&str; 3] = ["x", "y", "z"];
+/// A queued order's destination, and 1 when it lets the passengers out there.
+const QUEUE_FIELDS: [&str; 3] = ["x", "y", "unload"];
 const MEMBER_ID_FIELDS: [&str; 4] = ["idLo", "idHi", "slot", "activeMount"];
 const MEMBER_ORDER_FIELDS: [&str; 4] = ["x", "y", "coverNow", "coverThere"];
 const RICOCHET_FIELDS: [&str; 4] = ["point", "nx", "ny", "nz"];
@@ -508,7 +511,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
         fields: &OWN_FIELDS,
         sections: &[
             section("route", "routeCount", &XY_FIELDS),
-            section("queue", "queueCount", &XY_FIELDS),
+            section("queue", "queueCount", &QUEUE_FIELDS),
             section("members", "memberCount", &XYZ_FIELDS),
             section("memberHp", "memberCount", &["hp"]),
             section("memberIds", "memberCount", &MEMBER_ID_FIELDS),
@@ -1153,11 +1156,17 @@ fn pack_record(
                 .and_then(|p| p.cooldown)
                 .map_or(-1.0, |p| p as f32),
             u.smoking as u8 as f32,
+            u.goal_unloads as u8 as f32,
         ]);
     }
     for u in &frame.own {
         out.extend(u.route.iter().flat_map(|p| [p[0] as f32, p[1] as f32]));
-        out.extend(u.queue.iter().flat_map(|p| [p[0] as f32, p[1] as f32]));
+        out.extend(
+            u.queue
+                .iter()
+                .zip(&u.queue_unloads)
+                .flat_map(|(p, &unloads)| [p[0] as f32, p[1] as f32, unloads as u8 as f32]),
+        );
         out.extend(
             u.members
                 .iter()
@@ -1729,7 +1738,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.own.len(), OWN_FIELDS.len())?;
     for u in &frame.own {
         add(u.route.len(), 2)?;
-        add(u.queue.len(), 2)?;
+        add(u.queue.len(), QUEUE_FIELDS.len())?;
         add(u.members.len(), 3)?;
         add(u.member_hp.len(), 1)?;
         add(

@@ -554,6 +554,8 @@ pub struct OwnUnit {
     pub yaw: f64,
     /// Destination of the current movement order, if any.
     pub goal: Option<[f64; 2]>,
+    /// The current movement order lets the passengers out at `goal`.
+    pub goal_unloads: bool,
     pub policy: Option<RoutePolicy>,
     /// Which way the current move drives (Q31); `None` without a move.
     pub direction: Option<crate::command::MoveDirection>,
@@ -568,6 +570,8 @@ pub struct OwnUnit {
     pub route: Vec<[f64; 2]>,
     /// Destinations of the orders queued behind the current one.
     pub queue: Vec<[f64; 2]>,
+    /// Whether each `queue` order lets the passengers out at its destination.
+    pub queue_unloads: Vec<bool>,
     /// Living squad members' body poses (infantry only).
     /// Garrison bodies stand indoors behind their abstract window exposure points.
     pub members: Vec<[f64; 3]>,
