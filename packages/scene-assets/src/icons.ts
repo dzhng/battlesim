@@ -160,8 +160,9 @@ const HUD_ICONS = {
   back: '<path d="M15 4l-8 8 8 8"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',
   guiding: '<path d="M3 20c5 0 6-8 10-8"/><path d="M13 12h5l3-2v4l-3-2"/>',
+  // A shot's arrow stopped at a hatched wall, the wall and the shaft heavy.
   blocked_shot:
-    '<path d="M2 12h3M8 12h3"/><path d="M15 3v18"/><path d="M15 8l5-5M15 14l5-5M15 20l5-5"/>',
+    '<path stroke-width="2.5" d="M2 12h8"/><path d="M7 8l4 4-4 4"/><path stroke-width="2.5" d="M15 3v18"/><path d="M15 8l3-3M15 12l4-4M15 16l3-3"/>',
   friendly_in_line:
     '<path d="M2 12h5"/><rect x="8" y="7" width="8" height="10"/><path d="M17 12h5"/>',
   turret:
