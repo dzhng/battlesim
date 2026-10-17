@@ -2217,7 +2217,8 @@ impl Battle {
         };
         let parts = self.world.structure_parts(owner);
         let replacements: Vec<_> = parts
-            .into_iter()
+            .iter()
+            .copied()
             .filter_map(|part| self.destroy_part(part, toward).map(|new| (part, new)))
             .collect();
         self.world.replace_building_parts(owner, &replacements);
@@ -2227,8 +2228,9 @@ impl Battle {
             &mut self.units,
             owner,
             &self.rules,
-            &mut self.damage_rng,
+            self.seed,
             self.tick,
+            &parts,
         )
     }
 
@@ -5685,7 +5687,7 @@ mod tests {
                 serde_json::json!({"sensors":{"ground_m":60}}),
             );
             rules["weapons"]["rifle"]["damage"] = serde_json::json!(1e6);
-            rules["garrison"]["survival_probability_on_collapse"] = serde_json::json!(0);
+            rules["bail_out"]["building"]["death"] = serde_json::json!(1.0);
             let setup = serde_json::from_value(serde_json::json!({
                 "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
                     "template_catalog_hash":catalogue.hash(),"regional_family":descriptor.regional_family,
@@ -5795,7 +5797,12 @@ mod tests {
             }
             battle.sweep_fog(Side::Blue);
             assert!(!battle.fog[0].visible(remembered.position[0], remembered.position[1]));
+            let damage_before_collapse = battle.damage_rng.clone();
             battle.destroy_prop(0, v2(1.0, 0.0));
+            assert_eq!(
+                battle.damage_rng, damage_before_collapse,
+                "collapse never draws from damage_rng"
+            );
             battle.observe_all();
             let physical = battle
                 .observe(Side::Red)
@@ -5823,13 +5830,7 @@ mod tests {
                 remembered.position,
                 "an unseen collapse cannot move a remembered enemy corpse"
             );
-            let mut unchanged = battle.damage_rng.clone();
             battle.destroy_prop(0, v2(1.0, 0.0));
-            assert_eq!(
-                battle.damage_rng.unit(),
-                unchanged.unit(),
-                "no second survival roll"
-            );
             battle.units[1].position = battle.units[1].position - delta;
             for member in &mut battle.units[1].members {
                 member.position = member.position - delta;
@@ -5868,7 +5869,7 @@ mod settlement_tests {
             );
         }
         crate::fixtures::patch_catalog(&mut rules, "units", "test_rifle", json!({"cost":900}));
-        rules["garrison"]["survival_probability_on_collapse"] = json!(0);
+        rules["bail_out"]["building"]["death"] = json!(1.0);
         let setup: ScenarioDefinition = serde_json::from_value(json!({
             "map":rules["map"],"rules":rules,"units":[
                 {"side":"blue","kind":"test_tank","position":[50,50]},

@@ -660,6 +660,7 @@ pub struct Rules {
     pub ground: GroundRules,
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
+    pub bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
     pub hull_limits: HullLimits,
     pub air_speed_limits_kmh: AirSpeedLimits,
     pub air: AirRules,
@@ -969,6 +970,7 @@ struct UncheckedRules {
     ground: GroundRules,
     buildings: BuildingRules,
     garrison: GarrisonRules,
+    bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
     hull_limits: HullLimits,
     air_speed_limits_kmh: AirSpeedLimits,
     air: AirRules,
@@ -1021,6 +1023,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ground: r.ground,
             buildings: r.buildings,
             garrison: r.garrison,
+            bail_out: r.bail_out,
             hull_limits: r.hull_limits,
             air_speed_limits_kmh: r.air_speed_limits_kmh,
             air: r.air,
@@ -1165,13 +1168,10 @@ pub struct BuildingRules {
 
 /// Entering, leaving and escaping buildings (the fixture's `garrison` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GarrisonRules {
     /// One stationary timer to enter and to leave.
     pub enter_exit_s: f64,
-    /// Each occupant survives a collapse with this probability.
-    pub survival_probability_on_collapse: f64,
-    /// How far from its slot a collapse survivor may find a legal place.
-    pub exit_search_radius_m: f64,
     /// A squad this close to a building's footprint may start entering.
     pub entry_distance_m: f64,
     /// Perimeter slots stand this far outside the facade.
@@ -1184,6 +1184,26 @@ pub struct GarrisonRules {
     pub window_swap_s: f64,
     /// A soldier who changed windows keeps his new one at least this long.
     pub window_hold_s: f64,
+}
+
+/// The physical kind of host a forced passenger exit comes from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BailOutHost {
+    Building,
+    Ground,
+    Air,
+}
+
+/// Injury and placement rules for one kind of bail-out host.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BailOutRow {
+    #[serde(default)]
+    pub squad_loss: Option<f64>,
+    pub death: f64,
+    pub hp_lost: [f64; 2],
+    pub search_m: f64,
 }
 
 /// Infantry suppression (P14): a hidden level in [0, 1] that near misses
