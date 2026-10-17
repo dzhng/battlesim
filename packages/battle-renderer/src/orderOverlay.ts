@@ -672,22 +672,26 @@ export interface DestinationMarker extends UnitCircle {
 
 /** An unload chevron: its length over its circle's radius, and at least
  *  this many route widths, so it still reads when the view pulls out; its
- *  spread over its length; its gap from the rim in route widths. */
-const UNLOAD_CHEVRON = 0.35;
-const UNLOAD_CHEVRON_LINES = 3.5;
-const UNLOAD_SPREAD = 1.2;
-const UNLOAD_GAP_LINES = 2;
+ *  spread over its length; its gap from the rim, and from the chevron
+ *  inside it, in route widths. */
+const UNLOAD_CHEVRON = 0.3;
+const UNLOAD_CHEVRON_LINES = 2;
+const UNLOAD_SPREAD = 1.6;
+const UNLOAD_GAP_LINES = 1;
 const STILL: readonly [number, number, number] = [0, 0, 0];
 
-/** The unload mark on a destination's circle: a chevron off each side of
- *  `bearing` (the way it ends up facing), pointing out the way its
- *  passengers get out. */
+/** The unload mark on a destination's circle: off each side of `bearing`
+ *  (the way it ends up facing), two chevrons pointing out the way its
+ *  passengers get out, the travel chevrons' form for going that way. */
 function unloadMark(mesh: MeshBuilder, pen: Pen, c: UnitCircle, bearing: number, color: Rgba) {
   const length = Math.max(c.r * UNLOAD_CHEVRON, pen.line * UNLOAD_CHEVRON_LINES);
+  const gap = pen.line * UNLOAD_GAP_LINES;
   for (const side of [-1, 1]) {
     const out = bearing + (side * Math.PI) / 2;
-    const tip = along(c.c, out, c.r + pen.line * UNLOAD_GAP_LINES + length);
-    marchChevron(mesh, pen, tip, out, color, STILL, [length, length * UNLOAD_SPREAD]);
+    for (const k of [1, 2]) {
+      const tip = along(c.c, out, c.r + k * (gap + length));
+      marchChevron(mesh, pen, tip, out, color, STILL, [length, length * UNLOAD_SPREAD]);
+    }
   }
 }
 
