@@ -39,6 +39,65 @@ export interface AckEntry {
 
 const LOG_LENGTH = 8;
 
+type UnitName = (id: number) => string;
+
+function describeMove(
+  order: Extract<Order, { kind: "move" }>,
+  queued: boolean,
+  unitName: UnitName,
+) {
+  return `${order.route === "fastest" ? "fast " : ""}${order.direction === "reverse" ? "reverse move" : "move"} ${order.units.map(unitName).join(", ")} to (${order.goal
+    .map((v) => v.toFixed(0))
+    .join(", ")})${queued ? " (queued)" : ""}`;
+}
+
+function describeAttack(order: Extract<Order, { kind: "attack" }>, unitName: UnitName) {
+  const t = order.target;
+  const what =
+    t.kind === "ground"
+      ? `ground (${t.point[0].toFixed(0)}, ${t.point[1].toFixed(0)})`
+      : `${t.kind === "contact" ? "area" : "enemy"} ${t.id}`;
+  return `attack ${what} with ${order.units.map(unitName).join(", ")}`;
+}
+
+function describeBuilding(
+  order: Extract<Order, { kind: "garrison" | "occupy_building" }>,
+  queued: boolean,
+  unitName: UnitName,
+) {
+  return `${order.kind === "garrison" ? "garrison" : "occupy"} building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+}
+
+function selectFromPointer(
+  pick: PointerPick,
+  own: readonly OwnUnitView[],
+  clicks: SelectClicks,
+  catalog: ReturnType<typeof useSessionCatalog>["units"],
+  setSelection: (next: SetStateAction<number[]>) => void,
+  clicked: { current: number | null },
+) {
+  const unit = pick.unit;
+  const kind = own.find((u) => u.id === unit)?.kind ?? null;
+  clicked.current = kind ? unit : null;
+  const similar = clicks.click({ ...pick, unit: kind ? unit : null, kind });
+  if (similar && kind) {
+    const hits = similarUnits(own, kind, similar, catalog);
+    setSelection((current) => (pick.shift ? [...new Set([...current, ...hits])] : hits));
+    return;
+  }
+  setSelection((current) =>
+    unit === null
+      ? pick.shift
+        ? current
+        : []
+      : pick.shift
+        ? current.includes(unit)
+          ? current.filter((u) => u !== unit)
+          : [...current, unit]
+        : [unit],
+  );
+}
+
 /** What the player's commands tell the rest of the battle. */
 export interface UnitControlEvents {
   /** Every order as it is sent, queued or not (the order flash). */
@@ -132,23 +191,14 @@ export function useUnitControl(
     (order: Order, queued: boolean) => {
       switch (order.kind) {
         case "move":
-          return `${order.route === "fastest" ? "fast " : ""}${order.direction === "reverse" ? "reverse move" : "move"} ${order.units.map(unitName).join(", ")} to (${order.goal
-            .map((v) => v.toFixed(0))
-            .join(", ")})${queued ? " (queued)" : ""}`;
+          return describeMove(order, queued, unitName);
         case "stop":
           return `stop ${order.units.map(unitName).join(", ")}`;
         case "attack": {
-          const t = order.target;
-          const what =
-            t.kind === "ground"
-              ? `ground (${t.point[0].toFixed(0)}, ${t.point[1].toFixed(0)})`
-              : `${t.kind === "contact" ? "area" : "enemy"} ${t.id}`;
-          return `attack ${what} with ${order.units.map(unitName).join(", ")}`;
+          return describeAttack(order, unitName);
         }
         case "attack_move":
-          return `attack-move ${order.units.map(unitName).join(", ")} to (${order.goal
-            .map((v) => v.toFixed(0))
-            .join(", ")})`;
+          return `attack-move ${order.units.map(unitName).join(", ")} to (${order.goal.map((v) => v.toFixed(0)).join(", ")})`;
         case "set_engagement":
           return `${order.policy === "fire_at_will" ? "fire at will" : "return fire only"}: ${order.units.map(unitName).join(", ")}`;
         case "set_afterburner":
@@ -156,9 +206,9 @@ export function useUnitControl(
         case "set_deployment":
           return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
         case "garrison":
-          return `garrison building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+          return describeBuilding(order, queued, unitName);
         case "occupy_building":
-          return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+          return describeBuilding(order, queued, unitName);
         case "exit_building":
           return `leave building: ${order.units.map(unitName).join(", ")}`;
         case "refund":
@@ -203,29 +253,8 @@ export function useUnitControl(
         return;
       }
       if (pick.button === "left" && modeRef.current !== "attack_ground") {
-        const unit = pick.unit;
         const own = observationRef.current?.own ?? [];
-        const kind = own.find((u) => u.id === unit)?.kind ?? null;
-        clickedRef.current = kind ? unit : null;
-        const similar = clicks.current.click({ ...pick, unit: kind ? unit : null, kind });
-        if (similar && kind) {
-          // Select similar: every own unit of its type, or of its role
-          // (Shift adds them to the selection).
-          const hits = similarUnits(own, kind, similar, catalog);
-          setSelection((current) => (pick.shift ? [...new Set([...current, ...hits])] : hits));
-          return;
-        }
-        setSelection((current) =>
-          unit === null
-            ? pick.shift
-              ? current
-              : []
-            : pick.shift
-              ? current.includes(unit)
-                ? current.filter((u) => u !== unit)
-                : [...current, unit]
-              : [unit],
-        );
+        selectFromPointer(pick, own, clicks.current, catalog, setSelection, clickedRef);
         return;
       }
       const intent = captured

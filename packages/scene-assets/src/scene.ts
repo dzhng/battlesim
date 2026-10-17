@@ -78,6 +78,126 @@ export interface Scene {
   basis: { matrix: Mat4; rotation: Quat };
 }
 
+function materialChannels(
+  m: GltfJson,
+  imageOf: (ref: GltfJson | undefined) => number | undefined,
+  add: (
+    code: Finding["code"],
+    message: string,
+    fix: string,
+    severity?: Finding["severity"],
+  ) => void,
+  name: string,
+) {
+  const pbr = m.pbrMetallicRoughness ?? {};
+  const channels: Partial<Record<TextureChannel, number>> = {};
+  const albedo = imageOf(pbr.baseColorTexture);
+  const normal = imageOf(m.normalTexture);
+  const orm = imageOf(pbr.metallicRoughnessTexture);
+  const occlusion = imageOf(m.occlusionTexture);
+  if (albedo !== undefined) channels.albedo = albedo;
+  if (normal !== undefined) channels.normal = normal;
+  if (orm !== undefined) channels.orm = orm;
+  if (occlusion !== undefined && occlusion !== orm)
+    add(
+      "structure.texture",
+      `material "${name}" has an occlusion image apart from its metallic-roughness image`,
+      "pack occlusion, roughness and metalness into one ORM image (R, G, B)",
+    );
+  return { pbr, channels };
+}
+
+function buildSceneMaterial(
+  m: GltfJson,
+  i: number,
+  imageOf: (ref: GltfJson | undefined) => number | undefined,
+  add: (
+    code: Finding["code"],
+    message: string,
+    fix: string,
+    severity?: Finding["severity"],
+  ) => void,
+): SceneMaterial {
+  const name = m.name ?? `material_${i}`;
+  const { pbr, channels } = materialChannels(m, imageOf, add, name);
+  const wear = m.extras?.wear;
+  const colourScale = Number(m.extras?.colour_scale);
+  const interior = sourceInterior(m, name, add);
+  const role = sourceRole(m, name, add);
+  return {
+    name,
+    base_color: (pbr.baseColorFactor ?? [1, 1, 1, 1]) as Material["base_color"],
+    metallic: pbr.metallicFactor ?? 1,
+    roughness: pbr.roughnessFactor ?? 1,
+    tint: Math.max(0, Math.min(1, Number(m.extras?.tint ?? 0) || 0)),
+    ...(Array.isArray(wear) && wear.length === 4 && wear.every((x) => typeof x === "number")
+      ? { wear: wear as Material["wear"] }
+      : {}),
+    ...(colourScale > 0 && colourScale !== 1 ? { colour_scale: colourScale } : {}),
+    coverage: sourceCoverage(m, name, add),
+    ...(interior ? { interior } : {}),
+    ...(role ? { role } : {}),
+    ...(Object.keys(channels).length ? { images: channels } : {}),
+  };
+}
+
+function readComponent(dv: DataView, componentType: number, offset: number) {
+  switch (componentType) {
+    case 5120:
+      return dv.getInt8(offset);
+    case 5121:
+      return dv.getUint8(offset);
+    case 5122:
+      return dv.getInt16(offset, true);
+    case 5123:
+      return dv.getUint16(offset, true);
+    case 5125:
+      return dv.getUint32(offset, true);
+    default:
+      return dv.getFloat32(offset, true);
+  }
+}
+
+function validateSceneStructure(
+  json: GltfJson,
+  add: (
+    code: Finding["code"],
+    message: string,
+    fix: string,
+    severity?: Finding["severity"],
+  ) => void,
+  findings: Finding[],
+) {
+  for (const [i, buffer] of (json.buffers ?? []).entries())
+    if (buffer.uri !== undefined)
+      add(
+        "structure.external_buffer",
+        `buffer ${i} references "${String(buffer.uri).slice(0, 60)}"`,
+        "export a self-contained .glb with every buffer embedded",
+      );
+  for (const [i, image] of (json.images ?? []).entries())
+    if (image.uri !== undefined)
+      add(
+        "structure.external_buffer",
+        `image ${i} references "${String(image.uri).slice(0, 60)}"`,
+        "embed images in the .glb, or drop them",
+      );
+  if ((json.extensionsRequired ?? []).length)
+    add(
+      "structure.unsupported",
+      `requires extensions ${json.extensionsRequired.join(", ")}`,
+      "export uncompressed core glTF",
+    );
+  for (const [i, accessor] of (json.accessors ?? []).entries())
+    if (accessor.sparse || accessor.bufferView === undefined)
+      add(
+        "structure.unsupported",
+        `accessor ${i} is sparse or has no buffer view`,
+        "export dense buffers",
+      );
+  return !findings.some((f) => f.severity === "error");
+}
+
 const COMPONENT_SIZE: Record<number, number> = {
   5120: 1,
   5121: 1,
@@ -119,34 +239,7 @@ export function importScene(
     return { scene: null, findings };
   }
 
-  for (const [i, buffer] of (json.buffers ?? []).entries())
-    if (buffer.uri !== undefined)
-      add(
-        "structure.external_buffer",
-        `buffer ${i} references "${String(buffer.uri).slice(0, 60)}"`,
-        "export a self-contained .glb with every buffer embedded",
-      );
-  for (const [i, image] of (json.images ?? []).entries())
-    if (image.uri !== undefined)
-      add(
-        "structure.external_buffer",
-        `image ${i} references "${String(image.uri).slice(0, 60)}"`,
-        "embed images in the .glb, or drop them",
-      );
-  if ((json.extensionsRequired ?? []).length)
-    add(
-      "structure.unsupported",
-      `requires extensions ${json.extensionsRequired.join(", ")}`,
-      "export uncompressed core glTF",
-    );
-  for (const [i, accessor] of (json.accessors ?? []).entries())
-    if (accessor.sparse || accessor.bufferView === undefined)
-      add(
-        "structure.unsupported",
-        `accessor ${i} is sparse or has no buffer view`,
-        "export dense buffers",
-      );
-  if (findings.some((f) => f.severity === "error")) return { scene: null, findings };
+  if (!validateSceneStructure(json, add, findings)) return { scene: null, findings };
 
   const readAccessor = (index: number): Float64Array => {
     const accessor = json.accessors?.[index];
@@ -163,26 +256,7 @@ export function importScene(
     for (let i = 0; i < accessor.count; i++)
       for (let c = 0; c < width; c++) {
         const o = base + i * stride + c * size;
-        let v: number;
-        switch (accessor.componentType) {
-          case 5120:
-            v = dv.getInt8(o);
-            break;
-          case 5121:
-            v = dv.getUint8(o);
-            break;
-          case 5122:
-            v = dv.getInt16(o, true);
-            break;
-          case 5123:
-            v = dv.getUint16(o, true);
-            break;
-          case 5125:
-            v = dv.getUint32(o, true);
-            break;
-          default:
-            v = dv.getFloat32(o, true);
-        }
+        const v = readComponent(dv, accessor.componentType, o);
         out[i * width + c] = accessor.normalized ? Math.max(-1, v / scale) : v;
       }
     return out;
@@ -370,43 +444,9 @@ export function importScene(
     const source = ref === undefined ? undefined : json.textures?.[ref.index]?.source;
     return typeof source === "number" && images[source] ? source : undefined;
   };
-  const materials: SceneMaterial[] = (json.materials ?? []).map((m: GltfJson, i: number) => {
-    const pbr = m.pbrMetallicRoughness ?? {};
-    const name = m.name ?? `material_${i}`;
-    const channels: Partial<Record<TextureChannel, number>> = {};
-    const albedo = imageOf(pbr.baseColorTexture);
-    const normal = imageOf(m.normalTexture);
-    const orm = imageOf(pbr.metallicRoughnessTexture);
-    const occlusion = imageOf(m.occlusionTexture);
-    if (albedo !== undefined) channels.albedo = albedo;
-    if (normal !== undefined) channels.normal = normal;
-    if (orm !== undefined) channels.orm = orm;
-    if (occlusion !== undefined && occlusion !== orm)
-      add(
-        "structure.texture",
-        `material "${name}" has an occlusion image apart from its metallic-roughness image`,
-        "pack occlusion, roughness and metalness into one ORM image (R, G, B)",
-      );
-    const wear = m.extras?.wear;
-    const colourScale = Number(m.extras?.colour_scale);
-    const interior = sourceInterior(m, name, add);
-    const role = sourceRole(m, name, add);
-    return {
-      name,
-      base_color: (pbr.baseColorFactor ?? [1, 1, 1, 1]) as Material["base_color"],
-      metallic: pbr.metallicFactor ?? 1,
-      roughness: pbr.roughnessFactor ?? 1,
-      tint: Math.max(0, Math.min(1, Number(m.extras?.tint ?? 0) || 0)),
-      ...(Array.isArray(wear) && wear.length === 4 && wear.every((x) => typeof x === "number")
-        ? { wear: wear as Material["wear"] }
-        : {}),
-      ...(colourScale > 0 && colourScale !== 1 ? { colour_scale: colourScale } : {}),
-      coverage: sourceCoverage(m, name, add),
-      ...(interior ? { interior } : {}),
-      ...(role ? { role } : {}),
-      ...(Object.keys(channels).length ? { images: channels } : {}),
-    };
-  });
+  const materials: SceneMaterial[] = (json.materials ?? []).map((m: GltfJson, i: number) =>
+    buildSceneMaterial(m, i, imageOf, add),
+  );
 
   return {
     scene: { nodes, roots: sceneRoots, meshes, skins, animations, materials, images, basis },
