@@ -14,7 +14,7 @@ import {
 } from "@packages/battle-audio/src/voices/responses";
 import { assignedSet, type VoiceCatalog } from "@packages/battle-audio/src/voices/voiceCatalog";
 import { FACTIONS, type Faction, type UnitCatalog } from "@packages/scene-assets/src/units";
-import type { ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
+import type { ObservationView, OwnUnitView, RefusalView } from "@web/battle/sim/observationView";
 import type { CommandAck, Order } from "@web/battle/sim/protocol";
 
 /** The battle's sound, as far as answers go. */
@@ -29,6 +29,9 @@ export class UnitResponses {
   private lead: number | null = null;
   private readonly arrivals = new Arrivals();
   private readonly sets = new Map<string, string | null>();
+  /** Refusals already answered from an acknowledgement, until the tick its
+   *  order applies publishes them (`ObservationFrame.refusals`). */
+  private answered: { tick: number; refused: RefusalView[] }[] = [];
 
   constructor(
     private readonly audio: Responder,
@@ -54,6 +57,7 @@ export class UnitResponses {
       const unit = this.answering([id])[0];
       if (unit) this.say({ kind: "arrived", unit, group });
     }
+    this.observedRefusals(observation);
   }
 
   /** The selection gained `added`, by clicking `clicked` if one was. */
@@ -63,17 +67,54 @@ export class UnitResponses {
     this.say({ kind: "selected", units, lead: this.lead });
   }
 
-  /** The authority's answer to `order`. */
+  /** The authority's answer to `order`: refused whole, or accepted for the
+   *  units it did not refuse one by one. */
   acknowledged(order: Order, ack: CommandAck, queued: boolean) {
     const ids = "units" in order ? order.units : [];
-    const units = this.answering(ids);
     const id = ack.seq;
     if (ack.error) {
-      this.say({ kind: "refused", reason: ack.error.reason, units, lead: this.lead, id });
+      const units = this.answering(ids);
+      this.say({
+        kind: "refused",
+        reason: ack.error.reason,
+        units,
+        lead: this.lead,
+        group: `order/${id}`,
+      });
       return;
     }
-    this.arrivals.ordered(order, queued, `order/${id}`);
-    this.say({ kind: "accepted", order, units, lead: this.lead, id });
+    const refused = ack.refused.map(({ unit, reason }) => ({ unit, reason: reason.reason }));
+    this.refusedAt(refused, `order/${id}`);
+    // The side observes these refusals too, the tick the order applies.
+    if (refused.length) this.answered.push({ tick: ack.applied_tick, refused });
+    const left = new Set(refused.map(({ unit }) => unit));
+    const accepted = ids.filter((unit) => !left.has(unit));
+    if (!accepted.length) return;
+    this.arrivals.ordered({ ...order, units: accepted }, queued, `order/${id}`);
+    this.say({ kind: "accepted", order, units: this.answering(accepted), lead: this.lead, id });
+  }
+
+  /** `refused` units answer with their refusal: one answer per reason. */
+  private refusedAt(refused: readonly RefusalView[], group: string) {
+    for (const reason of new Set(refused.map((refusal) => refusal.reason))) {
+      const units = this.answering(refused.filter((r) => r.reason === reason).map((r) => r.unit));
+      this.say({ kind: "refused", reason, units, lead: this.lead, group });
+    }
+  }
+
+  /** The side's refusals this tick that no acknowledgement has answered:
+   *  those that happen later, such as no room to unload on arrival. */
+  private observedRefusals({ tick, refusals }: ObservationView) {
+    const later = refusals.filter(
+      (refusal) =>
+        !this.answered.some(
+          (order) =>
+            order.tick === tick &&
+            order.refused.some((r) => r.unit === refusal.unit && r.reason === refusal.reason),
+        ),
+    );
+    this.answered = this.answered.filter((order) => order.tick > tick);
+    this.refusedAt(later, `tick/${tick}`);
   }
 
   private say(event: ResponseEvent) {
