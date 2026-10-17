@@ -57,6 +57,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "fog-look": lazy(() => import("./routes/fogLook")),
   sound: lazy(() => import("./routes/sound")),
   scenario: lazy(() => import("./routes/scenario")),
+  "map-picture": lazy(() => import("./routes/mapPicture")),
 };
 
 /** Canonical URLs for the developer fixture surface all live below `/labs`. */

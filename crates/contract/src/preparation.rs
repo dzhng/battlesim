@@ -1,11 +1,11 @@
 //! What a battle is prepared from: where its map comes from, the two
-//! factions that fight on it, and the battle's seed. Preparation resolves the
-//! map through the one map owner (`maps`), then fields both factions on its
+//! players that fight on it, and the battle's seed. Preparation resolves the
+//! map through the one map owner (`maps`), then fields both players' forces on its
 //! skirmish sites; the battle runs on the scenario that makes and never asks
-//! where it came from. Nothing is defaulted: a request without both factions,
+//! where it came from. Nothing is defaulted: a request without both players,
 //! or naming a field it does not read, is refused.
-use crate::catalog::Faction;
 use crate::maps::MapSource;
+use crate::players::Player;
 use serde::{Deserialize, Serialize};
 
 /// The largest battle seed: the battle's constructor takes its seed across
@@ -17,8 +17,8 @@ pub const BATTLE_SEED_MAX: u64 = (1 << 53) - 1;
 #[serde(deny_unknown_fields)]
 pub struct PrepareBattleRequest {
     pub map_source: MapSource,
-    /// The player's faction, then the enemy's.
-    pub factions: [Faction; 2],
+    /// The admitted players, in stable authoring order.
+    pub players: Vec<Player>,
     /// The battle's own random input, at most `BATTLE_SEED_MAX`.
     pub battle_seed: u64,
 }
@@ -52,7 +52,7 @@ impl PrepareBattleRequest {
     /// A request as it crosses a JSON boundary, or what is wrong with it. A
     /// seed must be canonical u64 decimal text; a number is refused, because
     /// the sender may already have rounded it. Whether the map can field the
-    /// factions is the map's to say: preparation refuses one without skirmish
+    /// players are the map's to say: preparation refuses one without skirmish
     /// sites.
     pub fn from_json(json: &str) -> Result<Self, RequestDiagnostic> {
         let request: Self =
@@ -63,6 +63,8 @@ impl PrepareBattleRequest {
                 format!("the battle seed must be a whole number from 0 to {BATTLE_SEED_MAX}"),
             ));
         }
+        crate::players::validate_players(&request.players)
+            .map_err(|error| refused("$.players", error))?;
         Ok(request)
     }
 }

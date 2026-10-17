@@ -42,7 +42,7 @@ description: Change or add a game mechanic or rule — who can shoot, see, move,
   - **redundant:** no configured unit reaches the other branch. Delete it.
   - **load-bearing:** removing it changes today's behaviour. Ask the user; the answer usually becomes data on the units it should apply to.
   - **physically unsupported:** the mechanic can't work for the other kind yet (no flight law for it, say). Refuse the combination when the catalog loads, naming the rule, instead of ignoring it in play.
-  - **deliberate game rule:** a rule the README or the decision ledger names on purpose. Keep it.
+  - **deliberate game rule:** a rule the [game rules](../../../development.md#game-rules) list or the decision ledger names on purpose. Keep it.
 
   **Tell:** a guard whose other branch no configured unit reaches. This repo has removed such guards on emitting radars (ground only), interceptors (not on aircraft) and flares (aircraft only).
 - **Give each real-world effect one mechanism.** If two columns both model "hard to hit behind this", decide which one owns it.

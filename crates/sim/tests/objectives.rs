@@ -5,7 +5,14 @@ use sim::battle::Battle;
 fn command(side: Side, seq: u64, order: Order) -> CommandEnvelope {
     CommandEnvelope {
         side,
-        slot: None,
+        player: Some(
+            match side {
+                Side::Blue => "blue-1",
+                Side::Red => "red-1",
+                Side::Neutral => "neutral",
+            }
+            .into(),
+        ),
         seq,
         order,
         queued: false,

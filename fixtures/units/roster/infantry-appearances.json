@@ -33,8 +33,8 @@
         "eastern_atgm_team_kornet_guard_c"
       ]
     },
-    "eastern_rpg_team_rpg_29__roster_rpg_heavy_gunner": {
-      "extends": "roster_rpg_heavy_gunner",
+    "eastern_rpg_team_rpg_29__roster_rpg_at_heavy_gunner": {
+      "extends": "roster_rpg_at_heavy_gunner",
       "appearance": [
         "eastern_rpg_team_rpg_29_guard_a",
         "eastern_rpg_team_rpg_29_guard_b",
@@ -66,8 +66,8 @@
         "eastern_rpg_team_rpg_29_guard_c"
       ]
     },
-    "eastern_rpg_team_rpg_7__roster_rpg_light_gunner": {
-      "extends": "roster_rpg_light_gunner",
+    "eastern_rpg_team_rpg_7__roster_rpg_at_light_gunner": {
+      "extends": "roster_rpg_at_light_gunner",
       "appearance": [
         "eastern_rpg_team_rpg_7_guard_a",
         "eastern_rpg_team_rpg_7_guard_b",
@@ -166,6 +166,14 @@
     },
     "rifle_squad__grenadier": {
       "extends": "roster_grenadier",
+      "appearance": [
+        "rifle_squad_active_a",
+        "rifle_squad_active_b",
+        "rifle_squad_active_c"
+      ]
+    },
+    "eastern_rifle_squad__rpg_gunner": {
+      "extends": "roster_rpg_general_gunner",
       "appearance": [
         "rifle_squad_active_a",
         "rifle_squad_active_b",

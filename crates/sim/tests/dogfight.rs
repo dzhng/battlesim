@@ -39,7 +39,7 @@ fn air() -> contract::scenario::FixedWingFlight {
 fn fly_to(battle: &mut sim::battle::Battle, side: Side, seq: u64, unit: u32, goal: [f64; 2]) {
     let ack = battle.accept(contract::command::CommandEnvelope {
         side,
-        slot: None,
+        player: None,
         seq,
         queued: false,
         order: contract::command::Order::Move {
@@ -136,7 +136,7 @@ fn a_third_jet_joins_by_targeting_an_engaged_one() {
         .expect("red sees blue");
     let ack = battle.accept(contract::command::CommandEnvelope {
         side: Side::Red,
-        slot: None,
+        player: None,
         seq: 2,
         queued: false,
         order: contract::command::Order::Attack {
@@ -189,7 +189,7 @@ fn a_jet_ordered_onto_a_far_jet_closes_until_the_dogfight_forms() {
         .expect("blue sees the red jet");
     let ack = battle.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: contract::command::Order::Attack {

@@ -834,7 +834,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         if never_stops {
             let ack = b.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 1,
                 order: Order::Attack {
                     units: vec![UnitId(0)],
@@ -871,7 +871,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         };
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             order: Order::Move {
                 units: vec![UnitId(0)],

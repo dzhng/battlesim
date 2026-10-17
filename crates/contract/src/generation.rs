@@ -51,6 +51,48 @@ impl MapSize {
             MapSize::Xl => 10_000.0,
         }
     }
+
+    pub fn skirmish_extent_m(self) -> f64 {
+        skirmish_size_data()
+            .iter()
+            .find(|tier| tier.size == self)
+            .expect("skirmish size fixture contains every map size")
+            .extent_m
+    }
+}
+
+#[derive(Deserialize)]
+struct SkirmishSizeTier {
+    min_players: usize,
+    #[serde(default)]
+    max_players: Option<usize>,
+    size: MapSize,
+    extent_m: f64,
+}
+
+fn skirmish_size_data() -> &'static [SkirmishSizeTier] {
+    static DATA: std::sync::OnceLock<Vec<SkirmishSizeTier>> = std::sync::OnceLock::new();
+    DATA.get_or_init(|| {
+        #[derive(Deserialize)]
+        struct Fixture {
+            tiers: Vec<SkirmishSizeTier>,
+        }
+        serde_json::from_str::<Fixture>(include_str!("../../../fixtures/skirmish-sizes.json"))
+            .expect("valid skirmish-sizes fixture")
+            .tiers
+    })
+}
+
+pub fn skirmish_size_floor(players_per_side: usize) -> MapSize {
+    let players_per_side = players_per_side.max(1);
+    skirmish_size_data()
+        .iter()
+        .find(|tier| {
+            tier.min_players <= players_per_side
+                && tier.max_players.is_none_or(|max| players_per_side <= max)
+        })
+        .expect("skirmish size fixture covers every player count")
+        .size
 }
 
 /// The compiler's admission for one plan: execution policy, apart from the
@@ -89,6 +131,13 @@ pub struct GenerationRequest {
     #[serde(rename = "type")]
     pub map_type: MapType,
     pub size: MapSize,
+    /// Number of shared entry arms on each side. One is the legacy layout;
+    /// larger values are admitted only for skirmish generation.
+    #[serde(
+        default = "default_entries_per_side",
+        skip_serializing_if = "is_one_entries_per_side"
+    )]
+    pub entries_per_side: usize,
     #[serde(default)]
     pub profile: GenerationProfile,
     /// The regional family every building of the map is built in, one of
@@ -100,16 +149,19 @@ pub struct GenerationRequest {
     pub limits: CompileLimits,
 }
 
+fn default_entries_per_side() -> usize {
+    1
+}
+
+fn is_one_entries_per_side(value: &usize) -> bool {
+    *value == 1
+}
+
 impl GenerationRequest {
     pub fn extent_m(&self) -> f64 {
         match self.profile {
             GenerationProfile::Standard => self.size.extent_m(),
-            GenerationProfile::Skirmish => match self.size {
-                MapSize::Small => 1800.0,
-                MapSize::Medium => 2400.0,
-                MapSize::Large => 3000.0,
-                MapSize::Xl => 3600.0,
-            },
+            GenerationProfile::Skirmish => self.size.skirmish_extent_m(),
         }
     }
 }

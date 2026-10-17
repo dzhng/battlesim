@@ -9,7 +9,10 @@ which owns routes and composes the battle view.
 
 [Preparation](src/battle/prepare/) admits a generation request (a battle never names a
 saved map: those are tests' and captures'), fields the request's two factions on the map's admitted skirmish sites and hands the
-prepared world to its battle authority. Expensive preparation stays off the page thread. The page
+prepared world to its battle authority. Expensive preparation stays off the page thread.
+The lobby's [map preview](src/battle/prepare/preview.ts) runs the same admitted preparation,
+keeps only the admitted request, map, sites and the worker-drawn picture, and closes its
+worker; a newer preview cancels an older one, so a stale answer never shows. The page
 builds a plain geometry world from the same map for drawing, picking and camera
 clearance; it does not run a second battle.
 
@@ -28,14 +31,15 @@ startup alone does not prove its performance budget.
 
 [The web manifest](package.json) owns browser dependencies, WebAssembly compilation,
 build and test commands; [the root manifest](../package.json) composes prerequisites.
-Use the root [startup instructions](../README.md#running-it) for a first checkout.
+Use the root [startup instructions](../README.md#try-it) for a first checkout.
 [WebAssembly build and memory ownership](../crates/game-wasm/README.md) explains
 generated bindings and how publications cross the boundary.
 
-`bun run setup` installs the web dependencies and Playwright's managed
-Chromium, then checks the `ffmpeg` and `ffprobe` tools used by the audio asset
-tests. If dependencies are already present but the browser executable is
-missing, run `bun run --cwd web install-browsers`; check the audio tools with
+`bun run setup` installs the repository's hook dependencies and the web
+dependencies, then installs Playwright's managed Chromium and checks the
+`ffmpeg` and `ffprobe` tools used by the audio asset tests. If dependencies are
+already present but the browser executable is missing, run
+`bun run --cwd web install-browsers`; check the audio tools with
 `bun run --cwd web check-prerequisites`. On macOS install the audio tools with
 `brew install ffmpeg`. On WSL install them with
 `sudo apt-get update && sudo apt-get install -y ffmpeg`. The browser harness

@@ -62,7 +62,7 @@ fn ground_attack_battle_with(
     let mut battle = sim::battle::Battle::new(&setup, 1);
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {
@@ -328,9 +328,7 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
     let setup = serde_json::from_value(json!({
         "map": { "size": [3000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules, "units": [],
-        "skirmish": {
-            "factions": ["us", "eastern"],
-            "rules": { "credits_per_minute": 200, "starting_minutes": 20, "preparation_s": 60, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
+        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 20, "preparation_s": 60, "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "side": "blue", "center": [1500, 10], "yaw": std::f64::consts::FRAC_PI_2 },
                 { "side": "red", "center": [1500, 2990], "yaw": -std::f64::consts::FRAC_PI_2 }
@@ -354,7 +352,7 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
     let hz = battle.rules().tick_hz;
     let envelope = |seq, order| CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: Some("blue-1".into()),
         seq,
         order,
         queued: false,
@@ -370,6 +368,7 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
     battle.accept(envelope(2, Order::Ready));
     battle.accept(CommandEnvelope {
         side: Side::Red,
+        player: Some("red-1".into()),
         ..envelope(1, Order::Ready)
     });
     let credits =
@@ -578,7 +577,7 @@ fn an_air_missile_fires_at_an_enemy_in_its_cone_during_a_move() {
     let mut battle = air_battle();
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         queued: false,
         order: Order::Move {
@@ -696,7 +695,7 @@ fn holding_ground_battle(engagement: &str, fire_event: bool) -> sim::battle::Bat
 fn attack_move(battle: &mut sim::battle::Battle, seq: u64, goal: [f64; 2]) {
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq,
         queued: false,
         order: Order::AttackMove {
@@ -713,7 +712,7 @@ fn an_explicit_attack_repeats_passes_until_the_target_dies() {
     let mut battle = attack_move_battle_with_hp(10_000.0);
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {
@@ -814,7 +813,7 @@ fn a_holding_jet_starts_no_runs() {
     let mut battle = holding_ground_battle("fire_at_will", false);
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         queued: false,
         order: Order::Stop {
@@ -849,7 +848,7 @@ fn a_fired_on_holding_jet_attacks_its_visible_attacker() {
         .expect("red sees blue");
     let ack = battle.accept(CommandEnvelope {
         side: Side::Red,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {
@@ -899,7 +898,7 @@ fn an_explicit_attack_keeps_passing_under_fire() {
     let mut battle = attack_move_battle();
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {
@@ -948,7 +947,7 @@ fn a_move_breaks_off_mid_pass_at_once() {
     assert!(battle.unit(UnitId(0)).unwrap().air.unwrap().pass.is_some());
     battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         queued: false,
         order: Order::Move {
@@ -995,7 +994,7 @@ fn a_tank_on_high_ground_gets_attack_runs_not_a_dogfight() {
         .expect("the recon sees the tank up on the mesa");
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {
@@ -1199,7 +1198,7 @@ fn run_battle(weapons: &[&str], aim: [f64; 2]) -> sim::battle::Battle {
 fn attack_ground(seq: u64, aim: [f64; 2]) -> CommandEnvelope {
     CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq,
         queued: false,
         order: Order::Attack {
@@ -1409,7 +1408,7 @@ fn a_run_ends_when_its_target_dies() {
         .expect("the recon sees the tank");
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {
@@ -1527,7 +1526,7 @@ fn every_order_ends_the_run_at_once() {
             let from = bearing(&battle);
             let ack = battle.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 2,
                 queued: false,
                 order: order.clone(),
@@ -1606,7 +1605,7 @@ fn a_jet_circles_where_its_attack_ended() {
     let start = battle.unit(UnitId(0)).unwrap().position.xy();
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {

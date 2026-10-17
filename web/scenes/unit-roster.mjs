@@ -46,6 +46,33 @@ export async function run(ctx) {
   const cameraBeforePurchase = await page.evaluate(() => window.__lab.camera());
   await snapshot(ctx, page, "journey-zoom.png");
   await ctx.matchBaseline(page, "journey-zoom");
+  // Typing a family name and pressing Enter buys that family's first available
+  // variant and arms the ghost, the picker's own keyboard path.
+  await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
+  const search = page.getByRole("textbox", { name: "Search units" });
+  await search.fill("abrams");
+  check(
+    ctx,
+    (await page.locator(".hud-purchase-family").count()) === 1,
+    "a family-name filter narrows the picker to the one family",
+  );
+  await search.press("Enter");
+  await page.mouse.move(640, 340);
+  await page.waitForFunction(
+    () => {
+      const ghost = window.__lab.route.purchaseGhost?.();
+      return ghost && ghost.destination && ghost.variant;
+    },
+    undefined,
+    { timeout: 250 },
+  );
+  await snapshot(ctx, page, "search-enter-ghost.png");
+  await page.keyboard.press("Escape");
+  check(
+    ctx,
+    (await obs(page)).skirmish.credits === 1000,
+    "Escape cancels the searched purchase free",
+  );
   await page.getByRole("button", { name: "Reinforcements", exact: true }).click();
   await page.getByRole("tab", { name: "VEH", exact: true }).click();
   await snapshot(ctx, page, "vehicle-families.png");
@@ -112,7 +139,7 @@ export async function run(ctx) {
     ctx,
     reserved.own.length === 0 &&
       reserved.skirmish.credits === 650 &&
-      reserved.skirmish.occupiedSlots === 1,
+      reserved.skirmish.unitCount === 1,
     "cursor confirmation atomically reserves one variant during preparation",
   );
   // A held left drag places at its press and turns the unit toward its

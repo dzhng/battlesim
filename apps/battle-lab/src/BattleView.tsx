@@ -49,13 +49,14 @@ export type BattleLoadStage = "world" | "renderer" | "playable";
 const ZOOM_BASE = 1.25;
 const zoomStep = (distance: number) => Math.round(Math.log(distance) / Math.log(ZOOM_BASE));
 
+// eslint-disable-next-line complexity -- debt: most branches are `observation?.` and `input &&` guards on HUD props; moving the `.hud` block into a component that takes a non-null observation would split it, but proving nothing on screen moved needs the HUD screenshot gates.
 export function BattleView({
   fixture,
   scenario,
   seed,
   prepared,
   scenarioArt,
-  slot,
+  player,
   side,
   replay,
   scripted,
@@ -77,8 +78,8 @@ export function BattleView({
   prepared?: PreparedConnectionSession;
   /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
   scenarioArt?: boolean;
-  /** Player slot issuing commands in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing commands in a player-owned scenario. */
+  player?: string;
   /** Side whose observation and command stream this player controls. */
   side?: import("@web/battle/sim/protocol").SideName;
   /** A recorded battle to replay: input is off. */
@@ -144,7 +145,7 @@ export function BattleView({
     seed,
     prepared,
     scenarioArt,
-    slot,
+    player,
     side,
     onDecoded: (observation, digest) => {
       noteCues(observation);
@@ -160,6 +161,9 @@ export function BattleView({
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
+  const viewingPlayer =
+    observation?.skirmish?.players.find((candidate) => candidate.id === player) ??
+    observation?.skirmish?.players[0];
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
@@ -327,10 +331,10 @@ export function BattleView({
             <button
               type="button"
               className="hud-menu-choice hud-purchase-ready"
-              disabled={observation.skirmish.ready[0]}
+              disabled={viewingPlayer?.ready ?? false}
               onClick={session.purchase.ready}
             >
-              {observation.skirmish.ready[0] ? "READY" : "START BATTLE"}
+              {viewingPlayer?.ready ? "READY" : "START BATTLE"}
             </button>
           </div>
         )}
@@ -340,7 +344,7 @@ export function BattleView({
           selected={control.selected}
           onSelect={control.setSelected}
           rules={session.rules}
-          pending={observation?.skirmish?.pending}
+          pending={viewingPlayer?.pending}
           tick={observation?.tick}
           control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
@@ -351,6 +355,7 @@ export function BattleView({
                   cards={session.purchase.cards}
                   faction={session.purchase.faction}
                   match={observation.skirmish}
+                  player={viewingPlayer}
                   onChoose={session.purchase.choose}
                   rules={session.rules}
                 />

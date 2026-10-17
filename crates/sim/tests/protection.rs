@@ -489,8 +489,8 @@ fn ordinary_tank_shell_metadata_bypasses_active_protection() {
         "kornet",
         "spike",
         "bastion",
-        "rpg_light",
-        "rpg_heavy",
+        "rpg_at_light",
+        "rpg_at_heavy",
     ] {
         assert!(
             rules["weapons"][id]["interceptable"]

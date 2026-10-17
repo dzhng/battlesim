@@ -1,8 +1,9 @@
 use contract::bundle::{
-    base64_encode, BundleAsset, BundleMapIdentity, BundleMode, ControllerKind, PlayerSlot,
-    ScenarioBundle, VictoryDefinition, FORMAT_VERSION,
+    base64_encode, BundleAsset, BundleMapIdentity, BundleMode, ControllerKind, ScenarioBundle,
+    VictoryDefinition, FORMAT_VERSION,
 };
 use contract::ids::Side;
+use contract::players::Player;
 use contract::scenario::ScenarioDefinition;
 
 fn bundle() -> ScenarioBundle {
@@ -13,6 +14,22 @@ fn bundle() -> ScenarioBundle {
     let mut scenario: ScenarioDefinition =
         serde_json::from_value(fixture["scenario"].clone()).unwrap();
     scenario.skirmish = None;
+    scenario.players = vec![
+        Player {
+            id: "blue-1".into(),
+            side: Side::Blue,
+            faction: Some(contract::catalog::Faction::Us),
+            human_capable: true,
+            controller: ControllerKind::Human,
+        },
+        Player {
+            id: "red-1".into(),
+            side: Side::Red,
+            faction: Some(contract::catalog::Faction::Eastern),
+            human_capable: false,
+            controller: ControllerKind::ActiveAi,
+        },
+    ];
     let map_hash = contract::identity::json_hash(&scenario.map).unwrap();
     let rules_hash = contract::identity::json_hash(&scenario.rules).unwrap();
     let bytes = b"RIFF";
@@ -25,14 +42,6 @@ fn bundle() -> ScenarioBundle {
         },
         rules_hash,
         scenario,
-        slots: vec![PlayerSlot {
-            id: "blue-1".into(),
-            side: Side::Blue,
-            human_capable: true,
-            faction: None,
-            controller: ControllerKind::Human,
-            units: Vec::new(),
-        }],
         mode: BundleMode::Sandbox,
         victory: VictoryDefinition {
             source: "return true".into(),
@@ -100,6 +109,34 @@ fn wasm_controller_admission_keeps_empty_human_slots_passive() {
             .unwrap();
     assert_eq!(
         controllers,
-        vec![("blue-1".into(), contract::bundle::ControllerKind::PassiveAi)]
+        vec![
+            ("blue-1".into(), contract::bundle::ControllerKind::PassiveAi),
+            ("red-1".into(), contract::bundle::ControllerKind::ActiveAi),
+        ]
     );
+}
+
+#[test]
+fn wasm_scenario_contract_accepts_multi_player_sides_without_panicking() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/skirmish-objectives.json"
+    ))
+    .unwrap();
+    let mut scenario = fixture["scenario"].clone();
+    let mut extra = scenario["players"][0].clone();
+    extra["id"] = serde_json::json!("blue-2");
+    scenario["players"].as_array_mut().unwrap().push(extra);
+    scenario["skirmish"]["sites"]["entries"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"side":"blue","center":[200,10],"yaw":1.57}));
+    scenario["skirmish"]["sites"]["entries"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"side":"red","center":[200,590],"yaw":-1.57}));
+    let result: serde_json::Value = serde_json::from_str(
+        &game_wasm::check_scenario_player_contract(&scenario.to_string()),
+    )
+    .unwrap();
+    assert_eq!(result["status"], "ok");
 }

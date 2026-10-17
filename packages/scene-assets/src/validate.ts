@@ -184,6 +184,150 @@ export interface AppearanceInput {
   types?: string[];
 }
 
+/** One state of a static appearance, imported, built and judged against its
+ *  scenery kind's row, with its findings; the state is null when it does not
+ *  build. */
+async function staticState(
+  input: AppearanceInput,
+  [state, path]: [string, string],
+  materials: MaterialTable,
+  context: ValidationContext,
+  tolerances: Tolerances,
+): Promise<{ state: StaticBundle["states"][number] | null; findings: Finding[] }> {
+  const findings: Finding[] = [];
+  const imported = importScene(input.files[path], path, input.entry.basis_yaw_deg);
+  findings.push(...imported.findings);
+  if (!imported.scene) return { state: null, findings };
+  findings.push(...(await bindTextures(imported.scene, path)));
+  const built = buildStaticState(imported.scene, path, materials);
+  findings.push(...built.findings);
+  if (!built.tiers) return { state: null, findings };
+  const bounds = positionsBounds(built.tiers[0].positions);
+  const judged = { name: state, tiers: built.tiers, bounds };
+  const rule = SCENERY_KINDS[input.entry.scenery ?? ""];
+  const debris = rule?.debris?.state === state ? rule.debris : null;
+  // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
+  // takes the default row (no vehicle class sets a ratio of its own yet).
+  // A piece or its debris is part of its whole's tiers, so only the whole
+  // is held to the ratio: a thrown turret's far tier is a few boxes either way.
+  if (input.entry.scenery === "wreck")
+    findings.push(
+      ...tierFindings(
+        path,
+        imported.scene,
+        built.tiers.map(triangleCount),
+        rule?.pieces?.includes(state) || debris ? 1 : unitArtRule(null).tier_ratio,
+      ),
+    );
+  // Debris is held to its own allowance, not to the ground or the box.
+  if (debris) {
+    findings.push(
+      ...debrisFindings(path, imported.scene, built.tiers[0], input.entry.footprint_half_m, debris),
+    );
+    return { state: judged, findings };
+  }
+  // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
+  if (rule?.pieces?.includes(state)) return { state: judged, findings };
+  if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
+  findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
+  if (rule?.footprint.kind === "tree")
+    findings.push(...canopyFindings(path, built.tiers, context.authority, tolerances));
+  if (rule?.tier_triangles)
+    findings.push(
+      ...budgetFindings(
+        path,
+        built.tiers.map(triangleCount),
+        rule,
+        "the kind's row (packages/scene-assets/src/scenery.ts), with a paired frame-cost row,",
+      ),
+    );
+  if (rule?.size) findings.push(...sizeFindings(path, built.tiers[0], rule.size));
+  if (rule?.top_m !== undefined && bounds.max[2] > rule.top_m + tolerances.ground_m)
+    findings.push(
+      finding(
+        "fit.dressing",
+        `${path}: stands ${fmt(bounds.max[2])} m tall, over the ${rule.top_m} m a ${input.entry.scenery} may (it has no body to hide behind)`,
+        "lower the art under the kind's top_m (packages/scene-assets/src/scenery.ts)",
+      ),
+    );
+  return { state: judged, findings };
+}
+
+/** A static appearance: every state of its scenery kind, judged one by one
+ *  and then together. */
+async function validateStaticAppearance(
+  input: AppearanceInput,
+  sources: [string, string][],
+  sourceBytes: number,
+  context: ValidationContext,
+  tolerances: Tolerances,
+): Promise<Validation<StaticBundle>> {
+  const { entry } = input;
+  const findings: Finding[] = [];
+  const materials = new MaterialTable();
+  const states: { name: string; tiers: MeshData[]; bounds: Bounds }[] = [];
+  const required = SCENERY_KINDS[entry.scenery ?? ""]?.states ?? null;
+  if (!required)
+    findings.push(
+      finding(
+        "structure.scenery_kind",
+        `${input.name}: scenery kind "${entry.scenery ?? "(none)"}" is not one of ${Object.keys(SCENERY_KINDS).join(", ")}`,
+        "name a scenery kind in the catalog entry, or add a row to SCENERY_KINDS (packages/scene-assets/src/scenery.ts)",
+      ),
+    );
+  for (const state of required ?? [])
+    if (!entry.states?.[state])
+      findings.push(
+        finding(
+          "structure.states",
+          `${input.name}: no "${state}" state`,
+          `add states.${state} to the catalog entry`,
+        ),
+      );
+  for (const source of sources) {
+    const judged = await staticState(input, source, materials, context, tolerances);
+    findings.push(...judged.findings);
+    if (judged.state) states.push(judged.state);
+  }
+  // The kind's first state leads (what an impostor and a sheet show, even
+  // where a wreck's `debris` sorts before its `default`), the rest by name.
+  const lead = required?.[0];
+  states.sort(
+    (a, b) => Number(b.name === lead) - Number(a.name === lead) || a.name.localeCompare(b.name),
+  );
+  const pieces = SCENERY_KINDS[entry.scenery ?? ""]?.pieces ?? [];
+  const debrisState = SCENERY_KINDS[entry.scenery ?? ""]?.debris?.state;
+  if (required) {
+    const whole = states.filter((s) => !pieces.includes(s.name) && s.name !== debrisState);
+    findings.push(...footprintFindings(entry, whole, tolerances, input.name));
+    findings.push(...pieceFindings(input.name, states, required[0], pieces));
+  }
+  const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
+  const bundle: StaticBundle | null = bounds
+    ? {
+        kind: "static",
+        states,
+        materials: materials.materials,
+        textures: materials.textures,
+        bounds,
+      }
+    : null;
+  if (bundle) findings.push(...surfaceFindings(input.name, bundle));
+  return {
+    findings,
+    stats: states.length
+      ? {
+          kind: "static",
+          tiers: sumTiers(states.map((s) => s.tiers)),
+          source_bytes: sourceBytes,
+          bounds: bounds ?? undefined,
+        }
+      : null,
+    bundle: hasErrors(findings) ? null : bundle,
+    preview: bundle,
+  };
+}
+
 export async function validateAppearance(
   input: AppearanceInput,
   context: ValidationContext,
@@ -204,122 +348,8 @@ export async function validateAppearance(
     sourceBytes += bytes.byteLength;
   }
 
-  if (kind === "static") {
-    const materials = new MaterialTable();
-    const states: { name: string; tiers: MeshData[]; bounds: Bounds }[] = [];
-    const required = SCENERY_KINDS[entry.scenery ?? ""]?.states ?? null;
-    if (!required)
-      findings.push(
-        finding(
-          "structure.scenery_kind",
-          `${input.name}: scenery kind "${entry.scenery ?? "(none)"}" is not one of ${Object.keys(SCENERY_KINDS).join(", ")}`,
-          "name a scenery kind in the catalog entry, or add a row to SCENERY_KINDS (packages/scene-assets/src/scenery.ts)",
-        ),
-      );
-    for (const state of required ?? [])
-      if (!entry.states?.[state])
-        findings.push(
-          finding(
-            "structure.states",
-            `${input.name}: no "${state}" state`,
-            `add states.${state} to the catalog entry`,
-          ),
-        );
-    for (const [state, path] of sources) {
-      const imported = importScene(input.files[path], path, entry.basis_yaw_deg);
-      findings.push(...imported.findings);
-      if (!imported.scene) continue;
-      findings.push(...(await bindTextures(imported.scene, path)));
-      const built = buildStaticState(imported.scene, path, materials);
-      findings.push(...built.findings);
-      if (!built.tiers) continue;
-      const bounds = positionsBounds(built.tiers[0].positions);
-      states.push({ name: state, tiers: built.tiers, bounds });
-      const rule = SCENERY_KINDS[entry.scenery ?? ""];
-      const debris = rule?.debris?.state === state ? rule.debris : null;
-      // A wreck's tiers are a unit's: it is drawn where its vehicle was. It
-      // takes the default row (no vehicle class sets a ratio of its own yet).
-      // A piece or its debris is part of its whole's tiers, so only the whole
-      // is held to the ratio: a thrown turret's far tier is a few boxes either way.
-      if (entry.scenery === "wreck")
-        findings.push(
-          ...tierFindings(
-            path,
-            imported.scene,
-            built.tiers.map(triangleCount),
-            rule?.pieces?.includes(state) || debris ? 1 : unitArtRule(null).tier_ratio,
-          ),
-        );
-      // Debris is held to its own allowance, not to the ground or the box.
-      if (debris) {
-        findings.push(
-          ...debrisFindings(path, imported.scene, built.tiers[0], entry.footprint_half_m, debris),
-        );
-        continue;
-      }
-      // A piece is held to its whole (`pieceFindings`), not to the ground or the box.
-      if (rule?.pieces?.includes(state)) continue;
-      if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
-      findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
-      if (rule?.footprint.kind === "tree")
-        findings.push(...canopyFindings(path, built.tiers, context.authority, tolerances));
-      if (rule?.tier_triangles)
-        findings.push(
-          ...budgetFindings(
-            path,
-            built.tiers.map(triangleCount),
-            rule,
-            "the kind's row (packages/scene-assets/src/scenery.ts), with a paired frame-cost row,",
-          ),
-        );
-      if (rule?.size) findings.push(...sizeFindings(path, built.tiers[0], rule.size));
-      if (rule?.top_m !== undefined && bounds.max[2] > rule.top_m + tolerances.ground_m)
-        findings.push(
-          finding(
-            "fit.dressing",
-            `${path}: stands ${fmt(bounds.max[2])} m tall, over the ${rule.top_m} m a ${entry.scenery} may (it has no body to hide behind)`,
-            "lower the art under the kind's top_m (packages/scene-assets/src/scenery.ts)",
-          ),
-        );
-    }
-    // The kind's first state leads (what an impostor and a sheet show, even
-    // where a wreck's `debris` sorts before its `default`), the rest by name.
-    const lead = required?.[0];
-    states.sort(
-      (a, b) => Number(b.name === lead) - Number(a.name === lead) || a.name.localeCompare(b.name),
-    );
-    const pieces = SCENERY_KINDS[entry.scenery ?? ""]?.pieces ?? [];
-    const debrisState = SCENERY_KINDS[entry.scenery ?? ""]?.debris?.state;
-    if (required) {
-      const whole = states.filter((s) => !pieces.includes(s.name) && s.name !== debrisState);
-      findings.push(...footprintFindings(entry, whole, tolerances, input.name));
-      findings.push(...pieceFindings(input.name, states, required[0], pieces));
-    }
-    const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
-    const bundle: StaticBundle | null = bounds
-      ? {
-          kind: "static",
-          states,
-          materials: materials.materials,
-          textures: materials.textures,
-          bounds,
-        }
-      : null;
-    if (bundle) findings.push(...surfaceFindings(input.name, bundle));
-    return {
-      findings,
-      stats: states.length
-        ? {
-            kind,
-            tiers: sumTiers(states.map((s) => s.tiers)),
-            source_bytes: sourceBytes,
-            bounds: bounds ?? undefined,
-          }
-        : null,
-      bundle: hasErrors(findings) ? null : bundle,
-      preview: bundle,
-    };
-  }
+  if (kind === "static")
+    return validateStaticAppearance(input, sources, sourceBytes, context, tolerances);
 
   const path = entry.source ?? "";
   const imported = importScene(input.files[path], path, entry.basis_yaw_deg);

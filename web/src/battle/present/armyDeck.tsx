@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import type { SkirmishView, OwnUnitView } from "../sim/observationView";
+import type { PendingPurchaseView, OwnUnitView } from "../sim/observationView";
 import { useSessionCatalog } from "../catalog/context";
 import { StrengthMeter, UnitFace } from "./unitFace";
 import { InfoPanel } from "./infoPanel";
@@ -25,7 +25,7 @@ export function ArmyDeck({
   control?: Parameters<typeof CommandBar>[0]["control"];
   captions: ReactNode;
   reinforcements?: ReactNode;
-  pending?: SkirmishView["pending"];
+  pending?: PendingPurchaseView[];
   /** The observed tick, which a waiting aircraft's countdown runs from. */
   tick?: number;
 }) {

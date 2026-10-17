@@ -782,7 +782,7 @@
       "ammo": 20,
       "scatter_mrad": 4
     },
-    "rpg_light": {
+    "rpg_at_light": {
       "targets": { "ground": { "classes": ["vehicle"] } },
       "interceptable": true,
       "extends": "grenade",
@@ -799,7 +799,7 @@
       "gravity_scale": 1.7651,
       "scatter_mrad": 8
     },
-    "rpg_heavy": {
+    "rpg_at_heavy": {
       "targets": { "ground": { "classes": ["vehicle"] } },
       "interceptable": true,
       "extends": "grenade",
@@ -815,6 +815,23 @@
       "speed_mps": 400,
       "gravity_scale": 1.7651,
       "scatter_mrad": 8
+    },
+    "rpg_general": {
+      "targets": { "ground": { "classes": ["infantry", "vehicle"] } },
+      "extends": "grenade",
+      "name": "RPG HE",
+      "icon": "rpg",
+      "description": "A general-purpose high-explosive rocket for infantry and light armour.",
+      "range_m": 280,
+      "damage": 50,
+      "penetration": 80,
+      "structural_damage": 35,
+      "ammo": 3,
+      "reload_s": 4,
+      "aim_s": 2,
+      "speed_mps": 400,
+      "gravity_scale": 1.7651,
+      "scatter_mrad": 10
     },
     "artillery_howitzer": {
       "targets": {
@@ -1043,13 +1060,14 @@
       "akeron_mp": 20,
       "bastion": 20,
       "ifv_he": 5,
-      "rpg_light": 10,
+      "rpg_general": 10,
+      "rpg_at_light": 10,
       "artillery_howitzer": 12,
       "artillery_mortar": 8,
       "artillery_rocket_light": 10,
       "artillery_rocket_heavy": 16,
       "artillery_strike_missile": 24,
-      "rpg_heavy": 10
+      "rpg_at_heavy": 10
     },
     "ammo_rounds_per_s": 1,
     "vehicle_hp_per_s": 2,

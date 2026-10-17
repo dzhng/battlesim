@@ -4,6 +4,7 @@ import {
   gameplayField,
   displayFieldValue,
   parseFieldValue,
+  validateGameplayValue,
 } from "../../apps/mechanics-editor/src/fields";
 
 describe("mechanics human units", () => {
@@ -43,4 +44,12 @@ it("round trips fractions, cadence and dimensions and retains untouched precisio
       entry,
     ),
   ).toEqual({ value: entry.magazine.shot_interval_s });
+});
+
+it("names the allowed choices when a choice list is not a list", () => {
+  const classes = ["targets", "ground", "classes"];
+  const expected = "Use a comma-separated list of: infantry, vehicle, missile.";
+  expect(validateGameplayValue("weapons", classes, "infantry")).toBe(expected);
+  expect(validateGameplayValue("weapons", classes, ["tank"])).toBe(expected);
+  expect(validateGameplayValue("weapons", classes, ["infantry"])).toBeUndefined();
 });

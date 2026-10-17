@@ -95,12 +95,8 @@ function checkLine(text: unknown, where: string): string {
     throw new Error(`${where}: invalid line`);
   return text;
 }
-export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCatalog {
-  const root = own(value);
-  for (const key of ["roles", "sets", "assignments", "retakes"]) own(root[key]);
-  if (Object.keys(root).some((key) => !["roles", "sets", "assignments", "retakes"].includes(key)))
-    throw new Error("voice catalog: unknown section");
-  const catalog = value as VoiceCatalog;
+
+function validateVoiceRoles(catalog: VoiceCatalog) {
   for (const [role, raw] of Object.entries(catalog.roles)) {
     const lines = own(own(raw).lines) as Record<string, unknown>;
     for (const trigger of ALL_TRIGGERS) {
@@ -123,6 +119,9 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
         throw new Error(`role ${role} ${trigger}: callsign is only legal in R1 and R11`);
     }
   }
+}
+
+function validateVoiceSets(catalog: VoiceCatalog) {
   const callsigns = new Set<string>();
   const voiceIds = new Set<string>();
   for (const [name, raw] of Object.entries(catalog.sets)) {
@@ -156,6 +155,9 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
     }
     callsigns.add(set.callsign);
   }
+}
+
+function validateVoiceAssignments(catalog: VoiceCatalog) {
   for (const [unit, assignment] of Object.entries(catalog.assignments)) {
     if (typeof assignment === "string") {
       if (!catalog.sets[assignment]) throw new Error(`assignment ${unit}: unknown set`);
@@ -164,23 +166,36 @@ export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCata
         if (!catalog.sets[String(set)])
           throw new Error(`assignment ${unit}/${faction}: unknown set`);
   }
-  // The caller may pass a roster map to enforce resolution. Deferred rows with no roles are not playable.
-  if (roster && typeof roster === "object") {
-    const rows = Object.entries(roster as Record<string, unknown>);
-    for (const [unit, raw] of rows) {
-      const row = own(raw);
-      const roles = Array.isArray(row.roles) ? row.roles : [];
-      if (unit.startsWith("test_") || unit.startsWith("capture_") || roles.length === 0) continue;
-      const assignment = catalog.assignments[unit];
-      if (!assignment) throw new Error(`playable unit ${unit}: no voice assignment`);
-      const factions = own(row.roster).factions;
-      for (const faction of Array.isArray(factions) ? factions : []) {
-        const set = typeof assignment === "string" ? assignment : assignment[faction];
-        if (!set || !catalog.sets[set])
-          throw new Error(`playable unit ${unit}/${faction}: no voice set`);
-      }
+}
+
+// The caller may pass a roster map to enforce resolution. Deferred rows with no roles are not playable.
+function validateRosterAssignments(catalog: VoiceCatalog, roster: unknown) {
+  if (!roster || typeof roster !== "object") return;
+  for (const [unit, raw] of Object.entries(roster as Record<string, unknown>)) {
+    const row = own(raw);
+    const roles = Array.isArray(row.roles) ? row.roles : [];
+    if (unit.startsWith("test_") || unit.startsWith("capture_") || roles.length === 0) continue;
+    const assignment = catalog.assignments[unit];
+    if (!assignment) throw new Error(`playable unit ${unit}: no voice assignment`);
+    const factions = own(row.roster).factions;
+    for (const faction of Array.isArray(factions) ? factions : []) {
+      const set = typeof assignment === "string" ? assignment : assignment[faction];
+      if (!set || !catalog.sets[set])
+        throw new Error(`playable unit ${unit}/${faction}: no voice set`);
     }
   }
+}
+
+export function validateVoiceCatalog(value: unknown, roster: unknown): VoiceCatalog {
+  const root = own(value);
+  for (const key of ["roles", "sets", "assignments", "retakes"]) own(root[key]);
+  if (Object.keys(root).some((key) => !["roles", "sets", "assignments", "retakes"].includes(key)))
+    throw new Error("voice catalog: unknown section");
+  const catalog = value as VoiceCatalog;
+  validateVoiceRoles(catalog);
+  validateVoiceSets(catalog);
+  validateVoiceAssignments(catalog);
+  validateRosterAssignments(catalog, roster);
   return catalog;
 }
 /** The set a unit type speaks with when `faction` fields it: its assignment, by

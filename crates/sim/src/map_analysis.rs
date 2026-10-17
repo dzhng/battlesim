@@ -153,7 +153,10 @@ pub struct SkirmishAdmission {
 pub fn admit_skirmish(
     q: &crate::encounter::MapQueries,
     rules: &Rules,
+    players: &[contract::players::Player],
 ) -> Result<SkirmishAdmission, String> {
+    let counts = contract::ids::Side::COMBATANTS
+        .map(|side| players.iter().filter(|player| player.side == side).count());
     use crate::navigation::{self, Leg, Plan};
     use contract::catalog::Mobility;
     use contract::command::RoutePolicy;
@@ -164,6 +167,16 @@ pub fn admit_skirmish(
         .skirmish
         .as_ref()
         .ok_or("skirmish sites are missing")?;
+    let larger = counts.into_iter().max().unwrap_or(0);
+    if !players.is_empty() {
+        let floor = contract::generation::skirmish_size_floor(larger);
+        let minimum_m = floor.skirmish_extent_m();
+        if q.map.size[0] + 0.01 < minimum_m || q.map.size[1] + 0.01 < minimum_m {
+            return Err(format!(
+                "skirmish map is too small for {larger} players per side (requires {minimum_m} m)"
+            ));
+        }
+    }
     let mut representatives = [None; 3];
     for kind in rules.catalog.indices() {
         let unit = rules.catalog.get(kind);
@@ -260,6 +273,13 @@ pub fn admit_skirmish(
             Ok(journeys)
         };
     let fair = |a: f64, b: f64| a.is_finite() && b.is_finite() && (a - b).abs() <= 0.15 * a.max(b);
+    let best = |journeys: &[SkirmishJourney], unit: &str, side: Side| {
+        journeys
+            .iter()
+            .filter(|journey| journey.unit == unit && journey.side == side)
+            .map(|journey| journey.travel_s)
+            .min_by(f64::total_cmp)
+    };
     let separated = |a: [f64; 2], b: [f64; 2]| libm::hypot(a[0] - b[0], a[1] - b[1]) >= 150.0;
     let mut selected = Vec::new();
     let mut journeys = Vec::new();
@@ -287,12 +307,12 @@ pub fn admit_skirmish(
             let Ok(measured) = measure(objective) else {
                 continue;
             };
-            if measured
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .all(|r| fair(r[0].travel_s, r[1].travel_s))
-            {
+            if representatives.iter().all(|&kind| {
+                let unit = rules.catalog.id(kind);
+                best(&measured, unit, Side::Blue)
+                    .zip(best(&measured, unit, Side::Red))
+                    .is_some_and(|(blue, red)| fair(blue, red))
+            }) {
                 admitted = Some((objective.clone(), measured));
                 break;
             }
@@ -354,22 +374,13 @@ pub fn admit_skirmish(
             }
             let mut score: f64 = 0.0;
             let mut accepted = true;
-            for (ar, br) in aj
-                .as_chunks::<2>()
-                .0
-                .iter()
-                .zip(bj.as_chunks::<2>().0.iter())
-            {
-                let at = ar
-                    .iter()
-                    .find(|r| r.side == own(a.center[1]))
-                    .unwrap()
-                    .travel_s;
-                let bt = br
-                    .iter()
-                    .find(|r| r.side == own(b.center[1]))
-                    .unwrap()
-                    .travel_s;
+            for unit in representatives.iter().map(|&kind| rules.catalog.id(kind)) {
+                let at = best(aj, unit, own(a.center[1]));
+                let bt = best(bj, unit, own(b.center[1]));
+                let Some((at, bt)) = at.zip(bt) else {
+                    accepted = false;
+                    continue;
+                };
                 accepted &= fair(at, bt);
                 score = score.max((at - bt).abs() / at.max(bt));
             }
@@ -445,6 +456,7 @@ fn ground(unit: &contract::catalog::UnitType, rules: &Rules) -> crate::navigatio
 mod skirmish_tests {
     #[test]
     fn admission_returns_route_selected_sites() {
+        let players = Vec::new();
         let rules: contract::scenario::Rules =
             serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
@@ -467,12 +479,16 @@ mod skirmish_tests {
             .unwrap()
             .remove("candidates");
         let without = serde_json::from_value(sites.clone()).unwrap();
-        assert!(super::admit_skirmish(&prepared.queries(&map, &without), &rules).is_err());
+        assert!(
+            super::admit_skirmish(&prepared.queries(&map, &without), &rules, &players).is_err()
+        );
         sites["skirmish"]["candidates"] = base;
         let with = serde_json::from_value(sites).unwrap();
-        let admitted = super::admit_skirmish(&prepared.queries(&map, &with), &rules).unwrap();
+        let admitted =
+            super::admit_skirmish(&prepared.queries(&map, &with), &rules, &players).unwrap();
         let value = serde_json::to_value(admitted).unwrap();
-        let repeated = super::admit_skirmish(&prepared.queries(&map, &with), &rules).unwrap();
+        let repeated =
+            super::admit_skirmish(&prepared.queries(&map, &with), &rules, &players).unwrap();
         assert_eq!(value, serde_json::to_value(repeated).unwrap());
         assert_eq!(value["sites"]["skirmish"]["objectives"][1]["id"], "good-a");
         assert_eq!(
@@ -488,6 +504,7 @@ mod skirmish_tests {
 
     #[test]
     fn central_fields_use_fair_reserved_centerline_locations() {
+        let players = Vec::new();
         let rules: contract::scenario::Rules =
             serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
@@ -506,20 +523,58 @@ mod skirmish_tests {
                 objective("c",800.0,750.0,Some("d"),"field"),objective("d",200.0,250.0,Some("c"),"field")]}});
         let prepared = crate::encounter::PreparedMap::new(&map, &rules);
         let base = serde_json::from_value(sites.clone()).unwrap();
-        assert!(super::admit_skirmish(&prepared.queries(&map, &base), &rules).is_err());
+        assert!(super::admit_skirmish(&prepared.queries(&map, &base), &rules, &players).is_err());
         sites["skirmish"]["candidates"] = serde_json::json!([
             objective("left", 300.0, 500.0, None, "field"),
             objective("right", 700.0, 500.0, None, "field")
         ]);
         let candidates = serde_json::from_value(sites).unwrap();
-        let admitted = super::admit_skirmish(&prepared.queries(&map, &candidates), &rules).unwrap();
+        let admitted =
+            super::admit_skirmish(&prepared.queries(&map, &candidates), &rules, &players).unwrap();
         let objectives = &admitted.sites.skirmish.unwrap().objectives;
         assert_eq!(objectives[1].center, [300.0, 500.0]);
         assert_eq!(objectives[2].center, [700.0, 500.0]);
     }
 
     #[test]
+    fn player_topology_enforces_the_larger_side_size_floor() {
+        let rules: contract::scenario::Rules =
+            serde_json::from_value(crate::fixtures::test_game()).unwrap();
+        let map: contract::map::MapDefinition = serde_json::from_str(
+            r#"{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        )
+        .unwrap();
+        let sites: contract::encounter::EncounterSites = serde_json::from_value(serde_json::json!({
+            "settlements": [], "approaches": [], "skirmish": {
+                "entries": [
+                    {"side":"blue","center":[500,990],"yaw":-1.57},
+                    {"side":"red","center":[500,10],"yaw":1.57}
+                ],
+                "objectives": [
+                    {"id":"hub","center":[500,500],"radius_m":50,"kind":"junction","counterpart":null},
+                    {"id":"north","center":[500,750],"radius_m":50,"kind":"field","counterpart":"south"},
+                    {"id":"south","center":[500,250],"radius_m":50,"kind":"field","counterpart":"north"}
+                ]
+            }
+        })).unwrap();
+        let prepared = crate::encounter::PreparedMap::new(&map, &rules);
+        let players: Vec<contract::players::Player> = serde_json::from_value(serde_json::json!([
+            {"id":"blue-1","side":"blue","faction":"us","controller":"active_ai"},
+            {"id":"blue-2","side":"blue","faction":"us","controller":"active_ai"},
+            {"id":"blue-3","side":"blue","faction":"us","controller":"active_ai"},
+            {"id":"blue-4","side":"blue","faction":"us","controller":"active_ai"},
+            {"id":"blue-5","side":"blue","faction":"us","controller":"active_ai"},
+            {"id":"red-1","side":"red","faction":"eastern","controller":"active_ai"}
+        ]))
+        .unwrap();
+        let error =
+            super::admit_skirmish(&prepared.queries(&map, &sites), &rules, &players).unwrap_err();
+        assert!(error.contains("too small"), "{error}");
+    }
+
+    #[test]
     fn unequal_objective_routes_are_refused() {
+        let players = Vec::new();
         let rules: contract::scenario::Rules =
             serde_json::from_value(crate::fixtures::test_game()).unwrap();
         let map: contract::map::MapDefinition = serde_json::from_str(
@@ -538,7 +593,7 @@ mod skirmish_tests {
             }
         })).unwrap();
         let prepared = crate::encounter::PreparedMap::new(&map, &rules);
-        let result = super::admit_skirmish(&prepared.queries(&map, &sites), &rules);
+        let result = super::admit_skirmish(&prepared.queries(&map, &sites), &rules, &players);
         assert!(result.unwrap_err().contains("travel"));
     }
 }

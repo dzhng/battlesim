@@ -138,6 +138,54 @@ const isText = (v: unknown): v is string => typeof v === "string";
 const isFilled = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 const stem = (file: string) => file.replace(/\.[^.]+$/, "");
 
+/** Provenance: a real image names its page and author under a licence we may
+ *  redistribute; a generated one is ours, labelled, and says how it was made. */
+function checkProvenance(
+  entry: ReferenceEntry,
+  label: string,
+  files: Set<string | undefined>,
+  generatedFiles: Set<string | undefined>,
+  error: (code: ReferenceCode, message: string) => void,
+) {
+  if (entry.source === "generated") {
+    if (entry.licence !== GENERATED_LICENCE)
+      error(
+        "references.licence",
+        `${label} is generated, so its licence is "${GENERATED_LICENCE}", not ${JSON.stringify(entry.licence)}`,
+      );
+    const lacks = [
+      !isFilled(entry.model) && "model",
+      !isFilled(entry.prompt) && "prompt",
+      !(Array.isArray(entry.inputs) && entry.inputs.length && entry.inputs.every(isFilled)) &&
+        "inputs",
+      !Number.isInteger(entry.seed) && "seed",
+    ].filter(Boolean);
+    if (lacks.length)
+      error("references.generated", `${label} is generated but lacks ${lacks.join(", ")}`);
+    for (const input of Array.isArray(entry.inputs) ? entry.inputs : [])
+      if (isFilled(input) && (!files.has(input) || generatedFiles.has(input)))
+        error(
+          "references.generated",
+          `${label} is generated from ${input}, which is not a real reference in this library`,
+        );
+    if (!stem(entry.file).endsWith("-generated"))
+      error(
+        "references.generated",
+        `${label} is generated but its name lacks the -generated suffix`,
+      );
+  } else {
+    if (!allowedLicence(entry.licence))
+      error(
+        "references.licence",
+        `${label} licence ${JSON.stringify(entry.licence)} is none of ${REFERENCE_LICENCES.join(", ")} or a country port of one`,
+      );
+    const lacks = (["page", "author"] as const).filter((k) => !isFilled(entry[k]));
+    if (lacks.length) error("references.entry", `${label} lacks ${lacks.join(", ")}`);
+    if (stem(entry.file).endsWith("-generated"))
+      error("references.generated", `${label} is a ${entry.source} named as generated`);
+  }
+}
+
 /** Every way `text`, the references.json of `family`, breaks the library's
  *  contract. `read` gives a file of the family's folder by name, or null if
  *  it is not there. An LFS pointer is judged by its oid, which is the sha256
@@ -205,47 +253,8 @@ export async function checkReferences(
       );
       continue;
     }
+    checkProvenance(entry, label, files, generatedFiles, error);
     const isGenerated = entry.source === "generated";
-
-    // Provenance: a real image names its page and author under a licence we
-    // may redistribute; a generated one is ours, labelled, and says how it was made.
-    if (isGenerated) {
-      if (entry.licence !== GENERATED_LICENCE)
-        error(
-          "references.licence",
-          `${label} is generated, so its licence is "${GENERATED_LICENCE}", not ${JSON.stringify(entry.licence)}`,
-        );
-      const lacks = [
-        !isFilled(entry.model) && "model",
-        !isFilled(entry.prompt) && "prompt",
-        !(Array.isArray(entry.inputs) && entry.inputs.length && entry.inputs.every(isFilled)) &&
-          "inputs",
-        !Number.isInteger(entry.seed) && "seed",
-      ].filter(Boolean);
-      if (lacks.length)
-        error("references.generated", `${label} is generated but lacks ${lacks.join(", ")}`);
-      for (const input of Array.isArray(entry.inputs) ? entry.inputs : [])
-        if (isFilled(input) && (!files.has(input) || generatedFiles.has(input)))
-          error(
-            "references.generated",
-            `${label} is generated from ${input}, which is not a real reference in this library`,
-          );
-      if (!stem(entry.file).endsWith("-generated"))
-        error(
-          "references.generated",
-          `${label} is generated but its name lacks the -generated suffix`,
-        );
-    } else {
-      if (!allowedLicence(entry.licence))
-        error(
-          "references.licence",
-          `${label} licence ${JSON.stringify(entry.licence)} is none of ${REFERENCE_LICENCES.join(", ")} or a country port of one`,
-        );
-      const lacks = (["page", "author"] as const).filter((k) => !isFilled(entry[k]));
-      if (lacks.length) error("references.entry", `${label} lacks ${lacks.join(", ")}`);
-      if (stem(entry.file).endsWith("-generated"))
-        error("references.generated", `${label} is a ${entry.source} named as generated`);
-    }
     if (REFERENCE_VIEWS.includes(entry.view)) {
       const key = `${entry.variant}\u0000${entry.view}`;
       shown.set(key, (shown.get(key) ?? false) || !isGenerated);

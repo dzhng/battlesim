@@ -14,6 +14,6 @@
   },
   "admission": {
     "max_generated_attempts": 5,
-    "generated_deadline_ms": 8000
+    "generated_deadline_ms": 30000
   }
 }

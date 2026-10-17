@@ -188,18 +188,18 @@
   min-height: 58px;
   resize: vertical;
 }
-.scenario-builder-slots {
+.scenario-builder-players {
   display: grid;
   gap: 6px;
 }
-.scenario-builder-slot {
+.scenario-builder-player {
   display: grid;
   min-width: 0;
   grid-template-columns: 7px minmax(0, 1fr);
   gap: 7px;
   align-items: start;
 }
-.scenario-builder-slot > i {
+.scenario-builder-player > i {
   display: block;
   width: 7px;
   height: 7px;
@@ -207,10 +207,10 @@
   border-radius: 50%;
   background: rgb(var(--hud-dim));
 }
-.scenario-builder-slot[data-side="blue"] > i {
+.scenario-builder-player[data-side="blue"] > i {
   background: rgb(85 158 255);
 }
-.scenario-builder-slot[data-side="red"] > i {
+.scenario-builder-player[data-side="red"] > i {
   background: rgb(239 91 91);
 }
 .scenario-builder-actions {

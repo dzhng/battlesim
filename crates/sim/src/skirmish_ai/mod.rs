@@ -23,6 +23,26 @@ pub trait SkirmishPolicy {
     ) -> Vec<Order>;
 }
 
+/// A policy's view of one player. The simulation remains side-observing, while
+/// economy and own-unit queries are narrowed to the player's ownership.
+#[derive(Clone, Copy)]
+pub struct PlayerLens<'a> {
+    pub frame: &'a ObservationFrame,
+    pub me: contract::players::PlayerIndex,
+}
+
+impl<'a> PlayerLens<'a> {
+    pub fn own(&'a self) -> impl Iterator<Item = &'a contract::observation::OwnUnit> + 'a {
+        self.frame
+            .own
+            .iter()
+            .filter(move |unit| unit.owner == Some(self.me))
+    }
+    pub fn economy(&self) -> Option<&'a contract::skirmish::SkirmishView> {
+        self.frame.skirmish.as_ref()
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Doctrine {
     #[default]
@@ -460,7 +480,7 @@ impl BalancedDoctrine {
         // ready at once and the player's own readiness starts the battle.
         let purchases: Vec<TypeIndex> = if view.phase == Phase::Preparation {
             let mut credits = view.credits;
-            let mut slots = view.occupied_slots;
+            let mut slots = view.unit_count;
             let mut needed = BTreeMap::new();
             desired
                 .iter()
@@ -477,7 +497,7 @@ impl BalancedDoctrine {
                     buy
                 })
                 .collect()
-        } else if view.occupied_slots < view.max_units {
+        } else if view.unit_count < view.max_units {
             let purchase = {
                 let truck = pick(Some("logistics"), Category::Sup, 0);
                 if truck.is_some()

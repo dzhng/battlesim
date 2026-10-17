@@ -18,7 +18,16 @@ test("faction preparation fields both factions on the admitted sites", async () 
         limits: { max_authored_parts: 10, max_bay_positions: 10, max_ground_points: 10 },
       },
     },
-    factions: ["europe", "eastern"],
+    players: [
+      { id: "blue-1", side: "blue", faction: "europe", controller: "human", human_capable: true },
+      {
+        id: "red-1",
+        side: "red",
+        faction: "eastern",
+        controller: "active_ai",
+        human_capable: false,
+      },
+    ],
     battle_seed: 1,
   };
   const map = { size: [1800, 1800], relief: [], props: [], surfaces: [], forests: [], bridges: [] };
@@ -33,17 +42,19 @@ test("faction preparation fields both factions on the admitted sites", async () 
   const module = {
     check_prepare_request: (json: string) =>
       JSON.stringify({ status: "ok", request: JSON.parse(json) }),
+    check_scenario_player_contract: () => JSON.stringify({ status: "ok" }),
     generate_map: () =>
       JSON.stringify({ status: "ok", result: { map, identity: { seed: "1" }, report: {}, sites } }),
     PreparedWorld: class {
       admit_skirmish() {
         return JSON.stringify({ sites: selected, journeys: [] });
       }
-      skirmish_fields(sitesJson: string, factionsJson: string) {
-        fieldInputs = [JSON.parse(sitesJson), JSON.parse(factionsJson)];
+      skirmish_fields(sitesJson: string, playersJson: string) {
+        fieldInputs = [JSON.parse(sitesJson), JSON.parse(playersJson)];
         return JSON.stringify({
           units: [],
-          skirmish: { sites: JSON.parse(sitesJson).skirmish, factions: JSON.parse(factionsJson) },
+          players: JSON.parse(playersJson),
+          skirmish: { sites: JSON.parse(sitesJson).skirmish },
         });
       }
       extents() {
@@ -62,10 +73,11 @@ test("faction preparation fields both factions on the admitted sites", async () 
     templates: "[]",
   });
   try {
-    expect(fieldInputs).toEqual([selected, ["europe", "eastern"]]);
+    expect(fieldInputs).toEqual([selected, request.players]);
     expect(JSON.parse(prepared.scenario)).toMatchObject({
       units: [],
-      skirmish: { factions: ["europe", "eastern"], sites: selected.skirmish },
+      players: request.players,
+      skirmish: { sites: selected.skirmish },
     });
     // The camera starts at the admitted base, not the generator's.
     expect(prepared.report.start).toEqual({ at: [825, 1790], yaw: -1.4 });

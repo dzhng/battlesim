@@ -28,6 +28,7 @@ use contract::observation::{
     LeanSide, MemberLean, MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus,
     ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SuppressionTier, WeaponPose,
 };
+use contract::players::ControllerKind;
 use contract::scenario::CoverTier;
 
 use crate::battle::Battle;
@@ -168,7 +169,7 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 45] = [
+const HEADER: [&str; 41] = [
     "tick",
     "ownCount",
     "identifiedCount",
@@ -199,12 +200,8 @@ const HEADER: [&str; 45] = [
     "groundRunCount",
     "fallenBodyCount",
     "skirmishPhase",
-    "readyBlue",
-    "readyRed",
+    "playersCount",
     "preparationRemainingS",
-    "credits",
-    "occupiedSlots",
-    "maxUnits",
     "pendingCount",
     "reportTotalsCount",
     "reportEventCount",
@@ -225,9 +222,10 @@ const OBJECTIVE_FIELDS: [&str; 8] = [
     "captureProgress",
     "contested",
 ];
-const PENDING_FIELDS: [&str; 10] = [
+const PENDING_FIELDS: [&str; 11] = [
     "idLo",
     "idHi",
+    "owner",
     "kind",
     "x",
     "y",
@@ -299,7 +297,7 @@ const SHOUT_FIELDS: [&str; 9] = [
     "intensity",
 ];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
-const REPORT_EVENT_FIELDS: [&str; 13] = [
+const REPORT_EVENT_FIELDS: [&str; 15] = [
     "tickLo",
     "tickHi",
     "kind",
@@ -307,12 +305,23 @@ const REPORT_EVENT_FIELDS: [&str; 13] = [
     "unitIdLo",
     "unitIdHi",
     "unitKind",
+    "owner",
     "otherSide",
     "otherIdLo",
     "otherIdHi",
     "otherKind",
+    "otherOwner",
     "amount",
     "otherAmount",
+];
+const PLAYER_FIELDS: [&str; 7] = [
+    "index",
+    "id",
+    "controller",
+    "ready",
+    "credits",
+    "unitCount",
+    "cap",
 ];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
     "kind",
@@ -336,8 +345,9 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 53] = [
+const OWN_FIELDS: [&str; 54] = [
     "id",
+    "owner",
     "kind",
     "x",
     "y",
@@ -511,6 +521,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     rows("objectives", "objectiveCount", &OBJECTIVE_FIELDS),
     rows("crashes", "crashCount", &CRASH_FIELDS),
     rows("shouts", "shoutCount", &SHOUT_FIELDS),
+    rows("players", "playersCount", &PLAYER_FIELDS),
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -603,6 +614,24 @@ pub fn layout_json(battle: &Battle) -> String {
             serde_json::json!({ "name": g.name, "count": g.count, "fields": g.fields, "sections": sections })
         })
         .collect();
+    let mut player_ids = battle
+        .observe(Side::Blue)
+        .skirmish
+        .as_ref()
+        .into_iter()
+        .flat_map(|s| s.players.iter().map(|p| (p.index.0, p.id.clone())))
+        .chain(
+            battle
+                .observe(Side::Red)
+                .skirmish
+                .as_ref()
+                .into_iter()
+                .flat_map(|s| s.players.iter().map(|p| (p.index.0, p.id.clone()))),
+        )
+        .collect::<Vec<_>>();
+    player_ids.sort_by_key(|(index, _)| *index);
+    player_ids.dedup_by_key(|(index, _)| *index);
+    let player_ids: Vec<_> = player_ids.into_iter().map(|(_, id)| id).collect();
     serde_json::json!({
         "header": HEADER.as_slice(),
         "groups": groups,
@@ -643,6 +672,8 @@ pub fn layout_json(battle: &Battle) -> String {
         "roundKinds": round_kinds,
         "hitKinds": names(&SEGMENT_HITS),
         "unitKinds": battle.rules().catalog.ids(),
+        "playerIds": player_ids,
+        "controllers": names(&[ControllerKind::Human, ControllerKind::ActiveAi, ControllerKind::PassiveAi]),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
         "directions": names(&DIRECTIONS),
@@ -981,25 +1012,14 @@ fn pack_record(
         frame
             .skirmish
             .as_ref()
-            .map_or(0.0, |s| s.ready[0] as u8 as f32),
-        frame
-            .skirmish
-            .as_ref()
-            .map_or(0.0, |s| s.ready[1] as u8 as f32),
+            .map_or(0.0, |s| s.players.len() as f32),
         frame
             .skirmish
             .as_ref()
             .map_or(0.0, |s| s.preparation_remaining_s as f32),
-        frame.skirmish.as_ref().map_or(0.0, |s| s.credits as f32),
-        frame
-            .skirmish
-            .as_ref()
-            .map_or(0.0, |s| s.occupied_slots as f32),
-        frame.skirmish.as_ref().map_or(0.0, |s| s.max_units as f32),
-        frame
-            .skirmish
-            .as_ref()
-            .map_or(0.0, |s| s.pending.len() as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| {
+            s.players.iter().map(|p| p.pending.len()).sum::<usize>() as f32
+        }),
         frame.skirmish.as_ref().map_or(0.0, |s| {
             s.report.as_ref().map_or(0, |r| r.totals.len()) as f32
         }),
@@ -1028,6 +1048,7 @@ fn pack_record(
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
+            u.owner.map_or(-1.0, |p| f32::from(p.0)),
             u.kind.0 as f32,
             u.position[0] as f32,
             u.position[1] as f32,
@@ -1364,39 +1385,42 @@ fn pack_record(
         ends.push(out.len());
     }
     if let Some(skirmish) = &frame.skirmish {
-        for p in &skirmish.pending {
-            let [lo, hi] = limbs(p.id.0);
-            let [tick_lo, tick_hi] = limbs(
-                p.confirmed_tick
-                    .try_into()
-                    .map_err(|_| "purchase tick exceeds publication range")?,
-            );
-            // An aircraft's arrival tick, 0 for a purchase that doesn't wait.
-            let [arrival_lo, arrival_hi] = limbs(
-                p.arrival_tick
-                    .unwrap_or(0)
-                    .try_into()
-                    .map_err(|_| "arrival tick exceeds publication range")?,
-            );
-            out.extend([
-                lo,
-                hi,
-                p.kind.0 as f32,
-                p.destination[0] as f32,
-                p.destination[1] as f32,
-                tick_lo,
-                tick_hi,
-                p.blocked as u8 as f32,
-                arrival_lo,
-                arrival_hi,
-            ]);
+        for player in &skirmish.players {
+            for p in &player.pending {
+                let [lo, hi] = limbs(p.id.0);
+                let [tick_lo, tick_hi] = limbs(
+                    p.confirmed_tick
+                        .try_into()
+                        .map_err(|_| "purchase tick exceeds publication range")?,
+                );
+                // An aircraft's arrival tick, 0 for a purchase that doesn't wait.
+                let [arrival_lo, arrival_hi] = limbs(
+                    p.arrival_tick
+                        .unwrap_or(0)
+                        .try_into()
+                        .map_err(|_| "arrival tick exceeds publication range")?,
+                );
+                out.extend([
+                    lo,
+                    hi,
+                    f32::from(player.index.0),
+                    p.kind.0 as f32,
+                    p.destination[0] as f32,
+                    p.destination[1] as f32,
+                    tick_lo,
+                    tick_hi,
+                    p.blocked as u8 as f32,
+                    arrival_lo,
+                    arrival_hi,
+                ]);
+            }
         }
     }
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
     if let Some(report) = frame.skirmish.as_ref().and_then(|s| s.report.as_ref()) {
-        for totals in report.totals {
+        for totals in &report.totals {
             out.extend([
                 totals.spawned as f32,
                 totals.spent as f32,
@@ -1438,10 +1462,17 @@ fn pack_record(
                     .map_err(|_| "report tick exceeds publication range")?,
             );
             let [id_lo, id_hi] = limbs(unit.id.0);
-            let (other_side, other_id_lo, other_id_hi, other_kind) =
-                other.map_or((-1.0, -1.0, -1.0, -1.0), |u| {
+            let owner = unit.owner.map_or(-1.0, |p| f32::from(p.0));
+            let (other_side, other_id_lo, other_id_hi, other_kind, other_owner) =
+                other.map_or((-1.0, -1.0, -1.0, -1.0, -1.0), |u| {
                     let [lo, hi] = limbs(u.id.0);
-                    (u.side.index() as f32, lo, hi, u.kind.0 as f32)
+                    (
+                        u.side.index() as f32,
+                        lo,
+                        hi,
+                        u.kind.0 as f32,
+                        u.owner.map_or(-1.0, |p| f32::from(p.0)),
+                    )
                 });
             out.extend([
                 tick_lo,
@@ -1451,10 +1482,12 @@ fn pack_record(
                 id_lo,
                 id_hi,
                 unit.kind.0 as f32,
+                owner,
                 other_side,
                 other_id_lo,
                 other_id_hi,
                 other_kind,
+                other_owner,
                 amount,
                 other_amount,
             ]);
@@ -1516,6 +1549,33 @@ fn pack_record(
             tag(&INTENSITIES, &s.intensity),
         ]);
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    if let Some(skirmish) = &frame.skirmish {
+        for player in &skirmish.players {
+            out.extend([
+                f32::from(player.index.0),
+                // The browser resolves this index through the layout's playerIds table.
+                player.index.0 as f32,
+                tag(
+                    &[
+                        ControllerKind::Human,
+                        ControllerKind::ActiveAi,
+                        ControllerKind::PassiveAi,
+                    ],
+                    &player.controller,
+                ),
+                player.ready as u8 as f32,
+                player.credits as f32,
+                player.unit_count as f32,
+                player.cap as f32,
+            ]);
+        }
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1524,9 +1584,6 @@ fn pack_record(
             value
         }
     };
-    if let Some(ends) = ends.as_mut() {
-        ends.push(out.len());
-    }
     if patch.full {
         for i in 0..words {
             out.extend(limbs(word(i)));
@@ -1576,8 +1633,14 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
         Ok(())
     };
     add(
-        frame.skirmish.as_ref().map_or(0, |s| s.pending.len()),
+        frame.skirmish.as_ref().map_or(0, |s| {
+            s.players.iter().map(|p| p.pending.len()).sum::<usize>()
+        }),
         PENDING_FIELDS.len(),
+    )?;
+    add(
+        frame.skirmish.as_ref().map_or(0, |s| s.players.len()),
+        PLAYER_FIELDS.len(),
     )?;
     add(
         frame
@@ -1967,7 +2030,7 @@ fn write_group_operations(
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 17;
+pub const GROUPS: usize = 18;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.

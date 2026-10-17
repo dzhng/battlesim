@@ -35,8 +35,8 @@ export interface ScenarioBundlePreparationReport {
   start: { at: [number, number]; yaw: number };
   town: [number, number] | null;
   assets: { id: string; media_type: string; bytes_base64: string }[];
-  human_capable_slots: string[];
-  active_human_slot: string | null;
+  human_capable_players: string[];
+  active_human_player: string | null;
   active_human_side: SideName | null;
 }
 
@@ -68,18 +68,19 @@ export function prepareScenarioBundle(
     start: ScenarioBundlePreparationReport["start"];
     town: [number, number] | null;
     assets: ScenarioBundlePreparationReport["assets"];
-    human_capable_slots: string[];
+    human_capable_players: string[];
   };
   if (details.identity.sha256 !== identity.sha256)
     throw new Error("bundle identity changed during admission");
   const envelope = JSON.parse(canonical) as {
-    slots?: { id: string; side: SideName; human_capable?: boolean }[];
+    scenario?: { players?: { id: string; side: SideName; human_capable?: boolean }[] };
   };
+  const players = envelope.scenario?.players;
   const active =
     activeHuman === null
       ? null
-      : (envelope.slots?.find((slot) => slot.id === activeHuman && slot.human_capable) ??
-        envelope.slots?.find((slot) => slot.human_capable) ??
+      : (players?.find((player) => player.id === activeHuman && player.human_capable) ??
+        players?.find((player) => player.human_capable) ??
         null);
   const scenario = JSON.parse(details.scenario) as {
     units?: { owner?: string; position: [number, number]; yaw: number }[];
@@ -98,8 +99,8 @@ export function prepareScenarioBundle(
       start: activeUnit ? { at: activeUnit.position, yaw: activeUnit.yaw } : details.start,
       town: details.town,
       assets: details.assets,
-      human_capable_slots: details.human_capable_slots,
-      active_human_slot: active?.id ?? null,
+      human_capable_players: details.human_capable_players,
+      active_human_player: active?.id ?? null,
       active_human_side: active?.side ?? null,
     },
     world: wasm.PreparedWorld.from_bundle(canonical),

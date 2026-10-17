@@ -18,6 +18,8 @@ export interface AdmissionInputs {
   candidate(seed: string): PrepareBattleRequest;
   documents: PrepareDocuments;
   policy: AdmissionPolicy;
+  /** Ask each candidate's worker for the lobby picture (`PrepareMessage.preview`). */
+  preview?: boolean;
   onRequest?(request: PrepareBattleRequest): void;
 }
 export interface AdmissionAttempt {
@@ -28,7 +30,7 @@ export interface AdmissionAttempt {
 export interface Admission extends Preparation {
   readonly attempts: readonly AdmissionAttempt[];
 }
-interface AdmissionEdges {
+export interface AdmissionEdges {
   seed(): string;
   prepare: typeof prepareBattle;
   schedule(run: () => void, ms: number): () => void;
@@ -101,7 +103,15 @@ export function admitBattle(
       input.onRequest?.(request);
       current = null;
       try {
-        current = run.prepare({ type: "prepare", request, documents: input.documents }, stage);
+        current = run.prepare(
+          {
+            type: "prepare",
+            request,
+            documents: input.documents,
+            ...(input.preview && { preview: true }),
+          },
+          stage,
+        );
         const battle = await Promise.race([current.battle, deadline]);
         if (cancelled) return new Promise(() => {});
         if (battle === null) {

@@ -75,6 +75,7 @@ import {
   sideInstances,
   type DrawnInstances,
 } from "./sideInstances";
+import { commandingPlayer } from "./commandingPlayer";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
@@ -140,8 +141,8 @@ export interface BattleSessionOptions {
   scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
-  /** Player slot issuing orders in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing orders in a player-owned scenario. */
+  player?: string;
   /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
@@ -168,6 +169,7 @@ export interface ScenarioRules extends PanelRules, RulerRules {
   air: AirLayers;
 }
 
+// eslint-disable-next-line complexity -- debt: lifecycle, observation, input and presentation share 19 refs; split needs those refs grouped by concern first, so each concern can become its own hook.
 export function useBattleSession({
   scenario,
   seed,
@@ -175,7 +177,7 @@ export function useBattleSession({
   replay,
   scripted,
   side = "blue",
-  slot,
+  player,
   sound = false,
   inputEnabled = true,
   xray = true,
@@ -186,11 +188,12 @@ export function useBattleSession({
   const catalog = useSessionCatalog();
   // The session draws, reads and loads its own catalog's units; a scenario
   // fielding a unit the catalog lacks is refused by name, not left undrawn.
-  const { map, rules, rulesText, skirmish, units, fielded } = useMemo(() => {
+  const { map, rules, rulesText, skirmish, units, fielded, players } = useMemo(() => {
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
-      skirmish?: { factions: [Faction, Faction] };
+      players?: { id: string; side: SideName; faction?: Faction; controller: string }[];
+      skirmish?: object;
       units?: { kind: string }[];
     };
     return {
@@ -199,6 +202,7 @@ export function useBattleSession({
       rulesText: JSON.stringify(parsed.rules),
       units: admitScenario(parsed, catalog),
       fielded: (parsed.units ?? []).map((u) => u.kind),
+      players: parsed.players ?? [],
     };
   }, [scenario, catalog]);
   const world = useStaticWorld(map, rules);
@@ -234,11 +238,13 @@ export function useBattleSession({
     replay,
     scripted,
     prepared,
-    slot,
+    player: commandingPlayer(players, side, player),
     side,
   });
   presentationRef.current = sim.client?.presentation ?? null;
-  const faction = skirmish ? skirmish.factions[side === "blue" ? 0 : 1] : null;
+  const sideFaction = (which: SideName) =>
+    players.find((player) => player.side === which)?.faction ?? null;
+  const faction = sideFaction(side);
   /** The chosen reinforcement must be requested before the cursor asks the
    *  presentation to draw its ghost.  Keep this in React state so the art
    *  request advances on the same render as the picker choice. */
@@ -256,14 +262,21 @@ export function useBattleSession({
     if (purchasing) kinds.add(purchasing);
     for (const unit of observation?.own ?? []) kinds.add(unit.kind);
     for (const unit of observation?.identified ?? []) kinds.add(unit.kind);
-    for (const pending of observation?.skirmish?.pending ?? []) kinds.add(pending.kind);
+    for (const pending of observation?.skirmish?.players.flatMap((player) => player.pending) ?? [])
+      kinds.add(pending.kind);
     return [...kinds].sort().join("\0");
   }, [fielded, observation, purchasing]);
   const requestedKinds = useMemo(
     () => (requestedKindKey ? requestedKindKey.split("\0") : []),
     [requestedKindKey],
   );
-  const factionsForArt = useMemo(() => (skirmish ? new Set(skirmish.factions) : null), [skirmish]);
+  const factionsForArt = useMemo(
+    () =>
+      skirmish
+        ? new Set(players.flatMap((player) => (player.faction ? [player.faction] : [])))
+        : null,
+    [skirmish, players],
+  );
   const sceneryForArt = useMemo(() => {
     if (!scenarioArt) return undefined;
     const candidate = map as { props?: unknown[]; forests?: unknown[] } | null;
@@ -276,7 +289,7 @@ export function useBattleSession({
   // requested kinds still scope the simulation's descriptions and voices;
   // the renderer's unit art is resident for the complete catalog.
   // Outside a skirmish the factions are unknown, so shouts are silent.
-  const enemy = skirmish ? skirmish.factions[side === "blue" ? 1 : 0] : null;
+  const enemy = skirmish ? sideFaction(side === "blue" ? "red" : "blue") : null;
   useEffect(() => {
     if (!audio || !faction || !enemy) return;
     const rows = units.ids.map((id) => ({ id, factions: units.type(id).roster?.factions ?? [] }));
@@ -512,7 +525,9 @@ export function useBattleSession({
   // catalog is loaded: its units and effects, which Rust resolves from the
   // files the page reads. Another fielded kind loads again, the last battle
   // drawn meanwhile; another scenario or side draws none until its own.
-  const factions = skirmish?.factions;
+  const factions = skirmish
+    ? ([sideFaction("blue")!, sideFaction("red")!] as [string, string])
+    : undefined;
   const presentation = sim.client?.presentation ?? null;
   const artLoaded = appearances !== null;
   const [fieldedFor, setFielded] = useState<{
@@ -558,7 +573,11 @@ export function useBattleSession({
   const [placedGhostList] = useState(() =>
     byReference(
       (match: ObservationView["skirmish"]): UnitGhost[] =>
-        (match?.phase === "preparation" ? match.pending : []).map((pending) => {
+        (match?.phase === "preparation"
+          ? ((match.players.find((candidate) => candidate.id === player) ?? match.players[0])
+              ?.pending ?? [])
+          : []
+        ).map((pending) => {
           const [x, y] = pending.destination;
           const placed = placedGhosts.current.find(
             (g) =>
@@ -774,6 +793,7 @@ export function useBattleSession({
       version: semanticRevision.current.version + 1,
     };
   }
+  // eslint-disable-next-line complexity -- debt: purchase placement, held-drag intent, pending-order marks and ruler all read the same closure refs; the purchase-ghost branch could leave first, but the rest needs a pure intent resolver that returns marks instead of writing refs.
   const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
     // The battle as the last frame drew it: the picks and drawn positions
     // below are that frame's, so its units and tick are too. Nothing drawn
@@ -1161,7 +1181,7 @@ export function useBattleSession({
     control,
     purchase: skirmish
       ? {
-          faction: skirmish.factions[side === "blue" ? 0 : 1],
+          faction: faction!,
           cards: units.cards,
           placing: purchasing,
           choose: choosePurchase,

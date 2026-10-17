@@ -151,25 +151,8 @@ function record(value: unknown, where: string): Record<string, unknown> {
 function finite(value: unknown, low: number, high: number): boolean {
   return typeof value === "number" && Number.isFinite(value) && value >= low && value <= high;
 }
-export function validateSoundCatalog(value: unknown): SoundCatalog {
-  const root = record(value, "sound catalog");
-  const sections = [
-    "sources",
-    "provenance",
-    "clips",
-    "sounds",
-    "defaults",
-    "impacts",
-    "effects",
-    "music",
-  ];
-  for (const section of sections) {
-    if (section === "provenance" && root[section] === undefined) continue;
-    record(root[section], section);
-  }
-  const unknown = Object.keys(root).find((key) => !sections.includes(key));
-  if (unknown) throw new Error(`sound catalog: unknown section ${unknown}`);
-  const catalog = value as SoundCatalog;
+
+function validateSources(catalog: SoundCatalog) {
   for (const [name, source] of Object.entries(catalog.sources)) {
     record(source, `source ${name}`);
     if (
@@ -191,6 +174,9 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
     )
       throw new Error(`source ${name}: invalid provenance`);
   }
+}
+
+function validateProvenance(catalog: SoundCatalog) {
   for (const [name, source] of Object.entries(catalog.provenance ?? {})) {
     record(source, `provenance ${name}`);
     const frames = source.source_frames;
@@ -223,6 +209,9 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
     )
       throw new Error(`provenance ${name}: invalid source receipt`);
   }
+}
+
+function validateClips(catalog: SoundCatalog) {
   const roles = ["shot", "launch", "impact", "explosion", "loop", "reload", "mechanical", "other"];
   const crop = (c: SourceCrop) =>
     Object.hasOwn(catalog.sources, c.source) &&
@@ -283,6 +272,9 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
     )
       throw new Error(`clip ${name}: invalid burst`);
   }
+}
+
+function validateSounds(catalog: SoundCatalog) {
   for (const [name, sound] of Object.entries(catalog.sounds)) {
     record(sound, `sound ${name}`);
     if (
@@ -307,6 +299,9 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
     )
       throw new Error(`sound ${name}: loop mismatch`);
   }
+}
+
+function validateRouting(catalog: SoundCatalog) {
   const firing = (choice: ShotChoice, where: string) => {
     record(choice, where);
     if (!finite(choice.gain, 0, 2)) throw new Error(`${where}: invalid firing gain`);
@@ -340,6 +335,9 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
     )
       throw new Error(`effect ${slot}: unknown sound or loop mismatch`);
   }
+}
+
+function validateMusic(catalog: SoundCatalog) {
   const { moods, tracks } = catalog.music;
   record(tracks, "music tracks");
   for (const [name, track] of Object.entries(tracks)) {
@@ -360,6 +358,33 @@ export function validateSoundCatalog(value: unknown): SoundCatalog {
   for (const mood of MOODS)
     if (!Array.isArray(moods[mood]) || moods[mood].some((t) => !Object.hasOwn(tracks, t)))
       throw new Error(`music mood ${mood}: missing or unknown track`);
+}
+
+export function validateSoundCatalog(value: unknown): SoundCatalog {
+  const root = record(value, "sound catalog");
+  const sections = [
+    "sources",
+    "provenance",
+    "clips",
+    "sounds",
+    "defaults",
+    "impacts",
+    "effects",
+    "music",
+  ];
+  for (const section of sections) {
+    if (section === "provenance" && root[section] === undefined) continue;
+    record(root[section], section);
+  }
+  const unknown = Object.keys(root).find((key) => !sections.includes(key));
+  if (unknown) throw new Error(`sound catalog: unknown section ${unknown}`);
+  const catalog = value as SoundCatalog;
+  validateSources(catalog);
+  validateProvenance(catalog);
+  validateClips(catalog);
+  validateSounds(catalog);
+  validateRouting(catalog);
+  validateMusic(catalog);
   return catalog;
 }
 
