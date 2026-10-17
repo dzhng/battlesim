@@ -498,6 +498,57 @@ fn a_squad_boards_a_stopped_carrier_and_leaves_the_field() {
 }
 
 #[test]
+fn an_attacker_whose_infantry_all_ride_is_not_defeated() {
+    // An unarmed carrier, so the riding squad is the attacker's only weapon.
+    let mut game = crate::common::game();
+    game["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"units": {
+            "test_unarmed_carrier": {
+                "extends": "test_supply", "name": "Unarmed Carrier",
+                "capabilities": {"carriage": {"seats": 8}}
+            }
+        }}));
+    let mut def = setup(json!([
+        {"side":"blue","kind":"test_unarmed_carrier","position":[200,200]},
+        {"side":"blue","kind":"test_rifle","position":[195,200]},
+        {"side":"red","kind":"test_rifle","position":[600,200]}
+    ]));
+    def.rules = serde_json::from_value(game).unwrap();
+    def.encounter = Some(contract::scenario::EncounterRules {
+        attacker: Side::Blue,
+        success_zone_center: [600.0, 200.0],
+        success_zone_radius_m: 20.0,
+        hold_s: 30.0,
+        max_assessment_s: 600.0,
+    });
+    let mut battle = Battle::new(&def, 7);
+    assert!(battle
+        .accept(command(
+            1,
+            Order::Board {
+                units: vec![UnitId(1)],
+                carrier: UnitId(0),
+                gesture: 1
+            }
+        ))
+        .error
+        .is_none());
+    let boarded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        !battle.unit(UnitId(1)).unwrap().on_field()
+    });
+    assert!(boarded, "the squad never boarded the unarmed carrier");
+    battle.step();
+    assert_eq!(
+        battle.encounter().map(|status| status.result),
+        Some(contract::observation::EncounterResult::Running),
+        "a riding squad is still the attacker's fighting strength"
+    );
+}
+
+#[test]
 fn a_squad_walks_to_a_distant_carrier_and_boards_it() {
     // The squad can never stand on the carrier's centre (the hull is in the
     // way), so its walk has to end where the hold's reach admits it.
