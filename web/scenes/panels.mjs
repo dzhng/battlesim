@@ -248,235 +248,9 @@ async function sheet(ctx, page, file) {
   await page.setViewportSize({ width: 1500, height: 900 });
 }
 
-export async function run(ctx) {
-  const page = await ctx.newPage({ viewport: { width: 1500, height: 900 } });
-  for (const scale of [1, 1.5, 2]) {
-    await ctx.openLab(page, ctx.urlFor({ scale }));
-    await page.evaluate(() => document.fonts.ready);
-    const c = await offCentre(page);
-    ctx.check(
-      `at ${scale}×: every row's icon, and every timer's ring, sits at its slot's centre (within 0.5 px)`,
-      c.marks > 50 && c.worst <= 0.5 && c.rings > 5 && c.worstRing <= 0.5,
-      JSON.stringify(c),
-    );
-    const line = await rowCentres(page);
-    ctx.check(
-      `at ${scale}×: every row's icon, words, counts and pips share one centre line (within 0.5 px)`,
-      line.rows > 50 && line.spread <= 0.5,
-      JSON.stringify(line),
-    );
-    const named = await markedNames(page);
-    ctx.check(
-      `at ${scale}×: a marked name's mark and word stand in its rows' icon and word columns (within 0.5 px)`,
-      named.names > 5 && named.mark <= 0.5 && named.word <= 0.5,
-      JSON.stringify(named),
-    );
-  }
-  // The rest reads the page at 2×, its last zoom, which the sheet shoots.
-  const titledIcon = page.locator(".ro-icon[title]").first();
-  ctx.check(
-    "informative panel icons retain hover hit testing",
-    (await titledIcon.evaluate((e) => getComputedStyle(e).pointerEvents)) !== "none",
-  );
-  const shown = await panels(page);
-  const untitled = shown.filter((p) => !p.name || !p.firstIsName);
-  ctx.check(
-    "every panel is titled with its unit's name, first",
-    shown.length > 60 && untitled.length === 0,
-    JSON.stringify({ panels: shown.length, untitled: untitled.map((p) => p.id) }),
-  );
-  const order = shown.filter((p) => p.sections.join() !== [...p.sections].sort().reverse().join());
-  ctx.check(
-    "weapons come before states on every panel",
-    order.length === 0,
-    JSON.stringify(order.map((p) => p.id)),
-  );
-  const ammo = shown.flatMap((p) => p.ammo);
-  ctx.check(
-    "unlimited ammunition is the drawn ∞, never a font glyph",
-    ammo.some((a) => a.ammo.includes("∞")) &&
-      ammo.every((a) => a.drawnInfinity === a.ammo.includes("∞") && !a.textInfinity),
-    JSON.stringify(ammo.filter((a) => a.textInfinity || a.drawnInfinity !== a.ammo.includes("∞"))),
-  );
-  const ringless = await page.evaluate(
-    () =>
-      [...document.querySelectorAll(".ro-row")].filter((r) => {
-        const timing =
-          (r.dataset.aim ?? "") !== "" ||
-          (r.dataset.reload ?? "") !== "" ||
-          (r.dataset.cooldown ?? "") !== "" ||
-          (r.dataset.progress ?? "") !== "";
-        return timing !== !!r.querySelector(".ro-ring");
-      }).length,
-  );
-  ctx.check(
-    "a ring shows round a row's icon exactly while its timer runs",
-    ringless === 0,
-    String(ringless),
-  );
-  const progressRings = await page.evaluate(() =>
-    [...document.querySelectorAll(".ro-ring")].map((ring) => ({
-      circles: ring.querySelectorAll(".ro-track").length,
-      arcs: ring.querySelectorAll(".ro-arc").length,
-      // Waiting (a reload, a cooldown) is dashed; aiming and progress solid.
-      dashed: ring.classList.contains("ro-reload") || ring.classList.contains("ro-cooldown"),
-      radius: ring.querySelector(".ro-track")?.getAttribute("r"),
-      dash: getComputedStyle(ring.querySelector(".ro-arc")).strokeDasharray,
-    })),
-  );
-  ctx.check(
-    "every progress display uses one radius; aiming is solid, reloading and cooling dashed",
-    progressRings.length > 0 &&
-      progressRings.every((r) => r.circles === 1 && r.arcs === 1) &&
-      new Set(progressRings.map((r) => r.radius)).size === 1 &&
-      progressRings.every((r) => (r.dashed ? r.dash !== "none" : r.dash === "none")),
-    JSON.stringify(progressRings),
-  );
-  const warm = await warmInOwn(page);
-  ctx.check("no own panel draws amber outside a warning", warm.length === 0, warm.join(" | "));
-  // A panel's counts read down one column: each weapon row's colon starts
-  // where the others' do, whatever the length of its name or its counts.
-  const colons = await page.evaluate(() =>
-    [...document.querySelectorAll(".ro-body:not([data-zoom='far']) .ro-weapons")]
-      .map((section) =>
-        [...section.querySelectorAll(":scope > .ro-weapon .ro-count-separator")].map(
-          (c) => c.getBoundingClientRect().left,
-        ),
-      )
-      .filter((xs) => xs.length > 1)
-      .map((xs) => Math.max(...xs) - Math.min(...xs)),
-  );
-  ctx.check(
-    "every panel's counts start in one column (colons within 0.5 px)",
-    colons.length > 5 && Math.max(...colons) <= 0.5,
-    JSON.stringify({ panels: colons.length, worst: Math.max(...colons) }),
-  );
-  // Within a row, items keep apart: the counts' last digit from the amount
-  // pips, a warning badge or guidance mark from the weapon's name.
-  const crowded = await page.evaluate(() => {
-    const out = [];
-    const gap = (a, b) => b.getBoundingClientRect().left - a.getBoundingClientRect().right;
-    for (const row of document.querySelectorAll(".ro-body:not([data-zoom='far']) .ro-weapon")) {
-      if (row.getClientRects().length === 0) continue;
-      const kinds = row.querySelector(":scope > .ro-kinds");
-      const pips = row.querySelector(":scope > .ro-pips:not(.ro-pips-none)");
-      const word = row.querySelector(":scope > .ro-word");
-      const mark = row.querySelector(":scope > :is(.ro-badge, .ro-guide)");
-      const at = row.closest("[data-specimen]")?.dataset.specimen;
-      if (kinds && pips && gap(kinds, pips) < 4) out.push(`${at}: pips ${gap(kinds, pips)}`);
-      if (word && mark && gap(word, mark) < 3) out.push(`${at}: mark ${gap(word, mark)}`);
-    }
-    return out;
-  });
-  ctx.check(
-    "no row crowds its pips against its counts, or its mark against its name",
-    crowded.length === 0,
-    crowded.slice(0, 6).join(" | "),
-  );
-  const farWeapons = await page
-    .locator('[data-specimen="far out/two launchers selected"]')
-    .evaluate((card) => {
-      const rows = [...card.querySelectorAll(".ro-weapon")];
-      return rows.map((r) => ({
-        name: r.querySelector(".ro-word").textContent,
-        visible: getComputedStyle(r.querySelector(".ro-word")).display !== "none",
-        y: r.getBoundingClientRect().top,
-      }));
-    });
-  ctx.check(
-    "far zoom retains separate named rows for identical weapon icons",
-    farWeapons.map((w) => w.name).join("|") === "RIFLE|ATGM 1|ATGM 2" &&
-      farWeapons.every((w) => w.visible) &&
-      farWeapons[1].y < farWeapons[2].y,
-    JSON.stringify(farWeapons),
-  );
-  // A weapon held for a blocked trajectory (a launcher with no clear launch
-  // path) keeps its row, in the full card and in the far card's compact
-  // line, and wears the blocked-shot mark in the warning colour. The far
-  // card is the battle's own attribute on the same panel.
-  const blocked = await page
-    .locator('[data-specimen="why it can\'t fire/blocked_trajectory"]')
-    .evaluate((card) => {
-      const body = card.querySelector(".ro-body");
-      // The warning colour as the page resolves it, read off a probe.
-      const probe = document.createElement("span");
-      probe.style.color = "rgb(var(--hud-warn))";
-      body.append(probe);
-      const warn = getComputedStyle(probe).color;
-      probe.remove();
-      const read = () =>
-        [...card.querySelectorAll('.ro-weapon[data-reason="blocked_trajectory"]')].map((row) => {
-          const badge = row.querySelector(":scope > .ro-badge");
-          const box = badge?.getBoundingClientRect();
-          return {
-            badge: !!badge && box.width > 0 && box.height > 0,
-            warn: !!badge && getComputedStyle(badge).color === warn,
-          };
-        });
-      const zoom = body.dataset.zoom;
-      const full = read();
-      body.dataset.zoom = "far";
-      const far = read();
-      body.dataset.zoom = zoom;
-      return { full, far, warn };
-    });
-  ctx.check(
-    "a blocked trajectory keeps its rows, full and far, with the blocked-shot mark in the warning colour",
-    [blocked.full, blocked.far].every(
-      (rows) => rows.length === 2 && rows.every((r) => r.badge && r.warn),
-    ),
-    JSON.stringify(blocked),
-  );
-  await sheet(ctx, page, "sheet.png");
-  for (const [id, file] of [
-    ["own states/hidden in foliage", "hidden-expanded.png"],
-    ["own states/hidden, compressed", "hidden-compact.png"],
-    ["key cases/two launchers, separate reloads", "twin-launchers.png"],
-    ["key cases/two launchers, enemy equipment", "twin-enemy.png"],
-    ["key cases/turret and hull HMG", "twin-hmg.png"],
-    ["far out/two launchers selected", "twin-far.png"],
-  ]) {
-    await page
-      .locator(`[data-specimen="${id}"]`)
-      .first()
-      .screenshot({ path: ctx.evidencePath(file) });
-  }
-  await page.locator(".pw-grass").screenshot({ path: ctx.evidencePath("over-grass.png") });
-  await page
-    .locator('.pw-grass [data-specimen="own, busiest/squad in a fight"]')
-    .screenshot({ path: ctx.evidencePath("rifle-and-grenade-progress.png") });
-  await page
-    .locator('[data-specimen="own weapons/aiming and reloading at once"]')
-    .screenshot({ path: ctx.evidencePath("aim-priority.png") });
-  await page
-    .locator('[data-specimen="own weapons/aim complete, reload continues"]')
-    .screenshot({ path: ctx.evidencePath("reload-after-aim.png") });
-  // The key cases alone, for a close look.
-  await page.evaluate(() =>
-    document.querySelectorAll(".pw > section:not(:first-of-type)").forEach((e) => e.remove()),
-  );
-  await sheet(ctx, page, "key-cases.png");
-  // Every panel specimen, as the game draws it at 1×: one approved picture
-  // per group of the workbench, its per-type groups on the fixed test units
-  // (the roster grows; its panels are the full sheet's to review). The
-  // viewport grows to the whole page, since `.pw` scrolls itself and a
-  // section below the fold would capture blank.
-  await ctx.openLab(page, ctx.urlFor({ units: "test" }));
-  await page.evaluate(() => document.fonts.ready);
-  const tall = await page.evaluate(() => document.querySelector(".pw").scrollHeight);
-  ctx.check("the test-unit sheet fits one capture", tall <= SHEET_PAGE_PX, String(tall));
-  await page.setViewportSize({ width: 1500, height: Math.min(tall, SHEET_PAGE_PX) });
-  for (const section of await page.locator(".pw > section").all()) {
-    const title = await section.locator("h2").textContent();
-    await ctx.matchBaseline(
-      section,
-      `panels-${title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")}`,
-    );
-  }
-  await page.setViewportSize({ width: 1500, height: 900 });
+/** The battle deck's every case at two widths, plain, hovered and focused:
+ *  its layout contract and its approved pictures. */
+async function checkBattleDeck(ctx, page) {
   await ctx.openLab(page, ctx.url);
   await page.getByRole("button", { name: "Review battle deck" }).click();
   for (const width of [1600, 1024]) {
@@ -729,5 +503,237 @@ export async function run(ctx) {
     );
     await ctx.matchBaseline(page, `army-${width}-focus-tooltip`);
   }
+}
+
+export async function run(ctx) {
+  const page = await ctx.newPage({ viewport: { width: 1500, height: 900 } });
+  for (const scale of [1, 1.5, 2]) {
+    await ctx.openLab(page, ctx.urlFor({ scale }));
+    await page.evaluate(() => document.fonts.ready);
+    const c = await offCentre(page);
+    ctx.check(
+      `at ${scale}×: every row's icon, and every timer's ring, sits at its slot's centre (within 0.5 px)`,
+      c.marks > 50 && c.worst <= 0.5 && c.rings > 5 && c.worstRing <= 0.5,
+      JSON.stringify(c),
+    );
+    const line = await rowCentres(page);
+    ctx.check(
+      `at ${scale}×: every row's icon, words, counts and pips share one centre line (within 0.5 px)`,
+      line.rows > 50 && line.spread <= 0.5,
+      JSON.stringify(line),
+    );
+    const named = await markedNames(page);
+    ctx.check(
+      `at ${scale}×: a marked name's mark and word stand in its rows' icon and word columns (within 0.5 px)`,
+      named.names > 5 && named.mark <= 0.5 && named.word <= 0.5,
+      JSON.stringify(named),
+    );
+  }
+  // The rest reads the page at 2×, its last zoom, which the sheet shoots.
+  const titledIcon = page.locator(".ro-icon[title]").first();
+  ctx.check(
+    "informative panel icons retain hover hit testing",
+    (await titledIcon.evaluate((e) => getComputedStyle(e).pointerEvents)) !== "none",
+  );
+  const shown = await panels(page);
+  const untitled = shown.filter((p) => !p.name || !p.firstIsName);
+  ctx.check(
+    "every panel is titled with its unit's name, first",
+    shown.length > 60 && untitled.length === 0,
+    JSON.stringify({ panels: shown.length, untitled: untitled.map((p) => p.id) }),
+  );
+  const order = shown.filter((p) => p.sections.join() !== [...p.sections].sort().reverse().join());
+  ctx.check(
+    "weapons come before states on every panel",
+    order.length === 0,
+    JSON.stringify(order.map((p) => p.id)),
+  );
+  const ammo = shown.flatMap((p) => p.ammo);
+  ctx.check(
+    "unlimited ammunition is the drawn ∞, never a font glyph",
+    ammo.some((a) => a.ammo.includes("∞")) &&
+      ammo.every((a) => a.drawnInfinity === a.ammo.includes("∞") && !a.textInfinity),
+    JSON.stringify(ammo.filter((a) => a.textInfinity || a.drawnInfinity !== a.ammo.includes("∞"))),
+  );
+  const ringless = await page.evaluate(
+    () =>
+      [...document.querySelectorAll(".ro-row")].filter((r) => {
+        const timing =
+          (r.dataset.aim ?? "") !== "" ||
+          (r.dataset.reload ?? "") !== "" ||
+          (r.dataset.cooldown ?? "") !== "" ||
+          (r.dataset.progress ?? "") !== "";
+        return timing !== !!r.querySelector(".ro-ring");
+      }).length,
+  );
+  ctx.check(
+    "a ring shows round a row's icon exactly while its timer runs",
+    ringless === 0,
+    String(ringless),
+  );
+  const progressRings = await page.evaluate(() =>
+    [...document.querySelectorAll(".ro-ring")].map((ring) => ({
+      circles: ring.querySelectorAll(".ro-track").length,
+      arcs: ring.querySelectorAll(".ro-arc").length,
+      // Waiting (a reload, a cooldown) is dashed; aiming and progress solid.
+      dashed: ring.classList.contains("ro-reload") || ring.classList.contains("ro-cooldown"),
+      radius: ring.querySelector(".ro-track")?.getAttribute("r"),
+      dash: getComputedStyle(ring.querySelector(".ro-arc")).strokeDasharray,
+    })),
+  );
+  ctx.check(
+    "every progress display uses one radius; aiming is solid, reloading and cooling dashed",
+    progressRings.length > 0 &&
+      progressRings.every((r) => r.circles === 1 && r.arcs === 1) &&
+      new Set(progressRings.map((r) => r.radius)).size === 1 &&
+      progressRings.every((r) => (r.dashed ? r.dash !== "none" : r.dash === "none")),
+    JSON.stringify(progressRings),
+  );
+  const warm = await warmInOwn(page);
+  ctx.check("no own panel draws amber outside a warning", warm.length === 0, warm.join(" | "));
+  // A panel's counts read down one column: each weapon row's colon starts
+  // where the others' do, whatever the length of its name or its counts.
+  const colons = await page.evaluate(() =>
+    [...document.querySelectorAll(".ro-body:not([data-zoom='far']) .ro-weapons")]
+      .map((section) =>
+        [...section.querySelectorAll(":scope > .ro-weapon .ro-count-separator")].map(
+          (c) => c.getBoundingClientRect().left,
+        ),
+      )
+      .filter((xs) => xs.length > 1)
+      .map((xs) => Math.max(...xs) - Math.min(...xs)),
+  );
+  ctx.check(
+    "every panel's counts start in one column (colons within 0.5 px)",
+    colons.length > 5 && Math.max(...colons) <= 0.5,
+    JSON.stringify({ panels: colons.length, worst: Math.max(...colons) }),
+  );
+  // Within a row, items keep apart: the counts' last digit from the amount
+  // pips, a warning badge or guidance mark from the weapon's name.
+  const crowded = await page.evaluate(() => {
+    const out = [];
+    const gap = (a, b) => b.getBoundingClientRect().left - a.getBoundingClientRect().right;
+    for (const row of document.querySelectorAll(".ro-body:not([data-zoom='far']) .ro-weapon")) {
+      if (row.getClientRects().length === 0) continue;
+      const kinds = row.querySelector(":scope > .ro-kinds");
+      const pips = row.querySelector(":scope > .ro-pips:not(.ro-pips-none)");
+      const word = row.querySelector(":scope > .ro-word");
+      const mark = row.querySelector(":scope > :is(.ro-badge, .ro-guide)");
+      const at = row.closest("[data-specimen]")?.dataset.specimen;
+      if (kinds && pips && gap(kinds, pips) < 4) out.push(`${at}: pips ${gap(kinds, pips)}`);
+      if (word && mark && gap(word, mark) < 3) out.push(`${at}: mark ${gap(word, mark)}`);
+    }
+    return out;
+  });
+  ctx.check(
+    "no row crowds its pips against its counts, or its mark against its name",
+    crowded.length === 0,
+    crowded.slice(0, 6).join(" | "),
+  );
+  const farWeapons = await page
+    .locator('[data-specimen="far out/two launchers selected"]')
+    .evaluate((card) => {
+      const rows = [...card.querySelectorAll(".ro-weapon")];
+      return rows.map((r) => ({
+        name: r.querySelector(".ro-word").textContent,
+        visible: getComputedStyle(r.querySelector(".ro-word")).display !== "none",
+        y: r.getBoundingClientRect().top,
+      }));
+    });
+  ctx.check(
+    "far zoom retains separate named rows for identical weapon icons",
+    farWeapons.map((w) => w.name).join("|") === "RIFLE|ATGM 1|ATGM 2" &&
+      farWeapons.every((w) => w.visible) &&
+      farWeapons[1].y < farWeapons[2].y,
+    JSON.stringify(farWeapons),
+  );
+  // A weapon held for a blocked trajectory (a launcher with no clear launch
+  // path) keeps its row, in the full card and in the far card's compact
+  // line, and wears the blocked-shot mark in the warning colour. The far
+  // card is the battle's own attribute on the same panel.
+  const blocked = await page
+    .locator('[data-specimen="why it can\'t fire/blocked_trajectory"]')
+    .evaluate((card) => {
+      const body = card.querySelector(".ro-body");
+      // The warning colour as the page resolves it, read off a probe.
+      const probe = document.createElement("span");
+      probe.style.color = "rgb(var(--hud-warn))";
+      body.append(probe);
+      const warn = getComputedStyle(probe).color;
+      probe.remove();
+      const read = () =>
+        [...card.querySelectorAll('.ro-weapon[data-reason="blocked_trajectory"]')].map((row) => {
+          const badge = row.querySelector(":scope > .ro-badge");
+          const box = badge?.getBoundingClientRect();
+          return {
+            badge: !!badge && box.width > 0 && box.height > 0,
+            warn: !!badge && getComputedStyle(badge).color === warn,
+          };
+        });
+      const zoom = body.dataset.zoom;
+      const full = read();
+      body.dataset.zoom = "far";
+      const far = read();
+      body.dataset.zoom = zoom;
+      return { full, far, warn };
+    });
+  ctx.check(
+    "a blocked trajectory keeps its rows, full and far, with the blocked-shot mark in the warning colour",
+    [blocked.full, blocked.far].every(
+      (rows) => rows.length === 2 && rows.every((r) => r.badge && r.warn),
+    ),
+    JSON.stringify(blocked),
+  );
+  await sheet(ctx, page, "sheet.png");
+  for (const [id, file] of [
+    ["own states/hidden in foliage", "hidden-expanded.png"],
+    ["own states/hidden, compressed", "hidden-compact.png"],
+    ["key cases/two launchers, separate reloads", "twin-launchers.png"],
+    ["key cases/two launchers, enemy equipment", "twin-enemy.png"],
+    ["key cases/turret and hull HMG", "twin-hmg.png"],
+    ["far out/two launchers selected", "twin-far.png"],
+  ]) {
+    await page
+      .locator(`[data-specimen="${id}"]`)
+      .first()
+      .screenshot({ path: ctx.evidencePath(file) });
+  }
+  await page.locator(".pw-grass").screenshot({ path: ctx.evidencePath("over-grass.png") });
+  await page
+    .locator('.pw-grass [data-specimen="own, busiest/squad in a fight"]')
+    .screenshot({ path: ctx.evidencePath("rifle-and-grenade-progress.png") });
+  await page
+    .locator('[data-specimen="own weapons/aiming and reloading at once"]')
+    .screenshot({ path: ctx.evidencePath("aim-priority.png") });
+  await page
+    .locator('[data-specimen="own weapons/aim complete, reload continues"]')
+    .screenshot({ path: ctx.evidencePath("reload-after-aim.png") });
+  // The key cases alone, for a close look.
+  await page.evaluate(() =>
+    document.querySelectorAll(".pw > section:not(:first-of-type)").forEach((e) => e.remove()),
+  );
+  await sheet(ctx, page, "key-cases.png");
+  // Every panel specimen, as the game draws it at 1×: one approved picture
+  // per group of the workbench, its per-type groups on the fixed test units
+  // (the roster grows; its panels are the full sheet's to review). The
+  // viewport grows to the whole page, since `.pw` scrolls itself and a
+  // section below the fold would capture blank.
+  await ctx.openLab(page, ctx.urlFor({ units: "test" }));
+  await page.evaluate(() => document.fonts.ready);
+  const tall = await page.evaluate(() => document.querySelector(".pw").scrollHeight);
+  ctx.check("the test-unit sheet fits one capture", tall <= SHEET_PAGE_PX, String(tall));
+  await page.setViewportSize({ width: 1500, height: Math.min(tall, SHEET_PAGE_PX) });
+  for (const section of await page.locator(".pw > section").all()) {
+    const title = await section.locator("h2").textContent();
+    await ctx.matchBaseline(
+      section,
+      `panels-${title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")}`,
+    );
+  }
+  await page.setViewportSize({ width: 1500, height: 900 });
+  await checkBattleDeck(ctx, page);
   await page.close();
 }
