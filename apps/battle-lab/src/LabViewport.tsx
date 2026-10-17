@@ -103,6 +103,13 @@ const NO_WALK = emptyBuildingWalkStats();
 /** A frame of a world no battle publishes into: no units, no selection. */
 const NO_UI: PresentedUi = { selected: [], xray: false, ghosts: [] };
 
+/** A one-shot ask from the page: put the orbit target on a ground point,
+ *  keeping the current angle and zoom. `token` changes for every new ask. */
+export interface CameraFocusRequest {
+  token: number;
+  target: readonly [number, number];
+}
+
 interface LabViewportProps {
   /** Resolved graphics profile; omitted keeps the authored High profile. */
   quality?: GraphicsQualityProfile;
@@ -145,6 +152,8 @@ interface LabViewportProps {
   initialCamera: Camera3DParams;
   /** Contacts the camera steps through, newest first; empty leaves N inert. */
   focusTargets?: readonly FocusTarget[];
+  /** A one-shot move to a ground point, keeping the current angle and zoom. */
+  cameraFocus?: CameraFocusRequest | null;
   /** Ground height under a world point: the camera target rides it. */
   groundAt?: (x: number, y: number) => number;
   /** Left/right click: the picked instance index (−1 for none) and the camera ray. */
@@ -438,6 +447,7 @@ export function LabViewport({
   instances = NO_INSTANCES,
   initialCamera,
   focusTargets,
+  cameraFocus,
   groundAt,
   onPick,
   leftDragAction = false,
@@ -541,6 +551,8 @@ export function LabViewport({
   const initialCameraRef = useRef(initialCamera);
   const focusTargetsRef = useRef(focusTargets);
   focusTargetsRef.current = focusTargets;
+  const cameraFocusRef = useRef(cameraFocus);
+  cameraFocusRef.current = cameraFocus;
   const groundAtRef = useRef(groundAt);
   groundAtRef.current = groundAt;
   useEffect(() => {
@@ -689,6 +701,19 @@ export function LabViewport({
     const pilot = pilotRef.current;
     /** The pilot gave the last frame its framing. */
     let piloted = pilot !== undefined;
+    /** The last requested camera move applied; -1 before any. */
+    let appliedFocus = -1;
+    /** Put the orbit target on a ground point, keeping angle and zoom. */
+    const centerOn = (target: readonly [number, number]) => {
+      place(
+        controller.place(asked, {
+          target,
+          distance: asked.distance,
+          yaw: asked.yaw,
+          pitch: asked.pitch,
+        }),
+      );
+    };
     /** Apply one intent to the pose asked for; the frame loop draws it. A
      *  piloted camera takes no input. */
     const steer = (intent: CameraIntent, dt: number) => {
@@ -706,14 +731,7 @@ export function LabViewport({
       const target = index < 0 ? undefined : targets[index];
       if (!target) return;
       focused = target;
-      place(
-        controller.place(asked, {
-          target: target.target,
-          distance: asked.distance,
-          yaw: asked.yaw,
-          pitch: asked.pitch,
-        }),
-      );
+      centerOn(target.target);
     };
     window.addEventListener(
       "keydown",
@@ -988,6 +1006,11 @@ export function LabViewport({
           }
           const framing = pilot?.pose(now) ?? null;
           piloted = framing !== null;
+          const focus = cameraFocusRef.current;
+          if (focus && focus.token !== appliedFocus) {
+            appliedFocus = focus.token;
+            if (!piloted && inputEnabledRef.current) centerOn(focus.target);
+          }
           steer({ held: keys.held, edge }, dt);
           const started = performance.now();
           if (framing) {
