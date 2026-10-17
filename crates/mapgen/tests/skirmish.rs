@@ -179,6 +179,68 @@ fn multi_entry_generation_lays_spaced_entries_on_joined_arms() {
 }
 
 #[test]
+fn three_entry_maps_put_flanks_on_opposite_sides_of_the_centre_exit() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let corpus: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/skirmish-corpus.json")).unwrap();
+    let generated_rows: Vec<_> = corpus["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|row| {
+            let map = row["map"].as_object()?;
+            let map_type = map["type"].as_str()?;
+            let size = map["size"].as_str()?;
+            (matches!(size, "large" | "xl")).then_some((map_type, size, row["seed"].as_u64()?))
+        })
+        .collect();
+    let cases = generated_rows
+        .into_iter()
+        .chain(["large", "xl"].into_iter().flat_map(|size| {
+            [
+                ("open", size, 1_u64),
+                ("mixed", size, 2),
+                ("metro", size, 3),
+            ]
+        }));
+    for (map_type, size, seed) in cases {
+        let mut request = request_with_entries(map_type, seed, catalogue.hash(), 3);
+        request["size"] = serde_json::json!(size);
+        let mapgen::CompileOutcome::Ok { result } = mapgen::generate_map(
+            &request.to_string(),
+            PRESETS,
+            TEMPLATES,
+            include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+        ) else {
+            continue;
+        };
+        let entries = &result.sites.skirmish.as_ref().unwrap().entries;
+        for side in [contract::ids::Side::Blue, contract::ids::Side::Red] {
+            let side_entries: Vec<_> = entries.iter().filter(|entry| entry.side == side).collect();
+            assert_eq!(side_entries.len(), 3, "{map_type} {size} seed {seed}");
+            let centre = side_entries[0];
+            let flank_sides: Vec<_> = side_entries
+                .iter()
+                .skip(1)
+                .map(|entry| entry.center[0].total_cmp(&centre.center[0]))
+                .collect();
+            assert!(
+                flank_sides.iter().any(|order| order.is_lt())
+                    && flank_sides.iter().any(|order| order.is_gt()),
+                "{map_type} {size} seed {seed} {side:?}: flanks {:?} around centre x={:.1}",
+                side_entries
+                    .iter()
+                    .map(|entry| entry.center[0])
+                    .collect::<Vec<_>>(),
+                centre.center[0]
+            );
+        }
+    }
+}
+
+#[test]
 fn every_skirmish_profile_accepts_three_entries_without_river_mouths() {
     let catalogue =
         contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())

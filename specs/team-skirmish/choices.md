@@ -185,18 +185,6 @@ Decisions the implementation made where the spec was silent, with a verdict on e
 | 08 | `mapPreviews` (`web/src/battle/prepare/preview.ts`) has the states idle, loading, retrying (with the attempt number), ready and failed. It counts retries from `admitBattle`'s `onRequest`, and on ready closes the winning worker with `Admission.cancel()`. | Sound. |
 | 08 | The lab route `/labs/map-picture` runs real previews with seeds counted from 1, two at a time, at a 576 px frame. A pairing below its size floor shows the real refusal. The lab sets its own deadline (90 s) and keeps the game's attempt count. | Provisional. In this browser an XL preparation took about 16 s, against the game's 8 s `generated_deadline_ms`. Every XL preview, and probably XL Play, would time out here. Slice 09 needs a decision on the deadline. |
 | 08 | The TypeScript `GenerationRequest` mirror gains an optional `entries_per_side`, and the lobby model exports `entriesPerSide(players)`. | Provisional until slice 06's request seam. |
-
-### Slice 04 admission sweep (2026-10-17)
-
-`cargo run --release -p mapgen --example entry_admission -- --seeds 30`. Generated maps only, at each pairing's floor size, with equal entries (D52). Admitted out of 30:
-
-| Type | 1v1 (S) | 2v2 (M) | 3v3 (L) | 5v5 (XL) |
-|---|---|---|---|---|
-| open | 29 | 28 | 22 | 23 |
-| mixed | 27 | 24 | 27 | 21 |
-| metro | 23 | 23 | 20 | 20 |
-
-Fairness is most of the refusals at every size, including 1v1, so this is the generator's own rate, not the arms'. The lowest cell is 67%, so a preview's 5 hidden attempts fail about 0.4% of the time. A metro 3v3 also had one river-mouth refusal.
 | 03 | The publication carries a `players` group (index, id, controller, ready, credits, unit count, cap), and pending purchases and own units carry their owner. The old header fields `readyBlue`, `readyRed`, `credits`, `unitCount` and `maxUnits` are gone, along with every fallback that read them. `SkirmishView.players` is required in TypeScript. | Sound. |
 | 03 | Adding the players group first shifted the `shouts` group's end boundary, so the decoder read payloads with the wrong counts. The writer was fixed. A presentation-crate test now decodes a 2v2 frame without a browser, and the capture fixtures were re-recorded from a second browser run taken after the fix. | Sound: found in my own verification of the full web suite. |
 | 03 | The market-town capture window is rebuilt by a kept `BLESS_PARITY`-gated test, `publication_reader::market_town_window_matches_a_fresh_stream_after_its_preamble`, which needs `PARITY_RUN=<browser run dir>`. It replays the deterministic menu battle to tick 1825 and publishes ticks 1825–1831 from a fresh publisher. | Sound: the next layout change re-runs this instead of building the window by hand. |
@@ -205,3 +193,17 @@ Fairness is most of the refusals at every size, including 1v1, so this is the ge
 | 05 | Each entry has its own dispatch clock, and players take turns at an entry; one blocked unit doesn't stall another entry or another player. | Sound. |
 | 08 | Review checkpoint: shots of 3v4 Large, 5v5 XL, 1v1 Small, the Direction 3 reference, loading, and the 3v4-on-Small refusal were opened for the user (non-blocking). With no reply, I accepted them on the evidence: the map reads at lobby size, and entries and objectives sit above the terrain, after five unprimed critique rounds. | Sound. The user can still change colours, the numbered objectives or the loading state. |
 | 08 | **Open: the XL preparation deadline.** In the browser an XL preparation took about 16 s, but `generated_deadline_ms` is 8 s for all attempts together. That was measured while two test suites loaded the machine, and natively it was about 4.2 s. The lab uses its own 90 s deadline. | OPEN until slice 09: measure XL prepare on a quiet machine, on this branch and on main, then set the deadline as a loose tripwire, per size if needed. If XL Play already times out on main, fix that in its own commit. |
+
+### Slice 04 admission sweep (2026-10-17; side-band fix rerun)
+
+`cargo run --release -p mapgen --example entry_admission -- --seeds 30`. Generated maps only, at each pairing's floor size, with equal entries (D52). Admitted out of 30:
+
+| Type | 1v1 (S) | 2v2 (M) | 3v3 (L) | 5v5 (XL) |
+|---|---|---|---|---|
+| open | 29 | 28 | 18 | 19 |
+| mixed | 27 | 25 | 19 | 17 |
+| metro | 23 | 23 | 19 | 19 |
+
+Rerun note: three-entry arms now choose opposite edge bands around the known centre exit; mirrored fractions, joins, spacing and river-mouth checks remain hard rules.
+
+Before the side-band fix, 3v3 and 5v5 were admitted 20–27 of 30; requiring one flank arm on each side of the centre costs about 3–10 of 30 there. The lowest cell is now 57%, so a preview's 5 hidden attempts fail about 1.5% of the time: accepted, because lanes across the whole front matter more (slice 12). Raising it is a later tuning target. Fairness is still most of the refusals.
