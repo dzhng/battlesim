@@ -177,3 +177,22 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **The orchestrator checked the seat table by hand** against D3; no test pins it.
 - **The skirmish parity records keep their frozen catalog text,** old descriptions included. They are test inputs; the digests didn't move.
 - **The purchase picker shows no seat count:** its cards have no capability line.
+
+## Slice 14
+- **One owner, `skirmish_ai/transport.rs`.** It picks a carrier by data: the fewest seats that fit the squad, then the cheapest, then id. Every roster squad is 2, 3, 6 or 8 strong, so the AI never buys a 16-seat helicopter as a taxi; there is no separate rule against it.
+- **Pairs are rebuilt at each decision, not stored.** A squad aboard, boarding or leaving a carrier belongs to it. A carrier already driving to a squad stays its ride, which stops the AI swapping squads between carriers.
+- **The carrier collects the squad (Collect)** rather than the squad walking back to it.
+- **Where it unloads:** short of the objective, out of reach of the enemies it has identified. With no enemy identified, that is 20% of the approach short (`unload_share`).
+- **Rides toward the fight:** a squad sent after a far-off identified enemy rides too. With objectives alone, only 4 of 14 squads ever rode.
+- **Empty carriers:** an armed one fights through the ordinary combat orders; an unarmed one waits. Pairing still claims an armed carrier first.
+- **The purchase rotation counts an armed carrier as a combat vehicle and never buys an unarmed one.** Only pairing buys unarmed carriers.
+- **New tuning** in `fixtures/skirmish-ai.json`: `unload_share` 0.2, `ride_min_m` 120 (shorter trips walk) and `reaim_m` 30. All three are first guesses.
+- **Played probe, seed 7, 360 s:**
+  - 17 carriers for 16 squads per side;
+  - Blue 30 collects and 51 unloads, Red 19 and 35;
+  - 14 empty armed carriers fought on each side;
+  - up to 5 squads aboard at once;
+  - no order refused.
+- **Risks:**
+  - An armed carrier in a fight breaks off to fetch a squad. The adjustment, if it looks wrong, is to prefer idle carriers.
+  - An in-place unload refused for lack of room is retried at every decision.
