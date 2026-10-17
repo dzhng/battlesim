@@ -1,6 +1,6 @@
 # Transport
 
-**Status:** in progress. 01–06 and 10 landed; 07 is reviewed on `t3/transport-unload`, and slice 08 (Codex) merges it (Codex, separate worktrees).
+**Status:** in progress. 01–08, 10 and 11 landed; 09 (helicopters) and 12 (voice packs) are in flight (Codex); 11b follows 09 (Codex, separate worktrees).
 **Updated:** 2026-10-16.
 
 Infantry squads ride in APCs, IFVs, light vehicles and helicopters. A carrier has 3, 8 or 16 seats. Squads board it in 1 s, ride hidden from the enemy, and get out on an explicit Unload order. When a carrier dies, its passengers bail out hurt, and some die. A building collapse now works the same way. The skirmish AI moves its infantry by transport.
@@ -33,11 +33,12 @@ Update this section, and tick the list, before you end each pass.
 - [x] [04](slices/04-bail-out.md) The bail-out library, applied to building collapse (named outcome change).
 - [x] [05](slices/05-recon-three.md) Recon patrols become 3 soldiers (named outcome change).
 - [x] [06](slices/06-boarding.md) The carriage capability, boarding from both directions, and "on the field". Opens the transport lab.
-- [ ] [07](slices/07-unload.md) Unloading at a point, in place and queued; refused with no room.
-- [ ] [08](slices/08-carrier-destroyed.md) A destroyed carrier bails out its passengers; refunds take passengers along.
+- [x] [07](slices/07-unload.md) Unloading at a point, in place and queued; refused with no room.
+- [x] [08](slices/08-carrier-destroyed.md) A destroyed carrier bails out its passengers; refunds take passengers along.
 - [ ] [09](slices/09-helicopters.md) Helicopters board and unload from the low hover; a downed helicopter keeps its passengers until impact.
 - [x] [10](slices/10-cards.md) The Seats row and passenger cards under their carrier.
-- [ ] [11](slices/11-controls.md) Right-click boarding, the board cursor, the Unload button and U key, the unload marker, refusal text.
+- [x] [11](slices/11-controls.md) Right-click boarding, the board cursor, the Unload button and U key, the unload marker, refusal text.
+- [ ] [11b](slices/11b-publish-unload-steps.md) The simulation publishes which queued step unloads; delete the browser's `unloadPoints.ts`. Captures are re-recorded once more.
 - [ ] [12](slices/12-voices.md) Spoken lines for boarding, unloading and the new refusal.
 - [ ] [13](slices/13-roster-seats.md) The roster's carriers get their seats.
 - [ ] [14](slices/14-skirmish-ai.md) The skirmish AI pairs transports with squads.
@@ -103,7 +104,7 @@ The interfaces between components, in their end state. Each slice says which par
   - Seats total comes from the catalog.
   - There is no separate passengers section; it would give the same fact two owners.
 - `IDENTIFIED_FIELDS` and the enemy card never change. The enemy learns of passengers only when they are on the field again.
-- The layout changes once, in slice 03. That slice re-records every capture, native's included (`fixtures/README.md:250`).
+- The layout changes in slice 03, and once more in slice 11b (unload steps). That slice re-records every capture, native's included (`fixtures/README.md:250`).
 
 ## Single-owner invariants
 
