@@ -5,7 +5,7 @@
 // caller's directory.
 import { resolve } from "node:path";
 
-const REPO_ROOT = new URL("../..", import.meta.url).pathname;
+export const REPO_ROOT = resolve(new URL("../..", import.meta.url).pathname);
 /** Output is 16:9 at one of these heights; 4K is out of scope. */
 export const HEIGHTS = [1080, 1440];
 

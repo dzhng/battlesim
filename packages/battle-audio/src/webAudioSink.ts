@@ -46,8 +46,6 @@ export class WebAudioSink implements VoiceSink {
   private readonly limiter: DynamicsCompressorNode;
   /** Hard clipper after limiter: true brickwall at -1 dBFS. */
   private readonly clipper: WaveShaperNode;
-  /** MediaStreamDestination for recording, lazily created. */
-  private captureDest: MediaStreamAudioDestinationNode | null = null;
 
   constructor(
     readonly context: BaseAudioContext,
@@ -258,7 +256,6 @@ export class WebAudioSink implements VoiceSink {
    * A borrowed bank belongs to the page and outlives this mixer. */
   dispose() {
     this.clear();
-    this.releaseCaptureTap();
     for (const node of this.graph) node.disconnect();
     this.graph.length = 0;
     if (this.ownsBank) this.bank.dispose();
@@ -267,34 +264,6 @@ export class WebAudioSink implements VoiceSink {
   /** Voices the graph holds now. */
   get live() {
     return this.sounding.size;
-  }
-
-  /** Create a MediaStream tap for recording the audio output.
-   *  Zero-cost when not called: the destination node is only created on demand.
-   *  Returns the MediaStream that can be passed to MediaRecorder.
-   *  Only works with a live AudioContext (not OfflineAudioContext). */
-  createCaptureTap(): MediaStream | null {
-    if (!(this.context instanceof AudioContext)) return null;
-    if (this.captureDest) return this.captureDest.stream;
-    this.captureDest = this.context.createMediaStreamDestination();
-    this.clipper.connect(this.captureDest);
-    return this.captureDest.stream;
-  }
-
-  /** Whether a capture tap is currently active. */
-  hasCaptureTap(): boolean {
-    return this.captureDest !== null;
-  }
-
-  /** Release the capture tap and disconnect it from the graph. */
-  releaseCaptureTap(): void {
-    if (!this.captureDest) return;
-    try {
-      this.clipper.disconnect(this.captureDest);
-    } catch {
-      // Already disconnected
-    }
-    this.captureDest = null;
   }
 }
 

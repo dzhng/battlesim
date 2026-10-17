@@ -47,10 +47,6 @@
   inset: 0;
   filter: grayscale(1) contrast(1.35) brightness(0.85);
 }
-/* In capture mode, disable the greyscale film so we get full-colour output. */
-.menu-backdrop-film.capture-mode {
-  filter: none;
-}
 /* Shade under the grade, so the edges darken in the same amber. */
 .menu-backdrop-film::after {
   content: "";
@@ -59,10 +55,6 @@
   background:
     radial-gradient(ellipse at 60% 50%, transparent 40%, rgb(0 0 0 / 0.65) 100%),
     linear-gradient(to right, rgb(0 0 0 / 0.55), transparent 50%);
-}
-/* Disable vignette in capture mode. */
-.menu-backdrop-film.capture-mode::after {
-  background: none;
 }
 .menu-backdrop-grade {
   position: absolute;
@@ -73,6 +65,17 @@
 .menu-backdrop-veil {
   position: absolute;
   inset: 0;
+}
+/* The capture route's stage: the battle in full colour under the renderer's
+   own grade, filling the viewport, and its cuts dipping to black as a film's
+   do, not to the menu's ground. */
+.capture-stage,
+.capture-stage-picture {
+  position: fixed;
+  inset: 0;
+}
+.capture-stage .menu-backdrop-veil {
+  background: #000;
 }
 /* With room beside it, the plate stands at the left and the battle plays
    across the rest of the screen. */

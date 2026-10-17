@@ -10,9 +10,6 @@ import {
   type SoundPublication,
   type SoundStats,
   type Speakers,
-  type VoiceSink,
-  type VoiceSpec,
-  type VoiceParams,
 } from "./soundFrame";
 
 /** A frame a script draws: its presentation time, what moves, and where it is heard. */
@@ -58,76 +55,6 @@ export interface BattleAudioStats extends SoundStats {
   error: string | null;
 }
 
-/** A recorded sound command for offline rendering. */
-export type RecordedSoundCommand =
-  | { type: "start"; id: number; spec: VoiceSpec; virtualTime: number }
-  | { type: "set"; id: number; params: VoiceParams; at: number; virtualTime: number }
-  | { type: "stop"; id: number; at: number; fade: number; virtualTime: number }
-  | { type: "listen"; listener: Listener; at: number; virtualTime: number };
-
-/** A recording sink that intercepts commands for offline rendering. */
-class RecordingSink implements VoiceSink {
-  private commands: RecordedSoundCommand[] = [];
-  private virtualTime = 0;
-
-  constructor(private readonly real: VoiceSink) {}
-
-  setVirtualTime(time: number) {
-    this.virtualTime = time;
-  }
-
-  getCommands(): RecordedSoundCommand[] {
-    return this.commands;
-  }
-
-  clearCommands() {
-    this.commands = [];
-  }
-
-  now(): number {
-    return this.virtualTime;
-  }
-
-  duration(sound: string, variant?: number): number {
-    return this.real.duration(sound, variant);
-  }
-
-  start(id: number, spec: VoiceSpec): void {
-    this.commands.push({ type: "start", id, spec: { ...spec }, virtualTime: this.virtualTime });
-    // Don't play real-time in recording mode - virtual time doesn't match wall time
-  }
-
-  set(id: number, params: VoiceParams, at: number): void {
-    this.commands.push({
-      type: "set",
-      id,
-      params: { ...params },
-      at,
-      virtualTime: this.virtualTime,
-    });
-  }
-
-  stop(id: number, at: number, fade: number): void {
-    this.commands.push({ type: "stop", id, at, fade, virtualTime: this.virtualTime });
-  }
-
-  listen(listener: Listener, at: number): void {
-    this.commands.push({
-      type: "listen",
-      listener: {
-        position: [...listener.position] as [number, number, number],
-        forward: [...listener.forward] as [number, number, number],
-      },
-      at,
-      virtualTime: this.virtualTime,
-    });
-  }
-
-  clear(): void {
-    // Don't clear real sink in recording mode
-  }
-}
-
 /** One battle's observed causes. The page owns context and prepared buffers;
  * this observer owns its evidence and disposable mixer, including reverb tails. */
 export class BattleAudio {
@@ -141,10 +68,6 @@ export class BattleAudio {
   private ready = false;
   private error: string | null = null;
   private disposed = false;
-  /** Recording sink for deterministic capture. */
-  private recordingSink: RecordingSink | null = null;
-  /** Whether recording mode is active. */
-  private recording = false;
 
   constructor(
     private readonly options: SoundFrameOptions,
@@ -253,34 +176,10 @@ export class BattleAudio {
     const lines = voices?.hear(frame);
     this.app.battleHeard(this, lines?.heard ?? [], voices?.speaking() ?? false);
   }
-  /** Hear the battle's last frame from an explicit listener position. Use when
-   *  the drawn camera differs from the presentation's stored camera (e.g. a
-   *  capture pilot following a unit). */
-  updateWithListener(presentation: Presentation, listener: Listener) {
-    const frame = this.live;
-    if (!frame) return;
-    const wall = performance.now() / 1000;
-    frame.hearAt(presentation, wall, listener);
-    const voices = this.voices;
-    const lines = voices?.hear(frame);
-    this.app.battleHeard(this, lines?.heard ?? [], voices?.speaking() ?? false);
-  }
   reset() {
     this.frame?.reset();
     this.voices?.reset();
   }
-  /** Get the audio output latency in seconds (outputLatency + baseLatency).
-   *  Returns 0 if context is not an AudioContext or latency is not available. */
-  getOutputLatency(): number {
-    const ctx = this.sink?.context;
-    if (!ctx || !(ctx instanceof AudioContext)) return 0;
-    // outputLatency: time from audio being rendered to reaching the speakers
-    // baseLatency: time from when audio enters the system to when it's rendered
-    const output = ctx.outputLatency ?? 0;
-    const base = ctx.baseLatency ?? 0;
-    return output + base;
-  }
-
   setVolume(volume: number, voices = 1) {
     if (!this.sink) return;
     const at = this.sink.now();
@@ -305,254 +204,6 @@ export class BattleAudio {
       loading: !this.ready && this.error === null,
       error: this.error,
     };
-  }
-
-  /** Create a MediaStream tap for recording the battle's audio output.
-   *  Zero-cost when not called: the destination node is only created on demand.
-   *  Returns the MediaStream that can be passed to MediaRecorder, or null
-   *  if audio is not ready yet. */
-  createCaptureTap(): MediaStream | null {
-    return this.sink?.createCaptureTap() ?? null;
-  }
-
-  /** Release the capture tap when recording is done. */
-  releaseCaptureTap(): void {
-    this.sink?.releaseCaptureTap();
-  }
-
-  /** Enable recording mode for deterministic capture.
-   *  In this mode, sounds are not played in real-time but recorded for offline rendering.
-   *  Call setVirtualTime() before each audio update to set the current virtual time. */
-  enableRecording(): void {
-    if (!this.sink) return;
-    this.recording = true;
-    this.recordingSink = new RecordingSink(this.sink);
-    // Replace the frame's sink with the recording sink
-    if (this.frame) {
-      this.frame = new SoundFrame(this.options, this.recordingSink);
-      this.frame.reset();
-    }
-  }
-
-  /** Disable recording mode and return to real-time audio. */
-  disableRecording(): void {
-    if (!this.sink || !this.recording) return;
-    this.recording = false;
-    // Restore the real sink
-    if (this.frame) {
-      this.frame = new SoundFrame(this.options, this.sink);
-      this.frame.reset();
-    }
-    this.recordingSink = null;
-  }
-
-  /** Set the current virtual time for recording mode (seconds). */
-  setVirtualTime(time: number): void {
-    this.recordingSink?.setVirtualTime(time);
-  }
-
-  /** Get all recorded sound commands (for offline rendering). */
-  getRecordedCommands(): RecordedSoundCommand[] {
-    return this.recordingSink?.getCommands() ?? [];
-  }
-
-  /** Clear recorded commands. */
-  clearRecordedCommands(): void {
-    this.recordingSink?.clearCommands();
-  }
-
-  /** Whether recording mode is active. */
-  isRecording(): boolean {
-    return this.recording;
-  }
-
-  /** Get the sound bank for offline rendering. */
-  getBank(): SoundBank | null {
-    return this.sink?.bank ?? null;
-  }
-
-  /** Get the audio presentation options for offline rendering. */
-  getPresentation(): SoundFrameOptions["presentation"] {
-    return this.options.presentation;
-  }
-
-  /** Get the sound catalog for offline rendering. */
-  getCatalog(): SoundFrameOptions["catalog"] {
-    return this.options.catalog;
-  }
-
-  /** Render recorded commands offline and return as WAV blob.
-   *  This creates an OfflineAudioContext, replays all recorded commands,
-   *  and renders them through the same audio graph (buses → master → clipper). */
-  async renderOffline(durationS: number, sampleRate = 48000): Promise<Blob | null> {
-    const commands = this.getRecordedCommands();
-    if (commands.length === 0) return null;
-
-    console.log(
-      `[audio] Rendering ${commands.length} commands offline for ${durationS.toFixed(2)}s`,
-    );
-
-    // Create offline context
-    const channelCount = 2;
-    const length = Math.ceil(durationS * sampleRate);
-    const offline = new OfflineAudioContext(channelCount, length, sampleRate);
-
-    // Create a new WebAudioSink connected to the offline context
-    const offlineSink = new WebAudioSink(offline, this.options.presentation, this.options.catalog);
-
-    // Collect all unique sounds used in the commands
-    const soundsUsed = new Set<string>();
-    for (const cmd of commands) {
-      if (cmd.type === "start") {
-        soundsUsed.add(cmd.spec.sound);
-      }
-    }
-
-    // Prepare the bank with sounds used in the commands
-    console.log(`[audio] Preparing ${soundsUsed.size} sounds for offline rendering`);
-    await offlineSink.bank.prepare([...soundsUsed]);
-
-    // Replay all commands through the offline sink
-    console.log(`[audio] Replaying ${commands.length} commands`);
-    for (const cmd of commands) {
-      switch (cmd.type) {
-        case "start":
-          offlineSink.start(cmd.id, cmd.spec);
-          break;
-        case "set":
-          offlineSink.set(cmd.id, cmd.params, cmd.at);
-          break;
-        case "stop":
-          offlineSink.stop(cmd.id, cmd.at, cmd.fade);
-          break;
-        case "listen":
-          offlineSink.listen(cmd.listener, cmd.at);
-          break;
-      }
-    }
-
-    // Render offline
-    console.log(`[audio] Rendering offline...`);
-    const rendered = await offline.startRendering();
-    console.log(`[audio] Rendered ${rendered.length} samples`);
-
-    // Convert to WAV blob
-    const wavBlob = this.audioBufferToWav(rendered);
-
-    // Clean up
-    offlineSink.dispose();
-
-    return wavBlob;
-  }
-
-  /** Convert an AudioBuffer to a WAV file blob. */
-  private audioBufferToWav(buffer: AudioBuffer): Blob {
-    const numChannels = buffer.numberOfChannels;
-    const sampleRate = buffer.sampleRate;
-    const format = 1; // PCM
-    const bitDepth = 16;
-    const bytesPerSample = bitDepth / 8;
-    const blockAlign = numChannels * bytesPerSample;
-
-    // Interleave channels
-    const samples = buffer.length;
-    const dataLength = samples * blockAlign;
-    const bufferLength = 44 + dataLength;
-    const arrayBuffer = new ArrayBuffer(bufferLength);
-    const view = new DataView(arrayBuffer);
-
-    // WAV header
-    let offset = 0;
-    const writeString = (str: string) => {
-      for (let i = 0; i < str.length; i++) {
-        view.setUint8(offset++, str.charCodeAt(i));
-      }
-    };
-    const writeUint32 = (value: number) => {
-      view.setUint32(offset, value, true);
-      offset += 4;
-    };
-    const writeUint16 = (value: number) => {
-      view.setUint16(offset, value, true);
-      offset += 2;
-    };
-
-    writeString("RIFF");
-    writeUint32(bufferLength - 8);
-    writeString("WAVE");
-    writeString("fmt ");
-    writeUint32(16); // fmt chunk size
-    writeUint16(format);
-    writeUint16(numChannels);
-    writeUint32(sampleRate);
-    writeUint32(sampleRate * blockAlign);
-    writeUint16(blockAlign);
-    writeUint16(bitDepth);
-    writeString("data");
-    writeUint32(dataLength);
-
-    // Interleaved samples
-    const channels: Float32Array[] = [];
-    for (let ch = 0; ch < numChannels; ch++) {
-      channels.push(buffer.getChannelData(ch));
-    }
-
-    for (let i = 0; i < samples; i++) {
-      for (let ch = 0; ch < numChannels; ch++) {
-        const sample = Math.max(-1, Math.min(1, channels[ch][i]));
-        const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
-        view.setInt16(offset, intSample, true);
-        offset += 2;
-      }
-    }
-
-    return new Blob([arrayBuffer], { type: "audio/wav" });
-  }
-
-  /** Play a calibration click through the same audio graph as battle sounds.
-   *  Used to measure the exact audio pipeline latency by comparing the click's
-   *  timestamp in the recorded audio against a simultaneous visual marker.
-   *  The click is 20ms long at 2kHz with a sharp attack for easy transient detection.
-   *  Returns false if audio is not ready. */
-  playCalibrationClick(): boolean {
-    const ctx = this.sink?.context;
-    if (!ctx || !(ctx instanceof AudioContext)) return false;
-
-    // Create a loud, sharp click: 20ms of 2kHz sine at full amplitude
-    const sampleRate = ctx.sampleRate;
-    const duration = 0.02; // 20ms - long enough to detect reliably
-    const samples = Math.ceil(sampleRate * duration);
-    const buffer = ctx.createBuffer(1, samples, sampleRate);
-    const data = buffer.getChannelData(0);
-
-    // Generate a sharp impulse with instant attack, quick decay
-    // First 1ms at full amplitude, then exponential decay
-    const attackSamples = Math.ceil(sampleRate * 0.001); // 1ms attack
-    for (let i = 0; i < samples; i++) {
-      const t = i / sampleRate;
-      const freq = 2000; // 2kHz for sharp transient
-      let envelope: number;
-      if (i < attackSamples) {
-        // Instant attack to full amplitude
-        envelope = 1.0;
-      } else {
-        // Exponential decay over remaining time
-        const decayT = (i - attackSamples) / (samples - attackSamples);
-        envelope = Math.exp(-3 * decayT); // decay to ~5% by end
-      }
-      data[i] = Math.sin(2 * Math.PI * freq * t) * envelope;
-    }
-
-    // Create a gain node for extra loudness (the click should be unmistakable)
-    const gain = ctx.createGain();
-    gain.gain.value = 2.0; // +6dB boost
-
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(gain);
-    gain.connect(this.sink!.master);
-    source.start();
-    return true;
   }
   dispose() {
     if (this.disposed) return;

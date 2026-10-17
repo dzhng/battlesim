@@ -6,6 +6,7 @@ import { planCapture } from "./capture/plan.mjs";
 import { transcodeArgs } from "./capture/transcode.mjs";
 import { CROSSFADE_S, joinArgs, joinOffsets } from "./capture/join.mjs";
 import { buildReport, frameStats } from "./capture/report.mjs";
+import { CaptureError, recordingVerdict, recordTimeoutMs } from "./capture/recording.mjs";
 
 test("capture args: defaults, 16:9 width from height, flags, and refusals by name", () => {
   const plain = parseCaptureArgs(["--", "fixtures/captures/menu.json"], { root: "/repo" });
@@ -72,11 +73,18 @@ test("capture plan: one recording job per scene, a join only for several scenes"
   expect(plan.joined).toBe("/out/trailer.mp4");
   expect(plan.report).toBe("/out/trailer.report.json");
 
-  const single = planCapture({ scenes: [scene([3])] }, parseCaptureArgs(["one.json"]));
+  const single = planCapture(
+    { scenes: [scene([3])] },
+    parseCaptureArgs(["fixtures/captures/one.json"]),
+  );
   expect(single.jobs[0].url).toContain("cards=1");
   expect(single.joined).toBeNull();
 
   expect(() => planCapture({ scenes: [] }, args)).toThrow(/no scenes/);
+  // The route loads captures by name from fixtures/captures/ only.
+  expect(() => planCapture({ scenes: [scene([3])] }, parseCaptureArgs(["one.json"]))).toThrow(
+    /fixtures\/captures/,
+  );
 });
 
 /** The value that follows `flag` in an ffmpeg argv. */
@@ -167,4 +175,24 @@ test("frame stats: average fps and the worst gap from recorded frame times", () 
   expect(stats.avgFps).toBeCloseTo(59, 5);
   expect(stats.worstGapMs).toBeCloseTo(1000 / 30, 5);
   expect(frameStats([0])).toEqual({ avgFps: 0, worstGapMs: 0 });
+});
+
+test("recording verdict: a hang, a failure or a silent recording fails by name", () => {
+  const timeoutMs = recordTimeoutMs(10);
+  expect(timeoutMs).toBeGreaterThan(10_000);
+  const verdict = (result, bytes) => recordingVerdict({ scene: 1, result, bytes, timeoutMs });
+  const ok = { frames: 600, worstGapMs: 35, seconds: 10, audio: true };
+  expect(verdict(ok, 1000)).toBe(ok);
+
+  const named = (error) => error instanceof CaptureError && `${error.name}: ${error.message}`;
+  // Nothing arrived: the capture never started, which is what a prompt looks like.
+  expect(named(verdict(undefined, 0))).toMatch(
+    /^TabCaptureNotStarted: scene 1: .*--auto-accept-this-tab-capture/,
+  );
+  expect(named(verdict(undefined, 5))).toMatch(/^TabCaptureTimeout: scene 1/);
+  expect(named(verdict({ error: "no-audio-track: x" }, 0))).toBe(
+    "TabCaptureFailed: scene 1: no-audio-track: x",
+  );
+  expect(named(verdict({ ...ok, audio: false }, 1000))).toMatch(/^TabCaptureNoAudio/);
+  expect(named(verdict(ok, 0))).toMatch(/^TabCaptureEmpty/);
 });

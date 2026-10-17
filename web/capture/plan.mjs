@@ -2,14 +2,22 @@
 //
 // The capture's TypeScript validator owns its shape; this only reads what the
 // runner needs (scene count, shot lengths) and refuses an empty scene list.
-import { basename, join } from "node:path";
+// The route loads a capture by name from fixtures/captures/, so a file
+// anywhere else is refused rather than filmed from a namesake.
+import { basename, dirname, join } from "node:path";
+import { REPO_ROOT } from "./args.mjs";
+
+const CAPTURES = "fixtures/captures";
 
 /** Return `{name, jobs, joined, report}`. Each job is
  * `{scene, url, seconds, webm, mp4}`: the capture route to record, the
  * scripted length (sum of shot seconds) and its output paths. `joined` is the
  * crossfaded MP4 of every scene, or null for a single scene. */
-export function planCapture(capture, args) {
+export function planCapture(capture, args, { root = REPO_ROOT } = {}) {
   const name = basename(args.file, ".json");
+  if (dirname(args.file) !== join(root, CAPTURES)) {
+    throw new Error(`capture files live in ${CAPTURES}/, got ${args.file}`);
+  }
   const scenes = capture?.scenes ?? [];
   if (scenes.length === 0) throw new Error(`capture ${name} has no scenes`);
   const out = (file) => join(args.output, file);

@@ -5,7 +5,7 @@
 // the reel has played, behind the veil, says so (`onEnd`). The stage it
 // draws is one element: the battle, any `children` laid over it, the cards
 // when on, and the veil on top.
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type Ref, type RefObject } from "react";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -71,8 +71,9 @@ function sceneCamera(
   plate: RefObject<HTMLElement | null> | undefined,
   hold: () => Promise<void>,
   onEnd: () => void,
+  reducedMotion: boolean,
 ) {
-  const reel = reelFor(scene.reel, matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const reel = reelFor(scene.reel, reducedMotion);
   const fly = reelPilot(reel);
   const battle: ReelBattle = { unitAt: () => null, clock: () => null };
   let ended = false;
@@ -119,6 +120,8 @@ export interface ScenePlayerProps {
   onEnd: () => void;
   /** The stage element's class. */
   className?: string;
+  /** The stage element: the battle, its cards and the veil, nothing else. */
+  stage?: Ref<HTMLDivElement>;
   /** The battle picture's class (a film look). */
   filmClassName?: string;
   /** Layers over the picture, under the cards and veil (a grade). */
@@ -134,6 +137,13 @@ export interface ScenePlayerProps {
   onViewportReady?: () => void;
   /** A frame was drawn at `now`. */
   onFrame?: (now: number) => void;
+  /** Play the battle's sound and score, heard from the reel's camera. */
+  sound?: boolean;
+  /** Hold the first framing for the reel's length; the system's preference
+   *  when omitted. */
+  reducedMotion?: boolean;
+  /** The scene's battle could not start. */
+  onError?: (message: string) => void;
 }
 
 export function ScenePlayer({
@@ -152,6 +162,10 @@ export function ScenePlayer({
   viewportKey,
   onViewportReady,
   onFrame,
+  sound = false,
+  reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches,
+  onError,
+  stage,
 }: ScenePlayerProps) {
   const veil = useRef<HTMLDivElement>(null);
   // Ready to film once the battle first stands at its warm tick.
@@ -168,6 +182,7 @@ export function ScenePlayer({
         return start;
       },
       onEnd,
+      reducedMotion,
     ),
   );
   const session = useBattleSession({
@@ -176,17 +191,20 @@ export function ScenePlayer({
     scripted: camera.scripted,
     inputEnabled: false,
     xray: false,
+    sound,
   });
   const { sim } = session;
   camera.battle.unitAt = (id) => sim.latest.current?.own.find((u) => u.id === id)?.position ?? null;
   camera.battle.clock = (now) => sim.client?.presentation?.clock(now) ?? null;
   useEffect(() => {
-    if (sim.error) console.error(`The scene's battle could not start: ${sim.error}`);
-  }, [sim.error]);
+    if (!sim.error) return;
+    console.error(`The scene's battle could not start: ${sim.error}`);
+    onError?.(sim.error);
+  }, [sim.error, onError]);
   const world = useFeed(session.meshes);
   if (!session.meshes || sim.error) return null;
   return (
-    <div className={className} aria-hidden>
+    <div className={className} ref={stage} aria-hidden>
       <div className={filmClassName}>
         <LabViewport
           key={viewportKey}
@@ -204,7 +222,14 @@ export function ScenePlayer({
           pilot={{ ...camera.pilot, frame: onFrame && (({ now }) => onFrame(now)) }}
           cameraConfig={cameraConfig}
           quality={quality}
-          onFrame={cards ? session.placePanels : undefined}
+          onFrame={
+            cards || sound
+              ? (project, view, pointer) => {
+                  if (sound) session.hear();
+                  if (cards) session.placePanels(project, view, pointer);
+                }
+              : undefined
+          }
         />
       </div>
       {children}

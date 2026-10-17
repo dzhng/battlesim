@@ -1,24 +1,24 @@
 # Capture: scripted battle videos from a JSON file
 
-Status: slices 01–02 done 2026-10-17. From 03 the score seed is landed (`AppAudio.createBattle(options, seed)`). From 05 the pure CLI stages are landed in `web/capture/` (args, plan, transcode, join, report), but not the runner.
+Status: slices 01–05 landed 2026-10-17. Slice 05 is still waiting on its real recording runs.
 
 ## Next Agent Prompt
 
 You are resuming the capture rework. Read this README, then the slice you pick up.
 
-- **Next pickup:** [slice 04](slices/04-tab-recorder.md), the route rewrite. `tabRecorder.ts` exists.
-- **Slice 04 real-page gate (2026-10-17):**
-  - Passed: no prompt, an exact crop with cards, and an audio track.
-  - fps: 57.3 at 1080p top-down. At 1440p it reached 42.6, and the ground-level close-up 31.4 at 1080p. The page itself draws only 54 and 35 fps there before recording starts, while a re-run of the spike page still records at 59.8.
-  - So the recorder keeps up with the page, and the shortfall is the page's own frame rate, which the CLI report warns about (see "Slow machines degrade gracefully"). Faster 1440p rendering is renderer work outside this spec.
-  - The machine was loaded by runaway processes during these runs; slice 04 re-measures on a quiet machine.
-  - The recorded audio was mono with peaks at 0 dB. Slice 04 asks for stereo with voice processing off.
+- **Next pickup:**
+  - Finish slice 05: pass `--fps` through to the route (the route has no fps parameter yet and always records at 60), then do the real runs on `short.json` and `menu.json`, with ffprobe and a critique of the join.
+  - Then [slice 06](slices/06-closeout.md). Its `frame` re-approval is already done (5492fdbeb).
+- **Measured on a quiet machine (slice 04):**
+  - Top-down records at 58.4 fps at 1080p.
+  - At 1440p it records 45.5 fps against the page's own 45.8, so the recorder keeps up with the page and the renderer is the limit. Faster 1440p rendering is outside this spec, and the report warns.
+  - Audio is true stereo Opus with peaks at −3.2 dB.
 - **Machine:** recording runs headful Chrome on the user's Mac. The spike proved it there. Don't try it headless or in CI.
 - **TODO:**
   - [x] 01 Rename the map category, unit set and unit prefix `menu` → `capture`, re-record the parity and menu-reel logs ([slice](slices/01-rename-menu-to-capture.md))
   - [x] 02 Capture file and the `capture` module ([slice](slices/02-capture-module.md))
   - [x] 03 One `ScenePlayer` for menu and capture, seeded score ([slice](slices/03-scene-player.md))
-  - [ ] 04 Capture route records the stage with tab capture ([slice](slices/04-tab-recorder.md))
+  - [x] 04 Capture route records the stage with tab capture ([slice](slices/04-tab-recorder.md))
   - [ ] 05 CLI writes the MP4s and the report ([slice](slices/05-cli.md))
   - [ ] 06 Menu reel through the new path, approvals, docs, full run, close-spec ([slice](slices/06-closeout.md))
 - Update this section (status, pickup, ticks, blockers) before you end every pass.

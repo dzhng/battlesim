@@ -2,19 +2,10 @@
   {
     "id": "capture",
     "route": "/labs/capture",
-    "describe": "Cinematic capture mode: records scripted camera paths over the menu backdrop battle for marketing clips. Use ?capture=<preset> to select camera path (default, top-down, ground-level, orbit) and optional params for resolution, fps, and audio.",
+    "describe": "Films one scene of a capture file (fixtures/captures/<name>.json) for the capture CLI: ?capture=<name>&scene=<i>&cards=0|1, and record=1 to record the stage with tab capture.",
     "map": null,
     "tool": true,
     "catalog": "capture",
-    "loading": false
-  },
-  {
-    "id": "capture-skirmish",
-    "route": "/labs/capture-skirmish",
-    "describe": "Cinematic capture mode for skirmish-style battles: records scripted camera paths over the street encounter for marketing clips with full battle audio. Use ?capture=<preset> for camera path.",
-    "map": "street",
-    "tool": true,
-    "catalog": "test",
     "loading": false
   },
   {
