@@ -167,7 +167,7 @@
   {
     "id": "transport",
     "route": "/labs/transport",
-    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective; their carriers' Seats rows and stacked rider cards. The controls variant drives the player's own controls: right-click boarding both ways under the board cursor, a squad refused for want of seats, its deck card while aboard, U then a click with the unload mark on its order line, and U twice.",
+    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective; their carriers' Seats rows and stacked rider cards. The controls variant drives the player's own controls: right-click boarding both ways under the board cursor, a squad refused for want of seats, its deck card while aboard, U then a click with the unload mark on its order line, and U twice. The heli variant: a transport helicopter flies to a squad, sinks to a low hover, the squad boards, it flies on and sinks again at its goal, and the squad gets out onto the ground beneath it.",
     "map": "transport",
     "catalog": "test"
   },

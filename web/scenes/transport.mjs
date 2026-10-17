@@ -1,9 +1,10 @@
-// Slices 06, 10 and 11: board and collect through the real transport lab,
+// Slices 06, 09, 10 and 11: board and collect through the real transport lab,
 // the carriers' cards (their Seats rows, and their riders' compact cards
 // stacked under them, compact or opened), and the `controls` variant driven
 // by the player's own controls: right-click boarding both ways and its
 // cursor, a refusal at the squad, U then a click with its unload mark, and
-// U twice.
+// U twice; and the `heli` variant, a transport helicopter boarding and
+// unloading a squad from a low hover.
 import { openBattle, advance, lab, obs, until, snapshot } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
 
@@ -72,6 +73,102 @@ const DRIVE_TICK = 900;
 export async function run(ctx) {
   await scripted(ctx);
   await controls(ctx);
+  await heli(ctx);
+}
+
+// The `heli` encounter scripts its unload, to this goal, at this tick; the
+// helicopter has collected its squad well before.
+const HELI_UNLOAD_TICK = 600;
+const HELI_GOAL = [290, 225];
+
+/** Slice 09: a transport helicopter collects a squad from a low hover, flies
+ *  it on, and unloads it from another low hover at its goal. */
+async function heli(ctx) {
+  const url = new URL(ctx.url);
+  url.searchParams.set("variant", "heli");
+  const page = await openBattle(ctx, { url: url.href });
+  await advance(page, 2);
+  const start = await obs(page);
+  const heliId = start.own.find((u) => u.kind === "test_transport_heli")?.id;
+  const squad = start.own.find((u) => u.memberIds.length > 0)?.id;
+  ctx.check(
+    "heli variant loads",
+    heliId !== undefined && squad !== undefined,
+    JSON.stringify(start),
+  );
+  const at = (o, id) => o.own.find((u) => u.id === id);
+  const phase = (o) => at(o, squad)?.hold?.phase ?? null;
+  // The height it flies at: the highest it is seen before it boards.
+  let flight = 0;
+  const watch = (o) => (flight = Math.max(flight, at(o, heliId).position[2]));
+  // Each shot centred on the helicopter's ground point at the lab's own
+  // distance, and with `close` a 60 m close-up where the soldiers matter.
+  const framing = await lab(page, () => window.__lab.camera());
+  const shot = async (name, close = false) => {
+    const [x, y] = at(await obs(page), heliId).position;
+    const frame = { ...framing, target: [x, y, 0] };
+    await lab(page, (c) => window.__lab.setCamera(c), frame);
+    await snapshot(ctx, page, `${name}.png`);
+    if (close) {
+      await lab(page, (c) => window.__lab.setCamera({ ...c, distance: 60 }), frame);
+      await snapshot(ctx, page, `${name}-close.png`);
+    }
+    await lab(page, (c) => window.__lab.setCamera(c), framing);
+  };
+
+  await until(page, () => false, 150, 15, watch);
+  await shot("heli-inbound");
+
+  const entering = await until(page, (o) => phase(o) === "entering", 900, 10, watch);
+  await shot("heli-boarding", true);
+  const inside = await until(page, (o) => phase(o) === "inside", 300, 10);
+  const pickup = entering && at(entering, heliId).position;
+  const squadAt = at(start, squad).position;
+  ctx.check(
+    "the helicopter flies to the squad and boards it from a low hover",
+    !!entering &&
+      !!inside &&
+      inside.tick < HELI_UNLOAD_TICK &&
+      pickup[2] < flight / 2 &&
+      Math.hypot(pickup[0] - squadAt[0], pickup[1] - squadAt[1]) < 12,
+    JSON.stringify({ flight, pickup, squadAt, entered: entering?.tick, inside: inside?.tick }),
+  );
+
+  await advance(page, HELI_UNLOAD_TICK + 90 - (await obs(page)).tick);
+  const loaded = await obs(page);
+  const cards = await carrierCards(page);
+  await shot("heli-loaded");
+  ctx.check(
+    "in flight the squad rides: the helicopter is back up and its card counts the riders",
+    phase(loaded) === "inside" &&
+      at(loaded, heliId).position[2] > flight / 2 &&
+      cards.length === 1 &&
+      cards[0].seats.startsWith(`SEATS ${seated(loaded, heliId)}/`) &&
+      seated(loaded, heliId) > 0 &&
+      cards[0].riders.map((r) => r.unit).join() === String(squad),
+    JSON.stringify({ heli: at(loaded, heliId).position, cards }),
+  );
+
+  const exiting = await until(page, (o) => phase(o) === "exiting", 900, 10);
+  await shot("heli-unloading", true);
+  const out = await until(page, (o) => phase(o) === null, 300, 10);
+  await advance(page, 30);
+  await shot("heli-unloaded", true);
+  const drop = exiting && at(exiting, heliId).position;
+  const soldiers = out ? at(out, squad).members : [];
+  ctx.check(
+    "it unloads at its goal from a low hover, the squad standing on the ground beneath it",
+    !!exiting &&
+      !!out &&
+      drop[2] < flight / 2 &&
+      Math.hypot(drop[0] - HELI_GOAL[0], drop[1] - HELI_GOAL[1]) < 8 &&
+      soldiers.length > 0 &&
+      soldiers.every(
+        (p) => Math.abs(p[2] - squadAt[2]) < 0.5 && Math.hypot(p[0] - drop[0], p[1] - drop[1]) < 12,
+      ),
+    JSON.stringify({ flight, drop, soldiers, exited: exiting?.tick, out: out?.tick }),
+  );
+  await page.close();
 }
 
 async function scripted(ctx) {

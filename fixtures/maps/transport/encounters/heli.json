@@ -1,0 +1,12 @@
+{
+  "units": [
+    {"side":"blue","kind":"test_transport_heli","position":[140,235],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"test_rifle","position":[215,265],"engagement":"return_fire_only"},
+    {"side":"red","kind":"test_rifle","position":[500,250],"engagement":"return_fire_only"}
+  ],
+  "events": [],
+  "scripts": [
+    {"tick":1,"side":"blue","order":{"kind":"collect","units":[0],"squads":[1],"gesture":6101}},
+    {"tick":600,"side":"blue","order":{"kind":"unload","units":[0],"goal":[290,225],"gesture":6102,"route":"shortest"}}
+  ]
+}
