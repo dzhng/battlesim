@@ -1,4 +1,5 @@
-//! Boarding and passenger movement for ground carriers.
+//! Carriers: seats, boarding, riding along and unloading, for ground
+//! vehicles and helicopters alike.
 
 use contract::catalog::TypeIndex;
 use contract::ids::UnitId;
@@ -246,6 +247,16 @@ fn approach_arrived(units: &[Unit], i: usize, rules: &Rules) -> bool {
     }
 }
 
+/// Start a squad getting in to `carrier`; [`crate::hold::advance`] runs its
+/// timer from here.
+fn start_boarding(squad: &mut Unit, carrier: UnitId) {
+    squad.hold = Some(Hold {
+        host: Host::Carrier(carrier),
+        phase: Phase::Entering(1),
+        place: Place::Carrier,
+    });
+}
+
 /// Lower Board and Collect orders into movement or a shared hold. Timer and
 /// phase progression belongs to [`crate::hold::advance`].
 pub(crate) fn advance(
@@ -299,11 +310,7 @@ pub(crate) fn advance(
                     continue;
                 }
                 if near_and_still(world, units, i, carrier, rules) {
-                    units[i].hold = Some(Hold {
-                        host: Host::Carrier(carrier),
-                        phase: Phase::Entering(1),
-                        place: Place::Carrier,
-                    });
+                    start_boarding(&mut units[i], carrier);
                 } else {
                     // The destination is the carrier centre; movement stops at
                     // the same hull envelope used by hold admission.
@@ -372,11 +379,7 @@ pub(crate) fn advance(
                             gesture,
                         });
                         if near {
-                            squad.hold = Some(Hold {
-                                host: Host::Carrier(carrier_id),
-                                phase: Phase::Entering(1),
-                                place: Place::Carrier,
-                            });
+                            start_boarding(squad, carrier_id);
                         }
                     }
                     units[i].orders.pop_front();

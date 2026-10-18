@@ -237,7 +237,7 @@ pub(crate) fn advance(
                 let unloading = units
                     .get(carrier.0 as usize)
                     .is_some_and(|host| matches!(host.orders.front(), Some(UnitOrder::Unload)));
-                let hover_settled = units
+                let loading_height = units
                     .get(carrier.0 as usize)
                     .is_some_and(|host| crate::carriage::at_loading_height(world, host, rules));
                 if matches!(phase, Phase::Entering(_))
@@ -277,7 +277,7 @@ pub(crate) fn advance(
                             });
                         }
                     }
-                    Phase::Inside if unloading && hover_settled => {
+                    Phase::Inside if unloading && loading_height => {
                         units[i].hold.as_mut().expect("carrier hold").phase = Phase::Exiting(1);
                     }
                     Phase::Inside => {}
