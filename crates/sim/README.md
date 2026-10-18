@@ -66,15 +66,17 @@ fractional carry belong to settlement.
 [Holds](src/hold.rs) own a unit being inside something, a building or a carrier,
 with one entering and exiting timer and one cancellation rule; each host only
 supplies its timing and where its occupants stand. [Carriage](src/carriage.rs)
-owns seats, boarding and unloading, and the one test of whether a carrier is low
-and still enough to load. [Bail-out](src/bail_out.rs) is the one forced exit
-from a destroyed carrier or a collapsing building: a rules row per kind of host
-sets the injury and death odds, drawn from the event's own seed, never from the
-combat stream. An explicit unload never kills; with no room to stand it is
-refused. `Unit::alive()` is accounting (unit cap, casualties, the referee's
-survival test); `Unit::on_field()` is the world (collisions, blasts, sensing,
-hearing, objectives, supply), so a rider is never seen, hit or counted on an
-objective.
+owns seats, boarding and unloading, which squads ride inside (one still getting
+in stands beside the carrier and shares none of its fate), and the one test of
+whether a carrier is low and still enough to load. [Bail-out](src/bail_out.rs)
+is the one forced exit from a destroyed carrier or a collapsing building: a
+rules row per kind of host sets the injury and death odds, each squad drawing
+from its own seed for the event, never from the combat stream. An explicit
+unload never kills; with no room to stand it is refused. `Unit::alive()` is
+accounting (unit cap, casualties, the referee's survival test);
+`Unit::on_field()` is the world (collisions, blasts, sensing, hearing,
+objectives, supply, the ground soldiers take up), so a rider is never seen, hit,
+counted on an objective or in anyone's way.
 
 [Objective authority](src/objectives.rs) uses physical eligible combat presence for
 capture, independently of either side's contacts. Public objective progress reveals
