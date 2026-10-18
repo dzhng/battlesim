@@ -6,7 +6,7 @@ The `explore-unknowns` walk on 2026-10-16, held with the user. [README.md](READM
 - squads ride, unload and bail out in a played skirmish, and the skirmish AI moves its infantry by transport;
 - a transport test scene in the suite, made of a few high-level functional tests rather than many unit tests;
 - native gets transport too, unless that proves too complex (the sweep found it cheap: section 4, L6);
-- the main-menu reel is unchanged (corrected: the market-town reel was re-recorded for the building bail-out; every event before tick 2093 is unchanged).
+- the main-menu reel is unchanged (corrected: the market-town reel was re-recorded for the building bail-out, and again for per-squad bail-out rolls; every event before tick 2093 is unchanged).
 
 ## 1. Known knowns: the ground as found
 
