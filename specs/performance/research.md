@@ -20,6 +20,7 @@ LFS pointers for the reel bundles, so FPS confirmation is pending.
 | Benchmark browser/native reel | unchanged checkout | blocked | graphics test refused the run on a Git LFS pointer |
 | Precompute grass clump yaw in the build pass | unchanged renderer | keep provisionally | Browser matched reel; native short replay; shader export and visual-count checks pass |
 | Replace camera-record string serialization with a generation counter | grass candidate | discard | Browser CPU medians changed only 0.09 ms (market-town) and 0.01 ms (paris-corner); GPU unchanged |
+| Carry model yaw sine/cosine in the shared instance record | grass candidate | invalid | The graphics reel exceeded its 900 s scene timeout after the record-layout expansion; reverted before promotion |
 
 ## Parameter-effect map
 
