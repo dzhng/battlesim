@@ -38,7 +38,8 @@ struct GrassClump {
   height: f32,
   colour: u32,
   kind: u32,
-  yaw: f32,
+  yawSin: f32,
+  yawCos: f32,
   width: f32,
 }
 
@@ -79,8 +80,8 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let base = select((*P).bases[c.kind].y, (*P).bases[c.kind].x, tier.x == 0u);
   let s = shapes[base + vid];
   let scale = c.height / max(row.x, 1e-4);
-  let cs = cos(c.yaw);
-  let sn = sin(c.yaw);
+  let sn = c.yawSin;
+  let cs = c.yawCos;
   let sp = s.spine.xyz * scale;
   let sd = s.side.xyz * scale * c.width;
   let spine = vec3f(sp.x * cs - sp.y * sn, sp.x * sn + sp.y * cs, sp.z);

@@ -161,12 +161,14 @@ const Clump = d
     /** The ground's albedo under it, sqrt-encoded rgb8. */
     colour: d.u32,
     kind: d.u32,
-    yaw: d.f32,
+    /** Precomputed yaw sine and cosine, shared by every vertex in the clump. */
+    yawSin: d.f32,
+    yawCos: d.f32,
     /** Blade width multiplier: far blades are held to a least pixel width. */
     width: d.f32,
   })
   .$name("GrassClump");
-const CLUMP_BYTES = 32;
+const CLUMP_BYTES = 40;
 
 export const ShapeVertex = d
   .struct({ spine: d.vec4f, side: d.vec4f, normal: d.vec4f, tint: d.vec4f })
@@ -480,7 +482,8 @@ const buildFn = tgpu
     if (slot >= cap) { continue; }
     let base = select((*P).grid.z, 0u, tier == 0u);
     grassBuildLayout.$.clumps[base + slot] = GrassClump(
-      root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0 - flat)), kind, h.z * 6.2831853, width);
+      root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0 - flat)), kind,
+      sin(h.z * 6.2831853), cos(h.z * 6.2831853), width);
   }
 }`)
   .$uses({
@@ -553,8 +556,8 @@ const grassVertexOf = tgpu
   let base = select((*P).bases[c.kind].y, (*P).bases[c.kind].x, tier.x == 0u);
   let s = grassDrawLayout.$.shapes[base + vid];
   let scale = c.height / max(row.x, 1e-4);
-  let cs = cos(c.yaw);
-  let sn = sin(c.yaw);
+  let sn = c.yawSin;
+  let cs = c.yawCos;
   let sp = s.spine.xyz * scale;
   let sd = s.side.xyz * scale * c.width;
   let spine = vec3f(sp.x * cs - sp.y * sn, sp.x * sn + sp.y * cs, sp.z);
