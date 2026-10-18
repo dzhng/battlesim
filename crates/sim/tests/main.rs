@@ -55,6 +55,7 @@ mod movement_scenarios;
 mod navigation;
 mod objectives;
 mod order_markers;
+mod own_route;
 mod publication;
 mod publication_reader;
 mod radar;

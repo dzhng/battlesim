@@ -10,7 +10,9 @@ import {
   seatHuman,
   setController,
   setFaction,
+  setRegion,
   setSize,
+  setType,
   toRequest,
   toUrl,
   type LobbyState,
@@ -77,6 +79,34 @@ describe("lobby model", () => {
     state = remove(state, "red-2");
     expect(state.map.size).toBe("xl");
     expect(setSize(state, "medium").map.size).toBe("medium");
+  });
+
+  test("removing players lowers the size floor to the new minimum but keeps the size", () => {
+    let state = add(add(preset("1v1"), "red"), "red");
+    expect(state.map.size).toBe("large");
+    state = remove(remove(state, "red-3"), "red-2");
+    expect(state.map.size).toBe("large");
+    expect(state.sizeFloor).toBe("small");
+    expect(setSize(state, "small").map.size).toBe("small");
+  });
+
+  test("a preset reseats the lobby it is applied to, keeping its map and factions", () => {
+    let state = setFaction(preset("1v1"), "red", "europe");
+    state = setRegion(setType(reroll(state, "42"), "metro"), "paris");
+    const reseated = preset("5v5", state);
+    expect(reseated.players.filter((player) => player.side === "blue")).toHaveLength(5);
+    expect(reseated.players.every((p) => p.side === "blue" || p.faction === "europe")).toBe(true);
+    expect(reseated.map).toMatchObject({ type: "metro", region: "paris", seed: "42", size: "xl" });
+    // Back to a smaller preset: the size drops to that preset's floor.
+    expect(preset("1v1", reseated).map.size).toBe("small");
+  });
+
+  test("map type and region are map inputs; no region leaves it to the seed", () => {
+    const state = preset("1v1");
+    expect(isMapInputChange(state, setType(state, "open"))).toBe(true);
+    const paris = setRegion(state, "paris");
+    expect(isMapInputChange(state, paris)).toBe(true);
+    expect(setRegion(paris, undefined).map).not.toHaveProperty("region");
   });
 
   test("reroll only changes the map seed", () => {

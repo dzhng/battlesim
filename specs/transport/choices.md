@@ -205,3 +205,16 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **Layout:** the own row gains `goalUnloads` (56 fields), and each queue step gains `unload`. `unloadPoints.ts` and its whole path are deleted.
 - **The unload mark is pixel-identical:** compared against a fresh run of the pre-11b build. Slice 11's saved evidence didn't match pixel for pixel even on the untouched move line.
 - **Captures re-recorded once** (`f8f276f0b`) for the hold, refusal and unload-step layout. Both scenes decode to the same observations as before, apart from the new fields.
+
+## Closeout review
+- **A squad being collected boards only when it is near and still;** a farther squad gets a Board order and walks over. Before, Collect pulled every listed squad onto the hull.
+- **Boarding soldiers stay standing on the ground.** Only squads riding inside follow the carrier (`Hold::riding`). Before, boarding soldiers floated up to a hovering helicopter's height.
+- **The referee's survival test counts every living armed unit, riders included;** only units on the field hold the zone. Before, an attacker whose infantry all rode lost at once.
+- **A destroyed carrier spares squads still getting in,** as a collapsing building already did.
+- **Seats are counted in one place** (`carriage::seats`, `seats_used`, `fits`), used by orders, the simulation and the AI. A squad still getting in keeps its seats reserved.
+- **Each squad gets its own bail-out rolls,** in buildings too. This changed the market-town collapse again, so the reel was re-recorded again; every event before tick 2093 is identical.
+- **A helicopter's settled hover is the height it actually holds** over props and canopy, so boarding over a lamp or forest no longer waits forever.
+- **Hold state and digest moved into `sim::hold`,** with one timer. Every hold starts its timer on the same tick. Exit-spot searches ignore soldiers riding other carriers. No digest changed.
+- **The browser speaks per-unit refusals** from `CommandAck.refused`: "no room to unload" is now heard, and a refused squad isn't in the accepted answer. A refusal the ack already spoke isn't repeated from the frame.
+- **One callout per refused unit;** `inBuilding(u)` replaces in-building checks that also matched riders.
+- **The panel specimens and the transport scene pick carriers from data,** not by unit id or label.

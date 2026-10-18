@@ -136,6 +136,9 @@ export interface GhostBody {
 export interface PresentedUi {
   selected: readonly number[];
   xray: boolean;
+  /** The index of the player the UI commands as: the side's units another
+   *  player owns draw as its ally's. Absent where units have no owner. */
+  player?: number | null;
   ghosts: readonly GhostBody[];
   /** A lab's stand-in for the publication's known props: what the
    *  buildings read of each, and, for the props to draw it, its id and box
@@ -783,6 +786,7 @@ export class ScenePresentation {
       ),
       Uint32Array.from(ui.selected),
       ui.xray,
+      ui.player ?? undefined,
       ui.ghosts.length ? JSON.stringify(ui.ghosts) : "",
       ui.known ? JSON.stringify(ui.known) : "",
       generation,

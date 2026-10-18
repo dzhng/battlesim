@@ -1,16 +1,15 @@
 // The address of a prepared battle, `/battle?…`: what the main menu links to
 // and what the battle route reads back. The address is the battle's share
 // identity: an exact address prepares the same battle on the same build.
-// Ordinary Play publishes that exact address only after admission.
+// The lobby links only to the map its preview admitted.
 //
-//   /battle?play=1&type=mixed&size=small&blue=h&red=a&blue_faction=us&red_faction=eastern
 //   /battle?type=mixed&size=small&seed=<u64>&blue=h&red=a&blue_faction=us&red_faction=eastern
 //   /battle?replay=saved                                 the saved replay of either
 // A battle names ordered controller lists per side and both side factions. A generated map's address may add
 // `&region=<family>`; without it the seed draws the region. A missing faction
 // or any other parameter is refused by name, never defaulted or ignored.
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
-import type { Player, PrepareBattleRequest } from "@web/battle/prepare/protocol";
+import type { Player } from "@web/battle/prepare/protocol";
 import game from "@fixtures/game.json";
 import presets from "@fixtures/map-presets.json";
 import {
@@ -30,17 +29,10 @@ export type AskedBattle =
       map: MapChoice;
       battleSeed: number;
     }
-  | {
-      kind: "play";
-      players: Player[];
-      map: Omit<MapChoice, "seed">;
-      battleSeed: number;
-    }
   | { kind: "replay" };
 
 /** Every parameter a battle address may hold. */
 const PARAMETERS = new Set([
-  "play",
   "type",
   "size",
   "seed",
@@ -140,25 +132,8 @@ export const battleHref = (
   ]
     .filter(Boolean)
     .join("&")}`;
-/** Ordinary Play chooses an admitted battle after navigation. */
-export const playHref = (
-  choice: Omit<BattleChoice, "seed">,
-  players: readonly Player[] = defaultPlayers(choice.faction ?? "us"),
-) => `/battle?play=1&${[query(choice), ...playerParams(players)].join("&")}`;
-
-/** The exact address of the battle preparation actually admitted. */
-export function preparedBattleHref(request: PrepareBattleRequest): string {
-  const source = request.map_source;
-  const params = new URLSearchParams(query(source.request));
-  for (const [name, value] of playerParams(request.players).map((value) => value.split("=")))
-    params.set(name, value);
-  params.set("battle", String(request.battle_seed));
-  return `/battle?${params}`;
-}
-
 /** The main menu, opened on `choice`. */
-export const menuHref = (choice: MapChoice | Omit<MapChoice, "seed"> | null) =>
-  choice ? `/?${query(choice)}` : "/";
+export const menuHref = (choice: MapChoice | null) => (choice ? `/?${query(choice)}` : "/");
 
 /** The battle `search` asks for, or which parameter it gets wrong. Nothing
  *  is guessed for a parameter that is missing or wrong, and a parameter the
@@ -169,8 +144,6 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const unknown = [...params.keys()].find((name) => !PARAMETERS.has(name));
   if (unknown !== undefined) return { error: `${unknown} is not a battle parameter` };
   if (params.has("replay")) return { kind: "replay" };
-  if (params.has("play") && (params.get("play") !== "1" || params.has("seed")))
-    return { error: "play must be 1 and cannot name an exact seed" };
   const seed = (name: string, fallback: string) => canonicalSeed(params.get(name) ?? fallback);
   const battleSeed = Number(params.get("battle") ?? game.seed);
   if (!Number.isSafeInteger(battleSeed) || battleSeed < 0)
@@ -226,8 +199,6 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   if (region !== null && !one(region, REGIONS))
     return { error: `region must be one of ${REGIONS.join(", ")}` };
   const chosen = region === null ? {} : { region };
-  if (params.has("play"))
-    return { kind: "play", players, map: { type, size, ...chosen }, battleSeed };
   if (mapSeed === null)
     return { error: "seed must be a whole number from 0 to 18446744073709551615" };
   return { kind: "generated", players, map: { type, size, seed: mapSeed, ...chosen }, battleSeed };

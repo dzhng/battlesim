@@ -1,7 +1,9 @@
 /** Player readouts, from observation only (U02, U03):
  *  - an info panel off every unit on a leader line (`infoPanel.tsx`): its
  *    name, a row per weapon, then its states (`panelRows.ts`); an own
- *    unit's in cyan, with rounds left and running timers; an enemy's or a
+ *    unit's in cyan, with rounds left and running timers; an ally's the
+ *    same panel in pale ice on a broken leader, naming its owner, and held
+ *    open while it is selected (to read: it takes no order); an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
  *  - the command bar: the selection's commands and its fire policy. */
 import { highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
@@ -83,6 +85,10 @@ export function unitName(units: UnitCatalog, u: Pick<OwnUnitView, "kind">): stri
   return units.type(u.kind).name;
 }
 
+const NO_ALLIES: ReadonlyMap<number, string> = new Map();
+/** A panel of one of the side's own units, the player's or an ally's. */
+const sideUnit = (owner: PanelOwner) => owner === "own" || owner === "ally";
+
 /** The ring a leader line starts from, on its unit. */
 const LEADER_RING_PX = 2;
 /** A callout eases to a new nudge (another readout to clear, a bar) with
@@ -118,7 +124,7 @@ interface DrawnAnchors {
  *  stands), or a ground contact on the drawn ground. */
 function anchorOf(c: Callout, drawn: DrawnAnchors): Point3 {
   if (c.ghost) return c.at;
-  if (c.owner === "own") return drawn.own?.get(c.id) ?? c.at;
+  if (sideUnit(c.owner)) return drawn.own?.get(c.id) ?? c.at;
   if (c.owner === "enemy") return drawn.enemies?.get(c.id) ?? c.at;
   return c.onGround ? [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0] : c.at;
 }
@@ -208,6 +214,7 @@ export function ReadoutLayer({
   selected,
   handle,
   ghosts = [],
+  allies = NO_ALLIES,
 }: {
   /** The observation's own units, identified enemies and contacts: all a
    *  panel reads. Only these are props, not the whole observation, whose
@@ -222,6 +229,8 @@ export function ReadoutLayer({
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
   ghosts?: readonly GhostReadout[];
+  /** Each of `own` an ally owns, with its panel's owner line (`allyOwners`). */
+  allies?: ReadonlyMap<number, string>;
 }) {
   const { units } = useSessionCatalog();
   const layer = useRef<HTMLDivElement>(null);
@@ -253,18 +262,20 @@ export function ReadoutLayer({
       .filter((u) => !aboardCarrier(u))
       .map((u): Callout => {
         const picked = selected.includes(u.id);
+        const owner = allies.get(u.id);
+        const panel = ownPanel(units, u, own, rules);
         const passengers = passengersOf(own, u.id).map((p) => ({
           id: p.id,
           panel: ownPanel(units, p, own, rules),
         }));
         return {
           key: `own-${u.id}`,
-          owner: "own",
+          owner: owner === undefined ? "own" : "ally",
           id: u.id,
           at: u.position,
           selected: picked,
           highAir: highAir(units.type(u.kind)),
-          content: <InfoPanel panel={ownPanel(units, u, own, rules)} />,
+          content: <InfoPanel panel={owner === undefined ? panel : { ...panel, owner }} />,
           ...(passengers.length ? { passengers } : {}),
         };
       }),
@@ -329,6 +340,12 @@ export function ReadoutLayer({
               : null))
       : null;
   };
+  /** The card shown open: the hovered one, else a selected ally's, held
+   *  open as a hovered one is, since selecting it is how the player reads it. */
+  const openKey = (hover: ReadoutHover | null): string | null =>
+    hoveredKey(hover) ??
+    calloutsRef.current.find((c) => c.owner === "ally" && c.selected)?.key ??
+    null;
   /** A panel off the layout this frame: no leader, and no nudge to ease from. */
   const unplace = (key: string) => {
     leaders.current.get(key)?.setAttribute("d", "");
@@ -382,7 +399,7 @@ export function ReadoutLayer({
         const r = visibleBox(c.key);
         if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
           return {
-            unit: c.owner === "own" ? c.id : null,
+            unit: sideUnit(c.owner) ? c.id : null,
             enemy: c.owner === "enemy" ? c.id : null,
             contact: c.owner === "contact" ? c.id : null,
           };
@@ -400,7 +417,7 @@ export function ReadoutLayer({
     },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
       zoomOpacity.current = cardZoomOpacity(camera.distance);
-      hoveredCard.current = hoveredKey(hover);
+      hoveredCard.current = openKey(hover);
       eyePosition(_readout_eye, camera);
       const overlap = camera.distance > 1000;
       // Each panel's anchor, in page pixels.
@@ -609,14 +626,19 @@ export function ReadoutLayer({
         owner={c.owner}
         selected={c.selected}
         data-zoom="compressed"
-        data-unit={c.owner === "own" && !c.ghost ? c.id : undefined}
+        data-unit={sideUnit(c.owner) && !c.ghost ? c.id : undefined}
         data-enemy={c.owner === "enemy" ? c.id : undefined}
         data-contact={c.owner === "contact" ? c.id : undefined}
       >
         {c.content}
-        {c.passengers && <PassengerCards cards={c.passengers} />}
+        {c.passengers && (
+          <PassengerCards cards={c.passengers} owner={c.owner === "ally" ? "ally" : "own"} />
+        )}
       </PanelCallout>
-      <svg className={`ro-leaders${c.owner !== "own" ? " ro-enemy" : ""}`} aria-hidden="true">
+      <svg
+        className={`ro-leaders${c.owner === "enemy" || c.owner === "contact" ? " ro-enemy" : c.owner === "ally" ? " ro-ally" : ""}`}
+        aria-hidden="true"
+      >
         <path
           ref={bind(leaders.current, c.key)}
           className={`ro-leader ro-${c.owner}${c.selected ? " ro-selected" : ""}`}

@@ -42,13 +42,17 @@ The same tutorial is available from a live battle's pause menu; it opens as a
 modal over the paused battle and closes back to that menu.
 Opening a page replaces the plate's contents under a
 Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the
-skirmish page. A
-seeded address names exact preparation inputs on the same build, both factions
-included. A battle address without the player's faction, or with a parameter the
-battle does not read, is refused by name; nothing is defaulted or ignored. Ordinary Play
-may try bounded fresh candidates, then publishes the
-actual admitted identity. A refused explicit seed cannot silently become another
-battle. Exhausted generation returns a refusal; it never substitutes a fixed map.
+skirmish page. That page is [the lobby](src/lobby/Lobby.tsx), an order of
+battle: [the lobby model](src/lobby/model.ts) owns its rules, and the page only
+shows them. Its map is a real admitted preparation, started again only when a
+map input changes, and Deploy opens only on a ready map and names the seed that
+was admitted, so the battle is the map the player saw. The preview may try
+bounded fresh seeds; when generation is exhausted the lobby shows no map and
+Deploy stays shut, and no fixed map is ever substituted. A battle address names
+exact preparation inputs on the same build: the map, both sides' players and
+factions. One without them, or with a parameter the battle does not read, is
+refused by name; nothing is defaulted or ignored, and a refused seed never
+silently becomes another battle.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
 played in order and then over again, each a saved encounter on its own `capture` map

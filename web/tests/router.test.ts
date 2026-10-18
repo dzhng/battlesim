@@ -31,11 +31,9 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     expect(menu.getByRole("heading", { name: page })).toBeTruthy();
     for (const other of pages) expect(menu.queryByRole("button", { name: other })).toBeNull();
   };
-  const entries: Record<string, Record<string, string>> = {
-    Skirmish: {
-      Deploy:
-        "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-    },
+  const entries: Record<string, Record<string, string | null>> = {
+    // Deploy waits for the lobby's map (its own tests).
+    Skirmish: { Deploy: null },
     Tutorial: {},
     Settings: {},
     Developer: {

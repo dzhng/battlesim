@@ -198,7 +198,7 @@
   {
     "id": "ui",
     "route": "/labs/ui",
-    "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
+    "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, the end-of-match report at 1v1, 2v2, 5v5 and watched, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
     "map": null
   },
   {
@@ -246,7 +246,7 @@
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?blue= and ?red= carry ordered controller codes, while ?blue_faction= and ?red_faction= name the two side factions; ?battle= is the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
+    "describe": "A prepared battle: what the skirmish lobby's Deploy starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?blue= and ?red= carry ordered controller codes, while ?blue_faction= and ?red_faction= name the two side factions; ?battle= is the battle's seed; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Its scene also checks that a lobby whose generation is exhausted or stalled shows no map and keeps Deploy shut. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
     "map": null,
     "catalog": "game",
     "loading": false
@@ -255,6 +255,14 @@
     "id": "unit-roster",
     "route": "/battle?type=open&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
+    "map": null,
+    "catalog": "game",
+    "loading": false
+  },
+  {
+    "id": "allies",
+    "route": "/battle?type=mixed&size=medium&seed=1&blue=h,a&blue_faction=us&red=a,a&red_faction=eastern",
+    "describe": "A 2v2 team battle from its link, you and one AI ally against two AI: allies drawn apart from your units (pale ice panels, a broken ring when selected, x-ray), at default and far zoom; selecting an ally opens its panel read-only with its owner line and offers no order; a box over both armies selects only yours.",
     "map": null,
     "catalog": "game",
     "loading": false
@@ -315,6 +323,13 @@
     "catalog": "game",
     "loading": false,
     "timeout_s": 300
+  },
+  {
+    "id": "lobby",
+    "route": "/",
+    "describe": "The skirmish lobby at /: an order of battle over real admitted map previews. Its scene covers the 1v1 default, the 3v3 and 5v5 presets, 3v4 and 2v3 by Add and Delete, taking another Blue seat, the size floor, a preview on opening and on each map change, Reroll, a hidden retry, a map that cannot be made, and Deploy starting the previewed map, and shoots each state at 1280×720 and 1920×1080.",
+    "map": null,
+    "timeout_s": 600
   },
   {
     "id": "map-workbench",

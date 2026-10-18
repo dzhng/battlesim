@@ -13,6 +13,9 @@ const PANELS = ".hud-panel, .hud-card, .hud-rejected, .frame-rate";
 /** Never pinned: the menu's live 3D backdrop (its film, grade and veil, all
  *  of it) and the build's identity. */
 const MENU_UNPINNED = ".menu-backdrop, [data-testid=menu-build] { visibility: hidden !important; }";
+/** Also never pinned here: the lobby's map, a fresh seed each visit (the
+ *  map-picture scene judges the picture). */
+const LOBBY_UNPINNED = `${MENU_UNPINNED} .lobby-picture, .lobby-seed { visibility: hidden !important; }`;
 
 async function contained(ctx, page, name) {
   const out = await spills(page, PANELS);
@@ -59,6 +62,43 @@ async function mediaDecodes(ctx, page, name) {
     `${name}: every image and video decodes (fetched, not an LFS pointer)`,
     undecoded.length === 0,
     undecoded.join(", "),
+  );
+}
+
+/** The match report's geometry: it stands inside the window, every
+ *  player's row reads on one line, and the battle's story has room for
+ *  several lines however many players a side fields. */
+async function report(ctx, page, shot) {
+  const m = await page.evaluate(() => {
+    const box = (e) => e.getBoundingClientRect();
+    const modal = box(document.querySelector(".match-result-modal"));
+    const rows = [...document.querySelectorAll(".match-result-side tbody tr")].map((r) => ({
+      height: box(r).height,
+      clipped: [...r.children].some((c) => c.scrollWidth > c.clientWidth + 0.5),
+    }));
+    const timeline = document.querySelector(".match-result-timeline");
+    const line = timeline.querySelector("li");
+    return {
+      inside:
+        modal.top >= 0 &&
+        modal.left >= 0 &&
+        modal.bottom <= innerHeight &&
+        modal.right <= innerWidth,
+      rows,
+      timeline: box(timeline).height,
+      line: line ? box(line).height : 0,
+    };
+  });
+  ctx.check(`${shot}: the report stands inside the window`, m.inside);
+  ctx.check(
+    `${shot}: every player's row reads whole on one line`,
+    m.rows.length > 0 && m.rows.every((r) => !r.clipped && r.height < 32),
+    JSON.stringify(m.rows),
+  );
+  ctx.check(
+    `${shot}: the timeline shows at least four lines`,
+    m.line > 0 && m.timeline >= 4 * m.line,
+    JSON.stringify({ timeline: m.timeline, line: m.line }),
   );
 }
 
@@ -320,6 +360,7 @@ export async function run(ctx) {
       continue;
     }
     await contained(ctx, page, shot);
+    if (shot.startsWith("report")) await report(ctx, page, shot);
     await ctx.matchBaseline(page, shot);
   }
 
@@ -383,7 +424,11 @@ export async function run(ctx) {
         (await page.getByRole("radio", { checked: true }).count()) === 1,
       );
     }
-    await ctx.matchBaseline(body, `menu-${entry}`, { style: MENU_UNPINNED });
+    if (entry === "skirmish")
+      await page.locator('[data-testid=lobby-status][data-status="ready"]').waitFor();
+    await ctx.matchBaseline(body, `menu-${entry}`, {
+      style: entry === "skirmish" ? LOBBY_UNPINNED : MENU_UNPINNED,
+    });
     await page.keyboard.press("Escape");
   }
   await page.close();

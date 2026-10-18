@@ -1,22 +1,25 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–07 done).
+**Status:** in progress (slices 00–09 done).
 **Updated:** 2026-10-17.
 
 ## Next Agent Prompt
 
-**Done:** slices 00–07.
+**Done:** slices 00–09.
 - Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
 - Slice 01 landed the player contract. D54 makes Neutral players factionless.
 - Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
 - Slice 04 added the shared `entries_per_side` generation request, dedicated seeded entry arms, centre/left/right site ordering, hard 150 m and river-mouth checks, and best-entry fairness admission. One-entry map hashes remain unchanged.
 - Slice 07 landed the pure lobby model and moved the builder onto `scenario.players`.
 - Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
+- Slices 08 and 09 landed the lobby: the admitted map picture and the order-of-battle screen at `/`, whose Deploy opens exactly the previewed map. Unpinned `/battle?play=1` is gone; the lobby's preview is the only admission.
+- Slice 11 landed the per-player match report: a scoreboard row per player under each side, a timeline naming each player (a player's purchases in one minute are one line), and the result read from the viewer's side, neutral when the client plays no seat. Its pictures are the UI gallery's `report-*` shots and the `allies` scene's real 2v2 report.
 
 **Next:**
-- Slice 08 (lobby map picture, visual): use the admitted map and sites in the preview; run the visual gates.
+- Slice 10 (allies in battle, visual): it needs 06, which has landed.
 - Slice 04 follow-up: with three entries, both flank arms can land on the same side of the centre road. The slice 08 picture showed it on a Large 3v4. The fix is queued.
-- Slice 08 (lobby map picture, visual) can start now that 04 and 07 have landed.
+
+**Unproven under load.** The `benchmark` (real-time check) and `street` (900 s limit) scenes have not passed since slice 02. Both fail the same way on clean main while the machine's load average is 18–50, and neither touches slice 09. Run them on a quiet machine before closeout (slice 14). If `street` fails "the scouts never identified an enemy" there too, it is a real regression to chase.
 
 **Known environment failures.** A worktree needs `git lfs pull --include 'assets/runtime,assets/third-party,packages/scene-assets,web/scenes'` before browser tests and scenes, which is about 0.75 GB. After that, only these fail, identically on main, because they need LFS source art:
 - `icons.test.ts` (3 tests);
@@ -49,9 +52,9 @@ Slices:
 - [x] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
 - [x] 07: lobby model ([slice](slices/07-lobby-model.md))
 - [x] 08: lobby map picture ([slice](slices/08-map-picture.md))
-- [ ] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
-- [ ] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
-- [ ] 11: per-player match report ([slice](slices/11-match-report.md))
+- [x] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
+- [x] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
+- [x] 11: per-player match report ([slice](slices/11-match-report.md))
 - [ ] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
 - [ ] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
 - [ ] 14: 5v5 AI-versus-AI closeout ([slice](slices/14-closeout.md))

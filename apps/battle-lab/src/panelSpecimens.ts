@@ -640,5 +640,12 @@ export function panelSpecimens(
     selected: true,
     zoom: "far",
   });
+
+  // An ally's units: your own panel, in the ally's tone, naming its owner.
+  const allyOf = (u: OwnUnitView) => ({ ...panelOf(u), owner: "BLUE 2 · AI" });
+  add("ally", "tank", allyOf(specimenUnit(catalog, "test_tank")), "ally");
+  add("ally", "rifle, selected", allyOf(specimenUnit(catalog, "test_rifle")), "ally", {
+    selected: true,
+  });
   return out;
 }

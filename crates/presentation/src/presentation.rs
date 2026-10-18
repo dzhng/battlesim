@@ -64,6 +64,11 @@ pub struct Ui<'a> {
     pub selected: &'a [u32],
     /// Own units hidden by the world show through it.
     pub xray: bool,
+    /// The player the UI commands as, by its index in the scenario's
+    /// players: a side's unit another player owns is its ally's, shown
+    /// through the world in the ally's colour. None where units have no
+    /// owner (a lab).
+    pub player: Option<u32>,
     pub ghosts: &'a [Ghost],
     /// A lab's stand-in for the publication's known props, where no battle
     /// publishes (a switch that shows a building destroyed); none reads the
@@ -1496,10 +1501,23 @@ impl Loaded {
             .filter(|u| u.hold.as_ref().is_some_and(|h| &*h.phase != "entering"))
             .map(|u| u.id)
             .collect();
-        // Own units the world hides draw through it, the selection in its colour.
+        // The side's units another player owns: its allies'.
+        let allied: Vec<f64> = match ui.player {
+            Some(player) => o
+                .own
+                .iter()
+                .filter(|u| u.owner.is_some_and(|owner| owner != f64::from(player)))
+                .map(|u| u.id)
+                .collect(),
+            None => Vec::new(),
+        };
+        // Own units the world hides draw through it, the selection in its
+        // colour and an ally's in the ally's.
         let colour_of = |unit_side: &str, unit: f64| -> [f64; 4] {
             if !ui.xray || unit_side != side || indoor.contains(&unit) {
                 [0.0; 4]
+            } else if allied.contains(&unit) {
+                xray.ally
             } else if ui.selected.contains(&(unit as u32)) {
                 xray.selected
             } else {

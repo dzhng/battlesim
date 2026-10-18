@@ -3,19 +3,16 @@ import { useState } from "react";
 import { BrowserRouter, Link, useLocation, useNavigate } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
-import { usePublishBattleAddress } from "@apps/battle-lab/src/navigation";
 import { LabRouter, screenForPath } from "@apps/battle-lab/src/router";
 import { GAME_NAME } from "@apps/battle-lab/src/gameName";
+import { PreviewWorker } from "./support/previewWorker";
 import { renderSettled } from "./support/router";
-
-const delayed = vi.hoisted(() => ({ resume: null as null | (() => void) }));
 
 vi.mock("@apps/battle-lab/src/routes/battle", () => ({
   default: function Battle() {
     const location = useLocation();
     const navigate = useNavigate();
     const [asked] = useState(location.search);
-    const publish = usePublishBattleAddress();
     const [progress, setProgress] = useState(0);
     return (
       <>
@@ -32,18 +29,6 @@ vi.mock("@apps/battle-lab/src/routes/battle", () => ({
         </button>
         <Link to="/battle?type=open&size=small&seed=99">Next battle</Link>
         <button onClick={() => setProgress(progress + 1)}>Advance</button>
-        <button
-          onClick={() => {
-            void new Promise<void>((resolve) => {
-              delayed.resume = resolve;
-            }).then(() => publish("/battle?type=open&size=small&seed=123"));
-          }}
-        >
-          Queue publication
-        </button>
-        <button onClick={() => publish("/battle?type=open&size=small&seed=42")}>
-          Publish admitted battle
-        </button>
       </>
     );
   },
@@ -54,13 +39,36 @@ vi.mock("@apps/battle-lab/src/routes/battle", () => ({
 // which jsdom never does; that screen is graphics detection's to test.
 beforeEach(() => {
   graphicsSettings.set({ detectedMode: "medium" }, { persist: false });
+  // The lobby's map previews are admitted at once, so Deploy opens.
+  PreviewWorker.admitting = true;
+  vi.stubGlobal("Worker", PreviewWorker);
 });
 
 afterEach(() => {
   cleanup();
+  PreviewWorker.admitting = false;
+  vi.unstubAllGlobals();
   graphicsSettings.set({ detectedMode: null }, { persist: false });
   window.history.replaceState(null, "", "/");
 });
+
+/** Open Skirmish, wait for its map, and press Deploy: the battle address it
+ *  went to. */
+async function deploy(): Promise<string> {
+  fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
+  const link = await waitFor(
+    () => {
+      const href = screen.getByTestId("menu-deploy").getAttribute("href");
+      expect(href).toBeTruthy();
+      return href!;
+      // The first preview waits for the simulation module to load.
+    },
+    { timeout: 15_000 },
+  );
+  // Deploy enters the game set's scope, which suspends (see `renderSettled`).
+  await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
+  return link;
+}
 
 test("Deploy changes the actual route without replacing the document", async () => {
   const view = await renderSettled(
@@ -69,42 +77,14 @@ test("Deploy changes the actual route without replacing the document", async () 
     </BrowserRouter>,
   );
   const documentElement = document.documentElement;
-  fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
-  // Deploy enters the game set's scope, which suspends (see `renderSettled`).
-  await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
+  const link = await deploy();
+  expect(link).toMatch(/^\/battle\?/);
   expect(
-    await screen.findByText(
-      "Battle requested: ?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-    ),
+    await screen.findByText(`Battle requested: ${link.slice("/battle".length)}`),
   ).toBeDefined();
-  expect(window.location.pathname + window.location.search).toBe(
-    "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-  );
+  expect(window.location.pathname + window.location.search).toBe(link);
   expect(document.documentElement).toBe(documentElement);
   expect(view.queryByRole("heading", { name: GAME_NAME })).toBeNull();
-});
-
-test("publishing the admitted address preserves progress and unrelated history state", async () => {
-  window.history.replaceState(
-    { usr: { unrelated: "retained" } },
-    "",
-    "/battle?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-  );
-  await renderSettled(
-    <BrowserRouter unstable_useTransitions={false}>
-      <LabRouter />
-    </BrowserRouter>,
-  );
-  fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
-  fireEvent.click(screen.getByRole("button", { name: "Publish admitted battle" }));
-  expect(
-    screen.getByText(
-      "Battle requested: ?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-    ),
-  ).toBeDefined();
-  expect(screen.getByText("Progress: 1")).toBeDefined();
-  expect(window.location.search).toBe("?type=open&size=small&seed=42");
-  expect(window.history.state.usr.unrelated).toBe("retained");
 });
 
 test("same-path navigation and Back/Forward prepare fresh requested visits", async () => {
@@ -113,10 +93,9 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
       <LabRouter />
     </BrowserRouter>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
-  await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
+  const link = await deploy();
+  const asked = `Battle requested: ${link.slice("/battle".length)}`;
   fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
-  fireEvent.click(screen.getByRole("button", { name: "Publish admitted battle" }));
   fireEvent.click(screen.getByRole("link", { name: "Next battle" }));
   expect(await screen.findByText("Battle requested: ?type=open&size=small&seed=99")).toBeDefined();
   expect(screen.getByText("Progress: 0")).toBeDefined();
@@ -124,7 +103,7 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
   await act(async () => {
     window.history.back();
   });
-  await screen.findByText("Battle requested: ?type=open&size=small&seed=42");
+  await screen.findByText(asked);
   expect(screen.getByText("Progress: 0")).toBeDefined();
   await act(async () => {
     window.history.back();
@@ -133,7 +112,7 @@ test("same-path navigation and Back/Forward prepare fresh requested visits", asy
   await act(async () => {
     window.history.forward();
   });
-  await screen.findByText("Battle requested: ?type=open&size=small&seed=42");
+  await screen.findByText(asked);
   expect(screen.getByText("Progress: 0")).toBeDefined();
   fireEvent.click(screen.getByRole("link", { name: "Main menu" }));
   await waitFor(() => expect(screen.queryByText(/Battle requested:/)).toBeNull());
@@ -159,10 +138,8 @@ test("a rapid history round trip discards progress before the intermediate scree
       <LabRouter />
     </BrowserRouter>,
   );
-  fireEvent.click(screen.getByRole("button", { name: "Skirmish" }));
-  await act(async () => fireEvent.click(screen.getByTestId("menu-deploy")));
+  const link = await deploy();
   fireEvent.click(await screen.findByRole("button", { name: "Advance" }));
-  fireEvent.click(screen.getByRole("button", { name: "Queue publication" }));
   await act(async () => {
     const returned = new Promise<void>((resolve) =>
       window.addEventListener("popstate", () => resolve(), { once: true }),
@@ -171,10 +148,5 @@ test("a rapid history round trip discards progress before the intermediate scree
     await returned;
   });
   expect(await screen.findByText("Progress: 0")).toBeDefined();
-  await act(async () => {
-    delayed.resume!();
-  });
-  expect(window.location.search).toBe(
-    "?play=1&type=mixed&size=small&blue=h&blue_faction=us&red=a&red_faction=eastern",
-  );
+  expect(window.location.pathname + window.location.search).toBe(link);
 });

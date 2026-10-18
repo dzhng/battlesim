@@ -231,6 +231,7 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
         )}
         <Pips fill={panel.strength} />
       </span>
+      {panel.owner && <span className="ro-owner">{panel.owner}</span>}
       {panel.weapons.length > 0 && (
         <div
           className="ro-section ro-weapons"
@@ -277,14 +278,21 @@ export interface PassengerCard {
  *  hovered as the carrier's one card. A rider's card is always compact,
  *  whatever view the carrier's is in: `data-zoom` on each holds it there,
  *  and the readout layer never changes it. */
-export function PassengerCards({ cards }: { cards: readonly PassengerCard[] }) {
+export function PassengerCards({
+  cards,
+  owner = "own",
+}: {
+  cards: readonly PassengerCard[];
+  /** The carrier's owner: an ally's riders take the ally's tone. */
+  owner?: "own" | "ally";
+}) {
   if (cards.length === 0) return null;
   return (
     <div className="ro-aboard">
       {cards.map((c) => (
         <PanelCallout
           key={c.id}
-          owner="own"
+          owner={owner}
           selected={false}
           data-zoom="compressed"
           data-unit={c.id}
@@ -297,9 +305,9 @@ export function PassengerCards({ cards }: { cards: readonly PassengerCard[] }) {
   );
 }
 
-/** Who a panel belongs to: its tone (own cyan, enemy and contact red)
- *  follows. */
-export type PanelOwner = "own" | "enemy" | "contact";
+/** Who a panel belongs to: its tone (own cyan, an ally's pale ice, enemy
+ *  and contact red) follows. */
+export type PanelOwner = "own" | "ally" | "enemy" | "contact";
 
 /** The callout round a panel, in its owner's tone, brighter when selected:
  *  the battle's callouts and the panel workbench frame panels only through

@@ -76,6 +76,7 @@ import {
   type DrawnInstances,
 } from "./sideInstances";
 import { commandingPlayer } from "./commandingPlayer";
+import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio } from "./soundFeed";
@@ -231,6 +232,11 @@ export function useBattleSession({
     },
     [audio, onDecoded],
   );
+  // The player this client's orders go out as, and whose units it orders.
+  const commanding = commandingPlayer(players, side, player);
+  /** The human the client plays as; null when it watches a battle it has no
+   *  seat in (AI against AI), and the result reads neutral. */
+  const viewer = players.find((p) => p.id === commanding && p.controller === "human") ?? null;
   const sim = useSimSession({
     scenario,
     seed,
@@ -238,7 +244,7 @@ export function useBattleSession({
     replay,
     scripted,
     prepared,
-    player: commandingPlayer(players, side, player),
+    player: commanding,
     side,
   });
   presentationRef.current = sim.client?.presentation ?? null;
@@ -347,7 +353,10 @@ export function useBattleSession({
       onSelect: (added, clicked) => responses.current?.selected(added, clicked),
     },
     inputEnabled,
+    commanding,
   );
+  /** The side's units an ally owns, with their panels' owner lines. */
+  const allies = useMemo(() => allyOwners(observation, commanding), [observation, commanding]);
   const [purchasePlacement] = useState(() => new PurchasePlacementControl());
   const purchaseGhost = useRef<PurchaseGhost | null>(null);
   /** The ghosts the authority accepted, for their facing: a pending purchase
@@ -621,7 +630,12 @@ export function useBattleSession({
       const awaiting = new Set(
         pending && !landed && "units" in pending.order ? pending.order.units : [],
       );
-      const reveal = orderReveal.at(time, control.showOrders, published.own, awaiting);
+      const reveal = orderReveal.at(
+        time,
+        control.showOrders,
+        controlled(published, commanding),
+        awaiting,
+      );
       if (!sameReveal(reveal, revealedRef.current)) {
         revealedRef.current = reveal;
         setRevealed(reveal);
@@ -650,6 +664,7 @@ export function useBattleSession({
         {
           selected: control.selected,
           xray,
+          player: playerIndex(published, commanding),
           ghosts: ghostBodies(
             ghosts,
             (kind) => Boolean(units.hull(kind)),
@@ -688,6 +703,7 @@ export function useBattleSession({
       placedGhostList,
       inputEnabled,
       surfaceZ,
+      commanding,
     ],
   );
   /** Sound for the last frame, heard from its camera: call once a frame. */
@@ -857,7 +873,7 @@ export function useBattleSession({
     const intent =
       active && held
         ? facedIntent(
-            reconcilePointerIntent(held.intent, shown),
+            reconcilePointerIntent(held.intent, shown, commanding),
             held.pick,
             release ? [release[0], release[1]] : null,
           )
@@ -871,7 +887,7 @@ export function useBattleSession({
     // Until admission answers, the released request retains its resolved marks,
     // including facing. It uses the same coalesced resolver as held/hover intent.
     const waiting = !held && pending && !accepted && released;
-    const queryIntent = waiting ? reconcilePointerIntent(released, shown) : intent;
+    const queryIntent = waiting ? reconcilePointerIntent(released, shown, commanding) : intent;
     const marks = pointerPaint.resolvePreview(
       active ? previewForIntent(queryIntent) : null,
       shown?.own ?? [],
@@ -1189,6 +1205,10 @@ export function useBattleSession({
     contacts,
     sim,
     control,
+    allies,
+    /** The battle's players in scenario order, and the one the client plays. */
+    seats: players,
+    viewer,
     purchase: skirmish
       ? {
           faction: faction!,

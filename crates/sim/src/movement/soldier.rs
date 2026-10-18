@@ -573,7 +573,8 @@ fn holding_post(s: &Soldier) -> Option<V2> {
 
 /// Plan a soldier's own route from where he stands to `to` on the exact
 /// bodies his side knows ([`final_leg`]), and round the soldiers standing
-/// at `standing`; straight at it if none is found.
+/// at `standing`; straight at it if none is found, or if it is within one
+/// cell of him.
 fn plan_own(
     ctx: &MovementContext,
     side: &mut SideGeometry,
@@ -600,7 +601,13 @@ fn plan_own(
         |p| ctx.world.traversable_at(p.x, p.y),
     );
     side.searches += u64::from(planned.searched);
-    s.path = planned.path.unwrap_or_else(|| vec![to]);
+    // Within one fine cell the search finds no waypoints: he steps straight
+    // to `to`, as he does when no route is found, and never holds an empty
+    // route to follow.
+    s.path = planned
+        .path
+        .filter(|path| !path.is_empty())
+        .unwrap_or_else(|| vec![to]);
 }
 
 /// Whether a route of his own is one his side has since learned is blocked
