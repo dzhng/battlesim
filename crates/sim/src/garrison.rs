@@ -443,7 +443,8 @@ fn taken_slots(seats: &[Option<usize>], members: &[Soldier]) -> BTreeSet<usize> 
 /// What the squad's front order wants of buildings.
 pub(crate) enum Want {
     Enter(PropId),
-    /// Leave: an exit order, or one that needs to move.
+    /// Leave: an exit order, or one that needs to move (boarding a carrier
+    /// included).
     Leave,
     Stay,
 }
@@ -451,7 +452,7 @@ pub(crate) enum Want {
 pub(crate) fn want(unit: &Unit) -> Want {
     match unit.orders.front() {
         Some(UnitOrder::Garrison { building, .. }) => Want::Enter(*building),
-        Some(UnitOrder::Exit) => Want::Leave,
+        Some(UnitOrder::Exit | UnitOrder::Board { .. }) => Want::Leave,
         Some(o) if o.movement().is_some() => Want::Leave,
         _ => Want::Stay,
     }

@@ -1108,6 +1108,7 @@ impl Battle {
             unit.withdrawing = false;
             unit.orders.clear();
             unit.route = None;
+            unit.hold = None;
         }
         self.skirmish = Some(skirmish);
     }
@@ -1948,6 +1949,9 @@ impl Battle {
                     || c.unit_type(&self.rules).capabilities.carriage.is_none()
                 {
                     return Err(OrderError::NotACarrier);
+                }
+                if !c.alive() {
+                    return Err(OrderError::Destroyed { unit: *carrier });
                 }
                 // A squad rides only its own player's carrier, as a carrier
                 // collects only its own player's squads.
@@ -4212,6 +4216,11 @@ impl Battle {
             _ => None,
         };
         let mut refused = Vec::new();
+        if let Order::Collect { squads, .. } = &mut command.order {
+            // A squad listed twice is collected once; the list keeps its order.
+            let mut seen = std::collections::BTreeSet::new();
+            squads.retain(|id| seen.insert(*id));
+        }
         if let Order::Board { units, carrier, .. } = &mut command.order {
             let mut ordered = units.clone();
             ordered.sort_by(|a, b| {
@@ -4223,6 +4232,8 @@ impl Battle {
                 .length();
                 ca.total_cmp(&cb).then(a.cmp(b))
             });
+            // A squad listed twice boards once.
+            ordered.dedup();
             let capacity = crate::carriage::seats(&self.rules, self.units[carrier.0 as usize].kind);
             let used = crate::carriage::seats_used(&self.units, *carrier);
             let mut left = capacity.saturating_sub(used);

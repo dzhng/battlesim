@@ -218,3 +218,12 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **The browser speaks per-unit refusals** from `CommandAck.refused`: "no room to unload" is now heard, and a refused squad isn't in the accepted answer. A refusal the ack already spoke isn't repeated from the frame.
 - **One callout per refused unit;** `inBuilding(u)` replaces in-building checks that also matched riders.
 - **The panel specimens and the transport scene pick carriers from data,** not by unit id or label.
+
+## Codex review (after landing)
+- **Boarding a destroyed carrier is refused** (`Destroyed`), when ordered and on any later tick; a squad or a collecting carrier on its way stops instead of chasing a wreck or an empty spot.
+- **A squad listed twice in Board or Collect is counted once.**
+- **Retiring passengers drop their hold.**
+- **Rules must carry a bail-out row for buildings, ground vehicles and helicopters,** or they are refused at load, instead of panicking when that host first dies.
+- **A squad in a building can board** (it leaves toward the carrier) **and be collected** (the carrier drives to where the squad went in).
+- **A held right-press drops squads that boarded before release;** `aboard`, `not_a_carrier` and `wrong_player` get the generic refused line.
+- **Dismissed:** survivors may not stand inside the wreck they bail out of; the wreck is ignored only for reaching open ground, by design.

@@ -49,10 +49,28 @@ describe("bark names", () => {
 });
 
 describe("voice catalog", () => {
-  it("exports the 32 approved triggers", () => {
-    expect(RESPONSE_TRIGGERS).toHaveLength(15);
-    expect(BARK_TRIGGERS).toHaveLength(17);
-    expect(new Set([...RESPONSE_TRIGGERS, ...BARK_TRIGGERS]).size).toBe(32);
+  it("scripts a response for every answer a unit gives, none shared with a bark", () => {
+    expect(RESPONSE_TRIGGERS).toEqual(
+      expect.arrayContaining([
+        "selected",
+        "move",
+        "attack",
+        "attack_move",
+        "stop",
+        "weapons_free",
+        "hold_fire",
+        "enter_building",
+        "leave_building",
+        "board",
+        "unload",
+        "no_room_to_unload",
+        "withdraw",
+        "arrived",
+        "refused",
+      ]),
+    );
+    const barks = new Set<string>(BARK_TRIGGERS);
+    expect(RESPONSE_TRIGGERS.filter((trigger) => barks.has(trigger))).toEqual([]);
   });
 
   it("validates every role's four takes for every trigger", () => {

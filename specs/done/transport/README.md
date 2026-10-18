@@ -58,12 +58,16 @@ changed.
   `Unit::on_field()` (alive and not riding, `Hold::riding`) gates everything
   physical: collisions, blasts, sensing, fog, hearing, objectives, supply,
   exit-spot searches.
+- **A squad in a building can still ride.** Ordered to board, it leaves the
+  building toward the carrier and walks over; a carrier collecting it drives to
+  the spot outside where it went in. Boarding a destroyed carrier is refused,
+  and an approach to one that dies stops with a refusal.
 - **One bail-out.** Every forced exit from a destroyed host goes through
   `sim::bail_out::apply` with a row from `rules.bail_out` chosen by the host's
   physical kind (`BailOutHost::{Building, Ground, Air}`), never by role; a host
   that leaves the map takes its passengers with it (`bail_out::lost_with_host`).
   Each event and squad draws from its own seeded stream, never the combat
-  stream.
+  stream. Rules missing a row for any kind of host are refused at load.
 - **One seat count.** `carriage::seats`, `seats_used` and `fits` serve orders,
   the simulation and the AI. A squad still getting in holds its seats.
 - **One loading-height rule.** `carriage::at_loading_height`: a ground carrier

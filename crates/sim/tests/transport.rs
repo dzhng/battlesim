@@ -461,7 +461,12 @@ fn a_retiring_helicopter_takes_its_passengers_with_it() {
         battle.unit(UnitId(0)).unwrap().retired
     });
     assert!(retired, "the helicopter never retired");
-    assert!(battle.unit(UnitId(1)).unwrap().retired);
+    let passenger = battle.unit(UnitId(1)).unwrap();
+    assert!(passenger.retired);
+    assert!(
+        passenger.hold.is_none(),
+        "a retired passenger still rides the helicopter"
+    );
 }
 
 fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
@@ -1820,4 +1825,281 @@ fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
     assert!(battle.unit(UnitId(1)).unwrap().on_field());
     battle.step();
     assert_eq!(published_unloads(&battle, UnitId(0)), (false, vec![]));
+}
+
+/// Blue's 1 hp APC (unit 0) with a recon squad (unit 1) standing at `squad`
+/// and a red gun jeep (unit 2) ordered to destroy the carrier. `before_kill`
+/// runs once before the jeep is ordered. Returns the battle on the tick the
+/// carrier died.
+fn carrier_killed_with_squad_at(squad: [f64; 2], before_kill: impl FnOnce(&mut Battle)) -> Battle {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_apc",
+        json!({ "body": { "hull": { "hp": 1.0 } } }),
+    );
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]});
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": map, "rules": rules, "events":[], "scripts":[],
+        "units": [
+            {"side":"blue","kind":"test_apc","position":[200,200],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"test_recon","position":squad,"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_gun_jeep","position":[260,200],"engagement":"return_fire_only"}
+        ]
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 42);
+    before_kill(&mut battle);
+    battle.step();
+    let carrier = battle
+        .observe(Side::Red)
+        .identified
+        .iter()
+        .find(|u| u.kind == battle.unit(UnitId(0)).unwrap().kind)
+        .map(|u| u.id)
+        .expect("red sees the carrier");
+    let attack = CommandEnvelope {
+        side: Side::Red,
+        player: None,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![UnitId(2)],
+            target: contract::command::TargetRef::Identified { id: carrier },
+        },
+        queued: false,
+    };
+    assert_eq!(battle.accept(attack).error, None);
+    let destroyed = (0..battle.rules().tick_hz * 10).any(|_| {
+        battle.step();
+        !battle.unit(UnitId(0)).unwrap().alive()
+    });
+    assert!(destroyed, "the gun jeep never destroyed the carrier");
+    battle
+}
+
+fn board_carrier(seq: u64) -> CommandEnvelope {
+    command(
+        seq,
+        Order::Board {
+            units: vec![UnitId(1)],
+            carrier: UnitId(0),
+            gesture: seq,
+        },
+    )
+}
+
+#[test]
+fn a_squad_cannot_board_a_destroyed_carrier() {
+    let mut battle = carrier_killed_with_squad_at([150.0, 200.0], |_| {});
+    assert_eq!(
+        battle.accept(board_carrier(1)).error,
+        Some(OrderError::Destroyed { unit: UnitId(0) })
+    );
+}
+
+#[test]
+fn a_squad_walking_to_a_carrier_that_dies_stops_and_hears_why() {
+    let mut battle = carrier_killed_with_squad_at([120.0, 200.0], |battle| {
+        assert_eq!(battle.accept(board_carrier(1)).error, None);
+    });
+    let mut refused = false;
+    for _ in 0..battle.rules().tick_hz {
+        battle.step();
+        refused |=
+            battle.observe(Side::Blue).refusals.iter().any(|r| {
+                r.unit == UnitId(1) && r.reason == OrderError::Destroyed { unit: UnitId(0) }
+            });
+    }
+    assert!(refused, "the squad was never told its carrier is gone");
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(
+        squad.orders.is_empty(),
+        "the squad still chases the wreck: {:?}",
+        squad.orders
+    );
+}
+
+/// Carrier 0 sent from 200 m to collect `squads`; squad 1 climbs into carrier
+/// 2 beside it first. Returns the battle 5 s later and every refusal blue
+/// heard about squad 1.
+fn collected_squad_boards_another_carrier(
+    squads: Vec<UnitId>,
+) -> (Battle, Vec<contract::command::Refusal>) {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[400,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]},
+            {"side":"blue","kind":"test_apc","position":[200,200]}
+        ])),
+        7,
+    );
+    let collect = battle.accept(command(
+        1,
+        Order::Collect {
+            units: vec![UnitId(0)],
+            squads,
+            gesture: 1,
+        },
+    ));
+    assert_eq!(collect.error, None);
+    let board = battle.accept(command(
+        2,
+        Order::Board {
+            units: vec![UnitId(1)],
+            carrier: UnitId(2),
+            gesture: 2,
+        },
+    ));
+    assert_eq!(board.error, None);
+    let mut refusals = Vec::new();
+    for _ in 0..(battle.rules().tick_hz * 5) {
+        battle.step();
+        refusals.extend(
+            (battle.observe(Side::Blue).refusals.iter())
+                .filter(|r| r.unit == UnitId(1))
+                .cloned(),
+        );
+    }
+    (battle, refusals)
+}
+
+#[test]
+fn a_carrier_stops_driving_to_a_squad_another_carrier_took() {
+    let (battle, refusals) = collected_squad_boards_another_carrier(vec![UnitId(1)]);
+    assert!(
+        refusals
+            .iter()
+            .any(|r| r.reason == OrderError::Aboard { unit: UnitId(1) }),
+        "the carrier was never told the squad is aboard another"
+    );
+    let carrier = battle.unit(UnitId(0)).unwrap();
+    assert!(
+        carrier.orders.is_empty(),
+        "the carrier still drives to where the squad stood: {:?}",
+        carrier.orders
+    );
+}
+
+#[test]
+fn a_squad_listed_twice_boards_once_and_waits_for_nothing() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]}
+        ])),
+        7,
+    );
+    // Queued, so a second copy would wait behind the first.
+    let mut board = command(
+        1,
+        Order::Board {
+            units: vec![UnitId(1), UnitId(1)],
+            carrier: UnitId(0),
+            gesture: 1,
+        },
+    );
+    board.queued = true;
+    let ack = battle.accept(board);
+    assert_eq!(ack.error, None);
+    assert!(ack.refused.is_empty(), "{:?}", ack.refused);
+    let aboard = (0..battle.rules().tick_hz * 10).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|u| u.hold.as_ref())
+            .is_some_and(|h| h.phase == sim::hold::Phase::Inside)
+    });
+    assert!(aboard, "the squad never got in");
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(
+        squad.orders.is_empty(),
+        "a second copy of the order is left queued: {:?}",
+        squad.orders
+    );
+}
+
+#[test]
+fn a_squad_listed_twice_for_collection_is_refused_once() {
+    let (_, refusals) = collected_squad_boards_another_carrier(vec![UnitId(1), UnitId(1)]);
+    assert_eq!(
+        refusals,
+        vec![contract::command::Refusal {
+            unit: UnitId(1),
+            reason: OrderError::Aboard { unit: UnitId(1) },
+        }]
+    );
+}
+
+/// Blue's APC (unit 0) beside a building, and a recon squad (unit 1) already
+/// inside it.
+fn squad_in_a_building() -> Battle {
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],
+        "buildings":[crate::common::building(0, "china-apartment-point-20x20-7f", [400.0, 300.0], 0.0)]});
+    let mut battle = Battle::new(
+        &setup_with_map(
+            map,
+            json!([
+                {"side":"blue","kind":"test_apc","position":[360,300]},
+                {"side":"blue","kind":"test_recon","position":[380,300]}
+            ]),
+            json!([]),
+        ),
+        7,
+    );
+    let garrison = battle.accept(command(
+        1,
+        Order::Garrison {
+            units: vec![UnitId(1)],
+            building: 0,
+        },
+    ));
+    assert_eq!(garrison.error, None);
+    let inside = (0..battle.rules().tick_hz * 30).any(|_| {
+        battle.step();
+        battle.unit(UnitId(1)).unwrap().garrisoned()
+    });
+    assert!(inside, "the squad never got into the building");
+    battle
+}
+
+/// Step until squad 1 rides carrier 0, at most `seconds`.
+fn rides_carrier_within(battle: &mut Battle, seconds: u32) -> bool {
+    (0..battle.rules().tick_hz * seconds).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|u| u.hold.as_ref())
+            .is_some_and(|h| {
+                h.host.carrier() == Some(UnitId(0)) && h.phase == sim::hold::Phase::Inside
+            })
+    })
+}
+
+#[test]
+fn a_squad_in_a_building_ordered_to_board_leaves_and_boards() {
+    let mut battle = squad_in_a_building();
+    assert_eq!(battle.accept(board_carrier(2)).error, None);
+    assert!(
+        rides_carrier_within(&mut battle, 30),
+        "the squad never left the building for the carrier"
+    );
+}
+
+#[test]
+fn a_carrier_collects_a_squad_from_a_building() {
+    let mut battle = squad_in_a_building();
+    let collect = battle.accept(command(
+        2,
+        Order::Collect {
+            units: vec![UnitId(0)],
+            squads: vec![UnitId(1)],
+            gesture: 2,
+        },
+    ));
+    assert_eq!(collect.error, None);
+    assert!(
+        rides_carrier_within(&mut battle, 40),
+        "the carrier never took the squad out of the building"
+    );
 }

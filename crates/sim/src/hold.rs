@@ -395,6 +395,9 @@ pub(crate) fn advance(
                             .entry;
                         let preferred = match unit.orders.front() {
                             Some(UnitOrder::Garrison { approach, .. }) => *approach,
+                            Some(UnitOrder::Board { carrier, .. }) => units
+                                .get(carrier.0 as usize)
+                                .map_or(entry, |c| c.position.xy()),
                             Some(o) => o.movement().map_or(entry, |m| m.destination),
                             None => entry,
                         };
