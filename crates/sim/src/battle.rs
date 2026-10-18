@@ -4304,13 +4304,9 @@ impl Battle {
             | Order::Refund { units } => Some(units),
             _ => None,
         };
-        // Every order a unit is given reaches it here first: it is no longer
-        // withdrawing, and a jet's run, release cue and dogfight end, so no
-        // order (repeated or not) can leave one stuck in a run.
         if let Some(units) = replacing {
             for id in units {
-                movers[id.0 as usize].withdrawing = false;
-                crate::air::break_off(&mut movers[id.0 as usize]);
+                take_order(&mut movers[id.0 as usize]);
             }
         }
         match command.order {
@@ -4636,17 +4632,21 @@ impl Battle {
             }
             Order::UpgradeMove { gesture, route } => {
                 for unit in movers.iter_mut().filter(|u| u.side == side) {
+                    let mut upgraded = false;
                     for (k, order) in unit.orders.iter_mut().enumerate() {
                         if let Some(m) = order.movement_mut() {
                             if m.gesture == gesture && m.policy != route {
                                 m.policy = route;
-                                unit.withdrawing = false;
+                                upgraded = true;
                                 if k == 0 {
                                     unit.route = None; // replan the active order
                                     unit.planned_goal = None;
                                 }
                             }
                         }
+                    }
+                    if upgraded {
+                        take_order(unit);
                     }
                 }
             }
@@ -5641,6 +5641,14 @@ impl Battle {
     }
 }
 
+/// What every order a unit is given does to it first: it is no longer
+/// withdrawing, and a jet's run, release cue and dogfight end, so no order
+/// (repeated or not) can leave one stuck in a run.
+fn take_order(unit: &mut Unit) {
+    unit.withdrawing = false;
+    crate::air::break_off(unit);
+}
+
 #[derive(Clone)]
 struct PreparedCommand {
     command: CommandEnvelope,
@@ -5808,6 +5816,70 @@ mod tests {
             },
         );
         projectile
+    }
+
+    /// No order leaves a jet in a run: changing the route of its attack-move
+    /// ends its run, release cue and dogfight, as every other order does.
+    #[test]
+    fn upgrading_a_jets_move_breaks_off_its_run() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_jet", "position": [1000, 2000], "yaw": 0.0 },
+                { "side": "red", "kind": "test_tank", "position": [2000, 2000], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 1);
+        let envelope = |seq, order| CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq,
+            queued: false,
+            order,
+        };
+        let ack = battle.accept(envelope(
+            1,
+            Order::AttackMove {
+                units: vec![UnitId(0)],
+                gesture: 1,
+                goal: [3000.0, 2000.0],
+            },
+        ));
+        assert_eq!(ack.error, None);
+        battle.step();
+        let jet = &mut battle.units[0];
+        assert!(
+            jet.orders[0].movement_mut().unwrap().policy != RoutePolicy::Fastest,
+            "the upgrade changes the route"
+        );
+        // Mid-run, about to release, in a fight.
+        let air = jet.air.as_mut().unwrap();
+        air.pass = Some(crate::air::pass::PassPlan {
+            target: Target::Unit(UnitId(1)),
+            aim: v3(2000.0, 2000.0, 0.0),
+            phase: crate::air::pass::PassPhase::Dive,
+            weapon: crate::air::pass::PassWeapon::Gun,
+            agl: 120.0,
+            heading: 0.0,
+        });
+        air.pass_release = true;
+        air.dogfight_target = Some(UnitId(1));
+        let upgrade = envelope(
+            2,
+            Order::UpgradeMove {
+                gesture: 1,
+                route: RoutePolicy::Fastest,
+            },
+        );
+        let prepared = battle.prepare(upgrade, battle.tick).unwrap();
+        battle.apply(prepared);
+        let air = battle.units[0].air.unwrap();
+        assert_eq!(air.pass, None, "the run survived the order");
+        assert!(!air.pass_release, "the release cue survived the order");
+        assert_eq!(air.dogfight_target, None, "the dogfight survived the order");
     }
 
     /// Contact ids are each side's own: when blue and red each hold a
