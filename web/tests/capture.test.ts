@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   sampleReel,
+  stillReel,
   plateShot,
   filmCamera,
   validateCapture,
@@ -145,6 +146,17 @@ test("a reel is admitted only when every shot can be drawn and its dips fit insi
   expect(broken((r) => (r.shots[0].from.yaw = Number.NaN))).toThrow(/shots\[0\]\.from/);
   expect(broken((r) => (r.shots[0].seconds = 0.9))).toThrow(/shots\[0\]\.seconds/);
   expect(broken((r) => (r.shots = []))).toThrow(/shots/);
+});
+
+test("under reduced motion the reel holds its first framing for its length, on the unit it follows", () => {
+  const still = stillReel(TRACKING);
+  expect(sampleReel(still, 19.9)).toEqual({
+    ...sampleReel(TRACKING, 0),
+    black: expect.any(Number),
+  });
+  expect(sampleReel(still, 20).done).toBe(true);
+  // Framed by its offset from the unit, not at the map's origin.
+  expect(reelPilot(still)(5, () => [100, 50]).pose.target).toEqual([100, 46]);
 });
 
 test("after the last shot the reel is done and holds black on its last framing", () => {

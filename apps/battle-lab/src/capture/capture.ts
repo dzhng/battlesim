@@ -105,6 +105,17 @@ export function validateReel(json: unknown, at = "reel"): Reel {
   };
 }
 
+/** `reel` under reduced motion: its first framing held for the reel's length,
+ *  on the unit that framing follows. */
+export function stillReel(reel: Reel): Reel {
+  const seconds = reel.shots.reduce((sum, shot) => sum + shot.seconds, 0);
+  const [{ from, follow }] = reel.shots;
+  return {
+    fade_s: reel.fade_s,
+    shots: [{ seconds, ...(follow !== undefined && { follow }), from, to: from }],
+  };
+}
+
 /** Cubic ease-in-out: t<0.5 ? 4t³ : 1 - (-2t+2)³/2 */
 function cubicEaseInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
