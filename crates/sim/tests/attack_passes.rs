@@ -808,6 +808,61 @@ fn attack_move_leaves_an_enemy_beyond_reach_of_its_leg() {
     assert_eq!(jet.mounts[0].shots, 0);
 }
 
+/// Attack-move picks up only what the jet can hit: a squad its side knows
+/// of, well inside its missile's reach of the leg but of a class no row it
+/// carries engages, is left alone, and the jet holds its leg to its goal.
+#[test]
+fn attack_move_leaves_an_enemy_no_row_engages() {
+    const OFF_LEG_M: f64 = 400.0;
+    let mut rules = sim::fixtures::test_game();
+    // The mount replaces the jet's own cannon: its one row is a missile
+    // that engages vehicles alone.
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mounts": [{
+            "id": "gun", "name": "AGM", "weapons": ["air_ground_missile"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
+        }] }),
+    );
+    rules["weapons"]["air_ground_missile"]["targets"] =
+        json!({ "ground": { "classes": ["vehicle"], "range_m": OFF_LEG_M * 5.0 } });
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [5000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [300, 1000], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_recon", "position": [1900, 1000.0 + OFF_LEG_M - 100.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [1900, 1000.0 + OFF_LEG_M], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    attack_move(&mut battle, 1, [3_500.0, 1_000.0]);
+    let mut known = false;
+    let mut strayed: f64 = 0.0;
+    for _ in 0..1_500 {
+        battle.step();
+        known |= !battle.observe(Side::Blue).identified.is_empty();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        strayed = strayed.max((jet.position.y - 1000.0).abs());
+        if jet.orders.is_empty() {
+            break;
+        }
+    }
+    assert!(known, "the recon sees the squad");
+    assert!(
+        strayed < OFF_LEG_M / 4.0,
+        "the jet turned {strayed:.0} m off its leg at a squad it cannot engage"
+    );
+    assert!(
+        battle.unit(UnitId(0)).unwrap().orders.is_empty(),
+        "the jet never reached its goal"
+    );
+}
+
 #[test]
 fn a_holding_jet_starts_no_runs() {
     let mut battle = holding_ground_battle("fire_at_will", false);
