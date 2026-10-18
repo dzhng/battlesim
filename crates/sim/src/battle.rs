@@ -1949,6 +1949,9 @@ impl Battle {
                 {
                     return Err(OrderError::NotACarrier);
                 }
+                if !c.alive() {
+                    return Err(OrderError::Destroyed { unit: *carrier });
+                }
                 // A squad rides only its own player's carrier, as a carrier
                 // collects only its own player's squads.
                 self.validate_player(command, *carrier)?;

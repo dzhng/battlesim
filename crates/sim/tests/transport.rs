@@ -1821,3 +1821,96 @@ fn the_unload_step_of_a_queued_drive_unload_drive_is_published() {
     battle.step();
     assert_eq!(published_unloads(&battle, UnitId(0)), (false, vec![]));
 }
+
+/// Blue's 1 hp APC (unit 0) with a recon squad (unit 1) standing at `squad`
+/// and a red gun jeep (unit 2) ordered to destroy the carrier. `before_kill`
+/// runs once before the jeep is ordered. Returns the battle on the tick the
+/// carrier died.
+fn carrier_killed_with_squad_at(squad: [f64; 2], before_kill: impl FnOnce(&mut Battle)) -> Battle {
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_apc",
+        json!({ "body": { "hull": { "hp": 1.0 } } }),
+    );
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]});
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": map, "rules": rules, "events":[], "scripts":[],
+        "units": [
+            {"side":"blue","kind":"test_apc","position":[200,200],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"test_recon","position":squad,"engagement":"return_fire_only"},
+            {"side":"red","kind":"test_gun_jeep","position":[260,200],"engagement":"return_fire_only"}
+        ]
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 42);
+    before_kill(&mut battle);
+    battle.step();
+    let carrier = battle
+        .observe(Side::Red)
+        .identified
+        .iter()
+        .find(|u| u.kind == battle.unit(UnitId(0)).unwrap().kind)
+        .map(|u| u.id)
+        .expect("red sees the carrier");
+    let attack = CommandEnvelope {
+        side: Side::Red,
+        player: None,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![UnitId(2)],
+            target: contract::command::TargetRef::Identified { id: carrier },
+        },
+        queued: false,
+    };
+    assert_eq!(battle.accept(attack).error, None);
+    let destroyed = (0..battle.rules().tick_hz * 10).any(|_| {
+        battle.step();
+        !battle.unit(UnitId(0)).unwrap().alive()
+    });
+    assert!(destroyed, "the gun jeep never destroyed the carrier");
+    battle
+}
+
+fn board_carrier(seq: u64) -> CommandEnvelope {
+    command(
+        seq,
+        Order::Board {
+            units: vec![UnitId(1)],
+            carrier: UnitId(0),
+            gesture: seq,
+        },
+    )
+}
+
+#[test]
+fn a_squad_cannot_board_a_destroyed_carrier() {
+    let mut battle = carrier_killed_with_squad_at([150.0, 200.0], |_| {});
+    assert_eq!(
+        battle.accept(board_carrier(1)).error,
+        Some(OrderError::Destroyed { unit: UnitId(0) })
+    );
+}
+
+#[test]
+fn a_squad_walking_to_a_carrier_that_dies_stops_and_hears_why() {
+    let mut battle = carrier_killed_with_squad_at([120.0, 200.0], |battle| {
+        assert_eq!(battle.accept(board_carrier(1)).error, None);
+    });
+    let mut refused = false;
+    for _ in 0..battle.rules().tick_hz {
+        battle.step();
+        refused |=
+            battle.observe(Side::Blue).refusals.iter().any(|r| {
+                r.unit == UnitId(1) && r.reason == OrderError::Destroyed { unit: UnitId(0) }
+            });
+    }
+    assert!(refused, "the squad was never told its carrier is gone");
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(
+        squad.orders.is_empty(),
+        "the squad still chases the wreck: {:?}",
+        squad.orders
+    );
+}

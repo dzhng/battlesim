@@ -228,17 +228,18 @@ pub(crate) fn complete_unload(
 }
 
 /// Whether unit `i` is walking or driving toward its Board or Collect target
-/// and is already within the hold's reach of it. The approach aims at the
-/// target's centre, which a hull keeps it from ever standing on, so the walk
-/// ends here and the hold's own stillness test takes over.
-fn approach_arrived(units: &[Unit], i: usize, rules: &Rules) -> bool {
+/// and that walk is over: it is already within the hold's reach, or (for
+/// Board) the carrier has died and the order is refused instead. The approach
+/// aims at the target's centre, which a hull keeps it from ever standing on,
+/// so the walk ends here and the hold's own stillness test takes over.
+fn approach_over(units: &[Unit], i: usize, rules: &Rules) -> bool {
     if !matches!(units[i].orders.front(), Some(UnitOrder::Move(_))) {
         return false;
     }
     let other = |id: &UnitId| units.get(id.0 as usize).filter(|u| u.alive());
     match units[i].orders.get(1) {
         Some(UnitOrder::Board { carrier, .. }) => {
-            other(carrier).is_some_and(|c| within_reach(c, &units[i], rules))
+            other(carrier).is_none_or(|c| within_reach(c, &units[i], rules))
         }
         Some(UnitOrder::Collect { squads, .. }) => squads
             .iter()
@@ -282,7 +283,7 @@ pub(crate) fn advance(
         if !units[i].alive() || units[i].hold.is_some() {
             continue;
         }
-        if approach_arrived(units, i, rules) {
+        if approach_over(units, i, rules) {
             units[i].orders.pop_front();
         }
         let Some(order) = units[i].orders.front().cloned() else {
@@ -290,9 +291,9 @@ pub(crate) fn advance(
         };
         match order {
             UnitOrder::Board { carrier, gesture } => {
-                let Some((c_side, c_pos, c_seats)) = units
+                let Some((c_side, c_pos, c_seats, c_alive)) = units
                     .get(carrier.0 as usize)
-                    .map(|c| (c.side, c.position.xy(), seats(rules, c.kind)))
+                    .map(|c| (c.side, c.position.xy(), seats(rules, c.kind), c.alive()))
                 else {
                     units[i].orders.pop_front();
                     refusals[units[i].side.index()].push(contract::command::Refusal {
@@ -306,6 +307,14 @@ pub(crate) fn advance(
                     refusals[units[i].side.index()].push(contract::command::Refusal {
                         unit: units[i].id,
                         reason: contract::command::OrderError::NotACarrier,
+                    });
+                    continue;
+                }
+                if !c_alive {
+                    units[i].orders.pop_front();
+                    refusals[units[i].side.index()].push(contract::command::Refusal {
+                        unit: units[i].id,
+                        reason: contract::command::OrderError::Destroyed { unit: carrier },
                     });
                     continue;
                 }
