@@ -288,6 +288,101 @@ impl MapSources {
     }
 }
 
+/// Admit a resolved map for a world built under `rules`: everything world
+/// construction requires of the map and of the rules' prop catalog, as errors
+/// instead of panics. An uploaded scenario carries both, so its map is admitted
+/// here before any world is prepared. Locations are relative to the scenario.
+pub fn admit_world(map: &MapDefinition, rules: &crate::scenario::Rules) -> Vec<ResolveError> {
+    use crate::catalog::PropPlacement;
+    let catalog = rules.catalog.props();
+    let place = |kind: Option<&str>, placement| {
+        let kind = kind.ok_or_else(|| "no prop type is named".to_owned())?;
+        let kind = catalog
+            .index(kind)
+            .ok_or_else(|| format!("unknown prop type {kind:?}"))?;
+        catalog.check_placement(kind, placement)
+    };
+    let mut checks: Vec<(String, Result<(), String>)> = crate::map::validate_header(
+        map.size,
+        map.fog_cell_m,
+        map.height_grid_m,
+        map.slope_cutoff_deg,
+    )
+    .into_iter()
+    .map(|error| (format!("map.{}", error.field), Err(error.message.into())))
+    .collect();
+    let ground = rules.ground.cell_m;
+    checks.push((
+        "rules.ground.cell_m".into(),
+        (ground.is_finite() && ground > 0.0)
+            .then_some(())
+            .ok_or_else(|| "ground cells must be finite positive metres".into()),
+    ));
+    checks.push((
+        "map.forests".into(),
+        (map.forests.len() <= 1 << 24)
+            .then_some(())
+            .ok_or_else(|| "forest IDs must fit exact public f32 indices".into()),
+    ));
+    checks.push(("map".into(), map.authored_props().map(|_| ())));
+    for (i, prop) in map.props.iter().enumerate() {
+        checks.push((
+            format!("map.props[{i}].kind"),
+            place(Some(&prop.kind), PropPlacement::Ordinary),
+        ));
+    }
+    for (i, bridge) in map.bridges.iter().enumerate() {
+        checks.push((
+            format!("map.bridges[{i}].deck"),
+            place(Some(&bridge.deck), PropPlacement::Ordinary),
+        ));
+    }
+    if !map.forests.is_empty() {
+        let forests = &rules.forests;
+        checks.push((
+            "rules.forests.tree".into(),
+            place(Some(&forests.tree), PropPlacement::Ordinary),
+        ));
+        for (field, kind, density) in [
+            ("log", &forests.log, forests.rule.logs_per_ha),
+            ("boulder", &forests.boulder, forests.rule.boulders_per_ha),
+        ] {
+            if density > 0.0 {
+                checks.push((
+                    format!("rules.forests.{field}"),
+                    place(kind.as_deref(), PropPlacement::Ordinary),
+                ));
+            }
+        }
+    }
+    for (i, building) in map.buildings.iter().enumerate() {
+        let garrison = catalog
+            .index(&building.kind)
+            .is_some_and(|kind| catalog.get(kind).body.garrison);
+        checks.push((
+            format!("map.buildings[{i}].kind"),
+            place(Some(&building.kind), PropPlacement::Aggregate).and_then(|()| {
+                (!garrison || building.geometry.edges.iter().any(|e| e.exposed))
+                    .then_some(())
+                    .ok_or_else(|| {
+                        "garrison-capable aggregates require an exposed physical span".into()
+                    })
+            }),
+        ));
+    }
+    checks.push(("map".into(), crate::river::validate(map)));
+    checks
+        .into_iter()
+        .filter_map(|(location, checked)| {
+            checked.err().map(|message| ResolveError {
+                code: ResolveCode::InvalidMap,
+                location,
+                message,
+            })
+        })
+        .collect()
+}
+
 /// Admit a saved map: `map.json` (a [`SavedMap`]), the `SOURCES.json` that
 /// pins it, and the physical library those sources name. Each building is
 /// materialized here from its template at its frame, so the definition every

@@ -277,6 +277,13 @@ impl ScenarioBundle {
                 "template catalogue identity does not match the resolved map",
             ));
         }
+        for error in crate::maps::admit_world(&self.scenario.map, &self.scenario.rules) {
+            errors.push(diagnostic(
+                "invalid_map",
+                format!("$.scenario.{}", error.location),
+                error.message,
+            ));
+        }
         let rules_hash = json_hash(&self.scenario.rules).expect("rules serialize");
         if self.rules_hash != rules_hash {
             errors.push(diagnostic(
