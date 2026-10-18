@@ -42,3 +42,26 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 The incumbent is the skeleton-scoped loader. The next experiment is to fetch the
 reel's LFS assets, record matched browser/native baselines, then profile the
 largest GPU span before changing a shared pass.
+
+## Visual verification (2026-10-18)
+
+The `frame` scene was rerun on a hardware AMD RDNA3 adapter after fetching the
+approved LFS baseline. Its world render matches the baseline: terrain, tank and
+vehicle silhouettes, shadows, camera framing, depth ordering, and colour remain
+aligned. The scene reports 7,318 differing pixels because the candidate lab
+panel has native vertical and horizontal scrollbars that are absent from the
+approved image; the world crop is unchanged. This is a harness/browser UI
+artifact outside the renderer changes and is retained as a follow-up rather
+than hidden by blessing a new baseline.
+
+The native parity plate was also inspected at 1280×720. The plate intentionally
+includes grass while its paired plain plate suppresses grass for measurement,
+so that pair is not a before/after quality gate. It confirms that the grass
+pass draws dense foreground clumps and that the tank remains visible; the
+native run remains directional because the benchmark adapter is llvmpipe.
+
+The collaborative preview browser could not provide a hardware adapter and
+showed only its loading/blank states (`No available adapters`), so those captures
+are diagnostic and are not used as renderer acceptance evidence. The unprimed
+critique found no renderer defect in the hardware scene; it did flag the panel
+scrollbars as the visible UI discrepancy.
