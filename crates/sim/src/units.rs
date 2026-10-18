@@ -624,11 +624,7 @@ impl Unit {
     /// still counted for accounting, but cannot collide, sense, fight, hear or
     /// affect objectives until it exits.
     pub fn on_field(&self) -> bool {
-        self.alive()
-            && !self.hold.as_ref().is_some_and(|hold| {
-                matches!(hold.host, crate::hold::Host::Carrier(_))
-                    && matches!(hold.phase, Phase::Inside | Phase::Exiting(_))
-            })
+        self.alive() && self.hold.as_ref().and_then(|hold| hold.riding()).is_none()
     }
 
     /// Its type's record.
@@ -801,7 +797,7 @@ impl Unit {
             Some(a) => d.u64(1).f64(a.at.x).f64(a.at.y).u64(a.halt as u64),
             None => d.u64(0),
         };
-        crate::garrison::digest(self, d);
+        crate::hold::digest(self, d);
         d.u64(self.members.len() as u64);
         for s in &self.members {
             d.u64(s.id as u64)

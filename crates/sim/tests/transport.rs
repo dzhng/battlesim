@@ -4,6 +4,7 @@ use contract::command::{
 };
 use contract::ids::{Side, UnitId};
 use contract::observation::HoldPhase;
+use contract::scenario::BailOutHost;
 use serde_json::json;
 use sim::battle::Battle;
 
@@ -184,6 +185,115 @@ fn heli_move(seq: u64, goal: [f64; 2]) -> CommandEnvelope {
 }
 
 #[test]
+fn soldiers_boarding_a_hovering_helicopter_stay_on_the_ground_until_inside() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_transport_heli","position":[300,300]},
+            {"side":"blue","kind":"test_rifle","position":[300,300]},
+        ])),
+        17,
+    );
+    assert_eq!(
+        battle
+            .accept(command(
+                1,
+                Order::Board {
+                    units: vec![UnitId(1)],
+                    carrier: UnitId(0),
+                    gesture: 1
+                },
+            ))
+            .error,
+        None
+    );
+    let mut entering_ticks = 0;
+    let boarded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        let squad = battle.unit(UnitId(1)).expect("boarding squad");
+        match squad.hold.as_ref().map(|hold| hold.phase) {
+            Some(sim::hold::Phase::Inside) => return true,
+            Some(sim::hold::Phase::Entering(_)) => entering_ticks += 1,
+            _ => {}
+        }
+        for position in squad.member_positions() {
+            let ground = battle
+                .world()
+                .surface_at(position.x, position.y)
+                .expect("flat map surface")
+                .z;
+            assert!(
+                (position.z - ground).abs() < 1e-6,
+                "a soldier not yet inside floats at {} above ground {ground}",
+                position.z
+            );
+        }
+        false
+    });
+    assert!(boarded, "the squad never boarded the hovering helicopter");
+    assert!(
+        entering_ticks > 0,
+        "the squad never stood beside the helicopter to board"
+    );
+    let hover = battle
+        .unit(UnitId(0))
+        .expect("transport helicopter")
+        .position
+        .z;
+    let ground = battle
+        .world()
+        .surface_at(300.0, 300.0)
+        .expect("flat map surface")
+        .z;
+    assert!(
+        hover > ground + 1.0,
+        "the helicopter boarded on the ground, not in a hover: {hover}"
+    );
+}
+
+#[test]
+fn a_helicopter_lifted_over_a_prop_still_boards_from_its_hover() {
+    // A tall lamp beside the pickup lifts the low hover over its top.
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "props":[{"kind":"lamp","center":[303,300],"yaw":0,"half_extents":[0.15,0.15,6]}],"buildings":[]});
+    let mut battle = Battle::new(
+        &setup_with_map(
+            map,
+            json!([
+                {"side":"blue","kind":"test_transport_heli","position":[300,300]},
+                {"side":"blue","kind":"test_rifle","position":[297,300]},
+            ]),
+            json!([]),
+        ),
+        17,
+    );
+    assert_eq!(
+        battle
+            .accept(command(
+                1,
+                Order::Board {
+                    units: vec![UnitId(1)],
+                    carrier: UnitId(0),
+                    gesture: 1
+                },
+            ))
+            .error,
+        None
+    );
+    let boarded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|unit| unit.hold.as_ref())
+            .is_some_and(|hold| hold.phase == sim::hold::Phase::Inside)
+    });
+    let hover = battle.unit(UnitId(0)).unwrap().position.z;
+    assert!(
+        boarded,
+        "the squad never boarded under the lifted hover at {hover} m"
+    );
+}
+
+#[test]
 fn a_helicopter_boards_and_unloads_from_its_low_hover() {
     let mut battle = Battle::new(
         &setup(json!([
@@ -279,7 +389,8 @@ fn a_helicopter_shot_down_keeps_its_passengers_until_it_hits_the_ground() {
                     (at.xy() - impact.xy()).length() < (at.xy() - hit.xy()).length(),
                     "seed {seed}: a survivor at {at:?} stands nearer the hit {hit:?} than the impact {impact:?}"
                 );
-                assert!((at.xy() - impact.xy()).length() < 15.0);
+                let search = battle.rules().bail_out[&BailOutHost::Air].search_m;
+                assert!((at.xy() - impact.xy()).length() <= search + 1e-9);
             }
         } else {
             saw_squad_loss = true;
@@ -432,6 +543,57 @@ fn a_squad_boards_a_stopped_carrier_and_leaves_the_field() {
 }
 
 #[test]
+fn an_attacker_whose_infantry_all_ride_is_not_defeated() {
+    // An unarmed carrier, so the riding squad is the attacker's only weapon.
+    let mut game = crate::common::game();
+    game["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"units": {
+            "test_unarmed_carrier": {
+                "extends": "test_supply", "name": "Unarmed Carrier",
+                "capabilities": {"carriage": {"seats": 8}}
+            }
+        }}));
+    let mut def = setup(json!([
+        {"side":"blue","kind":"test_unarmed_carrier","position":[200,200]},
+        {"side":"blue","kind":"test_rifle","position":[195,200]},
+        {"side":"red","kind":"test_rifle","position":[600,200]}
+    ]));
+    def.rules = serde_json::from_value(game).unwrap();
+    def.encounter = Some(contract::scenario::EncounterRules {
+        attacker: Side::Blue,
+        success_zone_center: [600.0, 200.0],
+        success_zone_radius_m: 20.0,
+        hold_s: 30.0,
+        max_assessment_s: 600.0,
+    });
+    let mut battle = Battle::new(&def, 7);
+    assert!(battle
+        .accept(command(
+            1,
+            Order::Board {
+                units: vec![UnitId(1)],
+                carrier: UnitId(0),
+                gesture: 1
+            }
+        ))
+        .error
+        .is_none());
+    let boarded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        !battle.unit(UnitId(1)).unwrap().on_field()
+    });
+    assert!(boarded, "the squad never boarded the unarmed carrier");
+    battle.step();
+    assert_eq!(
+        battle.encounter().map(|status| status.result),
+        Some(contract::observation::EncounterResult::Running),
+        "a riding squad is still the attacker's fighting strength"
+    );
+}
+
+#[test]
 fn a_squad_walks_to_a_distant_carrier_and_boards_it() {
     // The squad can never stand on the carrier's centre (the hull is in the
     // way), so its walk has to end where the hold's reach admits it.
@@ -555,6 +717,171 @@ fn a_carrier_drives_to_a_squad_and_takes_it_aboard() {
             .as_ref()
             .map(|h| h.phase),
         Some(sim::hold::Phase::Inside)
+    );
+}
+
+#[test]
+fn a_collected_squad_out_of_reach_walks_over_before_it_boards() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[250,200]},
+            {"side":"blue","kind":"test_recon","position":[220,200]},
+            {"side":"blue","kind":"test_recon","position":[220,240]}
+        ])),
+        10,
+    );
+    assert!(battle
+        .accept(command(
+            1,
+            Order::Collect {
+                units: vec![UnitId(0)],
+                squads: vec![UnitId(1), UnitId(2)],
+                gesture: 1
+            }
+        ))
+        .error
+        .is_none());
+    // A soldier on foot covers well under a metre a tick; the far squad is
+    // 40 m from the first one the carrier reaches.
+    let mut last = battle.unit(UnitId(2)).unwrap().position.xy();
+    for _ in 0..(battle.rules().tick_hz * 30) {
+        battle.step();
+        let squad = battle.unit(UnitId(2)).unwrap();
+        if !squad.on_field() {
+            break;
+        }
+        let moved = (squad.position.xy() - last).length();
+        assert!(moved < 1.0, "the far squad jumped {moved} m in one tick");
+        last = squad.position.xy();
+    }
+    for _ in 0..(battle.rules().tick_hz * 10) {
+        battle.step();
+    }
+    for id in [UnitId(1), UnitId(2)] {
+        assert_eq!(
+            battle.unit(id).unwrap().hold.as_ref().map(|h| h.phase),
+            Some(sim::hold::Phase::Inside),
+            "every collected squad ends up aboard"
+        );
+    }
+}
+
+/// Ticks unit 1 spends getting into carrier 0 after `order`.
+fn ticks_getting_in(order: Order) -> usize {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]}
+        ])),
+        7,
+    );
+    assert!(battle.accept(command(1, order)).error.is_none());
+    let mut entering = 0;
+    for _ in 0..(battle.rules().tick_hz * 10) {
+        battle.step();
+        match battle
+            .unit(UnitId(1))
+            .unwrap()
+            .hold
+            .as_ref()
+            .map(|h| h.phase)
+        {
+            Some(sim::hold::Phase::Entering(_)) => entering += 1,
+            Some(sim::hold::Phase::Inside) => return entering,
+            _ => {}
+        }
+    }
+    panic!("the squad never got in");
+}
+
+#[test]
+fn boarding_takes_as_long_whoever_gives_the_order() {
+    let boarded = ticks_getting_in(Order::Board {
+        units: vec![UnitId(1)],
+        carrier: UnitId(0),
+        gesture: 1,
+    });
+    let collected = ticks_getting_in(Order::Collect {
+        units: vec![UnitId(0)],
+        squads: vec![UnitId(1)],
+        gesture: 1,
+    });
+    assert!(boarded > 0);
+    assert_eq!(boarded, collected);
+}
+
+/// Where the APC's squad (unit 2) stands after it boards the APC (unit 1)
+/// and unloads in place, with a transport helicopter (unit 0) hovering over
+/// the APC. The helicopter carries the rifle squad (unit 3) when `riding`;
+/// otherwise that squad stands far off.
+fn unloaded_under_a_helicopter(riding: bool) -> Vec<sim::math::V3> {
+    let rifles = if riding { [260, 200] } else { [500, 400] };
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_transport_heli","position":[260,200]},
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]},
+            {"side":"blue","kind":"test_rifle","position":rifles}
+        ])),
+        7,
+    );
+    let mut seq = 0;
+    let mut next = || {
+        seq += 1;
+        seq
+    };
+    let board = |seq, squad, carrier| {
+        command(
+            seq,
+            Order::Board {
+                units: vec![squad],
+                carrier,
+                gesture: 1,
+            },
+        )
+    };
+    assert_eq!(
+        battle.accept(board(next(), UnitId(2), UnitId(1))).error,
+        None
+    );
+    if riding {
+        assert_eq!(
+            battle.accept(board(next(), UnitId(3), UnitId(0))).error,
+            None
+        );
+    }
+    let aboard = |battle: &Battle, id: UnitId| !battle.unit(id).unwrap().on_field();
+    let loaded = (0..battle.rules().tick_hz * 20).any(|_| {
+        battle.step();
+        aboard(&battle, UnitId(2)) && (!riding || aboard(&battle, UnitId(3)))
+    });
+    assert!(loaded, "the squads never boarded");
+    assert_eq!(battle.accept(heli_move(next(), [200.0, 200.0])).error, None);
+    for _ in 0..battle.rules().tick_hz * 20 {
+        battle.step();
+    }
+    let over = battle.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(200.0, 200.0);
+    assert!(over.length() < 1.0, "the helicopter is not over the APC");
+    let unload = Order::Unload {
+        units: vec![UnitId(1)],
+        goal: None,
+        gesture: 4,
+        route: RoutePolicy::Shortest,
+    };
+    assert_eq!(battle.accept(command(next(), unload)).error, None);
+    let out = (0..battle.rules().tick_hz * 10).any(|_| {
+        battle.step();
+        battle.unit(UnitId(2)).unwrap().hold.is_none()
+    });
+    assert!(out, "the squad never unloaded");
+    battle.unit(UnitId(2)).unwrap().member_positions().collect()
+}
+
+#[test]
+fn soldiers_riding_another_carrier_take_up_no_ground() {
+    assert_eq!(
+        unloaded_under_a_helicopter(true),
+        unloaded_under_a_helicopter(false)
     );
 }
 
@@ -919,40 +1246,169 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
     assert!(battle.unit(UnitId(1)).unwrap().retired);
 }
 
-#[test]
-fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
-    let mut battle = Battle::new(
-        &setup(json!([
-            {"side":"blue","kind":"test_apc","position":[200,200]},
-            {"side":"blue","kind":"test_recon","position":[195,200]}
-        ])),
-        42,
+/// Blue's 1 hp APC with `squads` recon squads (units 1..=squads) boarding it
+/// (for `board_s` when given), destroyed by a red gun jeep once every squad's
+/// hold reaches a phase `ready` accepts, and still in such a phase when the
+/// carrier dies. Returns the battle on the tick the carrier died and each
+/// squad's soldiers' health before.
+fn carrier_destroyed_once(
+    squads: u32,
+    board_s: Option<f64>,
+    ready: fn(sim::hold::Phase) -> bool,
+) -> (Battle, Vec<Vec<f64>>) {
+    let mut rules = sim::fixtures::test_game();
+    if let Some(board_s) = board_s {
+        rules["carriage"]["board_s"] = json!(board_s);
+    }
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_apc",
+        json!({ "body": { "hull": { "hp": 1.0 } } }),
     );
+    let squad_ids: Vec<UnitId> = (1..=squads).map(UnitId).collect();
+    let jeep = UnitId(squads + 1);
+    let mut units = vec![
+        json!({"side":"blue","kind":"test_apc","position":[200,200],"engagement":"return_fire_only"}),
+    ];
+    for k in 0..squads {
+        units.push(json!({"side":"blue","kind":"test_recon","position":[195, 200 + 6 * k],"engagement":"return_fire_only"}));
+    }
+    units.push(json!({"side":"red","kind":"test_gun_jeep","position":[260,200],"engagement":"return_fire_only"}));
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]});
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map": map, "rules": rules, "units": units, "events":[], "scripts":[]
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 42);
     assert!(battle
         .accept(command(
             1,
             Order::Board {
-                units: vec![UnitId(1)],
+                units: squad_ids.clone(),
                 carrier: UnitId(0),
                 gesture: 1
             }
         ))
         .error
         .is_none());
-    for _ in 0..(battle.rules().tick_hz * 4) {
+    let phases = |battle: &Battle| -> Vec<Option<sim::hold::Phase>> {
+        (squad_ids.iter())
+            .map(|&id| battle.unit(id).unwrap().hold.as_ref().map(|h| h.phase))
+            .collect()
+    };
+    let reached = (0..battle.rules().tick_hz * 10).any(|_| {
         battle.step();
-    }
-    let passenger = battle.unit(UnitId(1)).unwrap();
-    assert!(!passenger.on_field());
-    assert_eq!(
-        passenger
-            .members
-            .iter()
-            .map(|member| member.id)
-            .collect::<std::collections::BTreeSet<_>>()
-            .len(),
-        passenger.members.len()
+        phases(&battle)
+            .into_iter()
+            .all(|phase| phase.is_some_and(ready))
+    });
+    assert!(reached, "the squads never reached the boarding phase");
+    let health = (squad_ids.iter())
+        .map(|&id| {
+            battle
+                .unit(id)
+                .unwrap()
+                .members
+                .iter()
+                .map(|s| s.hp)
+                .collect()
+        })
+        .collect();
+    let carrier = battle
+        .observe(Side::Red)
+        .identified
+        .iter()
+        .find(|u| u.kind == battle.unit(UnitId(0)).unwrap().kind)
+        .map(|u| u.id)
+        .expect("red sees the carrier");
+    let attack = CommandEnvelope {
+        side: Side::Red,
+        player: None,
+        seq: 1,
+        order: Order::Attack {
+            units: vec![jeep],
+            target: contract::command::TargetRef::Identified { id: carrier },
+        },
+        queued: false,
+    };
+    assert_eq!(battle.accept(attack).error, None);
+    let destroyed = (0..battle.rules().tick_hz * 10).any(|_| {
+        let phases = phases(&battle);
+        assert!(
+            phases.iter().all(|phase| phase.is_some_and(ready)),
+            "a squad left the boarding phase before its carrier died: {phases:?}"
+        );
+        battle.step();
+        !battle.unit(UnitId(0)).unwrap().alive()
+    });
+    assert!(destroyed, "the gun jeep never destroyed the carrier");
+    (battle, health)
+}
+
+#[test]
+fn a_destroyed_carrier_bails_out_its_passengers_hurt_and_pinned() {
+    let (battle, health) =
+        carrier_destroyed_once(1, None, |phase| phase == sim::hold::Phase::Inside);
+    let rule = &battle.rules().bail_out[&BailOutHost::Ground];
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(
+        squad.hold.is_none(),
+        "no rider stays in a destroyed carrier"
     );
+    for (soldier, before) in squad.members.iter().zip(&health[0]) {
+        if !soldier.alive() {
+            continue;
+        }
+        let lost = before - soldier.hp;
+        assert!(
+            lost >= rule.hp_lost[0] - 1e-9 && lost <= rule.hp_lost[1] + 1e-9,
+            "a soldier who got out lost {lost} hp"
+        );
+    }
+    if squad.alive() {
+        assert!(squad.on_field(), "the survivors stand on the field");
+        assert!(
+            squad.suppression >= battle.rules().suppression.pinned.level,
+            "the survivors are pinned"
+        );
+    }
+}
+
+#[test]
+fn a_squad_still_getting_in_is_spared_when_its_carrier_is_destroyed() {
+    // Boarding outlasts the gun jeep's kill, so the carrier dies mid-boarding.
+    let (battle, health) = carrier_destroyed_once(1, Some(30.0), |phase| {
+        matches!(phase, sim::hold::Phase::Entering(_))
+    });
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(squad.on_field());
+    assert_eq!(
+        squad.members.iter().map(|s| s.hp).collect::<Vec<_>>(),
+        health[0],
+        "a squad standing beside the carrier is not hurt as if it rode inside"
+    );
+    assert!(
+        squad.suppression < battle.rules().suppression.pinned.level,
+        "a squad standing beside the carrier is not pinned by a bail-out"
+    );
+}
+
+#[test]
+fn two_squads_bailing_out_of_one_carrier_are_hurt_independently() {
+    let (battle, health) =
+        carrier_destroyed_once(2, None, |phase| phase == sim::hold::Phase::Inside);
+    let lost: Vec<Vec<f64>> = [UnitId(1), UnitId(2)]
+        .into_iter()
+        .zip(&health)
+        .map(|(id, before)| {
+            let squad = battle.unit(id).unwrap();
+            (squad.members.iter().zip(before))
+                .map(|(s, b)| b - s.hp)
+                .collect()
+        })
+        .collect();
+    assert_ne!(lost[0], lost[1], "both squads drew the same injuries");
 }
 
 /// Blue's published unload flags for unit `id`: its goal's, then each

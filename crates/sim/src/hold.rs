@@ -95,15 +95,75 @@ impl Hold {
     pub fn building_mut(&mut self) -> Option<&mut Garrison> {
         self.place.building_mut()
     }
+
+    /// The carrier this squad rides inside, off the field: aboard, or still
+    /// inside while it gets out. A squad still getting in stands beside it.
+    pub fn riding(&self) -> Option<contract::ids::UnitId> {
+        match (self.host, self.phase) {
+            (Host::Carrier(id), Phase::Inside | Phase::Exiting(_)) => Some(id),
+            _ => None,
+        }
+    }
 }
 
 use crate::arrangement;
+use crate::digest::Digest;
 use crate::garrison::{self, Want};
 use crate::world::WorldGeometry;
-use contract::observation::MoveState;
+use contract::observation::{HoldPhase, HoldState, HostRef, MoveState};
 
-fn ticks(seconds: f64, rules: &Rules) -> u32 {
+/// A duration in whole ticks, never less than one.
+pub(crate) fn ticks(seconds: f64, rules: &Rules) -> u32 {
     ((seconds * rules.tick_hz as f64).round() as u32).max(1)
+}
+
+/// What the owning side sees of a squad's hold.
+pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<HoldState> {
+    let hold = unit.hold.as_ref()?;
+    let host = match hold.host {
+        Host::Carrier(id) => HostRef::Carrier { id: id.0 },
+        Host::Building(building) => {
+            let footprint = world.structure_footprint(building)?;
+            HostRef::Building {
+                id: building,
+                center: [footprint.center.x, footprint.center.y],
+                half: [footprint.half.x, footprint.half.y],
+            }
+        }
+    };
+    let timer = ticks(hold.host.timing(rules).enter_exit_s, rules) as f64;
+    let (phase, progress) = match hold.phase {
+        Phase::Entering(n) => (HoldPhase::Entering, n as f64 / timer),
+        Phase::Inside => (HoldPhase::Inside, 1.0),
+        Phase::Exiting(n) => (HoldPhase::Exiting, n as f64 / timer),
+    };
+    Some(HoldState {
+        host,
+        phase,
+        progress,
+    })
+}
+
+/// Fold a unit's hold into a digest, with presence and length tags.
+pub fn digest(unit: &Unit, d: &mut Digest) {
+    d.u64(unit.hold.is_some() as u64);
+    let Some(hold) = &unit.hold else {
+        return;
+    };
+    let (tag, n) = match hold.phase {
+        Phase::Entering(n) => (0, n),
+        Phase::Inside => (2, 0),
+        Phase::Exiting(n) => (3, n),
+    };
+    match hold.host {
+        Host::Carrier(id) => {
+            d.u64(u64::MAX).u64(id.0 as u64).u64(tag).u64(n as u64);
+        }
+        Host::Building(building) => {
+            d.u64(building as u64).u64(tag).u64(n as u64);
+            garrison::digest_place(hold.building().expect("a building hold's place"), d);
+        }
+    }
 }
 
 /// Advance every unit's hold through one shared phase and timer. Host-specific
@@ -203,7 +263,7 @@ pub(crate) fn advance(
                             Phase::Entering(n + 1);
                     }
                     Phase::Entering(_) => {
-                        if crate::carriage::admit(units, i, carrier, rules) {
+                        if crate::carriage::fits(units, carrier, rules) {
                             units[i].hold.as_mut().expect("carrier hold").phase = Phase::Inside;
                             if matches!(units[i].orders.front(), Some(UnitOrder::Board { .. })) {
                                 units[i].orders.pop_front();

@@ -6,6 +6,7 @@ use contract::command::{CommandEnvelope, Engagement, Order, OrderError, RoutePol
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::{ActionReason, HoldPhase, OwnUnit};
+use contract::scenario::BailOutHost;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId, Struck};
@@ -931,7 +932,8 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
             }
             let q = u.members[k].position.xy();
             let hp_lost = hp_before - u.members[k].hp;
-            assert!((20.0..=40.0).contains(&hp_lost));
+            let [least, most] = b.rules().bail_out[&BailOutHost::Building].hp_lost;
+            assert!((least..=most).contains(&hp_lost));
             // On legal ground outside the ruin, within the local search of
             // where it stood: no teleport.
             assert!(
@@ -1056,7 +1058,8 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
                 let q = s.position.xy();
                 let (dx, dy) = ((q.x - cx).abs() - hx, (q.y - cy).abs() - hy);
                 assert!(dx.max(dy) <= gap, "in the gap: {q:?}");
-                assert!((20.0..=40.0).contains(&(before[k].2 - s.hp)));
+                let [least, most] = c.b.rules().bail_out[&BailOutHost::Building].hp_lost;
+                assert!((least..=most).contains(&(before[k].2 - s.hp)));
                 survivors += 1;
             }
         }

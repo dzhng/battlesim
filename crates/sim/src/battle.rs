@@ -3113,15 +3113,12 @@ impl Battle {
         }
     }
 
-    /// The live squads riding in `carrier`, in unit order.
+    /// The live squads riding in `carrier`, in unit order. A squad still
+    /// getting in stands beside it and shares none of its fate.
     fn passengers_of(&self, carrier: UnitId) -> Vec<usize> {
         (self.units.iter().enumerate())
             .filter(|(_, unit)| {
-                unit.alive()
-                    && unit
-                        .hold
-                        .as_ref()
-                        .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(carrier))
+                unit.alive() && unit.hold.as_ref().and_then(|hold| hold.riding()) == Some(carrier)
             })
             .map(|(index, _)| index)
             .collect()
@@ -3324,16 +3321,14 @@ impl Battle {
                 _ => None,
             };
             if ground_carrier {
-                if let Some(wreck) = wreck {
-                    self.bail_out_carrier(
-                        id,
-                        rest,
-                        wreck,
-                        death.source,
-                        &mut destroyed,
-                        contract::scenario::BailOutHost::Ground,
-                    );
-                }
+                self.bail_out_carrier(
+                    id,
+                    rest,
+                    wreck.expect("a ground hull leaves a wreck"),
+                    death.source,
+                    &mut destroyed,
+                    contract::scenario::BailOutHost::Ground,
+                );
             }
             if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
                 for (side, _) in knowing {
@@ -3466,18 +3461,18 @@ impl Battle {
         if passengers.is_empty() {
             return;
         }
-        let passenger_ids: BTreeSet<UnitId> =
-            passengers.iter().map(|&i| self.units[i].id).collect();
         let hulls: Vec<Obb2> = self
             .units
             .iter()
             .filter(|unit| unit.id != carrier && unit.on_field())
             .filter_map(|unit| unit.ground_footprint())
             .collect();
+        // Soldiers riding any carrier, these passengers included, take up no
+        // ground.
         let mut soldiers: Vec<V2> = self
             .units
             .iter()
-            .filter(|unit| unit.id != carrier && !passenger_ids.contains(&unit.id))
+            .filter(|unit| unit.on_field())
             .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
             .collect();
         let ignored_props = [wreck];
@@ -4250,12 +4245,7 @@ impl Battle {
             _ => None,
         };
         let mut refused = Vec::new();
-        if let Order::Board {
-            units,
-            carrier,
-            gesture,
-        } = &mut command.order
-        {
+        if let Order::Board { units, carrier, .. } = &mut command.order {
             let mut ordered = units.clone();
             ordered.sort_by(|a, b| {
                 let ca = (self.units[a.0 as usize].position.xy()
@@ -4266,22 +4256,12 @@ impl Battle {
                 .length();
                 ca.total_cmp(&cb).then(a.cmp(b))
             });
-            let capacity = self
-                .rules
-                .catalog
-                .get(self.units[carrier.0 as usize].kind)
-                .capabilities
-                .carriage
-                .map_or(0, |c| c.seats as usize);
-            let used: usize = self.units.iter().filter(|u| matches!(u.hold.as_ref().map(|h| h.host), Some(crate::hold::Host::Carrier(id)) if id == *carrier)).map(|u| u.members.iter().filter(|s| s.alive()).count()).sum();
+            let capacity = crate::carriage::seats(&self.rules, self.units[carrier.0 as usize].kind);
+            let used = crate::carriage::seats_used(&self.units, *carrier);
             let mut left = capacity.saturating_sub(used);
             let mut accepted = Vec::new();
             for id in ordered {
-                let need = self.units[id.0 as usize]
-                    .members
-                    .iter()
-                    .filter(|s| s.alive())
-                    .count();
+                let need = crate::carriage::living(&self.units[id.0 as usize]);
                 if need <= left {
                     left -= need;
                     accepted.push(id);
@@ -4293,7 +4273,6 @@ impl Battle {
                 }
             }
             *units = accepted;
-            let _ = gesture;
         }
         if let Order::Unload {
             units, goal: None, ..
@@ -5416,7 +5395,7 @@ impl Battle {
                             && u.attackers.is_empty(),
                         stock: u.stock,
                         service: u.service,
-                        hold: garrison::state(&self.world, u, &self.rules),
+                        hold: crate::hold::state(&self.world, u, &self.rules),
                         sight: {
                             let s = sight::of(u, &self.rules);
                             UnitSight {

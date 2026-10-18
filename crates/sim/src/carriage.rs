@@ -1,5 +1,6 @@
 //! Boarding and passenger movement for ground carriers.
 
+use contract::catalog::TypeIndex;
 use contract::ids::UnitId;
 use contract::scenario::Rules;
 
@@ -47,15 +48,34 @@ pub(crate) fn transport_hold_in_progress(units: &[Unit], carrier: UnitId) -> boo
     entering || unloading || pending
 }
 
-fn seats(unit: &Unit, rules: &Rules) -> usize {
-    unit.unit_type(rules)
+/// The seats `kind` carries; 0 for a unit that carries no one.
+pub(crate) fn seats(rules: &Rules, kind: TypeIndex) -> usize {
+    rules
+        .catalog
+        .get(kind)
         .capabilities
         .carriage
         .map_or(0, |c| c.seats as usize)
 }
 
-fn living(unit: &Unit) -> usize {
+/// The seats a squad takes: one per living soldier.
+pub(crate) fn living(unit: &Unit) -> usize {
     unit.members.iter().filter(|s| s.alive()).count()
+}
+
+/// The seats taken on `carrier`: every squad holding on it, getting out,
+/// aboard or still getting in. A squad getting in has its seats reserved, so
+/// two squads can never both be admitted into the last ones.
+pub(crate) fn seats_used(units: &[Unit], carrier: UnitId) -> usize {
+    units
+        .iter()
+        .filter(|u| {
+            u.hold
+                .as_ref()
+                .is_some_and(|h| h.host == Host::Carrier(carrier))
+        })
+        .map(living)
+        .sum()
 }
 
 pub(crate) fn stationary(unit: &Unit) -> bool {
@@ -64,8 +84,8 @@ pub(crate) fn stationary(unit: &Unit) -> bool {
 
 pub(crate) fn within_reach(carrier: &Unit, passenger: &Unit, rules: &Rules) -> bool {
     let hull_reach = carrier.hull.map_or(0.0, |h| h.xy().length());
-    (carrier.position.xy() - passenger.position.xy()).length()
-        <= rules.carriage.reach_m + hull_reach
+    let reach = Host::Carrier(carrier.id).timing(rules).reach_m;
+    (carrier.position.xy() - passenger.position.xy()).length() <= reach + hull_reach
 }
 
 pub(crate) fn near_and_still(
@@ -92,23 +112,9 @@ pub(crate) fn at_loading_height(world: &WorldGeometry, host: &Unit, rules: &Rule
     !host.airborne() || crate::movement::air::low_hover_settled(world, host, rules)
 }
 
-pub(crate) fn capacity(units: &[Unit], carrier: UnitId, candidate: usize, rules: &Rules) -> bool {
-    let used: usize = units
-        .iter()
-        .filter(|u| {
-            matches!(
-                u.hold.as_ref().map(|h| h.host),
-                Some(Host::Carrier(id)) if id == carrier
-            )
-        })
-        .map(living)
-        .sum();
-    used.saturating_sub(living(&units[candidate])) + living(&units[candidate])
-        <= seats(&units[carrier.0 as usize], rules)
-}
-
-pub(crate) fn admit(units: &[Unit], passenger: usize, carrier: UnitId, rules: &Rules) -> bool {
-    capacity(units, carrier, passenger, rules)
+/// Whether every squad holding on `carrier` fits its seats.
+pub(crate) fn fits(units: &[Unit], carrier: UnitId, rules: &Rules) -> bool {
+    seats_used(units, carrier) <= seats(rules, units[carrier.0 as usize].kind)
 }
 
 fn push_target_move(unit: &mut Unit, target: V2, gesture: u64) {
@@ -132,9 +138,12 @@ fn push_target_move(unit: &mut Unit, target: V2, gesture: u64) {
     }));
 }
 
+/// Carry every squad riding inside a carrier along with it. A squad still
+/// getting in stands on the ground beside the carrier; one getting out rides
+/// until [`complete_unload`] puts it on ground spots.
 pub(crate) fn copy_passenger_positions(units: &mut [Unit]) {
     for i in 0..units.len() {
-        let Some(carrier) = units[i].hold.as_ref().and_then(|h| h.host.carrier()) else {
+        let Some(carrier) = units[i].hold.as_ref().and_then(|h| h.riding()) else {
             continue;
         };
         let Some((host_position, yaw)) = units.get(carrier.0 as usize).map(|h| (h.position, h.yaw))
@@ -185,11 +194,11 @@ pub(crate) fn unload_spots(
         .filter(|(index, unit)| *index != carrier.0 as usize && unit.alive())
         .filter_map(|(_, unit)| unit.ground_footprint())
         .collect();
+    // Soldiers riding any carrier, these passengers included, take up no ground.
     let soldiers: Vec<V2> = units
         .iter()
-        .enumerate()
-        .filter(|(index, _)| !passengers.contains(index))
-        .flat_map(|(_, unit)| unit.member_positions().map(|position| position.xy()))
+        .filter(|unit| unit.on_field())
+        .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
         .collect();
     let radius = rules.physics.soldier_radius_m;
     let from = units[carrier.0 as usize].position.xy();
@@ -297,7 +306,7 @@ pub(crate) fn advance(
             UnitOrder::Board { carrier, gesture } => {
                 let Some((c_side, c_pos, c_seats)) = units
                     .get(carrier.0 as usize)
-                    .map(|c| (c.side, c.position.xy(), seats(c, rules)))
+                    .map(|c| (c.side, c.position.xy(), seats(rules, c.kind)))
                 else {
                     units[i].orders.pop_front();
                     refusals[units[i].side.index()].push(contract::command::Refusal {
@@ -317,7 +326,7 @@ pub(crate) fn advance(
                 if near_and_still(world, units, i, carrier, rules) {
                     units[i].hold = Some(Hold {
                         host: Host::Carrier(carrier),
-                        phase: Phase::Entering(0),
+                        phase: Phase::Entering(1),
                         place: Place::Carrier,
                     });
                 } else {
@@ -327,7 +336,7 @@ pub(crate) fn advance(
                 }
             }
             UnitOrder::Collect { squads, gesture } => {
-                if seats(&units[i], rules) == 0 {
+                if seats(rules, units[i].kind) == 0 {
                     units[i].orders.pop_front();
                     refusals[units[i].side.index()].push(contract::command::Refusal {
                         unit: units[i].id,
@@ -368,23 +377,30 @@ pub(crate) fn advance(
                 if within_reach(&units[i], &units[target_id.0 as usize], rules)
                     && stationary(&units[i])
                 {
+                    // Every listed squad is handed a Board order; one already
+                    // beside the carrier and still starts its hold now, the
+                    // rest walk over first.
                     let carrier_id = units[i].id;
                     for id in squads {
                         let k = id.0 as usize;
                         let eligible = units.get(k).is_some_and(|s| {
                             s.alive() && s.side == units[i].side && s.hold.is_none()
                         });
-                        if eligible {
-                            let squad = &mut units[k];
+                        if !eligible {
+                            continue;
+                        }
+                        let near = near_and_still(world, units, k, carrier_id, rules);
+                        let squad = &mut units[k];
+                        squad.orders.clear();
+                        squad.orders.push_front(UnitOrder::Board {
+                            carrier: carrier_id,
+                            gesture,
+                        });
+                        if near {
                             squad.hold = Some(Hold {
                                 host: Host::Carrier(carrier_id),
                                 phase: Phase::Entering(1),
                                 place: Place::Carrier,
-                            });
-                            squad.orders.clear();
-                            squad.orders.push_front(UnitOrder::Board {
-                                carrier: carrier_id,
-                                gesture,
                             });
                         }
                     }

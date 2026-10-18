@@ -9,15 +9,7 @@ use contract::observation::{HoldPhase, ObservationFrame, OwnUnit};
 use contract::scenario::Rules;
 use std::collections::BTreeMap;
 
-/// The seats `kind` carries; 0 for a unit that carries no one.
-pub(super) fn seats(rules: &Rules, kind: TypeIndex) -> usize {
-    rules
-        .catalog
-        .get(kind)
-        .capabilities
-        .carriage
-        .map_or(0, |c| c.seats as usize)
-}
+use crate::carriage::seats;
 
 /// The card a squad of `size` soldiers is paired with: the fewest seats that
 /// take the whole squad, then the cheapest, then the smaller id. `None` for a

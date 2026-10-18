@@ -30,12 +30,14 @@ impl Referee {
             libm::hypot(u.position.x - c[0], u.position.y - c[1]) <= rules.success_zone_radius_m
         };
         // A combat unit carries a weapon: its components say so, not its role.
-        let combat = |u: &Unit| u.on_field() && !catalog.mounts(u.kind).is_empty();
+        // One riding a carrier still counts toward survival, but only a unit
+        // on the field can stand in the zone.
+        let combat = |u: &Unit| u.alive() && !catalog.mounts(u.kind).is_empty();
         let attackers: Vec<&Unit> = units
             .iter()
             .filter(|u| u.side == rules.attacker && combat(u))
             .collect();
-        let held = attackers.iter().any(|u| inside(u))
+        let held = attackers.iter().any(|u| u.on_field() && inside(u))
             && !units
                 .iter()
                 .any(|u| u.side != rules.attacker && u.on_field() && inside(u));
