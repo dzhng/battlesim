@@ -1,8 +1,8 @@
 //! The browser's pipelines, built on this device from its export
 //! (`crates/pipelines`): each pipeline's WGSL file and its settings in
-//! `pipelines.json`, with the bind group layouts by name. Nothing is mirrored
-//! by hand, and the export's schema is read strictly, so a new setting fails
-//! here rather than being dropped.
+//! `pipelines.json`, with the bind group layouts by name and the sizes the
+//! passes allocate by. Nothing is mirrored by hand, and the export's schema is
+//! read strictly, so a new setting fails here rather than being dropped.
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 
@@ -12,8 +12,21 @@ use wgpu::*;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Export {
+    sizes: Sizes,
     layouts: BTreeMap<String, Vec<Entry>>,
     pipelines: Vec<Desc>,
+}
+
+/// What the passes allocate by, as the browser's frame code sizes it.
+#[derive(Clone, Copy, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Sizes {
+    /// The bloom's halving levels, one `bloomBlur<level>` pipeline each.
+    pub bloom_levels: usize,
+    /// The sky lookup's width and height in texels.
+    pub sky_lut: [u32; 2],
+    /// Every effect sheet's side in texels: each sheet is square.
+    pub effect_sheet: u32,
 }
 
 #[derive(Deserialize)]
@@ -268,6 +281,7 @@ pub struct Pipelines {
     layouts: HashMap<String, BindGroupLayout>,
     /// Each pipeline's bind group layouts, by slot.
     slots: HashMap<String, Vec<String>>,
+    pub sizes: Sizes,
 }
 
 /// A render pipeline and the layouts its bind group slots take, so a pass
@@ -377,6 +391,7 @@ impl Pipelines {
             pipelines,
             layouts,
             slots,
+            sizes: export.sizes,
         })
     }
 

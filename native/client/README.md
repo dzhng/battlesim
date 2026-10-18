@@ -29,7 +29,8 @@ crashes in `wgpu` when those depth-only sample-mask pipelines are created; the
 adaptation preserves the cutout test and leaves the browser export unchanged.
 
 - **Shaders and pipelines** are the browser's [export](../../crates/pipelines/README.md),
-  built from `pipelines.json` at start. The export is read strictly: a setting
+  built from `pipelines.json` at start, with the sizes the passes allocate by
+  (the bloom's levels, the sky lookup, the effect sheets). The export is read strictly: a setting
   the client does not know fails the build rather than being dropped, and any
   pipeline the device refuses fails the start, listing each one.
 - **The frame** is one ordered list of passes, encoded in order each drawn

@@ -5,7 +5,9 @@ the shaders exist once, written by the browser's TypeGPU passes. [The export
 test](../../web/tests/shaderExport.test.ts) writes them, from the browser's own
 code, into [`packages/battle-renderer/pipelines/`](../../packages/battle-renderer/pipelines/):
 one WGSL file per pipeline, and `pipelines.json` with each pipeline's stages,
-vertex buffers, targets, depth, multisampling and bind group layouts by name.
+vertex buffers, targets, depth, multisampling and bind group layouts by name,
+and the sizes the passes allocate by (the bloom's levels, the sky lookup's
+texels, the effect sheets' side), so a second client sizes nothing itself.
 That test fails when the browser's text no longer matches the files.
 
 The text is the same for every battle and every canvas size. What a battle

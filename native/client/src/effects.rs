@@ -17,8 +17,6 @@ use crate::pipelines::Pipelines;
 /// `FLIPBOOKS` rows give the layer order.
 const FLIPBOOKS_TS: &str =
     include_str!("../../../packages/battle-renderer/src/effects/flipbooks.ts");
-/// Every sheet is this square (`FLIPBOOK_SIZE`).
-const SHEET: u32 = 1024;
 const INSTANCE_BYTES: u64 = std::mem::size_of::<Effect>() as u64;
 
 pub struct Effects {
@@ -54,9 +52,9 @@ fn sheet_files() -> Vec<String> {
     files
 }
 
-/// A sheet's RGBA bytes, each colour times its alpha in its encoded value,
-/// as `createImageBitmap(…, {premultiplyAlpha: "premultiply"})` gives them.
-fn premultiplied(path: &str) -> Result<Vec<u8>, String> {
+/// A `side`² sheet's RGBA bytes, each colour times its alpha in its encoded
+/// value, as `createImageBitmap(…, {premultiplyAlpha: "premultiply"})` gives them.
+fn premultiplied(path: &str, side: u32) -> Result<Vec<u8>, String> {
     let file = std::fs::File::open(path).map_err(|e| format!("{path}: {e}"))?;
     let mut decoder = png::Decoder::new(std::io::BufReader::new(file));
     decoder.set_transformations(png::Transformations::normalize_to_color8());
@@ -67,9 +65,9 @@ fn premultiplied(path: &str) -> Result<Vec<u8>, String> {
     let info = reader
         .next_frame(&mut buf)
         .map_err(|e| format!("{path}: {e}"))?;
-    if (info.width, info.height) != (SHEET, SHEET) || info.color_type != png::ColorType::Rgba {
+    if (info.width, info.height) != (side, side) || info.color_type != png::ColorType::Rgba {
         return Err(format!(
-            "{path} is {}×{} {:?}, not {SHEET}² RGBA",
+            "{path} is {}×{} {:?}, not {side}² RGBA",
             info.width, info.height, info.color_type
         ));
     }
@@ -100,15 +98,20 @@ fn halve(level: &[u8], side: usize) -> Vec<u8> {
     out
 }
 
-/// Every flipbook into one layer of a mipmapped sRGB 2D array.
-fn atlas(device: &Device, queue: &Queue, sheets: &std::path::Path) -> Result<TextureView, String> {
+/// Every `sheet`² flipbook into one layer of a mipmapped sRGB 2D array.
+fn atlas(
+    device: &Device,
+    queue: &Queue,
+    sheets: &std::path::Path,
+    sheet: u32,
+) -> Result<TextureView, String> {
     let files = sheet_files();
-    let levels = SHEET.ilog2() + 1;
+    let levels = sheet.ilog2() + 1;
     let texture = device.create_texture(&TextureDescriptor {
         label: Some("effect-atlas"),
         size: Extent3d {
-            width: SHEET,
-            height: SHEET,
+            width: sheet,
+            height: sheet,
             depth_or_array_layers: files.len() as u32,
         },
         mip_level_count: levels,
@@ -119,9 +122,9 @@ fn atlas(device: &Device, queue: &Queue, sheets: &std::path::Path) -> Result<Tex
         view_formats: &[],
     });
     for (layer, file) in files.iter().enumerate() {
-        let mut level = premultiplied(&sheets.join(file).to_string_lossy())?;
+        let mut level = premultiplied(&sheets.join(file).to_string_lossy(), sheet)?;
         for mip in 0..levels {
-            let side = SHEET >> mip;
+            let side = sheet >> mip;
             if mip > 0 {
                 level = halve(&level, (side * 2) as usize);
             }
@@ -174,7 +177,7 @@ impl Effects {
         targets: &Targets,
         sheets: &std::path::Path,
     ) -> Result<Self, String> {
-        let atlas = atlas(device, queue, sheets)?;
+        let atlas = atlas(device, queue, sheets, pipelines.sizes.effect_sheet)?;
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("effects"),
             mag_filter: FilterMode::Linear,
