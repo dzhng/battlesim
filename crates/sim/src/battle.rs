@@ -1108,6 +1108,7 @@ impl Battle {
             unit.withdrawing = false;
             unit.orders.clear();
             unit.route = None;
+            unit.hold = None;
         }
         self.skirmish = Some(skirmish);
     }

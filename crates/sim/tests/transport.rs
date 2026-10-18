@@ -461,7 +461,12 @@ fn a_retiring_helicopter_takes_its_passengers_with_it() {
         battle.unit(UnitId(0)).unwrap().retired
     });
     assert!(retired, "the helicopter never retired");
-    assert!(battle.unit(UnitId(1)).unwrap().retired);
+    let passenger = battle.unit(UnitId(1)).unwrap();
+    assert!(passenger.retired);
+    assert!(
+        passenger.hold.is_none(),
+        "a retired passenger still rides the helicopter"
+    );
 }
 
 fn transport_skirmish_setup() -> contract::scenario::ScenarioDefinition {
