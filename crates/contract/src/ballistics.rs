@@ -40,6 +40,9 @@ pub struct GuidedRules {
     /// ground: its commanded point becomes where it would be after this many
     /// seconds, dropped to the ground beneath.
     pub release_coast_s: f64,
+    /// A seeker diverted to a flare bursts on it once this close: its
+    /// proximity fuse, following the flare's own fall.
+    pub flare_meet_m: f64,
 }
 
 /// Which ballistic arcs a weapon may choose (P03).

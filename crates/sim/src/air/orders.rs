@@ -1,7 +1,7 @@
 use crate::knowledge::SideKnowledge;
 use crate::math::V2;
 use crate::units::{Unit, UnitOrder};
-use crate::weapons::{unit_reach, Arsenal, Target};
+use crate::weapons::{Arsenal, Target};
 use contract::command::Engagement;
 
 use super::pass::{PassPhase, PassPlan};
@@ -117,8 +117,9 @@ fn target_is_destroyed(target: Target, knowledge: &SideKnowledge) -> bool {
 }
 
 /// The known enemy nearest the jet's remaining leg to `goal`, among those
-/// its weapons reach from somewhere on the leg: what an attack-move picks
-/// up along the way. None once the leg is flown.
+/// a row it can attack them with (`super::engaging_rows`) reaches from
+/// somewhere on the leg: what an attack-move picks up along the way. None
+/// once the leg is flown.
 fn along_way_target(
     unit: &Unit,
     goal: V2,
@@ -137,7 +138,8 @@ fn along_way_target(
             let projection = (track.position.xy() - from).dot(leg) / length_sq;
             let off = (track.position.xy() - (from + leg * projection)).length();
             ((0.0..=1.0).contains(&projection)
-                && off <= unit_reach(arsenal, unit.kind, track.layer))
+                && super::engaging_rows(arsenal, unit, track.layer, Some(track.class))
+                    .any(|(_, fire)| off <= fire.range_m))
             .then_some((off, id))
         })
         .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)))

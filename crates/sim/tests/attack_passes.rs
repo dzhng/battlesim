@@ -283,24 +283,8 @@ fn a_limited_ground_weapon_is_chosen_before_the_gun() {
     assert_eq!(choose_weapon(&[PassWeapon::Gun]), Some(PassWeapon::Gun));
 }
 
-/// Every pass weapon flies a pass, and every fixed-wing row in the game's
-/// catalog lives the whole life a player buys it for (D44): it arrives
-/// through a purchase, already flying, within its authored wait, then turns
-/// for home on low fuel and leaves by its back edge, refunded.
-#[test]
-fn every_loadout_flies_a_pass() {
-    for weapon in [PassWeapon::Gun, PassWeapon::GroundMissile, PassWeapon::Bomb] {
-        let p = begin(
-            &state(250.0),
-            0.0,
-            &wing_limits(),
-            v3(1000.0, 0.0, 0.0),
-            weapon,
-            &wing(),
-            &mut Rng::new(3),
-        );
-        assert_eq!(p.weapon, weapon);
-    }
+/// Every fixed-wing row in the game's catalog.
+fn fixed_wing_rows() -> Vec<String> {
     let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
     let catalog = &rules.catalog;
     let rows: Vec<String> = catalog
@@ -311,7 +295,108 @@ fn every_loadout_flies_a_pass() {
         .map(|t| catalog.id(t).to_string())
         .collect();
     assert!(!rows.is_empty(), "the game fields fixed-wing aircraft");
-    for row in &rows {
+    rows
+}
+
+/// Every loadout fires at a legal target: each fixed-wing row in the game's
+/// catalog, ordered to attack an enemy its rows engage, fires on it. A row
+/// with pass weapons attacks a ground vehicle a friendly crew spots for it,
+/// and a pass weapon fires or releases on its passes; a fighter with none
+/// attacks an enemy fighter and fires on it.
+#[test]
+fn every_loadout_fires_at_a_legal_target() {
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
+    let catalog = &rules.catalog;
+    let vehicle = catalog
+        .indices()
+        .find(|&t| catalog.get(t).mobility.flight().is_none() && catalog.get(t).hull().is_some())
+        .map(|t| catalog.id(t).to_string())
+        .expect("the game fields a ground vehicle");
+    for row in &fixed_wing_rows() {
+        let battle_with = |others: serde_json::Value| {
+            let mut units =
+                vec![json!({ "side": "blue", "kind": row, "position": [1000, 2000], "yaw": 0.0 })];
+            units.extend(others.as_array().unwrap().iter().cloned());
+            let setup = serde_json::from_value(json!({
+                "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+                "rules": sim::fixtures::game(),
+                "units": units,
+                "events": [], "scripts": []
+            }))
+            .unwrap();
+            sim::battle::Battle::new(&setup, 1)
+        };
+        let alone = battle_with(json!([]));
+        let jet = alone.unit(UnitId(0)).unwrap();
+        let specs = alone.arsenal().specs(jet.kind);
+        let pass_mounts: Vec<usize> = (0..jet.mounts.len())
+            .filter(|&i| {
+                specs[jet.mounts[i].spec].kinds.iter().any(|&k| {
+                    sim::air::pass::pass_weapon(&alone.arsenal().weapons[k].def).is_some()
+                })
+            })
+            .collect();
+        let fighter = pass_mounts.is_empty();
+        let (mut battle, mounts) = if fighter {
+            let battle = battle_with(json!([
+                { "side": "red", "kind": row, "position": [2600, 2000], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
+            ]));
+            (battle, (0..jet.mounts.len()).collect::<Vec<_>>())
+        } else {
+            let battle = battle_with(json!([
+                { "side": "red", "kind": vehicle, "position": [2000, 2000], "engagement": "return_fire_only" },
+                { "side": "blue", "kind": vehicle, "position": [2000, 2150], "engagement": "return_fire_only" }
+            ]));
+            (battle, pass_mounts)
+        };
+        let mut seen = None;
+        for _ in 0..600 {
+            battle.step();
+            seen = battle.observe(Side::Blue).identified.first().map(|e| e.id);
+            if seen.is_some() {
+                break;
+            }
+        }
+        let id = seen.unwrap_or_else(|| panic!("{row}: blue never sees its target"));
+        let ack = battle.accept(CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq: 1,
+            queued: false,
+            order: Order::Attack {
+                units: vec![UnitId(0)],
+                target: TargetRef::Identified { id },
+            },
+        });
+        assert_eq!(ack.error, None, "{row}");
+        let fired = |b: &sim::battle::Battle| {
+            let jet = b.unit(UnitId(0)).unwrap();
+            mounts.iter().any(|&i| jet.mounts[i].shots > 0)
+        };
+        let mut dived = false;
+        for _ in 0..300 * battle.rules().tick_hz {
+            if fired(&battle) {
+                break;
+            }
+            battle.step();
+            let pass = battle.unit(UnitId(0)).unwrap().air.unwrap().pass;
+            dived |= pass.is_some_and(|p| p.phase == PassPhase::Dive);
+        }
+        assert!(
+            fired(&battle),
+            "{row} attacked an enemy it engages without firing from mounts {mounts:?}"
+        );
+        assert!(dived || fighter, "{row} fired without flying a pass");
+    }
+}
+
+/// Every fixed-wing row in the game's catalog lives the whole life a player
+/// buys it for (D44): it arrives through a purchase, already flying, within
+/// its authored wait, then turns for home on low fuel and leaves by its back
+/// edge, refunded.
+#[test]
+fn every_fixed_wing_row_arrives_and_withdraws_on_low_fuel() {
+    for row in &fixed_wing_rows() {
         bought_jet_arrives_and_withdraws_on_low_fuel(row);
     }
 }
@@ -806,6 +891,61 @@ fn attack_move_leaves_an_enemy_beyond_reach_of_its_leg() {
     let jet = battle.unit(UnitId(0)).unwrap();
     assert!(jet.orders.is_empty(), "the jet never reached its goal");
     assert_eq!(jet.mounts[0].shots, 0);
+}
+
+/// Attack-move picks up only what the jet can hit: a squad its side knows
+/// of, well inside its missile's reach of the leg but of a class no row it
+/// carries engages, is left alone, and the jet holds its leg to its goal.
+#[test]
+fn attack_move_leaves_an_enemy_no_row_engages() {
+    const OFF_LEG_M: f64 = 400.0;
+    let mut rules = sim::fixtures::test_game();
+    // The mount replaces the jet's own cannon: its one row is a missile
+    // that engages vehicles alone.
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "mounts": [{
+            "id": "gun", "name": "AGM", "weapons": ["air_ground_missile"],
+            "turret": false, "pivot_m": [0, 0, 1.2], "muzzle_m": [4, 0, 0]
+        }] }),
+    );
+    rules["weapons"]["air_ground_missile"]["targets"] =
+        json!({ "ground": { "classes": ["vehicle"], "range_m": OFF_LEG_M * 5.0 } });
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [5000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [
+            { "side": "blue", "kind": "test_jet", "position": [300, 1000], "yaw": 0.0 },
+            { "side": "blue", "kind": "test_recon", "position": [1900, 1000.0 + OFF_LEG_M - 100.0], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_rifle", "position": [1900, 1000.0 + OFF_LEG_M], "engagement": "return_fire_only" }
+        ],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = sim::battle::Battle::new(&setup, 1);
+    attack_move(&mut battle, 1, [3_500.0, 1_000.0]);
+    let mut known = false;
+    let mut strayed: f64 = 0.0;
+    for _ in 0..1_500 {
+        battle.step();
+        known |= !battle.observe(Side::Blue).identified.is_empty();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        strayed = strayed.max((jet.position.y - 1000.0).abs());
+        if jet.orders.is_empty() {
+            break;
+        }
+    }
+    assert!(known, "the recon sees the squad");
+    assert!(
+        strayed < OFF_LEG_M / 4.0,
+        "the jet turned {strayed:.0} m off its leg at a squad it cannot engage"
+    );
+    assert!(
+        battle.unit(UnitId(0)).unwrap().orders.is_empty(),
+        "the jet never reached its goal"
+    );
 }
 
 #[test]

@@ -16,10 +16,10 @@ use crate::knowledge::SideKnowledge;
 use crate::math::{v2, V2, V3};
 use crate::movement::MovementContext;
 use crate::units::{Motion, Unit, UnitOrder};
-use crate::weapons::Target;
+use crate::weapons::{Arsenal, Target, Weapon};
 use contract::catalog::AltitudeLayer;
 use contract::random::{mix, Rng};
-use contract::weapons::TargetClass;
+use contract::weapons::{Fire, TargetClass};
 
 /// Advance one winged aircraft by the fixed-wing flight law, without
 /// consulting the rotor air grid.
@@ -360,37 +360,51 @@ fn pass_weapons(
     aim: V3,
 ) -> Vec<(pass::PassWeapon, crate::flight::Release)> {
     let (layer, class) = known_target(ctx.knowledge[unit.side.index()], target);
-    let specs = ctx.arsenal.specs(unit.kind);
     let mut out: Vec<(pass::PassWeapon, crate::flight::Release)> = Vec::new();
-    for mount in &unit.mounts {
-        let spec = &specs[mount.spec];
-        for (slot, &kind) in spec.kinds.iter().enumerate() {
-            let weapon = &ctx.arsenal.weapons[kind];
-            if !mount.ammo[slot].is_none_or(|n| n > 0) || weapon.def.engages(layer, class).is_none()
-            {
-                continue;
-            }
-            let Some(mode) = pass::pass_weapon(&weapon.def) else {
-                continue;
-            };
-            if out.iter().any(|(m, _)| *m == mode) {
-                continue;
-            }
-            let release = match mode {
-                pass::PassWeapon::Bomb => crate::flight::release(
-                    unit.position,
-                    unit.flight_velocity(),
-                    weapon.profile.gravity(&ctx.arsenal.config),
-                    aim,
-                ),
-                pass::PassWeapon::Gun | pass::PassWeapon::GroundMissile => Some(at_the_aim(aim)),
-            };
-            if let Some(release) = release {
-                out.push((mode, release));
-            }
+    for (weapon, _) in engaging_rows(ctx.arsenal, unit, layer, class) {
+        let Some(mode) = pass::pass_weapon(&weapon.def) else {
+            continue;
+        };
+        if out.iter().any(|(m, _)| *m == mode) {
+            continue;
+        }
+        let release = match mode {
+            pass::PassWeapon::Bomb => crate::flight::release(
+                unit.position,
+                unit.flight_velocity(),
+                weapon.profile.gravity(&ctx.arsenal.config),
+                aim,
+            ),
+            pass::PassWeapon::Gun | pass::PassWeapon::GroundMissile => Some(at_the_aim(aim)),
+        };
+        if let Some(release) = release {
+            out.push((mode, release));
         }
     }
     out
+}
+
+/// What the jet can attack a target of `class` in `layer` with: each row
+/// it carries with rounds left that engages such a target there, and how
+/// it fires there. The one test of what a jet can attack.
+pub(crate) fn engaging_rows<'a>(
+    arsenal: &'a Arsenal,
+    unit: &'a Unit,
+    layer: AltitudeLayer,
+    class: Option<TargetClass>,
+) -> impl Iterator<Item = (&'a Weapon, Fire)> + 'a {
+    let specs = arsenal.specs(unit.kind);
+    unit.mounts.iter().flat_map(move |mount| {
+        specs[mount.spec]
+            .kinds
+            .iter()
+            .enumerate()
+            .filter(|&(slot, _)| mount.ammo[slot].is_none_or(|n| n > 0))
+            .filter_map(move |(_, &kind)| {
+                let weapon = &arsenal.weapons[kind];
+                weapon.def.engages(layer, class).map(|fire| (weapon, fire))
+            })
+    })
 }
 
 /// The release of a row fired at the aim itself, not dropped short of it.

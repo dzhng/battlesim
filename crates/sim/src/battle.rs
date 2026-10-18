@@ -3630,8 +3630,14 @@ impl Battle {
             let round = self.rounds.get_mut(&projectile).expect("checked above");
             round.fused_target = None;
             if round.seeker_target.take().is_some() {
-                self.projectiles
-                    .decoy_seeker(projectile, position, velocity);
+                self.projectiles.decoy_seeker(
+                    projectile,
+                    crate::flight::Decoy {
+                        position,
+                        velocity,
+                        meet_m: self.rules.guided.flare_meet_m,
+                    },
+                );
             } else {
                 // Its launcher lets go; guidance releases it, as for a lost
                 // sight line.
@@ -3738,9 +3744,9 @@ impl Battle {
         let seekers: Vec<_> = self
             .rounds
             .iter()
-            .filter_map(|(id, round)| round.seeker_target.map(|target| (*id, target)))
+            .filter_map(|(id, round)| round.seeker_target.map(|target| (*id, round.side, target)))
             .collect();
-        for (projectile, target) in seekers {
+        for (projectile, side, target) in seekers {
             // Where the target is and how it moves (a ground unit's pose
             // here is its position alone).
             let seen = match target {
@@ -3749,10 +3755,10 @@ impl Battle {
                     let aim = unit.position + v3(0.0, 0.0, unit.aim_height(&self.rules));
                     Some((aim, unit.flight_velocity()))
                 }
-                Target::Contact(id) => self
-                    .knowledge
-                    .iter()
-                    .find_map(|k| k.contact(id).map(|c| (c.center, v3(0.0, 0.0, 0.0)))),
+                // A contact id is its firing side's own.
+                Target::Contact(id) => self.knowledge[side.index()]
+                    .contact(id)
+                    .map(|c| (c.center, v3(0.0, 0.0, 0.0))),
                 Target::Round(round) => self
                     .projectiles
                     .get(round.id)
@@ -4304,13 +4310,9 @@ impl Battle {
             | Order::Refund { units } => Some(units),
             _ => None,
         };
-        // Every order a unit is given reaches it here first: it is no longer
-        // withdrawing, and a jet's run, release cue and dogfight end, so no
-        // order (repeated or not) can leave one stuck in a run.
         if let Some(units) = replacing {
             for id in units {
-                movers[id.0 as usize].withdrawing = false;
-                crate::air::break_off(&mut movers[id.0 as usize]);
+                take_order(&mut movers[id.0 as usize]);
             }
         }
         match command.order {
@@ -4636,17 +4638,21 @@ impl Battle {
             }
             Order::UpgradeMove { gesture, route } => {
                 for unit in movers.iter_mut().filter(|u| u.side == side) {
+                    let mut upgraded = false;
                     for (k, order) in unit.orders.iter_mut().enumerate() {
                         if let Some(m) = order.movement_mut() {
                             if m.gesture == gesture && m.policy != route {
                                 m.policy = route;
-                                unit.withdrawing = false;
+                                upgraded = true;
                                 if k == 0 {
                                     unit.route = None; // replan the active order
                                     unit.planned_goal = None;
                                 }
                             }
                         }
+                    }
+                    if upgraded {
+                        take_order(unit);
                     }
                 }
             }
@@ -5641,6 +5647,14 @@ impl Battle {
     }
 }
 
+/// What every order a unit is given does to it first: it is no longer
+/// withdrawing, and a jet's run, release cue and dogfight end, so no order
+/// (repeated or not) can leave one stuck in a run.
+fn take_order(unit: &mut Unit) {
+    unit.withdrawing = false;
+    crate::air::break_off(unit);
+}
+
 #[derive(Clone)]
 struct PreparedCommand {
     command: CommandEnvelope,
@@ -5808,6 +5822,193 @@ mod tests {
             },
         );
         projectile
+    }
+
+    /// A helicopter's settling goal steers it every tick, so it is part of
+    /// the battle's state: two battles alike but for it digest apart.
+    #[test]
+    fn a_helicopters_settling_goal_is_in_the_digest() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [{ "side": "blue", "kind": "test_heli", "position": [1000, 1000] }],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let settling = |goal: V2| {
+            let mut battle = Battle::new(&setup, 1);
+            battle.units[0].air.as_mut().unwrap().settle = Some(crate::units::Settle {
+                goal,
+                aim: v2(1100.0, 1000.0),
+                back: false,
+            });
+            battle.digest()
+        };
+        assert_ne!(settling(v2(1050.0, 1000.0)), settling(v2(1060.0, 1000.0)));
+    }
+
+    /// No order leaves a jet in a run: changing the route of its attack-move
+    /// ends its run, release cue and dogfight, as every other order does.
+    #[test]
+    fn upgrading_a_jets_move_breaks_off_its_run() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_jet", "position": [1000, 2000], "yaw": 0.0 },
+                { "side": "red", "kind": "test_tank", "position": [2000, 2000], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 1);
+        let envelope = |seq, order| CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq,
+            queued: false,
+            order,
+        };
+        let ack = battle.accept(envelope(
+            1,
+            Order::AttackMove {
+                units: vec![UnitId(0)],
+                gesture: 1,
+                goal: [3000.0, 2000.0],
+            },
+        ));
+        assert_eq!(ack.error, None);
+        battle.step();
+        let jet = &mut battle.units[0];
+        assert!(
+            jet.orders[0].movement_mut().unwrap().policy != RoutePolicy::Fastest,
+            "the upgrade changes the route"
+        );
+        // Mid-run, about to release, in a fight.
+        let air = jet.air.as_mut().unwrap();
+        air.pass = Some(crate::air::pass::PassPlan {
+            target: Target::Unit(UnitId(1)),
+            aim: v3(2000.0, 2000.0, 0.0),
+            phase: crate::air::pass::PassPhase::Dive,
+            weapon: crate::air::pass::PassWeapon::Gun,
+            agl: 120.0,
+            heading: 0.0,
+        });
+        air.pass_release = true;
+        air.dogfight_target = Some(UnitId(1));
+        let upgrade = envelope(
+            2,
+            Order::UpgradeMove {
+                gesture: 1,
+                route: RoutePolicy::Fastest,
+            },
+        );
+        let prepared = battle.prepare(upgrade, battle.tick).unwrap();
+        battle.apply(prepared);
+        let air = battle.units[0].air.unwrap();
+        assert_eq!(air.pass, None, "the run survived the order");
+        assert!(!air.pass_release, "the release cue survived the order");
+        assert_eq!(air.dogfight_target, None, "the dogfight survived the order");
+    }
+
+    /// Contact ids are each side's own: when blue and red each hold a
+    /// contact numbered alike, in different places, each side's seeker
+    /// flies at the contact its own side holds.
+    #[test]
+    fn a_seeker_flies_at_its_own_sides_contact() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [6000, 6000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_tank", "position": [500, 500], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [5500, 5500], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 3);
+        // Each side hears the other fire from far apart: each holds one
+        // contact, numbered alike.
+        let blue_heard = v3(4000.0, 1000.0, 0.0);
+        let red_heard = v3(1000.0, 4000.0, 0.0);
+        battle.knowledge[Side::Blue.index()].note_fire(
+            UnitId(1),
+            blue_heard,
+            AltitudeLayer::Ground,
+            0,
+        );
+        battle.knowledge[Side::Red.index()].note_fire(
+            UnitId(0),
+            red_heard,
+            AltitudeLayer::Ground,
+            0,
+        );
+        battle.step();
+        let contact = |side: Side| {
+            let contacts: Vec<_> = battle.knowledge[side.index()].all_contacts().collect();
+            assert_eq!(contacts.len(), 1, "{side:?} holds one contact");
+            (contacts[0].id, contacts[0].center)
+        };
+        let (blue_id, blue_at) = contact(Side::Blue);
+        let (red_id, red_at) = contact(Side::Red);
+        assert_eq!(blue_id, red_id, "both sides number their contact alike");
+        let weapon = battle
+            .arsenal
+            .weapons
+            .iter()
+            .position(|w| w.def.seeker.is_some())
+            .expect("a seeker row");
+        let mut launch = |side: Side, unit: UnitId| {
+            let projectile = battle.projectiles.launch(crate::flight::Launch {
+                origin: v3(3000.0, 3000.0, 100.0),
+                carrier: v3(0.0, 0.0, 0.0),
+                velocity: v3(0.0, 0.0, 100.0),
+                gravity_scale: 0.0,
+                lifetime_s: 30.0,
+                suppression_radius_m: 0.0,
+                shooter: None,
+                guidance: Some(crate::flight::Guidance {
+                    point: v3(3000.0, 3000.0, 1000.0),
+                    turn_rad_s: 1.0,
+                    supported: false,
+                    loft: None,
+                }),
+                motor: None,
+                fall: None,
+            });
+            battle.rounds.insert(
+                projectile,
+                Round {
+                    weapon,
+                    unit,
+                    side,
+                    seeker_target: Some(Target::Contact(blue_id)),
+                    fused_target: None,
+                    layer: AltitudeLayer::Ground,
+                },
+            );
+            projectile
+        };
+        let blue_round = launch(Side::Blue, UnitId(0));
+        let red_round = launch(Side::Red, UnitId(1));
+        battle.step();
+        let steered = |round| {
+            battle
+                .projectiles
+                .get(round)
+                .and_then(|p| p.guidance)
+                .expect("the seeker still flies")
+                .point
+        };
+        let near = |a: V3, b: V3| (a.xy() - b.xy()).length() < 1.0;
+        assert!(
+            near(steered(blue_round), blue_at),
+            "blue's seeker flies at blue's contact"
+        );
+        assert!(
+            near(steered(red_round), red_at),
+            "red's seeker flies at red's contact"
+        );
     }
 
     /// A jeep (unit 0) at (1000, 1000) with a gun (its mount 1) firing at
