@@ -399,7 +399,7 @@ pub(crate) fn engaging_rows<'a>(
             .kinds
             .iter()
             .enumerate()
-            .filter(|&(slot, _)| mount.ammo[slot].is_none_or(|n| n > 0))
+            .filter(|&(slot, _)| mount.has_rounds(slot))
             .filter_map(move |(_, &kind)| {
                 let weapon = &arsenal.weapons[kind];
                 weapon.def.engages(layer, class).map(|fire| (weapon, fire))

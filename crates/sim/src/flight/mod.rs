@@ -367,6 +367,10 @@ pub fn validate_guided(rules: &GuidedRules) {
         rules.release_coast_s > 0.0 && rules.release_coast_s.is_finite(),
         "guided.release_coast_s must be positive"
     );
+    assert!(
+        rules.flare_meet_m >= 0.0 && rules.flare_meet_m.is_finite(),
+        "guided.flare_meet_m must be finite and non-negative"
+    );
 }
 
 /// A guided round's steering: toward `point`, turning at most `turn_rad_s`.

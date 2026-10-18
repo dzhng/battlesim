@@ -364,7 +364,7 @@ pub struct Mount {
 }
 
 impl Mount {
-    fn has_rounds(&self, k: usize) -> bool {
+    pub(crate) fn has_rounds(&self, k: usize) -> bool {
         self.ammo[k].is_none_or(|n| n > 0)
     }
 

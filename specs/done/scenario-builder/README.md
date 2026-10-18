@@ -17,6 +17,7 @@ The authored-code surface is a contract-owned bounded interpreter. It can inspec
 - The simulation is the only authority. UI, AI, presentation, audio, and renderer consume resolved observations and never infer hidden state.
 - A package is canonical and self-contained. Its bytes, content identity, map snapshot, rules, slot ownership, scripts, victory source, and embedded assets are admitted together; noncanonical or changed bytes are refused.
 - Every authored unit has exactly one slot owner. Slot ownership is checked at command admission, not inferred from side colour in the browser.
+- A slot under AI control takes orders only from the battle's own controller: a client's order for it is refused (`ai_controlled`) before it is recorded. Skirmish sessions own their seats and are outside this rule.
 - Neutral cannot become a human controller or an aggressive automatic side. It is passive until threatened.
 - A replay restores the same accepted commands, controller state, and authored outputs at the same ticks. Matching terminal state is insufficient when an earlier digest differs.
 - Scripts observe only their published side, run under deterministic fuel and output limits, and use the same command vocabulary as human input.
@@ -31,7 +32,7 @@ The authored-code surface is a contract-owned bounded interpreter. It can inspec
 - `web/src/battle/prepare/client.ts`, `web/src/battle/prepare/worker.ts`, and `apps/battle-lab/src/routes/scenarioPlay.tsx` own explicit upload admission and the normal worker connection. `apps/battle-lab/src/useSimSession.ts` deliberately uses the prepared connection only for its one live authority; replay replacement starts a fresh worker.
 - `apps/battle-lab/src/scenario-builder/` owns the tactical canvas and in-memory draft. `web/src/battle/scenarioBundle.ts` and the WASM bundle APIs are the only durable serialization boundary. `web/tests/scenarioBuilder.test.ts`, `web/tests/scenarioBundle.test.ts`, and `web/scenes/scenario-builder.mjs` pin authoring, ownership placement, and export.
 - `apps/battle-lab/src/gameAppearances.ts`, `apps/battle-lab/src/useBattleSession.ts`, and `packages/scene-assets/src/loader.ts` own session-scoped art requests. `packages/battle-renderer/src/frame/worldPass.ts` owns the aligned x-ray uniform allocation needed by SwiftShader and other strict adapters.
-- `web/scenes/scenario-play.mjs` pins the registered upload-to-BattleView path. A local closeout probe also exercised cross-slot `wrong_slot` rejection, AI takeover, side-scoped observation, replay download/upload, and equal live/replay digests; that probe output is transient and is not a second runtime contract.
+- `web/scenes/scenario-play.mjs` pins the registered upload-to-BattleView path. A local closeout probe also exercised cross-slot `wrong_player` rejection, AI takeover, side-scoped observation, replay download/upload, and equal live/replay digests; that probe output is transient and is not a second runtime contract.
 
 ## Dead ends and deliberate limits
 

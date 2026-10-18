@@ -130,13 +130,14 @@ The binary replays one scene of a browser parity run (the control the
 [spec](../../specs/done/native-rendering-parity/README.md) names). It refuses a
 capture or a saved map that is not the one the manifest's identity hashes,
 naming the file, and reads the capture and the manifest as strictly as the
-browser does: a key the format lacks or leaves out refuses the file. It reads the world from the repository, not from the run:
-the map, its ground, buildings and props, and the units its encounter fields
-with their effects (`presentation::fielded`). Then it frames every record
-through the presentation crate and writes each plate the browser wrote,
-under the same name. A plate whose counts differ from the browser's fails
-the run: it exits with an error listing each difference after the report.
-Its usage text lists the flags. Run it under the GPU lock.
+browser does: a key the format lacks or leaves out refuses the file. It reads
+the world from the repository, not from the run: the map, its ground, buildings
+and props, and the units its encounter fields with their effects
+(`presentation::fielded`). Then it frames every record through the presentation
+crate and writes each plate the browser wrote, under the same name. A plate
+whose counts differ from the browser's fails the run: it exits with an error
+listing each difference after the report. Its usage text lists the flags. Run it
+under the GPU lock.
 
 The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't

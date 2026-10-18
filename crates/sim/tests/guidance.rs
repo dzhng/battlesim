@@ -1615,7 +1615,7 @@ fn a_diverted_seeker_bursts_within_the_authored_meeting_distance() {
         1,
         "the flare diverts the seeker"
     );
-    assert!(missile(&b).is_none(), "the seeker flies on past its flare");
+    assert!(missile(&b).is_none(), "the seeker bursts on its flare");
     assert_eq!(b.unit(UnitId(1)).unwrap().hp, hp, "the airframe unhurt");
 }
 
