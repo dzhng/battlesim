@@ -1914,3 +1914,64 @@ fn a_squad_walking_to_a_carrier_that_dies_stops_and_hears_why() {
         squad.orders
     );
 }
+
+/// Carrier 0 sent from 200 m to collect `squads`; squad 1 climbs into carrier
+/// 2 beside it first. Returns the battle 5 s later and every refusal blue
+/// heard about squad 1.
+fn collected_squad_boards_another_carrier(
+    squads: Vec<UnitId>,
+) -> (Battle, Vec<contract::command::Refusal>) {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[400,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]},
+            {"side":"blue","kind":"test_apc","position":[200,200]}
+        ])),
+        7,
+    );
+    let collect = battle.accept(command(
+        1,
+        Order::Collect {
+            units: vec![UnitId(0)],
+            squads,
+            gesture: 1,
+        },
+    ));
+    assert_eq!(collect.error, None);
+    let board = battle.accept(command(
+        2,
+        Order::Board {
+            units: vec![UnitId(1)],
+            carrier: UnitId(2),
+            gesture: 2,
+        },
+    ));
+    assert_eq!(board.error, None);
+    let mut refusals = Vec::new();
+    for _ in 0..(battle.rules().tick_hz * 5) {
+        battle.step();
+        refusals.extend(
+            (battle.observe(Side::Blue).refusals.iter())
+                .filter(|r| r.unit == UnitId(1))
+                .cloned(),
+        );
+    }
+    (battle, refusals)
+}
+
+#[test]
+fn a_carrier_stops_driving_to_a_squad_another_carrier_took() {
+    let (battle, refusals) = collected_squad_boards_another_carrier(vec![UnitId(1)]);
+    assert!(
+        refusals
+            .iter()
+            .any(|r| r.reason == OrderError::Aboard { unit: UnitId(1) }),
+        "the carrier was never told the squad is aboard another"
+    );
+    let carrier = battle.unit(UnitId(0)).unwrap();
+    assert!(
+        carrier.orders.is_empty(),
+        "the carrier still drives to where the squad stood: {:?}",
+        carrier.orders
+    );
+}

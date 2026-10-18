@@ -228,8 +228,9 @@ pub(crate) fn complete_unload(
 }
 
 /// Whether unit `i` is walking or driving toward its Board or Collect target
-/// and that walk is over: it is already within the hold's reach, or (for
-/// Board) the carrier has died and the order is refused instead. The approach
+/// and that walk is over: it is already within the hold's reach, or no
+/// target is left to reach (the carrier died, or every listed squad is gone
+/// or taken) and the order is refused instead. The approach
 /// aims at the target's centre, which a hull keeps it from ever standing on,
 /// so the walk ends here and the hold's own stillness test takes over.
 fn approach_over(units: &[Unit], i: usize, rules: &Rules) -> bool {
@@ -241,11 +242,21 @@ fn approach_over(units: &[Unit], i: usize, rules: &Rules) -> bool {
         Some(UnitOrder::Board { carrier, .. }) => {
             other(carrier).is_none_or(|c| within_reach(c, &units[i], rules))
         }
-        Some(UnitOrder::Collect { squads, .. }) => squads
-            .iter()
-            .any(|id| other(id).is_some_and(|s| within_reach(&units[i], s, rules))),
+        Some(UnitOrder::Collect { squads, .. }) => {
+            let mut left = (squads.iter())
+                .filter_map(|id| units.get(id.0 as usize))
+                .filter(|s| collectable(&units[i], s))
+                .peekable();
+            left.peek().is_none() || left.any(|s| within_reach(&units[i], s, rules))
+        }
         _ => false,
     }
+}
+
+/// Whether `carrier` can still collect `squad`: alive, on its side, and not
+/// inside anything.
+fn collectable(carrier: &Unit, squad: &Unit) -> bool {
+    squad.alive() && squad.side == carrier.side && squad.hold.is_none()
 }
 
 /// Start a squad getting in to `carrier`; [`crate::hold::advance`] runs its
@@ -338,7 +349,7 @@ pub(crate) fn advance(
                 let target_id = squads.iter().find(|id| {
                     units
                         .get(id.0 as usize)
-                        .is_some_and(|s| s.alive() && s.side == units[i].side && s.hold.is_none())
+                        .is_some_and(|s| collectable(&units[i], s))
                 });
                 let Some(target_id) = target_id.copied() else {
                     units[i].orders.pop_front();
@@ -374,9 +385,7 @@ pub(crate) fn advance(
                     let carrier_id = units[i].id;
                     for id in squads {
                         let k = id.0 as usize;
-                        let eligible = units.get(k).is_some_and(|s| {
-                            s.alive() && s.side == units[i].side && s.hold.is_none()
-                        });
+                        let eligible = units.get(k).is_some_and(|s| collectable(&units[i], s));
                         if !eligible {
                             continue;
                         }
