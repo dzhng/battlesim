@@ -2030,3 +2030,58 @@ fn a_squad_listed_twice_for_collection_is_refused_once() {
         }]
     );
 }
+
+/// Blue's APC (unit 0) beside a building, and a recon squad (unit 1) already
+/// inside it.
+fn squad_in_a_building() -> Battle {
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],
+        "buildings":[crate::common::building(0, "china-apartment-point-20x20-7f", [400.0, 300.0], 0.0)]});
+    let mut battle = Battle::new(
+        &setup_with_map(
+            map,
+            json!([
+                {"side":"blue","kind":"test_apc","position":[360,300]},
+                {"side":"blue","kind":"test_recon","position":[380,300]}
+            ]),
+            json!([]),
+        ),
+        7,
+    );
+    let garrison = battle.accept(command(
+        1,
+        Order::Garrison {
+            units: vec![UnitId(1)],
+            building: 0,
+        },
+    ));
+    assert_eq!(garrison.error, None);
+    let inside = (0..battle.rules().tick_hz * 30).any(|_| {
+        battle.step();
+        battle.unit(UnitId(1)).unwrap().garrisoned()
+    });
+    assert!(inside, "the squad never got into the building");
+    battle
+}
+
+/// Step until squad 1 rides carrier 0, at most `seconds`.
+fn rides_carrier_within(battle: &mut Battle, seconds: u32) -> bool {
+    (0..battle.rules().tick_hz * seconds).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|u| u.hold.as_ref())
+            .is_some_and(|h| {
+                h.host.carrier() == Some(UnitId(0)) && h.phase == sim::hold::Phase::Inside
+            })
+    })
+}
+
+#[test]
+fn a_squad_in_a_building_ordered_to_board_leaves_and_boards() {
+    let mut battle = squad_in_a_building();
+    assert_eq!(battle.accept(board_carrier(2)).error, None);
+    assert!(
+        rides_carrier_within(&mut battle, 30),
+        "the squad never left the building for the carrier"
+    );
+}
