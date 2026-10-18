@@ -1,7 +1,9 @@
 //! A replay runs only on the battle its manifest names: a capture or a saved
 //! map that differs from the manifest's identity is refused by the file's
-//! name, so a plate is never compared against a different battle. Reads the
-//! fixture run.
+//! name, so a plate is never compared against a different battle. Both files
+//! are read strictly, as the browser's readers read them: a key the format
+//! does not have, or one it has left out, refuses the file rather than being
+//! dropped or defaulted. Reads the fixture run.
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -9,6 +11,7 @@ use native_client::bundle::Library;
 use native_client::capture::Replay;
 use presentation::assets::RUNTIME;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 const RUN: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -68,7 +71,62 @@ fn a_manifest_naming_no_scene_is_refused() {
         *capture = parsed.to_string();
     });
     let e = refusal(&dir);
-    assert!(e.contains("workload scene is null"), "{e}");
+    assert!(e.contains("capture.json") && e.contains("scene"), "{e}");
+    fs::remove_dir_all(dir).unwrap();
+}
+
+/// The manifest names `capture` as the file its control ran on, so only the
+/// edit itself can refuse it.
+fn stamp(capture: &str, manifest: &mut Value) {
+    manifest["identity"]["captureHash"] = Value::from(format!("{:x}", Sha256::digest(capture)));
+}
+
+#[test]
+fn a_manifest_with_a_key_its_format_lacks_is_refused() {
+    let dir = staged("manifest-extra", |_, manifest| {
+        manifest["stale"] = Value::from(1);
+    });
+    let e = refusal(&dir);
+    assert!(e.contains("manifest.json") && e.contains("stale"), "{e}");
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_manifest_missing_a_count_table_is_refused() {
+    let dir = staged("manifest-uncounted", |_, manifest| {
+        manifest.as_object_mut().unwrap().remove("modelCounts");
+    });
+    let e = refusal(&dir);
+    assert!(
+        e.contains("manifest.json") && e.contains("modelCounts"),
+        "{e}"
+    );
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_manifest_drawn_through_another_depth_convention_is_refused() {
+    let dir = staged("manifest-depth", |_, manifest| {
+        manifest["lens"]["depth"] = Value::from("forward-z");
+    });
+    let e = refusal(&dir);
+    assert!(
+        e.contains("manifest.json") && e.contains("forward-z"),
+        "{e}"
+    );
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn a_capture_frame_with_a_key_its_format_lacks_is_refused() {
+    let dir = staged("capture-extra", |capture, manifest| {
+        let mut parsed: Value = serde_json::from_str(capture).unwrap();
+        parsed["frames"][0]["stale"] = Value::from(1);
+        *capture = parsed.to_string();
+        stamp(capture, manifest);
+    });
+    let e = refusal(&dir);
+    assert!(e.contains("capture.json") && e.contains("stale"), "{e}");
     fs::remove_dir_all(dir).unwrap();
 }
 
