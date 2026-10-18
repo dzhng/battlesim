@@ -72,6 +72,28 @@ mod runtime_path_tests {
     }
 }
 
+#[cfg(test)]
+mod count_verdict_tests {
+    use super::count_verdict;
+
+    #[test]
+    fn a_run_whose_counts_differ_fails_naming_each_difference() {
+        let differ = [
+            "plate-3.png soldiers: 4 against 5".to_owned(),
+            "plate-7.png lights: 2 against 1".to_owned(),
+        ];
+        let e = count_verdict(&differ).expect_err("a differing run passed");
+        for line in &differ {
+            assert!(e.contains(line), "{e}");
+        }
+    }
+
+    #[test]
+    fn a_run_equal_to_the_browser_passes() {
+        assert_eq!(count_verdict(&[]), Ok(()));
+    }
+}
+
 struct Args {
     scene: PathBuf,
     /// Where plates are written; absent for a bench.
@@ -619,11 +641,6 @@ impl Run {
                 audio.errors()
             );
         }
-        if self.count_mismatches.is_empty() {
-            println!("model, building, prop, scenery and effect counts: equal to the browser's on every plate");
-        } else {
-            println!("counts differ:\n  {}", self.count_mismatches.join("\n  "));
-        }
         let p = &self.presents;
         let mut ms: Vec<f64> = p.intervals.iter().map(|d| d.as_secs_f64() * 1e3).collect();
         ms.sort_by(f64::total_cmp);
@@ -642,7 +659,7 @@ impl Run {
             at(0.95),
             ms.len()
         );
-        Ok(())
+        count_verdict(&self.count_mismatches)
     }
 
     /// Writes the bench's report beside the browser's, and prints its summary.
@@ -690,6 +707,19 @@ impl Run {
         println!("bench: → {}", path.display());
         Ok(())
     }
+}
+
+/// A plate run passes only when every plate's counts equal the browser's:
+/// otherwise it fails listing each difference, after the rest of the report.
+fn count_verdict(mismatches: &[String]) -> Result<(), String> {
+    if mismatches.is_empty() {
+        println!("model, building, prop, scenery and effect counts: equal to the browser's on every plate");
+        return Ok(());
+    }
+    Err(format!(
+        "counts differ from the browser's:\n  {}",
+        mismatches.join("\n  ")
+    ))
 }
 
 /// Interleaved stereo float samples as a 32-bit float WAV.
