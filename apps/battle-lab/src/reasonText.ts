@@ -20,5 +20,6 @@ export const REASON_TEXT: Record<string, string> = {
   no_facing_slot: "no firing position facing the target",
   missing_player: "a player is required for this unit",
   wrong_player: "that player does not own this unit",
+  ai_controlled: "that player is under AI control",
   changing_position: "entering or leaving a building",
 };

@@ -37,6 +37,7 @@ const REFUSAL_TEXT: Record<string, string> = {
   not_a_carrier: "NOT A CARRIER",
   aboard: "ABOARD",
   wrong_player: "AN ALLY'S UNIT",
+  ai_controlled: "AI IN COMMAND",
 };
 
 /** Refusals the player is never told about: an order past the rate limit
