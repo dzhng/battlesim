@@ -143,7 +143,8 @@ export function sampleReel(reel: Reel, elapsed: number): ReelSample {
       return {
         pose: betweenEased(shot.from, shot.to, e, shot.logDistance ?? false),
         follow: shot.follow ?? null,
-        black: 1 - clamp(edge / reel.fade_s, 0, 1),
+        // A reel without dips cuts straight from shot to shot.
+        black: reel.fade_s === 0 ? 0 : 1 - clamp(edge / reel.fade_s, 0, 1),
         done: false,
       };
     }

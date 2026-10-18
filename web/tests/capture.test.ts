@@ -168,6 +168,13 @@ test("a reel is refused an endless duration or a framing at no distance, by the 
   expect(broken((r) => (r.shots[0].from.distance = -5))).toThrow(/shots\[0\]\.from\.distance/);
 });
 
+test("a reel without dips opens each shot unveiled", () => {
+  const cut: Reel = { ...REEL, fade_s: 0 };
+  expect(sampleReel(cut, 0).black).toBe(0);
+  expect(sampleReel(cut, 10).black).toBe(0);
+  expect(sampleReel(cut, 25).black).toBe(1);
+});
+
 test("under reduced motion the reel holds its first framing for its length, on the unit it follows", () => {
   const still = stillReel(TRACKING);
   expect(sampleReel(still, 19.9)).toEqual({
