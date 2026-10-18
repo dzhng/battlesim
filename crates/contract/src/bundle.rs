@@ -333,6 +333,13 @@ impl ScenarioBundle {
                 ));
             }
         } else {
+            if self.scenario.players.is_empty() {
+                errors.push(diagnostic(
+                    "invalid_players",
+                    "$.scenario.players",
+                    "a scenario bundle must name its players",
+                ));
+            }
             let mut ids = std::collections::BTreeSet::new();
             for player in &self.scenario.players {
                 if player.id.trim().is_empty() || !ids.insert(player.id.as_str()) {
@@ -389,12 +396,6 @@ impl ScenarioBundle {
             "$.assets",
             &mut errors,
         );
-        let players = self
-            .scenario
-            .players
-            .iter()
-            .map(|p| p.id.as_str())
-            .collect::<std::collections::BTreeSet<_>>();
         for (i, unit) in self.scenario.units.iter().enumerate() {
             if let Some(owner) = &unit.owner {
                 match self.scenario.players.iter().find(|p| p.id == *owner) {
@@ -410,7 +411,7 @@ impl ScenarioBundle {
                     )),
                     Some(_) => {}
                 }
-            } else if !players.is_empty() {
+            } else {
                 errors.push(diagnostic(
                     "unowned_unit",
                     format!("$.scenario.units[{i}].owner"),

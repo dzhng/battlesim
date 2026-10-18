@@ -238,3 +238,35 @@ fn economy_mode_refuses_authored_forces_that_the_skirmish_owner_cannot_field() {
         .to_string()
         .contains("authored forces"));
 }
+
+#[test]
+fn a_sandbox_bundle_names_its_players_and_every_unit_an_owner() {
+    let unit = |owner: Option<&str>| contract::scenario::UnitSetup {
+        side: Side::Blue,
+        owner: owner.map(Into::into),
+        kind: "test_rifle".into(),
+        position: [20.0, 20.0],
+        yaw: 0.0,
+        engagement: None,
+        condition: None,
+        stock: None,
+    };
+    let locations = |bundle: &ScenarioBundle| match bundle.validate() {
+        Err(contract::bundle::BundleError::Invalid(errors)) => {
+            errors.into_iter().map(|e| e.location).collect::<Vec<_>>()
+        }
+        Ok(()) => Vec::new(),
+    };
+
+    let mut unowned = bundle();
+    unowned.scenario.players.clear();
+    unowned.scenario.units.push(unit(None));
+    assert_eq!(
+        locations(&unowned),
+        ["$.scenario.players", "$.scenario.units[0].owner"]
+    );
+
+    let mut owned = bundle();
+    owned.scenario.units.push(unit(Some("blue-1")));
+    assert!(locations(&owned).is_empty());
+}
