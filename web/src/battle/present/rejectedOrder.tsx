@@ -36,6 +36,7 @@ const REFUSAL_TEXT: Record<string, string> = {
   no_room_to_unload: "NO ROOM TO UNLOAD",
   not_a_carrier: "NOT A CARRIER",
   aboard: "ABOARD",
+  wrong_player: "AN ALLY'S UNIT",
 };
 
 /** Refusals the player is never told about: an order past the rate limit

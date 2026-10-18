@@ -93,7 +93,7 @@ changed.
   `Collect`, `Unload`, `Refusal`, `OrderError::{Aboard, NotACarrier,
   NoRoomToUnload}`), `observation.rs` (`HoldState`, `HostRef`).
 - Simulation: `crates/sim/src/{hold,carriage,bail_out,garrison}.rs`;
-  `Battle::passengers_of` and `bail_out_carrier` in `battle.rs`; the AI in
+  `carriage::passengers` (who rides inside), `arrangement::ground_taken` (what takes up ground), and `bail_out_carrier` in `battle.rs`; the AI in
   `crates/sim/src/skirmish_ai/transport.rs` with tuning in
   `fixtures/skirmish-ai.json`.
 - Browser: `aboardCarrier`, `carrierOf`, `passengersOf`, `inBuilding` in

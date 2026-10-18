@@ -161,7 +161,7 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **A Board order sent to a helicopter brings it down to low hover,** before any boarding timer exists. The timer needs the helicopter already low, so waiting for the timer would never start.
 - **A shot-down helicopter's passengers fall with it** (they follow `crash.position`) and bail out where it hits the ground, with the air row. Each squad gets its own `squad_loss` roll, seeded with that squad's id. A shared roll would kill or spare every squad aboard together. The ground row has no squad loss, so ground draws are unchanged.
 - **A helicopter that leaves the map with passengers kills them** (`DeathCause::LeftMap`, credited to the helicopter's killer). Their corpses stay off the map at the crash point. A retiring helicopter takes its passengers along, refunded.
-- **One `Battle::passengers_of(carrier)` lookup** replaces four copies.
+- **One `carriage::passengers` lookup** (it began as `Battle::passengers_of`) replaces four copies.
 - **Test fixture:** `test_transport_heli` (16 seats). `test_heli` still carries no one.
 - **Risk:** boarding needs the exact low-hover height over the surface. Where a building or tree holds a helicopter higher, a Board order can wait forever with no refusal. The lab's helicopter variant will show whether this matters.
 - **The market-town menu reel was re-recorded** (`BLESS_MENU_REEL=1`). Main's reel puts a garrison collapse at tick 2093, and the building bail-out lets two soldiers live where the old coin flip killed them. Every shot still opens on a living unit; the footage after that tick needs the user's look.
