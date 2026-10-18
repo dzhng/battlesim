@@ -1164,21 +1164,12 @@ impl Battle {
         } = prepared;
         let arsenal = Arsenal::new(&rules);
         supply::validate(&rules).expect("fixture supply rules are valid");
-        for e in &setup.events {
-            if let EventAction::AddProp(def) = &e.action {
-                assert!(
-                    rules.catalog.props().index(&def.kind).is_some(),
-                    "an added prop names an unknown prop type {:?}",
-                    def.kind
-                );
-            }
-            if let EventAction::Burst { weapon, .. } = &e.action {
-                assert!(
-                    arsenal.weapons.iter().any(|w| &w.id == weapon),
-                    "a burst names an unknown weapon row {weapon}"
-                );
-            }
-        }
+        // An uploaded scenario was refused before this with these same errors.
+        let unknown = setup.unknown_catalog_references();
+        assert!(
+            unknown.is_empty(),
+            "scenario names kinds its rules lack: {unknown:?}"
+        );
         let mut soldier_ids = 0u32;
         let mut units = setup
             .units

@@ -179,3 +179,35 @@ fn a_map_the_world_cannot_build_is_refused_with_diagnostics() {
     let no_fog_cells = upload(|bundle| bundle.scenario.map.fog_cell_m = 0.0);
     assert_eq!(locations(&no_fog_cells), ["$.scenario.map.fog_cell_m"]);
 }
+
+#[test]
+fn unknown_unit_prop_and_weapon_kinds_are_refused_before_battle() {
+    let result = upload(|bundle| {
+        let catalog = &bundle.scenario.rules.catalog;
+        let known = catalog.id(catalog.indices().next().unwrap()).to_owned();
+        for kind in [known, "no-such-unit".to_owned()] {
+            bundle.scenario.units.push(
+                serde_json::from_value(serde_json::json!({
+                    "side": "blue",
+                    "owner": "blue-1",
+                    "kind": kind,
+                    "position": [100.0, 100.0]
+                }))
+                .unwrap(),
+            );
+        }
+        bundle.scenario.events = serde_json::from_value(serde_json::json!([
+            { "tick": 5, "add_prop": prop::<serde_json::Value>("no-such-prop") },
+            { "tick": 6, "burst": { "point": [100.0, 100.0], "weapon": "no-such-weapon" } }
+        ]))
+        .unwrap();
+    });
+    assert_eq!(
+        locations(&result),
+        [
+            "$.scenario.units[1].kind",
+            "$.scenario.events[0].add_prop.kind",
+            "$.scenario.events[1].burst.weapon",
+        ]
+    );
+}

@@ -284,6 +284,13 @@ impl ScenarioBundle {
                 error.message,
             ));
         }
+        for (location, message) in self.scenario.unknown_catalog_references() {
+            errors.push(diagnostic(
+                "unknown_catalog_reference",
+                format!("$.scenario.{location}"),
+                message,
+            ));
+        }
         let rules_hash = json_hash(&self.scenario.rules).expect("rules serialize");
         if self.rules_hash != rules_hash {
             errors.push(diagnostic(

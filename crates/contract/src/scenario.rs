@@ -1636,6 +1636,46 @@ pub struct ScenarioDefinition {
 }
 
 impl ScenarioDefinition {
+    /// Every unit type, added prop type and burst weapon row the scenario
+    /// names that its rules do not hold, as (location, message) pairs
+    /// relative to the scenario. A battle starts only when this is empty.
+    pub fn unknown_catalog_references(&self) -> Vec<(String, String)> {
+        let catalog = &self.rules.catalog;
+        let props = catalog.props();
+        let mut unknown = Vec::new();
+        for (i, unit) in self.units.iter().enumerate() {
+            if catalog.index(&unit.kind).is_none() {
+                unknown.push((
+                    format!("units[{i}].kind"),
+                    format!("unknown unit type {:?}", unit.kind),
+                ));
+            }
+        }
+        for (i, event) in self.events.iter().enumerate() {
+            match &event.action {
+                EventAction::AddProp(prop) => {
+                    let placed = props
+                        .index(&prop.kind)
+                        .ok_or_else(|| format!("unknown prop type {:?}", prop.kind))
+                        .and_then(|kind| {
+                            props.check_placement(kind, crate::catalog::PropPlacement::Ordinary)
+                        });
+                    if let Err(message) = placed {
+                        unknown.push((format!("events[{i}].add_prop.kind"), message));
+                    }
+                }
+                EventAction::Burst { weapon, .. } if !self.rules.weapons.contains_key(weapon) => {
+                    unknown.push((
+                        format!("events[{i}].burst.weapon"),
+                        format!("unknown weapon row {weapon:?}"),
+                    ));
+                }
+                EventAction::Burst { .. } | EventAction::Fire { .. } => {}
+            }
+        }
+        unknown
+    }
+
     pub fn validate_player_contract(&self) -> Result<(), String> {
         let Some(skirmish) = &self.skirmish else {
             return Ok(());
