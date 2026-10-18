@@ -160,7 +160,7 @@ function CursorCallout({ text, at }: { text: string; at: Point }) {
     place();
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
-  }, [at]);
+  }, [text, at]);
   const [x, y] = [at[0] + FROM_CURSOR_PX[0], at[1] + FROM_CURSOR_PX[1]];
   return <Callout layer={layer} text={text} transform={`translate(${x}px, ${y}px)`} />;
 }

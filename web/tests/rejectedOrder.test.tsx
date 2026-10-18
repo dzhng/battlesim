@@ -1,8 +1,11 @@
-import { render, screen, cleanup } from "@testing-library/react";
-import { afterEach, expect, test } from "vitest";
+import { act, render, screen, cleanup } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
 import { RejectedOrder } from "../src/battle/present/rejectedOrder";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 test("an order dropped by the rate limit says nothing", () => {
   render(
@@ -87,6 +90,45 @@ test("a unit's refusal and a whole order's refusal each say their own", () => {
       .map((m) => m.textContent?.trim())
       .sort(),
   ).toEqual(["NO ROOM TO UNLOAD", "OUTSIDE THE MAP"]);
+});
+
+test("a new refusal at the same pointer is placed for its own width, on screen", () => {
+  // jsdom lays out nothing: a message is 10 px a character, 20 px tall.
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+    function (this: HTMLElement) {
+      const width = (this.textContent?.trim().length ?? 0) * 10;
+      return {
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        width,
+        height: 20,
+        right: width,
+        bottom: 20,
+      } as DOMRect;
+    },
+  );
+  const refused = (seq: number, reason: string) => ({
+    seq,
+    label: "move",
+    order: { kind: "move", units: [1], gesture: seq, goal: [50, 50], route: "shortest" } as const,
+    ack: { seq, applied_tick: 1, refused: [], error: { reason } },
+  });
+  const view = render(<RejectedOrder acks={[]} />);
+  act(() => {
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 950, clientY: 300 }));
+  });
+  view.rerender(<RejectedOrder acks={[refused(1, "out_of_bounds")]} />);
+  view.rerender(
+    <RejectedOrder
+      acks={[refused(2, "a_reason_with_a_much_longer_name"), refused(1, "out_of_bounds")]}
+    />,
+  );
+  const message = screen.getByRole("status");
+  expect(message.textContent?.trim()).toBe("A REASON WITH A MUCH LONGER NAME");
+  const x = Number(/translate\((-?[\d.]+)px/.exec(message.style.transform)![1]);
+  expect(x + message.getBoundingClientRect().width).toBeLessThanOrEqual(window.innerWidth - 8);
 });
 
 test("each new carriage refusal reads in player words", () => {
