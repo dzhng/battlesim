@@ -196,7 +196,8 @@ side identifies one, each in the background as it appears; a set without a
 pack is silent. The page's line player is the mixer's
 (`WebAudioSink.line`), so a bark has the graph every unit sound has.
 `generate pack` writes a set's `pack.json` from the takes judged ok on the
-bytes served; before review, `--unreviewed` also lists unjudged takes the
+bytes served and spoken by the voice `voices.json` names now, so a replaced
+voice's takes leave the pack even before regeneration finishes; before review, `--unreviewed` also lists unjudged takes the
 transcript check passed.
 
 An unseen enemy's shout reaches the side only as an anonymous hearing cue, so

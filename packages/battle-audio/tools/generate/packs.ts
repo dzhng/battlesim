@@ -15,12 +15,23 @@ const VOICES = "assets/runtime/audio/voices";
 const served = (root: string, url: string) => join(root, "assets/runtime", url);
 const sha256Of = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
 
+/** The voice voices.json names now for one of a set's voices; null while it waits for one. */
+const currentVoice = (catalog: VoiceCatalog, set: string, voice: string) =>
+  catalog.sets[set].voices.find(({ id }) => id === voice)?.voice_id ?? null;
+
 /**
- * Whether a take belongs in its set's pack: judged ok on the bytes served.
- * Before the user's review, `unreviewed` also admits a take nobody has judged
- * yet whose transcript check passed; a take judged bad, or flagged, never.
+ * Whether a take belongs in its set's pack: spoken by the voice voices.json
+ * names now (a replaced voice's takes leave with it, even while regeneration
+ * is unfinished) and judged ok on the bytes served. Before the user's review,
+ * `unreviewed` also admits a take nobody has judged yet whose transcript check
+ * passed; a take judged bad, or flagged, never.
  */
-export function packAdmits(record: TakeRecord, unreviewed: boolean): boolean {
+export function packAdmits(
+  record: TakeRecord,
+  voiceId: string | null,
+  unreviewed: boolean,
+): boolean {
+  if (voiceId === null || record.provenance.voice_id !== voiceId) return false;
   const verdict = verdictOf(record);
   return verdict === "ok" || (unreviewed && verdict === null && !record.match.flagged);
 }
@@ -36,7 +47,8 @@ function admittedPack(
 ): VoicePack {
   return voicePack(catalog, set, (id, take) => {
     const record = lock.takes[id];
-    if (!record || !packAdmits(record, unreviewed)) return null;
+    if (!record || !packAdmits(record, currentVoice(catalog, set, take.voice), unreviewed))
+      return null;
     const path = served(root, voiceUrl(take, record.served_sha256));
     if (!existsSync(path)) return null;
     const sha256 = sha256Of(path);
@@ -84,8 +96,9 @@ export function writePacks(options: {
 }
 
 /**
- * Proves the served packs: every packed take is in the lock, judged ok on the
- * bytes its URL names, and its file holds those bytes; each pack is the one
+ * Proves the served packs: every packed take is in the lock, spoken by the
+ * voice voices.json names now, judged ok on the bytes its URL names, and its
+ * file holds those bytes; each pack is the one
  * `generate pack` would write now; and no pack names a set voices.json lacks.
  */
 export function checkPacks(root: string, catalog: VoiceCatalog, lock: VoiceLock): string[] {
@@ -107,6 +120,8 @@ export function checkPacks(root: string, catalog: VoiceCatalog, lock: VoiceLock)
       if (!record) problems.push(`pack ${set}: ${id} is not in the lock`);
       else if (take.url !== voiceUrl(where, record.served_sha256))
         problems.push(`pack ${set}: ${id} names other bytes than the lock`);
+      else if (record.provenance.voice_id !== currentVoice(catalog, set, take.voice))
+        problems.push(`pack ${set}: ${id} was spoken by another voice than voices.json names`);
       else if (verdictOf(record) !== "ok")
         problems.push(`pack ${set}: ${id} is not judged ok on its bytes`);
       else if (
