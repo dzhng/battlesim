@@ -10,7 +10,7 @@ The runtime keeps a fixed Blue, Red, and Neutral topology. The side spike exerci
 
 Player slots own units even when slots share a side. A local run may select at most one human-capable slot. Other human-capable slots become passive AI, AI-only slots remain active AI, and a live human slot can be taken over by AI. The command envelope carries the slot, so a same-side controller cannot issue an order for another slot's unit. Observation and replay remain simulation-owned: the renderer receives only the selected side's publication, and every replayed digest must match the live run.
 
-The authored-code surface is a contract-owned bounded interpreter. It can inspect only the observation exposed to its side, use deterministic seeded values, and emit ordinary orders, events, and victory signals. It has no ambient clock, I/O, network, DOM, filesystem, or unbounded allocation. User media is embedded and hash-checked; built-in appearance references carry content identity and remain owned by the shared scene-assets loader. Uploaded maps with no scenery request no scenery art, which keeps the normal renderer inside small adapter texture-array limits.
+The authored-code surface is a contract-owned bounded interpreter. It can inspect only the observation exposed to its side, use deterministic seeded values, and emit ordinary orders, events, and victory signals. It has no ambient clock, I/O, network, DOM, filesystem, or unbounded allocation. User media is embedded and hash-checked, and an asset always carries its bytes; the art for the units and props a package fields comes from the build's own appearance catalog through the shared scene-assets loader, never from a reference inside the package. Uploaded maps with no scenery request no scenery art, which keeps the normal renderer inside small adapter texture-array limits.
 
 ## Principles and invariants
 
@@ -36,6 +36,8 @@ The authored-code surface is a contract-owned bounded interpreter. It can inspec
 ## Dead ends and deliberate limits
 
 The arbitrary-side/FFA spike was rejected after a Neutral candidate reached fixed-array assumptions and panicked in the battle path. The product keeps the fixed three-slot topology rather than carrying a dynamic-side compatibility layer.
+
+Hash-named references to built-in content were dropped from the package format: nothing produced them, nothing read them, and an admitted reference silently delivered nothing.
 
 Browser JavaScript evaluation was rejected as the authored-script runtime because it would make native/WASM parity and capability restriction depend on the host environment. A small deterministic interpreter keeps the authority boundary explicit.
 

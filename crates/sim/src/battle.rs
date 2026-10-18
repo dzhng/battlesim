@@ -1164,21 +1164,12 @@ impl Battle {
         } = prepared;
         let arsenal = Arsenal::new(&rules);
         supply::validate(&rules).expect("fixture supply rules are valid");
-        for e in &setup.events {
-            if let EventAction::AddProp(def) = &e.action {
-                assert!(
-                    rules.catalog.props().index(&def.kind).is_some(),
-                    "an added prop names an unknown prop type {:?}",
-                    def.kind
-                );
-            }
-            if let EventAction::Burst { weapon, .. } = &e.action {
-                assert!(
-                    arsenal.weapons.iter().any(|w| &w.id == weapon),
-                    "a burst names an unknown weapon row {weapon}"
-                );
-            }
-        }
+        // An uploaded scenario was refused before this with these same errors.
+        let unknown = setup.unknown_catalog_references();
+        assert!(
+            unknown.is_empty(),
+            "scenario names kinds its rules lack: {unknown:?}"
+        );
         let mut soldier_ids = 0u32;
         let mut units = setup
             .units
@@ -1621,10 +1612,20 @@ impl Battle {
         })
     }
 
-    /// Validate and schedule a command for the next step. Every command whose
-    /// sequence number is next for its side is recorded for replay, including
-    /// ones rejected for their content, so a replay reproduces the same acks.
+    /// Validate and schedule a client's command for the next step. Every
+    /// command whose sequence number is next for its side is recorded for
+    /// replay, including ones rejected for their content, so a replay
+    /// reproduces the same acks.
     pub fn accept(&mut self, command: CommandEnvelope) -> CommandAck {
+        self.receive(command, Issuer::Client)
+    }
+
+    /// Schedule an order the battle's own slot AI, scripts or opponents give.
+    fn issue(&mut self, command: CommandEnvelope) -> CommandAck {
+        self.receive(command, Issuer::Battle)
+    }
+
+    fn receive(&mut self, command: CommandEnvelope, issuer: Issuer) -> CommandAck {
         let applied_tick = self.tick + 1;
         let ack = |error, placement, building, refused| CommandAck {
             seq: command.seq,
@@ -1636,6 +1637,13 @@ impl Battle {
         };
         if self.replaying.is_some() {
             return ack(Some(OrderError::ReplayInProgress), None, None, Vec::new());
+        }
+        // A slot under AI takes orders only from its controller. The refusal
+        // comes before the command is recorded: the replay log does not say
+        // who issued a command, so a replay could not tell this one from the
+        // AI's own.
+        if issuer == Issuer::Client && self.ai_controlled(command.player.as_deref()) {
+            return ack(Some(OrderError::AiControlled), None, None, Vec::new());
         }
         self.admit(command.clone(), applied_tick).map_or_else(
             |e| ack(Some(e), None, None, Vec::new()),
@@ -1727,6 +1735,17 @@ impl Battle {
             self.apply_controller(&transition);
             self.controller_transitions.push(transition);
         }
+    }
+
+    /// Whether `player`'s slot is controlled by AI right now. A battle with no
+    /// controller state for the slot (a lab) leaves it to its client, and so
+    /// does a skirmish: its session owns its seats and its AI, as it does in
+    /// `controller_turn`.
+    fn ai_controlled(&self, player: Option<&str>) -> bool {
+        self.skirmish.is_none()
+            && player
+                .and_then(|player| self.controllers.get(player))
+                .is_some_and(|controller| *controller != ControllerKind::Human)
     }
 
     fn apply_controller(&mut self, transition: &ControllerTransition) {
@@ -1825,7 +1844,7 @@ impl Battle {
                     facing: None,
                 },
             };
-            let _ = self.accept(CommandEnvelope {
+            let _ = self.issue(CommandEnvelope {
                 side,
                 player: Some(slot),
                 seq,
@@ -2325,12 +2344,16 @@ impl Battle {
             return;
         }
         let mut outputs = Vec::new();
-        for (script, side, slot) in &self.authored_scripts {
-            let input = ScriptInput::new(
-                *side,
-                &self.observations[side.index()],
-                self.seed ^ 0x5343_5249_5054_0000 ^ self.tick ^ side.index() as u64,
-            );
+        for (index, (script, side, slot)) in self.authored_scripts.iter().enumerate() {
+            // Each script draws its own stream: the seed hashes the battle
+            // seed, the tick, the side and the script's place in the scenario.
+            let seed = [self.tick, side.index() as u64, index as u64]
+                .into_iter()
+                .fold(
+                    contract::random::mix(self.seed ^ 0x5343_5249_5054_0000),
+                    |h, v| contract::random::mix(h ^ v),
+                );
+            let input = ScriptInput::new(*side, &self.observations[side.index()], seed);
             let input = match slot.as_deref() {
                 Some(slot) => input.with_player(slot.to_owned()),
                 None => input,
@@ -2388,7 +2411,7 @@ impl Battle {
             }
             for command in output.commands {
                 let seq = self.next_seq[command.side.index()];
-                let _ = self.accept(CommandEnvelope {
+                let _ = self.issue(CommandEnvelope {
                     side: command.side,
                     player: command.player,
                     seq,
@@ -2743,7 +2766,7 @@ impl Battle {
         }
         for (side, order) in commands {
             let seq = self.next_seq[side.index()];
-            let _ = self.accept(CommandEnvelope {
+            let _ = self.issue(CommandEnvelope {
                 side,
                 player: None,
                 seq,
@@ -2838,7 +2861,7 @@ impl Battle {
             }
         }
         for (_, player, side, seq, order) in commands {
-            let ack = self.accept(CommandEnvelope {
+            let ack = self.issue(CommandEnvelope {
                 side,
                 player: Some(player.clone()),
                 seq,
@@ -5663,6 +5686,14 @@ struct PreparedCommand {
     /// Where a placed unit stops short ([`crate::units::StopShort`]).
     stops: BTreeMap<UnitId, crate::units::StopShort>,
     refused: Vec<contract::command::Refusal>,
+}
+
+/// Who gave a command: a client, or the battle itself (its slot AI, authored
+/// scripts and opponents), which commands a slot it controls.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Issuer {
+    Client,
+    Battle,
 }
 
 type Admission = (

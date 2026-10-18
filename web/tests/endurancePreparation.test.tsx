@@ -11,7 +11,7 @@ import { WithTestCatalog } from "./catalog";
 // Replace the drawing edge, retaining the real session/adoption consumer.
 vi.mock("@apps/battle-lab/src/BattleView", () => ({
   BattleView: (props: ComponentProps<typeof BattleView>) => {
-    useSimSession(props);
+    useSimSession({ ...props, player: props.player ?? undefined });
     return null;
   },
 }));

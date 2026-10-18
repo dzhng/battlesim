@@ -205,6 +205,35 @@ fn authored_victory_script_finishes_and_replay_keeps_the_result() {
 }
 
 #[test]
+fn scripts_on_one_side_draw_independent_random_streams() {
+    let mut setup = scenario(serde_json::json!([
+        { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
+        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    // Two scripts with the same source, on the same side, on the same tick.
+    let flips = "repeat (32) { let r = random(2); if r == 0 { event(\"h\"); } if r == 1 { event(\"t\"); } }";
+    for id in ["first", "second"] {
+        setup
+            .authored_scripts
+            .push(contract::scenario::AuthoredScript {
+                id: id.into(),
+                source: flips.into(),
+                side: Side::Blue,
+                player: None,
+            });
+    }
+    let mut battle = Battle::new(&setup, 45);
+    battle.step();
+    let names: Vec<_> = battle
+        .script_events()
+        .iter()
+        .map(|e| e.name.as_str())
+        .collect();
+    assert_eq!(names.len(), 64);
+    assert_ne!(names[..32], names[32..], "each script draws its own stream");
+}
+
+#[test]
 fn authored_script_events_are_recorded_and_replayed() {
     let mut setup = scenario(serde_json::json!([
         { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
@@ -266,4 +295,73 @@ fn active_ai_issues_owned_orders_and_takeover_is_deterministic() {
     restored.step();
     restored.step();
     assert_eq!(restored.digest(), human.digest());
+}
+
+/// The next sequence number an outside client would send for `side`.
+fn next_seq(battle: &Battle, side: Side) -> u64 {
+    battle
+        .replay()
+        .accepted
+        .iter()
+        .filter(|(_, command)| command.side == side)
+        .count() as u64
+        + 1
+}
+
+fn move_order(battle: &Battle, side: Side, player: &str, unit: u32) -> CommandEnvelope {
+    CommandEnvelope {
+        side,
+        player: Some(player.into()),
+        seq: next_seq(battle, side),
+        order: Order::Move {
+            units: vec![UnitId(unit)],
+            gesture: 1,
+            goal: [200.0, 140.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+        queued: false,
+    }
+}
+
+#[test]
+fn only_a_human_controlled_slot_takes_outside_orders() {
+    let setup = scenario(serde_json::json!([
+        { "side": "blue", "owner": "blue-1", "kind": "test_rifle", "position": [80.0, 100.0] },
+        { "side": "blue", "owner": "blue-2", "kind": "test_rifle", "position": [80.0, 140.0] },
+        { "side": "red", "owner": "red-1", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    let mut battle = Battle::new(&setup, 43);
+    battle.set_controllers(vec![
+        ("blue-1".into(), ControllerKind::Human),
+        ("blue-2".into(), ControllerKind::PassiveAi),
+        ("red-1".into(), ControllerKind::ActiveAi),
+    ]);
+    let human = battle.accept(move_order(&battle, Side::Blue, "blue-1", 0));
+    assert_eq!(human.error, None, "the human slot commands its own unit");
+    let passive = battle.accept(move_order(&battle, Side::Blue, "blue-2", 1));
+    assert_eq!(passive.error, Some(OrderError::AiControlled));
+    let active = battle.accept(move_order(&battle, Side::Red, "red-1", 2));
+    assert_eq!(active.error, Some(OrderError::AiControlled));
+    battle.step();
+
+    // Once AI takes the human slot over, its old client is refused too, while
+    // the AI keeps commanding the slot's units.
+    battle.set_controllers(vec![("blue-1".into(), ControllerKind::ActiveAi)]);
+    let taken = battle.accept(move_order(&battle, Side::Blue, "blue-1", 0));
+    assert_eq!(taken.error, Some(OrderError::AiControlled));
+    battle.step();
+    battle.step();
+    let replay = battle.replay();
+    assert!(replay
+        .accepted
+        .iter()
+        .any(|(tick, command)| *tick > 1 && command.player.as_deref() == Some("blue-1")));
+
+    let mut restored = Battle::from_replay(&setup, &replay).expect("replay loads");
+    for _ in 0..3 {
+        restored.step();
+    }
+    assert_eq!(restored.digest(), battle.digest());
 }
