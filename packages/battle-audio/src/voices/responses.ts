@@ -95,6 +95,9 @@ export const REFUSALS: ReadonlySet<string> = new Set([
   "one_squad_per_building",
   "building_occupied",
   "no_room_to_unload",
+  "not_a_carrier",
+  "aboard",
+  "wrong_player",
 ]);
 
 /** The line an order asks for, or null when no unit answers it. */

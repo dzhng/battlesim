@@ -109,6 +109,9 @@ test("a refusal the player caused is answered; a refusal of the match or the inp
     "capacity_full",
     "one_squad_per_building",
     "building_occupied",
+    "not_a_carrier",
+    "aboard",
+    "wrong_player",
   ])
     expect(refused(reason)).toBe("refused");
   expect(refused("no_room_to_unload")).toBe("no_room_to_unload");
