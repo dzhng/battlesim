@@ -1002,6 +1002,21 @@ impl TryFrom<UncheckedRules> for Rules {
                 error,
             })?;
         }
+        // Every host a passenger can be thrown out of has its row, so a
+        // bail-out never finds one missing mid-battle.
+        for (host, name) in [
+            (BailOutHost::Building, "building"),
+            (BailOutHost::Ground, "ground"),
+            (BailOutHost::Air, "air"),
+        ] {
+            if !r.bail_out.contains_key(&host) {
+                return Err(crate::catalog::CatalogError::Invalid {
+                    section: "rules",
+                    id: "bail_out".into(),
+                    error: format!("no row for {name} hosts"),
+                });
+            }
+        }
         Ok(Rules {
             tick_hz: r.tick_hz,
             commands: r.commands,
