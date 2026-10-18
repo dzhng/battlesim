@@ -70,10 +70,19 @@ fn cruises_at_its_height_to_its_goal() {
         * b.rules().tick_hz as f64;
     // Never past its cruise speed; 400 m is too short to reach it at a
     // helicopter's acceleration, but most of the way.
+    let top = cruise_mps(&b);
     assert!(
-        fastest <= 220.0 / 3.6 + 1e-6 && fastest > 0.6 * 220.0 / 3.6,
-        "flew at {fastest:.1} m/s"
+        fastest <= top + 1e-6 && fastest > 0.6 * top,
+        "flew at {fastest:.1} m/s of {top:.1}"
     );
+}
+
+/// The helicopter's cruise speed, from its own flight data.
+fn cruise_mps(b: &Battle) -> f64 {
+    let sim::units::Motion::Air(flight) = b.unit(UnitId(0)).unwrap().motion else {
+        panic!("unit 0 is no aircraft");
+    };
+    flight.cruise_mps
 }
 
 #[test]
@@ -283,7 +292,7 @@ fn gathers_speed_gently_from_a_hover() {
     );
     assert_eq!(b.accept(order(&[0], GOAL)).error, None);
     let hz = b.rules().tick_hz;
-    let cruise = 220.0 / 3.6;
+    let cruise = cruise_mps(&b);
     let accel = cruise / b.rules().air.rotor.acceleration_s;
     let mut last = 0.0;
     for t in 1..=4 * hz {
