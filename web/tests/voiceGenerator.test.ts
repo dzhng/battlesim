@@ -328,8 +328,8 @@ describe("voice generation", () => {
       takes.map((id) => `${id}@${reviewed.takes[id].served_sha256}`),
       quiet,
     );
-    const packedTakes = (c: VoiceCatalog) => {
-      writePacks({ root, catalog: c, unreviewed: false, log: quiet });
+    const packedTakes = (c: VoiceCatalog, unreviewed = false) => {
+      writePacks({ root, catalog: c, unreviewed, log: quiet });
       const pack = JSON.parse(
         readFileSync(join(root, "assets/runtime/audio/voices/tank/pack.json"), "utf8"),
       ) as { takes: { intensity: string; take: number }[] };
@@ -342,7 +342,7 @@ describe("voice generation", () => {
     recordVerdicts(lockPath, "clear", [`${first}@${reviewed.takes[first].served_sha256}`], quiet);
     expect(verdictOf(readLock(lockPath).takes[first])).toBeNull();
     expect(packedTakes(catalog())).toEqual(takes.slice(1));
-    writePacks({ root, catalog: catalog(), unreviewed: true, log: quiet });
+    expect(packedTakes(catalog(), true)).toEqual(takes);
     recordVerdicts(lockPath, "ok", [`${first}@${reviewed.takes[first].served_sha256}`], quiet);
     expect(packedTakes(catalog())).toEqual(takes);
 
