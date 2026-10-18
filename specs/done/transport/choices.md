@@ -57,7 +57,7 @@ Decisions the user made live in [map.md](map.md); change them there.
   - Alternative: flatten the seat fields into `Hold`.
   - Why: keeps building specifics in `garrison`.
 - **`Hold` has a temporary `Deref`/`DerefMut` to `Garrison`** so building code reads unchanged. It panics on a non-building host.
-  - This is short-lived scaffolding: slice 06 removes it when `Host::Carrier` arrives, and building code then reaches its `Place` explicitly.
+  - This is short-lived scaffolding: slice 06 removed it when `Host::Carrier` arrived, and building code now reaches its `Place` explicitly.
 - **The digest proof was replay-based.** The garrison and buildings modules ran before and after (54 and 32 tests), the 1800 per-tick replay digests matched, and `cargo test -p sim` passed. A probe listing every battle's final digest wasn't practical through the private test helpers.
 
 ## Slice 01
@@ -119,7 +119,7 @@ Decisions the user made live in [map.md](map.md); change them there.
 - **A per-unit refusal shows beside that unit's card,** or its carrier's card for a rider, for 2.2 s. `capacity_full` reads TOO MANY TO FIT.
 - **A riding squad's army-deck card is dimmed, carries the seat mark, and selects its carrier.**
 - **The browser remembers its own accepted unload points (`unloadPoints.ts`),** because the publication doesn't say which queued step unloads.
-  - Unsound: it makes the browser a second owner of the queue. Slice 11b replaces it with a published flag.
+  - Unsound: it makes the browser a second owner of the queue. Slice 11b replaced it with a published flag.
 - **Two fixes outside the slice:** squads aboard no longer draw order marks; the garrison, fog and cover-sheet scenes read `hold`, not the retired `garrison` field.
 - **Lint debt:** cleared by main's `af245b425` (the scenes' orphaned values were checks that had moved elsewhere), taken in the main merge.
 
@@ -154,7 +154,7 @@ Decisions the user made live in [map.md](map.md); change them there.
 ## Main merge (team skirmish, capture)
 - **Riders inside a carrier don't block a skirmish entry site;** main's per-entry dispatch counts only units on the field.
 - **A retiring carrier still takes its passengers,** each refunded to its own buying player under main's per-player wallets.
-- **The capture re-record waits for slice 11b,** which changes the publication layout again, so the captures are recorded once.
+- **The capture re-record waited for slice 11b,** which changed the publication layout again, so the captures were recorded once.
 
 ## Slice 09
 - **One rule decides whether a carrier can load or unload:** `carriage::at_loading_height`. A ground carrier always can; a helicopter can only when settled at low hover, meaning zero velocity and exactly at low-hover height. Boarding and the start of an unload both ask it.

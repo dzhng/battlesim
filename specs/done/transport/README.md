@@ -17,8 +17,9 @@ changed.
 ## Why it works this way
 
 - **Seats come in three sizes.** The user asked for few numbers: 3 for light
-  vehicles and the recon, ATGM and MG teams (recon patrols dropped from 4 to 3 so
-  they fit), 8 for the largest squad, and 16 for heavy-lift helicopters. A
+  and recon vehicles and the MH-6, sized for the recon patrols and the ATGM, RPG
+  and air-defence teams (recon patrols dropped from 4 to 3 so they fit), 8 for
+  the largest squad, and 16 for the large transport helicopters. A
   carrier's seats are data on its catalog row (`capabilities.carriage.seats`);
   nothing else makes a unit a carrier. Supply trucks carry supplies, not
   people.
@@ -28,8 +29,9 @@ changed.
   shows SEATS n/N and its riders' compact cards.
 - **Only destruction kills.** An explicit unload is all or nothing: with no room
   for every soldier to stand, it is refused. A destroyed host is different:
-  everyone comes out hurt, with a death roll per soldier, and a downed
-  helicopter may lose the whole squad. Buildings changed to match, so nobody
+  everyone who gets out is hurt, with a death roll per soldier and death for
+  anyone with no room to stand, and a downed helicopter may lose the whole
+  squad. Buildings changed to match, so nobody
   walks out of a collapse either unhurt or dead.
 - **Severity follows the host.** Buildings 25% death and 20–40 hp lost;
   ground vehicles 10% and 10–30; helicopters a 50% whole-squad loss, then 25%
@@ -56,10 +58,12 @@ changed.
   `Unit::on_field()` (alive and not riding, `Hold::riding`) gates everything
   physical: collisions, blasts, sensing, fog, hearing, objectives, supply,
   exit-spot searches.
-- **One bail-out.** Every forced exit goes through `sim::bail_out::apply` with a
-  row from `rules.bail_out` chosen by the host's physical kind
-  (`BailOutHost::{Building, Ground, Air}`), never by role. Each event and squad
-  draws from its own seeded stream, never the combat stream.
+- **One bail-out.** Every forced exit from a destroyed host goes through
+  `sim::bail_out::apply` with a row from `rules.bail_out` chosen by the host's
+  physical kind (`BailOutHost::{Building, Ground, Air}`), never by role; a host
+  that leaves the map takes its passengers with it (`bail_out::lost_with_host`).
+  Each event and squad draws from its own seeded stream, never the combat
+  stream.
 - **One seat count.** `carriage::seats`, `seats_used` and `fits` serve orders,
   the simulation and the AI. A squad still getting in holds its seats.
 - **One loading-height rule.** `carriage::at_loading_height`: a ground carrier
@@ -74,9 +78,10 @@ changed.
 - **The simulation owns the queue.** Which queued step unloads is published
   (`goal_unloads`, `queue_unloads`), so the browser keeps no order memory of
   its own.
-- **Per-unit refusals have two carriers by design:** `CommandAck.refused` at
-  order time and `ObservationFrame.refusals` later; the browser speaks each
-  once.
+- **Per-unit refusals:** one found at order time is returned in
+  `CommandAck.refused` and also lands in `ObservationFrame.refusals`, with those
+  found later. The callouts read the frame; the voice answers from the ack and
+  skips the frame's copy of the same order, so nothing is said twice.
 - **Transport state folds into the digest only when present,** so battles
   without it kept their digests apart from the two named outcome changes
   (recon at 3, collapse as bail-out).
@@ -84,7 +89,7 @@ changed.
 ## Where it lives
 
 - Contract: `crates/contract/src/catalog.rs` (`Carriage`),
-  `scenario.rs` (`CarriageRules`, `BailOutRules`), `command.rs` (`Order::Board`,
+  `scenario.rs` (`CarriageRules`, `BailOutHost`, `BailOutRow`), `command.rs` (`Order::Board`,
   `Collect`, `Unload`, `Refusal`, `OrderError::{Aboard, NotACarrier,
   NoRoomToUnload}`), `observation.rs` (`HoldState`, `HostRef`).
 - Simulation: `crates/sim/src/{hold,carriage,bail_out,garrison}.rs`;
@@ -92,8 +97,8 @@ changed.
   `crates/sim/src/skirmish_ai/transport.rs` with tuning in
   `fixtures/skirmish-ai.json`.
 - Browser: `aboardCarrier`, `carrierOf`, `passengersOf`, `inBuilding` in
-  `web/src/battle/sim/observationView.ts`; the Seats row and rider cards in
-  `web/src/battle/present/readouts.tsx`; U and the Unload button in
+  `web/src/battle/sim/observationView.ts`; the Seats row in
+  `web/src/battle/present/panelRows.ts` and the rider cards in `readouts.tsx`; U and the Unload button in
   `commandBindings.ts` and `useUnitControl.ts`; refusals in
   `rejectedOrder.tsx` and `apps/battle-lab/src/unitResponses.ts`.
 - Voices: the `board`, `unload` and `no_room_to_unload` lines in
@@ -121,12 +126,13 @@ changed.
   attacker whose squads were all aboard; survival is accounting (`alive`).
 - **Helicopter boarding waited forever over props** when "settled" meant height
   over the bare surface; it now means the hover the helicopter holds.
-- **The market-town menu reel was re-recorded** for the building bail-out
-  (main's capture reel holds a garrison collapse at tick 2093). Every shot
-  before it, the tank turret kills included, is unchanged.
+- **The market-town menu reel was re-recorded** for the building bail-out and
+  again for per-squad bail-out rolls (main's capture reel holds a garrison
+  collapse at tick 2093). Every event before that tick, the tank kills at 87
+  and 295 included, is unchanged.
 - **Riding toward the fight:** with objectives alone, the AI walked most
   squads across the map after the first sighted enemy, so a squad sent at a far
-  enemy rides too.
+  enemy rides too. With objectives alone, only 4 of 14 squads ever rode.
 
 ## Open
 
