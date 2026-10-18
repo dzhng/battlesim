@@ -1578,6 +1578,47 @@ fn a_flare_is_ejected_near_the_aircraft_before_the_seeker_arrives() {
     assert!(reloaded.cooldown.is_none(), "reload completes");
 }
 
+/// A seeker diverted to a flare bursts on it once within the authored
+/// meeting distance (`guided.flare_meet_m`): authored wider than the
+/// field, it bursts as soon as it is diverted, far short of the airframe.
+#[test]
+fn a_diverted_seeker_bursts_within_the_authored_meeting_distance() {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "test_at", "position": [40, 300] },
+            { "side": "red", "kind": "test_heli", "position": [500, 300], "engagement": "return_fire_only" }
+        ]),
+        7,
+        |r| {
+            r["guided"]["flare_meet_m"] = json!(2000);
+            r["weapons"]["atgm"]["seeker"] = json!("infrared");
+            r["weapons"]["atgm"]["seeker_fov_deg"] = json!(180);
+            r["weapons"]["atgm"]["decoyable"] = json!(true);
+            r["weapons"]["atgm"]["targets"] = json!({"low_air": {"classes": ["air_rotor"]}});
+            r["weapons"]["atgm"]["ammo"] = json!(1);
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "test_heli",
+                json!({ "capabilities": {"flares": {"capacity": 2, "reload_s": 30}} }),
+            );
+        },
+    );
+    until_launch(&mut b);
+    let hp = b.unit(UnitId(1)).unwrap().hp;
+    for _ in 0..2 {
+        b.step();
+    }
+    assert_eq!(
+        b.unit(UnitId(1)).unwrap().flares.unwrap().charges,
+        1,
+        "the flare diverts the seeker"
+    );
+    assert!(missile(&b).is_none(), "the seeker flies on past its flare");
+    assert_eq!(b.unit(UnitId(1)).unwrap().hp, hp, "the airframe unhurt");
+}
+
 /// Flares are a unit's own capability, not an aircraft's: a jeep carrying
 /// them decoys an infrared missile fired at it, and one without is hit.
 #[test]

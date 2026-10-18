@@ -3630,8 +3630,14 @@ impl Battle {
             let round = self.rounds.get_mut(&projectile).expect("checked above");
             round.fused_target = None;
             if round.seeker_target.take().is_some() {
-                self.projectiles
-                    .decoy_seeker(projectile, position, velocity);
+                self.projectiles.decoy_seeker(
+                    projectile,
+                    crate::flight::Decoy {
+                        position,
+                        velocity,
+                        meet_m: self.rules.guided.flare_meet_m,
+                    },
+                );
             } else {
                 // Its launcher lets go; guidance releases it, as for a lost
                 // sight line.
