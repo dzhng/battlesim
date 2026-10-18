@@ -528,7 +528,7 @@ impl ScenarioBundle {
             {
                 errors.push(diagnostic(
                     "invalid_asset",
-                    format!("$.assets[{i}"),
+                    format!("$.assets[{i}]"),
                     "asset id, media type, and provenance are required",
                 ));
             }
@@ -569,7 +569,7 @@ impl ScenarioBundle {
                 )),
                 _ => errors.push(diagnostic(
                     "invalid_asset",
-                    format!("$.assets[{i}"),
+                    format!("$.assets[{i}]"),
                     "asset must contain exactly one of bytes_base64 or builtin",
                 )),
             }

@@ -240,6 +240,20 @@ fn economy_mode_refuses_authored_forces_that_the_skirmish_owner_cannot_field() {
 }
 
 #[test]
+fn an_asset_diagnostic_names_the_asset() {
+    let mut bundle = bundle();
+    bundle.assets[0].provenance = String::new();
+    let contract::bundle::BundleError::Invalid(errors) = bundle.validate().unwrap_err();
+    assert_eq!(
+        errors
+            .iter()
+            .map(|e| e.location.as_str())
+            .collect::<Vec<_>>(),
+        ["$.assets[0]"]
+    );
+}
+
+#[test]
 fn a_sandbox_bundle_names_its_players_and_every_unit_an_owner() {
     let unit = |owner: Option<&str>| contract::scenario::UnitSetup {
         side: Side::Blue,
