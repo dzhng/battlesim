@@ -1,6 +1,7 @@
 import { act, render, screen, cleanup } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { RejectedOrder } from "../src/battle/present/rejectedOrder";
+import type { AckEntry } from "../src/battle/input/useUnitControl";
 
 afterEach(() => {
   cleanup();
@@ -109,10 +110,10 @@ test("a new refusal at the same pointer is placed for its own width, on screen",
       } as DOMRect;
     },
   );
-  const refused = (seq: number, reason: string) => ({
+  const refused = (seq: number, reason: string): AckEntry => ({
     seq,
     label: "move",
-    order: { kind: "move", units: [1], gesture: seq, goal: [50, 50], route: "shortest" } as const,
+    order: { kind: "move", units: [1], gesture: seq, goal: [50, 50], route: "shortest" },
     ack: { seq, applied_tick: 1, refused: [], error: { reason } },
   });
   const view = render(<RejectedOrder acks={[]} />);
