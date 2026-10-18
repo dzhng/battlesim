@@ -1,7 +1,8 @@
 //! Player match setup and side-scoped economy publication.
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
-use crate::catalog::{Faction, TypeIndex};
+use crate::catalog::TypeIndex;
 use crate::encounter::SkirmishSites;
 use crate::ids::{Side, Tick, UnitId};
 
@@ -20,34 +21,30 @@ pub struct MatchRules {
     pub majority_s: u32,
     /// The score a side wins at.
     pub victory_score: f64,
+    pub max_players_per_side: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(try_from = "UncheckedSetup")]
 pub struct SkirmishSetup {
-    pub factions: [Faction; 2],
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub ai_side: Option<Side>,
     pub rules: MatchRules,
     pub sites: SkirmishSites,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UncheckedSetup {
-    factions: [Faction; 2],
-    #[serde(default)]
-    ai_side: Option<Side>,
     rules: MatchRules,
     sites: SkirmishSites,
+    #[serde(default)]
+    openings: BTreeMap<String, Vec<crate::players::OpeningPurchase>>,
 }
 
 impl TryFrom<UncheckedSetup> for SkirmishSetup {
     type Error = String;
     fn try_from(value: UncheckedSetup) -> Result<Self, Self::Error> {
-        if value.ai_side == Some(Side::Neutral) {
-            return Err("skirmish does not support neutral ai_side".into());
-        }
         let r = &value.rules;
         if r.credits_per_minute == 0
             || r.starting_minutes == 0
@@ -60,6 +57,7 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
                 .checked_mul(u64::from(r.starting_minutes))
                 .and_then(|n| n.checked_mul(1_000_000))
                 .is_none()
+            || r.max_players_per_side == 0
         {
             return Err(
                 "skirmish requires positive affordable economy, dispatch and objective rules"
@@ -68,10 +66,9 @@ impl TryFrom<UncheckedSetup> for SkirmishSetup {
         }
         value.sites.validate()?;
         Ok(Self {
-            factions: value.factions,
-            ai_side: value.ai_side,
             rules: value.rules,
             sites: value.sites,
+            openings: value.openings,
         })
     }
 }
@@ -96,6 +93,8 @@ pub struct PurchaseId(pub u32);
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PurchasePreview {
     pub kind: TypeIndex,
+    /// The entry chosen for this purchase while it is being reserved.
+    pub entry: usize,
     pub destination: [f64; 2],
     pub spots: Vec<[f64; 2]>,
 }
@@ -104,6 +103,9 @@ pub struct PurchasePreview {
 pub struct PendingPurchase {
     pub id: PurchaseId,
     pub kind: TypeIndex,
+    /// The entry chosen once, when the purchase is reserved (D37).
+    #[serde(default)]
+    pub entry: usize,
     pub destination: [f64; 2],
     pub confirmed_tick: Tick,
     pub blocked: bool,
@@ -115,11 +117,17 @@ pub struct PendingPurchase {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SkirmishView {
     pub phase: Phase,
+    pub players: Vec<PlayerView>,
+    #[serde(skip)]
     pub ready: [bool; 2],
     pub preparation_remaining_s: f64,
+    #[serde(skip)]
     pub credits: f64,
-    pub occupied_slots: u32,
+    #[serde(skip)]
+    pub unit_count: u32,
+    #[serde(skip)]
     pub max_units: u32,
+    #[serde(skip)]
     pub pending: Vec<PendingPurchase>,
     pub objectives: Vec<ObjectiveView>,
     pub scores: [f64; 2],
@@ -130,9 +138,35 @@ pub struct SkirmishView {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PlayerView {
+    pub index: crate::players::PlayerIndex,
+    pub id: String,
+    pub controller: crate::players::ControllerKind,
+    pub ready: bool,
+    pub credits: f64,
+    pub unit_count: u32,
+    pub cap: u32,
+    pub pending: Vec<PendingPurchase>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MatchReport {
-    pub totals: [MatchTotals; 2],
+    pub totals: Vec<MatchTotals>,
     pub events: Vec<MatchEvent>,
+}
+
+impl MatchReport {
+    pub fn side_totals(&self, players: &[crate::players::Player]) -> [MatchTotals; 2] {
+        let mut totals = [MatchTotals::default(); 2];
+        for (player, player_totals) in players.iter().zip(&self.totals) {
+            let side = player.side.index();
+            totals[side].spawned += player_totals.spawned;
+            totals[side].spent += player_totals.spent;
+            totals[side].killed += player_totals.killed;
+            totals[side].refunded += player_totals.refunded;
+        }
+        totals
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -148,6 +182,8 @@ pub struct MatchUnit {
     pub side: Side,
     pub id: UnitId,
     pub kind: TypeIndex,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<crate::players::PlayerIndex>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

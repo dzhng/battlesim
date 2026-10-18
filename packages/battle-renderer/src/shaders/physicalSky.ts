@@ -78,7 +78,8 @@ export const skyRadianceWgsl = `(dirIn: vec3f) -> vec3f {
     radiance += tView * (single + multiple) * dt;
   }
   let aureole = smoothstep(${f(sky.LOW_SUN_AUREOLE_COS_OUTER)}, ${f(sky.LOW_SUN_AUREOLE_COS_INNER)}, cosTheta) * skyLight.aureole;
-  let clearSky = radiance * skyLight.radiance + skyLight.sunTransmittance * aureole;
+  let clearSkyRaw = radiance * skyLight.radiance + skyLight.sunTransmittance * aureole;
+  let clearSky = mix(vec3f(dot(clearSkyRaw, vec3f(0.2126, 0.7152, 0.0722))), clearSkyRaw, skyLight.skySaturation) * skyLight.skyTint;
   let overcastGradient = 1.05 - max(dirIn.z, 0.0) * 0.22;
   let overcastSky = ${rgb(sky.OVERCAST_ZENITH_RADIANCE)} * overcastGradient * skyLight.overcastScale;
   let result = mix(clearSky, overcastSky, skyLight.overcast);

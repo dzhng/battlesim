@@ -75,17 +75,20 @@ export interface ModelInstance {
 
 /** `presentation.overlay.xray`: the colours hidden parts are drawn in
  *  (`ModelInstance.xray`), the observing side's units in `own`, the
- *  selection in `selected`. */
+ *  selection in `selected`, an ally's units in `ally`. */
 export interface XrayStyle {
   own: Rgba;
   selected: Rgba;
+  ally: Rgba;
 }
 
-/** `presentation.overlay.xray`, checked: both rgba, neither invisible. */
+/** `presentation.overlay.xray`, checked: each rgba, none invisible. */
 export function validateXray(x: XrayStyle): XrayStyle {
   const seen = (c: unknown) => isRgba(c) && c[3] > 0;
-  if (!seen(x.own) || !seen(x.selected))
-    throw new Error("presentation.overlay.xray: own and selected, rgba in [0, 1] with alpha > 0");
+  if (!seen(x.own) || !seen(x.selected) || !seen(x.ally))
+    throw new Error(
+      "presentation.overlay.xray: own, selected and ally, rgba in [0, 1] with alpha > 0",
+    );
   return x;
 }
 

@@ -10,6 +10,14 @@ fn presets() -> mapgen::layout::PresetDefinitions {
     mapgen::layout::PresetDefinitions::from_json(PRESETS).unwrap()
 }
 
+fn test_players() -> Vec<contract::players::Player> {
+    serde_json::from_value(serde_json::json!([
+        {"id":"blue-1","side":"blue","faction":"us","controller":"active_ai"},
+        {"id":"red-1","side":"red","faction":"eastern","controller":"active_ai"}
+    ]))
+    .unwrap()
+}
+
 /// A Small skirmish request of `map_type` (`"open"`, `"mixed"` or `"metro"`).
 fn request(map_type: &str, seed: u64, template_catalog_hash: &str) -> serde_json::Value {
     serde_json::json!({
@@ -20,6 +28,17 @@ fn request(map_type: &str, seed: u64, template_catalog_hash: &str) -> serde_json
         "limits": { "max_authored_parts": 1000000,
             "max_bay_positions": 100000000, "max_ground_points": 10000000 }
     })
+}
+
+fn request_with_entries(
+    map_type: &str,
+    seed: u64,
+    template_catalog_hash: &str,
+    entries_per_side: usize,
+) -> serde_json::Value {
+    let mut request = request(map_type, seed, template_catalog_hash);
+    request["entries_per_side"] = serde_json::json!(entries_per_side);
+    request
 }
 
 /// The first `count` Small skirmish maps of `map_type` that generate.
@@ -95,9 +114,12 @@ fn the_skirmish_profile_completes_physical_compilation() {
         .forests
         .iter()
         .any(|f| f.shape.contains(o.center, o.radius_m))));
-    let admitted =
-        sim::map_analysis::admit_skirmish(&prepared.queries(&result.map, &result.sites), &rules)
-            .unwrap();
+    let admitted = sim::map_analysis::admit_skirmish(
+        &prepared.queries(&result.map, &result.sites),
+        &rules,
+        &test_players(),
+    )
+    .unwrap();
     let selected = admitted.sites.skirmish.unwrap();
     assert_eq!(selected.objectives.len(), 3);
     for (i, o) in selected.objectives.iter().enumerate() {
@@ -106,6 +128,248 @@ fn the_skirmish_profile_completes_physical_compilation() {
             o.center[1] - other.center[1]
         ) >= 150.0));
         assert!(admitted.journeys.iter().any(|j| j.objective == o.id));
+    }
+}
+
+#[test]
+fn multi_entry_generation_lays_spaced_entries_on_joined_arms() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let (_, result) = admitted::admitted(1.., 1, |seed| {
+        let mut request = request_with_entries("open", seed, catalogue.hash(), 3);
+        request["size"] = serde_json::json!("large");
+        match mapgen::generate_map(
+            &request.to_string(),
+            PRESETS,
+            TEMPLATES,
+            include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+        ) {
+            mapgen::CompileOutcome::Ok { result } => Ok(*result),
+            mapgen::CompileOutcome::Error { diagnostics } => Err(diagnostics),
+        }
+    })[0]
+        .clone();
+    let entries = &result.sites.skirmish.as_ref().unwrap().entries;
+    assert_eq!(entries.len(), 6);
+    for index in 1..3 {
+        let blue = entries[index].center[0] / result.map.size[0];
+        let red = entries[index + 3].center[0] / result.map.size[0];
+        assert!((blue - red).abs() < 1e-12, "arm {index} was not mirrored");
+    }
+    for (i, a) in entries.iter().enumerate() {
+        for b in &entries[..i] {
+            if a.side == b.side {
+                assert!(libm::hypot(a.center[0] - b.center[0], a.center[1] - b.center[1]) >= 150.0);
+            }
+        }
+    }
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(sim::fixtures::test_game()).unwrap();
+    let prepared = sim::encounter::PreparedMap::new(&result.map, &rules);
+    let admission = sim::map_analysis::admit_skirmish(
+        &prepared.queries(&result.map, &result.sites),
+        &rules,
+        &test_players(),
+    );
+    assert!(
+        admission.is_ok(),
+        "multi-entry map was not admissible: {admission:?}"
+    );
+}
+
+#[test]
+fn three_entry_maps_put_flanks_on_opposite_sides_of_the_centre_exit() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let corpus: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/skirmish-corpus.json")).unwrap();
+    let generated_rows: Vec<_> = corpus["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|row| {
+            let map = row["map"].as_object()?;
+            let map_type = map["type"].as_str()?;
+            let size = map["size"].as_str()?;
+            (matches!(size, "large" | "xl")).then_some((map_type, size, row["seed"].as_u64()?))
+        })
+        .collect();
+    let cases = generated_rows
+        .into_iter()
+        .chain(["large", "xl"].into_iter().flat_map(|size| {
+            [
+                ("open", size, 1_u64),
+                ("mixed", size, 2),
+                ("metro", size, 3),
+            ]
+        }));
+    for (map_type, size, seed) in cases {
+        let mut request = request_with_entries(map_type, seed, catalogue.hash(), 3);
+        request["size"] = serde_json::json!(size);
+        let mapgen::CompileOutcome::Ok { result } = mapgen::generate_map(
+            &request.to_string(),
+            PRESETS,
+            TEMPLATES,
+            include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+        ) else {
+            continue;
+        };
+        let entries = &result.sites.skirmish.as_ref().unwrap().entries;
+        for side in [contract::ids::Side::Blue, contract::ids::Side::Red] {
+            let side_entries: Vec<_> = entries.iter().filter(|entry| entry.side == side).collect();
+            assert_eq!(side_entries.len(), 3, "{map_type} {size} seed {seed}");
+            let centre = side_entries[0];
+            let flank_sides: Vec<_> = side_entries
+                .iter()
+                .skip(1)
+                .map(|entry| entry.center[0].total_cmp(&centre.center[0]))
+                .collect();
+            assert!(
+                flank_sides.iter().any(|order| order.is_lt())
+                    && flank_sides.iter().any(|order| order.is_gt()),
+                "{map_type} {size} seed {seed} {side:?}: flanks {:?} around centre x={:.1}",
+                side_entries
+                    .iter()
+                    .map(|entry| entry.center[0])
+                    .collect::<Vec<_>>(),
+                centre.center[0]
+            );
+        }
+    }
+}
+
+#[test]
+fn every_skirmish_profile_accepts_three_entries_without_river_mouths() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    for map_type in ["open", "mixed", "metro"] {
+        for size in ["large", "xl"] {
+            let mut request = request_with_entries(map_type, 1, catalogue.hash(), 3);
+            request["size"] = serde_json::json!(size);
+            let generated = admitted::admitted(1.., 1, |seed| {
+                request["seed"] = serde_json::json!(seed.to_string());
+                match mapgen::generate_map(
+                    &request.to_string(),
+                    PRESETS,
+                    TEMPLATES,
+                    include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+                ) {
+                    mapgen::CompileOutcome::Ok { result } => Ok(*result),
+                    mapgen::CompileOutcome::Error { diagnostics } => Err(diagnostics),
+                }
+            });
+            let [(seed, result)] = generated.as_slice() else {
+                unreachable!()
+            };
+            let entries = &result.sites.skirmish.as_ref().unwrap().entries;
+            assert_eq!(entries.len(), 6, "{map_type} {size}, seed {seed}");
+            for side in [contract::ids::Side::Blue, contract::ids::Side::Red] {
+                let side_entries: Vec<_> = entries.iter().filter(|e| e.side == side).collect();
+                for (i, a) in side_entries.iter().enumerate() {
+                    for b in &side_entries[..i] {
+                        assert!(
+                            libm::hypot(a.center[0] - b.center[0], a.center[1] - b.center[1])
+                                >= 150.0
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn entry_count_size_floor_refuses_small_and_medium_three_entry_requests() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    for size in ["small", "medium"] {
+        let request = request_with_entries("open", 1, catalogue.hash(), 3);
+        let mut request = request;
+        request["size"] = serde_json::json!(size);
+        let mapgen::CompileOutcome::Error { diagnostics } = mapgen::generate_map(
+            &request.to_string(),
+            PRESETS,
+            TEMPLATES,
+            include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+        ) else {
+            panic!("{size} accepted a three-entry request");
+        };
+        assert!(diagnostics.iter().any(|d| d.location == "$.size"));
+    }
+}
+
+#[test]
+fn explicit_one_entry_keeps_the_legacy_map_hash() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    for map_type in ["open", "mixed", "metro"] {
+        let legacy = mapgen::generate_map(
+            &request(map_type, 1, catalogue.hash()).to_string(),
+            PRESETS,
+            TEMPLATES,
+            include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+        );
+        let explicit = mapgen::generate_map(
+            &request_with_entries(map_type, 1, catalogue.hash(), 1).to_string(),
+            PRESETS,
+            TEMPLATES,
+            include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+        );
+        let (mapgen::CompileOutcome::Ok { result: a }, mapgen::CompileOutcome::Ok { result: b }) =
+            (legacy, explicit)
+        else {
+            continue;
+        };
+        assert_eq!(a.identity.map_hash, b.identity.map_hash, "{map_type}");
+    }
+}
+
+#[test]
+fn one_entry_hashes_are_unchanged_for_the_skirmish_corpus_generated_rows() {
+    let catalogue =
+        contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap())
+            .unwrap();
+    let corpus: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/skirmish-corpus.json")).unwrap();
+    for row in corpus["rows"].as_array().unwrap() {
+        let Some(map) = row["map"].as_object() else {
+            continue;
+        };
+        let map_type = map["type"].as_str().unwrap();
+        let size = map["size"].as_str().unwrap();
+        let seed = row["seed"].as_u64().unwrap();
+        let mut implicit = request(map_type, seed, catalogue.hash());
+        implicit["size"] = serde_json::json!(size);
+        let explicit = request_with_entries(map_type, seed, catalogue.hash(), 1);
+        let explicit = {
+            let mut request = explicit;
+            request["size"] = serde_json::json!(size);
+            request
+        };
+        let generated = |request: serde_json::Value| {
+            mapgen::generate_map(
+                &request.to_string(),
+                PRESETS,
+                TEMPLATES,
+                include_str!("../../../fixtures/parity/map-layout/physical-rules.json"),
+            )
+        };
+        let (
+            mapgen::CompileOutcome::Ok { result: left },
+            mapgen::CompileOutcome::Ok { result: right },
+        ) = (generated(implicit), generated(explicit))
+        else {
+            continue;
+        };
+        assert_eq!(
+            left.identity.map_hash, right.identity.map_hash,
+            "{map_type} {size} seed {seed}"
+        );
     }
 }
 

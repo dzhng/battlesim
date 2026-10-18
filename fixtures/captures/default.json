@@ -1,0 +1,50 @@
+{
+  "scenes": [
+    {
+      "map": "market-town",
+      "encounter": "menu",
+      "seed": 1,
+      "warm_s": 3,
+      "reel": {
+        "fade_s": 0,
+        "shots": [
+          {
+            "seconds": 2.0,
+            "follow": 1,
+            "from": {
+              "target": [-1, 8],
+              "distance": 700,
+              "yaw": 0.174,
+              "pitch": 1.2
+            },
+            "to": {
+              "target": [-1, 8],
+              "distance": 700,
+              "yaw": 0.174,
+              "pitch": 1.2
+            }
+          },
+          {
+            "seconds": 38.5,
+            "follow": 1,
+            "from": {
+              "target": [-1, 8],
+              "distance": 700,
+              "yaw": 0.174,
+              "pitch": 1.2
+            },
+            "to": {
+              "target": [-1, 8],
+              "distance": 39.6,
+              "yaw": -0.426,
+              "pitch": 0.147
+            },
+            "ease": "cubic",
+            "logDistance": true,
+            "zoomDuration": 32
+          }
+        ]
+      }
+    }
+  ]
+}

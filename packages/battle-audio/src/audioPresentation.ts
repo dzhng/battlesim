@@ -24,6 +24,15 @@ export interface OneShot {
   gain: number;
 }
 
+/** How far a bus dips (a share of its level), and how fast it dips and
+ *  recovers (time constants, seconds): the music under a voice line, the
+ *  ambience under a loud shot. */
+export interface Duck {
+  depth: number;
+  attack_s: number;
+  release_s: number;
+}
+
 /** A vehicle kind's loops: engine (idle to load), running gear (tracks or
  *  wheels, by speed), turret traverse, and reverse beeper. A null sound is none. */
 export interface VehicleSound {
@@ -53,9 +62,22 @@ export interface FireSound {
   smoulder_gain: number;
 }
 
+/** The master's limiter (hard knee): over `threshold_db` (dBFS) the level is
+ *  compressed by `ratio`, reacting over `attack_s` and recovering over
+ *  `release_s`; what its attack still lets over is clipped hard at `clip_db`. */
+export interface Limiter {
+  threshold_db: number;
+  attack_s: number;
+  release_s: number;
+  ratio: number;
+  clip_db: number;
+}
+
 export interface AudioPresentation {
   /** Bus levels, and the master's. */
   buses: Record<Bus | "master" | "music", number>;
+  /** The master's limiter and clip, the last stage before the output. */
+  limiter: Limiter;
   /** Where the listener stands: this share of the way from the camera's
    *  target to its eye (0 at the ground point looked at, 1 at the eye). */
   listener_eye_share: number;
@@ -107,8 +129,10 @@ export interface AudioPresentation {
   /** Unit voice lines: how many sound at once, how long one may wait to start,
    *  and the window in which a group's answers collapse to one (`Chatter`). */
   voices: ChatterRules;
-  /** The countryside bed, never positional. */
-  ambience: OneShot;
+  /** The bed, never positional. Under a sound at least `duck_over` loud at
+   *  the listener the ambience bus dips by `duck`, and recovers once the dip
+   *  is reached (`presentation::sound::frame`). */
+  ambience: OneShot & { duck: Duck; duck_over: number };
   /** One alarm when the first fixed-wing aircraft enters a side's field. */
   air_alarm: OneShot;
   /** A positional warning when a visible missile is steering onto an own unit. */

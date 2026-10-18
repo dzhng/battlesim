@@ -365,6 +365,9 @@ fn is_ordinary_concealed_detection(value: &f64) -> bool {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Capabilities {
+    /// Carries infantry squads in an enclosed hull (D1).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub carriage: Option<Carriage>,
     /// Sets up in place before it can serve (L01), and packs up to move.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub deploy: Option<Deploy>,
@@ -388,6 +391,14 @@ pub struct Capabilities {
     /// bearing and range, never identifying them.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub radar_receiver: Option<RadarReceiver>,
+}
+
+/// A hull's passenger capacity. Only the authored capacities are admitted so
+/// the card and simulation share a small, legible set of carriage sizes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Carriage {
+    pub seats: u32,
 }
 
 /// How far a radar warning receiver finds an emitting radar.
@@ -1647,6 +1658,9 @@ fn check(
             if !matches!(t.mobility, Mobility::Foot { .. }) {
                 return rule("a squad moves on foot");
             }
+            if t.capabilities.carriage.is_some() {
+                return rule("carriage requires a hull, not a squad");
+            }
         }
         Body::Hull(h) => {
             if matches!(t.mobility, Mobility::Foot { .. }) {
@@ -1661,6 +1675,14 @@ fn check(
             if t.appearance.is_none() {
                 return rule("a hull needs an appearance");
             }
+        }
+    }
+    if let Some(carriage) = t.capabilities.carriage {
+        if t.hull().is_none() {
+            return rule("carriage requires a hull");
+        }
+        if !matches!(carriage.seats, 3 | 8 | 16) {
+            return rule("carriage seats must be 3, 8 or 16");
         }
     }
     if let Some(on) = &t.sensors.on {

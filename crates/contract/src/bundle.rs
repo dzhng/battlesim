@@ -5,14 +5,13 @@
 //! download/upload boundary: map geometry and rules remain owned by their
 //! existing contract types, while this module owns package identity, player
 //! admission and embedded user bytes.
-use crate::catalog::Faction;
 use crate::identity::{bytes_hash, is_sha256, json_hash};
-use crate::ids::{Side, UnitId};
+use crate::ids::Side;
 use crate::scenario::ScenarioDefinition;
 use crate::script::CompiledScript;
 use serde::{Deserialize, Serialize};
 
-pub const FORMAT_VERSION: &str = "scenario-bundle-1";
+pub const FORMAT_VERSION: &str = "scenario-bundle-2";
 pub const MAX_BUNDLE_BYTES: usize = 32 * 1024 * 1024;
 pub const MAX_ASSET_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_SCRIPT_SOURCE_BYTES: usize = 256 * 1024;
@@ -24,29 +23,7 @@ pub enum BundleMode {
     Economy,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ControllerKind {
-    Human,
-    ActiveAi,
-    PassiveAi,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PlayerSlot {
-    pub id: String,
-    pub side: Side,
-    /// A human-requested slot may be left empty or taken over by AI at play
-    /// time. AI-only slots never become human-controlled.
-    #[serde(default)]
-    pub human_capable: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub faction: Option<Faction>,
-    pub controller: ControllerKind,
-    #[serde(default)]
-    pub units: Vec<UnitId>,
-}
+pub use crate::players::ControllerKind;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -86,7 +63,6 @@ pub struct ScenarioBundle {
     pub map: BundleMapIdentity,
     pub rules_hash: String,
     pub scenario: ScenarioDefinition,
-    pub slots: Vec<PlayerSlot>,
     pub mode: BundleMode,
     pub victory: VictoryDefinition,
     #[serde(default)]
@@ -153,13 +129,6 @@ impl ScenarioBundle {
     pub fn scenario_json(&self) -> Result<String, BundleError> {
         self.validate()?;
         let mut scenario = self.scenario.clone();
-        for slot in &self.slots {
-            for unit in &slot.units {
-                if let Some(setup) = scenario.units.get_mut(unit.0 as usize) {
-                    setup.owner = Some(slot.id.clone());
-                }
-            }
-        }
         scenario.authored_scripts = self.authored_scripts.clone();
         scenario.victory = Some(self.victory.source.clone());
         serde_json::to_string(&scenario).map_err(|error| {
@@ -235,8 +204,8 @@ impl ScenarioBundle {
         Ok(bundle)
     }
 
-    /// Resolve a requested slot controller for one play session. At most one
-    /// human id is selected; an unselected human-capable slot is passive AI.
+    /// Resolve a requested player controller for one play session. At most one
+    /// human id is selected; an unselected human-capable player is passive AI.
     pub fn effective_controllers(
         &self,
         active_human: Option<&str>,
@@ -244,33 +213,35 @@ impl ScenarioBundle {
         self.validate()?;
         if let Some(id) = active_human {
             if !self
-                .slots
+                .scenario
+                .players
                 .iter()
-                .any(|slot| slot.id == id && slot.human_capable)
+                .any(|player| player.id == id && player.human_capable)
             {
                 return Err(BundleError::Invalid(vec![diagnostic(
                     "controller_topology",
-                    "$.slots",
-                    "active human must name a human-capable slot",
+                    "$.scenario.players",
+                    "active human must name a human-capable player",
                 )]));
             }
         }
         Ok(self
-            .slots
+            .scenario
+            .players
             .iter()
-            .map(|slot| {
-                let controller = match slot.controller {
+            .map(|player| {
+                let controller = match player.controller {
                     ControllerKind::ActiveAi => ControllerKind::ActiveAi,
                     ControllerKind::PassiveAi => ControllerKind::PassiveAi,
                     ControllerKind::Human => {
-                        if active_human == Some(slot.id.as_str()) {
+                        if active_human == Some(player.id.as_str()) {
                             ControllerKind::Human
                         } else {
                             ControllerKind::PassiveAi
                         }
                     }
                 };
-                (slot.id.clone(), controller)
+                (player.id.clone(), controller)
             })
             .collect())
     }
@@ -328,11 +299,64 @@ impl ScenarioBundle {
                 "victory belongs in the bundle envelope",
             ));
         }
-        validate_sorted_unique(
-            &self.slots.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
-            "$.slots",
-            &mut errors,
-        );
+        if let Some(setup) = &self.scenario.skirmish {
+            if let Err(error) = crate::players::validate_players(&self.scenario.players) {
+                errors.push(diagnostic("invalid_players", "$.scenario.players", error));
+            }
+            if let Err(error) = crate::players::validate_players_per_side(
+                &self.scenario.players,
+                setup.rules.max_players_per_side as usize,
+            ) {
+                errors.push(diagnostic("invalid_players", "$.scenario.players", error));
+            }
+            if let Err(error) =
+                crate::players::validate_entry_counts(&self.scenario.players, &setup.sites.entries)
+            {
+                errors.push(diagnostic(
+                    "invalid_entries",
+                    "$.scenario.skirmish.sites.entries",
+                    error,
+                ));
+            }
+        } else {
+            let mut ids = std::collections::BTreeSet::new();
+            for player in &self.scenario.players {
+                if player.id.trim().is_empty() || !ids.insert(player.id.as_str()) {
+                    errors.push(diagnostic(
+                        "invalid_players",
+                        "$.scenario.players",
+                        "player ids must be non-empty and unique",
+                    ));
+                }
+                if player.controller == ControllerKind::Human && !player.human_capable {
+                    errors.push(diagnostic(
+                        "invalid_players",
+                        "$.scenario.players",
+                        "human player must be human_capable",
+                    ));
+                }
+                match (player.side, player.faction) {
+                    (Side::Neutral, Some(_)) => errors.push(diagnostic(
+                        "invalid_players",
+                        "$.scenario.players",
+                        "neutral players cannot carry a faction",
+                    )),
+                    (Side::Blue | Side::Red, None) => errors.push(diagnostic(
+                        "invalid_players",
+                        "$.scenario.players",
+                        "combatant players must carry a faction",
+                    )),
+                    _ => {}
+                }
+                if player.side == Side::Neutral && player.human_capable {
+                    errors.push(diagnostic(
+                        "invalid_players",
+                        "$.scenario.players",
+                        "neutral players cannot be human-capable",
+                    ));
+                }
+            }
+        }
         validate_sorted_unique(
             &self
                 .authored_scripts
@@ -351,62 +375,32 @@ impl ScenarioBundle {
             "$.assets",
             &mut errors,
         );
-        let mut assigned = std::collections::BTreeSet::new();
-        for (i, slot) in self.slots.iter().enumerate() {
-            if slot.id.trim().is_empty() {
-                errors.push(diagnostic(
-                    "invalid_slot",
-                    format!("$.slots[{i}].id"),
-                    "slot id is empty",
-                ));
-            }
-            if slot.controller == ControllerKind::Human && !slot.human_capable {
-                errors.push(diagnostic(
-                    "invalid_controller",
-                    format!("$.slots[{i}].human_capable"),
-                    "a human controller must be marked human_capable",
-                ));
-            }
-            if slot.side == Side::Neutral && slot.controller != ControllerKind::PassiveAi {
-                errors.push(diagnostic(
-                    "invalid_controller",
-                    format!("$.slots[{i}].controller"),
-                    "neutral slots must use passive_ai",
-                ));
-            }
-            if slot.side == Side::Neutral && slot.human_capable {
-                errors.push(diagnostic(
-                    "invalid_controller",
-                    format!("$.slots[{i}].human_capable"),
-                    "neutral slots cannot be human-capable",
-                ));
-            }
-            for unit in &slot.units {
-                if unit.0 as usize >= self.scenario.units.len() {
-                    errors.push(diagnostic(
+        let players = self
+            .scenario
+            .players
+            .iter()
+            .map(|p| p.id.as_str())
+            .collect::<std::collections::BTreeSet<_>>();
+        for (i, unit) in self.scenario.units.iter().enumerate() {
+            if let Some(owner) = &unit.owner {
+                match self.scenario.players.iter().find(|p| p.id == *owner) {
+                    None => errors.push(diagnostic(
                         "invalid_unit_owner",
-                        format!("$.slots[{i}].units"),
-                        format!("unit {} is outside scenario.units", unit.0),
-                    ));
-                } else if !assigned.insert(*unit) {
-                    errors.push(diagnostic(
-                        "duplicate_unit_owner",
-                        format!("$.slots[{i}].units"),
-                        format!("unit {} is assigned more than once", unit.0),
-                    ));
-                } else if self.scenario.units[unit.0 as usize].side != slot.side {
-                    errors.push(diagnostic(
+                        format!("$.scenario.units[{i}].owner"),
+                        format!("unknown player {owner}"),
+                    )),
+                    Some(player) if player.side != unit.side => errors.push(diagnostic(
                         "side_mismatch",
-                        format!("$.slots[{i}].units"),
-                        format!("unit {} belongs to a different side", unit.0),
-                    ));
+                        format!("$.scenario.units[{i}].owner"),
+                        "unit owner must share its side",
+                    )),
+                    Some(_) => {}
                 }
-            }
-            if slot.units.windows(2).any(|pair| pair[0] >= pair[1]) {
+            } else if !players.is_empty() {
                 errors.push(diagnostic(
-                    "non_canonical_order",
-                    format!("$.slots[{i}].units"),
-                    "unit ids must be strictly sorted and unique",
+                    "unowned_unit",
+                    format!("$.scenario.units[{i}].owner"),
+                    "every scenario unit must name a player",
                 ));
             }
         }
@@ -439,15 +433,6 @@ impl ScenarioBundle {
                 "$.mode",
                 "economy bundles must carry binary skirmish setup and sandbox bundles must not",
             ));
-        }
-        for (i, _unit) in self.scenario.units.iter().enumerate() {
-            if !assigned.contains(&UnitId(i as u32)) {
-                errors.push(diagnostic(
-                    "unowned_unit",
-                    format!("$.scenario.units[{i}"),
-                    "every scenario unit must belong to exactly one player slot",
-                ));
-            }
         }
         for (i, script) in self.authored_scripts.iter().enumerate() {
             if script.id.trim().is_empty() {
@@ -482,17 +467,22 @@ impl ScenarioBundle {
                     "neutral scripts may observe but cannot author a controller",
                 ));
             }
-            if let Some(slot) = &script.slot {
-                match self.slots.iter().find(|candidate| candidate.id == *slot) {
+            if let Some(player) = &script.player {
+                match self
+                    .scenario
+                    .players
+                    .iter()
+                    .find(|candidate| candidate.id == *player)
+                {
                     None => errors.push(diagnostic(
-                        "invalid_script_slot",
-                        format!("$.authored_scripts[{i}].slot"),
-                        format!("script names unknown player slot {slot}"),
+                        "invalid_script_player",
+                        format!("$.authored_scripts[{i}].player"),
+                        format!("script names unknown player {player}"),
                     )),
                     Some(candidate) if candidate.side != script.side => errors.push(diagnostic(
                         "script_side_mismatch",
                         format!("$.authored_scripts[{i}].side"),
-                        "script side must match its player slot",
+                        "script side must match its player",
                     )),
                     Some(_) => {}
                 }
@@ -606,7 +596,7 @@ fn validate_sorted_unique(values: &[&str], location: &str, errors: &mut Vec<Bund
 /// select and assign units while the draft changes. `UnitSetup` deliberately
 /// does not carry that editor concern, so authoring strips the field before
 /// deserializing the strict portable scenario. When present, ids must already
-/// be the vector indexes; otherwise slot ownership would silently point at a
+/// be the vector indexes; otherwise player ownership would silently point at a
 /// different unit after the field is removed.
 fn normalize_authoring_units(value: &mut serde_json::Value) -> Result<(), BundleError> {
     let Some(units) = value

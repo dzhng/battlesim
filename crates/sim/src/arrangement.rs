@@ -7,9 +7,11 @@
 //! caller names (a side's known props for orders, the true world for
 //! placements), and reachable on foot in a straight line from where the
 //! soldier sets out, so no spot lies behind a wall from its squad.
+use contract::ids::UnitId;
 use contract::scenario::InfantryMovementRules;
 
 use crate::math::{v2, V2};
+use crate::units::Unit;
 use crate::world::{Prop, WorldGeometry};
 use contract::random::Rng;
 
@@ -17,6 +19,8 @@ use contract::random::Rng;
 const DRAWS: usize = 24;
 /// Rings of the nearest-free search are this far apart.
 const RING_STEP_M: f64 = 0.5;
+/// Minimum separation between soldiers placed by a forced exit.
+pub const ESCAPE_SPACING_M: f64 = 1.0;
 
 /// The random draws for one arrangement: fixed by the battle's seed, the
 /// squad and `draw` (which arrangement), so a replay draws the same spots.
@@ -154,6 +158,55 @@ pub fn nearest_free(from: V2, radius: f64, fits: impl Fn(V2) -> bool) -> Option<
         }
     }
     None
+}
+
+/// What takes up ground where soldiers are put out or a wreck rolls: the
+/// hull of every vehicle on the ground and every soldier on the field, but
+/// `except`'s. Soldiers riding a carrier are off the field and take up none.
+pub fn ground_taken(units: &[Unit], except: UnitId) -> (Vec<crate::math::Obb2>, Vec<V2>) {
+    let others = || units.iter().filter(|u| u.id != except && u.on_field());
+    let hulls = others().filter_map(Unit::ground_footprint).collect();
+    let soldiers = others()
+        .flat_map(|u| u.member_positions().map(|p| p.xy()))
+        .collect();
+    (hulls, soldiers)
+}
+
+/// The nearest legal standing spot for a forced exit. Unlike ordinary
+/// formation placement this sees the authoritative occupancy: every prop,
+/// live ground hull and living soldier keeps its clearance, and the soldier
+/// must be able to reach the spot without crossing an unignored prop. The
+/// returned height is always the walkable surface, including bridge decks.
+pub fn forced_exit_spot(
+    world: &WorldGeometry,
+    from: V2,
+    search_m: f64,
+    radius: f64,
+    hulls: &[crate::math::Obb2],
+    soldiers: &[V2],
+    ignored_props: &[crate::world::PropId],
+) -> Option<crate::math::V3> {
+    nearest_free(from, search_m, |p| {
+        let reachable_solid = |prop: &Prop| !ignored_props.contains(&prop.id);
+        world.traversable_at(p.x, p.y)
+            && world
+                .surface_at(p.x, p.y)
+                .is_some_and(|surface| surface.traversable)
+            && !world
+                .props_near(p, radius)
+                .iter()
+                .any(|prop| prop.footprint().contains(p, radius))
+            && !hulls.iter().any(|hull| hull.distance(p) <= radius)
+            && !soldiers
+                .iter()
+                .any(|soldier| (*soldier - p).length() < ESCAPE_SPACING_M)
+            && reachable(world, from, p, radius, &reachable_solid)
+    })
+    .and_then(|p| {
+        world
+            .surface_at(p.x, p.y)
+            .map(|surface| p.with_z(surface.z))
+    })
 }
 
 /// A squad's spots around `centre` by the rules' spread and spacing; where

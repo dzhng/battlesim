@@ -26,8 +26,9 @@ use super::{
     COPY_FIELDS, CORPSE_FIELDS, CRASH_FIELDS, DELIVERY_FIELDS, FALLEN_BODY_FIELDS, GROUND_FIELDS,
     GROUP_ENCODINGS, GROUP_LAYOUTS, GUIDED_FIELDS, HEADER, HEARD_WORD_BITS, IDENTIFIED_FIELDS,
     KNOWN_PROP_FIELDS, LEAN_FIELDS, LIMB_BITS, MEMBER_ID_FIELDS, MEMBER_ORDER_FIELDS, MOUNT_FIELDS,
-    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS, RANGE_FIELDS,
-    REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS, SHOUT_FIELDS,
+    OBJECTIVE_FIELDS, OWN_FIELDS, PENDING_FIELDS, PLAYER_FIELDS, POSE_FIELDS, PROJECTILE_FIELDS,
+    QUEUE_FIELDS, RANGE_FIELDS, REFUSAL_FIELDS, REPORT_EVENT_FIELDS, REPORT_TOTAL_FIELDS,
+    SHOUT_FIELDS,
 };
 
 pub type Point2 = [f64; 2];
@@ -48,18 +49,18 @@ macro_rules! view {
 view!(Observation { tick: f64, own: Vec<OwnUnit>, identified: Vec<Identified>, contacts: Vec<Contact>,
     audible: Vec<SoundCue>, #[serde(skip)] known_props: Shared<KnownProp>, projectiles: Vec<Projectile>,
     blasts: Vec<Blast>, air_transits: Vec<AirTransit>, #[serde(skip)] corpses: Shared<Corpse>, #[serde(skip)] fallen_bodies: Shared<FallenBody>,
-    crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
+    refusals: Vec<Refusal>, crashes: Vec<Crash>, shouts: Vec<Shout>, guided: Vec<Guided>, encounter: Option<Encounter>, skirmish: Option<Skirmish>,
     fog: Arc<Fog>, ground_patch: GroundPatch });
-view!(OwnUnit { id: f64, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, policy: Option<Name>,
+view!(OwnUnit { id: f64, #[serde(skip_serializing_if = "Option::is_none")] owner: Option<f64>, kind: Name, position: Point3, yaw: f64, goal: Option<Point2>, goal_unloads: bool, policy: Option<Name>,
     direction: Option<Name>, reversing: bool, withdrawing: bool, protection: Option<Protection>, state: Name,
     fuel_s: Option<f64>, afterburner: bool, in_dogfight: bool,
     flares: Option<Protection>,
-    blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
+    blocker: Option<f64>, route: Vec<Point2>, queue: Vec<Point2>, queue_unloads: Vec<bool>, members: Vec<Point3>, member_ids: Vec<Option<f64>>,
     member_slots: Vec<f64>, member_active_mounts: Vec<Option<f64>>, member_orders: Vec<MemberOrder>,
     member_leans: Vec<Option<MemberLean>>, area: Option<SquadArea>, final_facing: f64, sees: Vec<f64>,
     engagement: Name, mounts: Vec<Mount>, weapon_poses: Vec<WeaponPose>, hp: f64, smoking: bool,
     member_hp: Vec<f64>, suppression: Name, concealed: bool, deployment: Option<Deployment>,
-    garrison: Option<Garrison>, stock: Option<f64>, service: Name, sight: Sight });
+    hold: Option<Hold>, stock: Option<f64>, service: Name, sight: Sight });
 view!(Protection { charges: f64, cooldown: Option<f64> });
 view!(MemberOrder { spot: Point2, cover_now: Option<Name>, cover_there: Option<Name> });
 view!(MemberLean {
@@ -76,7 +77,27 @@ view!(SightShape {
     side: f64,
     rear: f64
 });
-view!(Garrison { building: Option<f64>, phase: Name, progress: f64, center: Point2, half: Point2 });
+view!(Hold {
+    host: Host,
+    phase: Name,
+    progress: f64
+});
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Host {
+    Building {
+        id: f64,
+        center: Point2,
+        half: Point2,
+    },
+    Carrier {
+        id: f64,
+    },
+}
+view!(Refusal {
+    unit: f64,
+    reason: Name
+});
 view!(Deployment {
     progress: f64,
     target: Name
@@ -147,12 +168,13 @@ view!(Encounter {
     held_s: f64,
     result: Name
 });
-view!(Skirmish { phase: Option<&'static str>, ready: [bool; 2], preparation_remaining_s: f64, credits: f64,
-    scores: [f64; 2], result: Option<&'static str>, objectives: Vec<Objective>, occupied_slots: f64,
-    max_units: f64, pending: Vec<PendingPurchase>, report: Option<Report> });
+view!(Skirmish { phase: Option<&'static str>, players: Vec<Player>, preparation_remaining_s: f64,
+    scores: [f64; 2], result: Option<&'static str>, objectives: Vec<Objective>, report: Option<Report> });
+view!(Player { index: f64, id: Name, controller: Name, ready: bool, credits: f64, unit_count: f64, cap: f64, pending: Vec<PendingPurchase> });
 view!(Objective { id: Name, center: Point2, radius_m: f64, owner: Option<&'static str>,
     capturing: Option<&'static str>, capture_progress: f64, contested: bool });
 view!(PendingPurchase {
+    owner: f64,
     id: f64,
     kind: Name,
     destination: Point2,
@@ -168,11 +190,11 @@ view!(ReportTotals {
     killed: f64,
     refunded: f64
 });
-view!(ReportEvent { kind: &'static str, tick: Option<f64>, side: Name, unit_id: Option<f64>, unit_kind: Name,
+view!(ReportEvent { kind: &'static str, tick: Option<f64>, side: Name, unit_id: Option<f64>, unit_kind: Name, owner: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")] amount: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")] victim_cost: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")] killer: Option<Option<Killer>> });
-view!(Killer { side: Name, unit_id: Option<f64>, unit_kind: Name, cost: f64 });
+view!(Killer { side: Name, unit_id: Option<f64>, unit_kind: Name, owner: Option<f64>, cost: f64 });
 view!(Fog { cell_m: f64, nx: f64, ny: f64, #[serde(skip)] bits: Vec<u32> });
 // The runs, four words a run: tile, `start + len * 256`,
 // `crater + scorch * 256` and `tracks + trampled * 256 + cleared * 65536`.
@@ -732,6 +754,15 @@ impl Reader {
         let skirmish = if f!(h, HEADER, "skirmishPhase") < 0.0 {
             None
         } else {
+            let pending = map(&rows[group("pendingPurchases")], |r| self.pending(r))?;
+            let mut players = map(&rows[group("players")], |r| self.player(r))?;
+            for purchase in pending {
+                if let Some(player) = players.iter_mut().find(|p| p.index == purchase.owner) {
+                    player.pending.push(purchase);
+                } else {
+                    return Err("pending purchase names an unpublished player".into());
+                }
+            }
             let reported =
                 f!(h, HEADER, "reportTotalsCount") > 0.0 || f!(h, HEADER, "reportEventCount") > 0.0;
             Some(Skirmish {
@@ -739,18 +770,11 @@ impl Reader {
                     &["preparation", "active", "finished"],
                     f!(h, HEADER, "skirmishPhase"),
                 ),
-                ready: [
-                    f!(h, HEADER, "readyBlue") != 0.0,
-                    f!(h, HEADER, "readyRed") != 0.0,
-                ],
+                players,
                 preparation_remaining_s: f!(h, HEADER, "preparationRemainingS"),
-                credits: f!(h, HEADER, "credits"),
                 scores: [f!(h, HEADER, "scoreBlue"), f!(h, HEADER, "scoreRed")],
                 result: optional_fixed(&["blue", "red", "draw"], f!(h, HEADER, "matchResult")),
                 objectives: map(&rows[group("objectives")], |r| self.objective(r))?,
-                occupied_slots: f!(h, HEADER, "occupiedSlots"),
-                max_units: f!(h, HEADER, "maxUnits"),
-                pending: map(&rows[group("pendingPurchases")], |r| self.pending(r))?,
                 report: if reported {
                     Some(Report {
                         totals: map(&rows[group("reportTotals")], |r| Ok(totals(r)))?,
@@ -768,6 +792,7 @@ impl Reader {
             identified: map(&rows[group("identified")], |r| self.identified(r))?,
             contacts: map(&rows[group("contacts")], |r| self.contact(r))?,
             audible: map(&rows[group("audible")], |r| self.cue(r))?,
+            refusals: map(&rows[group("refusals")], |r| self.refusal(r))?,
             known_props: match statics {
                 Some((_, kept_props, _)) if kept(props) => kept_props.clone(),
                 _ => Arc::new(map(&rows[props], |r| self.known_prop(r))?),
@@ -861,10 +886,12 @@ impl Reader {
                 cooldown: present(v!(f, "flareCooldown")),
             }),
             id: v!(f, "id"),
+            owner: present(v!(f, "owner")),
             kind: self.name("unitKinds", v!(f, "kind"))?,
             position: [v!(f, "x"), v!(f, "y"), v!(f, "z")],
             yaw: v!(f, "yaw"),
             goal: (!v!(f, "goalX").is_nan()).then(|| [v!(f, "goalX"), v!(f, "goalY")]),
+            goal_unloads: v!(f, "goalUnloads") == 1.0,
             policy: self.optional("policies", v!(f, "policy"))?,
             direction: self.optional("directions", v!(f, "direction"))?,
             reversing: v!(f, "reversing") == 1.0,
@@ -875,7 +902,12 @@ impl Reader {
             state: self.name("moveStates", v!(f, "state"))?,
             blocker: present(v!(f, "blocker")),
             route: points(route),
-            queue: points(queue),
+            queue: each::<{ QUEUE_FIELDS.len() }>(queue)
+                .map(|&[x, y, _]| [x as f64, y as f64])
+                .collect(),
+            queue_unloads: each::<{ QUEUE_FIELDS.len() }>(queue)
+                .map(|&[_, _, unloads]| unloads == 1.0)
+                .collect(),
             members: points(members),
             member_ids: member_column(member_ids, |p| limbs(p[0] as f64, p[1] as f64)),
             member_slots: member_column(member_ids, |p| p[2] as f64),
@@ -904,15 +936,27 @@ impl Reader {
                     progress: v!(f, "deployProgress"),
                     target,
                 }),
-            garrison: self
-                .optional("garrisonPhases", v!(f, "garrisonPhase"))?
-                .map(|phase| Garrison {
-                    building: limbs(v!(f, "garrisonBuildingLo"), v!(f, "garrisonBuildingHi")),
-                    phase,
-                    progress: v!(f, "garrisonProgress"),
-                    center: [v!(f, "garrisonX"), v!(f, "garrisonY")],
-                    half: [v!(f, "garrisonHalfX"), v!(f, "garrisonHalfY")],
-                }),
+            hold: self
+                .optional("holdPhases", v!(f, "holdPhase"))?
+                .map(|phase| -> Result<Hold> {
+                    let id = limbs(v!(f, "hostLo"), v!(f, "hostHi")).unwrap_or(0.0);
+                    let kind = self.name("hostKinds", v!(f, "hostKind"))?;
+                    let host = if &*kind == "building" {
+                        Host::Building {
+                            id,
+                            center: [v!(f, "hostX"), v!(f, "hostY")],
+                            half: [v!(f, "hostHalfX"), v!(f, "hostHalfY")],
+                        }
+                    } else {
+                        Host::Carrier { id }
+                    };
+                    Ok(Hold {
+                        host,
+                        phase,
+                        progress: v!(f, "holdProgress"),
+                    })
+                })
+                .transpose()?,
             stock: present(v!(f, "stock")),
             service: self.name("serviceStatuses", v!(f, "service"))?,
             sight: Sight {
@@ -925,6 +969,14 @@ impl Reader {
                 },
                 range: v!(f, "sightRange"),
             },
+        })
+    }
+
+    fn refusal(&self, r: &Row) -> Result<Refusal> {
+        const FIELDS: &[&str] = &REFUSAL_FIELDS;
+        Ok(Refusal {
+            unit: limbs(v!(r.fields, "unitLo"), v!(r.fields, "unitHi")).unwrap_or(0.0),
+            reason: self.name("orderErrors", v!(r.fields, "reason"))?,
         })
     }
 
@@ -1136,12 +1188,35 @@ impl Reader {
         const FIELDS: &[&str] = &PENDING_FIELDS;
         let f = r.fields;
         Ok(PendingPurchase {
+            owner: v!(f, "owner"),
             id: v!(f, "idLo") + v!(f, "idHi") * LIMB,
             kind: self.name("unitKinds", v!(f, "kind"))?,
             destination: [v!(f, "x"), v!(f, "y")],
             confirmed_tick: v!(f, "confirmedLo") + v!(f, "confirmedHi") * LIMB,
             blocked: v!(f, "blocked") != 0.0,
             arrival_tick: v!(f, "arrivalLo") + v!(f, "arrivalHi") * LIMB,
+        })
+    }
+
+    fn player(&self, r: &Row) -> Result<Player> {
+        const FIELDS: &[&str] = &PLAYER_FIELDS;
+        let f = r.fields;
+        let id_index = v!(f, "id");
+        let id = self
+            .tables
+            .get("playerIds")
+            .and_then(|ids| ids.get(id_index as usize))
+            .cloned()
+            .ok_or_else(|| format!("player id index {id_index} is outside its table"))?;
+        Ok(Player {
+            index: v!(f, "index"),
+            id,
+            controller: self.name("controllers", v!(f, "controller"))?,
+            ready: v!(f, "ready") != 0.0,
+            credits: v!(f, "credits"),
+            unit_count: v!(f, "unitCount"),
+            cap: v!(f, "cap"),
+            pending: Vec::new(),
         })
     }
 
@@ -1155,6 +1230,7 @@ impl Reader {
                 side: self.name("sides", v!(f, "otherSide"))?,
                 unit_id: limbs(v!(f, "otherIdLo"), v!(f, "otherIdHi")),
                 unit_kind: self.name("unitKinds", v!(f, "otherKind"))?,
+                owner: present(v!(f, "otherOwner")),
                 cost: v!(f, "otherAmount"),
             })
         };
@@ -1165,6 +1241,7 @@ impl Reader {
             side: self.name("sides", v!(f, "side"))?,
             unit_id: limbs(v!(f, "unitIdLo"), v!(f, "unitIdHi")),
             unit_kind: self.name("unitKinds", v!(f, "unitKind"))?,
+            owner: present(v!(f, "owner")),
             amount: (!kill).then(|| v!(f, "amount")),
             victim_cost: kill.then(|| v!(f, "amount")),
             killer: kill.then_some(killer),

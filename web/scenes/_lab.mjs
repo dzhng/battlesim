@@ -18,6 +18,9 @@ export const hideHud = (page) =>
 
 /** The newest decoded observation. */
 export const obs = (page) => lab(page, () => window.__lab.route.observation());
+/** The viewing player's economy row: the side's human, else its first player. */
+export const own = (o) =>
+  o.skirmish.players.find((player) => player.controller === "human") ?? o.skirmish.players[0];
 
 /** Call `method` of the lab route's diagnostics with `args`. */
 export const route = (page, method, ...args) =>

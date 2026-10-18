@@ -18,7 +18,7 @@ The lobby's rules as plain serializable state, with no UI.
   - `reroll`, which changes only the map seed;
   - `toRequest`, `toUrl` and `fromUrl`.
 - **Map inputs.** The model reports which changes alter map inputs: type, size, region, seed and entries per side. Controller and faction changes don't regenerate the map.
-- **Builder.** The scenario builder's `BuilderSlot` (`scenario-builder/model.ts:19`) is deleted. The builder uses this player model (D29).
+- **Builder.** Slice 01 renamed `BuilderSlot` to `BuilderPlayer`, but the builder draft still keeps its own `players` list with per-player `units`, alongside `scenario.players` and `unit.owner`, and `parseBuilderDraft` accepts both shapes. Delete the draft-level list and its `units`. The builder reads `scenario.players` and derives ownership from `unit.owner`, using this lobby player model (D29, D33). Drop the dual-shape parse.
 - **Size labels** are S · M · L · XL, replacing the `small: "XS"` entry in `battleLinks.ts:60` (D17).
 
 ## What the human can run or see

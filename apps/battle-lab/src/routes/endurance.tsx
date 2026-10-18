@@ -15,6 +15,7 @@ import { BattleView } from "../BattleView";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
 import { gameCamera } from "../gameCamera";
+import { playersFor } from "../skirmishSetup";
 
 const CAMERA: Camera3DParams = {
   target: [1500, 1000, 0],
@@ -98,7 +99,7 @@ export default function Endurance() {
             ),
           },
           // The stress scene fields its own forces; the request still names two.
-          factions: ["us", "eastern"],
+          players: playersFor(1, 1),
           battle_seed: o.seed,
         },
         documents: { presets, templates, rules: JSON.stringify(rules) },

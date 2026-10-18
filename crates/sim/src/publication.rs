@@ -24,10 +24,12 @@ use contract::catalog::AltitudeLayer;
 use contract::command::{Engagement, MoveDirection, RoutePolicy, TargetRef};
 use contract::ids::Side;
 use contract::observation::{
-    ActionReason, AirTransitDirection, ContactSource, EncounterResult, GarrisonPhase, Intensity,
-    LeanSide, MemberLean, MoveState, ObservationFrame, Posture, SegmentHit, ServiceStatus,
-    ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SuppressionTier, WeaponPose,
+    ActionReason, AirTransitDirection, ContactSource, EncounterResult, HoldPhase, HostRef,
+    Intensity, LeanSide, MemberLean, MoveState, ObservationFrame, Posture, SegmentHit,
+    ServiceStatus, ShoutSpeaker, ShoutTrigger, SoundBand, SoundCategory, SuppressionTier,
+    WeaponPose,
 };
+use contract::players::ControllerKind;
 use contract::scenario::CoverTier;
 
 use crate::battle::Battle;
@@ -106,10 +108,39 @@ const SUPPRESSION_TIERS: [SuppressionTier; 3] = [
     SuppressionTier::Suppressed,
     SuppressionTier::Pinned,
 ];
-const GARRISON_PHASES: [GarrisonPhase; 3] = [
-    GarrisonPhase::Entering,
-    GarrisonPhase::Inside,
-    GarrisonPhase::Exiting,
+const HOLD_PHASES: [HoldPhase; 3] = [HoldPhase::Entering, HoldPhase::Inside, HoldPhase::Exiting];
+const HOST_KINDS: [&str; 2] = ["building", "carrier"];
+/// All refusal names are reserved in this first layout so later transport
+/// slices can publish their new reasons without another layout migration.
+const ORDER_ERROR_NAMES: [&str; 28] = [
+    "passive_side",
+    "not_skirmish",
+    "match_finished",
+    "unit_unavailable",
+    "wrong_faction",
+    "insufficient_credits",
+    "unit_limit_reached",
+    "out_of_sequence",
+    "no_units",
+    "unknown_unit",
+    "not_own_unit",
+    "wrong_player",
+    "missing_player",
+    "out_of_bounds",
+    "no_valid_destination",
+    "replay_in_progress",
+    "rate_limited",
+    "unknown_target",
+    "air_contact",
+    "destroyed",
+    "not_infantry",
+    "not_a_building",
+    "capacity_full",
+    "one_squad_per_building",
+    "building_occupied",
+    "not_a_carrier",
+    "no_room_to_unload",
+    "aboard",
 ];
 const REASONS: [ActionReason; 16] = [
     ActionReason::Firing,
@@ -168,12 +199,13 @@ const POSE_FIELDS: [&str; 7] = [
 
 /// Header words; the non-map groups' delivery metadata starts here.
 pub const HEADER_WORDS: usize = HEADER.len();
-const HEADER: [&str; 45] = [
+const HEADER: [&str; 42] = [
     "tick",
     "ownCount",
     "identifiedCount",
     "contactCount",
     "audibleCount",
+    "refusalCount",
     "knownPropCount",
     "projectileCount",
     "blastCount",
@@ -199,12 +231,8 @@ const HEADER: [&str; 45] = [
     "groundRunCount",
     "fallenBodyCount",
     "skirmishPhase",
-    "readyBlue",
-    "readyRed",
+    "playersCount",
     "preparationRemainingS",
-    "credits",
-    "occupiedSlots",
-    "maxUnits",
     "pendingCount",
     "reportTotalsCount",
     "reportEventCount",
@@ -225,9 +253,10 @@ const OBJECTIVE_FIELDS: [&str; 8] = [
     "captureProgress",
     "contested",
 ];
-const PENDING_FIELDS: [&str; 10] = [
+const PENDING_FIELDS: [&str; 11] = [
     "idLo",
     "idHi",
+    "owner",
     "kind",
     "x",
     "y",
@@ -257,6 +286,7 @@ const CONTACT_FIELDS: [&str; 16] = [
     "rangeM",
 ];
 const AUDIBLE_FIELDS: [&str; 5] = ["listener", "category", "sector", "band", "moving"];
+const REFUSAL_FIELDS: [&str; 3] = ["unitLo", "unitHi", "reason"];
 const PROJECTILE_FIELDS: [&str; 10] = [
     "pointCount",
     "ricochetCount",
@@ -299,7 +329,7 @@ const SHOUT_FIELDS: [&str; 9] = [
     "intensity",
 ];
 const REPORT_TOTAL_FIELDS: [&str; 4] = ["spawned", "spent", "killed", "refunded"];
-const REPORT_EVENT_FIELDS: [&str; 13] = [
+const REPORT_EVENT_FIELDS: [&str; 15] = [
     "tickLo",
     "tickHi",
     "kind",
@@ -307,12 +337,23 @@ const REPORT_EVENT_FIELDS: [&str; 13] = [
     "unitIdLo",
     "unitIdHi",
     "unitKind",
+    "owner",
     "otherSide",
     "otherIdLo",
     "otherIdHi",
     "otherKind",
+    "otherOwner",
     "amount",
     "otherAmount",
+];
+const PLAYER_FIELDS: [&str; 7] = [
+    "index",
+    "id",
+    "controller",
+    "ready",
+    "credits",
+    "unitCount",
+    "cap",
 ];
 const KNOWN_PROP_FIELDS: [&str; 20] = [
     "kind",
@@ -336,8 +377,9 @@ const KNOWN_PROP_FIELDS: [&str; 20] = [
     "authoredPropHi",
     "wreckOf",
 ];
-const OWN_FIELDS: [&str; 53] = [
+const OWN_FIELDS: [&str; 56] = [
     "id",
+    "owner",
     "kind",
     "x",
     "y",
@@ -361,14 +403,15 @@ const OWN_FIELDS: [&str; 53] = [
     "concealed",
     "deployProgress",
     "deployTarget",
-    "garrisonBuildingLo",
-    "garrisonBuildingHi",
-    "garrisonPhase",
-    "garrisonProgress",
-    "garrisonX",
-    "garrisonY",
-    "garrisonHalfX",
-    "garrisonHalfY",
+    "hostKind",
+    "hostLo",
+    "hostHi",
+    "holdPhase",
+    "holdProgress",
+    "hostX",
+    "hostY",
+    "hostHalfX",
+    "hostHalfY",
     "stock",
     "service",
     "sightForward",
@@ -390,6 +433,7 @@ const OWN_FIELDS: [&str; 53] = [
     "protectionCharges",
     "protectionCooldownProgress",
     "smoking",
+    "goalUnloads",
 ];
 const IDENTIFIED_FIELDS: [&str; 13] = [
     "id",
@@ -408,6 +452,8 @@ const IDENTIFIED_FIELDS: [&str; 13] = [
 ];
 const XY_FIELDS: [&str; 2] = ["x", "y"];
 const XYZ_FIELDS: [&str; 3] = ["x", "y", "z"];
+/// A queued order's destination, and 1 when it lets the passengers out there.
+const QUEUE_FIELDS: [&str; 3] = ["x", "y", "unload"];
 const MEMBER_ID_FIELDS: [&str; 4] = ["idLo", "idHi", "slot", "activeMount"];
 const MEMBER_ORDER_FIELDS: [&str; 4] = ["x", "y", "coverNow", "coverThere"];
 const RICOCHET_FIELDS: [&str; 4] = ["point", "nx", "ny", "nz"];
@@ -465,7 +511,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
         fields: &OWN_FIELDS,
         sections: &[
             section("route", "routeCount", &XY_FIELDS),
-            section("queue", "queueCount", &XY_FIELDS),
+            section("queue", "queueCount", &QUEUE_FIELDS),
             section("members", "memberCount", &XYZ_FIELDS),
             section("memberHp", "memberCount", &["hp"]),
             section("memberIds", "memberCount", &MEMBER_ID_FIELDS),
@@ -490,6 +536,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     },
     rows("contacts", "contactCount", &CONTACT_FIELDS),
     rows("audible", "audibleCount", &AUDIBLE_FIELDS),
+    rows("refusals", "refusalCount", &REFUSAL_FIELDS),
     GroupLayout {
         name: "projectiles",
         count: "projectileCount",
@@ -511,6 +558,7 @@ const GROUP_LAYOUTS: [GroupLayout; GROUPS] = [
     rows("objectives", "objectiveCount", &OBJECTIVE_FIELDS),
     rows("crashes", "crashCount", &CRASH_FIELDS),
     rows("shouts", "shoutCount", &SHOUT_FIELDS),
+    rows("players", "playersCount", &PLAYER_FIELDS),
 ];
 
 /// An integer as its two exact 16-bit limbs.
@@ -603,6 +651,24 @@ pub fn layout_json(battle: &Battle) -> String {
             serde_json::json!({ "name": g.name, "count": g.count, "fields": g.fields, "sections": sections })
         })
         .collect();
+    let mut player_ids = battle
+        .observe(Side::Blue)
+        .skirmish
+        .as_ref()
+        .into_iter()
+        .flat_map(|s| s.players.iter().map(|p| (p.index.0, p.id.clone())))
+        .chain(
+            battle
+                .observe(Side::Red)
+                .skirmish
+                .as_ref()
+                .into_iter()
+                .flat_map(|s| s.players.iter().map(|p| (p.index.0, p.id.clone()))),
+        )
+        .collect::<Vec<_>>();
+    player_ids.sort_by_key(|(index, _)| *index);
+    player_ids.dedup_by_key(|(index, _)| *index);
+    let player_ids: Vec<_> = player_ids.into_iter().map(|(_, id)| id).collect();
     serde_json::json!({
         "header": HEADER.as_slice(),
         "groups": groups,
@@ -643,6 +709,8 @@ pub fn layout_json(battle: &Battle) -> String {
         "roundKinds": round_kinds,
         "hitKinds": names(&SEGMENT_HITS),
         "unitKinds": battle.rules().catalog.ids(),
+        "playerIds": player_ids,
+        "controllers": names(&[ControllerKind::Human, ControllerKind::ActiveAi, ControllerKind::PassiveAi]),
         "moveStates": names(&MOVE_STATES),
         "policies": names(&POLICIES),
         "directions": names(&DIRECTIONS),
@@ -660,7 +728,9 @@ pub fn layout_json(battle: &Battle) -> String {
         "postures": names(&POSTURES),
         "coverTiers": names(&COVER_TIERS),
         "leanSides": names(&LEAN_SIDES),
-        "garrisonPhases": names(&GARRISON_PHASES),
+        "hostKinds": HOST_KINDS,
+        "holdPhases": names(&HOLD_PHASES),
+        "orderErrors": ORDER_ERROR_NAMES,
         "serviceStatuses": names(&SERVICE_STATUSES),
         "suppressionTiers": names(&SUPPRESSION_TIERS),
         "encounterResults": names(&ENCOUNTER_RESULTS),
@@ -680,9 +750,9 @@ pub fn layout_json(battle: &Battle) -> String {
         // NaN while he is tucked in. areaX, areaY and areaM are a squad's
         // anchor and area radius, NaN for a vehicle.
         // deployProgress and deployTarget are -1 for units that never deploy.
-        // Both garrisonBuilding limbs, phase and progress are -1 without a
-        // building; garrisonX, garrisonY (its centre) and garrisonHalfX,
-        // garrisonHalfY (its footprint's half extents) are NaN.
+        // hostKind, both host limbs, holdPhase and holdProgress are -1 without
+        // a hold. hostX, hostY, hostHalfX and hostHalfY carry a building
+        // footprint and are NaN for a carrier or no hold.
         // Known body IDs and associations use exact limbs; absent pairs are (-1,-1).
         // sightForward is the bearing sight looks along at this tick (never
         // interpolated); reach toward bearing b is sightRange * m, with
@@ -948,6 +1018,7 @@ fn pack_record(
         frame.identified.len() as f32,
         frame.contacts.len() as f32,
         frame.audible.len() as f32,
+        frame.refusals.len() as f32,
         frame.known_props.len() as f32,
         frame.projectiles.len() as f32,
         frame.blasts.len() as f32,
@@ -981,25 +1052,14 @@ fn pack_record(
         frame
             .skirmish
             .as_ref()
-            .map_or(0.0, |s| s.ready[0] as u8 as f32),
-        frame
-            .skirmish
-            .as_ref()
-            .map_or(0.0, |s| s.ready[1] as u8 as f32),
+            .map_or(0.0, |s| s.players.len() as f32),
         frame
             .skirmish
             .as_ref()
             .map_or(0.0, |s| s.preparation_remaining_s as f32),
-        frame.skirmish.as_ref().map_or(0.0, |s| s.credits as f32),
-        frame
-            .skirmish
-            .as_ref()
-            .map_or(0.0, |s| s.occupied_slots as f32),
-        frame.skirmish.as_ref().map_or(0.0, |s| s.max_units as f32),
-        frame
-            .skirmish
-            .as_ref()
-            .map_or(0.0, |s| s.pending.len() as f32),
+        frame.skirmish.as_ref().map_or(0.0, |s| {
+            s.players.iter().map(|p| p.pending.len()).sum::<usize>() as f32
+        }),
         frame.skirmish.as_ref().map_or(0.0, |s| {
             s.report.as_ref().map_or(0, |r| r.totals.len()) as f32
         }),
@@ -1024,10 +1084,23 @@ fn pack_record(
         frame.shouts.len() as f32,
     ]);
     for u in &frame.own {
-        let [garrison_lo, garrison_hi] = limbs_or_absent(u.garrison.map(|g| g.building));
+        let (host_kind, host_id, host_center, host_half) = match u.hold.map(|h| h.host) {
+            Some(HostRef::Building { id, center, half }) => {
+                (tag(&HOST_KINDS, &"building"), Some(id), center, half)
+            }
+            Some(HostRef::Carrier { id }) => (
+                tag(&HOST_KINDS, &"carrier"),
+                Some(id),
+                [f64::NAN; 2],
+                [f64::NAN; 2],
+            ),
+            None => (-1.0, None, [f64::NAN; 2], [f64::NAN; 2]),
+        };
+        let [host_lo, host_hi] = limbs_or_absent(host_id);
         let [gx, gy] = u.goal.map_or([f32::NAN; 2], |g| [g[0] as f32, g[1] as f32]);
         out.extend([
             u.id.0 as f32,
+            u.owner.map_or(-1.0, |p| f32::from(p.0)),
             u.kind.0 as f32,
             u.position[0] as f32,
             u.position[1] as f32,
@@ -1051,14 +1124,15 @@ fn pack_record(
             u.concealed as u8 as f32,
             u.deployment.map_or(-1.0, |d| d.progress as f32),
             u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
-            garrison_lo,
-            garrison_hi,
-            u.garrison.map_or(-1.0, |g| tag(&GARRISON_PHASES, &g.phase)),
-            u.garrison.map_or(-1.0, |g| g.progress as f32),
-            u.garrison.map_or(f32::NAN, |g| g.center[0] as f32),
-            u.garrison.map_or(f32::NAN, |g| g.center[1] as f32),
-            u.garrison.map_or(f32::NAN, |g| g.half[0] as f32),
-            u.garrison.map_or(f32::NAN, |g| g.half[1] as f32),
+            host_kind,
+            host_lo,
+            host_hi,
+            u.hold.map_or(-1.0, |h| tag(&HOLD_PHASES, &h.phase)),
+            u.hold.map_or(-1.0, |h| h.progress as f32),
+            host_center[0] as f32,
+            host_center[1] as f32,
+            host_half[0] as f32,
+            host_half[1] as f32,
             u.stock.map_or(-1.0, |n| n as f32),
             tag(&SERVICE_STATUSES, &u.service),
             u.sight.forward as f32,
@@ -1082,11 +1156,17 @@ fn pack_record(
                 .and_then(|p| p.cooldown)
                 .map_or(-1.0, |p| p as f32),
             u.smoking as u8 as f32,
+            u.goal_unloads as u8 as f32,
         ]);
     }
     for u in &frame.own {
         out.extend(u.route.iter().flat_map(|p| [p[0] as f32, p[1] as f32]));
-        out.extend(u.queue.iter().flat_map(|p| [p[0] as f32, p[1] as f32]));
+        out.extend(
+            u.queue
+                .iter()
+                .zip(&u.queue_unloads)
+                .flat_map(|(p, &unloads)| [p[0] as f32, p[1] as f32, unloads as u8 as f32]),
+        );
         out.extend(
             u.members
                 .iter()
@@ -1216,6 +1296,20 @@ fn pack_record(
             a.sector as f32,
             tag(&SOUND_BANDS, &a.band),
             a.moving as u8 as f32,
+        ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    for refusal in &frame.refusals {
+        let [lo, hi] = limbs(refusal.unit.0);
+        out.extend([
+            lo,
+            hi,
+            ORDER_ERROR_NAMES
+                .iter()
+                .position(|name| *name == refusal.reason.reason_name())
+                .expect("every order error has a publication name") as f32,
         ]);
     }
     if let Some(ends) = ends.as_mut() {
@@ -1364,39 +1458,42 @@ fn pack_record(
         ends.push(out.len());
     }
     if let Some(skirmish) = &frame.skirmish {
-        for p in &skirmish.pending {
-            let [lo, hi] = limbs(p.id.0);
-            let [tick_lo, tick_hi] = limbs(
-                p.confirmed_tick
-                    .try_into()
-                    .map_err(|_| "purchase tick exceeds publication range")?,
-            );
-            // An aircraft's arrival tick, 0 for a purchase that doesn't wait.
-            let [arrival_lo, arrival_hi] = limbs(
-                p.arrival_tick
-                    .unwrap_or(0)
-                    .try_into()
-                    .map_err(|_| "arrival tick exceeds publication range")?,
-            );
-            out.extend([
-                lo,
-                hi,
-                p.kind.0 as f32,
-                p.destination[0] as f32,
-                p.destination[1] as f32,
-                tick_lo,
-                tick_hi,
-                p.blocked as u8 as f32,
-                arrival_lo,
-                arrival_hi,
-            ]);
+        for player in &skirmish.players {
+            for p in &player.pending {
+                let [lo, hi] = limbs(p.id.0);
+                let [tick_lo, tick_hi] = limbs(
+                    p.confirmed_tick
+                        .try_into()
+                        .map_err(|_| "purchase tick exceeds publication range")?,
+                );
+                // An aircraft's arrival tick, 0 for a purchase that doesn't wait.
+                let [arrival_lo, arrival_hi] = limbs(
+                    p.arrival_tick
+                        .unwrap_or(0)
+                        .try_into()
+                        .map_err(|_| "arrival tick exceeds publication range")?,
+                );
+                out.extend([
+                    lo,
+                    hi,
+                    f32::from(player.index.0),
+                    p.kind.0 as f32,
+                    p.destination[0] as f32,
+                    p.destination[1] as f32,
+                    tick_lo,
+                    tick_hi,
+                    p.blocked as u8 as f32,
+                    arrival_lo,
+                    arrival_hi,
+                ]);
+            }
         }
     }
     if let Some(ends) = ends.as_mut() {
         ends.push(out.len());
     }
     if let Some(report) = frame.skirmish.as_ref().and_then(|s| s.report.as_ref()) {
-        for totals in report.totals {
+        for totals in &report.totals {
             out.extend([
                 totals.spawned as f32,
                 totals.spent as f32,
@@ -1438,10 +1535,17 @@ fn pack_record(
                     .map_err(|_| "report tick exceeds publication range")?,
             );
             let [id_lo, id_hi] = limbs(unit.id.0);
-            let (other_side, other_id_lo, other_id_hi, other_kind) =
-                other.map_or((-1.0, -1.0, -1.0, -1.0), |u| {
+            let owner = unit.owner.map_or(-1.0, |p| f32::from(p.0));
+            let (other_side, other_id_lo, other_id_hi, other_kind, other_owner) =
+                other.map_or((-1.0, -1.0, -1.0, -1.0, -1.0), |u| {
                     let [lo, hi] = limbs(u.id.0);
-                    (u.side.index() as f32, lo, hi, u.kind.0 as f32)
+                    (
+                        u.side.index() as f32,
+                        lo,
+                        hi,
+                        u.kind.0 as f32,
+                        u.owner.map_or(-1.0, |p| f32::from(p.0)),
+                    )
                 });
             out.extend([
                 tick_lo,
@@ -1451,10 +1555,12 @@ fn pack_record(
                 id_lo,
                 id_hi,
                 unit.kind.0 as f32,
+                owner,
                 other_side,
                 other_id_lo,
                 other_id_hi,
                 other_kind,
+                other_owner,
                 amount,
                 other_amount,
             ]);
@@ -1516,6 +1622,33 @@ fn pack_record(
             tag(&INTENSITIES, &s.intensity),
         ]);
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
+    if let Some(skirmish) = &frame.skirmish {
+        for player in &skirmish.players {
+            out.extend([
+                f32::from(player.index.0),
+                // The browser resolves this index through the layout's playerIds table.
+                player.index.0 as f32,
+                tag(
+                    &[
+                        ControllerKind::Human,
+                        ControllerKind::ActiveAi,
+                        ControllerKind::PassiveAi,
+                    ],
+                    &player.controller,
+                ),
+                player.ready as u8 as f32,
+                player.credits as f32,
+                player.unit_count as f32,
+                player.cap as f32,
+            ]);
+        }
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     let word = |i: usize| {
         let value = fog.bits[i];
         if i + 1 == words && !cells.is_multiple_of(32) {
@@ -1524,9 +1657,6 @@ fn pack_record(
             value
         }
     };
-    if let Some(ends) = ends.as_mut() {
-        ends.push(out.len());
-    }
     if patch.full {
         for i in 0..words {
             out.extend(limbs(word(i)));
@@ -1576,8 +1706,14 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
         Ok(())
     };
     add(
-        frame.skirmish.as_ref().map_or(0, |s| s.pending.len()),
+        frame.skirmish.as_ref().map_or(0, |s| {
+            s.players.iter().map(|p| p.pending.len()).sum::<usize>()
+        }),
         PENDING_FIELDS.len(),
+    )?;
+    add(
+        frame.skirmish.as_ref().map_or(0, |s| s.players.len()),
+        PLAYER_FIELDS.len(),
     )?;
     add(
         frame
@@ -1602,7 +1738,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(frame.own.len(), OWN_FIELDS.len())?;
     for u in &frame.own {
         add(u.route.len(), 2)?;
-        add(u.queue.len(), 2)?;
+        add(u.queue.len(), QUEUE_FIELDS.len())?;
         add(u.members.len(), 3)?;
         add(u.member_hp.len(), 1)?;
         add(
@@ -1634,6 +1770,7 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     }
     add(frame.contacts.len(), CONTACT_FIELDS.len())?;
     add(frame.audible.len(), AUDIBLE_FIELDS.len())?;
+    add(frame.refusals.len(), REFUSAL_FIELDS.len())?;
     add(frame.projectiles.len(), PROJECTILE_FIELDS.len())?;
     for p in &frame.projectiles {
         add(p.path.len(), 3)?;
@@ -1967,7 +2104,7 @@ fn write_group_operations(
 const VARIABLE_ANCHOR_WORDS: usize = 3;
 
 /// Non-map groups, in record order.
-pub const GROUPS: usize = 17;
+pub const GROUPS: usize = 19;
 
 /// A non-map group's fixed row width; 0 where variable sections leave no one
 /// width to address complete rows by.

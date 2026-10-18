@@ -1,0 +1,21 @@
+{
+  "scenes": [
+    {
+      "map": "market-town",
+      "encounter": "menu",
+      "seed": 1,
+      "warm_s": 3,
+      "reel": {
+        "fade_s": 0.6,
+        "shots": [
+          {
+            "seconds": 8,
+            "follow": 0,
+            "from": { "target": [-1, 8], "distance": 45, "yaw": -0.126, "pitch": 0.16 },
+            "to": { "target": [-1, 8], "distance": 39.6, "yaw": -0.426, "pitch": 0.147 }
+          }
+        ]
+      }
+    }
+  ]
+}

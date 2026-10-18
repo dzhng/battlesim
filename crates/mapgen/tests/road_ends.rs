@@ -51,6 +51,7 @@ fn plan(map_type: MapType, size: MapSize, seed: u64) -> Result<MapPlan, Vec<Diag
         template_catalog_hash: catalogue.hash().into(),
         map_type,
         size,
+        entries_per_side: 1,
         profile: contract::generation::GenerationProfile::Standard,
         region: None,
         limits: limits::game_limits(),

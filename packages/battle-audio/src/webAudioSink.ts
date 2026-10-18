@@ -4,9 +4,11 @@
 // direction only: the frame owns distance) or, for a hearing cue, a stereo
 // pan; voices sum into their bus, and each also sends (by the frame's wet)
 // into its bus's distance reverb, whose tail joins the bus; the buses sum
-// into the master, and the master through a limiter to the output. The
-// listener is the camera's (`Listener`). Works on an `AudioContext` or an
-// `OfflineAudioContext` alike: every change is scheduled at a sink time.
+// into the master (the ambience through its own duck gain, so a dip under a
+// loud sound never overwrites its level), and the master through a limiter
+// and a hard clip to the output. The listener is the camera's (`Listener`).
+// Works on an `AudioContext` or an `OfflineAudioContext` alike: every change
+// is scheduled at a sink time.
 import { BUSES, type AudioPresentation, type Bus } from "./audioPresentation";
 import type { Listener, VoiceParams, VoiceSink, VoiceSpec } from "./soundFrame";
 import { mulberry32 } from "math/random";
@@ -32,6 +34,8 @@ export class WebAudioSink implements VoiceSink {
   readonly bank: SoundBank;
   readonly master: GainNode;
   readonly buses: Record<Bus, GainNode>;
+  /** 1 − the ambience bus's current duck depth. */
+  readonly ambienceDuck: GainNode;
   /** Each bus's distance-reverb input: voices send here by their wet. */
   private readonly reverbs: Record<Bus, GainNode>;
   private readonly voices = new Map<number, LiveVoice>();
@@ -51,23 +55,30 @@ export class WebAudioSink implements VoiceSink {
   ) {
     this.ownsBank = !bank;
     this.bank = bank ?? new SoundBank(context, catalog);
+    // The presentation's limiter; its attack still lets a transient's first
+    // milliseconds over, so a hard clip catches what remains.
+    const l = presentation.limiter;
     const limiter = new DynamicsCompressorNode(context, {
-      threshold: -6,
-      knee: 3,
-      ratio: 20,
-      attack: 0.002,
-      release: 0.2,
+      threshold: l.threshold_db,
+      knee: 0,
+      ratio: l.ratio,
+      attack: l.attack_s,
+      release: l.release_s,
     });
-    this.graph.push(limiter);
-    limiter.connect(context.destination);
+    const clipper = new WaveShaperNode(context, { curve: hardClipCurve(l.clip_db) });
+    this.graph.push(limiter, clipper);
+    limiter.connect(clipper).connect(context.destination);
     this.master = new GainNode(context, { gain: presentation.buses.master });
     this.graph.push(this.master);
     this.master.connect(limiter);
+    this.ambienceDuck = new GainNode(context, { gain: 1 });
+    this.graph.push(this.ambienceDuck);
+    this.ambienceDuck.connect(this.master);
     this.buses = Object.fromEntries(
       BUSES.map((b) => {
         const g = new GainNode(context, { gain: presentation.buses[b] });
         this.graph.push(g);
-        g.connect(this.master);
+        g.connect(b === "ambience" ? this.ambienceDuck : this.master);
         return [b, g];
       }),
     ) as Record<Bus, GainNode>;
@@ -231,6 +242,13 @@ export class WebAudioSink implements VoiceSink {
     L.upZ.setValueAtTime(1, at);
   }
 
+  duck(depth: number, glide: number, at: number) {
+    const d = Math.min(1, Math.max(0, depth));
+    const gain = this.ambienceDuck.gain;
+    gain.cancelScheduledValues(at);
+    gain.setTargetAtTime(1 - d, at, Math.max(0.001, glide));
+  }
+
   /** Remove every voice, including sources still fading after a stop. */
   clear() {
     for (const voice of this.sounding) {
@@ -259,6 +277,19 @@ export class WebAudioSink implements VoiceSink {
 }
 
 const TAU = Math.PI * 2;
+
+/** A WaveShaper curve that passes the signal unchanged up to `dBFS` and
+ *  holds it there beyond. */
+function hardClipCurve(dBFS: number): Float32Array {
+  const ceiling = Math.pow(10, dBFS / 20);
+  const n = 8192;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (2 * i) / (n - 1) - 1;
+    curve[i] = Math.max(-ceiling, Math.min(ceiling, x));
+  }
+  return curve;
+}
 
 /** An RBJ low-pass run in place over `x`, its cutoff `hz(i)` taken every 32 samples. */
 function lowpass(x: Float32Array, sr: number, hz: (i: number) => number) {

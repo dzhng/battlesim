@@ -57,12 +57,23 @@ export type Order =
     }
   /** Leave the building after a stationary timer. */
   | { kind: "exit_building"; units: number[] }
+  | { kind: "board"; units: number[]; carrier: number; gesture: number }
+  | { kind: "collect"; units: number[]; squads: number[]; gesture: number }
+  /** Drive to `goal` and unload there (Shift queues it), or with `goal`
+   *  null stop and unload in place, replacing the queue. */
+  | {
+      kind: "unload";
+      units: number[];
+      goal: [number, number] | null;
+      gesture: number;
+      route: RoutePolicy;
+    }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
 
 export interface CommandEnvelope {
   side: SideName;
-  /** Player slot issuing the order in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing the order in a player-owned scenario. */
+  player?: string;
   seq: number;
   order: Order;
   queued: boolean;
@@ -120,10 +131,16 @@ export interface OrderError {
   [detail: string]: unknown;
 }
 
+export interface Refusal {
+  unit: number;
+  reason: OrderError;
+}
+
 export interface CommandAck {
   seq: number;
   applied_tick: number;
   error: OrderError | null;
+  refused: Refusal[];
   placement?: { gesture: number; destinations: MoveDestination[] };
   building?: BuildingPlacement;
 }
@@ -145,8 +162,8 @@ export type SimRequest =
       scenario: string;
       seed: number;
       side: SideName;
-      /** Player slot issuing commands for a slot-owned scenario. */
-      slot?: string;
+      /** Player issuing commands for a player-owned scenario. */
+      player?: string;
       /** Replay these accepted commands instead of taking input. */
       replay?: string;
     }

@@ -215,7 +215,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
         8,
         "back to authored strength inside"
     );
-    let g = squad.garrison.as_ref().unwrap();
+    let g = squad.hold.as_ref().unwrap().building().unwrap();
     let mut seats = Vec::new();
     for (k, s) in squad.members.iter().enumerate().filter(|(_, s)| s.alive()) {
         let seat = g.seat(k).expect("every living soldier holds a slot");
@@ -262,7 +262,7 @@ fn moving_or_firing_recipients_wait() {
     assert!(firing_seen, "a recipient firing this tick is not served");
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(1)],
@@ -372,7 +372,7 @@ fn a_moving_truck_serves_nobody() {
     assert!(hp > 50.0);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],
@@ -541,7 +541,7 @@ fn a_truck_on_the_move_serves_nobody() {
     run(&mut b, deploy_ticks() + 30);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(0)],

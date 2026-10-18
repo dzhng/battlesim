@@ -10,7 +10,9 @@
 //!   or right by an equal-power pan (by direction from the listener, or the
 //!   cue's sector), and sending its share into its bus's reverb;
 //! - buses (units, effects, ambience, voices) sum under the master,
-//!   through a limiter;
+//!   through the presentation's limiter and a hard clip at its ceiling
+//!   (`presentation.audio.limiter`); the ambience bus, and its reverb's tail, dip under
+//!   a loud sound through a duck of their own, so its level stays as set;
 //! - voice lines are the line arbitration's (`presentation::sound::voices`):
 //!   its answers and the barks the sound heard, each a take of a voice pack
 //!   ([`voices`]) on the voices bus;
@@ -33,8 +35,10 @@ use std::time::Duration;
 use kira::backend::cpal::{CpalBackend, CpalBackendSettings};
 use kira::backend::{Backend, Renderer};
 use kira::effect::compressor::CompressorBuilder;
+use kira::effect::distortion::{DistortionBuilder, DistortionKind};
 use kira::effect::filter::{FilterBuilder, FilterHandle, FilterMode};
 use kira::effect::reverb::ReverbBuilder;
+use kira::effect::volume_control::VolumeControlBuilder;
 use kira::sound::static_sound::{StaticSoundData, StaticSoundHandle, StaticSoundSettings};
 use kira::sound::PlaybackState;
 use kira::track::{MainTrackBuilder, SendTrackBuilder, SendTrackHandle, TrackBuilder, TrackHandle};
@@ -43,7 +47,7 @@ use kira::{
 };
 use presentation::presentation::Presentation;
 use presentation::sound::bank::Bank;
-use presentation::sound::frame::{Command, Listener, Params, Sound, Voice};
+use presentation::sound::frame::{Command, Ducked, Listener, Params, Sound, Voice};
 use presentation::sound::music::Score;
 use presentation::sound::tables::Bus;
 use presentation::sound::voices::{Chatter, Request, Speakers};
@@ -159,6 +163,10 @@ pub struct Audio {
     sounds: HashMap<String, Vec<(StaticSoundData, f64)>>,
     buses: Vec<TrackHandle>,
     reverbs: Vec<SendTrackHandle>,
+    /// The ambience bus's parent, which dips under a loud sound, and the
+    /// bus's level, which its reverb's tail dips from.
+    ambience_duck: TrackHandle,
+    ambience_level: f64,
     voices: HashMap<u32, Playing>,
     listener: Listener,
     played: Played,
@@ -271,26 +279,41 @@ impl Audio {
             .collect();
 
         let audio = &tables.audio;
-        // The master, through a limiter (the browser's compressor).
+        // The master's level, then the presentation's limiter (kira's
+        // compressor is hard-knee, as the browser's is set) and a hard clip at
+        // its ceiling for what the limiter's attack lets over, in the
+        // browser's order: kira scales a track by its volume after its
+        // effects, so the master's level is an effect ahead of them. Kira's
+        // hard clip clamps at 1 after its drive, so a drive of -clip_db
+        // clamps at clip_db.
+        let l = audio.limiter;
         let limiter = CompressorBuilder::new()
-            .threshold(-6.0)
-            .ratio(20.0)
-            .attack_duration(Duration::from_millis(2))
-            .release_duration(Duration::from_millis(200));
+            .threshold(l.threshold_db)
+            .ratio(l.ratio)
+            .attack_duration(Duration::from_secs_f64(l.attack_s))
+            .release_duration(Duration::from_secs_f64(l.release_s));
+        let clip = DistortionBuilder::new()
+            .kind(DistortionKind::HardClip)
+            .drive(Decibels(-l.clip_db as f32))
+            .mix(Mix::WET);
         let mut manager = AudioManager::<Output>::new(AudioManagerSettings {
             capacities: Capacities {
                 sub_track_capacity: 512,
                 ..Default::default()
             },
             main_track_builder: MainTrackBuilder::new()
-                .volume(decibels(audio.buses.master))
-                .with_effect(limiter),
+                .with_effect(VolumeControlBuilder::new(decibels(audio.buses.master)))
+                .with_effect(limiter)
+                .with_effect(clip),
             backend_settings: output,
             ..Default::default()
         })
         .map_err(|e| format!("audio output: {e}"))?;
         let mut buses = Vec::new();
         let mut reverbs = Vec::new();
+        let mut ambience_duck = manager
+            .add_sub_track(TrackBuilder::new())
+            .map_err(|e| e.to_string())?;
         for bus in BUSES {
             let gain = match bus {
                 Bus::Units => audio.buses.units,
@@ -312,14 +335,16 @@ impl Audio {
                     )
                     .map_err(|e| e.to_string())?,
             );
+            let track = TrackBuilder::new()
+                .volume(decibels(gain))
+                .sub_track_capacity(256);
             buses.push(
-                manager
-                    .add_sub_track(
-                        TrackBuilder::new()
-                            .volume(decibels(gain))
-                            .sub_track_capacity(256),
-                    )
-                    .map_err(|e| e.to_string())?,
+                if bus == Bus::Ambience {
+                    ambience_duck.add_sub_track(track)
+                } else {
+                    manager.add_sub_track(track)
+                }
+                .map_err(|e| e.to_string())?,
             );
         }
         let catalog: Value = serde_json::from_str(setup).map_err(|e| format!("sound: {e}"))?;
@@ -343,6 +368,8 @@ impl Audio {
             sounds,
             buses,
             reverbs,
+            ambience_duck,
+            ambience_level: audio.buses.ambience,
             voices: HashMap::new(),
             listener: Listener {
                 position: [0.0; 3],
@@ -457,12 +484,35 @@ impl Audio {
                     }
                 }
                 Command::MusicStop { fade, .. } => self.music.stop(*fade),
-                Command::Duck { depth, glide, .. } => self.music.duck(*depth, *glide),
+                Command::Duck {
+                    bus: Ducked::Music,
+                    depth,
+                    glide,
+                    ..
+                } => self.music.duck(*depth, *glide),
+                Command::Duck {
+                    bus: Ducked::Ambience,
+                    depth,
+                    glide,
+                    ..
+                } => self.duck_ambience(*depth, *glide),
             }
         }
         // A transient that has played out frees its voice.
         self.voices
             .retain(|_, v| v.sound.state() != PlaybackState::Stopped);
+    }
+
+    /// Dips the ambience bus and its reverb's tail by `depth` (0 restores
+    /// them), gliding over `glide` seconds, as the music's duck does.
+    fn duck_ambience(&mut self, depth: f64, glide: f64) {
+        let level = 1.0 - depth.clamp(0.0, 1.0);
+        self.ambience_duck.set_volume(decibels(level), tween(glide));
+        let bus = BUSES
+            .iter()
+            .position(|b| *b == Bus::Ambience)
+            .expect("a bus");
+        self.reverbs[bus].set_volume(decibels(self.ambience_level * level), tween(glide));
     }
 
     /// The equal-power pan of a sound at `position` (the Web Audio panner's,

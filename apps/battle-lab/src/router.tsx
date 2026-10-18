@@ -13,6 +13,7 @@ const SoundWorkbench = lazy(() => import("../../sound-workbench/src/SoundWorkben
 
 /** The pages: the benchmark page also owns its named workload URLs. */
 const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
+  capture: lazy(() => import("./routes/capture")),
   "graphics-test": lazy(() => import("./routes/graphicsTest")),
   cursor: lazy(() => import("./routes/cursor")),
   frame: lazy(() => import("./routes/frame")),
@@ -37,6 +38,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "air-hud": lazy(() => import("./routes/airWar")),
   "air-audio": lazy(() => import("./routes/airWar")),
   garrison: lazy(() => import("./routes/garrison")),
+  transport: lazy(() => import("./routes/transport")),
   supply: lazy(() => import("./routes/supply")),
   ground: lazy(() => import("./routes/ground")),
   panels: lazy(() => import("./routes/panels")),
@@ -56,6 +58,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "fog-look": lazy(() => import("./routes/fogLook")),
   sound: lazy(() => import("./routes/sound")),
   scenario: lazy(() => import("./routes/scenario")),
+  "map-picture": lazy(() => import("./routes/mapPicture")),
 };
 
 /** Canonical URLs for the developer fixture surface all live below `/labs`. */

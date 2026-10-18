@@ -186,6 +186,27 @@ pub enum Order {
     ExitBuilding {
         units: Vec<UnitId>,
     },
+    /// Walk selected squads to their own carrier and board after the timer.
+    Board {
+        units: Vec<UnitId>,
+        carrier: UnitId,
+        gesture: u64,
+    },
+    /// Drive the carrier to selected squads and take them aboard.
+    Collect {
+        units: Vec<UnitId>,
+        squads: Vec<UnitId>,
+        gesture: u64,
+    },
+    /// Drive carriers to a point and unload, or unload in place when no goal
+    /// is supplied. Shift queues a goal unload; an in-place unload replaces
+    /// the queue.
+    Unload {
+        units: Vec<UnitId>,
+        goal: Option<[f64; 2]>,
+        gesture: u64,
+        route: RoutePolicy,
+    },
     /// Double right-click: switch the orders issued by `gesture` to `route`.
     /// A gesture whose orders have all completed is an acknowledged no-op.
     UpgradeMove {
@@ -197,10 +218,10 @@ pub enum Order {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CommandEnvelope {
     pub side: Side,
-    /// Player slot issuing the order. Required when the scenario assigns
-    /// units to slots; omitted by legacy side-owned scenarios.
+    /// Player issuing the order. Required when the scenario assigns units to
+    /// players; omitted by legacy side-owned scenarios.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub slot: Option<String>,
+    pub player: Option<String>,
     /// Strictly increasing per side, starting at 1.
     pub seq: u64,
     pub order: Order,
@@ -212,7 +233,7 @@ pub struct CommandEnvelope {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum OrderError {
-    /// Neutral is a passive world slot and cannot receive player commands.
+    /// Neutral is a passive world side and cannot receive player commands.
     PassiveSide,
     NotSkirmish,
     MatchFinished,
@@ -231,12 +252,12 @@ pub enum OrderError {
     NotOwnUnit {
         unit: UnitId,
     },
-    /// A portable scenario assigned the unit to another player slot.
-    WrongSlot {
+    /// A portable scenario assigned the unit to another player.
+    WrongPlayer {
         unit: UnitId,
     },
-    /// A slot-owned scenario command omitted its player slot.
-    MissingSlot,
+    /// A player-owned scenario command omitted its player.
+    MissingPlayer,
     OutOfBounds,
     /// No unit has a place to stand there that it can reach.
     NoValidDestination,
@@ -266,6 +287,59 @@ pub enum OrderError {
     /// Another of the side's squads holds the building, is entering it, or
     /// is on its way in.
     BuildingOccupied,
+    /// The unit is already riding in a carrier.
+    Aboard {
+        unit: UnitId,
+    },
+    /// The named host cannot carry passengers.
+    NotACarrier,
+    /// No reachable standing spots exist for every passenger.
+    NoRoomToUnload,
+}
+
+impl OrderError {
+    /// The stable wire name used by refusal publications.
+    pub const fn reason_name(&self) -> &'static str {
+        match self {
+            Self::PassiveSide => "passive_side",
+            Self::NotSkirmish => "not_skirmish",
+            Self::MatchFinished => "match_finished",
+            Self::UnitUnavailable => "unit_unavailable",
+            Self::WrongFaction => "wrong_faction",
+            Self::InsufficientCredits => "insufficient_credits",
+            Self::UnitLimitReached => "unit_limit_reached",
+            Self::OutOfSequence { .. } => "out_of_sequence",
+            Self::NoUnits => "no_units",
+            Self::UnknownUnit { .. } => "unknown_unit",
+            Self::NotOwnUnit { .. } => "not_own_unit",
+            Self::WrongPlayer { .. } => "wrong_player",
+            Self::MissingPlayer => "missing_player",
+            Self::OutOfBounds => "out_of_bounds",
+            Self::NoValidDestination => "no_valid_destination",
+            Self::ReplayInProgress => "replay_in_progress",
+            Self::RateLimited => "rate_limited",
+            Self::UnknownTarget => "unknown_target",
+            Self::AirContact => "air_contact",
+            Self::Destroyed { .. } => "destroyed",
+            Self::NotInfantry { .. } => "not_infantry",
+            Self::NotABuilding => "not_a_building",
+            Self::CapacityFull => "capacity_full",
+            Self::OneSquadPerBuilding => "one_squad_per_building",
+            Self::BuildingOccupied => "building_occupied",
+            Self::Aboard { .. } => "aboard",
+            Self::NotACarrier => "not_a_carrier",
+            Self::NoRoomToUnload => "no_room_to_unload",
+        }
+    }
+}
+
+/// One selected unit refused an order. Command-level validation stays in
+/// [`CommandAck::error`]; this is the per-unit channel used when a group order
+/// partially succeeds or a later step is refused by the simulation.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Refusal {
+    pub unit: UnitId,
+    pub reason: OrderError,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -274,6 +348,7 @@ pub struct CommandAck {
     /// The tick whose step applies the command (accepted or not, the tick it was judged against).
     pub applied_tick: Tick,
     pub error: Option<OrderError>,
+    pub refused: Vec<Refusal>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub placement: Option<MovePlacement>,
     #[serde(skip_serializing_if = "Option::is_none")]

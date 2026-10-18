@@ -1,11 +1,20 @@
 [
   {
+    "id": "capture",
+    "route": "/labs/capture",
+    "describe": "Films one scene of a capture file (fixtures/captures/<name>.json) for the capture CLI: ?capture=<name>&scene=<i>&cards=0|1, and record=1 to record the stage with tab capture.",
+    "map": null,
+    "tool": true,
+    "catalog": "capture",
+    "loading": false
+  },
+  {
     "id": "graphics-test",
     "route": "/labs/graphics-test",
     "describe": "The complete main-menu reel as a player-facing graphics test, with frame-rate summary and pacing chart.",
     "map": null,
     "timeout_s": 300,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "native-parity-capture",
@@ -15,7 +24,7 @@
     "timeout_s": 600,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "graphics-fps",
@@ -26,7 +35,7 @@
     "timeout_s": 900,
     "serial": true,
     "tool": true,
-    "catalog": "menu"
+    "catalog": "capture"
   },
   {
     "id": "cursor",
@@ -156,6 +165,13 @@
     "map": "air-jet"
   },
   {
+    "id": "transport",
+    "route": "/labs/transport",
+    "describe": "Passenger transport: squads board an APC and scout car from both directions, ride hidden, and drive past an enemy and an objective; their carriers' Seats rows and stacked rider cards. The controls variant drives the player's own controls: right-click boarding both ways under the board cursor, a squad refused for want of seats, its deck card while aboard, U then a click with the unload mark on its order line, and U twice. The heli variant: a transport helicopter flies to a squad, sinks to a low hover, the squad boards, it flies on and sinks again at its goal, and the squad gets out onto the ground beneath it.",
+    "map": "transport",
+    "catalog": "test"
+  },
+  {
     "id": "garrison",
     "route": "/labs/garrison",
     "describe": "Buildings as fighting positions: the closest eligible blue squad enters a building while selected companions gather outside; direct entry admits one squad whole, enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned. Includes delayed admission, queued cursor, refusal callout and edge-readout cursor checks.",
@@ -182,7 +198,7 @@
   {
     "id": "ui",
     "route": "/labs/ui",
-    "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
+    "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, the end-of-match report at 1v1, 2v2, 5v5 and watched, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
     "map": null
   },
   {
@@ -230,15 +246,23 @@
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle: what the main menu's Skirmish starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?faction= the player's faction (required) and ?enemy= the enemy's; ?battle= the battle's seed. ?play=1 prepares a fresh generated skirmish; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
+    "describe": "A prepared battle: what the skirmish lobby's Deploy starts. ?type=open|mixed|metro, ?size=small|medium|large|xl and ?seed= choose a generated map; ?blue= and ?red= carry ordered controller codes, while ?blue_faction= and ?red_faction= name the two side factions; ?battle= is the battle's seed; ?replay=saved watches a saved replay. A preparation worker generates the map and fields both factions on its skirmish sites; a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet. Its scene also checks that a lobby whose generation is exhausted or stalled shows no map and keeps Deploy shut. Includes generated-town still-camera, multipart orientation and replacement allocation checks.",
     "map": null,
     "catalog": "game",
     "loading": false
   },
   {
     "id": "unit-roster",
-    "route": "/battle?type=open&size=small&seed=1&faction=us",
+    "route": "/battle?type=open&size=small&seed=1&blue=h&blue_faction=us&red=a&red_faction=eastern",
     "describe": "Final player journey: zoom into preparation, recruit units, preview and face placement ghosts, start the match, move and face a unit, hold Space for its order marker, and pin the journey's screenshots and GPU diagnostics.",
+    "map": null,
+    "catalog": "game",
+    "loading": false
+  },
+  {
+    "id": "allies",
+    "route": "/battle?type=mixed&size=medium&seed=1&blue=h,a&blue_faction=us&red=a,a&red_faction=eastern",
+    "describe": "A 2v2 team battle from its link, you and one AI ally against two AI: allies drawn apart from your units (pale ice panels, a broken ring when selected, x-ray), at default and far zoom; selecting an ally opens its panel read-only with its owner line and offers no order; a box over both armies selects only yours.",
     "map": null,
     "catalog": "game",
     "loading": false
@@ -290,6 +314,22 @@
     "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events.",
     "map": null,
     "loading": false
+  },
+  {
+    "id": "map-picture",
+    "route": "/labs/map-picture",
+    "describe": "The lobby's map picture alone: real admitted maps for 1v1, 3v4 and 5v5 at S, M, L and XL, each through the lobby's preview controller at lobby size, with the refusal a pairing below a size's floor gets; ?cell=3v4-large draws one.",
+    "map": null,
+    "catalog": "game",
+    "loading": false,
+    "timeout_s": 300
+  },
+  {
+    "id": "lobby",
+    "route": "/",
+    "describe": "The skirmish lobby at /: an order of battle over real admitted map previews. Its scene covers the 1v1 default, the 3v3 and 5v5 presets, 3v4 and 2v3 by Add and Delete, taking another Blue seat, the size floor, a preview on opening and on each map change, Reroll, a hidden retry, a map that cannot be made, and Deploy starting the previewed map, and shoots each state at 1280×720 and 1920×1080.",
+    "map": null,
+    "timeout_s": 600
   },
   {
     "id": "map-workbench",

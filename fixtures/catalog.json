@@ -140,7 +140,7 @@
     },
     {
       "cost": 190,
-      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "bmp_ifv_family",
       "id": "eastern_bmp_ifv_family_bmp_2m_berezhok",
@@ -157,7 +157,7 @@
     },
     {
       "cost": 210,
-      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "bmp_ifv_family",
       "id": "eastern_bmp_ifv_family_bmp_3",
@@ -191,7 +191,7 @@
     },
     {
       "cost": 140,
-      "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
+      "description": "BTR-82A; infantry carrier",
       "disabled_reason": null,
       "family": "btr",
       "id": "eastern_btr_btr_82a",
@@ -650,7 +650,7 @@
     },
     {
       "cost": 300,
-      "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
+      "description": "Heavy IFV; infantry carrier",
       "disabled_reason": null,
       "family": "t_15_armata",
       "id": "eastern_t_15_armata_heavy_ifv",
@@ -820,7 +820,7 @@
     },
     {
       "cost": 190,
-      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
+      "description": "Wheeled IFV; infantry carrier",
       "disabled_reason": null,
       "family": "zbl_08",
       "id": "eastern_zbl_08_wheeled_ifv",
@@ -905,7 +905,7 @@
     },
     {
       "cost": 170,
-      "description": "APC; ground combat platform, passenger carriage not implemented",
+      "description": "APC; infantry carrier",
       "disabled_reason": null,
       "family": "boxer",
       "id": "europe_boxer_apc",
@@ -922,7 +922,7 @@
     },
     {
       "cost": 240,
-      "description": "RCT30; ground combat platform, passenger carriage not implemented",
+      "description": "RCT30; infantry carrier",
       "disabled_reason": null,
       "family": "boxer",
       "id": "europe_boxer_rct30",
@@ -939,7 +939,7 @@
     },
     {
       "cost": 180,
-      "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
+      "description": "Gun-and-missile air-defense vehicle",
       "disabled_reason": null,
       "family": "boxer_skyranger_30",
       "id": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
@@ -1058,7 +1058,7 @@
     },
     {
       "cost": 220,
-      "description": "CV9040C; ground combat platform, passenger carriage not implemented",
+      "description": "CV9040C; infantry carrier",
       "disabled_reason": null,
       "family": "cv90",
       "id": "europe_cv90_cv9040c",
@@ -1075,7 +1075,7 @@
     },
     {
       "cost": 260,
-      "description": "Mk IV; ground combat platform, passenger carriage not implemented",
+      "description": "Mk IV; infantry carrier",
       "disabled_reason": null,
       "family": "cv90",
       "id": "europe_cv90_mk_iv",
@@ -1415,7 +1415,7 @@
     },
     {
       "cost": 260,
-      "description": "Level C; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "puma",
       "id": "europe_puma_level_c",
@@ -1517,7 +1517,7 @@
     },
     {
       "cost": 220,
-      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
+      "description": "Infantry fighting vehicle",
       "disabled_reason": null,
       "family": "vbci",
       "id": "europe_vbci_infantry_fighting_vehicle",
@@ -1658,7 +1658,7 @@
     },
     {
       "cost": 170,
-      "description": "ACV-P; ground combat platform, passenger carriage not implemented",
+      "description": "ACV-P; infantry carrier",
       "disabled_reason": null,
       "family": "acv",
       "id": "us_acv_acv_p",
@@ -1896,7 +1896,7 @@
     },
     {
       "cost": 160,
-      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
+      "description": "LAV-25A2; infantry carrier",
       "disabled_reason": null,
       "family": "lav",
       "id": "us_lav_lav_25a2",
@@ -2134,7 +2134,7 @@
     },
     {
       "cost": 230,
-      "description": "M2A4; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "disabled_reason": null,
       "family": "m2_bradley_ifv",
       "id": "us_m2_bradley_ifv_m2a4",
@@ -2270,7 +2270,7 @@
     },
     {
       "cost": 140,
-      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
+      "description": "M1126 ICV; infantry carrier",
       "disabled_reason": null,
       "family": "stryker",
       "id": "us_stryker_m1126_icv",
@@ -2304,7 +2304,7 @@
     },
     {
       "cost": 200,
-      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
+      "description": "M1296 Dragoon; infantry carrier",
       "disabled_reason": null,
       "family": "stryker",
       "id": "us_stryker_m1296_dragoon",
@@ -2321,7 +2321,7 @@
     },
     {
       "cost": 180,
-      "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
+      "description": "Gun-and-missile air-defense vehicle",
       "disabled_reason": null,
       "family": "stryker_m_shorad",
       "id": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
@@ -7152,9 +7152,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 190,
-          "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+          "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
           "family": "bmp_ifv_family",
           "mobility": {
@@ -7263,9 +7267,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 210,
-          "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+          "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "eastern",
           "family": "bmp_ifv_family",
           "mobility": {
@@ -7375,7 +7383,11 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 3
+            }
+          },
           "cost": 180,
           "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
           "faction": "eastern",
@@ -7466,9 +7478,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 140,
-          "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
+          "description": "BTR-82A; infantry carrier",
           "faction": "eastern",
           "family": "btr",
           "mobility": {
@@ -8122,6 +8138,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 8
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -8354,6 +8373,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 16
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -9309,7 +9331,6 @@
             "squad": {
               "slots": [
                 "eastern_scouts_light_patrol__marksman",
-                "eastern_scouts_light_patrol__scout",
                 "eastern_scouts_light_patrol__scout",
                 "eastern_scouts_light_patrol__scout"
               ]
@@ -10399,9 +10420,13 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 300,
-          "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
+          "description": "Heavy IFV; infantry carrier",
           "faction": "eastern",
           "family": "t_15_armata",
           "mobility": {
@@ -10849,7 +10874,11 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 3
+            }
+          },
           "cost": 90,
           "description": "Tigr-M",
           "faction": "eastern",
@@ -11358,6 +11387,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 8
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -11481,9 +11513,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 190,
-          "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
+          "description": "Wheeled IFV; infantry carrier",
           "faction": "eastern",
           "family": "zbl_08",
           "mobility": {
@@ -11710,6 +11746,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 16
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -11932,9 +11971,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 170,
-          "description": "APC; ground combat platform, passenger carriage not implemented",
+          "description": "APC; infantry carrier",
           "faction": "europe",
           "family": "boxer",
           "mobility": {
@@ -12023,9 +12066,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 240,
-          "description": "RCT30; ground combat platform, passenger carriage not implemented",
+          "description": "RCT30; infantry carrier",
           "faction": "europe",
           "family": "boxer",
           "mobility": {
@@ -12116,7 +12163,7 @@
           },
           "capabilities": {},
           "cost": 180,
-          "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
+          "description": "Gun-and-missile air-defense vehicle",
           "faction": "europe",
           "family": "boxer_skyranger_30",
           "mobility": {
@@ -12411,6 +12458,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 16
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -12886,9 +12936,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 220,
-          "description": "CV9040C; ground combat platform, passenger carriage not implemented",
+          "description": "CV9040C; infantry carrier",
           "faction": "europe",
           "family": "cv90",
           "mobility": {
@@ -12976,9 +13030,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 260,
-          "description": "Mk IV; ground combat platform, passenger carriage not implemented",
+          "description": "Mk IV; infantry carrier",
           "faction": "europe",
           "family": "cv90",
           "mobility": {
@@ -15063,6 +15121,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 16
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -15186,9 +15247,13 @@
               "wreck": "heavy_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 260,
-          "description": "Level C; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+          "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "europe",
           "family": "puma",
           "mobility": {
@@ -15520,7 +15585,6 @@
             "squad": {
               "slots": [
                 "europe_recon_patrol_light_patrol__marksman",
-                "europe_recon_patrol_light_patrol__scout",
                 "europe_recon_patrol_light_patrol__scout",
                 "europe_recon_patrol_light_patrol__scout"
               ]
@@ -15908,9 +15972,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 220,
-          "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
+          "description": "Infantry fighting vehicle",
           "faction": "europe",
           "family": "vbci",
           "mobility": {
@@ -15999,7 +16067,11 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 3
+            }
+          },
           "cost": 90,
           "description": "Machine-gun scout",
           "faction": "europe",
@@ -16688,9 +16760,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 170,
-          "description": "ACV-P; ground combat platform, passenger carriage not implemented",
+          "description": "ACV-P; infantry carrier",
           "faction": "us",
           "family": "acv",
           "mobility": {
@@ -17012,6 +17088,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 3
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -17112,7 +17191,6 @@
             "squad": {
               "slots": [
                 "us_army_scouts_light_patrol__marksman",
-                "us_army_scouts_light_patrol__scout",
                 "us_army_scouts_light_patrol__scout",
                 "us_army_scouts_light_patrol__scout"
               ]
@@ -17230,6 +17308,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 16
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -18213,7 +18294,6 @@
               "slots": [
                 "us_force_recon_recon_patrol__grenadier",
                 "us_force_recon_recon_patrol__marksman",
-                "us_force_recon_recon_patrol__scout",
                 "us_force_recon_recon_patrol__scout"
               ]
             }
@@ -18335,9 +18415,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 160,
-          "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
+          "description": "LAV-25A2; infantry carrier",
           "faction": "us",
           "family": "lav",
           "mobility": {
@@ -18719,7 +18803,11 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 3
+            }
+          },
           "cost": 130,
           "description": "Reconnaissance vehicle",
           "faction": "us",
@@ -18901,7 +18989,11 @@
               "wreck": "light_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 3
+            }
+          },
           "cost": 90,
           "description": "HMG",
           "faction": "us",
@@ -19752,9 +19844,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 230,
-          "description": "M2A4; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+          "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
           "family": "m2_bradley_ifv",
           "mobility": {
@@ -19863,7 +19959,11 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 3
+            }
+          },
           "cost": 210,
           "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
           "faction": "us",
@@ -20455,9 +20555,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 140,
-          "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
+          "description": "M1126 ICV; infantry carrier",
           "faction": "us",
           "family": "stryker",
           "mobility": {
@@ -20637,9 +20741,13 @@
               "wreck": "medium_wreck"
             }
           },
-          "capabilities": {},
+          "capabilities": {
+            "carriage": {
+              "seats": 8
+            }
+          },
           "cost": 200,
-          "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
+          "description": "M1296 Dragoon; infantry carrier",
           "faction": "us",
           "family": "stryker",
           "mobility": {
@@ -20730,7 +20838,7 @@
           },
           "capabilities": {},
           "cost": 180,
-          "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
+          "description": "Gun-and-missile air-defense vehicle",
           "faction": "us",
           "family": "stryker_m_shorad",
           "mobility": {
@@ -20821,6 +20929,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 8
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -20945,6 +21056,9 @@
             }
           },
           "capabilities": {
+            "carriage": {
+              "seats": 8
+            },
             "flares": {
               "capacity": 4,
               "reload_s": 3.0
@@ -25905,9 +26019,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 190,
-      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
       "id": "eastern_bmp_ifv_family_bmp_2m_berezhok",
@@ -26020,9 +26138,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 210,
-      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "eastern",
       "family": "bmp_ifv_family",
       "id": "eastern_bmp_ifv_family_bmp_3",
@@ -26136,7 +26258,11 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 3
+        }
+      },
       "cost": 180,
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
       "faction": "eastern",
@@ -26230,9 +26356,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 140,
-      "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
+      "description": "BTR-82A; infantry carrier",
       "faction": "eastern",
       "family": "btr",
       "id": "eastern_btr_btr_82a",
@@ -26996,6 +27126,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 8
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -27236,6 +27369,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 16
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -28414,7 +28550,6 @@
           "slots": [
             "eastern_scouts_light_patrol__marksman",
             "eastern_scouts_light_patrol__scout",
-            "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout"
           ]
         }
@@ -28436,8 +28571,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,
@@ -29649,9 +29783,13 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 300,
-      "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
+      "description": "Heavy IFV; infantry carrier",
       "faction": "eastern",
       "family": "t_15_armata",
       "id": "eastern_t_15_armata_heavy_ifv",
@@ -30115,7 +30253,11 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 3
+        }
+      },
       "cost": 90,
       "description": "Tigr-M",
       "faction": "eastern",
@@ -30642,6 +30784,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 8
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -30769,9 +30914,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 190,
-      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
+      "description": "Wheeled IFV; infantry carrier",
       "faction": "eastern",
       "family": "zbl_08",
       "id": "eastern_zbl_08_wheeled_ifv",
@@ -31066,6 +31215,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 16
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -31295,9 +31447,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 170,
-      "description": "APC; ground combat platform, passenger carriage not implemented",
+      "description": "APC; infantry carrier",
       "faction": "europe",
       "family": "boxer",
       "id": "europe_boxer_apc",
@@ -31389,9 +31545,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 240,
-      "description": "RCT30; ground combat platform, passenger carriage not implemented",
+      "description": "RCT30; infantry carrier",
       "faction": "europe",
       "family": "boxer",
       "id": "europe_boxer_rct30",
@@ -31485,7 +31645,7 @@
       },
       "capabilities": {},
       "cost": 180,
-      "description": "Gun-and-missile air defense; ground combat platform, passenger carriage not implemented",
+      "description": "Gun-and-missile air-defense vehicle",
       "faction": "europe",
       "family": "boxer_skyranger_30",
       "id": "europe_boxer_skyranger_30_gun_and_missile_air_defense",
@@ -31790,6 +31950,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 16
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -32281,9 +32444,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 220,
-      "description": "CV9040C; ground combat platform, passenger carriage not implemented",
+      "description": "CV9040C; infantry carrier",
       "faction": "europe",
       "family": "cv90",
       "id": "europe_cv90_cv9040c",
@@ -32374,9 +32541,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 260,
-      "description": "Mk IV; ground combat platform, passenger carriage not implemented",
+      "description": "Mk IV; infantry carrier",
       "faction": "europe",
       "family": "cv90",
       "id": "europe_cv90_mk_iv",
@@ -34620,6 +34791,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 16
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -34747,9 +34921,13 @@
           "wreck": "heavy_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 260,
-      "description": "Level C; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "Level C; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "europe",
       "family": "puma",
       "id": "europe_puma_level_c",
@@ -35094,7 +35272,6 @@
           "slots": [
             "europe_recon_patrol_light_patrol__marksman",
             "europe_recon_patrol_light_patrol__scout",
-            "europe_recon_patrol_light_patrol__scout",
             "europe_recon_patrol_light_patrol__scout"
           ]
         }
@@ -35116,8 +35293,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,
@@ -35506,9 +35682,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 220,
-      "description": "Infantry fighting vehicle; ground combat platform, passenger carriage not implemented",
+      "description": "Infantry fighting vehicle",
       "faction": "europe",
       "family": "vbci",
       "id": "europe_vbci_infantry_fighting_vehicle",
@@ -35600,7 +35780,11 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 3
+        }
+      },
       "cost": 90,
       "description": "Machine-gun scout",
       "faction": "europe",
@@ -36545,9 +36729,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 170,
-      "description": "ACV-P; ground combat platform, passenger carriage not implemented",
+      "description": "ACV-P; infantry carrier",
       "faction": "us",
       "family": "acv",
       "id": "us_acv_acv_p",
@@ -36880,6 +37068,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 3
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -36985,7 +37176,6 @@
           "slots": [
             "us_army_scouts_light_patrol__marksman",
             "us_army_scouts_light_patrol__scout",
-            "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout"
           ]
         }
@@ -37007,8 +37197,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,
@@ -37227,6 +37416,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 16
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -38241,7 +38433,6 @@
           "slots": [
             "us_force_recon_recon_patrol__grenadier",
             "us_force_recon_recon_patrol__marksman",
-            "us_force_recon_recon_patrol__scout",
             "us_force_recon_recon_patrol__scout"
           ]
         }
@@ -38263,8 +38454,7 @@
           "carriers": [
             0,
             1,
-            2,
-            3
+            2
           ],
           "id": "rifles",
           "muzzle_m": null,
@@ -38390,9 +38580,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 160,
-      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
+      "description": "LAV-25A2; infantry carrier",
       "faction": "us",
       "family": "lav",
       "id": "us_lav_lav_25a2",
@@ -38787,7 +38981,11 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 3
+        }
+      },
       "cost": 130,
       "description": "Reconnaissance vehicle",
       "faction": "us",
@@ -38975,7 +39173,11 @@
           "wreck": "light_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 3
+        }
+      },
       "cost": 90,
       "description": "HMG",
       "faction": "us",
@@ -39854,9 +40056,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 230,
-      "description": "M2A4; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
       "family": "m2_bradley_ifv",
       "id": "us_m2_bradley_ifv_m2a4",
@@ -39969,7 +40175,11 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 3
+        }
+      },
       "cost": 210,
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
       "faction": "us",
@@ -40843,9 +41053,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 140,
-      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
+      "description": "M1126 ICV; infantry carrier",
       "faction": "us",
       "family": "stryker",
       "id": "us_stryker_m1126_icv",
@@ -41031,9 +41245,13 @@
           "wreck": "medium_wreck"
         }
       },
-      "capabilities": {},
+      "capabilities": {
+        "carriage": {
+          "seats": 8
+        }
+      },
       "cost": 200,
-      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
+      "description": "M1296 Dragoon; infantry carrier",
       "faction": "us",
       "family": "stryker",
       "id": "us_stryker_m1296_dragoon",
@@ -41127,7 +41345,7 @@
       },
       "capabilities": {},
       "cost": 180,
-      "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
+      "description": "Gun-and-missile air-defense vehicle",
       "faction": "us",
       "family": "stryker_m_shorad",
       "id": "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle",
@@ -41221,6 +41439,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 8
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0
@@ -41349,6 +41570,9 @@
         }
       },
       "capabilities": {
+        "carriage": {
+          "seats": 8
+        },
         "flares": {
           "capacity": 4,
           "reload_s": 3.0

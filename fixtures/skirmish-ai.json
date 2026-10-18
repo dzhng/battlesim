@@ -14,5 +14,8 @@
   "recon_approach_share": 0.75,
   "purchase_noise": 40,
   "relocate_after_s": 10,
-  "relocate_m": 50
+  "relocate_m": 50,
+  "unload_share": 0.2,
+  "ride_min_m": 120,
+  "reaim_m": 30
 }

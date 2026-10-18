@@ -242,7 +242,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     );
     let ack = b.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: serde_json::from_value(json!({ "kind": "garrison", "units": [0], "building": 0 }))
             .unwrap(),
@@ -252,8 +252,8 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     for _ in 0..1200 {
         b.step();
         if own(&b, Side::Blue, 0)
-            .garrison
-            .is_some_and(|g| g.phase == contract::observation::GarrisonPhase::Inside)
+            .hold
+            .is_some_and(|g| g.phase == contract::observation::HoldPhase::Inside)
         {
             break;
         }
@@ -263,7 +263,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         b.step();
     }
     let squad = own(&b, Side::Blue, 0);
-    assert!(squad.garrison.is_some());
+    assert!(squad.hold.is_some());
     let standoff = common::game()["garrison"]["slot_standoff_m"]
         .as_f64()
         .unwrap();

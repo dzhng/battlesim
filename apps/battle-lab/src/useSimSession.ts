@@ -3,7 +3,7 @@ import type { PreparedConnectionSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
 import type { LearnedGround } from "@web/battle/sim/presentation";
-import type { ObservationView } from "@web/battle/sim/observationView";
+import type { ObservationView, RefusalView } from "@web/battle/sim/observationView";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 import type { SideName } from "@web/battle/sim/protocol";
 
@@ -12,8 +12,8 @@ export interface SimSessionOptions {
   seed: number;
   prepared?: PreparedConnectionSession;
   side?: SideName;
-  /** Player slot issuing commands in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing commands in a player-owned scenario. */
+  player?: string;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** Replay these accepted commands instead of taking input. */
@@ -40,6 +40,8 @@ export interface ScriptedSim {
   onPublication?: (p: { tick: number; digest: string; packed: number[]; warm: boolean }) => void;
 }
 
+const REFUSAL_LOG = 8;
+
 /** One worker authority for a lab scenario. Publications are consumed (their
  *  credit returned) as soon as they are decoded, unless the lab holds credit
  *  to stall the producer; drawing interpolates between the last two frames.
@@ -51,7 +53,7 @@ export function useSimSession({
   replay,
   scripted,
   prepared,
-  slot,
+  player,
   side = "blue",
 }: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
@@ -59,6 +61,9 @@ export function useSimSession({
   /** Why the authority failed to start (for example a mismatched replay). */
   const [error, setError] = useState<string | null>(null);
   const [observation, setObservation] = useState<ObservationView | null>(null);
+  /** The side's newest per-unit refusals, newest first: every publication's,
+   *  though React renders only the latest observation. */
+  const [refusals, setRefusals] = useState<readonly RefusalView[]>([]);
   const [status, setStatus] = useState<{ status: AuthorityStatus; slow: boolean }>({
     status: "loading",
     slow: false,
@@ -89,7 +94,7 @@ export function useSimSession({
       scenario,
       seed,
       side: openSide.current,
-      slot,
+      player,
       transport: "worker",
       replay,
       // A prepared bundle connection owns one live authority. Once the
@@ -113,6 +118,7 @@ export function useSimSession({
     }
     setClient(next);
     setObservation(null);
+    setRefusals([]);
     digest.current = null;
     latest.current = null;
     ground.current = null;
@@ -130,6 +136,8 @@ export function useSimSession({
       digest.current = publication.digest;
       latest.current = publication.observation;
       ground.current = publication.ground;
+      const refused = publication.observation.refusals;
+      if (refused.length) setRefusals((log) => [...refused, ...log].slice(0, REFUSAL_LOG));
       if (warm) {
         const { tick, stepMs, bytes } = publication;
         plan?.onTick({ tick, stepMs, bytes });
@@ -158,7 +166,7 @@ export function useSimSession({
       if (frame !== null) cancelAnimationFrame(frame);
       next.dispose();
     };
-  }, [scenario, seed, generation, replay, prepared, slot]);
+  }, [scenario, seed, generation, replay, prepared, player]);
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;
@@ -182,6 +190,7 @@ export function useSimSession({
     client,
     error,
     observation,
+    refusals,
     status,
     latest,
     ground,

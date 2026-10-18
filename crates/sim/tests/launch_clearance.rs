@@ -63,7 +63,7 @@ fn shelling(row: Value, cover: Value) -> Battle {
     let mut b = Battle::new(&setup, 3);
     let ack = b.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Attack {

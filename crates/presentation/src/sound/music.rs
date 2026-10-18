@@ -17,24 +17,16 @@
 //! track is, its format and where it lives, is the player's.
 use serde::Deserialize;
 
-use super::frame::Command;
+use super::frame::{Command, Ducked};
+use super::tables::Duck;
 use super::voices::{Request, Tier};
 use crate::seed::Mulberry32;
-
-/// How far the music dips under a voice line, and how fast it dips and
-/// recovers (time constants, seconds).
-#[derive(Clone, Copy, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Duck {
-    pub depth: f64,
-    pub attack_s: f64,
-    pub release_s: f64,
-}
 
 /// `presentation.audio.music`.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MusicRules {
+    /// How far the music dips under a voice line.
     pub duck: Duck,
     /// A qualifying bark at most this old switches tension to combat.
     pub combat_window_s: f64,
@@ -143,6 +135,7 @@ impl Score {
             };
             self.out.push(Command::Duck {
                 at: now,
+                bus: Ducked::Music,
                 depth,
                 glide,
             });

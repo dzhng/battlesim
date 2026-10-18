@@ -187,6 +187,7 @@ function StateRowView({ row }: { row: StateRow }) {
       data-state={row.state}
       data-tone={row.tone ?? undefined}
       data-progress={row.progress ?? ""}
+      data-compact={row.compact || undefined}
     >
       <Mark icon={row.icon} timer={timer} className="ro-state-mark" />
       <span className="ro-word ro-state-word">{row.word}</span>
@@ -230,6 +231,7 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
         )}
         <Pips fill={panel.strength} />
       </span>
+      {panel.owner && <span className="ro-owner">{panel.owner}</span>}
       {panel.weapons.length > 0 && (
         <div
           className="ro-section ro-weapons"
@@ -264,9 +266,45 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
   );
 }
 
-/** Who a panel belongs to: its tone (own cyan, enemy and contact red)
- *  follows. */
-export type PanelOwner = "own" | "enemy" | "contact";
+/** One squad riding a carrier, and its panel. A rider is never selected
+ *  (D10): picking its card picks the carrier. */
+export interface PassengerCard {
+  id: number;
+  panel: Panel;
+}
+
+/** The compact cards of the squads a carrier holds, stacked under the
+ *  carrier's panel inside its callout, so the stack is laid out, hidden and
+ *  hovered as the carrier's one card. A rider's card is always compact,
+ *  whatever view the carrier's is in: `data-zoom` on each holds it there,
+ *  and the readout layer never changes it. */
+export function PassengerCards({ cards }: { cards: readonly PassengerCard[] }) {
+  if (cards.length === 0) return null;
+  return (
+    <div className="ro-aboard">
+      {cards.map((c) => (
+        <PanelCallout
+          key={c.id}
+          owner={sideTone(c.panel)}
+          selected={false}
+          data-zoom="compressed"
+          data-unit={c.id}
+          data-passenger=""
+        >
+          <InfoPanel panel={c.panel} zoom="compressed" />
+        </PanelCallout>
+      ))}
+    </div>
+  );
+}
+
+/** Who a panel belongs to: its tone (own cyan, an ally's pale ice, enemy
+ *  and contact red) follows. */
+export type PanelOwner = "own" | "ally" | "enemy" | "contact";
+
+/** The tone of a unit on the player's side: an ally's when its panel names
+ *  its owner, the player's own otherwise. */
+export const sideTone = (panel: Panel): PanelOwner => (panel.owner === undefined ? "own" : "ally");
 
 /** The callout round a panel, in its owner's tone, brighter when selected:
  *  the battle's callouts and the panel workbench frame panels only through

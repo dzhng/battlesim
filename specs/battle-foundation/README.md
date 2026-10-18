@@ -53,7 +53,7 @@ Before ending any implementation pass, update this section's status/date/exact n
 - [x] [15 — Replayable combined-arms encounter](slices/15-village-encounter.md) (crossfire target split out; see verdict)
 - [x] [16 — Current-host scale and late-battle verdict](slices/16-longevity.md) (late state resliced to 16b)
 - [ ] [16b — Late-battle scale: remains, planning and fog](slices/16b-late-battle-scale.md) (proposed; needs the user)
-- [ ] [17 — Transport lifecycle](slices/17-transports.md) → moved to [specs/transport](../transport/README.md)
+- [ ] [17 — Transport lifecycle](slices/17-transports.md) → moved to [transport](../done/transport/README.md), shipped
 - [ ] [18 — Helicopters and layered observation](slices/18-air-movement.md) → superseded by [the helicopters spec](../done/helicopters/README.md)
 - [ ] [19 — Radar support and self-guided AA](slices/19-radar-and-aa.md)
 - [ ] [20 — Off-map strike lifecycle](slices/20-jet-sorties.md)

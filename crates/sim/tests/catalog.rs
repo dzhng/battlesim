@@ -362,14 +362,14 @@ fn with_m1_family() -> Value {
     fixture
 }
 
-/// The test and menu document sets are the game's set plus their own
+/// The test and capture document sets are the game's set plus their own
 /// folders, each document once, and resolve as one catalog: a lab never runs
 /// without the game's units, and a document both sets name is not doubled.
 #[test]
-fn the_test_and_menu_sets_extend_the_games() {
+fn the_test_and_capture_sets_extend_the_games() {
     use sim::fixtures::{catalog_documents, CatalogSet};
     let game = catalog_documents(CatalogSet::Game);
-    for set in [CatalogSet::Test, CatalogSet::Menu] {
+    for set in [CatalogSet::Test, CatalogSet::Capture] {
         let documents = catalog_documents(set);
         for doc in &game {
             let copies = documents.iter().filter(|d| *d == doc).count();
@@ -379,17 +379,17 @@ fn the_test_and_menu_sets_extend_the_games() {
             panic!("the {set:?} set does not resolve: {e}");
         }
     }
-    // The menu's units extend the test units, so the menu set holds them too.
+    // The capture units extend the test units, so the capture set holds them too.
     let test = catalog_documents(CatalogSet::Test);
-    let menu = catalog_documents(CatalogSet::Menu);
+    let capture = catalog_documents(CatalogSet::Capture);
     for doc in sim::fixtures::test_documents() {
         assert!(
             test.contains(&doc),
             "the test set lacks a test unit document"
         );
         assert!(
-            menu.contains(&doc),
-            "the menu set lacks a test unit document"
+            capture.contains(&doc),
+            "the capture set lacks a test unit document"
         );
     }
 }
@@ -459,8 +459,8 @@ fn the_game_catalog_holds_only_what_roster_cards_reach() {
     }
     for section in ["units", "soldiers", "props", "parts", "roles"] {
         for (id, _) in view["documents"][section].as_object().into_iter().flatten() {
-            if id.starts_with("test_") || id.starts_with("menu_") {
-                stray.push(format!("{section}.{id} is test or menu content"));
+            if id.starts_with("test_") || id.starts_with("capture_") {
+                stray.push(format!("{section}.{id} is test or capture content"));
             }
         }
     }
@@ -834,7 +834,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         if never_stops {
             let ack = b.accept(CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: None,
                 seq: 1,
                 order: Order::Attack {
                     units: vec![UnitId(0)],
@@ -871,7 +871,7 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         };
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             order: Order::Move {
                 units: vec![UnitId(0)],

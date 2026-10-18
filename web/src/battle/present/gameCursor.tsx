@@ -9,6 +9,8 @@ const ACTION_ICONS = {
   attack_move: hudIcon("attack_move"),
   attack_ground: hudIcon("attack_ground"),
   garrison: stateIcon("building"),
+  board: hudIcon("board"),
+  unload: hudIcon("unload"),
   fast_move: hudIcon("fast_move"),
   reverse_move: hudIcon("reverse"),
   blocked: hudIcon("rejected"),

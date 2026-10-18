@@ -350,7 +350,7 @@ fn high_air_ground_attack_uses_bombs_then_strafing_after_the_store_is_empty() {
     let mut battle = Battle::new(&setup, 1);
     let ack = battle.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],

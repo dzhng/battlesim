@@ -158,6 +158,7 @@ test("the army remains in replay and empty selection while commands follow only 
       togglePolicy: vi.fn(),
       toggleDeployment: vi.fn(),
       exitBuilding: vi.fn(),
+      pressUnload: vi.fn(),
     };
     return (
       <ArmyDeck
@@ -304,6 +305,7 @@ test("the command row exposes refund for a selected skirmish unit", () => {
     togglePolicy: vi.fn(),
     toggleDeployment: vi.fn(),
     exitBuilding: vi.fn(),
+    pressUnload: vi.fn(),
     refund,
   };
   const view = render(
@@ -318,4 +320,27 @@ test("the command row exposes refund for a selected skirmish unit", () => {
   );
   fireEvent.click(view.getByRole("button", { name: "Refund · Return to base" }));
   expect(refund).toHaveBeenCalledOnce();
+});
+
+test("a squad aboard a carrier keeps its card, dimmed as aboard, and clicking it selects its carrier", () => {
+  const apc = specimenUnit(TEST_CATALOG, "test_apc", { id: 4 });
+  const rider = {
+    ...specimenUnit(TEST_CATALOG, "test_rifle", { id: 7 }),
+    hold: { host: { kind: "carrier" as const, id: 4 }, phase: "inside", progress: 1 },
+  };
+  const onSelect = vi.fn();
+  const view = render(
+    <ArmyDeck
+      own={[apc, rider]}
+      selected={[]}
+      onSelect={onSelect}
+      rules={game as unknown as PanelRules}
+      captions={null}
+    />,
+  );
+  const card = view.getByRole("button", { name: /^Rifle Section #7/ });
+  expect(card.dataset.aboard).toBe("true");
+  expect(view.getByRole("button", { name: "Test APC #4" }).dataset.aboard).toBeUndefined();
+  fireEvent.click(card);
+  expect(onSelect).toHaveBeenLastCalledWith([4]);
 });

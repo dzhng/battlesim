@@ -5,21 +5,27 @@
  * Attack-ground confirms with left-click and cancels with right-click
  * (Ctrl+right-click attack-moves at once; a right-click behind a single
  * selected vehicle reverses), right-click on a building to garrison it (Shift
- * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
- * the acknowledgement log. Keys come from `CommandBindings`. Building clicks
- * send the complete selection for authoritative entry and outside gathering;
- * deploy and leaving a building reach only capable units (`commandReach.ts`). Labs and the
+ * queues), right-click on an own carrier or squad to board or collect (Shift
+ * queues), Unload (U then a left-click, or U twice), leaving buildings, stop,
+ * the fire-policy toggle, deploy/pack, and the acknowledgement log. Keys come
+ * from `CommandBindings`. Building clicks send the complete selection for
+ * authoritative entry and outside gathering; deploy, boarding, unloading and
+ * leaving a building reach only capable units (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. Its events (`UnitControlEvents`)
  * let the battle hear orders, their acknowledgements and the selection's growth
- * (the order flash, and the units' spoken answers). */
+ * (the order flash, and the units' spoken answers). In a team battle it orders
+ * only the player's own units (`controlled.ts`): a box or double-click takes
+ * only them, and a click on an ally's unit selects it alone, to read, so
+ * nothing selected then takes an order. */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { SimClient } from "../sim/client";
-import type { ObservationView, OwnUnitView } from "../sim/observationView";
+import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
 import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
 import {
+  CONFIRMED_BY_LEFT_CLICK,
   pointerIntent,
   reconcilePointerIntent,
   type PointerPick,
@@ -29,6 +35,7 @@ import {
 import { reach } from "./commandReach";
 import { SelectClicks, similarUnits } from "./selectSimilar";
 import { useSessionCatalog } from "../catalog/context";
+import { controlled } from "./controlled";
 
 export interface AckEntry {
   seq: number;
@@ -54,6 +61,8 @@ export function useUnitControl(
   observation: ObservationView | null,
   events?: UnitControlEvents,
   enabled = true,
+  /** The player the client commands as (`commandingPlayer.ts`). */
+  player?: string,
 ) {
   const { units: catalog } = useSessionCatalog();
   const enabledRef = useRef(enabled);
@@ -67,7 +76,10 @@ export function useUnitControl(
   useEffect(() => {
     const before = new Set(heardSelection.current);
     heardSelection.current = selected;
-    const added = selected.filter((id) => !before.has(id));
+    // Only your own units answer you; an ally's selected to read stays quiet.
+    const added = selected.filter(
+      (id) => !before.has(id) && yoursRef.current.some((u) => u.id === id),
+    );
     const clicked = clickedRef.current;
     clickedRef.current = null;
     if (added.length)
@@ -76,12 +88,20 @@ export function useUnitControl(
         clicked !== null && added.includes(clicked) ? clicked : null,
       );
   }, [selected]);
-  const selectedUnits = useMemo(
-    () => selected.flatMap((id) => observation?.own.find((u) => u.id === id) ?? []),
-    [observation, selected],
+  const yours = useMemo(() => controlled(observation, player), [observation, player]);
+  // Reconcile before committing handlers: a casualty or a boarding squad
+  // cannot poison the rest's orders. Only units on the field are selectable:
+  // a squad a carrier holds drops out however it got in (a click, a box, a
+  // double-click, or boarding).
+  const onField = selected.filter((id) =>
+    observation?.own.some((u) => u.id === id && !aboardCarrier(u)),
   );
-  // Reconcile before committing handlers: a casualty cannot poison the survivors' orders.
-  if (selectedUnits.length !== selected.length) setSelection(selectedUnits.map((u) => u.id));
+  if (onField.length !== selected.length) setSelection(onField);
+  /** The selection's units that take orders: an ally's never do. */
+  const selectedUnits = useMemo(
+    () => selected.flatMap((id) => yours.find((u) => u.id === id && !aboardCarrier(u)) ?? []),
+    [yours, selected],
+  );
   const [acks, setAcks] = useState<AckEntry[]>([]);
   const [mode, setModeState] = useState<CommandMode>("move");
   // The armed mode as last set, ahead of the render: a key pressed right
@@ -101,6 +121,10 @@ export function useUnitControl(
   }, []);
   const observationRef = useRef(observation);
   observationRef.current = observation;
+  /** Every own unit as last observed: passengers are among them. */
+  const ownUnits = useCallback(() => observationRef.current?.own ?? [], []);
+  const yoursRef = useRef(yours);
+  yoursRef.current = yours;
   const clientRef = useRef(client);
   clientRef.current = client;
   /** Space held (D2+): the order overlay shows every own unit. */
@@ -161,6 +185,16 @@ export function useUnitControl(
           return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "exit_building":
           return `leave building: ${order.units.map(unitName).join(", ")}`;
+        case "board":
+          return `board carrier ${unitName(order.carrier)} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+        case "collect":
+          return `collect ${order.squads.map(unitName).join(", ")} into ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+        case "unload":
+          return order.goal
+            ? `unload ${order.units.map(unitName).join(", ")} at (${order.goal
+                .map((v) => v.toFixed(0))
+                .join(", ")})${queued ? " (queued)" : ""}`
+            : `unload ${order.units.map(unitName).join(", ")} here`;
         case "refund":
           return `return ${order.units.map(unitName).join(", ")} to base`;
         case "ready":
@@ -191,20 +225,44 @@ export function useUnitControl(
     [client, describe],
   );
 
+  /** What a pointer at `pick` would order, by the selection and armed mode. */
+  const intentAt = useCallback(
+    (pick: PointerPick) =>
+      pointerIntent(
+        pick,
+        selectedUnitsRef.current,
+        modeRef.current,
+        catalog,
+        ownUnits(),
+        yoursRef.current,
+      ),
+    [catalog, ownUnits],
+  );
+
   const onPointer = useCallback(
     (pick: PointerPick, captured?: PointerIntent) => {
       if (!enabledRef.current) return;
+      // A right-click cancels a mode a left-click confirms, and a press
+      // captured in one.
       if (
         pick.button === "right" &&
-        (modeRef.current === "attack_ground" ||
+        (CONFIRMED_BY_LEFT_CLICK.has(modeRef.current) ||
+          captured?.kind === "unload" ||
           (captured?.kind === "attack" && captured.target.kind === "ground"))
       ) {
         setMode("move");
         return;
       }
-      if (pick.button === "left" && modeRef.current !== "attack_ground") {
+      if (pick.button === "left" && !CONFIRMED_BY_LEFT_CLICK.has(modeRef.current)) {
         const unit = pick.unit;
-        const own = observationRef.current?.own ?? [];
+        const own = yoursRef.current;
+        if (unit !== null && !own.some((u) => u.id === unit)) {
+          // An ally's unit: selected alone, to read its panel.
+          clickedRef.current = null;
+          clicks.current.reset();
+          setSelection([unit]);
+          return;
+        }
         const kind = own.find((u) => u.id === unit)?.kind ?? null;
         clickedRef.current = kind ? unit : null;
         const similar = clicks.current.click({ ...pick, unit: kind ? unit : null, kind });
@@ -215,8 +273,10 @@ export function useUnitControl(
           setSelection((current) => (pick.shift ? [...new Set([...current, ...hits])] : hits));
           return;
         }
-        setSelection((current) =>
-          unit === null
+        setSelection((selection) => {
+          // Shift adds to your own units, never to an ally's being read.
+          const current = selection.filter((id) => own.some((u) => u.id === id));
+          return unit === null
             ? pick.shift
               ? current
               : []
@@ -224,13 +284,13 @@ export function useUnitControl(
               ? current.includes(unit)
                 ? current.filter((u) => u !== unit)
                 : [...current, unit]
-              : [unit],
-        );
+              : [unit];
+        });
         return;
       }
       const intent = captured
-        ? reconcilePointerIntent(captured, observationRef.current)
-        : pointerIntent(pick, selectedUnitsRef.current, modeRef.current, catalog);
+        ? reconcilePointerIntent(captured, observationRef.current, player)
+        : intentAt(pick);
       if (intent.kind === "none") return;
       if (intent.kind === "blocked") {
         if (intent.disarm) setMode("move");
@@ -256,12 +316,7 @@ export function useUnitControl(
         void issue({ ...command, gesture: gestures.current.token() }, queued);
       }
     },
-    [issue, setMode, catalog],
-  );
-
-  const intentAt = useCallback(
-    (pick: PointerPick) => pointerIntent(pick, selectedUnitsRef.current, modeRef.current, catalog),
-    [catalog],
+    [issue, setMode, intentAt, catalog, player],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */
@@ -277,36 +332,42 @@ export function useUnitControl(
     });
   }, [issue]);
 
-  /** Select own units whose screen position falls in a dragged rectangle. */
+  /** Select your units whose screen position falls in a dragged rectangle. */
   const selectInRect = useCallback(
     (inRect: (unit: OwnUnitView) => boolean, additive: boolean) => {
-      const hits = (observationRef.current?.own ?? []).filter(inRect).map((u) => u.id);
-      setSelected((current) => (additive ? [...new Set([...current, ...hits])] : hits));
+      const own = yoursRef.current;
+      const hits = own.filter(inRect).map((u) => u.id);
+      setSelected((current) =>
+        additive
+          ? [...new Set([...current.filter((id) => own.some((u) => u.id === id)), ...hits])]
+          : hits,
+      );
     },
     [setSelected],
   );
 
   const stop = useCallback(() => {
-    if (selected.length) void issue({ kind: "stop", units: selected });
-  }, [selected, issue]);
+    const units = selectedUnitsRef.current.map((u) => u.id);
+    if (units.length) void issue({ kind: "stop", units });
+  }, [issue]);
 
   /** Deploy (set up in place) or pack the selection's units that deploy. */
   const setDeployment = useCallback(
     (deployed: boolean) => {
-      const units = reach("deploy", selectedUnitsRef.current, catalog).map((u) => u.id);
+      const units = reach("deploy", selectedUnitsRef.current, catalog, ownUnits()).map((u) => u.id);
       if (units.length) void issue({ kind: "set_deployment", units, deployed });
     },
-    [issue, catalog],
+    [issue, catalog, ownUnits],
   );
 
   /** Deploy the selection's units that deploy, or pack them if all are
    *  already deployed or deploying. */
   const toggleDeployment = useCallback(() => {
-    const units = reach("deploy", selectedUnitsRef.current, catalog);
+    const units = reach("deploy", selectedUnitsRef.current, catalog, ownUnits());
     if (!units.length) return;
     const deployed = units.every((u) => u.deployment?.target === "deployed");
     void issue({ kind: "set_deployment", units: units.map((u) => u.id), deployed: !deployed });
-  }, [issue, catalog]);
+  }, [issue, catalog, ownUnits]);
 
   /** Toggle the persistent afterburner on the selected aircraft. */
   const toggleAfterburner = useCallback(() => {
@@ -318,9 +379,30 @@ export function useUnitControl(
 
   /** The selection's units inside a building leave it. */
   const exitBuilding = useCallback(() => {
-    const units = reach("exit_building", selectedUnitsRef.current, catalog).map((u) => u.id);
+    const units = reach("exit_building", selectedUnitsRef.current, catalog, ownUnits()).map(
+      (u) => u.id,
+    );
     if (units.length) void issue({ kind: "exit_building", units });
-  }, [issue, catalog]);
+  }, [issue, catalog, ownUnits]);
+
+  /** Unload (D8): the first press arms it, for a click on the ground; a
+   *  press while armed unloads where the carriers stand, replacing their
+   *  orders. Only carriers with passengers take it: with none selected it
+   *  never arms, and disarms if it was. */
+  const pressUnload = useCallback(() => {
+    const units = reach("unload", selectedUnitsRef.current, catalog, ownUnits()).map((u) => u.id);
+    if (!units.length) {
+      if (modeRef.current === "unload") setMode("move");
+      return;
+    }
+    if (modeRef.current !== "unload") {
+      setMode("unload");
+      return;
+    }
+    setMode("move");
+    const gesture = gestures.current.token();
+    void issue({ kind: "unload", units, goal: null, gesture, route: "shortest" });
+  }, [issue, catalog, setMode, ownUnits]);
 
   const refund = useCallback(() => {
     const units = selectedUnitsRef.current.map((unit) => unit.id);
@@ -337,11 +419,12 @@ export function useUnitControl(
       if (!command || (command === "disarm" && modeRef.current === "move")) return;
       e.preventDefault();
       const any = selectedUnitsRef.current.length > 0;
-      const armed = reach("attack", selectedUnitsRef.current, catalog).length > 0;
+      const armed = reach("attack", selectedUnitsRef.current, catalog, ownUnits()).length > 0;
       if (command === "stop") stop();
       else if (command === "toggle_fire_policy") togglePolicy();
       else if (command === "toggle_deployment") toggleDeployment();
       else if (command === "toggle_afterburner") toggleAfterburner();
+      else if (command === "unload") pressUnload();
       else if (command === "attack_move" && any) setMode("attack_move");
       else if (command === "reverse_move" && any) setMode("reverse_move");
       else if (command === "attack_ground" && armed) setMode("attack_ground");
@@ -351,10 +434,21 @@ export function useUnitControl(
     // listeners' order.
     window.addEventListener("keydown", onKey, { capture: true });
     return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [stop, togglePolicy, toggleDeployment, toggleAfterburner, setMode, catalog]);
+  }, [
+    stop,
+    togglePolicy,
+    toggleDeployment,
+    toggleAfterburner,
+    pressUnload,
+    setMode,
+    catalog,
+    ownUnits,
+  ]);
 
   return {
     refund: observation?.skirmish ? refund : undefined,
+    /** The units the player orders (`controlled`): the army row's. */
+    controlled: yours,
     selected,
     setSelected,
     selectedUnits,
@@ -368,6 +462,7 @@ export function useUnitControl(
     toggleDeployment,
     toggleAfterburner,
     exitBuilding,
+    pressUnload,
     togglePolicy,
     mode,
     setMode,

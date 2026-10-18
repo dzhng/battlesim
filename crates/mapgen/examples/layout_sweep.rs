@@ -147,6 +147,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     template_catalog_hash: catalogue.hash().into(),
                     map_type,
                     size,
+                    entries_per_side: 1,
                     profile: contract::generation::GenerationProfile::Standard,
                     region: None,
                     limits: CompileLimits {

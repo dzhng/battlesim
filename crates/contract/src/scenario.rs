@@ -660,6 +660,8 @@ pub struct Rules {
     pub ground: GroundRules,
     pub buildings: BuildingRules,
     pub garrison: GarrisonRules,
+    pub carriage: CarriageRules,
+    pub bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
     pub hull_limits: HullLimits,
     pub air_speed_limits_kmh: AirSpeedLimits,
     pub air: AirRules,
@@ -969,6 +971,8 @@ struct UncheckedRules {
     ground: GroundRules,
     buildings: BuildingRules,
     garrison: GarrisonRules,
+    carriage: CarriageRules,
+    bail_out: std::collections::BTreeMap<BailOutHost, BailOutRow>,
     hull_limits: HullLimits,
     air_speed_limits_kmh: AirSpeedLimits,
     air: AirRules,
@@ -988,6 +992,7 @@ impl TryFrom<UncheckedRules> for Rules {
             ("forests", r.forests.check(&r.catalog)),
             ("formation", r.formation.check()),
             ("commands", r.commands.check()),
+            ("carriage", r.carriage.check()),
             ("air", r.air.check()),
             ("shouts", r.shouts.check()),
         ] {
@@ -996,6 +1001,21 @@ impl TryFrom<UncheckedRules> for Rules {
                 id: id.into(),
                 error,
             })?;
+        }
+        // Every host a passenger can be thrown out of has its row, so a
+        // bail-out never finds one missing mid-battle.
+        for (host, name) in [
+            (BailOutHost::Building, "building"),
+            (BailOutHost::Ground, "ground"),
+            (BailOutHost::Air, "air"),
+        ] {
+            if !r.bail_out.contains_key(&host) {
+                return Err(crate::catalog::CatalogError::Invalid {
+                    section: "rules",
+                    id: "bail_out".into(),
+                    error: format!("no row for {name} hosts"),
+                });
+            }
         }
         Ok(Rules {
             tick_hz: r.tick_hz,
@@ -1021,6 +1041,8 @@ impl TryFrom<UncheckedRules> for Rules {
             ground: r.ground,
             buildings: r.buildings,
             garrison: r.garrison,
+            carriage: r.carriage,
+            bail_out: r.bail_out,
             hull_limits: r.hull_limits,
             air_speed_limits_kmh: r.air_speed_limits_kmh,
             air: r.air,
@@ -1165,13 +1187,10 @@ pub struct BuildingRules {
 
 /// Entering, leaving and escaping buildings (the fixture's `garrison` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GarrisonRules {
     /// One stationary timer to enter and to leave.
     pub enter_exit_s: f64,
-    /// Each occupant survives a collapse with this probability.
-    pub survival_probability_on_collapse: f64,
-    /// How far from its slot a collapse survivor may find a legal place.
-    pub exit_search_radius_m: f64,
     /// A squad this close to a building's footprint may start entering.
     pub entry_distance_m: f64,
     /// Perimeter slots stand this far outside the facade.
@@ -1184,6 +1203,50 @@ pub struct GarrisonRules {
     pub window_swap_s: f64,
     /// A soldier who changed windows keeps his new one at least this long.
     pub window_hold_s: f64,
+}
+
+/// Timing and reach for squads boarding a carrier.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CarriageRules {
+    pub board_s: f64,
+    pub reach_m: f64,
+    pub unload_search_m: f64,
+}
+
+impl CarriageRules {
+    fn check(&self) -> Result<(), String> {
+        for (name, value) in [
+            ("board_s", self.board_s),
+            ("reach_m", self.reach_m),
+            ("unload_search_m", self.unload_search_m),
+        ] {
+            if !value.is_finite() || value <= 0.0 {
+                return Err(format!("carriage.{name} must be finite and positive"));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// The physical kind of host a forced passenger exit comes from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BailOutHost {
+    Building,
+    Ground,
+    Air,
+}
+
+/// Injury and placement rules for one kind of bail-out host.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BailOutRow {
+    #[serde(default)]
+    pub squad_loss: Option<f64>,
+    pub death: f64,
+    pub hp_lost: [f64; 2],
+    pub search_m: f64,
 }
 
 /// Infantry suppression (P14): a hidden level in [0, 1] that near misses
@@ -1485,7 +1548,7 @@ pub struct AuthoredScript {
     #[serde(default = "default_script_side")]
     pub side: Side,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub slot: Option<String>,
+    pub player: Option<String>,
 }
 
 fn default_script_side() -> Side {
@@ -1496,7 +1559,7 @@ fn default_script_side() -> Side {
 #[serde(deny_unknown_fields)]
 pub struct UnitSetup {
     pub side: Side,
-    /// Scenario-bundle player slot that owns this unit. Legacy authored
+    /// Scenario-bundle player that owns this unit. Legacy authored
     /// encounters omit it and remain side-owned; portable bundles materialize
     /// it before the battle starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1549,6 +1612,8 @@ fn is_zero(v: &f64) -> bool {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ScenarioDefinition {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub players: Vec<crate::players::Player>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skirmish: Option<crate::skirmish::SkirmishSetup>,
     pub map: MapDefinition,
@@ -1568,6 +1633,27 @@ pub struct ScenarioDefinition {
     /// An encounter's local completion condition (holding its objective).
     #[serde(default)]
     pub encounter: Option<EncounterRules>,
+}
+
+impl ScenarioDefinition {
+    pub fn validate_player_contract(&self) -> Result<(), String> {
+        let Some(skirmish) = &self.skirmish else {
+            return Ok(());
+        };
+        crate::players::validate_players(&self.players)?;
+        crate::players::validate_players_per_side(
+            &self.players,
+            skirmish.rules.max_players_per_side as usize,
+        )?;
+        for player_id in skirmish.openings.keys() {
+            if !self.players.iter().any(|player| player.id == *player_id) {
+                return Err(format!(
+                    "opening {player_id} does not name a skirmish player"
+                ));
+            }
+        }
+        crate::players::validate_entry_counts(&self.players, &skirmish.sites.entries)
+    }
 }
 
 /// The encounter half of a scenario: the forces, events and scripted orders
@@ -1603,6 +1689,7 @@ impl EncounterDefinition {
             .overridden(&self.overrides)
             .map_err(|e| format!("overrides: {e}"))?;
         Ok(ScenarioDefinition {
+            players: Vec::new(),
             skirmish: None,
             map,
             rules,

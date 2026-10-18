@@ -13,7 +13,7 @@
 //! the one named exception to soldiers as free bodies (Q22): a seated soldier
 //! stands at his slot.
 //!
-//! Garrison state is the unit's own (`Unit::garrison`); the world owns the
+//! Garrison placement is part of the unit's own hold; the world owns the
 //! exposed physical geometry; this module seats squads and `structures` holds integrity, one row of every
 //! destroyable prop's.
 use std::collections::BTreeSet;
@@ -21,7 +21,9 @@ use std::collections::BTreeSet;
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::MoverClass;
-use contract::observation::{GarrisonPhase, GarrisonState, MoveState};
+
+use crate::hold::ticks;
+use crate::hold::Phase;
 use contract::scenario::Rules;
 
 use crate::arrangement;
@@ -34,27 +36,14 @@ use contract::random::Rng;
 mod occupy;
 pub(crate) use occupy::{occupy, BuildingPlan, EntryAction};
 
-/// Escaping soldiers keep at least this far apart.
-const ESCAPE_SPACING_M: f64 = 1.0;
 /// Exit places are sampled this far apart around the building.
 const EXIT_STEP_M: f64 = 2.0;
 /// A leaving squad's middle stands this far beyond the building's walls.
 const EXIT_CLEARANCE_M: f64 = 1.0;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Phase {
-    /// Stationary beside the building for this many ticks.
-    Entering(u32),
-    Inside,
-    /// Stationary inside, leaving, for this many ticks.
-    Exiting(u32),
-}
-
-/// A squad's hold on one building.
+/// A squad's building-specific placement data. The host and timer live in `sim::hold`.
 #[derive(Clone, Debug)]
 pub struct Garrison {
-    pub building: PropId,
-    pub phase: Phase,
     /// The building's exposed bay slots at their floor heights.
     pub slots: SeatPlan,
     /// Each member's slot index while inside.
@@ -79,11 +68,16 @@ pub type SeatPlan = Vec<SeatSlot>;
 impl Garrison {
     /// Member `k`'s slot while at the perimeter (inside or leaving).
     pub fn seat(&self, k: usize) -> Option<&SeatSlot> {
-        match self.phase {
-            Phase::Inside | Phase::Exiting(_) => self.slots.get((*self.seats.get(k)?)?),
-            Phase::Entering(_) => None,
-        }
+        self.slots.get((*self.seats.get(k)?)?)
     }
+}
+
+fn building_hold(unit: &Unit) -> Option<&Garrison> {
+    unit.hold.as_ref()?.building()
+}
+
+fn held_building(unit: &Unit) -> Option<PropId> {
+    unit.hold.as_ref().and_then(|hold| hold.host.building())
 }
 
 /// Published body pose: indoors behind the occupied window. Combat keeps
@@ -91,16 +85,11 @@ impl Garrison {
 /// occupant still meets the wall without making it target-transparent.
 pub fn body_position(unit: &Unit, member: usize, rules: &Rules) -> V3 {
     let at = unit.members[member].position;
-    unit.garrison
-        .as_ref()
+    building_hold(unit)
         .and_then(|g| g.seat(member))
         .map_or(at, |seat| {
             at - (seat.slot.normal * (2.0 * rules.garrison.slot_standoff_m)).with_z(0.0)
         })
-}
-
-fn ticks(seconds: f64, rules: &Rules) -> u32 {
-    ((seconds * rules.tick_hz as f64).round() as u32).max(1)
 }
 
 /// The one band policy used by seating and building bulk integrity.
@@ -178,7 +167,7 @@ fn seat_plan(
 }
 
 /// A standing body a squad can garrison (its row's `garrison`), or `None`.
-fn building(world: &WorldGeometry, id: PropId) -> Option<&Prop> {
+pub(crate) fn building(world: &WorldGeometry, id: PropId) -> Option<&Prop> {
     world
         .prop(world.structure_owner(id)?)
         .filter(|p| p.body.garrison)
@@ -247,13 +236,11 @@ pub(crate) fn approach(
 
 /// Whether a squad other than the one at `i`, of either side, holds
 /// `building` (inside or leaving): a building takes one squad.
-fn held_by_another(units: &[Unit], building: PropId, i: usize) -> bool {
-    units.iter().enumerate().any(|(j, u)| {
-        j != i
-            && u.alive()
-            && u.garrisoned()
-            && u.garrison.as_ref().is_some_and(|g| g.building == building)
-    })
+pub(crate) fn held_by_another(units: &[Unit], building: PropId, i: usize) -> bool {
+    units
+        .iter()
+        .enumerate()
+        .any(|(j, u)| j != i && u.alive() && u.garrisoned() && held_building(u) == Some(building))
 }
 
 /// Command check (L08): infantry only, a building the side knows, one squad per
@@ -285,7 +272,7 @@ pub fn validate(
         return Err(OrderError::NotInfantry { unit: *id });
     }
     let heading_in = |u: &Unit| {
-        u.garrison.as_ref().is_some_and(|g| g.building == target)
+        held_building(u) == Some(target)
             || u.orders
                 .iter()
                 .any(|o| matches!(o, UnitOrder::Garrison { building, .. } if *building == target))
@@ -309,29 +296,33 @@ pub(crate) fn current_entry(unit: &Unit, building: PropId) -> Option<V2> {
     if let Some(entry) = held_entry(unit, building) {
         return Some(entry);
     }
-    if let Some(g) = unit.garrison.as_ref().filter(|g| g.building == building) {
-        if matches!(g.phase, Phase::Entering(_))
+    if let Some(hold) = unit
+        .hold
+        .as_ref()
+        .filter(|hold| hold.host.building() == Some(building))
+    {
+        if matches!(hold.phase, Phase::Entering(_))
             && matches!(want(unit), Want::Enter(b) if b == building)
         {
-            return Some(g.entry);
+            return Some(hold.building()?.entry);
         }
     }
     None
 }
 
 pub(crate) fn held_entry(unit: &Unit, building: PropId) -> Option<V2> {
-    unit.garrison
+    unit.hold
         .as_ref()
-        .filter(|g| {
-            g.building == building
-                && matches!(g.phase, Phase::Inside)
+        .filter(|hold| {
+            hold.host.building() == Some(building)
+                && matches!(hold.phase, Phase::Inside)
                 && match want(unit) {
                     Want::Stay => true,
                     Want::Enter(b) => b == building,
                     Want::Leave => false,
                 }
         })
-        .map(|g| g.entry)
+        .and_then(|hold| hold.building().map(|g| g.entry))
 }
 
 /// What stops a soldier on foot: every prop that blocks infantry.
@@ -342,7 +333,7 @@ fn solid(p: &Prop) -> bool {
 /// Where a leaving squad's soldiers stand: the place around the building
 /// nearest `preferred` where the whole squad finds a spread-out arrangement
 /// (deterministic, ties by perimeter order), one spot per living member.
-fn exit_spots(
+pub(crate) fn exit_spots(
     world: &WorldGeometry,
     prop: &Prop,
     unit: &Unit,
@@ -407,7 +398,7 @@ fn exit_spots(
 
 /// Seat every living member, spreading the squad evenly around the facades:
 /// the next slot of each facade in turn.
-fn seat_evenly(slots: &[SeatSlot], unit: &Unit) -> Vec<Option<usize>> {
+pub(crate) fn seat_evenly(slots: &[SeatSlot], unit: &Unit) -> Vec<Option<usize>> {
     let mut facades: [Vec<usize>; 4] = Default::default();
     for (i, s) in slots.iter().enumerate() {
         facades[s.slot.facade as usize].push(i);
@@ -425,7 +416,7 @@ fn seat_evenly(slots: &[SeatSlot], unit: &Unit) -> Vec<Option<usize>> {
 /// on the facade its living soldiers hold fewest of. `None` outside a
 /// building, or when every slot is taken.
 pub fn free_seat(unit: &Unit) -> Option<(usize, V3)> {
-    let g = unit.garrison.as_ref().filter(|_| unit.garrisoned())?;
+    let g = building_hold(unit).filter(|_| unit.garrisoned())?;
     let taken = taken_slots(&g.seats, &unit.members);
     let mut held = [0usize; 4];
     for &s in &taken {
@@ -450,169 +441,20 @@ fn taken_slots(seats: &[Option<usize>], members: &[Soldier]) -> BTreeSet<usize> 
 }
 
 /// What the squad's front order wants of buildings.
-enum Want {
+pub(crate) enum Want {
     Enter(PropId),
-    /// Leave: an exit order, or one that needs to move.
+    /// Leave: an exit order, or one that needs to move (boarding a carrier
+    /// included).
     Leave,
     Stay,
 }
 
-fn want(unit: &Unit) -> Want {
+pub(crate) fn want(unit: &Unit) -> Want {
     match unit.orders.front() {
         Some(UnitOrder::Garrison { building, .. }) => Want::Enter(*building),
-        Some(UnitOrder::Exit) => Want::Leave,
+        Some(UnitOrder::Exit | UnitOrder::Board { .. }) => Want::Leave,
         Some(o) if o.movement().is_some() => Want::Leave,
         _ => Want::Stay,
-    }
-}
-
-/// Advance every squad's garrison one tick: start entering beside the
-/// ordered building, seat the squad when the timer ends unless another holds it,
-/// leave after the exit timer. Transitions are stationary: a squad with a
-/// building has no movement goal. `seed`, the squad and where it heads
-/// fix the arrangement a leaving squad spreads into.
-pub fn advance(
-    world: &WorldGeometry,
-    sides: &[crate::movement::SideGeometry; 3],
-    authored: PropId,
-    units: &mut [Unit],
-    rules: &Rules,
-    seed: u64,
-) {
-    let timer = ticks(rules.garrison.enter_exit_s, rules);
-    for i in 0..units.len() {
-        if !units[i].alive() {
-            continue;
-        }
-        let want = want(&units[i]);
-        let phase = units[i].garrison.as_ref().map(|g| (g.building, g.phase));
-        match (phase, want) {
-            (None, Want::Enter(b)) => {
-                let Some(_) = sides[units[i].side.index()]
-                    .prop(world, authored, b)
-                    .filter(|p| p.body.garrison)
-                else {
-                    units[i].orders.pop_front(); // its fall was discovered
-                    continue;
-                };
-                if world
-                    .structure_parts(b)
-                    .into_iter()
-                    .filter_map(|id| sides[units[i].side.index()].prop(world, authored, id))
-                    .any(|p| {
-                        p.footprint()
-                            .contains(units[i].position.xy(), rules.garrison.entry_distance_m)
-                    })
-                {
-                    let unit = &mut units[i];
-                    unit.route = None;
-                    unit.planned_goal = None;
-                    unit.state = MoveState::Idle;
-                    unit.garrison = Some(Garrison {
-                        building: b,
-                        phase: Phase::Entering(1),
-                        slots: Vec::new(),
-                        seats: Vec::new(),
-                        entry: unit.position.xy(),
-                    });
-                }
-            }
-            (None, Want::Leave) if matches!(units[i].orders.front(), Some(UnitOrder::Exit)) => {
-                units[i].orders.pop_front(); // nothing to leave
-            }
-            (None, _) => {}
-            (Some((b, Phase::Entering(_))), w)
-                if !matches!(w, Want::Enter(x) if x == b) || building(world, b).is_none() =>
-            {
-                // A new order (or Stop) cancels entering where the squad stands.
-                units[i].garrison = None;
-                if matches!(units[i].orders.front(), Some(UnitOrder::Exit)) {
-                    units[i].orders.pop_front();
-                }
-            }
-            (Some((_, Phase::Entering(n))), _) if n < timer => {
-                units[i].garrison.as_mut().unwrap().phase = Phase::Entering(n + 1);
-            }
-            (Some((b, Phase::Entering(_))), _) => {
-                // Another squad (an enemy's) got in first: the order lapses
-                // and the squad stands where it is.
-                if held_by_another(units, b, i) {
-                    units[i].garrison = None;
-                    units[i].orders.pop_front();
-                    continue;
-                }
-                let entry = units[i].garrison.as_ref().unwrap().entry;
-                let prop = building(world, b).expect("standing building");
-                let slots = seats_for_state(world, prop, rules);
-                // Supply may restore soldiers during the entry timer. Admission
-                // still belongs to the whole living squad when it takes seats.
-                if units[i].members.iter().filter(|s| s.alive()).count() > slots.len() {
-                    units[i].garrison = None;
-                    units[i].orders.pop_front();
-                    continue;
-                }
-                let seats = seat_evenly(&slots, &units[i]);
-                let unit = &mut units[i];
-                for (s, seat) in unit.members.iter_mut().zip(&seats) {
-                    if let Some(k) = seat {
-                        s.position = slots[*k].position;
-                    }
-                }
-                unit.settle();
-                unit.garrison = Some(Garrison {
-                    building: b,
-                    phase: Phase::Inside,
-                    slots,
-                    seats,
-                    entry,
-                });
-                unit.orders.pop_front();
-            }
-            (Some((b, Phase::Inside)), Want::Enter(x)) if x == b => {
-                units[i].orders.pop_front(); // already there
-            }
-            (Some((_, Phase::Inside)), Want::Enter(_) | Want::Leave) => {
-                units[i].garrison.as_mut().unwrap().phase = Phase::Exiting(1);
-            }
-            (Some((_, Phase::Inside)), Want::Stay) => {}
-            (Some((_, Phase::Exiting(_))), Want::Stay) => {
-                // Stop (or an order that stays) keeps the squad inside.
-                units[i].garrison.as_mut().unwrap().phase = Phase::Inside;
-            }
-            (Some((_, Phase::Exiting(n))), _) if n < timer => {
-                units[i].garrison.as_mut().unwrap().phase = Phase::Exiting(n + 1);
-            }
-            (Some((b, Phase::Exiting(_))), _) => {
-                let unit = &units[i];
-                let prop = building(world, b).expect("occupied building stands");
-                let entry = unit.garrison.as_ref().unwrap().entry;
-                let preferred = match unit.orders.front() {
-                    Some(UnitOrder::Garrison { approach, .. }) => *approach,
-                    Some(o) => o.movement().map_or(entry, |m| m.destination),
-                    None => entry,
-                };
-                // No room outside: the squad stays inside and tries again.
-                let mut draws = arrangement::rng(seed, unit.id.0, arrangement::arrival(preferred));
-                if let Some(spots) = exit_spots(world, prop, unit, preferred, rules, &mut draws) {
-                    let unit = &mut units[i];
-                    let living = unit.members.iter_mut().filter(|s| s.alive());
-                    for (s, p) in living.zip(spots) {
-                        let z = world.surface_at(p.x, p.y).map_or(s.position.z, |g| g.z);
-                        s.position = p.with_z(z);
-                    }
-                    unit.settle();
-                    // Placed out of the building: the squad holds round there.
-                    unit.anchor = Some(crate::cover::Anchor {
-                        at: unit.position.xy(),
-                        halt: false,
-                    });
-                    unit.garrison = None;
-                    if matches!(unit.orders.front(), Some(UnitOrder::Exit)) {
-                        unit.orders.pop_front();
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -660,13 +502,19 @@ pub fn allocate_slots(
     tick: Tick,
 ) {
     let facing = rules.garrison.slot_facing_min_deg.to_radians();
-    let hold = ticks(rules.garrison.window_hold_s, rules) as Tick;
+    let window_hold = ticks(rules.garrison.window_hold_s, rules) as Tick;
     for (i, mounts) in aims {
         let unit = &mut units[*i];
-        let Some(g) = unit.garrison.as_mut().filter(|g| g.phase == Phase::Inside) else {
+        let Some(hold) = unit
+            .hold
+            .as_mut()
+            .filter(|hold| hold.phase == Phase::Inside)
+        else {
             continue;
         };
-        let settled = |g: &Garrison, s: usize| g.slots[s].changed.is_none_or(|t| tick >= t + hold);
+        let g = hold.building_mut().expect("building hold");
+        let settled =
+            |g: &Garrison, s: usize| g.slots[s].changed.is_none_or(|t| tick >= t + window_hold);
         for aim in mounts {
             let point = aim.point;
             let need = need(aim.single_operator);
@@ -722,8 +570,7 @@ pub fn allocate_slots(
 /// to (`window_swap_s`): he doesn't fire meanwhile.
 pub fn changing_window(unit: &Unit, k: usize, rules: &Rules, tick: Tick) -> bool {
     let swap = ticks(rules.garrison.window_swap_s, rules) as Tick;
-    unit.garrison
-        .as_ref()
+    building_hold(unit)
         .and_then(|g| g.seat(k))
         .and_then(|s| s.changed)
         .is_some_and(|t| tick < t + swap)
@@ -732,7 +579,7 @@ pub fn changing_window(unit: &Unit, k: usize, rules: &Rules, tick: Tick) -> bool
 /// One real occupied seat per directional group, on its highest held band.
 /// Equal-height seats tie by plan order, so eyes never average into a wall.
 pub fn facade_eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
-    let Some(g) = unit.garrison.as_ref().filter(|_| unit.garrisoned()) else {
+    let Some(g) = building_hold(unit).filter(|_| unit.garrisoned()) else {
         return Vec::new();
     };
     let mut held: [Option<usize>; 4] = [None; 4];
@@ -766,10 +613,10 @@ pub fn shelter(unit: &Unit, rules: &Rules) -> f64 {
 
 /// The building a garrisoned unit's soldiers stand against.
 pub fn shell(unit: &Unit) -> Option<PropId> {
-    unit.garrison
+    unit.hold
         .as_ref()
         .filter(|_| unit.garrisoned())
-        .map(|g| g.building)
+        .and_then(|hold| hold.host.building())
 }
 
 /// Whether garrisoned member `k` stands at a slot facing `point`, ready to
@@ -777,33 +624,28 @@ pub fn shell(unit: &Unit) -> Option<PropId> {
 pub fn faces(unit: &Unit, k: usize, point: V3, rules: &Rules, tick: Tick) -> bool {
     let facing = rules.garrison.slot_facing_min_deg.to_radians();
     !changing_window(unit, k, rules, tick)
-        && unit
-            .garrison
-            .as_ref()
+        && building_hold(unit)
             .and_then(|g| g.seat(k))
             .is_some_and(|s| s.slot.faces(point.xy(), facing))
 }
 
-/// A building collapsed (L10) and its ruin stands in its place: each
-/// occupant survives with the configured probability and escapes on foot to
-/// the nearest legal free ground within the local search, carrying heavy
-/// suppression; one with no legal escape dies where it stood. Squads still
-/// entering stand outside and are unharmed. Returns units destroyed.
+/// A building collapsed (L10) and its ruin stands in its place. Every living
+/// occupant takes the building bail-out injury, then either escapes to a clear
+/// surface or dies; survivors leave pinned. Squads still entering stand outside.
 pub fn collapse(
     world: &WorldGeometry,
     units: &mut [Unit],
     target: PropId,
     rules: &Rules,
-    rng: &mut Rng,
+    seed: u64,
     tick: Tick,
+    ignored_props: &[PropId],
 ) -> Vec<UnitId> {
-    let g = &rules.garrison;
-    let mut taken: Vec<V2> = Vec::new();
     let mut destroyed = Vec::new();
-    for unit in units.iter_mut() {
+    for index in 0..units.len() {
         // A whole squad may already be dead and have relinquished its hold.
         // The fallen retain their floor's owner until that support disappears.
-        for member in &mut unit.members {
+        for member in &mut units[index].members {
             if let Some(fallen) = &mut member.corpse {
                 if fallen.support_building == Some(target) {
                     fallen.at.z = world
@@ -813,111 +655,63 @@ pub fn collapse(
                 }
             }
         }
-        if unit.garrison.as_ref().is_none_or(|g| g.building != target) {
+        if units[index]
+            .hold
+            .as_ref()
+            .is_none_or(|hold| hold.host.building() != Some(target))
+        {
             continue;
         }
-        if !unit.garrisoned() {
-            unit.garrison = None; // still outside: its order lapses next tick
+        if !units[index].garrisoned() {
+            units[index].hold = None;
             continue;
         }
-        let mut out: Vec<(usize, V2)> = Vec::new();
-        for k in 0..unit.members.len() {
-            if !unit.members[k].alive() {
-                continue;
-            }
-            let at = unit.members[k].position;
-            let lives = rng.unit() < g.survival_probability_on_collapse;
-            let from = at.xy();
-            // He scrambles out as one body: wherever a soldier's disc
-            // fits, not where the squad's path clearance does.
-            let radius = rules.physics.soldier_radius_m;
-            let place = lives
-                .then(|| {
-                    arrangement::nearest_free(from, g.exit_search_radius_m, |p| {
-                        taken.iter().all(|t| (*t - p).length() >= ESCAPE_SPACING_M)
-                            && arrangement::standing_room(world, p, radius, &solid)
-                            && arrangement::reachable(world, from, p, radius, &solid)
-                    })
-                })
-                .flatten();
-            match place {
-                Some(p) => {
-                    taken.push(p);
-                    out.push((k, p));
-                }
-                None => {
-                    unit.members[k].fall(
-                        at.xy()
-                            .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
-                        unit.yaw,
-                        None,
-                    );
-                }
-            }
+        let (hulls, soldiers) = crate::arrangement::ground_taken(units, units[index].id);
+        let rule = crate::bail_out::row(rules, contract::scenario::BailOutHost::Building);
+        let host = units[index].hold.as_ref().expect("building hold").host;
+        let out = crate::bail_out::apply(
+            world,
+            &mut units[index],
+            host,
+            rule,
+            seed,
+            tick,
+            crate::bail_out::Occupancy {
+                radius: rules.physics.soldier_radius_m,
+                hulls: &hulls,
+                soldiers: &soldiers,
+                ignored_props,
+            },
+        );
+        units[index].hold = None;
+        if matches!(units[index].orders.front(), Some(UnitOrder::Exit)) {
+            units[index].orders.pop_front();
         }
-        unit.garrison = None;
-        if matches!(unit.orders.front(), Some(UnitOrder::Exit)) {
-            unit.orders.pop_front();
-        }
-        if out.is_empty() {
-            unit.orders.clear();
-            unit.route = None;
-            destroyed.push(unit.id);
+        if out == 0 {
+            units[index].orders.clear();
+            units[index].route = None;
+            destroyed.push(units[index].id);
             continue;
         }
-        // Each survivor stands where he escaped to.
-        for (k, p) in out {
-            let z = world.surface_at(p.x, p.y).map_or(0.0, |s| s.z);
-            unit.members[k].position = p.with_z(z);
-        }
-        unit.settle();
-        // They come out pinned: the level at least reaches the pinned tier's.
-        unit.suppression = unit.suppression.max(rules.suppression.pinned.level);
-        unit.suppressed_at = tick;
+        units[index].settle();
+        units[index].suppression = units[index].suppression.max(rules.suppression.pinned.level);
+        units[index].suppressed_at = tick;
     }
     destroyed
 }
 
-/// What the owning side sees of a squad's garrison.
-pub fn state(world: &WorldGeometry, unit: &Unit, rules: &Rules) -> Option<GarrisonState> {
-    let g = unit.garrison.as_ref()?;
-    let footprint = world.structure_footprint(g.building)?;
-    let timer = ticks(rules.garrison.enter_exit_s, rules) as f64;
-    let (phase, progress) = match g.phase {
-        Phase::Entering(n) => (GarrisonPhase::Entering, n as f64 / timer),
-        Phase::Inside => (GarrisonPhase::Inside, 1.0),
-        Phase::Exiting(n) => (GarrisonPhase::Exiting, n as f64 / timer),
-    };
-    Some(GarrisonState {
-        building: g.building,
-        phase,
-        progress,
-        center: [footprint.center.x, footprint.center.y],
-        half: [footprint.half.x, footprint.half.y],
-    })
-}
-
-/// Fold a unit's garrison into a digest, with presence and length tags.
-pub fn digest(unit: &Unit, d: &mut Digest) {
-    d.u64(unit.garrison.is_some() as u64);
-    if let Some(g) = &unit.garrison {
-        let (tag, n) = match g.phase {
-            Phase::Entering(n) => (0, n),
-            Phase::Inside => (2, 0),
-            Phase::Exiting(n) => (3, n),
-        };
-        d.u64(g.building as u64).u64(tag).u64(n as u64);
-        d.f64(g.entry.x).f64(g.entry.y);
-        d.u64(g.slots.len() as u64).u64(g.seats.len() as u64);
-        for s in &g.seats {
-            d.u64(s.map_or(u64::MAX, |s| s as u64));
-        }
-        for s in &g.slots {
-            d.u64(s.changed.unwrap_or(u64::MAX));
-            d.f64(s.position.x).f64(s.position.y).f64(s.position.z);
-            if s.edge != s.slot.facade as usize {
-                d.bytes(b"physical firing edge").u64(s.edge as u64);
-            }
+/// Fold a building hold's place into a digest: its entry, seats and slots.
+pub(crate) fn digest_place(g: &Garrison, d: &mut Digest) {
+    d.f64(g.entry.x).f64(g.entry.y);
+    d.u64(g.slots.len() as u64).u64(g.seats.len() as u64);
+    for s in &g.seats {
+        d.u64(s.map_or(u64::MAX, |s| s as u64));
+    }
+    for s in &g.slots {
+        d.u64(s.changed.unwrap_or(u64::MAX));
+        d.f64(s.position.x).f64(s.position.y).f64(s.position.z);
+        if s.edge != s.slot.facade as usize {
+            d.bytes(b"physical firing edge").u64(s.edge as u64);
         }
     }
 }

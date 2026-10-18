@@ -160,15 +160,13 @@ test("the public picker and delivered replacements share one physical building o
         seated.step();
         const len = seated.publish("blue");
         state = decoder.decode(new Float32Array(memory.buffer, seated.publication_ptr(), len))!
-          .own[0].garrison;
+          .own[0].hold;
         if (state?.phase === "inside") break;
       }
       expect(state).toEqual({
-        building: 0,
+        host: { kind: "building", id: 0, center: [402, 300], half: [6, 3] },
         phase: "inside",
         progress: 1,
-        center: [402, 300],
-        half: [6, 3],
       });
     } finally {
       seated.free();

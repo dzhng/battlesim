@@ -20,7 +20,7 @@ impl Orders {
         self.seq += 1;
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: self.seq,
             order,
             queued,
@@ -252,7 +252,7 @@ fn a_vehicle_ordered_to_the_mesa_top_is_admitted_at_its_foot() {
     let mut b = movement_battle();
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Move {
             units: vec![UnitId(5)],
@@ -630,7 +630,7 @@ fn an_unreachable_destination_is_rejected_without_live_route_searches() {
     // vehicle would park at its foot instead: it is a squad that is refused.)
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Move {

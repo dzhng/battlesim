@@ -1,0 +1,21 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "b80b428949f2304f4cafae309439174b543b179c3ceb705941b1c40c2b68f710",
+    "template_catalog_hash": "b785d1f2e6e416cbb2f68863ee492f158ac5108b8b5ce9a3e03b25be6849b8ad"
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": [
+      "china-corner-shop-3f"
+    ]
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/garrison-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "c2ea8ca77360fcca540ddb2359a388f1a4ae8b59ffcb95c07364fef86a7297cb"
+    }
+  ]
+}

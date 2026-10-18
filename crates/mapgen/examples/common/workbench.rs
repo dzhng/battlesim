@@ -230,6 +230,7 @@ fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value
         template_catalog_hash: c.catalogue.hash().into(),
         map_type: choice.map_type,
         size: choice.size,
+        entries_per_side: 1,
         profile: choice.profile,
         region: None,
         limits: c.limits,

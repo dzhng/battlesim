@@ -59,7 +59,7 @@ impl Objectives {
                 let center = v2(site.center[0], site.center[1]);
                 let inside = |p: crate::math::V2| (p - center).within_radius(site.radius_m);
                 let mut present = [false; 2];
-                for unit in units.iter().filter(|u| u.alive()) {
+                for unit in units.iter().filter(|u| u.on_field()) {
                     if !can_hold(rules.catalog.get(unit.kind)) {
                         continue;
                     }
@@ -235,7 +235,7 @@ mod tests {
     fn rules() -> MatchRules {
         serde_json::from_value(serde_json::json!({
             "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 60,
-            "max_units": 30, "dispatch_interval_s": 1,
+            "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1,
             "capture_s": 20, "majority_s": 1800, "victory_score": 1000
         }))
         .unwrap()

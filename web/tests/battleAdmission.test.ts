@@ -18,7 +18,10 @@ const candidate = (seed: string): PrepareBattleRequest => ({
       limits: { max_authored_parts: 1, max_bay_positions: 1, max_ground_points: 1 },
     },
   },
-  factions: ["us", "eastern"],
+  players: [
+    { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
+    { id: "red-1", side: "red", faction: "eastern", controller: "active_ai", human_capable: false },
+  ],
   battle_seed: 7,
 });
 const documents = { rules: "{}", presets: "{}", templates: "[]" };

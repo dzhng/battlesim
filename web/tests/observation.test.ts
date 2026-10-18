@@ -471,6 +471,12 @@ test("every frozen animation field and ground value decodes, integers exact past
     "test_at",
   ]);
   expect(o.knownProps.map((p) => p.kind)).toEqual(["tank_wreck"]);
+  // Which of the unit's goal and queued steps let passengers out.
+  expect([o.own[0].goalUnloads, o.own[0].queueUnloads]).toEqual([true, [false, true]]);
+  expect(o.own[0].queue).toEqual([
+    [50, 20],
+    [60, 24],
+  ]);
   // A heard helicopter's report keeps its height and band through the wire.
   expect(o.contacts).toEqual([
     {
@@ -597,18 +603,22 @@ test("every frozen animation field and ground value decodes, integers exact past
   expect(o.corpses).toEqual([
     { position: [2, 3, 0], own: false, soldier: big + 10, kind: "test_at", slot: 2, yaw: -1.25 },
   ]);
-  expect(o.own[0].garrison).toBeNull();
+  expect(o.own[0].hold).toBeNull();
   expect(o.knownProps[0].replaces).toBeNull();
-  expect(layout.garrisonPhases).toEqual(["entering", "inside", "exiting"]);
+  expect(layout.holdPhases).toEqual(["entering", "inside", "exiting"]);
   // Exact wire cases don't depend on a particular tank winning a demolition battle.
   for (const [phase, progress] of [
     ["entering", 0.25],
     ["inside", 1],
     ["exiting", 0.75],
   ] as const) {
-    const garrison = { building: 0, phase, progress, center: [360, 250], half: [12, 12] };
+    const garrison = {
+      host: { kind: "building", id: 0, center: [360, 250], half: [12, 12] },
+      phase,
+      progress,
+    };
     const decoded = decodeVector(phase);
-    expect(decoded.own[0].garrison).toEqual(garrison);
+    expect(decoded.own[0].hold).toEqual(garrison);
     expect(decoded.knownProps[0]).toEqual({
       kind: "ruin",
       center: [360, 250],
@@ -625,7 +635,7 @@ test("every frozen animation field and ground value decodes, integers exact past
     });
   }
   const wide = decodeVector("wide");
-  expect(wide.own[0].garrison?.building).toBe(2 ** 32 - 1);
+  expect(wide.own[0].hold?.host.id).toBe(2 ** 32 - 1);
   expect(
     wide.knownProps.map(({ id, building, structureOwner, authoredProp, replaces }) => ({
       id,

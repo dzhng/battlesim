@@ -359,7 +359,7 @@ fn different_clicked_parts_claim_one_building_in_the_same_tick() {
     let mut b = Battle::new(&setup, 11);
     let order = |seq, unit, building| contract::command::CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq,
         queued: false,
         order: contract::command::Order::Garrison {
@@ -378,14 +378,10 @@ fn different_clicked_parts_claim_one_building_in_the_same_tick() {
             break;
         }
     }
-    assert_eq!(
-        b.observe(Side::Blue).own[0]
-            .garrison
-            .as_ref()
-            .unwrap()
-            .building,
-        0
-    );
+    assert!(matches!(
+        b.observe(Side::Blue).own[0].hold.as_ref().unwrap().host,
+        contract::observation::HostRef::Building { id: 0, .. }
+    ));
 }
 
 #[test]
@@ -410,9 +406,12 @@ fn stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner() 
     }
     let unit = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(unit.garrisoned());
-    let observed = b.observe(Side::Blue).own[0].garrison.as_ref().unwrap();
+    let observed = b.observe(Side::Blue).own[0].hold.as_ref().unwrap();
     assert_eq!(
-        (observed.center, observed.half),
+        (match observed.host {
+            contract::observation::HostRef::Building { center, half, .. } => (center, half),
+            _ => unreachable!(),
+        }),
         ([402.0, 300.0], [6.0, 3.0]),
         "the delivered footprint must include every current physical part"
     );
@@ -689,8 +688,10 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     let unit = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(unit.garrisoned());
     assert!(
-        unit.garrison
+        unit.hold
             .as_ref()
+            .unwrap()
+            .building()
             .unwrap()
             .slots
             .iter()
@@ -699,26 +700,24 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     );
 
     assert!(
-        unit.garrison
+        unit.hold
             .as_ref()
+            .unwrap()
+            .building()
             .unwrap()
             .slots
             .iter()
             .all(|s| s.position.z == 0.0),
         "only the original ground-floor bays remain below this two-metre shell"
     );
-    assert_eq!(
-        b.observe(Side::Blue).own[0]
-            .garrison
-            .as_ref()
-            .unwrap()
-            .building,
-        3
-    );
+    assert!(matches!(
+        b.observe(Side::Blue).own[0].hold.as_ref().unwrap().host,
+        contract::observation::HostRef::Building { id: 3, .. }
+    ));
     while b.tick() < 403 {
         b.step();
     }
-    assert!(b.unit(contract::ids::UnitId(0)).unwrap().garrison.is_none());
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().hold.is_none());
     assert!(b.world().prop(3).is_none() && b.world().prop(4).is_none());
     assert_eq!(
         (b.world().structure_owner(5), b.world().structure_owner(6)),
@@ -830,7 +829,7 @@ fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
     }
     let u = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(u.garrisoned());
-    let g = u.garrison.as_ref().unwrap();
+    let g = u.hold.as_ref().unwrap().building().unwrap();
     let eyes = sim::garrison::facade_eyes(u, &setup.rules);
     assert!(eyes.len() <= 4);
     for f in 0..4 {
@@ -1025,7 +1024,12 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
         json!({"destroyed":{"into":{"building":{"height_fraction":0.25,"max_height_m":6,"collapse_max_floors":6,"gutted_prop":"gutted"}}}}),
     );
     setup.rules = serde_json::from_value(rows).unwrap();
-    setup.rules.garrison.survival_probability_on_collapse = 1.0;
+    setup
+        .rules
+        .bail_out
+        .get_mut(&contract::scenario::BailOutHost::Building)
+        .unwrap()
+        .death = 0.0;
     setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
     crate::common::order(
@@ -1044,7 +1048,7 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
     while b.tick() < 410 {
         b.step();
     }
-    assert!(b.unit(contract::ids::UnitId(0)).unwrap().garrison.is_none());
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().hold.is_none());
     let shells: Vec<_> = b
         .world()
         .props()
@@ -1069,7 +1073,7 @@ fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
     }
     let ack = b.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         queued: false,
         order: contract::command::Order::Garrison {
@@ -1188,7 +1192,12 @@ fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
     for entrance in geometry.entrances.iter_mut() {
         entrance.position[2] += 2.0;
     }
-    setup.rules.garrison.survival_probability_on_collapse = 0.0;
+    setup
+        .rules
+        .bail_out
+        .get_mut(&contract::scenario::BailOutHost::Building)
+        .unwrap()
+        .death = 1.0;
     setup.rules.weapons.get_mut("tank_he").unwrap().damage = 0.0;
     setup.units = serde_json::from_value(json!([{"side":"blue","kind":"test_rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
@@ -1341,7 +1350,7 @@ fn a_helicopter_ordered_onto_a_building_flies_there() {
     assert!(preview.destinations[0].placed);
     let ack = b.accept(contract::command::CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: contract::command::Order::OccupyBuilding {
             units: vec![contract::ids::UnitId(0)],

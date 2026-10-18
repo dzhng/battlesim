@@ -227,7 +227,10 @@ resolves saved sources, and [scene-assets](../../packages/scene-assets/README.md
 owns physical catalog publication from accepted art sets.
 
 Inspection reads retained plan geometry rather than regenerating it for every
-crop. Battle probes follow acknowledged destinations, which may differ from a
+crop. The lobby's [map picture](src/inspect/lobby.rs) is the one player-facing
+exception: it reads the compiled map and its admitted sites, never the plan, so
+it draws exactly what the battle will be fought on. It simplifies to what reads
+at lobby size and keeps entries and objectives above the terrain. Battle probes follow acknowledged destinations, which may differ from a
 group's clicked point. A short run without arrival cannot prove a long route is
 stuck; resource brackets must separate simulation work from report formatting.
 

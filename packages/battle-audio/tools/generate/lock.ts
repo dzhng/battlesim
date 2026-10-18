@@ -81,7 +81,9 @@ export function verdictOf(record: TakeRecord): "ok" | "bad" | null {
  * `generate verdict`: judges takes named `<take>@<served sha256>`, the bytes the
  * reviewer heard. A take whose bytes changed since, or that the lock lacks, is
  * refused by name; the others are recorded against the raw master those bytes were
- * made from. True when every one was recorded.
+ * made from. `clear` withdraws a verdict, so the take reads as unreviewed again
+ * (a verdict given without listening is no review). True when every one was
+ * recorded.
  */
 export function recordVerdicts(
   path: string,
@@ -89,7 +91,8 @@ export function recordVerdicts(
   judged: readonly string[],
   log: (line: string) => void,
 ): boolean {
-  if (value !== "ok" && value !== "bad") throw new Error(`verdict ${value}: expected ok or bad`);
+  if (value !== "ok" && value !== "bad" && value !== "clear")
+    throw new Error(`verdict ${value}: expected ok, bad or clear`);
   const lock = readLock(path);
   let recorded = 0;
   for (const entry of judged) {
@@ -100,7 +103,8 @@ export function recordVerdicts(
     if (!record) log(`UNKNOWN ${entry}`);
     else if (record.served_sha256 !== sha256) log(`CHANGED ${id}`);
     else {
-      record.verdict = { value, raw_sha256: record.raw_sha256 };
+      if (value === "clear") delete record.verdict;
+      else record.verdict = { value, raw_sha256: record.raw_sha256 };
       recorded++;
       log(`VERDICT ${id} ${value}`);
     }

@@ -1,0 +1,53 @@
+<!doctype html><html><head><style>
+html,body{margin:0;background:#000;overflow:hidden}
+#stage{position:fixed;inset:0}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+#card{position:absolute;left:40px;top:40px;padding:12px 18px;background:#0a3;color:#fff;font:bold 28px sans-serif}
+#flash{position:absolute;inset:0;background:#fff;opacity:0}
+#chrome{position:fixed;top:0;left:0;right:0;height:0}
+</style></head><body>
+<div id="stage"><canvas id="c"></canvas><div id="card">CARD 0</div><div id="flash"></div></div>
+<script type="module">
+const log=(...a)=>console.log('[spike]',...a);
+const canvas=document.getElementById('c');
+canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;
+const adapter=await navigator.gpu.requestAdapter();const device=await adapter.requestDevice();
+const ctx=canvas.getContext('webgpu');const format=navigator.gpu.getPreferredCanvasFormat();
+ctx.configure({device,format,alphaMode:'opaque'});
+log('adapter',adapter.info?.vendor,adapter.info?.architecture);
+const ac=new AudioContext();log('audio state',ac.state);
+const start=performance.now();let n=0;const card=document.getElementById('card'),flash=document.getElementById('flash');
+let lastBeat=-1;
+function frame(){
+  const t=(performance.now()-start)/1000;n++;
+  // canvas colour sweeps hue with time; a moving bar from the red channel
+  const enc=device.createCommandEncoder();
+  const p=enc.beginRenderPass({colorAttachments:[{view:ctx.getCurrentTexture().createView(),loadOp:'clear',storeOp:'store',clearValue:{r:(t*0.5)%1,g:0.2,b:0.5,a:1}}]});p.end();
+  device.queue.submit([enc.finish()]);
+  card.textContent='CARD '+n;
+  const beat=Math.floor(t);
+  if(beat!==lastBeat&&window.__rec){lastBeat=beat;
+    flash.style.opacity=1;setTimeout(()=>flash.style.opacity=0,50);
+    const o=ac.createOscillator();o.frequency.value=2000;const g=ac.createGain();g.gain.value=0.5;o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+0.05);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+window.record=async(seconds)=>{
+  const stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:60},audio:true,preferCurrentTab:true,selfBrowserSurface:'include',systemAudio:'include'});
+  const [track]=stream.getVideoTracks();
+  log('settings',JSON.stringify(track.getSettings()));
+  log('audio tracks',stream.getAudioTracks().length);
+  if(window.CropTarget){const ct=await CropTarget.fromElement(document.getElementById('stage'));await track.cropTo(ct);log('cropped');}
+  else log('no CropTarget');
+  const rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9,opus',videoBitsPerSecond:20e6});
+  const chunks=[];rec.ondataavailable=e=>chunks.push(e.data);
+  const done=new Promise(r=>rec.onstop=r);rec.start(1000);window.__rec=true;
+  await new Promise(r=>setTimeout(r,seconds*1000));rec.stop();await done;window.__rec=false;
+  stream.getTracks().forEach(t=>t.stop());
+  const buf=new Uint8Array(await new Blob(chunks).arrayBuffer());
+  let s='';for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode(...buf.subarray(i,i+0x8000));
+  return btoa(s);
+};
+window.ready=true;
+</script></body></html>

@@ -8,7 +8,7 @@ The per-side observation carries a list of players and owned units, end to end, 
 
 ## Seam
 
-- **`crates/sim/src/publication.rs`** replaces `readyBlue`/`readyRed`, `credits` and `occupiedSlots` with a players table: index, id, controller, ready, credits, unit count, cap, and pending purchases with their owner.
+- **`crates/sim/src/publication.rs`** replaces `readyBlue`/`readyRed`, `credits` and `unitCount` with a players table: index, id, controller, ready, credits, unit count, cap, and pending purchases with their owner.
   - `OWN_FIELDS` gains `owner`, as a `PlayerIndex`.
   - Report totals and events are per player; `MatchUnit` gains `owner`.
   - Scores and the result stay per side.

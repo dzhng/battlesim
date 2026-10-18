@@ -3550,12 +3550,12 @@ fn a_mount_whose_target_drives_out_of_reach_turns_to_one_in_reach() {
     }))
     .unwrap();
     let mut b = Battle::new(&setup, 1);
-    let target = |b: &Battle| b.observe(Side::Blue).own[0].mounts[0].target.clone();
+    let target = |b: &Battle| b.observe(Side::Blue).own[0].mounts[0].target;
     let first = (0..30).find_map(|_| {
         b.step();
         target(&b)
     });
-    let mut last = first.clone();
+    let mut last = first;
     for _ in 0..40 * b.rules().tick_hz {
         b.step();
         last = target(&b).or(last);

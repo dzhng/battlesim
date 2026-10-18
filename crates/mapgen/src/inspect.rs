@@ -1,6 +1,7 @@
 //! A picture of a plan's layers for a person to review: one SVG unit is one
 //! metre, north is up. The whole map, or one settlement or district of it.
-//! Tooling only; nothing here reaches the map.
+//! Tooling only; nothing here reaches the map. [`lobby`] draws the
+//! player's picture of an admitted map instead.
 use crate::layout::corridor_start;
 use crate::layout::geometry::{add, direction, scale, sub, Point};
 use crate::layout::LayoutMetrics;
@@ -10,6 +11,9 @@ use contract::map::SurfaceKind;
 use contract::templates::{BuildingCategory, TemplateGeometryCatalog};
 use std::collections::BTreeMap;
 use std::fmt::Write;
+
+pub mod lobby;
+pub use lobby::skirmish_picture;
 
 /// District colours, by the ids the shipped presets use; an id this table
 /// does not know draws grey rather than failing.

@@ -31,8 +31,9 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
     expect(menu.getByRole("heading", { name: page })).toBeTruthy();
     for (const other of pages) expect(menu.queryByRole("button", { name: other })).toBeNull();
   };
-  const entries: Record<string, Record<string, string>> = {
-    Skirmish: { Deploy: "/battle?play=1&type=mixed&size=small&faction=us" },
+  const entries: Record<string, Record<string, string | null>> = {
+    // Deploy waits for the lobby's map (its own tests).
+    Skirmish: { Deploy: null },
     Tutorial: {},
     Settings: {},
     Developer: {
@@ -48,7 +49,7 @@ test("the main menu at / opens each of its pages inside its plate, and Back retu
   for (const [page, expected] of Object.entries(entries)) {
     open(page);
     if (page === "Skirmish") {
-      for (const label of ["XS", "medium", "large", "xl"]) {
+      for (const label of ["S", "M", "L", "XL"]) {
         expect(menu.getByRole("radio", { name: label })).toBeTruthy();
       }
     }

@@ -57,7 +57,8 @@ pub struct BattleInput {
     pub tick_hz: f64,
     /// A soldier's body, for the UI's hit tests (`physics`).
     pub soldier: SoldierBody,
-    /// `presentation.overlay.xray`: the observing side's units and its selection.
+    /// `presentation.overlay.xray`: the observing side's units, its
+    /// selection, and its units an ally owns.
     pub xray: Xray,
     /// A purchase the simulation refused, drawn as a ghost (rgba).
     pub blocked: [f64; 4],
@@ -73,6 +74,8 @@ pub struct SoldierBody {
 pub struct Xray {
     pub own: [f64; 4],
     pub selected: [f64; 4],
+    /// A unit of the side that another player on it owns (`Ui::player`).
+    pub ally: [f64; 4],
 }
 
 /// A node's or joint's local transform.
