@@ -185,21 +185,49 @@ interface Journey {
  * A purchased unit entering the field under way is on a journey of its own. A
  * stop, an attack (which may chase) or a withdrawal ends a journey silently,
  * and a unit that starts moving with no order of the player's reports nothing.
+ * A queued journey waits its turn and starts when the one before it ends: a
+ * unit's stop, since some journeys (an unload, a board, a collect) publish no
+ * goal to watch.
  */
 export class Arrivals {
   private readonly known = new Set<number>();
   private readonly journeys = new Map<number, Journey>();
+  /** Each unit's queued journeys' groups, in order, behind its current one. */
+  private readonly queued = new Map<number, string[]>();
   private readonly reported = new Set<string>();
 
   constructor(private readonly afterS = ARRIVED_AFTER_S) {}
 
-  /** An accepted order, `group` naming its journey. A queued order leaves the current one running. */
+  /** An accepted order, `group` naming its journey. A queued order waits behind the current one. */
   ordered(order: OrderLike, queued: boolean, group: string) {
     for (const id of order.units ?? []) {
       if (JOURNEYS.has(order.kind)) {
-        if (!queued || !this.journeys.has(id)) this.journeys.set(id, { group, since: null });
-      } else if (HALTS.has(order.kind) && !queued) this.journeys.delete(id);
+        if (queued && this.journeys.has(id)) this.queued.set(id, [...this.waiting(id), group]);
+        else {
+          this.journeys.set(id, { group, since: null });
+          if (!queued) this.queued.delete(id);
+        }
+      } else if (HALTS.has(order.kind) && !queued) {
+        this.journeys.delete(id);
+        this.queued.delete(id);
+      }
     }
+  }
+
+  private waiting(id: number): string[] {
+    return this.queued.get(id) ?? [];
+  }
+
+  /** Ends `id`'s journey and starts the next one queued behind it, if any. */
+  private next(id: number) {
+    const [group, ...rest] = this.waiting(id);
+    if (group === undefined) {
+      this.journeys.delete(id);
+      return;
+    }
+    this.journeys.set(id, { group, since: null });
+    if (rest.length) this.queued.set(id, rest);
+    else this.queued.delete(id);
   }
 
   /** The side's units at `time` seconds, each under way or not: who arrived, one per journey. */
@@ -223,13 +251,17 @@ export class Arrivals {
         continue;
       }
       if (journey.since === null) continue;
-      this.journeys.delete(id);
+      this.next(id);
       if (time - journey.since >= this.afterS && !this.reported.has(journey.group)) {
         this.reported.add(journey.group);
         arrived.push({ id, group: journey.group });
       }
     }
-    for (const id of this.journeys.keys()) if (!present.has(id)) this.journeys.delete(id);
+    for (const id of this.journeys.keys())
+      if (!present.has(id)) {
+        this.journeys.delete(id);
+        this.queued.delete(id);
+      }
     return arrived;
   }
 }

@@ -179,7 +179,9 @@ when an order is accepted or refused for a reason the player caused (a unit
 an order refuses on its own, such as a squad left without a seat, answers
 with its refusal, and the rest answer the order; a refusal on arrival
 answers when the side observes it, once), and when
-an ordered move (or a purchase's drive in) ends after a real journey. One unit
+an ordered move (or a purchase's drive in) ends after a real journey; each
+queued journey arrives on its own, starting when the unit stops after the one
+before. One unit
 answers for a group: the one clicked, else the highest-value. Only the owner
 hears an answer, dry and centred on the voices bus.
 
@@ -196,7 +198,8 @@ side identifies one, each in the background as it appears; a set without a
 pack is silent. The page's line player is the mixer's
 (`WebAudioSink.line`), so a bark has the graph every unit sound has.
 `generate pack` writes a set's `pack.json` from the takes judged ok on the
-bytes served; before review, `--unreviewed` also lists unjudged takes the
+bytes served and spoken by the voice `voices.json` names now, so a replaced
+voice's takes leave the pack even before regeneration finishes; before review, `--unreviewed` also lists unjudged takes the
 transcript check passed.
 
 An unseen enemy's shout reaches the side only as an anonymous hearing cue, so

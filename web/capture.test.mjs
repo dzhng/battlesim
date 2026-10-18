@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { resolve } from "node:path";
 import { expect, test } from "vitest";
-import { parseCaptureArgs } from "./capture/args.mjs";
+import { MAX_FPS, parseCaptureArgs } from "./capture/args.mjs";
 import { planCapture } from "./capture/plan.mjs";
 import { transcodeArgs } from "./capture/transcode.mjs";
 import { JOIN_S, joinArgs, joinOffsets } from "./capture/join.mjs";
@@ -38,6 +38,9 @@ test("capture args: defaults, 16:9 width from height, flags, and refusals by nam
   expect(() => parseCaptureArgs(["a.json", "--height=2160"])).toThrow(/--height.*1080.*1440/);
   expect(() => parseCaptureArgs(["a.json", "--fps=0"])).toThrow(/--fps/);
   expect(() => parseCaptureArgs(["a.json", "--fps=29.97"])).toThrow(/--fps/);
+  expect(() => parseCaptureArgs(["a.json", `--fps=${MAX_FPS + 1}`])).toThrow(/--fps/);
+  expect(() => parseCaptureArgs(["a.json", `--fps=${"9".repeat(400)}`])).toThrow(/--fps/);
+  expect(parseCaptureArgs(["a.json", `--fps=${MAX_FPS}`]).fps).toBe(MAX_FPS);
   expect(() => parseCaptureArgs(["a.json", "--width=1920"])).toThrow(/unknown flag --width/);
   expect(() => parseCaptureArgs(["a.json", "--output="])).toThrow(/--output/);
 });

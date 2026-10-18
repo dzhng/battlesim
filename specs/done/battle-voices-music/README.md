@@ -49,7 +49,8 @@ exist only in the client; choices S7) and the score's mood director (open, N2).
 
 **Nothing plays that nobody judged, and a judgement can't outlive the sound it
 judged.** A verdict carries the hash of the bytes heard; a pack lists only takes
-judged ok on their current bytes, and the game plays only what its pack lists.
+judged ok on their current bytes and spoken by the voice `voices.json` names
+now, and the game plays only what its pack lists.
 Because the user is the only reviewer, review is built for spot checks: takes
 that pass the speech-to-text check may be bulk-accepted after the flagged ones
 are played, which is why a misread under the threshold can ship unheard
