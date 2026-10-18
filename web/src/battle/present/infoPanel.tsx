@@ -278,21 +278,14 @@ export interface PassengerCard {
  *  hovered as the carrier's one card. A rider's card is always compact,
  *  whatever view the carrier's is in: `data-zoom` on each holds it there,
  *  and the readout layer never changes it. */
-export function PassengerCards({
-  cards,
-  owner = "own",
-}: {
-  cards: readonly PassengerCard[];
-  /** The carrier's owner: an ally's riders take the ally's tone. */
-  owner?: "own" | "ally";
-}) {
+export function PassengerCards({ cards }: { cards: readonly PassengerCard[] }) {
   if (cards.length === 0) return null;
   return (
     <div className="ro-aboard">
       {cards.map((c) => (
         <PanelCallout
           key={c.id}
-          owner={owner}
+          owner={sideTone(c.panel)}
           selected={false}
           data-zoom="compressed"
           data-unit={c.id}
@@ -308,6 +301,10 @@ export function PassengerCards({
 /** Who a panel belongs to: its tone (own cyan, an ally's pale ice, enemy
  *  and contact red) follows. */
 export type PanelOwner = "own" | "ally" | "enemy" | "contact";
+
+/** The tone of a unit on the player's side: an ally's when its panel names
+ *  its owner, the player's own otherwise. */
+export const sideTone = (panel: Panel): PanelOwner => (panel.owner === undefined ? "own" : "ally");
 
 /** The callout round a panel, in its owner's tone, brighter when selected:
  *  the battle's callouts and the panel workbench frame panels only through

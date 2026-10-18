@@ -48,10 +48,11 @@ import {
   InfoPanel,
   PanelCallout,
   PassengerCards,
+  sideTone,
   type PanelOwner,
   type PassengerCard,
 } from "./infoPanel";
-import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
+import { contactPanel, enemyPanel, ownPanel, type Panel, type PanelRules } from "./panelRows";
 
 /** The element the high-air models' canvas lies in, between the two card
  *  planes: a battle view draws its high-air models there when the page has
@@ -244,6 +245,12 @@ export function ReadoutLayer({
   const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
   const zoomOpacity = useRef(1);
+  /** A unit on the side's panel, naming its owner when it is an ally's. */
+  const sidePanel = (u: OwnUnitView): Panel => {
+    const panel = ownPanel(units, u, own, rules);
+    const owner = allies.get(u.id);
+    return owner === undefined ? panel : { ...panel, owner };
+  };
   const callouts: Callout[] = [
     ...ghosts.map(
       (g): Callout => ({
@@ -261,21 +268,16 @@ export function ReadoutLayer({
       // A squad riding a carrier has its card stacked under the carrier's.
       .filter((u) => !aboardCarrier(u))
       .map((u): Callout => {
-        const picked = selected.includes(u.id);
-        const owner = allies.get(u.id);
-        const panel = ownPanel(units, u, own, rules);
-        const passengers = passengersOf(own, u.id).map((p) => ({
-          id: p.id,
-          panel: ownPanel(units, p, own, rules),
-        }));
+        const panel = sidePanel(u);
+        const passengers = passengersOf(own, u.id).map((p) => ({ id: p.id, panel: sidePanel(p) }));
         return {
           key: `own-${u.id}`,
-          owner: owner === undefined ? "own" : "ally",
+          owner: sideTone(panel),
           id: u.id,
           at: u.position,
-          selected: picked,
+          selected: selected.includes(u.id),
           highAir: highAir(units.type(u.kind)),
-          content: <InfoPanel panel={owner === undefined ? panel : { ...panel, owner }} />,
+          content: <InfoPanel panel={panel} />,
           ...(passengers.length ? { passengers } : {}),
         };
       }),
@@ -631,9 +633,7 @@ export function ReadoutLayer({
         data-contact={c.owner === "contact" ? c.id : undefined}
       >
         {c.content}
-        {c.passengers && (
-          <PassengerCards cards={c.passengers} owner={c.owner === "ally" ? "ally" : "own"} />
-        )}
+        {c.passengers && <PassengerCards cards={c.passengers} />}
       </PanelCallout>
       <svg
         className={`ro-leaders${c.owner === "enemy" || c.owner === "contact" ? " ro-enemy" : c.owner === "ally" ? " ro-ally" : ""}`}

@@ -156,3 +156,32 @@ test("a rider's card picks its carrier, never the rider", () => {
   });
   expect(handle.current!.inRect(10, { x0: -1e6, x1: 1e6, y0: -1e6, y1: 1e6 })).toBe(false);
 });
+
+test("a rider's card takes its own owner's tone, as every card does", () => {
+  // The ally's carrier 2 holds its own squad 20; your carrier 1 holds your
+  // squad 10 and the ally's squad 11 (any squad on the side may board).
+  const ally = new Map([
+    [2, "BLUE 2 · AI"],
+    [11, "BLUE 2 · AI"],
+    [20, "BLUE 2 · AI"],
+  ]);
+  const view = renderView(
+    <ReadoutLayer
+      own={[
+        specimenUnit(TEST_CATALOG, "test_apc", { id: 1 }),
+        aboard(10, 1, [100, 100]),
+        aboard(11, 1, [100, 100]),
+        specimenUnit(TEST_CATALOG, "test_apc", { id: 2 }),
+        aboard(20, 2, [100, 100]),
+      ]}
+      allies={ally}
+      rules={RULES}
+      selected={[]}
+      handle={createRef<ReadoutLayerHandle>()}
+    />,
+    { wrapper: WithTestCatalog },
+  );
+  const tone = (id: number) =>
+    view.container.querySelector<HTMLElement>(`[data-unit="${id}"]`)!.dataset.owner;
+  expect([1, 10, 11, 2, 20].map(tone)).toEqual(["own", "own", "ally", "ally", "ally"]);
+});
