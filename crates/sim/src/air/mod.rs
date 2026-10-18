@@ -350,7 +350,8 @@ pub(crate) fn dogfightable(
 
 /// What the jet can fly a pass with at `aim`: each pass weapon one of its
 /// rows with rounds left engages the target with, as its side knows it,
-/// and the release it flies to. A bomb's is where it must leave the jet to
+/// and the release it flies to; at a bare ground point, only a row the fire
+/// rule lets fire at one. A bomb's is where it must leave the jet to
 /// fall onto the aim; a bomb that can't fall to the aim from here (the aim
 /// is above the jet) flies no run. Any other row fires at the aim itself.
 fn pass_weapons(
@@ -361,7 +362,10 @@ fn pass_weapons(
 ) -> Vec<(pass::PassWeapon, crate::flight::Release)> {
     let (layer, class) = known_target(ctx.knowledge[unit.side.index()], target);
     let mut out: Vec<(pass::PassWeapon, crate::flight::Release)> = Vec::new();
-    for (weapon, _) in engaging_rows(ctx.arsenal, unit, layer, class) {
+    let point = matches!(target, Target::Ground(_));
+    for (weapon, _) in engaging_rows(ctx.arsenal, unit, layer, class)
+        .filter(|(weapon, _)| !point || crate::weapons::area_capable(&weapon.def))
+    {
         let Some(mode) = pass::pass_weapon(&weapon.def) else {
             continue;
         };

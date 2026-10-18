@@ -531,8 +531,9 @@ fn fires_regardless(def: &WeaponDefinition) -> bool {
 }
 
 /// General-purpose ammunition, made for men on the ground: may fire at an
-/// area (never AP, nor a row whose classes leave infantry out, W10).
-fn area_capable(def: &WeaponDefinition) -> bool {
+/// area or a ground point (never AP, nor a row whose classes leave infantry
+/// out, W10).
+pub(crate) fn area_capable(def: &WeaponDefinition) -> bool {
     !def.armor_piercing
         && def
             .engages(AltitudeLayer::Ground, Some(TargetClass::Infantry))

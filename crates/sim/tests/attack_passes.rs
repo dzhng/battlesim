@@ -44,9 +44,6 @@ fn ground_attack_battle_with(
     sim::fixtures::patch_catalog(&mut rules, "units", "test_jet", json!({ "mounts": mounts }));
     rules["weapons"]["air_bomb"]["ammo"] = json!(bomb_ammo);
     rules["weapons"]["air_bomb"]["aim_s"] = json!(0.1);
-    rules["weapons"]["air_ground_missile"]["aim_s"] = json!(0.1);
-    rules["weapons"]["air_ground_missile"]["targets"]["ground"]["classes"] =
-        json!(["infantry", "vehicle"]);
     patch(&mut rules);
     let mut placed = vec![
         json!({ "side": "blue", "kind": "test_jet", "position": [1000, 2000], "yaw": 0.0 }),
@@ -631,30 +628,108 @@ fn a_bomb_holds_for_a_friendly_vehicle_in_its_blast() {
 
 #[test]
 fn a_missile_pass_fires_the_gun_when_nose_on() {
-    let mut battle = ground_attack_battle(&["air_gun", "air_ground_missile"]);
+    // A missile run is flown at a vehicle the side has identified (a recon
+    // spots it), not at the bare point under it.
+    let mut battle = run_field(
+        run_rules(&["air_gun", "air_ground_missile"]),
+        json!([
+            { "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 },
+            { "side": "blue", "kind": "test_recon", "position": [2000, 2100], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [2000, 2000], "yaw": 0.0, "engagement": "return_fire_only" }
+        ]),
+    );
+    battle.step();
+    let tank = battle
+        .observe(Side::Blue)
+        .identified
+        .first()
+        .map(|t| t.id)
+        .expect("the recon sees the tank");
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        queued: false,
+        order: Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Identified { id: tank },
+        },
+    });
+    assert_eq!(ack.error, None);
+    // The mounts are the test's own: the gun first, the missile second.
     for _ in 0..900 {
         battle.step();
         let unit = battle.unit(UnitId(0)).unwrap();
-        let specs = battle.rules().catalog.mounts(unit.kind);
-        let missile = unit
-            .mounts
-            .iter()
-            .zip(specs)
-            .find(|(_, s)| s.def.weapons.iter().any(|w| w == "air_ground_missile"))
-            .is_some_and(|(m, _)| m.shots > 0);
-        let gun = unit
-            .mounts
-            .iter()
-            .zip(specs)
-            .filter(|(_, s)| s.def.weapons.iter().any(|w| w == "air_gun"))
-            .map(|(m, _)| m.shots)
-            .sum::<u32>();
+        let missile = unit.mounts[1].shots > 0;
+        let gun = unit.mounts[0].shots;
         if missile || gun > 0 {
+            let pass = unit.air.unwrap().pass.map(|p| p.weapon);
+            assert_eq!(
+                pass,
+                Some(PassWeapon::GroundMissile),
+                "no missile run at the tank"
+            );
             assert!(gun > 0, "missile pass crossed without a nose-on gun burst");
             return;
         }
     }
     panic!("ground missile pass never reached a nose-on gun burst");
+}
+
+/// A store that may not fire at a bare point flies no run at one: a jet
+/// carrying its gun and a missile that engages only vehicles, ordered onto
+/// open ground, strafes it with the gun.
+#[test]
+fn a_vehicle_only_missile_leaves_a_ground_point_to_the_gun() {
+    let mut rules = run_rules(&["air_gun", "air_ground_missile"]);
+    rules["weapons"]["air_ground_missile"]["targets"] =
+        json!({ "ground": { "classes": ["vehicle"] } });
+    let mut battle = run_field(
+        rules,
+        json!([{ "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 }]),
+    );
+    assert_eq!(
+        battle.accept(attack_ground(1, [2000.0, 2000.0])).error,
+        None
+    );
+    let hz = f64::from(battle.rules().tick_hz);
+    for _ in 0..(RUN_WINDOW_S * hz) as u64 {
+        battle.step();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        assert_eq!(jet.mounts[1].shots, 0, "the missile fired at a bare point");
+        if jet.mounts[0].shots > 0 {
+            return;
+        }
+    }
+    panic!("the jet never strafed the point with its gun");
+}
+
+/// The limited store a jet takes to a bare point is one that may fire at
+/// it: carrying a vehicle-only missile ahead of its bombs, it bombs the
+/// point instead of flying missile runs it can never fire.
+#[test]
+fn a_vehicle_only_missile_leaves_a_ground_point_to_the_bombs() {
+    let mut rules = run_rules(&["air_gun", "air_ground_missile", "air_bomb"]);
+    rules["weapons"]["air_ground_missile"]["targets"] =
+        json!({ "ground": { "classes": ["vehicle"] } });
+    let mut battle = run_field(
+        rules,
+        json!([{ "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 }]),
+    );
+    assert_eq!(
+        battle.accept(attack_ground(1, [2000.0, 2000.0])).error,
+        None
+    );
+    let hz = f64::from(battle.rules().tick_hz);
+    for _ in 0..(RUN_WINDOW_S * hz) as u64 {
+        battle.step();
+        let jet = battle.unit(UnitId(0)).unwrap();
+        assert_eq!(jet.mounts[1].shots, 0, "the missile fired at a bare point");
+        if jet.mounts[2].shots > 0 {
+            return;
+        }
+    }
+    panic!("the jet never bombed the point");
 }
 
 #[test]
