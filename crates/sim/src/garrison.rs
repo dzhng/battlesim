@@ -23,7 +23,7 @@ use contract::ids::{Side, Tick, UnitId};
 use contract::map::MoverClass;
 
 use crate::hold::ticks;
-pub use crate::hold::Phase;
+use crate::hold::Phase;
 use contract::scenario::Rules;
 
 use crate::arrangement;
