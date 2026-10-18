@@ -148,6 +148,26 @@ test("a reel is admitted only when every shot can be drawn and its dips fit insi
   expect(broken((r) => (r.shots = []))).toThrow(/shots/);
 });
 
+test("a reel is refused an endless duration or a framing at no distance, by the field at fault", () => {
+  const json = JSON.parse(JSON.stringify(REEL));
+  const broken = (edit: (reel: typeof json) => void) => {
+    const reel = structuredClone(json);
+    edit(reel);
+    return () => validateReel(reel);
+  };
+  expect(broken((r) => (r.fade_s = Infinity))).toThrow(/reel\.fade_s/);
+  expect(broken((r) => (r.shots[0].seconds = Infinity))).toThrow(/shots\[0\]\.seconds/);
+  expect(
+    broken((r) => {
+      r.shots[0].seconds = Infinity;
+      r.shots[0].zoomDuration = Infinity;
+    }),
+  ).toThrow(/shots\[0\]\.seconds/);
+  expect(broken((r) => (r.shots[0].zoomDuration = Infinity))).toThrow(/shots\[0\]\.zoomDuration/);
+  expect(broken((r) => (r.shots[1].to.distance = 0))).toThrow(/shots\[1\]\.to\.distance/);
+  expect(broken((r) => (r.shots[0].from.distance = -5))).toThrow(/shots\[0\]\.from\.distance/);
+});
+
 test("under reduced motion the reel holds its first framing for its length, on the unit it follows", () => {
   const still = stillReel(TRACKING);
   expect(sampleReel(still, 19.9)).toEqual({
@@ -186,6 +206,9 @@ test("a capture is scenes in order, each a saved battle and its own reel; none i
   expect(() => validateCapture({ scenes: [] }, maps)).toThrow(/scenes/);
   expect(() => validateCapture({ scenes: [{ ...scene("x"), map: "" }] }, maps)).toThrow(
     /scenes\[0\]\.map/,
+  );
+  expect(() => validateCapture({ scenes: [{ ...scene("x"), warm_s: Infinity }] }, maps)).toThrow(
+    /scenes\[0\]\.warm_s/,
   );
 });
 
