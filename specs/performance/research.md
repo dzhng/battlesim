@@ -23,6 +23,7 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 | Carry model yaw sine/cosine in the shared instance record | grass candidate | invalid | The graphics reel exceeded its 900 s scene timeout after the record-layout expansion; reverted before promotion |
 | Reuse the existing model colour word for packed yaw sine/cosine | unchanged renderer | discard | Full browser reel completed, but market-town GPU 14.41 → 14.48 ms and paris-corner 10.79 → 10.92 ms; reverted |
 | Skip shadow PCF taps outside a cascade | unchanged renderer | keep provisionally | Browser market-town 14.41 → 14.36 ms and paris-corner 10.79 → 10.82 ms; native llvmpipe 1388.71 → 1387.03 ms. Output is identical outside the cascade; gains are near the measurement noise floor |
+| Unroll the fixed five-tap Vogel PCF kernel | shadow early-return candidate | keep provisionally | Browser market-town 14.36 → 14.35 ms and paris-corner unchanged; full reel and pipeline validation pass |
 
 ## Parameter-effect map
 
@@ -32,6 +33,7 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 | Grass clump yaw | Browser market-town GPU mean 15.04 ms → 14.41 ms (−4.2%); paris-corner 10.82 ms → 10.79 ms. Native llvmpipe short replay was 1388.71 ms → 1389.97 ms (noise floor) | Reuses each clump's full-precision sine/cosine in every vertex instead of evaluating both trigonometric functions per vertex. Browser win is provisional until a repeat; native result is software-adapter evidence only. |
 | Static model repacking | Existing implementation already retains static prop/scenery buffers and rewrites only changed batches | No new change made; needs a valid GPU benchmark before another intervention. |
 | Shadow receiver sampling | The shader now returns unshadowed before PCF when projection is outside the cascade | Applies to all clients and preserves the existing cascade contract; hardware-scale gain remains uncertain |
+| PCF kernel setup | Fixed radii/directions are constants; one per-fragment rotation replaces five per-tap angle calculations | Applies to all clients; measured gain is currently near noise floor |
 
 ## Handoff
 

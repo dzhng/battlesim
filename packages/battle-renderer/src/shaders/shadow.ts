@@ -13,16 +13,23 @@ import { SUN_CASCADES } from "../records.gen";
  * equal world blur across cascade extents or between a 1024 and a 2048 map.
  * The cascade fit supplies each cascade's radius. */
 export function shadowPcfWgsl(): string {
+  const taps = Array.from({ length: 5 }, (_, i) => {
+    const r = Math.sqrt((i + 0.5) / 5);
+    const theta = i * 2.399963229728653;
+    return [r * Math.cos(theta), r * Math.sin(theta), r];
+  });
+  const samples = taps
+    .map(
+      ([x, y], i) =>
+        `let b${i}=vec2f(${x},${y});let o${i}=vec2f(b${i}.x*cphi-b${i}.y*sphi,b${i}.x*sphi+b${i}.y*cphi)*scale;visibility+=textureSampleCompareLevel(depth,compare,uv+o${i},layer,z);`,
+    )
+    .join("");
   return `(depth:texture_depth_2d_array, compare:sampler_comparison, layer:i32,uv:vec2f, z:f32, pixel:vec2f, radius:f32)->f32 {
   let phi=fract(52.9829189*fract(dot(pixel,vec2f(0.06711056,0.00583715))))*6.28318530718;
+  let cphi=cos(phi);let sphi=sin(phi);
   let scale=radius/f32(textureDimensions(depth).x);
   var visibility=0.0;
-  for(var i=0u;i<5u;i++) {
-    let r=sqrt((f32(i)+0.5)/5.0);
-    let theta=f32(i)*2.399963229728653+phi;
-    let offset=vec2f(cos(theta),sin(theta))*r*scale;
-    visibility+=textureSampleCompareLevel(depth,compare,uv+offset,layer,z);
-  }
+  ${samples}
   return visibility*0.2;
 }`;
 }
