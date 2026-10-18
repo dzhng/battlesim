@@ -8,11 +8,13 @@ import { resolve } from "node:path";
 export const REPO_ROOT = resolve(new URL("../..", import.meta.url).pathname);
 /** Output is 16:9 at one of these heights; 4K is out of scope. */
 export const HEIGHTS = [1080, 1440];
+/** The page draws at most at the display's refresh, 120 Hz on the fastest Mac. */
+export const MAX_FPS = 120;
 
 export const USAGE = `usage: bun run --cwd web capture <file.json> [flags]
 
   --height=1080|1440   frame height; width is height x 16/9 (default 1080)
-  --fps=<n>            target frame rate, a positive integer (default 60)
+  --fps=<n>            target frame rate, an integer 1 to ${MAX_FPS} (default 60)
   --no-cards           hide the unit info cards
   --output=<dir>       output directory (default throwaway/capture/)`;
 
@@ -40,8 +42,13 @@ export function parseCaptureArgs(argv, { root = REPO_ROOT } = {}) {
     } else if (arg.startsWith("--fps=")) {
       const text = arg.slice("--fps=".length);
       args.fps = Number(text);
-      if (!/^\d+$/.test(text) || args.fps < 1) {
-        throw new Error(`--fps must be a positive integer, got ${text}`);
+      if (
+        !/^\d+$/.test(text) ||
+        !Number.isSafeInteger(args.fps) ||
+        args.fps < 1 ||
+        args.fps > MAX_FPS
+      ) {
+        throw new Error(`--fps must be an integer from 1 to ${MAX_FPS}, got ${text}`);
       }
     } else if (arg.startsWith("--output=")) {
       const dir = arg.slice("--output=".length);
