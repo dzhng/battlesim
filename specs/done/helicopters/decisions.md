@@ -26,7 +26,7 @@ user's behalf under the delegation below.
 | D14 | **Done when** you buy an Apache in a skirmish, it flies in, pops over a village and kills a tank, an IFV shoots it down, and the wreck flattens trees. | U | The user agreed. |
 | D15 | Helicopters arrive flying in from the player's map edge, with no road-edge footprint check. | A | WARNO; nothing to collide with in the air. |
 | D16 | No automatic return to base. Out of ammo, it waits for orders like any unit. | A | User: "same as every other unit". |
-| D17 | Seen over fog (V02); sees vehicles in woods, but not infantry (V05). Hovering over a forest does **not** give the helicopter forest concealment. | T + A | Existing requirements in `specs/battle-foundation/requirements.md`. |
+| D17 | Seen over fog (V02); sees vehicles in woods, but not infantry (V05). Hovering over a forest does **not** give the helicopter forest concealment. | T + A | Existing requirements in `specs/done/battle-foundation/requirements.md`. |
 | D18 | A drop line plus a ground ring show where the helicopter is; designed through `game-ui`. | A | Its position can't be read without them. |
 | D19 | Damaged helicopters trail smoke. There's no HP-driven smoke anywhere today, so it's new; keep it minimal. Rotor wash comes later. | A | Cinematic consequence; polish later. |
 | D20 | Helicopters can't capture or contest objectives (this is already true: `objectives.rs:61`). | T + A | Same as WARNO; the code already says so. |

@@ -128,6 +128,6 @@ Measured with `skirmish_tournament` shaped battles (seeds 1, 2, 4 and 5, all six
 - **The Stryker M-SHORAD is weak**: optical sight only, 900 m of high air.
 - **Flares are resupplied only by hulled ground supply units.** A jet never stands still in reach, so it refills only by withdrawing.
 - **Native has no info cards or high-air plane**: [native gaps](../../native-gaps/README.md) item 6.
-- **Radar networks**, launchers that see far only through separate radar units: [air-defence radar](../../air-defence-radar/README.md), deferred.
+- **Radar networks**, launchers that see far only through separate radar units: [air-defence radar](../air-defence-radar/README.md), deferred and superseded as an active plan.
 - The archived [rpg-weapon-contract](../rpg-weapon-contract/README.md) records the Eastern RPG and blocked-launch closeout.
 - **Drones** (low-air fixed-wing at about 100 m) need their own spec to give low air fixed-wing heights (D37).

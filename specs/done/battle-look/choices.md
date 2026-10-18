@@ -127,7 +127,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 **The gap.** The fix corrected a rule. The user had already moved balance to its own spec (`decisions.md`, 2026-09-27), so whether the new cost is acceptable is that spec's call.
 
-**The reach.** The encounter's question is whether "an ordinary ambush still permits a narrow escape through prompt response" ([`encounter.md`](../../battle-foundation/encounter.md)); its target is a tank surviving in at least 7 of 10 ordinary ambushes. That may no longer hold. Only three seeds were run, not the full report (every script, ten seeds). The balance spec should start from a full report on main.
+**The reach.** The encounter's question is whether "an ordinary ambush still permits a narrow escape through prompt response" ([`encounter.md`](../battle-foundation/encounter.md)); its target is a tank surviving in at least 7 of 10 ordinary ambushes. That may no longer hold. Only three seeds were run, not the full report (every script, ten seeds). The balance spec should start from a full report on main.
 
 **Verdict.** needs-user, for the balance spec. Provisional: keep the rule and record the shift, which is in `decisions.md` (tuning log, "Post-close review fixes (sim)"). To reverse the balance effect without undoing the rule, retune the ambush in the balance spec.
 

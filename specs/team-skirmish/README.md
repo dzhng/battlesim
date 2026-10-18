@@ -1,11 +1,11 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–09 done).
+**Status:** in progress (slices 00–11 done).
 **Updated:** 2026-10-17.
 
 ## Next Agent Prompt
 
-**Done:** slices 00–09.
+**Done:** slices 00–11.
 - Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
 - Slice 01 landed the player contract. D54 makes Neutral players factionless.
 - Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
@@ -16,7 +16,7 @@
 - Slice 11 landed the per-player match report: a scoreboard row per player under each side, a timeline naming each player (a player's purchases in one minute are one line), and the result read from the viewer's side, neutral when the client plays no seat. Its pictures are the UI gallery's `report-*` shots and the `allies` scene's real 2v2 report.
 
 **Next:**
-- Slice 10 (allies in battle, visual): it needs 06, which has landed.
+- Slice 12 (team planner, lanes and cohesion).
 - Slice 04 follow-up: with three entries, both flank arms can land on the same side of the centre road. The slice 08 picture showed it on a Large 3v4. The fix is queued.
 
 **Unproven under load.** The `benchmark` (real-time check) and `street` (900 s limit) scenes have not passed since slice 02. Both fail the same way on clean main while the machine's load average is 18–50, and neither touches slice 09. Run them on a quiet machine before closeout (slice 14). If `street` fails "the scouts never identified an enemy" there too, it is a real regression to chase.
