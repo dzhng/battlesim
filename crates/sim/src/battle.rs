@@ -3738,9 +3738,9 @@ impl Battle {
         let seekers: Vec<_> = self
             .rounds
             .iter()
-            .filter_map(|(id, round)| round.seeker_target.map(|target| (*id, target)))
+            .filter_map(|(id, round)| round.seeker_target.map(|target| (*id, round.side, target)))
             .collect();
-        for (projectile, target) in seekers {
+        for (projectile, side, target) in seekers {
             // Where the target is and how it moves (a ground unit's pose
             // here is its position alone).
             let seen = match target {
@@ -3749,10 +3749,10 @@ impl Battle {
                     let aim = unit.position + v3(0.0, 0.0, unit.aim_height(&self.rules));
                     Some((aim, unit.flight_velocity()))
                 }
-                Target::Contact(id) => self
-                    .knowledge
-                    .iter()
-                    .find_map(|k| k.contact(id).map(|c| (c.center, v3(0.0, 0.0, 0.0)))),
+                // A contact id is its firing side's own.
+                Target::Contact(id) => self.knowledge[side.index()]
+                    .contact(id)
+                    .map(|c| (c.center, v3(0.0, 0.0, 0.0))),
                 Target::Round(round) => self
                     .projectiles
                     .get(round.id)
@@ -5808,6 +5808,106 @@ mod tests {
             },
         );
         projectile
+    }
+
+    /// Contact ids are each side's own: when blue and red each hold a
+    /// contact numbered alike, in different places, each side's seeker
+    /// flies at the contact its own side holds.
+    #[test]
+    fn a_seeker_flies_at_its_own_sides_contact() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [6000, 6000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_tank", "position": [500, 500], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [5500, 5500], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 3);
+        // Each side hears the other fire from far apart: each holds one
+        // contact, numbered alike.
+        let blue_heard = v3(4000.0, 1000.0, 0.0);
+        let red_heard = v3(1000.0, 4000.0, 0.0);
+        battle.knowledge[Side::Blue.index()].note_fire(
+            UnitId(1),
+            blue_heard,
+            AltitudeLayer::Ground,
+            0,
+        );
+        battle.knowledge[Side::Red.index()].note_fire(
+            UnitId(0),
+            red_heard,
+            AltitudeLayer::Ground,
+            0,
+        );
+        battle.step();
+        let contact = |side: Side| {
+            let contacts: Vec<_> = battle.knowledge[side.index()].all_contacts().collect();
+            assert_eq!(contacts.len(), 1, "{side:?} holds one contact");
+            (contacts[0].id, contacts[0].center)
+        };
+        let (blue_id, blue_at) = contact(Side::Blue);
+        let (red_id, red_at) = contact(Side::Red);
+        assert_eq!(blue_id, red_id, "both sides number their contact alike");
+        let weapon = battle
+            .arsenal
+            .weapons
+            .iter()
+            .position(|w| w.def.seeker.is_some())
+            .expect("a seeker row");
+        let mut launch = |side: Side, unit: UnitId| {
+            let projectile = battle.projectiles.launch(crate::flight::Launch {
+                origin: v3(3000.0, 3000.0, 100.0),
+                carrier: v3(0.0, 0.0, 0.0),
+                velocity: v3(0.0, 0.0, 100.0),
+                gravity_scale: 0.0,
+                lifetime_s: 30.0,
+                suppression_radius_m: 0.0,
+                shooter: None,
+                guidance: Some(crate::flight::Guidance {
+                    point: v3(3000.0, 3000.0, 1000.0),
+                    turn_rad_s: 1.0,
+                    supported: false,
+                    loft: None,
+                }),
+                motor: None,
+                fall: None,
+            });
+            battle.rounds.insert(
+                projectile,
+                Round {
+                    weapon,
+                    unit,
+                    side,
+                    seeker_target: Some(Target::Contact(blue_id)),
+                    fused_target: None,
+                    layer: AltitudeLayer::Ground,
+                },
+            );
+            projectile
+        };
+        let blue_round = launch(Side::Blue, UnitId(0));
+        let red_round = launch(Side::Red, UnitId(1));
+        battle.step();
+        let steered = |round| {
+            battle
+                .projectiles
+                .get(round)
+                .and_then(|p| p.guidance)
+                .expect("the seeker still flies")
+                .point
+        };
+        let near = |a: V3, b: V3| (a.xy() - b.xy()).length() < 1.0;
+        assert!(
+            near(steered(blue_round), blue_at),
+            "blue's seeker flies at blue's contact"
+        );
+        assert!(
+            near(steered(red_round), red_at),
+            "red's seeker flies at red's contact"
+        );
     }
 
     /// A jeep (unit 0) at (1000, 1000) with a gun (its mount 1) firing at
