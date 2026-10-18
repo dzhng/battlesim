@@ -136,6 +136,45 @@ fn routes_around_a_tower_over_30m_and_never_passes_the_ceiling() {
     assert!(track.iter().all(|p| p.z <= ceiling + 1e-9));
 }
 
+/// A goal walled in on every side by bodies taller than the ceiling: it
+/// flies round to the open air nearest the goal and waits there, never
+/// through a wall.
+#[test]
+fn stops_short_of_a_goal_walled_in_by_towers() {
+    // Four walls 61 m tall, 4 m thick, round a courtyard 100 m across.
+    let wall = |id: u32, center: [f64; 2], half: [f64; 2]| {
+        json!({ "id": id, "kind": "ruin", "center": center, "yaw": 0,
+            "half_extents": [half[0], half[1], 30.5] })
+    };
+    let (gx, gy, ring) = (GOAL[0], GOAL[1], 50.0);
+    let walls = json!([
+        wall(0, [gx - ring, gy], [2.0, ring + 2.0]),
+        wall(1, [gx + ring, gy], [2.0, ring + 2.0]),
+        wall(2, [gx, gy - ring], [ring + 2.0, 2.0]),
+        wall(3, [gx, gy + ring], [ring + 2.0, 2.0]),
+    ]);
+    let (b, track) = fly(map(walls, json!([])));
+    for p in &track {
+        let inside = (b.world().props_near(p.xy(), 0.0).into_iter())
+            .any(|w| w.footprint().contains(p.xy(), 0.0));
+        assert!(!inside, "it flew into a wall at {p:?}");
+    }
+    // It holds just outside a wall, across it from the courtyard, where the
+    // goal is nearest: not at a corner, nor off in the open.
+    let rest = b.unit(UnitId(0)).unwrap().position.xy();
+    let (out, along) = {
+        let (dx, dy) = ((rest.x - gx).abs(), (rest.y - gy).abs());
+        (dx.max(dy) - ring - 2.0, dx.min(dy))
+    };
+    let margin = sim::navigation::air::routing_margin(b.rules());
+    assert!(
+        out > 0.0 && out < 2.0 * margin && along < ring / 2.0,
+        "it came to rest at {rest:?}"
+    );
+    let last = track[track.len() - 2].xy();
+    assert!((rest - last).length() < 1e-3, "still flying at {rest:?}");
+}
+
 /// Wherever the tower stands across its line, the helicopter flies past it
 /// and on to its goal without turning back for a corner it skimmed by at
 /// cruise, or overshooting a goal too near that corner to stop for.
