@@ -8,9 +8,9 @@ to consume the same presentation records and asset identities. Download work is
 measured as compressed runtime bytes before the first frame.
 
 The fixed frame-rate evaluator is `web/scenes/graphics-fps.mjs` at 1280×720,
-with native checked by `native-client --bench` on the same capture. A complete
-run requires the runtime Git LFS art; the checkout used for this pass contains
-LFS pointers for the reel bundles, so FPS confirmation is pending.
+with native checked by `native-client --bench` on the same capture. Runtime art
+was fetched for the current runs; native measurements use the available
+llvmpipe adapter and are therefore directional for hardware GPU performance.
 
 ## Attempt ledger
 
@@ -21,6 +21,7 @@ LFS pointers for the reel bundles, so FPS confirmation is pending.
 | Precompute grass clump yaw in the build pass | unchanged renderer | keep provisionally | Browser matched reel; native short replay; shader export and visual-count checks pass |
 | Replace camera-record string serialization with a generation counter | grass candidate | discard | Browser CPU medians changed only 0.09 ms (market-town) and 0.01 ms (paris-corner); GPU unchanged |
 | Carry model yaw sine/cosine in the shared instance record | grass candidate | invalid | The graphics reel exceeded its 900 s scene timeout after the record-layout expansion; reverted before promotion |
+| Reuse the existing model colour word for packed yaw sine/cosine | unchanged renderer | discard | Full browser reel completed, but market-town GPU 14.41 → 14.48 ms and paris-corner 10.79 → 10.92 ms; reverted |
 
 ## Parameter-effect map
 
