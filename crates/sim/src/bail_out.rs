@@ -36,28 +36,15 @@ pub struct Occupancy<'a> {
     pub ignored_props: &'a [PropId],
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DeathCause {
-    SquadLost,
-    Roll,
-    NoRoom,
-    LeftMap,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Fate {
-    Out { member: usize, at: V3, hp_lost: f64 },
-    Died { member: usize, cause: DeathCause },
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
+/// How a squad came out of its host: how many of its soldiers got out alive.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Result {
-    pub fates: Vec<Fate>,
+    pub out: usize,
 }
 
 impl Result {
     pub fn all_died(&self) -> bool {
-        self.fates.iter().all(|f| matches!(f, Fate::Died { .. }))
+        self.out == 0
     }
 }
 
@@ -76,7 +63,7 @@ pub fn apply(
     // two squads leaving one host are hurt independently.
     let event = mix(seed ^ BAIL_OUT_STREAM ^ host.key() ^ tick);
     let mut rng = Rng::new(mix(event ^ u64::from(unit.id.0)));
-    let mut fates = Vec::new();
+    let mut out = 0;
     let squad_loss = rule.squad_loss.is_some_and(|chance| {
         // A carrier event owns one independent squad-level draw per passenger
         // squad, apart from its injury draws below.
@@ -88,35 +75,23 @@ pub fn apply(
         squad_rng.unit() < chance
     });
     let mut taken = Vec::new();
-    for (member, soldier) in unit.members.iter_mut().enumerate() {
+    for soldier in unit.members.iter_mut() {
         if !soldier.alive() {
             continue;
         }
         let at = soldier.position;
         if squad_loss {
             fall(world, soldier, at, unit.yaw);
-            fates.push(Fate::Died {
-                member,
-                cause: DeathCause::SquadLost,
-            });
             continue;
         }
         if rng.unit() < rule.death {
             fall(world, soldier, at, unit.yaw);
-            fates.push(Fate::Died {
-                member,
-                cause: DeathCause::Roll,
-            });
             continue;
         }
         let hp_lost = rule.hp_lost[0] + (rule.hp_lost[1] - rule.hp_lost[0]) * rng.unit();
         soldier.hp -= hp_lost;
         if !soldier.alive() {
             fall(world, soldier, at, unit.yaw);
-            fates.push(Fate::Died {
-                member,
-                cause: DeathCause::Roll,
-            });
             continue;
         }
         let occupied: Vec<V2> = occupancy
@@ -136,38 +111,23 @@ pub fn apply(
             occupancy.ignored_props,
         ) else {
             fall(world, soldier, at, unit.yaw);
-            fates.push(Fate::Died {
-                member,
-                cause: DeathCause::NoRoom,
-            });
             continue;
         };
         taken.push(place.xy());
         soldier.position = place;
-        fates.push(Fate::Out {
-            member,
-            at: place,
-            hp_lost,
-        });
+        out += 1;
     }
-    Result { fates }
+    Result { out }
 }
 
 /// A host that leaves the map takes its passengers with it: there is no
 /// ground to bail out onto, so every live member dies where the host was.
 pub fn lost_with_host(unit: &mut Unit, at: V3) -> Result {
     let yaw = unit.yaw;
-    let fates = (unit.members.iter_mut().enumerate())
-        .filter(|(_, soldier)| soldier.alive())
-        .map(|(member, soldier)| {
-            soldier.fall(at, yaw, None);
-            Fate::Died {
-                member,
-                cause: DeathCause::LeftMap,
-            }
-        })
-        .collect();
-    Result { fates }
+    for soldier in unit.members.iter_mut().filter(|soldier| soldier.alive()) {
+        soldier.fall(at, yaw, None);
+    }
+    Result { out: 0 }
 }
 
 fn fall(world: &WorldGeometry, soldier: &mut Soldier, at: V3, yaw: f64) {

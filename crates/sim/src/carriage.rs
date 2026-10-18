@@ -84,8 +84,8 @@ pub(crate) fn stationary(unit: &Unit) -> bool {
 
 pub(crate) fn within_reach(carrier: &Unit, passenger: &Unit, rules: &Rules) -> bool {
     let hull_reach = carrier.hull.map_or(0.0, |h| h.xy().length());
-    (carrier.position.xy() - passenger.position.xy()).length()
-        <= rules.carriage.reach_m + hull_reach
+    let reach = Host::Carrier(carrier.id).timing(rules).reach_m;
+    (carrier.position.xy() - passenger.position.xy()).length() <= reach + hull_reach
 }
 
 pub(crate) fn near_and_still(

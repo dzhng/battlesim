@@ -3321,16 +3321,14 @@ impl Battle {
                 _ => None,
             };
             if ground_carrier {
-                if let Some(wreck) = wreck {
-                    self.bail_out_carrier(
-                        id,
-                        rest,
-                        wreck,
-                        death.source,
-                        &mut destroyed,
-                        contract::scenario::BailOutHost::Ground,
-                    );
-                }
+                self.bail_out_carrier(
+                    id,
+                    rest,
+                    wreck.expect("a ground hull leaves a wreck"),
+                    death.source,
+                    &mut destroyed,
+                    contract::scenario::BailOutHost::Ground,
+                );
             }
             if let Some(prop) = wreck.and_then(|w| self.world.prop(w)) {
                 for (side, _) in knowing {
@@ -4247,12 +4245,7 @@ impl Battle {
             _ => None,
         };
         let mut refused = Vec::new();
-        if let Order::Board {
-            units,
-            carrier,
-            gesture,
-        } = &mut command.order
-        {
+        if let Order::Board { units, carrier, .. } = &mut command.order {
             let mut ordered = units.clone();
             ordered.sort_by(|a, b| {
                 let ca = (self.units[a.0 as usize].position.xy()
@@ -4280,7 +4273,6 @@ impl Battle {
                 }
             }
             *units = accepted;
-            let _ = gesture;
         }
         if let Order::Unload {
             units, goal: None, ..
