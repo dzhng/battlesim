@@ -1297,6 +1297,154 @@ fn an_unload_with_no_room_is_refused_and_everyone_stays_aboard() {
     ));
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum UnloadDuringBoarding {
+    /// No unload: the time an undisturbed boarding takes.
+    None,
+    Room,
+    /// A wall dropped on the APC leaves no room, so the unload is refused.
+    Blocked,
+}
+
+/// What a squad getting in went through while another got out.
+struct BoardedThroughUnload {
+    refused: bool,
+    /// Whether the riding squad ended on the field.
+    rider_out: bool,
+    /// Ticks from the boarding squad's hold starting to its being inside.
+    getting_in: u64,
+    /// Whether the boarding squad's soldiers stood still until inside.
+    stood_still: bool,
+}
+
+/// Squad A (unit 1) rides the APC (unit 0), which lets it out in place
+/// unless `unload` is `None`; once A is halfway out, squad B (unit 2),
+/// standing beside the APC, starts getting in.
+fn boarding_through_an_unload(unload: UnloadDuringBoarding) -> BoardedThroughUnload {
+    let events = if unload == UnloadDuringBoarding::Blocked {
+        json!([{"tick":95,"add_prop":{"kind":"wall","center":[201,200],"yaw":0,"half_extents":[10,10,4]}}])
+    } else {
+        json!([])
+    };
+    let map = json!({"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[],"buildings":[]});
+    let mut battle = Battle::new(
+        &setup_with_map(
+            map,
+            json!([
+                {"side":"blue","kind":"test_apc","position":[200,200]},
+                {"side":"blue","kind":"test_recon","position":[195,200]},
+                {"side":"blue","kind":"test_recon","position":[195,202]}
+            ]),
+            events,
+        ),
+        15,
+    );
+    let rules = battle.rules();
+    let timer = (rules.carriage.board_s * rules.tick_hz as f64).round() as u64;
+    let board = |seq, squad| {
+        command(
+            seq,
+            Order::Board {
+                units: vec![squad],
+                carrier: UnitId(0),
+                gesture: 1,
+            },
+        )
+    };
+    assert_eq!(battle.accept(board(1, UnitId(1))).error, None);
+    while battle.tick() < 90 {
+        battle.step();
+    }
+    assert!(
+        !battle.unit(UnitId(1)).unwrap().on_field(),
+        "A never boarded"
+    );
+    let phase = |battle: &Battle, id: UnitId| {
+        battle
+            .unit(id)
+            .unwrap()
+            .hold
+            .as_ref()
+            .map(|hold| hold.phase)
+    };
+    if unload != UnloadDuringBoarding::None {
+        let unload = Order::Unload {
+            units: vec![UnitId(0)],
+            goal: None,
+            gesture: 2,
+            route: Default::default(),
+        };
+        assert_eq!(battle.accept(command(2, unload)).refused, vec![]);
+        let halfway = (0..timer * 2).any(|_| {
+            battle.step();
+            matches!(phase(&battle, UnitId(1)), Some(sim::hold::Phase::Exiting(n)) if 2 * u64::from(n) >= timer)
+        });
+        assert!(halfway, "A never got halfway out");
+    }
+    let seq = if unload == UnloadDuringBoarding::None {
+        2
+    } else {
+        3
+    };
+    assert_eq!(battle.accept(board(seq, UnitId(2))).error, None);
+    let mut refused = false;
+    let mut started = None;
+    let mut stood = None;
+    let mut stood_still = true;
+    let inside = (0..timer * 4).any(|_| {
+        battle.step();
+        refused |= battle.observe(Side::Blue).refusals.iter().any(|refusal| {
+            refusal.unit == UnitId(0) && refusal.reason == OrderError::NoRoomToUnload
+        });
+        match phase(&battle, UnitId(2)) {
+            Some(sim::hold::Phase::Inside) => return true,
+            Some(sim::hold::Phase::Entering(_)) => {
+                started.get_or_insert(battle.tick());
+                let here: Vec<_> = battle.unit(UnitId(2)).unwrap().member_positions().collect();
+                stood_still &= stood.get_or_insert_with(|| here.clone()) == &here;
+            }
+            _ => {}
+        }
+        false
+    });
+    assert!(inside, "B never got in");
+    BoardedThroughUnload {
+        refused,
+        rider_out: battle.unit(UnitId(1)).unwrap().on_field(),
+        getting_in: battle.tick() - started.expect("B started getting in"),
+        stood_still,
+    }
+}
+
+#[test]
+fn a_squad_getting_in_keeps_getting_in_while_others_get_out() {
+    let undisturbed = boarding_through_an_unload(UnloadDuringBoarding::None).getting_in;
+    let b = boarding_through_an_unload(UnloadDuringBoarding::Room);
+    assert!(!b.refused);
+    assert!(b.rider_out, "the riding squad got out");
+    assert!(b.stood_still, "a squad getting in was moved by the unload");
+    assert_eq!(
+        b.getting_in, undisturbed,
+        "getting in took a different time"
+    );
+}
+
+#[test]
+fn a_refused_unload_cuts_short_no_one_getting_in() {
+    let undisturbed = boarding_through_an_unload(UnloadDuringBoarding::None).getting_in;
+    let b = boarding_through_an_unload(UnloadDuringBoarding::Blocked);
+    assert!(b.refused, "the blocked unload was not refused");
+    assert!(!b.rider_out, "the riding squad stays aboard");
+    assert!(
+        b.stood_still,
+        "a squad getting in was moved by the refused unload"
+    );
+    assert_eq!(
+        b.getting_in, undisturbed,
+        "getting in took a different time"
+    );
+}
+
 #[test]
 fn refunding_a_loaded_carrier_refunds_its_passengers() {
     let mut battle = Battle::new(&transport_skirmish_setup(), 41);

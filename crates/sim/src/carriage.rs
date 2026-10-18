@@ -20,21 +20,15 @@ pub(crate) fn transport_hold_in_progress(units: &[Unit], carrier: UnitId) -> boo
     if !host.orders.is_empty() && !matches!(host.orders.front(), Some(UnitOrder::Unload)) {
         return false;
     }
-    let entering = units.iter().any(|unit| {
+    let stepping = units.iter().any(|unit| {
         unit.alive()
             && unit.hold.as_ref().is_some_and(|hold| {
                 hold.host == Host::Carrier(carrier)
                     && matches!(hold.phase, Phase::Entering(_) | Phase::Exiting(_))
             })
     });
-    let unloading = (matches!(host.orders.front(), Some(UnitOrder::Unload))
-        && units.iter().any(|unit| {
-            unit.alive()
-                && unit
-                    .hold
-                    .as_ref()
-                    .is_some_and(|hold| hold.host == Host::Carrier(carrier))
-        }));
+    let unloading = matches!(host.orders.front(), Some(UnitOrder::Unload))
+        && !passengers(units, carrier).is_empty();
     let pending = host.orders.is_empty()
         && units.iter().any(|unit| {
             unit.alive()
@@ -45,7 +39,7 @@ pub(crate) fn transport_hold_in_progress(units: &[Unit], carrier: UnitId) -> boo
                     )
                 })
         });
-    entering || unloading || pending
+    stepping || unloading || pending
 }
 
 /// The seats `kind` carries; 0 for a unit that carries no one.
@@ -161,15 +155,18 @@ pub(crate) fn copy_passenger_positions(units: &mut [Unit]) {
     }
 }
 
-fn aboard(unit: &Unit, carrier: UnitId) -> bool {
-    unit.alive()
-        && unit
-            .hold
-            .as_ref()
-            .is_some_and(|hold| hold.host == Host::Carrier(carrier))
+/// The squads riding inside `carrier`, in unit order. A squad still getting
+/// in stands beside it: an unload or the carrier's fate passes it by.
+pub(crate) fn passengers(units: &[Unit], carrier: UnitId) -> Vec<usize> {
+    (units.iter().enumerate())
+        .filter(|(_, unit)| {
+            unit.alive() && unit.hold.as_ref().and_then(Hold::riding) == Some(carrier)
+        })
+        .map(|(index, _)| index)
+        .collect()
 }
 
-/// Find one reachable standing spot for every living passenger of `carrier`.
+/// Find one reachable standing spot for every soldier riding `carrier`.
 /// The carrier's own hull is deliberately omitted from occupancy: soldiers
 /// leave from beneath it, while every other live hull and soldier remains a
 /// physical obstruction.
@@ -179,12 +176,7 @@ pub(crate) fn unload_spots(
     carrier: UnitId,
     rules: &Rules,
 ) -> Option<Vec<V3>> {
-    let passengers: Vec<usize> = units
-        .iter()
-        .enumerate()
-        .filter(|(_, unit)| aboard(unit, carrier))
-        .map(|(index, _)| index)
-        .collect();
+    let passengers = passengers(units, carrier);
     if passengers.is_empty() {
         return Some(Vec::new());
     }
@@ -218,12 +210,7 @@ pub(crate) fn complete_unload(
     carrier: UnitId,
     rules: &Rules,
 ) -> bool {
-    let passengers: Vec<usize> = units
-        .iter()
-        .enumerate()
-        .filter(|(_, unit)| aboard(unit, carrier))
-        .map(|(index, _)| index)
-        .collect();
+    let passengers = passengers(units, carrier);
     let Some(spots) = unload_spots(world, units, carrier, rules) else {
         return false;
     };
@@ -272,7 +259,7 @@ pub(crate) fn advance(
         .iter()
         .map(|unit| {
             matches!(unit.orders.front(), Some(UnitOrder::Unload))
-                && !units.iter().any(|passenger| aboard(passenger, unit.id))
+                && passengers(units, unit.id).is_empty()
         })
         .collect();
     for (index, empty) in empty_unloads.into_iter().enumerate() {

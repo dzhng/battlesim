@@ -1068,7 +1068,7 @@ impl Battle {
             })
             .collect();
         for carrier in carriers {
-            retiring.extend(self.passengers_of(carrier));
+            retiring.extend(crate::carriage::passengers(&self.units, carrier));
         }
         retiring.sort_unstable();
         retiring.dedup();
@@ -3075,7 +3075,7 @@ impl Battle {
             let fall = crash.fall(&self.world, gravity, half, dt);
             // Passengers stay aboard while it falls, so they follow the
             // crash rather than the airframe's last live pose.
-            let passengers = self.passengers_of(crash.unit);
+            let passengers = crate::carriage::passengers(&self.units, crash.unit);
             for &index in &passengers {
                 let unit = &mut self.units[index];
                 for member in unit.members.iter_mut().filter(|member| member.alive()) {
@@ -3111,17 +3111,6 @@ impl Battle {
                 ..Default::default()
             });
         }
-    }
-
-    /// The live squads riding in `carrier`, in unit order. A squad still
-    /// getting in stands beside it and shares none of its fate.
-    fn passengers_of(&self, carrier: UnitId) -> Vec<usize> {
-        (self.units.iter().enumerate())
-            .filter(|(_, unit)| {
-                unit.alive() && unit.hold.as_ref().and_then(|hold| hold.riding()) == Some(carrier)
-            })
-            .map(|(index, _)| index)
-            .collect()
     }
 
     /// A downed aircraft meets the ground (D3, D31): it bursts as the crash
@@ -3440,7 +3429,7 @@ impl Battle {
         destroyed: &mut Vec<damage::UnitDeath>,
         host_kind: contract::scenario::BailOutHost,
     ) {
-        let passengers = self.passengers_of(carrier);
+        let passengers = crate::carriage::passengers(&self.units, carrier);
         if passengers.is_empty() {
             return;
         }

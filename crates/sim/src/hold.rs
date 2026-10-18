@@ -302,12 +302,8 @@ pub(crate) fn advance(
                             }
                         }
                         if !unloaded {
-                            for passenger in units.iter_mut().filter(|unit| {
-                                unit.hold
-                                    .as_ref()
-                                    .is_some_and(|hold| hold.host == Host::Carrier(carrier))
-                            }) {
-                                passenger.hold.as_mut().expect("carrier hold").phase =
+                            for passenger in crate::carriage::passengers(units, carrier) {
+                                units[passenger].hold.as_mut().expect("carrier hold").phase =
                                     Phase::Inside;
                             }
                             refusals[units[i].side.index()].push(contract::command::Refusal {
