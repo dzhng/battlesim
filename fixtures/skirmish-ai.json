@@ -1,5 +1,6 @@
 {
   "decision_s": 5,
+  "planner_decision_s": 5,
   "reaction_max_s": 3,
   "air_memory_s": 30,
   "min_dwell_s": 20,
@@ -17,5 +18,13 @@
   "relocate_m": 50,
   "unload_share": 0.2,
   "ride_min_m": 120,
-  "reaim_m": 30
+  "reaim_m": 30,
+  "purchase_advance_m": 24,
+  "grid_resolution": 8,
+  "distance_weight": 1.0,
+  "influence_weight": 20.0,
+  "incumbency_bonus": 80.0,
+  "group_radius_m": 90.0,
+  "staging_distance_m": 180.0,
+  "influence_blend": 0.65
 }

@@ -1,11 +1,11 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–11 done).
-**Updated:** 2026-10-17.
+**Status:** in progress (slices 00–12 done).
+**Updated:** 2026-10-18.
 
 ## Next Agent Prompt
 
-**Done:** slices 00–11.
+**Done:** slices 00–12.
 - Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
 - Slice 01 landed the player contract. D54 makes Neutral players factionless.
 - Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
@@ -14,10 +14,11 @@
 - Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
 - Slices 08 and 09 landed the lobby: the admitted map picture and the order-of-battle screen at `/`, whose Deploy opens exactly the previewed map. Unpinned `/battle?play=1` is gone; the lobby's preview is the only admission.
 - Slice 11 landed the per-player match report: a scoreboard row per player under each side, a timeline naming each player (a player's purchases in one minute are one line), and the result read from the viewer's side, neutral when the client plays no seat. Its pictures are the UI gallery's `report-*` shots and the `allies` scene's real 2v2 report.
+- Slice 12 landed the team planner (`skirmish_ai/team.rs`): each side's AI players get a lane, an objective and a staging point; a player's main group gathers there and advances as one, while recon and logistics move on their own. It merges with main's AI transport (squads ride their own player's carriers toward the plan's goal). AI purchases arrive a short way up their lane so they clear the entry at once. It re-baselined the skirmish digests (D41, re-baseline 2; values in its commit message). Its final tournament had zero refused AI orders and teams held up to six objectives at once; one match in nine finished, the rest timed out: that is slice 13's to fix.
 
 **Next:**
-- Slice 12 (team planner, lanes and cohesion).
-- Slice 04 follow-up: with three entries, both flank arms can land on the same side of the centre road. The slice 08 picture showed it on a Large 3v4. The fix is queued.
+- Slice 13 (help requests and shared stance). Its tournament must show matches finishing.
+- Extend the `ai_controlled` refusal (main `90ba2588d`, outside skirmish only) to skirmish: migrate the tests that order declared-AI players directly. It also covers a human seat taken over by AI.
 
 **Unproven under load.** The `benchmark` (real-time check) and `street` (900 s limit) scenes have not passed since slice 02. Both fail the same way on clean main while the machine's load average is 18–50, and neither touches slice 09. Run them on a quiet machine before closeout (slice 14). If `street` fails "the scouts never identified an enemy" there too, it is a real regression to chase.
 
@@ -55,7 +56,7 @@ Slices:
 - [x] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
 - [x] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
 - [x] 11: per-player match report ([slice](slices/11-match-report.md))
-- [ ] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
+- [x] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
 - [ ] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
 - [ ] 14: 5v5 AI-versus-AI closeout ([slice](slices/14-closeout.md))
 

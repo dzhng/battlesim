@@ -342,6 +342,10 @@ pub struct Battle {
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
     skirmish_ai: BTreeMap<String, crate::skirmish_ai::BalancedDoctrine>,
+    /// Per-side planner hysteresis. This is deliberately outside the digest;
+    /// accepted AI commands are the replay authority.
+    team_memory: [crate::skirmish_ai::TeamMemory; 2],
+    team_tuning: crate::skirmish_ai::team::TeamTuning,
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
@@ -382,17 +386,11 @@ pub struct AiReceipt {
     pub error: Option<OrderError>,
 }
 
-fn policy_for_player(
-    seed: u64,
-    index: usize,
-    player: &contract::players::Player,
-) -> Option<crate::skirmish_ai::BalancedDoctrine> {
-    (player.controller == contract::players::ControllerKind::ActiveAi).then(|| {
-        let stream = contract::random::mix(
-            seed ^ (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ 0x4241_4c41_4e43_4544,
-        );
-        crate::skirmish_ai::BalancedDoctrine::new(stream)
-    })
+fn policy_for_player(seed: u64, index: usize) -> crate::skirmish_ai::BalancedDoctrine {
+    let stream = contract::random::mix(
+        seed ^ (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ 0x4241_4c41_4e43_4544,
+    );
+    crate::skirmish_ai::BalancedDoctrine::new(stream)
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen, leg by leg
@@ -1276,14 +1274,13 @@ impl Battle {
                     .players
                     .iter()
                     .enumerate()
-                    .filter_map(|(index, player)| {
-                        policy_for_player(seed, index, player)
-                            .map(|policy| (player.id.clone(), policy))
-                    })
+                    .map(|(index, player)| (player.id.clone(), policy_for_player(seed, index)))
                     .collect()
             } else {
                 BTreeMap::new()
             },
+            team_memory: std::array::from_fn(|_| crate::skirmish_ai::TeamMemory::default()),
+            team_tuning: crate::skirmish_ai::team::TeamTuning::shipped(),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),
@@ -1525,35 +1522,11 @@ impl Battle {
     /// Travel time known to one side for one of its observed units. The query
     /// deliberately uses that side's planning geometry, so external policy
     /// hosts cannot inspect hidden obstacles or route an enemy unit.
-    pub fn route_time(&mut self, side: Side, id: UnitId, destination: [f64; 2]) -> Option<f64> {
+    pub fn route_time(&self, side: Side, id: UnitId, destination: [f64; 2]) -> Option<f64> {
         let frame = self.observe(side);
         let own = frame.own.iter().find(|unit| unit.id == id)?;
-        let from = v2(own.position[0], own.position[1]);
-        let goal = v2(destination[0], destination[1]);
-        let kind = self.rules.catalog.get(own.kind);
-        let mobility = match units::motion(kind, &self.rules) {
-            units::Motion::Ground(m) => m,
-            units::Motion::Air(f) => return Some((goal - from).length() / f.cruise_mps),
-        };
-        let mut known = self.sides[side.index()].clone();
-        let grid = known.grid(&self.world, self.authored_props);
-        let (plan, _) = crate::navigation::plan(
-            grid,
-            &self.roads,
-            crate::navigation::Leg {
-                from,
-                goal,
-                m: &mobility,
-                policy: RoutePolicy::Fastest,
-                avoid: &[],
-            },
-            &self.rules.navigation,
-        );
-        let crate::navigation::Plan::Route(route) = plan else {
-            return None;
-        };
-        let time = grid.route_time(from, &route, &mobility);
-        time.is_finite().then_some(time)
+        let (kind, from) = (own.kind, [own.position[0], own.position[1]]);
+        self.entry_route_time(side, kind, from, destination)
     }
 
     /// Travel time for a catalog unit from an entry site to a point, using the
@@ -1566,6 +1539,9 @@ impl Battle {
         from: [f64; 2],
         destination: [f64; 2],
     ) -> Option<f64> {
+        // Movement admission refuses a goal off the map; so does the route
+        // estimate, or a planner would pick a goal its order cannot reach.
+        self.world.height_at(destination[0], destination[1])?;
         let t = self.rules.catalog.get(kind);
         let from = v2(from[0], from[1]);
         let goal = v2(destination[0], destination[1]);
@@ -1748,9 +1724,36 @@ impl Battle {
                 .is_some_and(|controller| *controller != ControllerKind::Human)
     }
 
+    /// Give one player's own policy a fixed purchase plan. The policy emits
+    /// ordinary purchase commands through its normal per-player sequence.
+    pub fn script_purchases(
+        &mut self,
+        player: impl Into<String>,
+        purchases: Vec<TypeIndex>,
+        repeat_from: Option<usize>,
+    ) {
+        let player = player.into();
+        if let Some(ai) = self.skirmish_ai.get_mut(&player) {
+            ai.set_purchase_plan_with_repeat(purchases, repeat_from);
+        }
+    }
+
     fn apply_controller(&mut self, transition: &ControllerTransition) {
         self.controllers
             .insert(transition.player.clone(), transition.controller.clone());
+        let player_index = self
+            .skirmish
+            .as_ref()
+            .and_then(|skirmish| skirmish.player_index(&transition.player));
+        if let Some(index) = player_index {
+            if let Some(player) = self
+                .skirmish
+                .as_mut()
+                .and_then(|skirmish| skirmish.players.get_mut(index))
+            {
+                player.controller = transition.controller.clone();
+            }
+        }
         for unit in &mut self.units {
             if unit.side == Side::Neutral {
                 unit.engagement = Engagement::ReturnFireOnly;
@@ -2780,42 +2783,59 @@ impl Battle {
         if self.replaying.is_some() || self.finished() {
             return;
         }
-        let mut commands = Vec::new();
         let Some(skirmish) = &self.skirmish else {
             return;
         };
-        let players: Vec<_> = skirmish
-            .players
-            .iter()
-            .enumerate()
-            .filter(|(_, p)| p.controller == contract::players::ControllerKind::ActiveAi)
-            .map(|(i, p)| {
-                (
-                    i,
-                    p.id.clone(),
-                    p.side,
-                    p.faction,
-                    skirmish
-                        .setup
-                        .openings
-                        .get(&p.id)
-                        .cloned()
-                        .unwrap_or_default(),
-                )
-            })
-            .collect();
-        let sites = skirmish.setup.sites.clone();
-        for (index, id, side, faction, opening) in players {
+        let sites = &skirmish.setup.sites;
+        let openings = &skirmish.setup.openings;
+        let player_defs = &skirmish.players;
+        crate::skirmish_ai::team::plan(
+            Side::Blue,
+            &self.observations[Side::Blue.index()],
+            player_defs,
+            sites,
+            &mut self.team_memory[Side::Blue.index()],
+            self.team_tuning,
+            self.rules.tick_hz,
+        );
+        crate::skirmish_ai::team::plan(
+            Side::Red,
+            &self.observations[Side::Red.index()],
+            player_defs,
+            sites,
+            &mut self.team_memory[Side::Red.index()],
+            self.team_tuning,
+            self.rules.tick_hz,
+        );
+        let plans = [
+            self.team_memory[Side::Blue.index()]
+                .cached_plan()
+                .expect("blue plan"),
+            self.team_memory[Side::Red.index()]
+                .cached_plan()
+                .expect("red plan"),
+        ];
+        let mut commands = Vec::new();
+        for (index, player) in player_defs.iter().enumerate() {
+            if player.controller != contract::players::ControllerKind::ActiveAi {
+                continue;
+            }
+            let id = player.id.clone();
+            let side = player.side;
+            let faction = player.faction;
             let Some(mut ai) = self.skirmish_ai.remove(&id) else {
                 continue;
             };
-            let entry = crate::entries::site(&sites, crate::entries::centre(&sites, side)).clone();
+            if !ai.wants_decision(self.tick) {
+                self.skirmish_ai.insert(id, ai);
+                continue;
+            }
+            let player_plan =
+                plans[side.index()].for_player(contract::players::PlayerIndex(index as u16));
+            let entry_index =
+                player_plan.map_or_else(|| crate::entries::centre(sites, side), |plan| plan.lane);
+            let entry = crate::entries::site(sites, entry_index);
             let mut frame = self.observations[side.index()].clone();
-            let lens = crate::skirmish_ai::PlayerLens {
-                frame: &frame,
-                me: contract::players::PlayerIndex(index as u16),
-            };
-            let _ = lens.own().count();
             frame
                 .own
                 .retain(|unit| unit.owner == Some(contract::players::PlayerIndex(index as u16)));
@@ -2829,17 +2849,24 @@ impl Battle {
                     view.ready[side.index()] = state.ready;
                 }
             }
-            let rules = self.rules.clone();
+            let assignment = player_plan.map(|plan| crate::skirmish_ai::Assignment {
+                main_objective: plan.main_objective.center,
+                staging_point: plan.staging_point,
+            });
             let orders = if self.tick == 0
                 && frame.own.is_empty()
                 && frame
                     .skirmish
                     .as_ref()
                     .is_some_and(|view| view.players.first().is_none_or(|p| p.pending.is_empty()))
-                && !opening.is_empty()
+                && !ai.has_purchase_plan()
+                && openings.get(&id).is_some_and(|opening| !opening.is_empty())
             {
-                opening
+                openings
+                    .get(&id)
                     .into_iter()
+                    .flatten()
+                    .cloned()
                     .map(|purchase| Order::ConfirmPurchase {
                         variant: purchase.variant,
                         destination: purchase.destination,
@@ -2847,43 +2874,75 @@ impl Battle {
                     .collect()
             } else {
                 ai.decide(
-                    side,
-                    faction,
-                    &entry,
+                    crate::skirmish_ai::DecisionInput {
+                        side,
+                        faction,
+                        entry,
+                        assignment: assignment.as_ref(),
+                    },
                     &frame,
-                    &rules,
+                    &self.rules,
                     |unit, destination| self.route_time(side, unit, destination),
                 )
             };
             self.skirmish_ai.insert(id.clone(), ai);
-            for (seq, order) in (self.player_next_seq[index]..).zip(orders) {
-                commands.push((index, id.clone(), side, seq, order));
-            }
+            commands.push((index, id, side, orders));
         }
-        for (_, player, side, seq, order) in commands {
-            let ack = self.issue(CommandEnvelope {
-                side,
-                player: Some(player.clone()),
-                seq,
-                order,
-                queued: false,
-            });
-            debug_assert!(
-                ack.error.is_none(),
-                "skirmish AI order refused for {player}: {:?}",
-                ack.error
-            );
-            self.ai_receipts.push(AiReceipt {
-                tick: self.tick,
-                player,
-                accepted: ack.error.is_none(),
-                error: ack.error,
-            });
+        for (index, player, side, orders) in commands {
+            for order in orders {
+                let purchase = matches!(order, contract::command::Order::ConfirmPurchase { .. });
+                let ack = self.issue(CommandEnvelope {
+                    side,
+                    player: Some(player.clone()),
+                    seq: self.player_next_seq[index],
+                    order,
+                    queued: false,
+                });
+                let accepted = ack.error.is_none();
+                if purchase {
+                    if let Some(ai) = self.skirmish_ai.get_mut(&player) {
+                        ai.purchase_result(accepted);
+                    }
+                }
+                self.ai_receipts.push(AiReceipt {
+                    tick: self.tick,
+                    player: player.clone(),
+                    accepted,
+                    error: ack.error,
+                });
+                if purchase && !accepted {
+                    break;
+                }
+            }
         }
     }
 
     pub fn ai_receipts(&self) -> &[AiReceipt] {
         &self.ai_receipts
+    }
+
+    /// Doctrine pivots accumulated by the live policy instances, grouped by
+    /// side for native reports.
+    pub fn ai_pivots_by_side(&self) -> [u32; 2] {
+        let Some(skirmish) = &self.skirmish else {
+            return [0, 0];
+        };
+        let mut pivots = [0u32, 0u32];
+        for player in &skirmish.players {
+            if let Some(ai) = self.skirmish_ai.get(&player.id) {
+                pivots[player.side.index()] =
+                    pivots[player.side.index()].saturating_add(ai.pivot_count());
+            }
+        }
+        pivots
+    }
+
+    /// Latest non-digested team assignments, for tournament evidence.
+    pub fn team_plans(&self) -> [Option<&crate::skirmish_ai::TeamPlan>; 2] {
+        [
+            self.team_memory[Side::Blue.index()].cached_plan(),
+            self.team_memory[Side::Red.index()].cached_plan(),
+        ]
     }
 
     /// `unit` fired: every opposing side learns an uncertain firing area and

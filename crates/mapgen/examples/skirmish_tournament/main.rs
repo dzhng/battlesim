@@ -8,7 +8,8 @@
 //! Balance probes shape a game without touching its rules: `--factions
 //! us,eastern` picks Blue's and Red's armies; `--buy-blue` / `--buy-red
 //! <card,…[|card,…]>` replace a side's own shopping with a list bought in
-//! order (cards before `|` once, the rest repeating). The report's `air`
+//! order. Without `|`, the list repeats from its first card; with `|`, cards
+//! before the bar run once and cards after it repeat. The report's `air`
 //! block reads the referee's spawn and kill log.
 
 mod inputs;
@@ -80,11 +81,23 @@ fn main() {
         let max_seconds = value("--max-seconds")
             .map(|value| value.parse::<u64>().expect("--max-seconds must be a u64"))
             .unwrap_or(DEFAULT_MAX_BATTLE_SECONDS);
+        let players_per_side = value("--players")
+            .map(|value| {
+                value
+                    .parse::<usize>()
+                    .expect("--players must be a positive integer")
+            })
+            .unwrap_or(1);
         println!(
             "{}",
             serde_json::to_string(&runner::run_safe(
                 &inputs,
-                self_play_row(seed, max_seconds, inputs.rules.tick_hz),
+                self_play_row_with_players(
+                    seed,
+                    max_seconds,
+                    inputs.rules.tick_hz,
+                    players_per_side
+                ),
             ))
             .unwrap()
         );
@@ -98,17 +111,29 @@ fn random_seed() -> u64 {
         .as_nanos() as u64
 }
 
-pub(crate) fn self_play_row(seed: u64, max_seconds: u64, tick_hz: u32) -> Row {
+pub(crate) fn self_play_row_with_players(
+    seed: u64,
+    max_seconds: u64,
+    tick_hz: u32,
+    players_per_side: usize,
+) -> Row {
+    let size = match players_per_side {
+        0..=1 => "small",
+        2 => "medium",
+        3..=4 => "large",
+        _ => "xl",
+    };
     Row {
         id: format!("self_play_{seed}"),
         map: MapSource::Generated(GeneratedMap {
             kind: "generated".into(),
             map_type: "mixed".into(),
-            size: "small".into(),
+            size: size.into(),
         }),
         seed,
         horizon_ticks: max_seconds.saturating_mul(u64::from(tick_hz)),
         no_progress_ticks: u64::MAX,
+        players_per_side,
     }
 }
 
@@ -120,7 +145,7 @@ mod tests {
 
     #[test]
     fn default_self_play_is_a_generated_small_map() {
-        let row = self_play_row(17, DEFAULT_MAX_BATTLE_SECONDS, 30);
+        let row = self_play_row_with_players(17, DEFAULT_MAX_BATTLE_SECONDS, 30, 1);
         assert_eq!(row.seed, 17);
         assert_eq!(row.horizon_ticks, 54_000);
         assert_eq!(row.no_progress_ticks, u64::MAX);
@@ -150,6 +175,7 @@ mod tests {
                 seed: row.seed,
                 horizon_ticks: 90,
                 no_progress_ticks: 30,
+                players_per_side: row.players_per_side,
             },
         );
         let right = run(
@@ -160,6 +186,7 @@ mod tests {
                 seed: row.seed,
                 horizon_ticks: 90,
                 no_progress_ticks: 30,
+                players_per_side: row.players_per_side,
             },
         );
         assert_eq!(left.battle_digest, right.battle_digest);
@@ -170,5 +197,22 @@ mod tests {
         assert!(matches!(left.status, Status::Timeout));
         assert_eq!(left.accepted_orders, right.accepted_orders);
         assert_eq!(left.refused_orders, right.refused_orders);
+        assert!(left.accepted_orders > 0, "self-play accepted no AI orders");
+        assert!(left.credit_spend.iter().any(|spent| *spent > 0));
+        assert_eq!(left.doctrine_pivots, right.doctrine_pivots);
+    }
+
+    #[test]
+    fn scripted_buy_owns_the_player_purchase_stream() {
+        let mut inputs = Inputs::load().unwrap();
+        let card = "us_m1129_stryker_mortar_120_mm_mortar_carrier".to_owned();
+        inputs.buy[0] = Some(vec![card.clone()]);
+        let report = run(
+            &inputs,
+            self_play_row_with_players(7, 90, inputs.rules.tick_hz, 1),
+        );
+        assert_eq!(report.refused_by_side[0], 0);
+        assert!(report.opening[0].len() > 1, "a list without | must repeat");
+        assert!(report.opening[0].iter().all(|bought| bought == &card));
     }
 }

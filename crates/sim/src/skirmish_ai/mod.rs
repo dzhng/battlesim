@@ -9,40 +9,35 @@ use contract::skirmish::Phase;
 use contract::weapons::{TargetClass, WeaponDefinition};
 use std::collections::BTreeMap;
 
+pub mod team;
 mod transport;
+pub use team::{PlayerPlan, TeamMemory, TeamPlan};
 
 /// A side-scoped skirmish policy. Implementations emit the same ordinary
 /// orders as a human controller; the battle host owns admission and replay.
 pub trait SkirmishPolicy {
     fn decide(
         &mut self,
-        side: Side,
-        faction: Faction,
-        entry: &EntrySite,
+        input: DecisionInput<'_>,
         frame: &ObservationFrame,
         rules: &Rules,
         route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Vec<Order>;
 }
 
-/// A policy's view of one player. The simulation remains side-observing, while
-/// economy and own-unit queries are narrowed to the player's ownership.
-#[derive(Clone, Copy)]
-pub struct PlayerLens<'a> {
-    pub frame: &'a ObservationFrame,
-    pub me: contract::players::PlayerIndex,
+/// The assignment a side planner gives one AI player for this decision.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Assignment {
+    pub main_objective: [f64; 2],
+    pub staging_point: [f64; 2],
 }
 
-impl<'a> PlayerLens<'a> {
-    pub fn own(&'a self) -> impl Iterator<Item = &'a contract::observation::OwnUnit> + 'a {
-        self.frame
-            .own
-            .iter()
-            .filter(move |unit| unit.owner == Some(self.me))
-    }
-    pub fn economy(&self) -> Option<&'a contract::skirmish::SkirmishView> {
-        self.frame.skirmish.as_ref()
-    }
+#[derive(Clone, Copy)]
+pub struct DecisionInput<'a> {
+    pub side: Side,
+    pub faction: Faction,
+    pub entry: &'a EntrySite,
+    pub assignment: Option<&'a Assignment>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -105,6 +100,11 @@ struct Tuning {
     /// A loaded carrier keeps its drop point until a new one lies farther
     /// than this from it, and lets its squad out within this of it.
     reaim_m: f64,
+    /// Ground purchases stop this far up their assigned lane, clear of the
+    /// entry footprint and before the staging point.
+    purchase_advance_m: f64,
+    #[serde(flatten)]
+    team: team::TeamTuning,
 }
 
 impl Tuning {
@@ -123,7 +123,6 @@ impl Tuning {
 pub struct BalancedDoctrine {
     tuning: Tuning,
     next_decision: Tick,
-    assigned: BTreeMap<UnitId, String>,
     /// The target each own jet was last sent at. A jet keeps it while the
     /// side still identifies it, as a player's would, so a pass at it is not
     /// restarted at whatever is nearest at the next decision.
@@ -140,6 +139,17 @@ pub struct BalancedDoctrine {
     sightings: BTreeMap<ObservedTargetId, ArtillerySighting>,
     /// Own units their weapons' own cover holds (`BlockedTrajectory`).
     held: BTreeMap<UnitId, Held>,
+    /// An optional external purchase plan. When present it replaces all
+    /// doctrine shopping and advances only when the battle admits a card.
+    purchase_plan: Option<PurchasePlan>,
+    group_advance: Option<Assignment>,
+}
+
+#[derive(Clone, Debug)]
+struct PurchasePlan {
+    cards: Vec<TypeIndex>,
+    next: usize,
+    repeat_from: Option<usize>,
 }
 
 /// A unit its own cover holds from firing: since when (while it stands
@@ -173,7 +183,6 @@ impl Default for BalancedDoctrine {
         Self {
             tuning: Tuning::shipped(),
             next_decision: 0,
-            assigned: BTreeMap::new(),
             jet_targets: BTreeMap::new(),
             reinforcement: 0,
             doctrine: Doctrine::BalancedOpening,
@@ -186,6 +195,8 @@ impl Default for BalancedDoctrine {
             random: contract::random::Rng::new(0),
             sightings: BTreeMap::new(),
             held: BTreeMap::new(),
+            purchase_plan: None,
+            group_advance: None,
         }
     }
 }
@@ -208,6 +219,44 @@ impl BalancedDoctrine {
         self.pivot_count
     }
 
+    pub fn set_purchase_plan(&mut self, cards: Vec<TypeIndex>) {
+        self.set_purchase_plan_with_repeat(cards, None);
+    }
+
+    pub(crate) fn set_purchase_plan_with_repeat(
+        &mut self,
+        cards: Vec<TypeIndex>,
+        repeat_from: Option<usize>,
+    ) {
+        let repeat_from = repeat_from.filter(|&index| index < cards.len());
+        self.purchase_plan = Some(PurchasePlan {
+            cards,
+            next: 0,
+            repeat_from,
+        });
+    }
+
+    pub(crate) fn purchase_result(&mut self, accepted: bool) {
+        if !accepted {
+            return;
+        }
+        let Some(plan) = self.purchase_plan.as_mut() else {
+            return;
+        };
+        plan.next += 1;
+        if plan.next == plan.cards.len() {
+            plan.next = plan.repeat_from.unwrap_or(plan.cards.len());
+        }
+    }
+
+    pub(crate) fn has_purchase_plan(&self) -> bool {
+        self.purchase_plan.is_some()
+    }
+
+    pub(crate) fn wants_decision(&self, tick: Tick) -> bool {
+        tick >= self.next_decision
+    }
+
     /// A unit its own cover keeps from firing (`BlockedTrajectory` on any
     /// weapon at every decision while it stands, for its tuning's
     /// `relocate_after_s`) is driven to other ground `relocate_m` off, as a
@@ -226,16 +275,18 @@ impl BalancedDoctrine {
         let held = self.held.entry(unit.id).or_default();
         if held.driving {
             // A route that failed on the way ends the move as arriving does.
-            if unit.goal.is_some() && unit.state != contract::observation::MoveState::RouteBlocked {
+            if live_goal(unit).is_some() {
                 return Relocation::Driving;
             }
             held.driving = false;
         }
-        let blocked = unit.state == contract::observation::MoveState::Idle
-            && unit
-                .mounts
-                .iter()
-                .any(|m| m.reason == contract::observation::ActionReason::BlockedTrajectory);
+        let blocked = matches!(
+            unit.state,
+            contract::observation::MoveState::Idle | contract::observation::MoveState::RouteBlocked
+        ) && unit
+            .mounts
+            .iter()
+            .any(|m| m.reason == contract::observation::ActionReason::BlockedTrajectory);
         if !blocked {
             held.since = None;
             return Relocation::Stay;
@@ -324,6 +375,7 @@ impl BalancedDoctrine {
         frame: &ObservationFrame,
         rules: &Rules,
         carrier: &contract::observation::OwnUnit,
+        planned_goal: Option<[f64; 2]>,
     ) -> Option<Order> {
         let passenger = transport::passengers(frame, carrier.id).min_by_key(|u| u.id)?;
         if carrier.withdrawing || !transport::all_inside(frame, carrier.id) {
@@ -337,17 +389,15 @@ impl BalancedDoctrine {
                 .flat_map(|view| &view.objectives)
                 .filter(|o| o.owner != Some(side))
         };
-        let objective = self
-            .assigned
-            .get(&passenger.id)
-            .and_then(|id| available().find(|o| &o.id == id))
-            .or_else(|| {
-                available().min_by(|a, b| {
+        let objective = planned_goal.or_else(|| {
+            available()
+                .min_by(|a, b| {
                     distance(here, a.center)
                         .total_cmp(&distance(here, b.center))
                         .then(a.id.cmp(&b.id))
                 })
-            });
+                .map(|objective| objective.center)
+        });
         let order = |goal| Order::Unload {
             units: vec![carrier.id],
             goal,
@@ -357,7 +407,7 @@ impl BalancedDoctrine {
         let goal = match nearest_ground_target(frame, rules, passenger.kind, here) {
             Some(target) => [target.position[0], target.position[1]],
             None => match objective {
-                Some(objective) => self.heading(rules, entry, passenger, objective.center),
+                Some(objective) => self.heading(rules, entry, passenger, objective),
                 // Nothing to fight and every objective held: out here.
                 None => return carrier.goal.is_none().then(|| order(None)),
             },
@@ -433,25 +483,30 @@ impl BalancedDoctrine {
 
     pub fn decide(
         &mut self,
-        side: Side,
-        faction: Faction,
-        entry: &EntrySite,
+        input: DecisionInput<'_>,
         frame: &ObservationFrame,
         rules: &Rules,
         mut route_time: impl FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Vec<Order> {
-        self.decide_impl(side, faction, entry, frame, rules, &mut route_time)
+        self.decide_impl(input, frame, rules, &mut route_time)
     }
 
     fn decide_impl(
         &mut self,
-        side: Side,
-        faction: Faction,
-        entry: &EntrySite,
+        input: DecisionInput<'_>,
         frame: &ObservationFrame,
         rules: &Rules,
         route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Vec<Order> {
+        let DecisionInput {
+            side,
+            faction,
+            entry,
+            assignment: context,
+        } = input;
+        if context != self.group_advance.as_ref() {
+            self.group_advance = None;
+        }
         let Some(view) = &frame.skirmish else {
             return vec![];
         };
@@ -479,8 +534,6 @@ impl BalancedDoctrine {
             .tick
             .saturating_add(Tuning::ticks(self.tuning.decision_s, rules.tick_hz));
         self.update_doctrine(frame, rules, draw_unit);
-        self.assigned
-            .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
         self.held
             .retain(|id, _| frame.own.iter().any(|u| u.id == *id));
         self.jet_targets.retain(|id, target| {
@@ -605,18 +658,34 @@ impl BalancedDoctrine {
             })
             .collect();
         let mut orders = Vec::new();
-        // Only units that can take an objective count toward its load: a
-        // helicopter sent to fight over a flag never holds it (D20).
-        let holds = |id: UnitId| {
-            frame
-                .own
-                .iter()
-                .find(|u| u.id == id)
-                .is_some_and(|u| crate::objectives::can_hold(rules.catalog.get(u.kind)))
-        };
         // The whole opening is bought in one decision, so the opponent is
         // ready at once and the player's own readiness starts the battle.
-        let purchases: Vec<TypeIndex> = if view.phase == Phase::Preparation {
+        let purchases: Vec<TypeIndex> = if let Some(plan) = self.purchase_plan.as_ref() {
+            let mut credits = view.credits;
+            let mut slots = view.unit_count;
+            let mut cursor = plan.next;
+            let mut purchases = Vec::new();
+            while slots < view.max_units {
+                let Some(&kind) = plan.cards.get(cursor) else {
+                    break;
+                };
+                let cost = f64::from(rules.catalog.get(kind).cost);
+                if cost > credits {
+                    break;
+                }
+                purchases.push(kind);
+                credits -= cost;
+                slots += 1;
+                cursor += 1;
+                if cursor == plan.cards.len() {
+                    let Some(repeat_from) = plan.repeat_from else {
+                        break;
+                    };
+                    cursor = repeat_from;
+                }
+            }
+            purchases
+        } else if view.phase == Phase::Preparation {
             let mut credits = view.credits;
             let mut slots = view.unit_count;
             let mut needed = BTreeMap::new();
@@ -728,32 +797,24 @@ impl BalancedDoctrine {
                 || crate::carriage::seats(rules, kind) > 0
                 || transport::carrier_for(rules, &eligible, rules.catalog.get(kind).squad_size())
                     .is_some();
-            let destination = if waits {
+            let destination = if let Some(context) = context {
+                // Reserve just past the lane entry. Entries still owns the
+                // nearest-entry choice, while the unit clears the footprint
+                // immediately instead of blocking the next dispatch.
+                lane_purchase_destination(
+                    entry,
+                    context.staging_point,
+                    self.tuning.purchase_advance_m,
+                )
+            } else if waits {
                 entry.center
             } else {
                 view.objectives
                     .iter()
                     .filter(|o| o.owner != Some(side))
                     .min_by(|a, b| {
-                        let load = |o: &contract::skirmish::ObjectiveView| {
-                            view.pending
-                                .iter()
-                                .map(|p| p.destination)
-                                .chain(bought.iter().copied())
-                                .filter(|d| *d == o.center)
-                                .count()
-                                + self
-                                    .assigned
-                                    .iter()
-                                    .filter(|(u, id)| *id == &o.id && holds(**u))
-                                    .count()
-                        };
-                        load(a)
-                            .cmp(&load(b))
-                            .then(
-                                distance(entry.center, a.center)
-                                    .total_cmp(&distance(entry.center, b.center)),
-                            )
+                        distance(entry.center, a.center)
+                            .total_cmp(&distance(entry.center, b.center))
                             .then(a.id.cmp(&b.id))
                     })
                     .map_or(entry.center, |o| o.center)
@@ -784,6 +845,66 @@ impl BalancedDoctrine {
                 })
                 .collect();
             let mut collect: BTreeMap<UnitId, UnitId> = BTreeMap::new();
+            let group_ready = context.is_some_and(|context| {
+                let radius = self.tuning.team.group_radius_m;
+                let positions = team::group_positions(
+                    rules,
+                    own.iter().copied().filter(|unit| {
+                        if !team::is_group_unit(rules, unit) {
+                            return false;
+                        }
+                        if carries(unit)
+                            && (transport::passengers(frame, unit.id).next().is_some()
+                                || own.iter().any(|squad| {
+                                    !carries(squad) && transport::coming_for(rules, unit, squad)
+                                }))
+                        {
+                            return false;
+                        }
+                        if unit.engagement == contract::command::Engagement::FireAtWill
+                            && frame
+                                .identified
+                                .iter()
+                                .any(|target| unit_can_engage_target(rules, unit.kind, target.kind))
+                        {
+                            return false;
+                        }
+                        if rules.catalog.get(unit.kind).has_role("artillery") {
+                            let has_ground_task = artillery_ground_guess(
+                                unit,
+                                frame,
+                                rules,
+                                &self.tuning,
+                                &self.sightings,
+                            )
+                            .is_some();
+                            let has_objective_task = !has_ground_task
+                                && artillery_objective_guess(
+                                    unit,
+                                    side,
+                                    entry,
+                                    frame,
+                                    rules,
+                                    &self.tuning,
+                                    route_time,
+                                )
+                                .is_some();
+                            if has_ground_task || has_objective_task {
+                                return false;
+                            }
+                        }
+                        let position = [unit.position[0], unit.position[1]];
+                        distance(position, context.staging_point) <= radius
+                            || live_goal(unit)
+                                .is_some_and(|goal| distance(goal, context.staging_point) <= radius)
+                    }),
+                );
+                let ready = team::group_ready(&positions, context.staging_point, radius);
+                if ready {
+                    self.group_advance = Some(context.clone());
+                }
+                ready || self.group_advance.is_some()
+            });
             for unit in &own {
                 // Passengers take no orders.
                 if rules.catalog.get(unit.kind).has_role("logistics")
@@ -810,7 +931,20 @@ impl BalancedDoctrine {
                         continue;
                     }
                     if transport::passengers(frame, unit.id).next().is_some() {
-                        orders.extend(self.unload(side, entry, frame, rules, unit));
+                        orders.extend(self.unload(
+                            side,
+                            entry,
+                            frame,
+                            rules,
+                            unit,
+                            context.map(|context| {
+                                if group_ready {
+                                    context.main_objective
+                                } else {
+                                    context.staging_point
+                                }
+                            }),
+                        ));
                         continue;
                     }
                     if rules.catalog.mounts(unit.kind).is_empty() {
@@ -842,8 +976,8 @@ impl BalancedDoctrine {
                         .iter()
                         .filter(|target| unit_can_engage_target(rules, unit.kind, target.kind))
                         .min_by(|a, b| {
-                            distance3(unit.position, a.position)
-                                .total_cmp(&distance3(unit.position, b.position))
+                            body_distance(unit.position, a.position)
+                                .total_cmp(&body_distance(unit.position, b.position))
                                 .then(a.id.cmp(&b.id))
                         })
                     {
@@ -898,6 +1032,72 @@ impl BalancedDoctrine {
                         }
                     }
                 }
+                if let Some(context) = context {
+                    let catalog = rules.catalog.get(unit.kind);
+                    let objective = context.main_objective;
+                    if catalog.has_role("recon") {
+                        let goal = recon_post(unit, &self.tuning, objective, entry.center);
+                        if route_time(unit.id, goal).is_some() {
+                            orders.push(Order::Move {
+                                units: vec![unit.id],
+                                gesture: frame.tick,
+                                goal,
+                                route: contract::command::RoutePolicy::Fastest,
+                                direction: contract::command::MoveDirection::Forward,
+                                facing: Some(libm::atan2(
+                                    objective[1] - goal[1],
+                                    objective[0] - goal[0],
+                                )),
+                            });
+                        }
+                        continue;
+                    }
+                    if view
+                        .objectives
+                        .iter()
+                        .find(|candidate| candidate.center == objective)
+                        .is_some_and(|candidate| candidate.owner == Some(side))
+                    {
+                        continue;
+                    }
+                    let goal = if group_ready {
+                        objective
+                    } else {
+                        context.staging_point
+                    };
+                    if self.worth_riding(frame, rules, entry, unit, goal)
+                        && transport::wait_for_ride(
+                            rules,
+                            unit,
+                            &mut free,
+                            &mut collect,
+                            &mut orders,
+                            route_time,
+                        )
+                    {
+                        continue;
+                    }
+                    if live_goal(unit)
+                        .is_some_and(|old| distance(old, goal) <= self.tuning.team.group_radius_m)
+                    {
+                        continue;
+                    }
+                    if !team::is_group_unit(rules, unit) {
+                        continue;
+                    }
+                    // The authoritative movement owner will report a blocked
+                    // route if terrain refuses it; issuing the group order is
+                    // still preferable to silently abandoning the lane.
+                    orders.push(Order::AttackMove {
+                        units: vec![unit.id],
+                        gesture: frame.tick,
+                        goal,
+                    });
+                    continue;
+                }
+                if live_goal(unit).is_some() {
+                    continue;
+                }
                 let available: Vec<_> = view
                     .objectives
                     .iter()
@@ -906,47 +1106,16 @@ impl BalancedDoctrine {
                 if available.is_empty() {
                     continue;
                 }
-                let busy = self
-                    .assigned
-                    .get(&unit.id)
-                    .and_then(|id| available.iter().copied().find(|o| &o.id == id))
-                    .filter(|o| {
-                        unit.goal.is_some()
-                            || distance([unit.position[0], unit.position[1]], o.center)
-                                <= o.radius_m
-                    });
-                let objective = match busy {
-                    Some(objective) => objective,
-                    None => {
-                        let best = available
-                            .iter()
-                            .filter_map(|objective| {
-                                route_time(unit.id, objective.center)
-                                    .filter(|t| t.is_finite() && *t >= 0.0)
-                                    .map(|t| (*objective, t))
-                            })
-                            .min_by(|(a, at), (b, bt)| {
-                                let load = |id: &str| {
-                                    self.assigned
-                                        .iter()
-                                        .filter(|(unit_id, goal)| {
-                                            **unit_id != unit.id
-                                                && goal.as_str() == id
-                                                && holds(**unit_id)
-                                        })
-                                        .count()
-                                };
-                                load(&a.id)
-                                    .cmp(&load(&b.id))
-                                    .then(at.total_cmp(bt))
-                                    .then(a.id.cmp(&b.id))
-                            });
-                        let Some((objective, _)) = best else {
-                            continue;
-                        };
-                        self.assigned.insert(unit.id, objective.id.clone());
-                        objective
-                    }
+                let Some((objective, _)) = available
+                    .iter()
+                    .filter_map(|objective| {
+                        route_time(unit.id, objective.center)
+                            .filter(|t| t.is_finite() && *t >= 0.0)
+                            .map(|t| (*objective, t))
+                    })
+                    .min_by(|(a, at), (b, bt)| at.total_cmp(bt).then(a.id.cmp(&b.id)))
+                else {
+                    continue;
                 };
                 // A squad heading far for its objective stops for the
                 // nearest free carrier to collect it (D17).
@@ -961,9 +1130,6 @@ impl BalancedDoctrine {
                         route_time,
                     )
                 {
-                    continue;
-                }
-                if busy.is_some() {
                     continue;
                 }
                 if rules.catalog.get(unit.kind).has_role("recon") {
@@ -1016,10 +1182,7 @@ impl BalancedDoctrine {
                 let here = [truck.position[0], truck.position[1]];
                 let slack = self.tuning.truck_slack_m;
                 if distance(here, support) > slack {
-                    if truck
-                        .goal
-                        .is_some_and(|old| distance(old, support) <= slack)
-                    {
+                    if live_goal(truck).is_some_and(|old| distance(old, support) <= slack) {
                         continue;
                     }
                     let goal = if route_time(truck.id, support)
@@ -1047,7 +1210,8 @@ impl BalancedDoctrine {
                         continue;
                     }
                 }
-                if truck.goal.is_none()
+                if truck.state != contract::observation::MoveState::RouteBlocked
+                    && truck.goal.is_none()
                     && truck
                         .deployment
                         .is_some_and(|d| d.target == contract::observation::Posture::Packed)
@@ -1069,22 +1233,34 @@ impl BalancedDoctrine {
 impl SkirmishPolicy for BalancedDoctrine {
     fn decide(
         &mut self,
-        side: Side,
-        faction: Faction,
-        entry: &EntrySite,
+        input: DecisionInput<'_>,
         frame: &ObservationFrame,
         rules: &Rules,
         route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
     ) -> Vec<Order> {
-        self.decide_impl(side, faction, entry, frame, rules, route_time)
+        self.decide_impl(input, frame, rules, route_time)
     }
+}
+
+/// A unit's movement goal while its route still leads there: a blocked
+/// route is a goal to replace, not one to keep waiting on.
+fn live_goal(unit: &contract::observation::OwnUnit) -> Option<[f64; 2]> {
+    unit.goal
+        .filter(|_| unit.state != contract::observation::MoveState::RouteBlocked)
 }
 
 fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
 }
 
-fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
+fn body_distance(a: [f64; 3], b: [f64; 3]) -> f64 {
+    crate::math::body_distance(
+        crate::math::v3(a[0], a[1], a[2]),
+        crate::math::v3(b[0], b[1], b[2]),
+    )
+}
+
+fn ground_distance(a: [f64; 3], b: [f64; 3]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
 }
 
@@ -1139,7 +1315,7 @@ fn artillery_in_range(
     rules: &Rules,
     point: [f64; 3],
 ) -> bool {
-    let range = distance3(unit.position, point);
+    let range = ground_distance(unit.position, point);
     rules
         .catalog
         .mounts(unit.kind)
@@ -1213,8 +1389,8 @@ fn artillery_ground_guess(
     contacts
         .chain(predicted)
         .min_by(|(a, ai), (b, bi)| {
-            distance3(unit.position, *a)
-                .total_cmp(&distance3(unit.position, *b))
+            ground_distance(unit.position, *a)
+                .total_cmp(&ground_distance(unit.position, *b))
                 .then(ai.cmp(bi))
         })
         .map(|(point, _)| point)
@@ -1281,6 +1457,30 @@ fn recon_post(
     [
         objective[0] - dx / approach * standoff,
         objective[1] - dy / approach * standoff,
+    ]
+}
+
+/// A ground purchase's lane reservation: follow the entry road heading a
+/// short distance, capped before the staging point.  The lane entry remains
+/// the route owner's nearest choice, but the arriving unit is clear of its
+/// footprint.
+pub(crate) fn lane_purchase_destination(
+    entry: &EntrySite,
+    staging: [f64; 2],
+    advance_m: f64,
+) -> [f64; 2] {
+    let span = distance(entry.center, staging);
+    let advance = advance_m.max(0.0).min(span * 0.5);
+    let toward = [staging[0] - entry.center[0], staging[1] - entry.center[1]];
+    let road = [libm::cos(entry.yaw), libm::sin(entry.yaw)];
+    let heading = if road[0] * toward[0] + road[1] * toward[1] >= 0.0 {
+        road
+    } else {
+        [-road[0], -road[1]]
+    };
+    [
+        entry.center[0] + heading[0] * advance,
+        entry.center[1] + heading[1] * advance,
     ]
 }
 

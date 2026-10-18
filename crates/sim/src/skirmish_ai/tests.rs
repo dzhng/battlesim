@@ -85,9 +85,12 @@ fn missing_opening_role_uses_admitted_category_fallback() {
     );
     let rules: Rules = serde_json::from_value(authored).unwrap();
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -98,6 +101,110 @@ fn missing_opening_role_uses_admitted_category_fallback() {
     let selected = rules.catalog.by_id(variant);
     assert!(!selected.has_role("infantry"));
     assert_eq!(selected.roster.as_ref().unwrap().category, Category::Inf);
+}
+
+#[test]
+fn a_scripted_purchase_plan_replaces_the_doctrines_own_shopping() {
+    let (rules, mut frame, entry) = empty_match();
+    let plan = vec![
+        rules.catalog.index("test_tank").unwrap(),
+        rules.catalog.index("test_rifle").unwrap(),
+    ];
+    let expected = plan
+        .iter()
+        .map(|&kind| rules.catalog.id(kind).to_owned())
+        .collect::<Vec<_>>();
+    let mut ai = BalancedDoctrine::default();
+    ai.set_purchase_plan(plan);
+    let first = ai
+        .decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        )
+        .into_iter()
+        .filter_map(|order| match order {
+            Order::ConfirmPurchase { variant, .. } => Some(variant),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        first, expected,
+        "an affordable scripted opening is one batch"
+    );
+    for _ in 0..expected.len() {
+        ai.purchase_result(true);
+    }
+    frame.tick += 5 * u64::from(rules.tick_hz);
+    let second = ai
+        .decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        )
+        .into_iter()
+        .filter_map(|order| match order {
+            Order::ConfirmPurchase { variant, .. } => Some(variant),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert!(second.is_empty(), "the batch exhausted before readiness");
+    assert_eq!(
+        first.into_iter().chain(second).collect::<Vec<_>>(),
+        expected
+    );
+}
+
+#[test]
+fn a_refused_scripted_purchase_is_retried_in_order() {
+    let (rules, mut frame, entry) = empty_match();
+    frame.skirmish.as_mut().unwrap().credits = 1_000.0;
+    let plan = vec![
+        rules.catalog.index("test_tank").unwrap(),
+        rules.catalog.index("test_rifle").unwrap(),
+    ];
+    let mut ai = BalancedDoctrine::default();
+    ai.set_purchase_plan(plan.clone());
+    let purchase = |ai: &mut BalancedDoctrine, frame: &mut ObservationFrame| {
+        frame.tick += 5 * u64::from(rules.tick_hz);
+        ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            frame,
+            &rules,
+            |_, _| Some(1.0),
+        )
+        .into_iter()
+        .find_map(|order| match order {
+            Order::ConfirmPurchase { variant, .. } => Some(variant),
+            _ => None,
+        })
+        .unwrap()
+    };
+    let first = purchase(&mut ai, &mut frame);
+    ai.purchase_result(false);
+    assert_eq!(purchase(&mut ai, &mut frame), first);
+    ai.purchase_result(true);
+    assert_eq!(
+        purchase(&mut ai, &mut frame),
+        rules.catalog.id(plan[1]).to_owned()
+    );
 }
 
 #[test]
@@ -117,9 +224,17 @@ fn support_truck_moves_behind_observed_troops_and_deploys_after_arrival() {
     view.phase = Phase::Active;
     view.credits = 0.0;
     let mut ai = BalancedDoctrine::default();
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let support = orders
         .iter()
         .find_map(|o| match o {
@@ -135,9 +250,17 @@ fn support_truck_moves_behind_observed_troops_and_deploys_after_arrival() {
     // trucks already head to deployed through the deployment owner.
     frame.own[1].deployment.as_mut().unwrap().target = contract::observation::Posture::Packed;
     frame.tick += 5 * u64::from(rules.tick_hz);
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        panic!("standing deployment needs no new route")
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| panic!("standing deployment needs no new route"),
+    );
     assert!(orders
         .iter()
         .any(|o| matches!(o,Order::SetDeployment{units,deployed:true} if units==&vec![UnitId(1)])));
@@ -149,9 +272,17 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
     let mut ai = BalancedDoctrine::default();
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let Order::ConfirmPurchase {
         variant,
         destination,
@@ -177,14 +308,30 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
             arrival_tick: None,
         });
     assert!(ai
-        .decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| Some(
-            1.0
-        ))
+        .decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0)
+        )
         .is_empty());
     frame.tick = 5 * u64::from(rules.tick_hz);
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let Order::ConfirmPurchase { variant, .. } = &orders[0] else {
         panic!("reinforce combat")
     };
@@ -198,9 +345,17 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
     let mut ready = false;
     for iteration in 0..10 {
         frame.tick = iteration * 5 * u64::from(rules.tick_hz);
-        for order in ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-            Some(1.0)
-        }) {
+        for order in ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        ) {
             let view = frame.skirmish.as_mut().unwrap();
             match order {
                 Order::ConfirmPurchase {
@@ -246,15 +401,61 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
     capped.tick += 5 * u64::from(rules.tick_hz);
     assert!(!ai
         .decide(
-            Side::Red,
-            Faction::Us,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None
+            },
             &capped,
             &rules,
             |_, _| Some(1.0)
         )
         .iter()
         .any(|o| matches!(o, Order::ConfirmPurchase { .. })));
+}
+
+#[test]
+fn lane_purchases_clear_the_entry_before_the_staging_point() {
+    let (rules, frame, entry) = empty_match();
+    let assignment = Assignment {
+        main_objective: [500.0, 500.0],
+        staging_point: [500.0, 320.0],
+    };
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let destinations: Vec<_> = orders
+        .iter()
+        .filter_map(|order| match order {
+            Order::ConfirmPurchase { destination, .. } => Some(*destination),
+            _ => None,
+        })
+        .collect();
+    assert!(destinations.len() >= 3, "opening did not buy a group");
+    for destination in destinations {
+        let from_entry = distance(destination, entry.center);
+        let before_staging = distance(destination, assignment.staging_point)
+            < distance(entry.center, assignment.staging_point);
+        assert!(
+            from_entry > 10.0,
+            "arrival still occupies the entry: {destination:?}"
+        );
+        assert!(
+            before_staging,
+            "arrival passed the staging point: {destination:?}"
+        );
+        assert!((destination[0] - 500.0).abs() < 0.1);
+        assert!((destination[1] - 34.0).abs() < 0.1);
+    }
 }
 
 #[test]
@@ -281,9 +482,12 @@ fn objective_orders_use_known_route_cost_and_stable_sites() {
         (1.0, 1.0, [800.0, 800.0]),
     ] {
         let orders = BalancedDoctrine::default().decide(
-            Side::Red,
-            Faction::Us,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
             &frame,
             &rules,
             |_, goal| Some(if goal == [800.0, 800.0] { far } else { near }),
@@ -294,7 +498,17 @@ fn objective_orders_use_known_route_cost_and_stable_sites() {
             if units==&vec![UnitId(0)] && *goal==wanted)));
     }
     assert!(BalancedDoctrine::default()
-        .decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| None)
+        .decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None
+            },
+            &frame,
+            &rules,
+            |_, _| None
+        )
         .is_empty());
 }
 
@@ -302,9 +516,12 @@ fn objective_orders_use_known_route_cost_and_stable_sites() {
 fn zero_unit_opening_uses_an_affordable_admitted_faction_purchase() {
     let (rules, frame, entry) = empty_match();
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -330,12 +547,28 @@ fn seeded_policy_instances_repeat_the_same_opening_commands() {
     let (rules, frame, entry) = empty_match();
     let mut left = BalancedDoctrine::new(17);
     let mut right = BalancedDoctrine::new(17);
-    let left_orders = left.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
-    let right_orders = right.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let left_orders = left.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let right_orders = right.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     assert_eq!(left_orders, right_orders);
 }
 
@@ -362,9 +595,12 @@ fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality()
     let mut variants = std::collections::BTreeSet::new();
     for seed in 0..32 {
         let orders = BalancedDoctrine::new(seed).decide(
-            Side::Red,
-            Faction::Us,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
             &frame,
             &rules,
             |_, _| Some(1.0),
@@ -449,9 +685,17 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
             member_leans: vec![],
         });
     let mut ai = BalancedDoctrine::new(0);
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let Order::ConfirmPurchase { variant, .. } = orders
         .iter()
         .find(|order| matches!(order, Order::ConfirmPurchase { .. }))
@@ -475,19 +719,43 @@ fn doctrine_pivots_after_maximum_dwell_without_visible_progress() {
     // Its tuning, not a number in the code, says how long it dwells: 60 s.
     let mut ai = BalancedDoctrine::new(7);
     ai.tuning.max_dwell_s = 60.0;
-    ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     assert_eq!(ai.doctrine(), Doctrine::BalancedOpening);
     frame.tick = 55 * u64::from(rules.tick_hz);
-    ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     assert_eq!(ai.doctrine(), Doctrine::BalancedOpening);
     frame.tick = 65 * u64::from(rules.tick_hz);
-    ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     assert_eq!(ai.doctrine(), Doctrine::ReconScreen);
     assert_eq!(ai.pivot_count(), 1);
 }
@@ -506,9 +774,17 @@ fn recon_moves_to_a_sensor_standoff_before_objective() {
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
     frame.skirmish.as_mut().unwrap().credits = 0.0;
     let mut ai = BalancedDoctrine::default();
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let goal = orders
         .iter()
         .find_map(|order| match order {
@@ -518,6 +794,245 @@ fn recon_moves_to_a_sensor_standoff_before_objective() {
         .expect("recon gets a movement order");
     assert!(goal[1] < 500.0);
     assert!(distance(goal, [500.0, 500.0]) > 100.0);
+}
+
+#[test]
+fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
+    let (rules, mut frame, entry) = empty_match();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":deck(),"units":[{"side":"red","kind":"test_jeep","position":[500,100]}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    frame.own = battle.observe(Side::Red).own.clone();
+    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+    frame.skirmish.as_mut().unwrap().credits = 0.0;
+    frame.skirmish.as_mut().unwrap().unit_count = 1;
+    frame.own[0].state = contract::observation::MoveState::RouteBlocked;
+    frame.own[0].goal = Some([500.0, 500.0]);
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::AttackMove { units, .. } if units == &vec![frame.own[0].id]
+    )));
+    let assignment = Assignment {
+        main_objective: [500.0, 500.0],
+        staging_point: [500.0, 400.0],
+    };
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::AttackMove { units, .. } if units == &vec![frame.own[0].id]
+    )));
+}
+
+#[test]
+fn group_positions_matches_the_units_that_advance_the_lane() {
+    let authored = deck();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":authored,"units":[
+            {"side":"red","kind":"test_rifle","position":[500,100]},
+            {"side":"red","kind":"test_supply","position":[500,110]},
+            {"side":"red","kind":"test_heli","position":[500,120]}
+        ],"events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    let positions = team::group_positions(&setup.rules, battle.observe(Side::Red).own.iter());
+    assert_eq!(positions, vec![[500.0, 100.0], [500.0, 120.0]]);
+}
+
+#[test]
+fn a_lane_of_mortar_carriers_gathers_and_advances_as_a_group() {
+    let authored = deck();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":authored,"units":[
+            {"side":"red","kind":"test_apc","position":[500,100]},
+            {"side":"red","kind":"test_apc","position":[510,105]}
+        ],"events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    let (rules, mut frame, entry) = empty_match();
+    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+    frame.skirmish.as_mut().unwrap().unit_count = 2;
+    frame.own = battle.observe(Side::Red).own.clone();
+    let assignment = Assignment {
+        main_objective: [500.0, 500.0],
+        staging_point: [500.0, 100.0],
+    };
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    let advancing = orders
+        .iter()
+        .filter(|order| matches!(order, Order::AttackMove { goal, .. } if *goal == assignment.main_objective))
+        .count();
+    assert_eq!(
+        advancing, 2,
+        "mortar carriers must advance after gathering: {orders:?}"
+    );
+}
+
+#[test]
+fn a_ready_group_keeps_its_objective_after_leaving_staging() {
+    let authored = deck();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":authored,"units":[
+            {"side":"red","kind":"test_rifle","position":[500,100]},
+            {"side":"red","kind":"test_rifle","position":[510,105]}
+        ],"events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    let (rules, mut frame, entry) = empty_match();
+    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+    frame.skirmish.as_mut().unwrap().unit_count = 2;
+    frame.own = battle.observe(Side::Red).own.clone();
+    let assignment = Assignment {
+        main_objective: [500.0, 500.0],
+        staging_point: [500.0, 100.0],
+    };
+    let mut ai = BalancedDoctrine::default();
+    let first = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(first.iter().any(|order| matches!(
+        order,
+        Order::AttackMove { goal, .. } if *goal == assignment.main_objective
+    )));
+    for unit in &mut frame.own {
+        unit.position[0] = assignment.main_objective[0];
+        unit.position[1] = assignment.main_objective[1];
+        unit.goal = None;
+    }
+    frame.tick += 5 * u64::from(rules.tick_hz);
+    let second = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: Some(&assignment),
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(second.iter().any(|order| matches!(
+        order,
+        Order::AttackMove { goal, .. } if *goal == assignment.main_objective
+    )));
+}
+
+#[test]
+fn nearest_air_target_uses_body_distance_in_three_dimensions() {
+    let mut authored = deck();
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_jeep",
+        json!({ "mounts": [{ "id": "AA", "name": "AA", "weapons": ["aa_long"], "turret": true, "pivot_m": [0, 0, 1.68], "muzzle_m": [1.43, 0, 0.32] }] }),
+    );
+    authored["weapons"]["aa_long"]["targets"]["low_air"] =
+        json!({ "classes": ["air_rotor", "air_fixed_wing"] });
+    let rules: Rules = serde_json::from_value(authored.clone()).unwrap();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":authored,"units":[{"side":"red","kind":"test_jeep","position":[500,500]}],
+        "events":[],"scripts":[]
+    }))
+    .unwrap();
+    let battle = crate::battle::Battle::new(&setup, 1);
+    let (mut frame, entry) = {
+        let (_, mut frame, entry) = empty_match();
+        frame.own = battle.observe(Side::Red).own.clone();
+        (frame, entry)
+    };
+    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+    frame.skirmish.as_mut().unwrap().credits = 0.0;
+    frame.skirmish.as_mut().unwrap().unit_count = 1;
+    let heli = rules.catalog.index("test_heli").unwrap();
+    let jet = rules.catalog.index("test_jet").unwrap();
+    for (id, kind, position) in [
+        (1, heli, [550.0, 500.0, 20.0]),
+        (2, jet, [450.0, 500.0, 250.0]),
+    ] {
+        frame
+            .identified
+            .push(contract::observation::IdentifiedUnit {
+                id: contract::observation::ObservedTargetId(id),
+                kind,
+                cost: 1,
+                position,
+                yaw: 0.0,
+                velocity: [0.0, 0.0],
+                members: vec![],
+                member_ids: vec![],
+                member_slots: vec![],
+                member_active_mounts: vec![],
+                weapon_poses: vec![],
+                reversing: false,
+                smoking: false,
+                member_leans: vec![],
+            });
+    }
+    let orders = BalancedDoctrine::default().decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
+    assert!(orders.iter().any(|order| matches!(
+        order,
+        Order::Attack { units, target: TargetRef::Identified { id } }
+            if units == &vec![frame.own[0].id] && *id == contract::observation::ObservedTargetId(1)
+    )));
 }
 
 #[test]
@@ -535,9 +1050,12 @@ fn opening_procures_an_authored_artillery_role() {
     let rules: Rules = serde_json::from_value(authored).unwrap();
     let (_, frame, entry) = empty_match();
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -555,9 +1073,12 @@ fn every_ai_opening_includes_a_high_air_defender() {
     let (_, frame, entry) = empty_match();
     for faction in [Faction::Us, Faction::Europe, Faction::Eastern] {
         let orders = BalancedDoctrine::default().decide(
-            Side::Red,
-            faction,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction,
+                entry: &entry,
+                assignment: None,
+            },
             &frame,
             &rules,
             |_, _| Some(1.0),
@@ -608,9 +1129,12 @@ fn every_ai_opening_includes_a_high_air_defender() {
     }
     let only_gepard: Rules = serde_json::from_value(authored).unwrap();
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Europe,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Europe,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &only_gepard,
         |_, _| Some(1.0),
@@ -649,9 +1173,12 @@ fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
     let (_, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().credits = 400.0;
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -697,9 +1224,12 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
         arrival_tick: None,
     });
     let ordinary = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -723,9 +1253,12 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
             member_leans: vec![],
         });
     let threatened = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -790,9 +1323,17 @@ fn the_ai_sends_bought_jets_on_attack_move() {
         reinforcement: 6,
         ..BalancedDoctrine::default()
     };
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     assert!(orders.iter().any(|order| matches!(
         order,
         Order::ConfirmPurchase { variant, .. } if variant == "test_jet"
@@ -879,9 +1420,17 @@ fn with_steady_income_the_ai_saves_for_an_expensive_jet_and_keeps_its_aa() {
     view.max_units = 1_000;
     let mut ai = BalancedDoctrine::new(3);
     let decide = |ai: &mut BalancedDoctrine, frame: &ObservationFrame| {
-        ai.decide(Side::Red, Faction::Us, &entry, frame, &rules, |_, _| {
-            Some(1.0)
-        })
+        ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            frame,
+            &rules,
+            |_, _| Some(1.0),
+        )
     };
     let orders = decide(&mut ai, &frame);
     let opening = confirm_purchases(&rules, &mut frame, &orders);
@@ -945,9 +1494,12 @@ fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
             member_leans: vec![],
         });
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1003,9 +1555,12 @@ fn artillery_fires_a_bounded_ground_guess_from_a_contact() {
             range_m: None,
         });
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry_from([100.0, 100.0]),
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry_from([100.0, 100.0]),
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1096,9 +1651,12 @@ fn artillery_refuses_stale_expired_and_unreachable_reports() {
     ] {
         frame.contacts = vec![contact];
         let orders = BalancedDoctrine::default().decide(
-            Side::Red,
-            Faction::Us,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
             &frame,
             &rules,
             |_, _| Some(1.0),
@@ -1157,32 +1715,46 @@ fn artillery_prediction_uses_only_a_matching_sighting_and_stays_bounded() {
     frame.skirmish.as_mut().unwrap().phase = Phase::Finished;
     let mut ai = BalancedDoctrine::default();
     assert!(ground_orders(&ai.decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None
+        },
         &frame,
         &rules,
-        |_, _| Some(1.0),
+        |_, _| Some(1.0)
     ))
     .is_empty());
     frame.tick = 2 * u64::from(rules.tick_hz);
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
     frame.own[0].engagement = contract::command::Engagement::FireAtWill;
     frame.identified.clear();
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let points = ground_orders(&orders);
     assert_eq!(points, vec![[240.0, 220.0, 0.0]], "orders: {orders:?}");
 
     frame.tick = 7 * u64::from(rules.tick_hz);
     assert!(ground_orders(&ai.decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None
+        },
         &frame,
         &rules,
-        |_, _| Some(1.0),
+        |_, _| Some(1.0)
     ))
     .is_empty());
 }
@@ -1195,19 +1767,25 @@ fn artillery_uses_a_range_checked_public_objective_when_contacts_are_stale() {
     frame.skirmish.as_mut().unwrap().objectives[0].owner = Some(Side::Blue);
     frame.skirmish.as_mut().unwrap().objectives[0].center = [900.0, 900.0];
     assert!(ground_orders(&BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None
+        },
         &frame,
         &rules,
-        |_, _| Some(1.0),
+        |_, _| Some(1.0)
     ))
     .is_empty());
     frame.skirmish.as_mut().unwrap().objectives[0].center = [300.0, 300.0];
     let points = ground_orders(&BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1220,9 +1798,12 @@ fn artillery_uses_a_range_checked_public_objective_when_contacts_are_stale() {
         "objective aim keeps a fallible offset"
     );
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1235,9 +1816,12 @@ fn artillery_final_aim_is_in_one_weapon_envelope_and_return_fire_holds() {
     let (rules, mut frame, entry) = artillery_frame();
     frame.contacts = vec![firing_contact([599.0, 100.0, 0.0], 0, 100)];
     let points = ground_orders(&BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1249,9 +1833,12 @@ fn artillery_final_aim_is_in_one_weapon_envelope_and_return_fire_holds() {
     );
     frame.own[0].engagement = contract::command::Engagement::ReturnFireOnly;
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1321,9 +1908,17 @@ fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
     frame.identified = vec![identified(1, tank, [500.0, 600.0, 0.0])];
     let mut ai = BalancedDoctrine::default();
     let decide = |ai: &mut BalancedDoctrine, frame: &ObservationFrame| {
-        ai.decide(Side::Red, Faction::Us, &entry, frame, &rules, |_, _| {
-            Some(1.0)
-        })
+        ai.decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            frame,
+            &rules,
+            |_, _| Some(1.0),
+        )
     };
     assert_eq!(
         attack_targets(&decide(&mut ai, &frame), jet),
@@ -1406,9 +2001,12 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
         frame.skirmish = Some(view.clone());
         let rules = battle.rules().clone();
         let orders = ai.decide(
-            Side::Red,
-            Faction::Us,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
             &frame,
             &rules,
             |id, goal| battle.route_time(Side::Red, id, goal),
@@ -1530,9 +2128,17 @@ fn the_ai_drives_its_squads_and_unloads_short_of_seen_weapons() {
     ]));
     let (squad, carrier) = (frame.own[0].id, frame.own[1].id);
     let mut ai = BalancedDoctrine::default();
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     assert!(
         orders
             .iter()
@@ -1553,9 +2159,17 @@ fn the_ai_drives_its_squads_and_unloads_short_of_seen_weapons() {
     let start = [frame.own[1].position[0], frame.own[1].position[1]];
     let objective = [500.0, 500.0];
     frame.tick += 5 * u64::from(rules.tick_hz);
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let open = unload_goal(&orders, carrier).expect("the loaded carrier drives out");
     assert!(distance(open, objective) < distance(start, objective));
     assert!(
@@ -1574,9 +2188,17 @@ fn the_ai_drives_its_squads_and_unloads_short_of_seen_weapons() {
     let reach = transport::ground_reach(&rules, enemy);
     frame.identified = vec![identified(7, enemy, [500.0, 500.0, 0.0])];
     frame.tick += 5 * u64::from(rules.tick_hz);
-    let orders = ai.decide(Side::Red, Faction::Us, &entry, &frame, &rules, |_, _| {
-        Some(1.0)
-    });
+    let orders = ai.decide(
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
+        &frame,
+        &rules,
+        |_, _| Some(1.0),
+    );
     let covered = unload_goal(&orders, carrier).expect("it re-aims for the seen enemy");
     assert!(
         distance(covered, objective) >= reach - 1e-6,
@@ -1596,9 +2218,12 @@ fn the_ai_ignores_unseen_enemies_when_choosing_where_to_unload() {
     let carrier = frame.own[1].id;
     let unload = |frame: &ObservationFrame| {
         let orders = BalancedDoctrine::default().decide(
-            Side::Red,
-            Faction::Us,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
             frame,
             &rules,
             |_, _| Some(1.0),
@@ -1640,9 +2265,12 @@ fn an_empty_armed_carrier_fights_and_an_unarmed_one_waits() {
     );
     let (armed, unarmed) = (frame.own[0].id, frame.own[1].id);
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1679,9 +2307,12 @@ fn a_carrier_already_coming_for_a_squad_stays_its_ride() {
     let (squad, near, coming) = (frame.own[0].id, frame.own[1].id, frame.own[2].id);
     frame.own[2].goal = Some([500.0, 60.0]);
     let orders = BalancedDoctrine::default().decide(
-        Side::Red,
-        Faction::Us,
-        &entry,
+        DecisionInput {
+            side: Side::Red,
+            faction: Faction::Us,
+            entry: &entry,
+            assignment: None,
+        },
         &frame,
         &rules,
         |_, _| Some(1.0),
@@ -1713,9 +2344,12 @@ fn a_lost_transport_is_rebought_and_a_lost_squad_replaced() {
         ]));
         frame.skirmish.as_mut().unwrap().credits = 1000.0;
         let orders = BalancedDoctrine::default().decide(
-            Side::Red,
-            Faction::Us,
-            &entry,
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
             &frame,
             &rules,
             |_, _| Some(1.0),

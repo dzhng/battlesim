@@ -16,6 +16,12 @@ pub(crate) struct Row {
     pub(crate) seed: u64,
     pub(crate) horizon_ticks: u64,
     pub(crate) no_progress_ticks: u64,
+    #[serde(default = "default_players_per_side")]
+    pub(crate) players_per_side: usize,
+}
+
+fn default_players_per_side() -> usize {
+    1
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -53,6 +59,7 @@ pub(crate) struct Report {
     pub(crate) ticks: u64,
     pub(crate) battle_digest: u64,
     pub(crate) refused_orders: u32,
+    pub(crate) refused_errors: std::collections::BTreeMap<String, u64>,
     /// Blue's and Red's refused orders.
     pub(crate) refused_by_side: [u32; 2],
     pub(crate) accepted_orders: u32,
@@ -63,6 +70,9 @@ pub(crate) struct Report {
     pub(crate) diagnostic: Option<String>,
     pub(crate) result: Option<contract::skirmish::MatchResult>,
     pub(crate) objective_first_owner_ticks: std::collections::BTreeMap<String, u64>,
+    pub(crate) objective_owned_ticks: [std::collections::BTreeMap<String, u64>; 2],
+    pub(crate) peak_objectives_held: [u64; 2],
+    pub(crate) cohesion: std::collections::BTreeMap<String, [u64; 2]>,
     pub(crate) first_contact_tick: Option<u64>,
     pub(crate) recon_sightings: u32,
     pub(crate) doctrine_pivots: [u32; 2],
@@ -83,4 +93,4 @@ pub(crate) struct Report {
 }
 
 pub(crate) type MovementSignature = Vec<(u32, u64, u64, Option<(u64, u64)>)>;
-pub(crate) type ProgressSignature = (u32, u32, u64, u64, u64, MovementSignature);
+pub(crate) type ProgressSignature = (u32, u32, u64, u64, u64, MovementSignature, u32);

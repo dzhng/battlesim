@@ -1,11 +1,12 @@
 use super::inputs::{prepare_row, Inputs};
 use super::model::{ProgressSignature, Report, Row, Status};
 use contract::catalog::Faction;
-use contract::command::{CommandEnvelope, Order};
+use contract::command::Order;
 use contract::ids::Side;
-use contract::observation::ObservationFrame;
 use contract::scenario::Rules;
+use sim::skirmish_ai::team::{cohesion_sample, group_ready};
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 pub(crate) fn run_safe(inputs: &Inputs, row: Row) -> Report {
     let fallback_id = row.id.clone();
@@ -37,6 +38,7 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         ticks: 0,
         battle_digest: 0,
         refused_orders: 0,
+        refused_errors: BTreeMap::new(),
         refused_by_side: [0, 0],
         accepted_orders: 0,
         attempted_orders: 0,
@@ -45,6 +47,9 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         diagnostic: None,
         result: None,
         objective_first_owner_ticks: BTreeMap::new(),
+        objective_owned_ticks: [BTreeMap::new(), BTreeMap::new()],
+        peak_objectives_held: [0, 0],
+        cohesion: BTreeMap::new(),
         first_contact_tick: None,
         recon_sightings: 0,
         doctrine_pivots: [0, 0],
@@ -79,77 +84,70 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         .map(|skirmish| skirmish.sites.objectives.len() as u32)
         .unwrap_or_default();
     let mut battle = sim::battle::Battle::from_prepared(&setup, row.seed, prepared);
-    let mut seq = [1u64, 1u64];
-    let mut next_buy = [0usize; 2];
+    for side in Side::COMBATANTS {
+        let Some(list) = &inputs.buy[side.index()] else {
+            continue;
+        };
+        let purchases = list
+            .iter()
+            .filter(|card| card.as_str() != "|")
+            .map(|card| setup.rules.catalog.index(card).expect("validated buy card"))
+            .collect::<Vec<_>>();
+        let player = if side == Side::Blue {
+            "blue-1"
+        } else {
+            "red-1"
+        };
+        let repeat_from = list
+            .iter()
+            .position(|card| card == "|")
+            .map(|bar| {
+                list[..bar]
+                    .iter()
+                    .filter(|card| card.as_str() != "|")
+                    .count()
+            })
+            .or(Some(0));
+        battle.script_purchases(player, purchases, repeat_from);
+    }
     let mut stagnant = 0;
     let mut previous: Option<ProgressSignature> = None;
+    let mut cohesion_started = BTreeSet::new();
     while report.ticks < row.horizon_ticks {
-        let mut refused_this_tick = 0;
-        for side in Side::COMBATANTS {
-            let frame = battle.observe(side).clone();
-            // Active-AI players are driven by the battle's policy owner. The
-            // tournament host only injects an explicitly scripted opening.
-            let mut orders: Vec<(Option<usize>, Order)> = Vec::new();
-            if let Some(list) = &inputs.buy[side.index()] {
-                orders.retain(|(_, order)| !matches!(order, Order::ConfirmPurchase { .. }));
-                orders.extend(
-                    scripted_purchases(&setup.rules, &frame, list, next_buy[side.index()])
-                        .into_iter()
-                        .map(|(at, order)| (Some(at), order)),
-                );
-            }
-            let preparing = frame
-                .skirmish
-                .as_ref()
-                .is_some_and(|view| view.phase == contract::skirmish::Phase::Preparation);
-            // A refused scripted card is retried next tick, and the cards
-            // planned after it on its credits and slot wait with it, so the
-            // list stays bought strictly in order.
-            let mut scripted_refused = false;
-            for (scripted, order) in orders {
-                if scripted.is_some() && scripted_refused {
+        for plan in battle.team_plans().iter().flatten() {
+            for player_plan in &plan.players {
+                let Some(player) = setup.players.get(player_plan.player.0 as usize) else {
+                    continue;
+                };
+                if battle
+                    .observe(player.side)
+                    .skirmish
+                    .as_ref()
+                    .is_none_or(|view| view.phase != contract::skirmish::Phase::Active)
+                {
                     continue;
                 }
-                let purchase = match &order {
-                    Order::ConfirmPurchase { variant, .. } => Some(variant.clone()),
-                    _ => None,
-                };
-                let purchase_cost = purchase
-                    .as_ref()
-                    .map_or(0, |variant| setup.rules.catalog.by_id(variant).cost as u64);
-                report.attempted_orders += 1;
-                let ack = battle.accept(CommandEnvelope {
-                    side,
-                    player: Some(
-                        if side == Side::Blue {
-                            "blue-1"
-                        } else {
-                            "red-1"
-                        }
-                        .into(),
-                    ),
-                    seq: seq[side.index()],
-                    order,
-                    queued: false,
-                });
-                seq[side.index()] += 1;
-                if let Some(at) = scripted {
-                    scripted_refused = ack.error.is_some();
-                    next_buy[side.index()] = at + usize::from(!scripted_refused);
+                let positions = sim::skirmish_ai::team::group_positions(
+                    &setup.rules,
+                    battle
+                        .observe(player.side)
+                        .own
+                        .iter()
+                        .filter(|unit| unit.owner == Some(player_plan.player)),
+                );
+                let group_radius = sim::skirmish_ai::team::TeamTuning::shipped().group_radius_m;
+                if group_ready(&positions, player_plan.staging_point, group_radius) {
+                    cohesion_started.insert(player.id.clone());
                 }
-                if ack.error.is_some() {
-                    refused_this_tick += 1;
-                    report.refused_by_side[side.index()] += 1;
-                } else {
-                    report.accepted_orders += 1;
-                    report.credit_spend[side.index()] += purchase_cost;
-                    if let Some(variant) = purchase.filter(|_| preparing) {
-                        report.opening[side.index()].push(variant);
-                    }
+                if !cohesion_started.contains(&player.id) {
+                    continue;
                 }
+                let counts = report.cohesion.entry(player.id.clone()).or_insert([0, 0]);
+                let sample = cohesion_sample(&positions, player_plan.staging_point, group_radius);
+                counts[0] += sample[0];
+                counts[1] += sample[1];
             }
         }
-        report.refused_orders += refused_this_tick;
         battle.step();
         report.ticks += 1;
         for side in Side::COMBATANTS {
@@ -215,6 +213,24 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                         .entry(objective.id.clone())
                         .or_insert(report.ticks);
                 }
+                if let Some(owner) = objective.owner {
+                    if owner != Side::Neutral {
+                        *report.objective_owned_ticks[owner.index()]
+                            .entry(objective.id.clone())
+                            .or_default() += 1;
+                    }
+                }
+            }
+            // A team takes several objectives at once (slice 12): the most
+            // each side held at the same moment, whoever took them.
+            for side in Side::COMBATANTS {
+                let held = view
+                    .objectives
+                    .iter()
+                    .filter(|objective| objective.owner == Some(side))
+                    .count() as u64;
+                report.peak_objectives_held[side.index()] =
+                    report.peak_objectives_held[side.index()].max(held);
             }
         }
         let progress = view
@@ -253,10 +269,19 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                     capture_bits,
                     observed,
                     movement,
+                    report.accepted_orders,
                 )
             })
             .unwrap_or_default();
-        stagnant = if previous.as_ref().is_some_and(|old| *old == progress) {
+        // Preparation intentionally has no movement or combat progress. Do
+        // not let that authored pause trip the no-progress guard on short
+        // corpus probes; the guard applies once the battle is active.
+        let grace_ticks = u64::from(inputs.rules.tick_hz) * 5;
+        stagnant = if report.ticks < grace_ticks
+            || view.is_some_and(|v| v.phase == contract::skirmish::Phase::Preparation)
+        {
+            0
+        } else if previous.as_ref().is_some_and(|old| *old == progress) {
             stagnant + 1
         } else {
             0
@@ -275,6 +300,24 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         report.status = Status::Timeout;
     }
     report.battle_digest = battle.digest();
+    // Battle owns all policy acceptance and refusal evidence.
+    let receipts = battle.ai_receipts();
+    report.attempted_orders += receipts.len() as u32;
+    report.accepted_orders += receipts.iter().filter(|receipt| receipt.accepted).count() as u32;
+    report.refused_orders += receipts.iter().filter(|receipt| !receipt.accepted).count() as u32;
+    for receipt in receipts.iter().filter(|receipt| !receipt.accepted) {
+        *report
+            .refused_errors
+            .entry(format!("{:?}", receipt.error))
+            .or_default() += 1;
+        if let Some(player) = setup
+            .players
+            .iter()
+            .find(|player| player.id == receipt.player)
+        {
+            report.refused_by_side[player.side.index()] += 1;
+        }
+    }
     report.battle_seconds = report.ticks as f64 / f64::from(inputs.rules.tick_hz);
     report.result = battle
         .observe(Side::Blue)
@@ -284,7 +327,29 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     report.air = battle
         .match_report()
         .map(|match_report| air_summary(&setup.rules, match_report));
-    report.doctrine_pivots = [0, 0];
+    report.doctrine_pivots = battle.ai_pivots_by_side();
+    if let Some(match_report) = battle.match_report() {
+        let totals = match_report.side_totals(&setup.players);
+        report.credit_spend = [totals[0].spent as u64, totals[1].spent as u64];
+    }
+    report.opening = [Vec::new(), Vec::new()];
+    let preparation_ticks = u64::from(
+        setup
+            .skirmish
+            .as_ref()
+            .expect("tournament setup has skirmish rules")
+            .rules
+            .preparation_s,
+    )
+    .saturating_mul(u64::from(setup.rules.tick_hz));
+    for (tick, command) in battle.replay().accepted {
+        if tick > preparation_ticks {
+            continue;
+        }
+        if let Order::ConfirmPurchase { variant, .. } = command.order {
+            report.opening[command.side.index()].push(variant);
+        }
+    }
     report.replay_digest = contract::identity::json_hash(&battle.replay()).ok();
     let replay = battle.replay();
     report.replay_match =
@@ -297,63 +362,6 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                 replayed.digest() == report.battle_digest
             });
     report
-}
-
-/// The next cards of `list` from position `next` the wallet affords,
-/// strictly in order, so a side saves for an expensive card rather than
-/// skipping it, each with its position. Cards before a `|` are bought once;
-/// the rest repeat. Each goes to the objective nearest the middle of them
-/// all.
-fn scripted_purchases(
-    rules: &Rules,
-    frame: &ObservationFrame,
-    list: &[String],
-    mut next: usize,
-) -> Vec<(usize, Order)> {
-    let Some(view) = frame.skirmish.as_ref() else {
-        return vec![];
-    };
-    let n = view.objectives.len().max(1) as f64;
-    let middle = view.objectives.iter().fold([0.0, 0.0], |m, o| {
-        [m[0] + o.center[0] / n, m[1] + o.center[1] / n]
-    });
-    let destination = view
-        .objectives
-        .iter()
-        .map(|o| o.center)
-        .min_by(|a, b| {
-            let d = |p: [f64; 2]| (p[0] - middle[0]).hypot(p[1] - middle[1]);
-            d(*a).total_cmp(&d(*b))
-        })
-        .unwrap_or(middle);
-    let bar = list.iter().position(|card| card == "|");
-    let (mut credits, mut slots) = (view.credits, view.unit_count);
-    let mut orders = Vec::new();
-    while view.phase != contract::skirmish::Phase::Finished && slots < view.max_units {
-        let index = match bar {
-            Some(bar) if next >= bar => bar + 1 + (next - bar) % (list.len() - bar - 1).max(1),
-            Some(_) => next,
-            None => next % list.len(),
-        };
-        let Some(variant) = list.get(index) else {
-            break;
-        };
-        let cost = f64::from(rules.catalog.by_id(variant).cost);
-        if cost > credits {
-            break;
-        }
-        credits -= cost;
-        slots += 1;
-        orders.push((
-            next,
-            Order::ConfirmPurchase {
-                variant: variant.clone(),
-                destination,
-            },
-        ));
-        next += 1;
-    }
-    orders
 }
 
 /// Per side: what its jets did and what its ground AA did to the enemy's,
