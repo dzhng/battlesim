@@ -5824,6 +5824,29 @@ mod tests {
         projectile
     }
 
+    /// A helicopter's settling goal steers it every tick, so it is part of
+    /// the battle's state: two battles alike but for it digest apart.
+    #[test]
+    fn a_helicopters_settling_goal_is_in_the_digest() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [{ "side": "blue", "kind": "test_heli", "position": [1000, 1000] }],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let settling = |goal: V2| {
+            let mut battle = Battle::new(&setup, 1);
+            battle.units[0].air.as_mut().unwrap().settle = Some(crate::units::Settle {
+                goal,
+                aim: v2(1100.0, 1000.0),
+                back: false,
+            });
+            battle.digest()
+        };
+        assert_ne!(settling(v2(1050.0, 1000.0)), settling(v2(1060.0, 1000.0)));
+    }
+
     /// No order leaves a jet in a run: changing the route of its attack-move
     /// ends its run, release cue and dogfight, as every other order does.
     #[test]
