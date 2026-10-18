@@ -7,9 +7,11 @@
 //! caller names (a side's known props for orders, the true world for
 //! placements), and reachable on foot in a straight line from where the
 //! soldier sets out, so no spot lies behind a wall from its squad.
+use contract::ids::UnitId;
 use contract::scenario::InfantryMovementRules;
 
 use crate::math::{v2, V2};
+use crate::units::Unit;
 use crate::world::{Prop, WorldGeometry};
 use contract::random::Rng;
 
@@ -156,6 +158,18 @@ pub fn nearest_free(from: V2, radius: f64, fits: impl Fn(V2) -> bool) -> Option<
         }
     }
     None
+}
+
+/// What takes up ground where soldiers are put out or a wreck rolls: the
+/// hull of every vehicle on the ground and every soldier on the field, but
+/// `except`'s. Soldiers riding a carrier are off the field and take up none.
+pub fn ground_taken(units: &[Unit], except: UnitId) -> (Vec<crate::math::Obb2>, Vec<V2>) {
+    let others = || units.iter().filter(|u| u.id != except && u.on_field());
+    let hulls = others().filter_map(Unit::ground_footprint).collect();
+    let soldiers = others()
+        .flat_map(|u| u.member_positions().map(|p| p.xy()))
+        .collect();
+    (hulls, soldiers)
 }
 
 /// The nearest legal standing spot for a forced exit. Unlike ordinary

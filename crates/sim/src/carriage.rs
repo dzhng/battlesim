@@ -188,21 +188,9 @@ pub(crate) fn unload_spots(
     if passengers.is_empty() {
         return Some(Vec::new());
     }
-    let hulls: Vec<_> = units
-        .iter()
-        .enumerate()
-        .filter(|(index, unit)| *index != carrier.0 as usize && unit.alive())
-        .filter_map(|(_, unit)| unit.ground_footprint())
-        .collect();
-    // Soldiers riding any carrier, these passengers included, take up no ground.
-    let soldiers: Vec<V2> = units
-        .iter()
-        .filter(|unit| unit.on_field())
-        .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
-        .collect();
+    let (hulls, mut occupied) = crate::arrangement::ground_taken(units, carrier);
     let radius = rules.physics.soldier_radius_m;
     let from = units[carrier.0 as usize].position.xy();
-    let mut occupied = soldiers;
     let mut spots = Vec::new();
     for &passenger in &passengers {
         for _soldier in units[passenger].members.iter().filter(|s| s.alive()) {

@@ -665,17 +665,7 @@ pub fn collapse(
             units[index].hold = None;
             continue;
         }
-        let hulls: Vec<_> = units
-            .iter()
-            .filter(|other| other.id != units[index].id && other.alive())
-            .filter_map(Unit::ground_footprint)
-            .collect();
-        let soldiers: Vec<_> = units
-            .iter()
-            .enumerate()
-            .filter(|(other, unit)| *other != index && unit.on_field())
-            .flat_map(|(_, other)| other.member_positions().map(|p| p.xy()))
-            .collect();
+        let (hulls, soldiers) = crate::arrangement::ground_taken(units, units[index].id);
         let rule = crate::bail_out::row(rules, contract::scenario::BailOutHost::Building);
         let host = units[index].hold.as_ref().expect("building hold").host;
         let result = crate::bail_out::apply(

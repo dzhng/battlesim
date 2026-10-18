@@ -3279,24 +3279,7 @@ impl Battle {
                 continue;
             }
             let wreck = unit.unit_type(&self.rules).hull().map(|h| h.wreck.clone());
-            let hulls: Vec<Obb2> = self
-                .units
-                .iter()
-                .filter(|o| o.id != id && o.on_field())
-                .filter_map(|o| o.ground_footprint())
-                .collect();
-            let soldiers: Vec<V2> = self
-                .units
-                .iter()
-                .filter(|o| {
-                    o.id != id
-                        && !o
-                            .hold
-                            .as_ref()
-                            .is_some_and(|hold| hold.host == crate::hold::Host::Carrier(id))
-                })
-                .flat_map(|o| o.member_positions().map(|p| p.xy()))
-                .collect();
+            let (hulls, soldiers) = crate::arrangement::ground_taken(&self.units, id);
             let rest = crate::movement::drive::death_roll(
                 &self.world,
                 &self.rules,
@@ -3461,20 +3444,7 @@ impl Battle {
         if passengers.is_empty() {
             return;
         }
-        let hulls: Vec<Obb2> = self
-            .units
-            .iter()
-            .filter(|unit| unit.id != carrier && unit.on_field())
-            .filter_map(|unit| unit.ground_footprint())
-            .collect();
-        // Soldiers riding any carrier, these passengers included, take up no
-        // ground.
-        let mut soldiers: Vec<V2> = self
-            .units
-            .iter()
-            .filter(|unit| unit.on_field())
-            .flat_map(|unit| unit.member_positions().map(|position| position.xy()))
-            .collect();
+        let (hulls, mut soldiers) = crate::arrangement::ground_taken(&self.units, carrier);
         let ignored_props = [wreck];
         let rule = crate::bail_out::row(&self.rules, host_kind);
         for index in passengers {
