@@ -1641,7 +1641,6 @@ impl ScenarioDefinition {
     /// relative to the scenario. A battle starts only when this is empty.
     pub fn unknown_catalog_references(&self) -> Vec<(String, String)> {
         let catalog = &self.rules.catalog;
-        let props = catalog.props();
         let mut unknown = Vec::new();
         for (i, unit) in self.units.iter().enumerate() {
             if catalog.index(&unit.kind).is_none() {
@@ -1654,12 +1653,9 @@ impl ScenarioDefinition {
         for (i, event) in self.events.iter().enumerate() {
             match &event.action {
                 EventAction::AddProp(prop) => {
-                    let placed = props
-                        .index(&prop.kind)
-                        .ok_or_else(|| format!("unknown prop type {:?}", prop.kind))
-                        .and_then(|kind| {
-                            props.check_placement(kind, crate::catalog::PropPlacement::Ordinary)
-                        });
+                    let placed = catalog
+                        .props()
+                        .check_placement_of(&prop.kind, crate::catalog::PropPlacement::Ordinary);
                     if let Err(message) = placed {
                         unknown.push((format!("events[{i}].add_prop.kind"), message));
                     }

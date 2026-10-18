@@ -296,11 +296,10 @@ pub fn admit_world(map: &MapDefinition, rules: &crate::scenario::Rules) -> Vec<R
     use crate::catalog::PropPlacement;
     let catalog = rules.catalog.props();
     let place = |kind: Option<&str>, placement| {
-        let kind = kind.ok_or_else(|| "no prop type is named".to_owned())?;
-        let kind = catalog
-            .index(kind)
-            .ok_or_else(|| format!("unknown prop type {kind:?}"))?;
-        catalog.check_placement(kind, placement)
+        catalog.check_placement_of(
+            kind.ok_or_else(|| "no prop type is named".to_owned())?,
+            placement,
+        )
     };
     let mut checks: Vec<(String, Result<(), String>)> = crate::map::validate_header(
         map.size,
