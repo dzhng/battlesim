@@ -26,7 +26,7 @@ LFS pointers for the reel bundles, so FPS confirmation is pending.
 | Parameter | Observed effect | Scope and uncertainty |
 | --- | --- | --- |
 | Skeleton clip set | Removes unrelated skeleton bundle downloads; correctness is unchanged because every loaded appearance's skeleton is admitted before decode | Applies to scoped battles; byte reduction depends on catalog composition. End-to-end FPS effect is indirect and unmeasured until art is fetched. |
-| Grass clump yaw | Browser market-town GPU mean 15.04 ms → 14.38 ms (−4.4%); paris-corner 10.82 ms → 10.82 ms. Native llvmpipe short replay was 1389.0 ms → 1389.97 ms (noise floor) | Reuses each clump's full-precision sine/cosine in every vertex instead of evaluating both trigonometric functions per vertex. Browser win is provisional until a repeat; native result is software-adapter evidence only. |
+| Grass clump yaw | Browser market-town GPU mean 15.04 ms → 14.41 ms (−4.2%); paris-corner 10.82 ms → 10.79 ms. Native llvmpipe short replay was 1388.71 ms → 1389.97 ms (noise floor) | Reuses each clump's full-precision sine/cosine in every vertex instead of evaluating both trigonometric functions per vertex. Browser win is provisional until a repeat; native result is software-adapter evidence only. |
 | Static model repacking | Existing implementation already retains static prop/scenery buffers and rewrites only changed batches | No new change made; needs a valid GPU benchmark before another intervention. |
 
 ## Handoff
