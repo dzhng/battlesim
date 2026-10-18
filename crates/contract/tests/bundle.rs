@@ -52,8 +52,7 @@ fn bundle() -> ScenarioBundle {
             media_type: "audio/wav".into(),
             sha256: contract::identity::bytes_hash(bytes),
             provenance: "user-upload".into(),
-            bytes_base64: Some(base64_encode(bytes)),
-            builtin: None,
+            bytes_base64: base64_encode(bytes),
         }],
     }
 }
@@ -237,6 +236,21 @@ fn economy_mode_refuses_authored_forces_that_the_skirmish_owner_cannot_field() {
         .unwrap_err()
         .to_string()
         .contains("authored forces"));
+}
+
+#[test]
+fn every_asset_embeds_its_bytes() {
+    let bundle = bundle();
+    let mut value: serde_json::Value =
+        serde_json::from_slice(&bundle.canonical_bytes().unwrap()).unwrap();
+    let hash = value["assets"][0]["sha256"].clone();
+    value["assets"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("bytes_base64");
+    value["assets"][0]["builtin"] = hash;
+    let error = ScenarioBundle::from_json(&serde_json::to_string(&value).unwrap()).unwrap_err();
+    assert!(error.to_string().contains("builtin"), "{error}");
 }
 
 #[test]

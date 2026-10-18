@@ -41,7 +41,7 @@ pub struct VictoryDefinition {
     pub source: String,
 }
 
-/// An embedded user file or a reference to immutable built-in content.
+/// An embedded user file, carried with the bytes its hash names.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BundleAsset {
@@ -49,10 +49,7 @@ pub struct BundleAsset {
     pub media_type: String,
     pub sha256: String,
     pub provenance: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub bytes_base64: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub builtin: Option<String>,
+    pub bytes_base64: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -539,38 +536,25 @@ impl ScenarioBundle {
                     "asset hash must be lowercase SHA-256",
                 ));
             }
-            match (&asset.bytes_base64, &asset.builtin) {
-                (Some(encoded), None) => match base64_decode(encoded) {
-                    Ok(bytes) if bytes.len() <= MAX_ASSET_BYTES => {
-                        if bytes_hash(&bytes) != asset.sha256 {
-                            errors.push(diagnostic(
-                                "asset_hash_mismatch",
-                                format!("$.assets[{i}].bytes_base64"),
-                                "embedded bytes do not match sha256",
-                            ));
-                        }
+            match base64_decode(&asset.bytes_base64) {
+                Ok(bytes) if bytes.len() <= MAX_ASSET_BYTES => {
+                    if bytes_hash(&bytes) != asset.sha256 {
+                        errors.push(diagnostic(
+                            "asset_hash_mismatch",
+                            format!("$.assets[{i}].bytes_base64"),
+                            "embedded bytes do not match sha256",
+                        ));
                     }
-                    Ok(_) => errors.push(diagnostic(
-                        "size_limit",
-                        format!("$.assets[{i}].bytes_base64"),
-                        "asset exceeds the 8 MiB limit",
-                    )),
-                    Err(message) => errors.push(diagnostic(
-                        "invalid_encoding",
-                        format!("$.assets[{i}].bytes_base64"),
-                        message,
-                    )),
-                },
-                (None, Some(name)) if is_sha256(name) => {}
-                (None, Some(_)) => errors.push(diagnostic(
-                    "invalid_hash",
-                    format!("$.assets[{i}].builtin"),
-                    "built-in asset references must be lowercase SHA-256 content hashes",
+                }
+                Ok(_) => errors.push(diagnostic(
+                    "size_limit",
+                    format!("$.assets[{i}].bytes_base64"),
+                    "asset exceeds the 8 MiB limit",
                 )),
-                _ => errors.push(diagnostic(
-                    "invalid_asset",
-                    format!("$.assets[{i}]"),
-                    "asset must contain exactly one of bytes_base64 or builtin",
+                Err(message) => errors.push(diagnostic(
+                    "invalid_encoding",
+                    format!("$.assets[{i}].bytes_base64"),
+                    message,
                 )),
             }
         }

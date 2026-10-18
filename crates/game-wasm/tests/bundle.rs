@@ -52,8 +52,7 @@ fn bundle() -> ScenarioBundle {
             media_type: "audio/wav".into(),
             sha256: contract::identity::bytes_hash(bytes),
             provenance: "user-upload".into(),
-            bytes_base64: Some(base64_encode(bytes)),
-            builtin: None,
+            bytes_base64: base64_encode(bytes),
         }],
     }
 }
