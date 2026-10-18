@@ -28,6 +28,19 @@ travel time from a side's planning snapshot and rejects units the side does not
 own. The simulation remains the authority for final route placement, visibility,
 objective eligibility, and combat.
 
+Squads ride (transport D16–D18). The AI keeps one carrier per squad, chosen by
+seats alone: the fewest that take the squad. It rebuys a lost carrier and
+replaces a lost squad before its role rotation. A squad far from its objective,
+or from an enemy on the ground it is sent at, stops for a free carrier. The
+carrier collects it and drives toward the nearest such enemy, else the
+objective. It lets the squad out short of it, beyond the reach of every enemy
+the side identifies. An empty carrier whose mounts can fight is a combat unit
+like any other until a squad claims it; an unarmed one waits for its next
+squad, and only pairing buys one. Pairs are read off the
+observation at each decision, never stored, and passengers take no orders.
+[`transport.rs`](../../../crates/sim/src/skirmish_ai/transport.rs) owns those
+rules.
+
 Doctrine transitions currently use low-air evidence, observed own-unit loss, and
 maximum dwell. Force-shape states alter opening procurement; richer casualty,
 objective, and task-group scoring is intentionally left as a future extension

@@ -4,7 +4,6 @@ import { decode, pixel, writeCrop } from "./_png.mjs";
 import { advance, lab, openBattle, obs, snapshot } from "./_lab.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
 
-const luminance = ([r, g, b]) => 0.3 * r + 0.5 * g + 0.2 * b;
 /** Rec. 709 luminance, the fog look's own: cooling toward night shifts hue at
  *  equal luminance, so blue must weigh no more than the eye gives it. */
 const luma709 = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -94,11 +93,22 @@ export async function run(ctx) {
   await writeFile(ctx.evidencePath("frame-lobes-off-1280x800.png"), await page.screenshot());
   await lab(page, () => window.__lab.route.setLobes(true));
   await page.evaluate(() => window.__lab.frame());
-  const dLobe = (p) => Math.abs(luminance(pixel(lobes, ...p)) - luminance(pixel(bare, ...p)));
+  // The outline is opaque cyan over whatever ground lies there, so it shows as
+  // a change of colour: on a bright field it can match the ground's luminance
+  // while differing in hue. The lobe's fill is a 12% tint (`sightOverlay.ts`),
+  // which can move a pixel's channels by at most 0.12 × 765 ≈ 92 summed; more
+  // than that is the outline itself.
+  const dLobe = (p) => {
+    const [on, off] = [pixel(lobes, ...p), pixel(bare, ...p)];
+    return on.reduce((s, v, i) => s + Math.abs(v - off[i]), 0);
+  };
   ctx.check(
     "the lobe outline is drawn at the tank's front and side reach",
-    dLobe(aheadCss) > 20 && dLobe(abeamCss) > 20,
-    JSON.stringify({ ahead: dLobe(aheadCss), abeam: dLobe(abeamCss) }),
+    dLobe(aheadCss) > 100 && dLobe(abeamCss) > 100,
+    JSON.stringify({
+      ahead: { at: aheadCss, change: dLobe(aheadCss) },
+      abeam: { at: abeamCss, change: dLobe(abeamCss) },
+    }),
   );
   // The whole tank lobe framed on its own, for review.
   const opening = await lab(page, () => window.__lab.camera());

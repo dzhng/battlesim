@@ -5,8 +5,8 @@
  *  word; the ground keeps only selection and movement marks.
  *  - An own unit's panel (`ownPanel`): its type's name, each weapon with
  *    its rounds left and live timers, and its state rows: deployment, a
- *    building, concealment, suppression, waiting, a truck's stock and its supplying, and a
- *    unit's supply in a set-up truck's reach.
+ *    building, concealment, suppression, waiting, a truck's stock and its supplying, a
+ *    unit's supply in a set-up truck's reach, and a carrier's seats.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.
  *  - A contact's panel (`contactPanel`): its remembered type's name and weapons,
@@ -14,7 +14,12 @@
 import { stateIcon, weaponIcon, type StateIcon } from "@packages/scene-assets/src/icons";
 import type { MountRow, UnitCard, UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SessionCatalog } from "../catalog/compose";
-import type { ContactView, MountView, OwnUnitView } from "../sim/observationView";
+import {
+  passengersOf,
+  type ContactView,
+  type MountView,
+  type OwnUnitView,
+} from "../sim/observationView";
 
 /** The rule blocks the panels read (the scenario's). */
 export interface PanelRules {
@@ -37,7 +42,9 @@ export interface PanelRules {
  *    colour.
  *  - `amount`: `n` is something the unit spends (supply, fuel, flares); run
  *    out, the row draws in the warning colour, as a weapon out of rounds is
- *    marked. */
+ *    marked.
+ *  - `compact`: the row stays on a compact card, which otherwise shows only
+ *    its name: what identifies the unit at a glance (a carrier's seats). */
 export const STATE_ROWS = {
   deployed: { icon: "deployed", word: () => "DEPLOYED", lasting: true },
   in_building: { icon: "building", word: () => "IN BUILDING", lasting: true },
@@ -53,6 +60,14 @@ export const STATE_ROWS = {
   packing: { icon: "pack", word: () => "PACKING" },
   entering: { icon: "building", word: () => "ENTERING" },
   leaving: { icon: "building", word: () => "LEAVING" },
+  seats: {
+    icon: "seats",
+    word: (n: number | string) => `SEATS ${n}`,
+    lasting: true,
+    compact: true,
+  },
+  boarding: { icon: "seats", word: () => "BOARDING" },
+  dismounting: { icon: "seats", word: () => "DISMOUNTING" },
   suppressed: { icon: "suppressed", word: () => "SUPPRESSED", tone: "warn" },
   pinned: { icon: "pinned", word: () => "PINNED", tone: "warn" },
   waiting: { icon: "waiting", word: () => "WAITING" },
@@ -90,6 +105,7 @@ interface StateRowKind {
   lasting?: boolean;
   tone?: StateTone;
   amount?: boolean;
+  compact?: boolean;
 }
 
 type StateKind = keyof typeof STATE_ROWS;
@@ -111,6 +127,8 @@ export interface StateRow {
   fill: number | null;
   lasting: boolean;
   tone: StateTone | null;
+  /** It stays on a compact card. */
+  compact: boolean;
 }
 
 const row = (
@@ -130,6 +148,7 @@ const row = (
     fill,
     lasting: !!s.lasting,
     tone: s.tone ?? (s.amount && n === 0 ? "warn" : null),
+    compact: !!s.compact,
   };
 };
 
@@ -156,11 +175,32 @@ function serviceRow(service: string): StateRow | null {
   return service === "serving" ? row("resupplying") : null;
 }
 
-const GARRISON_ROWS: Record<string, (progress: number) => StateRow> = {
-  entering: (p) => row("entering", { progress: p }),
-  inside: () => row("in_building"),
-  exiting: (p) => row("leaving", { progress: p }),
+/** A hold's row by its host's kind and its phase. Riding inside a carrier
+ *  says nothing: the rider's card stacks under its carrier's. */
+const HOLD_ROWS: Record<string, Record<string, (progress: number) => StateRow | null>> = {
+  building: {
+    entering: (p) => row("entering", { progress: p }),
+    inside: () => row("in_building"),
+    exiting: (p) => row("leaving", { progress: p }),
+  },
+  carrier: {
+    entering: (p) => row("boarding", { progress: p }),
+    inside: () => null,
+    exiting: (p) => row("dismounting", { progress: p }),
+  },
 };
+
+/** A carrier's Seats row: the living soldiers of the squads it holds
+ *  against its catalog seats; null for a unit that carries no one. */
+function seatsRow(units: UnitCatalog, u: OwnUnitView, own: readonly OwnUnitView[]) {
+  const seats = units.type(u.kind).capabilities.carriage?.seats;
+  if (seats === undefined) return null;
+  const used = passengersOf(own, u.id).reduce(
+    (sum, p) => sum + p.memberHp.filter((hp) => hp > 0).length,
+    0,
+  );
+  return row("seats", { n: `${used}/${seats}` });
+}
 
 /** A supply vehicle is supplying while it stands set up and a unit in its
  *  reach is being served. */
@@ -192,7 +232,8 @@ export function ownStateRows(
   if (u.inDogfight) rows.push(row("dogfight"));
   if (u.flares) rows.push(row("flares", { n: u.flares.charges, progress: u.flares.cooldown }));
   if (u.withdrawing) rows.push(row("withdrawing"));
-  if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
+  rows.push(seatsRow(units, u, own));
+  if (u.hold) rows.push(HOLD_ROWS[u.hold.host.kind]?.[u.hold.phase]?.(u.hold.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
   // The published move state: `waiting` yields to vehicle traffic in the
@@ -419,6 +460,9 @@ export interface Panel {
   /** A mark before the name (under `assets/icons/`): an unidentified
    *  report's; null for a known type. */
   mark: string | null;
+  /** The player that owns an ally's unit, as its panel names it ("BLUE 2 ·
+   *  AI", `allyOwners`); absent on the player's own and the enemy's. */
+  owner?: string;
   weapons: WeaponRow[];
   states: StateRow[];
 }
@@ -457,7 +501,7 @@ export function arrivingUnit(catalog: SessionCatalog, kind: string): OwnUnitView
     suppression: "none",
     concealed: false,
     deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
-    garrison: null,
+    hold: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
     service: "out_of_range",
     hp: units.hull(kind)?.hp ?? 0,

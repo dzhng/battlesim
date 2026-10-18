@@ -78,6 +78,7 @@ impl Inputs {
                 template_catalog_hash: catalogue.hash().into(),
                 map_type: MapType::Open,
                 size: MapSize::Small,
+                entries_per_side: 1,
                 profile: contract::generation::GenerationProfile::Standard,
                 region: None,
                 limits: serde_json::from_value(config["limits"].clone())?,
@@ -292,7 +293,7 @@ fn run_case(inputs: &Inputs, request: &GenerationRequest, seconds: u64) -> Value
                         .collect();
                     let command = CommandEnvelope {
                         side: inputs.recipe.attacker,
-                        slot: None,
+                        player: None,
                         seq: 1,
                         queued: false,
                         order: Order::Move {
@@ -474,7 +475,7 @@ mod tests {
         .unwrap();
         let command = CommandEnvelope {
             side: Side::Blue,
-            slot: None,
+            player: None,
             seq: 1,
             queued: false,
             order: Order::Move {

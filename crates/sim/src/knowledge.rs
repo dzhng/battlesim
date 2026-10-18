@@ -294,7 +294,7 @@ impl SideKnowledge {
         let lifetime = (rules.sensors.contact_lifetime_s * rules.tick_hz as f64).round() as Tick;
         let receivers: Vec<(&Unit, f64)> = units
             .iter()
-            .filter(|u| u.side == side && u.alive())
+            .filter(|u| u.side == side && u.on_field())
             .filter_map(|u| {
                 let receiver = u.unit_type(rules).capabilities.radar_receiver?;
                 Some((u, receiver.range_m))
@@ -306,7 +306,7 @@ impl SideKnowledge {
         let emitters: Vec<UnitId> = units
             .iter()
             .filter(|u| {
-                u.alive()
+                u.on_field()
                     && u.side != side
                     && !self.identifies(u.id, tick)
                     && u.unit_type(rules)

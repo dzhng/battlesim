@@ -23,8 +23,8 @@ const OWN: Record<CatalogSetName, Record<string, () => Promise<string>>> = {
     query: "?raw",
     import: "default",
   }),
-  menu: import.meta.glob<string>(
-    ["../../../../fixtures/units/test/**/*.json", "../../../../fixtures/units/menu/**/*.json"],
+  capture: import.meta.glob<string>(
+    ["../../../../fixtures/units/test/**/*.json", "../../../../fixtures/units/capture/**/*.json"],
     { query: "?raw", import: "default" },
   ),
 };

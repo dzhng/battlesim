@@ -1,10 +1,9 @@
 use super::model::{MapSource, Row};
 use contract::catalog::Faction;
-use contract::encounter::{EntrySite, ObjectiveSite, ObjectiveSiteKind, SkirmishSites};
 use contract::generation::{GenerationProfile, GenerationRequest, MapSize, MapType};
 use contract::ids::Side;
+use contract::players::{ControllerKind, Player};
 use contract::scenario::{Rules, ScenarioDefinition};
-use contract::skirmish::SkirmishSetup;
 use contract::templates::TemplateGeometryCatalog;
 
 pub(crate) struct Inputs {
@@ -61,13 +60,32 @@ pub(crate) fn prepare_row(
     ),
     String,
 > {
+    let players = vec![
+        Player {
+            id: "blue-1".into(),
+            side: Side::Blue,
+            faction: Some(inputs.factions[0]),
+            controller: ControllerKind::ActiveAi,
+            human_capable: false,
+        },
+        Player {
+            id: "red-1".into(),
+            side: Side::Red,
+            faction: Some(inputs.factions[1]),
+            controller: ControllerKind::ActiveAi,
+            human_capable: false,
+        },
+    ];
     let (map, prepared, sites, identity) = match &row.map {
         MapSource::Saved(id) => {
             let value = sim::fixtures::with_map(id);
             let map: contract::map::MapDefinition =
                 serde_json::from_value(value["map"].clone()).map_err(|error| error.to_string())?;
             let prepared = sim::encounter::PreparedMap::new(&map, &inputs.rules);
-            let sites = synthetic_sites(&map);
+            let sites = sim::skirmish::synthetic_sites(
+                map.size,
+                contract::players::entries_per_side(&players),
+            );
             let identity = contract::identity::json_hash(&map).map_err(|e| e.to_string())?;
             (map, prepared, sites, Some(identity))
         }
@@ -95,6 +113,7 @@ pub(crate) fn prepare_row(
                 template_catalog_hash: inputs.template_hash.clone(),
                 map_type,
                 size,
+                entries_per_side: 1,
                 profile: GenerationProfile::Skirmish,
                 region: None,
                 limits: inputs.limits,
@@ -112,6 +131,7 @@ pub(crate) fn prepare_row(
             let admitted = sim::map_analysis::admit_skirmish(
                 &prepared.queries(&result.map, &result.sites),
                 &inputs.rules,
+                &players,
             )
             .map_err(|error| format!("skirmish admission: {error}"))?;
             let sites = admitted
@@ -123,13 +143,8 @@ pub(crate) fn prepare_row(
         }
     };
     let setup = ScenarioDefinition {
-        skirmish: Some(SkirmishSetup {
-            factions: inputs.factions,
-            ai_side: None,
-            // The real skirmish's economy and timing, from their one owner.
-            rules: sim::skirmish::starter_rules(),
-            sites,
-        }),
+        players: players.clone(),
+        skirmish: Some(sim::skirmish::setup_for(&players, sites)),
         map,
         rules: inputs.rules.clone(),
         units: vec![],
@@ -141,46 +156,4 @@ pub(crate) fn prepare_row(
         encounter: None,
     };
     Ok((setup, prepared, identity))
-}
-
-fn synthetic_sites(map: &contract::map::MapDefinition) -> SkirmishSites {
-    let [width, depth] = map.size;
-    SkirmishSites {
-        entries: [
-            EntrySite {
-                side: Side::Blue,
-                center: [width * 0.5, 12.0],
-                yaw: 1.57,
-            },
-            EntrySite {
-                side: Side::Red,
-                center: [width * 0.5, depth - 12.0],
-                yaw: -1.57,
-            },
-        ],
-        objectives: vec![
-            ObjectiveSite {
-                id: "center".into(),
-                center: [width * 0.5, depth * 0.5],
-                radius_m: 50.0,
-                kind: ObjectiveSiteKind::Junction,
-                counterpart: None,
-            },
-            ObjectiveSite {
-                id: "west".into(),
-                center: [width * 0.25, depth * 0.5],
-                radius_m: 50.0,
-                kind: ObjectiveSiteKind::Field,
-                counterpart: Some("east".into()),
-            },
-            ObjectiveSite {
-                id: "east".into(),
-                center: [width * 0.75, depth * 0.5],
-                radius_m: 50.0,
-                kind: ObjectiveSiteKind::Field,
-                counterpart: Some("west".into()),
-            },
-        ],
-        candidates: vec![],
-    }
 }

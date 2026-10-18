@@ -49,10 +49,10 @@ describe("bark names", () => {
 });
 
 describe("voice catalog", () => {
-  it("exports the 29 approved triggers", () => {
-    expect(RESPONSE_TRIGGERS).toHaveLength(12);
+  it("exports the 32 approved triggers", () => {
+    expect(RESPONSE_TRIGGERS).toHaveLength(15);
     expect(BARK_TRIGGERS).toHaveLength(17);
-    expect(new Set([...RESPONSE_TRIGGERS, ...BARK_TRIGGERS]).size).toBe(29);
+    expect(new Set([...RESPONSE_TRIGGERS, ...BARK_TRIGGERS]).size).toBe(32);
   });
 
   it("validates every role's four takes for every trigger", () => {
@@ -134,12 +134,12 @@ describe("voice catalog", () => {
     expect(catalog.sets.cn_manpads_team.country).toBe("cn");
   });
 
-  it("does not resolve test or menu units", () => {
+  it("does not resolve test or capture units", () => {
     const catalog = validateVoiceCatalog(voiceJson, {
       test_tank: { roles: ["mbt"], roster: { factions: ["us"] } },
-      menu_us_tank: { roles: ["mbt"], roster: { factions: ["us"] } },
+      capture_us_tank: { roles: ["mbt"], roster: { factions: ["us"] } },
     });
     expect(catalog.assignments.test_tank).toBeUndefined();
-    expect(catalog.assignments.menu_us_tank).toBeUndefined();
+    expect(catalog.assignments.capture_us_tank).toBeUndefined();
   });
 });

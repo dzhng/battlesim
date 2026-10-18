@@ -1,6 +1,6 @@
-// The game's front door at `/`, in the HUD's look: start a battle on a
-// generated map (its type, its size and, if the player cares, its region),
-// read how to play, and the sound settings. The benchmark and the labs are
+// The game's front door at `/`, in the HUD's look: set up a skirmish in its
+// lobby (`lobby/Lobby.tsx`) and deploy it, read how to play, and the
+// settings. The benchmark and the labs are
 // developer tools, behind
 // the developer link (kept in production builds: its audience is technical).
 //
@@ -19,9 +19,8 @@ import {
 } from "react";
 import { hudIcon } from "@packages/scene-assets/src/icons";
 import { Icon } from "@web/battle/present/icons";
-import { MAP_SIZES, MAP_TYPES, type MapSize, type MapType } from "@web/maps/source";
-import { FACTIONS } from "@packages/scene-assets/src/units";
-import { askedChoice, battleHref, playHref, REGIONS, spoken } from "./battleLinks";
+import { askedChoice } from "./battleLinks";
+import { Lobby } from "./lobby/Lobby";
 import { DiagnosticsControls } from "./DiagnosticsControls";
 import { GraphicsSettingsControls } from "./GraphicsSettingsControls";
 import { SoundControls } from "./SoundControls";
@@ -34,6 +33,7 @@ import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
 import { graphicsDetectionState, subscribeGraphicsDetection } from "./graphicsDetection";
 import { GRAPHICS_TIERS, graphicsSettings } from "./graphicsSettings";
+import { allowRuntimePrefetch } from "./gameAppearances";
 
 interface Entry {
   label: string;
@@ -72,8 +72,6 @@ const DEVELOPER: Entry[] = [
   { label: "Labs", href: "/labs" },
 ];
 
-const RANDOM = "random";
-
 /** One entry, one link: a click anywhere on its tile navigates. */
 function EntryItem({ entry: e }: { entry: Entry }) {
   return (
@@ -101,76 +99,6 @@ function Entries({ label, entries }: { label: string; entries: Entry[] }) {
         ))}
       </ul>
     </nav>
-  );
-}
-
-/** One of a few named options, as the pause menu's variants are chosen. */
-function Choice<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly T[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <>
-      <span className="menu-field" id={`menu-${label}`}>
-        {label}
-      </span>
-      <div role="radiogroup" aria-labelledby={`menu-${label}`} className="menu-options">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            role="radio"
-            aria-checked={option === value}
-            className="hud-menu-choice"
-            data-testid={`menu-${label}-${option}`}
-            onClick={() => onChange(option)}
-          >
-            {spoken(option)}
-          </button>
-        ))}
-      </div>
-    </>
-  );
-}
-
-/** Ordinary Play selects a battlefield after deployment. An explicit seed
- * carried by a menu address still asks for that exact battle. */
-function NewBattle({ asked }: { asked: ReturnType<typeof askedChoice> }) {
-  const [faction, setFaction] = useState(asked.faction ?? "us");
-  const [type, setType] = useState<MapType>(asked.type ?? "mixed");
-  const [size, setSize] = useState<MapSize>(asked.size ?? "small");
-  // Random leaves the region to the seed.
-  const [region, setRegion] = useState(asked.region ?? RANDOM);
-  const choice = {
-    type,
-    size,
-    faction,
-    ...(region !== RANDOM && { region }),
-  };
-  return (
-    <section className="menu-battle" aria-label="New battle">
-      <div className="menu-fields">
-        <Choice label="faction" options={FACTIONS} value={faction} onChange={setFaction} />
-        <Choice label="map" options={MAP_TYPES} value={type} onChange={setType} />
-        <Choice label="size" options={MAP_SIZES} value={size} onChange={setSize} />
-        <Choice label="region" options={[RANDOM, ...REGIONS]} value={region} onChange={setRegion} />
-      </div>
-      <Link
-        className="menu-card menu-deploy"
-        data-testid="menu-deploy"
-        target="_self"
-        to={asked.seed ? battleHref({ ...choice, seed: asked.seed }) : playHref(choice)}
-      >
-        <span className="menu-card-label">Deploy</span>
-      </Link>
-    </section>
   );
 }
 
@@ -262,6 +190,10 @@ export function MainMenu() {
   useEffect(() => {
     if (!loading && detectionNeeded) setShowDetection(true);
   }, [loading, detectionNeeded]);
+  useEffect(() => {
+    if (loading || (detectionNeeded && detection.status !== "complete")) return;
+    allowRuntimePrefetch();
+  }, [loading, detectionNeeded, detection.status]);
   const detectionStageVisible = detectionNeeded || showDetection;
   const displayLoading = loading || detectionNeeded || showDetection;
   const stages = detectionStageVisible
@@ -335,7 +267,7 @@ export function MainMenu() {
       </>
     ) : (
       <PageView key={page} page={page} back={back}>
-        {page === "skirmish" && <NewBattle asked={asked} />}
+        {page === "skirmish" && <Lobby asked={asked} />}
         {page === "tutorial" && <Tutorial />}
         {page === "settings" && (
           <>

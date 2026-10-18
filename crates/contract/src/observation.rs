@@ -479,29 +479,39 @@ pub struct DeploymentState {
     pub target: Posture,
 }
 
-/// Where a squad stands with a building (L08).
+/// The phase of a unit's stationary hold (L08).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum GarrisonPhase {
-    /// Stationary beside it, entering.
+pub enum HoldPhase {
+    /// Stationary beside the host, entering.
     Entering,
-    /// At its perimeter slots.
+    /// Inside or aboard the host.
     Inside,
-    /// Stationary inside, leaving.
+    /// Stationary inside or aboard, leaving.
     Exiting,
 }
 
-/// A squad's garrison: which building, the phase and its timer progress.
+/// The physical host of a unit's hold.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct GarrisonState {
-    pub building: u32,
-    pub phase: GarrisonPhase,
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum HostRef {
+    /// A placed building and its ground footprint.
+    Building {
+        id: u32,
+        center: [f64; 2],
+        half: [f64; 2],
+    },
+    /// A carrier unit. Its geometry is read from the carrier's own row.
+    Carrier { id: u32 },
+}
+
+/// A unit's host, phase and timer progress.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HoldState {
+    pub host: HostRef,
+    pub phase: HoldPhase,
     /// Entering or leaving progress in [0, 1]; 1 while inside.
     pub progress: f64,
-    /// The current parts' tight envelope on the ground: its world centre and
-    /// half extents in the building frame (`hypot(half)` bounds every corner).
-    pub center: [f64; 2],
-    pub half: [f64; 2],
 }
 
 /// Defensive readiness is visible only to its owner.
@@ -536,12 +546,16 @@ pub struct OwnUnit {
     pub flares: Option<FlareReadiness>,
     pub protection: Option<ProtectionReadiness>,
     pub id: UnitId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<crate::players::PlayerIndex>,
     /// Its unit type: its rank in the catalog, the layout's `unitKinds`.
     pub kind: TypeIndex,
     pub position: [f64; 3],
     pub yaw: f64,
     /// Destination of the current movement order, if any.
     pub goal: Option<[f64; 2]>,
+    /// The current movement order lets the passengers out at `goal`.
+    pub goal_unloads: bool,
     pub policy: Option<RoutePolicy>,
     /// Which way the current move drives (Q31); `None` without a move.
     pub direction: Option<crate::command::MoveDirection>,
@@ -556,6 +570,8 @@ pub struct OwnUnit {
     pub route: Vec<[f64; 2]>,
     /// Destinations of the orders queued behind the current one.
     pub queue: Vec<[f64; 2]>,
+    /// Whether each `queue` order lets the passengers out at its destination.
+    pub queue_unloads: Vec<bool>,
     /// Living squad members' body poses (infantry only).
     /// Garrison bodies stand indoors behind their abstract window exposure points.
     pub members: Vec<[f64; 3]>,
@@ -601,8 +617,8 @@ pub struct OwnUnit {
     /// A supply vehicle's remaining stock.
     pub stock: Option<u32>,
     pub service: ServiceStatus,
-    /// The squad's building, while entering, inside or leaving it.
-    pub garrison: Option<GarrisonState>,
+    /// The host, while entering, inside or leaving it.
+    pub hold: Option<HoldState>,
     pub sight: UnitSight,
 }
 
@@ -777,5 +793,7 @@ pub struct ObservationFrame {
     pub air_transits: Vec<AirTransit>,
     /// The fixture's completion condition, when it has one.
     pub encounter: Option<EncounterStatus>,
+    /// Per-unit refusals that happened during this completed tick.
+    pub refusals: Vec<crate::command::Refusal>,
     pub ground_visibility: VisibilityField,
 }

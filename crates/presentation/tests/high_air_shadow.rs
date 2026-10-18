@@ -64,6 +64,7 @@ fn framed() -> Presentation {
             xray: Xray {
                 own: [0.0; 4],
                 selected: [0.0; 4],
+                ally: [0.0; 4],
             },
             blocked: [0.0; 4],
         }),

@@ -32,6 +32,8 @@ struct SkyLight {
   cloudLit: vec3f,
   cloudSilver: f32,
   cloudBase: vec3f,
+  skySaturation: f32,
+  skyTint: vec3f,
 }
 
 @group(0) @binding(0) var<uniform> light: SkyLight;
@@ -79,13 +81,14 @@ fn radiance(dirIn: vec3f) -> vec3f {
     let scatterR = betaR * rhoR;
     let scatterM = rhoM * betaMScatter;
     let single = tSun * (scatterR * phaseR + scatterM * phaseM);
-    let multiple = (scatterR + scatterM) * vec3f(5.0000000000000000e-1f, 6.9999999999999996e-1f, 1.0000000000000000e+0f) * light.multipleScatter;
+    let multiple = (scatterR + scatterM) * vec3f(5.5000000000000004e-1f, 7.8000000000000003e-1f, 1.1499999999999999e+0f) * light.multipleScatter;
     radiance += tView * (single + multiple) * dt;
   }
   let aureole = smoothstep(-1.2000000000000000e-1f, 7.6000000000000001e-1f, cosTheta) * light.aureole;
-  let clearSky = radiance * light.radiance + light.sunTransmittance * aureole;
+  let clearSkyRaw = radiance * light.radiance + light.sunTransmittance * aureole;
+  let clearSky = mix(vec3f(dot(clearSkyRaw, vec3f(0.2126, 0.7152, 0.0722))), clearSkyRaw, light.skySaturation) * light.skyTint;
   let overcastGradient = 1.05 - max(dirIn.z, 0.0) * 0.22;
-  let overcastSky = vec3f(1.0200000000000000e+0f, 1.0500000000000000e+0f, 1.1000000000000001e+0f) * overcastGradient * light.overcastScale;
+  let overcastSky = vec3f(1.0400000000000000e+0f, 1.0800000000000001e+0f, 1.1399999999999999e+0f) * overcastGradient * light.overcastScale;
   let result = mix(clearSky, overcastSky, light.overcast);
   let ground = smoothstep(0.0, 0.35, -dirIn.z);
   return mix(result, result * light.groundTint, ground);

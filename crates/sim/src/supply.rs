@@ -141,7 +141,7 @@ pub fn service(
 ) {
     let radius = rules.service.radius_m;
     let sources: Vec<usize> = (0..units.len())
-        .filter(|&i| units[i].alive() && units[i].stock.is_some())
+        .filter(|&i| units[i].on_field() && units[i].stock.is_some())
         .collect();
     for r in 0..units.len() {
         let unit = &units[r];
@@ -155,7 +155,7 @@ pub fn service(
                     && (units[s].position.xy() - unit.position.xy()).length() <= radius
             })
             .collect();
-        if unit.alive() && unit.stock.is_none() && !reach.is_empty() {
+        if unit.on_field() && unit.stock.is_none() && !reach.is_empty() {
             let ready: Vec<usize> = reach
                 .into_iter()
                 .filter(|&s| deployment::fully_deployed(&units[s]) && !moved[s])
@@ -274,8 +274,11 @@ fn serve(
             let hp = rules.catalog.soldier(&t.slots().expect("a squad")[slot]).hp;
             *next_soldier += 1;
             unit.members.push(Soldier::new(*next_soldier, slot, at, hp));
-            if let (Some(g), Some((k, _))) = (unit.garrison.as_mut(), seat) {
-                g.seats.push(Some(k));
+            if let (Some(hold), Some((k, _))) = (unit.hold.as_mut(), seat) {
+                hold.building_mut()
+                    .expect("building hold")
+                    .seats
+                    .push(Some(k));
             }
             unit.settle();
         }

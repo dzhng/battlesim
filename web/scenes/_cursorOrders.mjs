@@ -295,7 +295,7 @@ export async function garrisonCursor(ctx) {
   const arrived = await until(
     page,
     (o) =>
-      o.own.some((u) => u.garrison?.phase === "inside") &&
+      o.own.some((u) => u.hold?.phase === "inside") &&
       accepted.ack.building.destinations
         .filter((d) => d.placed)
         .every((d) => {
@@ -310,14 +310,13 @@ export async function garrisonCursor(ctx) {
   ctx.check(
     "the combined order actually enters one squad and gathers its companion",
     !!arrived &&
-      arrived.own.filter((u) => u.garrison?.phase === "inside").length === 1 &&
-      arrived.own.find((u) => u.id === accepted.ack.building.destinations[0]?.unit)?.garrison ==
-        null,
+      arrived.own.filter((u) => u.hold?.phase === "inside").length === 1 &&
+      arrived.own.find((u) => u.id === accepted.ack.building.destinations[0]?.unit)?.hold == null,
     JSON.stringify(
       arrived?.own.map((u) => ({
         id: u.id,
         position: u.position,
-        garrison: u.garrison,
+        hold: u.hold,
         goal: u.goal,
       })),
     ),
@@ -432,7 +431,7 @@ export async function movementCursor(ctx) {
   const arrived = await until(
     page,
     (o) =>
-      o.own.find((u) => u.id === 2)?.garrison?.phase === "inside" &&
+      o.own.find((u) => u.id === 2)?.hold?.phase === "inside" &&
       o.own.find((u) => u.id === 0)?.route.length === 0 &&
       Math.hypot(
         ...o.own
@@ -644,7 +643,7 @@ export async function queuedBuildingCursor(ctx) {
       accepted,
       units: after.own
         .filter((u) => [0, 2].includes(u.id))
-        .map((u) => ({ id: u.id, goal: u.goal, queue: u.queue, garrison: u.garrison })),
+        .map((u) => ({ id: u.id, goal: u.goal, queue: u.queue, hold: u.hold })),
     }),
   );
   await capture(ctx, page, "queued-building", p);
@@ -738,7 +737,7 @@ export async function partialBuildingCursor(ctx) {
     );
     const arrived = await until(
       page,
-      (o) => o.own.find((u) => u.id === 1)?.garrison?.phase === "inside",
+      (o) => o.own.find((u) => u.id === 1)?.hold?.phase === "inside",
       600,
     );
     const heldVehicle = arrived?.own.find((u) => u.id === 0);

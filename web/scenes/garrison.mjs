@@ -11,7 +11,7 @@ import {
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop, mostChanged } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
-import { propType, game } from "./_units.mjs";
+import { game } from "./_units.mjs";
 
 const CENTRE = [360, 250];
 const HALF = 6;
@@ -211,17 +211,17 @@ export async function run(ctx) {
   const watchHouse = (f) => {
     if (fellAt === null && f.knownProps.some((p) => p.kind === "ruin")) fellAt = f.tick;
   };
-  const order = await demo(page, "Scouts garrison");
+  await demo(page, "Scouts garrison");
   let entering = null;
   let firstInside = null;
   o = await until(
     page,
-    (f) => squad(f, 2)?.garrison?.phase === "inside" || fellAt !== null,
+    (f) => squad(f, 2)?.hold?.phase === "inside" || fellAt !== null,
     1500,
     5,
     (f) => {
       watchHouse(f);
-      const g = squad(f, 2)?.garrison;
+      const g = squad(f, 2)?.hold;
       if (g?.phase === "entering" && g.progress > 0.2 && g.progress < 0.8 && !entering)
         entering = { ...g, tick: f.tick };
       if (g?.phase === "inside" && !firstInside) firstInside = f;
@@ -241,6 +241,11 @@ export async function run(ctx) {
   // until SPOTTER_WALKS_UP, so the scouts are inside with no enemy seeing
   // them. If a rule change slows the entry past that tick, fix the lab's
   // staging (the encounter's scripted move), not the check below.
+  ctx.check(
+    "staging: the scouts are inside before red's squad walks up to spot them",
+    !!o && o.tick < SPOTTER_WALKS_UP,
+    JSON.stringify({ insideAt: o?.tick ?? null, spotterWalksUp: SPOTTER_WALKS_UP }),
+  );
 
   const card = page.locator('.ro-unit[data-unit="2"]');
   await card.hover();
@@ -355,31 +360,31 @@ export async function run(ctx) {
       occupants.every((p) => Math.abs(ring(p) - HALF + STANDOFF) < 0.01),
     `${occupants.length} occupants, ${distinct.size} places`,
   );
-  const refused = await demo(page, "Rifle squad #0 garrisons");
+  await demo(page, "Rifle squad #0 garrisons");
   await advance(page, 5);
   o = await obs(page);
 
   // The scouts leave; the rifle squad then takes the building.
-  const leave = await demo(page, "Scouts leave");
+  await demo(page, "Scouts leave");
   let exiting = false;
   o = await until(
     page,
-    (f) => squad(f, 2) && squad(f, 2).garrison === null,
+    (f) => squad(f, 2) && squad(f, 2).hold === null,
     300,
     5,
     (f) => {
       watchHouse(f);
-      exiting ||= squad(f, 2)?.garrison?.phase === "exiting";
+      exiting ||= squad(f, 2)?.hold?.phase === "exiting";
     },
   );
 
   // The scouts fall back out of red's sight (the lab's staging: the tank
   // opens fire on the occupants, not on them).
   await demo(page, "Scouts fall back west");
-  const joined = await demo(page, "Rifle squad #0 garrisons");
+  await demo(page, "Rifle squad #0 garrisons");
   o = await until(
     page,
-    (f) => squad(f, 0)?.garrison?.phase === "inside" || fellAt !== null,
+    (f) => squad(f, 0)?.hold?.phase === "inside" || fellAt !== null,
     1500,
     15,
     watchHouse,
@@ -388,7 +393,7 @@ export async function run(ctx) {
   // Red's squad has walked up by now: blue sees it, and it sees the occupants.
   const spotted = await until(
     page,
-    (f) => squad(f, 0)?.garrison?.phase === "inside" && !squad(f, 0).concealed,
+    (f) => squad(f, 0)?.hold?.phase === "inside" && !squad(f, 0).concealed,
     300,
     5,
     watchHouse,
@@ -426,7 +431,12 @@ export async function run(ctx) {
   // The staging's guard: the lab holds red's tank until TANK_OPENS_FIRE so
   // the entry steps above measure the timer, not a collapse. If a rule
   // change brings the house down, or slows the entries past that tick, fix
-  // the lab's staging (routes/garrison.tsx), not these checks.
+  // the lab's staging (routes/garrison.tsx), not this check.
+  ctx.check(
+    "staging: every entry finished, the house standing, before red's tank opens fire",
+    !!o && o.tick < TANK_OPENS_FIRE && fellAt === null,
+    JSON.stringify({ entriesDoneAt: o?.tick ?? null, tankOpensFire: TANK_OPENS_FIRE, fellAt }),
+  );
 
   // Red's tank shells the occupants its squad spots; blue answers outward.
   let own = 0,
@@ -443,20 +453,15 @@ export async function run(ctx) {
       u.memberHp.some((hp, k) => hp < initialHp.get(u.memberIds[k]))
     );
   };
-  // The last frame with occupants inside, before the fall: the shelling can
-  // bring the building down during the firefight already.
-  let before = null;
-  const inside = (f) => squad(f, 0)?.garrison?.phase === "inside";
   const fallen = (f) => f.knownProps.some((p) => p.kind === "ruin");
   for (let t = 0; t < 900 && !(enemyOnWall > 2 && hurt()) && !fallen(o); t += 3) {
     await advance(page, 3);
     o = await obs(page);
-    if (inside(o)) before = o;
     // Rounds from the occupants: the scouts that left fire from outside
     // past the house's corner, and their rounds grazing that corner are no
     // occupant's.
     const occupants = new Set(
-      o.own.filter((u) => u.garrison?.phase === "inside").flatMap((u) => u.memberIds),
+      o.own.filter((u) => u.hold?.phase === "inside").flatMap((u) => u.memberIds),
     );
     for (const p of o.projectiles) {
       if (p.own) {
@@ -485,22 +490,11 @@ export async function run(ctx) {
     ? o
     : await until(page, fallen, 4500, 3, (f) => {
         lastShelling = f;
-        if (inside(f)) before = f;
       });
   const ruin = o?.knownProps.find((p) => p.kind === "ruin");
   if (!ruin) await ctx.writeEvidence("collapse-timeout.json", lastShelling);
-  // The remains stand a share of the building's height, within the rule's bounds.
-  const into = propType("building").destroyed.into;
-  const ruinHeight = Math.min(
-    Math.max(TOP * into.building.height_fraction, into.height_m),
-    into.building.max_height_m,
-  );
 
   if (!ruin) return page.close();
-  const occupantsBefore = before
-    ? (squad(before, 0)?.garrison?.phase === "inside" && squad(before, 0).members) || []
-    : [];
-  const survivors = o ? [squad(o, 0)].filter(Boolean) : [];
 
   await look(page, 95);
   framing.push(await framed(page));
@@ -539,23 +533,9 @@ export async function run(ctx) {
   await cropBuilding(ctx, page, collapsed, "crop-ruin-2x.png");
 
   // The ruin blocks ground movement: squad #1's route goes round it.
-  const cross = await demo(page, "Squad #1 crosses the ruin");
+  await demo(page, "Squad #1 crosses the ruin");
   await advance(page, 4);
   o = await obs(page);
-  const mover = squad(o, 1);
-  const crosses = (() => {
-    if (!mover) return true;
-    let from = mover.position;
-    for (const p of mover.route) {
-      for (let k = 0; k <= 40; k++) {
-        const q = [from[0] + ((p[0] - from[0]) * k) / 40, from[1] + ((p[1] - from[1]) * k) / 40];
-        if (ring(q) < HALF) return true;
-      }
-      from = p;
-    }
-    return false;
-  })();
-
   await advance(page, 240);
   await frame(ctx, page, "ruin-detour");
   ctx.check(

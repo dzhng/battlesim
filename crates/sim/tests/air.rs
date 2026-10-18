@@ -37,7 +37,7 @@ pub(crate) fn open_map() -> Value {
 pub(crate) fn order(units: &[u32], goal: [f64; 2]) -> CommandEnvelope {
     CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Move {
             units: units.iter().map(|&u| UnitId(u)).collect(),
@@ -580,7 +580,7 @@ fn an_attack_on_a_target_the_side_has_never_identified_is_refused() {
     let mut b = Battle::new(&sim::maps::scenario("air", "ground", rules).unwrap(), 6);
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(2)],
@@ -642,9 +642,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
         "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture,
         "units": [], "events": [], "scripts": [],
-        "skirmish": {
-            "factions": ["us", "eastern"],
-            "rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
+        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "center": [400, 10], "side": "blue", "yaw": std::f64::consts::FRAC_PI_2 },
                 { "center": [400, 590], "side": "red", "yaw": -std::f64::consts::FRAC_PI_2 }
@@ -658,7 +656,14 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
     let mut battle = Battle::new(&setup, 1);
     let ready = |side, seq| contract::command::CommandEnvelope {
         side,
-        slot: None,
+        player: Some(
+            match side {
+                Side::Blue => "blue-1",
+                Side::Red => "red-1",
+                Side::Neutral => "neutral",
+            }
+            .into(),
+        ),
         seq,
         queued: false,
         order: Order::Ready,
@@ -670,7 +675,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
         battle
             .accept(contract::command::CommandEnvelope {
                 side: Side::Blue,
-                slot: None,
+                player: Some("blue-1".into()),
                 seq: 2,
                 queued: false,
                 order: Order::ConfirmPurchase {
@@ -1053,7 +1058,7 @@ fn area_fire_refuses_an_air_contact() {
     assert!(ground_rounds > 0, "a ground report still draws area fire");
     let attack = |id| CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],
@@ -1132,7 +1137,7 @@ fn a_helicopter_ordered_onto_an_identified_tank_takes_the_order() {
     };
     let attack = CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         order: Order::Attack {
             units: vec![UnitId(0)],
@@ -1157,7 +1162,7 @@ fn back_edge_entry_and_crossing_follow_the_entry_site_side() {
     let setup = serde_json::from_value::<contract::scenario::ScenarioDefinition>(serde_json::json!({
         "map": {"size":[600,400],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules": fixture, "units": [],
-        "skirmish": {"factions":["us","eastern"],"rules":{"credits_per_minute":1,"starting_minutes":1,"preparation_s":1,"max_units":1,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},"sites":{"entries":[{"side":"blue","center":[300,5],"yaw":1.57},{"side":"red","center":[300,395],"yaw":-1.57}],"objectives":[{"id":"center","center":[300,200],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,100],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[400,300],"radius_m":50,"kind":"field","counterpart":"south"}]}}
+        "players": [{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules":{"credits_per_minute":1,"starting_minutes":1,"preparation_s":1,"max_units":1,"max_players_per_side":10,"dispatch_interval_s":1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000},"sites":{"entries":[{"side":"blue","center":[300,5],"yaw":1.57},{"side":"red","center":[300,395],"yaw":-1.57}],"objectives":[{"id":"center","center":[300,200],"radius_m":50,"kind":"junction","counterpart":null},{"id":"south","center":[200,100],"radius_m":50,"kind":"field","counterpart":"north"},{"id":"north","center":[400,300],"radius_m":50,"kind":"field","counterpart":"south"}]}}
     })).unwrap();
     let world = sim::encounter::PreparedMap::new(&setup.map, &setup.rules).world;
     let edge = sim::air::edge::back_edge(

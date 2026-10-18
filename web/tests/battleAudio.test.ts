@@ -89,7 +89,7 @@ function setupDecode(
       this.state = "closed";
     }
   }
-  for (const name of ["DynamicsCompressorNode", "GainNode", "ConvolverNode"])
+  for (const name of ["DynamicsCompressorNode", "GainNode", "ConvolverNode", "WaveShaperNode"])
     vi.stubGlobal(name, Node);
   vi.stubGlobal("AudioContext", Context);
   vi.stubGlobal("fetch", fetcher);
@@ -155,12 +155,15 @@ function setupDecode(
   const presentation = game.presentation.audio as unknown as AudioPresentation;
   standInPresentationRecordings(catalog, presentation);
   const app = new AppAudio({ presentation, catalog });
-  const audio = app.createBattle({
-    tickHz: 30,
-    presentation: game.presentation.audio as unknown as AudioPresentation,
-    smokeTimes: {},
-    cookOff: COOK_OFF,
-  });
+  const audio = app.createBattle(
+    {
+      tickHz: 30,
+      presentation: game.presentation.audio as unknown as AudioPresentation,
+      smokeTimes: {},
+      cookOff: COOK_OFF,
+    },
+    1,
+  );
   active.push(app);
   audio.start();
   return audio;
@@ -228,12 +231,15 @@ test("a departed battle cannot admit late decoding and its replacement shares th
   });
   await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
   first.dispose();
-  const next = active.at(-1)!.createBattle({
-    tickHz: 30,
-    presentation: game.presentation.audio as unknown as AudioPresentation,
-    smokeTimes: {},
-    cookOff: COOK_OFF,
-  });
+  const next = active.at(-1)!.createBattle(
+    {
+      tickHz: 30,
+      presentation: game.presentation.audio as unknown as AudioPresentation,
+      smokeTimes: {},
+      cookOff: COOK_OFF,
+    },
+    1,
+  );
   next.note(empty(5));
   finish(buffer(1, 2, 8000));
   await vi.waitFor(() => expect(next.stats()?.loading).toBe(false));

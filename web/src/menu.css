@@ -66,6 +66,17 @@
   position: absolute;
   inset: 0;
 }
+/* The capture route's stage: the battle in full colour under the renderer's
+   own grade, filling the viewport, and its cuts dipping to black as a film's
+   do, not to the menu's ground. */
+.capture-stage,
+.capture-stage-picture {
+  position: fixed;
+  inset: 0;
+}
+.capture-stage .menu-backdrop-veil {
+  background: #000;
+}
 /* With room beside it, the plate stands at the left and the battle plays
    across the rest of the screen. */
 @media (min-width: 1100px) {
@@ -995,4 +1006,496 @@
   .menu-card[data-art]::before {
     transition: none;
   }
+}
+
+/* ---- The skirmish lobby: an order of battle ---------------------------
+   The Skirmish page spreads the plate over the screen: Blue's banners on the
+   left, Red's on the right, the map between them under "N VS M", and a strip
+   of the match's settings, the map's status, Reroll and Deploy below. */
+.menu[data-open="skirmish"] {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  overflow: hidden;
+  padding: 12px 20px;
+}
+.menu[data-open="skirmish"] .menu-slot {
+  grid-template-columns: minmax(0, 1fr);
+}
+.menu[data-open="skirmish"] .hud-panel.menu-body {
+  /* Denser glass than the small pages': the film behind must not tint one
+     side's column and not the other's. */
+  --hud-glass-alpha: 0.9;
+  width: min(1680px, 100%);
+  height: calc(100dvh - 24px);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px 22px 12px;
+}
+.lobby {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  min-height: 0;
+}
+/* The field is a size container: the map is the largest square its height
+   allows, leaving each side's column room for its banners. */
+.lobby-field {
+  --lobby-vs: 44px;
+  container-type: size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 28px;
+  min-height: 0;
+}
+.lobby-map {
+  margin: 0;
+  width: min(calc(100cqh - var(--lobby-vs)), calc(100cqw - 2 * (240px + 28px)));
+  display: grid;
+  grid-template-rows: var(--lobby-vs) auto;
+  align-content: start;
+}
+.lobby-vs {
+  align-self: center;
+  text-align: center;
+  font:
+    500 30px/1 "Barlow Condensed",
+    sans-serif;
+  letter-spacing: 0.3em;
+  margin-right: -0.3em;
+  color: rgb(var(--hud-text));
+  text-shadow: var(--hud-text-halo);
+}
+.lobby-vs [data-side="blue"] {
+  color: rgb(var(--hud-accent));
+}
+.lobby-vs [data-side="red"] {
+  color: rgb(var(--hud-enemy));
+}
+.lobby-frame {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #0b1612;
+  border: 1px solid rgb(var(--hud-text) / 0.18);
+}
+.lobby-picture,
+.lobby-picture svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Until the map is ready: what its preparation is doing, over the last map
+   shown, dimmed so it is not mistaken for the one Deploy would start. */
+.lobby-frame:not([data-status="ready"]) .lobby-picture {
+  opacity: 0.3;
+  filter: grayscale(0.6);
+}
+.lobby-frame-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.lobby-frame-state strong {
+  padding: 8px 16px;
+  background: rgb(var(--hud-glass) / 0.85);
+  font-size: 14px;
+  letter-spacing: 0.26em;
+  color: rgb(var(--hud-text));
+  text-shadow: var(--hud-text-halo);
+}
+.lobby-frame:is([data-status="loading"], [data-status="retrying"]) .lobby-frame-state strong {
+  animation: lobby-pulse 1.4s ease-in-out infinite;
+}
+.lobby-frame[data-status="failed"] .lobby-frame-state strong {
+  color: rgb(var(--hud-bad));
+}
+@keyframes lobby-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* A side: its faction, then a banner per player, then room for one more. */
+.lobby-side {
+  --side: var(--hud-accent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+/* The faction stands level with "N VS M", the banners level with the map. */
+.lobby-pick.lobby-faction {
+  display: flex;
+  align-items: center;
+  height: var(--lobby-vs);
+  margin-bottom: -8px;
+}
+.lobby-side[data-side="red"] {
+  --side: var(--hud-enemy);
+  align-items: flex-end;
+}
+.lobby-banners {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+/* A banner: a band in the side's colour with its number as an insignia,
+   cut on the edge that faces the map. The band is drawn behind the banner, so
+   a list opened from it is not cut too. */
+.lobby-banner {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: clamp(54px, 9cqh, 84px);
+  padding: 0 28px 0 21px;
+}
+.lobby-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgb(var(--side) / 0.24), rgb(var(--side) / 0.08));
+  border-left: 3px solid rgb(var(--side) / 0.85);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 16px) 100%, 0 100%);
+}
+.lobby-banner:has(.lobby-pick[data-open]) {
+  z-index: 1;
+}
+.lobby-side[data-side="red"] .lobby-banner {
+  flex-direction: row-reverse;
+  padding: 0 21px 0 28px;
+}
+.lobby-side[data-side="red"] .lobby-banner::before {
+  background: linear-gradient(270deg, rgb(var(--side) / 0.24), rgb(var(--side) / 0.08));
+  border-left: 0;
+  border-right: 3px solid rgb(var(--side) / 0.85);
+  clip-path: polygon(16px 0, 100% 0, 100% 100%, 0 100%);
+}
+/* Your banner is the lit one. */
+.lobby-banner[data-you]::before {
+  background: linear-gradient(90deg, rgb(var(--side) / 0.42), rgb(var(--side) / 0.12));
+  border-left-color: rgb(var(--side));
+}
+.lobby-index {
+  min-width: 0.6em;
+  font:
+    500 clamp(30px, 6cqh, 48px)/1 "Barlow Condensed",
+    sans-serif;
+  color: rgb(var(--side));
+  text-shadow: 0 0 10px rgb(var(--side) / 0.45);
+}
+.lobby-controller,
+.hud-panel .lobby-controller > button {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+span.lobby-controller:not(.lobby-pick) {
+  padding: 4px 10px;
+  border: 1px solid rgb(var(--hud-dim) / 0.5);
+  color: rgb(var(--hud-dim));
+}
+.lobby-banner[data-you] span.lobby-controller:not(.lobby-pick) {
+  color: rgb(var(--hud-glass));
+  background: rgb(var(--hud-accent));
+  border-color: rgb(var(--hud-accent));
+  box-shadow: 0 0 10px rgb(var(--hud-accent) / 0.55);
+}
+.hud-panel .lobby-controller > button {
+  padding: 4px 22px 4px 10px;
+  color: rgb(var(--hud-dim));
+  background: none;
+  border-color: rgb(var(--hud-dim) / 0.5);
+}
+/* Delete: a drawn cross at the banner's map end. */
+.hud-panel button.lobby-remove {
+  position: relative;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  padding: 0;
+  background: none;
+  border-color: transparent;
+  opacity: 0.7;
+}
+.hud-panel .lobby-side[data-side="red"] button.lobby-remove {
+  margin-left: 0;
+  margin-right: auto;
+}
+.hud-panel button.lobby-remove::before,
+.hud-panel button.lobby-remove::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  background: rgb(var(--hud-text));
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.hud-panel button.lobby-remove::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+.hud-panel button.lobby-remove:is(:hover, :focus-visible) {
+  opacity: 1;
+  border-color: rgb(var(--hud-bad) / 0.7);
+  box-shadow: none;
+}
+.hud-panel button.lobby-add {
+  width: 100%;
+  padding: 9px;
+  color: rgb(var(--hud-dim));
+  background: none;
+  border: 1px dashed rgb(var(--hud-dim) / 0.45);
+  letter-spacing: 0.16em;
+}
+.hud-panel button.lobby-add::before {
+  content: "+";
+  margin-right: 8px;
+  font-weight: 700;
+  color: rgb(var(--side));
+}
+
+/* A short list that opens under its button: a side's faction, or who
+   commands a Blue banner. */
+.lobby-pick {
+  position: relative;
+  display: inline-block;
+}
+.hud-panel .lobby-pick > button::after {
+  content: "";
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  border: 4px solid transparent;
+  border-top-color: currentColor;
+  border-bottom-width: 0;
+  transform: translateY(-50%);
+}
+.hud-panel .lobby-pick > button {
+  position: relative;
+}
+.lobby-pick ul {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  background: rgb(var(--hud-glass) / 0.96);
+  border: 1px solid rgb(var(--hud-accent) / 0.45);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
+}
+.lobby-side[data-side="red"] .lobby-pick ul {
+  left: auto;
+  right: 0;
+}
+.hud-panel .lobby-pick li button {
+  width: 100%;
+  white-space: nowrap;
+  text-align: left;
+  background: none;
+  border-color: transparent;
+}
+.hud-panel .lobby-pick li button[aria-selected="true"] {
+  color: rgb(var(--hud-accent));
+}
+/* At the bottom of the screen a list opens upward. */
+.lobby-strip .lobby-pick ul {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+.hud-panel .lobby-region > button {
+  min-width: 128px;
+  padding: 7px 26px 7px 10px;
+  font-size: 11px;
+  text-align: left;
+  border-color: rgb(var(--hud-accent) / 0.22);
+}
+.hud-panel .lobby-faction > button {
+  padding: 4px 26px 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: rgb(var(--side));
+  background: none;
+  border-color: transparent;
+  text-shadow: var(--hud-text-halo);
+}
+
+/* The strip: the match's settings, then the map's status, Reroll and Deploy
+   at the end, where the eye finishes. */
+.lobby-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 10px 0 14px;
+  border-top: 1px solid rgb(var(--hud-accent) / 0.22);
+}
+/* A match reads as it is said: "3v3". */
+.hud-panel [aria-labelledby="menu-match"] button {
+  text-transform: none;
+}
+.lobby-choice {
+  position: relative;
+  display: grid;
+  gap: 6px;
+}
+.lobby-label {
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.lobby-options {
+  display: flex;
+}
+.hud-panel .lobby-options button {
+  margin-right: -1px;
+  padding: 7px 10px;
+  white-space: nowrap;
+  font-size: 11px;
+  color: rgb(var(--hud-dim));
+  background: none;
+  border-color: rgb(var(--hud-accent) / 0.22);
+}
+.hud-panel .lobby-options button[aria-checked="true"] {
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+  color: #fff;
+  background: rgb(var(--hud-accent) / 0.16);
+  border-color: rgb(var(--hud-accent) / 0.85);
+  text-shadow: var(--hud-text-halo);
+}
+/* A closed size is there but unlit; the line under it says why. */
+.hud-panel .lobby-options button:disabled {
+  opacity: 1;
+  color: rgb(var(--hud-dim) / 0.4);
+  border-style: dashed;
+  border-color: rgb(var(--hud-dim) / 0.25);
+}
+.lobby-reason {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-text) / 0.75);
+}
+/* Two lines in every state, so the status never jumps: the state, then the
+   seed once there is one. */
+.lobby-status {
+  min-width: 220px;
+  min-height: 2.9em;
+  box-sizing: border-box;
+  margin: 0 0 0 auto;
+  white-space: nowrap;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-dim));
+}
+.lobby-status::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: rgb(var(--hud-accent));
+}
+/* A retry is worth a glance: the dot turns to the warning colour. */
+.lobby-status[data-status="retrying"]::before {
+  background: rgb(var(--hud-warn));
+}
+.lobby-status:is([data-status="loading"], [data-status="retrying"])::before {
+  animation: lobby-pulse 1.4s ease-in-out infinite;
+}
+.lobby-status[data-status="ready"] {
+  color: rgb(var(--hud-text));
+}
+.lobby-status[data-status="ready"]::before {
+  background: rgb(var(--hud-good));
+}
+.lobby-status[data-status="failed"] {
+  color: rgb(var(--hud-bad));
+}
+.lobby-status[data-status="failed"]::before {
+  background: rgb(var(--hud-bad));
+}
+/* The seed, under its status: there to share, never needed to play. */
+.lobby-seed {
+  display: block;
+  margin: 4px 0 0 15px;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: rgb(var(--hud-dim));
+}
+.hud-panel button.lobby-reroll {
+  padding: 9px 16px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgb(var(--hud-accent));
+  border-color: rgb(var(--hud-accent) / 0.7);
+}
+/* With no map, Reroll is the way on. */
+.hud-panel .lobby-strip:has(.lobby-status[data-status="failed"]) button.lobby-reroll {
+  color: #fff;
+  border-color: rgb(var(--hud-accent));
+  box-shadow: 0 0 12px rgb(var(--hud-accent) / 0.5);
+}
+/* Deploy: the screen's one bright order, shut until the map is ready. */
+.hud-panel a.lobby-deploy {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  padding: 0 44px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgb(var(--hud-glass));
+  background: rgb(var(--hud-accent));
+  border: 1px solid rgb(var(--hud-accent));
+  box-shadow: 0 0 20px rgb(var(--hud-accent) / 0.55);
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+}
+.hud-panel a.lobby-deploy:is(:hover, :focus-visible) {
+  outline: none;
+  background: #fff;
+}
+/* Shut: the same plate, unlit. A fill, not an outline, since the cut
+   corners would open an outline's sides. */
+.hud-panel a.lobby-deploy[aria-disabled="true"] {
+  pointer-events: none;
+  color: rgb(var(--hud-dim) / 0.55);
+  background: rgb(var(--hud-dim) / 0.1);
+  border-color: transparent;
+  box-shadow: none;
+  text-shadow: none;
 }

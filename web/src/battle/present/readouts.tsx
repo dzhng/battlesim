@@ -1,7 +1,9 @@
 /** Player readouts, from observation only (U02, U03):
  *  - an info panel off every unit on a leader line (`infoPanel.tsx`): its
  *    name, a row per weapon, then its states (`panelRows.ts`); an own
- *    unit's in cyan, with rounds left and running timers; an enemy's or a
+ *    unit's in cyan, with rounds left and running timers; an ally's the
+ *    same panel in pale ice on a broken leader, naming its owner, and held
+ *    open while it is selected (to read: it takes no order); an enemy's or a
  *    contact's in the enemy red, only what the side knows of it;
  *  - the command bar: the selection's commands and its fire policy. */
 import { highAir, type UnitCatalog } from "@packages/scene-assets/src/units";
@@ -17,7 +19,12 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { PresentedContact } from "./contactPresentation";
-import type { IdentifiedView, OwnUnitView } from "../sim/observationView";
+import {
+  aboardCarrier,
+  passengersOf,
+  type IdentifiedView,
+  type OwnUnitView,
+} from "../sim/observationView";
 import type { useUnitControl } from "../input/useUnitControl";
 import type { CommandMode, PointerPick } from "../input/pointerIntent";
 import { CommandBindings } from "../input/commandBindings";
@@ -37,13 +44,34 @@ import {
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { clamp, vec3 } from "math";
 import type { Box2 } from "math/shapes";
-import { InfoPanel, PanelCallout, type PanelOwner } from "./infoPanel";
-import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
+import {
+  InfoPanel,
+  PanelCallout,
+  PassengerCards,
+  sideTone,
+  type PanelOwner,
+  type PassengerCard,
+} from "./infoPanel";
+import { contactPanel, enemyPanel, ownPanel, type Panel, type PanelRules } from "./panelRows";
 
 /** The element the high-air models' canvas lies in, between the two card
  *  planes: a battle view draws its high-air models there when the page has
  *  one (`BattleFrame.render`'s high target), and with the world otherwise. */
 export const HIGH_PLANE_ATTR = "data-high-plane";
+
+/** A camera this close to the ground is watching the battle, not commanding
+ *  it: cards are whole from `CARD_FADE_START_M` of camera distance out and
+ *  fade away linearly to nothing at `CARD_FADE_END_M`, so a close shot is
+ *  clean film. */
+export const CARD_FADE_START_M = 90;
+export const CARD_FADE_END_M = 48;
+
+/** The cards' opacity at camera distance `cameraDistance`. */
+export function cardZoomOpacity(cameraDistance: number): number {
+  if (cameraDistance >= CARD_FADE_START_M) return 1;
+  if (cameraDistance <= CARD_FADE_END_M) return 0;
+  return (cameraDistance - CARD_FADE_END_M) / (CARD_FADE_START_M - CARD_FADE_END_M);
+}
 
 /** World point → page CSS pixel, or null when behind the eye. */
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
@@ -57,6 +85,10 @@ const _readout_eye = vec3.create(),
 export function unitName(units: UnitCatalog, u: Pick<OwnUnitView, "kind">): string {
   return units.type(u.kind).name;
 }
+
+const NO_ALLIES: ReadonlyMap<number, string> = new Map();
+/** A panel of one of the side's own units, the player's or an ally's. */
+const sideUnit = (owner: PanelOwner) => owner === "own" || owner === "ally";
 
 /** The ring a leader line starts from, on its unit. */
 const LEADER_RING_PX = 2;
@@ -93,7 +125,7 @@ interface DrawnAnchors {
  *  stands), or a ground contact on the drawn ground. */
 function anchorOf(c: Callout, drawn: DrawnAnchors): Point3 {
   if (c.ghost) return c.at;
-  if (c.owner === "own") return drawn.own?.get(c.id) ?? c.at;
+  if (sideUnit(c.owner)) return drawn.own?.get(c.id) ?? c.at;
   if (c.owner === "enemy") return drawn.enemies?.get(c.id) ?? c.at;
   return c.onGround ? [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0] : c.at;
 }
@@ -109,6 +141,9 @@ export interface ReadoutLayerHandle {
     y: number,
   ): { unit: number | null; enemy: number | null; contact: number | null } | null;
   inRect(unit: number, rect: ReadoutRect): boolean;
+  /** Where own `unit`'s card is drawn, or its carrier's for a rider; null
+   *  while neither shows. */
+  cardBox(unit: number): ReadoutRect | null;
   /** Re-anchor every panel; call once per animation frame. `clock` is that
    *  frame's presentation clock in seconds, which eases a panel's nudge
    *  (null snaps it). */
@@ -136,9 +171,26 @@ interface Callout {
    *  plane, above the ground and low-air cards and the high-air models. */
   highAir: boolean;
   content: ReactNode;
+  /** The squads a carrier holds, their compact cards stacked under its own. */
+  passengers?: PassengerCard[];
   opacity?: number;
   retiring?: boolean;
   ghost?: boolean;
+}
+
+/** A carrier's underline lies this far below its own panel, in the gap
+ *  above its riders' cards (`.ro-aboard`'s top margin). */
+const RIDER_RULE_PX = 3;
+/** The box a callout's leader underlines, drawn at `box`: the callout's,
+ *  or for a carrier's card hanging above its unit, its own panel's, so the
+ *  rule runs above its riders' cards and the line names the carrier. */
+function underlined(
+  b: { node: HTMLElement; y: number; riders: boolean },
+  box: ReadoutRect,
+): ReadoutRect {
+  const body = b.node.firstElementChild as HTMLElement | null;
+  if (!b.riders || !body || box.y1 > b.y) return box;
+  return { ...box, y1: box.y0 + body.offsetTop + body.offsetHeight + RIDER_RULE_PX };
 }
 
 /** A unit panel's anchor: this high over its unit, about its head. */
@@ -151,7 +203,9 @@ const HEAD_M = 2;
  *  each other on short, uncrossed leaders, and a selected or hovered panel
  *  paints above the others. A card near the viewport's edge hides. Far
  *  views allow overlap in camera-depth order. Nudges ease on the
- *  presentation clock. */
+ *  presentation clock. A squad riding a carrier has no callout of its own:
+ *  its compact card stacks under the carrier's, inside that callout, and
+ *  picks the carrier. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -161,6 +215,7 @@ export function ReadoutLayer({
   selected,
   handle,
   ghosts = [],
+  allies = NO_ALLIES,
 }: {
   /** The observation's own units, identified enemies and contacts: all a
    *  panel reads. Only these are props, not the whole observation, whose
@@ -175,6 +230,8 @@ export function ReadoutLayer({
   selected: readonly number[];
   handle: Ref<ReadoutLayerHandle>;
   ghosts?: readonly GhostReadout[];
+  /** Each of `own` an ally owns, with its panel's owner line (`allyOwners`). */
+  allies?: ReadonlyMap<number, string>;
 }) {
   const { units } = useSessionCatalog();
   const layer = useRef<HTMLDivElement>(null);
@@ -187,6 +244,13 @@ export function ReadoutLayer({
   const hoveredCard = useRef<string | null>(null);
   const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
+  const zoomOpacity = useRef(1);
+  /** A unit on the side's panel, naming its owner when it is an ally's. */
+  const sidePanel = (u: OwnUnitView): Panel => {
+    const panel = ownPanel(units, u, own, rules);
+    const owner = allies.get(u.id);
+    return owner === undefined ? panel : { ...panel, owner };
+  };
   const callouts: Callout[] = [
     ...ghosts.map(
       (g): Callout => ({
@@ -200,18 +264,23 @@ export function ReadoutLayer({
         content: <InfoPanel panel={ownPanel(units, g.unit, own, rules)} zoom="far" />,
       }),
     ),
-    ...own.map((u): Callout => {
-      const picked = selected.includes(u.id);
-      return {
-        key: `own-${u.id}`,
-        owner: "own",
-        id: u.id,
-        at: u.position,
-        selected: picked,
-        highAir: highAir(units.type(u.kind)),
-        content: <InfoPanel panel={ownPanel(units, u, own, rules)} />,
-      };
-    }),
+    ...own
+      // A squad riding a carrier has its card stacked under the carrier's.
+      .filter((u) => !aboardCarrier(u))
+      .map((u): Callout => {
+        const panel = sidePanel(u);
+        const passengers = passengersOf(own, u.id).map((p) => ({ id: p.id, panel: sidePanel(p) }));
+        return {
+          key: `own-${u.id}`,
+          owner: sideTone(panel),
+          id: u.id,
+          at: u.position,
+          selected: selected.includes(u.id),
+          highAir: highAir(units.type(u.kind)),
+          content: <InfoPanel panel={panel} />,
+          ...(passengers.length ? { passengers } : {}),
+        };
+      }),
     ...identified.map(
       (e): Callout => ({
         key: `enemy-${e.id}`,
@@ -273,6 +342,12 @@ export function ReadoutLayer({
               : null))
       : null;
   };
+  /** The card shown open: the hovered one, else a selected ally's, held
+   *  open as a hovered one is, since selecting it is how the player reads it. */
+  const openKey = (hover: ReadoutHover | null): string | null =>
+    hoveredKey(hover) ??
+    calloutsRef.current.find((c) => c.owner === "ally" && c.selected)?.key ??
+    null;
   /** A panel off the layout this frame: no leader, and no nudge to ease from. */
   const unplace = (key: string) => {
     leaders.current.get(key)?.setAttribute("d", "");
@@ -306,21 +381,27 @@ export function ReadoutLayer({
       const group = b.node.parentElement!;
       if (inFront) group.dataset.overlapping = "true";
       else delete group.dataset.overlapping;
-      group.style.opacity = String(b.opacity * (softened ? 0.65 : 1));
+      // A close camera fades every card out (`cardZoomOpacity`); a faded card takes no clicks.
+      const opacity = b.opacity * (softened ? 0.65 : 1) * zoomOpacity.current;
+      group.style.opacity = String(opacity);
       group.style.filter = softened ? "blur(0.6px)" : "";
+      group.style.pointerEvents = opacity <= 0 ? "none" : "";
     }
   };
   useImperativeHandle(handle, () => ({
     pick(x, y) {
+      // Cards faded out by a close camera take no clicks.
+      if (zoomOpacity.current <= 0) return null;
       const priority = [...calloutsRef.current].sort(
         (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
       for (const c of priority) {
         if (c.retiring || c.ghost) continue;
+        // A rider's card lies on its carrier's, so it picks the carrier.
         const r = visibleBox(c.key);
         if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
           return {
-            unit: c.owner === "own" ? c.id : null,
+            unit: sideUnit(c.owner) ? c.id : null,
             enemy: c.owner === "enemy" ? c.id : null,
             contact: c.owner === "contact" ? c.id : null,
           };
@@ -328,11 +409,17 @@ export function ReadoutLayer({
       return null;
     },
     inRect(unit, rect) {
+      if (zoomOpacity.current <= 0) return false;
       const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
+    cardBox(unit) {
+      const carrier = calloutsRef.current.find((c) => c.passengers?.some((p) => p.id === unit));
+      return visibleBox(carrier?.key ?? `own-${unit}`);
+    },
     place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
-      hoveredCard.current = hoveredKey(hover);
+      zoomOpacity.current = cardZoomOpacity(camera.distance);
+      hoveredCard.current = openKey(hover);
       eyePosition(_readout_eye, camera);
       const overlap = camera.distance > 1000;
       // Each panel's anchor, in page pixels.
@@ -345,6 +432,8 @@ export function ReadoutLayer({
         selected: boolean;
         highAir: boolean;
         opacity: number;
+        /** It carries riders' cards under its own panel. */
+        riders: boolean;
       }[] = [];
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
@@ -359,6 +448,7 @@ export function ReadoutLayer({
             id: c.key,
             node,
             selected: c.selected,
+            riders: !!c.passengers,
             highAir: c.highAir,
             opacity: c.opacity ?? 1,
             x: at[0],
@@ -499,7 +589,7 @@ export function ReadoutLayer({
         else delete group.dataset.hovered;
         // The leader: a small ring on the unit, a line off it to the
         // callout's near corner, then along its edge nearest the unit.
-        const [from, corner, foot] = leaderOf(b, box);
+        const [from, corner, foot] = leaderOf(b, underlined(b, box));
         const r = LEADER_RING_PX;
         const xy = (p: [number, number]) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
         leaders.current
@@ -538,13 +628,17 @@ export function ReadoutLayer({
         owner={c.owner}
         selected={c.selected}
         data-zoom="compressed"
-        data-unit={c.owner === "own" && !c.ghost ? c.id : undefined}
+        data-unit={sideUnit(c.owner) && !c.ghost ? c.id : undefined}
         data-enemy={c.owner === "enemy" ? c.id : undefined}
         data-contact={c.owner === "contact" ? c.id : undefined}
       >
         {c.content}
+        {c.passengers && <PassengerCards cards={c.passengers} />}
       </PanelCallout>
-      <svg className={`ro-leaders${c.owner !== "own" ? " ro-enemy" : ""}`} aria-hidden="true">
+      <svg
+        className={`ro-leaders${c.owner === "enemy" || c.owner === "contact" ? " ro-enemy" : c.owner === "ally" ? " ro-ally" : ""}`}
+        aria-hidden="true"
+      >
         <path
           ref={bind(leaders.current, c.key)}
           className={`ro-leader ro-${c.owner}${c.selected ? " ro-selected" : ""}`}
@@ -640,6 +734,7 @@ function CommandButton({
  *  Nothing selected, no bar. */
 export function CommandBar({
   control,
+  own,
   hintHost,
 }: {
   hintHost?: HTMLElement | null;
@@ -652,7 +747,10 @@ export function CommandBar({
     | "togglePolicy"
     | "toggleDeployment"
     | "exitBuilding"
+    | "pressUnload"
   > & { refund?: () => void; toggleAfterburner?: () => void };
+  /** Every own unit: the passengers Unload reaches carriers by. */
+  own: readonly OwnUnitView[];
 }) {
   const { units, weapons } = useSessionCatalog();
   const selected = control.selectedUnits;
@@ -660,9 +758,9 @@ export function CommandBar({
   const command = (c: CommandProps) => <CommandButton {...c} hintHost={hintHost} />;
   const key = (command: keyof typeof CommandBindings) => `(${CommandBindings[command].label})`;
   // Capability actions apply to eligible units; movement applies to everyone.
-  const [armed, deployers, inside] = (["attack", "deploy", "exit_building"] as ReachCommand[]).map(
-    (c) => reach(c, selected, units),
-  );
+  const [armed, deployers, inside, unloaders] = (
+    ["attack", "deploy", "exit_building", "unload"] as ReachCommand[]
+  ).map((c) => reach(c, selected, units, own));
   const hold = n > 0 && selected.every((u) => u.engagement === "return_fire_only");
   const packing = deployers.every((u) => u.deployment?.target === "deployed");
   const aircraft = selected.filter((u) => u.fuelS != null);
@@ -730,6 +828,13 @@ export function CommandBar({
           disabled: n === 0,
           onClick: control.refund,
         })}
+      {command({
+        icon: hudIcon("unload"),
+        label: `Unload ${key("unload")}`,
+        pressed: control.mode === "unload",
+        disabled: unloaders.length === 0,
+        onClick: control.pressUnload,
+      })}
       {command({
         icon: hudIcon("leave_building"),
         label: "Leave building",

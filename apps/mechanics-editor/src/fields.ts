@@ -306,6 +306,20 @@ const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       },
     ),
     field(
+      "capabilities.carriage",
+      "Carriage capability",
+      "Service",
+      "Carries infantry squads in the hull.",
+      { kind: "object", optional: true, initial: { seats: 8 } },
+    ),
+    field(
+      "capabilities.carriage.seats",
+      "Passenger seats",
+      "Service",
+      "Whole squad capacity; catalog admission accepts 3, 8 or 16.",
+      { unit: "seats", integer: true },
+    ),
+    field(
       "capabilities.deploy.seconds",
       "Setup time",
       "Service",

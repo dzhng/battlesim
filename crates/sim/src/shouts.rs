@@ -159,7 +159,7 @@ pub fn under_fire(
             continue;
         };
         let def = &arsenal.weapons[round.weapon].def;
-        let enemy = |unit: &&Unit| unit.side != round.side && unit.alive();
+        let enemy = |unit: &&Unit| unit.side != round.side && unit.on_field();
         let Some(point) = point else {
             // A near miss: flight measured the pass to the unit's nearest body.
             let FlightEvent::NearMiss(n) = event else {
@@ -225,7 +225,7 @@ pub fn incoming(
             continue;
         };
         for unit in units {
-            if unit.side == round.side || !unit.alive() || out.contains(&unit.id) {
+            if unit.side == round.side || !unit.on_field() || out.contains(&unit.id) {
                 continue;
             }
             if on_footprint(unit, guidance.point, rules)
@@ -335,7 +335,7 @@ pub fn evidence(
         let at = crate::sensing::eye(dead, rules);
         let witness = after
             .iter()
-            .filter(|u| u.side == dead.side && u.alive())
+            .filter(|u| u.side == dead.side && u.on_field())
             .map(|u| (u, (u.position.xy() - at.xy()).length()))
             .filter(|(u, _)| {
                 crate::sensing::sees_point(
@@ -433,7 +433,7 @@ pub fn build(
     let mut out = Vec::new();
     let own: Vec<&Unit> = units
         .iter()
-        .filter(|u| u.side == side && u.alive())
+        .filter(|u| u.side == side && u.on_field())
         .collect();
 
     // Contact: an enemy this side did not identify last tick. The nearest

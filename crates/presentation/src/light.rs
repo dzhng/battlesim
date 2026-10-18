@@ -90,7 +90,26 @@ pub struct SkySettings {
     pub radiance: f64,
     /// Multiplies the sky's environment light per linear channel: the shadow fill.
     pub fill: [f64; 3],
+    /// The clear sky's saturation before tone mapping: 1 leaves it as the
+    /// physical model makes it, 0 is its luminance alone.
+    #[serde(default = "one")]
+    pub saturation: f64,
+    /// Multiplies the clear sky per linear channel before tone mapping.
+    #[serde(default = "white")]
+    pub tint: [f64; 3],
+    /// How much of the grade the sky takes: 1 all of it, 0 none, so a warm
+    /// grade can sit on the land under a sky that keeps its own colour.
+    #[serde(default = "one")]
+    pub grade_mix: f64,
     pub clouds: CloudSettings,
+}
+
+fn one() -> f64 {
+    1.0
+}
+
+fn white() -> [f64; 3] {
+    [1.0; 3]
 }
 
 /// The haze's curve over the physical extinction.
@@ -150,6 +169,9 @@ pub struct CloudSettings {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GradeSettings {
+    /// Whether the grade applies; off leaves only exposure and AgX.
+    #[serde(default = "yes")]
+    pub enabled: bool,
     pub saturation: f64,
     pub contrast: f64,
     pub split_tone: f64,
@@ -157,6 +179,10 @@ pub struct GradeSettings {
     pub shadow_tint: [f64; 3],
     pub highlight_tint: [f64; 3],
     pub lift: [f64; 3],
+}
+
+fn yes() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -329,6 +355,8 @@ impl LightSettings {
             cloud_lit: folded(transmittance, c.radiance, 1.0),
             cloud_silver: (c.radiance * 0.6) as f32,
             cloud_base: folded(c.shade, c.radiance, 0.7),
+            sky_saturation: self.sky.saturation as f32,
+            sky_tint: f32s(self.sky.tint),
             pad1: 0.0,
         }
     }
@@ -347,17 +375,19 @@ impl LightSettings {
         }
     }
 
-    /// The grade's uniform.
+    /// The grade's uniform; a disabled grade leaves only exposure and AgX.
     pub fn grade(&self) -> Grade {
         let g = &self.grade;
+        let on = if g.enabled { 1.0 } else { 0.0 };
         let rgb = |v: [f64; 3], w: f64| f32s([v[0], v[1], v[2], w]);
         Grade {
-            saturation: g.saturation as f32,
-            contrast: g.contrast as f32,
-            split_tone: g.split_tone as f32,
-            shadow_lift: g.shadow_lift as f32,
+            saturation: (g.saturation * on) as f32,
+            contrast: (g.contrast * on) as f32,
+            split_tone: (g.split_tone * on) as f32,
+            shadow_lift: (g.shadow_lift * on) as f32,
             exposure: self.exposure as f32,
-            pad: [0.0; 3],
+            sky_grade_mix: self.sky.grade_mix as f32,
+            pad: [0.0; 2],
             shadow_tint: rgb(g.shadow_tint, 1.0),
             highlight_tint: rgb(g.highlight_tint, 1.0),
             lift: rgb(g.lift, 0.0),

@@ -4,8 +4,9 @@
 // walk the row sources: every unit type as own, enemy and last sighting;
 // each weapon situation (unlimited, counts, empty, aiming, reloading, the
 // cannon's loaded kind, guiding, every reason a weapon can't fire); every
-// state row alone and in the longest realistic combinations; every heard
-// weapon mix; selected and not; the default and the far zoom. A test
+// state row alone and in the longest realistic combinations; carriers
+// empty, partly full and full, with their riders' cards under them; every
+// heard weapon mix; selected and not; the default and the far zoom. A test
 // (`web/tests/panelWorkbench.test.ts`) holds this list to every row kind the
 // derivation can produce.
 import type { SessionCatalog } from "@web/battle/catalog/compose";
@@ -18,8 +19,13 @@ import {
   type Panel,
   type PanelRules,
 } from "@web/battle/present/panelRows";
-import { REASON_MARK, type PanelOwner, type PanelZoom } from "@web/battle/present/infoPanel";
-import type { MountView, OwnUnitView } from "@web/battle/sim/observationView";
+import {
+  REASON_MARK,
+  type PanelOwner,
+  type PanelZoom,
+  type PassengerCard,
+} from "@web/battle/present/infoPanel";
+import { passengersOf, type MountView, type OwnUnitView } from "@web/battle/sim/observationView";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
 
 export interface Specimen {
@@ -32,6 +38,8 @@ export interface Specimen {
   selected: boolean;
   zoom: PanelZoom;
   panel: Panel;
+  /** A carrier's riders, their compact cards under its panel. */
+  passengers?: PassengerCard[];
 }
 
 type MountPatch = Partial<MountView>;
@@ -87,7 +95,7 @@ export function panelSpecimens(
     label: string,
     panel: Panel,
     owner: Specimen["owner"] = "own",
-    extra: Partial<Pick<Specimen, "selected" | "zoom">> = {},
+    extra: Partial<Pick<Specimen, "selected" | "zoom" | "passengers">> = {},
   ) =>
     out.push({
       id: `${group}/${label}`,
@@ -361,7 +369,7 @@ export function panelSpecimens(
   add(s, "supply full", panelOf(specimenUnit(catalog, "test_rifle", { service: "full" })));
   add(s, "cannot supply", panelOf(specimenUnit(catalog, "test_at", { service: "moving" })));
   const inside = (phase: string, progress: number) => ({
-    garrison: { building: 3, phase, progress },
+    hold: { host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] }, phase, progress },
     concealed: phase === "inside" || phase === "exiting",
   });
   add(
@@ -397,6 +405,67 @@ export function panelSpecimens(
     "route blocked",
     panelOf(specimenUnit(catalog, "test_supply", { state: "route_blocked" })),
   );
+
+  // Carriers: the test APC (8 seats), given 16 for the largest, and the
+  // test scout car. The squads it holds are stand-ins of set sizes, so the
+  // counts read the same whatever the roster's squads number.
+  const t = "carriers";
+  const sixteen = new UnitCatalog({
+    ...catalog.units.view,
+    units: catalog.units.view.units.map((u) =>
+      u.id === "test_apc"
+        ? { ...u, capabilities: { ...u.capabilities, carriage: { seats: 16 } } }
+        : u,
+    ),
+  });
+  const carrier = specimenUnit(catalog, "test_apc", { id: 1 });
+  const rider = (id: number, kind: string, soldiers: number, patch: Partial<OwnUnitView> = {}) =>
+    specimenUnit(catalog, kind, {
+      id,
+      memberHp: Array.from({ length: soldiers }, () => 100),
+      hold: { host: { kind: "carrier", id: 1 }, phase: "inside", progress: 1 },
+      ...patch,
+    });
+  /** The carrier's panel and its riders' cards, from one side's own units. */
+  const carrying = (
+    label: string,
+    riders: OwnUnitView[],
+    extra: Partial<Pick<Specimen, "selected" | "zoom">> = {},
+    units = catalog.units,
+  ) => {
+    const own = [carrier, ...riders];
+    add(t, label, ownPanel(units, carrier, own, rules), "own", {
+      ...extra,
+      passengers: passengersOf(own, carrier.id).map((p) => ({
+        id: p.id,
+        panel: ownPanel(units, p, own, rules),
+      })),
+    });
+  };
+  const partly = [rider(2, "test_at", 3)];
+  const full = [
+    rider(2, "test_rifle", 8, { memberHp: [100, 100, 100, 100, 100, 100, 40, 100] }),
+    rider(3, "test_at", 3),
+    rider(4, "test_recon", 3),
+    rider(5, "test_rifle", 2, { suppression: "suppressed" }),
+  ];
+  carrying("empty, 8 seats", []);
+  carrying("empty, compact", [], { zoom: "compressed" });
+  carrying("partly full", partly);
+  carrying("partly full, compact", partly, { zoom: "compressed" });
+  carrying("full, 16 seats", full, { selected: true }, sixteen);
+  carrying("full, 16 seats, compact", full, { zoom: "compressed" }, sixteen);
+  add(t, "enemy carrier", enemyPanel(catalog.units, "test_scout_car", rules), "enemy");
+  // A squad getting in or out has a timer, and its own row.
+  for (const [label, phase, progress] of [
+    ["squad boarding 60%", "entering", 0.6],
+    ["squad dismounting 30%", "exiting", 0.3],
+  ] as const) {
+    const u = rider(2, "test_rifle", 8, {
+      hold: { host: { kind: "carrier", id: 1 }, phase, progress },
+    });
+    add(t, label, ownPanel(catalog.units, u, [carrier, u], rules));
+  }
 
   // An aircraft's rows. They come from the published air state alone, never
   // the kind, and no stand-in flies, so they ride the jeep.
@@ -570,6 +639,13 @@ export function panelSpecimens(
   add(far, "truck, selected", panelOf(truckAt(1, "deployed", { stock: 412 })), "own", {
     selected: true,
     zoom: "far",
+  });
+
+  // An ally's units: your own panel, in the ally's tone, naming its owner.
+  const allyOf = (u: OwnUnitView) => ({ ...panelOf(u), owner: "BLUE 2 · AI" });
+  add("ally", "tank", allyOf(specimenUnit(catalog, "test_tank")), "ally");
+  add("ally", "rifle, selected", allyOf(specimenUnit(catalog, "test_rifle")), "ally", {
+    selected: true,
   });
   return out;
 }

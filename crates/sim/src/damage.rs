@@ -242,7 +242,7 @@ impl ImpactResolver for HullResolver<'_> {
         }
         self.units
             .iter()
-            .filter(|unit| unit.alive())
+            .filter(|unit| unit.on_field())
             .filter_map(|unit| {
                 unit.unit_type(self.rules)
                     .capabilities
@@ -258,7 +258,7 @@ impl ImpactResolver for HullResolver<'_> {
             return None;
         }
         let unit = self.units.get(body.unit.0 as usize)?;
-        unit.alive()
+        unit.on_field()
             .then(|| {
                 unit.unit_type(self.rules)
                     .capabilities
@@ -303,7 +303,7 @@ impl ImpactResolver for HullResolver<'_> {
         let fuse = def.proximity_fuse_m?;
         let target = round.fused_target?;
         let unit = self.units.get(target.0 as usize)?;
-        unit.alive().then_some((target, fuse))
+        unit.on_field().then_some((target, fuse))
     }
     fn intercept_projectile(&mut self, interceptor: ProjectileId, target: ProjectileId) -> bool {
         let Some(attacker) = self.rounds.get(&interceptor) else {
@@ -511,7 +511,7 @@ pub fn resolve(
                 // Impacts suppress squads near them, whoever was aimed at; like a
                 // near miss, never the unit that fired.
                 for (i, unit) in units.iter().enumerate() {
-                    if unit.hull.is_some() || !unit.alive() || unit.id == round.unit {
+                    if unit.hull.is_some() || !unit.on_field() || unit.id == round.unit {
                         continue;
                     }
                     let nearest = (0..unit.members.len())
@@ -658,13 +658,16 @@ fn casualties(
             if !s.alive() && s.corpse.is_none() {
                 let at = unit.members[k].position;
                 let support = unit
-                    .garrison
+                    .hold
                     .as_ref()
                     .filter(|_| {
                         unit.garrisoned()
                             && at.z > ctx.world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)
                     })
-                    .map(|g| g.building);
+                    .and_then(|hold| match hold.host {
+                        crate::hold::Host::Building(id) => Some(id),
+                        crate::hold::Host::Carrier(_) => None,
+                    });
                 let body = crate::garrison::body_position(unit, k, ctx.rules);
                 unit.members[k].fall(body, unit.yaw, support);
             }
@@ -675,7 +678,7 @@ fn casualties(
         if was_alive[i] && !unit.alive() {
             unit.orders.clear();
             unit.route = None;
-            unit.garrison = None;
+            unit.hold = None;
             destroyed.push(UnitDeath {
                 victim: unit.id,
                 source: lethal[i],
@@ -732,7 +735,7 @@ fn blast(
 ) {
     let radius = def.blast_radius_m;
     for (i, unit) in units.iter_mut().enumerate() {
-        if !unit.alive() {
+        if !unit.on_field() {
             continue;
         }
         match unit.hull {

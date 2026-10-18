@@ -90,6 +90,12 @@ const STATE_ICONS = {
   pinned:
     '<path d="M4 4h16"/><path d="M4 9l8 4 8-4"/><path d="M4 14l8 4 8-4"/><path d="M4 21h16"/>',
   building: '<path d="M4 20V10l8-6 8 6v10z"/><path d="M10 20v-6h4v6"/>',
+  // A vehicle seat in profile, solid: its headrest, its back and its
+  // cushion. A chair on legs read as an "h" or an animal, a seated figure
+  // as the accessibility sign, and a row of seats as a comb. A carrier's
+  // seats, and a squad getting in or out.
+  seats:
+    '<path d="M5.5 2h4v3h-4z" fill="currentColor"/><path d="M5.5 7h4l1.5 7H5.5z" fill="currentColor"/><path d="M5.5 15.5H18a2.25 2.25 0 0 1 0 4.5H5.5z" fill="currentColor"/>',
   waiting: '<path d="M9 6v12M15 6v12"/>',
   route_blocked: '<path d="M3 12h11"/><path d="M10 8l4 4-4 4"/><path d="M19 5v14"/>',
   hidden: CLOSED_EYE,
@@ -153,6 +159,12 @@ const HUD_ICONS = {
     '<circle cx="12" cy="12" r="3"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5L19 19M19 5l-3.5 3.5M8.5 15.5L5 19"/>',
   hold_fire: '<circle cx="12" cy="12" r="8"/><path d="M7 12h10"/>',
   leave_building: '<path d="M4 20V10l7-6 7 6"/><path d="M11 15h10"/><path d="M18 12l3 3-3 3"/>',
+  // A carrier's hull, open where its riders pass: an arrow dropping in
+  // through its open top (board), or running out of its open rear
+  // (unload). Unlike each other by the arrow's way, and unlike reverse and
+  // leave building by the hull.
+  board: '<path d="M12 2v9"/><path d="M8 7.5l4 4 4-4"/><path d="M3 12v4.5L6 20h12l3-3.5V12"/>',
+  unload: '<path d="M13 6H6L3 9.5V18h10"/><path d="M10 12h11"/><path d="M17 8l4 4-4 4"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   // The reinforcements filter: a lens and its handle.
   search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
@@ -160,8 +172,9 @@ const HUD_ICONS = {
   back: '<path d="M15 4l-8 8 8 8"/>',
   rejected: '<path d="M6 6l12 12M18 6L6 18"/>',
   guiding: '<path d="M3 20c5 0 6-8 10-8"/><path d="M13 12h5l3-2v4l-3-2"/>',
+  // A shot's arrow stopped at a hatched wall, the wall and the shaft heavy.
   blocked_shot:
-    '<path d="M2 12h3M8 12h3"/><path d="M15 3v18"/><path d="M15 8l5-5M15 14l5-5M15 20l5-5"/>',
+    '<path stroke-width="2.5" d="M2 12h8"/><path d="M7 8l4 4-4 4"/><path stroke-width="2.5" d="M15 3v18"/><path d="M15 8l3-3M15 12l4-4M15 16l3-3"/>',
   friendly_in_line:
     '<path d="M2 12h5"/><rect x="8" y="7" width="8" height="10"/><path d="M17 12h5"/>',
   turret:

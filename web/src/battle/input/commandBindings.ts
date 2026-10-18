@@ -11,6 +11,7 @@ export type KeyCommand =
   | "attack_ground"
   | "toggle_deployment"
   | "toggle_afterburner"
+  | "unload"
   | "disarm";
 
 export interface CommandBinding {
@@ -28,6 +29,8 @@ export const CommandBindings: Readonly<Record<KeyCommand, CommandBinding>> = {
   attack_ground: { code: "KeyG", label: "G" },
   toggle_deployment: { code: "KeyT", label: "T" },
   toggle_afterburner: { code: "KeyB", label: "B" },
+  /** Arms Unload; pressed again while armed, unloads where the carriers stand. */
+  unload: { code: "KeyU", label: "U" },
   disarm: { code: "Escape", label: "Esc" },
 };
 

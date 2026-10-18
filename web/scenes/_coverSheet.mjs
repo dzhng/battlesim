@@ -87,7 +87,7 @@ export async function coverTour(ctx) {
   const centring = [];
   let o = await obs(page);
   for (;;) {
-    const squads = o.own.filter((u) => u.members.length > 0 && !u.garrison);
+    const squads = o.own.filter((u) => u.members.length > 0 && !u.hold);
     if (wanted.has("posts")) {
       const walking = squads.find(
         (u) =>

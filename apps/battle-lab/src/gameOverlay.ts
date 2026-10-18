@@ -59,8 +59,9 @@ const CANNOT: Rgba = [...gameHud.bad, 1];
 export const gameAttackGroundSpread: Rgba = [...gameHud.bad, 0.82];
 
 export const gameOrderStyle: OrderStyle = validateOrderStyle({
-  ...(orders as unknown as Omit<OrderStyle, "blocked">),
+  ...(orders as unknown as Omit<OrderStyle, "blocked" | "ally">),
   blocked: CANNOT,
+  ally: [...gameHud.ally, 1],
 });
 
 /** How long an order's marks show once it is given (`orders.flash`). */
@@ -84,9 +85,13 @@ export const gameZone: Rgba = validateZoneColor(game.presentation.overlay.zone);
 export const gameXray: XrayStyle = (() => {
   // A selected unit's hidden parts take the selection's colour, so the x-ray
   // and the selection marker can never disagree; only the alpha is set here.
-  const x = game.presentation.overlay.xray as unknown as { own: Rgba; selected_alpha: number };
+  const x = game.presentation.overlay.xray as unknown as {
+    own: Rgba;
+    ally: Rgba;
+    selected_alpha: number;
+  };
   const [r, g, b] = gameOrderStyle.selected;
-  return validateXray({ own: x.own, selected: [r, g, b, x.selected_alpha] });
+  return validateXray({ own: x.own, ally: x.ally, selected: [r, g, b, x.selected_alpha] });
 })();
 
 /** How every painted mark's stroke thins as the camera pulls out

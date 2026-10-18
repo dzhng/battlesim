@@ -17,7 +17,7 @@ Delete the branch once its numbers are recorded.
 
 ## What the human can run or see
 
-One table in `throwaway/slot-probe/report.md`, with a row per entry pairing (1v1, 2v3, 3v3, 5v5) over `fixtures/skirmish-corpus.json`. Columns:
+One table in `throwaway/team-skirmish-probe/report.md`, with a row per entry pairing (1v1, 2v3, 3v3, 5v5) over `fixtures/skirmish-corpus.json`. Columns:
 - admission rate;
 - refusal reasons;
 - prepare time per size;

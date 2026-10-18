@@ -92,7 +92,15 @@ impl Crash {
         for prop in world.props_near(self.position.xy(), reach) {
             let body = prop.footprint();
             let here = self.position.xy();
+            // Bridge decks are the support surface, rather than a roof that
+            // catches a falling airframe at the slab's upper edge.
+            let is_bridge_deck = world.surface_at(here.x, here.y).is_some_and(|surface| {
+                surface.kind == crate::world::SurfaceKind::Bridge
+                    && prop.base_z < surface.z
+                    && (prop.top_z() - surface.z).abs() < 1e-9
+            });
             if prop.body.weight_class != WeightClass::Immovable
+                || is_bridge_deck
                 || self.position.z >= prop.top_z()
                 || body.distance(here) > reach
             {
@@ -125,9 +133,18 @@ impl Crash {
         {
             return Fall::LeftMap;
         }
-        let ground = world
-            .height_at(self.position.x, self.position.y)
-            .unwrap_or(0.0);
+        // A deck catches the airframe only when it was below the airframe's
+        // previous position; otherwise use the ground beneath an underflight.
+        let ground = match world.surface_at(self.position.x, self.position.y) {
+            Some(surface)
+                if surface.kind != crate::world::SurfaceKind::Bridge || surface.z <= was.z =>
+            {
+                surface.z
+            }
+            _ => world
+                .height_at(self.position.x, self.position.y)
+                .unwrap_or(0.0),
+        };
         if self.position.z <= ground {
             self.position.z = ground;
             return Fall::Landed;
@@ -172,9 +189,15 @@ impl Crash {
 pub fn resting_place(world: &WorldGeometry, at: V2, yaw: f64, half: V2, hulls: &[Obb2]) -> V2 {
     let clear = |center: V2| {
         let wreck = Obb2 { center, yaw, half };
+        let deck_z = world
+            .surface_at(center.x, center.y)
+            .filter(|surface| surface.kind == crate::world::SurfaceKind::Bridge)
+            .map(|surface| surface.z);
         !hulls.iter().any(|h| wreck.overlaps(h))
             && world.props_near(center, half.length()).iter().all(|p| {
-                p.body.weight_class != WeightClass::Immovable || !wreck.overlaps(&p.footprint())
+                p.body.weight_class != WeightClass::Immovable
+                    || !wreck.overlaps(&p.footprint())
+                    || deck_z.is_some_and(|z| p.base_z < z && p.top_z() <= z + 1e-9)
             })
     };
     let reach = half.length();

@@ -340,7 +340,8 @@
     },
     "eastern_bmp_ifv_family_bmp_2m_berezhok": {
       "name": "BMP-2M Berezhok",
-      "description": "BMP-2M Berezhok; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-2M Berezhok; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "eastern",
       "family": "bmp_ifv_family",
       "roles": [
@@ -442,7 +443,8 @@
     },
     "eastern_bmp_ifv_family_bmp_3": {
       "name": "BMP-3",
-      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "BMP-3; 100 mm HE and gun-launched Bastion with a distinct 30 mm autocannon; direct optical guidance only, no top attack or fire-and-forget",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "eastern",
       "family": "bmp_ifv_family",
       "roles": [
@@ -546,6 +548,7 @@
     "eastern_brm_brm_3k": {
       "name": "BRM-3K",
       "description": "BRM-3K Rys tracked reconnaissance vehicle; 30 mm autocannon",
+      "capabilities": { "carriage": { "seats": 3 } },
       "faction": "eastern",
       "family": "brm",
       "roles": [
@@ -622,7 +625,8 @@
     },
     "eastern_btr_btr_82a": {
       "name": "BTR-82A",
-      "description": "BTR-82A; ground combat platform, passenger carriage not implemented",
+      "description": "BTR-82A; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "eastern",
       "family": "btr",
       "roles": [
@@ -1052,6 +1056,7 @@
     "eastern_mi_24_mi_35_hind_mi_35m": {
       "name": "Mi-35M",
       "description": "Mi-35M",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "eastern",
       "family": "mi_24_mi_35_hind",
       "roles": [
@@ -1188,6 +1193,7 @@
     "eastern_mi_8_hip_mi_8amtsh": {
       "name": "Mi-8AMTSh",
       "description": "Mi-8AMTSh",
+      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "eastern",
       "family": "mi_8_hip",
       "roles": [
@@ -1693,7 +1699,6 @@
         "squad": {
           "slots": [
             "eastern_scouts_light_patrol__marksman",
-            "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout",
             "eastern_scouts_light_patrol__scout"
           ]
@@ -2251,7 +2256,8 @@
     },
     "eastern_t_15_armata_heavy_ifv": {
       "name": "T-15 Armata",
-      "description": "Heavy IFV; ground combat platform, passenger carriage not implemented",
+      "description": "Heavy IFV; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "eastern",
       "family": "t_15_armata",
       "roles": [
@@ -2657,6 +2663,7 @@
     "eastern_tigr_tigr_m": {
       "name": "Tigr-M",
       "description": "Tigr-M",
+      "capabilities": { "carriage": { "seats": 3 } },
       "faction": "eastern",
       "family": "tigr",
       "roles": [
@@ -3075,6 +3082,7 @@
     "eastern_z_20_utility_transport": {
       "name": "Z-20",
       "description": "Utility transport",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "eastern",
       "family": "z_20",
       "roles": [
@@ -3150,7 +3158,8 @@
     },
     "eastern_zbl_08_wheeled_ifv": {
       "name": "ZBL-08",
-      "description": "Wheeled IFV; ground combat platform, passenger carriage not implemented",
+      "description": "Wheeled IFV; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "eastern",
       "family": "zbl_08",
       "roles": [

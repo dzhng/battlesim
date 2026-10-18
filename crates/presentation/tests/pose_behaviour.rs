@@ -56,7 +56,7 @@ fn man(id: f64, x: f64, y: f64, shots: f64) -> FeedSoldier {
 fn squad(soldiers: Vec<FeedSoldier>, pinned: bool) -> FeedUnit {
     FeedUnit {
         id: 1.0,
-        kind: "menu_rifle".into(),
+        kind: "capture_rifle".into(),
         side: "blue".into(),
         soldiers,
         mounts: vec![FeedMount::default(); 2],
@@ -80,7 +80,7 @@ fn fallen(ids: &[f64]) -> Arc<Vec<FeedFallen>> {
                 soldier: id,
                 position: [id, 0.0, 0.0],
                 yaw: 0.0,
-                kind: "menu_rifle".into(),
+                kind: "capture_rifle".into(),
                 slot: 0,
                 side: "blue".into(),
             })
@@ -348,7 +348,7 @@ fn out_on_his_lean_he_kneels_and_slides_out_then_eases_back_never_walking() {
 fn tank(x: f64, yaw: f64, gun: (f64, f64, f64), hmg: f64) -> FeedUnit {
     FeedUnit {
         id: 5.0,
-        kind: "menu_us_tank".into(),
+        kind: "capture_us_tank".into(),
         side: "blue".into(),
         position: [x, 0.0, 0.0],
         yaw,
@@ -372,7 +372,7 @@ fn tank(x: f64, yaw: f64, gun: (f64, f64, f64), hmg: f64) -> FeedUnit {
 #[test]
 fn a_diving_jet_pitches_nose_down() {
     let units = units_with(|v| {
-        let mut jet = v["types"]["menu_us_tank"].clone();
+        let mut jet = v["types"]["capture_us_tank"].clone();
         jet["airborne"] = true.into();
         jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
@@ -407,7 +407,7 @@ fn a_diving_jet_pitches_nose_down() {
 #[test]
 fn a_climbing_jet_pitches_nose_up() {
     let units = units_with(|v| {
-        let mut jet = v["types"]["menu_us_tank"].clone();
+        let mut jet = v["types"]["capture_us_tank"].clone();
         jet["airborne"] = true.into();
         jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
@@ -442,7 +442,7 @@ fn a_climbing_jet_pitches_nose_up() {
 #[test]
 fn a_turning_jet_banks_into_the_turn() {
     let units = units_with(|v| {
-        let mut jet = v["types"]["menu_us_tank"].clone();
+        let mut jet = v["types"]["capture_us_tank"].clone();
         jet["airborne"] = true.into();
         jet["flight"] = "fixed_wing".into();
         v["types"]["test_jet"] = jet;
@@ -475,7 +475,7 @@ fn a_turning_jet_banks_into_the_turn() {
 #[test]
 fn a_helicopters_attitude_is_unchanged() {
     let units = units_with(|v| {
-        let mut heli = v["types"]["menu_us_tank"].clone();
+        let mut heli = v["types"]["capture_us_tank"].clone();
         heli["airborne"] = true.into();
         v["types"]["test_heli"] = heli;
     });
@@ -542,7 +542,7 @@ fn a_tank_s_turret_slews_to_its_bearing_its_gun_eases_and_recoils_on_a_shot() {
 fn driving_rolls_both_tracks_and_turning_in_place_counter_rotates_them() {
     let units = units();
     let none = fallen(&[]);
-    let half = units.types["menu_us_tank"].hull.unwrap().half_track;
+    let half = units.types["capture_us_tank"].hull.unwrap().half_track;
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut at = |time: f64, x: f64, yaw: f64| {
         let poses = driver.update(
@@ -565,16 +565,16 @@ fn driving_rolls_both_tracks_and_turning_in_place_counter_rotates_them() {
 #[test]
 fn an_aircraft_s_rotors_turn_and_blur_while_nothing_it_has_rolls() {
     let units = units_with(|v| {
-        let mut heli = v["types"]["menu_us_tank"].clone();
+        let mut heli = v["types"]["capture_us_tank"].clone();
         heli["airborne"] = true.into();
-        v["types"]["menu_heli"] = heli;
+        v["types"]["capture_heli"] = heli;
     });
     let none = fallen(&[]);
     let tip = feel(&units, "/rotor/tip_mps");
     let mut driver = PoseDriver::new(&units).unwrap();
     let mut at = |time: f64, x: f64| {
         let mut heli = tank(x, 0.0, (0.0, 0.0, 0.0), 0.0);
-        heli.kind = "menu_heli".into();
+        heli.kind = "capture_heli".into();
         heli.position[2] = 20.0;
         driver
             .update(&frame(time, vec![heli], &none), &units)
@@ -735,7 +735,7 @@ fn a_soldier_s_flash_sits_on_his_muzzle_as_his_body_is_drawn_mid_crossfade_and_k
     let mut pose = SoldierPose {
         soldier: 3.0,
         unit: 1.0,
-        kind: "menu_rifle".into(),
+        kind: "capture_rifle".into(),
         slot: 0,
         operator_mount: None,
         active_mount: Some(0),

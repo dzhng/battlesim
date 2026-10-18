@@ -23,13 +23,17 @@ test("every published action reason has player words and a mark, and every garri
   for (const v of reasons) expect(REASON_TEXT[v], v).toBeTruthy();
   // And a panel mark, or a decision to show none.
   for (const v of reasons) expect(REASON_MARK[v], v).not.toBeUndefined();
-  const phases = layout.garrisonPhases;
+  const phases = layout.holdPhases;
   expect(phases.length).toBeGreaterThan(2);
   const rules = { tick_hz: 30, weapons: {}, service: { radius_m: 1 } } as PanelRules;
   for (const phase of phases) {
     const u = {
       kind: "test_rifle",
-      garrison: { phase, progress: 0.5 },
+      hold: {
+        host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+        phase,
+        progress: 0.5,
+      },
       suppression: "none",
       service: "",
       stock: null,

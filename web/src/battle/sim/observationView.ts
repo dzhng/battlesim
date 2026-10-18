@@ -76,7 +76,9 @@ export interface ObservationLayout {
   coverTiers: string[];
   /** Which way a soldier leans out round his cover: left, right. */
   leanSides: string[];
-  garrisonPhases: string[];
+  hostKinds: string[];
+  holdPhases: string[];
+  orderErrors: string[];
   serviceStatuses: string[];
   /** Suppression tiers: none, suppressed, pinned. */
   suppressionTiers: SuppressionTier[];
@@ -96,10 +98,13 @@ export interface OwnUnitView {
   /** Defensive charges and running cooldown progress; private to the owning side. */
   protection: { charges: number; cooldown: number | null } | null;
   id: number;
+  owner?: number | null;
   kind: string;
   position: Point3;
   yaw: number;
   goal: Point2 | null;
+  /** The current movement order lets its passengers out at `goal`. */
+  goalUnloads: boolean;
   policy: string | null;
   /** Which way the current move drives (Q31); null without a move. */
   direction: MoveDirection | null;
@@ -111,6 +116,8 @@ export interface OwnUnitView {
   blocker: number | null;
   route: Point2[];
   queue: Point2[];
+  /** Whether each `queue` order lets its passengers out at its destination. */
+  queueUnloads: boolean[];
   members: Point3[];
   /** Each living soldier's id, in `members` order. */
   memberIds: number[];
@@ -148,8 +155,9 @@ export interface OwnUnitView {
   concealed: boolean;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;
-  /** The squad's building while entering, inside or leaving it; null otherwise. */
-  garrison: GarrisonView | null;
+  /** The squad's host (a building or a carrier) while entering, inside or
+   *  leaving it; null otherwise. */
+  hold: HoldView | null;
   /** A supply vehicle's remaining stock; null for other units. */
   stock: number | null;
   /** Why this unit is or is not being served by a supply vehicle. */
@@ -208,18 +216,44 @@ export interface SightView {
   range: number;
 }
 
-/** A squad's hold on a building: which one, the phase and its timer progress. */
-export interface GarrisonView {
-  /** The building's prop id in the static map. */
-  building: number;
+/** A unit's host while entering, inside or leaving it. */
+export type HoldHostView =
+  | { kind: "building"; id: number; center: Point2; half: Point2 }
+  | { kind: "carrier"; id: number };
+
+/** Whether a carrier holds `u` (boarding, aboard or getting out): it is
+ *  not on the field, and the player can't select or order it (D10). */
+export const aboardCarrier = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind === "carrier";
+
+/** Whether a building holds `u` (entering, garrisoned or leaving). */
+export const inBuilding = (u: Pick<OwnUnitView, "hold">) => u.hold?.host.kind === "building";
+
+/** The carrier holding `u`, or null when none does. */
+export const carrierOf = (u: Pick<OwnUnitView, "hold">) =>
+  u.hold?.host.kind === "carrier" ? u.hold.host.id : null;
+
+/** The own squads a carrier holds (boarding, aboard or getting out), in
+ *  the side's own order: the one owner of who rides in what, which the
+ *  Seats row counts, the readouts stack under the carrier's card and
+ *  Unload reaches. */
+export function passengersOf<U extends Pick<OwnUnitView, "hold">>(
+  own: readonly U[],
+  carrier: number,
+): readonly U[] {
+  return own.filter((u) => carrierOf(u) === carrier);
+}
+
+export interface HoldView {
+  host: HoldHostView;
   /** entering, inside or exiting. */
   phase: string;
   /** Entering or leaving progress in [0, 1]; 1 while inside. */
   progress: number;
-  /** The building's footprint on the ground: its centre and half extents in
-   *  its own frame (every corner lies `hypot(half)` from the centre). */
-  center: Point2;
-  half: Point2;
+}
+
+export interface RefusalView {
+  unit: number;
+  reason: string;
 }
 
 /** A deploying unit's one progress value and the end state it heads to. */
@@ -478,24 +512,34 @@ export interface ObjectiveView {
 
 export interface SkirmishView {
   phase: "preparation" | "active" | "finished";
-  ready: [boolean, boolean];
+  players: PlayerView[];
   preparationRemainingS: number;
-  credits: number;
   scores: [number, number];
   result: "blue" | "red" | "draw" | null;
   objectives: ObjectiveView[];
-  occupiedSlots: number;
-  maxUnits: number;
-  pending: {
-    id: number;
-    kind: string;
-    destination: Point2;
-    confirmedTick: number;
-    blocked: boolean;
-    /** The tick a waiting aircraft reaches the map; 0 when it doesn't wait. */
-    arrivalTick: number;
-  }[];
   report: MatchReportView | null;
+}
+
+export interface PlayerView {
+  index: number;
+  id: string;
+  controller: "human" | "active_ai" | "passive_ai";
+  ready: boolean;
+  credits: number;
+  unitCount: number;
+  cap: number;
+  pending: PendingPurchaseView[];
+}
+
+export interface PendingPurchaseView {
+  owner?: number;
+  id: number;
+  kind: string;
+  destination: Point2;
+  confirmedTick: number;
+  blocked: boolean;
+  /** The tick a waiting aircraft reaches the map; 0 when it doesn't wait. */
+  arrivalTick: number;
 }
 
 export interface MatchReportView {
@@ -510,6 +554,7 @@ export type MatchEventView =
       side: "blue" | "red";
       unitId: number;
       unitKind: string;
+      owner?: number | null;
       amount: number;
     }
   | {
@@ -518,6 +563,7 @@ export type MatchEventView =
       side: "blue" | "red";
       unitId: number;
       unitKind: string;
+      owner?: number | null;
       amount: number;
     }
   | {
@@ -526,8 +572,15 @@ export type MatchEventView =
       side: "blue" | "red";
       unitId: number;
       unitKind: string;
+      owner?: number | null;
       victimCost: number;
-      killer: { side: "blue" | "red"; unitId: number; unitKind: string; cost: number } | null;
+      killer: {
+        side: "blue" | "red";
+        unitId: number;
+        unitKind: string;
+        owner?: number | null;
+        cost: number;
+      } | null;
     };
 
 export interface ObservationView {
@@ -536,6 +589,7 @@ export interface ObservationView {
   identified: IdentifiedView[];
   contacts: ContactView[];
   audible: SoundCueView[];
+  refusals: RefusalView[];
   knownProps: readonly KnownPropView[];
   projectiles: ProjectileView[];
   blasts: BlastView[];

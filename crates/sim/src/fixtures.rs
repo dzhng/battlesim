@@ -1,6 +1,6 @@
 //! The shipped fixtures as native tools (tests, reports, the shot runner)
 //! read them: `fixtures/game.json` with a unit catalog's documents (a
-//! [`CatalogSet`]: the game's, or the game's plus test or menu units) as its
+//! [`CatalogSet`]: the game's, or the game's plus test or capture units) as its
 //! `catalog`. The browser gets the game's set resolved from
 //! `fixtures/catalog.json`, which [`catalog_view`] writes and a test keeps
 //! current, and resolves the others itself with the same resolver. Maps are
@@ -24,7 +24,7 @@ fn read(path: &Path) -> Value {
 }
 
 /// A unit catalog's document set. One resolver reads each: the game's is
-/// the only one committed (`fixtures/catalog.json`); the test and menu sets
+/// the only one committed (`fixtures/catalog.json`); the test and capture sets
 /// are resolved when a run asks for them and never written.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CatalogSet {
@@ -32,12 +32,12 @@ pub enum CatalogSet {
     Game,
     /// The game's set plus the test units labs, scenes and art checks run.
     Test,
-    /// The game's set plus the menu reel's own units.
-    Menu,
+    /// The game's set plus the capture reel's own units.
+    Capture,
 }
 
 /// The game's roots under `fixtures/`: the roster, its ground and air
-/// profiles and roles, and the props. Never the test or menu units.
+/// profiles and roles, and the props. Never the test or capture units.
 const GAME_ROOTS: [&str; 5] = [
     "units/air",
     "units/ground",
@@ -48,14 +48,14 @@ const GAME_ROOTS: [&str; 5] = [
 
 impl CatalogSet {
     /// The folders under `fixtures/` a set adds to the game's; an absent one
-    /// is empty. The menu's units extend the test units, so the menu set
+    /// is empty. The capture units extend the test units, so the capture set
     /// holds both. The browser names the same folders
     /// (`web/src/battle/catalog/compose.ts` `SET_FOLDERS`).
     fn own_roots(self) -> &'static [&'static str] {
         match self {
             CatalogSet::Game => &[],
             CatalogSet::Test => &[TEST_ROOT],
-            CatalogSet::Menu => &[TEST_ROOT, "units/menu"],
+            CatalogSet::Capture => &[TEST_ROOT, "units/capture"],
         }
     }
 }
@@ -176,7 +176,7 @@ pub fn game() -> Value {
 
 /// [`test_game`] with the saved test map `id` (`fixtures/maps/<id>`),
 /// resolved, under `map`: for a test that needs ground. A map that is not a
-/// test's (the menu's) is refused, so no test stands on the menu's
+/// test's (a capture map) is refused, so no test stands on a capture
 /// battlefield.
 pub fn with_map(id: &str) -> Value {
     let catalogue = crate::maps::Catalogue::shipped();

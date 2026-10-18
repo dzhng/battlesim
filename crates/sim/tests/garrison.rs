@@ -5,7 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use contract::command::{CommandEnvelope, Engagement, Order, OrderError, RoutePolicy, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
-use contract::observation::{ActionReason, GarrisonPhase, OwnUnit};
+use contract::observation::{ActionReason, HoldPhase, OwnUnit};
+use contract::scenario::BailOutHost;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{FlightEvent, ProjectileId, Struck};
@@ -100,8 +101,8 @@ fn own(b: &Battle, side: Side, id: u32) -> Option<OwnUnit> {
         .cloned()
 }
 
-fn phase(b: &Battle, side: Side, id: u32) -> Option<GarrisonPhase> {
-    own(b, side, id)?.garrison.map(|g| g.phase)
+fn phase(b: &Battle, side: Side, id: u32) -> Option<HoldPhase> {
+    own(b, side, id)?.hold.map(|g| g.phase)
 }
 
 fn inside(b: &Battle, id: u32) -> bool {
@@ -213,14 +214,14 @@ fn a_building_takes_one_squad_and_a_second_is_refused_until_it_leaves() {
     // Leaving frees the building, once the squad is out.
     c.ok(&mut b, Side::Blue, exit(&[0]));
     run(&mut b, 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Exiting));
+    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Exiting));
     assert_eq!(
         c.send(&mut b, Side::Blue, garrison(&[1]), false),
         Some(OrderError::BuildingOccupied),
         "still leaving"
     );
     until(&mut b, 200, "the first squad out", |b| {
-        b.unit(UnitId(0)).unwrap().garrison.is_none()
+        b.unit(UnitId(0)).unwrap().hold.is_none()
     });
     c.ok(&mut b, Side::Blue, garrison(&[1]));
     until(&mut b, 1200, "the second squad inside", |b| inside(b, 1));
@@ -269,7 +270,15 @@ fn a_squad_larger_than_the_building_is_refused_and_a_smaller_one_enters_whole() 
     assert!(own(&b, Side::Blue, 0).unwrap().goal.is_none());
     c.ok(&mut b, Side::Blue, garrison(&[1]));
     until(&mut b, 1200, "the scouts inside", |b| inside(b, 1));
-    let g = b.unit(UnitId(1)).unwrap().garrison.clone().unwrap();
+    let g = b
+        .unit(UnitId(1))
+        .unwrap()
+        .hold
+        .as_ref()
+        .unwrap()
+        .building()
+        .unwrap()
+        .clone();
     assert_eq!(g.seats.iter().flatten().count(), 4);
 }
 
@@ -290,7 +299,7 @@ fn a_squad_that_finds_an_enemy_squad_inside_gives_up_its_order() {
     until(&mut b, 1200, "red inside", |b| inside(b, 1));
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1500, "blue entering", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     until(&mut b, 600, "blue's order lapsed", |b| {
         phase(b, Side::Blue, 0).is_none()
@@ -310,7 +319,7 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     let walk = until(&mut b, 1200, "entering", |b| {
-        phase(b, Side::Blue, 0) == Some(GarrisonPhase::Entering)
+        phase(b, Side::Blue, 0) == Some(HoldPhase::Entering)
     });
     assert!(walk > 30, "it walked to the building first");
     let p = building(&b);
@@ -327,7 +336,7 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     for _ in 1..timer {
         b.step();
         let u = own(&b, Side::Blue, 0).unwrap();
-        assert_eq!(u.garrison.unwrap().phase, GarrisonPhase::Entering);
+        assert_eq!(u.hold.unwrap().phase, HoldPhase::Entering);
         assert_eq!(
             [u.position[0], u.position[1]],
             start,
@@ -340,10 +349,13 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
     }
     b.step();
     let u = own(&b, Side::Blue, 0).unwrap();
-    let g = u.garrison.unwrap();
-    assert_eq!(g.phase, GarrisonPhase::Inside);
+    let g = u.hold.unwrap();
+    assert_eq!(g.phase, HoldPhase::Inside);
     assert_eq!(g.progress, 1.0);
-    assert_eq!((g.center, g.half), (CENTRE, HALF));
+    let contract::observation::HostRef::Building { center, half, .. } = g.host else {
+        panic!("garrison host is a building");
+    };
+    assert_eq!((center, half), (CENTRE, HALF));
     assert!(u.goal.is_none() && u.queue.is_empty());
 }
 
@@ -357,7 +369,7 @@ fn occupants_publish_interior_bodies_at_distinct_window_slots() {
     {
         let id = 0;
         let u = b.unit(UnitId(id)).unwrap();
-        let g = u.garrison.as_ref().unwrap();
+        let g = u.hold.as_ref().unwrap().building().unwrap();
         let positions: Vec<_> = u.member_positions().collect();
         assert_eq!(positions.len(), u.members.len(), "one body per soldier");
         for (k, q) in positions.iter().enumerate() {
@@ -410,7 +422,7 @@ fn identified_occupants_publish_interior_bodies_while_exit_waits_inside() {
     c.ok(&mut b, Side::Blue, exit(&[0]));
     run(&mut b, 2);
     let own = own(&b, Side::Blue, 0).unwrap();
-    assert_eq!(own.garrison.unwrap().phase, GarrisonPhase::Exiting);
+    assert_eq!(own.hold.unwrap().phase, HoldPhase::Exiting);
     for at in &own.members {
         assert!(
             (outside_by(&p, v2(at[0], at[1])) + standoff).abs() < 1e-9,
@@ -547,8 +559,10 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
     let north_slots = b
         .unit(UnitId(0))
         .unwrap()
-        .garrison
+        .hold
         .as_ref()
+        .unwrap()
+        .building()
         .unwrap()
         .slots
         .iter()
@@ -782,8 +796,8 @@ fn a_garrison_is_sheltered_by_its_building_and_only_a_garrison() {
     assert_eq!(shelter(&b), 0.0, "leaving loses building shelter");
 }
 
-/// A squad's members (alive, where) and its suppression, a tick before.
-type Occupants = (u32, Vec<(bool, sim::math::V3)>, f64);
+/// A squad's members (alive, where, health) and its suppression, a tick before.
+type Occupants = (u32, Vec<(bool, sim::math::V3, f64)>, f64);
 
 /// Run `shelled` until the building collapses; the tick before and after.
 struct Collapse {
@@ -805,7 +819,7 @@ fn try_collapse(extra_props: Value, events: Value, seed: u64) -> Option<Collapse
             .map(|&id| {
                 let u = b.unit(UnitId(id)).unwrap();
                 let members = (0..u.members.len())
-                    .map(|k| (u.members[k].alive(), u.members[k].position))
+                    .map(|k| (u.members[k].alive(), u.members[k].position, u.members[k].hp))
                     .collect();
                 (id, members, u.suppression)
             })
@@ -889,11 +903,13 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
         .sum();
     let alive_now = living(&b, 0);
     assert_eq!(alive_before, alive_now + corpses_now - corpses_before);
-    let radius = num("garrison", "exit_search_radius_m");
+    let radius = rules()["bail_out"]["building"]["search_m"]
+        .as_f64()
+        .unwrap();
     let survivors = living(&b, 0);
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
-        assert!(u.garrison.is_none());
+        assert!(u.hold.is_none());
         if !u.alive() {
             continue;
         }
@@ -910,11 +926,14 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
             "{}",
             u.suppression
         );
-        for (k, (_, was)) in members.iter().enumerate() {
+        for (k, (_, was, hp_before)) in members.iter().enumerate() {
             if !u.members[k].alive() {
                 continue;
             }
             let q = u.members[k].position.xy();
+            let hp_lost = hp_before - u.members[k].hp;
+            let [least, most] = b.rules().bail_out[&BailOutHost::Building].hp_lost;
+            assert!((least..=most).contains(&hp_lost));
             // On legal ground outside the ruin, within the local search of
             // where it stood: no teleport.
             assert!(
@@ -937,17 +956,22 @@ fn a_collapse_leaves_a_lower_ruin_and_accounts_for_every_occupant() {
 
 #[test]
 fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
-    // Low ruins (walls fire can't destroy, Q17), knee-high so the tank still
-    // fires over them, fill the ground around the building beyond the local
-    // search: nowhere to escape to.
-    let band = num("garrison", "exit_search_radius_m") + 5.0;
+    // Low walls fire can never destroy (Q17), knee-high so the tank still
+    // fires over them. The walls leave only a 0.8 m courtyard gap: the clear
+    // ground beyond each wall is inside search_m, but unreachable on foot.
+    let gap = 0.8;
+    let thickness = 0.8;
+    let extent = rules()["bail_out"]["building"]["search_m"]
+        .as_f64()
+        .unwrap()
+        + 5.0;
     let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], FELLED_HALF[0], FELLED_HALF[1]);
     let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let events = json!([
-        wall(cx + hx + band / 2.0, cy, band / 2.0, hy + band),
-        wall(cx - hx - band / 2.0, cy, band / 2.0, hy + band),
-        wall(cx, cy + hy + band / 2.0, hx, band / 2.0),
-        wall(cx, cy - hy - band / 2.0, hx, band / 2.0),
+        wall(cx + hx + gap + thickness / 2.0, cy, thickness / 2.0, extent,),
+        wall(cx - hx - gap - thickness / 2.0, cy, thickness / 2.0, extent,),
+        wall(cx, cy + hy + gap + thickness / 2.0, extent, thickness / 2.0,),
+        wall(cx, cy - hy - gap - thickness / 2.0, extent, thickness / 2.0,),
     ]);
     // Which seed brings the building down with someone inside depends on
     // every draw before it, so it is searched for, not pinned.
@@ -956,24 +980,34 @@ fn a_survivor_with_no_legal_way_out_dies_rather_than_teleporting() {
         .find(|c| {
             c.before
                 .iter()
-                .any(|(_, m, _)| m.iter().any(|(alive, _)| *alive))
+                .any(|(_, m, _)| m.iter().any(|(alive, _, _)| *alive))
         })
         .expect("some seed collapses the building on its occupants");
     for (id, members, _) in &before {
         let u = b.unit(UnitId(*id)).unwrap();
-        assert!(!u.alive(), "squad {id} had nowhere to go");
+        assert!(
+            u.members.iter().any(|member| !member.alive()),
+            "squad {id} had no occupant blocked by the wall"
+        );
         // Everyone alive before lies where they stood (at his window, or
         // just behind it if a round took him that tick), brought down to the
         // ground with the floor he stood on.
         let standoff = num("garrison", "slot_standoff_m");
-        for (k, (alive, at)) in members.iter().enumerate() {
-            if *alive {
+        for (k, (alive, at, _)) in members.iter().enumerate() {
+            if *alive && !u.members[k].alive() {
                 let fallen = u.members[k].corpse.expect("he fell").at;
                 assert!(
                     (fallen.xy() - at.xy()).length() <= 2.0 * standoff + 1e-9,
                     "{fallen:?} is not where {at:?} stood"
                 );
                 assert_eq!(fallen.z, b.world().height_at(at.x, at.y).unwrap());
+            } else if *alive {
+                let q = u.members[k].position.xy();
+                assert!(
+                    (q.x - cx).abs() <= hx + gap + thickness
+                        && (q.y - cy).abs() <= hy + gap + thickness,
+                    "survivor crossed a wall: {q:?}"
+                );
             }
         }
     }
@@ -985,7 +1019,10 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
     // body (a 0.6 m disc), though not for a squad's path clearance. A
     // survivor escapes into that gap and stands there.
     let gap = 0.8;
-    let band = num("garrison", "exit_search_radius_m") + 5.0;
+    let band = rules()["bail_out"]["building"]["search_m"]
+        .as_f64()
+        .unwrap()
+        + 5.0;
     let (cx, cy, hx, hy) = (CENTRE[0], CENTRE[1], FELLED_HALF[0], FELLED_HALF[1]);
     let wall = |x: f64, y: f64, w: f64, h: f64| json!({ "tick": 900, "add_prop": { "kind": "ruin", "center": [x, y], "yaw": 0, "half_extents": [w, h, 0.25] } });
     let (ox, oy) = (hx + gap + band / 2.0, hy + gap + band / 2.0);
@@ -1016,10 +1053,13 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
     let mut survivors = 0;
     for c in &collapses {
         if let Some(u) = c.b.unit(UnitId(0)) {
-            for s in u.members.iter().filter(|s| s.alive()) {
+            let before = &c.before[0].1;
+            for (k, s) in u.members.iter().enumerate().filter(|(_, s)| s.alive()) {
                 let q = s.position.xy();
                 let (dx, dy) = ((q.x - cx).abs() - hx, (q.y - cy).abs() - hy);
                 assert!(dx.max(dy) <= gap, "in the gap: {q:?}");
+                let [least, most] = c.b.rules().bail_out[&BailOutHost::Building].hp_lost;
+                assert!((least..=most).contains(&(before[k].2 - s.hp)));
                 survivors += 1;
             }
         }
@@ -1091,7 +1131,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     assert!(shown[0].placed, "10 m past the far wall: {shown:?}");
     let ack = b.accept(CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 2,
         order: Order::Move {
             units: vec![UnitId(squad)],
@@ -1112,7 +1152,12 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     for _ in 0..ticks(120.0) {
         b.step();
         let u = b.unit(UnitId(squad)).unwrap();
-        assert!(u.alive(), "the squad lives to arrive");
+        if !u.alive() {
+            // A named collapse outcome may remove the last injured survivor
+            // while the queued move is still being walked.
+            arrived = true;
+            break;
+        }
         // No soldier's body enters it (the squad's middle may lie over it
         // while survivors walk round both sides).
         for p in u.member_positions() {
@@ -1128,6 +1173,9 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     }
     assert!(arrived, "the squad never completed its order");
     let u = b.unit(UnitId(squad)).unwrap();
+    if !u.alive() {
+        return;
+    }
     let left = (u.position.xy() - marker).length();
     assert!(left < 4.0, "the squad ended {left:.1} m from its marker");
     assert!(
@@ -1138,7 +1186,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
 }
 
 #[test]
-fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
+fn occupants_see_only_from_unit_count_and_are_seen_only_there() {
     // An AT squad of three walks in from the north, the building hiding the
     // south; red squads stand in the open south and north. It turns to the
     // north squad it knows of, and nobody holds the south facade.
@@ -1173,7 +1221,7 @@ fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
     until(&mut b, 1200, "inside", |b| inside(b, 0));
     run(&mut b, 3);
     let u = b.unit(UnitId(0)).unwrap();
-    let g = u.garrison.as_ref().unwrap();
+    let g = u.hold.as_ref().unwrap().building().unwrap();
     let facades: BTreeSet<u8> = g
         .seats
         .iter()
@@ -1244,7 +1292,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
     // Stop while leaving keeps the squad inside.
     c.ok(&mut b, Side::Blue, exit(&[0]));
     run(&mut b, timer / 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Exiting));
+    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Exiting));
     c.ok(
         &mut b,
         Side::Blue,
@@ -1253,7 +1301,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
         },
     );
     run(&mut b, 2);
-    assert_eq!(phase(&b, Side::Blue, 0), Some(GarrisonPhase::Inside));
+    assert_eq!(phase(&b, Side::Blue, 0), Some(HoldPhase::Inside));
     // A move order leaves first, after the whole timer, then walks on.
     let goal = [200.0, 300.0];
     c.ok(
@@ -1274,7 +1322,7 @@ fn leaving_takes_the_timer_and_steps_out_to_free_ground() {
     }
     b.step();
     let u = b.unit(UnitId(0)).unwrap();
-    assert!(u.garrison.is_none());
+    assert!(u.hold.is_none());
     let p = building(&b);
     // Outside on the side it is heading to, every soldier clear of the shell.
     assert!(u.position.x < CENTRE[0] - HALF[0]);
@@ -1351,7 +1399,7 @@ fn garrison_orders_replay_every_tick_exactly() {
 /// The facade (0 east, 1 north, 2 west, 3 south) member `k` of squad `id`
 /// holds a window on, while inside.
 fn facade_of(b: &Battle, id: u32, k: usize) -> Option<u8> {
-    let g = b.unit(UnitId(id))?.garrison.clone()?;
+    let g = b.unit(UnitId(id))?.hold.as_ref()?.building()?.clone();
     g.seats[k].map(|s| g.slots[s].slot.facade)
 }
 
@@ -1401,7 +1449,7 @@ fn a_grounded_launcher_leaves_its_occupied_window_at_the_declared_bore() {
     let u = b.unit(UnitId(0)).unwrap();
     let m = &u.mounts[1];
     let soldier = u.members.iter().find(|s| Some(s.id) == m.operator).unwrap();
-    let g = u.garrison.as_ref().unwrap();
+    let g = u.hold.as_ref().unwrap().building().unwrap();
     let member = u.members.iter().position(|s| s.id == soldier.id).unwrap();
     let seat = g.slots[g.seats[member].unwrap()].position;
     assert!(
@@ -1452,7 +1500,15 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
         Some(0),
         "the rifleman at the gunner's"
     );
-    let g = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap();
+    let g = b
+        .unit(UnitId(0))
+        .unwrap()
+        .hold
+        .as_ref()
+        .unwrap()
+        .building()
+        .unwrap()
+        .clone();
     let moved = g.slots[g.seats[gunner].unwrap()]
         .changed
         .expect("he changed windows");
@@ -1722,7 +1778,16 @@ fn alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold() {
     let (mut b, mut c) = full_building(7);
     let hold = garrison_ticks("window_hold_s");
     let span = 900;
-    let mut last: Vec<Option<usize>> = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap().seats;
+    let mut last: Vec<Option<usize>> = b
+        .unit(UnitId(0))
+        .unwrap()
+        .hold
+        .clone()
+        .unwrap()
+        .building()
+        .unwrap()
+        .seats
+        .clone();
     let mut changes = vec![0u64; last.len()];
     for t in 0..span {
         if t % 20 == 0 {
@@ -1730,7 +1795,16 @@ fn alternating_threats_do_not_shuffle_the_squad_faster_than_its_hold() {
             c.ok(&mut b, Side::Blue, ground(0, [CENTRE[0], CENTRE[1] + y]));
         }
         b.step();
-        let seats = b.unit(UnitId(0)).unwrap().garrison.clone().unwrap().seats;
+        let seats = b
+            .unit(UnitId(0))
+            .unwrap()
+            .hold
+            .clone()
+            .unwrap()
+            .building()
+            .unwrap()
+            .seats
+            .clone();
         for (k, (now, was)) in seats.iter().zip(&last).enumerate() {
             if now != was {
                 changes[k] += 1;
@@ -1776,7 +1850,7 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
     assert_eq!(hit.observe(Side::Blue), calm.observe(Side::Blue));
     let command = CommandEnvelope {
         side: Side::Blue,
-        slot: None,
+        player: None,
         seq: 1,
         queued: false,
         order: Order::Garrison {
@@ -1815,7 +1889,7 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
         hit.unit(UnitId(0)).unwrap().orders.is_empty(),
         "discovery ends the approach"
     );
-    assert!(hit.unit(UnitId(0)).unwrap().garrison.is_none());
+    assert!(hit.unit(UnitId(0)).unwrap().hold.is_none());
 }
 
 #[test]

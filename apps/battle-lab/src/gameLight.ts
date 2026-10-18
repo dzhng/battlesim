@@ -14,7 +14,8 @@ export const gameLight: LightPresentation = validateLight(
  *  lab URL (a dusk capture: the same fixture light, the sun low), else the
  *  fixture's. Lab only: the game draws the fixture's. */
 export function gameLightFor(search: string): LightPresentation {
-  const sun = new URLSearchParams(search).get("sun");
+  const params = new URLSearchParams(search);
+  const sun = params.get("sun");
   if (sun === null || !Number.isFinite(Number(sun))) return gameLight;
   return validateLight({ ...gameLight, sun_elevation: Number(sun) });
 }

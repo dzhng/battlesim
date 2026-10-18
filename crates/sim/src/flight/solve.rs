@@ -469,24 +469,38 @@ pub fn predicted_path(
     velocity: V3,
     duration_s: f64,
 ) -> Vec<V3> {
-    let mut points = vec![origin];
+    timed_path(config, profile, origin, velocity, duration_s)
+        .into_iter()
+        .map(|(p, _)| p)
+        .collect()
+}
+
+/// [`predicted_path`]'s chord endpoints, each with the seconds after launch
+/// the round reaches it: where a moving body will be when the round passes.
+pub fn timed_path(
+    config: &FlightConfig,
+    profile: &LaunchProfile,
+    origin: V3,
+    velocity: V3,
+    duration_s: f64,
+) -> Vec<(V3, f64)> {
+    let mut points = vec![(origin, 0.0)];
     let (mut p, mut v, mut elapsed) = (origin, velocity, 0.0);
     let mut tick = Vec::new();
     let gravity = profile.gravity(config);
+    let n = config.subsegments_per_tick();
     while duration_s - elapsed > TIME_EPSILON_S {
         let span = config.tick_s().min(duration_s - elapsed);
         let thrust = profile
             .motor
             .map_or(v3(0.0, 0.0, 0.0), |m| m.thrust(v, span));
-        chords(
-            p,
-            v,
-            gravity + thrust,
-            span,
-            config.subsegments_per_tick(),
-            &mut tick,
+        chords(p, v, gravity + thrust, span, n, &mut tick);
+        points.extend(
+            tick.iter()
+                .enumerate()
+                .skip(1)
+                .map(|(k, (q, _))| (*q, elapsed + span * k as f64 / n as f64)),
         );
-        points.extend(tick.iter().skip(1).map(|(q, _)| *q));
         (p, v) = *tick.last().expect("chords include the start");
         elapsed += span;
     }

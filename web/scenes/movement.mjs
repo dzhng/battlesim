@@ -1,7 +1,6 @@
 // Slice 04: predictable routes, group intent, gestures, traffic and blockage.
 import { movementCursor } from "./_cursorOrders.mjs";
-import { decode, writeCrop } from "./_png.mjs";
-import { lab, snapshot, groundCss, presented } from "./_lab.mjs";
+import { lab, groundCss, presented } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
 import { hull, game } from "./_units.mjs";
 
@@ -17,15 +16,6 @@ async function planned(page, id) {
   }
   throw new Error(`unit ${id} never finished planning`);
 }
-const pathLength = (u) => {
-  let [x, y] = u.position;
-  let total = 0;
-  for (const [px, py] of u.route) {
-    total += Math.hypot(px - x, py - y);
-    [x, y] = [px, py];
-  }
-  return total;
-};
 const until = async (page, predicate, arg, timeout = 20000) =>
   page.waitForFunction(predicate, arg, { timeout, polling: 100 });
 

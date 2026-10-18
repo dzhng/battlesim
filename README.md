@@ -11,9 +11,10 @@ time, while the simulation keeps every replay exact.
 
 You command squads, vehicles, and aircraft across generated maps. Scout before
 you expose yourself, use bodies and buildings as cover, break the line that
-holds an enemy in place, and make every shot count. The game aims for the
-realism of a war film: physical enough to feel legible, dramatic enough to be
-fun.
+holds an enemy in place, and make every shot count. Infantry ride APCs, IFVs,
+light vehicles and helicopters, hidden until they unload, and bail out hurt
+when their carrier dies. The game aims for the realism of a war film: physical
+enough to feel legible, dramatic enough to be fun.
 
 The rules stay small because they come from what units and weapons physically
 have. A weapon's target classes decide what it can engage. A unit's hull,

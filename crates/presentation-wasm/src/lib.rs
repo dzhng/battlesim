@@ -340,7 +340,9 @@ impl Presentation {
     /// stand-in for the publication's known props, JSON (empty: the
     /// publication's); a building known in a state its template lacks throws
     /// by name. `generation` is the renderer's, bumped whenever it holds no
-    /// static batches: a new one is written every one.
+    /// static batches: a new one is written every one. `player` is the
+    /// index of the player the UI commands as (`Ui::player`), absent where
+    /// units have no owner.
     #[allow(clippy::too_many_arguments)]
     pub fn frame(
         &mut self,
@@ -348,6 +350,7 @@ impl Presentation {
         camera: &[f64],
         selected: &[u32],
         xray: bool,
+        player: Option<u32>,
         ghosts: &str,
         known: &str,
         generation: u32,
@@ -366,6 +369,7 @@ impl Presentation {
         let ui = Ui {
             selected,
             xray,
+            player,
             ghosts: &ghosts,
             known: known.as_deref(),
         };

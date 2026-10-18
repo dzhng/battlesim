@@ -6,7 +6,7 @@ import { useLabLoading } from "../LabLoading";
 // panels are DOM over the battlefield. The scene (`web/scenes/panels.mjs`)
 // shoots the contact sheet.
 import game from "@fixtures/game.json";
-import { InfoPanel, PanelCallout } from "@web/battle/present/infoPanel";
+import { InfoPanel, PanelCallout, PassengerCards } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect, useState } from "react";
 import { useSessionCatalog } from "@web/battle/catalog/context";
@@ -31,14 +31,16 @@ const OVER_GRASS = [
   "key cases/two launchers, separate reloads",
   "key cases/two launchers, enemy equipment",
   "key cases/turret and hull HMG",
+  "carriers/full, 16 seats",
 ];
 
 function Card({ s }: { s: Specimen }) {
   return (
-    <figure className="pw-card" data-specimen={s.id}>
+    <figure className="pw-card" data-specimen={s.id} data-carries={s.passengers?.length}>
       <figcaption>{s.label}</figcaption>
       <PanelCallout owner={s.owner} selected={s.selected}>
         <InfoPanel panel={s.panel} zoom={s.zoom} />
+        {s.passengers && <PassengerCards cards={s.passengers} />}
       </PanelCallout>
     </figure>
   );
@@ -130,7 +132,11 @@ function DeckReview({ onBack }: { onBack: () => void }) {
       name: "Garrison exit",
       units: [
         specimenUnit(catalog, "test_rifle", {
-          garrison: { building: 3, phase: "inside", progress: 1, center: [0, 0], half: [10, 10] },
+          hold: {
+            host: { kind: "building", id: 3, center: [0, 0], half: [10, 10] },
+            phase: "inside",
+            progress: 1,
+          },
         }),
       ],
     },
@@ -184,15 +190,23 @@ function DeckReview({ onBack }: { onBack: () => void }) {
     togglePolicy: () => setAction("Fire policy"),
     toggleDeployment: () => setAction("Deployment"),
     exitBuilding: () => setAction("Leave building"),
+    pressUnload: () => setAction("Unload"),
   };
   const skirmish = {
     phase: "preparation" as const,
-    ready: [false, false] as [boolean, boolean],
+    players: [
+      {
+        index: 0,
+        id: "blue-1",
+        controller: "human" as const,
+        ready: false,
+        credits: 769,
+        unitCount: selection.units.length,
+        cap: 30,
+        pending: [],
+      },
+    ],
     preparationRemainingS: 60,
-    credits: 769,
-    occupiedSlots: selection.units.length,
-    maxUnits: 30,
-    pending: [],
     scores: [0, 0] as [number, number],
     result: null,
     objectives: [],
@@ -256,6 +270,7 @@ function DeckReview({ onBack }: { onBack: () => void }) {
               cards={[]}
               faction="us"
               match={skirmish}
+              player={skirmish.players[0]}
               onChoose={() => {}}
               rules={rules}
             />

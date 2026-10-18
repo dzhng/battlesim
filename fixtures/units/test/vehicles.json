@@ -72,6 +72,20 @@
       "description": "The test jeep with an autocannon on its pedestal in place of the HMG, and sights that see out to its range: the autocannon's round in labs and scenes, on a hull the tests already know.",
       "sensors": { "ground_m": 700 },
       "mounts": [{ "id": "HMG", "name": "Autocannon", "weapons": ["autocannon"] }]
+    },
+    "test_apc": {
+      "extends": "test_jeep",
+      "name": "Test APC",
+      "description": "An enclosed test carrier with eight seats.",
+      "capabilities": { "carriage": { "seats": 8 } },
+      "roster": null
+    },
+    "test_scout_car": {
+      "extends": "test_jeep",
+      "name": "Test Scout Car",
+      "description": "A light test carrier with three seats.",
+      "capabilities": { "carriage": { "seats": 3 } },
+      "roster": null
     }
   }
 }

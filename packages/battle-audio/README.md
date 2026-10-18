@@ -175,7 +175,10 @@ later than the chatter's wait after its start. The sound workbench's chatter
 preview runs the same two.
 
 A unit answers its owner ([responses](src/voices/responses.ts)) when selected,
-when an order is accepted or refused for a reason the player caused, and when
+when an order is accepted or refused for a reason the player caused (a unit
+an order refuses on its own, such as a squad left without a seat, answers
+with its refusal, and the rest answer the order; a refusal on arrival
+answers when the side observes it, once), and when
 an ordered move (or a purchase's drive in) ends after a real journey. One unit
 answers for a group: the one clicked, else the highest-value. Only the owner
 hears an answer, dry and centred on the voices bus.
@@ -218,6 +221,15 @@ recordings, and Rust synthesizes, composes and calibrates each recipe
 play the same samples. The synthesized sounds' names are generated from Rust
 (`synthSounds.gen.ts`). Disposal aborts loading
 and prevents late admission.
+
+The bed keeps its level between shots and makes room under a loud one, as a
+film mix does: a sound at least `presentation.audio.ambience.duck_over` loud
+at the listener (its level there, as the voice budget ranks it, never a list
+of weapons) dips the ambience bus by the bed's `duck`, which recovers once the
+dip is reached. Distant fire never reaches the threshold, so the bed does not
+pump under it. Both players dip the ambience through a gain of its own after
+the bus, reverb tail included, so the dip never overwrites the bus level; the
+music's duck under voice lines is the same command on the music bus.
 
 The [page audio owner](src/appAudio.ts) retains one context and bank across
 client navigation. Its menu bed attempts playback early; when browser permission

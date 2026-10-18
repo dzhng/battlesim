@@ -57,7 +57,7 @@ export function BattleView({
   seed,
   prepared,
   scenarioArt,
-  slot,
+  player,
   side,
   replay,
   scripted,
@@ -79,8 +79,8 @@ export function BattleView({
   prepared?: PreparedConnectionSession;
   /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
   scenarioArt?: boolean;
-  /** Player slot issuing commands in a slot-owned scenario. */
-  slot?: string;
+  /** Player issuing commands in a player-owned scenario. */
+  player?: string;
   /** Side whose observation and command stream this player controls. */
   side?: import("@web/battle/sim/protocol").SideName;
   /** A recorded battle to replay: input is off. */
@@ -146,7 +146,7 @@ export function BattleView({
     seed,
     prepared,
     scenarioArt,
-    slot,
+    player,
     side,
     onDecoded: (observation, digest) => {
       noteCues(observation);
@@ -162,6 +162,9 @@ export function BattleView({
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
+  const viewingPlayer =
+    observation?.skirmish?.players.find((candidate) => candidate.id === player) ??
+    observation?.skirmish?.players[0];
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
@@ -205,12 +208,14 @@ export function BattleView({
               reveal: session.revealed,
               contacts,
               facing: contactFacing.facing,
+              allies: session.allies,
             },
             border,
             metresPerPx,
           )
         : undefined,
     [
+      session.allies,
       contactFacing.facing,
       session.units,
       world,
@@ -309,6 +314,7 @@ export function BattleView({
         selected={control.selected}
         handle={session.readouts}
         ghosts={session.ghostReadouts}
+        allies={session.allies}
       />
       <RangeRulerLabels handle={rulerLabels} />
       {/* The army roster and command row keep their place as selection changes. */}
@@ -316,7 +322,7 @@ export function BattleView({
         <header className="hud-panel hud-top" data-occludes-readouts>
           {!sim.error &&
             (observation?.skirmish ? (
-              <SkirmishStatus match={observation.skirmish} />
+              <SkirmishStatus match={observation.skirmish} viewer={session.viewer?.side ?? null} />
             ) : (
               status(session)
             ))}
@@ -331,21 +337,21 @@ export function BattleView({
             <button
               type="button"
               className="hud-menu-choice hud-purchase-ready"
-              disabled={observation.skirmish.ready[0]}
+              disabled={viewingPlayer?.ready ?? false}
               onClick={session.purchase.ready}
             >
-              {observation.skirmish.ready[0] ? "READY" : "START BATTLE"}
+              {viewingPlayer?.ready ? "READY" : "START BATTLE"}
             </button>
           </div>
         )}
         <MenuButton onOpen={() => pause.show(true)} />
         <ArmyDeck
-          own={observation?.own ?? []}
+          own={control.controlled}
           selected={control.selected}
           onSelect={control.setSelected}
           onCenter={input ? focusUnit : undefined}
           rules={session.rules}
-          pending={observation?.skirmish?.pending}
+          pending={viewingPlayer?.pending}
           tick={observation?.tick}
           control={input ? control : undefined}
           captions={<CaptionList captions={cues} />}
@@ -356,6 +362,7 @@ export function BattleView({
                   cards={session.purchase.cards}
                   faction={session.purchase.faction}
                   match={observation.skirmish}
+                  player={viewingPlayer}
                   onChoose={session.purchase.choose}
                   rules={session.rules}
                 />
@@ -364,7 +371,7 @@ export function BattleView({
           }
         />
       </div>
-      {input && <RejectedOrder acks={control.acks} />}
+      {input && <RejectedOrder acks={control.acks} {...session.refusals} />}
       {!sim.error && loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu
@@ -382,7 +389,13 @@ export function BattleView({
           {menu?.(session)}
         </PauseMenu>
       )}
-      {observation?.skirmish && <MatchResultOverlay match={observation.skirmish} />}
+      {observation?.skirmish && (
+        <MatchResultOverlay
+          match={observation.skirmish}
+          seats={session.seats}
+          viewer={session.viewer?.id ?? null}
+        />
+      )}
     </>
   );
 }

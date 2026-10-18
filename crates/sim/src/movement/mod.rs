@@ -466,13 +466,13 @@ pub(crate) fn advance(
 ) -> Vec<Shove> {
     let mut footprints: Vec<Option<Obb2>> = units
         .iter()
-        .map(|u| u.ground_footprint().filter(|_| u.alive()))
+        .map(|u| u.ground_footprint().filter(|_| u.on_field()))
         .collect();
     let field = take_cover::Field::gather(ctx, units);
     completed(crate::battle::TickPhase::Movement);
     for unit in units.iter_mut() {
         // The destroyed stay put; a wreck is an obstacle prop, not traffic.
-        if !unit.alive() {
+        if !unit.on_field() {
             planner.cancel(unit.id);
             continue;
         }
@@ -494,13 +494,13 @@ pub(crate) fn advance(
     // Every live vehicle on the move, either side, as soldiers see it coming.
     let threats: Vec<Threat> = units
         .iter()
-        .filter(|u| u.alive())
+        .filter(|u| u.on_field())
         .filter_map(|u| Threat::of(ctx, u))
         .collect();
     let mut crowd = soldier::Crowd::gather(units, ctx.rules.physics.soldier_radius_m);
     let mut shoves = Vec::new();
     for i in 0..units.len() {
-        if !units[i].alive() {
+        if !units[i].on_field() {
             continue;
         }
         if units[i].airborne() {
@@ -514,13 +514,13 @@ pub(crate) fn advance(
         }
         if units[i].is_vehicle() {
             step_vehicle(ctx, units, i, sides, &mut shoves, &footprints);
-            footprints[i] = units[i].ground_footprint().filter(|_| units[i].alive());
+            footprints[i] = units[i].ground_footprint().filter(|_| units[i].on_field());
             soldier::shove(ctx, units, i, &mut crowd);
         } else {
             let unit = &mut units[i];
             let advancing = may_advance(ctx, unit);
             let side = &mut sides[unit.side.index()];
-            if !advancing && unit.garrison.is_none() && (unit.route.is_none() || unit.halted()) {
+            if !advancing && unit.hold.is_none() && (unit.route.is_none() || unit.halted()) {
                 take_cover::hold(ctx, unit, side, &field);
             }
             soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
@@ -681,7 +681,7 @@ fn way_left(here: V2, route: &[V2]) -> f64 {
 /// takes the fastest policy, and keeps it however short the leg has become
 /// when it plans again. Pursuit and a building's approach are never legs.
 fn prefer_roads(ctx: &MovementContext, unit: &mut Unit) {
-    if unit.planned_goal.is_some() || unit.garrison.is_some() {
+    if unit.planned_goal.is_some() || unit.hold.is_some() {
         return;
     }
     let from = route_start(unit, |_| true);
@@ -961,7 +961,7 @@ fn step_vehicle(
             if units.iter().enumerate().any(|(j, o)| {
                 j != i
                     && o.ground_footprint().is_some()
-                    && o.alive()
+                    && o.on_field()
                     && vehicle_conflict(unit, here, unit.yaw, o)
             }) {
                 units[i].yaw = before;
@@ -1026,7 +1026,7 @@ fn step_vehicle(
         units.iter().enumerate().find_map(|(j, other)| {
             (j != i
                 && other.ground_footprint().is_some()
-                && other.alive()
+                && other.on_field()
                 && vehicle_conflict(unit, next, motion.yaw, other))
             .then_some(other.id)
         })
@@ -1050,7 +1050,7 @@ fn step_vehicle(
         let traffic = units.iter().enumerate().any(|(j, other)| {
             j != i
                 && other.ground_footprint().is_some()
-                && other.alive()
+                && other.on_field()
                 && vehicle_conflict(unit, at, back.yaw, other)
         });
         if behind.solid.is_none() && behind.shoved.is_empty() && !traffic {
@@ -1157,7 +1157,7 @@ fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> 
         || units.iter().enumerate().any(|(j, other)| {
             j != i
                 && other.ground_footprint().is_some()
-                && other.alive()
+                && other.on_field()
                 && turned.overlaps(&other.ground_footprint().expect("a vehicle has a hull"))
         });
     if occupied {

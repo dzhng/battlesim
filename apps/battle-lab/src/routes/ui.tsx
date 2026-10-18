@@ -35,20 +35,29 @@ import { BattleClock, SkirmishStatus } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
 import { MenuButton, PauseMenu } from "../PauseMenu";
 import { specimenUnit } from "../panelSpecimens";
+import { MatchResultOverlay } from "../MatchResultOverlay";
+import { reportSpecimen } from "../reportSpecimens";
 
 const GAME_RULES = game as unknown as PanelRules;
 
 const MATCH: SkirmishView = {
   phase: "active",
-  ready: [true, true],
+  players: [
+    {
+      index: 0,
+      id: "blue-1",
+      controller: "human",
+      ready: true,
+      credits: 769,
+      unitCount: 6,
+      cap: 30,
+      pending: [],
+    },
+  ],
   preparationRemainingS: 0,
-  credits: 769,
   scores: [120, 85],
   result: null,
   objectives: [],
-  occupiedSlots: 6,
-  maxUnits: 30,
-  pending: [],
   report: null,
 };
 
@@ -152,16 +161,16 @@ function Status({ match }: { match: SkirmishView }) {
   return (
     <div className="hud">
       <header className="hud-panel hud-top" data-occludes-readouts>
-        <SkirmishStatus match={match} />
+        <SkirmishStatus match={match} viewer="blue" />
       </header>
       {match.phase === "preparation" && (
         <div className="hud-ready-layer" data-occludes-readouts>
           <button
             type="button"
             className="hud-menu-choice hud-purchase-ready"
-            disabled={match.ready[0]}
+            disabled={match.players[0]?.ready ?? false}
           >
-            {match.ready[0] ? "READY" : "START BATTLE"}
+            {match.players[0]?.ready ? "READY" : "START BATTLE"}
           </button>
         </div>
       )}
@@ -190,6 +199,7 @@ function Purchase({ match }: { match: SkirmishView }) {
             cards={CARDS}
             faction="us"
             match={match}
+            player={match.players[0]}
             onChoose={() => {}}
             rules={rules}
           />
@@ -223,7 +233,7 @@ function Refusal() {
         seq: 1,
         label: "Garrison",
         order: { kind: "garrison", units: [1], building: 3 },
-        ack: { seq: 1, applied_tick: 0, error: { reason: "building_occupied" } },
+        ack: { seq: 1, applied_tick: 0, error: { reason: "building_occupied" }, refused: [] },
       },
     ]);
   }, []);
@@ -244,8 +254,24 @@ function Frames() {
   return <FrameRate handle={handle} />;
 }
 
+/** The end-of-match report over a battle: one human and their allies
+ *  against AI, or a battle with no human watched. */
+const REPORTS = [
+  ["report-1v1", "h", "a", "blue"],
+  ["report-2v2-defeat", "ha", "aa", "red"],
+  ["report-5v5", "haaaa", "aaaaa", "blue"],
+  ["report-spectating", "aa", "aa", "red"],
+] as const;
+
 /** Every shot: its id (the baseline's name) and what it draws. */
 const SHOTS: { id: string; draw: () => ReactNode }[] = [
+  ...REPORTS.map(([id, blue, red, result]) => ({
+    id,
+    draw: () => {
+      const specimen = reportSpecimen(blue, red, result);
+      return <MatchResultOverlay {...specimen} />;
+    },
+  })),
   {
     id: "status-preparation",
     draw: () => (
@@ -253,7 +279,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
         match={{
           ...MATCH,
           phase: "preparation",
-          ready: [false, false],
+          players: [{ ...MATCH.players[0], ready: false }],
           preparationRemainingS: 42,
           scores: [0, 0],
         }}
@@ -267,7 +293,7 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
         match={{
           ...MATCH,
           phase: "preparation",
-          ready: [true, false],
+          players: [{ ...MATCH.players[0], ready: true }],
           preparationRemainingS: 42,
           scores: [0, 0],
         }}
@@ -305,12 +331,22 @@ const SHOTS: { id: string; draw: () => ReactNode }[] = [
   },
   {
     id: "purchase",
-    draw: () => <Purchase match={{ ...MATCH, phase: "preparation", ready: [false, false] }} />,
+    draw: () => (
+      <Purchase
+        match={{ ...MATCH, phase: "preparation", players: [{ ...MATCH.players[0], ready: false }] }}
+      />
+    ),
   },
   {
     id: "purchase-short-of-credits",
     draw: () => (
-      <Purchase match={{ ...MATCH, phase: "preparation", ready: [false, false], credits: 110 }} />
+      <Purchase
+        match={{
+          ...MATCH,
+          phase: "preparation",
+          players: [{ ...MATCH.players[0], ready: false, credits: 110 }],
+        }}
+      />
     ),
   },
   { id: "objectives", draw: () => <Objectives /> },

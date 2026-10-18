@@ -32,6 +32,8 @@ struct SkyLight {
   cloudLit: vec3f,
   cloudSilver: f32,
   cloudBase: vec3f,
+  skySaturation: f32,
+  skyTint: vec3f,
 }
 
 @group(0) @binding(0) var<uniform> light: SkyLight;
@@ -130,7 +132,8 @@ struct Rays {
 @group(0) @binding(3) var<uniform> rays: Rays;
 
 fn backgroundColor(uv: vec2f) -> vec4f {
-    return max(vec4f(sample(rays.origin + rays.dx * uv.x + rays.dy * uv.y), 1.0), vec4f(0.0));
+    // Alpha 0 marks the sky for the post pass (its grade share).
+    return max(vec4f(sample(rays.origin + rays.dx * uv.x + rays.dy * uv.y), 0.0), vec4f(0.0));
   }
 
 struct fragment_Input {

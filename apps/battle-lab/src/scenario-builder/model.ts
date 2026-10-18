@@ -1,8 +1,10 @@
 import type { MapDefinition } from "@web/maps/resolve";
 import type { GameRules } from "@web/battle/catalog/compose";
-import { FACTIONS, type Faction, type UnitCatalog } from "@packages/scene-assets/src/units";
+import { FACTIONS, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
+import type { Player } from "@web/battle/prepare/protocol";
 import matchRules from "@fixtures/skirmish.json";
+import { entryCountForPlayers } from "../skirmishSetup";
 
 export type BuilderController = "human" | "active_ai" | "passive_ai";
 export type BuilderMode = "sandbox" | "economy";
@@ -14,15 +16,7 @@ export interface BuilderUnit {
   position: [number, number];
   yaw: number;
   engagement?: Engagement;
-}
-
-export interface BuilderSlot {
-  id: string;
-  side: SideName;
-  faction?: Faction;
-  controller: BuilderController;
-  human_capable: boolean;
-  units: number[];
+  owner?: string;
 }
 
 export interface BuilderAsset {
@@ -34,7 +28,7 @@ export interface BuilderAsset {
 }
 
 export interface ScenarioBundleDraft {
-  format_version: "scenario-bundle-1";
+  format_version: "scenario-bundle-2";
   runtime_build: string;
   map: { map_hash: string; template_catalog_hash?: string | null };
   rules_hash: string;
@@ -43,30 +37,25 @@ export interface ScenarioBundleDraft {
     map: MapDefinition;
     rules: GameRules;
     units: BuilderUnit[];
+    players: Player[];
     events: unknown[];
     scripts: unknown[];
     opponent?: unknown;
     encounter?: unknown;
   };
-  slots: BuilderSlot[];
   mode: BuilderMode;
   victory: { source: string };
-  authored_scripts: { id: string; source: string; side: SideName; slot?: string | null }[];
+  authored_scripts: { id: string; source: string; side: SideName; player?: string | null }[];
   assets: BuilderAsset[];
 }
 
 export const BUILDER_FACTIONS = FACTIONS;
 
 export interface BuilderSkirmish {
-  factions: [Faction, Faction];
-  ai_side?: SideName;
   /** The match rules (`contract::skirmish::MatchRules`). */
   rules: typeof matchRules;
   sites: {
-    entries: [
-      { side: "blue"; center: [number, number]; yaw: number },
-      { side: "red"; center: [number, number]; yaw: number },
-    ];
+    entries: { side: "blue" | "red"; center: [number, number]; yaw: number }[];
     objectives: {
       id: string;
       center: [number, number];
@@ -78,17 +67,21 @@ export interface BuilderSkirmish {
   };
 }
 
-export function builderEconomy(size: readonly [number, number]): BuilderSkirmish {
+export type SyntheticSites = (
+  size: readonly [number, number],
+  entriesPerSide: number,
+) => BuilderSkirmish["sites"]["entries"];
+
+export function builderEconomy(
+  size: readonly [number, number],
+  players: readonly Player[],
+  sitesFor: SyntheticSites,
+): BuilderSkirmish {
   const [width, depth] = size;
   return {
-    factions: ["us", "eastern"],
-    ai_side: "red",
     rules: { ...matchRules, starting_minutes: 2, preparation_s: 20 },
     sites: {
-      entries: [
-        { side: "blue", center: [width / 2, 12], yaw: Math.PI / 2 },
-        { side: "red", center: [width / 2, depth - 12], yaw: -Math.PI / 2 },
-      ],
+      entries: sitesFor(size, entryCountForPlayers(players)),
       objectives: [
         {
           id: "center",
@@ -132,10 +125,10 @@ export function emptyBuilderMap(): MapDefinition {
   };
 }
 
-export function nextSlotId(slots: readonly BuilderSlot[], side: SideName): string {
+export function nextPlayerId(players: readonly Player[], side: SideName): string {
   const prefix = `${side}-`;
   let n = 1;
-  while (slots.some((slot) => slot.id === `${prefix}${n}`)) n++;
+  while (players.some((player) => player.id === `${prefix}${n}`)) n++;
   return `${prefix}${n}`;
 }
 
@@ -143,11 +136,11 @@ export function createBuilderDraft(rules: GameRules, units: UnitCatalog): Scenar
   const blueKind = units.ids[0] ?? "";
   const redKind = blueKind;
   const authored: BuilderUnit[] = [
-    { id: 0, side: "blue", kind: blueKind, position: [120, 240], yaw: 0 },
-    { id: 1, side: "red", kind: redKind, position: [520, 240], yaw: Math.PI },
+    { id: 0, side: "blue", kind: blueKind, position: [120, 240], yaw: 0, owner: "blue-1" },
+    { id: 1, side: "red", kind: redKind, position: [520, 240], yaw: Math.PI, owner: "red-1" },
   ];
   return {
-    format_version: "scenario-bundle-1",
+    format_version: "scenario-bundle-2",
     runtime_build: "builder-draft",
     map: { map_hash: "", template_catalog_hash: null },
     rules_hash: "",
@@ -155,34 +148,31 @@ export function createBuilderDraft(rules: GameRules, units: UnitCatalog): Scenar
       map: emptyBuilderMap(),
       rules,
       units: authored,
+      players: [
+        {
+          id: "blue-1",
+          side: "blue",
+          faction: "us",
+          controller: "human",
+          human_capable: true,
+        },
+        {
+          id: "neutral-1",
+          side: "neutral",
+          controller: "passive_ai",
+          human_capable: false,
+        },
+        {
+          id: "red-1",
+          side: "red",
+          faction: "eastern",
+          controller: "active_ai",
+          human_capable: false,
+        },
+      ],
       events: [],
       scripts: [],
     },
-    slots: [
-      {
-        id: "blue-1",
-        side: "blue",
-        faction: "us",
-        controller: "human",
-        human_capable: true,
-        units: [0],
-      },
-      {
-        id: "neutral-1",
-        side: "neutral",
-        controller: "passive_ai",
-        human_capable: false,
-        units: [],
-      },
-      {
-        id: "red-1",
-        side: "red",
-        faction: "eastern",
-        controller: "active_ai",
-        human_capable: false,
-        units: [1],
-      },
-    ],
     mode: "sandbox",
     victory: { source: "return false" },
     authored_scripts: [],
@@ -207,12 +197,6 @@ export function removeBuilderUnit(
         .filter((unit) => unit.id !== removedId)
         .map((unit, index) => ({ ...unit, id: index })),
     },
-    slots: draft.slots.map((slot) => ({
-      ...slot,
-      units: slot.units
-        .filter((id) => id !== removedId)
-        .map((id) => (id > removedId ? id - 1 : id)),
-    })),
   };
 }
 
@@ -220,19 +204,15 @@ export function parseBuilderDraft(text: string): ScenarioBundleDraft {
   const parsed = JSON.parse(text) as ScenarioBundleDraft;
   if (
     !parsed ||
-    parsed.format_version !== "scenario-bundle-1" ||
+    parsed.format_version !== "scenario-bundle-2" ||
     !parsed.scenario ||
     !Array.isArray(parsed.scenario.units) ||
-    !Array.isArray(parsed.slots)
+    !Array.isArray(parsed.scenario.players)
   )
     throw new Error("the uploaded package is not a scenario bundle draft");
   parsed.scenario.units = parsed.scenario.units.map((unit, index) => ({
     ...unit,
     id: Number.isInteger(unit.id) ? unit.id : index,
-  }));
-  parsed.slots = parsed.slots.map((slot) => ({
-    ...slot,
-    units: [...slot.units].sort((a, b) => a - b),
   }));
   return parsed;
 }

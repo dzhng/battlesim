@@ -30,9 +30,9 @@ pub fn hear(
     let mut cues = Vec::new();
     let listeners: Vec<&Unit> = units
         .iter()
-        .filter(|u| u.side == side && u.alive())
+        .filter(|u| u.side == side && u.on_field())
         .collect();
-    for source in units.iter().filter(|u| u.side != side && u.alive()) {
+    for source in units.iter().filter(|u| u.side != side && u.on_field()) {
         if knowledge.identifies(source.id, tick) {
             continue; // seen units need no ears
         }

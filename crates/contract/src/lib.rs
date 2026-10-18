@@ -19,6 +19,7 @@ pub mod map;
 pub mod maps;
 pub mod numbers;
 pub mod observation;
+pub mod players;
 pub mod preparation;
 pub mod random;
 pub mod river;

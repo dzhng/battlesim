@@ -16,7 +16,7 @@ A lab stands on a saved `test` map (its registry entry names it, and
 [`fixtureMap`](src/fixtures.ts) refuses any other category) or on a generated
 or synthetic world, and fields test units. The battle view itself is judged on
 the street test map's battle (`/labs/street`), a test's own encounter, so no
-lab plays on the game's content or the menu's. Player pages (`/battle`) only
+lab plays on the game's content or a capture's. Player pages (`/battle`) only
 ever prepare generated maps.
 
 [Visit ownership](src/navigation.tsx) keeps client navigation separate from
@@ -42,19 +42,24 @@ The same tutorial is available from a live battle's pause menu; it opens as a
 modal over the paused battle and closes back to that menu.
 Opening a page replaces the plate's contents under a
 Back button, and Escape is Back, so the film behind never changes. A menu address asking for a battle opens on the
-skirmish page. A
-seeded address names exact preparation inputs on the same build, both factions
-included. A battle address without the player's faction, or with a parameter the
-battle does not read, is refused by name; nothing is defaulted or ignored. Ordinary Play
-may try bounded fresh candidates, then publishes the
-actual admitted identity. A refused explicit seed cannot silently become another
-battle. Exhausted generation returns a refusal; it never substitutes a fixed map.
+skirmish page. That page is [the lobby](src/lobby/Lobby.tsx), an order of
+battle: [the lobby model](src/lobby/model.ts) owns its rules, and the page only
+shows them. Its map is a real admitted preparation, started again only when a
+map input changes, and Deploy opens only on a ready map and names the seed that
+was admitted, so the battle is the map the player saw. The preview may try
+bounded fresh seeds; when generation is exhausted the lobby shows no map and
+Deploy stays shut, and no fixed map is ever substituted. A battle address names
+exact preparation inputs on the same build: the map, both sides' players and
+factions. One without them, or with a parameter the battle does not read, is
+refused by name; nothing is defaulted or ignored, and a refused seed never
+silently becomes another battle.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
-played in order and then over again, each a saved encounter on its own `menu` map
-(the reel refuses any other) run by
-the ordinary session, silent and inert. Each is filmed by
-[the reel](src/menuReel.ts) through the viewport's pilot and graded in CSS to the
+played in order and then over again, each a saved encounter on its own `capture` map
+(a capture refuses any other) run by
+the ordinary session, silent and inert. Each is played by
+[the scene player](src/capture/ScenePlayer.tsx), the [capture tool](src/capture/README.md)'s too, which
+flies [its reel](src/capture/capture.ts) through the viewport's pilot; the menu grades it in CSS to the
 HUD's `film` amber, which the plate's blue reads against. It shows blue's
 observation like any battle, without the player's x-ray. Its preparation reports
 to the same loading stages as a lab, and the menu's loading screen stands in the
@@ -71,7 +76,7 @@ framing, so a shot in a narrow street may stand nearer than a player may zoom.
 feeds. [Session ownership](src/useBattleSession.ts) keeps worker preparation and
 cleanup tied to that page. A session also owns its unit catalog: [the router](src/router.tsx)
 gives player battles and replays the game's set and labs the test set (the menu
-backdrop takes the menu's), the session refuses a scenario fielding a unit its
+backdrop and the capture route take the capture set), the session refuses a scenario fielding a unit its
 catalog lacks, and views read the catalog from the session or its context, never
 from a module-level import. [Lab loading](src/LabLoading.tsx) uses the player
 loading screen across preparation, the first observation and the first drawn

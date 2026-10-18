@@ -32,8 +32,9 @@ Three shape decisions follow:
 ## Invariants
 
 - **Only an already-selected, unmodified card asks for a move.** `ArmyDeck`
-  checks `selected.includes(unit.id)` before calling `onCenter`, and still
-  calls `onSelect` first, so selection semantics are unchanged.
+  checks the id the card selects (`picks`, the carrier for a rider) in
+  `selected` before calling `onCenter`, and still calls `onSelect` first, so
+  selection semantics are unchanged.
 - **Every ask is a new ask.** `useUnitFocus` returns a fresh
   `{ token, target }` per call, and `LabViewport` applies a request once per
   token. Clicking the same card again after panning away moves the camera
@@ -44,8 +45,9 @@ Three shape decisions follow:
 - **The contract is optional.** The panel, UI and other camera-less galleries
   supply no `onCenter` and no `cameraFocus`, so they keep their previous
   behavior.
-- **The target is the ground footprint.** The request uses the unit's
-  `position[0..1]`, not a soldier, a member's spot, or an aircraft's altitude.
+- **The target is the ground footprint of the unit the card selects.** A
+  rider's card selects and centres its carrier, so the request uses that
+  carrier's `position[0..1]`, not a soldier's spot or an aircraft's altitude.
 
 ## Pointers
 

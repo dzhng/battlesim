@@ -1,11 +1,31 @@
 # Team skirmish
 
-**Status:** planned. Every decision is closed; implementation has not started.
-**Updated:** 2026-10-16.
+**Status:** in progress (slices 00–09 done).
+**Updated:** 2026-10-17.
 
 ## Next Agent Prompt
 
-Start with slice 00, the probe. Its verdict decides whether slices 04–05 stand as written.
+**Done:** slices 00–09.
+- Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
+- Slice 01 landed the player contract. D54 makes Neutral players factionless.
+- Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
+- Slice 04 added the shared `entries_per_side` generation request, dedicated seeded entry arms, centre/left/right site ordering, hard 150 m and river-mouth checks, and best-entry fairness admission. One-entry map hashes remain unchanged.
+- Slice 07 landed the pure lobby model and moved the builder onto `scenario.players`.
+- Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
+- Slices 08 and 09 landed the lobby: the admitted map picture and the order-of-battle screen at `/`, whose Deploy opens exactly the previewed map. Unpinned `/battle?play=1` is gone; the lobby's preview is the only admission.
+- Slice 11 landed the per-player match report: a scoreboard row per player under each side, a timeline naming each player (a player's purchases in one minute are one line), and the result read from the viewer's side, neutral when the client plays no seat. Its pictures are the UI gallery's `report-*` shots and the `allies` scene's real 2v2 report.
+
+**Next:**
+- Slice 10 (allies in battle, visual): it needs 06, which has landed.
+- Slice 04 follow-up: with three entries, both flank arms can land on the same side of the centre road. The slice 08 picture showed it on a Large 3v4. The fix is queued.
+
+**Unproven under load.** The `benchmark` (real-time check) and `street` (900 s limit) scenes have not passed since slice 02. Both fail the same way on clean main while the machine's load average is 18–50, and neither touches slice 09. Run them on a quiet machine before closeout (slice 14). If `street` fails "the scouts never identified an enemy" there too, it is a real regression to chase.
+
+**Known environment failures.** A worktree needs `git lfs pull --include 'assets/runtime,assets/third-party,packages/scene-assets,web/scenes'` before browser tests and scenes, which is about 0.75 GB. After that, only these fail, identically on main, because they need LFS source art:
+- `icons.test.ts` (3 tests);
+- `soundCatalog.test.ts`.
+
+`battleFailure.test.ts` and `cityBenchmark.test.ts` are flaky under heavy machine load (both pass alone): the headless browser's no-WebGPU error races the replay refusal. Fix it in its own commit.
 
 Before touching code, read three things:
 - this README;
@@ -23,18 +43,18 @@ How to work each slice:
 
 Slices:
 
-- [ ] 00: probe multi-entry admission, timings, throughput ([slice](slices/00-probe.md))
-- [ ] 01: one player contract, mechanical port ([slice](slices/01-player-contract.md))
-- [ ] 02: simulation per-player ownership ([slice](slices/02-sim-ownership.md))
-- [ ] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
-- [ ] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
-- [ ] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
-- [ ] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
-- [ ] 07: lobby model ([slice](slices/07-lobby-model.md))
-- [ ] 08: lobby map picture ([slice](slices/08-map-picture.md))
-- [ ] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
-- [ ] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
-- [ ] 11: per-player match report ([slice](slices/11-match-report.md))
+- [x] 00: probe multi-entry admission, timings, throughput ([slice](slices/00-probe.md))
+- [x] 01: one player contract, mechanical port ([slice](slices/01-player-contract.md))
+- [x] 02: simulation per-player ownership ([slice](slices/02-sim-ownership.md))
+- [x] 03: publication and TypeScript mirror ([slice](slices/03-publication.md))
+- [x] 04: mapgen entry arms and admission ([slice](slices/04-entry-arms.md))
+- [x] 05: simulation entry owner and dispatch ([slice](slices/05-entry-owner.md))
+- [x] 06: one setup constructor, request and links ([slice](slices/06-setup-request-links.md))
+- [x] 07: lobby model ([slice](slices/07-lobby-model.md))
+- [x] 08: lobby map picture ([slice](slices/08-map-picture.md))
+- [x] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
+- [x] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
+- [x] 11: per-player match report ([slice](slices/11-match-report.md))
 - [ ] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
 - [ ] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
 - [ ] 14: 5v5 AI-versus-AI closeout ([slice](slices/14-closeout.md))
@@ -68,14 +88,14 @@ Changing any of these is a named decision in `choices.md`.
 
 **Terminology.** A *player* is one seat on a side: its own wallet, cap, army, ready flag and controller. The code calls it `Player` too (D51). Slice 01 renames `PlayerSlot`, `CommandEnvelope.slot`, `AuthoredScript.slot` and `occupied_slots`, so the word "slot" keeps only its unrelated meanings (squad member and garrison seat).
 
-- **Players (`contract::players`).** `Player { id, side, faction, controller, human_capable }`, where `side` is Blue or Red (Neutral only in authored bundles).
+- **Players (`contract::players`).** `Player { id, side, faction, controller, human_capable }`. `side` is Blue or Red (Neutral only in authored bundles). `faction` is required for Blue and Red, and absent for Neutral (D54).
   - `ScenarioDefinition.players` is the only player list (D33).
   - `PlayerIndex` is a player's position in that list. It is derived, never stored (D32).
-  - `entry_count(players on a side)` gives 1, 2 or 3 entries (D8′). It is the one rule that both mapgen and the simulation read.
+  - `entry_count(players)` gives 1, 2 or 3 entries. Both sides get `entry_count` of the larger side's player count (D52). It is the one rule that both mapgen and the simulation read.
 - **`SkirmishSetup`** is `{ rules, sites }`; the players live in the scenario.
   - Admission refuses a side with no players, duplicate ids, mixed factions within a side, more than `max_players_per_side` (D35), or an entry count other than `entry_count`.
   - A setup with zero humans is valid (D34).
-- **`SkirmishSites.entries`** is a list of 1–3 entries per side, ordered centre, left, right. There is no player-to-entry reference.
+- **`SkirmishSites.entries`** is a list of 1–3 entries per side, the same count on both sides (D52), ordered centre, left, right. There is no player-to-entry reference.
 - **Generation request** carries the entry count per side. That count is part of map identity, so the generator version is bumped. A 1-entry request generates today's map, byte for byte.
 - **`PrepareBattleRequest`** is `{ map_source, players, battle_seed }`.
 - **Commands.**
@@ -108,7 +128,13 @@ Changing any of these is a named decision in `choices.md`.
 | Preview lifecycle | a preview controller over `web/src/battle/prepare/admission.ts` | (new) |
 | "Which units can I order" | `controlled(observation, player)` in web (D47) | five ad-hoc `observation.own` filters |
 
-**One short-lived seam.** In slice 01 the simulation keeps its side-indexed internals, mapped from the single player per side. Slice 02 deletes that mapping. Nothing else is transitional.
+**One short-lived seam (slice 01 → 02).** Slice 01 keeps every digest unchanged with four temporary pieces. Slice 02 removes all four at its named re-baseline:
+- the simulation keeps its side-indexed internals, mapped from the single player per side;
+- `scenario_digest` hashes the old `{factions, rules, sites}` projection;
+- `MatchRules.max_players_per_side` is omitted from JSON when it is 10;
+- scenario validation refuses more than one player per side ("one player per side until per-player ownership lands"), since the simulation still has one AI and one wallet per side.
+
+Nothing else is transitional.
 
 ## Invariants
 

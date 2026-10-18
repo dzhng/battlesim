@@ -9,7 +9,7 @@ use contract::observation::MoveState;
 use contract::scenario::{Armor, Face, Rules};
 
 use crate::digest::Digest;
-use crate::garrison::{Garrison, Phase};
+use crate::hold::{Hold, Phase};
 use crate::math::{Obb2, Rotation, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
@@ -203,6 +203,18 @@ pub enum UnitOrder {
     },
     /// Leave the current building.
     Exit,
+    /// Board a moving carrier; carriage advances the target each tick.
+    Board {
+        carrier: UnitId,
+        gesture: u64,
+    },
+    /// Drive to squads and collect them.
+    Collect {
+        squads: Vec<UnitId>,
+        gesture: u64,
+    },
+    /// Unload passengers from the carrier at its current position.
+    Unload,
 }
 
 impl UnitOrder {
@@ -226,7 +238,7 @@ pub struct Unit {
     pub id: UnitId,
     pub side: Side,
     /// Player slot that may issue commands for this unit, when the scenario
-    /// is a portable slot-owned bundle.
+    /// is a portable player-owned bundle.
     pub owner: Option<String>,
     /// Its unit type, the catalog's index.
     pub kind: TypeIndex,
@@ -275,8 +287,8 @@ pub struct Unit {
     pub suppressed_at: u64,
     /// Setup progress for units that deploy in place (L01); `None` otherwise.
     pub deployment: Option<crate::deployment::Deployment>,
-    /// The squad's building while entering, inside or leaving it (L08).
-    pub garrison: Option<Garrison>,
+    /// The host this unit is entering, inside or leaving (L08).
+    pub hold: Option<Hold>,
     /// A supply vehicle's remaining stock (L05); `None` for every other unit.
     pub stock: Option<u32>,
     pub protection: Option<crate::protection::State>,
@@ -583,9 +595,10 @@ impl Unit {
 
     /// At its building's perimeter slots (inside or leaving, not entering).
     pub fn garrisoned(&self) -> bool {
-        self.garrison
-            .as_ref()
-            .is_some_and(|g| matches!(g.phase, Phase::Inside | Phase::Exiting(_)))
+        self.hold.as_ref().is_some_and(|hold| {
+            matches!(hold.host, crate::hold::Host::Building(_))
+                && matches!(hold.phase, Phase::Inside | Phase::Exiting(_))
+        })
     }
 
     /// World positions of living members.
@@ -605,6 +618,13 @@ impl Unit {
             Some(_) => self.hp > 0.0,
             None => self.members.iter().any(|s| s.alive()),
         }
+    }
+
+    /// Alive and physically present in the world. A squad inside a carrier is
+    /// still counted for accounting, but cannot collide, sense, fight, hear or
+    /// affect objectives until it exits.
+    pub fn on_field(&self) -> bool {
+        self.alive() && self.hold.as_ref().and_then(|hold| hold.riding()).is_none()
     }
 
     /// Its type's record.
@@ -641,8 +661,11 @@ impl Unit {
 
     /// Fold the unit's complete carried state into `d`.
     pub fn digest(&self, d: &mut Digest) {
-        d.u64(self.id.0 as u64)
-            .f64(self.position.x)
+        d.u64(self.id.0 as u64);
+        if let Some(owner) = &self.owner {
+            d.u64(crate::digest::of_str(owner));
+        }
+        d.f64(self.position.x)
             .f64(self.position.y)
             .f64(self.position.z)
             .f64(self.yaw);
@@ -722,6 +745,18 @@ impl Unit {
                 UnitOrder::Exit => {
                     d.u64(4);
                 }
+                UnitOrder::Board { carrier, gesture } => {
+                    d.u64(5).u64(carrier.0 as u64).u64(*gesture);
+                }
+                UnitOrder::Collect { squads, gesture } => {
+                    d.u64(6).u64(*gesture).u64(squads.len() as u64);
+                    for squad in squads {
+                        d.u64(squad.0 as u64);
+                    }
+                }
+                UnitOrder::Unload => {
+                    d.u64(7);
+                }
             }
         }
         d.opt_v2(self.pursuit.map(|p| p.to));
@@ -762,7 +797,7 @@ impl Unit {
             Some(a) => d.u64(1).f64(a.at.x).f64(a.at.y).u64(a.halt as u64),
             None => d.u64(0),
         };
-        crate::garrison::digest(self, d);
+        crate::hold::digest(self, d);
         d.u64(self.members.len() as u64);
         for s in &self.members {
             d.u64(s.id as u64)
@@ -880,22 +915,41 @@ impl Unit {
     /// Where movement should head now and by which policy: an ordered
     /// destination, an attack's pursuit point or a building's approach. A unit
     /// with a building (entering, inside or leaving) goes nowhere.
+    /// The order at `index` lets the passengers out where it ends: an
+    /// Unload follows it.
+    pub fn unloads_after(&self, index: usize) -> bool {
+        matches!(self.orders.get(index + 1), Some(UnitOrder::Unload))
+    }
+
+    /// The destinations of the movement orders queued behind the current
+    /// one, each with whether it lets the passengers out there.
+    pub fn queued_steps(&self) -> impl Iterator<Item = (V2, bool)> + '_ {
+        self.orders
+            .iter()
+            .enumerate()
+            .skip(1)
+            .filter_map(|(k, o)| o.movement().map(|m| (m.destination, self.unloads_after(k))))
+    }
+
     pub fn movement_goal(&self) -> Option<(V2, RoutePolicy)> {
-        if self.garrison.is_some() {
+        if self.hold.is_some() {
             return None;
         }
         match self.orders.front()? {
             UnitOrder::Move(o) | UnitOrder::AttackMove(o) => Some((o.destination, o.policy)),
             UnitOrder::Attack { .. } => self.pursuit.map(|p| (p.to, RoutePolicy::Shortest)),
             UnitOrder::Garrison { approach, .. } => Some((*approach, RoutePolicy::Shortest)),
-            UnitOrder::Exit => None,
+            UnitOrder::Exit
+            | UnitOrder::Board { .. }
+            | UnitOrder::Collect { .. }
+            | UnitOrder::Unload => None,
         }
     }
 
     /// Which way the current order drives: a reverse move backs (Q31).
     pub fn direction(&self) -> MoveDirection {
         match self.orders.front() {
-            Some(UnitOrder::Move(o)) if self.garrison.is_none() => o.direction,
+            Some(UnitOrder::Move(o)) if self.hold.is_none() => o.direction,
             _ => MoveDirection::Forward,
         }
     }

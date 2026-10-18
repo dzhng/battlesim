@@ -48,7 +48,7 @@ fn reserved_candidates_require_unique_finite_reciprocal_geometry() {
 }
 
 #[test]
-fn binary_skirmish_refuses_a_neutral_ai_side() {
+fn skirmish_setup_refuses_the_removed_ai_side_field() {
     let setup = serde_json::json!({
         "factions": ["us", "europe"],
         "ai_side": "neutral",
@@ -56,7 +56,7 @@ fn binary_skirmish_refuses_a_neutral_ai_side() {
             "credits_per_minute": 1,
             "starting_minutes": 1,
             "preparation_s": 1,
-            "max_units": 1,
+            "max_units": 1, "max_players_per_side": 10,
             "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000
         },
         "sites": {
@@ -73,7 +73,5 @@ fn binary_skirmish_refuses_a_neutral_ai_side() {
     });
 
     let error = serde_json::from_value::<SkirmishSetup>(setup).unwrap_err();
-    assert!(error
-        .to_string()
-        .contains("skirmish does not support neutral ai_side"));
+    assert!(error.to_string().contains("unknown field `ai_side`"));
 }

@@ -66,7 +66,8 @@
     },
     "us_acv_acv_p": {
       "name": "ACV-P",
-      "description": "ACV-P; ground combat platform, passenger carriage not implemented",
+      "description": "ACV-P; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "us",
       "family": "acv",
       "roles": [
@@ -299,6 +300,7 @@
     "us_ah_6_mh_6_little_bird_mh_6m": {
       "name": "MH-6M Little Bird",
       "description": "MH-6M",
+      "capabilities": { "carriage": { "seats": 3 } },
       "faction": "us",
       "family": "ah_6_mh_6_little_bird",
       "roles": [
@@ -407,7 +409,6 @@
           "slots": [
             "us_army_scouts_light_patrol__marksman",
             "us_army_scouts_light_patrol__scout",
-            "us_army_scouts_light_patrol__scout",
             "us_army_scouts_light_patrol__scout"
           ]
         }
@@ -444,6 +445,7 @@
     "us_ch_47_chinook_ch_47f": {
       "name": "CH-47F Chinook",
       "description": "CH-47F",
+      "capabilities": { "carriage": { "seats": 16 } },
       "faction": "us",
       "family": "ch_47_chinook",
       "roles": [
@@ -983,7 +985,6 @@
           "slots": [
             "us_force_recon_recon_patrol__grenadier",
             "us_force_recon_recon_patrol__marksman",
-            "us_force_recon_recon_patrol__scout",
             "us_force_recon_recon_patrol__scout"
           ]
         }
@@ -1043,7 +1044,8 @@
     },
     "us_lav_lav_25a2": {
       "name": "LAV-25A2",
-      "description": "LAV-25A2; ground combat platform, passenger carriage not implemented",
+      "description": "LAV-25A2; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "us",
       "family": "lav",
       "roles": [
@@ -1392,6 +1394,7 @@
     "us_m1127_stryker_rv_reconnaissance_vehicle": {
       "name": "Stryker RV",
       "description": "Reconnaissance vehicle",
+      "capabilities": { "carriage": { "seats": 3 } },
       "faction": "us",
       "family": "m1127_stryker_rv",
       "roles": [
@@ -1560,6 +1563,7 @@
     "us_m1151_hmmwv_hmg": {
       "name": "M1151 HMMWV",
       "description": "HMG",
+      "capabilities": { "carriage": { "seats": 3 } },
       "faction": "us",
       "family": "m1151_hmmwv",
       "roles": [
@@ -2183,7 +2187,8 @@
     },
     "us_m2_bradley_ifv_m2a4": {
       "name": "M2A4 Bradley",
-      "description": "M2A4; ground combat platform, passenger carriage not implemented; direct optical guidance only, no top attack or fire-and-forget",
+      "description": "M2A4; infantry carrier; direct optical guidance only, no top attack or fire-and-forget",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "us",
       "family": "m2_bradley_ifv",
       "roles": [
@@ -2286,6 +2291,7 @@
     "us_m3_bradley_cfv_m3a3": {
       "name": "M3A3 Bradley",
       "description": "M3A3; direct optical guidance only, no top attack or fire-and-forget",
+      "capabilities": { "carriage": { "seats": 3 } },
       "faction": "us",
       "family": "m3_bradley_cfv",
       "roles": [
@@ -2612,7 +2618,8 @@
     },
     "us_stryker_m1126_icv": {
       "name": "Stryker ICV",
-      "description": "M1126 ICV; ground combat platform, passenger carriage not implemented",
+      "description": "M1126 ICV; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "us",
       "family": "stryker",
       "roles": [
@@ -2780,7 +2787,8 @@
     },
     "us_stryker_m1296_dragoon": {
       "name": "Stryker Dragoon",
-      "description": "M1296 Dragoon; ground combat platform, passenger carriage not implemented",
+      "description": "M1296 Dragoon; infantry carrier",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "us",
       "family": "stryker",
       "roles": [
@@ -2864,7 +2872,7 @@
     },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
       "name": "Stryker M-SHORAD",
-      "description": "Gun-and-missile air-defense vehicle; ground combat platform, passenger carriage not implemented",
+      "description": "Gun-and-missile air-defense vehicle",
       "faction": "us",
       "family": "stryker_m_shorad",
       "roles": [
@@ -2944,6 +2952,7 @@
     "us_uh_1y_venom_utility_transport": {
       "name": "UH-1Y Venom",
       "description": "Utility transport",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "us",
       "family": "uh_1y_venom",
       "roles": [
@@ -3020,6 +3029,7 @@
     "us_uh_60_black_hawk_uh_60m": {
       "name": "UH-60M Black Hawk",
       "description": "UH-60M",
+      "capabilities": { "carriage": { "seats": 8 } },
       "faction": "us",
       "family": "uh_60_black_hawk",
       "roles": [

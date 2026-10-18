@@ -29,7 +29,12 @@ const SCRIPT: { at: number; event: ResponseEvent }[] = [
   { at: 3.05, event: { kind: "accepted", order: { kind: "move" }, units: [WINGMAN], id: 1 } },
   {
     at: 5.7,
-    event: { kind: "refused", reason: "no_valid_destination", units: [TANK, WINGMAN], id: 2 },
+    event: {
+      kind: "refused",
+      reason: "no_valid_destination",
+      units: [TANK, WINGMAN],
+      group: "order/2",
+    },
   },
 ];
 

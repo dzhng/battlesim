@@ -8,7 +8,7 @@
 //! `ceiling_agl_m`. It turns on the spot toward where it flies, or to its
 //! ordered facing at rest. Aircraft never collide; ones closer than
 //! `separation_m` drift apart. Idle at a set-up supply truck it sinks to the
-//! low hover (D10) and is served there; any order or engagement lifts it back.
+//! low hover (D10), as does a carrier hold; an unrelated order lifts it back.
 
 use super::{arrive, may_advance, MovementContext, SideGeometry, GOAL_REPLAN_M};
 use crate::math::{v2, V2};
@@ -49,6 +49,7 @@ pub(super) fn step_aircraft(
     let side = units[i].side.index();
     plan(ctx, &mut units[i], &mut sides[side]);
     let drift = separation(ctx, units, i);
+    let low = sinks(units, i);
     let unit = &mut units[i];
     let here = unit.position.xy();
     let cruise_mps = flight.cruise_mps;
@@ -103,7 +104,6 @@ pub(super) fn step_aircraft(
     } else {
         v2(0.0, 0.0)
     };
-    let low = sinks(unit);
     let air = unit.air.as_mut().expect("an aircraft's flight state");
     let change = wanted - air.velocity.xy();
     let most = accel * dt;
@@ -115,7 +115,7 @@ pub(super) fn step_aircraft(
     air.fuel_s = (air.fuel_s - dt).max(0.0);
     let next = here + velocity * dt + drift * dt;
     let reach = unit.hull.map_or(0.0, |h| h.x);
-    let target = height_target(ctx, next, velocity, flight, reach, low);
+    let target = height_target(ctx.world, ctx.rules, next, velocity, flight, reach, low);
     // It sinks as fast as it climbs.
     let climb = (target - unit.position.z).clamp(-flight.climb_mps * dt, flight.climb_mps * dt);
     unit.position = next.with_z(unit.position.z + climb);
@@ -148,18 +148,41 @@ pub(super) fn step_aircraft(
     }
 }
 
-/// The resupply sink (D10): with no order and no target, inside a set-up
-/// supply truck's zone, it holds the low hover. `service` is last tick's,
-/// since supply serves after movement; an order or an engagement since then
-/// lifts it this tick. Its height alone never counts as moving (D37), so
-/// sinking never turns that status to `Moving`.
-fn sinks(unit: &Unit) -> bool {
-    unit.orders.is_empty()
+/// The one low-hover predicate (D10, transport D6): resupply keeps its
+/// existing no-order/no-engagement rule, while a carrier hold also sinks the
+/// helicopter through boarding or unloading regardless of engagement. An
+/// unrelated order lifts it. Its height alone never counts as moving (D37).
+fn sinks(units: &[Unit], index: usize) -> bool {
+    let unit = &units[index];
+    let resupply = unit.orders.is_empty()
         && !crate::weapons::engaged(unit)
         && matches!(
             unit.service,
             ServiceStatus::Serving | ServiceStatus::NoStock | ServiceStatus::Full
-        )
+        );
+    let transport = crate::carriage::transport_hold_in_progress(units, unit.id);
+    resupply || transport
+}
+
+/// A rotor carrier may start its carriage timer only after it has settled at
+/// the low hover: at rest, at the height its flight holds there, lifted over
+/// any prop or canopy under it.  The hold starts before movement on a tick,
+/// so both its horizontal and vertical velocity must already be at rest here.
+pub(crate) fn low_hover_settled(
+    world: &crate::world::WorldGeometry,
+    unit: &Unit,
+    rules: &Rules,
+) -> bool {
+    let (Some(air), Motion::Air(flight)) = (unit.air, unit.motion) else {
+        return false;
+    };
+    if unit.fixed_wing() || air.velocity.length() > 1e-6 {
+        return false;
+    }
+    let reach = unit.hull.map_or(0.0, |h| h.x);
+    let at = unit.position.xy();
+    let hover = height_target(world, rules, at, v2(0.0, 0.0), flight, reach, true);
+    (unit.position.z - hover).abs() <= 1e-6
 }
 
 /// The low hover's height over the ground (D27): just over the top of the
@@ -207,7 +230,7 @@ fn separation(ctx: &MovementContext, units: &[Unit], i: usize) -> V2 {
     let here = units[i].position.xy();
     let mut push = v2(0.0, 0.0);
     for (j, other) in units.iter().enumerate() {
-        if j == i || !other.alive() || !other.airborne() {
+        if j == i || !other.on_field() || !other.airborne() {
             continue;
         }
         let away = here - other.position.xy();
@@ -256,17 +279,18 @@ fn turn(unit: &mut Unit, flight: Flight, velocity: V2, back: bool, dt: f64) {
 /// forest canopy it will pass within `reach` of before it could climb the
 /// whole band; never above the ceiling over `at`.
 fn height_target(
-    ctx: &MovementContext,
+    world: &crate::world::WorldGeometry,
+    rules: &Rules,
     at: V2,
     velocity: V2,
     flight: Flight,
     reach: f64,
     low: bool,
 ) -> f64 {
-    let air = &ctx.rules.air;
+    let air = &rules.air;
     let (agl, clearance, ceiling) = if low {
         (
-            low_hover(ctx.rules),
+            low_hover(rules),
             LOW_HOVER_CLEARANCE_M,
             air.rotor.ceiling_agl_m,
         )
@@ -278,7 +302,6 @@ fn height_target(
             air.rotor.ceiling_agl_m.max(flight.cruise_agl_m),
         )
     };
-    let world = ctx.world;
     let ground = |p: V2| world.height_at(p.x, p.y).unwrap_or(0.0);
     let ahead = velocity.length() * (ceiling - agl).max(0.0) / flight.climb_mps;
     let dir = if velocity.length() > 1e-9 {
@@ -286,7 +309,7 @@ fn height_target(
     } else {
         v2(0.0, 0.0)
     };
-    let canopy = ctx.rules.forests.rule.canopy_height_m;
+    let canopy = rules.forests.rule.canopy_height_m;
     let steps = (ahead / LOOKAHEAD_STEP_M).ceil() as usize;
     let mut wanted = f64::NEG_INFINITY;
     for k in 0..=steps {
