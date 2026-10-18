@@ -3458,7 +3458,7 @@ impl Battle {
                 .as_ref()
                 .expect("carrier passenger hold")
                 .host;
-            let result = crate::bail_out::apply(
+            let out = crate::bail_out::apply(
                 &self.world,
                 &mut self.units[index],
                 host,
@@ -3477,7 +3477,7 @@ impl Battle {
             if matches!(unit.orders.front(), Some(UnitOrder::Board { .. })) {
                 unit.orders.pop_front();
             }
-            if result.all_died() {
+            if out == 0 {
                 unit.orders.clear();
                 unit.route = None;
                 destroyed.push(damage::UnitDeath {

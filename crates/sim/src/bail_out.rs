@@ -1,5 +1,6 @@
-//! Forced exits from a destroyed host. Each event owns its random stream so
-//! a bail-out cannot perturb combat damage or any later damage decision.
+//! Forced exits from a destroyed host. Each event, and each squad within it,
+//! draws from its own random stream, so a bail-out cannot perturb combat
+//! damage or any later damage decision.
 
 use contract::ids::Tick;
 use contract::random::{mix, Rng};
@@ -36,20 +37,9 @@ pub struct Occupancy<'a> {
     pub ignored_props: &'a [PropId],
 }
 
-/// How a squad came out of its host: how many of its soldiers got out alive.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct Result {
-    pub out: usize,
-}
-
-impl Result {
-    pub fn all_died(&self) -> bool {
-        self.out == 0
-    }
-}
-
-/// Apply one host's bail-out to a squad. The caller clears the hold and orders
-/// after this returns; this function owns health, corpses and spots.
+/// Apply one host's bail-out to a squad, returning how many of its soldiers
+/// got out alive. The caller clears the hold and orders after this returns;
+/// this function owns health, corpses and spots.
 pub fn apply(
     world: &WorldGeometry,
     unit: &mut Unit,
@@ -58,7 +48,7 @@ pub fn apply(
     seed: u64,
     tick: Tick,
     occupancy: Occupancy<'_>,
-) -> Result {
+) -> usize {
     // Each squad draws its injuries from its own stream within the event, so
     // two squads leaving one host are hurt independently.
     let event = mix(seed ^ BAIL_OUT_STREAM ^ host.key() ^ tick);
@@ -117,17 +107,16 @@ pub fn apply(
         soldier.position = place;
         out += 1;
     }
-    Result { out }
+    out
 }
 
 /// A host that leaves the map takes its passengers with it: there is no
 /// ground to bail out onto, so every live member dies where the host was.
-pub fn lost_with_host(unit: &mut Unit, at: V3) -> Result {
+pub fn lost_with_host(unit: &mut Unit, at: V3) {
     let yaw = unit.yaw;
     for soldier in unit.members.iter_mut().filter(|soldier| soldier.alive()) {
         soldier.fall(at, yaw, None);
     }
-    Result { out: 0 }
 }
 
 fn fall(world: &WorldGeometry, soldier: &mut Soldier, at: V3, yaw: f64) {

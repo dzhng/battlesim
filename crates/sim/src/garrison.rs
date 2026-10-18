@@ -668,7 +668,7 @@ pub fn collapse(
         let (hulls, soldiers) = crate::arrangement::ground_taken(units, units[index].id);
         let rule = crate::bail_out::row(rules, contract::scenario::BailOutHost::Building);
         let host = units[index].hold.as_ref().expect("building hold").host;
-        let result = crate::bail_out::apply(
+        let out = crate::bail_out::apply(
             world,
             &mut units[index],
             host,
@@ -686,7 +686,7 @@ pub fn collapse(
         if matches!(units[index].orders.front(), Some(UnitOrder::Exit)) {
             units[index].orders.pop_front();
         }
-        if result.all_died() {
+        if out == 0 {
             units[index].orders.clear();
             units[index].route = None;
             destroyed.push(units[index].id);
