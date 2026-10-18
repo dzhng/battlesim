@@ -39,8 +39,8 @@ export function shadowVisibilityWgsl(): string {
   let uv=vec2f(coord.x*0.5+0.5,0.5-coord.y*0.5);
   let z=coord.z-settings.x;
   let inside=all(uv>=vec2f(0))&&all(uv<=vec2f(1))&&z>=0&&z<=1;
-  let shade=shadowPcf(depth,compare,layer,uv,z,pixel,settings.z);
-  return select(1.0,shade,inside);
+  if (!inside) { return 1.0; }
+  return shadowPcf(depth,compare,layer,uv,z,pixel,settings.z);
 }`;
 }
 
