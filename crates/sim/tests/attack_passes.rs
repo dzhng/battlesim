@@ -704,6 +704,44 @@ fn a_vehicle_only_missile_leaves_a_ground_point_to_the_gun() {
     panic!("the jet never strafed the point with its gun");
 }
 
+/// An attack order on the ground takes only the weapons that can hit a
+/// point; a weapon that can't keeps choosing its own targets. A jet sent to
+/// strafe open ground beside an identified enemy tank still fires its
+/// vehicle-only missile at the tank.
+#[test]
+fn a_vehicle_missile_fires_on_its_own_at_a_tank_beside_an_ordered_ground_point() {
+    let mut rules = run_rules(&["air_gun", "air_ground_missile"]);
+    rules["weapons"]["air_ground_missile"]["targets"] =
+        json!({ "ground": { "classes": ["vehicle"] } });
+    let mut battle = run_field(
+        rules,
+        json!([
+            { "side": "blue", "kind": "test_jet", "position": RUN_START, "yaw": 0.0 },
+            { "side": "blue", "kind": "test_recon", "position": [2000, 2100], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "test_tank", "position": [2000, 2000], "yaw": 0.0, "engagement": "return_fire_only" }
+        ]),
+    );
+    // Ordered before anything is seen, so every shot below is fired under
+    // the order. The point is open ground 50 m short of the tank.
+    assert_eq!(
+        battle.accept(attack_ground(1, [2000.0, 1950.0])).error,
+        None
+    );
+    let hz = f64::from(battle.rules().tick_hz);
+    for _ in 0..(RUN_WINDOW_S * hz) as u64 {
+        battle.step();
+        // The mounts are the test's own: the gun first, the missile second.
+        if battle.unit(UnitId(0)).unwrap().mounts[1].shots > 0 {
+            assert!(
+                !battle.observe(Side::Blue).identified.is_empty(),
+                "the missile fired at a tank its side hasn't identified"
+            );
+            return;
+        }
+    }
+    panic!("the missile never fired on its own at the tank beside the ordered point");
+}
+
 /// The limited store a jet takes to a bare point is one that may fire at
 /// it: carrying a vehicle-only missile ahead of its bombs, it bombs the
 /// point instead of flying missile runs it can never fire.
