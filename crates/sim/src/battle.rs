@@ -2344,12 +2344,16 @@ impl Battle {
             return;
         }
         let mut outputs = Vec::new();
-        for (script, side, slot) in &self.authored_scripts {
-            let input = ScriptInput::new(
-                *side,
-                &self.observations[side.index()],
-                self.seed ^ 0x5343_5249_5054_0000 ^ self.tick ^ side.index() as u64,
-            );
+        for (index, (script, side, slot)) in self.authored_scripts.iter().enumerate() {
+            // Each script draws its own stream: the seed hashes the battle
+            // seed, the tick, the side and the script's place in the scenario.
+            let seed = [self.tick, side.index() as u64, index as u64]
+                .into_iter()
+                .fold(
+                    contract::random::mix(self.seed ^ 0x5343_5249_5054_0000),
+                    |h, v| contract::random::mix(h ^ v),
+                );
+            let input = ScriptInput::new(*side, &self.observations[side.index()], seed);
             let input = match slot.as_deref() {
                 Some(slot) => input.with_player(slot.to_owned()),
                 None => input,

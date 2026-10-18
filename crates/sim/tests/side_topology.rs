@@ -205,6 +205,35 @@ fn authored_victory_script_finishes_and_replay_keeps_the_result() {
 }
 
 #[test]
+fn scripts_on_one_side_draw_independent_random_streams() {
+    let mut setup = scenario(serde_json::json!([
+        { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
+        { "side": "red", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    // Two scripts with the same source, on the same side, on the same tick.
+    let flips = "repeat (32) { let r = random(2); if r == 0 { event(\"h\"); } if r == 1 { event(\"t\"); } }";
+    for id in ["first", "second"] {
+        setup
+            .authored_scripts
+            .push(contract::scenario::AuthoredScript {
+                id: id.into(),
+                source: flips.into(),
+                side: Side::Blue,
+                player: None,
+            });
+    }
+    let mut battle = Battle::new(&setup, 45);
+    battle.step();
+    let names: Vec<_> = battle
+        .script_events()
+        .iter()
+        .map(|e| e.name.as_str())
+        .collect();
+    assert_eq!(names.len(), 64);
+    assert_ne!(names[..32], names[32..], "each script draws its own stream");
+}
+
+#[test]
 fn authored_script_events_are_recorded_and_replayed() {
     let mut setup = scenario(serde_json::json!([
         { "side": "blue", "kind": "test_rifle", "position": [80.0, 100.0] },
