@@ -126,8 +126,9 @@ pub fn sees_point(
 }
 
 /// Whether one of `side`'s living units sees a round in flight at
-/// `position`, fired from `layer`: by its sight in that layer, as a round
-/// is a target like any other.
+/// `position`, fired from `layer`: from its eyes, by its sight in that
+/// layer, as a round is a target like any other (one fired from the ground
+/// is out of sight of an observer that doesn't see the ground).
 pub fn side_sees_round(
     world: &WorldGeometry,
     rules: &Rules,
@@ -137,16 +138,13 @@ pub fn side_sees_round(
     layer: AltitudeLayer,
 ) -> bool {
     units.iter().any(|u| {
-        u.side == side
-            && u.on_field()
-            && sees_point(
-                world,
-                eye(u, rules),
-                position,
-                &crate::sight::of_layer(u, rules, layer),
-                1.0,
-                &rules.sensors,
-            )
+        if u.side != side || !u.on_field() || (layer == AltitudeLayer::Ground && !sees_ground(u)) {
+            return false;
+        }
+        let sight = crate::sight::of_layer(u, rules, layer);
+        eyes(u, rules)
+            .into_iter()
+            .any(|eye| sees_point(world, eye, position, &sight, 1.0, &rules.sensors))
     })
 }
 
