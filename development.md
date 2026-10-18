@@ -126,9 +126,9 @@ Git LFS's hooks, so setup never redirects Git's hooks directory.
 
 Source files (what GitHub Linguist calls a programming language) have a size
 budget of 8,000 tokens (bytes / 4), so an agent can read any file whole. It is
-a ratchet, owned by [tools/check-file-size.mjs](tools/check-file-size.mjs): a
-file over the budget may shrink but not grow, and its error message says how
-to split one.
+a ratchet: a file over the budget may shrink but not grow. The
+[split-files](.agents/skills/split-files/SKILL.md) skill owns the check, lists
+every file over the budget, and says how to split one.
 
 Cyclomatic complexity has a loose budget, owned by
 [web/eslint.config.mjs](web/eslint.config.mjs). It is a tripwire for functions
