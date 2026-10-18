@@ -661,6 +661,35 @@ fn orders_aimed_at_a_passenger_are_refused_as_aboard() {
 }
 
 #[test]
+fn a_squad_boards_only_its_own_players_carrier() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200],"owner":"blue-2"},
+            {"side":"blue","kind":"test_recon","position":[195,200],"owner":"blue-1"},
+            {"side":"blue","kind":"test_apc","position":[200,210],"owner":"blue-1"}
+        ])),
+        7,
+    );
+    let board = |seq, carrier| CommandEnvelope {
+        player: Some("blue-1".into()),
+        ..command(
+            seq,
+            Order::Board {
+                units: vec![UnitId(1)],
+                carrier,
+                gesture: 1,
+            },
+        )
+    };
+    assert_eq!(
+        battle.accept(board(1, UnitId(0))).error,
+        Some(OrderError::WrongPlayer { unit: UnitId(0) }),
+        "a squad boarded its ally's carrier"
+    );
+    assert_eq!(battle.accept(board(2, UnitId(2))).error, None);
+}
+
+#[test]
 fn squads_beyond_the_seats_are_refused_closest_first() {
     let mut battle = Battle::new(
         &setup(json!([

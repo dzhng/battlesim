@@ -1949,6 +1949,9 @@ impl Battle {
                 {
                     return Err(OrderError::NotACarrier);
                 }
+                // A squad rides only its own player's carrier, as a carrier
+                // collects only its own player's squads.
+                self.validate_player(command, *carrier)?;
                 units
             }
             Order::Collect { units, squads, .. } => {
@@ -2007,16 +2010,21 @@ impl Battle {
     ) -> Result<(), OrderError> {
         self.validate_units(command.side, units)?;
         for &unit in units {
-            let Some(owner) = self.units[unit.0 as usize].owner.as_deref() else {
-                continue;
-            };
-            match command.player.as_deref() {
-                None => return Err(OrderError::MissingPlayer),
-                Some(slot) if slot == owner => {}
-                Some(_) => return Err(OrderError::WrongPlayer { unit }),
-            }
+            self.validate_player(command, unit)?;
         }
         Ok(())
+    }
+
+    /// A unit a player owns takes orders only from that player.
+    fn validate_player(&self, command: &CommandEnvelope, unit: UnitId) -> Result<(), OrderError> {
+        let Some(owner) = self.units[unit.0 as usize].owner.as_deref() else {
+            return Ok(());
+        };
+        match command.player.as_deref() {
+            None => Err(OrderError::MissingPlayer),
+            Some(slot) if slot == owner => Ok(()),
+            Some(_) => Err(OrderError::WrongPlayer { unit }),
+        }
     }
 
     /// Every unit named exists, is the side's own and is alive.
