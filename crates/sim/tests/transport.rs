@@ -1975,3 +1975,53 @@ fn a_carrier_stops_driving_to_a_squad_another_carrier_took() {
         carrier.orders
     );
 }
+
+#[test]
+fn a_squad_listed_twice_boards_once_and_waits_for_nothing() {
+    let mut battle = Battle::new(
+        &setup(json!([
+            {"side":"blue","kind":"test_apc","position":[200,200]},
+            {"side":"blue","kind":"test_recon","position":[195,200]}
+        ])),
+        7,
+    );
+    // Queued, so a second copy would wait behind the first.
+    let mut board = command(
+        1,
+        Order::Board {
+            units: vec![UnitId(1), UnitId(1)],
+            carrier: UnitId(0),
+            gesture: 1,
+        },
+    );
+    board.queued = true;
+    let ack = battle.accept(board);
+    assert_eq!(ack.error, None);
+    assert!(ack.refused.is_empty(), "{:?}", ack.refused);
+    let aboard = (0..battle.rules().tick_hz * 10).any(|_| {
+        battle.step();
+        battle
+            .unit(UnitId(1))
+            .and_then(|u| u.hold.as_ref())
+            .is_some_and(|h| h.phase == sim::hold::Phase::Inside)
+    });
+    assert!(aboard, "the squad never got in");
+    let squad = battle.unit(UnitId(1)).unwrap();
+    assert!(
+        squad.orders.is_empty(),
+        "a second copy of the order is left queued: {:?}",
+        squad.orders
+    );
+}
+
+#[test]
+fn a_squad_listed_twice_for_collection_is_refused_once() {
+    let (_, refusals) = collected_squad_boards_another_carrier(vec![UnitId(1), UnitId(1)]);
+    assert_eq!(
+        refusals,
+        vec![contract::command::Refusal {
+            unit: UnitId(1),
+            reason: OrderError::Aboard { unit: UnitId(1) },
+        }]
+    );
+}
