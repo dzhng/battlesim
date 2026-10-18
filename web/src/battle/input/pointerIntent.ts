@@ -1,5 +1,5 @@
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
-import type { ObservationView, OwnUnitView } from "../sim/observationView";
+import { aboardCarrier, type ObservationView, type OwnUnitView } from "../sim/observationView";
 import type { Order } from "../sim/protocol";
 import { isAttackMoveClick } from "./commandBindings";
 import { reach } from "./commandReach";
@@ -53,14 +53,16 @@ export type PointerIntent =
   | { kind: "blocked"; disarm: boolean };
 
 /** A held intent keeps its target and selection, while observed losses still
- *  apply; only units `player` orders stay in it (`controlled`). */
+ *  apply; only units `player` orders (`controlled`) and no carrier holds
+ *  (`aboardCarrier`) stay in it: a squad that boards before release is no
+ *  longer orderable, nor a squad to collect. */
 export function reconcilePointerIntent(
   intent: PointerIntent,
   observation: ObservationView | null,
   player: string | undefined,
 ): PointerIntent {
   if (!("units" in intent)) return intent;
-  const yours = controlled(observation, player);
+  const yours = controlled(observation, player).filter((unit) => !aboardCarrier(unit));
   const ownIds = (ids: readonly number[]) =>
     ids.filter((id) => yours.some((unit) => unit.id === id));
   const units = ownIds(intent.units);

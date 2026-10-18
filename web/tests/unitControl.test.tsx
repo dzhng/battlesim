@@ -815,6 +815,48 @@ test("right-clicking an own carrier boards the selected squads; right-clicking a
   ]);
 });
 
+test("a squad that boards another carrier while a right-press is held is left out of the release's order", async () => {
+  const { client, sent } = recordingClient();
+  const squad = (id: number, aboard: boolean) =>
+    aboard
+      ? ({
+          ...own(id, "test_rifle"),
+          hold: { host: { kind: "carrier", id: 6 }, phase: "entering", progress: 0.5 },
+        } as unknown as OwnUnitView)
+      : own(id, "test_rifle");
+  // Squads 1 and 3, APCs 4 and 6; with `taken`, APC 6 has begun to take squad 3.
+  const observation = (taken: boolean) =>
+    ({
+      own: [squad(1, false), squad(3, taken), own(4, "test_apc"), own(6, "test_apc")],
+      contacts: [],
+    }) as unknown as ObservationView;
+  const hook = renderHook(({ taken }) => useUnitControl(client, observation(taken)), {
+    wrapper,
+    initialProps: { taken: false },
+  });
+  const press = (unit: number): PointerPick => ({
+    unit,
+    button: "right",
+    shift: false,
+    ctrl: false,
+    x: 0,
+    y: 0,
+    time: 0,
+    ground: [50, 50],
+  });
+  act(() => hook.result.current.setSelected([1, 3]));
+  const board = hook.result.current.intentAt(press(4));
+  act(() => hook.result.current.setSelected([4]));
+  const collect = hook.result.current.intentAt(press(3));
+  hook.rerender({ taken: true });
+  await act(async () => hook.result.current.onPointer(press(4), board));
+  await act(async () => hook.result.current.onPointer(press(3), collect));
+  expect(sent).toEqual([
+    { order: { kind: "board", units: [1], carrier: 4, gesture: 1 }, queued: false },
+  ]);
+  hook.unmount();
+});
+
 test("U then a ground click unloads there, only the carriers holding passengers; Shift queues it; right-click cancels", async () => {
   const { hook, sent, click, key } = await carriers(true);
   act(() => hook.result.current.setSelected([1, 2, 4, 6]));
