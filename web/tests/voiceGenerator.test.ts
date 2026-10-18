@@ -336,6 +336,15 @@ describe("voice generation", () => {
       return pack.takes.map((take) => `tank/lead/move/${take.intensity}/${take.take}`);
     };
     expect(packedTakes(catalog())).toEqual(takes);
+    // A cleared verdict reads as unreviewed: out of the pack until judged,
+    // listed by an unreviewed pack while it passes the transcript check.
+    const [first] = takes;
+    recordVerdicts(lockPath, "clear", [`${first}@${reviewed.takes[first].served_sha256}`], quiet);
+    expect(verdictOf(readLock(lockPath).takes[first])).toBeNull();
+    expect(packedTakes(catalog())).toEqual(takes.slice(1));
+    writePacks({ root, catalog: catalog(), unreviewed: true, log: quiet });
+    recordVerdicts(lockPath, "ok", [`${first}@${reviewed.takes[first].served_sha256}`], quiet);
+    expect(packedTakes(catalog())).toEqual(takes);
 
     // The set moves onto another bed: every take is re-rendered, no speech is bought.
     const remixed = catalog();
