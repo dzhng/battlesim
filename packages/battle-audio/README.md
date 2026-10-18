@@ -179,7 +179,9 @@ when an order is accepted or refused for a reason the player caused (a unit
 an order refuses on its own, such as a squad left without a seat, answers
 with its refusal, and the rest answer the order; a refusal on arrival
 answers when the side observes it, once), and when
-an ordered move (or a purchase's drive in) ends after a real journey. One unit
+an ordered move (or a purchase's drive in) ends after a real journey; each
+queued journey arrives on its own, starting when the unit stops after the one
+before. One unit
 answers for a group: the one clicked, else the highest-value. Only the owner
 hears an answer, dry and centred on the voices bus.
 
