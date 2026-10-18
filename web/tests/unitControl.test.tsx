@@ -578,12 +578,18 @@ test("attack-move sends the entire selection, including unarmed units, by click 
   ]);
 });
 
-/** A 2v2's blue side as `blue-1` sees it: units 1 and 3 its own, unit 2 its
- *  ally `blue-2`'s, all of one type. */
-function teamControl() {
-  const unit = (id: number, owner: number) => ({ ...own(id, "test_rifle"), owner });
+/** A 2v2's blue side as `blue-1` sees it: by default units 1 and 3 its
+ *  own, unit 2 its ally `blue-2`'s, all of one type. Each of `units` is
+ *  an id, a type and its owner's index (0 `blue-1`, 1 `blue-2`). */
+function teamControl(
+  units: [number, string, number][] = [
+    [1, "test_rifle", 0],
+    [2, "test_rifle", 1],
+    [3, "test_rifle", 0],
+  ],
+) {
   const observation = {
-    own: [unit(1, 0), unit(2, 1), unit(3, 0)],
+    own: units.map(([id, kind, owner]) => ({ ...own(id, kind), owner })),
     contacts: [],
     skirmish: {
       players: [
@@ -609,10 +615,10 @@ function teamControl() {
         ground: [0, 0],
       }),
     );
-  const right = (time: number) =>
+  const right = (time: number, unit: number | null = null) =>
     act(async () =>
       hook.result.current.onPointer({
-        unit: null,
+        unit,
         button: "right",
         shift: false,
         ctrl: false,
@@ -659,6 +665,28 @@ test("an ally can be selected to read its panel, but no command leaves with its 
   await right(8000);
   await act(async () => hook.result.current.stop());
   expect(sent.map(({ order }) => "units" in order && order.units)).toEqual([[1], [1]]);
+  hook.unmount();
+});
+
+test("a right-click boards or collects only your own units, never an ally's", async () => {
+  const { hook, sent, right } = teamControl([
+    [1, "test_rifle", 0],
+    [3, "test_apc", 0],
+    [4, "test_apc", 1],
+    [5, "test_rifle", 1],
+  ]);
+  // Your squad on your ally's carrier, and your carrier on your ally's
+  // squad: each click falls through to the ground under it.
+  act(() => hook.result.current.setSelected([1]));
+  await right(0, 4);
+  act(() => hook.result.current.setSelected([3]));
+  await right(1000, 5);
+  // Your own carrier and squad still take the click.
+  act(() => hook.result.current.setSelected([1]));
+  await right(2000, 3);
+  act(() => hook.result.current.setSelected([3]));
+  await right(3000, 1);
+  expect(sent.map(({ order }) => order.kind)).toEqual(["move", "move", "board", "collect"]);
   hook.unmount();
 });
 

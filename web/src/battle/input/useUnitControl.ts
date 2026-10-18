@@ -228,7 +228,14 @@ export function useUnitControl(
   /** What a pointer at `pick` would order, by the selection and armed mode. */
   const intentAt = useCallback(
     (pick: PointerPick) =>
-      pointerIntent(pick, selectedUnitsRef.current, modeRef.current, catalog, ownUnits()),
+      pointerIntent(
+        pick,
+        selectedUnitsRef.current,
+        modeRef.current,
+        catalog,
+        ownUnits(),
+        yoursRef.current,
+      ),
     [catalog, ownUnits],
   );
 

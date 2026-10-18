@@ -88,16 +88,18 @@ export function dragFacing(pick: Pick<PointerPick, "ground" | "facingTo">): numb
   return Math.hypot(dx, dy) < MIN_FACING_DRAG_M ? undefined : Math.atan2(dy, dx);
 }
 
-/** Right-clicking an own unit (D7): squads selected board the carrier
- *  under the pointer; carriers selected collect the squad under it. Null
- *  when neither applies, and the click falls through to the ground. */
+/** Right-clicking a unit the player orders (D7): squads selected board the
+ *  carrier under the pointer; carriers selected collect the squad under it.
+ *  Null when neither applies (an ally's unit included), and the click falls
+ *  through to the ground. */
 function carriageIntent(
   pick: PointerPick,
   selected: readonly OwnUnitView[],
   own: readonly OwnUnitView[],
+  yours: readonly OwnUnitView[],
   catalog: UnitCatalog,
 ): PointerIntent | null {
-  const target = pick.unit === null ? undefined : own.find((u) => u.id === pick.unit);
+  const target = pick.unit === null ? undefined : yours.find((u) => u.id === pick.unit);
   if (!target) return null;
   const queued = pick.shift;
   if (reach("collect", [target], catalog, own).length) {
@@ -112,13 +114,15 @@ function carriageIntent(
 }
 
 /** Hover and dispatch describe one intent; only dispatch mints its gesture.
- *  `own` is every own unit: what the pointer is over, and who rides what. */
+ *  `own` is every unit on the side, the passengers among them; `yours` the
+ *  ones the player orders (`controlled`), the only ones it boards or collects. */
 export function pointerIntent(
   pick: PointerPick,
   selected: readonly OwnUnitView[],
   mode: CommandMode,
   catalog: UnitCatalog,
   own: readonly OwnUnitView[],
+  yours: readonly OwnUnitView[],
 ): PointerIntent {
   if (selected.length === 0) return { kind: "none" };
   const queued = pick.shift;
@@ -154,7 +158,7 @@ export function pointerIntent(
       return { kind: "attack", units, target: { kind: "contact", id: pick.contact }, queued };
   }
   if (mode === "move") {
-    const carriage = carriageIntent(pick, selected, own, catalog);
+    const carriage = carriageIntent(pick, selected, own, yours, catalog);
     if (carriage) return carriage;
   }
   const facing = dragFacing(pick);
