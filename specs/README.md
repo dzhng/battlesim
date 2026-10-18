@@ -10,7 +10,7 @@ a capability has shipped.
 variants, the skirmish economy/objectives, basic AI and a phased implementation
 ladder with parallel named-model production.
 
-[Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](transport/README.md) carries infantry squads in APCs, IFVs, light vehicles and helicopters, with bail-out when a carrier dies and a skirmish AI that moves its infantry by transport.
+[Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](done/transport/README.md) (shipped) carries infantry squads in APCs, IFVs, light vehicles and helicopters, with bail-out when a carrier dies and a skirmish AI that moves its infantry by transport.
 
 [Team skirmish](team-skirmish/README.md) (planned) turns the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
 

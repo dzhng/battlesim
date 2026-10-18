@@ -1,6 +1,6 @@
 # 17 — Transport lifecycle
 
-**Status:** superseded on 2026-10-16 by the sliced [transport plan](../../transport/README.md), which carries the checks below. Its ownership differs from this sketch: `sim::hold` owns being inside a building or carrier, `sim::carriage` owns seats, and `sim::bail_out` owns forced exits; there is no `sim::transport`. Ignore the rest of this page. Previously: planned, not implemented. **Dependencies:** 04, 08, 09, 11, 12, 16. **Milestone:** Deferred continuation — implement only after village checkpoint and explicit continuation scope.
+**Status:** superseded on 2026-10-16 by the sliced [transport plan](../../done/transport/README.md), which carries the checks below. Its ownership differs from this sketch: `sim::hold` owns being inside a building or carrier, `sim::carriage` owns seats, and `sim::bail_out` owns forced exits; there is no `sim::transport`. Ignore the rest of this page. Previously: planned, not implemented. **Dependencies:** 04, 08, 09, 11, 12, 16. **Milestone:** Deferred continuation — implement only after village checkpoint and explicit continuation scope.
 
 ## Contract and question
 

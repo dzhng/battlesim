@@ -142,4 +142,4 @@ Balance was out of scope: the user asked only that helicopters not be clearly un
 
 ## What comes next
 
-[Transport](../../transport/README.md) carries infantry in ground carriers and helicopters; a helicopter loads and unloads only once settled at its low hover.
+[Transport](../transport/README.md) carries infantry in ground carriers and helicopters; a helicopter loads and unloads only once settled at its low hover.

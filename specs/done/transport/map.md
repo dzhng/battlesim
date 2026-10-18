@@ -1,6 +1,6 @@
 # Transport: the map of unknowns
 
-The `explore-unknowns` walk on 2026-10-16, held with the user. The sliced plan built from it is [README.md](README.md); where the drafting pass corrected a card below, the card says so. Every decision below was shown to the user before it closed. "User" means the user answered it, "territory" means the code answered it, and "agent" means the agent answered on the user's behalf under the delegation recorded in section 2. Every number is a starting guess to tune in play, unless it is marked **hard**.
+The `explore-unknowns` walk on 2026-10-16, held with the user. [README.md](README.md) records what shipped; where the drafting pass corrected a card below, the card says so. Every decision below was shown to the user before it closed. "User" means the user answered it, "territory" means the code answered it, and "agent" means the agent answered on the user's behalf under the delegation recorded in section 2. Every number is a starting guess to tune in play, unless it is marked **hard**.
 
 **Done means** (user):
 - squads ride, unload and bail out in a played skirmish, and the skirmish AI moves its infantry by transport;
