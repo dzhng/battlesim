@@ -16,7 +16,7 @@ All 19 roster helicopters are playable for the player and the skirmish AI, and t
 The user framed every rule as a war-film moment rather than a ballistics table:
 - Rifles keep firing at a helicopter they can't hurt, because sparks off armour read well on screen (D2).
 - A tank's main gun never engages a helicopter. D1 makes this a data rule (each weapon row's `targets`), not a gun-elevation limit. A tank's HMG still does engage one.
-- One altitude rule replaced two flight modes (D4). The old [battle-foundation slice 18](../../battle-foundation/slices/18-air-movement.md) had normal and low flight with a stealth trade-off; the user replaced it.
+- One altitude rule replaced two flight modes (D4). The archived [battle-foundation rationale](../battle-foundation/README.md) records the earlier normal/low-flight proposal and why the user replaced it.
 
 Research behind the rules:
 - [Broken Arrow dev diary #2](https://forum.slitherine.com/viewtopic.php?p=936391): helicopters as fragile cavalry that fly nap-of-the-earth.
