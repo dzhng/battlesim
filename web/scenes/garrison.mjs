@@ -204,6 +204,8 @@ export async function run(ctx) {
   await look(page, 95);
 
   // The scouts garrison: one squad takes the building.
+  const TANK_OPENS_FIRE = await lab(page, () => window.__lab.route.tankOpensFire);
+  const SPOTTER_WALKS_UP = await lab(page, () => window.__lab.route.spotterWalksUp);
   // The tick the house was first seen fallen during the entry steps, if it was.
   let fellAt = null;
   const watchHouse = (f) => {
@@ -239,6 +241,11 @@ export async function run(ctx) {
   // until SPOTTER_WALKS_UP, so the scouts are inside with no enemy seeing
   // them. If a rule change slows the entry past that tick, fix the lab's
   // staging (the encounter's scripted move), not the check below.
+  ctx.check(
+    "staging: the scouts are inside before red's squad walks up to spot them",
+    !!o && o.tick < SPOTTER_WALKS_UP,
+    JSON.stringify({ insideAt: o?.tick ?? null, spotterWalksUp: SPOTTER_WALKS_UP }),
+  );
 
   const card = page.locator('.ro-unit[data-unit="2"]');
   await card.hover();
@@ -424,7 +431,12 @@ export async function run(ctx) {
   // The staging's guard: the lab holds red's tank until TANK_OPENS_FIRE so
   // the entry steps above measure the timer, not a collapse. If a rule
   // change brings the house down, or slows the entries past that tick, fix
-  // the lab's staging (routes/garrison.tsx), not these checks.
+  // the lab's staging (routes/garrison.tsx), not this check.
+  ctx.check(
+    "staging: every entry finished, the house standing, before red's tank opens fire",
+    !!o && o.tick < TANK_OPENS_FIRE && fellAt === null,
+    JSON.stringify({ entriesDoneAt: o?.tick ?? null, tankOpensFire: TANK_OPENS_FIRE, fellAt }),
+  );
 
   // Red's tank shells the occupants its squad spots; blue answers outward.
   let own = 0,
