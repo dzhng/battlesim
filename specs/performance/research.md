@@ -24,6 +24,7 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 | Reuse the existing model colour word for packed yaw sine/cosine | unchanged renderer | discard | Full browser reel completed, but market-town GPU 14.41 → 14.48 ms and paris-corner 10.79 → 10.92 ms; reverted |
 | Skip shadow PCF taps outside a cascade | unchanged renderer | keep provisionally | Browser market-town 14.41 → 14.36 ms and paris-corner 10.79 → 10.82 ms; native llvmpipe 1388.71 → 1387.03 ms. Output is identical outside the cascade; gains are near the measurement noise floor |
 | Unroll the fixed five-tap Vogel PCF kernel | shadow early-return candidate | keep provisionally | Browser market-town 14.36 → 14.35 ms and paris-corner unchanged; full reel and pipeline validation pass |
+| Specialize fixed shore-noise rotation angles | shadow PCF candidate | discard | Full browser reel completed, but market-town GPU 14.35 → 14.38 ms and paris-corner 10.82 → 10.83 ms; reverted |
 
 ## Parameter-effect map
 
