@@ -24,6 +24,8 @@ const RESTITUTION: f64 = 0.3;
 const TIP_SINK_MPS: f64 = 15.0;
 const MAX_PITCH_RAD: f64 = 0.35;
 const MAX_ROLL_RAD: f64 = 0.25;
+/// How far clear of a wall it is put, glancing off it.
+const CLEAR_M: f64 = 1e-6;
 /// How fast it slides off a roof it fell on.
 const SLIDE_MPS: f64 = 4.0;
 /// The wreck's search for clear ground: rings this far apart, this far out.
@@ -88,10 +90,16 @@ impl Crash {
         self.velocity = self.velocity + gravity * dt;
         self.position = self.position + self.velocity * dt;
         self.yaw = crate::math::wrap_angle(self.yaw + self.spin_rad_s * dt);
-        let reach = half.y;
+        // Its hull's footprint at its yaw: nose and tail strike as its sides do.
+        let reach = half.xy().length();
         for prop in world.props_near(self.position.xy(), reach) {
             let body = prop.footprint();
             let here = self.position.xy();
+            let hull = Obb2 {
+                center: here,
+                yaw: self.yaw,
+                half: half.xy(),
+            };
             // Bridge decks are the support surface, rather than a roof that
             // catches a falling airframe at the slab's upper edge.
             let is_bridge_deck = world.surface_at(here.x, here.y).is_some_and(|surface| {
@@ -102,28 +110,24 @@ impl Crash {
             if prop.body.weight_class != WeightClass::Immovable
                 || is_bridge_deck
                 || self.position.z >= prop.top_z()
-                || body.distance(here) > reach
             {
                 continue;
             }
-            let out = body.push_out(here, reach);
-            let normal = (out - here).normalized();
+            let Some(out) = body.separation(&hull) else {
+                continue;
+            };
+            let normal = out.normalized();
             if was.z >= prop.top_z() {
                 // On a roof: it rests on it, and slides off the nearer edge.
                 self.position.z = prop.top_z();
-                let away = if normal.length() > 0.0 {
-                    normal
-                } else {
-                    (here - prop.center).normalized()
-                };
-                self.velocity = (away * SLIDE_MPS).with_z(0.0);
+                self.velocity = (normal * SLIDE_MPS).with_z(0.0);
             } else {
                 // Into a side: it glances off.
                 let flat = self.velocity.xy();
                 let into = flat.dot(normal).min(0.0);
                 let glance = (flat - normal * (2.0 * into)) * RESTITUTION;
                 self.velocity = glance.with_z(self.velocity.z);
-                self.position = out.with_z(self.position.z);
+                self.position = (here + out + normal * CLEAR_M).with_z(self.position.z);
             }
         }
         if self.position.x < 0.0

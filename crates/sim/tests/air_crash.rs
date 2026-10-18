@@ -283,20 +283,29 @@ fn it_glances_off_a_building_it_falls_against() {
     );
     let half = sim::math::v3(7.0, 1.2, 1.6);
     let gravity = sim::math::v3(0.0, 0.0, -9.81);
+    let wall = world.props().next().unwrap().footprint();
+    // No part of its spinning hull, nose and tail included, enters the wall.
+    let inside = |crash: &sim::crash::Crash| {
+        let hull = sim::math::Obb2 {
+            center: crash.position.xy(),
+            yaw: crash.yaw,
+            half: half.xy(),
+        };
+        wall.separation(&hull).map_or(0.0, |s| s.length())
+    };
     let mut ticks = 0;
     while crash.fall(&world, gravity, half, 1.0 / 30.0) == sim::crash::Fall::Falling {
+        let depth = inside(&crash);
         assert!(
-            crash.position.x < 110.0,
-            "it passed into the wall at {:?}",
-            crash.position
+            depth < 1e-6,
+            "its hull sank {depth:.2} m into the wall at {crash:?}"
         );
         ticks += 1;
         assert!(ticks < 300, "it never landed");
     }
-    assert!(
-        crash.position.x < 110.0 - half.y,
-        "it came to rest against the wall"
-    );
+    let depth = inside(&crash);
+    assert!(depth < 1e-6, "it came to rest {depth:.2} m into the wall");
+    assert!(crash.position.x < 110.0, "it passed the wall: {crash:?}");
 }
 
 #[test]
