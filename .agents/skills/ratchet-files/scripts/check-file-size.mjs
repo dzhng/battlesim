@@ -24,7 +24,7 @@ node_modules; otherwise add it as a dev dependency.
 The default budget is 8,000 tokens. Exit 1 means a file broke the budget.
 
 Pre-commit install (lint-staged), passing every staged file:
-  "*": "bun <path-to>/check-file-size.mjs"
+  "*": "bun <path-to>/check-file-size.mjs"   (node works too)
 Commit this script into the repository and point the hook at that copy, so
 every clone runs the same check.`;
 
