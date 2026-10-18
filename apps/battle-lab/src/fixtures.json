@@ -191,7 +191,7 @@
   {
     "id": "ui",
     "route": "/labs/ui",
-    "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
+    "describe": "UI gallery: every interface piece the panel workbench and cursor lab do not draw (top status strip in each phase, the end-of-match report at 1v1, 2v2, 5v5 and watched, battle clock, reinforcements picker, objective markers, range ruler, refused order, frame rate, captions, pause menu, loading and its failure), each in fixed states through the game's own components; ?shot= draws one. Its scene also pins every main-menu page.",
     "map": null
   },
   {

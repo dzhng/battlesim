@@ -13,6 +13,7 @@
 - Slice 07 landed the pure lobby model and moved the builder onto `scenario.players`.
 - Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
 - Slices 08 and 09 landed the lobby: the admitted map picture and the order-of-battle screen at `/`, whose Deploy opens exactly the previewed map. Unpinned `/battle?play=1` is gone; the lobby's preview is the only admission.
+- Slice 11 landed the per-player match report: a scoreboard row per player under each side, a timeline naming each player (a player's purchases in one minute are one line), and the result read from the viewer's side, neutral when the client plays no seat. Its pictures are the UI gallery's `report-*` shots and the `allies` scene's real 2v2 report.
 
 **Next:**
 - Slice 10 (allies in battle, visual): it needs 06, which has landed.
@@ -53,7 +54,7 @@ Slices:
 - [x] 08: lobby map picture ([slice](slices/08-map-picture.md))
 - [x] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
 - [x] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
-- [ ] 11: per-player match report ([slice](slices/11-match-report.md))
+- [x] 11: per-player match report ([slice](slices/11-match-report.md))
 - [ ] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
 - [ ] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
 - [ ] 14: 5v5 AI-versus-AI closeout ([slice](slices/14-closeout.md))

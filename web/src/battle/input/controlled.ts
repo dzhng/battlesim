@@ -5,6 +5,7 @@
  *  `player` is the player the client commands as (`commandingPlayer.ts`); a
  *  battle without player-owned units (a lab) lets the player order them all. */
 import type { ObservationView, OwnUnitView } from "../sim/observationView";
+import { playerName } from "../present/playerName";
 
 /** The skirmish player index `player` holds, or null where units are not
  *  player-owned. */
@@ -38,14 +39,7 @@ export function allyOwners(
   if (index === null) return lines;
   for (const unit of observation?.own ?? []) {
     if (ordered(unit, index)) continue;
-    lines.set(unit.id, ownerLine(players.find((p) => p.index === unit.owner)!));
+    lines.set(unit.id, playerName(players.find((p) => p.index === unit.owner)!));
   }
   return lines;
-}
-
-/** A player as its units' panels name it: its seat ("blue-2" is BLUE 2) and
- *  who plays it. */
-function ownerLine(player: { id: string; controller: string }): string {
-  const seat = player.id.replace(/-/g, " ").toUpperCase();
-  return `${seat} · ${player.controller === "human" ? "HUMAN" : "AI"}`;
 }

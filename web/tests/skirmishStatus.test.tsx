@@ -24,12 +24,16 @@ const match: SkirmishView = {
   report: null,
 };
 test("the public match readout follows preparation, both scores and the terminal result", () => {
-  const view = render(<SkirmishStatus match={match} />);
+  const view = render(<SkirmishStatus match={match} viewer="blue" />);
   expect(view.getByText("PREPARATION · 60 s")).toBeTruthy();
-  view.rerender(<SkirmishStatus match={{ ...match, phase: "active", scores: [345.8, 120.2] }} />);
+  view.rerender(
+    <SkirmishStatus match={{ ...match, phase: "active", scores: [345.8, 120.2] }} viewer="blue" />,
+  );
   expect(view.getByLabelText("Your victory score").textContent).toBe("345 / 1,000");
   expect(view.getByLabelText("Enemy victory score").textContent).toBe("120 / 1,000");
-  view.rerender(<SkirmishStatus match={{ ...match, phase: "finished", result: "red" }} />);
+  view.rerender(
+    <SkirmishStatus match={{ ...match, phase: "finished", result: "red" }} viewer="blue" />,
+  );
   expect(view.getByText("DEFEAT")).toBeTruthy();
 });
 
@@ -50,6 +54,7 @@ test("contested objective flags expose a flashing state", () => {
           },
         ],
       }}
+      viewer="blue"
     />,
   );
   expect(view.getByLabelText("Objective 1: contested").getAttribute("data-contested")).toBe("true");

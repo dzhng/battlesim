@@ -234,6 +234,9 @@ export function useBattleSession({
   );
   // The player this client's orders go out as, and whose units it orders.
   const commanding = commandingPlayer(players, side, player);
+  /** The human the client plays as; null when it watches a battle it has no
+   *  seat in (AI against AI), and the result reads neutral. */
+  const viewer = players.find((p) => p.id === commanding && p.controller === "human") ?? null;
   const sim = useSimSession({
     scenario,
     seed,
@@ -1193,6 +1196,9 @@ export function useBattleSession({
     sim,
     control,
     allies,
+    /** The battle's players in scenario order, and the one the client plays. */
+    seats: players,
+    viewer,
     purchase: skirmish
       ? {
           faction: faction!,

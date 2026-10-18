@@ -319,7 +319,7 @@ export function BattleView({
         <header className="hud-panel hud-top" data-occludes-readouts>
           {!sim.error &&
             (observation?.skirmish ? (
-              <SkirmishStatus match={observation.skirmish} />
+              <SkirmishStatus match={observation.skirmish} viewer={session.viewer?.side ?? null} />
             ) : (
               status(session)
             ))}
@@ -385,7 +385,13 @@ export function BattleView({
           {menu?.(session)}
         </PauseMenu>
       )}
-      {observation?.skirmish && <MatchResultOverlay match={observation.skirmish} />}
+      {observation?.skirmish && (
+        <MatchResultOverlay
+          match={observation.skirmish}
+          seats={session.seats}
+          viewer={session.viewer?.id ?? null}
+        />
+      )}
     </>
   );
 }

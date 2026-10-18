@@ -35,6 +35,8 @@ import { BattleClock, SkirmishStatus } from "../battleStatus";
 import { LoadingScreen } from "../LoadingScreen";
 import { MenuButton, PauseMenu } from "../PauseMenu";
 import { specimenUnit } from "../panelSpecimens";
+import { MatchResultOverlay } from "../MatchResultOverlay";
+import { reportSpecimen } from "../reportSpecimens";
 
 const GAME_RULES = game as unknown as PanelRules;
 
@@ -159,7 +161,7 @@ function Status({ match }: { match: SkirmishView }) {
   return (
     <div className="hud">
       <header className="hud-panel hud-top" data-occludes-readouts>
-        <SkirmishStatus match={match} />
+        <SkirmishStatus match={match} viewer="blue" />
       </header>
       {match.phase === "preparation" && (
         <div className="hud-ready-layer" data-occludes-readouts>
@@ -252,8 +254,24 @@ function Frames() {
   return <FrameRate handle={handle} />;
 }
 
+/** The end-of-match report over a battle: one human and their allies
+ *  against AI, or a battle with no human watched. */
+const REPORTS = [
+  ["report-1v1", "h", "a", "blue"],
+  ["report-2v2-defeat", "ha", "aa", "red"],
+  ["report-5v5", "haaaa", "aaaaa", "blue"],
+  ["report-spectating", "aa", "aa", "red"],
+] as const;
+
 /** Every shot: its id (the baseline's name) and what it draws. */
 const SHOTS: { id: string; draw: () => ReactNode }[] = [
+  ...REPORTS.map(([id, blue, red, result]) => ({
+    id,
+    draw: () => {
+      const specimen = reportSpecimen(blue, red, result);
+      return <MatchResultOverlay {...specimen} />;
+    },
+  })),
   {
     id: "status-preparation",
     draw: () => (
