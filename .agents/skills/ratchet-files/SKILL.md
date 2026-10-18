@@ -23,6 +23,12 @@ with `--help` before anything else.
 4. Prove the split changed no behaviour with the repository's own checks,
    and commit it alone, before the change that needed the room.
 
+A file whose every split would cost more than it saves (one table or state
+machine that only reads whole) may opt out with the pragma the script names,
+in a comment near its top with the reason. It is a last resort, not a way past
+the hook: tell the user each file you opt out and why. `--all` counts opted-out
+files so they stay visible.
+
 Done when every file you picked is under budget in its own commit, the
 behaviour checks pass, and `--all` no longer lists those files.
 

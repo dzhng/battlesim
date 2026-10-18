@@ -128,7 +128,8 @@ Source files (what GitHub Linguist calls a programming language) have a size
 budget of 8,000 tokens (bytes / 4), so an agent can read any file whole. It is
 a ratchet: a file over the budget may shrink but not grow. The
 [ratchet-files](.agents/skills/ratchet-files/SKILL.md) skill owns the check,
-lists every file over the budget, and says how to split one.
+lists every file over the budget, and says how to split one or, as a last
+resort, opt it out with a pragma.
 
 Cyclomatic complexity has a loose budget, owned by
 [web/eslint.config.mjs](web/eslint.config.mjs). It is a tripwire for functions

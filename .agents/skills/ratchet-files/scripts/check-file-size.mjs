@@ -7,6 +7,9 @@ import { extname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
+const pragma = "@ratchet-files-ignore";
+const pragmaLines = 10;
+
 const usage = `Usage:
   check-file-size.mjs --all [--max-tokens N]
       List every tracked source file over the budget, largest first.
@@ -17,7 +20,9 @@ const usage = `Usage:
 
 Source is any extension GitHub Linguist assigns to a programming language
 and no prose language (.md is not source). Files marked linguist-generated
-or linguist-vendored in .gitattributes are skipped. Language data comes
+or linguist-vendored in .gitattributes are skipped, and so is a file with
+${pragma} in a comment in its first ${pragmaLines} lines, followed by why
+splitting it would cost more than it saves. Language data comes
 from the linguist-languages package: Bun fetches it in a repository without
 node_modules; otherwise add it as a dev dependency.
 
@@ -37,7 +42,11 @@ const splitRules = `Split a file before adding to it:
   - Move tests beside the code they test, grouped the way the code is.
   - Commit the split on its own, before the change that needed the room. A
     split must not change behaviour; prove it with the checks the repository
-    already uses for that.`;
+    already uses for that.
+  - Opt a file out only when every split costs more than it saves, such as
+    one table or state machine that reads only as a whole: put
+    ${pragma} in a comment near the top with that reason, and tell
+    the user.`;
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -106,6 +115,12 @@ const blobBytes = (spec) => {
     return null; // Not in that tree: a new file.
   }
 };
+// A file opts out with the pragma near its top, in whatever comment syntax
+// its language uses.
+const ignored = (spec) =>
+  git(["cat-file", "blob", spec])
+    .split("\n", pragmaLines)
+    .some((line) => line.includes(pragma));
 const tokens = (bytes) => `~${Math.round(bytes / 4).toLocaleString("en")} tokens`;
 const sources = (paths) => {
   const candidates = paths.filter(isSource);
@@ -118,9 +133,13 @@ if (values.all) {
     .map((path) => ({ path, bytes: blobBytes(`:${path}`) }))
     .filter(({ bytes }) => bytes > maxBytes)
     .sort((a, b) => b.bytes - a.bytes);
-  for (const { path, bytes } of over) console.log(`${tokens(bytes).padStart(15)}  ${path}`);
-  console.log(`Source files over ${maxTokens.toLocaleString("en")} tokens: ${over.length}.`);
-  process.exit(over.length > 0 ? 1 : 0);
+  const opted = over.filter(({ path }) => ignored(`:${path}`));
+  const listed = over.filter((file) => !opted.includes(file));
+  for (const { path, bytes } of listed) console.log(`${tokens(bytes).padStart(15)}  ${path}`);
+  console.log(`Source files over ${maxTokens.toLocaleString("en")} tokens: ${listed.length}.`);
+  if (opted.length > 0)
+    console.log(`Over the budget but opted out with ${pragma}: ${opted.length}.`);
+  process.exit(listed.length > 0 ? 1 : 0);
 }
 
 const origin = new Map();
@@ -131,7 +150,7 @@ for (const line of git(["diff", "--cached", "--find-renames", "--name-status"]).
 const failures = [];
 for (const path of sources(positionals.map((path) => relative(root, path)))) {
   const bytes = blobBytes(`:${path}`);
-  if (bytes === null || bytes <= maxBytes) continue;
+  if (bytes === null || bytes <= maxBytes || ignored(`:${path}`)) continue;
   const before = blobBytes(`HEAD:${origin.get(path) ?? path}`);
   if (before !== null && bytes <= before) continue;
   failures.push({ path, bytes, before });
