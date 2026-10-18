@@ -78,9 +78,22 @@ pub(crate) fn stationary(unit: &Unit) -> bool {
 }
 
 pub(crate) fn within_reach(carrier: &Unit, passenger: &Unit, rules: &Rules) -> bool {
+    reaches(carrier, passenger.position.xy(), rules)
+}
+
+/// Whether a squad standing at `point` is within the carrier's boarding reach.
+fn reaches(carrier: &Unit, point: V2, rules: &Rules) -> bool {
     let hull_reach = carrier.hull.map_or(0.0, |h| h.xy().length());
     let reach = Host::Carrier(carrier.id).timing(rules).reach_m;
-    (carrier.position.xy() - passenger.position.xy()).length() <= reach + hull_reach
+    (carrier.position.xy() - point).length() <= reach + hull_reach
+}
+
+/// Where a collecting carrier meets `squad`: where it stands, or for a squad
+/// in a building, the spot outside where it went in.
+fn meeting_point(squad: &Unit) -> V2 {
+    (squad.hold.as_ref())
+        .and_then(|hold| hold.building())
+        .map_or(squad.position.xy(), |garrison| garrison.entry)
 }
 
 pub(crate) fn near_and_still(
@@ -247,16 +260,21 @@ fn approach_over(units: &[Unit], i: usize, rules: &Rules) -> bool {
                 .filter_map(|id| units.get(id.0 as usize))
                 .filter(|s| collectable(&units[i], s))
                 .peekable();
-            left.peek().is_none() || left.any(|s| within_reach(&units[i], s, rules))
+            left.peek().is_none() || left.any(|s| reaches(&units[i], meeting_point(s), rules))
         }
         _ => false,
     }
 }
 
 /// Whether `carrier` can still collect `squad`: alive, on its side, and not
-/// inside anything.
+/// in a carrier. A squad in a building counts: its Board order takes it out.
 fn collectable(carrier: &Unit, squad: &Unit) -> bool {
-    squad.alive() && squad.side == carrier.side && squad.hold.is_none()
+    squad.alive()
+        && squad.side == carrier.side
+        && squad
+            .hold
+            .as_ref()
+            .is_none_or(|hold| hold.host.carrier().is_none())
 }
 
 /// Start a squad getting in to `carrier`; [`crate::hold::advance`] runs its
@@ -375,13 +393,11 @@ pub(crate) fn advance(
                     }
                     continue;
                 };
-                let target = units[target_id.0 as usize].position.xy();
-                if within_reach(&units[i], &units[target_id.0 as usize], rules)
-                    && stationary(&units[i])
-                {
+                let target = meeting_point(&units[target_id.0 as usize]);
+                if reaches(&units[i], target, rules) && stationary(&units[i]) {
                     // Every listed squad is handed a Board order; one already
-                    // beside the carrier and still starts its hold now, the
-                    // rest walk over first.
+                    // beside the carrier, still and in nothing starts its hold
+                    // now, the rest (a squad in a building too) walk over first.
                     let carrier_id = units[i].id;
                     for id in squads {
                         let k = id.0 as usize;
@@ -389,7 +405,8 @@ pub(crate) fn advance(
                         if !eligible {
                             continue;
                         }
-                        let near = near_and_still(world, units, k, carrier_id, rules);
+                        let near = units[k].hold.is_none()
+                            && near_and_still(world, units, k, carrier_id, rules);
                         let squad = &mut units[k];
                         squad.orders.clear();
                         squad.orders.push_front(UnitOrder::Board {

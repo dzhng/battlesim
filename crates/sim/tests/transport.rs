@@ -2085,3 +2085,21 @@ fn a_squad_in_a_building_ordered_to_board_leaves_and_boards() {
         "the squad never left the building for the carrier"
     );
 }
+
+#[test]
+fn a_carrier_collects_a_squad_from_a_building() {
+    let mut battle = squad_in_a_building();
+    let collect = battle.accept(command(
+        2,
+        Order::Collect {
+            units: vec![UnitId(0)],
+            squads: vec![UnitId(1)],
+            gesture: 2,
+        },
+    ));
+    assert_eq!(collect.error, None);
+    assert!(
+        rides_carrier_within(&mut battle, 40),
+        "the carrier never took the squad out of the building"
+    );
+}
