@@ -35,6 +35,7 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 | Static model repacking | Existing implementation already retains static prop/scenery buffers and rewrites only changed batches | No new change made; needs a valid GPU benchmark before another intervention. |
 | Shadow receiver sampling | The shader now returns unshadowed before PCF when projection is outside the cascade | Applies to all clients and preserves the existing cascade contract; hardware-scale gain remains uncertain |
 | PCF kernel setup | Fixed radii/directions are constants; one per-fragment rotation replaces five per-tap angle calculations | Applies to all clients; measured gain is currently near noise floor |
+| Static-world walk/repack | The presentation reselects static batches when the camera changes; the renderer already retains unchanged GPU buffers | The current reel's CPU cost is dominated outside the easily removable model pack; no safe cache candidate was found without delaying authored LOD transitions |
 
 ## Handoff
 
