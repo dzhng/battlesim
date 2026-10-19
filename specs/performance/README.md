@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Rust presentation allocation-reuse pass retained; native A/B confirms a CPU win, browser reel remains incomplete.
+**Status:** Rust presentation allocation-reuse pass retained; native A/B confirms a CPU win, browser graphics-test completion is blocked.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -19,7 +19,7 @@ renderer or shader changes. Update this section before you end each pass.
 - [x] Choose and slice the Rust presentation-frame candidate with the user.
 - [x] Reuse loaded-frame scratch vectors without changing `Frame` output.
 - [x] Compare the pass against the immediate pre-pass source on the native replay bench.
-- [ ] Rerun a bounded browser reel and confirm the player-facing trigger changes.
+- [ ] Diagnose the browser graphics-test completion failure, then rerun a bounded reel.
 
 ## Current handoff
 

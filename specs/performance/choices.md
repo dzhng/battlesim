@@ -19,6 +19,22 @@ the algorithm or cached visible records with a stale-data risk.
   storage; presentation tests cover the contract.
 - **Confidence:** high.
 
+### Treat the bounded browser failure as a harness blocker — 2026-10-19
+
+The timeout validation stalled even with `FPS_SCENES=paris-corner`, then failed
+at 120 seconds before the graphics page reached `results`. Because this happens
+without the trigger map, it does not justify blaming the Rust pass or claiming
+an FPS change. The next action is to diagnose page completion or adapter setup;
+the alternative would be to keep optimizing against a run that never produced
+timing samples.
+
+- **Gap:** the spec required a completed browser acceptance run but did not
+  identify a terminal verdict for a cross-map graphics-page stall.
+- **Reach:** browser evidence remains the final trigger gate; native A/B is
+  interim evidence only.
+- **Verdict:** sound. The failure is explicit and reproducible.
+- **Confidence:** high.
+
 ### Retain scratch reuse on native CPU evidence — 2026-10-19
 
 The same captured replay ran before and after the pass. Reusing the three

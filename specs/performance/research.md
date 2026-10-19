@@ -133,3 +133,8 @@ The graphics scene now has a two-minute scene-local deadline for reaching its
 `results` state. A stalled page therefore fails with a direct diagnostic
 instead of waiting on the harness's much longer outer timeout; this does not
 change any successful-run timing contract.
+
+The bounded validation reproduced the stall on `FPS_SCENES=paris-corner` and
+failed at 120 seconds with `graphics test did not reach results`. That isolates
+the current blocker to the browser graphics-test completion path rather than a
+map-specific workload; no post-pass FPS claim is valid yet.
