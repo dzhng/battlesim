@@ -4,19 +4,6 @@ use crate::js_error;
 use contract::players::{Player, Seating};
 use wasm_bindgen::prelude::*;
 
-/// Synthetic skirmish entry and objective sites for a `[width, depth]` map
-/// with no generated ones. The geometry and ordering stay owned by
-/// `sim::skirmish`.
-#[wasm_bindgen]
-pub fn synthetic_sites(size_json: &str, entries_per_side: u32) -> Result<String, JsError> {
-    let size: [f64; 2] = serde_json::from_str(size_json).map_err(js_error)?;
-    serde_json::to_string(&sim::skirmish::synthetic_sites(
-        size,
-        entries_per_side as usize,
-    ))
-    .map_err(js_error)
-}
-
 /// The whole skirmish setup (`SkirmishSetup`: match rules, sites and empty
 /// openings) for an authored economy map of `[width, depth]` seating
 /// `players_json`: `sim::skirmish::setup_for` over the synthetic sites, with
