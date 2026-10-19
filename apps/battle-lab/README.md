@@ -136,7 +136,7 @@ visible readiness follow [fire cadence](../../specs/done/fire-cadence/README.md)
 [infantry weapon use](../../specs/done/infantry-weapon-use/README.md).
 
 [Projectile review](src/projectileReview.ts) uses gameplay flight and weapon cycles
-with explicitly private nonlethal review settings. [Guided fire](../../specs/battle-foundation/contracts.md#guided-flight)
+with explicitly private nonlethal review settings. [Guided fire](../../specs/done/battle-foundation/contracts.md#guided-flight)
 separates shared spotting from the launcher's physical sight. [Benchmarking](../../web/src/battle/benchmark/README.md)
 retains exact workload identity so a convenient lab cannot replace a performance control.
 

@@ -85,8 +85,9 @@ impl AirGrid {
     }
 
     /// Waypoints from `from` to `to`, ending at `to`, or at the open point
-    /// nearest it when `to` stands inside a wall. A flight starting inside a
-    /// wall leaves it first.
+    /// nearest it when `to` stands inside a wall. When walls shut `to` off,
+    /// it ends at the reachable point nearest `to`: an aircraft flies round,
+    /// never through. A flight starting inside a wall leaves it first.
     pub fn route(&self, from: V2, to: V2) -> Vec<V2> {
         let goal_cell = self.nearest_open(self.cell(to));
         let goal = if self.open(self.cell(to)) {
@@ -99,9 +100,10 @@ impl AirGrid {
         }
         let start = self.nearest_open(self.cell(from));
         let cells = self.search(start, goal_cell);
+        let reached = cells.last() == Some(&goal_cell);
         // Pull the string: keep only the corners the straight flight needs.
         let mut points: Vec<V2> = cells.into_iter().map(|c| self.centre(c)).collect();
-        if let Some(last) = points.last_mut() {
+        if let (true, Some(last)) = (reached, points.last_mut()) {
             *last = goal;
         }
         let mut route = Vec::new();
@@ -149,7 +151,9 @@ impl AirGrid {
         cell
     }
 
-    /// A* over the eight neighbours, octile distances.
+    /// A* over the eight neighbours, octile distances: the cells from
+    /// `start` to `goal`, or to the reached cell nearest `goal` when walls
+    /// shut it off.
     fn search(&self, start: (usize, usize), goal: (usize, usize)) -> Vec<(usize, usize)> {
         let index = |(c, r): (usize, usize)| r * self.cols + c;
         let octile = |a: (usize, usize), b: (usize, usize)| {
@@ -159,6 +163,8 @@ impl AirGrid {
         let mut cost = vec![f64::INFINITY; self.blocked.len()];
         let mut came = vec![usize::MAX; self.blocked.len()];
         let mut open = BinaryHeap::new();
+        // The reached cell nearest the goal; of those, the shortest flight.
+        let mut nearest = (octile(start, goal), 0.0, start);
         cost[index(start)] = 0.0;
         open.push(Node {
             estimate: octile(start, goal),
@@ -171,6 +177,10 @@ impl AirGrid {
             let here = cost[index(cell)];
             if estimate > here + octile(cell, goal) + 1e-9 {
                 continue;
+            }
+            let near = octile(cell, goal);
+            if (near, here) < (nearest.0, nearest.1) {
+                nearest = (near, here, cell);
             }
             for (dx, dy) in [
                 (1, 0),
@@ -208,11 +218,13 @@ impl AirGrid {
                 }
             }
         }
-        if !cost[index(goal)].is_finite() {
-            return vec![start];
-        }
-        let mut path = vec![goal];
-        let mut at = index(goal);
+        let end = if cost[index(goal)].is_finite() {
+            goal
+        } else {
+            nearest.2
+        };
+        let mut path = vec![end];
+        let mut at = index(end);
         while came[at] != usize::MAX {
             at = came[at];
             path.push((at % self.cols, at / self.cols));

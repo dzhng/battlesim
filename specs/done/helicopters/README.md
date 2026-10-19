@@ -16,7 +16,7 @@ All 19 roster helicopters are playable for the player and the skirmish AI, and t
 The user framed every rule as a war-film moment rather than a ballistics table:
 - Rifles keep firing at a helicopter they can't hurt, because sparks off armour read well on screen (D2).
 - A tank's main gun never engages a helicopter. D1 makes this a data rule (each weapon row's `targets`), not a gun-elevation limit. A tank's HMG still does engage one.
-- One altitude rule replaced two flight modes (D4). The old [battle-foundation slice 18](../../battle-foundation/slices/18-air-movement.md) had normal and low flight with a stealth trade-off; the user replaced it.
+- One altitude rule replaced two flight modes (D4). The archived [battle-foundation rationale](../battle-foundation/README.md) records the earlier normal/low-flight proposal and why the user replaced it.
 
 Research behind the rules:
 - [Broken Arrow dev diary #2](https://forum.slitherine.com/viewtopic.php?p=936391): helicopters as fragile cavalry that fly nap-of-the-earth.
@@ -34,6 +34,7 @@ Research behind the rules:
   - The aircraft holds cruise height and climbs to the clearance over any body top or forest canopy it is about to pass, never above the ceiling (`movement::air::height_target`).
   - It flies like a helicopter, not a car: it gathers and sheds speed over the air's `acceleration_s`, and braking for its goal it runs a little past (`settle_share` of the last leg, at most `settle_max_m`) and eases back onto the point without turning round (`units::Settle`). Its drawn airframe pitches into its acceleration and banks into turns (`presentation.pose.attitude`), read from its drawn motion. The look-ahead reads the true world's bodies and trees, not the side's belief; only routing uses belief.
   - A body taller than the obstacle height is a wall in the side's air grid (`navigation::air::AirGrid`, built per side from what that side believes stands, `SideGeometry::air_grid`).
+  - It flies round a wall, never through one. Ordered to a goal that walls shut off, it flies to the reachable point nearest the goal and holds there.
   - Pinned by `air_flight.rs`.
 - **What a weapon can engage is data.**
   - Every weapon row states `targets` or inherits it through `extends`: each layer it engages (`ground`, `low_air`) with its range and spread there, the row's own where it leaves one out. Only `WeaponDefinition::against` reads it. Target choice, explicit orders, range checks, shot spread, threat ranking and the area-fire hold all go through it. A ground gun reaches a helicopter from much closer and with a much wider spread than along the ground, so helicopters outrange it but fall to a few hits.
@@ -55,7 +56,7 @@ Research behind the rules:
   - The resupply sink (`movement::air::low_hover`, derived from the tallest ground hull) depends on it, or sinking would cancel service.
   - Pinned by `air_supply.rs`.
 - **A crash is simulation state, published, and data-driven damage** (D3, D31).
-  - `sim::crash::Crash` falls under gravity, keeping the horizontal momentum it died with, and spins at a fixed rate whose direction the unit sets. It glances off immovable bodies, slides off roofs (untested), and stays on the map.
+  - `sim::crash::Crash` falls under gravity, keeping the horizontal momentum it died with, and spins at a fixed rate whose direction the unit sets. It glances off immovable bodies, slides off roofs (untested), and stays on the map. It meets a body with its whole hull, the oriented footprint at its current yaw, so its nose and tail strike a wall the way its sides do.
   - On impact it bursts as the `helicopter_crash` weapon row through `damage::detonate`, which shares `damage::casualties` with flown rounds. Trees fall through the same destruction path shell bursts use.
   - The wreck rests on the nearest ground clear of live hulls and immovable bodies, or where it hit if nothing within 30 m is clear (`crash::resting_place`).
   - The kill and every crash casualty go to the shooter; no test pins the casualties' credit. Its own side, and the sides that saw it go down, learn the wreck and the felled trees.

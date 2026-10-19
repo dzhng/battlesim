@@ -18,7 +18,5 @@ export const REASON_TEXT: Record<string, string> = {
   guiding: "guiding a missile",
   no_own_sight: "needs a clear line of sight to the target",
   no_facing_slot: "no firing position facing the target",
-  missing_player: "a player is required for this unit",
-  wrong_player: "that player does not own this unit",
   changing_position: "entering or leaving a building",
 };

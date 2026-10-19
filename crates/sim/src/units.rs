@@ -683,7 +683,13 @@ impl Unit {
                 .f64(a.turn_sign as f64);
             d.opt_v2(a.last_goal);
             match a.settle {
-                Some(s) => d.u64(1).f64(s.aim.x).f64(s.aim.y).u64(s.back as u64),
+                Some(s) => d
+                    .u64(1)
+                    .f64(s.goal.x)
+                    .f64(s.goal.y)
+                    .f64(s.aim.x)
+                    .f64(s.aim.y)
+                    .u64(s.back as u64),
                 None => d.u64(0),
             };
             d.f64(a.fuel_s)

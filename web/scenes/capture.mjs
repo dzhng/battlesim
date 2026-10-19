@@ -7,7 +7,10 @@
 // `TAB_CAPTURE_BROWSER`) because the runner's is headless and muted. Mac only,
 // like the CLI.
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { launchBrowser } from "../browser.mjs";
+import { parseCaptureArgs } from "../capture/args.mjs";
+import { planCapture } from "../capture/plan.mjs";
 import {
   receiveRecording,
   recordingVerdict,
@@ -20,8 +23,11 @@ import { fatalGpuMessage, openScenePage } from "../scene.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 const CAPTURE = "short";
-/** The short capture's reel: the menu's first shot. */
-const REEL_S = 8;
+/** The short capture's scripted length, as the CLI plans it from the file. */
+const REEL_S = (() => {
+  const args = parseCaptureArgs([`fixtures/captures/${CAPTURE}.json`]);
+  return planCapture(JSON.parse(readFileSync(args.file, "utf8")), args).jobs[0].seconds;
+})();
 
 export async function run(ctx) {
   const browser = await launchBrowser(TAB_CAPTURE_BROWSER);

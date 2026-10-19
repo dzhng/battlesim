@@ -87,7 +87,8 @@
     "max_bounces": 2
   },
   "guided": {
-    "release_coast_s": 0.5
+    "release_coast_s": 0.5,
+    "flare_meet_m": 1
   },
   "launch": { "clearance_m": 30 },
   "weapons": {

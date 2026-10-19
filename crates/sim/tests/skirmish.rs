@@ -928,6 +928,64 @@ fn preparation_timeout_starts_combat_without_granting_preparation_income() {
     );
 }
 
+#[test]
+fn a_human_skirmish_slot_taken_over_mid_battle_starts_its_policy() {
+    let mut setup = setup();
+    setup.players[0].controller = contract::players::ControllerKind::Human;
+    let mut battle = Battle::new(&setup, 97);
+    battle.set_controllers(vec![(
+        "blue-1".into(),
+        contract::players::ControllerKind::ActiveAi,
+    )]);
+    battle.step();
+    assert!(
+        battle
+            .ai_receipts()
+            .iter()
+            .any(|receipt| receipt.player == "blue-1"),
+        "takeover did not start AI"
+    );
+}
+
+#[test]
+fn a_takeover_keeps_the_scripted_purchase_cursor() {
+    let mut setup = setup();
+    setup.players[0].controller = contract::players::ControllerKind::Human;
+    let mut battle = Battle::new(&setup, 98);
+    let tank = battle.rules().catalog.index("test_tank").unwrap();
+    let rifle = battle.rules().catalog.index("test_rifle").unwrap();
+    battle.script_purchases("blue-1", vec![tank, rifle], None);
+    battle.set_controllers(vec![(
+        "blue-1".into(),
+        contract::players::ControllerKind::ActiveAi,
+    )]);
+    battle.step();
+    battle.set_controllers(vec![(
+        "blue-1".into(),
+        contract::players::ControllerKind::Human,
+    )]);
+    for _ in 0..battle.rules().tick_hz * 5 {
+        battle.step();
+    }
+    battle.set_controllers(vec![(
+        "blue-1".into(),
+        contract::players::ControllerKind::ActiveAi,
+    )]);
+    for _ in 0..battle.rules().tick_hz * 5 {
+        battle.step();
+    }
+    let purchases: Vec<_> = battle
+        .replay()
+        .accepted
+        .into_iter()
+        .filter_map(|(_, command)| match command.order {
+            Order::ConfirmPurchase { variant, .. } => Some(variant),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(purchases, vec!["test_tank", "test_rifle", "test_rifle"]);
+}
+
 /// A match against the basic opponent on red, whose deck holds squads, a
 /// launcher team and a truck.
 fn against_the_basic_opponent() -> contract::scenario::ScenarioDefinition {
@@ -1053,6 +1111,102 @@ fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every
         replay.step();
         assert_eq!(replay.digest(), digest, "tick {}", replay.tick());
     }
+}
+
+#[test]
+fn ai_lane_arrivals_drive_off_the_entry_without_waiting_for_a_decision() {
+    let setup = against_the_basic_opponent();
+    let red_entry = setup.skirmish.as_ref().unwrap().sites.entries[1].clone();
+    let red_entry_index = 1usize;
+    let mut battle = Battle::new(&setup, 19);
+    let hz = u64::from(battle.rules().tick_hz);
+    assert!(battle
+        .accept(command(Side::Blue, 1, Order::Ready))
+        .error
+        .is_none());
+
+    let mut arrivals = Vec::new();
+    let mut known = std::collections::BTreeSet::new();
+    for _ in 0..180 * hz {
+        battle.step();
+        let red = battle.observe(Side::Red);
+        for unit in &red.own {
+            if known.insert(unit.id) {
+                // It arrives already driving up its lane: the next arrival
+                // waits only for this hull to clear the entry, never for the
+                // AI's next decision.
+                let goal = unit.goal.expect("an AI arrival carries its lane goal");
+                assert!(
+                    unit.state == contract::observation::MoveState::Moving
+                        && (goal[0] - red_entry.center[0]).hypot(goal[1] - red_entry.center[1])
+                            > 10.0,
+                    "AI arrival did not drive off the entry: {unit:?}"
+                );
+                arrivals.push((battle.tick(), unit.id));
+            }
+        }
+        if arrivals.len() >= 3 {
+            break;
+        }
+    }
+    assert!(
+        arrivals.len() >= 3,
+        "AI did not dispatch several units: {arrivals:?}"
+    );
+    for (_, id) in &arrivals {
+        for _ in 0..5 * hz {
+            battle.step();
+        }
+        if let Some(unit) = battle
+            .observe(Side::Red)
+            .own
+            .iter()
+            .find(|unit| unit.id == *id)
+        {
+            let distance = (unit.position[0] - red_entry.center[0])
+                .hypot(unit.position[1] - red_entry.center[1]);
+            assert!(
+                distance > 10.0,
+                "AI arrival remained parked on entry: {unit:?}"
+            );
+        }
+    }
+    assert!(
+        battle
+            .observe(Side::Red)
+            .skirmish
+            .as_ref()
+            .unwrap()
+            .pending
+            .iter()
+            .all(|purchase| purchase.entry == red_entry_index),
+        "AI purchase left its assigned lane entry"
+    );
+}
+
+#[test]
+fn a_point_a_move_would_refuse_has_no_route_time() {
+    // The AI picks goals by asking for a route time; a goal off the map must
+    // read as unreachable, or the AI issues a move admission refuses.
+    let setup = against_the_basic_opponent();
+    let mut battle = Battle::new(&setup, 19);
+    assert!(battle
+        .accept(command(Side::Blue, 1, Order::Ready))
+        .error
+        .is_none());
+    let unit = loop {
+        battle.step();
+        if let Some(unit) = battle.observe(Side::Red).own.first().cloned() {
+            break unit;
+        }
+        assert!(battle.tick() < 600 * 30, "the AI never fielded a unit");
+    };
+    let here = [unit.position[0], unit.position[1]];
+    let near = [here[0], here[1] - 10.0];
+    // Just past the edge: the refused AI goals lay about 2 m out.
+    let off_map = [-2.0, here[1]];
+    assert!(battle.route_time(Side::Red, unit.id, near).is_some());
+    assert_eq!(battle.route_time(Side::Red, unit.id, off_map), None);
 }
 
 #[test]

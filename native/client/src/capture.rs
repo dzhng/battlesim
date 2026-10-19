@@ -5,6 +5,12 @@
 //! every publication up to its tick pushed and `frame()` asked at its sim
 //! time and camera. Every record is framed, since poses, effects and the
 //! scenery's walk carry state from frame to frame.
+//!
+//! Both files are read as strictly as the browser's readers
+//! (`presentationCapture.ts`, `visualPresentation.ts`): every key the format
+//! has, and no other, so a stale file is refused rather than read in part or
+//! defaulted. A value native has no use for is required but not read
+//! (`IgnoredAny`).
 use std::fs;
 use std::path::Path;
 
@@ -16,6 +22,7 @@ use presentation::records::FogLook;
 use presentation::static_world::files;
 use presentation::view::Camera;
 use presentation::world::{BattleInput, SoldierBody, WorldInput, Xray};
+use serde::de::IgnoredAny;
 use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -24,28 +31,48 @@ use crate::bundle::Library;
 use crate::scenery::tier_mesh;
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct CaptureFile {
     schema: String,
-    /// What was filmed: scene, map, encounter and seed.
-    workload: Value,
+    workload: Workload,
     tick_hz: f64,
+    #[serde(rename = "warmTick")]
+    _warm_tick: IgnoredAny,
     side: String,
     layout: String,
     samples: Vec<Sample>,
     frames: Vec<Record>,
 }
 
+/// What was filmed.
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Workload {
+    #[serde(rename = "id")]
+    _id: IgnoredAny,
+    #[serde(rename = "fingerprint")]
+    _fingerprint: IgnoredAny,
+    scene: String,
+    map: String,
+    encounter: String,
+    seed: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Sample {
     tick: u64,
+    #[serde(rename = "digest")]
+    _digest: IgnoredAny,
     publication: Vec<u32>,
 }
 
 /// One drawn browser frame.
 #[derive(Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Record {
+    #[serde(rename = "index")]
+    _index: IgnoredAny,
     pub tick: u64,
     pub sim_time: f64,
     /// The reel's wall time when the browser drew it, milliseconds.
@@ -54,15 +81,64 @@ pub struct Record {
     pub target: [f64; 3],
     pub up: [f64; 3],
     pub canvas: [u32; 2],
-    /// The control plate written of this frame, if any.
+    /// The control plate written of this frame, or null: the key is
+    /// required, as the browser writes it.
+    #[serde(deserialize_with = "Option::deserialize")]
     pub plate: Option<String>,
 }
 
+/// `native-visual-presentation`: what the browser drew of the scene.
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct Manifest {
+    schema: String,
+    identity: Identity,
+    #[serde(rename = "viewport")]
+    _viewport: IgnoredAny,
+    lens: Lens,
+    layers: Vec<String>,
+    #[serde(rename = "grassCounts")]
+    _grass_counts: IgnoredAny,
+    instance_counts: Vec<Value>,
+    model_counts: Vec<Value>,
+    effect_counts: Vec<Value>,
+    frame_counts: Vec<Value>,
+}
+
+/// The battle the control ran: the capture's workload, and both files' bytes.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct Identity {
+    scene: String,
+    map: String,
+    encounter: String,
+    seed: u64,
+    map_hash: String,
+    capture_hash: String,
+}
+
+/// The drawn lens, through the engine-wide depth convention.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct Lens {
     fov_y: f64,
     near: f64,
+    #[serde(rename = "depth")]
+    _depth: ReverseZ,
+    #[serde(rename = "far")]
+    _far: Infinite,
+}
+
+#[derive(Deserialize)]
+enum ReverseZ {
+    #[serde(rename = "reverse-z")]
+    ReverseZ,
+}
+
+#[derive(Deserialize)]
+enum Infinite {
+    #[serde(rename = "infinite")]
+    Infinite,
 }
 
 pub struct Replay {
@@ -125,51 +201,55 @@ impl Replay {
         if capture.schema != "battle-presentation-capture" {
             return Err(format!("capture schema {}", capture.schema));
         }
-        let manifest: Value = read_json(&dir.join("manifest.json"))?;
-        if manifest["schema"] != "native-visual-presentation" {
-            return Err(format!("manifest schema {}", manifest["schema"]));
+        let manifest: Manifest = read_json(&dir.join("manifest.json"))?;
+        if manifest.schema != "native-visual-presentation" {
+            return Err(format!("manifest schema {}", manifest.schema));
         }
         // The battle the manifest names, and nothing else: the capture's
         // workload, and both files byte for byte.
-        let identity = &manifest["identity"];
+        let identity = &manifest.identity;
         let workload = &capture.workload;
-        for key in ["scene", "map", "encounter", "seed"] {
-            if identity[key].is_null() || identity[key] != workload[key] {
+        for (key, filmed, named) in [
+            ("scene", &workload.scene, &identity.scene),
+            ("map", &workload.map, &identity.map),
+            ("encounter", &workload.encounter, &identity.encounter),
+            (
+                "seed",
+                &workload.seed.to_string(),
+                &identity.seed.to_string(),
+            ),
+        ] {
+            if filmed != named {
                 return Err(format!(
-                    "{}: the capture's workload {key} is {}, the manifest's identity names {}",
+                    "{}: the capture's workload {key} is {filmed}, the manifest's identity names {named}",
                     capture_path.display(),
-                    workload[key],
-                    identity[key]
                 ));
             }
         }
-        let map = workload["map"]
-            .as_str()
-            .ok_or("capture: the workload names no map")?
-            .to_owned();
-        let encounter = workload["encounter"]
-            .as_str()
-            .ok_or("capture: the workload names no encounter")?;
+        let map = workload.map.clone();
+        let encounter = &workload.encounter;
         let map_path = root.join("fixtures/maps").join(&map).join("map.json");
         let map_bytes = fs::read(&map_path).map_err(|e| format!("{}: {e}", map_path.display()))?;
-        for (path, bytes, key) in [
-            (&capture_path, &capture_bytes, "captureHash"),
-            (&map_path, &map_bytes, "mapHash"),
+        for (path, bytes, key, named) in [
+            (
+                &capture_path,
+                &capture_bytes,
+                "captureHash",
+                &identity.capture_hash,
+            ),
+            (&map_path, &map_bytes, "mapHash", &identity.map_hash),
         ] {
             let hash = format!("{:x}", Sha256::digest(bytes));
-            if identity[key] != hash.as_str() {
+            if *named != hash {
                 return Err(format!(
-                    "{} is not the file the control ran on: sha256 {hash}, the manifest's identity.{key} is {}",
+                    "{} is not the file the control ran on: sha256 {hash}, the manifest's identity.{key} is {named}",
                     path.display(),
-                    identity[key]
                 ));
             }
         }
         let game: Value = read_json(&root.join("fixtures/game.json"))?;
         let light: LightSettings = serde_json::from_value(game["presentation"]["light"].clone())
             .map_err(|e| format!("presentation.light: {e}"))?;
-        let lens: Lens = serde_json::from_value(manifest["lens"].clone())
-            .map_err(|e| format!("manifest lens: {e}"))?;
         // The battle's units, effects and clip tables, as a page fielding
         // the encounter's units installs them.
         let kinds = fielded::encounter_kinds(root, &map, encounter)?;
@@ -204,8 +284,7 @@ impl Replay {
         presentation.set_ground(ground.source, ground.biome, ground.tuning)?;
         // Fog of war, where the browser drew it: the side's sight under the
         // game's sensor rules.
-        let layers = manifest["layers"].as_array().ok_or("manifest: no layers")?;
-        let fog = layers.iter().any(|l| l == "fog");
+        let fog = manifest.layers.iter().any(|l| l == "fog");
         if fog {
             presentation.set_fog(Some(FogSetup {
                 sensors: Some(ground.sensors),
@@ -246,29 +325,17 @@ impl Replay {
             records: capture.frames,
             light,
             fog_look,
-            model_counts: manifest["modelCounts"]
-                .as_array()
-                .cloned()
-                .unwrap_or_default(),
-            effect_counts: manifest["effectCounts"]
-                .as_array()
-                .cloned()
-                .unwrap_or_default(),
-            instance_counts: manifest["instanceCounts"]
-                .as_array()
-                .cloned()
-                .unwrap_or_default(),
-            frame_counts: manifest["frameCounts"]
-                .as_array()
-                .cloned()
-                .unwrap_or_default(),
+            model_counts: manifest.model_counts,
+            effect_counts: manifest.effect_counts,
+            instance_counts: manifest.instance_counts,
+            frame_counts: manifest.frame_counts,
             tick_hz: capture.tick_hz,
             terrain: (ground.positions, ground.indices),
             world: fog.then_some(ground.world),
             cleared: 0,
             samples: capture.samples,
             pushed: 0,
-            lens,
+            lens: manifest.lens,
             presentation,
         })
     }

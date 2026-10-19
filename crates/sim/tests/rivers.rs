@@ -389,7 +389,7 @@ fn a_long_river_keeps_the_terrain_sparse() {
 }
 
 #[test]
-#[should_panic(expected = "invalid rivers or bridges")]
+#[should_panic(expected = "carves no river")]
 fn a_world_refuses_a_river_its_terrain_cannot_carry() {
     crate::common::flat(
         [400.0, 300.0],

@@ -166,53 +166,19 @@ impl WorldGeometry {
     /// one `forests.rule` places them. The foliage grid is the
     /// fog's, the cleared mask the ground layer's.
     pub fn new(map: &MapDefinition, rules: &Rules) -> Self {
+        // An uploaded map was refused before this with these same errors
+        // (`contract::maps::admit_world`); anything else reaching here is a bug.
+        let refused = contract::maps::admit_world(map, rules);
         assert!(
-            map.forests.len() <= (1 << 24),
-            "forest IDs must fit exact public f32 indices"
+            refused.is_empty(),
+            "map not admitted: {}",
+            refused
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ")
         );
-        // The foliage and cleared grids are cut into cells of these.
-        assert!(
-            map.fog_cell_m.is_finite() && map.fog_cell_m > 0.0,
-            "map.fog_cell_m must be finite and positive"
-        );
-        assert!(rules.ground.cell_m > 0.0, "ground.cell_m must be positive");
-        let authored = map
-            .authored_props()
-            .expect("invalid authored map IDs or buildings");
-        let catalog = rules.catalog.props();
-        let ordinary = |id: &str| {
-            catalog
-                .check_placement(catalog.kind(id), PropPlacement::Ordinary)
-                .expect("ordinary world body placement");
-        };
-        for prop in &map.props {
-            ordinary(&prop.kind);
-        }
-        for bridge in &map.bridges {
-            ordinary(&bridge.deck);
-        }
-        if !map.forests.is_empty() {
-            ordinary(&rules.forests.tree);
-            for (kind, density) in [
-                (&rules.forests.log, rules.forests.rule.logs_per_ha),
-                (&rules.forests.boulder, rules.forests.rule.boulders_per_ha),
-            ] {
-                if density > 0.0 {
-                    ordinary(kind.as_deref().expect("validated floor kind"));
-                }
-            }
-        }
-        for building in &map.buildings {
-            catalog
-                .check_placement(catalog.kind(&building.kind), PropPlacement::Aggregate)
-                .expect("placed aggregate states");
-            let body = catalog.by_id(&building.kind).body;
-            assert!(
-                !body.garrison || building.geometry.edges.iter().any(|e| e.exposed),
-                "garrison-capable aggregates require an exposed physical span"
-            );
-        }
-        contract::river::validate(map).expect("invalid rivers or bridges");
+        let authored = map.authored_props().expect("admitted map");
         let forests = &rules.forests;
         let surfaces = Arc::new(surfaces::SurfaceIndex::new(
             &map.surfaces,

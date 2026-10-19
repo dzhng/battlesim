@@ -200,6 +200,9 @@ function ScenarioBattle({
   setReplayText: (text: string) => void;
 }) {
   const [catalog, setCatalog] = useState<SessionCatalog | null>(null);
+  // Once AI takes the human slot over, the simulation refuses this client's
+  // orders for it, so input stops too.
+  const [takenOver, setTakenOver] = useState(false);
   useEffect(() => {
     let live = true;
     void loadWasm()
@@ -232,7 +235,8 @@ function ScenarioBattle({
         seed={1}
         prepared={prepared}
         replay={replayText}
-        player={report.active_human_player ?? undefined}
+        player={report.active_human_player ?? null}
+        inCommand={!takenOver}
         side={report.active_human_side ?? "blue"}
         camera={camera}
         cameraConfig={gameCamera.forMap(report.size, report.extents.rendered)}
@@ -301,15 +305,16 @@ function ScenarioBattle({
                 }}
               />
             </label>
-            {report.active_human_player && (
+            {report.active_human_player && !takenOver && (
               <button
                 type="button"
                 className="hud-menu-item"
-                onClick={() =>
+                onClick={() => {
                   battleSession.sim.client?.setControllers(
                     JSON.stringify([[report.active_human_player, "active_ai"]]),
-                  )
-                }
+                  );
+                  setTakenOver(true);
+                }}
               >
                 Take human slot over by AI
               </button>

@@ -3,6 +3,10 @@
 **Status:** placeholder. Nothing is planned or scheduled; some of it may never be done.
 **Updated:** 2026-10-10.
 
+The current renderer research ledger is [research.md](research.md). It records
+the fixed benchmark contract, measured candidates and the next experiment; this
+placeholder remains the durable list of deferred work.
+
 ## Next Agent Prompt
 
 You are picking up a list of measured performance candidates the user chose to

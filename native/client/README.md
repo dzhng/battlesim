@@ -29,9 +29,11 @@ crashes in `wgpu` when those depth-only sample-mask pipelines are created; the
 adaptation preserves the cutout test and leaves the browser export unchanged.
 
 - **Shaders and pipelines** are the browser's [export](../../crates/pipelines/README.md),
-  built from `pipelines.json` at start. The export is read strictly: a setting
-  the client does not know fails the build rather than being dropped, and any
-  pipeline the device refuses fails the start, listing each one.
+  built from `pipelines.json` at start, with the sizes the passes allocate by
+  (the bloom's levels, the sky lookup, the effect sheets). The export is read
+  strictly: a setting the client does not know fails the build rather than
+  being dropped, and any pipeline the device refuses fails the start, listing
+  each one.
 - **The frame** is one ordered list of passes, encoded in order each drawn
   frame, as Bevy draws and as the browser's `battleFrame` does. It
   has no render graph. A pass reads the frame's `View` and the sized targets.
@@ -127,12 +129,15 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
 The binary replays one scene of a browser parity run (the control the
 [spec](../../specs/done/native-rendering-parity/README.md) names). It refuses a
 capture or a saved map that is not the one the manifest's identity hashes,
-naming the file. It reads the world from the repository, not from the run:
-the map, its ground, buildings and props, and the units its encounter fields
-with their effects (`presentation::fielded`). Then it frames every record
-through the presentation crate and writes each plate the browser wrote,
-under the same name. Its usage text lists the flags.
-Run it under the GPU lock.
+naming the file, and reads the capture and the manifest as strictly as the
+browser does: a key the format lacks or leaves out refuses the file. It reads
+the world from the repository, not from the run: the map, its ground, buildings
+and props, and the units its encounter fields with their effects
+(`presentation::fielded`). Then it frames every record through the presentation
+crate and writes each plate the browser wrote, under the same name. A plate
+whose counts differ from the browser's fails the run: it exits with an error
+listing each difference after the report. Its usage text lists the flags. Run it
+under the GPU lock.
 
 The window opens borderless and off-screen by default, so nothing appears on
 the user's screen. On macOS, `wgpu` presents nothing to a window that isn't

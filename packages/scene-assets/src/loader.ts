@@ -104,6 +104,18 @@ export type Fetch = (url: string) => Promise<{
   json(): Promise<unknown>;
 }>;
 
+/** Skeleton clips needed by a catalog load.  Clips are shared by soldier
+ * appearances, so loading every catalog skeleton defeats faction and roster
+ * scoping even when the battle fields only one family of infantry. */
+function skeletonIds(catalog: RuntimeCatalog, names: Iterable<string>): Set<string> {
+  const ids = new Set<string>();
+  for (const name of names) {
+    const id = catalog.appearances[name]?.skeleton;
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
 /** A loaded catalog, how its files are read, the unit art its load takes
  *  (`catalogLoadNames`'s `wearing`; undefined, every one), and its textures
  *  fetched so far, by address: two bundles naming one share its one fetch. */
@@ -173,8 +185,11 @@ export class AppearanceLibrary {
       textures: new Map(),
     };
     const skeletons = new Map<string, SkeletonClips>();
+    const names = catalogLoadNames(catalog, wearing, factions, scenery);
     await Promise.all(
-      Object.entries(catalog.skeletons ?? {}).map(async ([id, hash]) => {
+      [...skeletonIds(catalog, names)].map(async (id) => {
+        const hash = catalog.skeletons?.[id];
+        if (!hash) throw new Error(`skeleton ${id} is not in the catalog`);
         const bundle = await this.bundle(source, hash);
         if (bundle.kind !== "clips" || bundle.id !== id)
           throw new Error(`skeleton ${id}: bundle ${hash} is not its clips`);
@@ -182,9 +197,7 @@ export class AppearanceLibrary {
       }),
     );
     const appearances = await Promise.all(
-      catalogLoadNames(catalog, wearing, factions, scenery).map(
-        async (name) => [name, await this.appearance(source, name, skeletons)] as const,
-      ),
+      names.map(async (name) => [name, await this.appearance(source, name, skeletons)] as const),
     );
     const templates = catalog.templates && (await this.templateLibrary(source, catalog.templates));
     return this.install(source, catalog.sides, skeletons, new Map(appearances), templates);
@@ -211,6 +224,19 @@ export class AppearanceLibrary {
     if (absent.length === 0) return this.current;
     admitLoad(source.catalog, wider, source.factions, source.scenery);
     const { sides, skeletons } = this.current;
+    const neededSkeletons = [...skeletonIds(source.catalog, absent)].filter(
+      (id) => !skeletons.has(id),
+    );
+    await Promise.all(
+      neededSkeletons.map(async (id) => {
+        const hash = source.catalog.skeletons?.[id];
+        if (!hash) throw new Error(`skeleton ${id} is not in the catalog`);
+        const bundle = await this.bundle(source, hash);
+        if (bundle.kind !== "clips" || bundle.id !== id)
+          throw new Error(`skeleton ${id}: bundle ${hash} is not its clips`);
+        skeletons.set(id, bundle);
+      }),
+    );
     const arrived = await Promise.all(
       absent.map(
         async (name) =>

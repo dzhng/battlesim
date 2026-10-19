@@ -23,6 +23,8 @@ use contract::script::{CompiledScript, ScriptInput};
 use serde::{Deserialize, Serialize};
 
 use crate::arrangement;
+
+mod skirmish_turn;
 use crate::cover;
 use crate::damage::{self, DamageContext, HullResolver};
 use crate::deployment;
@@ -342,6 +344,10 @@ pub struct Battle {
     /// The observation-bound opponent and its memory (off while replaying).
     opponent: Option<(Opponent, Defender)>,
     skirmish_ai: BTreeMap<String, crate::skirmish_ai::BalancedDoctrine>,
+    /// Per-side planner hysteresis. This is deliberately outside the digest;
+    /// accepted AI commands are the replay authority.
+    team_memory: [crate::skirmish_ai::TeamMemory; 2],
+    team_tuning: crate::skirmish_ai::team::TeamTuning,
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
@@ -382,17 +388,11 @@ pub struct AiReceipt {
     pub error: Option<OrderError>,
 }
 
-fn policy_for_player(
-    seed: u64,
-    index: usize,
-    player: &contract::players::Player,
-) -> Option<crate::skirmish_ai::BalancedDoctrine> {
-    (player.controller == contract::players::ControllerKind::ActiveAi).then(|| {
-        let stream = contract::random::mix(
-            seed ^ (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ 0x4241_4c41_4e43_4544,
-        );
-        crate::skirmish_ai::BalancedDoctrine::new(stream)
-    })
+fn policy_for_player(seed: u64, index: usize) -> crate::skirmish_ai::BalancedDoctrine {
+    let stream = contract::random::mix(
+        seed ^ (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15) ^ 0x4241_4c41_4e43_4544,
+    );
+    crate::skirmish_ai::BalancedDoctrine::new(stream)
 }
 
 /// The parts of a round's flight over ground `fog` shows as seen, leg by leg
@@ -1164,21 +1164,12 @@ impl Battle {
         } = prepared;
         let arsenal = Arsenal::new(&rules);
         supply::validate(&rules).expect("fixture supply rules are valid");
-        for e in &setup.events {
-            if let EventAction::AddProp(def) = &e.action {
-                assert!(
-                    rules.catalog.props().index(&def.kind).is_some(),
-                    "an added prop names an unknown prop type {:?}",
-                    def.kind
-                );
-            }
-            if let EventAction::Burst { weapon, .. } = &e.action {
-                assert!(
-                    arsenal.weapons.iter().any(|w| &w.id == weapon),
-                    "a burst names an unknown weapon row {weapon}"
-                );
-            }
-        }
+        // An uploaded scenario was refused before this with these same errors.
+        let unknown = setup.unknown_catalog_references();
+        assert!(
+            unknown.is_empty(),
+            "scenario names kinds its rules lack: {unknown:?}"
+        );
         let mut soldier_ids = 0u32;
         let mut units = setup
             .units
@@ -1285,14 +1276,13 @@ impl Battle {
                     .players
                     .iter()
                     .enumerate()
-                    .filter_map(|(index, player)| {
-                        policy_for_player(seed, index, player)
-                            .map(|policy| (player.id.clone(), policy))
-                    })
+                    .map(|(index, player)| (player.id.clone(), policy_for_player(seed, index)))
                     .collect()
             } else {
                 BTreeMap::new()
             },
+            team_memory: std::array::from_fn(|_| crate::skirmish_ai::TeamMemory::default()),
+            team_tuning: crate::skirmish_ai::team::TeamTuning::shipped(),
             referee: setup.encounter.clone().map(|e| (e, Referee::default())),
             encounter: None,
             pending: Vec::new(),
@@ -1534,35 +1524,11 @@ impl Battle {
     /// Travel time known to one side for one of its observed units. The query
     /// deliberately uses that side's planning geometry, so external policy
     /// hosts cannot inspect hidden obstacles or route an enemy unit.
-    pub fn route_time(&mut self, side: Side, id: UnitId, destination: [f64; 2]) -> Option<f64> {
+    pub fn route_time(&self, side: Side, id: UnitId, destination: [f64; 2]) -> Option<f64> {
         let frame = self.observe(side);
         let own = frame.own.iter().find(|unit| unit.id == id)?;
-        let from = v2(own.position[0], own.position[1]);
-        let goal = v2(destination[0], destination[1]);
-        let kind = self.rules.catalog.get(own.kind);
-        let mobility = match units::motion(kind, &self.rules) {
-            units::Motion::Ground(m) => m,
-            units::Motion::Air(f) => return Some((goal - from).length() / f.cruise_mps),
-        };
-        let mut known = self.sides[side.index()].clone();
-        let grid = known.grid(&self.world, self.authored_props);
-        let (plan, _) = crate::navigation::plan(
-            grid,
-            &self.roads,
-            crate::navigation::Leg {
-                from,
-                goal,
-                m: &mobility,
-                policy: RoutePolicy::Fastest,
-                avoid: &[],
-            },
-            &self.rules.navigation,
-        );
-        let crate::navigation::Plan::Route(route) = plan else {
-            return None;
-        };
-        let time = grid.route_time(from, &route, &mobility);
-        time.is_finite().then_some(time)
+        let (kind, from) = (own.kind, [own.position[0], own.position[1]]);
+        self.entry_route_time(side, kind, from, destination)
     }
 
     /// Travel time for a catalog unit from an entry site to a point, using the
@@ -1575,6 +1541,9 @@ impl Battle {
         from: [f64; 2],
         destination: [f64; 2],
     ) -> Option<f64> {
+        // Movement admission refuses a goal off the map; so does the route
+        // estimate, or a planner would pick a goal its order cannot reach.
+        self.world.height_at(destination[0], destination[1])?;
         let t = self.rules.catalog.get(kind);
         let from = v2(from[0], from[1]);
         let goal = v2(destination[0], destination[1]);
@@ -1621,10 +1590,20 @@ impl Battle {
         })
     }
 
-    /// Validate and schedule a command for the next step. Every command whose
-    /// sequence number is next for its side is recorded for replay, including
-    /// ones rejected for their content, so a replay reproduces the same acks.
+    /// Validate and schedule a client's command for the next step. Every
+    /// command whose sequence number is next for its side is recorded for
+    /// replay, including ones rejected for their content, so a replay
+    /// reproduces the same acks.
     pub fn accept(&mut self, command: CommandEnvelope) -> CommandAck {
+        self.receive(command, Issuer::Client)
+    }
+
+    /// Schedule an order the battle's own slot AI, scripts or opponents give.
+    fn issue(&mut self, command: CommandEnvelope) -> CommandAck {
+        self.receive(command, Issuer::Battle)
+    }
+
+    fn receive(&mut self, command: CommandEnvelope, issuer: Issuer) -> CommandAck {
         let applied_tick = self.tick + 1;
         let ack = |error, placement, building, refused| CommandAck {
             seq: command.seq,
@@ -1636,6 +1615,13 @@ impl Battle {
         };
         if self.replaying.is_some() {
             return ack(Some(OrderError::ReplayInProgress), None, None, Vec::new());
+        }
+        // A slot under AI takes orders only from its controller. The refusal
+        // comes before the command is recorded: the replay log does not say
+        // who issued a command, so a replay could not tell this one from the
+        // AI's own.
+        if issuer == Issuer::Client && self.ai_controlled(command.player.as_deref()) {
+            return ack(Some(OrderError::AiControlled), None, None, Vec::new());
         }
         self.admit(command.clone(), applied_tick).map_or_else(
             |e| ack(Some(e), None, None, Vec::new()),
@@ -1729,9 +1715,47 @@ impl Battle {
         }
     }
 
+    /// Whether `player`'s slot is controlled by AI right now. A battle with no
+    /// controller state for the slot (a lab) leaves it to its client, and so
+    /// does a skirmish: its session owns its seats and its AI, as it does in
+    /// `controller_turn`.
+    fn ai_controlled(&self, player: Option<&str>) -> bool {
+        self.skirmish.is_none()
+            && player
+                .and_then(|player| self.controllers.get(player))
+                .is_some_and(|controller| *controller != ControllerKind::Human)
+    }
+
+    /// Give one player's own policy a fixed purchase plan. The policy emits
+    /// ordinary purchase commands through its normal per-player sequence.
+    pub fn script_purchases(
+        &mut self,
+        player: impl Into<String>,
+        purchases: Vec<TypeIndex>,
+        repeat_from: Option<usize>,
+    ) {
+        let player = player.into();
+        if let Some(ai) = self.skirmish_ai.get_mut(&player) {
+            ai.set_purchase_plan_with_repeat(purchases, repeat_from);
+        }
+    }
+
     fn apply_controller(&mut self, transition: &ControllerTransition) {
         self.controllers
             .insert(transition.player.clone(), transition.controller.clone());
+        let player_index = self
+            .skirmish
+            .as_ref()
+            .and_then(|skirmish| skirmish.player_index(&transition.player));
+        if let Some(index) = player_index {
+            if let Some(player) = self
+                .skirmish
+                .as_mut()
+                .and_then(|skirmish| skirmish.players.get_mut(index))
+            {
+                player.controller = transition.controller.clone();
+            }
+        }
         for unit in &mut self.units {
             if unit.side == Side::Neutral {
                 unit.engagement = Engagement::ReturnFireOnly;
@@ -1825,7 +1849,7 @@ impl Battle {
                     facing: None,
                 },
             };
-            let _ = self.accept(CommandEnvelope {
+            let _ = self.issue(CommandEnvelope {
                 side,
                 player: Some(slot),
                 seq,
@@ -2325,12 +2349,16 @@ impl Battle {
             return;
         }
         let mut outputs = Vec::new();
-        for (script, side, slot) in &self.authored_scripts {
-            let input = ScriptInput::new(
-                *side,
-                &self.observations[side.index()],
-                self.seed ^ 0x5343_5249_5054_0000 ^ self.tick ^ side.index() as u64,
-            );
+        for (index, (script, side, slot)) in self.authored_scripts.iter().enumerate() {
+            // Each script draws its own stream: the seed hashes the battle
+            // seed, the tick, the side and the script's place in the scenario.
+            let seed = [self.tick, side.index() as u64, index as u64]
+                .into_iter()
+                .fold(
+                    contract::random::mix(self.seed ^ 0x5343_5249_5054_0000),
+                    |h, v| contract::random::mix(h ^ v),
+                );
+            let input = ScriptInput::new(*side, &self.observations[side.index()], seed);
             let input = match slot.as_deref() {
                 Some(slot) => input.with_player(slot.to_owned()),
                 None => input,
@@ -2388,7 +2416,7 @@ impl Battle {
             }
             for command in output.commands {
                 let seq = self.next_seq[command.side.index()];
-                let _ = self.accept(CommandEnvelope {
+                let _ = self.issue(CommandEnvelope {
                     side: command.side,
                     player: command.player,
                     seq,
@@ -2743,7 +2771,7 @@ impl Battle {
         }
         for (side, order) in commands {
             let seq = self.next_seq[side.index()];
-            let _ = self.accept(CommandEnvelope {
+            let _ = self.issue(CommandEnvelope {
                 side,
                 player: None,
                 seq,
@@ -2753,114 +2781,36 @@ impl Battle {
         }
     }
 
-    fn skirmish_ai_turn(&mut self) {
-        if self.replaying.is_some() || self.finished() {
-            return;
-        }
-        let mut commands = Vec::new();
-        let Some(skirmish) = &self.skirmish else {
-            return;
-        };
-        let players: Vec<_> = skirmish
-            .players
-            .iter()
-            .enumerate()
-            .filter(|(_, p)| p.controller == contract::players::ControllerKind::ActiveAi)
-            .map(|(i, p)| {
-                (
-                    i,
-                    p.id.clone(),
-                    p.side,
-                    p.faction,
-                    skirmish
-                        .setup
-                        .openings
-                        .get(&p.id)
-                        .cloned()
-                        .unwrap_or_default(),
-                )
-            })
-            .collect();
-        let sites = skirmish.setup.sites.clone();
-        for (index, id, side, faction, opening) in players {
-            let Some(mut ai) = self.skirmish_ai.remove(&id) else {
-                continue;
-            };
-            let entry = crate::entries::site(&sites, crate::entries::centre(&sites, side)).clone();
-            let mut frame = self.observations[side.index()].clone();
-            let lens = crate::skirmish_ai::PlayerLens {
-                frame: &frame,
-                me: contract::players::PlayerIndex(index as u16),
-            };
-            let _ = lens.own().count();
-            frame
-                .own
-                .retain(|unit| unit.owner == Some(contract::players::PlayerIndex(index as u16)));
-            if let Some(view) = frame.skirmish.as_mut() {
-                view.players
-                    .retain(|player| player.index == contract::players::PlayerIndex(index as u16));
-                if let Some(state) = self.skirmish.as_ref().and_then(|s| s.players.get(index)) {
-                    view.credits = state.wallet as f64 / crate::skirmish::CREDIT_SCALE as f64;
-                    view.unit_count = frame.own.len() as u32 + state.reservations.len() as u32;
-                    view.pending = state.reservations.iter().map(|r| r.data.clone()).collect();
-                    view.ready[side.index()] = state.ready;
-                }
-            }
-            let rules = self.rules.clone();
-            let orders = if self.tick == 0
-                && frame.own.is_empty()
-                && frame
-                    .skirmish
-                    .as_ref()
-                    .is_some_and(|view| view.players.first().is_none_or(|p| p.pending.is_empty()))
-                && !opening.is_empty()
-            {
-                opening
-                    .into_iter()
-                    .map(|purchase| Order::ConfirmPurchase {
-                        variant: purchase.variant,
-                        destination: purchase.destination,
-                    })
-                    .collect()
-            } else {
-                ai.decide(
-                    side,
-                    faction,
-                    &entry,
-                    &frame,
-                    &rules,
-                    |unit, destination| self.route_time(side, unit, destination),
-                )
-            };
-            self.skirmish_ai.insert(id.clone(), ai);
-            for (seq, order) in (self.player_next_seq[index]..).zip(orders) {
-                commands.push((index, id.clone(), side, seq, order));
-            }
-        }
-        for (_, player, side, seq, order) in commands {
-            let ack = self.accept(CommandEnvelope {
-                side,
-                player: Some(player.clone()),
-                seq,
-                order,
-                queued: false,
-            });
-            debug_assert!(
-                ack.error.is_none(),
-                "skirmish AI order refused for {player}: {:?}",
-                ack.error
-            );
-            self.ai_receipts.push(AiReceipt {
-                tick: self.tick,
-                player,
-                accepted: ack.error.is_none(),
-                error: ack.error,
-            });
-        }
-    }
-
     pub fn ai_receipts(&self) -> &[AiReceipt] {
         &self.ai_receipts
+    }
+
+    /// Doctrine pivots accumulated by the live policy instances, grouped by
+    /// side for native reports.
+    pub fn ai_pivots_by_side(&self) -> [u32; 2] {
+        let Some(skirmish) = &self.skirmish else {
+            return [0, 0];
+        };
+        let mut pivots = [0u32, 0u32];
+        for player in &skirmish.players {
+            if let Some(ai) = self.skirmish_ai.get(&player.id) {
+                pivots[player.side.index()] =
+                    pivots[player.side.index()].saturating_add(ai.pivot_count());
+            }
+        }
+        pivots
+    }
+
+    /// Latest non-digested team assignments, for tournament evidence.
+    pub fn team_plans(&self) -> [Option<&crate::skirmish_ai::TeamPlan>; 2] {
+        [
+            self.team_memory[Side::Blue.index()].cached_plan(),
+            self.team_memory[Side::Red.index()].cached_plan(),
+        ]
+    }
+
+    pub fn team_tuning(&self) -> crate::skirmish_ai::team::TeamTuning {
+        self.team_tuning
     }
 
     /// `unit` fired: every opposing side learns an uncertain firing area and
@@ -3630,8 +3580,14 @@ impl Battle {
             let round = self.rounds.get_mut(&projectile).expect("checked above");
             round.fused_target = None;
             if round.seeker_target.take().is_some() {
-                self.projectiles
-                    .decoy_seeker(projectile, position, velocity);
+                self.projectiles.decoy_seeker(
+                    projectile,
+                    crate::flight::Decoy {
+                        position,
+                        velocity,
+                        meet_m: self.rules.guided.flare_meet_m,
+                    },
+                );
             } else {
                 // Its launcher lets go; guidance releases it, as for a lost
                 // sight line.
@@ -3738,9 +3694,9 @@ impl Battle {
         let seekers: Vec<_> = self
             .rounds
             .iter()
-            .filter_map(|(id, round)| round.seeker_target.map(|target| (*id, target)))
+            .filter_map(|(id, round)| round.seeker_target.map(|target| (*id, round.side, target)))
             .collect();
-        for (projectile, target) in seekers {
+        for (projectile, side, target) in seekers {
             // Where the target is and how it moves (a ground unit's pose
             // here is its position alone).
             let seen = match target {
@@ -3749,10 +3705,10 @@ impl Battle {
                     let aim = unit.position + v3(0.0, 0.0, unit.aim_height(&self.rules));
                     Some((aim, unit.flight_velocity()))
                 }
-                Target::Contact(id) => self
-                    .knowledge
-                    .iter()
-                    .find_map(|k| k.contact(id).map(|c| (c.center, v3(0.0, 0.0, 0.0)))),
+                // A contact id is its firing side's own.
+                Target::Contact(id) => self.knowledge[side.index()]
+                    .contact(id)
+                    .map(|c| (c.center, v3(0.0, 0.0, 0.0))),
                 Target::Round(round) => self
                     .projectiles
                     .get(round.id)
@@ -4304,13 +4260,9 @@ impl Battle {
             | Order::Refund { units } => Some(units),
             _ => None,
         };
-        // Every order a unit is given reaches it here first: it is no longer
-        // withdrawing, and a jet's run, release cue and dogfight end, so no
-        // order (repeated or not) can leave one stuck in a run.
         if let Some(units) = replacing {
             for id in units {
-                movers[id.0 as usize].withdrawing = false;
-                crate::air::break_off(&mut movers[id.0 as usize]);
+                take_order(&mut movers[id.0 as usize]);
             }
         }
         match command.order {
@@ -4636,17 +4588,21 @@ impl Battle {
             }
             Order::UpgradeMove { gesture, route } => {
                 for unit in movers.iter_mut().filter(|u| u.side == side) {
+                    let mut upgraded = false;
                     for (k, order) in unit.orders.iter_mut().enumerate() {
                         if let Some(m) = order.movement_mut() {
                             if m.gesture == gesture && m.policy != route {
                                 m.policy = route;
-                                unit.withdrawing = false;
+                                upgraded = true;
                                 if k == 0 {
                                     unit.route = None; // replan the active order
                                     unit.planned_goal = None;
                                 }
                             }
                         }
+                    }
+                    if upgraded {
+                        take_order(unit);
                     }
                 }
             }
@@ -5641,6 +5597,14 @@ impl Battle {
     }
 }
 
+/// What every order a unit is given does to it first: it is no longer
+/// withdrawing, and a jet's run, release cue and dogfight end, so no order
+/// (repeated or not) can leave one stuck in a run.
+fn take_order(unit: &mut Unit) {
+    unit.withdrawing = false;
+    crate::air::break_off(unit);
+}
+
 #[derive(Clone)]
 struct PreparedCommand {
     command: CommandEnvelope,
@@ -5649,6 +5613,14 @@ struct PreparedCommand {
     /// Where a placed unit stops short ([`crate::units::StopShort`]).
     stops: BTreeMap<UnitId, crate::units::StopShort>,
     refused: Vec<contract::command::Refusal>,
+}
+
+/// Who gave a command: a client, or the battle itself (its slot AI, authored
+/// scripts and opponents), which commands a slot it controls.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Issuer {
+    Client,
+    Battle,
 }
 
 type Admission = (
@@ -5808,6 +5780,193 @@ mod tests {
             },
         );
         projectile
+    }
+
+    /// A helicopter's settling goal steers it every tick, so it is part of
+    /// the battle's state: two battles alike but for it digest apart.
+    #[test]
+    fn a_helicopters_settling_goal_is_in_the_digest() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [{ "side": "blue", "kind": "test_heli", "position": [1000, 1000] }],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let settling = |goal: V2| {
+            let mut battle = Battle::new(&setup, 1);
+            battle.units[0].air.as_mut().unwrap().settle = Some(crate::units::Settle {
+                goal,
+                aim: v2(1100.0, 1000.0),
+                back: false,
+            });
+            battle.digest()
+        };
+        assert_ne!(settling(v2(1050.0, 1000.0)), settling(v2(1060.0, 1000.0)));
+    }
+
+    /// No order leaves a jet in a run: changing the route of its attack-move
+    /// ends its run, release cue and dogfight, as every other order does.
+    #[test]
+    fn upgrading_a_jets_move_breaks_off_its_run() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [4000, 4000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_jet", "position": [1000, 2000], "yaw": 0.0 },
+                { "side": "red", "kind": "test_tank", "position": [2000, 2000], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 1);
+        let envelope = |seq, order| CommandEnvelope {
+            side: Side::Blue,
+            player: None,
+            seq,
+            queued: false,
+            order,
+        };
+        let ack = battle.accept(envelope(
+            1,
+            Order::AttackMove {
+                units: vec![UnitId(0)],
+                gesture: 1,
+                goal: [3000.0, 2000.0],
+            },
+        ));
+        assert_eq!(ack.error, None);
+        battle.step();
+        let jet = &mut battle.units[0];
+        assert!(
+            jet.orders[0].movement_mut().unwrap().policy != RoutePolicy::Fastest,
+            "the upgrade changes the route"
+        );
+        // Mid-run, about to release, in a fight.
+        let air = jet.air.as_mut().unwrap();
+        air.pass = Some(crate::air::pass::PassPlan {
+            target: Target::Unit(UnitId(1)),
+            aim: v3(2000.0, 2000.0, 0.0),
+            phase: crate::air::pass::PassPhase::Dive,
+            weapon: crate::air::pass::PassWeapon::Gun,
+            agl: 120.0,
+            heading: 0.0,
+        });
+        air.pass_release = true;
+        air.dogfight_target = Some(UnitId(1));
+        let upgrade = envelope(
+            2,
+            Order::UpgradeMove {
+                gesture: 1,
+                route: RoutePolicy::Fastest,
+            },
+        );
+        let prepared = battle.prepare(upgrade, battle.tick).unwrap();
+        battle.apply(prepared);
+        let air = battle.units[0].air.unwrap();
+        assert_eq!(air.pass, None, "the run survived the order");
+        assert!(!air.pass_release, "the release cue survived the order");
+        assert_eq!(air.dogfight_target, None, "the dogfight survived the order");
+    }
+
+    /// Contact ids are each side's own: when blue and red each hold a
+    /// contact numbered alike, in different places, each side's seeker
+    /// flies at the contact its own side holds.
+    #[test]
+    fn a_seeker_flies_at_its_own_sides_contact() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [6000, 6000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_tank", "position": [500, 500], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "test_tank", "position": [5500, 5500], "engagement": "return_fire_only" }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 3);
+        // Each side hears the other fire from far apart: each holds one
+        // contact, numbered alike.
+        let blue_heard = v3(4000.0, 1000.0, 0.0);
+        let red_heard = v3(1000.0, 4000.0, 0.0);
+        battle.knowledge[Side::Blue.index()].note_fire(
+            UnitId(1),
+            blue_heard,
+            AltitudeLayer::Ground,
+            0,
+        );
+        battle.knowledge[Side::Red.index()].note_fire(
+            UnitId(0),
+            red_heard,
+            AltitudeLayer::Ground,
+            0,
+        );
+        battle.step();
+        let contact = |side: Side| {
+            let contacts: Vec<_> = battle.knowledge[side.index()].all_contacts().collect();
+            assert_eq!(contacts.len(), 1, "{side:?} holds one contact");
+            (contacts[0].id, contacts[0].center)
+        };
+        let (blue_id, blue_at) = contact(Side::Blue);
+        let (red_id, red_at) = contact(Side::Red);
+        assert_eq!(blue_id, red_id, "both sides number their contact alike");
+        let weapon = battle
+            .arsenal
+            .weapons
+            .iter()
+            .position(|w| w.def.seeker.is_some())
+            .expect("a seeker row");
+        let mut launch = |side: Side, unit: UnitId| {
+            let projectile = battle.projectiles.launch(crate::flight::Launch {
+                origin: v3(3000.0, 3000.0, 100.0),
+                carrier: v3(0.0, 0.0, 0.0),
+                velocity: v3(0.0, 0.0, 100.0),
+                gravity_scale: 0.0,
+                lifetime_s: 30.0,
+                suppression_radius_m: 0.0,
+                shooter: None,
+                guidance: Some(crate::flight::Guidance {
+                    point: v3(3000.0, 3000.0, 1000.0),
+                    turn_rad_s: 1.0,
+                    supported: false,
+                    loft: None,
+                }),
+                motor: None,
+                fall: None,
+            });
+            battle.rounds.insert(
+                projectile,
+                Round {
+                    weapon,
+                    unit,
+                    side,
+                    seeker_target: Some(Target::Contact(blue_id)),
+                    fused_target: None,
+                    layer: AltitudeLayer::Ground,
+                },
+            );
+            projectile
+        };
+        let blue_round = launch(Side::Blue, UnitId(0));
+        let red_round = launch(Side::Red, UnitId(1));
+        battle.step();
+        let steered = |round| {
+            battle
+                .projectiles
+                .get(round)
+                .and_then(|p| p.guidance)
+                .expect("the seeker still flies")
+                .point
+        };
+        let near = |a: V3, b: V3| (a.xy() - b.xy()).length() < 1.0;
+        assert!(
+            near(steered(blue_round), blue_at),
+            "blue's seeker flies at blue's contact"
+        );
+        assert!(
+            near(steered(red_round), red_at),
+            "red's seeker flies at red's contact"
+        );
     }
 
     /// A jeep (unit 0) at (1000, 1000) with a gun (its mount 1) firing at

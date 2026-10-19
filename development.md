@@ -124,6 +124,13 @@ After setup, a pre-commit hook formats and lints what the commit touches;
 [lint-staged.config.mjs](lint-staged.config.mjs) owns what runs. It sits beside
 Git LFS's hooks, so setup never redirects Git's hooks directory.
 
+Source files (what GitHub Linguist calls a programming language) have a size
+budget of 8,000 tokens (bytes / 4), so an agent can read any file whole. It is
+a ratchet: a file over the budget may shrink but not grow. The
+[ratchet-files](.agents/skills/ratchet-files/SKILL.md) skill owns the check,
+lists every file over the budget, and says how to split one or, as a last
+resort, opt it out with a pragma.
+
 Cyclomatic complexity has a loose budget, owned by
 [web/eslint.config.mjs](web/eslint.config.mjs). It is a tripwire for functions
 that have grown too large to follow, not a target: a long function that reads

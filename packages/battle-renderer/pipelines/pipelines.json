@@ -1,4 +1,12 @@
 {
+  "sizes": {
+    "bloomLevels": 5,
+    "skyLut": [
+      384,
+      192
+    ],
+    "effectSheet": 1024
+  },
   "layouts": {
     "bake - Automatic Bind Group & Layout": [
       {

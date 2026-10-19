@@ -1,11 +1,11 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–09 done).
-**Updated:** 2026-10-17.
+**Status:** in progress (slices 00–13 done).
+**Updated:** 2026-10-18.
 
 ## Next Agent Prompt
 
-**Done:** slices 00–09.
+**Done:** slices 00–13.
 - Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
 - Slice 01 landed the player contract. D54 makes Neutral players factionless.
 - Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
@@ -14,10 +14,14 @@
 - Slice 04 landed mirrored entry arms and generalized fairness. Admission is 67–97% per try on generated maps; the table is in `choices.md`.
 - Slices 08 and 09 landed the lobby: the admitted map picture and the order-of-battle screen at `/`, whose Deploy opens exactly the previewed map. Unpinned `/battle?play=1` is gone; the lobby's preview is the only admission.
 - Slice 11 landed the per-player match report: a scoreboard row per player under each side, a timeline naming each player (a player's purchases in one minute are one line), and the result read from the viewer's side, neutral when the client plays no seat. Its pictures are the UI gallery's `report-*` shots and the `allies` scene's real 2v2 report.
+- Slice 12 landed the team planner (`skirmish_ai/team/`): each side's AI players get a lane, an objective and a staging point; a player's main group gathers there and advances as one, while recon and logistics move on their own. It merges with main's AI transport (squads ride their own player's carriers toward the plan's goal). AI purchases arrive a short way up their lane so they clear the entry at once. It re-baselined the skirmish digests (D41, re-baseline 2; values in its commit message). Its final tournament had zero refused AI orders and teams held up to six objectives at once; one match in nine finished, the rest timed out: that is slice 13's to fix.
+- Slice 13 landed requests for help and a shared stance. A lane whose influence falls raises help, answered by the nearest ally with surplus with a detachment of units that can fight the threat and hold the ground; help holds until the lane is relieved (or while it fights), and is asked for again if it is lost. A beaten lane falls back to its staging on its own; the team falls back only when most lanes are outgunned, and pushes all lanes together after a dwell. Its tournament (9 matches, rules-derived cap) finished every match with a winner and zero refused orders. The `ally-help` scene shows an AI ally answering a human lane.
 
 **Next:**
-- Slice 10 (allies in battle, visual): it needs 06, which has landed.
-- Slice 04 follow-up: with three entries, both flank arms can land on the same side of the centre road. The slice 08 picture showed it on a Large 3v4. The fix is queued.
+- Slice 13b (side objectives, D55): open objectives first, a hold party on what a player took, one party concept for help, hold and claim.
+- Extend the `ai_controlled` refusal (main `90ba2588d`, outside skirmish only) to skirmish: migrate the tests that order declared-AI players directly.
+- Slice 14 (5v5 closeout).
+- OPEN, asked of the user: the AI judges strength by headcount (every unit 1.0 in the influence grid and force counts) and buys from fixed role recipes, so it does not adapt to stat changes. Proposed: weight units by a combat value from their data (weapons against armour, or cost as a stand-in) in the planner and purchases. Not in this spec unless the user adds it.
 
 **Unproven under load.** The `benchmark` (real-time check) and `street` (900 s limit) scenes have not passed since slice 02. Both fail the same way on clean main while the machine's load average is 18–50, and neither touches slice 09. Run them on a quiet machine before closeout (slice 14). If `street` fails "the scouts never identified an enemy" there too, it is a real regression to chase.
 
@@ -55,8 +59,9 @@ Slices:
 - [x] 09: order-of-battle lobby screen ([slice](slices/09-lobby-screen.md))
 - [x] 10: allies in battle ([slice](slices/10-allies-in-battle.md))
 - [x] 11: per-player match report ([slice](slices/11-match-report.md))
-- [ ] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
-- [ ] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
+- [x] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
+- [x] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
+- [ ] 13b: side objectives ([slice](slices/13b-side-objectives.md))
 - [ ] 14: 5v5 AI-versus-AI closeout ([slice](slices/14-closeout.md))
 
 ## Goal
@@ -122,7 +127,7 @@ Changing any of these is a named decision in `choices.md`.
 | Setup construction | `sim::skirmish::setup_for` | three hand-written constructors (D38) |
 | Economy, controllers, AI dispatch, settlement | `crates/sim` | side arrays |
 | Controller policy | one function in `battle.rs` (D45) | `controller_turn` and `BalancedDoctrine` both driving the same player |
-| Team planner | `crates/sim/src/skirmish_ai/team.rs` (new) | (new) |
+| Team planner | `crates/sim/src/skirmish_ai/team/mod.rs` (new) | (new) |
 | Map picture | `mapgen::inspect`, from a `MapDefinition`, exposed through wasm (D39) | (new) |
 | Lobby state, URL identity | `apps/battle-lab/src/lobby/` (new), `battleLinks.ts` | the builder's `BuilderSlot` duplicate |
 | Preview lifecycle | a preview controller over `web/src/battle/prepare/admission.ts` | (new) |
@@ -151,7 +156,7 @@ Nothing else is transitional.
 ```
 00 probe ─┬─► 01 contract ─► 02 ownership ─┬─► 03 publication ─┬─► 06 setup/request/links ─► 07 lobby model ─► 08 map picture ─► 09 lobby screen
           │                                │                    └─► 10 allies ─► 11 report
-          └─► 04 entry arms ───────────────┴─► 05 entry owner ─► 12 team lanes ─► 13 team support ─► 14 closeout (needs all)
+          └─► 04 entry arms ───────────────┴─► 05 entry owner ─► 12 team lanes ─► 13 team support ─► 13b side objectives ─► 14 closeout (needs all)
 ```
 
 - **05** needs both 02 and 04.

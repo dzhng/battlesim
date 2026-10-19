@@ -248,7 +248,7 @@ fn map_resolution_cuts_visibility_and_foliage_together() {
 /// The grids' cell sizes are refused by name before the world is divided
 /// into cells of them.
 #[test]
-#[should_panic(expected = "map.fog_cell_m must be finite and positive")]
+#[should_panic(expected = "map.fog_cell_m: map resolution must be finite positive metres")]
 fn a_zero_fog_cell_is_refused_by_name() {
     let mut setup = scenario();
     setup.map.fog_cell_m = 0.0;
@@ -256,7 +256,7 @@ fn a_zero_fog_cell_is_refused_by_name() {
 }
 
 #[test]
-#[should_panic(expected = "map.fog_cell_m must be finite and positive")]
+#[should_panic(expected = "map.fog_cell_m: map resolution must be finite positive metres")]
 fn an_infinite_fog_cell_is_refused_by_name() {
     let mut setup = scenario();
     setup.map.fog_cell_m = f64::INFINITY;
@@ -264,7 +264,7 @@ fn an_infinite_fog_cell_is_refused_by_name() {
 }
 
 #[test]
-#[should_panic(expected = "ground.cell_m must be positive")]
+#[should_panic(expected = "rules.ground.cell_m: ground cells must be finite positive metres")]
 fn a_zero_ground_cell_is_refused_by_name() {
     let mut setup = scenario();
     setup.rules.ground.cell_m = 0.0;

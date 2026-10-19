@@ -186,12 +186,18 @@ export function catalogLoadBytes(
   factions?: ReadonlySet<string> | null,
   scenery?: ReadonlySet<string> | null,
 ): number {
+  const names = catalogLoadNames(catalog, wearing, factions, scenery);
+  const skeletons = new Set(
+    names
+      .map((name) => catalog.appearances[name]?.skeleton)
+      .filter((id): id is string => Boolean(id)),
+  );
   const eager = [
     ...(catalog.templates ? [catalog.templates.library] : []),
-    ...Object.values(catalog.skeletons ?? {}),
-    ...catalogLoadNames(catalog, wearing, factions, scenery).map(
-      (name) => catalog.appearances[name].bundle,
-    ),
+    ...[...skeletons]
+      .map((id) => catalog.skeletons?.[id])
+      .filter((hash): hash is string => Boolean(hash)),
+    ...names.map((name) => catalog.appearances[name].bundle),
   ];
   return wireBytes(catalog, eager, held);
 }

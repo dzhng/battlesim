@@ -167,7 +167,7 @@ pub fn scenario_bundle_details(bundle_json: &str) -> Result<String, JsError> {
     let assets: Vec<_> = bundle
         .assets
         .iter()
-        .filter(|asset| asset.media_type.starts_with("audio/") && asset.bytes_base64.is_some())
+        .filter(|asset| asset.media_type.starts_with("audio/"))
         .map(|asset| {
             serde_json::json!({
                 "id": asset.id,

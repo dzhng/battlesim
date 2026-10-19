@@ -10,13 +10,14 @@ The runtime keeps a fixed Blue, Red, and Neutral topology. The side spike exerci
 
 Player slots own units even when slots share a side. A local run may select at most one human-capable slot. Other human-capable slots become passive AI, AI-only slots remain active AI, and a live human slot can be taken over by AI. The command envelope carries the slot, so a same-side controller cannot issue an order for another slot's unit. Observation and replay remain simulation-owned: the renderer receives only the selected side's publication, and every replayed digest must match the live run.
 
-The authored-code surface is a contract-owned bounded interpreter. It can inspect only the observation exposed to its side, use deterministic seeded values, and emit ordinary orders, events, and victory signals. It has no ambient clock, I/O, network, DOM, filesystem, or unbounded allocation. User media is embedded and hash-checked; built-in appearance references carry content identity and remain owned by the shared scene-assets loader. Uploaded maps with no scenery request no scenery art, which keeps the normal renderer inside small adapter texture-array limits.
+The authored-code surface is a contract-owned bounded interpreter. It can inspect only the observation exposed to its side, use deterministic seeded values, and emit ordinary orders, events, and victory signals. It has no ambient clock, I/O, network, DOM, filesystem, or unbounded allocation. User media is embedded and hash-checked, and an asset always carries its bytes; the art for the units and props a package fields comes from the build's own appearance catalog through the shared scene-assets loader, never from a reference inside the package. Uploaded maps with no scenery request no scenery art, which keeps the normal renderer inside small adapter texture-array limits.
 
 ## Principles and invariants
 
 - The simulation is the only authority. UI, AI, presentation, audio, and renderer consume resolved observations and never infer hidden state.
 - A package is canonical and self-contained. Its bytes, content identity, map snapshot, rules, slot ownership, scripts, victory source, and embedded assets are admitted together; noncanonical or changed bytes are refused.
 - Every authored unit has exactly one slot owner. Slot ownership is checked at command admission, not inferred from side colour in the browser.
+- A slot under AI control takes orders only from the battle's own controller: a client's order for it is refused (`ai_controlled`) before it is recorded. Skirmish sessions own their seats and are outside this rule.
 - Neutral cannot become a human controller or an aggressive automatic side. It is passive until threatened.
 - A replay restores the same accepted commands, controller state, and authored outputs at the same ticks. Matching terminal state is insufficient when an earlier digest differs.
 - Scripts observe only their published side, run under deterministic fuel and output limits, and use the same command vocabulary as human input.
@@ -31,11 +32,13 @@ The authored-code surface is a contract-owned bounded interpreter. It can inspec
 - `web/src/battle/prepare/client.ts`, `web/src/battle/prepare/worker.ts`, and `apps/battle-lab/src/routes/scenarioPlay.tsx` own explicit upload admission and the normal worker connection. `apps/battle-lab/src/useSimSession.ts` deliberately uses the prepared connection only for its one live authority; replay replacement starts a fresh worker.
 - `apps/battle-lab/src/scenario-builder/` owns the tactical canvas and in-memory draft. `web/src/battle/scenarioBundle.ts` and the WASM bundle APIs are the only durable serialization boundary. `web/tests/scenarioBuilder.test.ts`, `web/tests/scenarioBundle.test.ts`, and `web/scenes/scenario-builder.mjs` pin authoring, ownership placement, and export.
 - `apps/battle-lab/src/gameAppearances.ts`, `apps/battle-lab/src/useBattleSession.ts`, and `packages/scene-assets/src/loader.ts` own session-scoped art requests. `packages/battle-renderer/src/frame/worldPass.ts` owns the aligned x-ray uniform allocation needed by SwiftShader and other strict adapters.
-- `web/scenes/scenario-play.mjs` pins the registered upload-to-BattleView path. A local closeout probe also exercised cross-slot `wrong_slot` rejection, AI takeover, side-scoped observation, replay download/upload, and equal live/replay digests; that probe output is transient and is not a second runtime contract.
+- `web/scenes/scenario-play.mjs` pins the registered upload-to-BattleView path. A local closeout probe also exercised cross-slot `wrong_player` rejection, AI takeover, side-scoped observation, replay download/upload, and equal live/replay digests; that probe output is transient and is not a second runtime contract.
 
 ## Dead ends and deliberate limits
 
 The arbitrary-side/FFA spike was rejected after a Neutral candidate reached fixed-array assumptions and panicked in the battle path. The product keeps the fixed three-slot topology rather than carrying a dynamic-side compatibility layer.
+
+Hash-named references to built-in content were dropped from the package format: nothing produced them, nothing read them, and an admitted reference silently delivered nothing.
 
 Browser JavaScript evaluation was rejected as the authored-script runtime because it would make native/WASM parity and capability restriction depend on the host environment. A small deterministic interpreter keeps the authority boundary explicit.
 

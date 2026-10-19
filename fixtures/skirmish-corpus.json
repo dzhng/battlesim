@@ -7,6 +7,8 @@
     { "id": "blocked_entry", "map": "movement", "seed": 4, "horizon_ticks": 900, "no_progress_ticks": 300 },
     { "id": "contested_center", "map": "street", "seed": 5, "horizon_ticks": 1800, "no_progress_ticks": 450 },
     { "id": "casualty_fallback", "map": "supply", "seed": 6, "horizon_ticks": 1800, "no_progress_ticks": 450 },
-    { "id": "air_reinforcement", "map": "air", "seed": 7, "horizon_ticks": 1800, "no_progress_ticks": 450 }
+    { "id": "air_reinforcement", "map": "air", "seed": 7, "horizon_ticks": 1800, "no_progress_ticks": 450 },
+    { "id": "team_3v3", "map": { "kind": "generated", "type": "mixed", "size": "large" }, "seed": 8, "horizon_ticks": 1800, "no_progress_ticks": 450, "players_per_side": 3 },
+    { "id": "team_5v5", "map": { "kind": "generated", "type": "mixed", "size": "xl" }, "seed": 9, "horizon_ticks": 1800, "no_progress_ticks": 450, "players_per_side": 5 }
   ]
 }

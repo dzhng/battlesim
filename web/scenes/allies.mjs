@@ -265,7 +265,8 @@ export async function run(ctx) {
         ),
     );
   if (!shot.has("ally-smoke")) {
-    const burning = await until(page, smoking, 180 * 30, 300);
+    // Optional, so its search is bounded: a minute of battle, not three.
+    const burning = await until(page, smoking, 60 * 30, 300);
     if (burning) {
       // The wreck and your ally's unit nearest it, in one frame.
       const wreck = smoking(burning).center;

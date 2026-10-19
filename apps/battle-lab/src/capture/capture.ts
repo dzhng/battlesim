@@ -55,6 +55,8 @@ function pose(json: unknown, at: string): CameraPose {
   const numbers = [...(Array.isArray(target) ? target : []), distance, yaw, pitch];
   if (!Array.isArray(target) || target.length !== 2 || !numbers.every(Number.isFinite))
     throw new Error(`capture ${at}: a framing needs a target [x, y], distance, yaw and pitch`);
+  if (!((distance as number) > 0))
+    throw new Error(`capture ${at}.distance: the camera must stand off its target`);
   return {
     target: [target[0], target[1]],
     distance: distance as number,
@@ -65,13 +67,17 @@ function pose(json: unknown, at: string): CameraPose {
 
 const SHOT_FIELDS = ["seconds", "follow", "from", "to", "ease", "logDistance", "zoomDuration"];
 
+/** A finite, non-negative number of seconds. */
+const isDuration = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+
 /** `json` as a reel, or a refusal naming the field at fault (under `at`):
- *  every framing finite, every shot long enough to hold both of its dips, and
- *  no field a reel doesn't have. */
+ *  every framing finite and standing off its target, every duration finite,
+ *  every shot long enough to hold both of its dips, and no field a reel
+ *  doesn't have. */
 export function validateReel(json: unknown, at = "reel"): Reel {
   const { fade_s, shots } = only(json, at, ["fade_s", "shots"]);
-  if (!(typeof fade_s === "number" && fade_s >= 0))
-    throw new Error(`capture ${at}.fade_s: not a duration`);
+  if (!isDuration(fade_s)) throw new Error(`capture ${at}.fade_s: not a duration`);
   if (!Array.isArray(shots) || shots.length === 0) throw new Error(`capture ${at}.shots: none`);
   return {
     fade_s,
@@ -79,7 +85,7 @@ export function validateReel(json: unknown, at = "reel"): Reel {
       const here = `${at}.shots[${i}]`;
       const shot = only(json, here, SHOT_FIELDS);
       const { seconds, follow, ease, logDistance, zoomDuration } = shot;
-      if (!(typeof seconds === "number" && seconds > 0 && seconds >= 2 * fade_s))
+      if (!(isDuration(seconds) && seconds > 0 && seconds >= 2 * fade_s))
         throw new Error(`capture ${here}.seconds: shorter than its two dips`);
       if (follow !== undefined && !(Number.isInteger(follow) && (follow as number) >= 0))
         throw new Error(`capture ${here}.follow: not a unit id`);
@@ -89,7 +95,7 @@ export function validateReel(json: unknown, at = "reel"): Reel {
         throw new Error(`capture ${here}.logDistance: true or false`);
       if (
         zoomDuration !== undefined &&
-        !(typeof zoomDuration === "number" && zoomDuration > 0 && zoomDuration <= seconds)
+        !(isDuration(zoomDuration) && zoomDuration > 0 && zoomDuration <= seconds)
       )
         throw new Error(`capture ${here}.zoomDuration: not a duration within the shot`);
       return {
@@ -102,6 +108,17 @@ export function validateReel(json: unknown, at = "reel"): Reel {
         ...(zoomDuration !== undefined && { zoomDuration }),
       };
     }),
+  };
+}
+
+/** `reel` under reduced motion: its first framing held for the reel's length,
+ *  on the unit that framing follows. */
+export function stillReel(reel: Reel): Reel {
+  const seconds = reel.shots.reduce((sum, shot) => sum + shot.seconds, 0);
+  const [{ from, follow }] = reel.shots;
+  return {
+    fade_s: reel.fade_s,
+    shots: [{ seconds, ...(follow !== undefined && { follow }), from, to: from }],
   };
 }
 
@@ -126,7 +143,8 @@ export function sampleReel(reel: Reel, elapsed: number): ReelSample {
       return {
         pose: betweenEased(shot.from, shot.to, e, shot.logDistance ?? false),
         follow: shot.follow ?? null,
-        black: 1 - clamp(edge / reel.fade_s, 0, 1),
+        // A reel without dips cuts straight from shot to shot.
+        black: reel.fade_s === 0 ? 0 : 1 - clamp(edge / reel.fade_s, 0, 1),
         done: false,
       };
     }
@@ -221,8 +239,7 @@ export function validateCapture(json: unknown, maps: readonly MapEntry[]): Captu
         throw new Error(`capture ${at}.map: ${(e as Error).message}`);
       }
       if (!Number.isInteger(seed)) throw new Error(`capture ${at}.seed: an integer`);
-      if (!(typeof warm_s === "number" && warm_s >= 0))
-        throw new Error(`capture ${at}.warm_s: not a duration`);
+      if (!isDuration(warm_s)) throw new Error(`capture ${at}.warm_s: not a duration`);
       return {
         map: map as string,
         encounter: encounter as string,

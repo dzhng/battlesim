@@ -75,7 +75,7 @@ import {
   sideInstances,
   type DrawnInstances,
 } from "./sideInstances";
-import { commandingPlayer } from "./commandingPlayer";
+import { commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
@@ -142,8 +142,9 @@ export interface BattleSessionOptions {
   scripted?: ScriptedSim;
   /** Whose units and identified enemies are drawn (a lab's diagnostic side switch). */
   side?: SideName;
-  /** Player issuing orders in a player-owned scenario. */
-  player?: string;
+  /** Player issuing orders in a player-owned scenario; null when the session
+   *  seats no human (`commandingPlayer.ts`). */
+  player?: string | null;
   /** Play the battle's sound (heard from the last frame's camera). */
   sound?: boolean;
   /** Menus and loading covers suspend command input without losing selection. */
@@ -352,7 +353,7 @@ export function useBattleSession({
       onAck: (order, ack, queued) => responses.current?.acknowledged(order, ack, queued),
       onSelect: (added, clicked) => responses.current?.selected(added, clicked),
     },
-    inputEnabled,
+    inputEnabled && takesOrders(players, commanding),
     commanding,
   );
   /** The side's units an ally owns, with their panels' owner lines. */
