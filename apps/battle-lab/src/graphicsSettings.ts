@@ -48,7 +48,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     buildingLodScale: 1.6,
     treeLodScale: 1.6,
     grassDensity: 0.55,
-    renderScale: 1,
+    renderScale: 0.75,
     forestDressing: false,
     understorey: false,
     shadowMapSize: 1024,

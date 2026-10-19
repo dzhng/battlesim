@@ -216,6 +216,6 @@ only (the HUD remains at CSS resolution). The same generated map, roster, late
 state, and deterministic digest measured 35.8 ms GPU mean live and 45.7 ms late,
 with GPU texture memory dropping from about 610 MiB to 548 MiB. This is roughly
 13% live and 6% late GPU improvement, with no simulation or presentation-output
-change. The scale is confined to the test-only minimum profile; player tiers
-remain at 1× until a visual review and device coverage justify exposing dynamic
-resolution.
+change. The scale is used by the production Low profile and the test-only minimum
+profile; Medium and High remain at 1×. The low-quality graphics reel completed
+without render errors.
