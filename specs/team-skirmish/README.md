@@ -23,7 +23,7 @@
 **Next:**
 - Slice 14 (5v5 closeout). Judge match length there: 1v1 seed 1 now runs 35 min (`choices.md`, 13c).
 
-**Unproven under load.** The `benchmark` (real-time check) and `street` (900 s limit) scenes have not passed since slice 02. Both fail the same way on clean main while the machine's load average is 18–50, and neither touches slice 09. Run them on a quiet machine before closeout (slice 14). If `street` fails "the scouts never identified an enemy" there too, it is a real regression to chase.
+**Performance is out of scope** (user, 2026-10-19): the 300-unit browser benchmark, the `benchmark` scene's real-time check and the quiet limits (L13) move to a future performance spec. The `street` scene (900 s limit) still runs in the full suite; if it fails "the scouts never identified an enemy" on a quiet machine, that is a behaviour regression to chase.
 
 **Known environment failures.** A worktree needs `git lfs pull --include 'assets/runtime,assets/third-party,packages/scene-assets,web/scenes'` before browser tests and scenes, which is about 0.75 GB. After that, only these fail, identically on main, because they need LFS source art:
 - `icons.test.ts` (3 tests);
