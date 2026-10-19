@@ -138,3 +138,8 @@ The bounded validation reproduced the stall on `FPS_SCENES=paris-corner` and
 failed at 120 seconds with `graphics test did not reach results`. That isolates
 the current blocker to the browser graphics-test completion path rather than a
 map-specific workload; no post-pass FPS claim is valid yet.
+
+The route now mirrors the runner deadline in its own state: a stalled running
+reel changes to the existing incomplete-test results view after two minutes.
+This does not make the missing timing evidence valid; it makes the failure
+visible and machine-readable instead of leaving a blank running page.

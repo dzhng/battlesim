@@ -35,6 +35,21 @@ timing samples.
 - **Verdict:** sound. The failure is explicit and reproducible.
 - **Confidence:** high.
 
+### Make the graphics page publish its own timeout result — 2026-10-19
+
+The external scene runner could detect a stalled page, but the page itself
+remained on a blank running view. The route now changes to its existing results
+view after the same two-minute deadline and records an incomplete-test reason.
+That keeps the page and runner on one terminal contract; the alternative was a
+runner-only timeout that left the page unable to explain what happened.
+
+- **Gap:** the plan bounded the harness poll but did not require the page to
+  publish the same terminal state.
+- **Reach:** future benchmark failures are visible in the app and machine
+  readable through `window.__graphicsTest`.
+- **Verdict:** sound. Successful runs and timing thresholds are unchanged.
+- **Confidence:** high.
+
 ### Retain scratch reuse on native CPU evidence — 2026-10-19
 
 The same captured replay ran before and after the pass. Reusing the three

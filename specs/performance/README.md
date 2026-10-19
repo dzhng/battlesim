@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Rust presentation allocation-reuse pass retained; native A/B confirms a CPU win, browser graphics-test completion is blocked.
+**Status:** Rust presentation allocation-reuse pass retained; native A/B confirms a CPU win, browser graphics-test completion now fails visibly and is still awaiting an adapter/runtime diagnosis.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
