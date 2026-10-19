@@ -34,8 +34,10 @@ Static-model caching remains a candidate, not a diagnosis.
 
 The instrumented reel now records browser long tasks and heap snapshots. A clean
 run found six long tasks, including one 943 ms task during `market-town`, and no
-GC entries. The next pass should correlate that task with the captured frame
-timestamps and its loading/model owner before selecting an optimization.
+GC entries. The full diagnostic run matched a 997 ms task to a 1,050 ms frame
+interval. Chromium's attribution was an unattributed window task, so the next
+pass must identify the owner with targeted renderer or frame-loop counters
+before selecting an optimization.
 
 ## Where the frame stands
 

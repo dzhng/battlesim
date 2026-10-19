@@ -66,6 +66,13 @@ function watchFrameDiagnostics() {
             startMs: entry.startTime,
             durationMs: entry.duration,
             name: entry.name,
+            attribution: entry.attribution?.map((item) => ({
+              name: item.name,
+              containerType: item.containerType,
+              containerName: item.containerName,
+              containerSrc: item.containerSrc,
+              containerId: item.containerId,
+            })),
           });
       }).observe({ type, buffered: true });
     } catch {

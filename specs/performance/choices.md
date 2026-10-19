@@ -72,3 +72,19 @@ maintain a separate profiling page whose pacing could diverge again.
 - **Verdict:** sound. The instrumented reel passed and recorded a 943 ms
   `market-town` long task.
 - **Confidence:** high.
+
+### Treat the long task as the trigger, not its unattributed label — 2026-10-19
+
+The production reel now proves that a `market-town` frame gap is real: a
+997-millisecond browser long task overlaps a 1,050-millisecond frame interval.
+Chromium's Long Tasks API labels it only as an unattributed window task. The
+safe decision is to keep the trigger and add targeted counters around the
+renderer/frame loop; the label alone is not evidence for static packing,
+loading, or pacing. The alternative would be to optimize whichever historical
+candidate sounds closest to the symptom.
+
+- **Gap:** browser attribution does not name the JavaScript owner.
+- **Reach:** the next implementation slice must instrument the suspected owner
+  before changing production behavior.
+- **Verdict:** sound. The attribution is explicitly insufficient evidence.
+- **Confidence:** high.

@@ -72,9 +72,10 @@ The `graphics-fps` scene now records browser diagnostics alongside its existing
 timing contract. The first passing instrumented run
 (`browser-2026-10-19T05-23-26-636Z.json`) recorded six long tasks, including a
 943 ms task while `market-town` was active, and no GC entries. Its heap snapshot
-was about 1.95 GB used of a 4 GB limit. Frame timestamps are recorded in the
-same evidence so the next pass can locate the affected interval without adding
-a second timing harness.
+was about 1.95 GB used of a 4 GB limit. The full diagnostic run matched a
+997 ms `market-town` long task to a 1,050 ms frame interval. Chromium reported
+the task as an unattributed window task, so the next pass needs targeted
+renderer or frame-loop counters to name its owner.
 
 ## Visual verification (2026-10-18)
 
