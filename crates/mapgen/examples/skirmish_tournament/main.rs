@@ -11,6 +11,11 @@
 //! order. Without `|`, the list repeats from its first card; with `|`, cards
 //! before the bar run once and cards after it repeat. The report's `air`
 //! block reads the referee's spawn and kill log.
+//!
+//! Each match ends by replaying its command stream from the start and
+//! checking the digest matches, which costs nearly a second simulation.
+//! `--no-replay-check` skips it for quick iteration (`replay_match` is then
+//! null); a confirmation run keeps it.
 
 mod inputs;
 mod model;
@@ -69,6 +74,7 @@ fn main() {
             );
         }
     }
+    inputs.check_replay = !args.iter().any(|arg| arg == "--no-replay-check");
     if args.iter().any(|arg| arg == "--corpus") {
         let corpus: Corpus =
             serde_json::from_str(include_str!("../../../../fixtures/skirmish-corpus.json"))
@@ -195,8 +201,14 @@ mod tests {
                 players_per_side: row.players_per_side,
             },
         );
+        // The same match without the replay check plays identically and
+        // reports the check as not run.
+        let unchecked = Inputs {
+            check_replay: false,
+            ..Inputs::load().unwrap()
+        };
         let right = run(
-            &inputs,
+            &unchecked,
             Row {
                 id: row.id,
                 map: row.map,
@@ -209,6 +221,7 @@ mod tests {
         assert_eq!(left.battle_digest, right.battle_digest);
         assert_eq!(left.replay_digest, right.replay_digest);
         assert_eq!(left.replay_match, Some(true));
+        assert_eq!(right.replay_match, None);
         assert_eq!(left.site_count, 3);
         assert!(left.map_identity.is_some());
         assert!(matches!(left.status, Status::Timeout));

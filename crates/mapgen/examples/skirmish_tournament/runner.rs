@@ -485,15 +485,16 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     }
     report.replay_digest = contract::identity::json_hash(&battle.replay()).ok();
     let replay = battle.replay();
-    report.replay_match =
-        sim::battle::Battle::from_replay(&setup, &replay)
-            .ok()
-            .map(|mut replayed| {
-                for _ in 0..report.ticks {
-                    replayed.step();
-                }
-                replayed.digest() == report.battle_digest
-            });
+    report.replay_match = inputs
+        .check_replay
+        .then(|| sim::battle::Battle::from_replay(&setup, &replay).ok())
+        .flatten()
+        .map(|mut replayed| {
+            for _ in 0..report.ticks {
+                replayed.step();
+            }
+            replayed.digest() == report.battle_digest
+        });
     report
 }
 

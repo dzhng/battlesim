@@ -252,7 +252,8 @@ unless `--seed <u64>` is supplied. It runs until the simulation reaches a
 terminal result, with a safety cap (the preparation plus three majority holds,
 from the match rules) adjustable through
 `--max-seconds <u64>`. Its JSON report includes the chosen cap, actual battle
-seconds, seed and replay parity result. Pass `--corpus` to run the deterministic
+seconds, seed and replay parity result; `--no-replay-check` skips the replay
+(nearly half a match's time) for quick iteration. Pass `--corpus` to run the deterministic
 multi-row regression corpus instead. Balance probes pick the faction pair and
 script a side's purchases without changing a rule; the source's usage names
 the flags, and the report's air block counts what jets and AA did.
