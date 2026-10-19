@@ -29,8 +29,13 @@ The frame is not GPU-saturated in these runs: `market-town` GPU means were
 11.92 and 10.93 ms, while CPU p99 was 21.16 and 18.47 ms. A focused steady-state
 CPU profile found no single dominant JavaScript function: active samples split
 between WASM presentation work, GPU buffer writes and garbage collection. The
-next pass therefore needs a frame-pacing or allocation profile before changing
-the renderer. Static-model caching remains a candidate, not a diagnosis.
+next pass therefore needs to explain the long task before changing the renderer.
+Static-model caching remains a candidate, not a diagnosis.
+
+The instrumented reel now records browser long tasks and heap snapshots. A clean
+run found six long tasks, including one 943 ms task during `market-town`, and no
+GC entries. The next pass should correlate that task with the captured frame
+timestamps and its loading/model owner before selecting an optimization.
 
 ## Where the frame stands
 

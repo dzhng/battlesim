@@ -55,3 +55,20 @@ risk without explaining this run's low 1% frames.
   to the largest old estimate.
 - **Verdict:** sound. The profile is evidence against promoting the cache now.
 - **Confidence:** high.
+
+### Extend the trusted reel instead of creating a second timing harness — 2026-10-19
+
+The first disposable pacing observer produced a cadence unlike the trusted
+graphics-fps scene, so its frame gaps could not be used as evidence. The
+measurement pass instead put long-task, GC, heap and frame-timestamp capture
+inside the existing production reel. That adds no renderer behavior and keeps
+the same warm-up, GPU lock and two-map contract. The alternative would be to
+maintain a separate profiling page whose pacing could diverge again.
+
+- **Gap:** the spec required an owner-level signal but the scene only wrote
+  aggregate frame and GPU numbers.
+- **Reach:** future candidates can be tied to the exact long frame without
+  changing the acceptance route.
+- **Verdict:** sound. The instrumented reel passed and recorded a 943 ms
+  `market-town` long task.
+- **Confidence:** high.

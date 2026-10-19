@@ -39,6 +39,41 @@ function watchCounter() {
   }).observe(document, { subtree: true, childList: true, characterData: true });
 }
 
+/** Capture browser-side causes that can explain a low 1% frame without
+ * changing the graphics test's timing path. Entries carry the scene label so
+ * a loading or transition spike is not mistaken for steady-state work. */
+function watchFrameDiagnostics() {
+  window.__frameDiagnostics = { frames: [], longtasks: [], gc: [] };
+  let previousFrame;
+  const frame = (at) => {
+    if (previousFrame !== undefined)
+      window.__frameDiagnostics.frames.push({ atMs: at, intervalMs: at - previousFrame });
+    previousFrame = at;
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  const scene = () => document.querySelector(".graphics-test-progress span")?.textContent ?? "";
+  for (const [type, key] of [
+    ["longtask", "longtasks"],
+    ["gc", "gc"],
+  ]) {
+    if (!PerformanceObserver.supportedEntryTypes?.includes(type)) continue;
+    try {
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries())
+          window.__frameDiagnostics[key].push({
+            scene: scene(),
+            startMs: entry.startTime,
+            durationMs: entry.duration,
+            name: entry.name,
+          });
+      }).observe({ type, buffered: true });
+    } catch {
+      // Some Chromium builds list an entry type but refuse its observer.
+    }
+  }
+}
+
 /** What else is drawing: a native run, or a browser besides this scene's
  *  own (the runner's Chromium can outlive its locked command while it tears
  *  down). Empty when the GPU is this run's alone. */
@@ -75,6 +110,7 @@ export async function run(ctx) {
   const started = performance.now();
   const page = await ctx.newPage({ viewport: VIEWPORT });
   await page.addInitScript(watchCounter);
+  await page.addInitScript(watchFrameDiagnostics);
   const url = new URL(ctx.url);
   if (SCENES) url.searchParams.set("scenes", SCENES);
   if (QUALITY) url.searchParams.set("quality", QUALITY);
@@ -112,6 +148,14 @@ export async function run(ctx) {
       scenes: r.scenes.map((s) => ({ map: s.scene.map, gpu: s.gpu })),
       frames: r.samples.frames.map((f) => [f.phase, f.intervalMs, f.cpuMs]),
       counter: window.__counterReadings,
+      diagnostics: window.__frameDiagnostics,
+      memory: performance.memory
+        ? {
+            usedJSHeapSize: performance.memory.usedJSHeapSize,
+            totalJSHeapSize: performance.memory.totalJSHeapSize,
+            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
+          }
+        : null,
     };
   });
   ctx.check(
@@ -169,7 +213,14 @@ export async function run(ctx) {
   };
   await writeFile(
     file,
-    `${JSON.stringify({ client: "browser", conditions, viewport: VIEWPORT, scenes })}\n`,
+    `${JSON.stringify({
+      client: "browser",
+      conditions,
+      viewport: VIEWPORT,
+      scenes,
+      diagnostics: report.diagnostics,
+      memory: report.memory,
+    })}\n`,
   );
   console.log(`METRIC graphics-fps: → ${file.pathname}`);
 }

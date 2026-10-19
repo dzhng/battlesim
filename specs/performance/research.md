@@ -68,6 +68,14 @@ justify a static-model cache or another renderer change by itself. The next
 experiment must correlate long frame intervals with allocation and frame-loop
 activity before selecting a candidate.
 
+The `graphics-fps` scene now records browser diagnostics alongside its existing
+timing contract. The first passing instrumented run
+(`browser-2026-10-19T05-23-26-636Z.json`) recorded six long tasks, including a
+943 ms task while `market-town` was active, and no GC entries. Its heap snapshot
+was about 1.95 GB used of a 4 GB limit. Frame timestamps are recorded in the
+same evidence so the next pass can locate the affected interval without adding
+a second timing harness.
+
 ## Visual verification (2026-10-18)
 
 The `frame` scene was rerun on a hardware AMD RDNA3 adapter after fetching the
