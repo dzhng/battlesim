@@ -1,15 +1,14 @@
-// Which player the local client's orders go out as. A player-owned scenario
-// refuses an order without its player, and the simulation refuses an order
-// for a slot under AI control, so a view of one side commands as that side's
-// human and never as an AI's slot. A session that seats no human (an
-// uploaded scenario played AI-only) says so with `null`.
+// Which player the local client plays as: its orders go out as that player,
+// and the HUD shows that player's economy. A player-owned scenario refuses an
+// order without its player, and the simulation refuses an order for a player
+// under AI control, so a view of one side commands as that side's human and
+// never as an AI player. A session that seats no human (an uploaded scenario
+// played AI-only) says so with `null`.
+import type { Player } from "@web/battle/prepare/protocol";
 import type { SideName } from "@web/battle/sim/protocol";
+import type { PlayerView, SkirmishView } from "@web/battle/sim/observationView";
 
-interface ScenarioPlayer {
-  readonly id: string;
-  readonly side: SideName;
-  readonly controller: string;
-}
+type ScenarioPlayer = Pick<Player, "id" | "side" | "controller">;
 
 export function commandingPlayer(
   players: readonly ScenarioPlayer[],
@@ -28,4 +27,15 @@ export function takesOrders(
   commanding: string | undefined,
 ): boolean {
   return players.length === 0 || commanding !== undefined;
+}
+
+/** The commanding player's credits, cap, readiness and pending purchases in
+ *  the side's skirmish view; none when the client commands nobody. */
+export function commandedEconomy(
+  match: SkirmishView | null | undefined,
+  commanding: string | undefined,
+): PlayerView | undefined {
+  return commanding === undefined
+    ? undefined
+    : match?.players.find((player) => player.id === commanding);
 }

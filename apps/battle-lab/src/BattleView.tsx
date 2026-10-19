@@ -29,6 +29,7 @@ import { gameStroke } from "./gameOverlay";
 import { LabViewport } from "./LabViewport";
 import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
+import { commandedEconomy } from "./commandingPlayer";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
@@ -82,7 +83,7 @@ export function BattleView({
   /** Player issuing commands in a player-owned scenario; null when the
    *  session seats no human, and input is off. */
   player?: string | null;
-  /** False once AI takes the player's slot over: input stops while the same
+  /** False once AI takes the player over: input stops while the same
    *  battle goes on (changing `player` would start a new one). */
   inCommand?: boolean;
   /** Side whose observation and command stream this player controls. */
@@ -166,9 +167,7 @@ export function BattleView({
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
-  const viewingPlayer =
-    observation?.skirmish?.players.find((candidate) => candidate.id === player) ??
-    observation?.skirmish?.players[0];
+  const viewingPlayer = commandedEconomy(observation?.skirmish, session.viewer?.id);
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);

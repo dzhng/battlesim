@@ -38,7 +38,7 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import { highAir, type Faction } from "@packages/scene-assets/src/units";
+import { highAir } from "@packages/scene-assets/src/units";
 import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import {
@@ -63,6 +63,7 @@ import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
+import type { Player } from "@web/battle/prepare/protocol";
 import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
 import {
   drawnUnits,
@@ -71,7 +72,7 @@ import {
   sideInstances,
   type DrawnInstances,
 } from "./sideInstances";
-import { commandingPlayer, takesOrders } from "./commandingPlayer";
+import { commandedEconomy, commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
@@ -170,7 +171,7 @@ export function useBattleSession({
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
-      players?: { id: string; side: SideName; faction?: Faction; controller: string }[];
+      players?: Player[];
       skirmish?: object;
       units?: { kind: string }[];
     };
@@ -556,18 +557,19 @@ export function useBattleSession({
   }, [artLoaded, scenario, rulesText, units, requestedKinds, factions, rules, side]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
-  const [placedGhostList] = useState(() =>
-    byReference(
-      (match: ObservationView["skirmish"]): UnitGhost[] =>
-        pendingGhosts(
-          match?.phase === "preparation"
-            ? ((match.players.find((candidate) => candidate.id === player) ?? match.players[0])
-                ?.pending ?? [])
-            : [],
-          placedGhosts.current,
-        ),
-      [],
-    ),
+  const placedGhostList = useMemo(
+    () =>
+      byReference(
+        (match: ObservationView["skirmish"]): UnitGhost[] =>
+          pendingGhosts(
+            match?.phase === "preparation"
+              ? (commandedEconomy(match, commanding)?.pending ?? [])
+              : [],
+            placedGhosts.current,
+          ),
+        [],
+      ),
+    [commanding],
   );
   const frame = useCallback(
     (now: number, viewport: ViewportCamera, generation: number): ViewportFrame | null => {
