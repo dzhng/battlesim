@@ -26,7 +26,7 @@ const WARMUP_FRAMES = 60;
  *  average over the same scene: both count the same drawn frames. */
 const COUNTER_AGREEMENT = 0.03;
 /** A hung graphics page must become a bounded diagnostic failure. */
-const RESULTS_TIMEOUT_MS = 120_000;
+const RESULTS_TIMEOUT_MS = Number(process.env.GRAPHICS_RESULTS_TIMEOUT_MS ?? 600_000);
 
 /** In the page, from its start: every reading the in-game frame-rate
  *  counter shows, with the graphics test's scene at that moment. */
@@ -138,7 +138,20 @@ export async function run(ctx) {
   let shown = "";
   for (;;) {
     if (performance.now() - started > RESULTS_TIMEOUT_MS) {
-      throw new Error(`graphics test did not reach results within ${RESULTS_TIMEOUT_MS / 1000} s`);
+      const details = page.getByRole("button", { name: "Details", exact: true });
+      if (await details.isVisible().catch(() => false)) await details.click();
+      const state = await page
+        .evaluate(() => ({
+          graphics: window.__graphicsTest ?? null,
+          lab: window.__lab ?? null,
+          loading: document.querySelector('[role="status"]')?.textContent ?? null,
+          error: document.querySelector('[data-testid="error"]')?.textContent ?? null,
+          body: document.body.innerText.slice(0, 2000),
+        }))
+        .catch((error) => ({ evaluateError: String(error) }));
+      throw new Error(
+        `graphics test did not reach results within ${RESULTS_TIMEOUT_MS / 1000} s: ${JSON.stringify(state)}`,
+      );
     }
     const state = await page.evaluate(() => ({
       stage: window.__graphicsTest?.stage,

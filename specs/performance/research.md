@@ -150,6 +150,17 @@ reel changes to the existing incomplete-test results view after two minutes.
 This does not make the missing timing evidence valid; it makes the failure
 visible and machine-readable instead of leaving a blank running page.
 
+## Browser reel recovered — 2026-10-19
+
+The initial completion failure was caused by stale ignored WASM artifacts in the
+worktree. Rebuilding `web/src/wasm` with `bun run --cwd web build:wasm` removed
+the teardown ownership error; the `frame` scene then passed its hardware adapter,
+interaction, and GPU resource checks. The final two-map graphics reel completed:
+`market-town` averaged 83.1 FPS with a 39.0 FPS 1% low and 10.73 ms GPU mean;
+`paris-corner` averaged 110.5 FPS with a 58.8 FPS 1% low and 7.44 ms GPU mean.
+The tracked source did not need a lifecycle workaround; generated WASM remains a
+local build artifact and must be rebuilt after source or branch changes.
+
 ## Rejected transit scratch reuse — 2026-10-19
 
 An output-equivalent experiment reused `TransitHistory::tracks`' result vector

@@ -40,8 +40,15 @@ const REEL_LAYERS: readonly PresentationLayer[] = [
   "effects",
   "scars",
 ];
-/** A renderer or resource stall must produce a terminal benchmark result. */
-const REEL_TIMEOUT_MS = 120_000;
+/** A renderer or resource stall must produce a terminal result, while a valid
+ * reel gets its authored shot duration plus one minute of setup margin. */
+const REEL_TIMEOUT_MS =
+  scenes.reduce(
+    (total, scene) => total + scene.reel.shots.reduce((seconds, shot) => seconds + shot.seconds, 0),
+    0,
+  ) *
+    1000 +
+  60_000;
 
 /** The scenes `?scenes=<map,…>` names, in that order (every scene without
  *  it), or the refusal naming a map the reel does not film. */

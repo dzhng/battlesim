@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Rust presentation allocation-reuse pass retained; native A/B confirms a CPU win, browser graphics-test completion now fails visibly and is still awaiting an adapter/runtime diagnosis.
+**Status:** Rust presentation allocation-reuse pass retained; native A/B and a completing browser reel confirm the slice. The next Rust owner is still open.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -19,7 +19,8 @@ renderer or shader changes. Update this section before you end each pass.
 - [x] Choose and slice the Rust presentation-frame candidate with the user.
 - [x] Reuse loaded-frame scratch vectors without changing `Frame` output.
 - [x] Compare the pass against the immediate pre-pass source on the native replay bench.
-- [ ] Diagnose the browser graphics-test completion failure, then rerun a bounded reel.
+- [x] Diagnose the browser graphics-test completion failure and rerun a bounded reel.
+- [ ] Profile the next loaded-frame owner before selecting another optimization.
 
 ## Current handoff
 
@@ -49,8 +50,12 @@ owned scratch vectors for high-air shadows and x-ray membership lists instead
 of allocating them on every frame. The output order and values are unchanged;
 the focused presentation suite is green. The native captured replay improved
 total CPU p50 from 1.31 ms to 1.14 ms and p95 from 1.62 ms to 1.48 ms, while
-GPU means stayed effectively unchanged (8.05 ms to 7.99 ms). The next agent
-should run a bounded browser reel before selecting another loaded-frame owner.
+GPU means stayed effectively unchanged (8.05 ms to 7.99 ms). The browser reel
+completed after rebuilding the ignored presentation WASM artifacts:
+`market-town` averaged 83.1 FPS with a 39.0 FPS 1% low and 10.73 ms GPU mean;
+`paris-corner` averaged 110.5 FPS with a 58.8 FPS 1% low and 7.44 ms GPU mean.
+The next pass should profile the loaded unit/effect owner before selecting
+another optimization.
 
 ## Where the frame stands
 

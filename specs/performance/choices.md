@@ -66,6 +66,23 @@ it helped the trigger.
   the current workload.
 - **Confidence:** high.
 
+### Rebuild ignored WASM before diagnosing tracked lifecycle code — 2026-10-19
+
+The browser reported a Rust ownership error during teardown while every scene
+failed to produce a frame. Rebuilding the ignored presentation WASM artifacts
+from the current Rust source removed the error, and the frame scene then passed
+its hardware adapter and resource checks. The tracked TypeScript/Rust lifecycle
+was left unchanged; the alternative would have added a workaround for a stale
+local binary and risked hiding a real ownership bug.
+
+- **Gap:** the performance handoff did not state that generated WASM must be
+  rebuilt when switching branches or replaying a source change.
+- **Reach:** future browser evidence must start from artifacts built from the
+  current checkout before blaming presentation ownership.
+- **Verdict:** sound. The fix changed only generated local artifacts and the
+  completing reel provides the consumer-level proof.
+- **Confidence:** high.
+
 ### Retain scratch reuse on native CPU evidence — 2026-10-19
 
 The same captured replay ran before and after the pass. Reusing the three
