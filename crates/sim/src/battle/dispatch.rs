@@ -80,93 +80,83 @@ impl Battle {
                 }
                 i += 1;
             }
-            // The queue fields one unit per dispatch interval, in order, among
-            // the purchases that don't wait off the map.
-            for _ in 0..skirmish.setup.sites.entries.len() {
-                let next = skirmish.players[player_index]
+            // Each entry fields one unit per dispatch interval, in queue order,
+            // among the purchases that don't wait off the map. A purchase that
+            // can't leave this tick holds only its own entry: the search goes
+            // on through the player's purchases for the others (L9).
+            let mut held = vec![false; skirmish.setup.sites.entries.len()];
+            while let Some(next) =
+                skirmish.players[player_index]
                     .reservations
                     .iter()
                     .position(|r| {
-                        if r.data.arrival_tick.is_some() {
-                            return false;
-                        }
                         let entry = r.data.entry;
-                        let due = skirmish.next_dispatch[entry];
-                        self.tick >= due
+                        r.data.arrival_tick.is_none()
+                            && !held[entry]
+                            && self.tick >= skirmish.next_dispatch[entry]
                             && (skirmish.dispatch_turn[entry] == player_index
                                 || !skirmish
                                     .entry_turn_has_purchase(crate::entries::EntryIndex(entry)))
-                    });
-                if let Some(next) = next {
-                    let entry_index = crate::entries::EntryIndex(
-                        skirmish.players[player_index].reservations[next].data.entry,
-                    );
-                    let selected = crate::entries::site(&skirmish.setup.sites, entry_index);
-                    let selected_point = v2(selected.center[0], selected.center[1]);
-                    let selected_yaw = selected.yaw;
-                    let due = skirmish.next_dispatch[entry_index.0];
-                    let turn = skirmish.dispatch_turn[entry_index.0] == player_index
-                        || !skirmish.entry_turn_has_purchase(entry_index);
-                    if self.tick >= due && turn {
-                        let reservation = &mut skirmish.players[player_index].reservations[next];
-                        let t = self.rules.catalog.get(reservation.data.kind);
-                        // An aircraft flies in at cruise height over whatever
-                        // stands there; a ground unit needs its entry site clear.
-                        let clear = match units::ground_mobility(t, &self.rules) {
-                            None => true,
-                            Some(mobility) => {
-                                let at = selected_point;
-                                let candidate = footprint(t, &self.rules, at, selected_yaw);
-                                stands_on(
-                                    &self.world,
-                                    self.sides[index].grid(&self.world, self.authored_props),
-                                    &self.rules,
-                                    t,
-                                    &mobility,
-                                    at,
-                                    selected_yaw,
-                                )
-                                .is_ok()
-                                    && self
-                                        .units
-                                        .iter()
-                                        .filter(|u| u.on_field() && !u.airborne())
-                                        .all(|u| {
-                                            apart(
-                                                &candidate,
-                                                &footprint(
-                                                    self.rules.catalog.get(u.kind),
-                                                    &self.rules,
-                                                    u.position.xy(),
-                                                    u.yaw,
-                                                ),
-                                                0.0,
-                                            )
-                                        })
-                            }
-                        };
-                        reservation.data.blocked = !clear;
-                        if clear {
-                            arrived.push(
-                                skirmish.players[player_index]
-                                    .reservations
-                                    .remove(next)
-                                    .unwrap(),
-                            );
-                            let next_tick = self.tick
-                                + u64::from(skirmish.setup.rules.dispatch_interval_s)
-                                    * u64::from(self.rules.tick_hz);
-                            skirmish.next_dispatch[entry_index.0] = next_tick;
-                            skirmish.dispatch_turn[entry_index.0] =
-                                skirmish.next_entry_player(entry_index, player_index);
-                        } else {
-                            skirmish.dispatch_turn[entry_index.0] =
-                                skirmish.next_entry_player(entry_index, player_index);
-                        }
+                    })
+            {
+                let entry_index = crate::entries::EntryIndex(
+                    skirmish.players[player_index].reservations[next].data.entry,
+                );
+                held[entry_index.0] = true;
+                let selected = crate::entries::site(&skirmish.setup.sites, entry_index);
+                let selected_point = v2(selected.center[0], selected.center[1]);
+                let selected_yaw = selected.yaw;
+                let reservation = &mut skirmish.players[player_index].reservations[next];
+                let t = self.rules.catalog.get(reservation.data.kind);
+                // An aircraft flies in at cruise height over whatever
+                // stands there; a ground unit needs its entry site clear.
+                let clear = match units::ground_mobility(t, &self.rules) {
+                    None => true,
+                    Some(mobility) => {
+                        let at = selected_point;
+                        let candidate = footprint(t, &self.rules, at, selected_yaw);
+                        stands_on(
+                            &self.world,
+                            self.sides[index].grid(&self.world, self.authored_props),
+                            &self.rules,
+                            t,
+                            &mobility,
+                            at,
+                            selected_yaw,
+                        )
+                        .is_ok()
+                            && self
+                                .units
+                                .iter()
+                                .filter(|u| u.on_field() && !u.airborne())
+                                .all(|u| {
+                                    apart(
+                                        &candidate,
+                                        &footprint(
+                                            self.rules.catalog.get(u.kind),
+                                            &self.rules,
+                                            u.position.xy(),
+                                            u.yaw,
+                                        ),
+                                        0.0,
+                                    )
+                                })
                     }
-                } else {
-                    break;
+                };
+                reservation.data.blocked = !clear;
+                if clear {
+                    arrived.push(
+                        skirmish.players[player_index]
+                            .reservations
+                            .remove(next)
+                            .unwrap(),
+                    );
+                    skirmish.next_dispatch[entry_index.0] = self.tick
+                        + u64::from(skirmish.setup.rules.dispatch_interval_s)
+                            * u64::from(self.rules.tick_hz);
                 }
+                skirmish.dispatch_turn[entry_index.0] =
+                    skirmish.next_entry_player(entry_index, player_index);
             }
             for reservation in arrived {
                 let t = self.rules.catalog.get(reservation.data.kind);

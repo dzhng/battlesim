@@ -2,7 +2,7 @@ use contract::ids::Side;
 use sim::battle::Battle;
 use sim::skirmish_ai::team::lane_advancing;
 
-fn two_entry_setup() -> contract::scenario::ScenarioDefinition {
+pub(crate) fn two_entry_setup() -> contract::scenario::ScenarioDefinition {
     let mut setup = crate::skirmish::setup();
     let mut blue_two = setup.players[0].clone();
     blue_two.id = "blue-2".into();
