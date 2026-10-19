@@ -143,3 +143,11 @@ The route now mirrors the runner deadline in its own state: a stalled running
 reel changes to the existing incomplete-test results view after two minutes.
 This does not make the missing timing evidence valid; it makes the failure
 visible and machine-readable instead of leaving a blank running page.
+
+## Rejected transit scratch reuse — 2026-10-19
+
+An output-equivalent experiment reused `TransitHistory::tracks`' result vector
+inside `Loaded`. The native `paris-corner` bench did not support it: before was
+1.12 ms CPU p50 / 1.31 ms p95, after was 1.16 ms / 1.40 ms, with unchanged
+drawn counts and GPU means. The experiment was reverted; transit reconstruction
+is not a selected optimization target.

@@ -50,6 +50,22 @@ runner-only timeout that left the page unable to explain what happened.
 - **Verdict:** sound. Successful runs and timing thresholds are unchanged.
 - **Confidence:** high.
 
+### Reject transit scratch reuse after a controlled A/B — 2026-10-19
+
+The transit builder returns a short list of aircraft poses each frame, so it
+was a plausible allocation candidate. Identical native replay runs showed no
+gain and a small regression in both CPU percentiles. The change was removed;
+the alternative would have kept extra state in `Loaded` without evidence that
+it helped the trigger.
+
+- **Gap:** the loaded-frame slice did not rank which temporary vector to test
+  after the first scratch pass.
+- **Reach:** future allocation work must have a controlled A/B before it adds
+  another reusable owner.
+- **Verdict:** sound rejection. The candidate does not earn added complexity on
+  the current workload.
+- **Confidence:** high.
+
 ### Retain scratch reuse on native CPU evidence — 2026-10-19
 
 The same captured replay ran before and after the pass. Reusing the three
