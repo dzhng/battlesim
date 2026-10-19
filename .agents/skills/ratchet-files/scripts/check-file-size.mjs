@@ -1,7 +1,8 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 // Size budget for source files, so an agent can read any file whole. Tokens
 // are estimated as bytes / 4. Run with --help for modes and hook setup.
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { extname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -20,16 +21,18 @@ const usage = `Usage:
 
 Source is any extension GitHub Linguist assigns to a programming language
 and no prose language (.md is not source). Files marked linguist-generated
-or linguist-vendored in .gitattributes are skipped, and so is a file with
-${pragma} in a comment in its first ${pragmaLines} lines, followed by why
-splitting it would cost more than it saves. Language data comes
-from the linguist-languages package: Bun fetches it in a repository without
-node_modules; otherwise add it as a dev dependency.
+or linguist-vendored in the staged .gitattributes are skipped, and so is a
+file with ${pragma} in a comment in its first ${pragmaLines} lines,
+followed by why splitting it would cost more than it saves. Language data
+comes from the linguist-languages package, resolved from the repository,
+else from beside this script. Bun fetches it in a repository without
+node_modules.
 
 The default budget is 8,000 tokens. Exit 1 means a file broke the budget.
 
-Pre-commit install (lint-staged), passing every staged file:
-  "*": "bun <path-to>/check-file-size.mjs"   (node works too)
+Pre-commit install: run it on every staged file with bun or node (18.3+), e.g.
+  lint-staged:  "*": "node <path-to>/check-file-size.mjs"
+  plain hook:   git diff --cached --name-only -z | xargs -0 node <path-to>/check-file-size.mjs
 Commit this script into the repository and point the hook at that copy, so
 every clone runs the same check.`;
 
@@ -72,12 +75,17 @@ const git = (args, input) =>
   });
 const root = git(["rev-parse", "--show-toplevel"]).trim();
 
-// Resolved from the repository, not from wherever this script is installed.
+// Resolved from the repository, so the hook runs its pinned version; failing
+// that, from beside this script, where an audit before setup can install it.
 let languages;
-try {
-  const require = createRequire(join(root, "package.json"));
-  languages = await import(pathToFileURL(require.resolve("linguist-languages")).href);
-} catch {
+for (const base of [join(root, "package.json"), import.meta.url]) {
+  try {
+    const require = createRequire(base);
+    languages = await import(pathToFileURL(require.resolve("linguist-languages")).href);
+    break;
+  } catch {}
+}
+if (!languages) {
   console.error(
     "check-file-size: install linguist-languages as a dev dependency of this repository.",
   );
@@ -148,7 +156,15 @@ for (const line of git(["diff", "--cached", "--find-renames", "--name-status"]).
   if (status?.startsWith("R")) origin.set(to, from);
 }
 const failures = [];
-for (const path of sources(positionals.map((path) => relative(root, path)))) {
+// Git reports the root with symlinks resolved (macOS /tmp is /private/tmp).
+const inRepo = (path) => {
+  try {
+    return relative(root, realpathSync(path));
+  } catch {
+    return relative(root, path); // Deleted, so nothing to measure.
+  }
+};
+for (const path of sources(positionals.map(inRepo))) {
   const bytes = blobBytes(`:${path}`);
   if (bytes === null || bytes <= maxBytes || ignored(`:${path}`)) continue;
   const before = blobBytes(`HEAD:${origin.get(path) ?? path}`);
