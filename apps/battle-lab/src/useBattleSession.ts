@@ -39,11 +39,7 @@ import {
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
 import { highAir, type Faction } from "@packages/scene-assets/src/units";
-import {
-  DEFAULT_PLACEMENT_FACING,
-  PurchasePlacementControl,
-  type PurchaseGhost,
-} from "@web/battle/input/purchasePlacement";
+import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import {
   dragFacing,
@@ -103,31 +99,11 @@ import {
   type AirLayers,
   type UnitGhost,
 } from "./unitGhosts";
+import { byReference, pendingGhosts } from "./pendingGhosts";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
-/** How near a pending purchase's published destination is to the placed one. */
-const PLACED_MATCH_M = 0.5;
-
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
-
-/** `derive` of the last input it was given, derived again only when the
- *  input's reference changes (the decoder keeps an unchanged list's), so a
- *  frame reads its publication without rebuilding what did not change. */
-function byReference<In, Out>(derive: (input: In) => Out, initial: Out) {
-  let from: In | undefined;
-  const memo = {
-    value: initial,
-    of(input: In): Out {
-      if (input !== from) {
-        from = input;
-        memo.value = derive(input);
-      }
-      return memo.value;
-    },
-  };
-  return memo;
-}
 
 export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
@@ -583,28 +559,13 @@ export function useBattleSession({
   const [placedGhostList] = useState(() =>
     byReference(
       (match: ObservationView["skirmish"]): UnitGhost[] =>
-        (match?.phase === "preparation"
-          ? ((match.players.find((candidate) => candidate.id === player) ?? match.players[0])
-              ?.pending ?? [])
-          : []
-        ).map((pending) => {
-          const [x, y] = pending.destination;
-          const placed = placedGhosts.current.find(
-            (g) =>
-              g.variant === pending.kind &&
-              Math.hypot(g.destination[0] - x, g.destination[1] - y) < PLACED_MATCH_M,
-          );
-          const [dx, dy] = placed ? [x - placed.destination[0], y - placed.destination[1]] : [0, 0];
-          return {
-            kind: pending.kind,
-            at: pending.destination,
-            soldiers: fieldedSoldiers(
-              (placed?.spots ?? []).map(([sx, sy]) => [sx + dx, sy + dy] as const),
-            ),
-            yaw: placed?.facing ?? DEFAULT_PLACEMENT_FACING,
-            look: GHOST_OWN,
-          };
-        }),
+        pendingGhosts(
+          match?.phase === "preparation"
+            ? ((match.players.find((candidate) => candidate.id === player) ?? match.players[0])
+                ?.pending ?? [])
+            : [],
+          placedGhosts.current,
+        ),
       [],
     ),
   );
