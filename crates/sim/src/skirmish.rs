@@ -2,7 +2,7 @@
 use contract::catalog::TypeIndex;
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
-use contract::players::{ControllerKind, Player};
+use contract::players::{ControllerKind, Player, Seating};
 use contract::skirmish::{
     MatchEvent, MatchReport, MatchTotals, MatchUnit, PendingPurchase, Phase, PurchaseId,
     SkirmishSetup, SkirmishView,
@@ -16,7 +16,7 @@ pub fn setup_for<P: AsRef<[Player]>>(
     sites: contract::encounter::SkirmishSites,
 ) -> SkirmishSetup {
     let players = players.as_ref();
-    debug_assert!(contract::players::validate_players(players).is_ok());
+    debug_assert!(contract::players::validate_players(players, Seating::Skirmish).is_ok());
     debug_assert!(contract::players::validate_entry_counts(players, &sites.entries).is_ok());
     SkirmishSetup {
         rules: starter_rules(),

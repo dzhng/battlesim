@@ -891,19 +891,6 @@ impl Battle {
             .expect("admitted scenario has a valid player contract");
         let rules = setup.rules.clone();
         assert!(
-            setup.skirmish.is_none() || setup.units.iter().all(|unit| unit.side != Side::Neutral),
-            "skirmish does not support neutral units"
-        );
-        assert!(
-            setup.skirmish.is_none()
-                || (setup.units.is_empty()
-                    && setup.events.is_empty()
-                    && setup.scripts.is_empty()
-                    && setup.opponent.is_none()
-                    && setup.encounter.is_none()),
-            "skirmish begins empty and owns its controller/referee"
-        );
-        assert!(
             rules.physics.vehicle_aim_height_fraction > 0.0
                 && rules.physics.vehicle_aim_height_fraction <= 1.0,
             "physics.vehicle_aim_height_fraction must be in (0, 1]"
@@ -1078,28 +1065,6 @@ impl Battle {
             }
         }
         let authored: Vec<PropId> = battle.world.props().map(|p| p.id).collect();
-        if let Some(skirmish) = &mut battle.skirmish {
-            for unit in &battle.units {
-                let player = unit
-                    .owner
-                    .as_deref()
-                    .and_then(|id| skirmish.player_index(id))
-                    .unwrap_or_else(|| {
-                        skirmish
-                            .side_players(unit.side)
-                            .next()
-                            .map(|(i, _)| i)
-                            .expect("combatant player")
-                    });
-                skirmish.record_spawn(
-                    player,
-                    unit.id,
-                    unit.kind,
-                    battle.rules.catalog.get(unit.kind).cost,
-                    0,
-                );
-            }
-        }
         for id in authored {
             battle.schedule_expiry(id);
         }

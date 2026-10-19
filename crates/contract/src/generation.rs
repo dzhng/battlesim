@@ -52,47 +52,10 @@ impl MapSize {
         }
     }
 
+    /// The side of a skirmish map of this size, from the shared size rule.
     pub fn skirmish_extent_m(self) -> f64 {
-        skirmish_size_data()
-            .iter()
-            .find(|tier| tier.size == self)
-            .expect("skirmish size fixture contains every map size")
-            .extent_m
+        crate::skirmish_sizes::extent_m(self)
     }
-}
-
-#[derive(Deserialize)]
-struct SkirmishSizeTier {
-    min_players: usize,
-    #[serde(default)]
-    max_players: Option<usize>,
-    size: MapSize,
-    extent_m: f64,
-}
-
-fn skirmish_size_data() -> &'static [SkirmishSizeTier] {
-    static DATA: std::sync::OnceLock<Vec<SkirmishSizeTier>> = std::sync::OnceLock::new();
-    DATA.get_or_init(|| {
-        #[derive(Deserialize)]
-        struct Fixture {
-            tiers: Vec<SkirmishSizeTier>,
-        }
-        serde_json::from_str::<Fixture>(include_str!("../../../fixtures/skirmish-sizes.json"))
-            .expect("valid skirmish-sizes fixture")
-            .tiers
-    })
-}
-
-pub fn skirmish_size_floor(players_per_side: usize) -> MapSize {
-    let players_per_side = players_per_side.max(1);
-    skirmish_size_data()
-        .iter()
-        .find(|tier| {
-            tier.min_players <= players_per_side
-                && tier.max_players.is_none_or(|max| players_per_side <= max)
-        })
-        .expect("skirmish size fixture covers every player count")
-        .size
 }
 
 /// The compiler's admission for one plan: execution policy, apart from the

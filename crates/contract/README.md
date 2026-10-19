@@ -15,6 +15,15 @@ unit is a typed order error, at the order or later on the frame. A unit inside
 something publishes its host once, on its own row (`hold`); a carrier's seats used
 is derived from its riders, never published twice.
 
+[Players](src/players.rs) are the one player list a scenario, skirmish and
+preparation request share: a player's id is its identity in authoring, links
+and commands, while its place in the list, `PlayerIndex`, is what digests and
+publications carry. One validator admits every list; an authored scenario may
+seat a Neutral player, a skirmish only combatants with one faction a side.
+[The size rule](src/skirmish_sizes.rs) is the one reader of the authored
+skirmish sizes: how many players a side seats decides the smallest map and
+the roads each side enters by.
+
 [Map admission](src/maps.rs), [physical templates](src/templates.rs) and
 [catalog resolution](src/catalog.rs) validate inputs before consumers build a
 world. Templates describe physics, not meshes, and every admitted template is a

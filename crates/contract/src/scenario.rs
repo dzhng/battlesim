@@ -1671,25 +1671,6 @@ impl ScenarioDefinition {
         }
         unknown
     }
-
-    pub fn validate_player_contract(&self) -> Result<(), String> {
-        let Some(skirmish) = &self.skirmish else {
-            return Ok(());
-        };
-        crate::players::validate_players(&self.players)?;
-        crate::players::validate_players_per_side(
-            &self.players,
-            skirmish.rules.max_players_per_side as usize,
-        )?;
-        for player_id in skirmish.openings.keys() {
-            if !self.players.iter().any(|player| player.id == *player_id) {
-                return Err(format!(
-                    "opening {player_id} does not name a skirmish player"
-                ));
-            }
-        }
-        crate::players::validate_entry_counts(&self.players, &skirmish.sites.entries)
-    }
 }
 
 /// The encounter half of a scenario: the forces, events and scripted orders

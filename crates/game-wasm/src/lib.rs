@@ -17,6 +17,9 @@ use sim::publication::{self, Publisher};
 use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
+mod skirmish;
+pub use skirmish::{skirmish_size_rule, synthetic_sites, synthetic_skirmish_setup};
+
 /// Generate a plan and compile it into a map, as the CLI's `generate-map` does.
 #[wasm_bindgen]
 pub fn generate_map(
@@ -1016,22 +1019,6 @@ impl PreparedWorld {
         .map_err(js_error)?;
         serde_json::to_string(&admitted).map_err(js_error)
     }
-    /// Scenario fields for a faction match, without an authored encounter army.
-    pub fn skirmish_fields(&self, sites_json: &str, players_json: &str) -> Result<String, JsError> {
-        let sites: contract::encounter::EncounterSites =
-            serde_json::from_str(sites_json).map_err(js_error)?;
-        let players: Vec<contract::players::Player> =
-            serde_json::from_str(players_json).map_err(js_error)?;
-        let setup = sim::skirmish::setup_for(
-            &players,
-            sites
-                .skirmish
-                .ok_or_else(|| JsError::new("skirmish sites are missing"))?,
-        );
-        setup.sites.validate().map_err(js_error)?;
-        Ok(serde_json::json!({"players": players, "units": [], "skirmish": setup}).to_string())
-    }
-
     /// Build the complete generated skirmish scenario from this prepared
     /// world's own map and rules serialization.
     pub fn skirmish_scenario(
@@ -1112,18 +1099,6 @@ impl PreparedWorld {
             publisher: Publisher::new(),
         })
     }
-}
-
-/// Synthetic skirmish entry and objective sites for authored economy maps.
-/// The geometry and ordering stay owned by `sim::skirmish`.
-#[wasm_bindgen]
-pub fn synthetic_sites(size_json: &str, entries_per_side: u32) -> Result<String, JsError> {
-    let size: [f64; 2] = serde_json::from_str(size_json).map_err(js_error)?;
-    serde_json::to_string(&sim::skirmish::synthetic_sites(
-        size,
-        entries_per_side as usize,
-    ))
-    .map_err(js_error)
 }
 
 fn identity_digest<T: serde::Serialize>(value: &T) -> Result<u64, JsError> {
