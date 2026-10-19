@@ -121,8 +121,15 @@ impl Battle {
             commands.push((index, id, side, orders));
         }
         for (index, player, side, orders) in commands {
+            // A refused purchase stops the turn's later purchases, so a
+            // purchase plan never buys out of order. The turn's other orders,
+            // readiness and movement, are still issued (I10).
+            let mut purchase_refused = false;
             for order in orders {
                 let purchase = matches!(order, contract::command::Order::ConfirmPurchase { .. });
+                if purchase && purchase_refused {
+                    continue;
+                }
                 let ack = self.issue(CommandEnvelope {
                     side,
                     player: Some(player.clone()),
@@ -142,9 +149,7 @@ impl Battle {
                     accepted,
                     error: ack.error,
                 });
-                if purchase && !accepted {
-                    break;
-                }
+                purchase_refused |= purchase && !accepted;
             }
         }
     }
