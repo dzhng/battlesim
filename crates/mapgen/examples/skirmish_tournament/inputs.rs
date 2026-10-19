@@ -19,6 +19,8 @@ pub(crate) struct Inputs {
     /// A side's scripted purchases, bought strictly in order as its wallet
     /// allows, in place of its controller's own; None leaves it shopping.
     pub(crate) buy: [Option<Vec<String>>; 2],
+    /// Whether each match is replayed from its commands to check its digest.
+    pub(crate) check_replay: bool,
 }
 
 impl Inputs {
@@ -45,6 +47,7 @@ impl Inputs {
             limits: serde_json::from_value(config["limits"].clone())?,
             factions: [Faction::Us, Faction::Europe],
             buy: [None, None],
+            check_replay: true,
         })
     }
 }
