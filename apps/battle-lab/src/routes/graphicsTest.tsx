@@ -40,6 +40,8 @@ const REEL_LAYERS: readonly PresentationLayer[] = [
   "effects",
   "scars",
 ];
+/** A renderer or resource stall must produce a terminal benchmark result. */
+const REEL_TIMEOUT_MS = 120_000;
 
 /** The scenes `?scenes=<map,…>` names, in that order (every scene without
  *  it), or the refusal naming a map the reel does not film. */
@@ -123,6 +125,14 @@ export default function GraphicsTest() {
     setResults(next);
     if (result.outcome.status !== "complete" || next.length === run.length) setStage("results");
   };
+  useEffect(() => {
+    if (stage !== "running") return;
+    const timer = window.setTimeout(() => {
+      setFailure(`Graphics test did not complete within ${REEL_TIMEOUT_MS / 1000} s.`);
+      setStage("results");
+    }, REEL_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [stage]);
   if (stage === "running")
     return (
       <ReelScene
