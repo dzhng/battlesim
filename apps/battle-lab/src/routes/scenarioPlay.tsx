@@ -23,7 +23,7 @@ export default function ScenarioPlay() {
   const [stage, setStage] = useState<"bundle" | "world">("bundle");
   const [deploy, setDeploy] = useState(false);
   const [activeHuman, setActiveHuman] = useState<string | null | undefined>(undefined);
-  const [humanSlots, setHumanSlots] = useState<{ id: string; side: string }[]>([]);
+  const [humanCapable, setHumanCapable] = useState<{ id: string; side: string }[]>([]);
   const [replayText, setReplayText] = useState<string | undefined>();
   const playedAsset = useRef<string | null>(null);
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function ScenarioPlay() {
       const players = (parsed.scenario?.players ?? [])
         .filter((player) => player.human_capable)
         .map(({ id, side }) => ({ id, side }));
-      setHumanSlots(players);
+      setHumanCapable(players);
       setActiveHuman(players[0]?.id);
       setBundle(text);
     } catch (reason) {
@@ -98,9 +98,9 @@ export default function ScenarioPlay() {
               }
             >
               <option value="__none">No human · AI only</option>
-              {humanSlots.map((slot) => (
-                <option key={slot.id} value={slot.id}>
-                  {slot.id} · {slot.side}
+              {humanCapable.map((player) => (
+                <option key={player.id} value={player.id}>
+                  {player.id} · {player.side}
                 </option>
               ))}
             </select>
@@ -200,7 +200,7 @@ function ScenarioBattle({
   setReplayText: (text: string) => void;
 }) {
   const [catalog, setCatalog] = useState<SessionCatalog | null>(null);
-  // Once AI takes the human slot over, the simulation refuses this client's
+  // Once AI takes the human player over, the simulation refuses this client's
   // orders for it, so input stops too.
   const [takenOver, setTakenOver] = useState(false);
   useEffect(() => {
@@ -316,7 +316,7 @@ function ScenarioBattle({
                   setTakenOver(true);
                 }}
               >
-                Take human slot over by AI
+                Hand your player to the AI
               </button>
             )}
             <Link className="hud-menu-item" to="/labs/scenario?mode=play">
