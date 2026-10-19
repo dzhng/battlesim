@@ -1473,15 +1473,13 @@ impl Battle {
         }
     }
 
-    /// Whether `player`'s slot is controlled by AI right now. A battle with no
-    /// controller state for the slot (a lab) leaves it to its client, and so
-    /// does a skirmish: its session owns its seats and its AI, as it does in
-    /// `controller_turn`.
+    /// Whether `player` is controlled by AI right now. The controller map is
+    /// installed for every skirmish player at tick zero and updated by
+    /// `apply_controller`; a slot absent from it remains client-controlled.
     fn ai_controlled(&self, player: Option<&str>) -> bool {
-        self.skirmish.is_none()
-            && player
-                .and_then(|player| self.controllers.get(player))
-                .is_some_and(|controller| *controller != ControllerKind::Human)
+        player
+            .and_then(|player| self.controllers.get(player))
+            .is_some_and(|controller| *controller != ControllerKind::Human)
     }
 
     /// Give one player's own policy a fixed purchase plan. The policy emits

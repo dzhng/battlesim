@@ -25,6 +25,24 @@ pub fn game() -> Value {
     sim::fixtures::test_game()
 }
 
+/// The seats of a U.S. against Eastern skirmish where a client plays both
+/// sides, so a test may order either player directly.
+pub fn human_duel() -> Value {
+    serde_json::json!([
+        {"id": "blue-1", "side": "blue", "faction": "us", "controller": "human", "human_capable": true},
+        {"id": "red-1", "side": "red", "faction": "eastern", "controller": "human", "human_capable": true}
+    ])
+}
+
+/// Hand a recorded match's `red-1` seat to a client, as the browser does
+/// when a human takes it, so the test may order it directly.
+pub fn hand_red_to_human(battle: &mut Battle) {
+    battle.set_controllers(vec![(
+        "red-1".into(),
+        contract::players::ControllerKind::Human,
+    )]);
+}
+
 /// The shipped prop types.
 pub fn props() -> &'static PropCatalog {
     static PROPS: std::sync::OnceLock<PropCatalog> = std::sync::OnceLock::new();

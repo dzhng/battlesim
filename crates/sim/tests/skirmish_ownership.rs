@@ -1,6 +1,6 @@
 #![allow(clippy::approx_constant)]
 
-use contract::command::{CommandEnvelope, Order};
+use contract::command::{CommandEnvelope, Order, OrderError};
 use contract::ids::Side;
 use serde_json::json;
 use sim::battle::Battle;
@@ -49,6 +49,44 @@ fn command(side: Side, player: &str, seq: u64, order: Order) -> CommandEnvelope 
         order,
         queued: false,
     }
+}
+
+#[test]
+fn client_orders_for_ai_skirmish_players_wait_for_human_takeover() {
+    let mut setup = setup();
+    setup.players[1].controller = contract::players::ControllerKind::ActiveAi;
+    let mut battle = Battle::new(&setup, 1);
+
+    let refused = battle.accept(command(Side::Blue, "blue-2", 1, Order::Ready));
+    assert_eq!(refused.error, Some(OrderError::AiControlled));
+    assert!(battle.replay().accepted.is_empty());
+
+    let human = battle.accept(command(Side::Blue, "blue-1", 1, Order::Ready));
+    assert_eq!(human.error, None);
+
+    // The AI holds the seat for a while and spends its sequence numbers; the
+    // human who takes it over continues from where the battle says.
+    for _ in 0..battle.rules().tick_hz {
+        battle.step();
+    }
+    battle.set_controllers(vec![(
+        "blue-2".into(),
+        contract::players::ControllerKind::Human,
+    )]);
+    let seq = match battle
+        .accept(command(Side::Blue, "blue-2", 0, Order::Ready))
+        .error
+    {
+        Some(OrderError::OutOfSequence { expected }) => expected,
+        other => panic!("a human seat is sequenced, not refused: {other:?}"),
+    };
+    let order = command(Side::Blue, "blue-2", seq, Order::Ready);
+    assert_eq!(battle.accept(order.clone()).error, None);
+    assert!(battle
+        .replay()
+        .accepted
+        .iter()
+        .any(|(_, recorded)| *recorded == order));
 }
 
 #[test]
@@ -166,7 +204,16 @@ fn each_players_cap_is_independent() {
 
 #[test]
 fn a_two_player_replay_keeps_tick_zero_controllers_and_digest() {
-    let mut battle = Battle::new(&setup(), 7);
+    let mut setup = setup();
+    for player in setup
+        .players
+        .iter_mut()
+        .filter(|player| player.side == Side::Red)
+    {
+        player.controller = contract::players::ControllerKind::Human;
+        player.human_capable = true;
+    }
+    let mut battle = Battle::new(&setup, 7);
     for (player, seq) in [("blue-1", 1), ("blue-2", 1), ("red-1", 1), ("red-2", 1)] {
         assert_eq!(
             battle
@@ -186,7 +233,7 @@ fn a_two_player_replay_keeps_tick_zero_controllers_and_digest() {
     }
     battle.step();
     let digest = battle.digest();
-    let mut replay = Battle::from_replay(&setup(), &battle.replay()).unwrap();
+    let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
     replay.step();
     assert_eq!(replay.replay().controller_transitions.len(), 4);
     assert_eq!(replay.digest(), digest);

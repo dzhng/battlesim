@@ -17,7 +17,7 @@ The authored-code surface is a contract-owned bounded interpreter. It can inspec
 - The simulation is the only authority. UI, AI, presentation, audio, and renderer consume resolved observations and never infer hidden state.
 - A package is canonical and self-contained. Its bytes, content identity, map snapshot, rules, slot ownership, scripts, victory source, and embedded assets are admitted together; noncanonical or changed bytes are refused.
 - Every authored unit has exactly one slot owner. Slot ownership is checked at command admission, not inferred from side colour in the browser.
-- A slot under AI control takes orders only from the battle's own controller: a client's order for it is refused (`ai_controlled`) before it is recorded. Skirmish sessions own their seats and are outside this rule.
+- A seat under AI control takes orders only from the battle's own controller: a client's order for it is refused (`ai_controlled`) before it is recorded. This applies to authored and skirmish players alike.
 - Neutral cannot become a human controller or an aggressive automatic side. It is passive until threatened.
 - A replay restores the same accepted commands, controller state, and authored outputs at the same ticks. Matching terminal state is insufficient when an earlier digest differs.
 - Scripts observe only their published side, run under deterministic fuel and output limits, and use the same command vocabulary as human input.

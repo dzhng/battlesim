@@ -145,6 +145,7 @@ fn objective_transitions_replay_and_have_a_paired_browser_record() {
         command(Side::Red, 1, Order::Ready),
     ];
     let mut battle = Battle::new(&setup, 1);
+    crate::common::hand_red_to_human(&mut battle);
     for c in &commands {
         assert!(battle.accept(c.clone()).error.is_none());
     }
