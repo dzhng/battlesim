@@ -18,7 +18,9 @@ export const Clump = d
     width: d.f32,
   })
   .$name("GrassClump");
-export const GRASS_CLUMP_BYTES = 40;
+/** A clump's stride in the clump buffer, as a client allocates by: the
+ *  schema's own, padded to its `vec3f` root's 16-byte alignment. */
+export const GRASS_CLUMP_BYTES = d.sizeOf(Clump);
 
 /** One clump as the probe reads it back. */
 export interface GrassClumpRow {

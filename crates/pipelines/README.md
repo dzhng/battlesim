@@ -7,7 +7,8 @@ code, into [`packages/battle-renderer/pipelines/`](../../packages/battle-rendere
 one WGSL file per pipeline, and `pipelines.json` with each pipeline's stages,
 vertex buffers, targets, depth, multisampling and bind group layouts by name,
 and the sizes the passes allocate by (the bloom's levels, the sky lookup's
-texels, the effect sheets' side), so a second client sizes nothing itself.
+texels, the effect sheets' side, a grass clump's stride), so a second client
+sizes nothing itself.
 That test fails when the browser's text no longer matches the files.
 
 The text is the same for every battle and every canvas size. What a battle
@@ -23,3 +24,6 @@ the browser's schemas from to each shader that declares it, member by
 member, and the records carried inside a struct the browser composes (the
 sun in the environment, the sky's rays in the view) to theirs, so the
 [native client](../../native/client/README.md) uploads their bytes as they are.
+A third holds each struct stride the export lists to the span naga lays out
+for that struct, so a buffer allocated by it holds every row the shader
+writes.

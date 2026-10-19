@@ -20,6 +20,7 @@ import {
 } from "../../apps/battle-lab/src/gameOverlay";
 import { gameGlass, gameModelDetail } from "../../apps/battle-lab/src/gameModels";
 import { FLIPBOOK_SIZE } from "@packages/battle-renderer/src/effects/flipbooks";
+import { GRASS_CLUMP_BYTES } from "@packages/battle-renderer/src/frame/grassClump";
 import { BLOOM_KERNEL_RADII } from "@packages/battle-renderer/src/shaders/post";
 import { SKY_LUT_HEIGHT, SKY_LUT_WIDTH } from "@packages/battle-renderer/src/light/skyParameters";
 import {
@@ -99,12 +100,13 @@ const LISTING = "pipelines.json";
 const STAGES = ["vertex", "fragment", "compute"] as const;
 
 /** What the passes allocate by, beside their pipelines: the bloom's levels
- *  (one `bloomBlur<level>` pipeline each), the sky lookup's texels and the
- *  effect sheets' side. */
+ *  (one `bloomBlur<level>` pipeline each), the sky lookup's texels, the
+ *  effect sheets' side and a grass clump's stride in bytes. */
 const SIZES = {
   bloomLevels: BLOOM_KERNEL_RADII.length,
   skyLut: [SKY_LUT_WIDTH, SKY_LUT_HEIGHT],
   effectSheet: FLIPBOOK_SIZE,
+  grassClump: GRASS_CLUMP_BYTES,
 };
 
 /** The export's files by name: each pipeline's WGSL, and the listing. */

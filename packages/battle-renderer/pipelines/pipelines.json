@@ -5,7 +5,8 @@
       384,
       192
     ],
-    "effectSheet": 1024
+    "effectSheet": 1024,
+    "grassClump": 48
   },
   "layouts": {
     "bake - Automatic Bind Group & Layout": [
