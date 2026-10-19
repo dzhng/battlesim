@@ -19,7 +19,6 @@ import {
   unitName,
   type BuilderController,
   type BuilderUnit,
-  type BuilderSkirmish,
   type ScenarioBundleDraft,
 } from "./model";
 import type { Player } from "@web/battle/prepare/protocol";
@@ -89,22 +88,16 @@ export default function ScenarioBuilder() {
       }));
       return;
     }
-    setStatus({ kind: "idle", text: "Loading the simulation's skirmish site owner…" });
+    setStatus({ kind: "idle", text: "Loading the simulation's skirmish setup…" });
     try {
       const wasm = await loadWasm();
-      const sitesFor = (size: readonly [number, number], entriesPerSide: number) =>
-        (
-          JSON.parse(wasm.synthetic_sites(JSON.stringify(size), entriesPerSide)) as {
-            entries: BuilderSkirmish["sites"]["entries"];
-          }
-        ).entries;
       setDraft((current) => ({
         ...current,
         mode,
         scenario: {
           ...current.scenario,
           units: [],
-          skirmish: builderEconomy(current.scenario.map.size, current.scenario.players, sitesFor),
+          skirmish: builderEconomy(wasm, current.scenario),
         },
       }));
       setStatus({
