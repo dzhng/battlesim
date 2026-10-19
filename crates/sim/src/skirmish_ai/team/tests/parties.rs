@@ -16,7 +16,7 @@ fn tuning() -> TeamTuning {
     }
 }
 
-fn blue_ai(count: usize) -> Vec<Player> {
+fn blue_ai(count: usize) -> Vec<PlayerState> {
     players().into_iter().take(count).collect()
 }
 
@@ -112,7 +112,7 @@ fn enemy_at(rules: &Rules, frame: &mut ObservationFrame, at: [f64; 2], cost: u32
 fn step(
     rules: &Rules,
     frame: &mut ObservationFrame,
-    players: &[Player],
+    players: &[PlayerState],
     memory: &mut TeamMemory,
     tuning: TeamTuning,
 ) -> TeamPlan {

@@ -4,6 +4,7 @@ use super::super::*;
 use super::party::{recruit, Ask, PartyKey};
 use super::*;
 use contract::encounter::{EntrySite, ObjectiveSiteKind};
+use contract::players::Player;
 
 fn sites() -> SkirmishSites {
     SkirmishSites {
@@ -104,7 +105,7 @@ fn up_to(units: usize) -> Ask {
     }
 }
 
-fn players() -> Vec<Player> {
+fn players() -> Vec<PlayerState> {
     (0..3)
         .map(|index| Player {
             id: format!("blue-{}", index + 1),
@@ -120,6 +121,7 @@ fn players() -> Vec<Player> {
             controller: ControllerKind::ActiveAi,
             human_capable: false,
         }))
+        .map(|player| PlayerState::new(&player, 0))
         .collect()
 }
 

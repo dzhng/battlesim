@@ -304,6 +304,8 @@ pub struct Battle {
     script_events: Vec<contract::script::ScriptEvent>,
     script_trace: Vec<ScriptTrace>,
     replay_script_trace: BTreeMap<Tick, ScriptTrace>,
+    /// The controllers of players with no skirmish seat; a seated player's
+    /// is its seat's (`Battle::controller`).
     controllers: BTreeMap<String, ControllerKind>,
     player_ids: Vec<String>,
     controller_transitions: Vec<ControllerTransition>,
@@ -5123,11 +5125,7 @@ impl Battle {
             script_victory: self.script_victory,
             script_error: self.script_error.clone(),
             script_terminal_tick: self.script_terminal_tick,
-            controllers: self
-                .controllers
-                .iter()
-                .map(|(slot, controller)| (slot.clone(), controller.clone()))
-                .collect(),
+            controllers: self.controller_list(),
             controller_transitions: self.controller_transitions.clone(),
             script_events: self.script_events.clone(),
             script_trace: self.script_trace.clone(),

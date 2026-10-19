@@ -35,29 +35,46 @@ impl Battle {
         }
     }
 
-    /// Whether `player` is controlled by AI right now. The controller map is
-    /// installed for every skirmish player at tick zero and updated by
-    /// `apply_controller`; a slot absent from it remains client-controlled.
+    /// Whether `player` is controlled by AI right now. Every skirmish
+    /// player's seat holds a controller from tick zero, updated by
+    /// `apply_controller`; a player with none remains client-controlled.
     pub(super) fn ai_controlled(&self, player: Option<&str>) -> bool {
         player
-            .and_then(|player| self.controllers.get(player))
+            .and_then(|player| self.controller(player))
             .is_some_and(|controller| *controller != ControllerKind::Human)
     }
 
+    /// Who controls `player`: its skirmish seat's controller, or for a
+    /// player with no seat, the one installed for it.
+    pub(super) fn controller(&self, player: &str) -> Option<&ControllerKind> {
+        match self.skirmish.as_ref().and_then(|s| s.player_index(player)) {
+            Some(index) => Some(&self.skirmish.as_ref()?.players[index].controller),
+            None => self.controllers.get(player),
+        }
+    }
+
+    /// Every player's controller, by id, as the replay records it.
+    pub(super) fn controller_list(&self) -> Vec<(String, ControllerKind)> {
+        let seats = self.skirmish.iter().flat_map(|s| &s.players);
+        let seated = seats.map(|p| (p.id.clone(), p.controller.clone()));
+        let unseated = self
+            .controllers
+            .iter()
+            .map(|(id, c)| (id.clone(), c.clone()));
+        let all: BTreeMap<_, _> = unseated.chain(seated).collect();
+        all.into_iter().collect()
+    }
+
     pub(super) fn apply_controller(&mut self, transition: &ControllerTransition) {
-        self.controllers
-            .insert(transition.player.clone(), transition.controller.clone());
-        let player_index = self
-            .skirmish
-            .as_ref()
-            .and_then(|skirmish| skirmish.player_index(&transition.player));
-        if let Some(index) = player_index {
-            if let Some(player) = self
-                .skirmish
-                .as_mut()
-                .and_then(|skirmish| skirmish.players.get_mut(index))
-            {
-                player.controller = transition.controller.clone();
+        let seat = self.skirmish.as_mut().and_then(|skirmish| {
+            let index = skirmish.player_index(&transition.player)?;
+            skirmish.players.get_mut(index)
+        });
+        match seat {
+            Some(seat) => seat.controller = transition.controller.clone(),
+            None => {
+                self.controllers
+                    .insert(transition.player.clone(), transition.controller.clone());
             }
         }
         // A player's units take its new controller's engagement; leaving a

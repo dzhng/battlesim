@@ -8,12 +8,13 @@ use contract::encounter::{ObjectiveSite, SkirmishSites};
 use contract::ids::Side;
 use contract::ids::Tick;
 use contract::observation::{ObservationFrame, OwnUnit};
-use contract::players::{ControllerKind, Player, PlayerIndex};
+use contract::players::{ControllerKind, PlayerIndex};
 use contract::scenario::Rules;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::entries::EntryIndex;
+use crate::skirmish::PlayerState;
 
 mod backline;
 mod cohesion;
@@ -112,32 +113,6 @@ pub struct TeamPlan {
     pub outgunned: BTreeSet<PlayerIndex>,
 }
 
-/// The planner only needs the seat topology. Keeping this small view generic
-/// lets the battle read the authoritative live skirmish seats without making
-/// a second player-definition copy.
-pub trait TeamPlayer {
-    fn side(&self) -> Side;
-    fn controller(&self) -> &ControllerKind;
-}
-
-impl TeamPlayer for Player {
-    fn side(&self) -> Side {
-        self.side
-    }
-    fn controller(&self) -> &ControllerKind {
-        &self.controller
-    }
-}
-
-impl TeamPlayer for crate::skirmish::PlayerState {
-    fn side(&self) -> Side {
-        self.side
-    }
-    fn controller(&self) -> &ControllerKind {
-        &self.controller
-    }
-}
-
 type AssignmentState = (f64, Vec<EntryIndex>, Vec<usize>);
 
 impl TeamMemory {
@@ -177,11 +152,11 @@ impl TeamMemory {
 
 /// Build a deterministic side plan. Players are considered in `players`
 /// order; ties therefore retain the lower player index.
-pub fn plan<'a, P: TeamPlayer>(
+pub fn plan<'a>(
     side: Side,
     rules: &Rules,
     side_frame: &ObservationFrame,
-    players: &[P],
+    players: &[PlayerState],
     sites: &SkirmishSites,
     memory: &'a mut TeamMemory,
     tuning: TeamTuning,
@@ -219,9 +194,7 @@ pub fn plan<'a, P: TeamPlayer>(
     let ai: Vec<_> = players
         .iter()
         .enumerate()
-        .filter(|(_, player)| {
-            player.side() == side && *player.controller() == ControllerKind::ActiveAi
-        })
+        .filter(|(_, player)| player.side == side && player.controller == ControllerKind::ActiveAi)
         .map(|(index, _)| PlayerIndex(index as u16))
         .collect();
     let lanes: Vec<_> = sites
@@ -477,16 +450,16 @@ pub fn plan<'a, P: TeamPlayer>(
     memory.cached.as_ref().expect("team plan cached")
 }
 
-fn covered_objectives_by_player<P: TeamPlayer>(
+fn covered_objectives_by_player(
     frame: &ObservationFrame,
-    players: &[P],
+    players: &[PlayerState],
     side: Side,
     objectives: &[ObjectiveSite],
 ) -> BTreeMap<PlayerIndex, ObjectiveSite> {
     let human: BTreeSet<_> = players
         .iter()
         .enumerate()
-        .filter(|(_, p)| p.side() == side && *p.controller() == ControllerKind::Human)
+        .filter(|(_, p)| p.side == side && p.controller == ControllerKind::Human)
         .map(|(i, _)| PlayerIndex(i as u16))
         .collect();
     let mut covered = BTreeMap::new();

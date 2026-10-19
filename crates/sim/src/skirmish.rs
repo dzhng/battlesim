@@ -124,6 +124,23 @@ pub struct Skirmish {
     income_remainder: u64,
 }
 
+impl PlayerState {
+    /// `player`'s seat in a match, with `wallet` to spend.
+    pub fn new(player: &Player, wallet: u64) -> Self {
+        Self {
+            id: player.id.clone(),
+            side: player.side,
+            faction: player.faction.expect("validated combatant faction"),
+            controller: player.controller.clone(),
+            wallet,
+            ready: false,
+            reservations: VecDeque::new(),
+            next_purchase: 0,
+            totals: MatchTotals::default(),
+        }
+    }
+}
+
 impl Skirmish {
     pub fn new(setup: SkirmishSetup, source: &[Player]) -> Self {
         let entry_count = setup.sites.entries.len();
@@ -132,17 +149,7 @@ impl Skirmish {
             * CREDIT_SCALE;
         let players = source
             .iter()
-            .map(|p| PlayerState {
-                id: p.id.clone(),
-                side: p.side,
-                faction: p.faction.expect("validated combatant faction"),
-                controller: p.controller.clone(),
-                wallet: budget,
-                ready: false,
-                reservations: VecDeque::new(),
-                next_purchase: 0,
-                totals: MatchTotals::default(),
-            })
+            .map(|p| PlayerState::new(p, budget))
             .collect::<Vec<_>>();
         let objectives =
             crate::objectives::Objectives::new(setup.sites.objectives.len(), &setup.rules);

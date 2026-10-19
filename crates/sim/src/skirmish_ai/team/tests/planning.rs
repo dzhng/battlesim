@@ -58,13 +58,14 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
     let mut players = players();
     players.truncate(3);
     for index in 3..10 {
-        players.push(Player {
+        let player = Player {
             id: format!("blue-{}", index + 1),
             side: Side::Blue,
             faction: Some(contract::catalog::Faction::Us),
             controller: ControllerKind::ActiveAi,
             human_capable: false,
-        });
+        };
+        players.push(PlayerState::new(&player, 0));
     }
     let mut sites = sites();
     for index in 3..7 {

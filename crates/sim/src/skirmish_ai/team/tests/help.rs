@@ -544,22 +544,9 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
     frame.own[0].owner = Some(PlayerIndex(0));
     frame.own[0].goal = Some(objective.center);
     frame.own[1].owner = Some(PlayerIndex(1));
-    let players = vec![
-        Player {
-            id: "blue-1".into(),
-            side: Side::Blue,
-            faction: Some(contract::catalog::Faction::Us),
-            controller: ControllerKind::Human,
-            human_capable: true,
-        },
-        Player {
-            id: "blue-2".into(),
-            side: Side::Blue,
-            faction: Some(contract::catalog::Faction::Us),
-            controller: ControllerKind::ActiveAi,
-            human_capable: false,
-        },
-    ];
+    let mut players = players();
+    players.truncate(2);
+    players[0].controller = ControllerKind::Human;
     let mut memory = TeamMemory::default();
     let mut tuning = TeamTuning::shipped();
     tuning.help_trend_threshold = 0.1;

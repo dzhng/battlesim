@@ -16,9 +16,9 @@ pub struct HelpRequest {
 
 type LaneContext = (PlayerIndex, EntryIndex, ObjectiveSite, [f64; 2]);
 
-pub(super) fn lane_contexts<P: TeamPlayer>(
+pub(super) fn lane_contexts(
     side: Side,
-    players: &[P],
+    players: &[PlayerState],
     sites: &SkirmishSites,
     plans: &[PlayerPlan],
     covered_by_player: &BTreeMap<PlayerIndex, ObjectiveSite>,
@@ -37,7 +37,7 @@ pub(super) fn lane_contexts<P: TeamPlayer>(
     players
         .iter()
         .enumerate()
-        .filter(|(_, player)| player.side() == side)
+        .filter(|(_, player)| player.side == side)
         .enumerate()
         .filter_map(|(local_index, (index, _))| {
             let player = PlayerIndex(index as u16);
@@ -49,7 +49,7 @@ pub(super) fn lane_contexts<P: TeamPlayer>(
                     plan.staging_point,
                 ));
             }
-            let is_human = players[index].controller() == &ControllerKind::Human;
+            let is_human = players[index].controller == ControllerKind::Human;
             if is_human && !covered_by_player.contains_key(&player) {
                 return None;
             }
@@ -137,10 +137,10 @@ fn surplus(
 /// answer each new call from the nearest ally with surplus.
 /// The help party itself (its units, lock, budget and refill) is the one
 /// party concept in `party.rs`.
-pub(super) fn update_help<P: TeamPlayer>(
+pub(super) fn update_help(
     side: Side,
     frame: &ObservationFrame,
-    players: &[P],
+    players: &[PlayerState],
     lanes: &[LaneContext],
     memory: &mut TeamMemory,
     tuning: TeamTuning,
@@ -210,9 +210,9 @@ pub(super) fn update_help<P: TeamPlayer>(
             .iter()
             .enumerate()
             .filter(|(index, player)| {
-                player.side() == side
+                player.side == side
                     && PlayerIndex(*index as u16) != *requester
-                    && *player.controller() == ControllerKind::ActiveAi
+                    && player.controller == ControllerKind::ActiveAi
             })
             .filter_map(|(index, _)| {
                 let helper = PlayerIndex(index as u16);
