@@ -60,6 +60,14 @@ Evidence is in `throwaway/perf/2026-10-19/` and
 `throwaway/perf/2026-10-19-repeat/`. These runs establish the trigger but do
 not identify the responsible CPU span; no optimization has been selected yet.
 
+A 20-second steady-state Chrome CPU profile during `market-town` is in the
+ignored `throwaway/perf/2026-10-19/cpu-profile-market-town.json`. It sampled
+mostly idle time; the active samples were split across WASM presentation
+functions, GPU `writeBuffer` calls and garbage collection. The profile did not
+justify a static-model cache or another renderer change by itself. The next
+experiment must correlate long frame intervals with allocation and frame-loop
+activity before selecting a candidate.
+
 ## Visual verification (2026-10-18)
 
 The `frame` scene was rerun on a hardware AMD RDNA3 adapter after fetching the

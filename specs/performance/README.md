@@ -26,10 +26,11 @@ and 38.9 FPS; `paris-corner` averaged 107.8 and 110.5 FPS, with 1% lows of
 57.2 and 54.9 FPS. The trigger is therefore confirmed for `market-town`.
 
 The frame is not GPU-saturated in these runs: `market-town` GPU means were
-11.92 and 10.93 ms, while CPU p99 was 21.16 and 18.47 ms. The next pass must
-identify the CPU/frame-pacing owner before changing the renderer. Candidate
-choices are static-model packing, another main-thread span found by a profile,
-or a measurement fix if the low is caused by pacing rather than work.
+11.92 and 10.93 ms, while CPU p99 was 21.16 and 18.47 ms. A focused steady-state
+CPU profile found no single dominant JavaScript function: active samples split
+between WASM presentation work, GPU buffer writes and garbage collection. The
+next pass therefore needs a frame-pacing or allocation profile before changing
+the renderer. Static-model caching remains a candidate, not a diagnosis.
 
 ## Where the frame stands
 

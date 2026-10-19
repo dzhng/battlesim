@@ -36,3 +36,22 @@ renderer code until the dominant span is named.
   packing, the browser frame loop, or measurement infrastructure.
 - **Verdict:** needs-user after profiling; provisional call is profile first.
 - **Confidence:** high.
+
+## Sound
+
+### Do not promote static caching from an inconclusive profile — 2026-10-19
+
+The first steady-state CPU profile did not show static-model packing as a
+dominant span. Most of the sampled interval was idle, and the active samples
+were divided among WASM presentation work, GPU buffer writes and garbage
+collection. The safe decision is to keep the current static-buffer owner and
+measure frame pacing and allocations together before changing it. The
+alternative would be to introduce a two-buffer static cache because an older
+estimate mentioned four milliseconds of repacking; that would add stale-record
+risk without explaining this run's low 1% frames.
+
+- **Gap:** the historical candidate estimate predated the current baseline.
+- **Reach:** future renderer work must be tied to a measured dominant span, not
+  to the largest old estimate.
+- **Verdict:** sound. The profile is evidence against promoting the cache now.
+- **Confidence:** high.
