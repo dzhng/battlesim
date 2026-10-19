@@ -34,7 +34,12 @@ import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
 import { useSyncExternalStore } from "react";
-import { graphicsProfiles, graphicsSettings, resolveEffectiveTier } from "./graphicsSettings";
+import {
+  graphicsProfiles,
+  graphicsSettings,
+  resolveEffectiveTier,
+  sceneMinimumProfile,
+} from "./graphicsSettings";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -177,7 +182,13 @@ export function BattleView({
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
-  const quality = graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
+  const requestedQuality = new URLSearchParams(window.location.search).get("test-quality");
+  const quality =
+    requestedQuality === "minimum"
+      ? sceneMinimumProfile
+      : requestedQuality && requestedQuality in graphicsProfiles
+        ? graphicsProfiles[requestedQuality as keyof typeof graphicsProfiles]
+        : graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const { audio } = session;
   useEffect(() => {
     clearCues();

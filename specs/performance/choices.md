@@ -294,3 +294,19 @@ reel's repeated `market-town` 1% low around 39 FPS for the current target. No
 additional cache or renderer machinery is justified without a new measured
 player-facing symptom; the XL stress scene remains available for future scale
 work.
+
+### Use bounded internal render scale for XL minimum-quality stress — 2026-10-19
+
+The XL target is dominated by GPU fill and multisampled render targets. A
+renderer-wide 1× MSAA change is incompatible with the existing multisampled
+depth contract and was reverted. A 0.75× internal canvas scale on the
+stress-only minimum profile reduced GPU mean from 41.2 to 35.8 ms live and from
+48.8 to 45.7 ms late, while preserving simulation digests and lowering texture
+memory. The HUD keeps CSS resolution. Player profiles remain unchanged because
+this pass has not yet gone through the visual reel gate.
+
+- **Gap:** the stress target had no quality-controlled fill-rate lever.
+- **Reach:** test-only minimum profile and endurance measurement.
+- **Verdict:** retain as a bounded, evidence-backed stress improvement; defer
+  player-facing dynamic resolution until visual/device review.
+- **Confidence:** high for the measured adapter, medium across hardware.

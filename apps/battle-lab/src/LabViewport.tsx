@@ -747,12 +747,10 @@ export function LabViewport({
           alphaMode: "opaque",
           usage: GPUTextureUsage.RENDER_ATTACHMENT | (plates ? GPUTextureUsage.COPY_SRC : 0),
         });
-        // One pixel per CSS pixel, on any display: a high-density screen
-        // scales the battle up rather than drawing it at its own density.
-        // The page's HUD keeps the display's density.
         const syncSize = () => {
-          const w = Math.max(1, canvas.clientWidth);
-          const h = Math.max(1, canvas.clientHeight);
+          const renderScale = effectiveQuality?.renderScale ?? 1;
+          const w = Math.max(1, Math.round(canvas.clientWidth * renderScale));
+          const h = Math.max(1, Math.round(canvas.clientHeight * renderScale));
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;

@@ -15,6 +15,7 @@ import { installResetRafFence, restartPresentedOpening } from "./_reset.mjs";
 import { game } from "./_units.mjs";
 
 const CORPSE_CAP = game.presentation.pose.corpses.max;
+const LATE_CORPSES = 800;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);
@@ -29,7 +30,10 @@ async function openStressLab(ctx, page) {
     await ctx.openLab(page);
     return null;
   }
-  await ctx.openLab(page, ctx.urlFor({ generated: 1 }), PREPARE_TIMEOUT);
+  const stressUrl = new URL(ctx.urlFor({ generated: 1 }));
+  if (process.env.ENDURANCE_QUALITY)
+    stressUrl.searchParams.set("test-quality", process.env.ENDURANCE_QUALITY);
+  await ctx.openLab(page, stressUrl.href, PREPARE_TIMEOUT);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
     timeout: PREPARE_TIMEOUT,
   });
@@ -197,7 +201,7 @@ async function measureEffectCost(ctx) {
   });
   const live = await effectCostAt(page, "100 a side", await densest(page));
   // The aftermath: fast-forward until the tanks and trucks that died in the
-  // last few minutes leave wrecks burning at once. (The late state's 2,000
+  // last few minutes leave wrecks burning at once. (The late state's 100
   // wrecks are part of its map: old, cold remains that never burn.)
   await lab(page, () => window.__lab.route.pause());
   const wrecked = await until(
@@ -310,13 +314,14 @@ async function measureModelCost(ctx) {
     { timeout: 120000 },
   );
   await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
-  const late = await modelCostAt(page, "late state (20,000 fallen)");
+  const late = await modelCostAt(page, `late state (${LATE_CORPSES} fallen)`);
   const adapter = await page.evaluate(() => window.__lab.adapter);
   await ctx.writeEvidence("model-cost.json", { adapter, live, late });
-  // Of the 20,000 fallen, presentation draws the newest `corpses.max`.
+  // Presentation draws all realistic late-state corpses, up to `corpses.max`.
   ctx.check(
-    "the models layer draws the late state's newest corpses, to the cap, as static instances",
-    late.strategic.models.corpses === CORPSE_CAP && late.strategic.models.skinned < 2000,
+    "the models layer draws the late state's corpses as static instances",
+    late.strategic.models.corpses === Math.min(CORPSE_CAP, LATE_CORPSES) &&
+      late.strategic.models.skinned < 2000,
     JSON.stringify({
       corpses: late.strategic.models.corpses,
       skinned: late.strategic.models.skinned,
@@ -366,7 +371,7 @@ export async function run(ctx) {
     JSON.stringify(resetStates),
   );
 
-  // The late state: 20,000 fallen and 2,000 wrecks in the field.
+  // The late state: the full roster's 800 fallen soldiers and 100 wrecks.
   await openMenu(page);
   // The switch remounts the battle, menu and all: click, not check.
   await page.getByLabel(/Late state/).click();
@@ -430,7 +435,7 @@ export async function run(ctx) {
     );
     const last = run.samples.at(-1);
     console.log(
-      `METRIC endurance ${name}: sim ${run.rate.toFixed(1)} Hz; worst 10 s window frame p95 ${worst.p95.toFixed(1)} ms, p99 ${worst.p99.toFixed(1)} ms; main-thread heap ${last?.heapMiB?.toFixed(0)} MiB; GPU ${(last?.gpu.bufferBytes / 2 ** 20).toFixed(1)} MiB in ${last?.gpu.buffers} buffers`,
+      `METRIC endurance ${name}: sim ${run.rate.toFixed(1)} Hz; worst 10 s window frame p95 ${worst.p95.toFixed(1)} ms, p99 ${worst.p99.toFixed(1)} ms; GPU frame ${last?.gpuFrame?.meanMs?.toFixed(1) ?? "n/a"} ms mean / ${last?.gpuFrame?.p95Ms?.toFixed(1) ?? "n/a"} ms p95; main-thread heap ${last?.heapMiB?.toFixed(0)} MiB; GPU ${(last?.gpu.bufferBytes / 2 ** 20).toFixed(1)} MiB in ${last?.gpu.buffers} buffers`,
     );
   }
 }

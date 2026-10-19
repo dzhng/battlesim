@@ -120,7 +120,7 @@ export default function Endurance() {
   if (buildFailed(built)) return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;
 
-  const telemetry = ({ sim, gpuAllocations }: BattleSession) => {
+  const telemetry = ({ sim, gpuAllocations, gpuFrame }: BattleSession) => {
     const o = sim.latest.current;
     return {
       tick: o?.tick ?? 0,
@@ -133,6 +133,7 @@ export default function Endurance() {
       projectilesSeen: o?.projectiles.length ?? 0,
       heapMiB: heapMiB(),
       gpu: gpuAllocations(),
+      gpuFrame: gpuFrame(),
     };
   };
   // The synthetic stress battle's switches, in the pause menu.

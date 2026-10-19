@@ -203,3 +203,19 @@ were about 3.08 GiB and full page memory about 4.4 GiB. This workload is kept as
 a diagnostic scale scenario rather than folded into the 60-FPS graphics reel
 gate. The scene's stale Large-versus-XL assertion was corrected while recording
 this evidence.
+
+## XL render-scale experiment — 2026-10-19
+
+The XL stress workload is GPU-bound at 1920×1080: the minimum-quality run measured
+about 41.2 ms GPU mean live and 48.8 ms late. The frame uses several full-size
+4× multisampled targets; a 1× experiment was rejected by WebGPU because the
+renderer’s depth bindings and shader contracts require multisampled depth.
+
+A bounded render-scale profile was then tested at 0.75× for the internal canvas
+only (the HUD remains at CSS resolution). The same generated map, roster, late
+state, and deterministic digest measured 35.8 ms GPU mean live and 45.7 ms late,
+with GPU texture memory dropping from about 610 MiB to 548 MiB. This is roughly
+13% live and 6% late GPU improvement, with no simulation or presentation-output
+change. The scale is confined to the test-only minimum profile; player tiers
+remain at 1× until a visual review and device coverage justify exposing dynamic
+resolution.

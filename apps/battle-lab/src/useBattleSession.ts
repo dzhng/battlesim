@@ -958,7 +958,6 @@ export function useBattleSession({
     [control],
   );
 
-  // The viewport's GPU allocation counter, once it is up.
   const gpu = useRef<ViewportGpu | null>(null);
   const { onViewportReady } = sim;
   const onReady = useCallback(
@@ -972,8 +971,8 @@ export function useBattleSession({
     (): GpuAllocationCounts | null => gpu.current?.allocations() ?? null,
     [],
   );
+  const gpuFrame = useCallback(() => gpu.current?.frame().stats().gpu ?? null, []);
 
-  // Lab-only probes for the scene harness; rebuilt each render.
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,
     observation: () => sim.latest.current,
@@ -1219,6 +1218,7 @@ export function useBattleSession({
     },
     ghostReadouts: visibleGhostReadouts,
     gpuAllocations,
+    gpuFrame,
     probes,
   };
 }
