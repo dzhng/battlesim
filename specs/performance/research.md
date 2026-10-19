@@ -107,3 +107,14 @@ showed only its loading/blank states (`No available adapters`), so those capture
 are diagnostic and are not used as renderer acceptance evidence. The unprimed
 critique found no renderer defect in the hardware scene; it did flag the panel
 scrollbars as the visible UI discrepancy.
+
+## Rust scratch reuse measurement (inconclusive) — 2026-10-19
+
+The first output-equivalent Rust pass reuses `Loaded` scratch vectors for
+high-air shadows and x-ray membership lists. The focused Rust presentation
+suite and commit hooks passed. A browser `graphics-fps` run reached the
+`market-town` stage but did not complete within five minutes and was stopped;
+there is no accepted before/after FPS result. The pass therefore remains an
+allocation-hygiene candidate, not a measured trigger improvement. The next
+measurement must use a bounded, completing reel before ranking another
+intervention.

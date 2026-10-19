@@ -156,3 +156,20 @@ small part of the stall.
 - **Verdict:** needs-user for exact intervention; recommended provisional target
   is loaded presentation frame generation.
 - **Confidence:** medium.
+
+### Do not claim a browser gain from the incomplete reel — 2026-10-19
+
+The post-change graphics reel reached `market-town` but did not finish within
+five minutes, so it cannot compare average FPS or 1% lows to the trusted runs.
+The result is treated as missing evidence rather than as an improvement or a
+regression. A completed production reel remains the acceptance seam; if it
+cannot complete, the next pass must diagnose the harness/runtime condition
+before selecting another optimization.
+
+- **Gap:** the slice required a browser comparison but did not define a
+  completion timeout for an invalid run.
+- **Reach:** later performance decisions cannot use partial or hung reels as
+  evidence.
+- **Verdict:** sound. Stopping an unbounded diagnostic run protects the
+  measurement contract.
+- **Confidence:** high.
