@@ -8,7 +8,9 @@ which owns routes and composes the battle view.
 ## Authority and preparation
 
 [Preparation](src/battle/prepare/) admits a generation request (a battle never names a
-saved map: those are tests' and captures'), fields the request's two factions on the map's admitted skirmish sites and hands the
+saved map: those are tests' and captures'). A request is a map source, its players
+(each with a side, a faction and a controller) and a battle seed; preparation fields
+each side's players on the map's admitted skirmish sites and hands the
 prepared world to its battle authority. Expensive preparation stays off the page thread.
 The lobby's [map preview](src/battle/prepare/preview.ts) runs the same admitted preparation,
 keeps only the admitted request, map, sites and the worker-drawn picture, and closes its

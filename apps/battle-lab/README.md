@@ -48,11 +48,16 @@ shows them. Its map is a real admitted preparation, started again only when a
 map input changes, and Deploy opens only on a ready map and names the seed that
 was admitted, so the battle is the map the player saw. The preview may try
 bounded fresh seeds; when generation is exhausted the lobby shows no map and
-Deploy stays shut, and no fixed map is ever substituted. A battle address names
-exact preparation inputs on the same build: the map, both sides' players and
-factions. One without them, or with a parameter the battle does not read, is
-refused by name; nothing is defaulted or ignored, and a refused seed never
-silently becomes another battle.
+Deploy stays shut, and no fixed map is ever substituted. The lobby's players are
+always the battle's players, numbered by place on their side, and its preview
+and its Deploy link build one request ([skirmish setup](src/skirmishSetup.ts)),
+so the battle is the one previewed. A battle address names exact preparation
+inputs on the same build. It must name both sides' players and factions; the
+map type, size, map seed and battle seed default when left out. A link with
+humans has exactly one, on Blue. An old-shape link (its `faction` or `enemy`,
+or no players), a wrong value, or a parameter the battle does not read is
+refused by name, never ignored, and a refused seed never silently becomes
+another battle.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
 played in order and then over again, each a saved encounter on its own `capture` map
