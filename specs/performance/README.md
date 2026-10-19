@@ -1,7 +1,7 @@
 # Performance (placeholder)
 
-**Status:** placeholder. Nothing is planned or scheduled; some of it may never be done.
-**Updated:** 2026-10-10.
+**Status:** trigger confirmed; candidate selection is the next user decision.
+**Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
 the fixed benchmark contract, measured candidates and the next experiment; this
@@ -9,16 +9,27 @@ placeholder remains the durable list of deferred work.
 
 ## Next Agent Prompt
 
-You are picking up a list of measured performance candidates the user chose to
-defer. Each trades complexity, or a delay in drawing or loading units, for
-headroom the game does not need yet. Start only when a measurement shows a real
-player problem (a low frame rate, a lost GPU device, memory pressure on a smaller
-machine), and pick the candidate that problem points at. Measure first with the
-same method below on the current build: these numbers are evidence from one
-date, not today's values. Update this section before you end a pass.
+You are picking up a measured browser frame-time problem. The agreed policy is
+reactive and browser-led: choose the smallest candidate that explains the
+reported symptom, allow a small secondary regression only when the primary gain
+is substantial and recorded, and keep native as a parity check for shared
+renderer or shader changes. Update this section before you end each pass.
 
-- [ ] A player-visible problem is measured and named here.
+- [x] A repeatable 1% low regression is measured on the graphics-fps reel.
 - [ ] The candidate it points at is chosen with the user, then planned with `write-spec`.
+
+## Current handoff
+
+The canonical production reel was run twice on an uncontended browser at
+1280×720. `market-town` averaged 75.9 and 82.2 FPS, but its 1% low was 35.9
+and 38.9 FPS; `paris-corner` averaged 107.8 and 110.5 FPS, with 1% lows of
+57.2 and 54.9 FPS. The trigger is therefore confirmed for `market-town`.
+
+The frame is not GPU-saturated in these runs: `market-town` GPU means were
+11.92 and 10.93 ms, while CPU p99 was 21.16 and 18.47 ms. The next pass must
+identify the CPU/frame-pacing owner before changing the renderer. Candidate
+choices are static-model packing, another main-thread span found by a profile,
+or a measurement fix if the low is caused by pacing rather than work.
 
 ## Where the frame stands
 

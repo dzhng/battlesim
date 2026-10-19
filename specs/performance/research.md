@@ -39,9 +39,26 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 
 ## Handoff
 
-The incumbent is the skeleton-scoped loader. The next experiment is to fetch the
-reel's LFS assets, record matched browser/native baselines, then profile the
-largest GPU span before changing a shared pass.
+The incumbent is the skeleton-scoped loader. The first clean baseline after
+fetching the reel's LFS assets confirmed a repeatable `market-town` 1% low below
+the agreed 50 FPS trigger. The browser is not GPU-saturated in those runs, so
+the next experiment is a CPU/frame-pacing profile before changing a shared pass.
+
+## Reactive baseline — 2026-10-19
+
+Two production `graphics-fps` runs at 1280×720, with no other browser or native
+renderer using the GPU:
+
+| Run | Scene | Average FPS | 1% low FPS | Frame p95 (ms) | CPU p99 (ms) | GPU mean (ms) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `05-00-09` | market-town | 75.9 | 35.9 | 24.10 | 21.16 | 11.92 |
+| `05-00-09` | paris-corner | 107.8 | 57.2 | 16.67 | 1.89 | 7.72 |
+| `05-03-34` | market-town | 82.2 | 38.9 | 16.72 | 18.47 | 10.93 |
+| `05-03-34` | paris-corner | 110.5 | 54.9 | 16.66 | 1.97 | 7.32 |
+
+Evidence is in `throwaway/perf/2026-10-19/` and
+`throwaway/perf/2026-10-19-repeat/`. These runs establish the trigger but do
+not identify the responsible CPU span; no optimization has been selected yet.
 
 ## Visual verification (2026-10-18)
 
