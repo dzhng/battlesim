@@ -25,10 +25,18 @@ with `--help` before anything else.
    and commit it alone, before the change that needed the room.
 
 A file whose every split would cost more than it saves (one table or state
-machine that only reads whole) may opt out with the pragma the script names,
-in a comment near its top with the reason. It is a last resort, not a way past
-the hook: tell the user each file you opt out and why. `--all` counts opted-out
-files so they stay visible.
+machine that only reads whole) may opt out instead. Put
+`@ratchet-files-ignore` in a comment within its first 10 lines, in the
+file's own comment syntax, followed by why splitting fails:
+
+```js
+// @ratchet-files-ignore: one opcode table; split, each half reads without the other.
+```
+
+The check then skips the file entirely, even as it grows, so opt out only
+after looking for a seam and finding none worth its cost, never to get past a
+refusal. Tell the user each file you opt out and why. `--all` counts
+opted-out files so they stay visible.
 
 Done when every file you picked is under budget in its own commit, the
 behaviour checks pass, and `--all` no longer lists those files.

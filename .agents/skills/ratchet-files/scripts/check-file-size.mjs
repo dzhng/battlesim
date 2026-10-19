@@ -45,11 +45,14 @@ const splitRules = `Split a file before adding to it:
   - Move tests beside the code they test, grouped the way the code is.
   - Commit the split on its own, before the change that needed the room. A
     split must not change behaviour; prove it with the checks the repository
-    already uses for that.
-  - Opt a file out only when every split costs more than it saves, such as
-    one table or state machine that reads only as a whole: put
-    ${pragma} in a comment near the top with that reason, and tell
-    the user.`;
+    already uses for that.`;
+
+const optOut = `Opt a file out only when every split would cost more than it saves, such
+as one table or state machine that reads only as a whole. Put
+${pragma} in a comment within its first ${pragmaLines} lines, followed by why:
+  // ${pragma}: one opcode table; split, each half reads without the other.
+The check then skips the file entirely, even as it grows, so it is a last
+resort, never a way past a refusal. Tell the user each file you opt out.`;
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -60,7 +63,7 @@ const { values, positionals } = parseArgs({
   },
 });
 if (values.help) {
-  console.log(`${usage}\n\n${splitRules}`);
+  console.log(`${usage}\n\n${splitRules}\n\n${optOut}`);
   process.exit(0);
 }
 const maxTokens = Number(values["max-tokens"]);
@@ -186,7 +189,7 @@ if (failures.length > 0) {
     console.error(`    Cut at least ${(bytes - limit).toLocaleString("en")} bytes.`);
   }
   console.error(
-    `\nMake room by moving a concept into its own file, not by squeezing code to fit.\n${splitRules}`,
+    `\nMake room by moving a concept into its own file, not by squeezing code to fit.\n${splitRules}\n\n${optOut}`,
   );
   process.exit(1);
 }
