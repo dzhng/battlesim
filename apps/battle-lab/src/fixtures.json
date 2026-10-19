@@ -273,7 +273,8 @@
     "describe": "A 2v2 team battle: you hold the far objective with one squad, and under pressure your AI ally sends a detachment, not its whole force, toward your objective.",
     "map": null,
     "catalog": "game",
-    "loading": false
+    "loading": false,
+    "timeout_s": 1500
   },
   {
     "id": "benchmark",
