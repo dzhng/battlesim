@@ -285,3 +285,12 @@ before selecting another optimization.
 - **Verdict:** sound. Stopping an unbounded diagnostic run protects the
   measurement contract.
 - **Confidence:** high.
+### Accept the current reel and keep XL stress diagnostic — 2026-10-19
+
+The generated Metro XL workload confirms that 100 units per side is a valid
+5v5-scale stress case, but its 20 FPS live and 17 FPS late-state cadence is a
+separate scale bound from the player-facing graphics reel. The user accepts the
+reel's repeated `market-town` 1% low around 39 FPS for the current target. No
+additional cache or renderer machinery is justified without a new measured
+player-facing symptom; the XL stress scene remains available for future scale
+work.

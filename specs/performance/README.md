@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Rust presentation allocation-reuse passes retained; browser reel and XL 5v5 stress evidence are recorded. The market-town 1% low is accepted for the current target; the XL stress workload remains diagnostic.
+**Status:** Performance slice complete: Rust presentation allocation-reuse passes retained, browser reel accepted, and XL 5v5 stress evidence recorded. The XL stress workload remains diagnostic for future scale work.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -56,10 +56,10 @@ GPU means stayed effectively unchanged (8.05 ms to 7.99 ms). The browser reel
 completed after rebuilding the ignored presentation WASM artifacts:
 `market-town` averaged 83.1 FPS with a 39.0 FPS 1% low and 10.73 ms GPU mean;
 `paris-corner` averaged 110.5 FPS with a 58.8 FPS 1% low and 7.44 ms GPU mean.
-The next pass should profile the loaded unit/effect owner before selecting
-another optimization. The second pass reuses the static building walk's
-double-buffered lists and counts; native A/B shows a CPU benefit, while the
-browser trigger remains below its 1% low floor.
+The second pass reuses the static building walk's double-buffered lists and
+counts; native A/B shows a CPU benefit. The browser result is accepted for the
+current target, and no further optimization is selected without a new measured
+player-facing symptom.
 
 The separate scale workload uses the generated Metro XL world and 100 units per
 side, matching the planned 5v5 force size. Its 30-second browser sample reached

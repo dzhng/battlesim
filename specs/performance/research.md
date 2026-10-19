@@ -183,8 +183,9 @@ runs measured 1.06 / 1.30 and 1.05 / 1.52 ms, with identical drawn counts and
 GPU means around 7.95 ms. The focused presentation suite passed. Bounded browser
 reels also completed: `paris-corner` reached 111.4 FPS average and 57.6 FPS 1%
 low; `market-town` reached 83.2 FPS average and 39.1 FPS 1% low. The latter
-still triggers the agreed browser floor, so this pass is retained as a measured
-CPU improvement but does not close the performance spec.
+remains below the research floor, but the user accepts this result for the current
+player-facing target. The pass is retained as a measured CPU improvement, and no
+further optimization is selected without a new symptom.
 
 ## XL 5v5-scale stress workload — 2026-10-19
 

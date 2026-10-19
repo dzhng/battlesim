@@ -34,7 +34,7 @@ Proof for this pass:
 - browser `paris-corner`: 111.4 FPS average, 57.6 FPS 1% low
 - browser `market-town`: 83.2 FPS average, 39.1 FPS 1% low
 
-The native CPU reduction is sufficient to retain this output-equivalent pass;
-the browser trigger remains open because `market-town` is still below the 50 FPS
-1% low floor. The next pass must profile the loaded unit/effect owner before
-selecting another optimization.
+The native CPU reduction is sufficient to retain this output-equivalent pass.
+The `market-town` 1% low remains below the research floor, but the user accepts
+that result for the current player-facing target. Further work needs a new
+measured symptom before adding complexity.
