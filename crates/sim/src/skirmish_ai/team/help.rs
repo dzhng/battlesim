@@ -4,13 +4,16 @@ use super::party::{recruit, refill, reserved, Ask, PartyKey};
 use super::value::{force, on_duty, Measure};
 use super::*;
 
+/// A call for help at `objective`, and who answers it. The detachment is
+/// the answering help party's (`TeamPlan::help_party`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct HelpRequest {
     pub requester: PlayerIndex,
     pub lane: EntryIndex,
     pub objective: ObjectiveSite,
+    /// The owner of the help party answering the call, if any.
     pub answered_by: Option<PlayerIndex>,
-    pub detachment: Vec<contract::ids::UnitId>,
+    /// When the call was raised: its help party's raising, while answered.
     pub raised_tick: Tick,
 }
 
@@ -195,7 +198,6 @@ pub(super) fn update_help(
                     lane: *lane,
                     objective: objective.clone(),
                     answered_by: Some(lock.owner),
-                    detachment: lock.units.clone(),
                     raised_tick: lock.raised_tick,
                 });
                 continue;
@@ -242,7 +244,6 @@ pub(super) fn update_help(
                 lane: *lane,
                 objective: objective.clone(),
                 answered_by: None,
-                detachment: Vec::new(),
                 raised_tick: frame.tick,
             });
             continue;
@@ -253,8 +254,8 @@ pub(super) fn update_help(
                 kind: PartyKind::Help,
                 owner: helper,
                 objective: objective.clone(),
-                units: units.clone(),
                 size: units.len(),
+                units,
                 raised_tick: frame.tick,
                 clear_since: None,
             },
@@ -264,7 +265,6 @@ pub(super) fn update_help(
             lane: *lane,
             objective: objective.clone(),
             answered_by: Some(helper),
-            detachment: units,
             raised_tick: frame.tick,
         });
     }

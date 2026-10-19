@@ -176,5 +176,6 @@ fn help_comes_from_an_expensive_tank_not_from_squads_that_cannot_fight_the_threa
         .find(|request| request.requester == PlayerIndex(0))
         .expect("the pressed lane asks for help");
     assert_eq!(request.answered_by, Some(PlayerIndex(1)), "{requests:?}");
-    assert_eq!(request.detachment, vec![frame.own[0].id]);
+    let key = PartyKey::Help(PlayerIndex(0), request.objective.id.clone());
+    assert_eq!(memory.parties[&key].units, vec![frame.own[0].id]);
 }

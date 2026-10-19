@@ -477,7 +477,8 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
         .expect("the second lane still asks");
     assert_eq!(first.answered_by, Some(PlayerIndex(1)));
     assert_eq!(second.answered_by, Some(PlayerIndex(1)));
-    assert!(!second.detachment.contains(&locked));
+    let key = PartyKey::Help(PlayerIndex(2), second.objective.id.clone());
+    assert!(!memory.parties[&key].units.contains(&locked));
 }
 
 #[test]
@@ -593,13 +594,14 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
         .find(|request| request.requester == PlayerIndex(0))
         .expect("human lane raised help");
     assert_eq!(request.answered_by, Some(PlayerIndex(1)));
-    assert!(!request.detachment.is_empty());
+    let detachment = &plan.help_party(request).expect("help answered").units;
+    assert!(!detachment.is_empty());
     let assignment = plan.assignment_for(PlayerIndex(1)).unwrap();
     assert_eq!(assignment.parties.len(), 1);
     assert!(assignment.parties[0]
         .units
         .iter()
-        .all(|id| request.detachment.contains(id)));
+        .all(|id| detachment.contains(id)));
     assert!(
         !assignment.force_advance,
         "a help task must not attack-move the helper's whole lane"

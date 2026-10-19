@@ -319,7 +319,7 @@ fn a_unit_is_in_one_party_and_an_engaged_party_is_not_retasked() {
             .iter()
             .any(|r| r.objective.id == lane.id
                 && r.answered_by == Some(claim.owner)
-                && !r.detachment.is_empty()),
+                && pressed.help_party(r).is_some_and(|p| !p.units.is_empty())),
         "{pressed:?}"
     );
     assert_disjoint(&pressed);
@@ -380,7 +380,7 @@ fn help_is_answered_from_surplus_when_side_parties_fill_the_budget() {
             .iter()
             .any(|r| r.objective.id == lane.id
                 && r.answered_by == Some(claim.owner)
-                && !r.detachment.is_empty()),
+                && pressed.help_party(r).is_some_and(|p| !p.units.is_empty())),
         "{pressed:?}"
     );
     assert_disjoint(&pressed);
@@ -452,7 +452,9 @@ fn a_side_objective_under_pressure_keeps_its_hold_and_raises_help() {
         .expect("the side objective raises help");
     assert_eq!(request.requester, PlayerIndex(0));
     assert_eq!(request.answered_by, Some(PlayerIndex(1)));
-    assert!(!request.detachment.is_empty());
+    assert!(pressed
+        .help_party(request)
+        .is_some_and(|p| !p.units.is_empty()));
     assert_disjoint(&pressed);
 }
 
@@ -480,7 +482,6 @@ fn a_player_answering_help_keeps_its_other_parties_on_their_goals() {
             lane: EntryIndex(0),
             objective: site(0),
             answered_by: Some(PlayerIndex(1)),
-            detachment: vec![UnitId(1)],
             raised_tick: 0,
         }],
         parties: vec![

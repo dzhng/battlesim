@@ -12,6 +12,16 @@ impl TeamPlan {
             .collect()
     }
 
+    /// The help party answering `request`, if it is answered.
+    pub fn help_party(&self, request: &super::HelpRequest) -> Option<&super::Party> {
+        self.parties.iter().find(|party| {
+            party.kind == super::PartyKind::Help
+                && Some(party.owner) == request.answered_by
+                && party.objective.id == request.objective.id
+                && party.raised_tick == request.raised_tick
+        })
+    }
+
     pub fn assignment_for(&self, player: PlayerIndex) -> Option<crate::skirmish_ai::Assignment> {
         let plan = self.for_player(player)?;
         let fallback = self.outgunned.contains(&player);

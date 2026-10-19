@@ -213,11 +213,9 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                     request.raised_tick,
                 );
                 if detachment_keys.insert(detachment_key) {
-                    report
-                        .detachment_sizes
-                        .push(request.detachment.len() as u32);
-                    let kinds = request
-                        .detachment
+                    let detachment = plan.help_party(request).map_or(&[][..], |p| &p.units);
+                    report.detachment_sizes.push(detachment.len() as u32);
+                    let kinds = detachment
                         .iter()
                         .filter_map(|id| {
                             battle
