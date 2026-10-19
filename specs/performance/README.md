@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Rust presentation allocation-reuse pass implemented; browser measurement remains.
+**Status:** Rust presentation allocation-reuse pass retained; native A/B confirms a CPU win, browser reel remains incomplete.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -18,7 +18,8 @@ renderer or shader changes. Update this section before you end each pass.
 - [x] A repeatable 1% low regression is measured on the graphics-fps reel.
 - [x] Choose and slice the Rust presentation-frame candidate with the user.
 - [x] Reuse loaded-frame scratch vectors without changing `Frame` output.
-- [ ] Rerun the browser reel and decide whether the measured gain justifies keeping the pass.
+- [x] Compare the pass against the immediate pre-pass source on the native replay bench.
+- [ ] Rerun a bounded browser reel and confirm the player-facing trigger changes.
 
 ## Current handoff
 
@@ -46,9 +47,10 @@ draw; the remaining `ScenePresentation.frame` call is the current suspect.
 The accepted first pass is deliberately small: `Loaded::frame` now reuses
 owned scratch vectors for high-air shadows and x-ray membership lists instead
 of allocating them on every frame. The output order and values are unchanged;
-the focused presentation suite is green. The next agent should run the browser
-reel and compare the trigger metrics before selecting another loaded-frame
-owner.
+the focused presentation suite is green. The native captured replay improved
+total CPU p50 from 1.31 ms to 1.14 ms and p95 from 1.62 ms to 1.48 ms, while
+GPU means stayed effectively unchanged (8.05 ms to 7.99 ms). The next agent
+should run a bounded browser reel before selecting another loaded-frame owner.
 
 ## Where the frame stands
 

@@ -118,3 +118,13 @@ there is no accepted before/after FPS result. The pass therefore remains an
 allocation-hygiene candidate, not a measured trigger improvement. The next
 measurement must use a bounded, completing reel before ranking another
 intervention.
+
+## Native A/B for scratch reuse — 2026-10-19
+
+The existing native replay bench ran the same captured `paris-corner` workload
+for 2,400 frames against the immediate pre-pass source and the committed pass.
+The pass reduced total CPU p50 from 1.31 ms to 1.14 ms and p95 from 1.62 ms to
+1.48 ms. GPU mean was 8.05 ms before and 7.99 ms after, within normal run
+noise. Counts and the drawn workload were identical. This supports retaining
+the output-equivalent pass, but it does not replace the browser trigger check:
+the browser reel still needs one bounded completing run.

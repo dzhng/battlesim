@@ -19,6 +19,22 @@ the algorithm or cached visible records with a stale-data risk.
   storage; presentation tests cover the contract.
 - **Confidence:** high.
 
+### Retain scratch reuse on native CPU evidence — 2026-10-19
+
+The same captured replay ran before and after the pass. Reusing the three
+frame-local vectors lowered native CPU p50 and p95 while counts and GPU work
+stayed the same. The browser reel is still required for the player-facing
+claim, but the controlled native A/B is enough to keep this output-equivalent
+change instead of reverting it because the first browser attempt hung.
+
+- **Gap:** the plan did not say whether native parity evidence could retain a
+  pass while browser acceptance was pending.
+- **Reach:** future shared presentation changes can use the native replay as an
+  interim CPU guard, while keeping the browser reel as the final trigger gate.
+- **Verdict:** sound. The A/B used identical captured input and changed only
+  temporary storage ownership.
+- **Confidence:** high.
+
 ### Baseline the browser before selecting an intervention — 2026-10-19
 
 Two clean production runs of the browser's existing `graphics-fps` reel were
