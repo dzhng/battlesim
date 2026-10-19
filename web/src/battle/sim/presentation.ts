@@ -764,13 +764,7 @@ export class ScenePresentation {
     ui: PresentedUi,
     generation: number,
   ): PresentedFrame {
-    if (this.stale) {
-      this.load();
-      const perf = (
-        globalThis as { __battlePerf?: { span(name: string, durationMs: number): void } }
-      ).__battlePerf;
-      if (perf && this.walk.buildMs > 1) perf.span("presentation-world-load", this.walk.buildMs);
-    }
+    if (this.stale) this.load();
     const c = camera;
     const started = performance.now();
     const ptr = this.rust.frame(
