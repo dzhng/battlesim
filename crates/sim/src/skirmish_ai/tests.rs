@@ -426,7 +426,7 @@ fn lane_purchases_clear_the_entry_before_the_staging_point() {
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 320.0],
         force_advance: false,
-        help: vec![],
+        parties: vec![],
     };
     let orders = BalancedDoctrine::default().decide(
         DecisionInput {
@@ -837,7 +837,7 @@ fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 400.0],
         force_advance: false,
-        help: vec![],
+        parties: vec![],
     };
     let orders = BalancedDoctrine::default().decide(
         DecisionInput {
@@ -853,228 +853,6 @@ fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
     assert!(orders.iter().any(|order| matches!(
         order,
         Order::AttackMove { units, .. } if units == &vec![frame.own[0].id]
-    )));
-}
-
-#[test]
-fn group_positions_matches_the_units_that_advance_the_lane() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_rifle","position":[500,100]},
-            {"side":"red","kind":"test_supply","position":[500,110]},
-            {"side":"red","kind":"test_heli","position":[500,120]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let positions = team::group_positions(&setup.rules, battle.observe(Side::Red).own.iter());
-    assert_eq!(positions, vec![[500.0, 100.0], [500.0, 120.0]]);
-}
-
-#[test]
-fn a_helping_detachment_moves_without_retasking_the_helper_lane() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_rifle","position":[500,100]},
-            {"side":"red","kind":"test_rifle","position":[510,105]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let (rules, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
-    frame.own = battle.observe(Side::Red).own.clone();
-    let detachment = frame.own[0].id;
-    let assignment = Assignment {
-        main_objective: [500.0, 500.0],
-        staging_point: [500.0, 100.0],
-        force_advance: false,
-        help: vec![HelpTask {
-            objective: [900.0, 500.0],
-            detachment: vec![detachment],
-        }],
-    };
-    let orders = BalancedDoctrine::default().decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    assert!(orders.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { units, goal, .. }
-            if units == &vec![detachment] && *goal == [900.0, 500.0]
-    )));
-    let lane_unit = frame.own.iter().find(|unit| unit.id != detachment).unwrap();
-    assert!(orders.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { units, goal, .. }
-            if units == &vec![lane_unit.id]
-                && (*goal == assignment.main_objective || *goal == assignment.staging_point)
-    )));
-}
-
-#[test]
-fn a_squad_sent_far_to_help_or_push_rides_its_own_carrier() {
-    // A squad sent a long way, to an ally's lane or in a team push, is
-    // collected by its player's free carrier rather than walking there.
-    for (force_advance, help) in [(false, true), (true, false)] {
-        let (rules, frame, entry) = transport_match(json!([
-            {"side":"red","kind":"test_rifle","position":[500,60]},
-            {"side":"red","kind":"test_apc","position":[540,60]}
-        ]));
-        let (squad, carrier) = (frame.own[0].id, frame.own[1].id);
-        let far = [500.0, 900.0];
-        let assignment = Assignment {
-            main_objective: if help { [520.0, 80.0] } else { far },
-            staging_point: [520.0, 80.0],
-            force_advance,
-            help: if help {
-                vec![HelpTask {
-                    objective: far,
-                    detachment: vec![squad],
-                }]
-            } else {
-                vec![]
-            },
-        };
-        let orders = BalancedDoctrine::default().decide(
-            DecisionInput {
-                side: Side::Red,
-                faction: Faction::Us,
-                entry: &entry,
-                assignment: Some(&assignment),
-            },
-            &frame,
-            &rules,
-            |_, _| Some(1.0),
-        );
-        assert!(
-            orders
-                .iter()
-                .any(|o| matches!(o, Order::Collect { units, .. } if units.contains(&carrier))),
-            "help={help} push={force_advance}: its carrier collects it: {orders:?}"
-        );
-        assert!(
-            !orders
-                .iter()
-                .any(|o| matches!(o, Order::AttackMove { units, .. } if units.contains(&squad))),
-            "help={help} push={force_advance}: it does not walk: {orders:?}"
-        );
-    }
-}
-
-#[test]
-fn a_lane_of_mortar_carriers_gathers_and_advances_as_a_group() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_apc","position":[500,100]},
-            {"side":"red","kind":"test_apc","position":[510,105]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let (rules, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
-    frame.own = battle.observe(Side::Red).own.clone();
-    let assignment = Assignment {
-        main_objective: [500.0, 500.0],
-        staging_point: [500.0, 100.0],
-        force_advance: false,
-        help: vec![],
-    };
-    let orders = BalancedDoctrine::default().decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    let advancing = orders
-        .iter()
-        .filter(|order| matches!(order, Order::AttackMove { goal, .. } if *goal == assignment.main_objective))
-        .count();
-    assert_eq!(
-        advancing, 2,
-        "mortar carriers must advance after gathering: {orders:?}"
-    );
-}
-
-#[test]
-fn a_ready_group_keeps_its_objective_after_leaving_staging() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_rifle","position":[500,100]},
-            {"side":"red","kind":"test_rifle","position":[510,105]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let (rules, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
-    frame.own = battle.observe(Side::Red).own.clone();
-    let assignment = Assignment {
-        main_objective: [500.0, 500.0],
-        staging_point: [500.0, 100.0],
-        force_advance: false,
-        help: vec![],
-    };
-    let mut ai = BalancedDoctrine::default();
-    let first = ai.decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    assert!(first.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { goal, .. } if *goal == assignment.main_objective
-    )));
-    for unit in &mut frame.own {
-        unit.position[0] = assignment.main_objective[0];
-        unit.position[1] = assignment.main_objective[1];
-        unit.goal = None;
-    }
-    frame.tick += 5 * u64::from(rules.tick_hz);
-    let second = ai.decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    assert!(second.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { goal, .. } if *goal == assignment.main_objective
     )));
 }
 
@@ -2174,5 +1952,10 @@ fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
 }
 
 #[cfg(test)]
+mod backline;
+#[cfg(test)]
+mod groups;
+#[cfg(test)]
+mod parties;
+#[cfg(test)]
 mod transport_tests;
-use transport_tests::transport_match;

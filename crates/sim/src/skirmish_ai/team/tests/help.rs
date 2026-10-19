@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() {
-    let rules: Rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
+    let rules = team_rules();
     let mut frame = ObservationFrame {
         skirmish: Some(contract::skirmish::SkirmishView {
             phase: contract::skirmish::Phase::Active,
@@ -119,6 +119,10 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
             stance_push_influence: 0.1,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
         &rules,
     );
@@ -169,7 +173,10 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
     );
     assert_eq!(lost.len(), 1);
     assert_eq!(lost[0].answered_by, None, "no one left to come: {lost:?}");
-    assert!(memory.help_locks.is_empty());
+    assert!(!memory
+        .parties
+        .values()
+        .any(|party| party.kind == PartyKind::Help));
     frame.own = fielded;
 
     // Relieved: no longer outgunned there, the request clears after its
@@ -187,7 +194,10 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
             &rules,
         );
     }
-    assert!(memory.help_locks.is_empty());
+    assert!(!memory
+        .parties
+        .values()
+        .any(|party| party.kind == PartyKind::Help));
 
     // A helper that has a force but no margin over its own lane is not
     // eligible: the request stays visible as unanswered.
@@ -250,14 +260,20 @@ fn help_detachment_uses_weapon_target_classes_for_a_ground_threat() {
             member_leans: vec![],
         });
     let objective = sites().objectives[0].clone();
-    let candidates =
-        capable_detachment(&rules, &frame, PlayerIndex(1), &objective, &BTreeSet::new());
+    let candidates = recruit(
+        &rules,
+        &frame,
+        PlayerIndex(1),
+        &objective,
+        &BTreeSet::new(),
+        2,
+        PartyKind::Help,
+    );
     assert_eq!(
-        candidates.len(),
-        1,
+        candidates,
+        vec![frame.own[1].id],
         "air defence must not answer a ground threat"
     );
-    assert_eq!(candidates[0].1, frame.own[1].id);
 }
 
 #[test]
@@ -288,14 +304,24 @@ fn a_detachment_holds_ground_not_just_flies_over_it() {
         .find(|unit| crate::objectives::can_hold(rules.catalog.get(unit.kind)))
         .unwrap()
         .id;
-    let capable = capable_detachment(&rules, &frame, PlayerIndex(1), &objective, &BTreeSet::new());
-    assert_eq!(capable.len(), 2, "both can fight on the ground");
-    assert_eq!(detachment(&rules, &frame, capable, 1), vec![tank]);
+    let send = |count| {
+        recruit(
+            &rules,
+            &frame,
+            PlayerIndex(1),
+            &objective,
+            &BTreeSet::new(),
+            count,
+            PartyKind::Help,
+        )
+    };
+    assert_eq!(send(2).len(), 2, "both can fight on the ground");
+    assert_eq!(send(1), vec![tank]);
 }
 
 #[test]
 fn help_detachments_are_disjoint_from_locked_units() {
-    let rules: Rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
+    let rules = team_rules();
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules":serde_json::to_value(&rules).unwrap(),
@@ -312,25 +338,26 @@ fn help_detachments_are_disjoint_from_locked_units() {
         unit.owner = Some(PlayerIndex(1));
     }
     let objective = sites().objectives[0].clone();
-    let first = detachment(
-        &rules,
-        &frame,
-        capable_detachment(&rules, &frame, PlayerIndex(1), &objective, &BTreeSet::new()),
-        1,
-    );
+    let send = |reserved: &BTreeSet<_>| {
+        recruit(
+            &rules,
+            &frame,
+            PlayerIndex(1),
+            &objective,
+            reserved,
+            1,
+            PartyKind::Help,
+        )
+    };
+    let first = send(&BTreeSet::new());
     let excluded = first.iter().copied().collect::<BTreeSet<_>>();
-    let second = detachment(
-        &rules,
-        &frame,
-        capable_detachment(&rules, &frame, PlayerIndex(1), &objective, &excluded),
-        1,
-    );
+    let second = send(&excluded);
     assert!(!first.iter().any(|id| second.contains(id)));
 }
 
 #[test]
 fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
-    let rules: Rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
+    let rules = team_rules();
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules":serde_json::to_value(&rules).unwrap(),
@@ -369,7 +396,9 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
                 controller: ControllerKind::ActiveAi,
                 ready: true,
                 credits: 0.0,
-                unit_count: 3,
+                // Enough force that its party budget has room for a second
+                // detachment beside the locked one.
+                unit_count: 8,
                 cap: 30,
                 pending: vec![],
             },
@@ -409,11 +438,14 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
             .iter()
             .map(|objective| (objective.id.clone(), -1.0))
             .collect(),
-        help_locks: [(
-            PlayerIndex(0),
-            HelpLock {
-                answered_by: PlayerIndex(1),
-                detachment: vec![locked],
+        parties: [(
+            PartyKey::Help(PlayerIndex(0), sites.objectives[0].id.clone()),
+            Party {
+                kind: PartyKind::Help,
+                owner: PlayerIndex(1),
+                objective: sites.objectives[0].clone(),
+                units: vec![locked],
+                size: 1,
                 clear_since: None,
                 raised_tick: 1,
             },
@@ -460,7 +492,7 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
 
 #[test]
 fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
-    let rules: Rules = serde_json::from_value(crate::fixtures::test_game()).unwrap();
+    let rules = team_rules();
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
         "rules":serde_json::to_value(&rules).unwrap(),
@@ -591,9 +623,9 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
     assert_eq!(request.answered_by, Some(PlayerIndex(1)));
     assert!(!request.detachment.is_empty());
     let assignment = plan.assignment_for(PlayerIndex(1)).unwrap();
-    assert_eq!(assignment.help.len(), 1);
-    assert!(assignment.help[0]
-        .detachment
+    assert_eq!(assignment.parties.len(), 1);
+    assert!(assignment.parties[0]
+        .units
         .iter()
         .all(|id| request.detachment.contains(id)));
     assert!(

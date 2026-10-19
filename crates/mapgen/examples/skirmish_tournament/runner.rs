@@ -48,6 +48,7 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         result: None,
         objective_first_owner_ticks: BTreeMap::new(),
         objective_owned_ticks: [BTreeMap::new(), BTreeMap::new()],
+        hold_party_ticks: [BTreeMap::new(), BTreeMap::new()],
         peak_objectives_held: [0, 0],
         peak_simultaneous_lanes: [0, 0],
         cohesion: BTreeMap::new(),
@@ -68,6 +69,7 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         help_requests_answered: 0,
         detachment_sizes: Vec::new(),
         detachment_kinds: Vec::new(),
+        parties_by_kind: BTreeMap::new(),
         pushes_started: 0,
         pushes_synchronized: 0,
         push_lanes_falling_back: 0,
@@ -126,6 +128,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     let mut seen_help = BTreeSet::new();
     let mut seen_answers = BTreeSet::new();
     let mut detachment_keys = BTreeSet::new();
+    let mut party_keys = BTreeSet::new();
     let mut seen_pushes = BTreeSet::new();
     let mut pending_pushes: Vec<(Side, Tick, Vec<sim::skirmish_ai::PlayerPlan>)> = Vec::new();
     while report.ticks < row.horizon_ticks {
@@ -230,18 +233,57 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                     report.detachment_kinds.push(kinds);
                 }
             }
+            for party in &plan.parties {
+                if party.kind == sim::skirmish_ai::team::PartyKind::Hold {
+                    *report.hold_party_ticks[side.index()]
+                        .entry(party.objective.id.clone())
+                        .or_default() += 1;
+                }
+                let kind = match party.kind {
+                    sim::skirmish_ai::team::PartyKind::Help => "help",
+                    sim::skirmish_ai::team::PartyKind::Hold => "hold",
+                    sim::skirmish_ai::team::PartyKind::Claim => "claim",
+                };
+                let key = (
+                    side.index() as u8,
+                    party.owner.0,
+                    party.objective.id.clone(),
+                    party.raised_tick,
+                    kind,
+                );
+                if party_keys.insert(key) {
+                    *report
+                        .parties_by_kind
+                        .entry(kind.into())
+                        .or_default()
+                        .entry(party.units.len() as u32)
+                        .or_default() += 1;
+                }
+            }
             if let Some(tick) = plan.push_started_tick {
                 if seen_pushes.insert((side.index() as u8, tick)) {
                     report.pushes_started += 1;
                     report.push_lanes_falling_back += plan.outgunned.len() as u32;
                     // A lane that is independently outgunned is falling back
-                    // as its own assignment. It is not a lane this push
-                    // sends, so do not make it fail the team's synchrony
-                    // measure.
+                    // as its own assignment, and a lane with no group to
+                    // advance (only air defence at its backline post, D57)
+                    // has nothing to send. Neither is a lane this push sends,
+                    // so neither fails the team's synchrony measure.
                     let sent = plan
                         .players
                         .iter()
-                        .filter(|player| !plan.outgunned.contains(&player.player))
+                        .filter(|player| {
+                            !plan.outgunned.contains(&player.player)
+                                && !sim::skirmish_ai::team::group_positions(
+                                    &setup.rules,
+                                    battle
+                                        .observe(side)
+                                        .own
+                                        .iter()
+                                        .filter(|unit| unit.owner == Some(player.player)),
+                                )
+                                .is_empty()
+                        })
                         .cloned()
                         .collect();
                     pending_pushes.push((side, tick, sent));

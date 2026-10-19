@@ -1,7 +1,7 @@
 //! Shared fixtures for the team planner's focused tests.
 
 use super::super::*;
-use super::help::{capable_detachment, detachment, HelpLock};
+use super::party::{recruit, PartyKey};
 use super::*;
 use contract::encounter::{EntrySite, ObjectiveSiteKind};
 
@@ -66,8 +66,34 @@ fn sites() -> SkirmishSites {
     }
 }
 
+/// The test cards on a roster, so the objective rule knows who can hold:
+/// the tank and rifles hold ground, the helicopter flies over it, and
+/// `test_gun_jeep` becomes a ground air-defence vehicle that can hold but
+/// cannot engage ground (D57).
 fn team_rules() -> Rules {
-    serde_json::from_value(crate::fixtures::test_game()).unwrap()
+    let mut fixture = crate::fixtures::test_game();
+    for (id, category) in [
+        ("test_tank", "veh"),
+        ("test_rifle", "inf"),
+        ("test_heli", "hel"),
+        ("test_gun_jeep", "veh"),
+    ] {
+        crate::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            id,
+            serde_json::json!({ "roster": { "factions": ["us"], "category": category,
+                "family_name": "Test", "variant": "Test" } }),
+        );
+    }
+    crate::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "test_gun_jeep",
+        serde_json::json!({ "roles": ["air_defense"],
+            "mounts": [{ "id": "HMG", "name": "AA missile", "weapons": ["stinger"] }] }),
+    );
+    serde_json::from_value(fixture).unwrap()
 }
 
 fn players() -> Vec<Player> {
@@ -91,5 +117,6 @@ fn players() -> Vec<Player> {
 
 mod cohesion;
 mod help;
+mod parties;
 mod planning;
 mod stance;

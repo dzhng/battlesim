@@ -33,5 +33,9 @@
   "stance_fallback_influence": -1.0,
   "stance_push_influence": -0.25,
   "stance_dwell_s": 20,
-  "push_timeout_s": 30
+  "push_timeout_s": 30,
+  "party_budget_share": 0.25,
+  "claim_party_size": 2,
+  "hold_party_size": 2,
+  "open_objective_bonus": 100
 }

@@ -28,7 +28,9 @@ Every party rule from slice 13 applies to all three kinds:
 - Each player sends claim parties to the open objectives nearest its lane.
 - The main objective's score prefers open objectives over defended ones.
 
-**Budget.** Parties of every kind draw from one budget, a share of the player's army, from `fixtures/skirmish-ai.json`. Claim parties come before hold parties, which come before new help, while the budget lasts. Help that is already engaged keeps its units.
+**Budget.** Claim and hold parties draw from one budget, a share of the player's army, from `fixtures/skirmish-ai.json`. Claim parties come before hold parties while the budget lasts. Help is not bounded by that budget. As in slice 13, a helper answers from its surplus: its force beyond the margin for its own lane, less its units already on party duty. A team that holds many objectives still answers a lane under pressure. Help that is already engaged keeps its units.
+
+**A carrier and its passengers go together.** A party takes a loaded carrier with its squads aboard, or neither. A carrier carrying a party's squad drives to that party's objective.
 
 **Pressure.** A side objective under pressure raises help through slice 13's mechanism, exactly as a main lane does.
 

@@ -20,13 +20,18 @@ pub fn is_group_unit(rules: &Rules, unit: &OwnUnit) -> bool {
             || !rules.catalog.mounts(unit.kind).is_empty())
 }
 
+/// Where the group's units stand, for its gathered-at-staging check. A unit
+/// that cannot engage ground never gathers there (air defence holds the
+/// backline, D57), so it is not waited for.
 pub fn group_positions<'a>(
     rules: &Rules,
     units: impl IntoIterator<Item = &'a OwnUnit>,
 ) -> Vec<[f64; 2]> {
     units
         .into_iter()
-        .filter(|unit| is_group_unit(rules, unit))
+        .filter(|unit| {
+            is_group_unit(rules, unit) && super::super::unit_can_engage_ground(rules, unit.kind)
+        })
         .map(|unit| [unit.position[0], unit.position[1]])
         .collect()
 }

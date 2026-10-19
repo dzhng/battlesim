@@ -4,7 +4,6 @@
 //! of hysteresis in [`TeamMemory`].  It never enters the battle digest: the
 //! accepted command stream remains the replay authority.
 
-use contract::catalog::TypeIndex;
 use contract::encounter::{ObjectiveSite, SkirmishSites};
 use contract::ids::Side;
 use contract::ids::Tick;
@@ -16,13 +15,19 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::entries::EntryIndex;
 
+mod backline;
 mod cohesion;
 mod help;
+mod party;
+mod plan;
 mod stance;
+pub(crate) use backline::{holds as holds_backline, order as backline_order};
 pub use cohesion::{cohesion_sample, group_positions, group_ready, is_group_unit, lane_advancing};
 use cohesion::{group_positions as cohesion_group_positions, group_ready as cohesion_group_ready};
 pub use help::HelpRequest;
 use help::{lane_contexts, update_help};
+use party::{objective_open, parties, update_side_parties, PartyInputs, PartyKey};
+pub use party::{Party, PartyKind};
 use stance::update_stance;
 pub use stance::TeamStance;
 
@@ -44,6 +49,10 @@ pub struct TeamTuning {
     pub stance_push_influence: f64,
     pub stance_dwell_s: f64,
     pub push_timeout_s: f64,
+    pub open_objective_bonus: f64,
+    pub party_budget_share: f64,
+    pub claim_party_size: usize,
+    pub hold_party_size: usize,
 }
 
 impl TeamTuning {
@@ -67,7 +76,8 @@ pub struct TeamMemory {
     stance_since: Tick,
     push_wait_since: Option<Tick>,
     ready_after: Tick,
-    help_locks: BTreeMap<PlayerIndex, help::HelpLock>,
+    /// Every detached party, of every kind: the one party map and lock.
+    parties: BTreeMap<PartyKey, Party>,
     ready_groups: BTreeSet<PlayerIndex>,
     outgunned: BTreeSet<PlayerIndex>,
 }
@@ -92,6 +102,7 @@ pub struct PlayerPlan {
 pub struct TeamPlan {
     pub players: Vec<PlayerPlan>,
     pub help_requests: Vec<HelpRequest>,
+    pub parties: Vec<Party>,
     pub stance: TeamStance,
     pub push_started_tick: Option<Tick>,
     pub outgunned: BTreeSet<PlayerIndex>,
@@ -124,46 +135,6 @@ impl TeamPlayer for crate::skirmish::PlayerState {
 }
 
 type AssignmentState = (f64, Vec<EntryIndex>, Vec<usize>);
-
-impl TeamPlan {
-    pub fn for_player(&self, player: PlayerIndex) -> Option<&PlayerPlan> {
-        self.players.iter().find(|plan| plan.player == player)
-    }
-
-    pub fn help_for(&self, player: PlayerIndex) -> Vec<&HelpRequest> {
-        self.help_requests
-            .iter()
-            .filter(|request| request.answered_by == Some(player))
-            .collect()
-    }
-
-    pub fn assignment_for(&self, player: PlayerIndex) -> Option<super::Assignment> {
-        let plan = self.for_player(player)?;
-        let lane_fallback = self.outgunned.contains(&player);
-        let (main_objective, staging_point) = if lane_fallback {
-            (plan.staging_point, plan.staging_point)
-        } else {
-            match self.stance {
-                TeamStance::Push => (plan.main_objective.center, plan.staging_point),
-                TeamStance::Hold | TeamStance::FallBack => (plan.staging_point, plan.staging_point),
-            }
-        };
-        let help = self
-            .help_for(player)
-            .into_iter()
-            .map(|request| super::HelpTask {
-                objective: request.objective.center,
-                detachment: request.detachment.clone(),
-            })
-            .collect::<Vec<_>>();
-        Some(super::Assignment {
-            main_objective,
-            staging_point,
-            force_advance: lane_fallback || self.stance != TeamStance::Hold,
-            help,
-        })
-    }
-}
 
 impl TeamMemory {
     pub fn cached_plan(&self) -> Option<&TeamPlan> {
@@ -276,7 +247,7 @@ pub fn plan<'a, P: TeamPlayer>(
             .map(|view| {
                 view.objectives
                     .iter()
-                    .filter(|objective| objective.owner == Some(side))
+                    .filter(|objective| objective.owner == Some(side) && !objective.contested)
                     .map(|objective| objective.id.clone())
                     .collect()
             })
@@ -315,9 +286,11 @@ pub fn plan<'a, P: TeamPlayer>(
         );
         let previous_stance = memory.stance;
         let stance = update_stance(side, side_frame, &player_plans, memory, tuning, tick_hz);
+        let parties = parties(memory);
         let result = TeamPlan {
             players: player_plans,
             help_requests,
+            parties,
             stance,
             push_started_tick: (stance == TeamStance::Push && previous_stance != TeamStance::Push)
                 .then_some(side_frame.tick),
@@ -340,6 +313,19 @@ pub fn plan<'a, P: TeamPlayer>(
     let lane_slots = (0..assignment_count.max(lanes.len()))
         .map(|index| lanes[index % lanes.len()])
         .collect::<Vec<_>>();
+    // Open objectives (D55) score a bonus: neutral, no enemy in view there,
+    // and no party of the side or human teammate already going.
+    let going: BTreeSet<_> = memory
+        .parties
+        .values()
+        .map(|party| party.objective.id.clone())
+        .chain(covered.iter().cloned())
+        .collect();
+    let open: BTreeSet<_> = objectives
+        .iter()
+        .filter(|objective| objective_open(side_frame, objective, &going))
+        .map(|objective| objective.id.clone())
+        .collect();
     let mut best: Option<(f64, Vec<EntryIndex>, Vec<usize>)> = None;
     let mut score = |player: PlayerIndex, lane: EntryIndex, objective: &ObjectiveSite| {
         memory.planning_work += 1;
@@ -351,6 +337,11 @@ pub fn plan<'a, P: TeamPlayer>(
         });
         tuning.distance_weight * distance(entry.center, objective.center)
             - tuning.influence_weight * influence.at(objective.center)
+            - if open.contains(&objective.id) {
+                tuning.open_objective_bonus
+            } else {
+                0.0
+            }
             - if incumbent {
                 tuning.incumbency_bonus
             } else {
@@ -446,7 +437,20 @@ pub fn plan<'a, P: TeamPlayer>(
         });
     }
     let lanes = lane_contexts(side, players, sites, &result, &covered_by_player, tuning);
+    update_side_parties(
+        side,
+        PartyInputs {
+            rules,
+            frame: side_frame,
+            plans: &result,
+            sites,
+            covered: &covered,
+            tuning,
+        },
+        memory,
+    );
     let help_requests = update_help(side, side_frame, players, &lanes, memory, tuning, rules);
+    let parties = parties(memory);
     let previous_stance = memory.stance;
     if objective_changed {
         memory.ready_groups.clear();
@@ -455,6 +459,7 @@ pub fn plan<'a, P: TeamPlayer>(
     let result = TeamPlan {
         players: result,
         help_requests,
+        parties,
         stance,
         push_started_tick: (stance == TeamStance::Push && previous_stance != TeamStance::Push)
             .then_some(side_frame.tick),

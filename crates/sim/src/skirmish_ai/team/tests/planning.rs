@@ -28,6 +28,10 @@ fn three_ai_players_get_distinct_lanes_and_objectives() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 3);
@@ -93,6 +97,10 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 7);
@@ -135,6 +143,10 @@ fn three_ai_players_reuse_two_lane_slots() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 3);
@@ -175,6 +187,10 @@ fn a_lone_ai_takes_the_lane_nearest_its_objective_not_the_first() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 1);
@@ -208,6 +224,10 @@ fn planning_is_repeatable_and_incumbency_survives_a_marginal_score_change() {
         stance_push_influence: 0.5,
         stance_dwell_s: 20.0,
         push_timeout_s: 30.0,
+        open_objective_bonus: 100.0,
+        party_budget_share: 0.25,
+        claim_party_size: 2,
+        hold_party_size: 2,
     };
     let first = plan(
         Side::Blue,
@@ -254,6 +274,10 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
         stance_push_influence: 0.5,
         stance_dwell_s: 20.0,
         push_timeout_s: 30.0,
+        open_objective_bonus: 100.0,
+        party_budget_share: 0.25,
+        claim_party_size: 2,
+        hold_party_size: 2,
     };
     let mut frame = ObservationFrame::default();
     frame.skirmish = Some(contract::skirmish::SkirmishView {
