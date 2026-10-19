@@ -182,7 +182,9 @@ export function BattleView({
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
-  const requestedQuality = new URLSearchParams(window.location.search).get("test-quality");
+  const requestedQuality = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get("test-quality")
+    : null;
   const quality =
     requestedQuality === "minimum"
       ? sceneMinimumProfile

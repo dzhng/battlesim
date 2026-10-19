@@ -748,9 +748,9 @@ export function LabViewport({
           usage: GPUTextureUsage.RENDER_ATTACHMENT | (plates ? GPUTextureUsage.COPY_SRC : 0),
         });
         const syncSize = () => {
-          const renderScale = effectiveQuality?.renderScale ?? 1;
-          const w = Math.max(1, Math.round(canvas.clientWidth * renderScale));
-          const h = Math.max(1, Math.round(canvas.clientHeight * renderScale));
+          const scale = qualityRef.current?.renderScale ?? 1;
+          const w = Math.max(1, Math.round(canvas.clientWidth * scale));
+          const h = Math.max(1, Math.round(canvas.clientHeight * scale));
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;
