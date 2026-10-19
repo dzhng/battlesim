@@ -5,11 +5,19 @@
 //
 //   /battle?type=mixed&size=small&seed=<u64>&blue=h&red=a&blue_faction=us&red_faction=eastern
 //   /battle?replay=saved                                 the saved replay of either
-// A battle names ordered controller lists per side and both side factions. A generated map's address may add
-// `&region=<family>`; without it the seed draws the region. A missing faction
-// or any other parameter is refused by name, never defaulted or ignored.
+// A battle must name its players: each side's ordered controller codes and
+// its faction. The map type, size, map seed and battle seed may be left out,
+// and then default; `&region=<family>` is optional, and without it the seed
+// draws the region. A wrong value, or a parameter the battle does not read
+// (an old link's `faction` or `enemy`), is refused by name, never ignored.
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
 import type { Player } from "@web/battle/prepare/protocol";
+import {
+  MAX_PLAYERS_PER_SIDE,
+  skirmishPlayers,
+  type SkirmishBattle,
+  type SkirmishSide,
+} from "./skirmishSetup";
 import game from "@fixtures/game.json";
 import presets from "@fixtures/map-presets.json";
 import {
@@ -22,14 +30,7 @@ import {
 } from "@web/maps/source";
 
 /** What a battle address asks for, before it is pinned to this build. */
-export type AskedBattle =
-  | {
-      kind: "generated";
-      players: Player[];
-      map: MapChoice;
-      battleSeed: number;
-    }
-  | { kind: "replay" };
+export type AskedBattle = ({ kind: "generated" } & SkirmishBattle) | { kind: "replay" };
 
 /** Every parameter a battle address may hold. */
 const PARAMETERS = new Set([
@@ -58,7 +59,8 @@ const SAID: Readonly<Record<string, string>> = {
   europe: "European",
   eastern: "Eastern",
 };
-type BattleChoice = MapChoice & { faction?: Faction };
+/** What a menu address asks the lobby to open on. */
+export type AskedLobby = Partial<MapChoice & { faction: Faction }>;
 
 /** A data name as the player reads it: `new_york` is "new york", `china` "taiwan". */
 export const spoken = (name: string) => SAID[name] ?? name.replaceAll("_", " ");
@@ -68,10 +70,10 @@ const one = <T extends string>(value: string | null, of: readonly T[]): value is
 
 /** The map a menu address names (`/?type=&size=&seed=&region=`), field by
  *  field: what the menu opens on after a battle is cancelled or refused. */
-export function askedChoice(search: string): Partial<BattleChoice> {
+export function askedChoice(search: string): AskedLobby {
   const params = new URLSearchParams(search);
   const [type, size, region] = [params.get("type"), params.get("size"), params.get("region")];
-  const faction = params.get("faction") ?? params.get("blue_faction");
+  const faction = params.get("blue_faction");
   return {
     ...(one(faction, FACTIONS) && { faction: faction as Faction }),
     ...(one(type, MAP_TYPES) && { type }),
@@ -82,7 +84,7 @@ export function askedChoice(search: string): Partial<BattleChoice> {
 }
 
 /** A generated map's fields as address text, the region only when chosen. */
-const query = (choice: Partial<BattleChoice> & Pick<MapChoice, "type" | "size">) =>
+const query = (choice: MapChoice) =>
   [
     `type=${choice.type}&size=${choice.size}`,
     choice.seed !== undefined && `seed=${choice.seed}`,
@@ -90,7 +92,6 @@ const query = (choice: Partial<BattleChoice> & Pick<MapChoice, "type" | "size">)
   ]
     .filter(Boolean)
     .join("&");
-/** The battle on the generated map `choice`. */
 const CONTROLLERS: Record<string, Player["controller"]> = {
   h: "human",
   a: "active_ai",
@@ -102,14 +103,6 @@ const controllerCode: Record<Player["controller"], string> = {
   passive_ai: "p",
 };
 
-function defaultPlayers(faction: Faction): Player[] {
-  const enemy = faction === "eastern" ? "us" : "eastern";
-  return [
-    { id: "blue-1", side: "blue", faction, controller: "human", human_capable: true },
-    { id: "red-1", side: "red", faction: enemy, controller: "active_ai", human_capable: false },
-  ];
-}
-
 function playerParams(players: readonly Player[]): string[] {
   return (["blue", "red"] as const).flatMap((side) => {
     const sidePlayers = players.filter((player) => player.side === side);
@@ -120,11 +113,8 @@ function playerParams(players: readonly Player[]): string[] {
   });
 }
 
-export const battleHref = (
-  choice: BattleChoice,
-  players: readonly Player[] = defaultPlayers(choice.faction ?? "us"),
-  battleSeed?: number,
-) =>
+/** The battle `players` fight on the generated map `choice`. */
+export const battleHref = (choice: MapChoice, players: readonly Player[], battleSeed?: number) =>
   `/battle?${[
     query(choice),
     ...(battleSeed === undefined ? [] : [`battle=${battleSeed}`]),
@@ -135,10 +125,9 @@ export const battleHref = (
 /** The main menu, opened on `choice`. */
 export const menuHref = (choice: MapChoice | null) => (choice ? `/?${query(choice)}` : "/");
 
-/** The battle `search` asks for, or which parameter it gets wrong. Nothing
- *  is guessed for a parameter that is missing or wrong, and a parameter the
- *  battle does not read is refused, so a stale link cannot pass as another
- *  battle. */
+/** The battle `search` asks for, or which parameter it gets wrong. Missing
+ *  players, a wrong value and a parameter the battle does not read are
+ *  refused, so a stale link cannot pass as another battle. */
 export function askedBattle(search: string): AskedBattle | { error: string } {
   const params = new URLSearchParams(search);
   const unknown = [...params.keys()].find((name) => !PARAMETERS.has(name));
@@ -156,40 +145,26 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   const redFaction = params.get("red_faction");
   if (!one(blueFaction, FACTIONS)) return { error: "blue_faction must be us, europe or eastern" };
   if (!one(redFaction, FACTIONS)) return { error: "red_faction must be us, europe or eastern" };
-  const decode = (side: "blue" | "red", codes: string, faction: Faction): Player[] => {
-    const values = codes.split(",");
-    if (!values.length || values.some((code) => CONTROLLERS[code] === undefined))
-      throw new Error(`${side} has an unknown controller`);
-    return values.map((code, index) => ({
-      id: `${side}-${index + 1}`,
-      side,
-      faction,
-      controller: CONTROLLERS[code],
-      human_capable: CONTROLLERS[code] === "human",
-    }));
-  };
-  let players: Player[];
-  try {
-    players = [...decode("blue", blueCodes, blueFaction), ...decode("red", redCodes, redFaction)];
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : String(error) };
+  const sides = [
+    ["blue", blueCodes.split(","), blueFaction],
+    ["red", redCodes.split(","), redFaction],
+  ] as const satisfies readonly (readonly [SkirmishSide, string[], Faction])[];
+  for (const [side, codes] of sides) {
+    if (codes.some((code) => CONTROLLERS[code] === undefined))
+      return { error: `${side} has an unknown controller` };
+    if (codes.length > MAX_PLAYERS_PER_SIDE)
+      return { error: `a side cannot have more than ${MAX_PLAYERS_PER_SIDE} players` };
   }
-  if (
-    players.some(
-      (player) => players.filter((candidate) => candidate.side === player.side).length > 5,
-    )
-  )
-    return { error: "a side cannot have more than five players" };
-  if (
-    players.length === 2 &&
-    players.filter((player) => player.controller === "human").length !== 1
-  )
-    return { error: "single-player link requires exactly one Human on Blue" };
-  if (
-    players.length === 2 &&
-    players.some((player) => player.controller === "human" && player.side !== "blue")
-  )
-    return { error: "single-player link requires exactly one Human on Blue" };
+  const players = skirmishPlayers(
+    sides.flatMap(([side, codes, faction]) =>
+      codes.map((code) => ({ side, faction, controller: CONTROLLERS[code] })),
+    ),
+  );
+  // A battle without a human is watched (D34); one with humans is played by
+  // exactly one, on Blue.
+  const humans = players.filter((player) => player.controller === "human");
+  if (humans.length > 0 && (humans.length > 1 || humans[0].side !== "blue"))
+    return { error: "a link with a Human has exactly one Human on Blue" };
   const type = params.get("type") ?? ("mixed" satisfies MapType);
   const size = params.get("size") ?? ("small" satisfies MapSize);
   const mapSeed = seed("seed", "1");

@@ -12,8 +12,8 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { mapPreviews, type PreviewState } from "@web/battle/prepare/preview";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { MAP_SIZES, type MapSize } from "@web/maps/source";
-import { lobbyCandidate } from "../lobby/candidate";
-import { add, preset, type LobbyState } from "../lobby/model";
+
+import { add, lobbyCandidate, preset, type LobbyState } from "../lobby/model";
 
 const PAIRINGS: Record<string, () => LobbyState> = {
   "1v1": () => preset("1v1"),

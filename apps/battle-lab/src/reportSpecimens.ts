@@ -34,7 +34,7 @@ export function reportSpecimen(
     [...(side === "blue" ? blue : red)].map((code, k) => ({
       id: `${side}-${k + 1}`,
       side,
-      controller: code === "h" ? "human" : "active_ai",
+      controller: code === "h" ? ("human" as const) : ("active_ai" as const),
     })),
   );
   const minute = 60 * game.tick_hz;
