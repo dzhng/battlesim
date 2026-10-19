@@ -200,14 +200,15 @@ None. Every entry an audit found unsound was corrected in the closing passes; ea
 - **Verdict:** sound.
 - **Confidence:** medium. The retune rests on a quick tournament check, not a sweep.
 
-### I09 · Every refused AI order is recorded; all but purchases also fail a debug assertion
-- **When:** slice 02 (the fix for landmine L3); corrected in the dispatch lane. **Who:** agent. Corrected: the invariant said "fails a debug assertion" but the code only logged; the invariant is now narrowed and enforced.
+### I09 · Every refused AI order is recorded; a malformed one also fails a debug assertion
+- **When:** slice 02 (the fix for landmine L3); corrected in the dispatch lane, and again in review. **Who:** agent, with your decision on the split. Corrected twice: the invariant said "fails a debug assertion" but the code only logged; then the assertion fired on every non-purchase refusal, including ones the world causes (a 30-order burst against up to 30 units, an attack-move to a point wreckage has filled).
 - **The choice:** Each AI order is sent as a normal command carrying its player. Landmine L3 was "AI orders bypass the per-player command checks". Its fix, as now stated in the spec README and in code:
   - every refused AI order is appended to `ai_receipts()`, a log of AI order acceptances and refusals outside the digest;
-  - a refused order *other than a purchase* also fails a `debug_assert!`, so a unit test that drives an AI into, say, an illegal move order fails at once. A rate-limit refusal counts as a defect, because the AI paces itself;
+  - a refused order *other than a purchase* also fails a `debug_assert!` when the refusal is *malformed* (`OrderError::is_malformed`): the order broke the command contract in a way the AI could have seen from its own view (not its unit, out of sequence, off the map, an unknown target). A unit test that drives an AI into such an order fails at once;
+  - a refusal the world's state decides (`RateLimited`, `NoValidDestination`, building capacity or occupancy, room to unload, credits, the unit limit, the match having ended) is only receipted: the AI cannot see its order bucket or test every placement, and a correct AI still meets them. The split is an exhaustive `match`, so a new refusal must be put on one side;
   - a refused *purchase* does not assert, because a scripted purchase plan (I05) may name a card the battle won't sell; the plan retries it (I10).
 - **The gap:** The assertion was planned but never written.
-- **The reach:** Debug test builds catch any AI move, Ready or cancel the battle won't accept. A purchase refusal shows only in the receipts, which the tournament reports.
+- **The reach:** Debug test builds catch any malformed AI move, Ready or cancel. A purchase refusal, or one the world decides, shows only in the receipts, which the tournament reports.
 - **Verdict:** sound.
 - **Confidence:** medium. Exempting purchases is the narrowing you might not have chosen.
 
@@ -1071,7 +1072,7 @@ Four entries, listed only so their ids resolve:
 | D55 | D55 |
 | D56 | D56 (sound since 13c); its purchase half is I56 |
 | D57 | D57 |
-| L3 | I09 (sound, narrowed: purchases exempt from the assertion) |
+| L3 | I09 (sound, narrowed: only malformed non-purchase refusals assert) |
 | L4 | L4 |
 | L6 | I34 |
 | L9 | I14 (sound since the dispatch lane) |
@@ -1116,7 +1117,7 @@ Four entries, listed only so their ids resolve:
 | Web lane: dismissed report findings (score order; old version strings) | Dropped; noted in I35 and I12 |
 | Dispatch lane: blocked purchase holds only its entry | I14 |
 | Dispatch lane: refused purchase holds only later purchases | I10 |
-| Dispatch lane: refused orders recorded; non-purchases assert | I09 |
+| Dispatch lane: refused orders recorded; malformed non-purchases assert | I09 |
 | Dispatch lane: passive-AI purchases return fire only (held) | I55 |
 | `ai_controlled` lane: client orders to an AI's player refused, in skirmish too | I08 |
 | `ai_controlled` lane: tests declare ordered seats Human (`human_duel`) | I08 |

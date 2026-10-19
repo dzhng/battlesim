@@ -134,10 +134,12 @@ impl Battle {
                 let accepted = ack.error.is_none();
                 // A purchase may be refused: a purchase plan names cards the
                 // battle may not sell, and tries them again. Any other order
-                // comes from the AI's own view of what it may do (I09).
+                // comes from the AI's own view, so it is never malformed; the
+                // world may still refuse it, out of a state the AI does not
+                // see, such as its order rate or room to stand (I09).
                 debug_assert!(
-                    accepted || purchase,
-                    "{player}'s AI order refused: {:?}",
+                    purchase || !ack.error.as_ref().is_some_and(OrderError::is_malformed),
+                    "{player}'s AI order malformed: {:?}",
                     ack.error
                 );
                 if purchase {

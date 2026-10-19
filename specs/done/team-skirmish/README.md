@@ -72,8 +72,11 @@ with a map of where each old row went. [research.md](research.md) holds the team
   later arrivals included, only return fire, decided in one place.
 - **Every skirmish AI order is receipted** in the non-digested
   `Battle::ai_receipts()`.
-  A refused AI order other than a purchase fails a debug assertion; a refused
-  purchase stops only that turn's later purchases and is retried.
+  A malformed refusal (`OrderError::is_malformed`: the order broke the
+  command contract) of an AI order other than a purchase fails a debug
+  assertion. A refusal the world's state decides (the order rate, room to
+  stand or enter, credits) is only receipted. A refused purchase stops only
+  that turn's later purchases and is retried.
 - **One entry owner.** Every ground or helicopter arrival, refund, fuel return
   and retirement goes through `sim::entries`; jets arrive on the back edge,
   at the point nearest the centre entry. A purchase's entry is chosen once, at reserve time; each entry has

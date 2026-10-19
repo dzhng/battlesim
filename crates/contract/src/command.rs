@@ -301,6 +301,45 @@ pub enum OrderError {
 }
 
 impl OrderError {
+    /// The order broke the command contract: its sender could have seen the
+    /// refusal coming from what it was shown (its own units, its contacts,
+    /// the map, its sequence). Any other refusal is the world's state at the
+    /// tick the order is judged (credits, the order rate, room to stand or
+    /// enter), which a sender with a correct view still meets.
+    pub const fn is_malformed(&self) -> bool {
+        match self {
+            Self::PassiveSide
+            | Self::NotSkirmish
+            | Self::WrongFaction
+            | Self::OutOfSequence { .. }
+            | Self::NoUnits
+            | Self::UnknownUnit { .. }
+            | Self::NotOwnUnit { .. }
+            | Self::WrongPlayer { .. }
+            | Self::MissingPlayer
+            | Self::AiControlled
+            | Self::OutOfBounds
+            | Self::ReplayInProgress
+            | Self::UnknownTarget
+            | Self::AirContact
+            | Self::Destroyed { .. }
+            | Self::NotInfantry { .. }
+            | Self::NotABuilding
+            | Self::OneSquadPerBuilding
+            | Self::Aboard { .. }
+            | Self::NotACarrier => true,
+            Self::MatchFinished
+            | Self::UnitUnavailable
+            | Self::InsufficientCredits
+            | Self::UnitLimitReached
+            | Self::NoValidDestination
+            | Self::RateLimited
+            | Self::CapacityFull
+            | Self::BuildingOccupied
+            | Self::NoRoomToUnload => false,
+        }
+    }
+
     /// The stable wire name used by refusal publications.
     pub const fn reason_name(&self) -> &'static str {
         match self {
