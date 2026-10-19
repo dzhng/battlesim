@@ -278,7 +278,7 @@
   {
     "id": "benchmark",
     "route": "/labs/benchmark",
-    "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro Large seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
+    "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro XL seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
     "build": "production",
     "map": null,
     "serial": true,
@@ -287,7 +287,7 @@
   {
     "id": "endurance",
     "route": "/labs/endurance",
-    "describe": "Synthetic stress battle for the scale verdict: 100 units a side, waves, reserves, a speculative-fire burst, an optional late state of 20,000 fallen and 2,000 wrecks, with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
+    "describe": "Synthetic stress battle for the scale verdict: 100 units a side, waves, reserves, a speculative-fire burst, an optional late state with the full roster fallen (800 soldiers and 100 wrecks), with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
     "build": "production",
     "map": "endurance",
     "serial": true

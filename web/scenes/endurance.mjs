@@ -2,12 +2,12 @@
 // default), reset cycles, then the late state for ENDURANCE_LATE_S seconds
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
 // asserted: the scene fails on broken contracts, not on slow hardware.
-// ENDURANCE_GENERATED=1 uses the current Metro Large seed-4 world and
+// ENDURANCE_GENERATED=1 uses the current Metro XL seed-4 world and
 // city-arena-2 contact recipe; the default remains the saved 3 × 2 km field.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
-// and with the late state's 20,000 fallen (run it alone,
+// and with the late state's 800 fallen (run it alone,
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
-// in the firefight and in the late state's aftermath, its 2,000 wrecks
+// in the firefight and in the late state's aftermath, its 100 wrecks
 // burning.
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu } from "./_lab.mjs";
@@ -35,11 +35,11 @@ async function openStressLab(ctx, page) {
   });
   const preparation = await lab(page, () => window.__lab.route.preparation?.() ?? null);
   ctx.check(
-    "the full generated Metro Large seed4 world is loaded with the contact recipe",
+    "the full generated Metro XL seed4 world is loaded with the contact recipe",
     preparation?.identity.kind === "generated" &&
       preparation.identity.generation.seed === "4" &&
       preparation.request.map_source.request.type === "metro" &&
-      preparation.request.map_source.request.size === "large" &&
+      preparation.request.map_source.request.size === "xl" &&
       preparation.size[0] === 10000 &&
       preparation.size[1] === 10000 &&
       preparation.stress?.kind === "city-arena-2" &&

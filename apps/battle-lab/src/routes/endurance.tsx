@@ -140,7 +140,7 @@ export default function Endurance() {
     <section className="hud-menu-section" aria-label="Stress battle">
       <label>
         <input type="checkbox" checked={late} onChange={(e) => choose(seed, e.target.checked)} />{" "}
-        Late state (20,000 fallen, 2,000 wrecks)
+        Late state (800 fallen, 100 wrecks)
       </label>
       <label>
         Seed{" "}
