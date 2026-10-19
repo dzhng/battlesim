@@ -83,6 +83,21 @@ local binary and risked hiding a real ownership bug.
   completing reel provides the consumer-level proof.
 - **Confidence:** high.
 
+### Scale the reel watchdog to authored workload — 2026-10-19
+
+The first watchdog used a fixed two-minute deadline. A valid two-map reel took
+longer than that while the page was actively rendering, so the guard reported a
+false failure. The page now derives its deadline from the selected scenes' shot
+durations plus one minute of setup margin; the runner keeps a larger diagnostic
+ceiling. A genuinely stalled run still terminates, while longer valid reels are
+allowed to finish.
+
+- **Gap:** the initial timeout did not account for multiple selected scenes.
+- **Reach:** future benchmark variants remain bounded without embedding a
+  workload-specific constant that can reject valid timing evidence.
+- **Verdict:** sound. The final two-map reel completed under the scaled bound.
+- **Confidence:** high.
+
 ### Retain scratch reuse on native CPU evidence — 2026-10-19
 
 The same captured replay ran before and after the pass. Reusing the three
