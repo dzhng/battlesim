@@ -120,3 +120,22 @@ it claims to measure.
   their numbers are accepted.
 - **Verdict:** sound. The hook violated the measurement contract and was deleted.
 - **Confidence:** high.
+
+### Keep the optimization target at Rust presentation frame generation — 2026-10-19
+
+The successful boundary run placed the long frame inside the browser's call to
+the shared Rust presentation frame. Static-world selection and GPU rendering
+were only a few milliseconds, so the candidate is the loaded unit/effect frame
+generation that builds poses, effects, batches and picks. No code change is
+chosen yet because the next slice needs its own focused contract and must keep
+the browser's presentation output unchanged. The alternative would be to keep
+working on renderer caches after the renderer has already been measured as a
+small part of the stall.
+
+- **Gap:** the placeholder's candidates were renderer and asset oriented, while
+  the measured trigger points into shared presentation code.
+- **Reach:** the next spec slice belongs under `crates/presentation`, with the
+  browser and native clients as consumers of the same output.
+- **Verdict:** needs-user for exact intervention; recommended provisional target
+  is loaded presentation frame generation.
+- **Confidence:** medium.

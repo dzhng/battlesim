@@ -1,6 +1,6 @@
 # Performance (placeholder)
 
-**Status:** trigger confirmed; candidate selection is the next user decision.
+**Status:** trigger confirmed; presentation-frame candidate needs a focused spec.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -16,7 +16,7 @@ is substantial and recorded, and keep native as a parity check for shared
 renderer or shader changes. Update this section before you end each pass.
 
 - [x] A repeatable 1% low regression is measured on the graphics-fps reel.
-- [ ] The candidate it points at is chosen with the user, then planned with `write-spec`.
+- [ ] Choose the Rust presentation-frame candidate with the user, then plan it with `write-spec`.
 
 ## Current handoff
 
@@ -40,6 +40,11 @@ pass must identify the owner with targeted renderer or frame-loop counters
 before selecting an optimization. The boundary pass found a 949 ms
 `viewport-frame` with about 0.9 ms of model preparation and 3.9 ms of renderer
 draw; the remaining `ScenePresentation.frame` call is the current suspect.
+
+The recommended next candidate is the Rust presentation frame's loaded
+unit/effect work. Static selection and renderer draw are already measured as
+small in the successful boundary run. No production optimization is selected
+until this candidate is accepted and sliced.
 
 ## Where the frame stands
 
