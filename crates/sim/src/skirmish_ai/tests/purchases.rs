@@ -171,9 +171,19 @@ fn an_enemy_aircraft_raises_air_defence_purchases() {
 }
 
 #[test]
-fn the_ai_fields_armour_in_its_opening_and_its_reinforcements() {
-    let rules: Rules = serde_json::from_value(deck()).unwrap();
+fn affordable_armour_is_bought_in_the_opening_and_the_reinforcements() {
     let (_, mut frame, entry) = empty_match();
+    // The tank costs a tenth of the opening's credits: armour the opening
+    // can afford beside the rest of its recipe.
+    let tank_cost = (me(&mut frame).credits / 10.0) as u32;
+    let mut authored = deck();
+    crate::fixtures::patch_catalog(
+        &mut authored,
+        "units",
+        "test_tank",
+        json!({ "cost": tank_cost }),
+    );
+    let rules: Rules = serde_json::from_value(authored).unwrap();
     let (opening, bought) = purchases(&rules, &mut frame, &entry, 40);
     let armour = |kinds: &[TypeIndex]| kinds.iter().any(|&k| rules.catalog.get(k).has_role("mbt"));
     assert!(armour(&opening), "the opening fields armour");

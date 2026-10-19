@@ -21,8 +21,9 @@ pub(super) fn engagement(
 }
 
 impl Battle {
-    /// Install each player's controller chosen at play admission. AI orders
-    /// still enter `accept`, while a passive player's units only return fire.
+    /// Install each player's controller chosen at play admission. The
+    /// battle's AI issues its orders itself (`issue`), past the refusal a
+    /// client order to an AI's player meets in `accept`.
     pub fn set_controllers(&mut self, controllers: Vec<(String, ControllerKind)>) {
         for (player, controller) in controllers {
             let transition = ControllerTransition {

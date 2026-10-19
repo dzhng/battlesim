@@ -172,7 +172,8 @@ fn skirmish_size_floor_comes_from_the_shared_fixture() {
 #[test]
 fn the_generator_admits_the_size_the_lobby_picks_for_any_side() {
     // The layout refuses a map below its entry count's floor; the lobby
-    // picks a side's tier. Both read one rule, so they never disagree.
+    // picks a side's tier. This checks the size table: for every side size,
+    // the tier's map is at least the floor for the tier's roads.
     let max = contract::skirmish_sizes::tiers()
         .iter()
         .map(|tier| tier.max_players.unwrap_or(tier.min_players))

@@ -281,12 +281,12 @@ pub fn plan<'a>(
         return memory.cached.as_ref().expect("team plan cached");
     }
 
-    // Keep the exact historical search for the small plans whose tie-breaking
-    // is part of the shipped behavior. Larger teams use subset DP for the
-    // one-to-one objective assignment and choose each player's best lane;
-    // a lane offered twice is the same choice once there are more players
-    // than physical approaches.
-    // A lane is offered again when a small map has fewer lanes than AI players.
+    // Up to three players, every lane and objective permutation is searched:
+    // which of equally scored plans wins depends on that search order, and
+    // pinned battle digests hold it. Larger teams use subset DP for the
+    // one-to-one objective assignment and give each player its best lane.
+    // A lane is offered again when a small map has fewer lanes than AI
+    // players.
     let lane_choices = (0..assignment_count.max(lanes.len()))
         .map(|index| lanes[index % lanes.len()])
         .collect::<Vec<_>>();
