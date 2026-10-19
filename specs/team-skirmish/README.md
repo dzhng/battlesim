@@ -1,11 +1,11 @@
 # Team skirmish
 
-**Status:** in progress (slices 00–13b done).
+**Status:** in progress (slices 00–13c done).
 **Updated:** 2026-10-19.
 
 ## Next Agent Prompt
 
-**Done:** slices 00–13b.
+**Done:** slices 00–13c.
 - Slice 00's probe changed the plan: both sides get the same number of entries (D52), and arm spacing and river avoidance are hard tests (D53).
 - Slice 01 landed the player contract. D54 makes Neutral players factionless.
 - Slice 02 made every player a full player in the simulation and removed slice 01's temporary seam. It re-baselined the skirmish digests (D41, re-baseline 1); the before and after values are in its commit message.
@@ -16,12 +16,12 @@
 - Slice 11 landed the per-player match report: a scoreboard row per player under each side, a timeline naming each player (a player's purchases in one minute are one line), and the result read from the viewer's side, neutral when the client plays no seat. Its pictures are the UI gallery's `report-*` shots and the `allies` scene's real 2v2 report.
 - Slice 12 landed the team planner (`skirmish_ai/team/`): each side's AI players get a lane, an objective and a staging point; a player's main group gathers there and advances as one, while recon and logistics move on their own. It merges with main's AI transport (squads ride their own player's carriers toward the plan's goal). AI purchases arrive a short way up their lane so they clear the entry at once. It re-baselined the skirmish digests (D41, re-baseline 2; values in its commit message). Its final tournament had zero refused AI orders and teams held up to six objectives at once; one match in nine finished, the rest timed out: that is slice 13's to fix.
 - Slice 13b landed side objectives (D55) and the air-defence backline (D57). Help, hold and claim are one party concept (`team/party.rs`). Open objectives are claimed first. A taken, uncontested main objective moves on and leaves a hold. Claims and holds share a budget; help is gated by the helper's surplus. A carrier and its passengers go together. Its tournament finished all 9 matches with a winner and zero refused orders. Team games ran 14–39 min, and 283/296 team help requests were answered. A shove fix found on the way landed on main on its own (`ad809fdab`).
+- Slice 13c landed value-weighted strength (D56). One owner, `team/value.rs` `unit_value`, says what a unit is worth against what it faces: its card cost when its weapons can engage it, by layer and target class. The influence grid, force, party budget and help, and purchases all read it. Purchases moved whole to `skirmish_ai/purchase.rs`; the air pivot buys the cards carrying a weapon made for the aircraft it sees. The recipe now fields armour (D2). Its quick check matched 13b on total captures with more help answered. Its full 5v5 and 1v1 runs finished with a winner and zero refused orders. Skirmish digests moved; the AI behaviour changed.
 - Slice 13 landed requests for help and a shared stance. A lane whose influence falls raises help, answered by the nearest ally with surplus with a detachment of units that can fight the threat and hold the ground; help holds until the lane is relieved (or while it fights), and is asked for again if it is lost. A beaten lane falls back to its staging on its own; the team falls back only when most lanes are outgunned, and pushes all lanes together after a dwell. Its tournament (9 matches, rules-derived cap) finished every match with a winner and zero refused orders. The `ally-help` scene shows an AI ally answering a human lane.
 - The `ai_controlled` refusal (main `90ba2588d`) now covers skirmish too: a client order for a player whose current controller is not Human is refused before it is recorded, and a seat taken over by a human takes orders from then on. Tests that ordered a declared-AI player directly now make that seat Human first.
 
 **Next:**
-- Slice 13c (value-weighted strength, D56): units weigh their cost against the enemies their weapons can engage, in the planner and in purchases.
-- Slice 14 (5v5 closeout), after 13c.
+- Slice 14 (5v5 closeout). Judge match length there: 1v1 seed 1 now runs 35 min (`choices.md`, 13c).
 
 **Unproven under load.** The `benchmark` (real-time check) and `street` (900 s limit) scenes have not passed since slice 02. Both fail the same way on clean main while the machine's load average is 18–50, and neither touches slice 09. Run them on a quiet machine before closeout (slice 14). If `street` fails "the scouts never identified an enemy" there too, it is a real regression to chase.
 
@@ -62,7 +62,7 @@ Slices:
 - [x] 12: team planner, lanes and cohesion ([slice](slices/12-team-lanes.md))
 - [x] 13: requests for help and shared stance ([slice](slices/13-team-support.md))
 - [x] 13b: side objectives ([slice](slices/13b-side-objectives.md))
-- [ ] 13c: value-weighted strength ([slice](slices/13c-unit-value.md))
+- [x] 13c: value-weighted strength ([slice](slices/13c-unit-value.md))
 - [ ] 14: 5v5 AI-versus-AI closeout ([slice](slices/14-closeout.md))
 
 ## Goal
