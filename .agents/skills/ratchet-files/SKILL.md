@@ -17,9 +17,10 @@ with `--help` before anything else.
    repository's `--max-tokens` if its hook sets one. Its list is the backlog.
 2. Pick the files to split: the one blocking the work in front of you, or
    with no blocker, the largest ones a change is about to touch.
-3. Split each one by the rules the script prints. Use
-   [refactor-clean](../refactor-clean/SKILL.md) to find the seams: a seam is
-   a concept the file already owns, not a line count.
+3. Split each one by the rules the script prints. A seam is a concept the
+   file already owns, not a line count; when
+   [refactor-clean](../refactor-clean/SKILL.md) is installed, use it to find
+   them.
 4. Prove the split changed no behaviour with the repository's own checks,
    and commit it alone, before the change that needed the room.
 
@@ -36,23 +37,62 @@ behaviour checks pass, and `--all` no longer lists those files.
 
 Never install the hook without the user's explicit yes, even when they asked
 to set up the repository. Installing it freezes every file already over
-budget, so first run `--all` and tell the user how many files it would
-freeze and which ones are largest, then ask.
+budget, so audit first and leave the repository untouched while you do:
 
-Once they agree, set up everything the check needs, as the script's `--help`
-describes:
+1. Copy the script to a scratch directory outside the repository, run
+   `npm install --prefix <scratch> linguist-languages` there, and run
+   `node <scratch>/check-file-size.mjs --all` from the repository root (Node
+   18.3 or later). The script finds the package beside itself when the
+   repository lacks it.
+2. Ask once, with everything the user is agreeing to: how many files the hook
+   would freeze and which are largest, leaving out generated or vendored ones
+   you will mark below (name those); the budget, 8,000 tokens unless they want
+   another; and which pre-commit runner you will wire it into, including any
+   you would add. In a repository without Node tooling, say the check adds
+   it.
 
-- Add `linguist-languages` as a pinned dev dependency, with the repository's
-  own package manager.
-- Commit the script into the repository, unless this skill already lives
-  there; the hook runs the repository's copy.
-- Wire it into the existing pre-commit runner (lint-staged, or whatever the
-  repository already uses) on every staged file, with `bun` or `node`,
-  whichever the repository runs its tools with. If the repository has no
-  pre-commit runner, say which one you would add before adding it.
-- Mark generated and vendored code `linguist-generated` or
-  `linguist-vendored` in `.gitattributes` instead of adding skip lists.
-- Document the budget where the repository documents its other hooks.
+Once they agree, set up everything the check needs:
 
-Done when a commit of an over-budget new file is refused by the installed
-hook.
+- **Script.** The hook runs a copy committed in the repository, so every
+  clone runs the same check. If this skill folder is committed in the
+  repository, point the hook at its `scripts/check-file-size.mjs`; otherwise
+  copy that file to where the repository keeps its tool scripts (`scripts/`
+  if it has none). The entries below use `scripts/check-file-size.mjs`;
+  substitute the real path.
+- **Dependency.** Add `linguist-languages` at an exact version as a dev
+  dependency of the repository's root `package.json`, with the package
+  manager its lockfile names, or npm if there is none. The check needs Node
+  even in a repository written in another language: with no `package.json`,
+  create one at the root holding only `"private": true` and what this setup
+  adds, and make sure `.gitignore` covers `node_modules/`.
+- **Hook.** Run the script on every staged file with `node` (or `bun` where
+  the repository already runs its tools with it), appending `--max-tokens N`
+  for a budget other than the default. Add it beside the existing entries of
+  the pre-commit runner the repository already has:
+
+  | Runner | Where | Entry |
+  |---|---|---|
+  | lint-staged | its config | `"*": "node scripts/check-file-size.mjs"` |
+  | lefthook | `pre-commit.commands` | `run: node scripts/check-file-size.mjs {staged_files}` |
+  | pre-commit | `.pre-commit-config.yaml`, `repo: local` | `id: ratchet-files`, `name: source file size`, `entry: node scripts/check-file-size.mjs`, `language: system` |
+  | husky or a plain hook | the `pre-commit` script | `git diff --cached --name-only -z \| xargs -0 node scripts/check-file-size.mjs` |
+
+  With no runner, add husky with lint-staged as dev dependencies, run
+  `npx husky init`, replace the whole of `.husky/pre-commit` (it starts as
+  `npm test`) with `npx lint-staged` or the package manager's equivalent, and
+  add the lint-staged entry above. Husky installs the hook on each clone's
+  package install.
+- **Exclusions.** Mark generated and vendored code `linguist-generated` or
+  `linguist-vendored` in `.gitattributes` instead of adding skip lists. The
+  script reads the staged `.gitattributes`, so stage it before rerunning
+  `--all`.
+- **Docs.** Document the budget, the opt-out pragma, and that a clone needs a
+  package install for the hook, where the repository documents its other
+  hooks; failing that, in a section of its README, creating one if needed.
+
+Commit the setup through the new hook, without `--no-verify`.
+
+Done when the setup commit passed the hook, and the installed hook refuses
+`git commit` both of a staged new source file over the budget (a `.js` file
+of more than four bytes per token of budget) and of a line added to a file the audit
+listed, printing the split rules. Unstage and discard both probes afterwards.
