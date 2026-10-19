@@ -34,7 +34,7 @@ fn a_lane_of_mortar_carriers_gathers_and_advances_as_a_group() {
     let battle = crate::battle::Battle::new(&setup, 1);
     let (rules, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
+    me(&mut frame).unit_count = 2;
     frame.own = battle.observe(Side::Red).own.clone();
     let assignment = Assignment {
         main_objective: [500.0, 500.0],
@@ -77,7 +77,7 @@ fn a_ready_group_keeps_its_objective_after_leaving_staging() {
     let battle = crate::battle::Battle::new(&setup, 1);
     let (rules, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
+    me(&mut frame).unit_count = 2;
     frame.own = battle.observe(Side::Red).own.clone();
     let assignment = Assignment {
         main_objective: [500.0, 500.0],

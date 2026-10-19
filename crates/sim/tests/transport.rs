@@ -1,4 +1,5 @@
 //! Passenger carriage behavior through the public battle authority.
+use crate::common::Seat;
 use contract::command::{
     CommandEnvelope, Engagement, MoveDirection, Order, OrderError, RoutePolicy,
 };
@@ -1540,12 +1541,7 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
         },
     ));
     assert_eq!(refused.error, Some(OrderError::Aboard { unit: UnitId(1) }));
-    let before = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let before = battle.observe(Side::Blue).seat().credits;
     assert!(battle
         .accept(side_command(
             Side::Blue,
@@ -1562,12 +1558,7 @@ fn refunding_a_loaded_carrier_refunds_its_passengers() {
             break;
         }
     }
-    let after = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let after = battle.observe(Side::Blue).seat().credits;
     assert!(after > before);
     assert!(battle.unit(UnitId(0)).unwrap().retired);
     assert!(battle.unit(UnitId(1)).unwrap().retired);

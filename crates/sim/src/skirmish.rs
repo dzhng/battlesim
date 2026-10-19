@@ -232,14 +232,9 @@ impl Skirmish {
                 pending: p.reservations.iter().map(|r| r.data.clone()).collect(),
             })
             .collect();
-        let first = players.first();
-        let legacy_credits = first.map_or(0.0, |p| p.credits);
-        let legacy_unit_count = first.map_or(0, |p| p.unit_count);
-        let legacy_pending = first.map_or_else(Vec::new, |p| p.pending.clone());
         SkirmishView {
             phase: self.phase,
             players,
-            ready: [false; 2],
             preparation_remaining_s: if self.phase == Phase::Preparation {
                 (u64::from(self.setup.rules.preparation_s) * u64::from(hz)).saturating_sub(tick)
                     as f64
@@ -247,10 +242,6 @@ impl Skirmish {
             } else {
                 0.0
             },
-            credits: legacy_credits,
-            unit_count: legacy_unit_count,
-            max_units: self.setup.rules.max_units,
-            pending: legacy_pending,
             objectives: self.objectives.views(&self.setup.sites.objectives, hz),
             scores: self.objectives.scores(hz),
             result: self.objectives.result,

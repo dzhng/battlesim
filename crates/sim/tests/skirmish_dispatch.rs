@@ -36,8 +36,11 @@ fn a_purchase_blocked_at_one_entry_does_not_hold_back_the_same_players_purchase_
     buy(&mut battle, "blue-1", 2, entry_a);
     run(&mut battle, 3);
     let status = battle.observe(Side::Blue).skirmish.clone().unwrap();
-    assert_eq!(status.pending.len(), 1);
-    assert!(status.pending[0].blocked, "entry A is not blocked");
+    assert_eq!(status.players[0].pending.len(), 1);
+    assert!(
+        status.players[0].pending[0].blocked,
+        "entry A is not blocked"
+    );
     // The same player's next purchase is routed through entry B.
     buy(&mut battle, "blue-1", 3, [700.0, 60.0]);
     run(&mut battle, 2);
@@ -52,7 +55,11 @@ fn a_purchase_blocked_at_one_entry_does_not_hold_back_the_same_players_purchase_
             .collect::<Vec<_>>()
     );
     let status = frame.skirmish.as_ref().unwrap();
-    assert_eq!(status.pending.len(), 1, "the entry-A purchase still waits");
+    assert_eq!(
+        status.players[0].pending.len(),
+        1,
+        "the entry-A purchase still waits"
+    );
 }
 
 #[test]

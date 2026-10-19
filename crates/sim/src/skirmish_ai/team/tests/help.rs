@@ -38,12 +38,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
                     pending: vec![],
                 },
             ],
-            ready: [true, false],
             preparation_remaining_s: 0.0,
-            credits: 0.0,
-            unit_count: 2,
-            max_units: 30,
-            pending: vec![],
             objectives: vec![],
             scores: [0.0; 2],
             result: None,
@@ -413,12 +408,7 @@ fn an_engaged_locked_detachment_is_not_lent_to_a_second_request() {
                 pending: vec![],
             },
         ],
-        ready: [true, false],
         preparation_remaining_s: 0.0,
-        credits: 0.0,
-        unit_count: 3,
-        max_units: 30,
-        pending: vec![],
         objectives: vec![],
         scores: [0.0; 2],
         result: None,
@@ -530,12 +520,7 @@ fn a_battle_observation_routes_help_to_a_human_lane_and_keeps_the_ally_lane() {
                     pending: vec![],
                 },
             ],
-            ready: [true, false],
             preparation_remaining_s: 0.0,
-            credits: 0.0,
-            unit_count: 2,
-            max_units: 30,
-            pending: vec![],
             objectives: sites
                 .objectives
                 .iter()
@@ -645,12 +630,7 @@ fn a_human_without_an_order_or_objective_position_gets_no_guessed_lane() {
         skirmish: Some(contract::skirmish::SkirmishView {
             phase: contract::skirmish::Phase::Active,
             players: vec![],
-            ready: [true, false],
             preparation_remaining_s: 0.0,
-            credits: 0.0,
-            unit_count: 0,
-            max_units: 30,
-            pending: vec![],
             objectives: sites
                 .objectives
                 .iter()

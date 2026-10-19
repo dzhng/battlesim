@@ -125,12 +125,7 @@ fn help_comes_from_an_expensive_tank_not_from_squads_that_cannot_fight_the_threa
                 pending: vec![],
             })
             .collect(),
-        ready: [true, true],
         preparation_remaining_s: 0.0,
-        credits: 0.0,
-        unit_count: 4,
-        max_units: 30,
-        pending: vec![],
         objectives: vec![],
         scores: [0.0; 2],
         result: None,

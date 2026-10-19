@@ -1,5 +1,6 @@
 #![allow(clippy::approx_constant)]
 
+use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, OrderError};
 use contract::ids::Side;
 use serde_json::json;
@@ -123,13 +124,7 @@ fn an_ally_cannot_ready_or_cancel_another_players_purchase() {
     ));
     assert_eq!(ack.error, None);
     battle.step();
-    let purchase = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .pending[0]
-        .id;
+    let purchase = battle.observe(Side::Blue).seat().pending[0].id;
     let cancel = battle.accept(command(
         Side::Blue,
         "blue-2",
@@ -190,16 +185,7 @@ fn each_players_cap_is_independent() {
         Some(contract::command::OrderError::UnitLimitReached)
     );
     battle.step();
-    assert_eq!(
-        battle
-            .observe(Side::Blue)
-            .skirmish
-            .as_ref()
-            .unwrap()
-            .pending
-            .len(),
-        30
-    );
+    assert_eq!(battle.observe(Side::Blue).seat().pending.len(), 30);
 }
 
 #[test]

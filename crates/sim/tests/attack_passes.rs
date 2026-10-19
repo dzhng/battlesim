@@ -1,4 +1,5 @@
 use crate::common::air_field::wing_limits;
+use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::random::Rng;
@@ -453,8 +454,7 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
         player: Some("red-1".into()),
         ..envelope(1, Order::Ready)
     });
-    let credits =
-        |b: &sim::battle::Battle| b.observe(Side::Blue).skirmish.as_ref().unwrap().credits;
+    let credits = |b: &sim::battle::Battle| b.observe(Side::Blue).seat().credits;
     let (mut arrived, mut withdrew, mut left, mut refund) = (None, None, false, 0.0);
     let mut before = credits(&battle);
     let limit = (wait_s + fuel_s + 120.0) as u32 * hz;

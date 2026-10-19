@@ -130,14 +130,14 @@ fn purchases(
             |_, _| Some(1.0),
         )
     };
-    frame.skirmish.as_mut().unwrap().max_units = 1_000;
+    me(frame).cap = 1_000;
     let orders = decide(frame);
     let opening = confirm_purchases(rules, frame, &orders);
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
     let mut bought = Vec::new();
     for decision in 1..=decisions {
         frame.tick = decision * 5 * u64::from(rules.tick_hz);
-        frame.skirmish.as_mut().unwrap().credits += 100.0;
+        me(frame).credits += 100.0;
         let orders = decide(frame);
         bought.extend(confirm_purchases(rules, frame, &orders));
     }

@@ -1,6 +1,7 @@
 #![allow(clippy::approx_constant)]
 
 use crate::common;
+use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use serde_json::json;
@@ -200,15 +201,7 @@ fn a_returning_unit_reselects_the_nearest_entry_after_moving() {
         .own
         .iter()
         .all(|observed| observed.id != unit));
-    assert!(
-        battle
-            .observe(Side::Blue)
-            .skirmish
-            .as_ref()
-            .unwrap()
-            .credits
-            > 800.0
-    );
+    assert!(battle.observe(Side::Blue).seat().credits > 800.0);
 }
 
 /// The test units, with a U.S. deck of a tank and a supply truck.
@@ -277,8 +270,8 @@ fn preparation_starts_empty_and_freezes_the_credit_wallet() {
     assert!(frame.own.is_empty());
     let status = frame.skirmish.as_ref().unwrap();
     assert_eq!(status.phase, contract::skirmish::Phase::Preparation);
-    assert_eq!(status.credits, 1000.0);
-    assert_eq!(status.unit_count, 0);
+    assert_eq!(status.players[0].credits, 1000.0);
+    assert_eq!(status.players[0].unit_count, 0);
 }
 
 #[test]
@@ -300,10 +293,7 @@ fn both_ready_start_early_and_income_adds_exactly_two_hundred_per_minute() {
         battle.step();
     }
     for side in Side::COMBATANTS {
-        assert_eq!(
-            battle.observe(side).skirmish.as_ref().unwrap().credits,
-            1200.0
-        );
+        assert_eq!(battle.observe(side).seat().credits, 1200.0);
     }
     let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
     while replay.tick() < battle.tick() {
@@ -342,9 +332,9 @@ fn confirmed_purchases_reserve_credits_and_slots_atomically_during_preparation()
     let frame = battle.observe(Side::Blue);
     assert!(frame.own.is_empty());
     let status = frame.skirmish.as_ref().unwrap();
-    assert_eq!(status.credits, 0.0);
-    assert_eq!(status.unit_count, 5);
-    assert_eq!(status.pending.len(), 5);
+    assert_eq!(status.players[0].credits, 0.0);
+    assert_eq!(status.players[0].unit_count, 5);
+    assert_eq!(status.players[0].pending.len(), 5);
     assert!(status
         .players
         .iter()
@@ -367,13 +357,7 @@ fn cancelling_a_pending_purchase_returns_the_price_and_slot_once() {
         .error
         .is_none());
     battle.step();
-    let id = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .pending[0]
-        .id;
+    let id = battle.observe(Side::Blue).seat().pending[0].id;
     for seq in 2..=3 {
         assert!(battle
             .accept(command(
@@ -386,9 +370,9 @@ fn cancelling_a_pending_purchase_returns_the_price_and_slot_once() {
     }
     battle.step();
     let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
-    assert_eq!(status.credits, 1000.0);
-    assert_eq!(status.unit_count, 0);
-    assert!(status.pending.is_empty());
+    assert_eq!(status.players[0].credits, 1000.0);
+    assert_eq!(status.players[0].unit_count, 0);
+    assert!(status.players[0].pending.is_empty());
 }
 
 #[test]
@@ -416,9 +400,9 @@ fn paid_reinforcement_enters_at_base_once_and_moves_to_its_destination() {
     );
     assert_eq!(frame.own[0].goal, Some([400.0, 300.0]));
     let status = frame.skirmish.as_ref().unwrap();
-    assert_eq!(status.credits, 800.0);
-    assert_eq!(status.unit_count, 1);
-    assert!(status.pending.is_empty());
+    assert_eq!(status.players[0].credits, 800.0);
+    assert_eq!(status.players[0].unit_count, 1);
+    assert!(status.players[0].pending.is_empty());
     for _ in 0..5 * battle.rules().tick_hz {
         battle.step();
     }
@@ -570,10 +554,10 @@ fn occupied_entry_keeps_the_next_paid_unit_pending_without_overlap() {
     assert_eq!(frame.own[0].position[0], 400.0);
     assert!((frame.own[0].position[1] - 10.0).abs() < 1.0);
     let status = frame.skirmish.as_ref().unwrap();
-    assert_eq!(status.unit_count, 2);
-    assert_eq!(status.pending.len(), 1);
-    assert!(status.pending[0].blocked);
-    assert_eq!(status.pending[0].id.0, 1);
+    assert_eq!(status.players[0].unit_count, 2);
+    assert_eq!(status.players[0].pending.len(), 1);
+    assert!(status.players[0].pending[0].blocked);
+    assert_eq!(status.players[0].pending[0].id.0, 1);
     let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
     while replay.tick() < battle.tick() {
         replay.step();
@@ -750,12 +734,7 @@ fn a_purchase_aimed_at_a_blocked_point_is_sent_to_the_nearest_open_ground() {
         assert_eq!(ack.error, None, "{variant} is accepted");
     }
     battle.step();
-    let pending = &battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .pending;
+    let pending = &battle.observe(Side::Blue).seat().pending;
     assert_eq!(pending.len(), 2);
     let tank = pending[0].destination;
     // The hull stands clear of the block, on its nearest side: no farther
@@ -814,9 +793,9 @@ fn purchase_admission_refuses_unavailable_wrong_faction_and_invalid_destination_
     battle.step();
     for side in Side::COMBATANTS {
         let status = battle.observe(side).skirmish.as_ref().unwrap();
-        assert_eq!(status.credits, 1000.0);
-        assert_eq!(status.unit_count, 0);
-        assert!(status.pending.is_empty());
+        assert_eq!(status.players[0].credits, 1000.0);
+        assert_eq!(status.players[0].unit_count, 0);
+        assert!(status.players[0].pending.is_empty());
     }
 }
 
@@ -856,9 +835,9 @@ fn thirty_pending_units_fill_the_cap_even_when_credits_remain() {
     );
     battle.step();
     let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
-    assert_eq!(status.credits, 4000.0);
-    assert_eq!(status.unit_count, 30);
-    assert_eq!(status.pending.len(), 30);
+    assert_eq!(status.players[0].credits, 4000.0);
+    assert_eq!(status.players[0].unit_count, 30);
+    assert_eq!(status.players[0].pending.len(), 30);
 }
 
 #[test]
@@ -914,19 +893,11 @@ fn preparation_timeout_starts_combat_without_granting_preparation_income() {
     battle.step();
     let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
     assert_eq!(status.phase, contract::skirmish::Phase::Active);
-    assert_eq!(status.credits, 1000.0);
+    assert_eq!(status.players[0].credits, 1000.0);
     for _ in 0..3 * hz {
         battle.step();
     }
-    assert_eq!(
-        battle
-            .observe(Side::Blue)
-            .skirmish
-            .as_ref()
-            .unwrap()
-            .credits,
-        1010.0
-    );
+    assert_eq!(battle.observe(Side::Blue).seat().credits, 1010.0);
 }
 
 #[test]
@@ -1082,7 +1053,7 @@ fn the_player_readying_starts_the_battle_against_the_basic_opponent_at_once() {
     let red = battle.observe(Side::Red).skirmish.clone().unwrap();
     assert_eq!(red.phase, contract::skirmish::Phase::Active);
     assert!(
-        red.pending.len() > 1,
+        red.players[0].pending.len() > 1,
         "the opponent bought its whole opening before readying"
     );
 }
@@ -1098,10 +1069,10 @@ fn the_basic_opponent_buys_from_zero_through_recorded_commands_and_replays_every
     }
     let red = live.observe(Side::Red).skirmish.as_ref().unwrap();
     assert!(
-        red.credits < 1000.0,
+        red.players[0].credits < 1000.0,
         "the AI spends its ordinary opening wallet"
     );
-    assert!(red.unit_count > 0 && red.unit_count <= 30);
+    assert!(red.players[0].unit_count > 0 && red.players[0].unit_count <= 30);
     let record = live.replay();
     assert!(record
         .accepted
@@ -1175,9 +1146,7 @@ fn ai_lane_arrivals_drive_off_the_entry_without_waiting_for_a_decision() {
     assert!(
         battle
             .observe(Side::Red)
-            .skirmish
-            .as_ref()
-            .unwrap()
+            .seat()
             .pending
             .iter()
             .all(|purchase| purchase.entry == red_entry_index),
@@ -1246,9 +1215,7 @@ fn the_skirmish_ai_procures_artillery_and_replays_its_named_catalog_cutover() {
     assert!(
         red.own.iter().any(|unit| unit.kind == artillery)
             || red
-                .skirmish
-                .as_ref()
-                .unwrap()
+                .seat()
                 .pending
                 .iter()
                 .any(|pending| pending.kind == artillery),
@@ -1312,25 +1279,8 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
         .error
         .is_none());
     battle.step();
-    assert_eq!(
-        battle
-            .observe(Side::Blue)
-            .skirmish
-            .as_ref()
-            .unwrap()
-            .unit_count,
-        1
-    );
-    assert!(
-        (battle
-            .observe(Side::Blue)
-            .skirmish
-            .as_ref()
-            .unwrap()
-            .credits
-            - before.skirmish.as_ref().unwrap().credits)
-            < 1.0
-    );
+    assert_eq!(battle.observe(Side::Blue).seat().unit_count, 1);
+    assert!((battle.observe(Side::Blue).seat().credits - before.seat().credits) < 1.0);
     for _ in 0..1000 {
         if battle.observe(Side::Blue).own.is_empty() {
             break;
@@ -1339,11 +1289,9 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
     }
     let returned = battle.observe(Side::Blue).clone();
     assert!(returned.own.is_empty(), "the unit physically reached base");
-    assert_eq!(returned.skirmish.as_ref().unwrap().unit_count, 0);
+    assert_eq!(returned.seat().unit_count, 0);
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
-    let refund = returned.skirmish.as_ref().unwrap().credits
-        - before.skirmish.as_ref().unwrap().credits
-        - passive;
+    let refund = returned.seat().credits - before.seat().credits - passive;
     let expected = 200.0
         * sim::withdrawal::fraction(
             1.0,
@@ -1355,21 +1303,12 @@ fn a_refund_orders_a_vulnerable_return_and_pays_only_at_base() {
         "refund {refund}, expected {expected}"
     );
     assert!(returned.corpses.is_empty(), "retirement leaves no casualty");
-    let retired_credits = returned.skirmish.as_ref().unwrap().credits;
+    let retired_credits = returned.seat().credits;
     for _ in 0..300 {
         battle.step();
     }
     assert!(
-        (battle
-            .observe(Side::Blue)
-            .skirmish
-            .as_ref()
-            .unwrap()
-            .credits
-            - retired_credits
-            - 200.0 / 6.0)
-            .abs()
-            < 0.00001,
+        (battle.observe(Side::Blue).seat().credits - retired_credits - 200.0 / 6.0).abs() < 0.00001,
         "retirement pays once"
     );
     let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
@@ -1401,20 +1340,15 @@ fn a_new_order_cancels_withdrawal_without_a_refund() {
     battle.accept(command(Side::Blue, 3, Order::Refund { units: vec![id] }));
     battle.step();
     assert!(battle.observe(Side::Blue).own[0].withdrawing);
-    let credits = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let credits = battle.observe(Side::Blue).seat().credits;
     battle.accept(command(Side::Blue, 4, Order::Stop { units: vec![id] }));
     for _ in 0..450 {
         battle.step();
     }
     let status = battle.observe(Side::Blue);
     assert!(!status.own[0].withdrawing);
-    assert_eq!(status.skirmish.as_ref().unwrap().unit_count, 1);
-    assert!((status.skirmish.as_ref().unwrap().credits - credits - 50.0).abs() < 0.00001);
+    assert_eq!(status.seat().unit_count, 1);
+    assert!((status.seat().credits - credits - 50.0).abs() < 0.00001);
 }
 
 #[test]
@@ -1464,12 +1398,7 @@ fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
     }
     let id = battle.observe(Side::Blue).own[0].id;
     let enemy = battle.observe(Side::Red).own[0].id;
-    let before = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let before = battle.observe(Side::Blue).seat().credits;
     let start = battle.tick();
     battle.accept(command(Side::Blue, 4, Order::Refund { units: vec![id] }));
     battle.accept(command(
@@ -1490,12 +1419,7 @@ fn a_destroyed_withdrawing_unit_never_refunds_or_retires() {
         !battle.unit(id).unwrap().retired,
         "combat destruction must not become a retirement"
     );
-    let after = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let after = battle.observe(Side::Blue).seat().credits;
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
     assert!(
         (after - before - passive).abs() < 0.00001,
@@ -1556,12 +1480,7 @@ fn changing_the_return_route_cancels_withdrawal_without_a_refund() {
     battle.accept(command(Side::Blue, 3, Order::Refund { units: vec![id] }));
     battle.step();
     assert!(battle.observe(Side::Blue).own[0].withdrawing);
-    let credits = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let credits = battle.observe(Side::Blue).seat().credits;
     battle.accept(command(
         Side::Blue,
         4,
@@ -1575,8 +1494,8 @@ fn changing_the_return_route_cancels_withdrawal_without_a_refund() {
     }
     let status = battle.observe(Side::Blue);
     assert!(!status.own[0].withdrawing);
-    assert_eq!(status.skirmish.as_ref().unwrap().unit_count, 1);
-    assert!((status.skirmish.as_ref().unwrap().credits - credits - 50.0).abs() < 0.00001);
+    assert_eq!(status.seat().unit_count, 1);
+    assert!((status.seat().credits - credits - 50.0).abs() < 0.00001);
 }
 
 #[test]
@@ -1610,12 +1529,7 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
         battle.step();
     }
     assert_eq!(battle.observe(Side::Blue).own.len(), 2);
-    let before = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let before = battle.observe(Side::Blue).seat().credits;
     let start = battle.tick();
     battle.accept(command(
         Side::Blue,
@@ -1635,9 +1549,9 @@ fn an_occupied_base_keeps_the_returning_unit_and_its_slot_without_payment() {
             .any(|unit| unit.id == returning && unit.withdrawing),
         "occupied physical entry must keep the return pending"
     );
-    assert_eq!(status.skirmish.as_ref().unwrap().unit_count, 2);
+    assert_eq!(status.seat().unit_count, 2);
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
-    assert!((status.skirmish.as_ref().unwrap().credits - before - passive).abs() < 0.00001);
+    assert!((status.seat().credits - before - passive).abs() < 0.00001);
 }
 
 /// The player buys a helicopter as a reinforcement: the preview places it,
@@ -1735,7 +1649,7 @@ fn a_waiting_aircraft_leaves_the_queue_and_waits_on_its_own_clock() {
     let due = start + 20 * hz;
     battle.step();
     let frame = battle.observe(Side::Blue);
-    let pending = &frame.skirmish.as_ref().unwrap().pending;
+    let pending = &frame.seat().pending;
     let jet = battle.rules().catalog.index("test_jet").unwrap();
     let waiting: Vec<_> = pending.iter().filter(|p| p.kind == jet).collect();
     assert_eq!(waiting.len(), 2, "both jets stay pending: {pending:?}");
@@ -2049,15 +1963,7 @@ fn withdrawal_retires_and_refunds_on_crossing_the_nearest_back_edge_point() {
         battle.tick()
     );
     assert!(battle.observe(Side::Blue).own.is_empty());
-    assert!(
-        battle
-            .observe(Side::Blue)
-            .skirmish
-            .as_ref()
-            .unwrap()
-            .credits
-            > 700.0
-    );
+    assert!(battle.observe(Side::Blue).seat().credits > 700.0);
 }
 
 #[test]
@@ -2153,13 +2059,7 @@ fn air_ingress_jet_returns_through_west_edge_and_refunds_its_owner() {
 
     let mut saw_withdrawal = false;
     let mut saw_westbound_transit = false;
-    let mut blue_credits = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .players[0]
-        .credits;
+    let mut blue_credits = battle.observe(Side::Blue).seat().credits;
     let mut retirement_refund = None;
     let mut outbound_tick = None;
     let mut retired_tick = None;

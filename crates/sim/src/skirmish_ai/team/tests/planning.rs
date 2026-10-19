@@ -292,12 +292,7 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
             cap: 30,
             pending: vec![],
         }],
-        ready: [true, false],
         preparation_remaining_s: 0.0,
-        credits: 0.0,
-        unit_count: 0,
-        max_units: 30,
-        pending: vec![],
         objectives: sites
             .objectives
             .iter()

@@ -17,7 +17,7 @@ fn a_helping_detachment_moves_without_retasking_the_helper_lane() {
     let battle = crate::battle::Battle::new(&setup, 1);
     let (rules, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
+    me(&mut frame).unit_count = 2;
     frame.own = battle.observe(Side::Red).own.clone();
     let detachment = frame.own[0].id;
     let assignment = Assignment {

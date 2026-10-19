@@ -57,12 +57,7 @@ fn frame(
                 pending: vec![],
             })
             .collect(),
-        ready: [true, true],
         preparation_remaining_s: 0.0,
-        credits: 0.0,
-        unit_count: units.len() as u32,
-        max_units: 30,
-        pending: vec![],
         objectives: sites()
             .objectives
             .iter()

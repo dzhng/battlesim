@@ -495,12 +495,7 @@ mod tests {
             skirmish: Some(contract::skirmish::SkirmishView {
                 phase: contract::skirmish::Phase::Active,
                 players: vec![],
-                ready: [true, true],
                 preparation_remaining_s: 0.0,
-                credits: 0.0,
-                unit_count: 0,
-                max_units: 30,
-                pending: vec![],
                 objectives: vec![contract::skirmish::ObjectiveView {
                     id: "open".into(),
                     center: [100.0, 100.0],

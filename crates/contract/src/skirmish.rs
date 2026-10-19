@@ -118,17 +118,7 @@ pub struct PendingPurchase {
 pub struct SkirmishView {
     pub phase: Phase,
     pub players: Vec<PlayerView>,
-    #[serde(skip)]
-    pub ready: [bool; 2],
     pub preparation_remaining_s: f64,
-    #[serde(skip)]
-    pub credits: f64,
-    #[serde(skip)]
-    pub unit_count: u32,
-    #[serde(skip)]
-    pub max_units: u32,
-    #[serde(skip)]
-    pub pending: Vec<PendingPurchase>,
     pub objectives: Vec<ObjectiveView>,
     pub scores: [f64; 2],
     pub result: Option<MatchResult>,

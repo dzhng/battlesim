@@ -2,6 +2,7 @@
 //! soldiers neither step out of it nor lean on it, forest ground does not hide
 //! it, and it is admitted against its own hull limits.
 
+use crate::common::Seat;
 use contract::catalog::AltitudeLayer;
 use contract::command::{
     CommandEnvelope, MoveDirection, Order, OrderError, RoutePolicy, TargetRef,
@@ -694,10 +695,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
         frame.own.is_empty(),
         "fuel-starved aircraft remained on map"
     );
-    assert!(
-        frame.skirmish.as_ref().unwrap().credits > 1000.0,
-        "no fuel withdrawal refund"
-    );
+    assert!(frame.seat().credits > 1000.0, "no fuel withdrawal refund");
 }
 
 #[test]

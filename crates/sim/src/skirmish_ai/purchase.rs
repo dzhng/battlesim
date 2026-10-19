@@ -6,7 +6,15 @@
 
 use super::team::{specialized, unit_value, Threat};
 use super::*;
+use contract::skirmish::{PlayerView, SkirmishView};
 use contract::weapons::TargetClass;
+
+/// The deciding player's own economy: its credits, cap, purchases and ready
+/// flag. The battle narrows each AI's frame to its own player, so the
+/// frame's one player row is that player's.
+pub(super) fn own_player(view: &SkirmishView) -> Option<&PlayerView> {
+    view.players.first()
+}
 
 /// `cards`, best first against `threat`: by value per credit, then the
 /// cheaper, then the smaller id. With no threat known there is no matchup

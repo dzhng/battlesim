@@ -16,7 +16,7 @@ use artillery::{artillery_ground_guess, artillery_objective_guess};
 pub use capability::unit_engages_aircraft_in;
 use capability::{frame_has_layer_threat, unit_weapons};
 pub(crate) use capability::{unit_can_engage_ground, unit_can_engage_target};
-use purchase::{best_air_defender, pick};
+use purchase::{best_air_defender, own_player, pick};
 mod transport;
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
 
@@ -450,6 +450,9 @@ impl BalancedDoctrine {
         let Some(view) = &frame.skirmish else {
             return vec![];
         };
+        let Some(me) = own_player(view) else {
+            return vec![];
+        };
         let horizon = Tuning::ticks(self.tuning.sighting_horizon_s, rules.tick_hz);
         self.sightings
             .retain(|_, seen| frame.tick.saturating_sub(seen.tick) <= horizon);
@@ -498,7 +501,7 @@ impl BalancedDoctrine {
         };
         let count = |kind: TypeIndex| {
             frame.own.iter().filter(|u| u.kind == kind).count()
-                + view.pending.iter().filter(|p| p.kind == kind).count()
+                + me.pending.iter().filter(|p| p.kind == kind).count()
         };
         let low_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::LowAir);
         let high_air_demand = frame_has_layer_threat(frame, rules, AltitudeLayer::HighAir);
@@ -561,11 +564,11 @@ impl BalancedDoctrine {
         // The whole opening is bought in one decision, so the opponent is
         // ready at once and the player's own readiness starts the battle.
         let purchases: Vec<TypeIndex> = if let Some(plan) = self.purchase_plan.as_ref() {
-            let mut credits = view.credits;
-            let mut slots = view.unit_count;
+            let mut credits = me.credits;
+            let mut slots = me.unit_count;
             let mut cursor = plan.next;
             let mut purchases = Vec::new();
-            while slots < view.max_units {
+            while slots < me.cap {
                 let Some(&kind) = plan.cards.get(cursor) else {
                     break;
                 };
@@ -586,8 +589,8 @@ impl BalancedDoctrine {
             }
             purchases
         } else if view.phase == Phase::Preparation {
-            let mut credits = view.credits;
-            let mut slots = view.unit_count;
+            let mut credits = me.credits;
+            let mut slots = me.unit_count;
             let mut needed = BTreeMap::new();
             let mut squad_held = false;
             desired
@@ -598,10 +601,7 @@ impl BalancedDoctrine {
                     *wanted += 1;
                     let cost = f64::from(rules.catalog.get(kind).cost);
                     let held = count(kind) >= *wanted;
-                    let buy = !held
-                        && (!rides || squad_held)
-                        && cost <= credits
-                        && slots < view.max_units;
+                    let buy = !held && (!rides || squad_held) && cost <= credits && slots < me.cap;
                     if buy {
                         credits -= cost;
                         slots += 1;
@@ -611,7 +611,7 @@ impl BalancedDoctrine {
                 })
                 .map(|(kind, _)| kind)
                 .collect()
-        } else if view.unit_count < view.max_units {
+        } else if me.unit_count < me.cap {
             let purchase = {
                 let truck = pick(Some("logistics"), Category::Sup, 0);
                 if truck.is_some()
@@ -619,12 +619,12 @@ impl BalancedDoctrine {
                         .own
                         .iter()
                         .any(|u| rules.catalog.get(u.kind).has_role("logistics"))
-                    && !view
+                    && !me
                         .pending
                         .iter()
                         .any(|p| rules.catalog.get(p.kind).has_role("logistics"))
                 {
-                    truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
+                    truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= me.credits)
                 } else {
                     // Each role in turn, armour too (D2); helicopters as
                     // light vehicles are (D35), then jets (the air category,
@@ -648,7 +648,7 @@ impl BalancedDoctrine {
                     .find_map(|(layer, demanded)| demanded.then_some(layer))
                     {
                         best_air_defender(rules, &eligible, frame, layer)
-                            .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
+                            .filter(|&k| f64::from(rules.catalog.get(k).cost) <= me.credits)
                             .map(|k| (Some(0), k))
                     } else if let Some(want) = transport::want(
                         rules,
@@ -657,13 +657,13 @@ impl BalancedDoctrine {
                             .own
                             .iter()
                             .map(|u| u.kind)
-                            .chain(view.pending.iter().map(|p| p.kind)),
+                            .chain(me.pending.iter().map(|p| p.kind)),
                     ) {
                         // One carrier per squad comes before the rotation,
                         // and is saved for like its next role: a lost
                         // transport is rebought, a lost squad replaced (D17).
                         let (transport::Want::Carrier(k) | transport::Want::Squad(k)) = want;
-                        (f64::from(rules.catalog.get(k).cost) <= view.credits).then_some((None, k))
+                        (f64::from(rules.catalog.get(k).cost) <= me.credits).then_some((None, k))
                     } else {
                         // The next role in the rotation is a plan the AI
                         // saves for: credits it can't yet spend on it wait,
@@ -675,7 +675,7 @@ impl BalancedDoctrine {
                                 let index = (self.reinforcement + offset) % roles.len();
                                 pick(roles[index].0, roles[index].1, 0).map(|k| (Some(index), k))
                             })
-                            .filter(|&(_, k)| f64::from(rules.catalog.get(k).cost) <= view.credits)
+                            .filter(|&(_, k)| f64::from(rules.catalog.get(k).cost) <= me.credits)
                     };
                     selected.map(|(index, k)| {
                         if let Some(index) = index {
@@ -1219,7 +1219,7 @@ impl BalancedDoctrine {
                 }
             }
         }
-        if view.phase == Phase::Preparation && !view.ready[side.index()] {
+        if view.phase == Phase::Preparation && !me.ready {
             orders.push(Order::Ready);
         }
         orders

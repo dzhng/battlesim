@@ -58,7 +58,10 @@ fn an_uncontested_ground_unit_captures_after_twenty_seconds_and_scores_without_c
     let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
     assert!((status.scores[0] - 10.0).abs() < 1e-9);
     assert_eq!(status.scores[1], 0.0);
-    assert!((status.credits - (800.0 + (56.0 - 1.0 / hz as f64) * 200.0 / 60.0)).abs() < 1e-6);
+    assert!(
+        (status.players[0].credits - (800.0 + (56.0 - 1.0 / hz as f64) * 200.0 / 60.0)).abs()
+            < 1e-6
+    );
 }
 
 #[test]

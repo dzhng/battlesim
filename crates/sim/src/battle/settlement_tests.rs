@@ -100,7 +100,7 @@ fn hostile_collapse_uses_first_destructive_source_and_original_receipt() {
     assert!(!battle.units[1].alive());
     battle.observe_all();
     let after = battle.observe(Side::Blue);
-    assert_eq!(after.skirmish.as_ref().unwrap().credits, 1050.0);
+    assert_eq!(after.skirmish.as_ref().unwrap().players[0].credits, 1050.0);
     assert_eq!(after.identified, before.identified);
     assert_eq!(after.contacts, before.contacts);
     assert_eq!(after.known_props, before.known_props);

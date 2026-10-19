@@ -76,12 +76,6 @@ impl Battle {
             if let Some(view) = frame.skirmish.as_mut() {
                 view.players
                     .retain(|player| player.index == contract::players::PlayerIndex(index as u16));
-                if let Some(state) = self.skirmish.as_ref().and_then(|s| s.players.get(index)) {
-                    view.credits = state.wallet as f64 / crate::skirmish::CREDIT_SCALE as f64;
-                    view.unit_count = frame.own.len() as u32 + state.reservations.len() as u32;
-                    view.pending = state.reservations.iter().map(|r| r.data.clone()).collect();
-                    view.ready[side.index()] = state.ready;
-                }
             }
             let assignment =
                 plans[side.index()].assignment_for(contract::players::PlayerIndex(index as u16));

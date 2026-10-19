@@ -38,7 +38,7 @@ pub(super) fn transport_match_on(
     frame.own = battle.observe(Side::Red).own.clone();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     (setup.rules, frame, entry)
 }
 
@@ -506,7 +506,7 @@ fn a_lost_transport_is_rebought_and_a_lost_squad_replaced() {
             {"side":"red","kind":"test_supply","position":[400,40]},
             {"side":"red","kind":unit,"position":[500,300]}
         ]));
-        frame.skirmish.as_mut().unwrap().credits = 1000.0;
+        me(&mut frame).credits = 1000.0;
         let orders = BalancedDoctrine::default().decide(
             DecisionInput {
                 side: Side::Red,
