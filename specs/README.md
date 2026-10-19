@@ -13,11 +13,11 @@ ladder with parallel named-model production.
 [Battle foundation](done/battle-foundation/README.md) (closed) records the village
 checkpoint and the decisions that established the simulation, observation, combat,
 and recovery seams. Its later umbrella work was superseded by the dedicated feature
-records below and the [team skirmish](team-skirmish/README.md) closeout.
+records below and the [team skirmish](done/team-skirmish/README.md) record.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](done/transport/README.md) (shipped) carries infantry squads in APCs, IFVs, light vehicles and helicopters, with bail-out when a carrier dies and a skirmish AI that moves its infantry by transport.
 
-[Team skirmish](team-skirmish/README.md) (in progress) turns the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
+[Team skirmish](done/team-skirmish/README.md) (shipped) turned the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets, armies and controllers, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield

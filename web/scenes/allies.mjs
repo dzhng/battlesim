@@ -1,5 +1,5 @@
 // A 2v2 team battle from its link: you and one AI ally against two AI.
-// The browser-only evidence for slice 10 of the team skirmish plan:
+// The browser-only evidence for allies in battle (team skirmish):
 // - the ally look at default and far zoom, over grass, road, fog and smoke;
 // - selecting an ally opens its panel read-only, with its owner line and no
 //   order controls, and an order given then carries none of its units;
