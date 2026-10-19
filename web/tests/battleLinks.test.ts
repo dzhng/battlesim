@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { askedBattle, battleHref, spoken } from "../../apps/battle-lab/src/battleLinks";
+import { sizeTier } from "../../apps/battle-lab/src/skirmishSetup";
+import { MAP_SIZES } from "@web/maps/source";
 
 test("size labels use the lobby's S/M/L/XL vocabulary", () => {
   expect(["small", "medium", "large", "xl"].map(spoken)).toEqual(["S", "M", "L", "XL"]);
@@ -77,4 +79,24 @@ test("a link with no human is an AI-only battle at any size", () => {
         `?type=mixed&size=large&seed=1&battle=1&blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`,
       ),
     ).toMatchObject({ kind: "generated" });
+});
+
+test.each([
+  ["a", "a"],
+  ["a,a", "a"],
+  ["a,a,a", "a,a,a"],
+  ["a,a,a,a,a", "a,a"],
+])("a link without a size gets its players' size tier: blue=%s red=%s", (blue, red) => {
+  const asked = askedBattle(
+    `?type=mixed&seed=1&battle=1&blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`,
+  );
+  if (!("kind" in asked) || asked.kind !== "generated") throw new Error(JSON.stringify(asked));
+  expect(asked.map.size).toBe(sizeTier(asked.players).size);
+});
+
+test("a one-a-side link without a size is on the smallest map", () => {
+  expect(askedBattle("?seed=1&blue=a&red=a&blue_faction=us&red_faction=eastern")).toMatchObject({
+    kind: "generated",
+    map: { size: MAP_SIZES[0] },
+  });
 });

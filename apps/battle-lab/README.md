@@ -53,11 +53,11 @@ always the battle's players, numbered by place on their side, and its preview
 and its Deploy link build one request ([skirmish setup](src/skirmishSetup.ts)),
 so the battle is the one previewed. A battle address names exact preparation
 inputs on the same build. It must name both sides' players and factions; the
-map type, size, map seed and battle seed default when left out. A link with
-humans has exactly one, on Blue. An old-shape link (its `faction` or `enemy`,
-or no players), a wrong value, or a parameter the battle does not read is
-refused by name, never ignored, and a refused seed never silently becomes
-another battle.
+map type, size, map seed and battle seed default when left out, the size to the
+smallest map that fits the players. A link with humans has exactly one, on
+Blue. An old-shape link (its `faction` or `enemy`, or no players), a wrong
+value, or a parameter the battle does not read is refused by name, never
+ignored, and a refused seed never silently becomes another battle.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
 played in order and then over again, each a saved encounter on its own `capture` map

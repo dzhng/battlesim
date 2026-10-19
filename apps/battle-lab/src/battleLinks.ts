@@ -7,13 +7,14 @@
 //   /battle?replay=saved                                 the saved replay of either
 // A battle must name its players: each side's ordered controller codes and
 // its faction. The map type, size, map seed and battle seed may be left out,
-// and then default; `&region=<family>` is optional, and without it the seed
+// and then default (the size to the smallest that fits the players); `&region=<family>` is optional, and without it the seed
 // draws the region. A wrong value, or a parameter the battle does not read
 // (an old link's `faction` or `enemy`), is refused by name, never ignored.
 import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
 import type { Player } from "@web/battle/prepare/protocol";
 import {
   MAX_PLAYERS_PER_SIDE,
+  sizeTier,
   skirmishPlayers,
   type SkirmishBattle,
   type SkirmishSide,
@@ -25,7 +26,6 @@ import {
   MAP_SIZES,
   MAP_TYPES,
   type MapChoice,
-  type MapSize,
   type MapType,
 } from "@web/maps/source";
 
@@ -166,7 +166,8 @@ export function askedBattle(search: string): AskedBattle | { error: string } {
   if (humans.length > 0 && (humans.length > 1 || humans[0].side !== "blue"))
     return { error: "a link with a Human has exactly one Human on Blue" };
   const type = params.get("type") ?? ("mixed" satisfies MapType);
-  const size = params.get("size") ?? ("small" satisfies MapSize);
+  // Without a size, the smallest map that fits the players, as in the lobby.
+  const size = params.get("size") ?? sizeTier(players).size;
   const mapSeed = seed("seed", "1");
   if (!one(type, MAP_TYPES)) return { error: `type must be one of ${MAP_TYPES.join(", ")}` };
   if (!one(size, MAP_SIZES)) return { error: `size must be one of ${MAP_SIZES.join(", ")}` };
