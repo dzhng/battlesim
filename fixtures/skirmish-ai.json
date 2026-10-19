@@ -26,5 +26,12 @@
   "incumbency_bonus": 80.0,
   "group_radius_m": 90.0,
   "staging_distance_m": 180.0,
-  "influence_blend": 0.65
+  "influence_blend": 0.65,
+  "help_trend_threshold": 0.5,
+  "help_force_margin": 1.25,
+  "help_dwell_s": 10,
+  "stance_fallback_influence": -1.0,
+  "stance_push_influence": -0.25,
+  "stance_dwell_s": 20,
+  "push_timeout_s": 30
 }

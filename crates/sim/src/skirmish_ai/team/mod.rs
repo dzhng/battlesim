@@ -4,6 +4,7 @@
 //! of hysteresis in [`TeamMemory`].  It never enters the battle digest: the
 //! accepted command stream remains the replay authority.
 
+use contract::catalog::TypeIndex;
 use contract::encounter::{ObjectiveSite, SkirmishSites};
 use contract::ids::Side;
 use contract::ids::Tick;
@@ -14,6 +15,16 @@ use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::entries::EntryIndex;
+
+mod cohesion;
+mod help;
+mod stance;
+pub use cohesion::{cohesion_sample, group_positions, group_ready, is_group_unit, lane_advancing};
+use cohesion::{group_positions as cohesion_group_positions, group_ready as cohesion_group_ready};
+pub use help::HelpRequest;
+use help::{lane_contexts, update_help};
+use stance::update_stance;
+pub use stance::TeamStance;
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -26,6 +37,13 @@ pub struct TeamTuning {
     pub group_radius_m: f64,
     pub staging_distance_m: f64,
     pub influence_blend: f64,
+    pub help_trend_threshold: f64,
+    pub help_force_margin: f64,
+    pub help_dwell_s: f64,
+    pub stance_fallback_influence: f64,
+    pub stance_push_influence: f64,
+    pub stance_dwell_s: f64,
+    pub push_timeout_s: f64,
 }
 
 impl TeamTuning {
@@ -43,6 +61,15 @@ pub struct TeamMemory {
     cached: Option<TeamPlan>,
     planning_work: usize,
     objective_owners: BTreeMap<String, (Option<Side>, bool)>,
+    previous_influence: BTreeMap<String, f64>,
+    previous_score: Option<f64>,
+    stance: TeamStance,
+    stance_since: Tick,
+    push_wait_since: Option<Tick>,
+    ready_after: Tick,
+    help_locks: BTreeMap<PlayerIndex, help::HelpLock>,
+    ready_groups: BTreeSet<PlayerIndex>,
+    outgunned: BTreeSet<PlayerIndex>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -64,6 +91,10 @@ pub struct PlayerPlan {
 #[derive(Clone, Debug, PartialEq)]
 pub struct TeamPlan {
     pub players: Vec<PlayerPlan>,
+    pub help_requests: Vec<HelpRequest>,
+    pub stance: TeamStance,
+    pub push_started_tick: Option<Tick>,
+    pub outgunned: BTreeSet<PlayerIndex>,
 }
 
 /// The planner only needs the seat topology. Keeping this small view generic
@@ -98,11 +129,74 @@ impl TeamPlan {
     pub fn for_player(&self, player: PlayerIndex) -> Option<&PlayerPlan> {
         self.players.iter().find(|plan| plan.player == player)
     }
+
+    pub fn help_for(&self, player: PlayerIndex) -> Vec<&HelpRequest> {
+        self.help_requests
+            .iter()
+            .filter(|request| request.answered_by == Some(player))
+            .collect()
+    }
+
+    pub fn assignment_for(&self, player: PlayerIndex) -> Option<super::Assignment> {
+        let plan = self.for_player(player)?;
+        let lane_fallback = self.outgunned.contains(&player);
+        let (main_objective, staging_point) = if lane_fallback {
+            (plan.staging_point, plan.staging_point)
+        } else {
+            match self.stance {
+                TeamStance::Push => (plan.main_objective.center, plan.staging_point),
+                TeamStance::Hold | TeamStance::FallBack => (plan.staging_point, plan.staging_point),
+            }
+        };
+        let help = self
+            .help_for(player)
+            .into_iter()
+            .map(|request| super::HelpTask {
+                objective: request.objective.center,
+                detachment: request.detachment.clone(),
+            })
+            .collect::<Vec<_>>();
+        Some(super::Assignment {
+            main_objective,
+            staging_point,
+            force_advance: lane_fallback || self.stance != TeamStance::Hold,
+            help,
+        })
+    }
 }
 
 impl TeamMemory {
     pub fn cached_plan(&self) -> Option<&TeamPlan> {
         self.cached.as_ref()
+    }
+
+    pub fn latch_group_readiness(
+        &mut self,
+        rules: &Rules,
+        frame: &ObservationFrame,
+        group_radius_m: f64,
+    ) {
+        let Some(plan) = self.cached.as_ref() else {
+            return;
+        };
+        if frame.tick < self.ready_after {
+            self.ready_groups.clear();
+            return;
+        }
+        for player in &plan.players {
+            let positions = cohesion_group_positions(
+                rules,
+                frame
+                    .own
+                    .iter()
+                    .filter(|unit| unit.owner == Some(player.player)),
+            );
+            if positions.is_empty() {
+                self.ready_groups.remove(&player.player);
+            } else if cohesion_group_ready(&positions, player.staging_point, group_radius_m) {
+                self.ready_groups.insert(player.player);
+            }
+        }
     }
 }
 
@@ -110,13 +204,14 @@ impl TeamMemory {
 /// order; ties therefore retain the lower player index.
 pub fn plan<'a, P: TeamPlayer>(
     side: Side,
+    rules: &Rules,
     side_frame: &ObservationFrame,
     players: &[P],
     sites: &SkirmishSites,
     memory: &'a mut TeamMemory,
     tuning: TeamTuning,
-    tick_hz: u32,
 ) -> &'a TeamPlan {
+    let tick_hz = rules.tick_hz;
     let current_owners: BTreeMap<_, _> = side_frame
         .skirmish
         .as_ref()
@@ -162,7 +257,11 @@ pub fn plan<'a, P: TeamPlayer>(
         .map(|(index, _)| EntryIndex(index))
         .collect();
     let mut objectives: Vec<_> = sites.objectives.clone();
-    let covered = covered_objectives(side_frame, players, side, &objectives);
+    let covered_by_player = covered_objectives_by_player(side_frame, players, side, &objectives);
+    let covered: BTreeSet<_> = covered_by_player
+        .values()
+        .map(|objective| objective.id.clone())
+        .collect();
     // An objective the side already holds, uncontested, is no assignment
     // while one it doesn't hold remains: neutral or the enemy's.
     let has_untaken = side_frame.skirmish.as_ref().is_some_and(|view| {
@@ -196,8 +295,33 @@ pub fn plan<'a, P: TeamPlayer>(
     }
     let assignment_count = ai.len().min(objectives.len());
     if assignment_count == 0 || lanes.is_empty() {
+        let player_plans = Vec::new();
+        let lane_contexts = lane_contexts(
+            side,
+            players,
+            sites,
+            &player_plans,
+            &covered_by_player,
+            tuning,
+        );
+        let help_requests = update_help(
+            side,
+            side_frame,
+            players,
+            &lane_contexts,
+            memory,
+            tuning,
+            rules,
+        );
+        let previous_stance = memory.stance;
+        let stance = update_stance(side, side_frame, &player_plans, memory, tuning, tick_hz);
         let result = TeamPlan {
-            players: Vec::new(),
+            players: player_plans,
+            help_requests,
+            stance,
+            push_started_tick: (stance == TeamStance::Push && previous_stance != TeamStance::Push)
+                .then_some(side_frame.tick),
+            outgunned: BTreeSet::new(),
         };
         memory.cached = Some(result.clone());
         memory.objective_owners = current_owners;
@@ -321,7 +445,21 @@ pub fn plan<'a, P: TeamPlayer>(
             staging_point,
         });
     }
-    let result = TeamPlan { players: result };
+    let lanes = lane_contexts(side, players, sites, &result, &covered_by_player, tuning);
+    let help_requests = update_help(side, side_frame, players, &lanes, memory, tuning, rules);
+    let previous_stance = memory.stance;
+    if objective_changed {
+        memory.ready_groups.clear();
+    }
+    let stance = update_stance(side, side_frame, &result, memory, tuning, tick_hz);
+    let result = TeamPlan {
+        players: result,
+        help_requests,
+        stance,
+        push_started_tick: (stance == TeamStance::Push && previous_stance != TeamStance::Push)
+            .then_some(side_frame.tick),
+        outgunned: memory.outgunned.clone(),
+    };
     memory.cached = Some(result.clone());
     memory.objective_owners = current_owners;
     memory.next_plan_tick = side_frame
@@ -330,35 +468,42 @@ pub fn plan<'a, P: TeamPlayer>(
     memory.cached.as_ref().expect("team plan cached")
 }
 
-fn covered_objectives<P: TeamPlayer>(
+fn covered_objectives_by_player<P: TeamPlayer>(
     frame: &ObservationFrame,
     players: &[P],
     side: Side,
     objectives: &[ObjectiveSite],
-) -> BTreeSet<String> {
+) -> BTreeMap<PlayerIndex, ObjectiveSite> {
     let human: BTreeSet<_> = players
         .iter()
         .enumerate()
         .filter(|(_, p)| p.side() == side && *p.controller() == ControllerKind::Human)
         .map(|(i, _)| PlayerIndex(i as u16))
         .collect();
-    frame
+    let mut covered = BTreeMap::new();
+    for unit in frame
         .own
         .iter()
-        .filter(|unit| {
-            unit.owner.is_some_and(|owner| human.contains(&owner)) && unit.goal.is_some()
-        })
-        .filter_map(|unit| {
-            let goal = unit.goal?;
+        .filter(|unit| unit.owner.is_some_and(|owner| human.contains(&owner)))
+    {
+        let Some(player) = unit.owner else { continue };
+        let position = [unit.position[0], unit.position[1]];
+        let ordered_objective = unit.goal.and_then(|goal| {
             objectives
                 .iter()
                 .min_by(|a, b| distance(goal, a.center).total_cmp(&distance(goal, b.center)))
-                .and_then(|objective| {
-                    (distance(goal, objective.center) <= objective.radius_m * 2.0)
-                        .then_some(objective.id.clone())
-                })
-        })
-        .collect()
+                .filter(|objective| distance(goal, objective.center) <= objective.radius_m * 2.0)
+                .cloned()
+        });
+        let standing = objectives
+            .iter()
+            .find(|objective| distance(position, objective.center) <= objective.radius_m)
+            .cloned();
+        if let Some(objective) = standing.or(ordered_objective) {
+            covered.entry(player).or_insert_with(|| objective.clone());
+        }
+    }
+    covered
 }
 
 fn build_influence(
@@ -505,477 +650,5 @@ fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
 }
 
-/// Count a main group's members that are inside its lane approach radius.
-/// The caller decides when the army exists and when sampling begins.
-pub fn cohesion_sample(positions: &[[f64; 2]], approach: [f64; 2], radius: f64) -> [u64; 2] {
-    let inside = positions
-        .iter()
-        .filter(|position| distance(**position, approach) <= radius)
-        .count() as u64;
-    [inside, positions.len() as u64]
-}
-
-/// Units that the lane staging/advance branch actually moves as a group.
-pub fn is_group_unit(rules: &Rules, unit: &OwnUnit) -> bool {
-    let catalog = rules.catalog.get(unit.kind);
-    !catalog.has_role("logistics")
-        && !catalog.has_role("recon")
-        && super::transport::carrier_of(unit).is_none()
-        && (crate::carriage::seats(rules, unit.kind) == 0
-            || !rules.catalog.mounts(unit.kind).is_empty())
-}
-
-pub fn group_positions<'a>(
-    rules: &Rules,
-    units: impl IntoIterator<Item = &'a OwnUnit>,
-) -> Vec<[f64; 2]> {
-    units
-        .into_iter()
-        .filter(|unit| is_group_unit(rules, unit))
-        .map(|unit| [unit.position[0], unit.position[1]])
-        .collect()
-}
-
-/// A push may begin once the core of the group is together. One late
-/// reinforcement must not hold the whole lane at staging forever.
-pub fn group_ready(positions: &[[f64; 2]], approach: [f64; 2], radius: f64) -> bool {
-    let sample = cohesion_sample(positions, approach, radius);
-    sample[1] >= 2 && sample[0] * 4 >= sample[1] * 3
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use contract::encounter::{EntrySite, ObjectiveSiteKind};
-
-    fn sites() -> SkirmishSites {
-        SkirmishSites {
-            entries: vec![
-                EntrySite {
-                    side: Side::Blue,
-                    center: [100.0, 0.0],
-                    yaw: 0.0,
-                },
-                EntrySite {
-                    side: Side::Blue,
-                    center: [300.0, 0.0],
-                    yaw: 0.0,
-                },
-                EntrySite {
-                    side: Side::Blue,
-                    center: [500.0, 0.0],
-                    yaw: 0.0,
-                },
-                EntrySite {
-                    side: Side::Red,
-                    center: [100.0, 1000.0],
-                    yaw: 0.0,
-                },
-                EntrySite {
-                    side: Side::Red,
-                    center: [300.0, 1000.0],
-                    yaw: 0.0,
-                },
-                EntrySite {
-                    side: Side::Red,
-                    center: [500.0, 1000.0],
-                    yaw: 0.0,
-                },
-            ],
-            objectives: vec![
-                ObjectiveSite {
-                    id: "west".into(),
-                    center: [100.0, 500.0],
-                    radius_m: 30.0,
-                    kind: ObjectiveSiteKind::Field,
-                    counterpart: None,
-                },
-                ObjectiveSite {
-                    id: "centre".into(),
-                    center: [300.0, 500.0],
-                    radius_m: 30.0,
-                    kind: ObjectiveSiteKind::Junction,
-                    counterpart: None,
-                },
-                ObjectiveSite {
-                    id: "east".into(),
-                    center: [500.0, 500.0],
-                    radius_m: 30.0,
-                    kind: ObjectiveSiteKind::Field,
-                    counterpart: None,
-                },
-            ],
-            candidates: vec![],
-        }
-    }
-
-    fn players() -> Vec<Player> {
-        (0..3)
-            .map(|index| Player {
-                id: format!("blue-{}", index + 1),
-                side: Side::Blue,
-                faction: Some(contract::catalog::Faction::Us),
-                controller: ControllerKind::ActiveAi,
-                human_capable: false,
-            })
-            .chain((0..3).map(|index| Player {
-                id: format!("red-{}", index + 1),
-                side: Side::Red,
-                faction: Some(contract::catalog::Faction::Europe),
-                controller: ControllerKind::ActiveAi,
-                human_capable: false,
-            }))
-            .collect()
-    }
-
-    #[test]
-    fn three_ai_players_get_distinct_lanes_and_objectives() {
-        let players = players();
-        let sites = sites();
-        let mut memory = TeamMemory::default();
-        let plan = plan(
-            Side::Blue,
-            &ObservationFrame::default(),
-            &players,
-            &sites,
-            &mut memory,
-            TeamTuning {
-                planner_decision_s: 5.0,
-                grid_resolution: 4,
-                distance_weight: 1.0,
-                influence_weight: 1.0,
-                incumbency_bonus: 80.0,
-                group_radius_m: 90.0,
-                staging_distance_m: 100.0,
-                influence_blend: 0.5,
-            },
-            30,
-        );
-        assert_eq!(plan.players.len(), 3);
-        assert_eq!(
-            plan.players
-                .iter()
-                .map(|player| player.lane)
-                .collect::<BTreeSet<_>>()
-                .len(),
-            3
-        );
-        assert_eq!(
-            plan.players
-                .iter()
-                .map(|player| player.main_objective.id.clone())
-                .collect::<BTreeSet<_>>()
-                .len(),
-            3
-        );
-    }
-
-    #[test]
-    fn a_large_team_plan_uses_bounded_assignment_work() {
-        let mut players = players();
-        players.truncate(3);
-        for index in 3..10 {
-            players.push(Player {
-                id: format!("blue-{}", index + 1),
-                side: Side::Blue,
-                faction: Some(contract::catalog::Faction::Us),
-                controller: ControllerKind::ActiveAi,
-                human_capable: false,
-            });
-        }
-        let mut sites = sites();
-        for index in 3..7 {
-            let mut objective = sites.objectives[index % 3].clone();
-            objective.id = format!("extra-{index}");
-            objective.center[0] += 25.0 * index as f64;
-            sites.objectives.push(objective);
-        }
-        let mut memory = TeamMemory::default();
-        let plan = plan(
-            Side::Blue,
-            &ObservationFrame::default(),
-            &players,
-            &sites,
-            &mut memory,
-            TeamTuning {
-                planner_decision_s: 5.0,
-                grid_resolution: 4,
-                distance_weight: 1.0,
-                influence_weight: 1.0,
-                incumbency_bonus: 80.0,
-                group_radius_m: 90.0,
-                staging_distance_m: 100.0,
-                influence_blend: 0.5,
-            },
-            30,
-        );
-        assert_eq!(plan.players.len(), 7);
-        assert!(
-            memory.planning_work < 100_000,
-            "work={}",
-            memory.planning_work
-        );
-    }
-
-    #[test]
-    fn three_ai_players_reuse_two_lane_slots() {
-        let players = players();
-        let mut sites = sites();
-        sites.entries.retain(|entry| {
-            entry.side == Side::Red && entry.center[0] < 400.0
-                || entry.side == Side::Blue && entry.center[0] < 400.0
-        });
-        let mut memory = TeamMemory::default();
-        let plan = plan(
-            Side::Blue,
-            &ObservationFrame::default(),
-            &players,
-            &sites,
-            &mut memory,
-            TeamTuning {
-                planner_decision_s: 5.0,
-                grid_resolution: 4,
-                distance_weight: 1.0,
-                influence_weight: 1.0,
-                incumbency_bonus: 80.0,
-                group_radius_m: 90.0,
-                staging_distance_m: 100.0,
-                influence_blend: 0.5,
-            },
-            30,
-        );
-        assert_eq!(plan.players.len(), 3);
-    }
-
-    /// One AI beside a human on a three-lane side. Its only open objective
-    /// lies in front of the third lane, so that is the lane it plans for: the
-    /// first lane (the centre entry) is a candidate like any other, never the
-    /// only one.
-    #[test]
-    fn a_lone_ai_takes_the_lane_nearest_its_objective_not_the_first() {
-        let mut players = players();
-        players[0].controller = ControllerKind::Human;
-        players[2].controller = ControllerKind::Human;
-        let mut sites = sites();
-        sites.objectives.retain(|objective| objective.id == "east");
-        let mut memory = TeamMemory::default();
-        let plan = plan(
-            Side::Blue,
-            &ObservationFrame::default(),
-            &players,
-            &sites,
-            &mut memory,
-            TeamTuning {
-                planner_decision_s: 5.0,
-                grid_resolution: 4,
-                distance_weight: 1.0,
-                influence_weight: 1.0,
-                incumbency_bonus: 80.0,
-                group_radius_m: 90.0,
-                staging_distance_m: 100.0,
-                influence_blend: 0.5,
-            },
-            30,
-        );
-        assert_eq!(plan.players.len(), 1);
-        assert_eq!(plan.players[0].player, PlayerIndex(1));
-        assert_eq!(plan.players[0].main_objective.id, "east");
-        assert_eq!(
-            plan.players[0].lane,
-            EntryIndex(2),
-            "the lane in front of its objective"
-        );
-    }
-
-    #[test]
-    fn planning_is_repeatable_and_incumbency_survives_a_marginal_score_change() {
-        let players = players();
-        let sites = sites();
-        let mut memory = TeamMemory::default();
-        let tuning = TeamTuning {
-            planner_decision_s: 5.0,
-            grid_resolution: 4,
-            distance_weight: 1.0,
-            influence_weight: 1.0,
-            incumbency_bonus: 80.0,
-            group_radius_m: 90.0,
-            staging_distance_m: 100.0,
-            influence_blend: 0.5,
-        };
-        let first = plan(
-            Side::Blue,
-            &ObservationFrame::default(),
-            &players,
-            &sites,
-            &mut memory,
-            tuning,
-            30,
-        );
-        let first = first.clone();
-        let second = plan(
-            Side::Blue,
-            &ObservationFrame::default(),
-            &players,
-            &sites,
-            &mut memory,
-            tuning,
-            30,
-        );
-        assert_eq!(first, second.clone());
-    }
-
-    #[test]
-    #[allow(clippy::field_reassign_with_default)]
-    fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
-        let players = players();
-        let mut sites = sites();
-        sites.objectives.truncate(3);
-        let mut memory = TeamMemory::default();
-        let tuning = TeamTuning {
-            planner_decision_s: 5.0,
-            grid_resolution: 4,
-            distance_weight: 1.0,
-            influence_weight: 1.0,
-            incumbency_bonus: 80.0,
-            group_radius_m: 90.0,
-            staging_distance_m: 100.0,
-            influence_blend: 0.5,
-        };
-        let mut frame = ObservationFrame::default();
-        frame.skirmish = Some(contract::skirmish::SkirmishView {
-            phase: contract::skirmish::Phase::Active,
-            players: vec![contract::skirmish::PlayerView {
-                index: PlayerIndex(0),
-                id: "blue-1".into(),
-                controller: ControllerKind::ActiveAi,
-                ready: true,
-                credits: 0.0,
-                unit_count: 0,
-                cap: 30,
-                pending: vec![],
-            }],
-            ready: [true, false],
-            preparation_remaining_s: 0.0,
-            credits: 0.0,
-            unit_count: 0,
-            max_units: 30,
-            pending: vec![],
-            objectives: sites
-                .objectives
-                .iter()
-                .map(|objective| contract::skirmish::ObjectiveView {
-                    id: objective.id.clone(),
-                    center: objective.center,
-                    radius_m: objective.radius_m,
-                    owner: None,
-                    capturing: None,
-                    capture_progress: 0.0,
-                    contested: false,
-                })
-                .collect(),
-            scores: [0.0; 2],
-            result: None,
-            report: None,
-        });
-        let first = plan(
-            Side::Blue,
-            &frame,
-            &players,
-            &sites,
-            &mut memory,
-            tuning,
-            30,
-        );
-        let first_id = first.players[0].main_objective.id.clone();
-        let first_plan = first.clone();
-        frame
-            .skirmish
-            .as_mut()
-            .unwrap()
-            .objectives
-            .iter_mut()
-            .find(|objective| objective.id == first_id)
-            .unwrap()
-            .contested = true;
-        frame.tick = 1;
-        let flicker = plan(
-            Side::Blue,
-            &frame,
-            &players,
-            &sites,
-            &mut memory,
-            tuning,
-            30,
-        );
-        assert_eq!(flicker, &first_plan);
-        frame
-            .skirmish
-            .as_mut()
-            .unwrap()
-            .objectives
-            .iter_mut()
-            .find(|objective| objective.id == first_id)
-            .unwrap()
-            .contested = false;
-        frame.tick = 2;
-        let stable = plan(
-            Side::Blue,
-            &frame,
-            &players,
-            &sites,
-            &mut memory,
-            tuning,
-            30,
-        );
-        assert_eq!(stable, &first_plan);
-        let view = frame.skirmish.as_mut().unwrap();
-        view.objectives
-            .iter_mut()
-            .find(|objective| objective.id == first_id)
-            .unwrap()
-            .owner = Some(Side::Blue);
-        frame.tick = 1;
-        let second = plan(
-            Side::Blue,
-            &frame,
-            &players,
-            &sites,
-            &mut memory,
-            tuning,
-            30,
-        );
-        assert_ne!(second.players[0].main_objective.id, first_id);
-
-        // With nothing neutral left, the enemy's objectives are still the ones
-        // to take: the AI does not settle back on the one it holds.
-        // Blue now holds its current assignment, the enemy holds the rest.
-        let second_id = second.players[0].main_objective.id.clone();
-        for objective in &mut frame.skirmish.as_mut().unwrap().objectives {
-            objective.owner = Some(if objective.id == second_id {
-                Side::Blue
-            } else {
-                Side::Red
-            });
-        }
-        frame.tick = 2;
-        let third = plan(
-            Side::Blue,
-            &frame,
-            &players,
-            &sites,
-            &mut memory,
-            tuning,
-            30,
-        );
-        assert_ne!(third.players[0].main_objective.id, second_id);
-    }
-
-    #[test]
-    fn cohesion_counts_a_gathered_group_and_rejects_a_spread_group() {
-        let gathered = [[95.0, 100.0], [100.0, 105.0], [105.0, 95.0]];
-        let spread = [[95.0, 100.0], [100.0, 105.0], [500.0, 500.0]];
-        assert_eq!(cohesion_sample(&gathered, [100.0, 100.0], 20.0), [3, 3]);
-        assert_eq!(cohesion_sample(&spread, [100.0, 100.0], 20.0), [2, 3]);
-        assert!(!group_ready(&spread, [100.0, 100.0], 20.0));
-    }
-}
+mod tests;

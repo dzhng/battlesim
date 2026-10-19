@@ -2,9 +2,9 @@ use super::inputs::{prepare_row, Inputs};
 use super::model::{ProgressSignature, Report, Row, Status};
 use contract::catalog::Faction;
 use contract::command::Order;
-use contract::ids::Side;
+use contract::ids::{Side, Tick};
 use contract::scenario::Rules;
-use sim::skirmish_ai::team::{cohesion_sample, group_ready};
+use sim::skirmish_ai::team::{cohesion_sample, group_ready, lane_advancing};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
@@ -49,6 +49,7 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         objective_first_owner_ticks: BTreeMap::new(),
         objective_owned_ticks: [BTreeMap::new(), BTreeMap::new()],
         peak_objectives_held: [0, 0],
+        peak_simultaneous_lanes: [0, 0],
         cohesion: BTreeMap::new(),
         first_contact_tick: None,
         recon_sightings: 0,
@@ -63,6 +64,15 @@ fn empty_report(id: String, factions: [Faction; 2]) -> Report {
         recon_range_m: 0.0,
         launcher_held_s: BTreeMap::new(),
         air: None,
+        help_requests_raised: 0,
+        help_requests_answered: 0,
+        detachment_sizes: Vec::new(),
+        detachment_kinds: Vec::new(),
+        pushes_started: 0,
+        pushes_synchronized: 0,
+        push_lanes_falling_back: 0,
+        pushes_stale_plan: 0,
+        every_lane_advanced_within_interval: true,
     }
 }
 
@@ -113,6 +123,11 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     let mut stagnant = 0;
     let mut previous: Option<ProgressSignature> = None;
     let mut cohesion_started = BTreeSet::new();
+    let mut seen_help = BTreeSet::new();
+    let mut seen_answers = BTreeSet::new();
+    let mut detachment_keys = BTreeSet::new();
+    let mut seen_pushes = BTreeSet::new();
+    let mut pending_pushes: Vec<(Side, Tick, Vec<sim::skirmish_ai::PlayerPlan>)> = Vec::new();
     while report.ticks < row.horizon_ticks {
         for plan in battle.team_plans().iter().flatten() {
             for player_plan in &plan.players {
@@ -135,7 +150,7 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                         .iter()
                         .filter(|unit| unit.owner == Some(player_plan.player)),
                 );
-                let group_radius = sim::skirmish_ai::team::TeamTuning::shipped().group_radius_m;
+                let group_radius = battle.team_tuning().group_radius_m;
                 if group_ready(&positions, player_plan.staging_point, group_radius) {
                     cohesion_started.insert(player.id.clone());
                 }
@@ -150,6 +165,121 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
         }
         battle.step();
         report.ticks += 1;
+        let tuning = battle.team_tuning();
+        for side in Side::COMBATANTS {
+            let Some(plan) = battle.team_plans()[side.index()] else {
+                continue;
+            };
+            let active_lanes = plan
+                .players
+                .iter()
+                .filter(|player| {
+                    let units: Vec<_> = battle
+                        .observe(side)
+                        .own
+                        .iter()
+                        .filter(|unit| unit.owner == Some(player.player))
+                        .collect();
+                    lane_advancing(&setup.rules, &units, player)
+                })
+                .count() as u64;
+            report.peak_simultaneous_lanes[side.index()] =
+                report.peak_simultaneous_lanes[side.index()].max(active_lanes);
+            for request in &plan.help_requests {
+                let key = (
+                    side.index() as u8,
+                    request.requester.0,
+                    request.objective.id.clone(),
+                    request.raised_tick,
+                );
+                if seen_help.insert(key) {
+                    report.help_requests_raised += 1;
+                }
+                if request.answered_by.is_some()
+                    && seen_answers.insert((
+                        side.index() as u8,
+                        request.requester.0,
+                        request.objective.id.clone(),
+                        request.raised_tick,
+                    ))
+                {
+                    report.help_requests_answered += 1;
+                }
+                let detachment_key = (
+                    side.index() as u8,
+                    request.requester.0,
+                    request.objective.id.clone(),
+                    request.raised_tick,
+                );
+                if detachment_keys.insert(detachment_key) {
+                    report
+                        .detachment_sizes
+                        .push(request.detachment.len() as u32);
+                    let kinds = request
+                        .detachment
+                        .iter()
+                        .filter_map(|id| {
+                            battle
+                                .observe(side)
+                                .own
+                                .iter()
+                                .find(|unit| unit.id == *id)
+                                .map(|unit| setup.rules.catalog.id(unit.kind).into())
+                        })
+                        .collect();
+                    report.detachment_kinds.push(kinds);
+                }
+            }
+            if let Some(tick) = plan.push_started_tick {
+                if seen_pushes.insert((side.index() as u8, tick)) {
+                    report.pushes_started += 1;
+                    report.push_lanes_falling_back += plan.outgunned.len() as u32;
+                    // A lane that is independently outgunned is falling back
+                    // as its own assignment. It is not a lane this push
+                    // sends, so do not make it fail the team's synchrony
+                    // measure.
+                    let sent = plan
+                        .players
+                        .iter()
+                        .filter(|player| !plan.outgunned.contains(&player.player))
+                        .cloned()
+                        .collect();
+                    pending_pushes.push((side, tick, sent));
+                }
+            }
+        }
+        let interval = (tuning.planner_decision_s * f64::from(setup.rules.tick_hz)) as Tick;
+        let mut still_pending = Vec::new();
+        for (side, started, players) in pending_pushes.drain(..) {
+            let stale = battle.team_plans()[side.index()].is_some_and(|current| {
+                players.iter().any(|old| {
+                    current
+                        .for_player(old.player)
+                        .is_none_or(|new| new.main_objective.id != old.main_objective.id)
+                })
+            });
+            if stale {
+                report.pushes_stale_plan += 1;
+                continue;
+            }
+            let advanced = players.iter().all(|player| {
+                let units: Vec<_> = battle
+                    .observe(side)
+                    .own
+                    .iter()
+                    .filter(|unit| unit.owner == Some(player.player))
+                    .collect();
+                lane_advancing(&setup.rules, &units, player)
+            });
+            if advanced {
+                report.pushes_synchronized += 1;
+            } else if battle.observe(side).tick.saturating_sub(started) >= interval {
+                report.every_lane_advanced_within_interval = false;
+            } else {
+                still_pending.push((side, started, players));
+            }
+        }
+        pending_pushes = still_pending;
         for side in Side::COMBATANTS {
             let frame = battle.observe(side);
             if !frame.contacts.is_empty() || !frame.identified.is_empty() {
@@ -298,6 +428,9 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
     }
     if matches!(report.status, Status::Refused) && report.ticks >= row.horizon_ticks {
         report.status = Status::Timeout;
+    }
+    if !pending_pushes.is_empty() {
+        report.every_lane_advanced_within_interval = false;
     }
     report.battle_digest = battle.digest();
     // Battle owns all policy acceptance and refusal evidence.

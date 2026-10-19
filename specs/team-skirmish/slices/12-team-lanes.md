@@ -8,7 +8,7 @@ AI players fight as concentrated combined-arms groups in their own lanes, so a t
 
 ## Seam
 
-- **Planner.** `crates/sim/src/skirmish_ai/team.rs` (new) provides `plan(side_frame, players, sites, memory) -> TeamPlan`. `TeamPlan` holds, per AI player:
+- **Planner.** `crates/sim/src/skirmish_ai/team/mod.rs` (new) provides `plan(side_frame, players, sites, memory) -> TeamPlan`. `TeamPlan` holds, per AI player:
   - a lane (`EntryIndex`);
   - a main objective;
   - a staging point.

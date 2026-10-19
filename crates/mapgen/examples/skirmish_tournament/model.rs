@@ -72,6 +72,7 @@ pub(crate) struct Report {
     pub(crate) objective_first_owner_ticks: std::collections::BTreeMap<String, u64>,
     pub(crate) objective_owned_ticks: [std::collections::BTreeMap<String, u64>; 2],
     pub(crate) peak_objectives_held: [u64; 2],
+    pub(crate) peak_simultaneous_lanes: [u64; 2],
     pub(crate) cohesion: std::collections::BTreeMap<String, [u64; 2]>,
     pub(crate) first_contact_tick: Option<u64>,
     pub(crate) recon_sightings: u32,
@@ -90,6 +91,15 @@ pub(crate) struct Report {
     /// (`BlockedTrajectory`), both sides summed.
     pub(crate) launcher_held_s: std::collections::BTreeMap<String, f64>,
     pub(crate) air: Option<[super::runner::AirSide; 2]>,
+    pub(crate) help_requests_raised: u32,
+    pub(crate) help_requests_answered: u32,
+    pub(crate) detachment_sizes: Vec<u32>,
+    pub(crate) detachment_kinds: Vec<Vec<String>>,
+    pub(crate) pushes_started: u32,
+    pub(crate) pushes_synchronized: u32,
+    pub(crate) push_lanes_falling_back: u32,
+    pub(crate) pushes_stale_plan: u32,
+    pub(crate) every_lane_advanced_within_interval: bool,
 }
 
 pub(crate) type MovementSignature = Vec<(u32, u64, u64, Option<(u64, u64)>)>;

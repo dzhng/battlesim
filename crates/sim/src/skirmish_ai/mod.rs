@@ -9,7 +9,9 @@ use contract::skirmish::Phase;
 use contract::weapons::{TargetClass, WeaponDefinition};
 use std::collections::BTreeMap;
 
+mod artillery;
 pub mod team;
+use artillery::{artillery_ground_guess, artillery_objective_guess};
 mod transport;
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
 
@@ -30,6 +32,14 @@ pub trait SkirmishPolicy {
 pub struct Assignment {
     pub main_objective: [f64; 2],
     pub staging_point: [f64; 2],
+    pub force_advance: bool,
+    pub help: Vec<HelpTask>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct HelpTask {
+    pub objective: [f64; 2],
+    pub detachment: Vec<UnitId>,
 }
 
 #[derive(Clone, Copy)]
@@ -853,6 +863,13 @@ impl BalancedDoctrine {
                         if !team::is_group_unit(rules, unit) {
                             return false;
                         }
+                        if context
+                            .help
+                            .iter()
+                            .any(|help| help.detachment.contains(&unit.id))
+                        {
+                            return false;
+                        }
                         if carries(unit)
                             && (transport::passengers(frame, unit.id).next().is_some()
                                 || own.iter().any(|squad| {
@@ -899,7 +916,8 @@ impl BalancedDoctrine {
                                 .is_some_and(|goal| distance(goal, context.staging_point) <= radius)
                     }),
                 );
-                let ready = team::group_ready(&positions, context.staging_point, radius);
+                let ready = context.force_advance
+                    || team::group_ready(&positions, context.staging_point, radius);
                 if ready {
                     self.group_advance = Some(context.clone());
                 }
@@ -938,7 +956,13 @@ impl BalancedDoctrine {
                             rules,
                             unit,
                             context.map(|context| {
-                                if group_ready {
+                                if let Some(help) = context
+                                    .help
+                                    .iter()
+                                    .find(|help| help.detachment.contains(&unit.id))
+                                {
+                                    help.objective
+                                } else if group_ready {
                                     context.main_objective
                                 } else {
                                     context.staging_point
@@ -965,6 +989,45 @@ impl BalancedDoctrine {
                         });
                         continue;
                     }
+                }
+                // A team push (or a lane fallback/help task) is an explicit
+                // movement order. Give that order priority over a stale
+                // attack target so every lane the team sends actually starts
+                // toward its assigned point in this decision interval.
+                if let Some(context) = context.filter(|context| {
+                    context.force_advance
+                        && team::is_group_unit(rules, unit)
+                        && !(rules.catalog.get(unit.kind).has_role("artillery")
+                            || rules.catalog.get(unit.kind).mobility.layer()
+                                != AltitudeLayer::Ground)
+                }) {
+                    let objective = context
+                        .help
+                        .iter()
+                        .find(|help| help.detachment.contains(&unit.id))
+                        .map_or(context.main_objective, |help| help.objective);
+                    if self.worth_riding(frame, rules, entry, unit, objective)
+                        && transport::wait_for_ride(
+                            rules,
+                            unit,
+                            &mut free,
+                            &mut collect,
+                            &mut orders,
+                            route_time,
+                        )
+                    {
+                        continue;
+                    }
+                    if live_goal(unit).is_none_or(|old| {
+                        distance(old, objective) > self.tuning.team.group_radius_m
+                    }) {
+                        orders.push(Order::AttackMove {
+                            units: vec![unit.id],
+                            gesture: frame.tick,
+                            goal: objective,
+                        });
+                    }
+                    continue;
                 }
                 if unit.engagement == contract::command::Engagement::FireAtWill {
                     let jet = is_jet(rules, unit.kind);
@@ -1033,8 +1096,12 @@ impl BalancedDoctrine {
                     }
                 }
                 if let Some(context) = context {
+                    let help = context
+                        .help
+                        .iter()
+                        .find(|help| help.detachment.contains(&unit.id));
                     let catalog = rules.catalog.get(unit.kind);
-                    let objective = context.main_objective;
+                    let objective = help.map_or(context.main_objective, |help| help.objective);
                     if catalog.has_role("recon") {
                         let goal = recon_post(unit, &self.tuning, objective, entry.center);
                         if route_time(unit.id, goal).is_some() {
@@ -1050,6 +1117,31 @@ impl BalancedDoctrine {
                                 )),
                             });
                         }
+                        continue;
+                    }
+                    if help.is_some() {
+                        if self.worth_riding(frame, rules, entry, unit, objective)
+                            && transport::wait_for_ride(
+                                rules,
+                                unit,
+                                &mut free,
+                                &mut collect,
+                                &mut orders,
+                                route_time,
+                            )
+                        {
+                            continue;
+                        }
+                        if live_goal(unit)
+                            .is_some_and(|old| distance(old, objective) <= self.tuning.reaim_m)
+                        {
+                            continue;
+                        }
+                        orders.push(Order::AttackMove {
+                            units: vec![unit.id],
+                            gesture: frame.tick,
+                            goal: objective,
+                        });
                         continue;
                     }
                     if view
@@ -1264,10 +1356,21 @@ fn ground_distance(a: [f64; 3], b: [f64; 3]) -> f64 {
     libm::hypot(a[0] - b[0], a[1] - b[1])
 }
 
-fn unit_can_engage_target(rules: &Rules, kind: TypeIndex, target: TypeIndex) -> bool {
+pub(crate) fn unit_can_engage_target(rules: &Rules, kind: TypeIndex, target: TypeIndex) -> bool {
     let target = rules.catalog.get(target);
     let (layer, class) = (target.mobility.layer(), target.target_class());
     unit_weapons(rules, kind).any(|weapon| weapon.engages(layer, Some(class)).is_some())
+}
+
+/// Whether a unit has at least one authored weapon that can engage a ground
+/// target. The target class comes from the weapon row; unit roles never decide
+/// whether a detachment can answer a lane.
+pub(crate) fn unit_can_engage_ground(rules: &Rules, kind: TypeIndex) -> bool {
+    unit_weapons(rules, kind).any(|weapon| {
+        [TargetClass::Infantry, TargetClass::Vehicle]
+            .into_iter()
+            .any(|class| weapon.engages(AltitudeLayer::Ground, Some(class)).is_some())
+    })
 }
 
 /// The nearest enemy to `from` that the side identifies on the ground and
@@ -1306,141 +1409,6 @@ fn engages_aircraft(weapon: &WeaponDefinition, layer: AltitudeLayer) -> bool {
     [TargetClass::AirRotor, TargetClass::AirFixedWing]
         .into_iter()
         .any(|class| weapon.engages(layer, Some(class)).is_some())
-}
-
-/// A ground point is eligible only when one mounted indirect weapon can
-/// reach it. Separate envelopes must never be merged across a dead zone.
-fn artillery_in_range(
-    unit: &contract::observation::OwnUnit,
-    rules: &Rules,
-    point: [f64; 3],
-) -> bool {
-    let range = ground_distance(unit.position, point);
-    rules
-        .catalog
-        .mounts(unit.kind)
-        .iter()
-        .flat_map(|mount| &mount.def.weapons)
-        .filter_map(|id| rules.weapons.get(id))
-        .filter(|weapon| weapon.ballistics.trajectory == contract::ballistics::Trajectory::Indirect)
-        .any(|weapon| {
-            weapon
-                .against(AltitudeLayer::Ground)
-                .is_some_and(|fire| range >= weapon.min_range_m && range <= fire.range_m)
-        })
-}
-
-/// Contacts have no emitter identity or motion. Retained sightings have a
-/// side-scoped observed handle, so they can predict only their own last view.
-fn artillery_ground_guess(
-    unit: &contract::observation::OwnUnit,
-    frame: &ObservationFrame,
-    rules: &Rules,
-    tuning: &Tuning,
-    sightings: &BTreeMap<ObservedTargetId, ArtillerySighting>,
-) -> Option<[f64; 3]> {
-    let horizon = Tuning::ticks(tuning.sighting_horizon_s, rules.tick_hz);
-    let contacts = frame
-        .contacts
-        .iter()
-        .filter(|contact| {
-            contact.layer == AltitudeLayer::Ground
-                && !contact.aloft
-                && contact.evidence_tick <= frame.tick
-                && frame.tick <= contact.expires_tick
-                && frame.tick - contact.evidence_tick <= horizon
-        })
-        .filter_map(|contact| {
-            let angle = f64::from(contact.id.0) * 2.399963229728653;
-            let bias = contact.radius.min(tuning.aim_cap_m) * tuning.contact_aim_share;
-            let point = [
-                contact.center[0] + libm::cos(angle) * bias,
-                contact.center[1] + libm::sin(angle) * bias,
-                contact.center[2],
-            ];
-            // Reverse the uncertain displacement at a range edge; a report
-            // cannot turn into an exact emitter fix merely to make it fire.
-            let opposite = [
-                contact.center[0] - libm::cos(angle) * bias,
-                contact.center[1] - libm::sin(angle) * bias,
-                contact.center[2],
-            ];
-            [point, opposite]
-                .into_iter()
-                .find(|point| artillery_in_range(unit, rules, *point))
-                .map(|point| (point, contact.id.0))
-        });
-    let predicted = sightings
-        .iter()
-        .filter(|(id, seen)| {
-            !frame.identified.iter().any(|target| target.id == **id)
-                && seen.tick <= frame.tick
-                && frame.tick - seen.tick <= horizon
-        })
-        .filter_map(|(id, seen)| {
-            let seconds = (frame.tick - seen.tick) as f64 / f64::from(rules.tick_hz);
-            let point = [
-                seen.position[0] + seen.velocity[0] * seconds,
-                seen.position[1] + seen.velocity[1] * seconds,
-                seen.position[2],
-            ];
-            artillery_in_range(unit, rules, point).then_some((point, id.0))
-        });
-    contacts
-        .chain(predicted)
-        .min_by(|(a, ai), (b, bi)| {
-            ground_distance(unit.position, *a)
-                .total_cmp(&ground_distance(unit.position, *b))
-                .then(ai.cmp(bi))
-        })
-        .map(|(point, _)| point)
-}
-
-/// Public enemy-held or contested objectives support a fallible route guess.
-/// Neutral empty flags alone reveal no enemy presence and do not justify fire.
-fn artillery_objective_guess(
-    unit: &contract::observation::OwnUnit,
-    side: Side,
-    entry: &EntrySite,
-    frame: &ObservationFrame,
-    rules: &Rules,
-    tuning: &Tuning,
-    route_time: &mut dyn FnMut(UnitId, [f64; 2]) -> Option<f64>,
-) -> Option<[f64; 3]> {
-    frame
-        .skirmish
-        .as_ref()?
-        .objectives
-        .iter()
-        .filter(|objective| {
-            objective.owner.is_some_and(|owner| owner != side)
-                || objective.contested
-                || objective.capturing.is_some_and(|owner| owner != side)
-        })
-        .filter_map(|objective| {
-            // Aim at the far approach to the objective from our public entry,
-            // never at a hidden occupant or a guaranteed centre-point hit.
-            let dx = objective.center[0] - entry.center[0];
-            let dy = objective.center[1] - entry.center[1];
-            let length = libm::hypot(dx, dy);
-            if length <= 0.0 {
-                return None;
-            }
-            let offset = objective.radius_m.min(tuning.aim_cap_m) * tuning.objective_aim_share;
-            let point = [
-                objective.center[0] + dx / length * offset,
-                objective.center[1] + dy / length * offset,
-                unit.position[2],
-            ];
-            if !artillery_in_range(unit, rules, point) {
-                return None;
-            }
-            route_time(unit.id, [point[0], point[1]])
-                .filter(|time| time.is_finite() && *time >= 0.0)
-                .map(|time| (point, time, &objective.id))
-        })
-        .min_by(|(_, at, ai), (_, bt, bi)| at.total_cmp(bt).then(ai.cmp(bi)))
-        .map(|(point, _, _)| point)
 }
 
 fn recon_post(

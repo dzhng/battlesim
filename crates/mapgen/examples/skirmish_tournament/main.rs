@@ -21,7 +21,13 @@ use inputs::Inputs;
 use model::{Corpus, GeneratedMap, MapSource, Row};
 use runner::run_safe;
 
-const DEFAULT_MAX_BATTLE_SECONDS: u64 = 1_800;
+/// The safety cap when no `--max-seconds` is given: the preparation plus
+/// three times the majority hold, so a contested match can still end by the
+/// rules (`fixtures/skirmish.json`) rather than the cap.
+fn default_max_battle_seconds() -> u64 {
+    let rules = sim::skirmish::starter_rules();
+    u64::from(rules.preparation_s) + 3 * u64::from(rules.majority_s)
+}
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -80,7 +86,7 @@ fn main() {
             .unwrap_or_else(random_seed);
         let max_seconds = value("--max-seconds")
             .map(|value| value.parse::<u64>().expect("--max-seconds must be a u64"))
-            .unwrap_or(DEFAULT_MAX_BATTLE_SECONDS);
+            .unwrap_or_else(default_max_battle_seconds);
         let players_per_side = value("--players")
             .map(|value| {
                 value
@@ -144,10 +150,21 @@ mod tests {
     use runner::run;
 
     #[test]
+    fn the_default_cap_leaves_room_to_win_by_holding_a_majority() {
+        // A side holding a bare majority from the first second wins after the
+        // preparation and `majority_s`; the cap must let a contested match go
+        // well past that, or the tournament reports a timeout the rules
+        // would have decided.
+        let rules = sim::skirmish::starter_rules();
+        let ideal = u64::from(rules.preparation_s) + u64::from(rules.majority_s);
+        assert!(default_max_battle_seconds() >= 2 * ideal);
+    }
+
+    #[test]
     fn default_self_play_is_a_generated_small_map() {
-        let row = self_play_row_with_players(17, DEFAULT_MAX_BATTLE_SECONDS, 30, 1);
+        let row = self_play_row_with_players(17, 600, 30, 1);
         assert_eq!(row.seed, 17);
-        assert_eq!(row.horizon_ticks, 54_000);
+        assert_eq!(row.horizon_ticks, 18_000);
         assert_eq!(row.no_progress_ticks, u64::MAX);
         assert!(matches!(
             row.map,
