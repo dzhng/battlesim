@@ -24,6 +24,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::arrangement;
 
+mod controllers;
 mod dispatch;
 mod skirmish_turn;
 mod state_digest;
@@ -572,15 +573,7 @@ fn spawn_unit(
         stalls: (f64::INFINITY, 0),
         pursuit: None,
         planned_goal: None,
-        // Neutral is a passive world actor: it may answer an attacker through
-        // the normal return-fire threat path, but it never acquires a target
-        // on its own. An authored engagement policy cannot override that
-        // topology rule.
-        engagement: if u.side == Side::Neutral {
-            Engagement::ReturnFireOnly
-        } else {
-            u.engagement.unwrap_or(Engagement::FireAtWill)
-        },
+        engagement: controllers::engagement(u.side, None, u.engagement),
         air: airborne.then(|| {
             let fuel_s = t
                 .capabilities
@@ -1425,29 +1418,6 @@ impl Battle {
         }
     }
 
-    /// Install the per-slot controller state chosen at play admission. AI
-    /// orders still enter `accept`, while passive slots only retain return fire.
-    pub fn set_controllers(&mut self, controllers: Vec<(String, ControllerKind)>) {
-        for (slot, controller) in controllers {
-            let transition = ControllerTransition {
-                tick: self.tick,
-                player: slot,
-                controller,
-            };
-            self.apply_controller(&transition);
-            self.controller_transitions.push(transition);
-        }
-    }
-
-    /// Whether `player` is controlled by AI right now. The controller map is
-    /// installed for every skirmish player at tick zero and updated by
-    /// `apply_controller`; a slot absent from it remains client-controlled.
-    fn ai_controlled(&self, player: Option<&str>) -> bool {
-        player
-            .and_then(|player| self.controllers.get(player))
-            .is_some_and(|controller| *controller != ControllerKind::Human)
-    }
-
     /// Give one player's own policy a fixed purchase plan. The policy emits
     /// ordinary purchase commands through its normal per-player sequence.
     pub fn script_purchases(
@@ -1459,42 +1429,6 @@ impl Battle {
         let player = player.into();
         if let Some(ai) = self.skirmish_ai.get_mut(&player) {
             ai.set_purchase_plan_with_repeat(purchases, repeat_from);
-        }
-    }
-
-    fn apply_controller(&mut self, transition: &ControllerTransition) {
-        self.controllers
-            .insert(transition.player.clone(), transition.controller.clone());
-        let player_index = self
-            .skirmish
-            .as_ref()
-            .and_then(|skirmish| skirmish.player_index(&transition.player));
-        if let Some(index) = player_index {
-            if let Some(player) = self
-                .skirmish
-                .as_mut()
-                .and_then(|skirmish| skirmish.players.get_mut(index))
-            {
-                player.controller = transition.controller.clone();
-            }
-        }
-        for unit in &mut self.units {
-            if unit.side == Side::Neutral {
-                unit.engagement = Engagement::ReturnFireOnly;
-                continue;
-            }
-            if unit.owner.as_deref() != Some(transition.player.as_str()) {
-                continue;
-            }
-            match transition.controller {
-                ControllerKind::PassiveAi => unit.engagement = Engagement::ReturnFireOnly,
-                ControllerKind::ActiveAi | ControllerKind::Human
-                    if unit.engagement == Engagement::ReturnFireOnly =>
-                {
-                    unit.engagement = Engagement::FireAtWill
-                }
-                _ => {}
-            }
         }
     }
 
