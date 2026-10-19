@@ -1,6 +1,5 @@
-//! Skirmish setup and the size rule, for pages that author or seat a
-//! skirmish. The rules stay owned by `sim::skirmish` and
-//! `contract::skirmish_sizes`; these calls only cross the boundary.
+//! Skirmish setup, for pages that author or seat a skirmish. The rules stay
+//! owned by `sim::skirmish`; these calls only cross the boundary.
 use crate::js_error;
 use contract::players::{Player, Seating};
 use wasm_bindgen::prelude::*;
@@ -30,17 +29,4 @@ pub fn synthetic_skirmish_setup(size_json: &str, players_json: &str) -> Result<S
     contract::players::validate_players(&players, Seating::Skirmish).map_err(js_error)?;
     let sites = sim::skirmish::synthetic_sites(size, contract::players::entries_per_side(&players));
     serde_json::to_string(&sim::skirmish::setup_for(&players, sites)).map_err(js_error)
-}
-
-/// What a side of `players_per_side` players gets, and how many a side may
-/// have: `{"max_players_per_side": n, "tier": SizeTier}`, the tier giving
-/// the smallest map size, its extent and the roads a side enters by. Pass
-/// the larger side's count: both sides get its roads.
-#[wasm_bindgen]
-pub fn skirmish_size_rule(players_per_side: u32) -> String {
-    serde_json::json!({
-        "max_players_per_side": sim::skirmish::starter_rules().max_players_per_side,
-        "tier": contract::skirmish_sizes::tier(players_per_side as usize),
-    })
-    .to_string()
 }

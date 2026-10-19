@@ -18,7 +18,7 @@ use sim::world::{export, WorldGeometry};
 use wasm_bindgen::prelude::*;
 
 mod skirmish;
-pub use skirmish::{skirmish_size_rule, synthetic_sites, synthetic_skirmish_setup};
+pub use skirmish::{synthetic_sites, synthetic_skirmish_setup};
 
 /// Generate a plan and compile it into a map, as the CLI's `generate-map` does.
 #[wasm_bindgen]
