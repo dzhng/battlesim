@@ -81,9 +81,9 @@ preparation was about 0.9 ms and renderer draw about 5 ms. Static selection was
 only about 6.5 ms in the same window, so the expensive portion is the loaded
 unit/effect presentation work. A Rust timing hook was attempted but removed
 because it changed the reel's runtime; the JS boundary remains the accepted
-measurement. The next low-overhead probe records the existing `buildMs` only
-when a stale presentation rebuilds its world, to distinguish that path from
-ordinary unit/effect framing.
+measurement. Further probes that wrapped the presentation boundary changed the
+long reel runtime and were removed; the accepted evidence remains the earlier
+successful JS boundary run.
 
 ## Visual verification (2026-10-18)
 

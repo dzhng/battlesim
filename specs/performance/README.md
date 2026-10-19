@@ -40,8 +40,6 @@ pass must identify the owner with targeted renderer or frame-loop counters
 before selecting an optimization. The boundary pass found a 949 ms
 `viewport-frame` with about 0.9 ms of model preparation and 3.9 ms of renderer
 draw; the remaining `ScenePresentation.frame` call is the current suspect.
-The diagnostic now records the existing world-rebuild `buildMs` only when a
-stale presentation actually reloads, keeping ordinary frames out of the probe.
 
 ## Where the frame stands
 
