@@ -145,7 +145,7 @@ Nothing else is transitional.
 ## Invariants
 
 - One player type, one player list. A second player concept anywhere is a defect.
-- Every skirmish unit has an owner, and every skirmish command carries a player. A refused AI order fails a debug assertion and appears in `ai_receipts()`.
+- Every skirmish unit has an owner, and every skirmish command carries a player. Every refused AI order appears in `ai_receipts()`. A refused AI order other than a purchase also fails a debug assertion: the AI decides those from its own view. A purchase may be refused, because a purchase plan names cards the battle may not sell; the plan tries the card again, and the turn's later purchases wait.
 - Vision, objectives, score and the bounty pool belong to the side. Wallet, cap, ready, purchases, controller and AI belong to the player.
 - Every ground or helicopter arrival, refund, fuel return and retirement uses `sim::entries`: the side's entry with the shortest drive for that unit type, ties to the centre. Jets arrive opposite the centre entry.
 - The team plan comes from the side's observation plus non-digested planner memory, evaluated in player order. The command stream is the replay authority.

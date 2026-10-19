@@ -44,3 +44,20 @@ fn a_refused_purchase_stops_the_turns_later_purchases_but_not_its_other_orders()
     let red = status.players.iter().find(|player| player.id == "red-1");
     assert!(red.unwrap().ready, "{receipts:?}");
 }
+
+/// A purchase may be refused (its plan tries it again); any other refused
+/// AI order is an AI that decided on something it can't do (I09).
+#[test]
+#[cfg(debug_assertions)]
+#[should_panic(expected = "AI order refused: Some(RateLimited)")]
+fn a_refused_ai_order_other_than_a_purchase_fails_a_debug_assertion() {
+    let mut setup = crate::skirmish::setup();
+    setup.players[0].controller = ControllerKind::ActiveAi;
+    // One order a second: the decision outruns the command rate, so its
+    // readiness is refused.
+    setup.rules.commands.orders_per_s = 1;
+    let mut battle = Battle::new(&setup, 8);
+    let tank = battle.rules().catalog.index("test_tank").unwrap();
+    battle.script_purchases("blue-1", vec![tank], None);
+    battle.step();
+}

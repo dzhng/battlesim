@@ -138,6 +138,14 @@ impl Battle {
                     queued: false,
                 });
                 let accepted = ack.error.is_none();
+                // A purchase may be refused: a purchase plan names cards the
+                // battle may not sell, and tries them again. Any other order
+                // comes from the AI's own view of what it may do (I09).
+                debug_assert!(
+                    accepted || purchase,
+                    "{player}'s AI order refused: {:?}",
+                    ack.error
+                );
                 if purchase {
                     if let Some(ai) = self.skirmish_ai.get_mut(&player) {
                         ai.purchase_result(accepted);
