@@ -21,13 +21,13 @@ pub(super) fn engagement(
 }
 
 impl Battle {
-    /// Install the per-slot controller state chosen at play admission. AI
-    /// orders still enter `accept`, while passive slots only retain return fire.
+    /// Install each player's controller chosen at play admission. AI orders
+    /// still enter `accept`, while a passive player's units only return fire.
     pub fn set_controllers(&mut self, controllers: Vec<(String, ControllerKind)>) {
-        for (slot, controller) in controllers {
+        for (player, controller) in controllers {
             let transition = ControllerTransition {
                 tick: self.tick,
-                player: slot,
+                player,
                 controller,
             };
             self.apply_controller(&transition);

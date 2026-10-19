@@ -1317,7 +1317,7 @@ impl Battle {
         self.receive(command, Issuer::Client)
     }
 
-    /// Schedule an order the battle's own slot AI, scripts or opponents give.
+    /// Schedule an order the battle's own AI, scripts or opponents give.
     fn issue(&mut self, command: CommandEnvelope) -> CommandAck {
         self.receive(command, Issuer::Battle)
     }
@@ -1335,7 +1335,7 @@ impl Battle {
         if self.replaying.is_some() {
             return ack(Some(OrderError::ReplayInProgress), None, None, Vec::new());
         }
-        // A slot under AI takes orders only from its controller. The refusal
+        // A player under AI takes orders only from its controller. The refusal
         // comes before the command is recorded: the replay log does not say
         // who issued a command, so a replay could not tell this one from the
         // AI's own.

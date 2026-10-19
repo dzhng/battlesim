@@ -113,7 +113,7 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
 }
 
 #[test]
-fn three_ai_players_reuse_two_lane_slots() {
+fn three_ai_players_reuse_two_lanes() {
     let players = players();
     let mut sites = sites();
     sites.entries.retain(|entry| {
