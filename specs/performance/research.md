@@ -139,6 +139,12 @@ failed at 120 seconds with `graphics test did not reach results`. That isolates
 the current blocker to the browser graphics-test completion path rather than a
 map-specific workload; no post-pass FPS claim is valid yet.
 
+The runner selects local Playwright Chromium on this macOS worktree and passes
+`--enable-unsafe-webgpu --enable-features=WebGPU`; it is not falling back to a
+second map or an unconfigured browser. The page still produces no first frame
+or adapter identity before the watchdog, so the remaining diagnosis belongs to
+the local headless WebGPU/resource path rather than Rust frame generation.
+
 The route now mirrors the runner deadline in its own state: a stalled running
 reel changes to the existing incomplete-test results view after two minutes.
 This does not make the missing timing evidence valid; it makes the failure
