@@ -988,7 +988,7 @@ fn every_ai_opening_includes_a_high_air_defender() {
         );
     }
 
-    // The pick reads weapon reach, not a list: left as Europe's only air
+    // The pick reads weapon rows, not a list: left as Europe's only air
     // defender, the Gepard is the one the opening buys. Every other
     // high-air-capable row leaves Europe's roster, and one Europe alone
     // fielded leaves the catalog.
@@ -1951,11 +1951,8 @@ fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     assert_eq!(defends(json!(["missile"])), (false, false));
 }
 
-#[cfg(test)]
 mod backline;
-#[cfg(test)]
 mod groups;
-#[cfg(test)]
 mod parties;
-#[cfg(test)]
+mod purchases;
 mod transport_tests;

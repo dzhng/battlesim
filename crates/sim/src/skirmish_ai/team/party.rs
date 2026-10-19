@@ -8,6 +8,7 @@
 //! party is never re-tasked. `help.rs` only decides when a lane asks and who
 //! answers; everything else about a party is here.
 
+use super::value::{budget_left, Measure};
 use super::*;
 use contract::ids::UnitId;
 
@@ -72,38 +73,6 @@ pub(super) fn parties(memory: &TeamMemory) -> Vec<Party> {
     result
 }
 
-/// A player's force: its units in view, or the count the skirmish view
-/// reports when that is larger (units still arriving).
-pub(super) fn force(frame: &ObservationFrame, player: PlayerIndex) -> usize {
-    let observed = frame.own.iter().filter(|u| u.owner == Some(player)).count();
-    frame
-        .skirmish
-        .as_ref()
-        .and_then(|view| view.players.iter().find(|p| p.index == player))
-        .map_or(observed, |p| observed.max(p.unit_count as usize))
-}
-
-/// Units `owner` has on party duty, of every kind.
-pub(super) fn on_duty(memory: &TeamMemory, owner: PlayerIndex) -> usize {
-    memory
-        .parties
-        .values()
-        .filter(|party| party.owner == owner)
-        .map(|party| party.units.len())
-        .sum()
-}
-
-/// What is left of `owner`'s one party budget: a share of its force.
-pub(super) fn budget_left(
-    memory: &TeamMemory,
-    frame: &ObservationFrame,
-    owner: PlayerIndex,
-    tuning: TeamTuning,
-) -> usize {
-    let budget = ((force(frame, owner) as f64 * tuning.party_budget_share).floor() as usize).max(1);
-    budget.saturating_sub(on_duty(memory, owner))
-}
-
 /// Units already in a party: no other party may take them.
 pub(super) fn reserved(memory: &TeamMemory) -> BTreeSet<UnitId> {
     memory
@@ -134,10 +103,19 @@ pub(super) fn objective_open(
         })
 }
 
-/// The one way a party picks its units: the nearest of `owner`'s units, up
-/// to `count`, not in a party (`reserved`) and not fighting, that can fight
-/// the threat at `objective` by weapon target class (a ground fight with
-/// none in view). A carrier and the squads aboard go together or not at
+/// What a party asks of its owner: at most `units` units, gathered until
+/// their strength (D56) meets `strength`. One costly unit answers what
+/// several cheap ones would.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct Ask {
+    pub units: usize,
+    pub strength: f64,
+}
+
+/// The one way a party picks its units: the nearest of `owner`'s units, as
+/// many as `ask` takes, not in a party
+/// (`reserved`) and not fighting, that can fight the threat at `objective`
+/// by weapon target class (a ground fight with none in view). A carrier and the squads aboard go together or not at
 /// all: a passenger is never sent without its carrier, nor dropped off with
 /// it. A unit that cannot engage ground never goes: air defence holds the
 /// backline (D57). The party holds at least one unit that can hold the
@@ -150,12 +128,16 @@ pub(super) fn recruit(
     owner: PlayerIndex,
     objective: &ObjectiveSite,
     reserved: &BTreeSet<UnitId>,
-    count: usize,
+    Ask {
+        units: count,
+        strength: value,
+    }: Ask,
     kind: PartyKind,
 ) -> Vec<UnitId> {
-    if count == 0 {
+    if count == 0 || value <= 0.0 {
         return Vec::new();
     }
+    let measure = Measure::new(rules, frame);
     let holds = |unit: &OwnUnit| crate::objectives::can_hold(rules.catalog.get(unit.kind));
     let threats: Vec<_> = frame
         .identified
@@ -227,7 +209,13 @@ pub(super) fn recruit(
     candidates.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1[0].id.cmp(&b.1[0].id)));
     let mut chosen: Vec<&Vec<&OwnUnit>> = Vec::new();
     let size = |chosen: &[&Vec<&OwnUnit>]| chosen.iter().map(|group| group.len()).sum::<usize>();
+    let strength = |group: &[&OwnUnit]| group.iter().map(|u| measure.own(u.kind)).sum::<f64>();
+    let gathered =
+        |chosen: &[&Vec<&OwnUnit>]| chosen.iter().map(|group| strength(group)).sum::<f64>();
     for (_, group) in &candidates {
+        if gathered(&chosen) >= value {
+            break;
+        }
         if size(&chosen) + group.len() > count {
             continue;
         }
@@ -248,7 +236,10 @@ pub(super) fn recruit(
         else {
             return Vec::new();
         };
-        while size(&chosen) + holder.len() > count {
+        while size(&chosen) + holder.len() > count
+            || !chosen.is_empty()
+                && gathered(&chosen[..chosen.len() - 1]) + strength(holder) >= value
+        {
             chosen.pop();
         }
         chosen.push(holder);
@@ -260,8 +251,8 @@ pub(super) fn recruit(
 }
 
 /// The one way a party lost on the way is replaced: drop its fallen and top
-/// it up to its size from its owner's free units, up to the `room` its kind
-/// allows the owner (the side-party budget for a hold or claim, the
+/// it up to its size from its owner's free units, up to the strength (`room`)
+/// its kind allows the owner (the side-party budget for a hold or claim, the
 /// helper's surplus for help). A party left empty has nobody to send; its
 /// caller decides whether it still waits for units (a hold) or goes (help,
 /// a claim).
@@ -270,7 +261,7 @@ pub(super) fn refill(
     frame: &ObservationFrame,
     memory: &mut TeamMemory,
     key: &PartyKey,
-    room: &dyn Fn(&TeamMemory, PlayerIndex) -> usize,
+    room: &dyn Fn(&TeamMemory, PlayerIndex) -> f64,
 ) {
     let Some(party) = memory.parties.get_mut(key) else {
         return;
@@ -284,14 +275,16 @@ pub(super) fn refill(
         party.objective.clone(),
         party.size.saturating_sub(party.units.len()),
     );
-    let count = short.min(room(memory, owner));
     let units = recruit(
         rules,
         frame,
         owner,
         &objective,
         &reserved(memory),
-        count,
+        Ask {
+            units: short,
+            strength: room(memory, owner),
+        },
         kind,
     );
     memory
@@ -334,6 +327,7 @@ pub(super) fn update_side_parties(side: Side, input: PartyInputs<'_>, memory: &m
         return;
     };
     let owner_of = |id: &str| view.objectives.iter().find(|o| o.id == id)?.owner;
+    let measure = Measure::new(rules, frame);
     for plan in plans {
         let moved_from = memory
             .cached
@@ -393,8 +387,8 @@ pub(super) fn update_side_parties(side: Side, input: PartyInputs<'_>, memory: &m
                 .then(a.id.cmp(&b.id))
         });
         for objective in open {
-            let left = budget_left(memory, frame, plan.player, tuning);
-            if left == 0 {
+            let left = budget_left(&measure, memory, frame, plan.player, tuning);
+            if left <= 0.0 {
                 break;
             }
             if !objective_open(frame, objective, &going) {
@@ -406,7 +400,10 @@ pub(super) fn update_side_parties(side: Side, input: PartyInputs<'_>, memory: &m
                 plan.player,
                 objective,
                 &reserved(memory),
-                tuning.claim_party_size.min(left),
+                Ask {
+                    units: tuning.claim_party_size,
+                    strength: left,
+                },
                 PartyKind::Claim,
             );
             if units.is_empty() {
@@ -469,9 +466,10 @@ fn refill_side(
         })
         .map(|(key, _)| key.clone())
         .collect();
+    let measure = Measure::new(rules, frame);
     for key in keys {
         refill(rules, frame, memory, &key, &|memory, owner| {
-            budget_left(memory, frame, owner, tuning)
+            budget_left(&measure, memory, frame, owner, tuning)
         });
     }
 }

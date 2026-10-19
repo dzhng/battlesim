@@ -1,6 +1,7 @@
 //! Help requests and detachments between allied skirmish lanes.
 
-use super::party::{force, on_duty, recruit, refill, reserved, PartyKey};
+use super::party::{recruit, refill, reserved, Ask, PartyKey};
+use super::value::{force, on_duty, Measure};
 use super::*;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -105,11 +106,12 @@ fn help_sites(lanes: &[LaneContext], memory: &TeamMemory) -> Vec<LaneContext> {
         .collect()
 }
 
-/// What `helper` can lend: its force beyond slice 13's margin for its own
-/// lane, less its units already on party duty. The side-party budget bounds
-/// claims and holds, not help: a helper with surplus answers however many
-/// objectives it holds.
+/// What `helper` can lend, in strength (D56): its force beyond slice 13's
+/// margin for its own lane, less its units already on party duty. The
+/// side-party budget bounds claims and holds, not help: a helper with
+/// surplus answers however many objectives it holds.
 fn surplus(
+    measure: &Measure,
     frame: &ObservationFrame,
     lanes: &[LaneContext],
     memory: &TeamMemory,
@@ -123,9 +125,11 @@ fn surplus(
             memory
                 .influence
                 .as_ref()
-                .map_or(1.0, |grid| (-grid.at(objective.center)).ceil().max(1.0))
+                .map_or(1.0, |grid| (-grid.at(objective.center)).max(1.0))
         });
-    force(frame, helper) as f64 - need * tuning.help_force_margin - on_duty(memory, helper) as f64
+    force(measure, frame, helper)
+        - need * tuning.help_force_margin
+        - on_duty(measure, frame, memory, helper)
 }
 
 /// One plan step of help: keep, replace or release each help party, and
@@ -146,6 +150,7 @@ pub(super) fn update_help<P: TeamPlayer>(
     }
     let dwell = (tuning.help_dwell_s * f64::from(rules.tick_hz)) as Tick;
     let sites = help_sites(lanes, memory);
+    let measure = Measure::new(rules, frame);
     let mut requests = Vec::new();
     for (requester, lane, objective, _) in &sites {
         let current = memory
@@ -155,7 +160,7 @@ pub(super) fn update_help<P: TeamPlayer>(
         let previous = memory.previous_influence.get(&objective.id).copied();
         let trend = previous.map_or(0.0, |old| current - old);
         let raised = previous.is_some_and(|_| trend <= -tuning.help_trend_threshold);
-        let need = ((-current).ceil() as usize).max(1);
+        let need = (-current).max(1.0);
         let key = PartyKey::Help(*requester, objective.id.clone());
         // Losses are replaced from the helper while it can spare them. A
         // detachment lost on the way with nobody to replace it is no help on
@@ -163,9 +168,7 @@ pub(super) fn update_help<P: TeamPlayer>(
         let mut lost = false;
         if memory.parties.contains_key(&key) {
             refill(rules, frame, memory, &key, &|memory, helper| {
-                surplus(frame, lanes, memory, helper, tuning)
-                    .floor()
-                    .max(0.0) as usize
+                surplus(&measure, frame, lanes, memory, helper, tuning)
             });
             if memory.parties[&key].units.is_empty() {
                 memory.parties.remove(&key);
@@ -212,15 +215,17 @@ pub(super) fn update_help<P: TeamPlayer>(
             })
             .filter_map(|(index, _)| {
                 let helper = PlayerIndex(index as u16);
-                let surplus = surplus(frame, lanes, memory, helper, tuning);
-                let count = surplus.min(need as f64).floor().max(0.0) as usize;
+                let surplus = surplus(&measure, frame, lanes, memory, helper, tuning);
                 let units = recruit(
                     rules,
                     frame,
                     helper,
                     objective,
                     &reserved,
-                    count,
+                    Ask {
+                        units: usize::MAX,
+                        strength: surplus.min(need),
+                    },
                     PartyKind::Help,
                 );
                 (!units.is_empty()).then(|| {

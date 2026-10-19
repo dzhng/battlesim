@@ -18,18 +18,22 @@ use crate::entries::EntryIndex;
 mod backline;
 mod cohesion;
 mod help;
+mod influence;
 mod party;
 mod plan;
 mod stance;
+mod value;
 pub(crate) use backline::{holds as holds_backline, order as backline_order};
 pub use cohesion::{cohesion_sample, group_positions, group_ready, is_group_unit, lane_advancing};
 use cohesion::{group_positions as cohesion_group_positions, group_ready as cohesion_group_ready};
 pub use help::HelpRequest;
 use help::{lane_contexts, update_help};
+use influence::build_influence;
 use party::{objective_open, parties, update_side_parties, PartyInputs, PartyKey};
 pub use party::{Party, PartyKind};
 use stance::update_stance;
 pub use stance::TeamStance;
+pub(crate) use value::{specialized, unit_value, Threat};
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -210,7 +214,7 @@ pub fn plan<'a, P: TeamPlayer>(
             .as_ref()
             .expect("cached plan before reschedule");
     }
-    let influence = build_influence(side_frame, sites, memory.influence.as_ref(), tuning);
+    let influence = build_influence(rules, side_frame, sites, memory.influence.as_ref(), tuning);
     memory.influence = Some(influence.clone());
     let ai: Vec<_> = players
         .iter()
@@ -509,100 +513,6 @@ fn covered_objectives_by_player<P: TeamPlayer>(
         }
     }
     covered
-}
-
-fn build_influence(
-    frame: &ObservationFrame,
-    sites: &SkirmishSites,
-    previous: Option<&InfluenceGrid>,
-    tuning: TeamTuning,
-) -> InfluenceGrid {
-    let resolution = tuning.grid_resolution.max(1);
-    let mut min = [f64::INFINITY; 2];
-    let mut max = [f64::NEG_INFINITY; 2];
-    for point in sites
-        .entries
-        .iter()
-        .map(|entry| entry.center)
-        .chain(sites.objectives.iter().map(|objective| objective.center))
-    {
-        for axis in 0..2 {
-            min[axis] = min[axis].min(point[axis]);
-            max[axis] = max[axis].max(point[axis]);
-        }
-    }
-    for axis in 0..2 {
-        if !min[axis].is_finite() {
-            min[axis] = 0.0;
-            max[axis] = 1.0;
-        }
-        if (max[axis] - min[axis]).abs() < 1.0 {
-            max[axis] = min[axis] + 1.0;
-        }
-    }
-    let mut values = vec![0.0; resolution * resolution];
-    for unit in &frame.own {
-        add_strength(
-            &mut values,
-            resolution,
-            min,
-            max,
-            [unit.position[0], unit.position[1]],
-            1.0,
-        );
-    }
-    for unit in &frame.identified {
-        add_strength(
-            &mut values,
-            resolution,
-            min,
-            max,
-            [unit.position[0], unit.position[1]],
-            -(f64::from(unit.cost).max(1.0) / 100.0),
-        );
-    }
-    if let Some(previous) =
-        previous.filter(|old| old.resolution == resolution && old.min == min && old.max == max)
-    {
-        for (value, old) in values.iter_mut().zip(&previous.values) {
-            *value = tuning.influence_blend * *old + (1.0 - tuning.influence_blend) * *value;
-        }
-    }
-    InfluenceGrid {
-        resolution,
-        min,
-        max,
-        values,
-    }
-}
-
-fn add_strength(
-    values: &mut [f64],
-    resolution: usize,
-    min: [f64; 2],
-    max: [f64; 2],
-    point: [f64; 2],
-    strength: f64,
-) {
-    let x = (((point[0] - min[0]) / (max[0] - min[0])) * resolution as f64)
-        .floor()
-        .clamp(0.0, resolution as f64 - 1.0) as usize;
-    let y = (((point[1] - min[1]) / (max[1] - min[1])) * resolution as f64)
-        .floor()
-        .clamp(0.0, resolution as f64 - 1.0) as usize;
-    values[y * resolution + x] += strength;
-}
-
-impl InfluenceGrid {
-    pub fn at(&self, point: [f64; 2]) -> f64 {
-        let x = (((point[0] - self.min[0]) / (self.max[0] - self.min[0])) * self.resolution as f64)
-            .floor()
-            .clamp(0.0, self.resolution as f64 - 1.0) as usize;
-        let y = (((point[1] - self.min[1]) / (self.max[1] - self.min[1])) * self.resolution as f64)
-            .floor()
-            .clamp(0.0, self.resolution as f64 - 1.0) as usize;
-        self.values[y * self.resolution + x]
-    }
 }
 
 fn permutations(length: usize, take: usize) -> Vec<Vec<usize>> {

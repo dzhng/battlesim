@@ -133,6 +133,7 @@ fn push_hysteresis_survives_one_bad_sample_and_repush_waits() {
     tuning.stance_dwell_s = 2.0;
     tuning.push_timeout_s = 2.0;
     tuning.stance_push_influence = 0.0;
+    tuning.stance_fallback_influence = -1.0;
     frame.tick = 30;
     assert_eq!(
         update_stance(

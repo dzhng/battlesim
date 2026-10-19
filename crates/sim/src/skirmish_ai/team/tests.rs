@@ -1,7 +1,7 @@
 //! Shared fixtures for the team planner's focused tests.
 
 use super::super::*;
-use super::party::{recruit, PartyKey};
+use super::party::{recruit, Ask, PartyKey};
 use super::*;
 use contract::encounter::{EntrySite, ObjectiveSiteKind};
 
@@ -96,6 +96,14 @@ fn team_rules() -> Rules {
     serde_json::from_value(fixture).unwrap()
 }
 
+/// A party ask of up to `units` units, whatever their strength.
+fn up_to(units: usize) -> Ask {
+    Ask {
+        units,
+        strength: f64::INFINITY,
+    }
+}
+
 fn players() -> Vec<Player> {
     (0..3)
         .map(|index| Player {
@@ -120,3 +128,4 @@ mod help;
 mod parties;
 mod planning;
 mod stance;
+mod value;

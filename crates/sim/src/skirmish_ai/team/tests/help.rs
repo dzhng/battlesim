@@ -266,7 +266,7 @@ fn help_detachment_uses_weapon_target_classes_for_a_ground_threat() {
         PlayerIndex(1),
         &objective,
         &BTreeSet::new(),
-        2,
+        up_to(2),
         PartyKind::Help,
     );
     assert_eq!(
@@ -311,7 +311,7 @@ fn a_detachment_holds_ground_not_just_flies_over_it() {
             PlayerIndex(1),
             &objective,
             &BTreeSet::new(),
-            count,
+            up_to(count),
             PartyKind::Help,
         )
     };
@@ -345,7 +345,7 @@ fn help_detachments_are_disjoint_from_locked_units() {
             PlayerIndex(1),
             &objective,
             reserved,
-            1,
+            up_to(1),
             PartyKind::Help,
         )
     };

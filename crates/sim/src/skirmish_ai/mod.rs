@@ -10,11 +10,13 @@ use std::collections::BTreeMap;
 
 mod artillery;
 mod capability;
+mod purchase;
 pub mod team;
 use artillery::{artillery_ground_guess, artillery_objective_guess};
 pub use capability::unit_engages_aircraft_in;
-use capability::{engages_aircraft, frame_has_layer_threat, unit_weapons};
+use capability::{frame_has_layer_threat, unit_weapons};
 pub(crate) use capability::{unit_can_engage_ground, unit_can_engage_target};
+use purchase::{best_air_defender, pick};
 mod transport;
 pub use team::{PlayerPlan, TeamMemory, TeamPlan};
 
@@ -100,8 +102,6 @@ struct Tuning {
     /// at most this share of the way back along its approach.
     recon_sight_share: f64,
     recon_approach_share: f64,
-    /// How wide the random term in a purchase's score spreads.
-    purchase_noise: f64,
     /// How long it lets a unit of its own stand held by its own cover
     /// (`BlockedTrajectory`, from any weapon) before it moves it, and how
     /// far: farther than the cover a unit is likely to stand under.
@@ -490,45 +490,11 @@ impl BalancedDoctrine {
                     .is_some_and(|r| r.factions.contains(&faction))
             })
             .collect();
-        // The cheapest cards of `role` (all of `category` when no role is
-        // named, or the deck has no card of it), the `ordinal`-th of them.
-        // An unarmed carrier only carries: pairing alone buys it.
-        let unarmed_carrier = |k: TypeIndex| {
-            crate::carriage::seats(rules, k) > 0 && rules.catalog.mounts(k).is_empty()
-        };
+        // Within a role, the best card against the enemies identified (D56).
+        let threat = (!frame.identified.is_empty())
+            .then(|| team::Threat::of(rules, frame.identified.iter().map(|unit| unit.kind)));
         let pick = |role: Option<&str>, category: Category, ordinal: usize| {
-            let mut matching: Vec<_> = role
-                .map(|role| {
-                    eligible
-                        .iter()
-                        .copied()
-                        .filter(|&k| rules.catalog.get(k).has_role(role) && !unarmed_carrier(k))
-                        .collect()
-                })
-                .unwrap_or_default();
-            if matching.is_empty() && role != Some("artillery") {
-                matching = eligible
-                    .iter()
-                    .copied()
-                    .filter(|&k| !unarmed_carrier(k))
-                    .filter(|&k| {
-                        let unit = rules.catalog.get(k);
-                        unit.roster.as_ref().unwrap().category == category
-                            && (category == Category::Sup || !rules.catalog.mounts(k).is_empty())
-                    })
-                    .collect();
-            }
-            matching.sort_by(|a, b| {
-                rules
-                    .catalog
-                    .get(*a)
-                    .cost
-                    .cmp(&rules.catalog.get(*b).cost)
-                    .then(rules.catalog.id(*a).cmp(rules.catalog.id(*b)))
-            });
-            matching
-                .get(ordinal.min(matching.len().saturating_sub(1)))
-                .copied()
+            pick(rules, &eligible, threat.as_ref(), (role, category, ordinal))
         };
         let count = |kind: TypeIndex| {
             frame.own.iter().filter(|u| u.kind == kind).count()
@@ -578,13 +544,7 @@ impl BalancedDoctrine {
         // AA is insurance every opening carries, picked by what its weapons
         // engage. It goes first, so it is bought before any other role
         // competes for credits or slots.
-        let high_air_defender = best_air_defender(
-            rules,
-            &self.tuning,
-            &eligible,
-            draw_unit,
-            AltitudeLayer::HighAir,
-        );
+        let high_air_defender = best_air_defender(rules, &eligible, frame, AltitudeLayer::HighAir);
         let desired: Vec<_> = high_air_defender.iter().copied().chain(desired).collect();
         // Each squad's carrier follows it (D17), and rides on it: it is
         // bought only for a squad the player holds or buys with it.
@@ -687,7 +647,7 @@ impl BalancedDoctrine {
                     .into_iter()
                     .find_map(|(layer, demanded)| demanded.then_some(layer))
                     {
-                        best_air_defender(rules, &self.tuning, &eligible, draw_unit, layer)
+                        best_air_defender(rules, &eligible, frame, layer)
                             .filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
                             .map(|k| (Some(0), k))
                     } else if let Some(want) = transport::want(
@@ -1344,57 +1304,6 @@ pub(crate) fn lane_purchase_destination(
 /// Whether `kind` flies on wings (its flight model), whatever its layer.
 pub fn is_jet(rules: &Rules, kind: TypeIndex) -> bool {
     rules.catalog.get(kind).mobility.flight() == Some(contract::catalog::FlightModel::FixedWing)
-}
-
-/// The best card of `eligible` against aircraft in `layer`, by purchase
-/// score; a tie goes to the smaller unit id.
-fn best_air_defender(
-    rules: &Rules,
-    tuning: &Tuning,
-    eligible: &[TypeIndex],
-    draw_unit: f64,
-    layer: AltitudeLayer,
-) -> Option<TypeIndex> {
-    let score = |kind| candidate_score(rules, tuning, kind, draw_unit, Some(layer));
-    eligible
-        .iter()
-        .copied()
-        .filter(|&kind| unit_engages_aircraft_in(rules, kind, layer))
-        .max_by(|&a, &b| {
-            score(a)
-                .total_cmp(&score(b))
-                .then_with(|| rules.catalog.id(b).cmp(rules.catalog.id(a)))
-        })
-}
-
-fn candidate_score(
-    rules: &Rules,
-    tuning: &Tuning,
-    kind: TypeIndex,
-    draw_unit: f64,
-    demand: Option<AltitudeLayer>,
-) -> f64 {
-    let unit = rules.catalog.get(kind);
-    let capability = demand.map_or(0.0, |layer| {
-        if unit_engages_aircraft_in(rules, kind, layer) {
-            10_000.0
-        } else {
-            -10_000.0
-        }
-    });
-    let affordability_bias = 1_000.0 - f64::from(unit.cost);
-    let weapon_value = demand.map_or(0.0, |layer| {
-        unit_weapons(rules, kind)
-            .filter(|weapon| engages_aircraft(weapon, layer))
-            .map(|weapon| weapon.damage * weapon.ballistics.range_m)
-            .fold(0.0, f64::max)
-            / f64::from(unit.cost.max(1))
-    });
-    let noise = (contract::random::mix(u64::from(kind.0) ^ draw_unit.to_bits()) as f64
-        / u64::MAX as f64
-        - 0.5)
-        * tuning.purchase_noise;
-    capability + affordability_bias + weapon_value + noise
 }
 
 #[cfg(test)]
