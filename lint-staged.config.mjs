@@ -3,9 +3,11 @@ const runWithoutStagedPaths = (command) => () => command;
 // target, which is not a failure.
 const FORMAT = "web/node_modules/.bin/oxfmt --write --no-error-on-unmatched-pattern";
 
-// No glob reaches past the paths `bun run lint` and `fmt:check` cover, so the
-// hook never refuses or rewrites a file those checks leave alone.
+// No formatter or linter glob reaches past the paths `bun run lint` and
+// `fmt:check` cover, so the hook never rewrites a file those checks leave
+// alone. The size ratchet sees every staged file and decides what is source.
 export default {
+  "*": "bun .agents/skills/ratchet-files/scripts/check-file-size.mjs",
   "{packages,apps,web/src}/**/*.{js,jsx,mjs,cjs,ts,tsx}": [
     FORMAT,
     "web/node_modules/.bin/eslint --config web/eslint.config.mjs --max-warnings=0 --no-warn-ignored",
