@@ -25,6 +25,8 @@ const WARMUP_FRAMES = 60;
 /** How far the in-game counter's mean reading may sit from the recording's
  *  average over the same scene: both count the same drawn frames. */
 const COUNTER_AGREEMENT = 0.03;
+/** A hung graphics page must become a bounded diagnostic failure. */
+const RESULTS_TIMEOUT_MS = 120_000;
 
 /** In the page, from its start: every reading the in-game frame-rate
  *  counter shows, with the graphics test's scene at that moment. */
@@ -159,6 +161,9 @@ export async function run(ctx) {
 
   let shown = "";
   for (;;) {
+    if (performance.now() - started > RESULTS_TIMEOUT_MS) {
+      throw new Error(`graphics test did not reach results within ${RESULTS_TIMEOUT_MS / 1000} s`);
+    }
     const state = await page.evaluate(() => ({
       stage: window.__graphicsTest?.stage,
       progress: document.querySelector(".graphics-test-progress span")?.textContent ?? "",
