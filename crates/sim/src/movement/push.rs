@@ -13,7 +13,9 @@ use crate::math::{Obb2, V2};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
 
-/// A shove clears the hull by this much, so the two no longer touch.
+/// Bodies within this much of each other touch without pressing: a shove
+/// clears the hull by it, and may leave the body up to it inside another,
+/// as a fence panel slides along the end of the next one in its line.
 const CLEAR_M: f64 = 0.01;
 /// Slide-and-turn passes before a shove that still overlaps gives up.
 const PASSES: usize = 3;
@@ -102,10 +104,10 @@ pub fn shove(
     if hull.separation(&rect).is_some() || world.height_at(rect.center.x, rect.center.y).is_none() {
         return None;
     }
-    // No deeper into any other body than it already was.
+    // No deeper into any other body than it already was, beyond touching.
     let deeper = |other: &Obb2| {
         let depth = |r: &Obb2| other.separation(r).map_or(0.0, |v| v.length());
-        depth(&rect) > depth(&before) + 1e-9
+        depth(&rect) > depth(&before).max(CLEAR_M) + 1e-9
     };
     let reach = rect.half.length() + 1.0;
     let into_prop = world
