@@ -161,7 +161,10 @@ pub(super) fn update_help(
             .map_or(0.0, |grid| grid.at(objective.center));
         let previous = memory.previous_influence.get(&objective.id).copied();
         let trend = previous.map_or(0.0, |old| current - old);
-        let raised = previous.is_some_and(|_| trend <= -tuning.help_trend_threshold);
+        // An outgunned lane asks however steady its reading; one only
+        // pressed asks when its reading falls.
+        let falling = previous.is_some_and(|_| trend <= -tuning.help_trend_threshold);
+        let raised = falling || current < tuning.stance_fallback_influence;
         let need = (-current).max(1.0);
         let key = PartyKey::Help(*requester, objective.id.clone());
         // Losses are replaced from the helper while it can spare them. A

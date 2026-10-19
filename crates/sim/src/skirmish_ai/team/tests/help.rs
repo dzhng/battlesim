@@ -121,9 +121,15 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
         },
         &rules,
     );
-    assert_eq!(requests.len(), 1);
-    assert_eq!(requests[0].requester, PlayerIndex(0));
-    assert_eq!(requests[0].answered_by, Some(PlayerIndex(1)));
+    // Every lane is outgunned on this one-cell grid; lane 0's is the call
+    // followed here.
+    let lane_0 = |requests: &[HelpRequest]| {
+        requests
+            .iter()
+            .find(|request| request.requester == PlayerIndex(0))
+            .cloned()
+    };
+    assert_eq!(lane_0(&requests).unwrap().answered_by, Some(PlayerIndex(1)));
     let repeat = update_help(
         Side::Blue,
         &frame,
@@ -133,7 +139,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
         TeamTuning::shipped(),
         &rules,
     );
-    assert_eq!(repeat[0].answered_by, Some(PlayerIndex(1)));
+    assert_eq!(lane_0(&repeat).unwrap().answered_by, Some(PlayerIndex(1)));
 
     // The pressure stops rising but the lane is still outgunned: the
     // detachment stays on its way, however long the trend is flat.
@@ -149,7 +155,7 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
         &rules,
     );
     assert_eq!(
-        flat.first().and_then(|request| request.answered_by),
+        lane_0(&flat).and_then(|request| request.answered_by),
         Some(PlayerIndex(1))
     );
 
@@ -166,8 +172,8 @@ fn help_uses_the_nearest_surplus_ally_and_holds_it_until_the_lane_is_relieved() 
         TeamTuning::shipped(),
         &rules,
     );
-    assert_eq!(lost.len(), 1);
-    assert_eq!(lost[0].answered_by, None, "no one left to come: {lost:?}");
+    let call = lane_0(&lost).expect("the call stands again");
+    assert_eq!(call.answered_by, None, "no one left to come: {lost:?}");
     assert!(!memory
         .parties
         .values()
@@ -695,5 +701,87 @@ fn an_ai_player_the_plan_left_unassigned_asks_no_help() {
         asking,
         vec![PlayerIndex(0)],
         "only the assigned player has a lane"
+    );
+}
+
+#[test]
+fn a_lane_beaten_but_steady_still_asks_for_help() {
+    let rules = team_rules();
+    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(serde_json::json!({
+        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":serde_json::to_value(&rules).unwrap(),
+        "units":[
+            {"side":"blue","kind":"test_tank","position":[250,400]},
+            {"side":"blue","kind":"test_tank","position":[260,405]}
+        ],"events":[],"scripts":[]
+    }))
+    .unwrap();
+    let mut frame = crate::battle::Battle::new(&setup, 1)
+        .observe(Side::Blue)
+        .clone();
+    frame.skirmish = Some(contract::skirmish::SkirmishView {
+        phase: contract::skirmish::Phase::Active,
+        players: vec![],
+        preparation_remaining_s: 0.0,
+        objectives: vec![],
+        scores: [0.0; 2],
+        result: None,
+        report: None,
+    });
+    for unit in &mut frame.own {
+        unit.owner = Some(PlayerIndex(1));
+    }
+    let beaten = sites().objectives[0].clone();
+    let lanes = vec![
+        (
+            PlayerIndex(0),
+            EntryIndex(0),
+            beaten.clone(),
+            [100.0, 400.0],
+        ),
+        (
+            PlayerIndex(1),
+            EntryIndex(1),
+            sites().objectives[1].clone(),
+            [300.0, 400.0],
+        ),
+    ];
+    let tuning = TeamTuning {
+        help_trend_threshold: 0.5,
+        help_force_margin: 1.0,
+        stance_fallback_influence: -1.0,
+        ..TeamTuning::shipped()
+    };
+    // The same reading as last time: no trend, only where it stands.
+    let steady_at = |influence: f64| {
+        let mut memory = TeamMemory {
+            influence: Some(InfluenceGrid {
+                resolution: 1,
+                min: [0.0, 0.0],
+                max: [1_000.0, 1_000.0],
+                values: vec![influence],
+            }),
+            previous_influence: [(beaten.id.clone(), influence)].into_iter().collect(),
+            ..TeamMemory::default()
+        };
+        update_help(
+            Side::Blue,
+            &frame,
+            &players(),
+            &lanes,
+            &mut memory,
+            tuning,
+            &rules,
+        )
+    };
+    let outgunned = steady_at(-2.0);
+    let request = outgunned
+        .iter()
+        .find(|request| request.requester == PlayerIndex(0))
+        .expect("an outgunned lane asks for help though its reading is flat");
+    assert_eq!(request.answered_by, Some(PlayerIndex(1)), "{outgunned:?}");
+    assert!(
+        steady_at(-0.5).is_empty(),
+        "a lane pressed but not outgunned asks only when its reading falls"
     );
 }
