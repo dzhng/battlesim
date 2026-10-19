@@ -8,7 +8,6 @@ import * as wasm from "@wasm/game_wasm.js";
 import matchRules from "@fixtures/skirmish.json";
 import { builderEconomy, emptyBuilderMap } from "@apps/battle-lab/src/scenario-builder/model";
 import { playersFor } from "@apps/battle-lab/src/skirmishSetup";
-import { TEST_RULES } from "./catalog";
 
 beforeAll(() => {
   const module = wasm.initSync({
@@ -26,11 +25,7 @@ test.each([
   "builder economy fields Rust's synthetic sites for %s a side (%s entries)",
   (count, entries) => {
     const map = emptyBuilderMap();
-    const builder = builderEconomy(wasm, {
-      map,
-      rules: TEST_RULES,
-      players: playersFor(count, count),
-    });
+    const builder = builderEconomy(wasm, { map, players: playersFor(count, count) });
     expect(builder.sites).toEqual(
       JSON.parse(wasm.synthetic_sites(JSON.stringify(map.size), entries)),
     );
@@ -38,11 +33,7 @@ test.each([
 );
 
 test("builder economy keeps Rust's starter rules but for the builder's own overrides", () => {
-  const builder = builderEconomy(wasm, {
-    map: emptyBuilderMap(),
-    rules: TEST_RULES,
-    players: playersFor(1, 1),
-  });
+  const builder = builderEconomy(wasm, { map: emptyBuilderMap(), players: playersFor(1, 1) });
   const overridden = new Set(["starting_minutes", "preparation_s"]);
   const kept = (rules: Record<string, unknown>) =>
     Object.fromEntries(Object.entries(rules).filter(([name]) => !overridden.has(name)));

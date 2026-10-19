@@ -4,7 +4,6 @@ import { FACTIONS, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
 import type matchRules from "@fixtures/skirmish.json";
-import { entryCountForPlayers } from "../skirmishSetup";
 
 export type BuilderController = "human" | "active_ai" | "passive_ai";
 export type BuilderMode = "sandbox" | "economy";
@@ -68,47 +67,29 @@ export interface BuilderSkirmish {
   openings: Record<string, unknown>;
 }
 
-/** The simulation calls a skirmish draft's setup comes from. */
+/** The simulation call a skirmish draft's setup comes from. */
 export interface SkirmishSimulation {
-  synthetic_sites(size: string, entriesPerSide: number): string;
-  PreparedWorld: new (
-    map: string,
-    rules: string,
-  ) => { skirmish_fields(sites: string, players: string): string; free(): void };
+  synthetic_skirmish_setup(size: string, players: string): string;
 }
 
 /** The builder's authoring overrides to the starter rules: a short opening,
  *  to try a draft quickly. */
 const BUILDER_RULES = { starting_minutes: 2, preparation_s: 20 } as const;
 
-/** The skirmish `scenario` fields: the simulation's own setup (`setup_for`,
- *  through `skirmish_fields`) on its synthetic sites for the map's size and
- *  the players' entry count, with only the builder's rule overrides on top. */
+/** The skirmish `scenario` fields: the simulation's own setup (`setup_for`
+ *  over its synthetic sites for the map's size and the players, through
+ *  `synthetic_skirmish_setup`), with only the builder's rule overrides on top. */
 export function builderEconomy(
   simulation: SkirmishSimulation,
-  scenario: Pick<ScenarioBundleDraft["scenario"], "map" | "rules" | "players">,
+  scenario: Pick<ScenarioBundleDraft["scenario"], "map" | "players">,
 ): BuilderSkirmish {
-  const skirmish: unknown = JSON.parse(
-    simulation.synthetic_sites(
+  const setup = JSON.parse(
+    simulation.synthetic_skirmish_setup(
       JSON.stringify(scenario.map.size),
-      entryCountForPlayers(scenario.players),
+      JSON.stringify(scenario.players),
     ),
-  );
-  const world = new simulation.PreparedWorld(
-    JSON.stringify(scenario.map),
-    JSON.stringify(scenario.rules),
-  );
-  try {
-    const fields = JSON.parse(
-      world.skirmish_fields(
-        JSON.stringify({ settlements: [], approaches: [], skirmish }),
-        JSON.stringify(scenario.players),
-      ),
-    ) as { skirmish: BuilderSkirmish };
-    return { ...fields.skirmish, rules: { ...fields.skirmish.rules, ...BUILDER_RULES } };
-  } finally {
-    world.free();
-  }
+  ) as BuilderSkirmish;
+  return { ...setup, rules: { ...setup.rules, ...BUILDER_RULES } };
 }
 
 /** A compact resolved-map snapshot for the first authoring checkpoint. */
