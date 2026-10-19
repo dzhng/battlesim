@@ -185,3 +185,20 @@ reels also completed: `paris-corner` reached 111.4 FPS average and 57.6 FPS 1%
 low; `market-town` reached 83.2 FPS average and 39.1 FPS 1% low. The latter
 still triggers the agreed browser floor, so this pass is retained as a measured
 CPU improvement but does not close the performance spec.
+
+## XL 5v5-scale stress workload — 2026-10-19
+
+The endurance scene's generated arm loads the full Metro XL world (10 × 10 km)
+with 100 active units per side, matching the planned 5v5 force size. The run
+uses the production view and samples frame intervals in ten-second windows.
+With the complete roster's realistic remains state—800 fallen soldiers and 100
+wrecks—the 30-second sample measured:
+
+- live contact: 20.4 simulation Hz, 50.0 ms frame median and 66.6 ms worst p95;
+- late state: 15.9 simulation Hz, 58.2 ms frame median and 74.9 ms worst p95.
+
+The generated world contains 12,123 buildings and 199,891 props; GPU buffers
+were about 3.08 GiB and full page memory about 4.4 GiB. This workload is kept as
+a diagnostic scale scenario rather than folded into the 60-FPS graphics reel
+gate. The scene's stale Large-versus-XL assertion was corrected while recording
+this evidence.

@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Rust presentation allocation-reuse passes retained; native A/B and bounded browser reels confirm the current slice. The market-town 1% low trigger remains open.
+**Status:** Rust presentation allocation-reuse passes retained; browser reel and XL 5v5 stress evidence are recorded. The market-town 1% low is accepted for the current target; the XL stress workload remains diagnostic.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -22,6 +22,7 @@ renderer or shader changes. Update this section before you end each pass.
 - [x] Diagnose the browser graphics-test completion failure and rerun a bounded reel.
 - [x] Profile the next loaded-frame owner before selecting another optimization.
 - [x] Reuse `BuildingWalk::select` list and count storage after native A/B.
+- [x] Measure the XL 5v5-scale stress workload with a realistic full-roster late state.
 
 ## Current handoff
 
@@ -59,6 +60,14 @@ The next pass should profile the loaded unit/effect owner before selecting
 another optimization. The second pass reuses the static building walk's
 double-buffered lists and counts; native A/B shows a CPU benefit, while the
 browser trigger remains below its 1% low floor.
+
+The separate scale workload uses the generated Metro XL world and 100 units per
+side, matching the planned 5v5 force size. Its 30-second browser sample reached
+about 20 FPS median live cadence (frame p95 66.6 ms) and about 17 FPS with the
+full roster's 800 fallen soldiers and 100 wrecks (frame p95 74.9 ms). This is a
+diagnostic scale bound, not the player-facing reel gate; it identifies the
+large-battle workload as a future optimization target if 5v5 performance needs
+to improve.
 
 ## Where the frame stands
 
