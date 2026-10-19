@@ -37,7 +37,9 @@ pub fn synthetic_sites(
     let [width, depth] = size;
     let fractions: &[f64] = match entries_per_side {
         1 => &[0.5],
-        2 => &[0.35, 0.65],
+        // Generation lays the second road as one flank arm (0.22-0.38 or
+        // 0.62-0.78 of the edge).
+        2 => &[0.5, 0.3],
         _ => &[0.5, 0.2, 0.8],
     };
     let mut entries = Vec::with_capacity(fractions.len() * 2);
