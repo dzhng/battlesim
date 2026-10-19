@@ -237,8 +237,7 @@ impl UnitOrder {
 pub struct Unit {
     pub id: UnitId,
     pub side: Side,
-    /// Player slot that may issue commands for this unit, when the scenario
-    /// is a portable player-owned bundle.
+    /// The id of the player who commands this unit, when a player owns it.
     pub owner: Option<String>,
     /// Its unit type, the catalog's index.
     pub kind: TypeIndex,
@@ -659,11 +658,11 @@ impl Unit {
         self.unit_type(rules).hull().map(|h| &h.armor)
     }
 
-    /// Fold the unit's complete carried state into `d`.
-    pub fn digest(&self, d: &mut Digest) {
+    /// Fold the unit's carried state and its owner's `PlayerIndex` into `d`.
+    pub fn digest(&self, d: &mut Digest, owner: Option<usize>) {
         d.u64(self.id.0 as u64);
-        if let Some(owner) = &self.owner {
-            d.u64(crate::digest::of_str(owner));
+        if let Some(owner) = owner {
+            d.u64(owner as u64);
         }
         d.f64(self.position.x)
             .f64(self.position.y)

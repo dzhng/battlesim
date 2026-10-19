@@ -208,7 +208,7 @@ fn the_digest_holds_each_soldiers_slot() {
     other.members[0].slot = 1;
     let digest = |u: &sim::units::Unit| {
         let mut d = sim::digest::Digest::default();
-        u.digest(&mut d);
+        u.digest(&mut d, None);
         d.finish()
     };
     assert_ne!(digest(squad), digest(&other));

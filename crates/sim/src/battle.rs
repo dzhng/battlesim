@@ -4949,10 +4949,7 @@ impl Battle {
                             }
                         }),
                         id: u.id,
-                        owner: u
-                            .owner
-                            .as_deref()
-                            .and_then(|id| player_ids.iter().position(|candidate| candidate == id))
+                        owner: state_digest::owner_index(&player_ids, u)
                             .map(|index| contract::players::PlayerIndex(index as u16)),
                         kind: u.kind,
                         position: [u.position.x, u.position.y, u.position.z],

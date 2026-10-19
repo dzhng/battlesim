@@ -3,6 +3,12 @@
 
 use super::*;
 
+/// The `PlayerIndex` of `unit`'s owner: its id's place in the player list.
+pub(super) fn owner_index(player_ids: &[String], unit: &Unit) -> Option<usize> {
+    let owner = unit.owner.as_deref()?;
+    player_ids.iter().position(|id| id == owner)
+}
+
 impl Battle {
     /// Digest of the complete authoritative state at the current tick.
     pub fn digest(&self) -> u64 {
@@ -13,7 +19,7 @@ impl Battle {
         }
         d.u64(self.units.len() as u64);
         for u in &self.units {
-            u.digest(&mut d);
+            u.digest(&mut d, owner_index(&self.player_ids, u));
         }
         d.u64(self.last_soldier as u64);
         for knowledge in &self.knowledge {

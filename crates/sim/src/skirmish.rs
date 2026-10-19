@@ -38,7 +38,7 @@ pub fn synthetic_sites(
     let fractions: &[f64] = match entries_per_side {
         1 => &[0.5],
         2 => &[0.35, 0.65],
-        _ => &[0.2, 0.5, 0.8],
+        _ => &[0.5, 0.2, 0.8],
     };
     let mut entries = Vec::with_capacity(fractions.len() * 2);
     for side in [Side::Blue, Side::Red] {
@@ -384,9 +384,6 @@ impl Skirmish {
                 .u64(p.wallet)
                 .u64(p.ready as u64)
                 .u64(p.next_purchase as u64);
-            if self.setup.sites.entries.len() == 2 {
-                d.u64(self.next_dispatch[crate::entries::centre(&self.setup.sites, p.side).0]);
-            }
             d.u64(p.reservations.len() as u64);
             for r in &p.reservations {
                 d.u64(r.data.id.0 as u64)
@@ -396,16 +393,12 @@ impl Skirmish {
                     .u64(r.data.confirmed_tick)
                     .u64(r.data.blocked as u64)
                     .u64(r.price as u64)
-                    .u64(r.data.arrival_tick.unwrap_or(u64::MAX));
-                if self.setup.sites.entries.len() > 2 {
-                    d.u64(r.data.entry as u64);
-                }
+                    .u64(r.data.arrival_tick.unwrap_or(u64::MAX))
+                    .u64(r.data.entry as u64);
             }
         }
-        if self.setup.sites.entries.len() > 2 {
-            for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
-                d.u64(*clock).u64(*turn as u64);
-            }
+        for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
+            d.u64(*clock).u64(*turn as u64);
         }
         d.u64(self.entered.len() as u64);
         for (id, u) in &self.entered {
