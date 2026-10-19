@@ -35,6 +35,23 @@ change instead of reverting it because the first browser attempt hung.
   temporary storage ownership.
 - **Confidence:** high.
 
+### Bound graphics-reel completion — 2026-10-19
+
+The graphics scene previously polled forever after starting a run. When the
+page stalled before its `results` state, the measurement consumed the session
+without producing evidence. The scene now fails after two minutes with an
+explicit diagnostic; a successful run still uses the same timing and output
+contract. The alternative was to leave the infinite wait and rely on the outer
+900-second runner timeout, which hides the cause and delays the next experiment.
+
+- **Gap:** the measurement contract required a completing reel but had no
+  scene-local terminal verdict for a hung page.
+- **Reach:** future performance runs are bounded and can distinguish a harness
+  stall from a slow but valid frame workload.
+- **Verdict:** sound. The timeout changes only failure handling, not measured
+  frames or acceptance thresholds.
+- **Confidence:** high.
+
 ### Baseline the browser before selecting an intervention — 2026-10-19
 
 Two clean production runs of the browser's existing `graphics-fps` reel were

@@ -128,3 +128,8 @@ The pass reduced total CPU p50 from 1.31 ms to 1.14 ms and p95 from 1.62 ms to
 noise. Counts and the drawn workload were identical. This supports retaining
 the output-equivalent pass, but it does not replace the browser trigger check:
 the browser reel still needs one bounded completing run.
+
+The graphics scene now has a two-minute scene-local deadline for reaching its
+`results` state. A stalled page therefore fails with a direct diagnostic
+instead of waiting on the harness's much longer outer timeout; this does not
+change any successful-run timing contract.
