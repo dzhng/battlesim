@@ -204,7 +204,9 @@ struct Loaded {
     cook_offs: CookOffs,
     transits: TransitHistory,
     pieces: Vec<PlacedModel>,
-    /// The last publication as sound reads it.
+    shadows: Vec<GroundShadow>,
+    indoor: Vec<f64>,
+    allied: Vec<f64>,
     sound: Option<(EffectPublication, Vec<Launch>)>,
     shadow_fall: [f64; 2],
     locals: Vec<Trs>,
@@ -588,6 +590,9 @@ impl Presentation {
             cook_offs: CookOffs::new(self.tick_hz),
             transits: TransitHistory::default(),
             pieces: Vec::new(),
+            shadows: Vec::new(),
+            indoor: Vec::new(),
+            allied: Vec::new(),
             sound: None,
             shadow_fall,
             locals: Vec::new(),
@@ -1446,6 +1451,9 @@ impl Loaded {
             cook_offs,
             transits,
             pieces,
+            shadows,
+            indoor,
+            allied,
             shadow_fall,
             worlds,
             locals,
@@ -1471,19 +1479,21 @@ impl Loaded {
                     .iter()
                     .map(|t| (&*t.kind, side, 0.0, t.position, t.heading)),
             );
-        // A high-air aircraft's shadow lies on the ground beneath it.
         let style = effects.presentation().high_air_shadow;
-        let shadows: Vec<GroundShadow> = flying
-            .filter(|(kind, ..)| units.types.get(*kind).is_some_and(|t| t.high_air()))
-            .filter_map(|(kind, on, unit, at, yaw)| {
-                let name = units.resolve(kind, on, unit, 0, None, None)?;
-                let Some(Appearance::Articulated { plan, .. }) = units.appearances.get(name) else {
-                    return None;
-                };
-                Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
-            })
-            .collect();
-        effects.build(time, batch, Some(drawn), &rotors, &shadows);
+        shadows.clear();
+        shadows.extend(
+            flying
+                .filter(|(kind, ..)| units.types.get(*kind).is_some_and(|t| t.high_air()))
+                .filter_map(|(kind, on, unit, at, yaw)| {
+                    let name = units.resolve(kind, on, unit, 0, None, None)?;
+                    let Some(Appearance::Articulated { plan, .. }) = units.appearances.get(name)
+                    else {
+                        return None;
+                    };
+                    Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
+                }),
+        );
+        effects.build(time, batch, Some(drawn), &rotors, shadows);
         let counts = effects.counts(time, batch);
         f.light_wrap = batch.lights.wrap as f32;
         lights.pack(&batch.lights, view);
@@ -1495,24 +1505,22 @@ impl Loaded {
         detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
         let xray = input.xray;
         let o = &sample.observation;
-        let indoor: Vec<f64> = o
-            .own
-            .iter()
-            .filter(|u| u.hold.as_ref().is_some_and(|h| &*h.phase != "entering"))
-            .map(|u| u.id)
-            .collect();
-        // The side's units another player owns: its allies'.
-        let allied: Vec<f64> = match ui.player {
-            Some(player) => o
-                .own
+        indoor.clear();
+        indoor.extend(
+            o.own
                 .iter()
-                .filter(|u| u.owner.is_some_and(|owner| owner != f64::from(player)))
-                .map(|u| u.id)
-                .collect(),
-            None => Vec::new(),
-        };
-        // Own units the world hides draw through it, the selection in its
-        // colour and an ally's in the ally's.
+                .filter(|u| u.hold.as_ref().is_some_and(|h| &*h.phase != "entering"))
+                .map(|u| u.id),
+        );
+        allied.clear();
+        if let Some(player) = ui.player {
+            allied.extend(
+                o.own
+                    .iter()
+                    .filter(|u| u.owner.is_some_and(|owner| owner != f64::from(player)))
+                    .map(|u| u.id),
+            );
+        }
         let colour_of = |unit_side: &str, unit: f64| -> [f64; 4] {
             if !ui.xray || unit_side != side || indoor.contains(&unit) {
                 [0.0; 4]

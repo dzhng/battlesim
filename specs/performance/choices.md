@@ -2,6 +2,23 @@
 
 ## Sound
 
+### Reuse loaded-frame scratch vectors — 2026-10-19
+
+The first accepted Rust presentation pass keeps three temporary collections on
+`Loaded` and clears/repopulates them each frame. They hold high-air shadows,
+indoor unit ids and allied unit ids, exactly in the same order as the old local
+vectors. This means a frame still sees the same shadows and x-ray colours while
+avoiding repeated heap allocation; the unbuilt alternative would have changed
+the algorithm or cached visible records with a stale-data risk.
+
+- **Gap:** the slice named the Rust owner but did not prescribe the first safe
+  intervention.
+- **Reach:** later loaded-frame work should preserve reusable scratch ownership
+  where lifetimes are frame-local and output order is observable.
+- **Verdict:** sound. The change is output-equivalent and bounded to temporary
+  storage; presentation tests cover the contract.
+- **Confidence:** high.
+
 ### Baseline the browser before selecting an intervention — 2026-10-19
 
 Two clean production runs of the browser's existing `graphics-fps` reel were

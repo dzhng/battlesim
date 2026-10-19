@@ -1,6 +1,6 @@
-# Performance (placeholder)
+# Performance
 
-**Status:** trigger confirmed; presentation-frame candidate needs a focused spec.
+**Status:** Rust presentation allocation-reuse pass implemented; browser measurement remains.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -16,7 +16,9 @@ is substantial and recorded, and keep native as a parity check for shared
 renderer or shader changes. Update this section before you end each pass.
 
 - [x] A repeatable 1% low regression is measured on the graphics-fps reel.
-- [ ] Choose the Rust presentation-frame candidate with the user, then plan it with `write-spec`.
+- [x] Choose and slice the Rust presentation-frame candidate with the user.
+- [x] Reuse loaded-frame scratch vectors without changing `Frame` output.
+- [ ] Rerun the browser reel and decide whether the measured gain justifies keeping the pass.
 
 ## Current handoff
 
@@ -41,10 +43,12 @@ before selecting an optimization. The boundary pass found a 949 ms
 `viewport-frame` with about 0.9 ms of model preparation and 3.9 ms of renderer
 draw; the remaining `ScenePresentation.frame` call is the current suspect.
 
-The recommended next candidate is the Rust presentation frame's loaded
-unit/effect work. Static selection and renderer draw are already measured as
-small in the successful boundary run. No production optimization is selected
-until this candidate is accepted and sliced.
+The accepted first pass is deliberately small: `Loaded::frame` now reuses
+owned scratch vectors for high-air shadows and x-ray membership lists instead
+of allocating them on every frame. The output order and values are unchanged;
+the focused presentation suite is green. The next agent should run the browser
+reel and compare the trigger metrics before selecting another loaded-frame
+owner.
 
 ## Where the frame stands
 
