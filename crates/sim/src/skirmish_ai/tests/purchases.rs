@@ -1,5 +1,5 @@
-//! Which card the doctrine buys (D56): value per credit within a role, and
-//! weapon-made answers to aircraft.
+//! Which card the doctrine buys (D56, D2): value per credit within a role,
+//! weapon-made answers to aircraft, and armour in the recipe.
 
 use super::*;
 
@@ -168,4 +168,14 @@ fn an_enemy_aircraft_raises_air_defence_purchases() {
         threatened > calm,
         "a helicopter seen buys more AA: {threatened} vs {calm}"
     );
+}
+
+#[test]
+fn the_ai_fields_armour_in_its_opening_and_its_reinforcements() {
+    let rules: Rules = serde_json::from_value(deck()).unwrap();
+    let (_, mut frame, entry) = empty_match();
+    let (opening, bought) = purchases(&rules, &mut frame, &entry, 40);
+    let armour = |kinds: &[TypeIndex]| kinds.iter().any(|&k| rules.catalog.get(k).has_role("mbt"));
+    assert!(armour(&opening), "the opening fields armour");
+    assert!(armour(&bought), "reinforcements field armour");
 }

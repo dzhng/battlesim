@@ -520,7 +520,7 @@ impl BalancedDoctrine {
                 ("infantry", Category::Inf, 1),
                 ("at", Category::Inf, 0),
                 ("light_vehicle", Category::Veh, 0),
-                ("infantry", Category::Inf, 2),
+                ("mbt", Category::Veh, 0),
                 ("recon", Category::Rec, 0),
                 ("artillery", Category::Sup, 0),
                 ("logistics", Category::Sup, 0),
@@ -529,7 +529,7 @@ impl BalancedDoctrine {
                 ("infantry", Category::Inf, 0),
                 ("infantry", Category::Inf, 0),
                 ("infantry", Category::Inf, 1),
-                ("infantry", Category::Inf, 2),
+                ("mbt", Category::Veh, 0),
                 ("recon", Category::Rec, 0),
                 ("at", Category::Inf, 0),
                 ("light_vehicle", Category::Veh, 0),
@@ -626,16 +626,16 @@ impl BalancedDoctrine {
                 {
                     truck.filter(|&k| f64::from(rules.catalog.get(k).cost) <= view.credits)
                 } else {
-                    // Helicopters reinforce, ordered like light vehicles (D35);
-                    // the air category (fixed-wing aircraft, by no role of
-                    // their own) is next in the same rotation. A deck
-                    // without one buys the next role; an unaffordable one is
-                    // saved for.
+                    // Each role in turn, armour too (D2); helicopters as
+                    // light vehicles are (D35), then jets (the air category,
+                    // no role of their own). A deck without one buys the
+                    // next role; an unaffordable one is saved for.
                     let roles = [
                         (Some("infantry"), Category::Inf),
                         (Some("recon"), Category::Rec),
                         (Some("at"), Category::Inf),
                         (Some("light_vehicle"), Category::Veh),
+                        (Some("mbt"), Category::Veh),
                         (Some("artillery"), Category::Sup),
                         (Some("helicopter"), Category::Hel),
                         (None, Category::Air),
