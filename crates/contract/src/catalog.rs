@@ -734,6 +734,15 @@ impl PropCatalog {
         }
     }
 
+    /// [`Self::check_placement`] for the prop type named `id`, which may name
+    /// no type this catalog holds.
+    pub fn check_placement_of(&self, id: &str, placement: PropPlacement) -> Result<(), String> {
+        let kind = self
+            .index(id)
+            .ok_or_else(|| format!("unknown prop type {id:?}"))?;
+        self.check_placement(kind, placement)
+    }
+
     /// Every prop type's index, in id order.
     pub fn kinds(&self) -> impl Iterator<Item = PropKind> {
         (0..self.types.len() as u16).map(PropKind)

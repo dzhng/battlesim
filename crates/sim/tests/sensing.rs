@@ -5,6 +5,91 @@ use serde_json::json;
 use sim::battle::Battle;
 
 use crate::common;
+
+/// Whether blue sees a round at `at` fired from `layer`, by every unit the
+/// battle placed.
+fn blue_sees_round(b: &Battle, at: sim::math::V3, layer: contract::catalog::AltitudeLayer) -> bool {
+    let units: Vec<_> = (0..).map_while(|i| b.unit(UnitId(i)).cloned()).collect();
+    sim::sensing::side_sees_round(b.world(), b.rules(), &units, Side::Blue, at, layer)
+}
+
+/// A round is a target like any other: high air, which never sees the
+/// ground, sees no round fired from it, however far its authored ground
+/// sight reaches, though it sees one at the same point fired from its own
+/// layer.
+#[test]
+fn high_air_sees_no_round_fired_from_the_ground() {
+    use contract::catalog::AltitudeLayer;
+    let mut rules = sim::fixtures::test_game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_jet",
+        json!({ "sensors": { "ground_m": 5000, "high_air_m": 5000 } }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [2000, 2000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": rules,
+        "units": [{ "side": "blue", "kind": "test_jet", "position": [1000, 1000], "yaw": 0.0 }],
+        "events": [], "scripts": []
+    }))
+    .unwrap();
+    let b = Battle::new(&setup, 1);
+    let at = sim::math::v3(1000.0, 1050.0, 2.0);
+    assert!(
+        blue_sees_round(&b, at, AltitudeLayer::HighAir),
+        "in its own layer"
+    );
+    assert!(
+        !blue_sees_round(&b, at, AltitudeLayer::Ground),
+        "fired from the ground"
+    );
+}
+
+/// A squad in a building sees a round from the eyes at the facades it
+/// holds, as it sees anything else.
+#[test]
+fn a_garrison_sees_a_round_from_its_facades() {
+    // garrison-lab's one building: a three-storey corner shop 12 m square
+    // round (360, 250), yaw 0, on flat ground.
+    let mut b = Battle::new(
+        &common::scenario(
+            common::saved_map("garrison"),
+            json!([{ "side": "blue", "kind": "test_rifle", "position": [300, 250], "engagement": "return_fire_only" }]),
+            json!([]),
+        ),
+        1,
+    );
+    let ack = b.accept(contract::command::CommandEnvelope {
+        side: Side::Blue,
+        player: None,
+        seq: 1,
+        order: serde_json::from_value(json!({ "kind": "garrison", "units": [0], "building": 0 }))
+            .unwrap(),
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+    for _ in 0..1200 {
+        b.step();
+        if b.observe(Side::Blue).own[0]
+            .hold
+            .is_some_and(|g| g.phase == contract::observation::HoldPhase::Inside)
+        {
+            break;
+        }
+    }
+    let frame = b.observe(Side::Blue);
+    let eyes = &frame.own[0].sight.eyes;
+    assert!(eyes.len() > 1, "the squad holds its facades");
+    // 30 m straight out from the +x facade, at its eye's height.
+    let eye = eyes.iter().max_by(|a, b| a[0].total_cmp(&b[0])).unwrap();
+    let at = sim::math::v3(eye[0] + 30.0, eye[1], eye[2]);
+    assert!(
+        blue_sees_round(&b, at, contract::catalog::AltitudeLayer::Ground),
+        "the round just outside a held facade"
+    );
+}
+
 fn map() -> &'static str {
     common::saved_map("sensors")
 }

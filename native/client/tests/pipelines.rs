@@ -1,5 +1,6 @@
 //! Every pipeline the browser exports builds on this machine's device, from
-//! the export alone. Needs a GPU: run under the GPU lock.
+//! the export alone, and the sizes it exports name the pipelines the passes
+//! look up. Needs a GPU: run under the GPU lock.
 use native_client::gpu;
 use native_client::pipelines::Pipelines;
 
@@ -19,4 +20,13 @@ fn every_exported_pipeline_builds_on_the_device() {
     built.sort();
     listed.sort();
     assert_eq!(built, listed);
+}
+
+#[test]
+fn every_bloom_level_the_export_sizes_has_its_blur_pipeline() {
+    let gpu = gpu::open(&gpu::headless_instance(), None).expect("a device");
+    let built = Pipelines::build(&gpu.device, pipelines::DIR).unwrap_or_else(|e| panic!("{e}"));
+    let blurs = built.names().filter(|n| n.starts_with("bloomBlur")).count();
+    assert!(blurs > 0, "the export has no bloom blur");
+    assert_eq!(built.sizes.bloom_levels, blurs);
 }

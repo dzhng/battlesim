@@ -124,7 +124,10 @@ const CHECKPOINTS: Record<string, Checkpoint> = {
 /** The empty skirmish of the ingress checkpoint, placed from the field's
  *  size: blue's entry mid-way along the west edge, red's along the east, so
  *  each side's back edge is its own; three objectives down the middle; no
- *  preparation, so a purchase dispatches as soon as blue is ready. */
+ *  preparation, so a purchase dispatches as soon as blue is ready. Red is a
+ *  passive seat that buys nothing: the checkpoint proves ingress, the fuel
+ *  return and the refund, which an opponent's air defence would turn into a
+ *  question of whether the jet survives. */
 function ingressSkirmish([w, h]: [number, number]) {
   const objective = (id: string, y: number, kind: string, counterpart: string | null) => ({
     id,
@@ -140,7 +143,7 @@ function ingressSkirmish([w, h]: [number, number]) {
         id: "red-1",
         side: "red",
         faction: "eastern",
-        controller: "active_ai",
+        controller: "passive_ai",
         human_capable: false,
       },
     ],

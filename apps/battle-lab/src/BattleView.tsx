@@ -58,6 +58,7 @@ export function BattleView({
   prepared,
   scenarioArt,
   player,
+  inCommand = true,
   side,
   replay,
   scripted,
@@ -79,8 +80,12 @@ export function BattleView({
   prepared?: PreparedConnectionSession;
   /** Uploaded resolved sandbox bundles can narrow art to their fielded map. */
   scenarioArt?: boolean;
-  /** Player issuing commands in a player-owned scenario. */
-  player?: string;
+  /** Player issuing commands in a player-owned scenario; null when the
+   *  session seats no human, and input is off. */
+  player?: string | null;
+  /** False once AI takes the player's slot over: input stops while the same
+   *  battle goes on (changing `player` would start a new one). */
+  inCommand?: boolean;
   /** Side whose observation and command stream this player controls. */
   side?: import("@web/battle/sim/protocol").SideName;
   /** A recorded battle to replay: input is off. */
@@ -155,7 +160,7 @@ export function BattleView({
     replay,
     scripted,
     sound: true,
-    inputEnabled: !menuOpen && viewportReady,
+    inputEnabled: !menuOpen && viewportReady && inCommand,
   });
   const input = !replay && !scripted;
   const { world, meshes, sim, control, surfaceZ } = session;

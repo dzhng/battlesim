@@ -28,6 +28,7 @@
     "generate": "bun packages/battle-audio/tools/generate/cli.ts"
   },
   "devDependencies": {
+    "linguist-languages": "9.5.0",
     "lint-staged": "16.2.7"
   }
 }

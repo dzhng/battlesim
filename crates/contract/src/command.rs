@@ -258,6 +258,9 @@ pub enum OrderError {
     },
     /// A player-owned scenario command omitted its player.
     MissingPlayer,
+    /// The player's slot is under AI control, so only its controller orders
+    /// its units: a client keeps no seat in an AI-only or taken-over slot.
+    AiControlled,
     OutOfBounds,
     /// No unit has a place to stand there that it can reach.
     NoValidDestination,
@@ -314,6 +317,7 @@ impl OrderError {
             Self::NotOwnUnit { .. } => "not_own_unit",
             Self::WrongPlayer { .. } => "wrong_player",
             Self::MissingPlayer => "missing_player",
+            Self::AiControlled => "ai_controlled",
             Self::OutOfBounds => "out_of_bounds",
             Self::NoValidDestination => "no_valid_destination",
             Self::ReplayInProgress => "replay_in_progress",

@@ -52,8 +52,7 @@ fn bundle() -> ScenarioBundle {
             media_type: "audio/wav".into(),
             sha256: contract::identity::bytes_hash(bytes),
             provenance: "user-upload".into(),
-            bytes_base64: Some(base64_encode(bytes)),
-            builtin: None,
+            bytes_base64: base64_encode(bytes),
         }],
     }
 }
@@ -237,4 +236,65 @@ fn economy_mode_refuses_authored_forces_that_the_skirmish_owner_cannot_field() {
         .unwrap_err()
         .to_string()
         .contains("authored forces"));
+}
+
+#[test]
+fn every_asset_embeds_its_bytes() {
+    let bundle = bundle();
+    let mut value: serde_json::Value =
+        serde_json::from_slice(&bundle.canonical_bytes().unwrap()).unwrap();
+    let hash = value["assets"][0]["sha256"].clone();
+    value["assets"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("bytes_base64");
+    value["assets"][0]["builtin"] = hash;
+    let error = ScenarioBundle::from_json(&serde_json::to_string(&value).unwrap()).unwrap_err();
+    assert!(error.to_string().contains("builtin"), "{error}");
+}
+
+#[test]
+fn an_asset_diagnostic_names_the_asset() {
+    let mut bundle = bundle();
+    bundle.assets[0].provenance = String::new();
+    let contract::bundle::BundleError::Invalid(errors) = bundle.validate().unwrap_err();
+    assert_eq!(
+        errors
+            .iter()
+            .map(|e| e.location.as_str())
+            .collect::<Vec<_>>(),
+        ["$.assets[0]"]
+    );
+}
+
+#[test]
+fn a_sandbox_bundle_names_its_players_and_every_unit_an_owner() {
+    let unit = |owner: Option<&str>| contract::scenario::UnitSetup {
+        side: Side::Blue,
+        owner: owner.map(Into::into),
+        kind: "test_rifle".into(),
+        position: [20.0, 20.0],
+        yaw: 0.0,
+        engagement: None,
+        condition: None,
+        stock: None,
+    };
+    let locations = |bundle: &ScenarioBundle| match bundle.validate() {
+        Err(contract::bundle::BundleError::Invalid(errors)) => {
+            errors.into_iter().map(|e| e.location).collect::<Vec<_>>()
+        }
+        Ok(()) => Vec::new(),
+    };
+
+    let mut unowned = bundle();
+    unowned.scenario.players.clear();
+    unowned.scenario.units.push(unit(None));
+    assert_eq!(
+        locations(&unowned),
+        ["$.scenario.players", "$.scenario.units[0].owner"]
+    );
+
+    let mut owned = bundle();
+    owned.scenario.units.push(unit(Some("blue-1")));
+    assert!(locations(&owned).is_empty());
 }

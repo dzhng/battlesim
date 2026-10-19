@@ -110,9 +110,9 @@ const SUPPRESSION_TIERS: [SuppressionTier; 3] = [
 ];
 const HOLD_PHASES: [HoldPhase; 3] = [HoldPhase::Entering, HoldPhase::Inside, HoldPhase::Exiting];
 const HOST_KINDS: [&str; 2] = ["building", "carrier"];
-/// All refusal names are reserved in this first layout so later transport
-/// slices can publish their new reasons without another layout migration.
-const ORDER_ERROR_NAMES: [&str; 28] = [
+/// Every refusal the contract names, in its order; a new reason appends here
+/// and to the codec vectors.
+const ORDER_ERROR_NAMES: [&str; 29] = [
     "passive_side",
     "not_skirmish",
     "match_finished",
@@ -141,6 +141,7 @@ const ORDER_ERROR_NAMES: [&str; 28] = [
     "not_a_carrier",
     "no_room_to_unload",
     "aboard",
+    "ai_controlled",
 ];
 const REASONS: [ActionReason; 16] = [
     ActionReason::Firing,

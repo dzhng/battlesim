@@ -547,7 +547,14 @@ fn missile_burst_at_a_nearby_flare_still_damages_the_airframe() {
         loft: None,
     });
     let id = store.launch(launch);
-    store.decoy_seeker(id, center - v3(half.x + 2.0, 0.0, 0.0), v3(0.0, 0.0, 0.0));
+    store.decoy_seeker(
+        id,
+        flight::Decoy {
+            position: center - v3(half.x + 2.0, 0.0, 0.0),
+            velocity: v3(0.0, 0.0, 0.0),
+            meet_m: battle.rules().guided.flare_meet_m,
+        },
+    );
     let weapon = battle
         .arsenal()
         .weapons

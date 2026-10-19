@@ -198,6 +198,35 @@ test("halting, pursuing and leaving the field are not arrivals", () => {
   expect(at(arrivals, 30, { 1: false, 2: false })).toEqual([]);
 });
 
+test("each queued journey arrives on its own, after one that publishes no goal", () => {
+  const arrivals = new Arrivals(3);
+  at(arrivals, 0, { 1: false });
+  arrivals.ordered({ kind: "move", units: [1] }, false, "order/1");
+  arrivals.ordered({ kind: "unload", units: [1] }, true, "order/2");
+  arrivals.ordered({ kind: "move", units: [1] }, true, "order/3");
+  at(arrivals, 0.1, { 1: true });
+  // At A it stops to let its passengers out, then drives on to B.
+  const atA = at(arrivals, 6, { 1: false });
+  expect(at(arrivals, 8, { 1: false })).toEqual([]);
+  at(arrivals, 9, { 1: true });
+  const atB = at(arrivals, 15, { 1: false });
+  expect(atA.map(({ id }) => id)).toEqual([1]);
+  expect(atB.map(({ id }) => id)).toEqual([1]);
+  expect(atB[0].group).not.toBe(atA[0].group);
+});
+
+test("an order that isn't queued drops the journeys queued before it", () => {
+  const arrivals = new Arrivals(3);
+  at(arrivals, 0, { 1: false });
+  arrivals.ordered({ kind: "move", units: [1] }, false, "order/1");
+  arrivals.ordered({ kind: "move", units: [1] }, true, "order/2");
+  at(arrivals, 0.1, { 1: true });
+  arrivals.ordered({ kind: "stop", units: [1] }, false, "order/3");
+  expect(at(arrivals, 6, { 1: false })).toEqual([]);
+  at(arrivals, 7, { 1: true });
+  expect(at(arrivals, 15, { 1: false })).toEqual([]);
+});
+
 test("a fire-policy change or a queued stop leaves the journey running", () => {
   const arrivals = new Arrivals(3);
   at(arrivals, 0, { 1: false });

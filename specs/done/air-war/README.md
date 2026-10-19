@@ -20,9 +20,10 @@ consumers read the same current state.
 - `HighAir` aircraft never reveal or clear Ground fog. They can sense airborne
   layers; ground AA can sense HighAir through authored target ranges but must
   have physical LOS through terrain, buildings and foliage to fire.
-- Radar is an always-emitting, unobstructed 360° channel. Only SEAD aircraft
-  detect signatures. Contacts stay approximate and carry bearing/range text;
-  they do not identify or reveal ground units.
+- Radar is an always-emitting, unobstructed 360° channel. Radar receivers,
+  including SEAD aircraft and any authored ground receiver, detect signatures.
+  Contacts stay approximate and carry bearing/range text; they do not identify
+  or reveal ground units.
 - Every faction keeps short, medium and long AA plus a dedicated SEAD platform.
   Interception is a property of a weapon row. Short guided Stinger/Igla rows
   remain non-interceptors; the ballistic short row may intercept incoming

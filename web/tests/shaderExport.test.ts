@@ -2,7 +2,8 @@
 // The browser's shaders, as a second client receives them: one compiled set
 // for every battle's light and every canvas size, checked in as
 // `packages/battle-renderer/pipelines/` (one WGSL file per pipeline and
-// `pipelines.json`, each pipeline's settings and bind group layouts).
+// `pipelines.json`, each pipeline's settings and bind group layouts, and the
+// sizes the passes allocate by).
 // `UPDATE_PIPELINES=1` rewrites the export from the browser's code.
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -19,6 +20,8 @@ import {
 } from "../../apps/battle-lab/src/gameOverlay";
 import { gameGlass, gameModelDetail } from "../../apps/battle-lab/src/gameModels";
 import { FLIPBOOK_SIZE } from "@packages/battle-renderer/src/effects/flipbooks";
+import { BLOOM_KERNEL_RADII } from "@packages/battle-renderer/src/shaders/post";
+import { SKY_LUT_HEIGHT, SKY_LUT_WIDTH } from "@packages/battle-renderer/src/light/skyParameters";
 import {
   installGpuGlobals,
   recordingGpuDevice,
@@ -95,6 +98,15 @@ const EXPORT = new URL("../../packages/battle-renderer/pipelines/", import.meta.
 const LISTING = "pipelines.json";
 const STAGES = ["vertex", "fragment", "compute"] as const;
 
+/** What the passes allocate by, beside their pipelines: the bloom's levels
+ *  (one `bloomBlur<level>` pipeline each), the sky lookup's texels and the
+ *  effect sheets' side. */
+const SIZES = {
+  bloomLevels: BLOOM_KERNEL_RADII.length,
+  skyLut: [SKY_LUT_WIDTH, SKY_LUT_HEIGHT],
+  effectSheet: FLIPBOOK_SIZE,
+};
+
 /** The export's files by name: each pipeline's WGSL, and the listing. */
 function exportOf(recording: Recording): Map<string, string> {
   const files = new Map<string, string>();
@@ -131,7 +143,7 @@ function exportOf(recording: Recording): Map<string, string> {
       compute: state.compute && entry(state.compute),
     };
   });
-  files.set(LISTING, `${JSON.stringify({ layouts, pipelines }, null, 2)}\n`);
+  files.set(LISTING, `${JSON.stringify({ sizes: SIZES, layouts, pipelines }, null, 2)}\n`);
   return files;
 }
 

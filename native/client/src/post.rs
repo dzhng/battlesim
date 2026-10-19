@@ -1,16 +1,13 @@
 //! Post (`world/post.ts`), the look: the HDR world's bright parts blurred over
-//! five halving levels and composited, then graded and tone-mapped (AgX) into
-//! the display target. The bloom's and grade's numbers are the world light's
-//! records; only the blur's texel steps come from the target size.
+//! the export's halving levels and composited, then graded and tone-mapped
+//! (AgX) into the display target. The bloom's and grade's numbers are the
+//! world light's records; only the blur's texel steps come from the target size.
 use presentation::records::{Bloom, Grade};
 use wgpu::*;
 
 use crate::frame::{Inputs, Pass, Targets, HDR_FORMAT};
 use crate::gpu;
 use crate::pipelines::Pipelines;
-
-/// Bloom levels (`BLOOM_KERNEL_RADII`'s length).
-const LEVELS: usize = 5;
 
 struct Stage {
     pipeline: RenderPipeline,
@@ -93,7 +90,7 @@ impl Post {
         let mut source = bright;
         let mut levels = Vec::new();
         let mut horizontals = Vec::new();
-        for level in 0..LEVELS {
+        for level in 0..pipelines.sizes.bloom_levels {
             let pipeline = pipelines.render(&format!("bloomBlur{level}"));
             let (horizontal, vertical) = (
                 texture(device, "bloom-horizontal", [w, h]),

@@ -367,6 +367,10 @@ pub fn validate_guided(rules: &GuidedRules) {
         rules.release_coast_s > 0.0 && rules.release_coast_s.is_finite(),
         "guided.release_coast_s must be positive"
     );
+    assert!(
+        rules.flare_meet_m >= 0.0 && rules.flare_meet_m.is_finite(),
+        "guided.flare_meet_m must be finite and non-negative"
+    );
 }
 
 /// A guided round's steering: toward `point`, turning at most `turn_rad_s`.
@@ -539,6 +543,8 @@ pub struct Projectile {
 pub struct Decoy {
     pub position: V3,
     pub velocity: V3,
+    /// The seeker bursts on the flare once this close (`guided.flare_meet_m`).
+    pub meet_m: f64,
 }
 
 /// What a round struck. The derived order is the tie-break order.
@@ -811,11 +817,11 @@ impl Projectiles {
 
     /// Divert this seeker to one physical flare. The flare keeps its release
     /// velocity and falls under gravity; no unit pose is followed afterwards.
-    pub fn decoy_seeker(&mut self, id: ProjectileId, position: V3, velocity: V3) {
+    pub fn decoy_seeker(&mut self, id: ProjectileId, decoy: Decoy) {
         if let Some(p) = self.active.iter_mut().find(|p| p.id == id) {
-            p.decoy = Some(Decoy { position, velocity });
+            p.decoy = Some(decoy);
             if let Some(g) = p.guidance.as_mut() {
-                g.point = position;
+                g.point = decoy.position;
                 g.supported = false;
             }
         }
@@ -1357,7 +1363,8 @@ impl Flight<'_> {
                     best = Some((hit.t / len, struck, hit.normal, None));
                 }
             }
-            // A one-metre proximity fuse follows the flare's swept motion.
+            // A proximity fuse of the decoy's meeting distance follows the
+            // flare's swept motion.
             // Earlier terrain or body collisions still win, so a flare never
             // grants immunity to an aircraft already in the missile's path.
             if let Some(decoy) = p.decoy {
@@ -1369,7 +1376,7 @@ impl Flight<'_> {
                 let travel = chord - (d1 - d0);
                 let aa = travel.dot(travel);
                 let bb = relative.dot(travel);
-                let cc = relative.dot(relative) - 1.0;
+                let cc = relative.dot(relative) - decoy.meet_m * decoy.meet_m;
                 let determinant = bb * bb - aa * cc;
                 let entry = if cc <= 0.0 {
                     Some(0.0)

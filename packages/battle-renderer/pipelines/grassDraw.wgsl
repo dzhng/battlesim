@@ -38,7 +38,8 @@ struct GrassClump {
   height: f32,
   colour: u32,
   kind: u32,
-  yaw: f32,
+  yawSin: f32,
+  yawCos: f32,
   width: f32,
 }
 
@@ -79,8 +80,8 @@ fn grassVertexOf(vid: u32, iid: u32) -> GrassVertex {
   let base = select((*P).bases[c.kind].y, (*P).bases[c.kind].x, tier.x == 0u);
   let s = shapes[base + vid];
   let scale = c.height / max(row.x, 1e-4);
-  let cs = cos(c.yaw);
-  let sn = sin(c.yaw);
+  let sn = c.yawSin;
+  let cs = c.yawCos;
   let sp = s.spine.xyz * scale;
   let sd = s.side.xyz * scale * c.width;
   let spine = vec3f(sp.x * cs - sp.y * sn, sp.x * sn + sp.y * cs, sp.z);
@@ -407,14 +408,10 @@ struct SunShadow {
 
 fn shadowPcf(depth: texture_depth_2d_array, compare: sampler_comparison, layer: i32, uv: vec2f, z: f32, pixel: vec2f, radius: f32) -> f32 {
   let phi=fract(52.9829189*fract(dot(pixel,vec2f(0.06711056,0.00583715))))*6.28318530718;
+  let cphi=cos(phi);let sphi=sin(phi);
   let scale=radius/f32(textureDimensions(depth).x);
   var visibility=0.0;
-  for(var i=0u;i<5u;i++) {
-    let r=sqrt((f32(i)+0.5)/5.0);
-    let theta=f32(i)*2.399963229728653+phi;
-    let offset=vec2f(cos(theta),sin(theta))*r*scale;
-    visibility+=textureSampleCompareLevel(depth,compare,uv+offset,layer,z);
-  }
+  let b0=vec2f(0.31622776601683794,0);let o0=vec2f(b0.x*cphi-b0.y*sphi,b0.x*sphi+b0.y*cphi)*scale;visibility+=textureSampleCompareLevel(depth,compare,uv+o0,layer,z);let b1=vec2f(-0.40387356772577226,0.36998127154283905);let o1=vec2f(b1.x*cphi-b1.y*sphi,b1.x*sphi+b1.y*cphi)*scale;visibility+=textureSampleCompareLevel(depth,compare,uv+o1,layer,z);let b2=vec2f(0.06181932279751069,-0.7043992982171811);let o2=vec2f(b2.x*cphi-b2.y*sphi,b2.x*sphi+b2.y*cphi)*scale;visibility+=textureSampleCompareLevel(depth,compare,uv+o2,layer,z);let b3=vec2f(0.5090564735709379,0.6639740256331726);let o3=vec2f(b3.x*cphi-b3.y*sphi,b3.x*sphi+b3.y*cphi)*scale;visibility+=textureSampleCompareLevel(depth,compare,uv+o3,layer,z);let b4=vec2f(-0.934181236883857,-0.16524350714671632);let o4=vec2f(b4.x*cphi-b4.y*sphi,b4.x*sphi+b4.y*cphi)*scale;visibility+=textureSampleCompareLevel(depth,compare,uv+o4,layer,z);
   return visibility*0.2;
 }
 
@@ -424,8 +421,8 @@ fn shadowVisibility(depth: texture_depth_2d_array, compare: sampler_comparison, 
   let uv=vec2f(coord.x*0.5+0.5,0.5-coord.y*0.5);
   let z=coord.z-settings.x;
   let inside=all(uv>=vec2f(0))&&all(uv<=vec2f(1))&&z>=0&&z<=1;
-  let shade=shadowPcf(depth,compare,layer,uv,z,pixel,settings.z);
-  return select(1.0,shade,inside);
+  if (!inside) { return 1.0; }
+  return shadowPcf(depth,compare,layer,uv,z,pixel,settings.z);
 }
 
 fn inheritedSunShadow(environment: Environment, sunShadow: SunShadow, sunDepth: texture_depth_2d_array, sunCompare: sampler_comparison, world: vec3f, normal: vec3f, pixel: vec2f) -> f32 {

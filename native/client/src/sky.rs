@@ -8,8 +8,6 @@ use crate::frame::{Inputs, HDR_FORMAT};
 use crate::gpu::buffer;
 use crate::pipelines::Pipelines;
 
-/// The sky lookup's size: equirectangular, 2:1 (`SKY_LUT_WIDTH/HEIGHT`).
-const LUT: [u32; 2] = [384, 192];
 /// The view's three corner rays (`Rays`).
 const RAYS_BYTES: usize = 48;
 
@@ -33,11 +31,12 @@ fn uniform(device: &Device, label: &str, bytes: &[u8]) -> Buffer {
 impl Sky {
     /// Builds the sky for `light` and bakes its lookup.
     pub fn new(device: &Device, queue: &Queue, pipelines: &Pipelines, light: &SkyLight) -> Self {
+        let [width, height] = pipelines.sizes.sky_lut;
         let lut = device.create_texture(&TextureDescriptor {
             label: Some("sky-lut"),
             size: Extent3d {
-                width: LUT[0],
-                height: LUT[1],
+                width,
+                height,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,

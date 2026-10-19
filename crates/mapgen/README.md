@@ -249,7 +249,8 @@ find those seeds.
 The `skirmish_tournament` example defaults to one two-controller game on a
 fresh generated `mixed` map at the smallest skirmish tier, using a clock seed
 unless `--seed <u64>` is supplied. It runs until the simulation reaches a
-terminal result, with a 30-minute safety cap adjustable through
+terminal result, with a safety cap (the preparation plus three majority holds,
+from the match rules) adjustable through
 `--max-seconds <u64>`. Its JSON report includes the chosen cap, actual battle
 seconds, seed and replay parity result. Pass `--corpus` to run the deterministic
 multi-row regression corpus instead. Balance probes pick the faction pair and

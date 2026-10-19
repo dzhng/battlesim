@@ -17,16 +17,8 @@ import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { useLabLoading } from "../LabLoading";
 import { useBattleSession } from "../useBattleSession";
 import type { ScriptedSim } from "../useSimSession";
-import type { CaptureScene, Reel } from "./capture";
+import { stillReel, type CaptureScene } from "./capture";
 import { reelPilot } from "./reelPilot";
-
-/** Under reduced motion the camera holds the first framing for the reel's length. */
-function reelFor(reel: Reel, reduced: boolean): Reel {
-  if (!reduced) return reel;
-  const seconds = reel.shots.reduce((sum, shot) => sum + shot.seconds, 0);
-  const still = reel.shots[0].from;
-  return { fade_s: reel.fade_s, shots: [{ seconds, from: still, to: still }] };
-}
 
 const cameraAt = (pose: CameraPose): Camera3DParams => ({
   target: [pose.target[0], pose.target[1], 0],
@@ -73,7 +65,7 @@ function sceneCamera(
   onEnd: () => void,
   reducedMotion: boolean,
 ) {
-  const reel = reelFor(scene.reel, reducedMotion);
+  const reel = reducedMotion ? stillReel(scene.reel) : scene.reel;
   const fly = reelPilot(reel);
   const battle: ReelBattle = { unitAt: () => null, clock: () => null };
   let ended = false;

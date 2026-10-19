@@ -52,8 +52,7 @@ fn bundle() -> ScenarioBundle {
             media_type: "audio/wav".into(),
             sha256: contract::identity::bytes_hash(bytes),
             provenance: "user-upload".into(),
-            bytes_base64: Some(base64_encode(bytes)),
-            builtin: None,
+            bytes_base64: base64_encode(bytes),
         }],
     }
 }
@@ -139,4 +138,75 @@ fn wasm_scenario_contract_accepts_multi_player_sides_without_panicking() {
     )
     .unwrap();
     assert_eq!(result["status"], "ok");
+}
+
+/// Upload a canonical bundle edited by `edit`, with its content identities
+/// recomputed so only the edit can be refused.
+fn upload(edit: impl FnOnce(&mut ScenarioBundle)) -> serde_json::Value {
+    let mut bundle = bundle();
+    edit(&mut bundle);
+    bundle.map.map_hash = contract::identity::json_hash(&bundle.scenario.map).unwrap();
+    bundle.rules_hash = contract::identity::json_hash(&bundle.scenario.rules).unwrap();
+    let bytes = serde_json::to_string(&bundle).unwrap();
+    serde_json::from_str(&game_wasm::check_scenario_bundle(&bytes)).unwrap()
+}
+
+fn locations(result: &serde_json::Value) -> Vec<String> {
+    assert_eq!(result["status"], "error", "{result}");
+    result["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| d["location"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+fn prop<T: serde::de::DeserializeOwned>(kind: &str) -> T {
+    serde_json::from_value(serde_json::json!({
+        "kind": kind,
+        "center": [100.0, 100.0],
+        "yaw": 0.0,
+        "half_extents": [1.0, 1.0, 1.0]
+    }))
+    .unwrap()
+}
+
+#[test]
+fn a_map_the_world_cannot_build_is_refused_with_diagnostics() {
+    let unknown_prop = upload(|bundle| bundle.scenario.map.props.push(prop("no-such-prop")));
+    assert_eq!(locations(&unknown_prop), ["$.scenario.map.props[0].kind"]);
+    let no_fog_cells = upload(|bundle| bundle.scenario.map.fog_cell_m = 0.0);
+    assert_eq!(locations(&no_fog_cells), ["$.scenario.map.fog_cell_m"]);
+}
+
+#[test]
+fn unknown_unit_prop_and_weapon_kinds_are_refused_before_battle() {
+    let result = upload(|bundle| {
+        let catalog = &bundle.scenario.rules.catalog;
+        let known = catalog.id(catalog.indices().next().unwrap()).to_owned();
+        for kind in [known, "no-such-unit".to_owned()] {
+            bundle.scenario.units.push(
+                serde_json::from_value(serde_json::json!({
+                    "side": "blue",
+                    "owner": "blue-1",
+                    "kind": kind,
+                    "position": [100.0, 100.0]
+                }))
+                .unwrap(),
+            );
+        }
+        bundle.scenario.events = serde_json::from_value(serde_json::json!([
+            { "tick": 5, "add_prop": prop::<serde_json::Value>("no-such-prop") },
+            { "tick": 6, "burst": { "point": [100.0, 100.0], "weapon": "no-such-weapon" } }
+        ]))
+        .unwrap();
+    });
+    assert_eq!(
+        locations(&result),
+        [
+            "$.scenario.units[1].kind",
+            "$.scenario.events[0].add_prop.kind",
+            "$.scenario.events[1].burst.weapon",
+        ]
+    );
 }

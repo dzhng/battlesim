@@ -27,7 +27,7 @@ import {
   designVoices,
   pickVoice,
 } from "@packages/battle-audio/tools/generate/design";
-import { writePacks } from "@packages/battle-audio/tools/generate/packs";
+import { checkPacks, writePacks } from "@packages/battle-audio/tools/generate/packs";
 import {
   checkVoices,
   generateVoices,
@@ -459,7 +459,13 @@ describe("voice packs", () => {
     root: string,
     take: string,
     bytes: string,
-    record: { verdict?: "ok" | "bad" | "stale"; flagged?: boolean; onDisk?: string } = {},
+    record: {
+      verdict?: "ok" | "bad" | "stale";
+      flagged?: boolean;
+      onDisk?: string;
+      /** The voice that spoke it; the lead's current voice by default. */
+      voice?: string;
+    } = {},
   ) {
     const [intensity, n] = take.split("/");
     const sha256 = createHash("sha256").update(bytes).digest("hex");
@@ -478,6 +484,7 @@ describe("voice packs", () => {
         served_sha256: sha256,
         duration_s: 1.25,
         match: { flagged: record.flagged ?? false },
+        provenance: { voice_id: record.voice ?? LEAD },
         ...(verdict ? { verdict } : {}),
       },
     ] as const;
@@ -586,6 +593,35 @@ describe("voice packs", () => {
         "pack gone: set not in voices.json",
       ]),
     );
+  });
+
+  it("leaves out a take spoken by a voice voices.json no longer names, and check refuses one packed", () => {
+    const root = workspace();
+    // The lead's voice was replaced and regeneration stopped after one take.
+    const fresh = locked(root, "steady/0", "new voice", { verdict: "ok" });
+    const stale = locked(root, "steady/1", "old voice", { verdict: "ok", voice: "voice-old-id" });
+    // The pack written before the swap, when the old voice was the lead's.
+    const before = packed(
+      false,
+      [fresh, [stale[0], { ...stale[1], provenance: { voice_id: LEAD } }]],
+      root,
+    );
+    expect(listed(before)).toEqual(["steady/0", "steady/1"]);
+
+    const lockPath = join(root, "fixtures/voices.lock.json");
+    writeFileSync(
+      lockPath,
+      JSON.stringify({
+        beds: {},
+        designs: {},
+        takes: { [fresh[0]]: fresh[1], [stale[0]]: stale[1] },
+      }),
+    );
+    expect(checkPacks(root, catalog(), readLock(lockPath))).toEqual([
+      `pack tank: ${stale[0]} was spoken by another voice than voices.json names`,
+      "pack tank: stale; run `generate pack`",
+    ]);
+    expect(listed(packed(true, [fresh, stale], root))).toEqual(["steady/0"]);
   });
 
   it("leaves out a take whose served file is not the bytes the lock names", () => {

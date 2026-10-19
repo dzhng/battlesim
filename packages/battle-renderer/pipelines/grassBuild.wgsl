@@ -86,7 +86,8 @@ struct GrassClump {
   height: f32,
   colour: u32,
   kind: u32,
-  yaw: f32,
+  yawSin: f32,
+  yawCos: f32,
   width: f32,
 }
 
@@ -1260,6 +1261,7 @@ fn groundColour(xy: vec2f, footprint: f32, site: vec4f, paved: GroundPaved, wate
     if (slot >= cap) { continue; }
     let base = select((*P).grid.z, 0u, tier == 0u);
     clumps[base + slot] = GrassClump(
-      root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0 - flat)), kind, h.z * 6.2831853, width);
+      root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0 - flat)), kind,
+      sin(h.z * 6.2831853), cos(h.z * 6.2831853), width);
   }
 }

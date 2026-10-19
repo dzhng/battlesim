@@ -10,18 +10,23 @@ a capability has shipped.
 variants, the skirmish economy/objectives, basic AI and a phased implementation
 ladder with parallel named-model production.
 
+[Battle foundation](done/battle-foundation/README.md) (closed) records the village
+checkpoint and the decisions that established the simulation, observation, combat,
+and recovery seams. Its later umbrella work was superseded by the dedicated feature
+records below and the [team skirmish](team-skirmish/README.md) closeout.
+
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](done/transport/README.md) (shipped) carries infantry squads in APCs, IFVs, light vehicles and helicopters, with bail-out when a carrier dies and a skirmish AI that moves its infantry by transport.
 
 [Unit card camera focus](done/unit-card-camera-focus/README.md) (shipped) lets a selected army-deck card, or any double-clicked card, centre the camera on its unit while keeping the `N` / `Shift+N` framing.
 
-[Team skirmish](team-skirmish/README.md) (planned) turns the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
+[Team skirmish](team-skirmish/README.md) (in progress) turns the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield
 contract. [Air-war flight](done/air-war-flight/README.md) (shipped) made jets fly as jets:
 their own altitude, circling, attack runs, organic dogfights, edge arrival and
-departure, and every planned jet enabled with a reviewed model. [Air-defence radar networks](air-defence-radar/README.md) is a deferred idea:
-launchers that see far only through separate radar units.
+departure, and every planned jet enabled with a reviewed model. [Air-defence radar networks](done/air-defence-radar/README.md) is a closed, deferred idea:
+separate radar vehicles supplying otherwise-blind launchers.
 
 [Battle voices and music](done/battle-voices-music/README.md) (shipped) gave units RTS-style voice lines (answers to their owner and simulation-emitted barks) and battles an adaptive background score, generated with ElevenLabs and reviewed in the sound workbench.
 

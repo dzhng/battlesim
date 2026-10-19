@@ -70,6 +70,7 @@ mod sight;
 mod sight_gaps;
 mod skirmish;
 mod skirmish_ownership;
+mod skirmish_team;
 mod soldier_bodies;
 mod supply;
 mod suppression;

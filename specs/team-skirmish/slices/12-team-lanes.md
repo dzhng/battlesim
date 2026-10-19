@@ -8,7 +8,7 @@ AI players fight as concentrated combined-arms groups in their own lanes, so a t
 
 ## Seam
 
-- **Planner.** `crates/sim/src/skirmish_ai/team.rs` (new) provides `plan(side_frame, players, sites, memory) -> TeamPlan`. `TeamPlan` holds, per AI player:
+- **Planner.** `crates/sim/src/skirmish_ai/team/mod.rs` (new) provides `plan(side_frame, players, sites, memory) -> TeamPlan`. `TeamPlan` holds, per AI player:
   - a lane (`EntryIndex`);
   - a main objective;
   - a staging point.
@@ -17,7 +17,7 @@ AI players fight as concentrated combined-arms groups in their own lanes, so a t
   - **Covered objectives:** an objective counts as covered when the human's units are heading to it, read from `OwnUnit.goal` by `owner`.
   - **Assignment:** AI players are matched to lanes by brute-force over permutations, scored on distance and influence with an incumbency bonus. Ties go to the lower player.
   - **Memory:** incumbency is non-digested memory (D40).
-- **Doctrine.** `BalancedDoctrine` reads its assignment through `PlayerContext.lane`.
+- **Doctrine.** `BalancedDoctrine` reads the planner's optional `Assignment` (objective and staging point); lane selection remains owned by the battle when it chooses the entry.
   - It orders purchases into its lane, so slice 05 brings them in at that lane's entry.
   - It gathers its main group at the staging point, then moves it as one group on the main objective. This replaces today's per-unit "least-loaded objective" spreading (`mod.rs:662–694`).
   - Scouts, outposts and defensive positions may spread.

@@ -60,22 +60,22 @@ pub(crate) fn prepare_row(
     ),
     String,
 > {
-    let players = vec![
-        Player {
-            id: "blue-1".into(),
-            side: Side::Blue,
-            faction: Some(inputs.factions[0]),
-            controller: ControllerKind::ActiveAi,
-            human_capable: false,
-        },
-        Player {
-            id: "red-1".into(),
-            side: Side::Red,
-            faction: Some(inputs.factions[1]),
-            controller: ControllerKind::ActiveAi,
-            human_capable: false,
-        },
-    ];
+    let players: Vec<Player> = Side::COMBATANTS
+        .into_iter()
+        .flat_map(|side| {
+            (0..row.players_per_side.max(1)).map(move |index| Player {
+                id: format!(
+                    "{}-{}",
+                    if side == Side::Blue { "blue" } else { "red" },
+                    index + 1
+                ),
+                side,
+                faction: Some(inputs.factions[side.index()]),
+                controller: ControllerKind::ActiveAi,
+                human_capable: false,
+            })
+        })
+        .collect();
     let (map, prepared, sites, identity) = match &row.map {
         MapSource::Saved(id) => {
             let value = sim::fixtures::with_map(id);
@@ -113,7 +113,7 @@ pub(crate) fn prepare_row(
                 template_catalog_hash: inputs.template_hash.clone(),
                 map_type,
                 size,
-                entries_per_side: 1,
+                entries_per_side: contract::players::entries_per_side(&players),
                 profile: GenerationProfile::Skirmish,
                 region: None,
                 limits: inputs.limits,
