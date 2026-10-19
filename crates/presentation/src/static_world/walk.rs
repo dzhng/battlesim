@@ -99,6 +99,7 @@ pub struct BuildingWalk {
     /// Resident chunks' rows at their tier, kept while they stay resident.
     resident: HashMap<(usize, usize), Vec<BuildingModule>>,
     pub lists: Lists,
+    scratch: Lists,
     pub counts: Vec<u32>,
     /// The chunks and their coarse rows, then the last walk's chunks
     /// resident, rows resident, rows expanded (not resident before) and near
@@ -147,6 +148,10 @@ impl BuildingWalk {
                 view: vec![vec![]; keys],
                 cast: vec![vec![]; keys],
             },
+            scratch: Lists {
+                view: vec![vec![]; keys],
+                cast: vec![vec![]; keys],
+            },
             counts: vec![0; keys],
             stats: [chunk_count, coarse_rows, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         }
@@ -185,11 +190,14 @@ impl BuildingWalk {
     /// or cast instances changed since the last walk.
     pub fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> Vec<usize> {
         let keys = self.counts.len();
-        let mut lists = Lists {
-            view: vec![vec![]; keys],
-            cast: vec![vec![]; keys],
-        };
-        let mut counts = vec![0; keys];
+        let mut lists = std::mem::take(&mut self.scratch);
+        for lists in [&mut lists.view, &mut lists.cast] {
+            for list in lists.iter_mut() {
+                list.clear();
+            }
+        }
+        let mut counts = std::mem::take(&mut self.counts);
+        counts.fill(0);
         let draw = |lists: &mut Lists,
                     counts: &mut [u32],
                     r: &BuildingModule,
@@ -280,7 +288,7 @@ impl BuildingWalk {
         let changed = (0..keys)
             .filter(|&k| lists.view[k] != self.lists.view[k] || lists.cast[k] != self.lists.cast[k])
             .collect();
-        self.lists = lists;
+        self.scratch = std::mem::replace(&mut self.lists, lists);
         changed
     }
 

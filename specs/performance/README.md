@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Rust presentation allocation-reuse pass retained; native A/B and a completing browser reel confirm the slice. The next Rust owner is still open.
+**Status:** Rust presentation allocation-reuse passes retained; native A/B and bounded browser reels confirm the current slice. The market-town 1% low trigger remains open.
 **Updated:** 2026-10-19.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -20,7 +20,8 @@ renderer or shader changes. Update this section before you end each pass.
 - [x] Reuse loaded-frame scratch vectors without changing `Frame` output.
 - [x] Compare the pass against the immediate pre-pass source on the native replay bench.
 - [x] Diagnose the browser graphics-test completion failure and rerun a bounded reel.
-- [ ] Profile the next loaded-frame owner before selecting another optimization.
+- [x] Profile the next loaded-frame owner before selecting another optimization.
+- [x] Reuse `BuildingWalk::select` list and count storage after native A/B.
 
 ## Current handoff
 
@@ -55,7 +56,9 @@ completed after rebuilding the ignored presentation WASM artifacts:
 `market-town` averaged 83.1 FPS with a 39.0 FPS 1% low and 10.73 ms GPU mean;
 `paris-corner` averaged 110.5 FPS with a 58.8 FPS 1% low and 7.44 ms GPU mean.
 The next pass should profile the loaded unit/effect owner before selecting
-another optimization.
+another optimization. The second pass reuses the static building walk's
+double-buffered lists and counts; native A/B shows a CPU benefit, while the
+browser trigger remains below its 1% low floor.
 
 ## Where the frame stands
 

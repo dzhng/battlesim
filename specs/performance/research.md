@@ -168,3 +168,20 @@ inside `Loaded`. The native `paris-corner` bench did not support it: before was
 1.12 ms CPU p50 / 1.31 ms p95, after was 1.16 ms / 1.40 ms, with unchanged
 drawn counts and GPU means. The experiment was reverted; transit reconstruction
 is not a selected optimization target.
+
+
+## Building-walk list reuse — 2026-10-19
+
+`BuildingWalk::select` rebuilt every module/tier list and its count vector on
+each camera walk. A two-buffer implementation keeps the prior lists for exact
+comparison and reuses the other buffer's capacities for the next walk; counts
+are cleared and reused. This bounds the normal per-walk allocation churn without
+changing list order or records.
+
+The immediate native control measured 1.14 ms CPU p50 / 1.45 ms p95. Two reuse
+runs measured 1.06 / 1.30 and 1.05 / 1.52 ms, with identical drawn counts and
+GPU means around 7.95 ms. The focused presentation suite passed. Bounded browser
+reels also completed: `paris-corner` reached 111.4 FPS average and 57.6 FPS 1%
+low; `market-town` reached 83.2 FPS average and 39.1 FPS 1% low. The latter
+still triggers the agreed browser floor, so this pass is retained as a measured
+CPU improvement but does not close the performance spec.

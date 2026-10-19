@@ -19,8 +19,22 @@ retain their existing semantics.
 - parity: native captured replay/count checks when available
 - browser: rerun `graphics-fps` only after the Rust contract is green
 
-## Next
+## Follow-up pass
 
-Measure whether the reduced allocation churn changes the accepted browser reel;
-if it does not, keep the output-equivalent change only if native profiling shows
-an allocation benefit, otherwise revert and profile the next loaded-frame owner.
+`BuildingWalk::select` now double-buffers its module and tier lists and reuses
+the count vector. The active and scratch lists swap after comparison, so the
+previous output remains available for exact equality while the next walk keeps
+its allocations. The browser and native `Frame` records are unchanged.
+
+Proof for this pass:
+
+- focused: `cargo test -p presentation`
+- native control: 1.14 ms CPU p50 / 1.45 ms p95
+- native reuse: 1.05–1.06 ms CPU p50 / 1.30–1.52 ms p95, identical drawn counts
+- browser `paris-corner`: 111.4 FPS average, 57.6 FPS 1% low
+- browser `market-town`: 83.2 FPS average, 39.1 FPS 1% low
+
+The native CPU reduction is sufficient to retain this output-equivalent pass;
+the browser trigger remains open because `market-town` is still below the 50 FPS
+1% low floor. The next pass must profile the loaded unit/effect owner before
+selecting another optimization.
