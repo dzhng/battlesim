@@ -172,15 +172,21 @@ for (const path of sources(positionals.map(inRepo))) {
   failures.push({ path, bytes, before });
 }
 if (failures.length > 0) {
-  console.error(
-    `Source files may not exceed ${maxTokens.toLocaleString("en")} tokens (bytes / 4).`,
-  );
+  const budget = tokens(maxBytes);
+  console.error(`Commit refused: source files over the budget of ${budget} (bytes / 4).`);
   for (const { path, bytes, before } of failures) {
-    const was = before === null ? "new file" : `was ${tokens(before)}, grew`;
-    console.error(`  ${path}: ${tokens(bytes)} (${was})`);
+    // A file HEAD already had over the budget is held to its HEAD size, not
+    // to the budget.
+    const frozen = before !== null && before > maxBytes;
+    const limit = frozen ? before : maxBytes;
+    const why = frozen
+      ? `already over the budget at ${tokens(before)}, so it may not grow; it does not have to get under the budget`
+      : `${before === null ? "a new file" : `was ${tokens(before)}`}, so it must fit the budget`;
+    console.error(`  ${path}: ${tokens(bytes)}, ${why}.`);
+    console.error(`    Cut at least ${(bytes - limit).toLocaleString("en")} bytes.`);
   }
   console.error(
-    `\nA file already over the budget may stay that size or shrink, but not grow.\n${splitRules}`,
+    `\nMake room by moving a concept into its own file, not by squeezing code to fit.\n${splitRules}`,
   );
   process.exit(1);
 }
