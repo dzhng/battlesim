@@ -1,7 +1,8 @@
 //! When a skirmish purchase leaves the queue, and what it arrives as.
 
-use contract::command::{CommandEnvelope, Order};
+use contract::command::{CommandEnvelope, Engagement, Order};
 use contract::ids::Side;
+use contract::players::ControllerKind;
 use sim::battle::Battle;
 
 fn buy(battle: &mut Battle, player: &str, seq: u64, destination: [f64; 2]) {
@@ -52,4 +53,33 @@ fn a_purchase_blocked_at_one_entry_does_not_hold_back_the_same_players_purchase_
     );
     let status = frame.skirmish.as_ref().unwrap();
     assert_eq!(status.pending.len(), 1, "the entry-A purchase still waits");
+}
+
+#[test]
+fn a_purchase_arriving_for_a_passive_ai_player_only_returns_fire() {
+    let mut setup = crate::skirmish::setup();
+    setup.skirmish.as_mut().unwrap().rules.preparation_s = 0;
+    let mut battle = Battle::new(&setup, 6);
+    buy(&mut battle, "blue-1", 1, [400.0, 300.0]);
+    buy(&mut battle, "blue-1", 2, [400.0, 300.0]);
+    battle.step();
+    assert_eq!(battle.observe(Side::Blue).own.len(), 1);
+    // The player hands its seat to a passive AI before the second arrives.
+    battle.set_controllers(vec![("blue-1".into(), ControllerKind::PassiveAi)]);
+    for _ in 0..30 * battle.rules().tick_hz {
+        if battle.observe(Side::Blue).own.len() == 2 {
+            break;
+        }
+        battle.step();
+    }
+    let own = &battle.observe(Side::Blue).own;
+    assert_eq!(own.len(), 2, "the second purchase never arrived");
+    assert!(
+        own.iter()
+            .all(|unit| unit.engagement == Engagement::ReturnFireOnly),
+        "{:?}",
+        own.iter()
+            .map(|unit| (unit.id, unit.engagement))
+            .collect::<Vec<_>>()
+    );
 }

@@ -191,7 +191,12 @@ impl Battle {
                     kind: self.rules.catalog.id(reservation.data.kind).to_string(),
                     position: [at.x, at.y],
                     yaw,
-                    engagement: None,
+                    // A passive AI's units only return fire, arrivals as
+                    // much as those it held when it took the seat
+                    // (`apply_controller`).
+                    engagement: (skirmish.players[player_index].controller
+                        == ControllerKind::PassiveAi)
+                        .then_some(Engagement::ReturnFireOnly),
                     condition: None,
                     stock: None,
                 };
