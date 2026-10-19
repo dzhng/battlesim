@@ -37,7 +37,9 @@ run found six long tasks, including one 943 ms task during `market-town`, and no
 GC entries. The full diagnostic run matched a 997 ms task to a 1,050 ms frame
 interval. Chromium's attribution was an unattributed window task, so the next
 pass must identify the owner with targeted renderer or frame-loop counters
-before selecting an optimization.
+before selecting an optimization. The boundary pass found a 949 ms
+`viewport-frame` with about 0.9 ms of model preparation and 3.9 ms of renderer
+draw; the remaining `ScenePresentation.frame` call is the current suspect.
 
 ## Where the frame stands
 

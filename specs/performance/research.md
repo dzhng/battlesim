@@ -75,7 +75,13 @@ timing contract. The first passing instrumented run
 was about 1.95 GB used of a 4 GB limit. The full diagnostic run matched a
 997 ms `market-town` long task to a 1,050 ms frame interval. Chromium reported
 the task as an unattributed window task, so the next pass needs targeted
-renderer or frame-loop counters to name its owner.
+renderer or frame-loop counters to name its owner. Boundary spans then showed
+a 1,443 ms `presentation-frame-build` inside a 1,565 ms long task, while model
+preparation was about 0.9 ms and renderer draw about 5 ms. Static selection was
+only about 6.5 ms in the same window, so the expensive portion is the loaded
+unit/effect presentation work. A Rust timing hook was attempted but removed
+because it changed the reel's runtime; the JS boundary remains the accepted
+measurement.
 
 ## Visual verification (2026-10-18)
 

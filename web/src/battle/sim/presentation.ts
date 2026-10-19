@@ -767,30 +767,44 @@ export class ScenePresentation {
     if (this.stale) this.load();
     const c = camera;
     const started = performance.now();
-    const ptr = this.rust.frame(
-      time,
-      Float64Array.of(
-        c.eye[0],
-        c.eye[1],
-        c.eye[2],
-        c.target[0],
-        c.target[1],
-        c.target[2],
-        c.up[0],
-        c.up[1],
-        c.up[2],
-        c.fovY,
-        c.near,
-        c.width,
-        c.height,
-      ),
-      Uint32Array.from(ui.selected),
-      ui.xray,
-      ui.player ?? undefined,
-      ui.ghosts.length ? JSON.stringify(ui.ghosts) : "",
-      ui.known ? JSON.stringify(ui.known) : "",
-      generation,
-    );
+    const perf = (
+      globalThis as {
+        __battlePerf?: {
+          begin(name: string): { name: string; atMs: number };
+          end(token: { name: string; atMs: number }): void;
+        };
+      }
+    ).__battlePerf;
+    const framePerf = perf?.begin("presentation-frame-build");
+    let ptr: number;
+    try {
+      ptr = this.rust.frame(
+        time,
+        Float64Array.of(
+          c.eye[0],
+          c.eye[1],
+          c.eye[2],
+          c.target[0],
+          c.target[1],
+          c.target[2],
+          c.up[0],
+          c.up[1],
+          c.up[2],
+          c.fovY,
+          c.near,
+          c.width,
+          c.height,
+        ),
+        Uint32Array.from(ui.selected),
+        ui.xray,
+        ui.player ?? undefined,
+        ui.ghosts.length ? JSON.stringify(ui.ghosts) : "",
+        ui.known ? JSON.stringify(ui.known) : "",
+        generation,
+      );
+    } finally {
+      if (framePerf) perf?.end(framePerf);
+    }
     this.walk.selectMs = performance.now() - started;
     this.framePtr = ptr;
     const views = frameViews(buffer(), ptr);

@@ -88,3 +88,35 @@ candidate sounds closest to the symptom.
   before changing production behavior.
 - **Verdict:** sound. The attribution is explicitly insufficient evidence.
 - **Confidence:** high.
+
+### Instrument the presentation boundary before changing renderer code — 2026-10-19
+
+The owner counters showed that the long frame is not model packing or GPU draw:
+the renderer work stayed under a few milliseconds, while the Rust-backed
+`ScenePresentation.frame` call took over a second. The next measurement exposes
+the presentation module's existing static-selection timing rather than adding
+a second renderer cache or changing simulation behavior. The alternative would
+be to optimize the renderer because the symptom first appeared in a graphics
+reel.
+
+- **Gap:** the browser profile could not attribute time inside the WASM call.
+- **Reach:** this keeps the optimization at the presentation owner; static
+  selection is now ruled out by its existing 6.5 ms metric.
+- **Verdict:** sound. The boundary evidence points to presentation work.
+- **Confidence:** high.
+
+### Remove a timing hook that perturbed the reel — 2026-10-19
+
+The Rust-side breakdown hook added a few floating-point timing calls and a
+cross-boundary array on every frame. In the instrumented reel it changed the
+115-second workload into an unbounded run, so its numbers could not be trusted
+as evidence. The hook was removed; the JS boundary spans remain because they
+pass the existing scene contract and already isolate the expensive presentation
+call. The alternative would be to keep a diagnostic that changes the workload
+it claims to measure.
+
+- **Gap:** the spec did not define a perturbation budget for diagnostics.
+- **Reach:** future measurements must preserve scene completion and pacing before
+  their numbers are accepted.
+- **Verdict:** sound. The hook violated the measurement contract and was deleted.
+- **Confidence:** high.
