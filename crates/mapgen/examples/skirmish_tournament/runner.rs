@@ -105,11 +105,6 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
             .filter(|card| card.as_str() != "|")
             .map(|card| setup.rules.catalog.index(card).expect("validated buy card"))
             .collect::<Vec<_>>();
-        let player = if side == Side::Blue {
-            "blue-1"
-        } else {
-            "red-1"
-        };
         let repeat_from = list
             .iter()
             .position(|card| card == "|")
@@ -120,7 +115,10 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                     .count()
             })
             .or(Some(0));
-        battle.script_purchases(player, purchases, repeat_from);
+        // A side's list is every one of its players' shopping.
+        for player in setup.players.iter().filter(|player| player.side == side) {
+            battle.script_purchases(player.id.as_str(), purchases.clone(), repeat_from);
+        }
     }
     let mut stagnant = 0;
     let mut previous: Option<ProgressSignature> = None;
@@ -393,8 +391,8 @@ pub(crate) fn run(inputs: &Inputs, row: Row) -> Report {
                     }
                 }
             }
-            // A team takes several objectives at once (slice 12): the most
-            // each side held at the same moment, whoever took them.
+            // A team takes several objectives at once: the most each side
+            // held at the same moment, whoever took them.
             for side in Side::COMBATANTS {
                 let held = view
                     .objectives

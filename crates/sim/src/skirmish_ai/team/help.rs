@@ -106,10 +106,11 @@ fn help_sites(lanes: &[LaneContext], memory: &TeamMemory) -> Vec<LaneContext> {
         .collect()
 }
 
-/// What `helper` can lend, in strength (D56): its force beyond slice 13's
-/// margin for its own lane, less its units already on party duty. The
-/// side-party budget bounds claims and holds, not help: a helper with
-/// surplus answers however many objectives it holds.
+/// What `helper` can lend, in strength (D56): its force beyond what its own
+/// lane needs (the enemy pressure there, times `help_force_margin`), less its
+/// units already on party duty. The side-party budget bounds claims and
+/// holds, not help: a helper with surplus answers however many objectives it
+/// holds.
 fn surplus(
     measure: &Measure,
     frame: &ObservationFrame,

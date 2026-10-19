@@ -1,19 +1,28 @@
-//! Two-controller skirmish self-play and corpus runner.
+//! Skirmish self-play between AI players, and its regression corpus.
 //!
-//! This stays outside browser setup: each side observes its own frame, asks
-//! the policy for ordinary orders, accepts them through Battle, and advances
-//! one authoritative tick. The JSONL report is deliberately evidence rather
-//! than a winner fixture.
+//! This stays outside browser setup: each player observes its side's frame,
+//! asks the policy for ordinary orders, accepts them through Battle, and
+//! advances one authoritative tick. The JSONL report is deliberately evidence
+//! rather than a winner fixture.
+//!
+//! By default it plays one game on a fresh generated `mixed` map at the
+//! smallest size that seats the players, until the battle reaches a result:
+//! `--players <n>` seats n AI players a side (one by default); `--seed <u64>`
+//! fixes the map and battle seed (else a clock seed); `--max-seconds <u64>`
+//! moves the safety cap (else the preparation plus three majority holds,
+//! from the match rules). `--corpus` runs the deterministic multi-row corpus
+//! (`fixtures/skirmish-corpus.json`) instead. The report records the cap,
+//! the battle seconds played, the seed and the replay check.
 //!
 //! Balance probes shape a game without touching its rules: `--factions
 //! us,eastern` picks Blue's and Red's armies; `--buy-blue` / `--buy-red
-//! <card,…[|card,…]>` replace a side's own shopping with a list bought in
-//! order. Without `|`, the list repeats from its first card; with `|`, cards
-//! before the bar run once and cards after it repeat. The report's `air`
-//! block reads the referee's spawn and kill log.
+//! <card,…[|card,…]>` replace the shopping of every player on that side with
+//! a list each buys in order. Without `|`, the list repeats from its first
+//! card; with `|`, cards before the bar run once and cards after it repeat.
+//! The report's `air` block reads the referee's spawn and kill log.
 //!
 //! Each match ends by replaying its command stream from the start and
-//! checking the digest matches, which costs nearly a second simulation.
+//! checking the digest matches, which costs nearly half a match's time.
 //! `--no-replay-check` skips it for quick iteration (`replay_match` is then
 //! null); a confirmation run keeps it.
 
@@ -129,12 +138,7 @@ pub(crate) fn self_play_row_with_players(
     tick_hz: u32,
     players_per_side: usize,
 ) -> Row {
-    let size = match players_per_side {
-        0..=1 => "small",
-        2 => "medium",
-        3..=4 => "large",
-        _ => "xl",
-    };
+    let size = contract::skirmish_sizes::tier(players_per_side).size.name();
     Row {
         id: format!("self_play_{seed}"),
         map: MapSource::Generated(GeneratedMap {
@@ -244,5 +248,22 @@ mod tests {
         assert_eq!(report.refused_by_side[0], 0);
         assert!(report.opening[0].len() > 1, "a list without | must repeat");
         assert!(report.opening[0].iter().all(|bought| bought == &card));
+    }
+
+    #[test]
+    fn scripted_buy_owns_every_purchase_stream_on_its_side() {
+        let mut inputs = Inputs::load().unwrap();
+        let card = "us_m1129_stryker_mortar_120_mm_mortar_carrier".to_owned();
+        inputs.buy[0] = Some(vec![card.clone()]);
+        let report = run(
+            &inputs,
+            self_play_row_with_players(7, 60, inputs.rules.tick_hz, 2),
+        );
+        assert!(!report.opening[0].is_empty());
+        assert!(
+            report.opening[0].iter().all(|bought| bought == &card),
+            "every Blue player buys the scripted list: {:?}",
+            report.opening[0]
+        );
     }
 }

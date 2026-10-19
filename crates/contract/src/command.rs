@@ -258,8 +258,8 @@ pub enum OrderError {
     },
     /// A player-owned scenario command omitted its player.
     MissingPlayer,
-    /// The player's slot is under AI control, so only its controller orders
-    /// its units: a client keeps no seat in an AI-only or taken-over slot.
+    /// The player is under AI control, so only its controller orders its
+    /// units: a client commands no AI player, nor one the AI took over.
     AiControlled,
     OutOfBounds,
     /// No unit has a place to stand there that it can reach.

@@ -246,17 +246,9 @@ over many of them; never over one seed that happens to pass, since every change
 that moves a generated point resamples them all. [The shared test helpers](tests/common/)
 find those seeds.
 
-The `skirmish_tournament` example defaults to one two-controller game on a
-fresh generated `mixed` map at the smallest skirmish tier, using a clock seed
-unless `--seed <u64>` is supplied. It runs until the simulation reaches a
-terminal result, with a safety cap (the preparation plus three majority holds,
-from the match rules) adjustable through
-`--max-seconds <u64>`. Its JSON report includes the chosen cap, actual battle
-seconds, seed and replay parity result; `--no-replay-check` skips the replay
-(nearly half a match's time) for quick iteration. Pass `--corpus` to run the deterministic
-multi-row regression corpus instead. Balance probes pick the faction pair and
-script a side's purchases without changing a rule; the source's usage names
-the flags, and the report's air block counts what jets and AA did.
+The `skirmish_tournament` example plays skirmishes between AI players; its
+[opening comment](examples/skirmish_tournament/main.rs) is its usage text and
+owns every flag, the default game and what the report holds.
 
 [The generation rationale](../../specs/done/city-maps/README.md) links frozen reports
 and the parameter snapshot used for design feedback. Those historical values are

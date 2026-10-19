@@ -311,10 +311,10 @@ pub fn plan<'a, P: TeamPlayer>(
     // Keep the exact historical search for the small plans whose tie-breaking
     // is part of the shipped behavior. Larger teams use subset DP for the
     // one-to-one objective assignment and choose each player's best lane;
-    // repeated lane slots are equivalent once there are more players than
-    // physical approaches.
-    // Reuse approach slots when a small map has fewer lanes than AI seats.
-    let lane_slots = (0..assignment_count.max(lanes.len()))
+    // a lane offered twice is the same choice once there are more players
+    // than physical approaches.
+    // A lane is offered again when a small map has fewer lanes than AI players.
+    let lane_choices = (0..assignment_count.max(lanes.len()))
         .map(|index| lanes[index % lanes.len()])
         .collect::<Vec<_>>();
     // Open objectives (D55) score a bonus: neutral, no enemy in view there,
@@ -353,7 +353,7 @@ pub fn plan<'a, P: TeamPlayer>(
             }
     };
     if assignment_count <= 3 {
-        let lane_permutations = permutations(lane_slots.len(), assignment_count);
+        let lane_permutations = permutations(lane_choices.len(), assignment_count);
         let objective_permutations = permutations(objectives.len(), assignment_count);
         for lane_indices in &lane_permutations {
             for objective_indices in &objective_permutations {
@@ -364,7 +364,7 @@ pub fn plan<'a, P: TeamPlayer>(
                     .map(|(i, player)| {
                         score(
                             *player,
-                            lane_slots[lane_indices[i]],
+                            lane_choices[lane_indices[i]],
                             &objectives[objective_indices[i]],
                         )
                     })
@@ -372,7 +372,7 @@ pub fn plan<'a, P: TeamPlayer>(
                 if best.as_ref().is_none_or(|(old, _, _)| total < *old) {
                     best = Some((
                         total,
-                        lane_indices.iter().map(|i| lane_slots[*i]).collect(),
+                        lane_indices.iter().map(|i| lane_choices[*i]).collect(),
                         objective_indices.clone(),
                     ));
                 }
@@ -392,7 +392,7 @@ pub fn plan<'a, P: TeamPlayer>(
                     if mask & (1 << objective_index) != 0 {
                         continue;
                     }
-                    let (lane, lane_score) = lane_slots
+                    let (lane, lane_score) = lane_choices
                         .iter()
                         .map(|&lane| (lane, score(*player, lane, objective)))
                         .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)))

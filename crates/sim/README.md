@@ -39,12 +39,21 @@ Rules follow physical components, with the game's [first-principles policy](../.
 explaining where deliberate cinematic exceptions belong.
 
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
-reinforcements. A confirmed purchase reserves both its cost and a slot; physical
-entry converts that reservation to a living unit only when the road-edge footprint
+reinforcements; [the player list](../contract/src/players.rs) says who plays.
+A confirmed purchase reserves both its cost and a place under the player's unit
+cap; physical entry converts that reservation to a living unit only when the road-edge footprint
 is clear. Browser previews use side knowledge, while actual entry checks physical
 bodies. These are different questions and must not expose private occupancy through
 a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and the
 side's observation through the existing publication owner.
+[Entries](src/entries.rs) is the one owner of which of a side's roads a
+reinforcement takes and where a unit leaves the map; the roads are the side's,
+shared by its players.
+
+[The skirmish AI](src/skirmish_ai/) plays one player from its side's
+observation, and everything it decides is an ordinary command.
+[Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
+the side's AI players over lanes and objectives and sends help between them.
 
 [Active protection](src/protection.rs) owns finite defensive charges and cooldowns.
 Flight offers it only an imminent swept hull collision at the authored standoff;

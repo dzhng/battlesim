@@ -101,7 +101,7 @@ fn bundle_details_uses_resolved_snapshot_without_generation() {
 }
 
 #[test]
-fn wasm_controller_admission_keeps_empty_human_slots_passive() {
+fn wasm_controller_admission_keeps_unseated_human_players_passive() {
     let canonical = bundle().to_json().unwrap();
     let controllers: Vec<(String, contract::bundle::ControllerKind)> =
         serde_json::from_str(&game_wasm::scenario_bundle_controllers(&canonical, None).unwrap())
