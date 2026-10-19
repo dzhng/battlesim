@@ -42,14 +42,6 @@ import { Camera, CAMERA_WORDS, CameraAt, FrameHeader, VIEW_WORDS } from "../reco
 import { EMPTY_MESH } from "../mesh";
 
 const EMPTY = new Float32Array(0);
-type BattlePerfHooks = {
-  begin(name: string): { name: string; atMs: number };
-  end(token: { name: string; atMs: number }): void;
-};
-
-function battlePerf(): BattlePerfHooks | undefined {
-  return (globalThis as { __battlePerf?: BattlePerfHooks }).__battlePerf;
-}
 /** Post's five-level bloom needs at least this many pixels a side. */
 export const MIN_TARGET_PX = 64;
 
@@ -219,8 +211,6 @@ export async function createBattleFrame(
         },
         render(output: GPUTextureView, high: GPUTextureView | null = null) {
           if (disposed || !framed) return;
-          const perf = battlePerf();
-          const framePerf = perf?.begin("frame");
           const width = cameraRecord[CameraAt.width];
           const height = cameraRecord[CameraAt.height];
           const t = targets.current;
@@ -235,9 +225,7 @@ export async function createBattleFrame(
           models.setHighApart(apart);
           environment.setCastLights(lights, lightsShown ? lightCount : 0, lightWrap);
           world.prepare(cameraRecord, viewRecord, sunShadow, casters, casterCount);
-          const modelPerf = perf?.begin("model-prepare");
           models.prepare(viewRecord, viewRecord.join());
-          if (modelPerf) perf?.end(modelPerf);
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           let raw = root.unwrap(encoder);
@@ -288,7 +276,6 @@ export async function createBattleFrame(
           encoder.submit();
           timer?.collect();
           frames++;
-          if (framePerf) perf?.end(framePerf);
         },
         setWorld(next) {
           if (!disposed) world.setWorld(next);
