@@ -45,31 +45,7 @@ function watchCounter() {
  * changing the graphics test's timing path. Entries carry the scene label so
  * a loading or transition spike is not mistaken for steady-state work. */
 function watchFrameDiagnostics() {
-  window.__frameDiagnostics = { frames: [], longtasks: [], gc: [], spans: [] };
-  const MAX_SPANS = 20_000;
-  const recordSpan = (span) => {
-    if (span.durationMs < 1 || window.__frameDiagnostics.spans.length >= MAX_SPANS) return;
-    window.__frameDiagnostics.spans.push(span);
-  };
-  window.__battlePerf = {
-    begin(name) {
-      return { name, atMs: performance.now() };
-    },
-    end(token) {
-      recordSpan({
-        name: token.name,
-        startMs: token.atMs,
-        durationMs: performance.now() - token.atMs,
-      });
-    },
-    span(name, durationMs) {
-      recordSpan({
-        name,
-        startMs: performance.now() - durationMs,
-        durationMs,
-      });
-    },
-  };
+  window.__frameDiagnostics = { frames: [], longtasks: [], gc: [] };
   let previousFrame;
   const frame = (at) => {
     if (previousFrame !== undefined)
