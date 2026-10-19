@@ -672,3 +672,28 @@ fn a_human_without_an_order_or_objective_position_gets_no_guessed_lane() {
         .iter()
         .all(|request| request.requester != PlayerIndex(0)));
 }
+
+#[test]
+fn an_ai_player_the_plan_left_unassigned_asks_no_help() {
+    let sites = sites();
+    let plans = vec![PlayerPlan {
+        player: PlayerIndex(0),
+        lane: EntryIndex(0),
+        main_objective: sites.objectives[0].clone(),
+        staging_point: [100.0, 100.0],
+    }];
+    let asking = lane_contexts(
+        Side::Blue,
+        &players(),
+        &sites,
+        &plans,
+        &BTreeMap::new(),
+        TeamTuning::shipped(),
+    );
+    let asking: Vec<_> = asking.iter().map(|lane| lane.0).collect();
+    assert_eq!(
+        asking,
+        vec![PlayerIndex(0)],
+        "only the assigned player has a lane"
+    );
+}

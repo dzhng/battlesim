@@ -52,15 +52,13 @@ pub(super) fn lane_contexts(
                     plan.staging_point,
                 ));
             }
-            let is_human = players[index].controller == ControllerKind::Human;
-            if is_human && !covered_by_player.contains_key(&player) {
+            // A human teammate asks for help where it fights. An AI player
+            // the plan left unassigned has no lane to ask for.
+            if players[index].controller != ControllerKind::Human {
                 return None;
             }
             let lane = lanes[local_index % lanes.len()];
-            let objective = covered_by_player
-                .get(&player)
-                .cloned()
-                .unwrap_or_else(|| sites.objectives[local_index % sites.objectives.len()].clone());
+            let objective = covered_by_player.get(&player)?.clone();
             let staging_point = staging(
                 sites.entries[lane.0].center,
                 objective.center,
