@@ -38,9 +38,9 @@ for the known limitations native shipped with.
 
 [Capture](done/capture/README.md) (shipped) turns a JSON capture file (camera and scenes over saved encounters) into MP4s for marketing videos, through the same scene player the main-menu backdrop uses.
 
-[Performance](performance/README.md) is a placeholder for measured, deferred
-optimizations (GPU memory, model packing, loading), kept until a player-visible
-problem calls for one.
+[Performance](performance/README.md) records measured frame-time work and its
+deferred candidates; the active handoff names the current evidence and next
+diagnostic.
 
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,

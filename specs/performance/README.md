@@ -5,7 +5,7 @@
 
 The current renderer research ledger is [research.md](research.md). It records
 the fixed benchmark contract, measured candidates and the next experiment; this
-placeholder remains the durable list of deferred work.
+README owns the active handoff and acceptance state.
 
 ## Next Agent Prompt
 
