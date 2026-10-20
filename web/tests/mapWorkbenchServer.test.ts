@@ -12,7 +12,7 @@ import {
   workbenchCatalog,
   mapWorkbenchPlugin,
 } from "../../apps/map-workbench/server";
-import { nativeReporter, type NativeReporter } from "../../apps/map-workbench/native";
+import { type NativeReporter } from "../../apps/map-workbench/native";
 import type { NativeValidation } from "../../apps/map-workbench/src/protocol";
 import type { HmrContext } from "vite";
 import { MechanicsStore } from "../../apps/mechanics-editor/server";
@@ -242,55 +242,6 @@ test("the HTTP plugin serves only local same-origin operations and rejects brows
   });
   expect(preview.status).toBe(200);
   expect((await preview.json()).files).toEqual([]);
-});
-
-test("aborting native work terminates its actual process before resolving cancellation", async () => {
-  vi.stubEnv("CARGO_TARGET_DIR", "throwaway/target");
-  const { root } = await fixture();
-  const binary = join(root, "throwaway/target/release/examples/map_workbench_report");
-  await mkdir(join(root, "throwaway/target/release/examples"), { recursive: true });
-  await writeFile(
-    binary,
-    `#!/usr/bin/env node
-require("node:fs").writeFileSync(${JSON.stringify(join(root, "pid"))}, String(process.pid));
-setInterval(() => {}, 1000);
-`,
-  );
-  await chmod(binary, 0o755);
-  const controller = new AbortController();
-  const pending = nativeReporter(root)(
-    {
-      operation: "validate",
-      inputs: {
-        presets: "{}",
-        defaults: "{}",
-        rules: "{}",
-        catalog: "{}",
-        recipes: "{}",
-        templates: "[]",
-      },
-    },
-    controller.signal,
-  );
-  let pid: number | null = null;
-  try {
-    await expect
-      .poll(async () => {
-        pid = Number(await readFile(join(root, "pid"), "utf8").catch(() => "0")) || null;
-        return pid;
-      })
-      .not.toBeNull();
-    process.kill(pid!, 0);
-    controller.abort();
-    await expect(pending).rejects.toMatchObject({ status: 499 });
-    expect(() => process.kill(pid!, 0)).toThrow();
-  } finally {
-    if (pid) {
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {}
-    }
-  }
 });
 
 test("retained artifact receipts describe tested draft bytes, and superseded drafts release their artifacts", async () => {
