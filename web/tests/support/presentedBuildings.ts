@@ -50,6 +50,7 @@ export interface DrawnModule {
   module: number;
   tier: number;
   pass: number;
+  cascadeMask: number;
   /** x, y, z, yaw, then the scale. */
   transform: number[];
   tint: number[];
@@ -84,7 +85,15 @@ export function presentBuildings(
         ...gameLight,
         sun_azimuth: sun.azimuth,
         sun_elevation: sun.elevation,
-        cascades: { ...gameLight.cascades, max_far_m: sun.farM },
+        // Pin the receiver partitions: these fixtures test membership, not
+        // the current game's shadow-quality tuning.
+        cascades: {
+          ...gameLight.cascades,
+          count: 4,
+          map_size: 2048,
+          split_lambda: 0.5,
+          max_far_m: sun.farM,
+        },
       },
       new Float32Array(
         [
@@ -130,6 +139,7 @@ export function presentBuildings(
             module: moduleOf[words[o + Batch.appearance]],
             tier: words[o + Batch.tier],
             pass: words[o + Batch.pass],
+            cascadeMask: words[o + Batch.cascade_mask],
             transform: [...r.slice(0, 4), ...r.slice(12, 15)],
             tint: r.slice(8, 11),
           });
