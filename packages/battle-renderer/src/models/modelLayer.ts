@@ -39,6 +39,7 @@
 // (`buildingLayer.ts`): the same meshes, records, material and pipelines as
 // any static model, with their own record buffers and draw ranges.
 
+import { createPropBatches, clearPropBatches, setPropBatches } from "./propBatches";
 import { recordDraw, type SubmittedDraws } from "../frame/submitted";
 import type { Drawable3, CardDrawable } from "./modelDraw";
 import { tgpu, d, std } from "typegpu";
@@ -203,13 +204,6 @@ export interface WorldAppearance {
   /** A felled tree's stump row's mesh (`Presentation::stump_mesh`). */
   stump?: Mesh;
 }
-
-/** A prop's row (`Appearance.draws`): fogged face by face, or a surface
- *  movers stand on, which takes the ground paint. */
-const PROP = 7;
-const PROP_GROUND = 8;
-const isProp = (row: WorldAppearance | undefined) =>
-  !!row?.placed && (row.draws === PROP || row.draws === PROP_GROUND);
 
 /** A posed body's or vehicle's drawable and fog class. */
 const POSED: ModelPose = { kind: "posed", palette: new Float32Array(0) };
@@ -661,19 +655,6 @@ interface DrawRun {
   instances: number;
 }
 
-/** One of the props' static batches as last written: its records' buffer
- *  (a power of two of records, in a scope of its own), its row, tier,
- *  caster tier and fog class (`Batch`), and how many it holds. */
-interface HeldProps {
-  scope: GpuRegistry | null;
-  buffer: GPUBuffer | null;
-  row: number;
-  tier: number;
-  caster: number;
-  fog: number;
-  count: number;
-}
-
 /** A card draw: a run of records in the per-frame or the corpses' static buffer. */
 interface CardRun {
   fixed: boolean;
@@ -823,10 +804,8 @@ export async function createModelLayer(
   let units: readonly ModelInstance[] = [];
   /** The props' static batches by key, each its records as the frame last
    *  wrote them; those the last frame listed, and their runs. */
-  const heldProps = new Map<number, HeldProps>();
-  let listedProps: HeldProps[] = [];
+  const propBatches = createPropBatches();
   const propRuns: { run: DrawRun; buffer: GPUBuffer }[] = [];
-  let propScope: GpuRegistry | null = null;
   /** Something changed since the last pack (models, appearances, a bake). */
   let dirty = true;
   // Grow-once scratch: each unit's choice (bucket, or −1 culled, −2 card).
@@ -1161,7 +1140,7 @@ export async function createModelLayer(
    *  the meshes installed now. */
   function relistProps() {
     propRuns.length = 0;
-    for (const h of listedProps) {
+    for (const h of propBatches.listed) {
       const row = worldRows[h.row];
       const gpu = row && appearances.get(row.name);
       const tiers = gpu?.states.get(row.state);
@@ -1183,61 +1162,8 @@ export async function createModelLayer(
     dirty = true;
   }
 
-  /** The props' batches of a presentation frame: their records copied
-   *  where the frame wrote them, and those it no longer lists dropped (the
-   *  frame writes one anew when it comes back). The buffers held are those
-   *  of the batches listed, a power of two of records each: the same view
-   *  holds the same buffers, however it was reached. True when what is
-   *  drawn changed. */
   function setProps(frame: ReturnType<typeof frameViews> | null): boolean {
-    let changed = false;
-    const next: HeldProps[] = [];
-    const listed = new Set<number>();
-    const words = frame?.batches.u32;
-    for (let b = 0; b < (frame?.batches.count ?? 0); b++) {
-      const o = b * BATCH_WORDS;
-      const row = words![o + Batch.appearance];
-      if (!isProp(worldRows[row])) continue;
-      const key = words![o + Batch.key];
-      let h = heldProps.get(key);
-      if (!h)
-        heldProps.set(
-          key,
-          (h = { scope: null, buffer: null, row, tier: 0, caster: NONE, fog: 0, count: 0 }),
-        );
-      const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
-      [h.row, h.tier, h.caster, h.fog, h.count] = [
-        row,
-        words![o + Batch.tier],
-        words![o + Batch.caster],
-        words![o + Batch.fog],
-        count,
-      ];
-      if (first !== NONE) {
-        const size = 2 ** Math.ceil(Math.log2(Math.max(1, count))) * RECORD_FLOATS * 4;
-        if (h.buffer?.size !== size) {
-          h.scope?.release();
-          propScope ??= registry.scope();
-          h.scope = propScope.scope();
-          h.buffer = h.scope.buffer({ label: "model-prop-records", size, usage: VERTEX_USAGE });
-        }
-        const records = frame!.instances.f32.subarray(
-          first * RECORD_FLOATS,
-          (first + count) * RECORD_FLOATS,
-        );
-        device.queue.writeBuffer(h.buffer!, 0, records as Float32Array<ArrayBuffer>);
-        changed = true;
-      }
-      listed.add(key);
-      next.push(h);
-    }
-    for (const [key, h] of heldProps)
-      if (!listed.has(key)) {
-        h.scope?.release();
-        heldProps.delete(key);
-        changed = true;
-      }
-    listedProps = next;
+    const changed = setPropBatches(propBatches, frame, worldRows, registry, device);
     if (changed) relistProps();
     return changed;
   }
@@ -1589,10 +1515,7 @@ export async function createModelLayer(
   /** The drawables the frame's batches name, by `World.appearances` row. */
   function setWorld(world: readonly WorldAppearance[]) {
     if (world !== worldRows) {
-      propScope?.release();
-      propScope = null;
-      heldProps.clear();
-      listedProps = [];
+      clearPropBatches(propBatches);
       propRuns.length = 0;
     }
     worldRows = world;
@@ -1886,7 +1809,7 @@ export async function createModelLayer(
      *  tier 0–3. */
     drawnProps: () => {
       const drawn = new Map<string, number[]>();
-      for (const h of listedProps) {
+      for (const h of propBatches.listed) {
         const name = worldRows[h.row]?.name;
         if (!name) continue;
         let levels = drawn.get(name);
@@ -1905,7 +1828,7 @@ export async function createModelLayer(
       bodyTiers: [...stats.bodyTiers],
     }),
     dispose() {
-      propScope?.release();
+      clearPropBatches(propBatches);
       buildings.dispose();
       cardScope?.release();
       scope?.release();
