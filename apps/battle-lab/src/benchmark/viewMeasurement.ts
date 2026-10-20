@@ -159,6 +159,7 @@ export function createViewMeasurement() {
         validGpuSamples: gpuWindows.reduce((sum, sample) => sum + sample.gpu!.frames, 0),
         samples,
         stats,
+        currentCounts: drawn.counts(),
       };
     },
   };

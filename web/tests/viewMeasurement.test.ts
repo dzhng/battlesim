@@ -72,6 +72,7 @@ test("a transition freezes moving samples before endpoint holds and starts a fre
       camera: { ...pose, target: [...pose.target, 3] },
       simTime: 3,
       canvas: [960, 600],
+      counts: () => ({}),
     } as never);
     return pose;
   };
@@ -119,6 +120,7 @@ test("a terminal stall remains in frame timing and GPU windows cover the earlier
       camera: { ...camera, target: [...camera.target, 0] },
       simTime: 3,
       canvas: [960, 600],
+      counts: () => ({}),
     } as never);
   };
   probe.place(pose);
