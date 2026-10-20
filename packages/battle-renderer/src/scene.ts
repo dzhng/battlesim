@@ -141,6 +141,10 @@ export interface FrameStats {
   submitted: import("./frame/submitted").SubmittedFrame;
   /** Terrain bounds tested across the camera and active shadow cascades. */
   terrainVisitedNodes: number;
+  /** Boundary/debug bounds tested across camera and active shadow cascades. */
+  skirtVisitedNodes: number;
+  /** Water bounds tested for the camera; water casts no shadows. */
+  waterVisitedNodes: number;
   /** Installed world mesh vertices, not submitted geometry. */
   worldVertices: number;
   depth: InstalledDepthState;
