@@ -6,6 +6,7 @@
 mod fielded;
 mod fog;
 mod ground;
+mod shadow;
 
 use std::sync::Arc;
 
@@ -20,7 +21,6 @@ use presentation::sound::voices::{self, Request};
 use presentation::sound::{music, synth};
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
 use presentation::static_world::fallen::Known;
-use presentation::static_world::ground::partition::{TerrainPartition, CELL_M};
 use presentation::static_world::library::{Bounds, Library};
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
@@ -316,15 +316,6 @@ impl Presentation {
         self.inner
             .building_stats()
             .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
-    }
-
-    /// Fit local receivers under the quality-resolved light; terrain is immutable.
-    pub fn set_shadow(&mut self, light: &str, terrain: &[f32]) -> Result<(), JsError> {
-        let light: presentation::light::LightSettings = serde_json::from_str(light)
-            .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
-        let terrain = Arc::new(TerrainPartition::new(terrain, CELL_M));
-        self.inner.set_shadow(Some((light, terrain)));
-        Ok(())
     }
 
     /// The presentation time at wall time `wall_s`, sim seconds.
