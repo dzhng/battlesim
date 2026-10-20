@@ -111,3 +111,36 @@ every old readback completes would unnecessarily stall the rendering thread.
 - **Verdict:** sound; generation is captured when a frame begins, covering resets
   between begin, submission and collection as well as delayed promises.
 - **Confidence:** high; delayed and rejected readbacks are regression tested.
+
+### Reuse the fitted shadow volume for static casters
+
+When a car stands below sea level, its shadow still depends on its height above
+nearby receivers. The first candidate instead extended its box by its absolute
+world elevation. That can omit a shadow below zero and over-admit geometry high
+above zero. Static selection must use the same fitted light-space volume that
+the shadow pass renders, including offscreen casters, rather than inventing a
+second receiver approximation.
+
+- **When:** independent prop caster candidate, `75489f4a8`; correction pending.
+- **Gap:** the plan required independent selection without specifying its query.
+- **Reach:** props, buildings and scenery share the corrected query.
+- **Verdict:** unsound approximation; replace it with fitted caster volumes.
+- **Confidence:** high; translating the existing offscreen-caster case below zero
+  exposes a missed caster. Camera lists must remain independent.
+
+### Group terrain triangles without changing their shape
+
+When the camera looks at one street, the renderer can draw only nearby terrain
+batches. The candidate groups whole triangles into spatial cells and stores a
+binary tree of their enclosing boxes. A query skips a whole branch when its box
+cannot meet the camera or a shadow volume. Crossing triangles keep all their
+original corners and attributes; the cells never cut or simplify the surface.
+Adjacent selected ranges combine into one draw to reduce call overhead.
+
+- **When:** terrain candidate, `5dc40aebd`.
+- **Gap:** the spec delegated the index layout and range-coalescing policy.
+- **Reach:** one Rust partition drives both clients; it retains reordered CPU
+  vertices and the tree alongside the uploaded GPU mesh.
+- **Verdict:** sound candidate; bounded traversal and exact geometry conservation
+  justify testing it, while GPU, image and whole-frame acceptance remain required.
+- **Confidence:** medium until the all-view production comparisons finish.
