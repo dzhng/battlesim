@@ -52,12 +52,12 @@ keeping near tiers and wreck generation unchanged. Matched visual sheets pass;
 the controlled same-scene A/B saves about 3.9 ms (12%) with equal instance counts.
 Production live/late-state confirmation and asset validation pass, including
 deterministic resets and stable GPU allocations. The car pass is committed.
-Next, prototype spatial terrain draw selection shared by both clients, with
-exact triangle preservation and a fixed downward-view work-bound test. The
-whole-terrain omission probe suggests a noisy ~4.3 ms total opportunity, which
-includes visible shading that culling cannot remove; measure the real candidate
-before accepting cross-client machinery. The whole-spec frame-time target and
-closeout checks remain open.
+A shared Rust terrain-selection candidate passed geometric correctness and native
+parity tests but did not earn its complexity: full versus selected submission
+averaged 29.48 versus 29.26 ms GPU. The candidate and all probe hooks were removed.
+Next, reprofile visible prop/material cost; further off-view terrain work is not
+supported as a priority for this stress scene. The whole-spec frame-time target
+and closeout checks remain open.
 The three-band courtyard-wall candidate was rejected in visual review: its
 far silhouette lost contrast and definition. Near meshes were unchanged, but
 that is insufficient acceptance evidence. No wall change is retained.

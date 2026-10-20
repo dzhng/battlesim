@@ -410,3 +410,28 @@ gain: the omission also removes visible shading and changes depth/occlusion.
 The actual selection candidate must preserve those pixels. All omission hooks
 and the shortened timing window were removed. Evidence is under
 `throwaway/xl-audit/terrain-ceiling/` (`results.json`, `run.log`, saved probes).
+
+### Shared spatial terrain selection rejected
+
+A tested Rust spatial hierarchy grouped exact terrain triangles, selected ranges
+using actual camera and cascade matrices, and fed both clients. Nine focused
+geometry/mesh tests and native prop/count tests passed; browser typechecking
+passed. Deliberately disabling culling or using centroid-only bounds failed the
+regressions. The implementation added roughly 350 production lines plus 152 test
+lines and introduced persistent spatial resources in both clients.
+
+The actual production Low XL A/B alternated full and selected draws over the same
+partitioned geometry. Full GPU means: 29.47, 29.70, 29.12, 29.64 ms. Selected:
+29.54, 29.15, 29.10 ms. Group means were 29.48 versus 29.26 ms, a 0.22 ms delta
+within observed variation. Selected terrain had 24 view vertices across three
+ranges, plus 24/42/48/48 cascade vertices; five queries tested 283 hierarchy nodes.
+Selection ran in both arms, so this does not establish a CPU improvement over
+the original renderer. The tiny GPU difference does not justify the added
+ownership, allocation and cross-client maintenance burden for the current limit.
+
+The complete candidate and temporary hooks were removed. Scratch evidence and
+source are preserved under `throwaway/xl-audit/terrain-selection/`. Full terrain
+submission remains structurally map-wide; this experiment rejects its priority
+as the current stress fix, not the value of spatial terrain selection at every
+possible map density. Whole-terrain omission includes visible shading, so its
+~4.3 ms difference was not available through off-view culling.
