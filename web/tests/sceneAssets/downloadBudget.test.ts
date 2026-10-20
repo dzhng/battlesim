@@ -54,6 +54,7 @@ test("the native reader refuses an oversized catalog load before opening its pay
     mkdirSync(join(scratch, "web"));
     mkdirSync(join(scratch, "assets/runtime"), { recursive: true });
     copyFileSync(new URL("web/asset.mjs", root), join(scratch, "web/asset.mjs"));
+    copyFileSync(new URL("web/asset-render.mjs", root), join(scratch, "web/asset-render.mjs"));
     symlinkSync(fileURLToPath(new URL("packages", root)), join(scratch, "packages"));
     // The CLI's session catalog factory (`web/src/battle/catalog/node.ts`).
     symlinkSync(fileURLToPath(new URL("web/src", root)), join(scratch, "web/src"));

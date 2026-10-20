@@ -5,8 +5,8 @@
 //! map. Seeded scripted orders keep the
 //! fight turning over for an hour: waves of attack-moves to shifting points,
 //! reserves arriving from the rear edge, supply trucks setting up behind the
-//! lines. The optional late state adds 20,000 corpses and 2,000 wrecks as
-//! stress input. Rules come from the one fixture owner (game.json).
+//! lines. The optional late state adds the remains of a fully destroyed roster:
+//! 800 corpses and 100 wrecks. Rules come from the one fixture owner (game.json).
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
@@ -30,9 +30,11 @@ const GROUP: usize = 10;
 const WAVE_S: u64 = 120;
 const HOUR_S: u64 = 3600;
 pub const BURST_WAVE: u64 = 15;
-/// The late state: fallen squads and wrecks strewn over the field.
-pub const LATE_CORPSES: usize = 20_000;
-pub const LATE_WRECKS: usize = 2_000;
+/// The late state: every rifle soldier and non-rifle unit in both 100-unit
+/// forces has fallen or become a wreck (50 eight-soldier squads and 50 other
+/// units per side).
+pub const LATE_CORPSES: usize = 800;
+pub const LATE_WRECKS: usize = 100;
 
 /// The endurance battle for `seed` on `field`, its saved map (the
 /// catalogue's `endurance`); `late` adds the synthetic remains: the wrecks to

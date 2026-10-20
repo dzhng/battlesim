@@ -6,6 +6,7 @@
 mod fielded;
 mod fog;
 mod ground;
+mod shadow;
 
 use std::sync::Arc;
 
@@ -315,17 +316,6 @@ impl Presentation {
         self.inner
             .building_stats()
             .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
-    }
-
-    /// Fits the sun's cascades under the battle's light (`presentation.light`,
-    /// JSON, as the renderer's quality sets it) over the box round the
-    /// map's ground mesh (empty: none) from the next frame on.
-    pub fn set_shadow(&mut self, light: &str, terrain: &[f32]) -> Result<(), JsError> {
-        let light: presentation::light::LightSettings = serde_json::from_str(light)
-            .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
-        let map_box = presentation::shadow::map_box(terrain);
-        self.inner.set_shadow(Some((light, map_box)));
-        Ok(())
     }
 
     /// The presentation time at wall time `wall_s`, sim seconds.

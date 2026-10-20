@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
+import { useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
@@ -40,6 +41,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
+  const [renderScale, setRenderScale] = useState(1);
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
     const orders = orderLayer(
@@ -48,10 +50,19 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
+      gameStroke(OPENING_METRES_PER_PX, renderScale),
     );
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([orders, tracers]);
-  }, [world, observation, surfaceZ, control.selected, session.revealed, session.units]);
+  }, [
+    renderScale,
+    world,
+    observation,
+    surfaceZ,
+    control.selected,
+    session.revealed,
+    session.units,
+  ]);
   const overlayFeed = useFeed(overlay);
 
   // Lab-only probes for the scene harness; rebuilt each render.
@@ -70,7 +81,10 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
         initialCamera={READOUTS_CAMERA}
         {...session.input}
         cameraFocus={cameraFocus}
-        onFrame={session.placePanels}
+        onFrame={(project, camera, pointer, scale) => {
+          setRenderScale(scale);
+          session.placePanels(project, camera, pointer);
+        }}
         diagnostics={diagnostics}
       />
       <ReadoutLayer

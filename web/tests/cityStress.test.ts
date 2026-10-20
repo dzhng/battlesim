@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
-import { TEST_RULES } from "./catalog";
+import { TEST_RULES, UNITS } from "./catalog";
 
 wasm.initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
 
@@ -29,11 +29,22 @@ test("the city stress boundary keeps the full map and authoritative early/late l
       ).toHaveLength(100);
     expect(setup.scripts).toEqual(earlySetup.scripts);
   }
-  expect(
-    lateSetup.units.reduce(
-      (n: number, u: { condition?: { casualties?: number } }) => n + (u.condition?.casualties ?? 0),
-      0,
-    ),
-  ).toBe(20000);
-  expect(lateSetup.map.props.length - earlySetup.map.props.length).toBe(2000);
+  // The late state is the remains of the whole roster destroyed: each rifle
+  // soldier of both forces lies fallen in a whole fallen squad of that kind,
+  // and every other unit leaves one wreck.
+  type Unit = { kind: string; condition?: { casualties?: number } };
+  const fallen = (lateSetup.units as Unit[]).filter((u) => u.condition != null);
+  expect(fallen.length).toBeGreaterThan(0);
+  const rifle = fallen[0].kind;
+  for (const squad of fallen) {
+    expect(squad.kind).toBe(rifle);
+    expect(squad.condition?.casualties).toBe(UNITS.slots(rifle).length);
+  }
+  const living = earlySetup.units as Unit[];
+  const rifles = living.filter((u) => u.kind === rifle).length;
+  expect(rifles).toBeGreaterThan(0);
+  expect(fallen.reduce((n, u) => n + (u.condition?.casualties ?? 0), 0)).toBe(
+    rifles * UNITS.slots(rifle).length,
+  );
+  expect(lateSetup.map.props.length - earlySetup.map.props.length).toBe(living.length - rifles);
 });

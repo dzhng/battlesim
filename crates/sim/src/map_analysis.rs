@@ -169,8 +169,7 @@ pub fn admit_skirmish(
         .ok_or("skirmish sites are missing")?;
     let larger = counts.into_iter().max().unwrap_or(0);
     if !players.is_empty() {
-        let floor = contract::generation::skirmish_size_floor(larger);
-        let minimum_m = floor.skirmish_extent_m();
+        let minimum_m = contract::skirmish_sizes::tier(larger).extent_m;
         if q.map.size[0] + 0.01 < minimum_m || q.map.size[1] + 0.01 < minimum_m {
             return Err(format!(
                 "skirmish map is too small for {larger} players per side (requires {minimum_m} m)"

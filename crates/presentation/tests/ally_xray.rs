@@ -74,7 +74,6 @@ fn presented() -> Presentation {
         }),
         sun_azimuth: 0.0,
         sun_elevation: 0.7,
-        cascade_far_m: None,
         buildings: None,
     };
     let mut p = Presentation::new(

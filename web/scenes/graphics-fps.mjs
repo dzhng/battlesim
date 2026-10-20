@@ -25,6 +25,8 @@ const WARMUP_FRAMES = 60;
 /** How far the in-game counter's mean reading may sit from the recording's
  *  average over the same scene: both count the same drawn frames. */
 const COUNTER_AGREEMENT = 0.03;
+/** A hung graphics page must become a bounded diagnostic failure. */
+const RESULTS_TIMEOUT_MS = Number(process.env.GRAPHICS_RESULTS_TIMEOUT_MS ?? 600_000);
 
 /** In the page, from its start: every reading the in-game frame-rate
  *  counter shows, with the graphics test's scene at that moment. */
@@ -37,6 +39,48 @@ function watchCounter() {
     const scene = document.querySelector(".graphics-test-progress span")?.textContent ?? "";
     window.__counterReadings.push({ at: performance.now(), fps, scene });
   }).observe(document, { subtree: true, childList: true, characterData: true });
+}
+
+/** Capture browser-side causes that can explain a low 1% frame without
+ * changing the graphics test's timing path. Entries carry the scene label so
+ * a loading or transition spike is not mistaken for steady-state work. */
+function watchFrameDiagnostics() {
+  window.__frameDiagnostics = { frames: [], longtasks: [], gc: [] };
+  let previousFrame;
+  const frame = (at) => {
+    if (previousFrame !== undefined)
+      window.__frameDiagnostics.frames.push({ atMs: at, intervalMs: at - previousFrame });
+    previousFrame = at;
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  const scene = () => document.querySelector(".graphics-test-progress span")?.textContent ?? "";
+  for (const [type, key] of [
+    ["longtask", "longtasks"],
+    ["gc", "gc"],
+  ]) {
+    if (!PerformanceObserver.supportedEntryTypes?.includes(type)) continue;
+    try {
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries())
+          window.__frameDiagnostics[key].push({
+            scene: scene(),
+            startMs: entry.startTime,
+            durationMs: entry.duration,
+            name: entry.name,
+            attribution: entry.attribution?.map((item) => ({
+              name: item.name,
+              containerType: item.containerType,
+              containerName: item.containerName,
+              containerSrc: item.containerSrc,
+              containerId: item.containerId,
+            })),
+          });
+      }).observe({ type, buffered: true });
+    } catch {
+      // Some Chromium builds list an entry type but refuse its observer.
+    }
+  }
 }
 
 /** What else is drawing: a native run, or a browser besides this scene's
@@ -75,6 +119,7 @@ export async function run(ctx) {
   const started = performance.now();
   const page = await ctx.newPage({ viewport: VIEWPORT });
   await page.addInitScript(watchCounter);
+  await page.addInitScript(watchFrameDiagnostics);
   const url = new URL(ctx.url);
   if (SCENES) url.searchParams.set("scenes", SCENES);
   if (QUALITY) url.searchParams.set("quality", QUALITY);
@@ -92,6 +137,22 @@ export async function run(ctx) {
 
   let shown = "";
   for (;;) {
+    if (performance.now() - started > RESULTS_TIMEOUT_MS) {
+      const details = page.getByRole("button", { name: "Details", exact: true });
+      if (await details.isVisible().catch(() => false)) await details.click();
+      const state = await page
+        .evaluate(() => ({
+          graphics: window.__graphicsTest ?? null,
+          lab: window.__lab ?? null,
+          loading: document.querySelector('[role="status"]')?.textContent ?? null,
+          error: document.querySelector('[data-testid="error"]')?.textContent ?? null,
+          body: document.body.innerText.slice(0, 2000),
+        }))
+        .catch((error) => ({ evaluateError: String(error) }));
+      throw new Error(
+        `graphics test did not reach results within ${RESULTS_TIMEOUT_MS / 1000} s: ${JSON.stringify(state)}`,
+      );
+    }
     const state = await page.evaluate(() => ({
       stage: window.__graphicsTest?.stage,
       progress: document.querySelector(".graphics-test-progress span")?.textContent ?? "",
@@ -112,6 +173,14 @@ export async function run(ctx) {
       scenes: r.scenes.map((s) => ({ map: s.scene.map, gpu: s.gpu })),
       frames: r.samples.frames.map((f) => [f.phase, f.intervalMs, f.cpuMs]),
       counter: window.__counterReadings,
+      diagnostics: window.__frameDiagnostics,
+      memory: performance.memory
+        ? {
+            usedJSHeapSize: performance.memory.usedJSHeapSize,
+            totalJSHeapSize: performance.memory.totalJSHeapSize,
+            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
+          }
+        : null,
     };
   });
   ctx.check(
@@ -169,7 +238,14 @@ export async function run(ctx) {
   };
   await writeFile(
     file,
-    `${JSON.stringify({ client: "browser", conditions, viewport: VIEWPORT, scenes })}\n`,
+    `${JSON.stringify({
+      client: "browser",
+      conditions,
+      viewport: VIEWPORT,
+      scenes,
+      diagnostics: report.diagnostics,
+      memory: report.memory,
+    })}\n`,
   );
   console.log(`METRIC graphics-fps: → ${file.pathname}`);
 }

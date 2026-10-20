@@ -148,6 +148,7 @@ impl Passes {
     ) -> Result<(), String> {
         let frame = presentation.last_frame();
         self.environment.prepare(queue, &frame.view, &frame.camera);
+        self.ground.prepare(&frame.camera, frame.shadow.as_ref());
         if let Some(fit) = &frame.shadow {
             self.shadow.prepare(queue, fit);
         }

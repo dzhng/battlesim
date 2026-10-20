@@ -59,3 +59,30 @@ test("contested objective flags expose a flashing state", () => {
   );
   expect(view.getByLabelText("Objective 1: contested").getAttribute("data-contested")).toBe("true");
 });
+
+test("a human playing Red reads Red's score and objectives as theirs", () => {
+  const objective = (id: string, owner: "blue" | "red") => ({
+    id,
+    center: [0, 0] as [number, number],
+    radiusM: 50,
+    owner,
+    contested: false,
+    capturing: null,
+    captureProgress: 0,
+  });
+  const view = render(
+    <SkirmishStatus
+      match={{
+        ...match,
+        phase: "active",
+        scores: [345.8, 120.2],
+        objectives: [objective("alpha", "red"), objective("bravo", "blue")],
+      }}
+      viewer="red"
+    />,
+  );
+  expect(view.getByLabelText("Your victory score").textContent).toBe("120 / 1,000");
+  expect(view.getByLabelText("Enemy victory score").textContent).toBe("345 / 1,000");
+  expect(view.getByLabelText("Objective 1: yours")).toBeTruthy();
+  expect(view.getByLabelText("Objective 2: enemy")).toBeTruthy();
+});

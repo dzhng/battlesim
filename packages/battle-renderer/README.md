@@ -34,7 +34,15 @@ resolves for every client from the map's compiled shapes and the biome
 plots, roads as drawn, surface fields, water cells, the terrain's and grass's GPU
 tables, and the scenery's walk: what trees, shrubs and dressing a view draws and
 casts at which tier, as the frame's static batches); the renderer uploads the
-tables and batches as given and draws admitted appearances. Physical bounds and
+tables and batches as given and draws admitted appearances. The shared [terrain partition](../../crates/presentation/src/static_world/ground/partition.rs)
+reorders whole triangles once, preserving their vertex words. Terrain, water,
+and skirt/debug meshes reuse that owner; the constant-size backdrop needs no index.
+Both clients query
+its hierarchy with the actual GPU camera and each caster matrix independently;
+selection adds no far cutoff. Water selects only for the camera and retains its
+blended, read-only-depth pass. Camera ranges serve depth and color, including each
+scar-region submission. Traversal work is distinct from issued draw counts.
+Physical bounds and
 visual-only landscape remain
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
 that the simulation does not provide: a tree the side has seen felled falls on the
@@ -50,7 +58,7 @@ scenery its region's appearances.
 [Renderer core](../renderer-core/README.md) owns the live camera and depth convention.
 The frame draws with what the presentation made of that camera (`setCamera`):
 its view, its uniform and the sun's cascades, uploaded as they are; each batch
-names the tier it casts with and the fog group it binds, so the renderer routes
+names the tier and cascade mask it casts with and the fog group it binds, so the renderer routes
 rather than decides.
 [Light](src/light/sceneLight.ts) shares one fixture-owned sun and environment;
 [world shading](src/world/) and [shader functions](src/shaders/) reuse it.
@@ -74,6 +82,10 @@ marching stops at that boundary because the margin carries no gameplay sight.
 
 World paint belongs to the lit ground. Display overlays compose after the world's
 postprocessing, so grading and fog cannot change their information colors.
+Their [stroke sizing](src/strokeWidth.ts) keeps authored widths and glyph bodies
+in CSS space, but the readability floor in actual render pixels: lowering render
+resolution must not erase a thin information mark. The viewport supplies its
+actual canvas-to-CSS ratio, so resizing and quality changes share this rule.
 High-air models (`HIGH_PASS` batches) can be drawn apart: given a second
 target, the frame draws them there alone after the world, lit by the same
 pipelines and graded by the same look, premultiplied for the page to lay
@@ -109,6 +121,11 @@ still defines holes and glass; instance opacity never changes that asset contrac
 The app owns where they stand, their validity and colour, and the renderer receives
 only the cue.
 
+The visual backdrop surrounds the scene's terrain by default. A composition with
+remote disconnected patches can supply separate local terrain for that backdrop
+in [the scene contract](src/scene.ts). This changes only the decorative surround;
+terrain selection and shadow receivers still consume the complete drawn mesh.
+
 ## Resource lifetime and bounded work
 
 [The GPU registry](src/frame/registry.ts) owns allocations and nested scopes.
@@ -122,8 +139,21 @@ knowledge, view changes or frame animation. The static world's Rust walks
 changing authoritative populations. Streaming work reports when it remains
 pending; a camera cut cannot be captured merely after an arbitrary number of frames.
 
+[Submitted geometry](src/frame/submitted.ts) counts issued draw calls, before
+clipping, scissor rejection or fragment discard. Its instances are per draw,
+not distinct objects: repeated surfaces and terrain scar regions repeat work.
+Depth, color, separate high-air passes and individual cascades stay separate.
+Models include props and impostor cards; water and backdrop ground have their
+own counters, while backdrop scenery belongs to scenery. The map skirt shares
+a mesh and counter with traversal-view debug boxes. This is partial world
+accounting, excluding effects, grass, sky, paint, proxies, x-ray and overlays.
+Installed mesh sizes and presentation selection statistics remain distinct.
+
 Diagnostics describe the last drawn frame. Cost and resource comparisons need the
 same camera, tick and installed state, plus a picture proving the intended subject
 was drawn. [Browser verification](../../web/README.md#checks-and-evidence) owns
 scene execution, while [the benchmark](../../web/src/battle/benchmark/README.md)
 owns rendered cost. Healthy counters alone do not prove a correct image.
+GPU measurement windows start at the scene's timing reset: only frames begun
+after it may contribute, even when older readbacks finish later. Settle a camera
+or workload change before resetting; reset neither waits for nor warms that state.

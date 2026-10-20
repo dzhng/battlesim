@@ -10,6 +10,7 @@ pub mod fallen;
 #[cfg(feature = "files")]
 pub mod files;
 pub mod ground;
+pub mod index;
 pub mod library;
 pub mod props;
 pub mod walk;

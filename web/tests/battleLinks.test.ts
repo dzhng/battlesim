@@ -1,13 +1,15 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { askedBattle, battleHref, spoken } from "../../apps/battle-lab/src/battleLinks";
+import { sizeTier } from "../../apps/battle-lab/src/skirmishSetup";
+import { MAP_SIZES } from "@web/maps/source";
 
 test("size labels use the lobby's S/M/L/XL vocabulary", () => {
   expect(["small", "medium", "large", "xl"].map(spoken)).toEqual(["S", "M", "L", "XL"]);
 });
 
 test("links round trip ordered player controllers and side factions", () => {
-  const href = battleHref({ type: "mixed", size: "large", seed: "7", faction: "us" }, [
+  const href = battleHref({ type: "mixed", size: "large", seed: "7" }, [
     { id: "blue-1", side: "blue", faction: "us", controller: "human", human_capable: true },
     { id: "blue-2", side: "blue", faction: "us", controller: "active_ai", human_capable: false },
     {
@@ -43,7 +45,7 @@ test.each([
       human_capable: humans > 0 && side === "blue" && index === 0,
     })),
   );
-  const href = battleHref({ type: "mixed", size: "xl", seed: "9", faction: "us" }, players);
+  const href = battleHref({ type: "mixed", size: "xl", seed: "9" }, players);
   const asked = askedBattle(new URL(href, "https://battle.invalid").search);
   expect(asked).toMatchObject({ kind: "generated", players });
 });
@@ -56,10 +58,45 @@ test.each([
 });
 
 test.each([
-  "?type=mixed&size=small&seed=1&battle=1&blue=a&red=a&blue_faction=us&red_faction=eastern",
-  "?type=mixed&size=small&seed=1&battle=1&blue=h&red=h&blue_faction=us&red_faction=eastern",
-])("refuses invalid single-player controllers %s", (search) => {
+  ["h", "h"],
+  ["h,h,a", "a,a,a"],
+  ["a,a,a", "h,a,a"],
+  ["h,a", "a,h,a"],
+])("a link with humans has exactly one, on Blue: refuses blue=%s red=%s", (blue, red) => {
+  const search = `?type=mixed&size=large&seed=1&battle=1&blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`;
   expect(askedBattle(search)).toMatchObject({
-    error: expect.stringMatching(/Human.*Blue|single-player/),
+    error: expect.stringMatching(/exactly one Human on Blue/),
+  });
+});
+
+test("a link with no human is an AI-only battle at any size", () => {
+  for (const [blue, red] of [
+    ["a", "a"],
+    ["a,p,a", "a,a,a"],
+  ])
+    expect(
+      askedBattle(
+        `?type=mixed&size=large&seed=1&battle=1&blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`,
+      ),
+    ).toMatchObject({ kind: "generated" });
+});
+
+test.each([
+  ["a", "a"],
+  ["a,a", "a"],
+  ["a,a,a", "a,a,a"],
+  ["a,a,a,a,a", "a,a"],
+])("a link without a size gets its players' size tier: blue=%s red=%s", (blue, red) => {
+  const asked = askedBattle(
+    `?type=mixed&seed=1&battle=1&blue=${blue}&red=${red}&blue_faction=us&red_faction=eastern`,
+  );
+  if (!("kind" in asked) || asked.kind !== "generated") throw new Error(JSON.stringify(asked));
+  expect(asked.map.size).toBe(sizeTier(asked.players).size);
+});
+
+test("a one-a-side link without a size is on the smallest map", () => {
+  expect(askedBattle("?seed=1&blue=a&red=a&blue_faction=us&red_faction=eastern")).toMatchObject({
+    kind: "generated",
+    map: { size: MAP_SIZES[0] },
   });
 });

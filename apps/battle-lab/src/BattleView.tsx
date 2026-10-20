@@ -30,11 +30,17 @@ import { LabViewport } from "./LabViewport";
 import { useUnitFocus } from "./useUnitFocus";
 import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
+import { commandedEconomy } from "./commandingPlayer";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
 import { useSyncExternalStore } from "react";
-import { graphicsProfiles, graphicsSettings, resolveEffectiveTier } from "./graphicsSettings";
+import {
+  graphicsProfiles,
+  graphicsSettings,
+  resolveEffectiveTier,
+  sceneMinimumProfile,
+} from "./graphicsSettings";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -83,7 +89,7 @@ export function BattleView({
   /** Player issuing commands in a player-owned scenario; null when the
    *  session seats no human, and input is off. */
   player?: string | null;
-  /** False once AI takes the player's slot over: input stops while the same
+  /** False once AI takes the player over: input stops while the same
    *  battle goes on (changing `player` would start a new one). */
   inCommand?: boolean;
   /** Side whose observation and command stream this player controls. */
@@ -141,7 +147,8 @@ export function BattleView({
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
   const zoomRef = useRef(zoom);
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
-  const contactFacing = useContactFacing(camera, metresPerPx);
+  const [renderScale, setRenderScale] = useState(1);
+  const contactFacing = useContactFacing(camera, metresPerPx, renderScale);
   const cues = useCaptions();
   const { note: noteCues } = cues;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -167,9 +174,7 @@ export function BattleView({
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
   const matchFinished = observation?.skirmish?.phase === "finished";
-  const viewingPlayer =
-    observation?.skirmish?.players.find((candidate) => candidate.id === player) ??
-    observation?.skirmish?.players[0];
+  const viewingPlayer = commandedEconomy(observation?.skirmish, session.viewer?.id);
   const { contacts } = session;
   // Contacts N steps through, newest first.
   const focusTargets = useMemo(() => contactFocusTargets(contacts), [contacts]);
@@ -180,7 +185,15 @@ export function BattleView({
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client, menuOpen, setMenuOpen);
   const graphics = useSyncExternalStore(graphicsSettings.subscribe, graphicsSettings.get);
-  const quality = graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
+  const requestedQuality = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get("test-quality")
+    : null;
+  const quality =
+    requestedQuality === "minimum"
+      ? sceneMinimumProfile
+      : requestedQuality && requestedQuality in graphicsProfiles
+        ? graphicsProfiles[requestedQuality as keyof typeof graphicsProfiles]
+        : graphicsProfiles[resolveEffectiveTier(graphics.mode, graphics.detectedMode)];
   const { audio } = session;
   useEffect(() => {
     clearCues();
@@ -193,11 +206,11 @@ export function BattleView({
         ? buildMapBorder(
             parsed.size,
             gameMapBorder,
-            borderWidthM(gameMapBorder, gameStroke(metresPerPx)),
+            borderWidthM(gameMapBorder, gameStroke(metresPerPx, renderScale)),
             surfaceZ,
           )
         : null,
-    [world, parsed.size, metresPerPx, surfaceZ],
+    [world, parsed.size, metresPerPx, renderScale, surfaceZ],
   );
   const overlay = useMemo(
     () =>
@@ -216,7 +229,7 @@ export function BattleView({
               allies: session.allies,
             },
             border,
-            metresPerPx,
+            gameStroke(metresPerPx, renderScale),
           )
         : undefined,
     [
@@ -233,6 +246,7 @@ export function BattleView({
       session.revealed,
       border,
       metresPerPx,
+      renderScale,
     ],
   );
   const overlayFeed = useFeed(overlay);
@@ -280,8 +294,8 @@ export function BattleView({
           onPick={input ? session.input.onPick : undefined}
           leftDragAction={input && !!session.purchase?.placing}
           onRightPress={session.input.onRightPress}
-          onCursor={(pointer, view, project) => {
-            const action = session.input.onCursor(pointer, view);
+          onCursor={(pointer, view, project, scale) => {
+            const action = session.input.onCursor(pointer, view, project, scale);
             rulerLabels.current?.place(project, pointerPaint.shown);
             return action;
           }}
@@ -291,7 +305,8 @@ export function BattleView({
             setViewportReady(true);
           }}
           pilot={scripted?.pilot}
-          onFrame={(project, view, pointer) => {
+          onFrame={(project, view, pointer, scale) => {
+            setRenderScale(scale);
             session.hear();
             contactFacing.follow(view);
             const step = zoomStep(view.distance);

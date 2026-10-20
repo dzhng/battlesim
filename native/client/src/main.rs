@@ -336,7 +336,7 @@ impl Run {
         // A fresh renderer holds no scars: the first upload writes them all.
         replay.presentation_mut().resend_scars();
         // The sun's cascades are fitted over the ground's box each frame.
-        let fitted = Some((replay.light.clone(), ground.map_box));
+        let fitted = Some((replay.light.clone(), ground.terrain_partition.clone()));
         replay.presentation_mut().set_shadow(fitted);
         let effects = Effects::new(
             &gpu.device,

@@ -19,6 +19,8 @@ export interface GraphicsQualityProfile {
   buildingLodScale: number;
   treeLodScale: number;
   grassDensity: number;
+  /** Internal render resolution multiplier for bounded fill cost. */
+  renderScale: number;
   forestDressing: boolean;
   understorey: boolean;
   shadowMapSize: 512 | 1024 | 2048;
@@ -46,6 +48,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     buildingLodScale: 1.6,
     treeLodScale: 1.6,
     grassDensity: 0.55,
+    renderScale: 0.75,
     forestDressing: false,
     understorey: false,
     shadowMapSize: 1024,
@@ -60,6 +63,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     buildingLodScale: 1.25,
     treeLodScale: 1.25,
     grassDensity: 0.75,
+    renderScale: 1,
     forestDressing: true,
     understorey: true,
     shadowMapSize: 1024,
@@ -74,6 +78,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     buildingLodScale: 1,
     treeLodScale: 1,
     grassDensity: 1,
+    renderScale: 1,
     forestDressing: true,
     understorey: true,
     shadowMapSize: 2048,
@@ -91,6 +96,7 @@ export const sceneMinimumProfile: GraphicsQualityProfile = {
   buildingLodScale: 2.2,
   treeLodScale: 2.2,
   grassDensity: 0.2,
+  renderScale: 0.75,
   forestDressing: false,
   understorey: false,
   shadowMapSize: 512,

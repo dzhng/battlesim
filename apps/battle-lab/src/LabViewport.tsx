@@ -1,3 +1,6 @@
+import type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
+export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
+import type { ClearanceReading, LabHandle } from "./labDiagnostics";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
 import { diagnosticsSource } from "@web/diagnostics";
@@ -5,6 +8,7 @@ import {
   loadPresentation,
   ScenePresentation,
   type PropStats,
+  NO_PROP_STATS,
   type PresentedUi,
 } from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
@@ -35,10 +39,7 @@ import {
   type CameraPose,
   type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
-import {
-  createClearanceState,
-  type ClearanceState,
-} from "@packages/renderer-core/src/cameraClearance";
+import { createClearanceState } from "@packages/renderer-core/src/cameraClearance";
 import {
   createCameraObstacles,
   type CameraObstacles,
@@ -167,6 +168,7 @@ interface LabViewportProps {
     pointer: ViewportPointer,
     camera: Camera3DParams,
     project: Project,
+    renderScale: number,
   ) => CursorAction | null;
   /** Left-drag rectangle in page CSS pixels, with the projection to test against it. */
   onBox?: (box: LabBox) => void;
@@ -180,8 +182,14 @@ interface LabViewportProps {
   /** Called every animation frame with the live world → page projection and
    *  camera, for DOM readouts anchored to world points and panned sound, and
    *  a shared pointer snapshot: position, camera ray (null over UI), and the
-   *  captured world ray of a held right press. */
-  onFrame?: (project: Project, camera: Camera3DParams, pointer: ViewportPointer) => void;
+   *  captured world ray of a held right press. The final argument is the actual
+   *  canvas render-pixel/CSS-pixel ratio, for minimum stroke coverage. */
+  onFrame?: (
+    project: Project,
+    camera: Camera3DParams,
+    pointer: ViewportPointer,
+    renderScale: number,
+  ) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
   /** A scripted driver (the benchmark, a lab's trajectory), fixed for the
@@ -200,6 +208,9 @@ interface LabViewportProps {
   /** The camera rig's numbers; the game's by default. */
   cameraConfig?: CameraPresentation;
 }
+
+/** The viewport owns the live projection and render resolution passed to pointer paint. */
+export type ViewportCursor = NonNullable<LabViewportProps["onCursor"]>;
 
 /** One animation frame's drawn units. Anything omitted keeps its last value. */
 export interface ViewportFrame {
@@ -253,21 +264,23 @@ export interface ViewportPilot {
   /** Show the in-game frame-rate counter, which a piloted view otherwise
    *  hides (the graphics test shows it; the menu's reel does not). */
   frameRate?: boolean;
-  /** The battle frame is up: the adapter and the frame's own statistics (its rolling GPU frame time from
-   *  `timestamp-query`, and live memory). */
-  attach?(frame: { adapter: string; stats: () => ReturnType<BattleFrame["stats"]> }): void;
+  /** Renderer diagnostics and a fresh GPU measurement boundary. */
+  attach?(frame: {
+    adapter: string;
+    stats: () => ReturnType<BattleFrame["stats"]> & {
+      receiverFit: ReturnType<ScenePresentation["shadowStats"]> | null;
+    };
+    resetGpuTiming: () => void;
+  }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
    *  Null leaves the camera to the player for that frame. */
   pose(now: number): CameraPose | null;
-  /** A drawn frame: its main-thread cost, the camera drawn, the sim time
-   *  it drew (the presentation clock) and the canvas size in pixels.
-   *  `counts` counts what this frame drew; with `plates`, `plate` reads it
-   *  back. Called during `frame`, the task that drew it, both read exactly
-   *  that frame. */
+  /** Measurements and optional readback from the task that drew this frame. */
   frame?(f: {
     now: number;
     cpuMs: number;
+    receiverFit: ReturnType<ScenePresentation["shadowStats"]> | null;
     camera: Camera3DParams;
     simTime: number;
     canvas: readonly [number, number];
@@ -289,147 +302,10 @@ export interface ViewportGpu {
 const _projector_world = vec3.create();
 const _projector_point = createProjectedPoint();
 
-/** One snapshot shared by hover, the ruler and the held facing preview. */
-export interface ViewportPointer {
-  position: { x: number; y: number } | null;
-  ray: WorldRay | null;
-  rightPress: WorldRay | null;
-  /** Where a held left drag began, while it is an action (`leftDragAction`). */
-  leftPress: WorldRay | null;
-  ctrl: boolean;
-  shift: boolean;
-  cameraDragging: boolean;
-  rightDragging: boolean;
-}
-
-export interface LabPick {
-  instance: number;
-  ray: WorldRay;
-  button: "left" | "right";
-  shift: boolean;
-  ctrl: boolean;
-  /** CSS pixel position and event time, for gesture recognition. */
-  x: number;
-  y: number;
-  time: number;
-  /** A right-drag's release ray (Q9 facing): the press is the pick, the
-   *  release the point the units face. Absent for a plain right-click. */
-  release?: WorldRay;
-}
-
-export interface LabBox {
-  x0: number;
-  y0: number;
-  x1: number;
-  y1: number;
-  shift: boolean;
-  project: (x: number, y: number, z: number) => [number, number] | null;
-}
-
 /** Pixels a left press may travel and still count as a click. */
 const CLICK_SLOP_PX = 5;
 /** Screen-edge band that pans the camera like a held key. */
 const EDGE_PAN_PX = 14;
-
-/** What holds a drawn pose off the pose asked for, and how it got there. */
-type ClearanceReading = Pick<ClearanceState, "hold" | "cut" | "blocked">;
-
-/** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
-interface LabHandle {
-  ready: boolean;
-  error: string | null;
-  adapter?: { vendor: string; architecture: string; description: string; format: string };
-  /** The frame's statistics, and what the scene's props draw. */
-  stats?: () => ReturnType<BattleFrame["stats"]> & { props: PropStats };
-  allocations?: GpuAllocationTracker;
-  /** The camera drawn. */
-  camera?: () => Camera3DParams;
-  /** The harness's raw framing: drawn exactly as given, through neither the
-   *  rig's limits nor camera clearance, so a check can frame its subject from
-   *  anywhere. No playable or benchmark path uses it; the next input or
-   *  scripted placement returns the camera to the rig. */
-  setCamera?: (camera: Camera3DParams) => void;
-  /** A scripted framing, as the rig places it and the next frame clears it
-   *  (the benchmark tour's path): `camera()` is then the pose drawn for it. */
-  placeCamera?: (pose: CameraPose) => void;
-  /** Where camera clearance stands: the pose asked for, what holds the drawn
-   *  pose off it, and whether the last step was a cut or found nothing clear. */
-  clearance?: () => ClearanceReading & { asked: Camera3DParams; settled: boolean };
-  /** Fly a scratch camera through `poses`, `dt` seconds apart, by the rig
-   *  and the obstacles the viewport uses, drawing nothing: each pose drawn,
-   *  and what the resolver cost (wall time and box tests, over `reps` flights). */
-  flyClearance?: (
-    poses: readonly CameraPose[],
-    dt: number,
-    reps?: number,
-  ) => {
-    frames: (ClearanceReading & { camera: Camera3DParams })[];
-    msPerFrame: number;
-    boxTestsPerFrame: number;
-  };
-  reset?: () => void;
-  /** Rebuild the scene from scratch (reset/dispose cycle) and resolve when drawn. */
-  rebuild?: () => Promise<void>;
-  pickAt?: (cssX: number, cssY: number) => number;
-  rayAt?: (cssX: number, cssY: number) => WorldRay;
-  route?: Record<string, unknown>;
-  /** What a click can pick: every drawn unit and soldier, as boxes. */
-  instances?: () => readonly PickBox[];
-  /** World point → CSS pixel in the page, or null when behind the eye. */
-  projectToCss?: (x: number, y: number, z: number) => [number, number] | null;
-  frame?: () => Promise<void>;
-  /** The pass inspector's view of the frame; resolves once it is drawn. */
-  setFrameView?: (view: FrameView) => Promise<void>;
-  /** The sight lights' lab probes. */
-  fog?: () => BattleFrame["fogProbes"];
-  /** Draw without fog while on (a paired cost measure); the route's fog
-   *  returns when it goes off. */
-  suppressFog?: (on: boolean) => Promise<void>;
-  /** The grass field's lab probes. */
-  grass?: () => BattleFrame["grassProbes"];
-  /** Draw without grass while on (a paired cost measure). */
-  suppressGrass?: (on: boolean) => Promise<void>;
-  /** Draw the plots without their own texture while on: their plain rows
-   *  alone (paired frames, and a paired cost measure). */
-  suppressFieldTexture?: (on: boolean) => Promise<void>;
-  /** Draw no models or corpses while on (a paired cost measure). */
-  suppressModels?: (on: boolean) => Promise<void>;
-  /** Draw no trees and none of their shadows while on (they are scenery, not
-   *  models): the ground under a wood, and a paired cost measure. */
-  suppressTrees?: (on: boolean) => Promise<void>;
-  /** Draw no forest-floor dressing while on (a paired cost measure). */
-  suppressDressing?: (on: boolean) => Promise<void>;
-  /** Draw no shrubs under tree lines while on (a paired cost measure). */
-  suppressUnderstorey?: (on: boolean) => Promise<void>;
-  /** Draw no template-art buildings and none of their shadows while on (a
-   *  paired cost measure). */
-  suppressBuildings?: (on: boolean) => Promise<void>;
-  /** Draw one kind of model surface (a cutout, say), its depth and its
-   *  shadow, or none of it while on (paired frames and cost). */
-  suppressSurface?: (surface: SurfaceClass, on: boolean) => Promise<void>;
-  /** Draw the roads plain while on, with no surface detail or shoulder (a
-   *  paired cost measure). */
-  suppressRoadWear?: (on: boolean) => Promise<void>;
-  /** Draw no combat effects while on (a paired cost measure). */
-  suppressEffects?: (on: boolean) => Promise<void>;
-  /** Draw the effects but light nothing by them while on (paired frames, cost). */
-  suppressCastLights?: (on: boolean) => Promise<void>;
-  /** The ground marks' halo at `strength` (0 draws none: a paired cost
-   *  measure), or the fixture's with null. */
-  setOverlayGlowStrength?: (strength: number | null) => Promise<void>;
-  /** Draw the painted ground marks or not (paired frames isolate them). */
-  suppressPaint?: (on: boolean) => Promise<void>;
-  /** Disable the per-model x-ray coverage gate for paired verification/cost. */
-  suppressXrayCoverage?: (on: boolean) => Promise<void>;
-  /** Draw the ground unmarked while on (paired frames and cost). */
-  suppressScars?: (on: boolean) => Promise<void>;
-}
-
-declare global {
-  interface Window {
-    __lab?: LabHandle;
-  }
-}
 
 export function LabViewport({
   fixture,
@@ -765,12 +641,10 @@ export function LabViewport({
           alphaMode: "opaque",
           usage: GPUTextureUsage.RENDER_ATTACHMENT | (plates ? GPUTextureUsage.COPY_SRC : 0),
         });
-        // One pixel per CSS pixel, on any display: a high-density screen
-        // scales the battle up rather than drawing it at its own density.
-        // The page's HUD keeps the display's density.
         const syncSize = () => {
-          const w = Math.max(1, canvas.clientWidth);
-          const h = Math.max(1, canvas.clientHeight);
+          const scale = qualityRef.current?.renderScale ?? 1;
+          const w = Math.max(1, Math.round(canvas.clientWidth * scale));
+          const h = Math.max(1, Math.round(canvas.clientHeight * scale));
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;
@@ -826,8 +700,7 @@ export function LabViewport({
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
-        /** The presentation the viewport makes for a scene with no battle,
-         *  once the module is loaded and there are buildings to draw. */
+        /** Presentation for a scene without a battle. */
         let own: ScenePresentation | null = null;
         let moduleLoaded = false;
         void loadPresentation().then(() => (moduleLoaded = true));
@@ -839,14 +712,7 @@ export function LabViewport({
           if (!own && moduleLoaded) own = new ScenePresentation();
           return own;
         };
-        const propStats = (): PropStats =>
-          scenePresentation()?.propStats() ?? {
-            bodies: 0,
-            parts: 0,
-            unmodelled: 0,
-            models: 0,
-            known: 0,
-          };
+        const propStats = (): PropStats => scenePresentation()?.propStats() ?? NO_PROP_STATS;
         /** The buildings' style and sun, and the light the cascades are
          *  fitted under, taken when the frame is built. */
         let staticStyle = gameBuildingStyle;
@@ -855,6 +721,8 @@ export function LabViewport({
         /** A presentation that frames the camera alone, while the battle's
          *  is not there yet. */
         let bare: ScenePresentation | null = null;
+        let receiverPresentation: ScenePresentation | null = null;
+        const receiverStats = () => receiverPresentation?.shadowStats() ?? null;
         signal.addEventListener("abort", () => bare?.free());
         /** The presentation and quality the detail scale was last given to. */
         let detailed: [
@@ -920,7 +788,8 @@ export function LabViewport({
         const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
         pilot?.attach?.({
           adapter,
-          stats: () => scene.stats(),
+          stats: () => ({ ...scene.stats(), receiverFit: receiverStats() }),
+          resetGpuTiming: () => scene.resetGpuTiming(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(
@@ -940,9 +809,7 @@ export function LabViewport({
         };
         /** Whether the lab took the grass away (`suppressGrass`). */
         let grassSuppressed = false;
-        /** The frame just drawn again without its grass, into a texture of
-         *  the canvas's size and format, read back; the grass is put back,
-         *  so the canvas and the next frame are as they were. */
+        /** Read back without grass, then restore the scene's grass setting. */
         const readPlain = () => {
           const texture = device!.createTexture({
             label: "plate-readback",
@@ -1081,11 +948,8 @@ export function LabViewport({
             if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
             dirty = true;
           }
-          // The camera drawn and the static world for it: walked in Rust,
-          // its batches written only when what it draws changed. A battle's
-          // frame carries them; a scene without one (or before its first
-          // publication) is framed here for them alone, and before the
-          // battle's presentation is there, the camera alone.
+          // Rust walks the static world. Without a battle publication, frame
+          // the static scene here; before presentation loads, frame only the camera.
           try {
             let views: PresentedFrame | null = null;
             let walk = NO_WALK;
@@ -1115,6 +979,7 @@ export function LabViewport({
               scenery = decoder.sceneryWalk();
               views = decoder.lastFrame();
             }
+            receiverPresentation = decoder ?? bare;
             if (views) scene.setCamera(views);
             if (scene.setStaticFrame(decoder ? views : null, { buildings: walk, scenery }))
               dirty = true;
@@ -1146,14 +1011,16 @@ export function LabViewport({
             ),
           };
           const project = projector();
-          onFrameRef.current?.(project, camera, pointerState);
-          const action = onCursorRef.current?.(pointerState, camera, project) ?? null;
+          const renderScale = canvas.height / Math.max(1, canvas.clientHeight);
+          onFrameRef.current?.(project, camera, pointerState, renderScale);
+          const action = onCursorRef.current?.(pointerState, camera, project, renderScale) ?? null;
           // The app cursor always shows; the battle only chooses its action.
           const active = surface && !orbit && !pilot;
           setCursorAction((active && action) || "default");
           pilot?.frame?.({
             now,
             cpuMs: performance.now() - started,
+            receiverFit: receiverStats(),
             camera,
             simTime: clock,
             canvas: [canvas.width, canvas.height],
@@ -1164,8 +1031,7 @@ export function LabViewport({
         };
         raf = requestAnimationFrame(loop);
 
-        /** World → page projection for the current camera and canvas box,
-         *  read once so a whole frame of anchors costs one layout read. */
+        /** Project anchors with one canvas-layout read per frame. */
         const projector = (): Project => {
           const viewProj = viewProjMatrix(createGpuMat4(), liveCamera(snapshot()));
           const rect = canvas.getBoundingClientRect();
@@ -1189,8 +1055,7 @@ export function LabViewport({
             dirty = true;
             requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
           });
-        /** A frame drawn at the current size: a resize's targets build
-         *  asynchronously, so wait for them and draw again. */
+        /** Redraw after asynchronous resize targets settle. */
         const nextFrame = async () => {
           await drawn();
           if (await scene.settled()) await drawn();
@@ -1203,7 +1068,8 @@ export function LabViewport({
             description: info.description,
             format: info.format,
           },
-          stats: () => ({ ...scene.stats(), props: propStats() }),
+          stats: () => ({ ...scene.stats(), props: propStats(), receiverFit: receiverStats() }),
+          resetGpuTiming: () => scene.resetGpuTiming(),
           allocations,
           camera: () => camera,
           setCamera(next: Camera3DParams) {

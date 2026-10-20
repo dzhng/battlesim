@@ -12,7 +12,7 @@ afterEach(cleanup);
 
 /** A link's seats: `blue` and `red` controller codes, in scenario order. */
 function seats(blue: string, red: string): Seat[] {
-  const controller = (c: string) => (c === "h" ? "human" : "active_ai");
+  const controller = (c: string) => (c === "h" ? ("human" as const) : ("active_ai" as const));
   return [
     ...[...blue].map((c, k) => ({
       id: `blue-${k + 1}`,

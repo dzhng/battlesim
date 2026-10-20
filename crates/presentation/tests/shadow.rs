@@ -1,12 +1,13 @@
 //! The sun's cascades are fitted where shadows are received, and every map
 //! point the camera sees within the reach is inside a cascade that shades
-//! it. The fit is the browser's to the last bit: `fixtures/shadow-vectors.json`
-//! records it over a camera tour of both
-//! reel maps' boxes (high and ground-level cameras, two lenses, three
-//! viewports) under the game's light, a low sun and a high one.
+//! it. Both clients consume this production fit over immutable terrain.
 use presentation::light::LightSettings;
 use presentation::records::SunShadow;
 use presentation::shadow::{camera_record, map_box, sun_shadow, SunShadowFrame, CASCADES};
+use presentation::static_world::ground::{
+    mesh,
+    partition::{TerrainPartition, CELL_M},
+};
 use presentation::view::{Camera, View};
 use serde_json::Value;
 
@@ -19,95 +20,26 @@ fn a_shadow_lies_on_the_ground_with_offset_proportional_to_actual_height() {
     assert_eq!(high, [52.0, 14.0, 7.5]);
 }
 
-fn vectors() -> Value {
-    let at = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/shadow-vectors.json"
-    );
-    serde_json::from_str(&std::fs::read_to_string(at).unwrap()).unwrap()
-}
-
-/// Little-endian f32 words from the browser's hex.
-fn words(hex: &Value) -> Vec<u32> {
-    let s = hex.as_str().unwrap();
-    (0..s.len() / 8)
-        .map(|i| {
-            u32::from_le_bytes(std::array::from_fn(|b| {
-                u8::from_str_radix(&s[i * 8 + b * 2..i * 8 + b * 2 + 2], 16).unwrap()
-            }))
-        })
-        .collect()
-}
-
 fn bits<T: bytemuck::Pod>(record: &T) -> Vec<u32> {
     bytemuck::cast_slice::<T, u32>(std::slice::from_ref(record)).to_vec()
 }
 
-fn v3(v: &Value) -> [f64; 3] {
-    std::array::from_fn(|i| v[i].as_f64().unwrap())
+/// Flat receiver terrain, triangulated through the production mesh writer.
+fn slab(west: f32, south: f32, east: f32, north: f32, z: f32) -> TerrainPartition {
+    TerrainPartition::new(
+        &mesh::terrain(
+            &[
+                west, south, z, east, south, z, east, north, z, west, north, z,
+            ],
+            &[0, 1, 2, 0, 2, 3],
+            None,
+        ),
+        CELL_M,
+    )
 }
 
-fn camera_of(case: &Value) -> Camera {
-    Camera {
-        eye: v3(&case["eye"]),
-        target: v3(&case["target"]),
-        up: v3(&case["up"]),
-        fov_y: case["fov_y"].as_f64().unwrap(),
-        near: case["near"].as_f64().unwrap(),
-        size: std::array::from_fn(|i| case["size"][i].as_u64().unwrap() as u32),
-    }
-}
-
-#[test]
-fn every_fit_is_the_browsers() {
-    let v = vectors();
-    let lights: Vec<(String, LightSettings)> = v["lights"]
-        .as_object()
-        .unwrap()
-        .iter()
-        .map(|(n, l)| (n.clone(), serde_json::from_value(l.clone()).unwrap()))
-        .collect();
-    let light = |name: &str| &lights.iter().find(|(n, _)| n == name).unwrap().1;
-    for (name, l) in &lights {
-        assert_eq!(
-            bits(&SunShadowFrame::cold(l).receiver),
-            words(&v["cold"][name]),
-            "cold {name}"
-        );
-    }
-    let cases = v["cases"].as_array().unwrap();
-    for (k, case) in cases.iter().enumerate() {
-        let b: Option<[f64; 6]> = case["box"]
-            .as_array()
-            .map(|b| std::array::from_fn(|i| b[i].as_f64().unwrap()));
-        let frame = sun_shadow(
-            light(case["light"].as_str().unwrap()),
-            &camera_of(case),
-            b.as_ref(),
-        );
-        let at = format!("case {k} ({} {})", case["map"], case["light"]);
-        assert_eq!(
-            bits(&frame.receiver),
-            words(&case["receiver"]),
-            "{at} receiver"
-        );
-        let casters = case["casters"].as_array().unwrap();
-        assert_eq!(frame.casters.len(), casters.len(), "{at} casters");
-        for (i, (got, want)) in frame.casters.iter().zip(casters).enumerate() {
-            assert_eq!(bits(got), words(want), "{at} caster {i}");
-        }
-    }
-    assert!(cases.len() > 100);
-}
-
-/// The street test map's ground as one flat slab, 1600 m square.
-fn street() -> [f64; 6] {
-    let corners = [[0.0, 0.0], [1600.0, 0.0], [1600.0, 1600.0], [0.0, 1600.0]];
-    let mesh: Vec<f32> = corners
-        .iter()
-        .flat_map(|[x, y]| [*x, *y, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
-        .collect();
-    map_box(&mesh).unwrap()
+fn street() -> TerrainPartition {
+    slab(0., 0., 1600., 1600., 0.)
 }
 
 fn game_light() -> LightSettings {
@@ -324,7 +256,7 @@ fn the_strategic_camera_spends_its_cascades_on_the_map_not_the_air_above_it() {
 fn a_dropping_camera_widens_the_range_and_without_a_map_it_collapses_past_the_near_plane() {
     let light = game_light();
     let map = street();
-    let range = |c: &Camera, b: Option<&[f64; 6]>| {
+    let range = |c: &Camera, b: Option<&TerrainPartition>| {
         let [far, _, near, _] = sun_shadow(&light, c, b).receiver.control;
         [near, far]
     };
@@ -353,5 +285,370 @@ fn a_cold_frame_shades_nothing_and_casts_nothing() {
     assert!(cold.casters.is_empty());
     for c in cascades(&cold.receiver, CASCADES) {
         assert_eq!(c.interval, [1.0, 1.0]);
+    }
+}
+
+#[test]
+fn remote_ground_growth_preserves_actual_fitted_cascade_records() {
+    let light = game_light();
+    // Append triangles to one fixed local mesh, not a resized/recompiled
+    // map: that can retessellate local ground and is a different workload.
+    let ground = |east: f32, elevation: f32| {
+        let mut mesh = Vec::new();
+        let mut quad = |west, east, z| {
+            for [x, y] in [
+                [west, 0.0],
+                [east, 0.0],
+                [east, 8192.0],
+                [west, 0.0],
+                [east, 8192.0],
+                [west, 8192.0],
+            ] {
+                mesh.extend_from_slice(&[x, y, z, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
+            }
+        };
+        quad(0.0, 8192.0, 0.0);
+        if east > 8192.0 {
+            quad(8192.0, east, elevation);
+        }
+        mesh
+    };
+    let local_mesh = ground(8192.0, 0.0);
+    let local_box = map_box(&local_mesh).unwrap();
+    for (distance, pitch) in [(65.0, 0.85), (260.0, 0.85), (2400.0, 0.95)] {
+        let camera = orbit([4096.0, 4096.0, 0.0], distance, pitch, -1.57);
+        let local = sun_shadow(
+            &light,
+            &camera,
+            Some(&TerrainPartition::new(&local_mesh, CELL_M)),
+        );
+        assert!(!local.casters.is_empty());
+        for (east, elevation) in [
+            (16384.0, 0.0),
+            (32768.0, 0.0),
+            (16384.0, 100.0),
+            (32768.0, 100.0),
+        ] {
+            let mesh = ground(east, elevation);
+            assert_eq!(&mesh[..local_mesh.len()], local_mesh.as_slice());
+            let grown_box = map_box(&mesh).unwrap();
+            assert!(grown_box[3] > local_box[3]);
+            assert!(
+                !View::new(&camera).sees_box(&[
+                    8192.0,
+                    0.0,
+                    elevation as f64,
+                    east as f64,
+                    8192.0,
+                    elevation as f64
+                ]),
+                "added terrain must be outside the camera"
+            );
+            let grown = sun_shadow(&light, &camera, Some(&TerrainPartition::new(&mesh, CELL_M)));
+            assert_eq!(
+                bits(&local.receiver),
+                bits(&grown.receiver),
+                "receiver at {distance} m, east {east}"
+            );
+            assert_eq!(local.casters.len(), grown.casters.len());
+            for (i, (a, b)) in local.casters.iter().zip(&grown.casters).enumerate() {
+                assert_eq!(bits(a), bits(b), "caster {i} at {distance} m, east {east}");
+            }
+        }
+    }
+}
+
+#[test]
+fn local_elevation_changes_the_production_frame_fit() {
+    use presentation::presentation::{Presentation, Ui};
+    use std::sync::Arc;
+    let light = game_light();
+    let camera = orbit([800., 800., 0.], 260., 0.85, -1.57);
+    let mut presentation = Presentation::new(None, 30.).unwrap();
+    let mut fit = |terrain| {
+        presentation.set_shadow(Some((light.clone(), Arc::new(terrain))));
+        presentation
+            .frame(0., &camera, &Ui::default(), 0)
+            .unwrap()
+            .shadow
+            .clone()
+            .unwrap()
+    };
+    let low = fit(street());
+    let raised = fit(slab(0., 0., 1600., 1600., 100.));
+    assert_ne!(bits(&low.receiver), bits(&raised.receiver));
+    assert!(raised.receiver.control[2] < low.receiver.control[2]);
+    assert_eq!(
+        fit(street()),
+        low,
+        "replacing terrain must discard the prior fit"
+    );
+}
+
+#[test]
+fn receivers_at_the_horizon_and_between_screen_samples_are_not_lost() {
+    let mut light = game_light();
+    light.cascades.max_far_m = 100_000.;
+    let camera = Camera {
+        eye: [0., 0., 2.],
+        target: [0., 1., 2.],
+        up: [0., 0., 1.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [1000, 1000],
+    };
+    // Tiny elevated patch between the old screen-ray grid's sample lines.
+    // Its distance exceeds the game's ordinary shadow reach: use an explicit
+    // test reach to prove fitting itself does not introduce a distance cutoff.
+    let terrain = slab(731., 20_000., 732., 20_001., 57.);
+    let fit = sun_shadow(&light, &camera, Some(&terrain));
+    let [far, _, near, _] = fit.receiver.control;
+    assert!(near > 19_999. && near <= 20_000.);
+    assert!(far >= 20_001.);
+    let p = [731.5, 20_000.5, 57.];
+    assert!(fit.casters.iter().any(|c| {
+        let [x, y, z] = project(&c.view_proj, p);
+        x.abs() <= 1. && y.abs() <= 1. && (0.0..=1.).contains(&z)
+    }));
+}
+
+#[test]
+fn near_plane_inside_receiver_and_empty_terrain_have_finite_fits() {
+    let light = game_light();
+    let camera = Camera {
+        eye: [0., 0., 2.],
+        target: [0., 1., 2.],
+        up: [0., 0., 1.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [1000, 1000],
+    };
+    let terrain = slab(-100., -100., 100., 100., 0.);
+    let fit = sun_shadow(&light, &camera, Some(&terrain));
+    assert_eq!(fit.receiver.control[2], 1.);
+    assert!(fit.receiver.control[0] >= 100.);
+    let empty = sun_shadow(&light, &camera, Some(&TerrainPartition::new(&[], CELL_M)));
+    assert_eq!(empty, sun_shadow(&light, &camera, None));
+    for f in [&fit, &empty] {
+        assert!(
+            bytemuck::cast_slice::<_, f32>(std::slice::from_ref(&f.receiver))
+                .iter()
+                .all(|x| x.is_finite())
+        );
+    }
+}
+
+#[test]
+fn an_offscreen_triangle_in_the_same_tile_cannot_expand_local_receivers() {
+    let light = game_light();
+    let camera = Camera {
+        eye: [2., 2., 60.],
+        target: [2., 2., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [1000, 1000],
+    };
+    let local = slab(1., 1., 3., 3., 0.);
+    let mut mesh = local.vertices().to_vec();
+    mesh.extend_from_slice(slab(200., 200., 201., 201., 100.).vertices());
+    assert_eq!(
+        sun_shadow(&light, &camera, Some(&local)),
+        sun_shadow(&light, &camera, Some(&TerrainPartition::new(&mesh, CELL_M))),
+    );
+    // Both triangles of the offscreen patch share the local tile. They incur
+    // triangle-bound tests but are rejected before exact depth clipping.
+    let mut p = presentation::presentation::Presentation::new(None, 30.).unwrap();
+    p.set_shadow(Some((
+        light,
+        std::sync::Arc::new(TerrainPartition::new(&mesh, CELL_M)),
+    )));
+    p.frame(0., &camera, &Default::default(), 0).unwrap();
+    let stats = p.shadow_stats();
+    assert_eq!(
+        (stats.bounds_visited, stats.triangle_tests, stats.clip_tests),
+        (1, 4, 2)
+    );
+}
+
+#[test]
+fn caster_mask_keeps_disjoint_overlap_and_boundary_membership() {
+    use presentation::shadow::{camera_record, CasterVolumes};
+    let camera = |x: f32| {
+        let mut m = [0.; 16];
+        for i in [0, 5, 10, 15] {
+            m[i] = 1.;
+        }
+        m[12] = -x;
+        camera_record(&m, [0.; 3], 0.1, [64.; 2], 0.)
+    };
+    let volumes = CasterVolumes::new(&[camera(0.), camera(2.), camera(10.), camera(20.)]);
+    for (bounds, expected) in [
+        ([-0.5, -0.5, 0.2, 0.5, 0.5, 0.8], 1),
+        ([1.5, -0.5, 0.2, 2.5, 0.5, 0.8], 2),
+        ([0.5, -0.5, 0.2, 1.5, 0.5, 0.8], 3),
+        ([1., 0., 0., 1., 0., 1.], 3),
+        ([9.5, -0.5, 0.2, 10.5, 0.5, 0.8], 4),
+        ([19.5, -0.5, 0.2, 20.5, 0.5, 0.8], 8),
+        ([30., 0., 0., 31., 1., 1.], 0),
+    ] {
+        assert_eq!(volumes.mask(&bounds), expected);
+        assert_eq!(volumes.intersects(&bounds), expected != 0);
+    }
+    assert_eq!(CasterVolumes::new(&[]).mask(&[0.; 6]), 0);
+}
+
+#[test]
+fn production_shadow_hold_reuses_fit_and_camera_changes_refit() {
+    use presentation::presentation::{Presentation, Ui};
+    use std::sync::Arc;
+    let light = game_light();
+    let terrain = Arc::new(street());
+    let mut p = Presentation::new(None, 30.).unwrap();
+    p.set_shadow(Some((light.clone(), terrain.clone())));
+    let mut camera = cameras()[1].1;
+    for change in 0..8 {
+        match change {
+            1 => camera.eye[0] += 1.,
+            2 => camera.target[1] += 1.,
+            3 => camera.up[0] += 0.01,
+            4 => camera.fov_y += 0.01,
+            5 => camera.near += 0.1,
+            6 => camera.size[0] += 10,
+            7 => camera.size[1] += 10,
+            _ => (),
+        }
+        let expected = sun_shadow(&light, &camera, Some(&terrain));
+        assert_eq!(
+            p.frame(0., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        let work = p.shadow_stats();
+        assert!(!work.reused);
+        assert!(work.bounds_visited > 0 && work.triangle_tests > 0 && work.clip_tests > 0);
+        assert_eq!(
+            p.frame(1., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        let hold = p.shadow_stats();
+        assert!(hold.reused);
+        assert_eq!(
+            (hold.bounds_visited, hold.triangle_tests, hold.clip_tests),
+            (0, 0, 0)
+        );
+    }
+}
+
+#[test]
+fn installed_shadow_inputs_and_world_reload_invalidate_the_fit() {
+    use presentation::presentation::{Presentation, Ui};
+    use presentation::world::WorldInput;
+    use std::sync::Arc;
+    let mut p = Presentation::new(None, 30.).unwrap();
+    let mut light = game_light();
+    let camera = cameras()[1].1;
+    let mut terrain = Arc::new(street());
+    for change in 0..5 {
+        match change {
+            1 => light.cascades.depth_bias *= 2.,
+            2 => terrain = Arc::new(slab(0., 0., 1600., 1600., 100.)),
+            3 => {
+                p.set_shadow(None);
+                assert!(p
+                    .frame(0., &camera, &Ui::default(), 0)
+                    .unwrap()
+                    .shadow
+                    .is_none());
+                let stats = p.shadow_stats();
+                assert!(!stats.reused);
+                assert_eq!(
+                    (stats.bounds_visited, stats.triangle_tests, stats.clip_tests),
+                    (0, 0, 0)
+                );
+            }
+            _ => (),
+        }
+        if change == 4 {
+            p.load_world(
+                WorldInput {
+                    battle: None,
+                    buildings: None,
+                    sun_azimuth: 0.,
+                    sun_elevation: 0.5,
+                },
+                Default::default(),
+                None,
+            )
+            .unwrap();
+        } else {
+            p.set_shadow(Some((light.clone(), terrain.clone())));
+        }
+        let expected = sun_shadow(&light, &camera, Some(&terrain));
+        assert_eq!(
+            p.frame(0., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        assert!(!p.shadow_stats().reused);
+        assert!(p.shadow_stats().triangle_tests > 0);
+        p.frame(0., &camera, &Ui::default(), 0).unwrap();
+        assert!(p.shadow_stats().reused);
+    }
+}
+
+#[test]
+fn receiver_work_stays_local_as_remote_triangle_population_grows() {
+    use presentation::presentation::{Presentation, Ui};
+    use std::sync::Arc;
+    let light = game_light();
+    let camera = Camera {
+        eye: [2., 2., 60.],
+        target: [2., 2., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [1000, 1000],
+    };
+    let local = slab(1., 1., 3., 3., 0.);
+    let expected = sun_shadow(&light, &camera, Some(&local));
+    for count in [64_usize, 1024, 16384] {
+        let mut mesh = local.vertices().to_vec();
+        for i in 0..count {
+            let x = 1024. + i as f32 * 256.;
+            mesh.extend_from_slice(slab(x, 0., x + 1., 1., 100.).vertices());
+        }
+        let mut p = Presentation::new(None, 30.).unwrap();
+        p.set_shadow(Some((
+            light.clone(),
+            Arc::new(TerrainPartition::new(&mesh, CELL_M)),
+        )));
+        assert_eq!(
+            p.frame(0., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        let work = p.shadow_stats();
+        // One local leaf: a balanced search may test both children at each level,
+        // but no remote triangle needs either narrow-phase test.
+        assert!(work.bounds_visited <= 2 * (count + 1).next_power_of_two().ilog2() as usize + 1);
+        assert_eq!((work.triangle_tests, work.clip_tests), (2, 2));
+        p.frame(1., &camera, &Ui::default(), 0).unwrap();
+        let hold = p.shadow_stats();
+        assert!(hold.reused);
+        assert_eq!(
+            (hold.bounds_visited, hold.triangle_tests, hold.clip_tests),
+            (0, 0, 0)
+        );
+        println!("remote tiles={count}: fit={work:?}, hold={hold:?}");
     }
 }

@@ -1,3 +1,5 @@
+import { AtlasView } from "../workbench/AtlasView";
+import { atlasPixels } from "../workbench/cards";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
@@ -30,7 +32,6 @@ import {
   type BenchPose,
 } from "../workbench/benchWorld";
 import {
-  atlasCanvas,
   figureSpot,
   framingBounds,
   renderReferenceSheet,
@@ -55,7 +56,7 @@ import {
   viewCamera,
   type WorkbenchView,
 } from "../workbench/views";
-import { useFeed, type FeedSource } from "../feed";
+import { useFeed } from "../feed";
 
 // The model workbench: drop a GLB (or pick a catalog appearance) and, within
 // seconds, see the validator's findings and our own production render — the
@@ -111,13 +112,6 @@ declare global {
     __workbench?: WorkbenchHandle;
   }
 }
-
-const toBase64 = (bytes: Uint8Array) => {
-  let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000)
-    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s);
-};
 
 function initialPose(model: LoadedModel | null): BenchPose | null {
   if (!model) return null;
@@ -537,16 +531,7 @@ export default function Workbench() {
         await new Promise((r) => setTimeout(r, 0));
         await drawn();
       },
-      async bakeImpostor() {
-        const atlas = await latest.current.bake();
-        return {
-          hash: atlas.hash,
-          width: atlas.width,
-          height: atlas.height,
-          albedo: toBase64(atlas.albedo),
-          normal: toBase64(atlas.normal),
-        };
-      },
+      bakeImpostor: () => atlasPixels(latest.current.bake),
       async sheet() {
         const result = await latest.current.sheet();
         return {
@@ -1120,23 +1105,4 @@ function Stats({ model }: { model: LoadedModel }) {
       {stats && <div>source: {(stats.source_bytes / 1024).toFixed(0)} KiB</div>}
     </div>
   );
-}
-
-/** The baked atlas's channels as canvases; fed (`useFeed`), since its pixels
- *  as a changing prop would fill React's development measures. */
-function AtlasView({ atlas }: { atlas: FeedSource<ImpostorAtlas | null> }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const draw = (next: ImpostorAtlas | null) => {
-      const el = ref.current;
-      if (!el || !next) return;
-      el.replaceChildren(
-        atlasCanvas(next.width, next.height, next.albedo),
-        atlasCanvas(next.width, next.height, next.normal),
-      );
-    };
-    draw(atlas.current);
-    return atlas.subscribe(draw);
-  }, [atlas]);
-  return <div ref={ref} className="wb-atlas" />;
 }

@@ -14,7 +14,7 @@ export default {
     "web/node_modules/.bin/oxlint -c web/.oxlintrc.json",
   ],
   "{web/tests,web/scenes}/**/*.{js,jsx,mjs,cjs,ts,tsx}": [FORMAT],
-  "{web/{scene,scene.test,browser,browser.test,asset,eslint.config}.mjs,web/browser.d.mts,web/{vite,vitest}.config.ts,lint-staged.config.mjs}":
+  "{web/{scene,scene.test,browser,browser.test,asset,asset-render,eslint.config}.mjs,web/browser.d.mts,web/{vite,vitest}.config.ts,lint-staged.config.mjs}":
     [FORMAT],
   "{packages,apps,web/src,web/tests,web/scenes}/**/*.{json,md,css,scss}": [FORMAT],
   "*.rs": [

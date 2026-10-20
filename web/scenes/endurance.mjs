@@ -2,19 +2,24 @@
 // default), reset cycles, then the late state for ENDURANCE_LATE_S seconds
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
 // asserted: the scene fails on broken contracts, not on slow hardware.
-// ENDURANCE_GENERATED=1 uses the current Metro Large seed-4 world and
+// ENDURANCE_GENERATED=1 uses the current Metro XL seed-4 world and
 // city-arena-2 contact recipe; the default remains the saved 3 × 2 km field.
+// VIEW_COST=1 with ENDURANCE_GENERATED=1 measures close/tactical/wide holds.
+// VIEW_TRANSITIONS=1 adds separately timed moving windows and untimed picture replays.
+// VIEW_COST=paused stops after pinned tick-90 holds; VIEW_COST_REPEATS repeats them.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
-// and with the late state's 20,000 fallen (run it alone,
+// and with the late state's 800 fallen (run it alone,
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
-// in the firefight and in the late state's aftermath, its 2,000 wrecks
+// in the firefight and in the late state's aftermath, its 100 wrecks
 // burning.
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu } from "./_lab.mjs";
 import { installResetRafFence, restartPresentedOpening } from "./_reset.mjs";
+import { freshGpuWindow, measureViews, measureTransitions, pauseView } from "./_viewCost.mjs";
 import { game } from "./_units.mjs";
 
 const CORPSE_CAP = game.presentation.pose.corpses.max;
+const LATE_CORPSES = 800;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);
@@ -25,21 +30,37 @@ const telemetry = (page) => lab(page, () => window.__lab.route.telemetry());
 
 /** Choose the bounded full-world arm without changing the saved default. */
 async function openStressLab(ctx, page) {
+  const quality = process.env.ENDURANCE_QUALITY;
+  if (quality) {
+    if (!["low", "medium", "high"].includes(quality))
+      throw new Error("ENDURANCE_QUALITY must name a production tier: low, medium, or high");
+    await page.addInitScript(
+      (mode) =>
+        localStorage.setItem(
+          "battle.graphics",
+          JSON.stringify({ mode, detectedMode: null, lastResult: null }),
+        ),
+      quality,
+    );
+  }
   if (!GENERATED) {
     await ctx.openLab(page);
     return null;
   }
-  await ctx.openLab(page, ctx.urlFor({ generated: 1 }), PREPARE_TIMEOUT);
+  const stressUrl = new URL(
+    ctx.urlFor({ generated: 1, ...(process.env.VIEW_COST ? { views: 1 } : {}) }),
+  );
+  await ctx.openLab(page, stressUrl.href, PREPARE_TIMEOUT);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
     timeout: PREPARE_TIMEOUT,
   });
   const preparation = await lab(page, () => window.__lab.route.preparation?.() ?? null);
   ctx.check(
-    "the full generated Metro Large seed4 world is loaded with the contact recipe",
+    "the full generated Metro XL seed4 world is loaded with the contact recipe",
     preparation?.identity.kind === "generated" &&
       preparation.identity.generation.seed === "4" &&
       preparation.request.map_source.request.type === "metro" &&
-      preparation.request.map_source.request.size === "large" &&
+      preparation.request.map_source.request.size === "xl" &&
       preparation.size[0] === 10000 &&
       preparation.size[1] === 10000 &&
       preparation.stress?.kind === "city-arena-2" &&
@@ -139,19 +160,13 @@ const densestWrecks = (page) =>
     return [best[0], best[1]];
   });
 
-/** Paired effects on/off, interleaved 1.5 s batches, median difference of
+/** Paired effects on/off, interleaved fresh GPU windows, median difference of
  *  the frame's GPU time per framing, over `target`. */
 async function effectCostAt(page, label, target) {
-  const batch = (off) =>
-    lab(
-      page,
-      async (off) => {
-        await window.__lab.suppressEffects(off);
-        await new Promise((r) => setTimeout(r, 1500));
-        return window.__lab.stats().gpu.meanMs;
-      },
-      off,
-    );
+  const batch = async (off) => {
+    await lab(page, (off) => window.__lab.suppressEffects(off), off);
+    return (await freshGpuWindow(page)).meanMs;
+  };
   const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
   const out = {};
   for (const [name, framing] of Object.entries(COST_FRAMINGS)) {
@@ -197,7 +212,7 @@ async function measureEffectCost(ctx) {
   });
   const live = await effectCostAt(page, "100 a side", await densest(page));
   // The aftermath: fast-forward until the tanks and trucks that died in the
-  // last few minutes leave wrecks burning at once. (The late state's 2,000
+  // last few minutes leave wrecks burning at once. (The late state's 100
   // wrecks are part of its map: old, cold remains that never burn.)
   await lab(page, () => window.__lab.route.pause());
   const wrecked = await until(
@@ -238,19 +253,13 @@ async function measureEffectCost(ctx) {
   await page.close();
 }
 
-/** Paired models on/off, interleaved 1.5 s batches, median difference of
+/** Paired models on/off, interleaved fresh GPU windows, median difference of
  *  the frame's GPU time per framing. */
 async function modelCostAt(page, label) {
-  const batch = (off) =>
-    lab(
-      page,
-      async (off) => {
-        await window.__lab.suppressModels(off);
-        await new Promise((r) => setTimeout(r, 1500));
-        return window.__lab.stats().gpu.meanMs;
-      },
-      off,
-    );
+  const batch = async (off) => {
+    await lab(page, (off) => window.__lab.suppressModels(off), off);
+    return (await freshGpuWindow(page)).meanMs;
+  };
   const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
   const out = {};
   const target = await densest(page);
@@ -310,13 +319,14 @@ async function measureModelCost(ctx) {
     { timeout: 120000 },
   );
   await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
-  const late = await modelCostAt(page, "late state (20,000 fallen)");
+  const late = await modelCostAt(page, `late state (${LATE_CORPSES} fallen)`);
   const adapter = await page.evaluate(() => window.__lab.adapter);
   await ctx.writeEvidence("model-cost.json", { adapter, live, late });
-  // Of the 20,000 fallen, presentation draws the newest `corpses.max`.
+  // Presentation draws all realistic late-state corpses, up to `corpses.max`.
   ctx.check(
-    "the models layer draws the late state's newest corpses, to the cap, as static instances",
-    late.strategic.models.corpses === CORPSE_CAP && late.strategic.models.skinned < 2000,
+    "the models layer draws the late state's corpses as static instances",
+    late.strategic.models.corpses === Math.min(CORPSE_CAP, LATE_CORPSES) &&
+      late.strategic.models.skinned < 2000,
     JSON.stringify({
       corpses: late.strategic.models.corpses,
       skinned: late.strategic.models.skinned,
@@ -325,7 +335,56 @@ async function measureModelCost(ctx) {
   await page.close();
 }
 
+async function measureViewCost(ctx) {
+  if (!GENERATED) throw new Error("VIEW_COST requires ENDURANCE_GENERATED=1");
+  const page = await ctx.newPage();
+  try {
+    await openStressLab(ctx, page);
+    await page.waitForFunction(
+      () => window.__lab.route.tick() === 90 && window.__lab.route.viewReady(),
+      undefined,
+      { timeout: PREPARE_TIMEOUT },
+    );
+    await pauseView(page);
+    const target = await densest(page);
+    const repeats = Number(process.env.VIEW_COST_REPEATS ?? 1);
+    if (!Number.isInteger(repeats) || repeats < 1 || repeats > 10)
+      throw new Error("VIEW_COST_REPEATS must be an integer from 1 to 10");
+    for (let repeat = 0; repeat < repeats; repeat++) {
+      const state = repeats === 1 ? "paused" : `paused-${repeat + 1}`;
+      await measureViews(ctx, page, state, target);
+      if (process.env.VIEW_TRANSITIONS === "1") await measureTransitions(ctx, page, state, target);
+    }
+    if (process.env.VIEW_COST === "paused") return;
+    await lab(page, () => window.__lab.route.releaseViewWarmup());
+    await page.waitForFunction(() => window.__lab.route.viewWarmed());
+    await measureViews(ctx, page, "live", target);
+    if (process.env.VIEW_TRANSITIONS === "1") await measureTransitions(ctx, page, "live", target);
+    await openMenu(page);
+    await page.getByLabel(/Late state/).click();
+    await page.waitForFunction(
+      () =>
+        window.__lab?.route?.late?.() &&
+        window.__lab.route.tick() === 90 &&
+        window.__lab.route.viewReady(),
+      undefined,
+      { timeout: PREPARE_TIMEOUT },
+    );
+    await lab(page, () => window.__lab.route.releaseViewWarmup());
+    await page.waitForFunction(() => window.__lab.route.viewWarmed());
+    await measureViews(ctx, page, "late", target);
+    if (process.env.VIEW_TRANSITIONS === "1") await measureTransitions(ctx, page, "late", target);
+  } finally {
+    await page.close();
+  }
+}
+
 export async function run(ctx) {
+  if (process.env.VIEW_COST) {
+    if (!["1", "paused"].includes(process.env.VIEW_COST))
+      throw new Error("VIEW_COST must be 1 or paused");
+    return measureViewCost(ctx);
+  }
   if (process.env.MODEL_COST === "1") return measureModelCost(ctx);
   if (process.env.EFFECT_COST === "1") return measureEffectCost(ctx);
   const page = await ctx.newPage();
@@ -366,7 +425,7 @@ export async function run(ctx) {
     JSON.stringify(resetStates),
   );
 
-  // The late state: 20,000 fallen and 2,000 wrecks in the field.
+  // The late state: the full roster's 800 fallen soldiers and 100 wrecks.
   await openMenu(page);
   // The switch remounts the battle, menu and all: click, not check.
   await page.getByLabel(/Late state/).click();
@@ -430,7 +489,7 @@ export async function run(ctx) {
     );
     const last = run.samples.at(-1);
     console.log(
-      `METRIC endurance ${name}: sim ${run.rate.toFixed(1)} Hz; worst 10 s window frame p95 ${worst.p95.toFixed(1)} ms, p99 ${worst.p99.toFixed(1)} ms; main-thread heap ${last?.heapMiB?.toFixed(0)} MiB; GPU ${(last?.gpu.bufferBytes / 2 ** 20).toFixed(1)} MiB in ${last?.gpu.buffers} buffers`,
+      `METRIC endurance ${name}: sim ${run.rate.toFixed(1)} Hz; worst 10 s window frame p95 ${worst.p95.toFixed(1)} ms, p99 ${worst.p99.toFixed(1)} ms; GPU frame ${last?.gpuFrame?.meanMs?.toFixed(1) ?? "n/a"} ms mean / ${last?.gpuFrame?.p95Ms?.toFixed(1) ?? "n/a"} ms p95; main-thread heap ${last?.heapMiB?.toFixed(0)} MiB; GPU ${(last?.gpu.bufferBytes / 2 ** 20).toFixed(1)} MiB in ${last?.gpu.buffers} buffers`,
     );
   }
 }

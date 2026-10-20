@@ -10,7 +10,7 @@ export interface BuyFacts {
   finished: boolean;
 }
 
-/** On sale, affordable, a slot free, battle running: the one answer the
+/** On sale, affordable, under the unit cap, battle running: the one answer the
  *  family card and the variant card both read. */
 export function cardPurchasable(card: UnitCard, facts: BuyFacts): boolean {
   return (

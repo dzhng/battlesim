@@ -7,6 +7,7 @@
 //! admission and embedded user bytes.
 use crate::identity::{bytes_hash, is_sha256, json_hash};
 use crate::ids::Side;
+use crate::players::{validate_players, Seating};
 use crate::scenario::ScenarioDefinition;
 use crate::script::CompiledScript;
 use serde::{Deserialize, Serialize};
@@ -310,70 +311,15 @@ impl ScenarioBundle {
                 "victory belongs in the bundle envelope",
             ));
         }
-        if let Some(setup) = &self.scenario.skirmish {
-            if let Err(error) = crate::players::validate_players(&self.scenario.players) {
-                errors.push(diagnostic("invalid_players", "$.scenario.players", error));
-            }
-            if let Err(error) = crate::players::validate_players_per_side(
-                &self.scenario.players,
-                setup.rules.max_players_per_side as usize,
-            ) {
-                errors.push(diagnostic("invalid_players", "$.scenario.players", error));
-            }
-            if let Err(error) =
-                crate::players::validate_entry_counts(&self.scenario.players, &setup.sites.entries)
-            {
-                errors.push(diagnostic(
-                    "invalid_entries",
-                    "$.scenario.skirmish.sites.entries",
-                    error,
-                ));
-            }
+        let (checked, code, location) = if self.scenario.skirmish.is_some() {
+            let contract = self.scenario.validate_player_contract();
+            (contract, "invalid_skirmish", "$.scenario")
         } else {
-            if self.scenario.players.is_empty() {
-                errors.push(diagnostic(
-                    "invalid_players",
-                    "$.scenario.players",
-                    "a scenario bundle must name its players",
-                ));
-            }
-            let mut ids = std::collections::BTreeSet::new();
-            for player in &self.scenario.players {
-                if player.id.trim().is_empty() || !ids.insert(player.id.as_str()) {
-                    errors.push(diagnostic(
-                        "invalid_players",
-                        "$.scenario.players",
-                        "player ids must be non-empty and unique",
-                    ));
-                }
-                if player.controller == ControllerKind::Human && !player.human_capable {
-                    errors.push(diagnostic(
-                        "invalid_players",
-                        "$.scenario.players",
-                        "human player must be human_capable",
-                    ));
-                }
-                match (player.side, player.faction) {
-                    (Side::Neutral, Some(_)) => errors.push(diagnostic(
-                        "invalid_players",
-                        "$.scenario.players",
-                        "neutral players cannot carry a faction",
-                    )),
-                    (Side::Blue | Side::Red, None) => errors.push(diagnostic(
-                        "invalid_players",
-                        "$.scenario.players",
-                        "combatant players must carry a faction",
-                    )),
-                    _ => {}
-                }
-                if player.side == Side::Neutral && player.human_capable {
-                    errors.push(diagnostic(
-                        "invalid_players",
-                        "$.scenario.players",
-                        "neutral players cannot be human-capable",
-                    ));
-                }
-            }
+            let players = validate_players(&self.scenario.players, Seating::Authored);
+            (players, "invalid_players", "$.scenario.players")
+        };
+        if let Err(error) = checked {
+            errors.push(diagnostic(code, location, error));
         }
         validate_sorted_unique(
             &self
@@ -416,27 +362,11 @@ impl ScenarioBundle {
                 ));
             }
         }
-        if self.mode == BundleMode::Economy
-            && self.scenario.units.iter().any(|u| u.side == Side::Neutral)
-        {
-            errors.push(diagnostic(
-                "unsupported_topology",
-                "$.mode",
-                "economy mode does not support neutral units",
-            ));
-        }
-        if self.mode == BundleMode::Economy
-            && (!self.scenario.units.is_empty()
-                || !self.scenario.events.is_empty()
-                || !self.scenario.scripts.is_empty()
-                || !self.authored_scripts.is_empty()
-                || self.scenario.opponent.is_some()
-                || self.scenario.encounter.is_some())
-        {
+        if self.mode == BundleMode::Economy && !self.authored_scripts.is_empty() {
             errors.push(diagnostic(
                 "invalid_economy_setup",
-                "$.scenario",
-                "economy bundles must leave authored forces and scripted encounter state empty",
+                "$.authored_scripts",
+                "economy bundles carry no authored scripts: their players buy what they field",
             ));
         }
         if matches!(self.mode, BundleMode::Economy) != self.scenario.skirmish.is_some() {

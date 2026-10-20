@@ -13,13 +13,13 @@ ladder with parallel named-model production.
 [Battle foundation](done/battle-foundation/README.md) (closed) records the village
 checkpoint and the decisions that established the simulation, observation, combat,
 and recovery seams. Its later umbrella work was superseded by the dedicated feature
-records below and the [team skirmish](team-skirmish/README.md) closeout.
+records below and the [team skirmish](done/team-skirmish/README.md) record.
 
 [Helicopters](done/helicopters/README.md) (shipped) made the roster's 19 helicopters playable in a low-air layer. [Transport](done/transport/README.md) (shipped) carries infantry squads in APCs, IFVs, light vehicles and helicopters, with bail-out when a carrier dies and a skirmish AI that moves its infantry by transport.
 
 [Unit card camera focus](done/unit-card-camera-focus/README.md) (shipped) lets a selected army-deck card, or any double-clicked card, centre the camera on its unit while keeping the `N` / `Shift+N` framing.
 
-[Team skirmish](team-skirmish/README.md) (in progress) turns the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets and armies, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
+[Team skirmish](done/team-skirmish/README.md) (shipped) turned the 1v1 skirmish into team play from 1v1 to 5v5: players with their own wallets, armies and controllers, shared entries per side, a coordinating team AI, and an order-of-battle lobby over a real generated map.
 
 [Persistent aircraft and layered air defence](done/air-war/README.md) (shipped)
 made fixed-wing aircraft, radar, interception and SEAD one persistent battlefield
@@ -40,9 +40,10 @@ for the known limitations native shipped with.
 
 [Capture](done/capture/README.md) (shipped) turns a JSON capture file (camera and scenes over saved encounters) into MP4s for marketing videos, through the same scene player the main-menu backdrop uses.
 
-[Performance](performance/README.md) is a placeholder for measured, deferred
-optimizations (GPU memory, model packing, loading), kept until a player-visible
-problem calls for one.
+[Performance](done/performance/README.md) records shared spatial selection and
+local shadow fitting across three gameplay zoom levels. It retains the measured
+bounded-work improvement, GPU/memory costs, and rejected distant-car pilot; no
+net fixed-view GPU speedup is claimed.
 
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,

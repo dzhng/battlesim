@@ -25,6 +25,7 @@ pub mod random;
 pub mod river;
 pub mod scenario;
 pub mod skirmish;
+pub mod skirmish_sizes;
 pub mod templates;
 pub mod weapons;
 

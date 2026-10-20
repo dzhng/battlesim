@@ -130,6 +130,7 @@ struct Run {
     pass: u32,
     /// The tier it casts with, if it casts (`Batch.caster`).
     caster: Option<usize>,
+    cascade_mask: u32,
     /// The fog group it binds (`Batch.fog`).
     fog: Layer,
     /// Its instances: the frame's from `first`, or a held static batch's.
@@ -137,6 +138,17 @@ struct Run {
     first: u32,
     count: u32,
 }
+
+impl Run {
+    fn caster_for(&self, cascade: usize) -> Option<usize> {
+        self.caster
+            .filter(|_| self.cascade_mask & (1 << cascade) != 0)
+    }
+}
+
+#[cfg(test)]
+#[path = "models/cascade_tests.rs"]
+mod cascade_tests;
 
 /// What the last prepared frame draws, by kind.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -715,15 +727,15 @@ impl Models {
             .iter()
             .filter(|b| !self.statics.holds(b.appearance))
             .map(|b| {
-                let run = (b.tier, b.pass, b.caster, b.fog);
+                let run = (b.tier, b.pass, b.caster, b.cascade_mask, b.fog);
                 (b.appearance, run, None, b.first, b.count)
             });
         let statics = self.statics.listed().map(|h| {
-            let run = (h.tier, h.pass, h.caster, h.fog);
+            let run = (h.tier, h.pass, h.caster, h.cascade_mask, h.fog);
             (h.row, run, Some(h.key), 0, h.count)
         });
         let batches: Vec<_> = units.chain(statics).collect();
-        for (appearance, (tier, pass, caster, fog), held, first, count) in batches {
+        for (appearance, (tier, pass, caster, cascade_mask, fog), held, first, count) in batches {
             let Some(Some(row)) = self.rows.get(appearance as usize) else {
                 continue;
             };
@@ -741,6 +753,7 @@ impl Models {
                 tier,
                 pass,
                 caster: (caster != NONE).then_some(caster as usize),
+                cascade_mask,
                 fog: Layer::of(fog),
                 held,
                 first,
@@ -828,8 +841,8 @@ impl Models {
     }
 
     /// One surface class of every caster into a cascade (`drawCasters`).
-    pub fn draw_casters(&self, pass: &mut RenderPass, surface: Surface) {
-        self.each_run(pass, |r| r.caster, |d| d.part(surface));
+    pub fn draw_casters(&self, pass: &mut RenderPass, surface: Surface, cascade: usize) {
+        self.each_run(pass, |r| r.caster_for(cascade), |d| d.part(surface));
     }
 
     /// The placement ghosts: whole meshes, every surface.

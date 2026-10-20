@@ -68,6 +68,10 @@ export interface WorldScenery {
  *  and draws their trunks; `null` draws none (a route without appearances). */
 export interface WorldLayers {
   terrain: TerrainSurface;
+  /** Geometry the visual backdrop surrounds when it differs from the terrain
+   * drawn and received by shadows (for example disconnected remote patches).
+   * Omitted: surround the full terrain. This never bounds terrain selection. */
+  backdropTerrain?: Mesh;
   props: Mesh;
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog
@@ -133,6 +137,15 @@ export interface FrameStats {
   /** Buildings drawn from template art: what a view draws of them, the
    *  pool's residency and what the last view change cost. */
   buildings: BuildingStats;
+  /** Actual partial-world submissions, split by pass and cascade. */
+  submitted: import("./frame/submitted").SubmittedFrame;
+  /** Terrain bounds tested across the camera and active shadow cascades. */
+  terrainVisitedNodes: number;
+  /** Boundary/debug bounds tested across camera and active shadow cascades. */
+  skirtVisitedNodes: number;
+  /** Water bounds tested for the camera; water casts no shadows. */
+  waterVisitedNodes: number;
+  /** Installed world mesh vertices, not submitted geometry. */
   worldVertices: number;
   depth: InstalledDepthState;
   view: FrameView;
@@ -294,6 +307,9 @@ export interface BattleFrame {
   /** Resolves once no target rebuild is pending; true if one was. */
   settled(): Promise<boolean>;
   stats(): FrameStats;
+  /** Clear GPU timing samples and exclude frames begun before this call.
+   *  Does not wait for readbacks or reset the lifetime frame count. */
+  resetGpuTiming(): void;
   /** Frees every allocation. Calls after dispose are ignored, since the
    *  viewport may still draw while it awaits a rebuilt frame. */
   dispose(): void;

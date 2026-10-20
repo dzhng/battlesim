@@ -1,4 +1,5 @@
 use crate::common;
+use crate::common::Seat;
 use contract::ids::{Side, UnitId};
 use contract::random::Rng;
 use serde_json::json;
@@ -451,12 +452,7 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
     }
     let shooter = battle.observe(Side::Blue).own[0].id;
     assert!(battle.observe(Side::Blue).identified.is_empty());
-    let before = battle
-        .observe(Side::Blue)
-        .skirmish
-        .as_ref()
-        .unwrap()
-        .credits;
+    let before = battle.observe(Side::Blue).seat().credits;
     let start = battle.tick();
     send(
         &mut battle,
@@ -494,7 +490,7 @@ fn unseen_purchased_kill_changes_wallet_without_enemy_identity_and_replays() {
         "payout reveals no hidden wreck"
     );
     let passive = (battle.tick() - start) as f64 / f64::from(battle.rules().tick_hz) * 200.0 / 60.0;
-    assert!((blue.skirmish.as_ref().unwrap().credits - before - passive - 50.0).abs() < 0.00001);
+    assert!((blue.seat().credits - before - passive - 50.0).abs() < 0.00001);
     let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
     for digest in digests {
         replay.step();

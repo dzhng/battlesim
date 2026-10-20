@@ -2,6 +2,11 @@ use super::*;
 use serde_json::{json, Value};
 
 /// The test units as a U.S. deck: a card for each, in its category.
+/// The frame's one player row, the deciding player's (`own_player`).
+fn me(frame: &mut ObservationFrame) -> &mut contract::skirmish::PlayerView {
+    &mut frame.skirmish.as_mut().unwrap().players[0]
+}
+
 fn deck() -> serde_json::Value {
     let mut rules = crate::fixtures::test_game();
     for (id, category) in [
@@ -42,12 +47,7 @@ fn empty_match() -> (Rules, ObservationFrame, EntrySite) {
             cap: 30,
             pending: vec![],
         }],
-        ready: [false; 2],
         preparation_remaining_s: 45.0,
-        credits: 1000.0,
-        unit_count: 0,
-        max_units: 30,
-        pending: vec![],
         objectives: vec![contract::skirmish::ObjectiveView {
             id: "field".into(),
             center: [500.0, 500.0],
@@ -170,7 +170,7 @@ fn a_scripted_purchase_plan_replaces_the_doctrines_own_shopping() {
 #[test]
 fn a_refused_scripted_purchase_is_retried_in_order() {
     let (rules, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().credits = 1_000.0;
+    me(&mut frame).credits = 1_000.0;
     let plan = vec![
         rules.catalog.index("test_tank").unwrap(),
         rules.catalog.index("test_rifle").unwrap(),
@@ -222,7 +222,7 @@ fn support_truck_moves_behind_observed_troops_and_deploys_after_arrival() {
     frame.own = battle.observe(Side::Red).own.clone();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     let mut ai = BalancedDoctrine::default();
     let orders = ai.decide(
         DecisionInput {
@@ -293,10 +293,7 @@ fn reinforcement_replaces_a_lost_truck_before_more_combat_units() {
     let kind = rules.catalog.index(variant).unwrap();
     assert!(rules.catalog.get(kind).has_role("logistics"));
     assert_eq!(*destination, entry.center);
-    frame
-        .skirmish
-        .as_mut()
-        .unwrap()
+    me(&mut frame)
         .pending
         .push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(1),
@@ -364,11 +361,12 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
                 } => {
                     let kind = rules.catalog.index(&variant).unwrap();
                     let price = f64::from(rules.catalog.get(kind).cost);
-                    assert!(price <= view.credits && view.unit_count < view.max_units);
-                    view.credits -= price;
-                    view.unit_count += 1;
-                    view.pending.push(contract::skirmish::PendingPurchase {
-                        id: contract::skirmish::PurchaseId(view.pending.len() as u32),
+                    let me = &mut view.players[0];
+                    assert!(price <= me.credits && me.unit_count < me.cap);
+                    me.credits -= price;
+                    me.unit_count += 1;
+                    me.pending.push(contract::skirmish::PendingPurchase {
+                        id: contract::skirmish::PurchaseId(me.pending.len() as u32),
                         kind,
                         entry: 0,
                         destination,
@@ -379,7 +377,7 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
                 }
                 Order::Ready => {
                     ready = true;
-                    view.ready[1] = true;
+                    view.players[0].ready = true;
                 }
                 _ => panic!("preparation must only buy or ready"),
             }
@@ -390,16 +388,16 @@ fn opening_is_bought_and_readied_in_the_first_decision_within_budget_pending_and
     }
     assert!(ready && frame.tick == 0, "the first decision readies");
     let view = frame.skirmish.as_ref().unwrap();
-    assert!(view
+    assert!(view.players[0]
         .pending
         .iter()
         .any(|p| rules.catalog.get(p.kind).has_role("logistics")));
     let mut capped = frame.clone();
     let view = capped.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.unit_count = view.max_units;
+    view.players[0].unit_count = view.players[0].cap;
     assert!(
-        !view.pending.is_empty(),
+        !view.players[0].pending.is_empty(),
         "the cap test includes reservations"
     );
     capped.tick += 5 * u64::from(rules.tick_hz);
@@ -426,7 +424,7 @@ fn lane_purchases_clear_the_entry_before_the_staging_point() {
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 320.0],
         force_advance: false,
-        help: vec![],
+        parties: vec![],
     };
     let orders = BalancedDoctrine::default().decide(
         DecisionInput {
@@ -477,7 +475,7 @@ fn objective_orders_use_known_route_cost_and_stable_sites() {
     frame.own = battle.observe(Side::Red).own.clone();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     let mut distant = view.objectives[0].clone();
     distant.id = "a-distant".into();
     distant.center = [800.0, 800.0];
@@ -542,7 +540,7 @@ fn zero_unit_opening_uses_an_affordable_admitted_faction_purchase() {
     let card = rules.catalog.card(variant).unwrap();
     assert!(
         card.disabled_reason.is_none()
-            && card.cost as f64 <= frame.skirmish.as_ref().unwrap().credits
+            && card.cost as f64 <= frame.skirmish.as_ref().unwrap().players[0].credits
     );
     assert!(card.roster.factions.contains(&Faction::Us));
     assert_eq!(*destination, [500.0, 500.0]);
@@ -582,12 +580,9 @@ fn seeded_policy_instances_repeat_the_same_opening_commands() {
 fn different_seeds_can_change_a_reinforcement_choice_without_changing_legality() {
     let (rules, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 1;
-    frame.skirmish.as_mut().unwrap().credits = 500.0;
-    frame
-        .skirmish
-        .as_mut()
-        .unwrap()
+    me(&mut frame).unit_count = 1;
+    me(&mut frame).credits = 500.0;
+    me(&mut frame)
         .pending
         .push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(1),
@@ -654,13 +649,10 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
     };
     let heli = rules.catalog.index("test_heli").unwrap();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().credits = 1_000.0;
-    frame.skirmish.as_mut().unwrap().unit_count = 1;
+    me(&mut frame).credits = 1_000.0;
+    me(&mut frame).unit_count = 1;
     let supply = rules.catalog.index("test_supply").unwrap();
-    frame
-        .skirmish
-        .as_mut()
-        .unwrap()
+    me(&mut frame)
         .pending
         .push(contract::skirmish::PendingPurchase {
             id: contract::skirmish::PurchaseId(1),
@@ -721,7 +713,7 @@ fn identified_helicopter_selects_a_catalog_unit_that_can_engage_low_air() {
 fn doctrine_pivots_after_maximum_dwell_without_visible_progress() {
     let (rules, mut frame, entry) = empty_match();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().credits = 0.0;
+    me(&mut frame).credits = 0.0;
     // Its tuning, not a number in the code, says how long it dwells: 60 s.
     let mut ai = BalancedDoctrine::new(7);
     ai.tuning.max_dwell_s = 60.0;
@@ -778,7 +770,7 @@ fn recon_moves_to_a_sensor_standoff_before_objective() {
     let battle = crate::battle::Battle::new(&setup, 1);
     frame.own = battle.observe(Side::Red).own.clone();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().credits = 0.0;
+    me(&mut frame).credits = 0.0;
     let mut ai = BalancedDoctrine::default();
     let orders = ai.decide(
         DecisionInput {
@@ -814,8 +806,8 @@ fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
     let battle = crate::battle::Battle::new(&setup, 1);
     frame.own = battle.observe(Side::Red).own.clone();
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().credits = 0.0;
-    frame.skirmish.as_mut().unwrap().unit_count = 1;
+    me(&mut frame).credits = 0.0;
+    me(&mut frame).unit_count = 1;
     frame.own[0].state = contract::observation::MoveState::RouteBlocked;
     frame.own[0].goal = Some([500.0, 500.0]);
     let orders = BalancedDoctrine::default().decide(
@@ -837,7 +829,7 @@ fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
         main_objective: [500.0, 500.0],
         staging_point: [500.0, 400.0],
         force_advance: false,
-        help: vec![],
+        parties: vec![],
     };
     let orders = BalancedDoctrine::default().decide(
         DecisionInput {
@@ -853,228 +845,6 @@ fn a_route_blocked_unit_gets_a_new_non_plan_order_next_decision() {
     assert!(orders.iter().any(|order| matches!(
         order,
         Order::AttackMove { units, .. } if units == &vec![frame.own[0].id]
-    )));
-}
-
-#[test]
-fn group_positions_matches_the_units_that_advance_the_lane() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_rifle","position":[500,100]},
-            {"side":"red","kind":"test_supply","position":[500,110]},
-            {"side":"red","kind":"test_heli","position":[500,120]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let positions = team::group_positions(&setup.rules, battle.observe(Side::Red).own.iter());
-    assert_eq!(positions, vec![[500.0, 100.0], [500.0, 120.0]]);
-}
-
-#[test]
-fn a_helping_detachment_moves_without_retasking_the_helper_lane() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_rifle","position":[500,100]},
-            {"side":"red","kind":"test_rifle","position":[510,105]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let (rules, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
-    frame.own = battle.observe(Side::Red).own.clone();
-    let detachment = frame.own[0].id;
-    let assignment = Assignment {
-        main_objective: [500.0, 500.0],
-        staging_point: [500.0, 100.0],
-        force_advance: false,
-        help: vec![HelpTask {
-            objective: [900.0, 500.0],
-            detachment: vec![detachment],
-        }],
-    };
-    let orders = BalancedDoctrine::default().decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    assert!(orders.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { units, goal, .. }
-            if units == &vec![detachment] && *goal == [900.0, 500.0]
-    )));
-    let lane_unit = frame.own.iter().find(|unit| unit.id != detachment).unwrap();
-    assert!(orders.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { units, goal, .. }
-            if units == &vec![lane_unit.id]
-                && (*goal == assignment.main_objective || *goal == assignment.staging_point)
-    )));
-}
-
-#[test]
-fn a_squad_sent_far_to_help_or_push_rides_its_own_carrier() {
-    // A squad sent a long way, to an ally's lane or in a team push, is
-    // collected by its player's free carrier rather than walking there.
-    for (force_advance, help) in [(false, true), (true, false)] {
-        let (rules, frame, entry) = transport_match(json!([
-            {"side":"red","kind":"test_rifle","position":[500,60]},
-            {"side":"red","kind":"test_apc","position":[540,60]}
-        ]));
-        let (squad, carrier) = (frame.own[0].id, frame.own[1].id);
-        let far = [500.0, 900.0];
-        let assignment = Assignment {
-            main_objective: if help { [520.0, 80.0] } else { far },
-            staging_point: [520.0, 80.0],
-            force_advance,
-            help: if help {
-                vec![HelpTask {
-                    objective: far,
-                    detachment: vec![squad],
-                }]
-            } else {
-                vec![]
-            },
-        };
-        let orders = BalancedDoctrine::default().decide(
-            DecisionInput {
-                side: Side::Red,
-                faction: Faction::Us,
-                entry: &entry,
-                assignment: Some(&assignment),
-            },
-            &frame,
-            &rules,
-            |_, _| Some(1.0),
-        );
-        assert!(
-            orders
-                .iter()
-                .any(|o| matches!(o, Order::Collect { units, .. } if units.contains(&carrier))),
-            "help={help} push={force_advance}: its carrier collects it: {orders:?}"
-        );
-        assert!(
-            !orders
-                .iter()
-                .any(|o| matches!(o, Order::AttackMove { units, .. } if units.contains(&squad))),
-            "help={help} push={force_advance}: it does not walk: {orders:?}"
-        );
-    }
-}
-
-#[test]
-fn a_lane_of_mortar_carriers_gathers_and_advances_as_a_group() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_apc","position":[500,100]},
-            {"side":"red","kind":"test_apc","position":[510,105]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let (rules, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
-    frame.own = battle.observe(Side::Red).own.clone();
-    let assignment = Assignment {
-        main_objective: [500.0, 500.0],
-        staging_point: [500.0, 100.0],
-        force_advance: false,
-        help: vec![],
-    };
-    let orders = BalancedDoctrine::default().decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    let advancing = orders
-        .iter()
-        .filter(|order| matches!(order, Order::AttackMove { goal, .. } if *goal == assignment.main_objective))
-        .count();
-    assert_eq!(
-        advancing, 2,
-        "mortar carriers must advance after gathering: {orders:?}"
-    );
-}
-
-#[test]
-fn a_ready_group_keeps_its_objective_after_leaving_staging() {
-    let authored = deck();
-    let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
-        "map":{"size":[1000,1000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
-        "rules":authored,"units":[
-            {"side":"red","kind":"test_rifle","position":[500,100]},
-            {"side":"red","kind":"test_rifle","position":[510,105]}
-        ],"events":[],"scripts":[]
-    }))
-    .unwrap();
-    let battle = crate::battle::Battle::new(&setup, 1);
-    let (rules, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().unit_count = 2;
-    frame.own = battle.observe(Side::Red).own.clone();
-    let assignment = Assignment {
-        main_objective: [500.0, 500.0],
-        staging_point: [500.0, 100.0],
-        force_advance: false,
-        help: vec![],
-    };
-    let mut ai = BalancedDoctrine::default();
-    let first = ai.decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    assert!(first.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { goal, .. } if *goal == assignment.main_objective
-    )));
-    for unit in &mut frame.own {
-        unit.position[0] = assignment.main_objective[0];
-        unit.position[1] = assignment.main_objective[1];
-        unit.goal = None;
-    }
-    frame.tick += 5 * u64::from(rules.tick_hz);
-    let second = ai.decide(
-        DecisionInput {
-            side: Side::Red,
-            faction: Faction::Us,
-            entry: &entry,
-            assignment: Some(&assignment),
-        },
-        &frame,
-        &rules,
-        |_, _| Some(1.0),
-    );
-    assert!(second.iter().any(|order| matches!(
-        order,
-        Order::AttackMove { goal, .. } if *goal == assignment.main_objective
     )));
 }
 
@@ -1103,8 +873,8 @@ fn nearest_air_target_uses_body_distance_in_three_dimensions() {
         (frame, entry)
     };
     frame.skirmish.as_mut().unwrap().phase = Phase::Active;
-    frame.skirmish.as_mut().unwrap().credits = 0.0;
-    frame.skirmish.as_mut().unwrap().unit_count = 1;
+    me(&mut frame).credits = 0.0;
+    me(&mut frame).unit_count = 1;
     let heli = rules.catalog.index("test_heli").unwrap();
     let jet = rules.catalog.index("test_jet").unwrap();
     for (id, kind, position) in [
@@ -1210,7 +980,7 @@ fn every_ai_opening_includes_a_high_air_defender() {
         );
     }
 
-    // The pick reads weapon reach, not a list: left as Europe's only air
+    // The pick reads weapon rows, not a list: left as Europe's only air
     // defender, the Gepard is the one the opening buys. Every other
     // high-air-capable row leaves Europe's roster, and one Europe alone
     // fielded leaves the catalog.
@@ -1284,7 +1054,7 @@ fn an_opening_that_cannot_afford_its_aa_card_buys_the_rest() {
     );
     let rules: Rules = serde_json::from_value(authored).unwrap();
     let (_, mut frame, entry) = empty_match();
-    frame.skirmish.as_mut().unwrap().credits = 400.0;
+    me(&mut frame).credits = 400.0;
     let orders = BalancedDoctrine::default().decide(
         DecisionInput {
             side: Side::Red,
@@ -1325,9 +1095,10 @@ fn the_ai_buys_more_high_air_defence_when_it_sees_enemy_jets() {
     let (_, mut frame, entry) = empty_match();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 500.0;
-    view.unit_count = 1;
-    view.pending.push(contract::skirmish::PendingPurchase {
+    let me = &mut view.players[0];
+    me.credits = 500.0;
+    me.unit_count = 1;
+    me.pending.push(contract::skirmish::PendingPurchase {
         id: contract::skirmish::PurchaseId(1),
         kind: rules.catalog.index("test_supply").unwrap(),
         entry: 0,
@@ -1419,9 +1190,10 @@ fn the_ai_sends_bought_jets_on_attack_move() {
     frame.own = battle.observe(Side::Red).own.clone();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 500.0;
-    view.unit_count = 1;
-    view.pending.push(contract::skirmish::PendingPurchase {
+    let me = &mut view.players[0];
+    me.credits = 500.0;
+    me.unit_count = 1;
+    me.pending.push(contract::skirmish::PendingPurchase {
         id: contract::skirmish::PurchaseId(1),
         kind: rules.catalog.index("test_supply").unwrap(),
         entry: 0,
@@ -1477,11 +1249,12 @@ fn confirm_purchases(
         };
         let kind = rules.catalog.index(variant).unwrap();
         let price = f64::from(rules.catalog.get(kind).cost);
-        assert!(price <= view.credits && view.unit_count < view.max_units);
-        view.credits -= price;
-        view.unit_count += 1;
-        view.pending.push(contract::skirmish::PendingPurchase {
-            id: contract::skirmish::PurchaseId(view.pending.len() as u32),
+        let me = &mut view.players[0];
+        assert!(price <= me.credits && me.unit_count < me.cap);
+        me.credits -= price;
+        me.unit_count += 1;
+        me.pending.push(contract::skirmish::PendingPurchase {
+            id: contract::skirmish::PurchaseId(me.pending.len() as u32),
             kind,
             entry: 0,
             destination: *destination,
@@ -1528,9 +1301,8 @@ fn with_steady_income_the_ai_saves_for_an_expensive_jet_and_keeps_its_aa() {
     let jet = rules.catalog.index("test_jet").unwrap();
     let aa = rules.catalog.index("test_jeep").unwrap();
     let (_, mut frame, entry) = empty_match();
-    let view = frame.skirmish.as_mut().unwrap();
-    view.credits = 200.0;
-    view.max_units = 1_000;
+    me(&mut frame).credits = 200.0;
+    me(&mut frame).cap = 1_000;
     let mut ai = BalancedDoctrine::new(3);
     let decide = |ai: &mut BalancedDoctrine, frame: &ObservationFrame| {
         ai.decide(
@@ -1554,7 +1326,7 @@ fn with_steady_income_the_ai_saves_for_an_expensive_jet_and_keeps_its_aa() {
     let mut reinforcements = Vec::new();
     for decision in 1..=150 {
         frame.tick = decision * 5 * u64::from(rules.tick_hz);
-        frame.skirmish.as_mut().unwrap().credits += 20.0;
+        me(&mut frame).credits += 20.0;
         let orders = decide(&mut ai, &frame);
         reinforcements.extend(confirm_purchases(&rules, &mut frame, &orders));
     }
@@ -1587,7 +1359,7 @@ fn active_policy_uses_an_ordinary_attack_for_a_known_target() {
     frame.own = battle.observe(Side::Red).own.clone();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     frame
         .identified
         .push(contract::observation::IdentifiedUnit {
@@ -1650,7 +1422,7 @@ fn artillery_fires_a_bounded_ground_guess_from_a_contact() {
     frame.own[0].kind = rules.catalog.index("test_jeep").unwrap();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     frame
         .contacts
         .push(contract::observation::ApproximateContact {
@@ -1715,7 +1487,7 @@ fn artillery_frame() -> (Rules, ObservationFrame, EntrySite) {
     frame.own = battle.observe(Side::Red).own.clone();
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     (setup.rules, frame, entry)
 }
 
@@ -2016,7 +1788,7 @@ fn a_jet_keeps_its_target_while_the_side_still_sees_it() {
     let jet = frame.own[0].id;
     let view = frame.skirmish.as_mut().unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     let tank = rules.catalog.index("test_tank").unwrap();
     frame.identified = vec![identified(1, tank, [500.0, 600.0, 0.0])];
     let mut ai = BalancedDoctrine::default();
@@ -2097,7 +1869,7 @@ fn the_ai_drives_a_launcher_its_cover_holds_to_open_ground_and_fires() {
     let (_, empty, _) = empty_match();
     let mut view = empty.skirmish.unwrap();
     view.phase = Phase::Active;
-    view.credits = 0.0;
+    view.players[0].credits = 0.0;
     view.objectives[0].center = [400.0, 150.0];
     view.objectives[0].owner = Some(Side::Blue);
     let entry = entry_from([400.0, 590.0]);
@@ -2173,6 +1945,8 @@ fn a_row_that_shoots_down_missiles_alone_is_no_defence_against_aircraft() {
     assert_eq!(defends(json!(["missile"])), (false, false));
 }
 
-#[cfg(test)]
+mod backline;
+mod groups;
+mod parties;
+mod purchases;
 mod transport_tests;
-use transport_tests::transport_match;

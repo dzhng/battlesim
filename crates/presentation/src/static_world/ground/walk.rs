@@ -25,16 +25,20 @@ use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
 use crate::records::{CAST_PASS, FOG_FACES, NONE, VIEW_PASS};
+use crate::shadow::{CasterVolumes, CASCADES};
 use crate::static_world::batches::{print, List, Population, PRINT_BASIS};
-use crate::static_world::walk::{casts_into, Record, Shadow};
+use crate::static_world::index::BoundsIndex;
+use crate::static_world::walk::Record;
 use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};
-use std::f64::consts::FRAC_PI_2;
+
+mod felled;
+use felled::FelledSpatial;
+pub use felled::FelledTree;
 
 const LAST: usize = TIERS - 1;
 const CHUNK_M: f64 = 128.0;
-/// Marks a whole chunk in a list's print apart from any one instance's
-/// (`chunk << 32 | index`).
+/// A whole unfiltered chunk has an identity distinct from an instance.
 const WHOLE: u64 = 1 << 63;
 /// A crown's heart, where a whole tree probes fog, as a share of its height.
 const HEART: f64 = 0.62;
@@ -110,7 +114,13 @@ struct Pop {
     kinds: usize,
     sorted: Vec<Vec<Record>>,
     heights: Vec<Vec<f32>>,
+    /// Original placement indices, in the same immutable order as sorted.
+    sources: Vec<Vec<usize>>,
+    examined: usize,
     chunks: Vec<Chunk>,
+    chunk_index: BoundsIndex,
+    candidates: Vec<usize>,
+    visited: usize,
     casts: bool,
     view: Vec<Vec<Record>>,
     cast: Vec<Vec<Record>>,
@@ -138,7 +148,8 @@ impl Pop {
         let mut ids: Vec<i64> = cells.keys().copied().collect();
         ids.sort();
         let (mut sorted, mut heights) = (vec![vec![]; kinds], vec![vec![]; kinds]);
-        let chunks = ids
+        let mut sources = vec![vec![]; kinds];
+        let chunks: Vec<Chunk> = ids
             .iter()
             .map(|id| {
                 let start: Vec<usize> = sorted.iter().map(Vec::len).collect();
@@ -164,6 +175,7 @@ impl Pop {
                     }
                     size = size.max(h_);
                     sorted[kind].push(r);
+                    sources[kind].push(i);
                     heights[kind].push(h);
                 }
                 Chunk {
@@ -178,47 +190,106 @@ impl Pop {
             kinds,
             sorted,
             heights,
+            sources,
+            examined: 0,
+            chunk_index: BoundsIndex::new(chunks.iter().map(|c| c.bounds)),
             chunks,
+            candidates: Vec::new(),
+            visited: 0,
             casts,
             view: vec![vec![]; kinds * TIERS],
-            cast: vec![vec![]; kinds * TIERS],
-            prints: vec![0; kinds * TIERS * 2],
+            cast: vec![vec![]; kinds * TIERS * CASCADES],
+            prints: vec![0; kinds * TIERS * (1 + CASCADES)],
             generation,
         }
     }
 
-    fn select(&mut self, view: &View, shadow: Option<&Shadow>, lod: &[f64; 3]) {
+    fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>, lod: &[f64; 3]) {
+        self.select_kept(view, shadow, lod, None::<fn(usize) -> bool>);
+    }
+
+    fn select_kept(
+        &mut self,
+        view: &View,
+        shadow: Option<&CasterVolumes>,
+        lod: &[f64; 3],
+        keep: Option<impl Fn(usize) -> bool>,
+    ) {
+        let examined = std::cell::Cell::new(0);
+        let filtered = keep.is_some();
+        let keep = |id| {
+            keep.as_ref().is_none_or(|keep| {
+                examined.set(examined.get() + 1);
+                keep(id)
+            })
+        };
         let n = self.kinds * TIERS;
         self.view
             .iter_mut()
             .chain(&mut self.cast)
             .for_each(Vec::clear);
         self.prints.fill(print(PRINT_BASIS, self.generation));
-        let shadow = shadow.filter(|_| self.casts);
-        for (c, chunk) in self.chunks.iter().enumerate() {
-            let whole = |out: &mut Vec<Vec<Record>>, prints: &mut [u64], at: usize| {
+        self.candidates.clear();
+        self.visited = self.chunk_index.query(
+            |b| view.sees_box(b) || (self.casts && shadow.is_some_and(|s| s.intersects(b))),
+            |i| self.candidates.push(i),
+        );
+        self.candidates.sort_unstable();
+        for &c in &self.candidates {
+            let chunk = &self.chunks[c];
+            let mask = if self.casts {
+                shadow.map_or(0, |s| s.mask(&chunk.bounds))
+            } else {
+                0
+            };
+            let whole = |out: &mut [Vec<Record>], prints: &mut [u64], at: usize| {
                 for k in 0..self.kinds {
                     let list = k * TIERS + LAST;
-                    out[list].extend_from_slice(&self.sorted[k][chunk.start[k]..chunk.end[k]]);
-                    prints[at + list] = print(prints[at + list], WHOLE | c as u64);
+                    if !filtered {
+                        out[list].extend_from_slice(&self.sorted[k][chunk.start[k]..chunk.end[k]]);
+                        prints[at + list] = print(prints[at + list], WHOLE | c as u64);
+                        continue;
+                    }
+                    for i in chunk.start[k]..chunk.end[k] {
+                        if keep(self.sources[k][i]) {
+                            out[list].push(self.sorted[k][i]);
+                            prints[at + list] =
+                                print(prints[at + list], ((c as u64) << 32) | i as u64);
+                        }
+                    }
                 }
             };
             if !view.sees_box(&chunk.bounds) {
-                if casts_into(view, shadow, &chunk.bounds, chunk.size) {
-                    whole(&mut self.cast, &mut self.prints, n);
+                for cascade in 0..CASCADES {
+                    if mask & (1 << cascade) != 0 {
+                        whole(
+                            &mut self.cast[cascade * n..(cascade + 1) * n],
+                            &mut self.prints,
+                            (cascade + 1) * n,
+                        );
+                    }
                 }
                 continue;
             }
             let distance = view.distance_to_box(&chunk.bounds);
             if tier_for(chunk.size, distance, view, lod) == LAST {
                 whole(&mut self.view, &mut self.prints, 0);
-                if shadow.is_some_and(|s| distance <= s.reach) {
-                    whole(&mut self.cast, &mut self.prints, n);
+                for cascade in 0..CASCADES {
+                    if mask & (1 << cascade) != 0 {
+                        whole(
+                            &mut self.cast[cascade * n..(cascade + 1) * n],
+                            &mut self.prints,
+                            (cascade + 1) * n,
+                        );
+                    }
                 }
                 continue;
             }
             for k in 0..self.kinds {
                 for i in chunk.start[k]..chunk.end[k] {
+                    if !keep(self.sources[k][i]) {
+                        continue;
+                    }
                     let r = &self.sorted[k][i];
                     let size = self.heights[k][i] as f64;
                     let centre = [r[0] as f64, r[1] as f64, r[2] as f64 + size / 2.0];
@@ -230,26 +301,30 @@ impl Pop {
                     let mark = ((c as u64) << 32) | i as u64;
                     self.view[k * TIERS + t].push(*r);
                     self.prints[k * TIERS + t] = print(self.prints[k * TIERS + t], mark);
-                    if self.casts {
-                        let m = k * TIERS + caster_tier(t);
-                        self.cast[m].push(*r);
-                        self.prints[n + m] = print(self.prints[n + m], mark);
+                    for cascade in 0..CASCADES {
+                        if mask & (1 << cascade) != 0 {
+                            let m = cascade * n + k * TIERS + caster_tier(t);
+                            self.cast[m].push(*r);
+                            self.prints[n + m] = print(self.prints[n + m], mark);
+                        }
                     }
                 }
             }
         }
+        self.examined = examined.get();
     }
 
     fn each_list(&self, rows: &[u32], visit: &mut dyn FnMut(List)) {
         let n = self.kinds * TIERS;
         for (pass, lists, at) in [(VIEW_PASS, &self.view, 0), (CAST_PASS, &self.cast, n)] {
             for (key, records) in lists.iter().enumerate() {
-                let (row, tier) = (rows[key / TIERS], (key % TIERS) as u32);
+                let (row, tier) = (rows[(key % n) / TIERS], (key % TIERS) as u32);
                 visit(List {
                     row,
                     tier,
                     pass,
                     caster: List::own_caster(pass, tier),
+                    cascade_mask: if pass == CAST_PASS { 1 << (key / n) } else { 0 },
                     fog: FOG_FACES,
                     records,
                     print: self.prints[at + key],
@@ -264,7 +339,7 @@ impl Pop {
 }
 
 /// A population on the simulation's ground, rebuilt when what stands of it
-/// changes (a tree the side saw fall, a shrub on ground it saw cleared).
+/// changes (a shrub on ground it saw cleared).
 struct Standing {
     placed: Vec<f32>,
     kept: Option<Vec<usize>>,
@@ -306,15 +381,6 @@ struct Cell {
     laid: Option<Vec<Vec<Record>>>,
     /// Laid and holds nothing: never wanted again.
     empty: bool,
-}
-
-/// A tree the side saw fall: its trunk's prop, the way it fell, and the
-/// presentation second it began to.
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub struct FelledTree {
-    pub prop: u32,
-    pub toward: [f64; 2],
-    pub fell_at: f64,
 }
 
 /// The ground the side has seen cleared: cells `cell_m` metres a side,
@@ -389,7 +455,7 @@ pub struct SceneryWalk {
     trunks: Vec<Trunk>,
     /// Per placed forest tree: its trunk's prop id.
     index: HashMap<u32, usize>,
-    forest: Standing,
+    forest: Pop,
     understorey: Standing,
     backdrop: Pop,
     cells: Vec<Cell>,
@@ -403,6 +469,7 @@ pub struct SceneryWalk {
     /// Wanted cells are still to be laid: walk again.
     pub pending: bool,
     felled: Vec<FelledTree>,
+    felled_spatial: FelledSpatial,
     felled_lists: Vec<Vec<Record>>,
     stumps: Vec<Vec<Record>>,
     felled_print: u64,
@@ -453,7 +520,7 @@ impl SceneryWalk {
                 .enumerate()
                 .map(|(i, &id)| (id, i))
                 .collect(),
-            forest: Standing::new(&scenery.forest, &sizes, kinds),
+            forest: Pop::new(&scenery.forest, &sizes, kinds, true, 0),
             understorey: Standing::new(&scenery.understorey, &sizes, kinds),
             backdrop,
             cell_index: cells.iter().enumerate().map(|(n, c)| (c.at, n)).collect(),
@@ -464,8 +531,9 @@ impl SceneryWalk {
             dressing_generation: 0,
             pending: false,
             felled: vec![],
-            felled_lists: vec![vec![]; kinds * TIERS * 2],
-            stumps: vec![vec![]; kinds],
+            felled_spatial: FelledSpatial::default(),
+            felled_lists: vec![vec![]; kinds * TIERS * (1 + CASCADES)],
+            stumps: vec![vec![]; kinds * (1 + CASCADES)],
             felled_print: 0,
             falling: false,
             clock: 0.0,
@@ -496,15 +564,23 @@ impl SceneryWalk {
         self.dressing_generation += 1;
     }
 
-    /// Follows the trees the side saw fall; true when that changed.
+    /// Reconcile the side's full snapshot (one fall per prop), O(F), including
+    /// equality/replacement. Geometry and hierarchy are independent of knowledge.
     pub fn set_felled(&mut self, felled: Vec<FelledTree>) -> bool {
         if felled == self.felled {
             return false;
         }
-        let ids: HashSet<u32> = felled.iter().map(|f| f.prop).collect();
-        let forest_ids = &self.scenery.forest_ids;
-        self.forest
-            .restand(&self.sizes, |i, _| ids.contains(&forest_ids[i]));
+        let spatial = &mut self.felled_spatial;
+        spatial.known.clear();
+        spatial.latest = None;
+        for (id, f) in felled.iter().enumerate() {
+            spatial.reconciled += 1;
+            let Some(&source) = self.index.get(&f.prop) else {
+                continue;
+            };
+            spatial.known.insert(source, id);
+            spatial.latest = Some(spatial.latest.map_or(f.fell_at, |v| v.max(f.fell_at)));
+        }
         self.felled = felled;
         true
     }
@@ -516,19 +592,24 @@ impl SceneryWalk {
         moved
     }
 
-    fn select(&mut self, ground: &Ground, view: &View, shadow: Option<&Shadow>) {
+    fn select(&mut self, ground: &Ground, view: &View, shadow: Option<&CasterVolumes>) {
         let lod = ground
             .biome
             .trees
             .lod_px
             .map(|v| v * self.quality.tree_lod_scale);
-        self.forest.pop.select(view, shadow, &lod);
+        self.prepare_felled(&ground.biome.trees.felled);
+        let known = &self.felled_spatial.known;
+        self.forest
+            .select_kept(view, shadow, &lod, Some(|id| !known.contains_key(&id)));
         if self.quality.understorey {
             self.understorey.pop.select(view, shadow, &lod);
+        } else {
+            self.understorey.pop.visited = 0;
         }
         self.backdrop.select(view, None, &lod);
         self.select_dressing(ground, view);
-        self.select_felled(ground, view, &lod);
+        self.select_felled(ground, view, shadow, &lod);
     }
 
     fn select_dressing(&mut self, ground: &Ground, view: &View) {
@@ -625,64 +706,9 @@ impl SceneryWalk {
         cell.laid = Some(laid);
     }
 
-    fn select_felled(&mut self, ground: &Ground, view: &View, lod: &[f64; 3]) {
-        // What the last walk listed: a view that moves a tree to another
-        // tier writes its lists anew.
-        let before = std::mem::take(&mut self.felled_lists);
-        self.felled_lists = vec![vec![]; before.len()];
-        self.stumps.iter_mut().for_each(Vec::clear);
-        self.falling = false;
-        let rules = &ground.biome.trees.felled;
-        let forest = self.scenery.forest.as_chunks::<FLOATS>().0;
-        for f in &self.felled {
-            let Some(&i) = self.index.get(&f.prop) else {
-                continue;
-            };
-            let p = &forest[i];
-            let (tree, kind, h, reach) = instance(p, &self.sizes);
-            let (sxy, sz) = (p[4] as f64, p[5] as f64);
-            let age = self.clock - f.fell_at;
-            self.falling |= age < rules.fall_s + rules.settle_s;
-            let t = &self.trunks[kind];
-            let pose = fell_pose(
-                rules,
-                age,
-                h as f64,
-                reach as f64,
-                t.radius * sxy,
-                t.crown * sz,
-            );
-            let mut fall = tree;
-            fall[4..8]
-                .copy_from_slice(&[f.toward[0], f.toward[1], pose[0], pose[1]].map(|v| v as f32));
-            let mut rest = [0.0; 16];
-            for (r, v) in rest.iter_mut().zip(&pose[2..]) {
-                *r = *v as f32;
-            }
-            let d = crate::world::length([0, 1, 2].map(|a| tree[a] as f64 - view.eye[a]));
-            let list = &mut self.felled_lists[kind * TIERS + tier_for(h as f64, d, view, lod)];
-            list.extend([fall, rest]);
-            let mut stump = tree;
-            stump[11] = 0.0;
-            stump[14..16].copy_from_slice(&[1.0, (0.5 * rules.stump_height_m) as f32]);
-            self.stumps[kind].push(stump);
-        }
-        // Casters draw a tier coarser.
-        let kinds = self.scenery.kinds.len();
-        for k in 0..kinds {
-            for t in 0..TIERS {
-                let view_list = self.felled_lists[k * TIERS + t].clone();
-                self.felled_lists[kinds * TIERS + k * TIERS + caster_tier(t)].extend(view_list);
-            }
-        }
-        if self.felled_lists != before {
-            self.felled_print += 1;
-        }
-    }
-
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
         let row = |d: Draws| &self.rows[d as usize - 1];
-        self.forest.pop.each_list(row(Draws::Forest), visit);
+        self.forest.each_list(row(Draws::Forest), visit);
         if self.quality.understorey {
             self.understorey
                 .pop
@@ -698,6 +724,7 @@ impl SceneryWalk {
                 tier: (key % TIERS) as u32,
                 pass: VIEW_PASS,
                 caster: NONE,
+                cascade_mask: 0,
                 fog: FOG_FACES,
                 records,
                 print,
@@ -711,24 +738,40 @@ impl SceneryWalk {
             };
             let tier = (key % TIERS) as u32;
             visit(List {
-                row: row(Draws::Felled)[key / TIERS],
+                row: row(Draws::Felled)[(key / TIERS) % kinds],
                 tier,
                 pass,
                 caster: List::own_caster(pass, tier),
+                cascade_mask: if pass == CAST_PASS {
+                    1 << (key / (kinds * TIERS))
+                } else {
+                    0
+                },
                 fog: FOG_FACES,
                 records,
                 print: self.felled_print,
             });
         }
-        for (kind, records) in self.stumps.iter().enumerate() {
-            for pass in [VIEW_PASS, CAST_PASS] {
+        for kind in 0..kinds {
+            visit(List {
+                row: row(Draws::Stump)[kind],
+                tier: 0,
+                pass: VIEW_PASS,
+                caster: NONE,
+                cascade_mask: 0,
+                fog: FOG_FACES,
+                records: &self.stumps[kind],
+                print: self.felled_print,
+            });
+            for cascade in 0..CASCADES {
                 visit(List {
                     row: row(Draws::Stump)[kind],
                     tier: 0,
-                    pass,
-                    caster: List::own_caster(pass, 0),
+                    pass: CAST_PASS,
+                    caster: List::own_caster(CAST_PASS, 0),
+                    cascade_mask: 1 << cascade,
                     fog: FOG_FACES,
-                    records,
+                    records: &self.stumps[(cascade + 1) * kinds + kind],
                     print: self.felled_print,
                 });
             }
@@ -736,64 +779,23 @@ impl SceneryWalk {
     }
 
     /// Instances placed per population (forest, understorey, backdrop) and
-    /// dressing cells drawn by the last walk.
-    pub fn stats(&self) -> [usize; 4] {
+    /// dressing cells drawn, bounds visited, then `felled_work` counters.
+    pub fn stats(&self) -> [usize; 8] {
+        let work = self.felled_work();
         [
-            self.forest.pop.placed(),
+            self.forest.placed() - self.felled_spatial.known.len(),
             self.understorey.pop.placed(),
             self.backdrop.placed(),
             self.drawn.len(),
+            self.forest.visited
+                + self.understorey.pop.visited
+                + self.backdrop.visited
+                + self.felled_spatial.visited,
+            work[0],
+            work[1],
+            work[2],
         ]
     }
-}
-
-/// A felled tree's pose `age` seconds after it began to fall, `height` tall
-/// with a crown `reach` round its trunk, trunk radius `trunk` and crown base
-/// `crown` (scaled): its tip angle and hinge, then the press up-and-down and
-/// across of what lies past its trunk, the trunk, how far it has landed and
-/// the crown base.
-fn fell_pose(
-    rules: &FelledRules,
-    age: f64,
-    height: f64,
-    reach: f64,
-    trunk: f64,
-    crown: f64,
-) -> [f64; 7] {
-    let hinge = rules.stump_height_m;
-    let length = height - hinge;
-    let rest = FRAC_PI_2 + libm::asin((trunk / length.max(1e-3)).min(1.0));
-    let angle = if age <= 0.0 {
-        0.0
-    } else if age < rules.fall_s {
-        rest * (age / rules.fall_s).powi(2)
-    } else {
-        let u = if rules.settle_s > 0.0 {
-            (age - rules.fall_s) / rules.settle_s
-        } else {
-            1.0
-        };
-        if u >= 1.0 {
-            rest
-        } else {
-            rest - rules.settle_deg * std::f64::consts::PI / 180.0
-                * libm::sin(std::f64::consts::PI * u)
-                * (1.0 - u)
-        }
-    };
-    let u = ((angle / rest - 0.5) / 0.5).clamp(0.0, 1.0);
-    let landed = u * u * (3.0 - 2.0 * u);
-    let axis = trunk * (1.0 - ((crown - hinge) / length).clamp(0.0, 1.0));
-    let squash = ((rules.rest_height_m - axis) / reach.max(1e-3)).clamp(0.02, 1.0);
-    [
-        angle,
-        hinge,
-        1.0 + (squash - 1.0) * landed,
-        1.0 + (rules.rest_spread - 1.0) * landed,
-        trunk,
-        landed,
-        crown,
-    ]
 }
 
 /// The scenery as a frame's static population: its walk, over its ground.
@@ -803,7 +805,7 @@ pub struct SceneryPopulation<'a> {
 }
 
 impl Population for SceneryPopulation<'_> {
-    fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
+    fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>) -> bool {
         self.walk.select(self.ground, view, shadow);
         true
     }
@@ -814,122 +816,7 @@ impl Population for SceneryPopulation<'_> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{fell_pose, FelledRules, Pop, Record, Size, FLOATS};
-    use crate::view::{Camera, View};
-    use std::collections::HashMap;
+mod tests;
 
-    /// A row of trees along +x, twelve in the first chunk and one in each
-    /// chunk past it, and every list's records by print over cameras that
-    /// walk along it: one print must always mean one list.
-    #[test]
-    fn a_list_named_by_the_same_print_holds_the_same_records() {
-        let mut placed = Vec::new();
-        let mut tree = |x: f32| {
-            let mut p = [0.0f32; FLOATS];
-            (p[0], p[3], p[4], p[5]) = (x, 1.0, 1.0, 1.0);
-            placed.extend_from_slice(&p);
-        };
-        for i in 0..12 {
-            tree(4.0 + 10.0 * i as f32);
-        }
-        for c in 1..12 {
-            tree(128.0 * c as f32 + 64.0);
-        }
-        let sizes = [Size {
-            height: 10.0,
-            radius: 2.0,
-        }];
-        let mut pop = Pop::new(&placed, &sizes, 1, false, 0);
-        let mut seen: HashMap<(u32, u32, u64), Vec<Record>> = HashMap::new();
-        for step in 0..400 {
-            let x = -200.0 + step as f64 * 4.0;
-            let view = View::new(&Camera {
-                eye: [x, -30.0, 6.0],
-                target: [x + 100.0, 0.0, 0.0],
-                up: [0.0, 0.0, 1.0],
-                fov_y: 0.8,
-                near: 0.5,
-                size: [1280, 720],
-            });
-            pop.select(&view, None, &[150.0, 60.0, 24.0]);
-            pop.each_list(&[0], &mut |l| {
-                if l.records.is_empty() {
-                    return; // an empty list is never sent
-                }
-                let key = (l.tier, l.pass, l.print);
-                let earlier = seen.entry(key).or_insert(l.records.to_vec());
-                assert_eq!(
-                    earlier, l.records,
-                    "tier {} at eye x {x}: one print, two lists",
-                    l.tier
-                );
-            });
-        }
-    }
-
-    fn rules() -> FelledRules {
-        serde_json::from_value(serde_json::json!({
-            "fall_s": 2, "settle_s": 0.5, "settle_deg": 5, "rest_height_m": 1,
-            "rest_spread": 0.6, "stump_height_m": 0.4, "cut": [0.4, 0.3, 0.2]
-        }))
-        .unwrap()
-    }
-
-    /// A tree 11 m tall, its crown 4.2 m round from 4 m up, its trunk 0.45 m.
-    fn pose(age: f64) -> [f64; 7] {
-        fell_pose(&rules(), age, 11.0, 4.2, 0.45, 4.0)
-    }
-
-    #[test]
-    fn a_tree_tips_over_gathering_speed_strikes_at_fall_s_rocks_and_lies() {
-        let r = rules();
-        let rest = pose(1000.0)[0];
-        assert!(rest > std::f64::consts::FRAC_PI_2);
-        assert_eq!([pose(-1.0)[0], pose(0.0)[0]], [0.0, 0.0]);
-        let (mut last, mut step) = (0.0, 0.0);
-        for k in 1..=20 {
-            let angle = pose(k as f64 / 20.0 * r.fall_s)[0];
-            assert!(angle - last > step - 1e-12, "it never slows while it falls");
-            (step, last) = (angle - last, angle);
-        }
-        assert!((pose(r.fall_s)[0] - rest).abs() < 1e-12);
-        let rock = r.settle_deg.to_radians();
-        for k in 0..50 {
-            let angle = pose(r.fall_s + k as f64 / 50.0 * r.settle_s)[0];
-            assert!(
-                angle <= rest && angle > rest - rock - 1e-9,
-                "it rocks back no more than settle_deg"
-            );
-        }
-        assert_eq!(pose(r.fall_s + r.settle_s)[0], rest);
-    }
-
-    #[test]
-    fn a_tree_lands_in_its_second_half_smoothly_and_lies_pressed_and_narrowed() {
-        let r = rules();
-        let landed = |age: f64| pose(age)[5];
-        assert_eq!(landed(0.0), 0.0);
-        // Half way over it has not begun to land.
-        assert_eq!(landed(r.fall_s * 0.5f64.sqrt() * 0.99), 0.0);
-        let mut last = 0.0;
-        for k in 0..=40 {
-            let l = landed(k as f64 / 40.0 * r.fall_s);
-            assert!(l >= last && l - last < 0.2, "it lands smoothly");
-            last = l;
-        }
-        let [_, hinge, squash, spread, trunk, landed, crown] = pose(1000.0);
-        assert_eq!(
-            [hinge, trunk, landed, crown],
-            [r.stump_height_m, 0.45, 1.0, 4.0]
-        );
-        // Lying, its crown narrows to rest_spread, and is pressed so that its
-        // farthest leaf above its axis keeps under rest_height_m.
-        assert!((spread - r.rest_spread).abs() < 1e-12);
-        let axis = trunk * (1.0 - (crown - hinge) / (11.0 - hinge));
-        assert!(axis + squash * 4.2 <= r.rest_height_m + 1e-9);
-        // Upright, nothing is pressed.
-        let upright = pose(0.0);
-        assert_eq!([upright[2], upright[3]], [1.0, 1.0]);
-    }
-}
+#[cfg(test)]
+mod spatial_tests;

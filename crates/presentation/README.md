@@ -61,8 +61,17 @@ native.
   uploads as it is. A prop the side has not learned never reaches it. The
   unseen look is [`fog`](src/fog/mod.rs)'s `FogLook`.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
-  map is in view depth, as the receiver block and each cascade's caster camera
-  (`Frame.shadow`, once `set_shadow` gives the light and the map's box).
+  terrain is in view depth, as the receiver block and each cascade's caster camera
+  (`Frame.shadow`, once `set_shadow` gives the light and immutable terrain).
+  Receiver fitting queries the terrain's draw hierarchy, then clips individual
+  triangle bounds with standing-object headroom to the camera. Offscreen remote
+  elevations cannot stretch a local fit through a map-wide height envelope.
+  This is conservative geometry, not occlusion: horizon-visible terrain still
+  contributes, and the light's configured shadow reach still applies.
+  Unchanged cameras reuse the installed light/terrain fit; replacing those inputs
+  or loading a world invalidates it. Receiver diagnostics count work executed in
+  the latest frame, with zero traversal and clipping on reuse. They remain
+  separate from terrain draw selection and flow into viewport measurements.
 - [The static world](src/static_world/): the buildings resolved from their
   template art, and the ground from the map's exports under the biome: its
   tables, its meshes (terrain, skirt, water, backdrop), the grass field's
@@ -72,6 +81,23 @@ native.
   (rubble, wrecks, shoved bodies). Buildings, scenery and props are walked
   per view into the frame's static batches, written only when a list
   changes; the scenery leaves the ground the side has learned cleared.
+  Buildings, standing scenery and props select casters against fitted cascade cameras, using
+  the same conservative clip bounds as terrain. They publish independent
+  camera and per-cascade caster lists: shadow selection cannot
+  remove a camera mesh, and leaving the camera cannot remove a shadow
+  that reaches visible receivers. Each caster list is submitted only to its named
+  cascade; overlapping volumes duplicate records to avoid vertex work in unrelated
+  cascades. Camera and caster lists use the same side knowledge.
+  Static populations query the same bounds index as terrain, then restore source
+  order before emitting records so list identity and detail decisions stay stable.
+  Known props and ruins rebuild their index when knowledge changes. Traversal
+  stats count tested hierarchy bounds, separately from emitted instances.
+  Standing trees, felled trees and stumps share an immutable hierarchy enclosing
+  full fall motion, with independent camera and cascade membership. New knowledge
+  filters selected records rather than rebuilding forest geometry. Standing bounds
+  still control standing detail; offscreen animation advances from presentation
+  time. Full known-fall snapshots still cost linear reconciliation/equality work,
+  distinct from local selection and one-time envelope setup.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
@@ -135,8 +161,9 @@ Rust is the only owner of everything here, so the recorded vectors are its
 own output: first recorded from the TypeScript each module replaced, and
 re-recorded from Rust when a change moves them on purpose. `tests/poses.rs` and
 `tests/effects.rs` hold it to vectors from native's fixture capture and fixed
-effect causes, `tests/light.rs`, `shadow.rs`, `camera.rs`, `ground_meshes.rs`,
+effect causes, `tests/light.rs`, `camera.rs`, `ground_meshes.rs`,
 `grass_field.rs`, `fog_sight.rs`, `sound.rs`, `voices.rs` and `music.rs` to
 recorded vectors bit for bit, and `tests/scars.rs` holds every scar upload to
-recorded cache words. The behaviour tests beside them say what the game does,
+recorded cache words. `tests/shadow.rs` holds receiver coverage and locality
+through the production fit. The behaviour tests beside them say what the game does,
 and hold through any re-recording.

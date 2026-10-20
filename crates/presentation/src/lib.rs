@@ -6,6 +6,7 @@
 //! it never sees past fog of war, and it never touches the simulation, so
 //! tuning it never moves a digest or a replay.
 pub mod assets;
+mod clip;
 pub mod effects;
 pub mod fielded;
 pub mod fog;

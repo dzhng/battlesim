@@ -2,6 +2,7 @@
 //! soldiers neither step out of it nor lean on it, forest ground does not hide
 //! it, and it is admitted against its own hull limits.
 
+use crate::common::Seat;
 use contract::catalog::AltitudeLayer;
 use contract::command::{
     CommandEnvelope, MoveDirection, Order, OrderError, RoutePolicy, TargetRef,
@@ -642,7 +643,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
         "map": { "size": [800, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": fixture,
         "units": [], "events": [], "scripts": [],
-        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
+        "players": crate::common::human_duel(), "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 5, "preparation_s": 0, "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "center": [400, 10], "side": "blue", "yaw": std::f64::consts::FRAC_PI_2 },
                 { "center": [400, 590], "side": "red", "yaw": -std::f64::consts::FRAC_PI_2 }
@@ -694,10 +695,7 @@ fn a_skirmish_aircraft_with_low_fuel_turns_home_and_is_refunded() {
         frame.own.is_empty(),
         "fuel-starved aircraft remained on map"
     );
-    assert!(
-        frame.skirmish.as_ref().unwrap().credits > 1000.0,
-        "no fuel withdrawal refund"
-    );
+    assert!(frame.seat().credits > 1000.0, "no fuel withdrawal refund");
 }
 
 #[test]

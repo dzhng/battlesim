@@ -28,10 +28,6 @@ pub struct WorldInput {
     /// The sun's azimuth and elevation (rad): where shadows fall.
     pub sun_azimuth: f64,
     pub sun_elevation: f64,
-    /// `light.cascades.max_far_m`: the farthest a shadow is received from
-    /// the eye along the view; no static casts without it.
-    #[serde(default)]
-    pub cascade_far_m: Option<f64>,
     /// `presentation.buildings`, when buildings are loaded.
     #[serde(default)]
     pub buildings: Option<BuildingStyle>,

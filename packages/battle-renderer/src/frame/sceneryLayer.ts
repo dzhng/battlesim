@@ -25,6 +25,7 @@
 // Foliage adds leaf clumps per pixel (3D value noise bending the normal and
 // darkening the gaps, in the tree's own space so it never swims), fading to
 // the plain crown as a pixel grows past a clump.
+import { recordDraw, type SubmittedDraws } from "./submitted";
 import { tgpu, d, std, type TgpuRenderPass } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
 import { VERTEX_FLOATS, type Mesh } from "../mesh";
@@ -79,7 +80,18 @@ export interface SceneryPopulationStats {
   triangles: number;
   casters: number;
 }
+export interface FelledWorkStats {
+  /** Cumulative startup envelope rows. */
+  envelopeRowsTotal: number;
+  /** Cumulative reconciled rows; excludes snapshot equality/replacement work. */
+  snapshotRowsTotal: number;
+  /** Standing/fallen membership tests in the last selection. */
+  membershipChecks: number;
+}
+
 export interface SceneryStats {
+  /** Bounds tested by the standing populations, including hierarchy branches. */
+  visitedBounds: number;
   /** Appearances installed. */
   kinds: number;
   forest: SceneryPopulationStats;
@@ -92,7 +104,7 @@ export interface SceneryStats {
   dressing: SceneryPopulationStats & { cells: number; bytes: number; pending: boolean };
   /** The felled trees drawn (falling or lying), whether any still falls,
    *  and their stumps. */
-  felled: { trees: number; falling: boolean; stumps: number };
+  felled: { trees: number; falling: boolean; stumps: number; work: FelledWorkStats };
   /** Draw calls in the last whole frame, over every pass. */
   draws: number;
 }
@@ -100,6 +112,8 @@ export interface SceneryStats {
 /** What the presentation says of the scenery it placed and walked
  *  (`scenery_stats`). */
 export interface SceneryWalkStats {
+  visitedBounds: number;
+  felledWork: FelledWorkStats;
   /** Instances placed: the forest's, the tree lines' shrubs', the backdrop's. */
   placed: [number, number, number];
   /** Dressing cells the last walk drew, and whether more are wanted. */
@@ -109,6 +123,8 @@ export interface SceneryWalkStats {
 }
 
 export const NO_SCENERY_WALK: SceneryWalkStats = {
+  visitedBounds: 0,
+  felledWork: { envelopeRowsTotal: 0, snapshotRowsTotal: 0, membershipChecks: 0 },
   placed: [0, 0, 0],
   cells: 0,
   pending: false,
@@ -554,6 +570,7 @@ export async function createSceneryLayer(
     row: number;
     tier: number;
     pass: number;
+    cascadeMask: number;
   }
   let scope: GpuRegistry | null = null;
   let given: WorldScenery | null = null;
@@ -600,10 +617,16 @@ export async function createSceneryLayer(
 
   /** Draw the listed batches of `pass` that `which` takes, each through
    *  `bound(draws)` (null: not drawn). */
-  function drawListed(pass: number, bound: (draws: number) => Drawable | null) {
+  function drawListed(
+    pass: number,
+    bound: (draws: number) => Drawable | null,
+    submitted?: SubmittedDraws,
+    cascade?: number,
+  ) {
     for (const h of listed) {
       const row = meshes[h.row];
       if (h.pass !== pass || !row || !h.buffer) continue;
+      if (cascade !== undefined && !(h.cascadeMask & (1 << cascade))) continue;
       if (!treesShown && row.draws !== DRESSING) continue;
       const pipeline = bound(row.draws);
       if (!pipeline) continue;
@@ -612,6 +635,7 @@ export async function createSceneryLayer(
       const records = row.draws === FELLED ? h.count * 2 : h.count;
       if (records > h.capacity) continue;
       pipeline.with(vertexLayout, mesh.buffer).with(layout, h.buffer).draw(mesh.vertices, h.count);
+      recordDraw(submitted, mesh.vertices, h.count);
       draws++;
     }
   }
@@ -648,12 +672,22 @@ export async function createSceneryLayer(
         const key = words![o + Batch.key];
         let h = held.get(key);
         if (!h) {
-          h = { scope: null, buffer: null, capacity: 0, count: 0, row, tier: 0, pass: 0 };
+          h = {
+            scope: null,
+            buffer: null,
+            capacity: 0,
+            count: 0,
+            row,
+            tier: 0,
+            pass: 0,
+            cascadeMask: 0,
+          };
           held.set(key, h);
         }
         h.row = row;
         h.tier = words![o + Batch.tier];
         h.pass = words![o + Batch.pass];
+        h.cascadeMask = words![o + Batch.cascade_mask];
         const first = words![o + Batch.first];
         const records = words![o + Batch.count];
         const pairs = meshes[row]!.draws === FELLED;
@@ -703,23 +737,31 @@ export async function createSceneryLayer(
       treesShown = on;
     },
     /** The standing scenery and the felled into one cascade. */
-    encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
+    encodeShadows(
+      pass: TgpuRenderPass,
+      cameraGroup: CameraGroup,
+      cascade: number,
+      submitted?: SubmittedDraws,
+    ) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
       const felled = felledCaster.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawListed(CAST_PASS, (draws) => (draws === FELLED ? felled : bound));
+      drawListed(CAST_PASS, (draws) => (draws === FELLED ? felled : bound), submitted, cascade);
     },
-    encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
+    encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup, submitted?: SubmittedDraws) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
       const felled = felledPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
       const dressing = dressingPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawListed(VIEW_PASS, (draws) =>
-        draws === FELLED ? felled : draws === DRESSING ? dressing : bound,
+      drawListed(
+        VIEW_PASS,
+        (draws) => (draws === FELLED ? felled : draws === DRESSING ? dressing : bound),
+        submitted,
       );
     },
     encode(
       pass: TgpuRenderPass,
       cameraGroup: CameraGroup,
       fogFaces: ReturnType<FogVisibility["groups"]>["faces"],
+      submitted?: SubmittedDraws,
     ) {
       const colour = (pipeline: typeof forestColour) =>
         pipeline
@@ -733,14 +775,17 @@ export async function createSceneryLayer(
         colour(felledColour as unknown as typeof forestColour),
         colour(dressingColour),
       ];
-      drawListed(VIEW_PASS, (draws) =>
-        draws === BACKDROP
-          ? backdrop
-          : draws === FELLED
-            ? felled
-            : draws === DRESSING
-              ? dressing
-              : forest,
+      drawListed(
+        VIEW_PASS,
+        (draws) =>
+          draws === BACKDROP
+            ? backdrop
+            : draws === FELLED
+              ? felled
+              : draws === DRESSING
+                ? dressing
+                : forest,
+        submitted,
       );
     },
     /** The instances the last view drew, per population, kind and tier
@@ -791,6 +836,7 @@ export async function createSceneryLayer(
       const stumps = population(STUMP, 0);
       return {
         kinds: kinds.length,
+        visitedBounds: walk.visitedBounds,
         forest: population(FOREST, walk.placed[0]),
         understorey: population(UNDERSTOREY, walk.placed[1]),
         backdrop: population(BACKDROP, walk.placed[2]),
@@ -803,6 +849,7 @@ export async function createSceneryLayer(
         felled: {
           trees: felled.tiers.reduce((a, b) => a + b, 0),
           falling: walk.falling,
+          work: walk.felledWork,
           stumps: stumps.tiers.reduce((a, b) => a + b, 0),
         },
         draws: lastDraws,

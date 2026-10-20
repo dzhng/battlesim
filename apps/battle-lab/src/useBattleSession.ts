@@ -38,12 +38,8 @@ import {
   sameReveal,
   type RevealedOrders,
 } from "@web/battle/present/orderReveal";
-import { highAir, type Faction } from "@packages/scene-assets/src/units";
-import {
-  DEFAULT_PLACEMENT_FACING,
-  PurchasePlacementControl,
-  type PurchaseGhost,
-} from "@web/battle/input/purchasePlacement";
+import { highAir } from "@packages/scene-assets/src/units";
+import { PurchasePlacementControl, type PurchaseGhost } from "@web/battle/input/purchasePlacement";
 import { useUnitControl } from "@web/battle/input/useUnitControl";
 import {
   dragFacing,
@@ -51,7 +47,6 @@ import {
   type PointerIntent,
   type PointerPick,
 } from "@web/battle/input/pointerIntent";
-import type { CursorAction } from "@web/battle/present/gameCursor";
 import {
   PointerPaint,
   attackGroundSpread,
@@ -67,7 +62,15 @@ import type { PanelRules } from "@web/battle/present/panelRows";
 import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
-import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
+import type { Player } from "@web/battle/prepare/protocol";
+import type {
+  LabBox,
+  LabPick,
+  ViewportFrame,
+  ViewportGpu,
+  ViewportPointer,
+  ViewportCursor,
+} from "./LabViewport";
 import {
   drawnUnits,
   pickedUnit,
@@ -75,7 +78,7 @@ import {
   sideInstances,
   type DrawnInstances,
 } from "./sideInstances";
-import { commandingPlayer, takesOrders } from "./commandingPlayer";
+import { commandedEconomy, commandingPlayer, takesOrders } from "./commandingPlayer";
 import { allyOwners, controlled, playerIndex } from "@web/battle/input/controlled";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
 import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
@@ -103,31 +106,11 @@ import {
   type AirLayers,
   type UnitGhost,
 } from "./unitGhosts";
+import { byReference, pendingGhosts } from "./pendingGhosts";
 
 const PURCHASE_BLOCKED = [...gameHud.bad, gameXray.selected[3]] as const;
-/** How near a pending purchase's published destination is to the placed one. */
-const PLACED_MATCH_M = 0.5;
-
 /** Ground heights the page remembers before starting afresh. */
 const SURFACE_HEIGHTS_MAX = 1 << 20;
-
-/** `derive` of the last input it was given, derived again only when the
- *  input's reference changes (the decoder keeps an unchanged list's), so a
- *  frame reads its publication without rebuilding what did not change. */
-function byReference<In, Out>(derive: (input: In) => Out, initial: Out) {
-  let from: In | undefined;
-  const memo = {
-    value: initial,
-    of(input: In): Out {
-      if (input !== from) {
-        from = input;
-        memo.value = derive(input);
-      }
-      return memo.value;
-    },
-  };
-  return memo;
-}
 
 export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
@@ -194,7 +177,7 @@ export function useBattleSession({
     const parsed = JSON.parse(scenario) as {
       map: unknown;
       rules: ScenarioRules;
-      players?: { id: string; side: SideName; faction?: Faction; controller: string }[];
+      players?: Player[];
       skirmish?: object;
       units?: { kind: string }[];
     };
@@ -580,33 +563,19 @@ export function useBattleSession({
   }, [artLoaded, scenario, rulesText, units, requestedKinds, factions, rules, side]);
   // Each unit placed during preparation stands as a ghost where it will go,
   // turned as it was placed, until the battle starts.
-  const [placedGhostList] = useState(() =>
-    byReference(
-      (match: ObservationView["skirmish"]): UnitGhost[] =>
-        (match?.phase === "preparation"
-          ? ((match.players.find((candidate) => candidate.id === player) ?? match.players[0])
-              ?.pending ?? [])
-          : []
-        ).map((pending) => {
-          const [x, y] = pending.destination;
-          const placed = placedGhosts.current.find(
-            (g) =>
-              g.variant === pending.kind &&
-              Math.hypot(g.destination[0] - x, g.destination[1] - y) < PLACED_MATCH_M,
-          );
-          const [dx, dy] = placed ? [x - placed.destination[0], y - placed.destination[1]] : [0, 0];
-          return {
-            kind: pending.kind,
-            at: pending.destination,
-            soldiers: fieldedSoldiers(
-              (placed?.spots ?? []).map(([sx, sy]) => [sx + dx, sy + dy] as const),
-            ),
-            yaw: placed?.facing ?? DEFAULT_PLACEMENT_FACING,
-            look: GHOST_OWN,
-          };
-        }),
-      [],
-    ),
+  const placedGhostList = useMemo(
+    () =>
+      byReference(
+        (match: ObservationView["skirmish"]): UnitGhost[] =>
+          pendingGhosts(
+            match?.phase === "preparation"
+              ? (commandedEconomy(match, commanding)?.pending ?? [])
+              : [],
+            placedGhosts.current,
+          ),
+        [],
+      ),
+    [commanding],
   );
   const frame = useCallback(
     (now: number, viewport: ViewportCamera, generation: number): ViewportFrame | null => {
@@ -812,7 +781,7 @@ export function useBattleSession({
     };
   }
   // eslint-disable-next-line complexity -- debt: purchase placement, held-drag intent, pending-order marks and ruler all read the same closure refs; the purchase-ghost branch could leave first, but the rest needs a pure intent resolver that returns marks instead of writing refs.
-  const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
+  const onCursor: ViewportCursor = (pointer, camera, _project, renderScale) => {
     // The battle as the last frame drew it: the picks and drawn positions
     // below are that frame's, so its units and tick are too. Nothing drawn
     // yet, nothing to point at.
@@ -849,6 +818,7 @@ export function useBattleSession({
         surfaceZ,
         metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
         null,
+        renderScale,
       );
       return active ? (purchaseGhost.current?.valid === false ? "blocked" : "default") : null;
     }
@@ -967,6 +937,7 @@ export function useBattleSession({
       surfaceZ,
       metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
       attackGround,
+      renderScale,
     );
     if (!active) return null;
     // Over an own unit the arrow is plain, unless the click would board it.
@@ -995,7 +966,6 @@ export function useBattleSession({
     [control],
   );
 
-  // The viewport's GPU allocation counter, once it is up.
   const gpu = useRef<ViewportGpu | null>(null);
   const { onViewportReady } = sim;
   const onReady = useCallback(
@@ -1009,8 +979,8 @@ export function useBattleSession({
     (): GpuAllocationCounts | null => gpu.current?.allocations() ?? null,
     [],
   );
+  const gpuFrame = useCallback(() => gpu.current?.frame().stats().gpu ?? null, []);
 
-  // Lab-only probes for the scene harness; rebuilt each render.
   const probes = {
     tick: () => sim.latest.current?.tick ?? 0,
     observation: () => sim.latest.current,
@@ -1256,6 +1226,7 @@ export function useBattleSession({
     },
     ghostReadouts: visibleGhostReadouts,
     gpuAllocations,
+    gpuFrame,
     probes,
   };
 }

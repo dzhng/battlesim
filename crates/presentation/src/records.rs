@@ -201,10 +201,8 @@ records! {
         tier: u32,
         /// `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`.
         pass: u32,
-        /// The tier its instances cast into the sun's cascades with: a
-        /// model in view one tier coarser, a caster batch its own, `NONE`
-        /// for none (an impostor card, a ghost, a high-air model, a
-        /// static world's view batch, which casts by its own caster batch).
+        /// Caster tier, or `NONE`. Static view batches cast through separate
+        /// caster batches; dynamic models use `view::batch_caster`.
         caster: u32,
         /// How fog of war takes it (`FOG_UNITS` and the rest).
         fog: u32,
@@ -213,7 +211,9 @@ records! {
         /// First `Instance`, or `NONE` when unchanged since `version`.
         first: u32,
         count: u32,
-        pad: [u32; 3],
+        /// Bit i admits this batch to cascade i; zero never casts.
+        cascade_mask: u32,
+        pad: [u32; 2],
     }
 
     /// One drawn model. Palette indices and the card layer are integral floats.

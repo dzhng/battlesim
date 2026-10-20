@@ -284,6 +284,7 @@ export class PointerPaint {
     z: SurfaceHeight,
     metresPerPx: number,
     attackGround: AttackGroundSpread | null = null,
+    renderScale = 1,
   ) {
     this.preview = preview;
     this.shown = shown?.ruler ?? null;
@@ -309,7 +310,7 @@ export class PointerPaint {
     const spreadKey = attackGround
       ? `:${attackGround.center.join(",")}:${attackGround.radius_m.toFixed(3)}:${metresPerPx}`
       : ":";
-    const nextKey = key + spreadKey;
+    const nextKey = key + spreadKey + `:${renderScale}`;
     if (nextKey === this.key) return;
     this.key = nextKey;
     const spread = attackGround
@@ -319,7 +320,7 @@ export class PointerPaint {
             mesh,
             attackGround.center,
             attackGround.radius_m,
-            gameStroke(metresPerPx)(1.6),
+            gameStroke(metresPerPx, renderScale)(1.6),
             gameAttackGroundSpread,
             { z, segments: 48 },
           );
@@ -335,12 +336,12 @@ export class PointerPaint {
               z,
               gameRulerStyle,
               metresPerPx,
-              gameStroke(metresPerPx),
+              gameStroke(metresPerPx, renderScale),
             )
           : EMPTY_MESH,
         preview.length
           ? buildDestinationPreview(preview, z, gameOrderStyle, {
-              stroke: gameStroke(metresPerPx),
+              stroke: gameStroke(metresPerPx, renderScale),
             })
           : EMPTY_MESH,
       ]),

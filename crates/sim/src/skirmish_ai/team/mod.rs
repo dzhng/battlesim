@@ -4,27 +4,37 @@
 //! of hysteresis in [`TeamMemory`].  It never enters the battle digest: the
 //! accepted command stream remains the replay authority.
 
-use contract::catalog::TypeIndex;
 use contract::encounter::{ObjectiveSite, SkirmishSites};
 use contract::ids::Side;
 use contract::ids::Tick;
 use contract::observation::{ObservationFrame, OwnUnit};
-use contract::players::{ControllerKind, Player, PlayerIndex};
+use contract::players::{ControllerKind, PlayerIndex};
 use contract::scenario::Rules;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::entries::EntryIndex;
+use crate::skirmish::PlayerState;
 
+mod backline;
 mod cohesion;
 mod help;
+mod influence;
+mod party;
+mod plan;
 mod stance;
+mod value;
+pub(crate) use backline::{holds as holds_backline, order as backline_order};
 pub use cohesion::{cohesion_sample, group_positions, group_ready, is_group_unit, lane_advancing};
 use cohesion::{group_positions as cohesion_group_positions, group_ready as cohesion_group_ready};
 pub use help::HelpRequest;
 use help::{lane_contexts, update_help};
+use influence::build_influence;
+use party::{objective_open, parties, update_side_parties, PartyInputs, PartyKey};
+pub use party::{Party, PartyKind};
 use stance::update_stance;
 pub use stance::TeamStance;
+pub(crate) use value::{specialized, unit_value, Threat};
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -44,6 +54,10 @@ pub struct TeamTuning {
     pub stance_push_influence: f64,
     pub stance_dwell_s: f64,
     pub push_timeout_s: f64,
+    pub open_objective_bonus: f64,
+    pub party_budget_share: f64,
+    pub claim_party_size: usize,
+    pub hold_party_size: usize,
 }
 
 impl TeamTuning {
@@ -67,7 +81,8 @@ pub struct TeamMemory {
     stance_since: Tick,
     push_wait_since: Option<Tick>,
     ready_after: Tick,
-    help_locks: BTreeMap<PlayerIndex, help::HelpLock>,
+    /// Every detached party, of every kind: the one party map and lock.
+    parties: BTreeMap<PartyKey, Party>,
     ready_groups: BTreeSet<PlayerIndex>,
     outgunned: BTreeSet<PlayerIndex>,
 }
@@ -92,78 +107,13 @@ pub struct PlayerPlan {
 pub struct TeamPlan {
     pub players: Vec<PlayerPlan>,
     pub help_requests: Vec<HelpRequest>,
+    pub parties: Vec<Party>,
     pub stance: TeamStance,
     pub push_started_tick: Option<Tick>,
     pub outgunned: BTreeSet<PlayerIndex>,
 }
 
-/// The planner only needs the seat topology. Keeping this small view generic
-/// lets the battle read the authoritative live skirmish seats without making
-/// a second player-definition copy.
-pub trait TeamPlayer {
-    fn side(&self) -> Side;
-    fn controller(&self) -> &ControllerKind;
-}
-
-impl TeamPlayer for Player {
-    fn side(&self) -> Side {
-        self.side
-    }
-    fn controller(&self) -> &ControllerKind {
-        &self.controller
-    }
-}
-
-impl TeamPlayer for crate::skirmish::PlayerState {
-    fn side(&self) -> Side {
-        self.side
-    }
-    fn controller(&self) -> &ControllerKind {
-        &self.controller
-    }
-}
-
 type AssignmentState = (f64, Vec<EntryIndex>, Vec<usize>);
-
-impl TeamPlan {
-    pub fn for_player(&self, player: PlayerIndex) -> Option<&PlayerPlan> {
-        self.players.iter().find(|plan| plan.player == player)
-    }
-
-    pub fn help_for(&self, player: PlayerIndex) -> Vec<&HelpRequest> {
-        self.help_requests
-            .iter()
-            .filter(|request| request.answered_by == Some(player))
-            .collect()
-    }
-
-    pub fn assignment_for(&self, player: PlayerIndex) -> Option<super::Assignment> {
-        let plan = self.for_player(player)?;
-        let lane_fallback = self.outgunned.contains(&player);
-        let (main_objective, staging_point) = if lane_fallback {
-            (plan.staging_point, plan.staging_point)
-        } else {
-            match self.stance {
-                TeamStance::Push => (plan.main_objective.center, plan.staging_point),
-                TeamStance::Hold | TeamStance::FallBack => (plan.staging_point, plan.staging_point),
-            }
-        };
-        let help = self
-            .help_for(player)
-            .into_iter()
-            .map(|request| super::HelpTask {
-                objective: request.objective.center,
-                detachment: request.detachment.clone(),
-            })
-            .collect::<Vec<_>>();
-        Some(super::Assignment {
-            main_objective,
-            staging_point,
-            force_advance: lane_fallback || self.stance != TeamStance::Hold,
-            help,
-        })
-    }
-}
 
 impl TeamMemory {
     pub fn cached_plan(&self) -> Option<&TeamPlan> {
@@ -202,11 +152,11 @@ impl TeamMemory {
 
 /// Build a deterministic side plan. Players are considered in `players`
 /// order; ties therefore retain the lower player index.
-pub fn plan<'a, P: TeamPlayer>(
+pub fn plan<'a>(
     side: Side,
     rules: &Rules,
     side_frame: &ObservationFrame,
-    players: &[P],
+    players: &[PlayerState],
     sites: &SkirmishSites,
     memory: &'a mut TeamMemory,
     tuning: TeamTuning,
@@ -239,14 +189,12 @@ pub fn plan<'a, P: TeamPlayer>(
             .as_ref()
             .expect("cached plan before reschedule");
     }
-    let influence = build_influence(side_frame, sites, memory.influence.as_ref(), tuning);
+    let influence = build_influence(rules, side_frame, sites, memory.influence.as_ref(), tuning);
     memory.influence = Some(influence.clone());
     let ai: Vec<_> = players
         .iter()
         .enumerate()
-        .filter(|(_, player)| {
-            player.side() == side && *player.controller() == ControllerKind::ActiveAi
-        })
+        .filter(|(_, player)| player.side == side && player.controller == ControllerKind::ActiveAi)
         .map(|(index, _)| PlayerIndex(index as u16))
         .collect();
     let lanes: Vec<_> = sites
@@ -276,7 +224,7 @@ pub fn plan<'a, P: TeamPlayer>(
             .map(|view| {
                 view.objectives
                     .iter()
-                    .filter(|objective| objective.owner == Some(side))
+                    .filter(|objective| objective.owner == Some(side) && !objective.contested)
                     .map(|objective| objective.id.clone())
                     .collect()
             })
@@ -315,9 +263,11 @@ pub fn plan<'a, P: TeamPlayer>(
         );
         let previous_stance = memory.stance;
         let stance = update_stance(side, side_frame, &player_plans, memory, tuning, tick_hz);
+        let parties = parties(memory);
         let result = TeamPlan {
             players: player_plans,
             help_requests,
+            parties,
             stance,
             push_started_tick: (stance == TeamStance::Push && previous_stance != TeamStance::Push)
                 .then_some(side_frame.tick),
@@ -331,15 +281,28 @@ pub fn plan<'a, P: TeamPlayer>(
         return memory.cached.as_ref().expect("team plan cached");
     }
 
-    // Keep the exact historical search for the small plans whose tie-breaking
-    // is part of the shipped behavior. Larger teams use subset DP for the
-    // one-to-one objective assignment and choose each player's best lane;
-    // repeated lane slots are equivalent once there are more players than
-    // physical approaches.
-    // Reuse approach slots when a small map has fewer lanes than AI seats.
-    let lane_slots = (0..assignment_count.max(lanes.len()))
+    // Up to three players, every lane and objective permutation is searched:
+    // which of equally scored plans wins depends on that search order, and
+    // pinned battle digests hold it. Larger teams use subset DP for the
+    // one-to-one objective assignment and give each player its best lane.
+    // A lane is offered again when a small map has fewer lanes than AI
+    // players.
+    let lane_choices = (0..assignment_count.max(lanes.len()))
         .map(|index| lanes[index % lanes.len()])
         .collect::<Vec<_>>();
+    // Open objectives (D55) score a bonus: neutral, no enemy in view there,
+    // and no party of the side or human teammate already going.
+    let going: BTreeSet<_> = memory
+        .parties
+        .values()
+        .map(|party| party.objective.id.clone())
+        .chain(covered.iter().cloned())
+        .collect();
+    let open: BTreeSet<_> = objectives
+        .iter()
+        .filter(|objective| objective_open(side_frame, objective, &going))
+        .map(|objective| objective.id.clone())
+        .collect();
     let mut best: Option<(f64, Vec<EntryIndex>, Vec<usize>)> = None;
     let mut score = |player: PlayerIndex, lane: EntryIndex, objective: &ObjectiveSite| {
         memory.planning_work += 1;
@@ -351,6 +314,11 @@ pub fn plan<'a, P: TeamPlayer>(
         });
         tuning.distance_weight * distance(entry.center, objective.center)
             - tuning.influence_weight * influence.at(objective.center)
+            - if open.contains(&objective.id) {
+                tuning.open_objective_bonus
+            } else {
+                0.0
+            }
             - if incumbent {
                 tuning.incumbency_bonus
             } else {
@@ -358,7 +326,7 @@ pub fn plan<'a, P: TeamPlayer>(
             }
     };
     if assignment_count <= 3 {
-        let lane_permutations = permutations(lane_slots.len(), assignment_count);
+        let lane_permutations = permutations(lane_choices.len(), assignment_count);
         let objective_permutations = permutations(objectives.len(), assignment_count);
         for lane_indices in &lane_permutations {
             for objective_indices in &objective_permutations {
@@ -369,7 +337,7 @@ pub fn plan<'a, P: TeamPlayer>(
                     .map(|(i, player)| {
                         score(
                             *player,
-                            lane_slots[lane_indices[i]],
+                            lane_choices[lane_indices[i]],
                             &objectives[objective_indices[i]],
                         )
                     })
@@ -377,7 +345,7 @@ pub fn plan<'a, P: TeamPlayer>(
                 if best.as_ref().is_none_or(|(old, _, _)| total < *old) {
                     best = Some((
                         total,
-                        lane_indices.iter().map(|i| lane_slots[*i]).collect(),
+                        lane_indices.iter().map(|i| lane_choices[*i]).collect(),
                         objective_indices.clone(),
                     ));
                 }
@@ -397,7 +365,7 @@ pub fn plan<'a, P: TeamPlayer>(
                     if mask & (1 << objective_index) != 0 {
                         continue;
                     }
-                    let (lane, lane_score) = lane_slots
+                    let (lane, lane_score) = lane_choices
                         .iter()
                         .map(|&lane| (lane, score(*player, lane, objective)))
                         .min_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)))
@@ -446,7 +414,20 @@ pub fn plan<'a, P: TeamPlayer>(
         });
     }
     let lanes = lane_contexts(side, players, sites, &result, &covered_by_player, tuning);
+    update_side_parties(
+        side,
+        PartyInputs {
+            rules,
+            frame: side_frame,
+            plans: &result,
+            sites,
+            covered: &covered,
+            tuning,
+        },
+        memory,
+    );
     let help_requests = update_help(side, side_frame, players, &lanes, memory, tuning, rules);
+    let parties = parties(memory);
     let previous_stance = memory.stance;
     if objective_changed {
         memory.ready_groups.clear();
@@ -455,6 +436,7 @@ pub fn plan<'a, P: TeamPlayer>(
     let result = TeamPlan {
         players: result,
         help_requests,
+        parties,
         stance,
         push_started_tick: (stance == TeamStance::Push && previous_stance != TeamStance::Push)
             .then_some(side_frame.tick),
@@ -468,16 +450,16 @@ pub fn plan<'a, P: TeamPlayer>(
     memory.cached.as_ref().expect("team plan cached")
 }
 
-fn covered_objectives_by_player<P: TeamPlayer>(
+fn covered_objectives_by_player(
     frame: &ObservationFrame,
-    players: &[P],
+    players: &[PlayerState],
     side: Side,
     objectives: &[ObjectiveSite],
 ) -> BTreeMap<PlayerIndex, ObjectiveSite> {
     let human: BTreeSet<_> = players
         .iter()
         .enumerate()
-        .filter(|(_, p)| p.side() == side && *p.controller() == ControllerKind::Human)
+        .filter(|(_, p)| p.side == side && p.controller == ControllerKind::Human)
         .map(|(i, _)| PlayerIndex(i as u16))
         .collect();
     let mut covered = BTreeMap::new();
@@ -504,100 +486,6 @@ fn covered_objectives_by_player<P: TeamPlayer>(
         }
     }
     covered
-}
-
-fn build_influence(
-    frame: &ObservationFrame,
-    sites: &SkirmishSites,
-    previous: Option<&InfluenceGrid>,
-    tuning: TeamTuning,
-) -> InfluenceGrid {
-    let resolution = tuning.grid_resolution.max(1);
-    let mut min = [f64::INFINITY; 2];
-    let mut max = [f64::NEG_INFINITY; 2];
-    for point in sites
-        .entries
-        .iter()
-        .map(|entry| entry.center)
-        .chain(sites.objectives.iter().map(|objective| objective.center))
-    {
-        for axis in 0..2 {
-            min[axis] = min[axis].min(point[axis]);
-            max[axis] = max[axis].max(point[axis]);
-        }
-    }
-    for axis in 0..2 {
-        if !min[axis].is_finite() {
-            min[axis] = 0.0;
-            max[axis] = 1.0;
-        }
-        if (max[axis] - min[axis]).abs() < 1.0 {
-            max[axis] = min[axis] + 1.0;
-        }
-    }
-    let mut values = vec![0.0; resolution * resolution];
-    for unit in &frame.own {
-        add_strength(
-            &mut values,
-            resolution,
-            min,
-            max,
-            [unit.position[0], unit.position[1]],
-            1.0,
-        );
-    }
-    for unit in &frame.identified {
-        add_strength(
-            &mut values,
-            resolution,
-            min,
-            max,
-            [unit.position[0], unit.position[1]],
-            -(f64::from(unit.cost).max(1.0) / 100.0),
-        );
-    }
-    if let Some(previous) =
-        previous.filter(|old| old.resolution == resolution && old.min == min && old.max == max)
-    {
-        for (value, old) in values.iter_mut().zip(&previous.values) {
-            *value = tuning.influence_blend * *old + (1.0 - tuning.influence_blend) * *value;
-        }
-    }
-    InfluenceGrid {
-        resolution,
-        min,
-        max,
-        values,
-    }
-}
-
-fn add_strength(
-    values: &mut [f64],
-    resolution: usize,
-    min: [f64; 2],
-    max: [f64; 2],
-    point: [f64; 2],
-    strength: f64,
-) {
-    let x = (((point[0] - min[0]) / (max[0] - min[0])) * resolution as f64)
-        .floor()
-        .clamp(0.0, resolution as f64 - 1.0) as usize;
-    let y = (((point[1] - min[1]) / (max[1] - min[1])) * resolution as f64)
-        .floor()
-        .clamp(0.0, resolution as f64 - 1.0) as usize;
-    values[y * resolution + x] += strength;
-}
-
-impl InfluenceGrid {
-    pub fn at(&self, point: [f64; 2]) -> f64 {
-        let x = (((point[0] - self.min[0]) / (self.max[0] - self.min[0])) * self.resolution as f64)
-            .floor()
-            .clamp(0.0, self.resolution as f64 - 1.0) as usize;
-        let y = (((point[1] - self.min[1]) / (self.max[1] - self.min[1])) * self.resolution as f64)
-            .floor()
-            .clamp(0.0, self.resolution as f64 - 1.0) as usize;
-        self.values[y * self.resolution + x]
-    }
 }
 
 fn permutations(length: usize, take: usize) -> Vec<Vec<usize>> {

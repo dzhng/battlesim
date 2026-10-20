@@ -15,8 +15,6 @@ use presentation::static_world::ground::grass::{
     self as field, KindMesh, TierMesh, Window, FIELD_SEGMENTS,
 };
 
-/// One clump as the build leaves it (`GrassClump`).
-const CLUMP_BYTES: u64 = 32;
 /// Two indexed-indirect draws' arguments (5 words each), then each tier's
 /// raw count.
 const ARGS_WORDS: usize = 12;
@@ -97,7 +95,7 @@ impl Grass {
         let [near, far] = [rules.capacity[0] as u64, rules.capacity[1] as u64];
         let clumps = device.create_buffer(&BufferDescriptor {
             label: Some("grass-clumps"),
-            size: ((near + far) * CLUMP_BYTES).max(16),
+            size: ((near + far) * pipelines.sizes.grass_clump).max(16),
             usage: storage,
             mapped_at_creation: false,
         });

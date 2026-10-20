@@ -10,6 +10,7 @@ pub mod forests;
 pub mod grass;
 pub mod kinds;
 pub mod mesh;
+pub mod partition;
 pub mod plots;
 pub mod scenery;
 mod shapes;

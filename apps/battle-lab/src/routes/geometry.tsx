@@ -18,6 +18,7 @@ import { gameBiome } from "../gameBiome";
 import { useMapAppearances } from "../gameAppearances";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
+import { useGeometryScaling } from "../benchmark/geometryScaling";
 
 interface Probe {
   point: [number, number, number];
@@ -62,7 +63,11 @@ function probe(
 }
 
 export default function Geometry() {
-  const id = new URLSearchParams(window.location.search).get("map") ?? fixtureMap("geometry");
+  const id =
+    new URLSearchParams(window.location.search).get("map") ??
+    fixtureMap(
+      window.location.pathname === "/labs/geometry-scaling" ? "geometry-scaling" : "geometry",
+    );
   return <SavedMap id={id}>{(map) => <GeometryLab id={id} readMap={() => map} />}</SavedMap>;
 }
 
@@ -84,6 +89,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
   const { rules } = useSessionCatalog();
   const world = useStaticWorld(map, rules);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
+  const scaling = useGeometryScaling(world?.exports, world?.layout, cameraConfig, overlay);
   const [showTrees, setShowTrees] = useState(true);
   const buildings = useStandingBuildings(world);
   const appearances = useMapAppearances(
@@ -92,11 +98,19 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
   );
   const [probed, setProbed] = useState<Probe | null>(null);
 
-  const meshes = useMemo(() => {
+  const localMeshes = useMemo(() => {
     if (!world || !appearances) return null;
     const built = buildWorldLayers(world.exports, world.layout, gameBiome, overlay, appearances);
     return showTrees ? built : { ...built, scenery: null };
   }, [world, overlay, showTrees, appearances]);
+  // Keep the local skirt, backdrop and populations; receivers use the full mesh.
+  const meshes = useMemo(
+    () =>
+      localMeshes && scaling.terrain
+        ? { ...localMeshes, terrain: scaling.terrain, backdropTerrain: localMeshes.terrain.mesh }
+        : localMeshes,
+    [localMeshes, scaling.terrain],
+  );
   const worldFeed = useFeed(meshes);
   const appearancesFeed = useFeed(appearances);
   // The traversal view shows what blocks as boxes, the buildings' parts among them.
@@ -138,7 +152,7 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
   return (
     <>
       <LabViewport
-        fixture="geometry"
+        fixture={scaling.pilot ? "geometry-scaling" : "geometry"}
         world={worldFeed}
         buildings={buildingsFeed}
         appearances={appearancesFeed}
@@ -148,7 +162,8 @@ function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition
         onPick={(pick) =>
           pick.button === "left" && setProbed(probe(world.view, world.layout, pick.ray, probeReach))
         }
-        diagnostics={diagnostics ?? undefined}
+        pilot={scaling.pilot}
+        diagnostics={{ ...diagnostics, ...scaling.diagnostics }}
       />
       <aside className="hud-panel lab-panel" data-testid="geometry-panel">
         <strong>{label}</strong>

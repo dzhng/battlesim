@@ -68,8 +68,8 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   walk lists as casters, the cascades. The presentation clears shrubs and
   dressing off the ground the side has learned cleared by itself.
 - **The camera and sun shadows** come with each frame: its `View`, its
-  camera uniform, and four cascades fitted over the map's box
-  (`presentation::shadow`, given the light and the box once, `set_shadow`),
+  camera uniform, and four cascades fitted over local terrain receivers
+  (`presentation::shadow`, given the light and shared terrain partition, `set_shadow`),
   the receiver block and each cascade's caster camera, all uploaded as they
   are. Each batch names the tier it casts with and the fog group it binds
   (`Batch.caster`, `Batch.fog`); the client routes by them.
@@ -81,8 +81,9 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   scene's units installs (`files::prop_art`: the catalog's footprints,
   paints and wrecks, each look's bounds read from its bundle's header), and
   the presentation fits them and adds what the side knows. Their rows
-  (`Appearance.draws` 7 and 8) draw through the model pipelines and cast as
-  a unit casts, a tier coarser.
+  (`Appearance.draws` 7 and 8) draw through the model pipelines. Independent caster batches preserve
+  offscreen shadows and exclude props beyond receiver reach; camera batches
+  never cast a second copy.
 - **The static batches are held between frames** (`statics.rs`), as the
   browser holds them: one buffer per batch key, rewritten only when the
   frame writes it, dropped when the frame stops listing it. The models and

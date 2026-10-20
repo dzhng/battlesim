@@ -4,6 +4,7 @@ import type { ViewportPointer } from "./LabViewport";
 import type { useBattleSession } from "./useBattleSession";
 import { useFeed } from "./feed";
 import { buildBattleOverlay } from "./battleOverlay";
+import { gameStroke } from "./gameOverlay";
 import { useContactFacing } from "./contactFacing";
 import type { Project } from "@web/battle/present/readouts";
 
@@ -25,10 +26,12 @@ export function useLabOverlay(
   const [metresPerPx, setMetresPerPx] = useState(() =>
     zoomStep(metresPerPxAt(initial.distance, initial.fovY, window.innerHeight)),
   );
-  const contactFacing = useContactFacing(initial, metresPerPx);
+  const [renderScale, setRenderScale] = useState(1);
+  const contactFacing = useContactFacing(initial, metresPerPx, renderScale);
   const { follow } = contactFacing;
   const onFrame = useCallback(
-    (project: Project, view: Camera3DParams, pointer: ViewportPointer) => {
+    (project: Project, view: Camera3DParams, pointer: ViewportPointer, scale: number) => {
+      setRenderScale(scale);
       placePanels(project, view, pointer);
       follow(view);
       setMetresPerPx(zoomStep(metresPerPxAt(view.distance, view.fovY, window.innerHeight)));
@@ -51,7 +54,7 @@ export function useLabOverlay(
               facing: contactFacing.facing,
             },
             null,
-            metresPerPx,
+            gameStroke(metresPerPx, renderScale),
           )
         : undefined,
     [
@@ -65,6 +68,7 @@ export function useLabOverlay(
       session.revealed,
       surfaceZ,
       metresPerPx,
+      renderScale,
     ],
   );
   return { overlayFeed: useFeed(overlay), onFrame };

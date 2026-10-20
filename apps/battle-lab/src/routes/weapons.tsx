@@ -1,5 +1,5 @@
 import { ReadoutLayer } from "@web/battle/present/readouts";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observationView";
@@ -74,7 +74,8 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  const contactFacing = useContactFacing(WEAPONS_CAMERA, OPENING_METRES_PER_PX);
+  const [renderScale, setRenderScale] = useState(1);
+  const contactFacing = useContactFacing(WEAPONS_CAMERA, OPENING_METRES_PER_PX, renderScale);
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
@@ -117,7 +118,8 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
         {...session.viewport}
         initialCamera={WEAPONS_CAMERA}
         {...session.input}
-        onFrame={(project, view, pointer) => {
+        onFrame={(project, view, pointer, scale) => {
+          setRenderScale(scale);
           session.placePanels(project, view, pointer);
           contactFacing.follow(view);
         }}

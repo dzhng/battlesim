@@ -1506,7 +1506,7 @@ html {
 .hud-purchase-price.too-dear {
   color: rgb(var(--hud-bad));
 }
-/* A family that can't be bought now (credits, slots, the battle over) is
+/* A family that can't be bought now (credits, the unit cap, the battle over) is
    dimmed as its variants' cards are; a family never sold is dashed besides.
    An info card dims its words, never its plate: it stands over the picker. */
 .hud-panel button.hud-purchase-family.short,

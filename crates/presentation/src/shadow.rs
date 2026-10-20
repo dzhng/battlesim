@@ -1,20 +1,70 @@
-//! The sun's shadow cascades, fitted once a frame for both clients: where
-//! shadow receivers are in view depth (the part of the map's box the camera
-//! sees), the practical splits over that range, each cascade's light fitted
+//! The sun's shadow cascades, fitted when the camera changes for both clients: where
+//! shadow receivers are in view depth (local terrain bounds clipped to the camera), the practical splits over that range, each cascade's light fitted
 //! to its slice and snapped to its own texels, its biases and PCF radius, and
 //! the records a renderer uploads as they are ([`SunShadowFrame`]).
 //!
 //! Matrices are held in f32 and vectors in f64, with the `math` package's
-//! operation order, so a fit lands on the recorded vectors' texels bit for
-//! bit (`tests/shadow.rs`). The splits run over the receiver range, not from the camera's near
+//! operation order shared by both clients. The splits run over the receiver
+//! range, not from the camera's near
 //! plane, so a camera a kilometre up does not spend its cascades on air.
 use crate::light::{CascadeSettings, LightSettings};
 use crate::records::{Camera as CameraRecord, SunCascade, SunShadow};
+use crate::static_world::ground::partition::TerrainPartition;
 use crate::view::{look_at, perspective_reverse_z, Camera};
+
+/// Executed receiver work in the latest frame, never the cached fit's old cost.
+#[derive(Clone, Copy, Debug, Default, serde::Serialize)]
+pub struct ReceiverStats {
+    /// Hierarchy and leaf bounds tested by the spatial query.
+    pub bounds_visited: usize,
+    /// Individual triangle bounds tested against the camera.
+    pub triangle_tests: usize,
+    /// Surviving bounds passed to exact depth clipping.
+    pub clip_tests: usize,
+    pub reused: bool,
+}
+
+/// Installed immutable receiver inputs and their last camera fit.
+pub(crate) struct ShadowFit {
+    light: LightSettings,
+    terrain: std::sync::Arc<TerrainPartition>,
+    cached: Option<(Camera, SunShadowFrame)>,
+    pub stats: ReceiverStats,
+}
+
+impl ShadowFit {
+    pub fn new((light, terrain): (LightSettings, std::sync::Arc<TerrainPartition>)) -> Self {
+        Self {
+            light,
+            terrain,
+            cached: None,
+            stats: ReceiverStats::default(),
+        }
+    }
+
+    pub fn invalidate(&mut self) {
+        self.cached = None;
+        self.stats = ReceiverStats::default();
+    }
+
+    pub fn frame(&mut self, camera: &Camera) -> SunShadowFrame {
+        self.stats = ReceiverStats::default();
+        if let Some((previous, fit)) = &self.cached {
+            if previous == camera {
+                self.stats.reused = true;
+                return fit.clone();
+            }
+        }
+        let fit = fit_shadow(&self.light, camera, Some(&self.terrain), &mut self.stats);
+        self.cached = Some((*camera, fit.clone()));
+        fit
+    }
+}
 
 /// The receiver layout's cascade slots: `SunShadow` and the depth array
 /// hold this many, so `presentation.light.cascades.count` must equal it.
 pub const CASCADES: usize = 4;
+pub const ALL_CASCADES: u32 = (1 << CASCADES) - 1;
 /// How far above its slice's highest corner each cascade's light sits, so
 /// casters just off screen still land in its depth range.
 const LIGHT_MARGIN: f64 = 300.0;
@@ -27,11 +77,38 @@ const FAR_FALLBACK: f64 = 1e7;
 const LIGHT_UP: [f64; 3] = [0.0, 1.0, 0.0];
 /// Headroom above the highest ground for what stands on it (m).
 const STANDING_M: f64 = 25.0;
-/// Screen rays a side of the receiver range's sampling grid, less one.
-const GRID: u32 = 12;
 
 type V3 = [f64; 3];
 type M4 = [f32; 16];
+
+/// The fitted cascade volumes used by both renderers, prepared once per walk.
+pub struct CasterVolumes {
+    planes: Vec<[crate::clip::ClipPlane; 6]>,
+}
+
+impl CasterVolumes {
+    pub fn new(casters: &[crate::records::Camera]) -> Self {
+        Self {
+            planes: casters
+                .iter()
+                .map(|c| crate::clip::clip_planes(&c.view_proj))
+                .collect(),
+        }
+    }
+
+    /// Bit i is set when bounds meet cascade i, including boundary contact.
+    pub fn mask(&self, bounds: &[f64; 6]) -> u32 {
+        self.planes.iter().enumerate().fold(0, |mask, (i, planes)| {
+            mask | (u32::from(crate::clip::intersects(bounds, planes)) << i)
+        })
+    }
+
+    pub fn intersects(&self, bounds: &[f64; 6]) -> bool {
+        self.planes
+            .iter()
+            .any(|p| crate::clip::intersects(bounds, p))
+    }
+}
 
 /// One frame's sun shadow: the receiver block every lit shader reads, and
 /// each fitted cascade's caster camera (`casters[i]` renders cascade `i`;
@@ -57,19 +134,27 @@ impl SunShadowFrame {
     }
 }
 
-/// The whole frame's fit for `camera`: the receiver range over `map_box`
-/// (min x, y, z, max x, y, z; none collapses it to just past the near
-/// plane), the splits, each cascade's light, biases and records.
+/// Fit over the immutable terrain owner; absent or offscreen receivers collapse
+/// to just past the near plane. The splits, light, biases and records are shared.
 pub fn sun_shadow(
     light: &LightSettings,
     camera: &Camera,
-    map_box: Option<&[f64; 6]>,
+    terrain: Option<&TerrainPartition>,
+) -> SunShadowFrame {
+    fit_shadow(light, camera, terrain, &mut ReceiverStats::default())
+}
+
+fn fit_shadow(
+    light: &LightSettings,
+    camera: &Camera,
+    terrain: Option<&TerrainPartition>,
+    stats: &mut ReceiverStats,
 ) -> SunShadowFrame {
     let settings = &light.cascades;
     let [w, h] = camera.size.map(|s| f64::from(s.max(1)));
     let aspect = w / h;
     let view = look_at(camera.eye, camera.target, camera.up);
-    let (near, far) = receiver_range(camera, &view, aspect, map_box);
+    let (near, far) = receiver_range(camera, &view, aspect, terrain, stats);
 
     let count = (settings.count.max(1) as usize).min(CASCADES);
     let map_size = settings.map_size.max(16);
@@ -214,37 +299,38 @@ pub fn map_box(mesh: &[f32]) -> Option<[f64; 6]> {
     Some(b)
 }
 
-/// The view-depth range `(near, far)` of the box where a grid of screen
-/// rays crosses it. Without a box, or when no ray meets it, just past the
-/// near plane.
+/// Exact frustum clipping of conservative local receiver bounds. Unlike a
+/// screen-ray grid this keeps thin/edge receivers and the near-plane interior.
 fn receiver_range(
     camera: &Camera,
     view: &M4,
     aspect: f64,
-    map_box: Option<&[f64; 6]>,
+    terrain: Option<&TerrainPartition>,
+    stats: &mut ReceiverStats,
 ) -> (f64, f64) {
     let empty = (camera.near, camera.near * 2.0);
-    let Some(b) = map_box else { return empty };
+    let Some(terrain) = terrain else { return empty };
     let projection = perspective_reverse_z(camera.fov_y, aspect, camera.near, None);
-    let inverse = invert(&multiply(&projection, view)).unwrap_or(IDENTITY);
-    let eye = camera.eye;
+    let matrix = multiply(&projection, view);
+    let planes = crate::clip::clip_planes(&matrix);
+    let inverse = invert(&matrix).unwrap_or(IDENTITY);
+    let corners = [[-1., -1., 1.], [1., -1., 1.], [1., 1., 1.], [-1., 1., 1.]]
+        .map(|p| transform(&p, &inverse));
     let (mut near, mut far) = (f64::INFINITY, 0.0f64);
-    for iy in 0..=GRID {
-        for ix in 0..=GRID {
-            let ndc = |i: u32| f64::from(i) / f64::from(GRID) * 2.0 - 1.0;
-            let dir = screen_ray(&inverse, eye, ndc(ix), ndc(iy));
-            let Some((t0, t1)) = ray_box(eye, dir, b) else {
-                continue;
-            };
-            let depth = |t: f64| -transform(&add_scaled(eye, dir, t), view)[2];
-            near = near.min(depth(t0));
-            far = far.max(depth(t1));
+    let (visited, triangles) = terrain.receiver_bounds(&planes, 1.0, STANDING_M, |bounds| {
+        stats.clip_tests += 1;
+        if let Some((lo, hi)) = crate::clip::depth_range(bounds, &planes, &corners, view) {
+            near = near.min(lo);
+            far = far.max(hi);
         }
+    });
+    stats.bounds_visited = visited;
+    stats.triangle_tests = triangles;
+    if near.is_finite() {
+        (camera.near.max(near), far)
+    } else {
+        empty
     }
-    if !near.is_finite() {
-        return empty;
-    }
-    (camera.near.max(near), far)
 }
 
 /// The unit direction from `eye` through the near-plane unprojection of an
@@ -259,28 +345,6 @@ pub(crate) fn screen_ray(inverse: &M4, eye: V3, x: f64, y: f64) -> V3 {
         row(1) * iw - eye[1],
         row(2) * iw - eye[2],
     ])
-}
-
-/// Where a ray enters and leaves a box (`rayBox3Interval`).
-fn ray_box(origin: V3, dir: V3, b: &[f64; 6]) -> Option<(f64, f64)> {
-    let (mut enter, mut exit) = (0.0f64, f64::INFINITY);
-    for a in 0..3 {
-        let (lo, hi) = (b[a], b[a + 3]);
-        if dir[a].abs() < 1e-10 {
-            if origin[a] < lo || origin[a] > hi {
-                return None;
-            }
-            continue;
-        }
-        let t_lo = (lo - origin[a]) / dir[a];
-        let t_hi = (hi - origin[a]) / dir[a];
-        enter = enter.max(t_lo.min(t_hi));
-        exit = exit.min(t_lo.max(t_hi));
-        if exit < enter {
-            return None;
-        }
-    }
-    Some((enter, exit))
 }
 
 /// Practical splits: each internal break the midpoint of the uniform and

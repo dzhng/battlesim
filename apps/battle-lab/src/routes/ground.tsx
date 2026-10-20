@@ -1,3 +1,4 @@
+import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
@@ -183,6 +184,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
     built.current = { tick: -Infinity, epoch: -1, revision: -1 };
   }, [client]);
 
+  const [renderScale, setRenderScale] = useState(1);
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
     const tracers = tracerLayer(observation);
@@ -193,11 +195,13 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
       control.selected,
       session.revealed,
       surfaceZ,
+      gameStroke(OPENING_METRES_PER_PX, renderScale),
     );
     const parts = [tracers, remains, orders];
     const view = cells ? buildGroundCellOverlay(cells, shown, surfaceZ) : new Float32Array();
     return combineWorldMeshes([{ translucent: view }, ...parts]);
   }, [
+    renderScale,
     world,
     observation,
     surfaceZ,
@@ -264,6 +268,7 @@ function GroundInspector({ scenario, seed, camera, legend, extra }: InspectorPro
         {...session.viewport}
         initialCamera={camera}
         {...session.input}
+        onFrame={(_project, _camera, _pointer, scale) => setRenderScale(scale)}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="ground-panel">

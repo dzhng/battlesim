@@ -138,3 +138,21 @@ test("ticks and memory are recorded only once timing starts", () => {
   expect(report.ticks.stepMs).toMatchObject({ p50: 1, max: 3 });
   expect(report.ticks.publicationBytes).toMatchObject({ max: 400 });
 });
+
+test("unequal disjoint GPU windows contribute in proportion to measured frames", () => {
+  const rec = new BenchmarkRecording(10000);
+  rec.start(0);
+  for (const [frames, meanMs] of [
+    [90, 10],
+    [10, 30],
+  ]) {
+    rec.sample({
+      elapsedMs: 1000,
+      phase: "hold",
+      gpu: { frames, meanMs, p95Ms: meanMs },
+      memory: { buffers: 0, textures: 0, bufferBytes: 0, textureBytes: 0 },
+      heapBytes: null,
+    });
+  }
+  expect(rec.report(["hold"]).gpu?.meanMs).toBe(12);
+});

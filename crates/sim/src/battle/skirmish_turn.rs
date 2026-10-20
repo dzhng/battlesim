@@ -76,12 +76,6 @@ impl Battle {
             if let Some(view) = frame.skirmish.as_mut() {
                 view.players
                     .retain(|player| player.index == contract::players::PlayerIndex(index as u16));
-                if let Some(state) = self.skirmish.as_ref().and_then(|s| s.players.get(index)) {
-                    view.credits = state.wallet as f64 / crate::skirmish::CREDIT_SCALE as f64;
-                    view.unit_count = frame.own.len() as u32 + state.reservations.len() as u32;
-                    view.pending = state.reservations.iter().map(|r| r.data.clone()).collect();
-                    view.ready[side.index()] = state.ready;
-                }
             }
             let assignment =
                 plans[side.index()].assignment_for(contract::players::PlayerIndex(index as u16));
@@ -121,8 +115,15 @@ impl Battle {
             commands.push((index, id, side, orders));
         }
         for (index, player, side, orders) in commands {
+            // A refused purchase stops the turn's later purchases, so a
+            // purchase plan never buys out of order. The turn's other orders,
+            // readiness and movement, are still issued (I10).
+            let mut purchase_refused = false;
             for order in orders {
                 let purchase = matches!(order, contract::command::Order::ConfirmPurchase { .. });
+                if purchase && purchase_refused {
+                    continue;
+                }
                 let ack = self.issue(CommandEnvelope {
                     side,
                     player: Some(player.clone()),
@@ -131,6 +132,16 @@ impl Battle {
                     queued: false,
                 });
                 let accepted = ack.error.is_none();
+                // A purchase may be refused: a purchase plan names cards the
+                // battle may not sell, and tries them again. Any other order
+                // comes from the AI's own view, so it is never malformed; the
+                // world may still refuse it, out of a state the AI does not
+                // see, such as its order rate or room to stand (I09).
+                debug_assert!(
+                    purchase || !ack.error.as_ref().is_some_and(OrderError::is_malformed),
+                    "{player}'s AI order malformed: {:?}",
+                    ack.error
+                );
                 if purchase {
                     if let Some(ai) = self.skirmish_ai.get_mut(&player) {
                         ai.purchase_result(accepted);
@@ -142,9 +153,7 @@ impl Battle {
                     accepted,
                     error: ack.error,
                 });
-                if purchase && !accepted {
-                    break;
-                }
+                purchase_refused |= purchase && !accepted;
             }
         }
     }

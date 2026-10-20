@@ -2,7 +2,7 @@
 use contract::catalog::TypeIndex;
 use contract::command::OrderError;
 use contract::ids::{Side, Tick, UnitId};
-use contract::players::{ControllerKind, Player};
+use contract::players::{ControllerKind, Player, Seating};
 use contract::skirmish::{
     MatchEvent, MatchReport, MatchTotals, MatchUnit, PendingPurchase, Phase, PurchaseId,
     SkirmishSetup, SkirmishView,
@@ -16,7 +16,7 @@ pub fn setup_for<P: AsRef<[Player]>>(
     sites: contract::encounter::SkirmishSites,
 ) -> SkirmishSetup {
     let players = players.as_ref();
-    debug_assert!(contract::players::validate_players(players).is_ok());
+    debug_assert!(contract::players::validate_players(players, Seating::Skirmish).is_ok());
     debug_assert!(contract::players::validate_entry_counts(players, &sites.entries).is_ok());
     SkirmishSetup {
         rules: starter_rules(),
@@ -37,8 +37,10 @@ pub fn synthetic_sites(
     let [width, depth] = size;
     let fractions: &[f64] = match entries_per_side {
         1 => &[0.5],
-        2 => &[0.35, 0.65],
-        _ => &[0.2, 0.5, 0.8],
+        // Generation lays the second road as one flank arm (0.22-0.38 or
+        // 0.62-0.78 of the edge).
+        2 => &[0.5, 0.3],
+        _ => &[0.5, 0.2, 0.8],
     };
     let mut entries = Vec::with_capacity(fractions.len() * 2);
     for side in [Side::Blue, Side::Red] {
@@ -124,6 +126,23 @@ pub struct Skirmish {
     income_remainder: u64,
 }
 
+impl PlayerState {
+    /// `player`'s seat in a match, with `wallet` to spend.
+    pub fn new(player: &Player, wallet: u64) -> Self {
+        Self {
+            id: player.id.clone(),
+            side: player.side,
+            faction: player.faction.expect("validated combatant faction"),
+            controller: player.controller.clone(),
+            wallet,
+            ready: false,
+            reservations: VecDeque::new(),
+            next_purchase: 0,
+            totals: MatchTotals::default(),
+        }
+    }
+}
+
 impl Skirmish {
     pub fn new(setup: SkirmishSetup, source: &[Player]) -> Self {
         let entry_count = setup.sites.entries.len();
@@ -132,17 +151,7 @@ impl Skirmish {
             * CREDIT_SCALE;
         let players = source
             .iter()
-            .map(|p| PlayerState {
-                id: p.id.clone(),
-                side: p.side,
-                faction: p.faction.expect("validated combatant faction"),
-                controller: p.controller.clone(),
-                wallet: budget,
-                ready: false,
-                reservations: VecDeque::new(),
-                next_purchase: 0,
-                totals: MatchTotals::default(),
-            })
+            .map(|p| PlayerState::new(p, budget))
             .collect::<Vec<_>>();
         let objectives =
             crate::objectives::Objectives::new(setup.sites.objectives.len(), &setup.rules);
@@ -232,14 +241,9 @@ impl Skirmish {
                 pending: p.reservations.iter().map(|r| r.data.clone()).collect(),
             })
             .collect();
-        let first = players.first();
-        let legacy_credits = first.map_or(0.0, |p| p.credits);
-        let legacy_unit_count = first.map_or(0, |p| p.unit_count);
-        let legacy_pending = first.map_or_else(Vec::new, |p| p.pending.clone());
         SkirmishView {
             phase: self.phase,
             players,
-            ready: [false; 2],
             preparation_remaining_s: if self.phase == Phase::Preparation {
                 (u64::from(self.setup.rules.preparation_s) * u64::from(hz)).saturating_sub(tick)
                     as f64
@@ -247,10 +251,6 @@ impl Skirmish {
             } else {
                 0.0
             },
-            credits: legacy_credits,
-            unit_count: legacy_unit_count,
-            max_units: self.setup.rules.max_units,
-            pending: legacy_pending,
             objectives: self.objectives.views(&self.setup.sites.objectives, hz),
             scores: self.objectives.scores(hz),
             result: self.objectives.result,
@@ -384,9 +384,6 @@ impl Skirmish {
                 .u64(p.wallet)
                 .u64(p.ready as u64)
                 .u64(p.next_purchase as u64);
-            if self.setup.sites.entries.len() == 2 {
-                d.u64(self.next_dispatch[crate::entries::centre(&self.setup.sites, p.side).0]);
-            }
             d.u64(p.reservations.len() as u64);
             for r in &p.reservations {
                 d.u64(r.data.id.0 as u64)
@@ -396,16 +393,12 @@ impl Skirmish {
                     .u64(r.data.confirmed_tick)
                     .u64(r.data.blocked as u64)
                     .u64(r.price as u64)
-                    .u64(r.data.arrival_tick.unwrap_or(u64::MAX));
-                if self.setup.sites.entries.len() > 2 {
-                    d.u64(r.data.entry as u64);
-                }
+                    .u64(r.data.arrival_tick.unwrap_or(u64::MAX))
+                    .u64(r.data.entry as u64);
             }
         }
-        if self.setup.sites.entries.len() > 2 {
-            for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
-                d.u64(*clock).u64(*turn as u64);
-            }
+        for (clock, turn) in self.next_dispatch.iter().zip(&self.dispatch_turn) {
+            d.u64(*clock).u64(*turn as u64);
         }
         d.u64(self.entered.len() as u64);
         for (id, u) in &self.entered {

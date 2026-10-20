@@ -27,6 +27,8 @@ pub struct Sizes {
     pub sky_lut: [u32; 2],
     /// Every effect sheet's side in texels: each sheet is square.
     pub effect_sheet: u32,
+    /// A grass clump's stride in the clump buffer, in bytes.
+    pub grass_clump: u64,
 }
 
 #[derive(Deserialize)]

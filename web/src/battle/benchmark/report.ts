@@ -59,7 +59,7 @@ export function createBenchmarkReport(run: {
     identity: run.identity,
     ...(run.preparation && { preparation: run.preparation }),
     measurement:
-      "Frame interval: requestAnimationFrame cadence, redrawn every frame. CPU: the viewport's frame callback. GPU: the battle frame's own timestamp-query frame total, read every 2 s over its last 240 frames; passes overlap on tile GPUs, so there is no per-pass split.",
+      "Frame interval: requestAnimationFrame cadence, redrawn every frame. CPU: the viewport's frame callback. GPU: the battle frame's own timestamp-query frame total, read in disjoint windows of at most 240 samples, reset every 2 s and at phase boundaries; passes overlap on tile GPUs, so there is no per-pass split.",
     simulation: {
       startTick: run.startTick,
       endTick: run.endTick,

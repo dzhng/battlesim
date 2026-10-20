@@ -68,9 +68,13 @@ export async function createEnvironmentFrame(
     /** One depth pass per cascade; `draw` submits the casters. */
     encodeShadows(
       encoder: TgpuCommandEncoder,
-      draw: (pass: TgpuRenderPass, cameraGroup: (typeof shadow.cameraGroups)[number]) => void,
+      draw: (
+        pass: TgpuRenderPass,
+        cameraGroup: (typeof shadow.cameraGroups)[number],
+        cascade: number,
+      ) => void,
     ) {
-      shadow.encode(encoder, (pass, cascade) => draw(pass, shadow.cameraGroups[cascade]));
+      shadow.encode(encoder, (pass, cascade) => draw(pass, shadow.cameraGroups[cascade], cascade));
     },
     stats() {
       return { ...shadow.stats(), castLights: castCount };

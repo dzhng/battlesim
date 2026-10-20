@@ -404,6 +404,9 @@ export async function createBattleFrame(
           timer?.reset();
         },
         settled: () => targets.settled(),
+        resetGpuTiming() {
+          timer?.reset();
+        },
         fogProbes: world.fog,
         grassProbes: world.grassProbes,
         drawnInstances: () => ({
@@ -421,6 +424,10 @@ export async function createBattleFrame(
             instances: passes.instances,
             models: models.stats(),
             buildings: models.buildingStats(),
+            submitted: passes.submitted,
+            terrainVisitedNodes: passes.terrainVisitedNodes,
+            skirtVisitedNodes: passes.skirtVisitedNodes,
+            waterVisitedNodes: passes.waterVisitedNodes,
             worldVertices: passes.worldVertices,
             depth: {
               format: GPU_DEPTH_FORMAT,

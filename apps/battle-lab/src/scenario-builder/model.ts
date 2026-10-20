@@ -3,8 +3,7 @@ import type { GameRules } from "@web/battle/catalog/compose";
 import { FACTIONS, type UnitCatalog } from "@packages/scene-assets/src/units";
 import type { SideName, Engagement } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
-import matchRules from "@fixtures/skirmish.json";
-import { entryCountForPlayers } from "../skirmishSetup";
+import type matchRules from "@fixtures/skirmish.json";
 
 export type BuilderController = "human" | "active_ai" | "passive_ai";
 export type BuilderMode = "sandbox" | "economy";
@@ -65,49 +64,32 @@ export interface BuilderSkirmish {
     }[];
     candidates: never[];
   };
+  openings: Record<string, unknown>;
 }
 
-export type SyntheticSites = (
-  size: readonly [number, number],
-  entriesPerSide: number,
-) => BuilderSkirmish["sites"]["entries"];
+/** The simulation call a skirmish draft's setup comes from. */
+export interface SkirmishSimulation {
+  synthetic_skirmish_setup(size: string, players: string): string;
+}
 
+/** The builder's authoring overrides to the starter rules: a short opening,
+ *  to try a draft quickly. */
+const BUILDER_RULES = { starting_minutes: 2, preparation_s: 20 } as const;
+
+/** The skirmish `scenario` fields: the simulation's own setup (`setup_for`
+ *  over its synthetic sites for the map's size and the players, through
+ *  `synthetic_skirmish_setup`), with only the builder's rule overrides on top. */
 export function builderEconomy(
-  size: readonly [number, number],
-  players: readonly Player[],
-  sitesFor: SyntheticSites,
+  simulation: SkirmishSimulation,
+  scenario: Pick<ScenarioBundleDraft["scenario"], "map" | "players">,
 ): BuilderSkirmish {
-  const [width, depth] = size;
-  return {
-    rules: { ...matchRules, starting_minutes: 2, preparation_s: 20 },
-    sites: {
-      entries: sitesFor(size, entryCountForPlayers(players)),
-      objectives: [
-        {
-          id: "center",
-          center: [width / 2, depth / 2],
-          radius_m: 50,
-          kind: "junction",
-          counterpart: null,
-        },
-        {
-          id: "west",
-          center: [width * 0.25, depth / 2],
-          radius_m: 50,
-          kind: "field",
-          counterpart: "east",
-        },
-        {
-          id: "east",
-          center: [width * 0.75, depth / 2],
-          radius_m: 50,
-          kind: "field",
-          counterpart: "west",
-        },
-      ],
-      candidates: [],
-    },
-  };
+  const setup = JSON.parse(
+    simulation.synthetic_skirmish_setup(
+      JSON.stringify(scenario.map.size),
+      JSON.stringify(scenario.players),
+    ),
+  ) as BuilderSkirmish;
+  return { ...setup, rules: { ...setup.rules, ...BUILDER_RULES } };
 }
 
 /** A compact resolved-map snapshot for the first authoring checkpoint. */

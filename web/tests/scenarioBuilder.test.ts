@@ -1,42 +1,38 @@
 // @vitest-environment node
+// The scenario builder's economy mode fields the simulation's own skirmish
+// setup: Rust's skirmish sites (entries and objectives) and its starter
+// rules, with only the builder's authoring overrides on top.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
-import { builderEconomy } from "@apps/battle-lab/src/scenario-builder/model";
+import matchRules from "@fixtures/skirmish.json";
+import { builderEconomy, emptyBuilderMap } from "@apps/battle-lab/src/scenario-builder/model";
 import { playersFor } from "@apps/battle-lab/src/skirmishSetup";
-
-const size = [3000, 3000] as const;
-let syntheticSites: (
-  size: readonly [number, number],
-  entries: number,
-) => {
-  side: "blue" | "red";
-  center: [number, number];
-  yaw: number;
-}[];
 
 beforeAll(() => {
   const module = wasm.initSync({
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
   });
-  syntheticSites = (mapSize, entries) =>
-    JSON.parse(wasm.synthetic_sites(JSON.stringify(mapSize), entries)).entries;
   // Keep the initialized module alive for this file's calls.
   expect(module.memory).toBeDefined();
 });
 
-test.each([
-  [1, 1],
-  [2, 2],
-  [3, 3],
-] as const)(
-  "builder economy uses Rust synthetic sites centre-first for %s entries",
-  (count, entries) => {
-    const players = playersFor(count, count);
-    const builder = builderEconomy(size, players, syntheticSites);
-    expect(builder.sites.entries).toEqual(syntheticSites(size, entries));
-    expect(builder.sites.entries.filter((entry) => entry.side === "blue")[0]).toEqual(
-      builder.sites.entries[0],
-    );
-  },
-);
+test.each([1, 2, 3])("builder economy fields Rust's skirmish sites for %s a side", (count) => {
+  const map = emptyBuilderMap();
+  const players = playersFor(count, count);
+  const builder = builderEconomy(wasm, { map, players });
+  const setup = JSON.parse(
+    wasm.synthetic_skirmish_setup(JSON.stringify(map.size), JSON.stringify(players)),
+  );
+  expect(builder.sites).toEqual(setup.sites);
+});
+
+test("builder economy keeps Rust's starter rules but for the builder's own overrides", () => {
+  const builder = builderEconomy(wasm, { map: emptyBuilderMap(), players: playersFor(1, 1) });
+  const overridden = new Set(["starting_minutes", "preparation_s"]);
+  const kept = (rules: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(rules).filter(([name]) => !overridden.has(name)));
+  // The starter rules are `fixtures/skirmish.json`, which Rust reads.
+  expect(kept(builder.rules)).toEqual(kept(matchRules));
+  expect(Object.keys(builder.rules).sort()).toEqual(Object.keys(matchRules).sort());
+});
