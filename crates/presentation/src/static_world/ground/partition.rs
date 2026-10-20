@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use std::ops::Range;
 
 use super::mesh::VERTEX_FLOATS;
+use crate::static_world::index::BoundsIndex;
 
 /// Shared spatial batching size; never a visibility cutoff.
 pub const CELL_M: f64 = 256.;
@@ -16,21 +17,14 @@ struct Tile {
     bounds: Bounds,
     vertices: Range<u32>,
 }
-struct Node {
-    bounds: Bounds,
-    contents: Contents,
-}
-enum Contents {
-    Tile(Range<u32>),
-    Branch(usize, usize),
-}
 
 /// One upload and a spatial index. Building is map-wide; selection visits only
 /// intersecting hierarchy branches. An infinite-far view remains infinite:
 /// looking along the horizon can legitimately select the whole map.
 pub struct TerrainPartition {
     vertices: Vec<f32>,
-    nodes: Vec<Node>,
+    tiles: Vec<Range<u32>>,
+    index: BoundsIndex,
 }
 
 impl TerrainPartition {
@@ -79,11 +73,12 @@ impl TerrainPartition {
                 vertices: start..(vertices.len() / VERTEX_FLOATS) as u32,
             });
         }
-        let mut nodes = Vec::with_capacity(tiles.len().saturating_mul(2));
-        if !tiles.is_empty() {
-            build(&mut tiles, &mut nodes);
+        let index = BoundsIndex::new(tiles.iter().map(|t| t.bounds));
+        Self {
+            vertices,
+            tiles: tiles.into_iter().map(|t| t.vertices).collect(),
+            index,
         }
-        Self { vertices, nodes }
     }
 
     pub fn vertices(&self) -> &[f32] {
@@ -95,11 +90,11 @@ impl TerrainPartition {
     /// complete-map scan. Retain the caller-owned vector across frames.
     pub fn select(&self, view_projection: &[f32; 16], ranges: &mut Vec<Range<u32>>) -> usize {
         ranges.clear();
-        let mut visited = 0;
         let planes = clip_planes(view_projection);
-        if !self.nodes.is_empty() {
-            self.visit(0, &planes, ranges, &mut visited);
-        }
+        let visited = self.index.query(
+            |bounds| intersects(bounds, &planes),
+            |id| ranges.push(self.tiles[id].clone()),
+        );
         ranges.sort_unstable_by_key(|range| range.start);
         // Merge adjacent selected tiles into one GPU submission.
         let mut count = 0;
@@ -114,54 +109,6 @@ impl TerrainPartition {
         ranges.truncate(count);
         visited
     }
-
-    fn visit(
-        &self,
-        index: usize,
-        planes: &[ClipPlane; 6],
-        out: &mut Vec<Range<u32>>,
-        visited: &mut usize,
-    ) {
-        *visited += 1;
-        let node = &self.nodes[index];
-        if !intersects(&node.bounds, planes) {
-            return;
-        }
-        match &node.contents {
-            Contents::Tile(range) => out.push(range.clone()),
-            Contents::Branch(a, b) => {
-                self.visit(*a, planes, out, visited);
-                self.visit(*b, planes, out, visited);
-            }
-        }
-    }
-}
-
-fn build(tiles: &mut [Tile], nodes: &mut Vec<Node>) -> usize {
-    let mut bounds = tiles[0].bounds;
-    for tile in &tiles[1..] {
-        for axis in 0..3 {
-            bounds[axis] = bounds[axis].min(tile.bounds[axis]);
-            bounds[axis + 3] = bounds[axis + 3].max(tile.bounds[axis + 3]);
-        }
-    }
-    let index = nodes.len();
-    nodes.push(Node {
-        bounds,
-        contents: Contents::Tile(tiles[0].vertices.clone()),
-    });
-    if tiles.len() > 1 {
-        let axis = usize::from(bounds[4] - bounds[1] > bounds[3] - bounds[0]);
-        let middle = tiles.len() / 2;
-        tiles.select_nth_unstable_by(middle, |a, b| {
-            (a.bounds[axis] + a.bounds[axis + 3])
-                .total_cmp(&(b.bounds[axis] + b.bounds[axis + 3]))
-                .then(a.vertices.start.cmp(&b.vertices.start))
-        });
-        let (left, right) = tiles.split_at_mut(middle);
-        nodes[index].contents = Contents::Branch(build(left, nodes), build(right, nodes));
-    }
-    index
 }
 
 /// WebGPU clip inequalities: -w <= x,y <= w and 0 <= z <= w.

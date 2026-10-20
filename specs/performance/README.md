@@ -111,15 +111,20 @@ do not make local work depend on unrelated remote terrain elevation.
 Timer epochs, actual submission counters and fixed-tick three-view captures are
 integrated. The terrain partition candidate (`5dc40aebd`) is also integrated;
 its browser/native shared selection has focused tests, but GPU/image acceptance
-is still open. Public traversal-stat forwarding and rebuilt WASM are the current
-integration pass. The car-card pilot continues in an isolated worktree.
+is still open. Public traversal stats and rebuilt WASM pass focused integration checks. The
+car-card pilot and moving-window instrumentation are integrated; their GPU/image
+gates remain open. Shared offline card assets and native consumption are in progress.
+The terrain hierarchy is extracted into one allocation-free bounds index for
+reuse by static populations; port those queries after the fitted-caster correction.
 
 Evidence lives in `throwaway/three-view/`. `control-pinned`, `caster-candidate`
 and `control-return` match tick 90, digest `60ede87ba60aab0b`, camera and render
 size. Wide model shadow submissions fall from 53,139,840 to 34,821,352 triangles;
 camera geometry is unchanged. Paired paused images show no visible regression.
-Timing drift in the return control prevents claiming a speedup: the active
-`interleaved.mjs` run alternates frozen control/candidate pages at each zoom.
+Timing drift in the return control prevents claiming a speedup: the
+`interleaved.mjs` comparison alternates control/candidate pages at each zoom.
+Freezing one page during the other's renderer initialization stalled startup;
+the current terrain comparison initializes both before freezing inactive pages.
 The initial paused/live/late capture remains in `baseline/`; its clean views are
 geometry references, with HUD crowding recorded as an unresolved limitation.
 

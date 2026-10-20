@@ -135,7 +135,10 @@ batches. The candidate groups whole triangles into spatial cells and stores a
 binary tree of their enclosing boxes. A query skips a whole branch when its box
 cannot meet the camera or a shadow volume. Crossing triangles keep all their
 original corners and attributes; the cells never cut or simplify the surface.
-Adjacent selected ranges combine into one draw to reduce call overhead.
+Adjacent selected ranges combine into one draw to reduce call overhead. The
+shared bounds index stores where each branch ends, allowing a query to jump
+past rejected regions without allocating a traversal stack. Populations retain
+their own ordering and visibility rules.
 
 - **When:** terrain candidate, `5dc40aebd`.
 - **Gap:** the spec delegated the index layout and range-coalescing policy.
