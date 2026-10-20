@@ -102,8 +102,8 @@ Full closeout checks run once after implementation, with narrower checks per pas
 ## Next Agent Prompt
 
 Core terrain/static bounds, local receiver fitting and per-cascade caster lists
-are integrated. The far-car pilot is rejected and its production machinery is
-being removed; retain the shipped simplified car mesh and existing body cards. No slice is closed and nothing
+are integrated. The far-car pilot was rejected and its production machinery
+removed in `8ce8d4d96`; retain the shipped simplified car mesh and existing body cards. No slice is closed and nothing
 from this reopened run is pushed. Keep final acceptance separate from focused
 contract tests.
 
@@ -125,8 +125,8 @@ ownership if the measured maintenance/memory benefit warrants the change.
 
 The far-car trials failed the acceptance tradeoff: per-sample shading costs about
 72 ms wide GPU versus 31 ms for the previous control; centroid erases 7 eligible
-states; bounded footprint filtering still loses two phases. Remove pilot-only
-code/assets and keep general resource/cache fixes. Other appearance classes
+states; bounded footprint filtering still loses two phases. Pilot-only
+code/assets are removed; general resource/cache fixes are retained. Other appearance classes
 retain their authored meshes or existing scenery policy as documented in
 [the representation decision](slices/impostors.md).
 
