@@ -43,6 +43,12 @@ async function hold(page, target, distance) {
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1280, height: 800 } });
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "battle.graphics",
+      JSON.stringify({ mode: "low", detectedMode: null, lastResult: null }),
+    ),
+  );
   const opened = performance.now();
   try {
     await ctx.openLab(page);
