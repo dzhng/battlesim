@@ -92,9 +92,12 @@ native.
   order before emitting records so list identity and detail decisions stay stable.
   Known props and ruins rebuild their index when knowledge changes. Traversal
   stats count tested hierarchy bounds, separately from emitted instances.
-  Felled trees and stumps query fixed bounds enclosing their full motion, with
-  independent camera and cascade membership. Their index changes when side
-  knowledge changes; offscreen animation still advances from presentation time.
+  Standing trees, felled trees and stumps share an immutable hierarchy enclosing
+  full fall motion, with independent camera and cascade membership. New knowledge
+  filters selected records rather than rebuilding forest geometry. Standing bounds
+  still control standing detail; offscreen animation advances from presentation
+  time. Full known-fall snapshots still cost linear reconciliation/equality work,
+  distinct from local selection and one-time envelope setup.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;

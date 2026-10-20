@@ -80,6 +80,15 @@ export interface SceneryPopulationStats {
   triangles: number;
   casters: number;
 }
+export interface FelledWorkStats {
+  /** Cumulative startup envelope rows. */
+  envelopeRowsTotal: number;
+  /** Cumulative reconciled rows; excludes snapshot equality/replacement work. */
+  snapshotRowsTotal: number;
+  /** Standing/fallen membership tests in the last selection. */
+  membershipChecks: number;
+}
+
 export interface SceneryStats {
   /** Bounds tested by the standing populations, including hierarchy branches. */
   visitedBounds: number;
@@ -95,7 +104,7 @@ export interface SceneryStats {
   dressing: SceneryPopulationStats & { cells: number; bytes: number; pending: boolean };
   /** The felled trees drawn (falling or lying), whether any still falls,
    *  and their stumps. */
-  felled: { trees: number; falling: boolean; stumps: number };
+  felled: { trees: number; falling: boolean; stumps: number; work: FelledWorkStats };
   /** Draw calls in the last whole frame, over every pass. */
   draws: number;
 }
@@ -104,6 +113,7 @@ export interface SceneryStats {
  *  (`scenery_stats`). */
 export interface SceneryWalkStats {
   visitedBounds: number;
+  felledWork: FelledWorkStats;
   /** Instances placed: the forest's, the tree lines' shrubs', the backdrop's. */
   placed: [number, number, number];
   /** Dressing cells the last walk drew, and whether more are wanted. */
@@ -114,6 +124,7 @@ export interface SceneryWalkStats {
 
 export const NO_SCENERY_WALK: SceneryWalkStats = {
   visitedBounds: 0,
+  felledWork: { envelopeRowsTotal: 0, snapshotRowsTotal: 0, membershipChecks: 0 },
   placed: [0, 0, 0],
   cells: 0,
   pending: false,
@@ -838,6 +849,7 @@ export async function createSceneryLayer(
         felled: {
           trees: felled.tiers.reduce((a, b) => a + b, 0),
           falling: walk.falling,
+          work: walk.felledWork,
           stumps: stumps.tiers.reduce((a, b) => a + b, 0),
         },
         draws: lastDraws,

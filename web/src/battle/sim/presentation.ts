@@ -617,11 +617,21 @@ export class ScenePresentation {
 
   /** What the presentation says of the scenery it placed and walked. */
   sceneryWalk(): SceneryWalkStats {
-    const [forest, understorey, backdrop, cells, visitedBounds] = this.rust.scenery_stats();
+    const [
+      forest,
+      understorey,
+      backdrop,
+      cells,
+      visitedBounds,
+      envelopeRowsTotal,
+      snapshotRowsTotal,
+      membershipChecks,
+    ] = this.rust.scenery_stats();
     if (forest === undefined) return NO_SCENERY_WALK;
     return {
       placed: [forest, understorey, backdrop],
       visitedBounds,
+      felledWork: { envelopeRowsTotal, snapshotRowsTotal, membershipChecks },
       cells,
       pending: this.rust.scenery_pending(),
       falling: this.rust.scenery_falling(),

@@ -16,7 +16,7 @@ they shadow visible receivers. Preserve the shared depth/camera convention.
   near-plane boundaries, long/scaled props, camera movement and remote extension.
 - [x] Implement bounded steady selection for terrain, buildings, standing and
   felled scenery, props, water and boundary meshes, plus receiver accounting.
-- [ ] Remove population-sized spatial rebuilds when a new fall is learned.
+- [x] Remove population-sized spatial rebuilds when a new fall is learned.
   Account separately for full publication-snapshot reconciliation; stationary
   query bounds do not prove live mutation bounds.
 - [x] Independently select shadow casters; test an offscreen object shadowing
@@ -53,7 +53,14 @@ Receiver fitting reuses identical camera/light/terrain inputs and invalidates on
 replacement or world reload. Counters report executed work, including zero
 traversal on reuse. With 64/1,024/16,384 off-axis remote tiles, fresh fits visit
 13/21/29 bounds and test/clip two triangles; this does not bound terrain genuinely
-visible at the horizon. Felled-tree queries use fixed conservative motion envelopes
-and rebuild on knowledge changes; offscreen time still advances. Their growth
-test retains local records while visiting 59/91/107 bounds for 64/1,024/4,096
-remote trees. The integrated static-world suite passes 72 tests.
+visible at the horizon. Standing and felled trees share one immutable hierarchy
+widened once for conservative fall envelopes; knowledge changes update membership
+without rebuilding geometry or the hierarchy. Offscreen time still advances.
+The remote-fall test performs zero additional envelope initialization and 12 local
+membership checks at populations of 67/1,027/4,099. Query visits are 64/104/124;
+wider bounds trade some over-selection for avoiding mutation rebuilds. Standing
+geometry stays resident (1.62 MB of geometry/chunk vectors in the largest sparse
+fixture, excluding index/hash/output overhead). Snapshot equality, reconciliation
+and replacement still scale with known falls. The integrated static-world suite
+passes 74 tests; browser diagnostics expose the owner's work counters without
+claiming they include all snapshot handling.

@@ -779,8 +779,9 @@ impl SceneryWalk {
     }
 
     /// Instances placed per population (forest, understorey, backdrop) and
-    /// dressing cells drawn, then standing and felled bounds visited by the last walk.
-    pub fn stats(&self) -> [usize; 5] {
+    /// dressing cells drawn, bounds visited, then `felled_work` counters.
+    pub fn stats(&self) -> [usize; 8] {
+        let work = self.felled_work();
         [
             self.forest.placed() - self.felled_spatial.known.len(),
             self.understorey.pop.placed(),
@@ -790,6 +791,9 @@ impl SceneryWalk {
                 + self.understorey.pop.visited
                 + self.backdrop.visited
                 + self.felled_spatial.visited,
+            work[0],
+            work[1],
+            work[2],
         ]
     }
 }

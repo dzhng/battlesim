@@ -108,11 +108,14 @@ contract tests.
 
 Water/boundary ranges (`3a1fd9988`), receiver caching/counters (`e3eb9629e`)
 and felled/stump selection (`6d8b40389`) are integrated. Focused integration
-checks pass; final rendered acceptance remains. A fresh review found that new
-fallen-tree knowledge still rebuilds standing/fallen populations inside a frame;
-a follow-up is replacing those spatial rebuilds with immutable membership
-filtering. Full snapshot reconciliation remains a separate cost. Public diagnostics include
-water/boundary visits and executed receiver work. The updated terrain-growth
+checks pass; final rendered acceptance remains. Immutable forest membership
+(`51118fac1`) removes spatial/geometry rebuilds when a new fall is learned.
+Standing geometry remains resident; conservative fall envelopes can admit more
+candidates. Full known-snapshot reconciliation remains O(F), including equality
+and replacement work. Public diagnostics separate cumulative envelope setup and
+snapshot rows from last-selection membership checks, alongside water/boundary
+visits and executed receiver work. Snapshot-row counters exclude equality and
+replacement costs; they are not whole-frame timings. The updated terrain-growth
 run passes 30 windows and shows zero receiver work on unchanged holds; fresh
 fit growth and invalidation have separate Rust coverage. Moving-camera CPU
 cost still needs the final production run.

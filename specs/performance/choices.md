@@ -195,3 +195,25 @@ frame for an identical answer. This does not cache animated membership lists.
   diagnostics report zero executed receiver work during holds.
 - **Confidence:** high for unchanged views; moving views still recompute and
   require their own performance measurement.
+
+
+### Keep forest geometry when a tree is learned fallen
+
+When a distant tree falls, rebuilding every standing tree makes a local view pay
+for the whole forest. Keep the installed geometry and widen its spatial search
+boxes once to include possible falling poses. Selected chunks check the side's
+known-fall membership to choose standing or fallen records. Original standing
+bounds still decide visibility and detail. This keeps dead trees' standing storage
+resident and may visit extra candidates, but avoids a second geometry copy and a
+separate fallen-tree index. Full incoming snapshots still require work proportional
+to known falls; this is not a constant-cost publication protocol.
+
+- **When:** immutable forest pass `51118fac1` and diagnostic forwarding.
+- **Gap:** the spec required bounded mutation work without choosing storage ownership.
+- **Reach:** both clients share the Rust selection; public diagnostics distinguish
+  cumulative setup/reconciliation rows from last-selection membership checks.
+  Those counters exclude snapshot equality/replacement work.
+- **Verdict:** sound; a single immutable geometry/index owner avoids world-sized
+  mutation rebuilds without changing side knowledge or fall animation.
+- **Confidence:** medium; the residency and conservative-query tradeoff is explicit,
+  while final moving/live production measurements remain required.

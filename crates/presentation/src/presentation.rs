@@ -1131,8 +1131,8 @@ impl Presentation {
         self.scenery.as_ref().is_some_and(|w| w.falling)
     }
 
-    /// Instances placed per scenery population and dressing cells drawn.
-    pub fn scenery_stats(&self) -> Option<[usize; 5]> {
+    /// Scenery populations, query visits and known-fall work.
+    pub fn scenery_stats(&self) -> Option<[usize; 8]> {
         self.scenery.as_ref().map(SceneryWalk::stats)
     }
 
