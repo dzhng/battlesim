@@ -40,9 +40,10 @@ use detail::{card_bounds, projected_bounds_px};
 
 use crate::records::{CAST_PASS, VIEW_PASS};
 use crate::seed::Key;
+use crate::shadow::CasterVolumes;
 use crate::static_world::batches::{List, Population};
 use crate::static_world::fallen::Known;
-use crate::static_world::walk::{casts_into, Record, Shadow};
+use crate::static_world::walk::Record;
 use crate::view::{
     caster_tier, model_detail, model_fog, View, CULLED, IMPOSTOR, SHADOW_MARGIN_M, TIERS,
 };
@@ -767,7 +768,7 @@ impl PropPopulation {
 }
 
 impl Population for PropPopulation {
-    fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
+    fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>) -> bool {
         let mut lists = vec![Vec::new(); self.lists.len()];
         let this = &*self;
         let n = self.looks.list.len() * PROP_TIERS;
@@ -784,13 +785,12 @@ impl Population for PropPopulation {
             if tier != CULLED {
                 lists[m.look * PROP_TIERS + tier as usize].push(m.record);
             }
-            // Camera detail and shadow membership are independent. Reuse the
-            // static world's receiver sweep, including its existing reach.
+            // Shadow membership is independent of camera visibility and detail.
             let [x, y, z] = at;
             let center_z = z + m.size / 2.0;
             let r = m.radius;
             let bounds = [x - r, y - r, center_z - r, x + r, y + r, center_z + r];
-            if casts_into(view, shadow, &bounds, bounds[5].max(0.0)) {
+            if shadow.is_some_and(|s| s.intersects(&bounds)) {
                 let cast = if tier == CULLED {
                     TIERS - 1
                 } else {
@@ -799,9 +799,11 @@ impl Population for PropPopulation {
                 lists[n + m.look * PROP_TIERS + cast].push(m.record);
             }
         };
-        for chunk in this.chunks.iter().filter(|c| {
-            view.sees_box(&c.bounds) || casts_into(view, shadow, &c.bounds, c.bounds[5].max(0.0))
-        }) {
+        for chunk in this
+            .chunks
+            .iter()
+            .filter(|c| view.sees_box(&c.bounds) || shadow.is_some_and(|s| s.intersects(&c.bounds)))
+        {
             for &i in chunk.models.iter().filter(|&&i| !this.hidden[i]) {
                 take(&this.map[i]);
             }

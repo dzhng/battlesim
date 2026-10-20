@@ -25,8 +25,9 @@ use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
 use crate::records::{CAST_PASS, FOG_FACES, NONE, VIEW_PASS};
+use crate::shadow::CasterVolumes;
 use crate::static_world::batches::{print, List, Population, PRINT_BASIS};
-use crate::static_world::walk::{casts_into, Record, Shadow};
+use crate::static_world::walk::Record;
 use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::FRAC_PI_2;
@@ -187,15 +188,15 @@ impl Pop {
         }
     }
 
-    fn select(&mut self, view: &View, shadow: Option<&Shadow>, lod: &[f64; 3]) {
+    fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>, lod: &[f64; 3]) {
         let n = self.kinds * TIERS;
         self.view
             .iter_mut()
             .chain(&mut self.cast)
             .for_each(Vec::clear);
         self.prints.fill(print(PRINT_BASIS, self.generation));
-        let shadow = shadow.filter(|_| self.casts);
         for (c, chunk) in self.chunks.iter().enumerate() {
+            let casts = self.casts && shadow.is_some_and(|s| s.intersects(&chunk.bounds));
             let whole = |out: &mut Vec<Vec<Record>>, prints: &mut [u64], at: usize| {
                 for k in 0..self.kinds {
                     let list = k * TIERS + LAST;
@@ -204,7 +205,7 @@ impl Pop {
                 }
             };
             if !view.sees_box(&chunk.bounds) {
-                if casts_into(view, shadow, &chunk.bounds, chunk.size) {
+                if casts {
                     whole(&mut self.cast, &mut self.prints, n);
                 }
                 continue;
@@ -212,7 +213,7 @@ impl Pop {
             let distance = view.distance_to_box(&chunk.bounds);
             if tier_for(chunk.size, distance, view, lod) == LAST {
                 whole(&mut self.view, &mut self.prints, 0);
-                if shadow.is_some_and(|s| distance <= s.reach) {
+                if casts {
                     whole(&mut self.cast, &mut self.prints, n);
                 }
                 continue;
@@ -230,7 +231,7 @@ impl Pop {
                     let mark = ((c as u64) << 32) | i as u64;
                     self.view[k * TIERS + t].push(*r);
                     self.prints[k * TIERS + t] = print(self.prints[k * TIERS + t], mark);
-                    if self.casts {
+                    if casts {
                         let m = k * TIERS + caster_tier(t);
                         self.cast[m].push(*r);
                         self.prints[n + m] = print(self.prints[n + m], mark);
@@ -516,7 +517,7 @@ impl SceneryWalk {
         moved
     }
 
-    fn select(&mut self, ground: &Ground, view: &View, shadow: Option<&Shadow>) {
+    fn select(&mut self, ground: &Ground, view: &View, shadow: Option<&CasterVolumes>) {
         let lod = ground
             .biome
             .trees
@@ -803,7 +804,7 @@ pub struct SceneryPopulation<'a> {
 }
 
 impl Population for SceneryPopulation<'_> {
-    fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
+    fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>) -> bool {
         self.walk.select(self.ground, view, shadow);
         true
     }

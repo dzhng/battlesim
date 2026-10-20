@@ -4,8 +4,8 @@
 //! Sim space, `f64` as the browser's walk was.
 //!
 //! - **Coarse.** Every chunk in view draws its standing buildings' coarsest
-//!   rows, and casts them within the shadows' reach; a chunk out of view whose
-//!   shadow lands in it casts them.
+//!   rows, and casts them when its box meets a fitted cascade; an offscreen
+//!   chunk meeting a cascade casts its coarse rows too.
 //! - **Resident.** A chunk whose nearest point calls for a finer tier draws its
 //!   rows at that tier instead, nearest first while the pool holds them, and
 //!   casts them a tier coarser. The rest draw coarse.
@@ -13,6 +13,7 @@
 //!   template's rows for that state, chunked by where it stands, at the tier
 //!   its chunk takes.
 use crate::records::{CAST_PASS, FOG_FACES, VIEW_PASS};
+use crate::shadow::CasterVolumes;
 use crate::static_world::batches::{List, Population};
 use crate::static_world::buildings::{BuildingModule, Buildings};
 use crate::view::{building_tier, caster_tier, View, TIERS};
@@ -24,38 +25,14 @@ const COARSEST: usize = TIERS - 1;
 /// linear tint and -1 (no card), the scale per axis and 0.
 pub type Record = [f32; 16];
 
-/// The sun's shadows for a view: their fall across the ground per metre of
-/// height, and the farthest they are received.
-pub struct Shadow {
-    pub fall: [f64; 2],
-    pub reach: f64,
-}
-
 /// A box: min x, y, z, max x, y, z.
 type Box6 = [f64; 6];
 
-/// Whether a chunk out of `view` casts into it: its box swept along the fall
-/// of a shadow `size` metres tall meets the view within the reach.
-pub(crate) fn casts_into(view: &View, shadow: Option<&Shadow>, b: &Box6, size: f64) -> bool {
-    let Some(s) = shadow else { return false };
-    let [fx, fy] = s.fall.map(|f| f * size);
-    let swept = [
-        b[0] + fx.min(0.0),
-        b[1] + fy.min(0.0),
-        b[2],
-        b[3] + fx.max(0.0),
-        b[4] + fy.max(0.0),
-        b[5],
-    ];
-    view.distance_to_box(&swept) <= s.reach && view.sees_box(&swept)
-}
-
-/// Buildings bucketed together: their box, the tallest's height, them, and
+/// Buildings bucketed together: their box, them, and
 /// the rows they draw (the coarse ones, or the fallen ones in their state).
 #[derive(Default)]
 struct Chunk {
     bounds: Box6,
-    size: f64,
     buildings: Vec<usize>,
     rows: Vec<BuildingModule>,
 }
@@ -72,7 +49,6 @@ impl Chunk {
             self.bounds[k] = self.bounds[k].min(bounds[k]);
             self.bounds[k + 3] = self.bounds[k + 3].max(bounds[k + 3]);
         }
-        self.size = self.size.max((r.max[2] - r.min[2]) as f64);
         self.buildings.push(b);
     }
 }
@@ -188,7 +164,7 @@ impl BuildingWalk {
 
     /// Walks `view`; returns the keys (`module · TIERS + tier`) whose drawn
     /// or cast instances changed since the last walk.
-    pub fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> Vec<usize> {
+    pub fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>) -> Vec<usize> {
         let keys = self.counts.len();
         let mut lists = std::mem::take(&mut self.scratch);
         for lists in [&mut lists.view, &mut lists.cast] {
@@ -212,7 +188,7 @@ impl BuildingWalk {
         let (mut near, mut coarse) = (vec![], vec![]);
         for (c, chunk) in self.chunks.iter().enumerate() {
             if !view.sees_box(&chunk.bounds) {
-                if casts_into(view, shadow, &chunk.bounds, chunk.size) {
+                if shadow.is_some_and(|s| s.intersects(&chunk.bounds)) {
                     for r in self.coarse_rows(c) {
                         lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
                     }
@@ -221,14 +197,15 @@ impl BuildingWalk {
             }
             let d = view.distance_to_box(&chunk.bounds);
             match building_tier(view, d, &self.lod) {
-                COARSEST => coarse.push((c, shadow.is_some_and(|s| d <= s.reach))),
+                COARSEST => coarse.push((c, shadow.is_some_and(|s| s.intersects(&chunk.bounds)))),
                 t => near.push((d, c, t)),
             }
         }
         near.sort_by(|a, b| a.0.total_cmp(&b.0));
         let (mut used, mut full, mut expanded, mut refused) = (0, false, 0, 0);
         let mut kept = HashMap::new();
-        for (d, c, t) in near {
+        for (_, c, t) in near {
+            let casts = shadow.is_some_and(|s| s.intersects(&self.chunks[c].bounds));
             let rows = match self.resident.remove(&(c, t)) {
                 Some(rows) => rows,
                 None => {
@@ -240,12 +217,18 @@ impl BuildingWalk {
             full = full || used + rows.len() > self.pool;
             if full {
                 refused += 1;
-                coarse.push((c, shadow.is_some_and(|s| d <= s.reach)));
+                coarse.push((c, casts));
                 continue;
             }
             used += rows.len();
             for r in &rows {
-                draw(&mut lists, &mut counts, r, t, Some(caster_tier(t)));
+                draw(
+                    &mut lists,
+                    &mut counts,
+                    r,
+                    t,
+                    casts.then_some(caster_tier(t)),
+                );
             }
             kept.insert((c, t), rows);
         }
@@ -274,11 +257,11 @@ impl BuildingWalk {
                         draw(&mut lists, &mut counts, r, t, None);
                         self.stats[7 + t] += 1;
                     }
-                    if shadow.is_some_and(|s| d <= s.reach) && has(r, COARSEST) {
+                    if shadow.is_some_and(|s| s.intersects(&chunk.bounds)) && has(r, COARSEST) {
                         lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
                     }
                 }
-            } else if casts_into(view, shadow, &chunk.bounds, chunk.size) {
+            } else if shadow.is_some_and(|s| s.intersects(&chunk.bounds)) {
                 for r in chunk.rows.iter().filter(|r| has(r, COARSEST)) {
                     lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
                 }
@@ -324,7 +307,7 @@ pub struct BuildingPopulation {
 }
 
 impl Population for BuildingPopulation {
-    fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
+    fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>) -> bool {
         let changed = !self.walk.select(view, shadow).is_empty();
         self.changes += u64::from(changed);
         changed

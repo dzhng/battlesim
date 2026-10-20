@@ -33,6 +33,28 @@ const GRID: u32 = 12;
 type V3 = [f64; 3];
 type M4 = [f32; 16];
 
+/// The fitted cascade volumes used by both renderers, prepared once per walk.
+pub struct CasterVolumes {
+    planes: Vec<[crate::clip::ClipPlane; 6]>,
+}
+
+impl CasterVolumes {
+    pub fn new(casters: &[crate::records::Camera]) -> Self {
+        Self {
+            planes: casters
+                .iter()
+                .map(|c| crate::clip::clip_planes(&c.view_proj))
+                .collect(),
+        }
+    }
+
+    pub fn intersects(&self, bounds: &[f64; 6]) -> bool {
+        self.planes
+            .iter()
+            .any(|p| crate::clip::intersects(bounds, p))
+    }
+}
+
 /// One frame's sun shadow: the receiver block every lit shader reads, and
 /// each fitted cascade's caster camera (`casters[i]` renders cascade `i`;
 /// as many as are active).

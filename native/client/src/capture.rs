@@ -316,7 +316,6 @@ impl Replay {
             battle: Some(battle),
             sun_azimuth: light.sun_azimuth,
             sun_elevation: light.sun_elevation,
-            cascade_far_m: Some(light.cascades.max_far_m),
             buildings: Some(style),
         };
         presentation.load_world(input, fielded.tables, Some(buildings))?;

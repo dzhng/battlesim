@@ -29,7 +29,7 @@ use crate::records::{
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
 use crate::shadow::{sun_shadow, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
-use crate::static_world::batches::{Population, StaticBatches, Sun};
+use crate::static_world::batches::{Population, StaticBatches};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
@@ -229,7 +229,6 @@ pub struct Presentation {
     knowledge: Knowledge,
     fallen: Vec<(usize, usize)>,
     known_from: KnownFrom,
-    sun: Option<Sun>,
     statics: StaticBatches,
     /// The map's ground (`set_ground`), and its scenery's walk once placed.
     ground: Option<Ground>,
@@ -356,7 +355,6 @@ impl Presentation {
             knowledge: Knowledge::default(),
             fallen: Vec::new(),
             known_from: KnownFrom::Unread,
-            sun: None,
             statics: StaticBatches::default(),
             ground: None,
             scenery: None,
@@ -527,11 +525,6 @@ impl Presentation {
                 .map(|(name, state, draws)| world.drawn_row(name, state, NONE, 0, true, *draws))
                 .collect();
         }
-        self.sun = input.cascade_far_m.map(|far_m| Sun {
-            azimuth: input.sun_azimuth,
-            elevation: input.sun_elevation,
-            far_m,
-        });
         self.statics.invalidate();
         self.loaded = None;
         let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
@@ -1124,6 +1117,7 @@ impl Presentation {
     /// past the near plane) from the next frame on; none fits none.
     pub fn set_shadow(&mut self, shadow: Option<(LightSettings, Option<[f64; 6]>)>) {
         self.shadow = shadow;
+        self.statics.rewalk();
     }
 
     /// Wanted dressing cells are still to be laid: frame again before
@@ -1378,14 +1372,8 @@ impl Presentation {
             populations.push(p);
         }
         let f = &mut self.frame;
-        self.statics.write(
-            &mut populations,
-            camera,
-            &view,
-            self.sun.as_ref(),
-            generation,
-            f,
-        );
+        self.statics
+            .write(&mut populations, camera, &view, generation, f);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
         else {
             return Ok(&self.frame);

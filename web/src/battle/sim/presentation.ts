@@ -658,7 +658,6 @@ export class ScenePresentation {
     const lit = sun && {
       sun_azimuth: sun.azimuth,
       sun_elevation: sun.elevation,
-      cascade_far_m: sun.farM,
     };
     this.loaded = this.loadWorld(
       { ...battle?.world, ...lit, buildings: drawn ? style : undefined },
