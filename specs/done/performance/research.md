@@ -2,8 +2,9 @@
 
 ## Contract
 
-The target is a 25% relative frame-time reduction on the browser and native
-renderers with unchanged presentation output. Browser and native must continue
+The original target was a 25% relative frame-time reduction on browser and
+native. On 2026-10-20 the user superseded it with “Keep only simple, clearly
+measurable wins.” Percentage reduction is no longer the completion gate. Browser and native must continue
 to consume the same presentation records and asset identities. Download work is
 measured as compressed runtime bytes before the first frame.
 
@@ -12,18 +13,26 @@ with native checked by `native-client --bench` on the same capture. Runtime art
 was fetched for the current runs; native measurements use the available
 llvmpipe adapter and are therefore directional for hardware GPU performance.
 
+## Earlier shipped baseline — 2026-10-18
+
+These entries shipped before the reactive and XL work. The later instruction
+to keep only simple, measurable wins governs further work; it does not claim
+new evidence for these inherited shaders. Grass and shadow-filter marginal
+speedups remain uncertain. They are retained baseline behavior, not new wins
+reported by this closeout.
+
 ## Attempt ledger
 
 | Candidate | Parent | Result | Evidence |
 | --- | --- | --- | --- |
 | Load only skeleton clips referenced by the selected roster/factions | catalog loader before this change | keep | `loader.test.ts`, `appearanceCatalog.test.ts`; typecheck passes |
 | Benchmark browser/native reel | unchanged checkout | blocked | graphics test refused the run on a Git LFS pointer |
-| Precompute grass clump yaw in the build pass | unchanged renderer | keep provisionally | Browser matched reel; native short replay; shader export and visual-count checks pass |
+| Precompute grass clump yaw in the build pass | unchanged renderer | shipped baseline; marginal gain uncertain | Browser matched reel; native short replay; shader export and visual-count checks pass |
 | Replace camera-record string serialization with a generation counter | grass candidate | discard | Browser CPU medians changed only 0.09 ms (market-town) and 0.01 ms (paris-corner); GPU unchanged |
 | Carry model yaw sine/cosine in the shared instance record | grass candidate | invalid | The graphics reel exceeded its 900 s scene timeout after the record-layout expansion; reverted before promotion |
 | Reuse the existing model colour word for packed yaw sine/cosine | unchanged renderer | discard | Full browser reel completed, but market-town GPU 14.41 → 14.48 ms and paris-corner 10.79 → 10.92 ms; reverted |
-| Skip shadow PCF taps outside a cascade | unchanged renderer | keep provisionally | Browser market-town 14.41 → 14.36 ms and paris-corner 10.79 → 10.82 ms; native llvmpipe 1388.71 → 1387.03 ms. Output is identical outside the cascade; gains are near the measurement noise floor |
-| Unroll the fixed five-tap Vogel PCF kernel | shadow early-return candidate | keep provisionally | Browser market-town 14.36 → 14.35 ms and paris-corner unchanged; full reel and pipeline validation pass |
+| Skip shadow PCF taps outside a cascade | unchanged renderer | shipped baseline; marginal gain uncertain | Browser market-town 14.41 → 14.36 ms and paris-corner 10.79 → 10.82 ms; native llvmpipe 1388.71 → 1387.03 ms. Output is identical outside the cascade; gains are near the measurement noise floor |
+| Unroll the fixed five-tap Vogel PCF kernel | shadow early-return candidate | shipped baseline; marginal gain uncertain | Browser market-town 14.36 → 14.35 ms and paris-corner unchanged; full reel and pipeline validation pass |
 | Specialize fixed shore-noise rotation angles | shadow PCF candidate | discard | Full browser reel completed, but market-town GPU 14.35 → 14.38 ms and paris-corner 10.82 → 10.83 ms; reverted |
 
 ## Parameter-effect map
@@ -39,12 +48,10 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 
 ## Handoff
 
-The active target is now the production Metro XL stress case, at 100 units per
-side. Earlier market-town frame pacing was accepted by the user at roughly
-39 FPS 1% low. The XL findings below supersede the earlier CPU-first priority.
-The controlled distant-car change saves about 12% GPU time; this does not prove
-the original 25% browser/native frame-time target. Native hardware performance
-and the remaining XL frame-time gap are still open.
+The reactive market-town and XL work is complete under the user’s revised
+simple-measurable-wins criterion. The user accepted roughly 39 FPS market-town
+1% low. The distant-car change reduces measured XL opening GPU duration by
+about 12%; no native hardware GPU speedup or universal frame-rate gain is claimed.
 
 ## Reactive baseline — 2026-10-19
 
@@ -116,10 +123,8 @@ The first output-equivalent Rust pass reuses `Loaded` scratch vectors for
 high-air shadows and x-ray membership lists. The focused Rust presentation
 suite and commit hooks passed. A browser `graphics-fps` run reached the
 `market-town` stage but did not complete within five minutes and was stopped;
-there is no accepted before/after FPS result. The pass therefore remains an
-allocation-hygiene candidate, not a measured trigger improvement. The next
-measurement must use a bounded, completing reel before ranking another
-intervention.
+there is no accepted before/after FPS result. This early run alone did not justify acceptance; the following native A/B
+and completed browser reel supersede its pending status.
 
 ## Native A/B for scratch reuse — 2026-10-19
 
@@ -252,8 +257,10 @@ Deltas are not additive on a tile GPU. The sampled opening has only two sparse
 scar pages, so this does not characterize a large late-state scar footprint.
 Scratch evidence is in `throwaway/xl-audit/` (not versioned).
 
-Full-map terrain submission remains structurally unbounded (643,044 vertices in
-this world), but it does not explain most of the measured shadow overhead.
+Full-map terrain submission remains structurally unbounded, but it does not
+explain most of the measured shadow overhead. The 643,044 `worldVertices`
+metric combines ground, prop/skirt and water meshes; it is not a terrain-only
+vertex count.
 Prioritize conservative model/prop caster filtering against actual fitted
 cascade volumes. Configured shadow reach alone is insufficient because cascade
 fitting can extend farther. A fixed-view map-size invariant requires matching
@@ -307,8 +314,9 @@ also cast using tier 3, so the mid view’s shadow comparison matters. The corre
 battle and asserts equal instance counts (100,370) and exactly 3,070,848 fewer
 triangles in each candidate arm. Baseline GPU means are 32.57 / 32.81 / 31.94 ms;
 candidate means are 27.44 / 29.58 / 28.63 ms: about 3.9 ms (12%) lower on average.
-No cars are omitted. Live/late-state confirmation and closeout checks remain
-pending. This is GPU duration, not a claim about achieved frame cadence.
+No cars are omitted. The later production confirmation and native consumer
+sections record completed integration checks. This is GPU duration, not a
+claim about achieved frame cadence.
 
 ## Direct culling audit
 
@@ -435,3 +443,31 @@ submission remains structurally map-wide; this experiment rejects its priority
 as the current stress fix, not the value of spatial terrain selection at every
 possible map density. Whole-terrain omission includes visible shading, so its
 ~4.3 ms difference was not available through off-view culling.
+
+## Closeout verification — 2026-10-20
+
+The repository closeout ran formatting, lint, WASM/tool builds, typechecking and
+the full Rust workspace suite successfully, including all 1,122 simulation
+tests. Its web stage exposed unhydrated LFS icon inputs and a test-only startup
+race. Restoring the cached source bytes made all six icon tests pass. Native
+and HTTP cancellation fixtures now wait for atomic readiness announcements and
+always settle their pending operations; their actual process-termination and
+artifact-cleanup assertions remain intact. Delayed-startup reproduction and an
+early-resolution mutation proved those assertions still distinguish failure.
+
+A full web rerun passed 191 files / 1,269 tests before the focused test-file
+extraction. The subsequent full run after extraction had only the reintroduced
+LFS-input failures; all other tests passed. After the final responsibility split
+and fixes, all 25 affected tests across three files, typechecking, and all six
+hydrated icon tests pass. Hooks enforced formatting and file-size limits; no
+ratchet waiver or production process change was introduced. Evidence lives in
+`throwaway/xl-audit/final-check.log`, `final-web-check.log`,
+`final-web-after-split.log`, `cancel-split-fixed-tests.log` and
+`final-icons-closeout.log`. Browser visual, endurance and native consumer proofs
+for the shipped performance change are recorded above and remain applicable.
+
+The user’s revised acceptance criterion ends further tuning here. No fixed FPS
+floor or native hardware GPU speedup is claimed. The rejected wall and terrain
+experiments, temporary profiling hooks, and candidate resources are absent from
+production. Both requested renderer skill copies carry the same architectural
+principles.
