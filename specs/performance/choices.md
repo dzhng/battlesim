@@ -97,3 +97,17 @@ consumers so a browser-only shortcut cannot masquerade as an engine improvement.
 - **Verdict:** sound; prototype opaque cars first and retain meshes where cards
   cannot preserve appearance, rather than committing every class to sprites.
 - **Confidence:** medium; required material/depth channels await the visual pilot.
+
+### Invalidate old timing results without waiting for the GPU
+
+After moving the camera, a readback from the previous view can finish late.
+Reset now marks a new measurement generation: the old readback still releases
+its buffer normally but cannot enter the new view's statistics. Blocking until
+every old readback completes would unnecessarily stall the rendering thread.
+
+- **When:** timer reset pass, `79cdb00cf`.
+- **Gap:** the plan required clean windows without prescribing synchronization.
+- **Reach:** explicit measurement resets and existing renderer reset paths.
+- **Verdict:** sound; generation is captured when a frame begins, covering resets
+  between begin, submission and collection as well as delayed promises.
+- **Confidence:** high; delayed and rejected readbacks are regression tested.

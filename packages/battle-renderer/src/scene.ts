@@ -133,6 +133,9 @@ export interface FrameStats {
   /** Buildings drawn from template art: what a view draws of them, the
    *  pool's residency and what the last view change cost. */
   buildings: BuildingStats;
+  /** Actual partial-world submissions, split by pass and cascade. */
+  submitted: import("./frame/submitted").SubmittedFrame;
+  /** Installed world mesh vertices, not submitted geometry. */
   worldVertices: number;
   depth: InstalledDepthState;
   view: FrameView;

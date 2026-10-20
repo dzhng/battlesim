@@ -15,6 +15,8 @@ import { BattleView } from "../BattleView";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
 import { gameCamera } from "../gameCamera";
+import { createViewMeasurement } from "../benchmark/viewMeasurement";
+import { CameraController } from "@packages/renderer-core/src/cameraController";
 import { playersFor } from "../skirmishSetup";
 
 const CAMERA: Camera3DParams = {
@@ -58,6 +60,9 @@ function heapMiB(): number | null {
 }
 
 export default function Endurance() {
+  const measureViews = new URLSearchParams(window.location.search).get("views") === "1";
+  const [viewMeasurement] = useState(createViewMeasurement);
+  const warmedScenario = useRef<string | null>(null);
   const generated = new URLSearchParams(window.location.search).get("generated") === "1";
   const [late, setLate] = useState(
     () => new URLSearchParams(window.location.search).get("late") === "1",
@@ -120,6 +125,9 @@ export default function Endurance() {
   if (buildFailed(built)) return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;
 
+  const cameraConfig = built.report
+    ? gameCamera.forMap(built.report.size, built.report.extents.rendered)
+    : gameCamera.config;
   const telemetry = ({ sim, gpuAllocations, gpuFrame }: BattleSession) => {
     const o = sim.latest.current;
     return {
@@ -189,11 +197,24 @@ export default function Endurance() {
       scenario={built.scenario}
       prepared={"connect" in built ? built : undefined}
       seed={seed}
+      scripted={
+        measureViews
+          ? {
+              warmTo: 90,
+              onWarm: () => {
+                warmedScenario.current = built.scenario;
+              },
+              onTick: viewMeasurement.tick,
+              pilot: viewMeasurement.pilot,
+            }
+          : undefined
+      }
       camera={
         built.report
           ? { ...CAMERA, target: [built.report.size[0] / 2, built.report.size[1] / 2, 0] }
           : CAMERA
       }
+      cameraConfig={cameraConfig}
       status={status}
       menu={menu}
       diagnostics={(session) => ({
@@ -201,6 +222,22 @@ export default function Endurance() {
         late: () => late,
         preparation: () => built.report,
         resetFrames: () => (frames.current = []),
+        ...(measureViews
+          ? {
+              placeView: (target: readonly [number, number], distance: number) => {
+                const rig = new CameraController(cameraConfig);
+                viewMeasurement.place({
+                  target,
+                  distance,
+                  yaw: -1.57,
+                  pitch: rig.pitchAt(distance),
+                });
+              },
+              viewWarmed: () => warmedScenario.current === built.scenario,
+              beginViewMeasurement: viewMeasurement.begin,
+              viewMeasurement: viewMeasurement.read,
+            }
+          : {}),
       })}
     />
   );

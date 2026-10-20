@@ -242,18 +242,17 @@ export interface ViewportPilot {
   /** Show the in-game frame-rate counter, which a piloted view otherwise
    *  hides (the graphics test shows it; the menu's reel does not). */
   frameRate?: boolean;
-  /** The battle frame is up: the adapter and the frame's own statistics (its rolling GPU frame time from
-   *  `timestamp-query`, and live memory). */
-  attach?(frame: { adapter: string; stats: () => ReturnType<BattleFrame["stats"]> }): void;
+  /** Renderer diagnostics and a fresh GPU measurement boundary. */
+  attach?(frame: {
+    adapter: string;
+    stats: () => ReturnType<BattleFrame["stats"]>;
+    resetGpuTiming: () => void;
+  }): void;
   /** The framing for the frame at `now`; the rig places it
    *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
    *  Null leaves the camera to the player for that frame. */
   pose(now: number): CameraPose | null;
-  /** A drawn frame: its main-thread cost, the camera drawn, the sim time
-   *  it drew (the presentation clock) and the canvas size in pixels.
-   *  `counts` counts what this frame drew; with `plates`, `plate` reads it
-   *  back. Called during `frame`, the task that drew it, both read exactly
-   *  that frame. */
+  /** Measurements and optional readback from the task that drew this frame. */
   frame?(f: {
     now: number;
     cpuMs: number;
@@ -799,6 +798,7 @@ export function LabViewport({
         pilot?.attach?.({
           adapter,
           stats: () => scene.stats(),
+          resetGpuTiming: () => scene.resetGpuTiming(),
         });
         // What the battle draws, for a player's diagnostics report.
         signal.addEventListener(

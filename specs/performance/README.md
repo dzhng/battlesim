@@ -101,13 +101,18 @@ Full closeout checks run once after implementation, with narrower checks per pas
 
 ## Next Agent Prompt
 
-Continue slice 1. The timer-epoch fix and draw-counter pass are delegated in
-isolated worktrees; integrate their reviewed commits before GPU measurements. Existing timing keeps 240 GPU samples: the endurance
-1.5-second omission arms and benchmark two-second rolling reads are not reliable
-phase boundaries at stress frame rates. Reuse the viewport pilot and recording
-owners for resolved camera/frame CPU; add a fresh-sample timing boundary and
-actual submission counters. Capture all three views before choosing culling or
-impostor thresholds. Existing prop selection disables impostors and ignores the
-shadow argument; native currently substitutes meshes for body impostors. Those
-are implementation seams, not evidence that static prop cards already work.
-Update this handoff after every committed pass.
+Continue slice 1. Timer epochs (`79cdb00cf`) and actual draw counters
+(`e58683e98`) are integrated. The three-view capture passed paused/live/late;
+30 focused tests and typecheck pass. Frozen first baseline lives in
+`throwaway/three-view/baseline/`; it is an initial single run, not an optimization
+verdict. The paused holds preserve simulation time 3.1 s and resolve exactly to
+65/260/2400 m. Independent image review accepts the clean views as geometry baselines; HUD
+overflow and wide overlay crowding are recorded limitations, not approved UI.
+
+Finish moving-view measurements and matched-local-view growth controls. Then
+measure the independent prop caster candidate being developed in an isolated
+worktree. Wide currently submits 13.25 million model/prop triangles to every
+cascade. Preserve camera geometry while testing caster reach. Existing prop
+selection disables impostors; native currently substitutes meshes for body
+impostors, so shared far-asset support remains open. Update this handoff after
+every committed pass; no slice is closed by the first baseline.

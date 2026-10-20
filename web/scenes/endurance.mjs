@@ -4,6 +4,7 @@
 // asserted: the scene fails on broken contracts, not on slow hardware.
 // ENDURANCE_GENERATED=1 uses the current Metro XL seed-4 world and
 // city-arena-2 contact recipe; the default remains the saved 3 × 2 km field.
+// VIEW_COST=1 with ENDURANCE_GENERATED=1 measures close/tactical/wide holds.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
 // and with the late state's 800 fallen (run it alone,
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
@@ -12,6 +13,7 @@
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu } from "./_lab.mjs";
 import { installResetRafFence, restartPresentedOpening } from "./_reset.mjs";
+import { freshGpuWindow, measureViews, pauseView } from "./_viewCost.mjs";
 import { game } from "./_units.mjs";
 
 const CORPSE_CAP = game.presentation.pose.corpses.max;
@@ -43,7 +45,9 @@ async function openStressLab(ctx, page) {
     await ctx.openLab(page);
     return null;
   }
-  const stressUrl = new URL(ctx.urlFor({ generated: 1 }));
+  const stressUrl = new URL(
+    ctx.urlFor({ generated: 1, ...(process.env.VIEW_COST === "1" ? { views: 1 } : {}) }),
+  );
   await ctx.openLab(page, stressUrl.href, PREPARE_TIMEOUT);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
     timeout: PREPARE_TIMEOUT,
@@ -154,19 +158,13 @@ const densestWrecks = (page) =>
     return [best[0], best[1]];
   });
 
-/** Paired effects on/off, interleaved 1.5 s batches, median difference of
+/** Paired effects on/off, interleaved fresh GPU windows, median difference of
  *  the frame's GPU time per framing, over `target`. */
 async function effectCostAt(page, label, target) {
-  const batch = (off) =>
-    lab(
-      page,
-      async (off) => {
-        await window.__lab.suppressEffects(off);
-        await new Promise((r) => setTimeout(r, 1500));
-        return window.__lab.stats().gpu.meanMs;
-      },
-      off,
-    );
+  const batch = async (off) => {
+    await lab(page, (off) => window.__lab.suppressEffects(off), off);
+    return (await freshGpuWindow(page)).meanMs;
+  };
   const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
   const out = {};
   for (const [name, framing] of Object.entries(COST_FRAMINGS)) {
@@ -253,19 +251,13 @@ async function measureEffectCost(ctx) {
   await page.close();
 }
 
-/** Paired models on/off, interleaved 1.5 s batches, median difference of
+/** Paired models on/off, interleaved fresh GPU windows, median difference of
  *  the frame's GPU time per framing. */
 async function modelCostAt(page, label) {
-  const batch = (off) =>
-    lab(
-      page,
-      async (off) => {
-        await window.__lab.suppressModels(off);
-        await new Promise((r) => setTimeout(r, 1500));
-        return window.__lab.stats().gpu.meanMs;
-      },
-      off,
-    );
+  const batch = async (off) => {
+    await lab(page, (off) => window.__lab.suppressModels(off), off);
+    return (await freshGpuWindow(page)).meanMs;
+  };
   const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
   const out = {};
   const target = await densest(page);
@@ -341,7 +333,39 @@ async function measureModelCost(ctx) {
   await page.close();
 }
 
+async function measureViewCost(ctx) {
+  if (!GENERATED) throw new Error("VIEW_COST requires ENDURANCE_GENERATED=1");
+  const page = await ctx.newPage();
+  try {
+    await openStressLab(ctx, page);
+    await page.waitForFunction(
+      () => window.__lab.route.tick() >= 90 && window.__lab.route.viewWarmed(),
+      undefined,
+      { timeout: PREPARE_TIMEOUT },
+    );
+    await pauseView(page);
+    const target = await densest(page);
+    await measureViews(ctx, page, "paused", target);
+    await lab(page, () => window.__lab.route.resume());
+    await measureViews(ctx, page, "live", target);
+    await openMenu(page);
+    await page.getByLabel(/Late state/).click();
+    await page.waitForFunction(
+      () =>
+        window.__lab?.route?.late?.() &&
+        window.__lab.route.tick() >= 90 &&
+        window.__lab.route.viewWarmed(),
+      undefined,
+      { timeout: PREPARE_TIMEOUT },
+    );
+    await measureViews(ctx, page, "late", target);
+  } finally {
+    await page.close();
+  }
+}
+
 export async function run(ctx) {
+  if (process.env.VIEW_COST === "1") return measureViewCost(ctx);
   if (process.env.MODEL_COST === "1") return measureModelCost(ctx);
   if (process.env.EFFECT_COST === "1") return measureEffectCost(ctx);
   const page = await ctx.newPage();

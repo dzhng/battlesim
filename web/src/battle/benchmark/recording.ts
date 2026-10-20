@@ -113,14 +113,15 @@ export interface StatsSample {
   heapBytes: number | null;
 }
 
-/** GPU frame time from stats samples: the mean of their window means, and
- *  the worst window p95. Null when no sample carried a GPU reading. */
+/** Frame-weighted GPU mean and worst window p95; absent timing stays null. */
 function summarizeGpu(samples: readonly StatsSample[]) {
   const windows = samples.flatMap((s) => (s.gpu && s.gpu.frames > 0 ? [s.gpu] : []));
   if (windows.length === 0) return null;
   return {
     samples: windows.length,
-    meanMs: windows.reduce((sum, w) => sum + w.meanMs, 0) / windows.length,
+    meanMs:
+      windows.reduce((sum, w) => sum + w.meanMs * w.frames, 0) /
+      windows.reduce((sum, w) => sum + w.frames, 0),
     p95Ms: Math.max(...windows.map((w) => w.p95Ms)),
   };
 }

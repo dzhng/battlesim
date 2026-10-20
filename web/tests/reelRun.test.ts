@@ -166,6 +166,7 @@ test("a plate frame counts the grass its own frame grew", async () => {
   run.pilot.attach!({
     adapter: "test",
     stats: () => ({}) as never,
+    resetGpuTiming: () => {},
   });
   run.scripted.onWarm();
   run.pilot.frame!(drawn(1000));
@@ -183,6 +184,7 @@ test("without plates the run asks the viewport for no read-back and exports noth
   run.pilot.attach!({
     adapter: "test",
     stats: () => ({}) as never,
+    resetGpuTiming: () => {},
   });
   run.scripted.onWarm();
   for (const now of [1000, 1500, 2100, 3000]) run.pilot.frame!({ ...drawn(now), camera: level });
