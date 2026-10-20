@@ -151,3 +151,10 @@ retains the state, tier and transition-picture checks while keeping the shared
 kit download within the same map budget. Use the line-up route's `?set=` selector
 for development: its unrestricted all-set view currently exceeds that budget and
 is refused; the scene's complete coverage does not imply that view is admitted.
+
+The [geometry scaling control](src/benchmark/geometryScaling.ts) appends distant
+terrain to one admitted export without recompiling the local patch. It uses the
+production viewport and measurement pilot; material domains and static identities
+stay local while the full mesh reaches receiver fitting. Its registered scene is
+an explicit measurement tool. The [performance measurement plan](../../specs/performance/slices/measurement.md)
+records its scope and outstanding acceptance gates.

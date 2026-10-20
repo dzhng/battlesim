@@ -68,6 +68,10 @@ export interface WorldScenery {
  *  and draws their trunks; `null` draws none (a route without appearances). */
 export interface WorldLayers {
   terrain: TerrainSurface;
+  /** Geometry the visual backdrop surrounds when it differs from the terrain
+   * drawn and received by shadows (for example disconnected remote patches).
+   * Omitted: surround the full terrain. This never bounds terrain selection. */
+  backdropTerrain?: Mesh;
   props: Mesh;
   scenery: WorldScenery | null;
   /** The grass kinds the biome grows (scenery "grass" appearances) by catalog

@@ -575,8 +575,7 @@ export async function createWorldPass(
 
   let classView = false;
   const NO_WATER = new Float32Array(0);
-  /** The world's layers, and the ground the scene's presentation resolved
-   *  for them: the material, the grass and the water draw from both. */
+  // Material, grass and water consume both layers and presented ground.
   let layers: WorldLayers | null = null;
   let presented: PresentedGround | null = null;
   function setGround() {
@@ -601,7 +600,9 @@ export async function createWorldPass(
       scenery.set(next.scenery);
       setGround();
       box = map_box(next.terrain.mesh);
-      if (box) backdrop.set(backdrop_mesh(box, environment.light.backdrop.reach_m) as Mesh);
+      const surround = next.backdropTerrain ? map_box(next.backdropTerrain) : box;
+      if (surround)
+        backdrop.set(backdrop_mesh(surround, environment.light.backdrop.reach_m) as Mesh);
     },
     /** The ground the scene's presentation resolved: its tables, its grass
      *  and its water. */
@@ -610,8 +611,7 @@ export async function createWorldPass(
       presented = next;
       setGround();
     },
-    /** Follow the side's learned ground: uploads what changed, and regrows
-     *  the grass when anything did. */
+    /** Upload learned ground changes and regrow grass. */
     setGround(next: GroundMarks | null): boolean {
       const changed = terrain.setGround(next);
       if (changed) grass.regrow();

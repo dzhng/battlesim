@@ -153,3 +153,47 @@ terrain can legitimately increase that work. Existing standing headroom, caster
 margin and configured shadow reach remain. GPU timing, browser matched-growth
 construction and visual acceptance are still open; these CPU tests do not close
 those gates.
+## Matched-local browser harness (execution pending)
+
+The production `geometry-scaling` scene reuses the geometry lab's admitted saved
+endurance world, `LabViewport`, and the existing view-measurement pilot/recorder.
+Run `bun run --cwd web scene -- geometry-scaling` after the GPU lock is released
+and this revision's WASM/assets are prepared. The registry requires a production
+build and serial execution; the normal scene runner prepares native tools, so do
+not run it while native compilation is prohibited. Interactive entry:
+`/labs/geometry-scaling`.
+
+One export remains resident through every arm. Appending 1, 4, then 16 translated
+terrain copies grows storage and horizontal extent, separately at zero and 100 m
+added elevation. Original vertex/index/surface prefixes and static identities
+remain intact. The complete extended mesh is passed through the ordinary
+`ScenePresentation.setShadow` receiver input; no old receiver box, culling
+configuration, or alternate renderer is substituted. Root owns integration with
+any changed receiver signature.
+
+Material inputs retain the admitted local domain: expanding it would regenerate
+field plots. The original skirt, visual backdrop, height grid, props, buildings, scenery, camera
+configuration and clock remain fixed. Remote patches are terrain geometry only,
+without their own material grids or populations. This proves terrain scaling,
+not population growth or a generated enlarged world's physical queries. The
+report distinguishes mesh extents from the material domain. The backdrop may surround
+a separate local mesh; that composition input never controls terrain selection or
+shadow fitting. Simulation ticks and
+worker throughput are unavailable, explicitly, because this fixture has no battle.
+
+The scene brackets each elevation series with local-only controls and measures
+65/260/2400 m through production clearance, waiting for scenery streaming before
+a fresh 120-valid-sample GPU window (60 s deadline). It saves raw CPU/frame/GPU,
+submission, terrain and population traversal, resource, camera/light/dimension
+and clock observations, construction/install/startup times separately, and clean
+pictures with frame brackets. Evidence is `throwaway/evidence/geometry-scaling/`.
+A missing GPU stream writes partial evidence and fails. Input mismatches fail;
+submission equality is reported, not required, because rebuilding a hierarchy
+can change selected leaf granularity. Traversal growth and timing distributions
+need review against residency growth; no automatic speedup or bounded-work
+verdict is inferred from successful collection.
+
+The construction test is falsified by perturbing a local vertex, then restored
+green. No GPU run, screenshot acceptance, population scaling proof, or receiver
+fix is claimed here. Run compare-screenshots, unprimed screenshot-critique and
+preview-shots on the produced pictures before accepting the scaling control.

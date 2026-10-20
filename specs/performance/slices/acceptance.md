@@ -33,3 +33,10 @@ Moving-view instrumentation is available through the endurance scene's
 Run it under the parent's exclusive GPU lock on both builds; inspect each leg's
 valid sample count, resolved camera path, periodic counters and separate picture
 replay. Instrumentation alone does not satisfy the moving-view acceptance item.
+
+The [matched-local browser harness](measurement.md#matched-local-browser-harness-execution-pending)
+collects terrain-growth controls through production scene composition. Its
+successful collection is not acceptance: review traversal versus resident growth,
+local pictures and receiver records for both horizontal and elevated extensions.
+Static population growth and offscreen caster coverage still need their own
+proof; this terrain-only fixture does not close those contracts.

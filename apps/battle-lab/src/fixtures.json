@@ -56,6 +56,16 @@
     "map": "geometry"
   },
   {
+    "id": "geometry-scaling",
+    "route": "/labs/geometry-scaling",
+    "describe": "Matched local terrain scaling at three zooms, with horizontal and elevated remote geometry; production frame measurements and pictures.",
+    "map": "endurance",
+    "tool": true,
+    "build": "production",
+    "serial": true,
+    "timeout_s": 1800
+  },
+  {
     "id": "authority",
     "route": "/labs/authority",
     "describe": "One authority in a worker: real tick commands with an ordered ack log, pause/step/reset, withheld consumer credit and an in-thread replay/parity check.",

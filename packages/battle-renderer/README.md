@@ -114,6 +114,11 @@ still defines holes and glass; instance opacity never changes that asset contrac
 The app owns where they stand, their validity and colour, and the renderer receives
 only the cue.
 
+The visual backdrop surrounds the scene's terrain by default. A composition with
+remote disconnected patches can supply separate local terrain for that backdrop
+in [the scene contract](src/scene.ts). This changes only the decorative surround;
+terrain selection and shadow receivers still consume the complete drawn mesh.
+
 ## Resource lifetime and bounded work
 
 [The GPU registry](src/frame/registry.ts) owns allocations and nested scopes.
