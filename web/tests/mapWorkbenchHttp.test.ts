@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdir, writeFile, readFile, readdir, chmod } from "node:fs/promises";
+import { mkdir, writeFile, readFile, readdir, chmod, watch } from "node:fs/promises";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -50,7 +50,9 @@ test("the HTTP plugin serves only local same-origin operations and rejects brows
   expect((await preview.json()).files).toEqual([]);
 });
 
-test("disconnecting an HTTP generation terminates the process and removes its unpublished artifact", async () => {
+test("disconnecting an HTTP generation terminates the process and removes its unpublished artifact", async ({
+  signal,
+}) => {
   vi.stubEnv("CARGO_TARGET_DIR", "throwaway/target");
   const { root, store } = await fixture();
   const draft = await store.snapshot();
@@ -58,7 +60,7 @@ test("disconnecting an HTTP generation terminates the process and removes its un
   await mkdir(join(root, "throwaway/target/release/examples"), { recursive: true });
   await writeFile(
     binary,
-    `#!/usr/bin/env node\nlet input = ""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => { const request = JSON.parse(input); if (request.operation === "validate") { process.stdout.write(${JSON.stringify(JSON.stringify(validation))}); } else { require("node:fs").writeFileSync(${JSON.stringify(join(root, "http-pid"))}, String(process.pid)); setInterval(() => {}, 1000); } });\n`,
+    `#!/usr/bin/env node\nlet input = ""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => { const request = JSON.parse(input); if (request.operation === "validate") { process.stdout.write(${JSON.stringify(JSON.stringify(validation))}); } else { const fs = require("node:fs"); fs.writeFileSync(${JSON.stringify(join(root, "http-pid.tmp"))}, String(process.pid)); fs.renameSync(${JSON.stringify(join(root, "http-pid.tmp"))}, ${JSON.stringify(join(root, "http-pid"))}); setInterval(() => {}, 1000); } });\n`,
   );
   await chmod(binary, 0o755);
   const server = await createViteServer({
@@ -72,9 +74,18 @@ test("disconnecting an HTTP generation terminates the process and removes its un
   if (!address || typeof address === "string") throw new Error("No server port");
   const origin = `http://127.0.0.1:${address.port}`;
   const controller = new AbortController();
+  const lifetime = AbortSignal.any([signal, controller.signal]);
+  // Generation starts after native validation; startup is not a timing assertion.
+  const ready = (async () => {
+    for await (const event of watch(root, { signal: lifetime })) {
+      if (event.filename === "http-pid")
+        return Number(await readFile(join(root, "http-pid"), "utf8"));
+    }
+    throw new Error("Native generation did not announce readiness");
+  })();
   const pending = fetch(`${origin}/__map-workbench/generate`, {
     method: "POST",
-    signal: controller.signal,
+    signal: lifetime,
     headers: { "Content-Type": "application/json", Origin: origin },
     body: JSON.stringify({
       purpose: "preview",
@@ -85,12 +96,13 @@ test("disconnecting an HTTP generation terminates the process and removes its un
   });
   let pid: number | null = null;
   try {
-    await expect
-      .poll(async () => {
-        pid = Number(await readFile(join(root, "http-pid"), "utf8").catch(() => "0")) || null;
-        return pid;
-      })
-      .not.toBeNull();
+    pid = await Promise.race([
+      ready,
+      pending.then(() => {
+        throw new Error("HTTP generation completed before cancellation");
+      }),
+    ]);
+    process.kill(pid!, 0);
     controller.abort();
     await expect(pending).rejects.toThrow();
     await expect
@@ -105,6 +117,8 @@ test("disconnecting an HTTP generation terminates the process and removes its un
       .toBe(true);
     await expect.poll(() => readdir(join(root, "throwaway/map-workbench"))).toEqual([]);
   } finally {
+    controller.abort();
+    await pending.catch(() => {});
     if (pid) {
       try {
         process.kill(pid, "SIGKILL");
