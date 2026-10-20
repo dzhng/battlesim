@@ -64,3 +64,26 @@ fixture, excluding index/hash/output overhead). Snapshot equality, reconciliatio
 and replacement still scale with known falls. The integrated static-world suite
 passes 74 tests; browser diagnostics expose the owner's work counters without
 claiming they include all snapshot handling.
+
+## Final mesh-control attribution
+
+After removing the unqualified car-card path, matched tick-90 images retain
+camera-visible building, scenery and model triangle counts. Fresh three-round
+control GPU medians are 5.03/5.50/32.64 ms; candidate medians are
+5.63/5.74/34.41 ms. A return sample is 4.93/7.29/34.29 ms. These do not establish
+a speedup. The completed hold windows survive the first combined run's later
+900-second timeout; that full run is not an acceptance pass.
+
+Wide shadow submission grows by 3.07 million triangles: buildings and scenery
+add 5.02 million, offset partly by fewer prop and terrain triangles. The receiver
+depth interval does not expand; the control's camera-derived caster selection
+was not a correctness oracle. Buffer residency grows about 53.47 MiB at wide,
+with unchanged texture counts/bytes. The same camera/tick/digest/render-size
+checks pass and all three rounds have stable submission counts.
+
+Investigate conservative member checks inside selected building/scenery chunks
+before adding anything: whole chunks currently inherit cascade membership.
+Keep independent offscreen casters, camera output, detail and source order fixed.
+First establish rejectable work; then require images and paired timings for any
+refinement. These counters identify a plausible cost, not causal milliseconds.
+Evidence: `throwaway/three-view/mesh-counter-comparison.{md,json}`.
