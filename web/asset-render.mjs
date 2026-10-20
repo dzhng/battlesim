@@ -5,7 +5,6 @@ import { parseArgs } from "node:util";
 import { lfsPointerOid, lfsPullCommand } from "../packages/scene-assets/src/glb.ts";
 import { sheetReferences } from "../packages/scene-assets/src/references.ts";
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
-const RUNTIME = join(ROOT, "assets/runtime");
 const REFERENCES = join(ROOT, "assets/references");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(join(ROOT, "assets/catalog.json"));
