@@ -1,4 +1,4 @@
-// Exact terrain triangles, spatially selected by the shared Rust owner.
+// Exact static world triangles, spatially selected by the shared Rust owner.
 import { TerrainPartition } from "@wasm/presentation/presentation_wasm.js";
 import type { SubmittedDraws } from "./submitted";
 import type { Mesh } from "../mesh";
@@ -6,7 +6,7 @@ import { CAMERA_WORDS, CameraAt } from "../records.gen";
 import { MeshSlot, type Drawable } from "./geometry";
 import type { GpuRegistry } from "./registry";
 
-export class TerrainDraws {
+export class SpatialMeshDraws {
   private partition: TerrainPartition | null = null;
   private visible: Uint32Array = new Uint32Array(0);
   private casters: Uint32Array[] = [];
@@ -23,7 +23,7 @@ export class TerrainDraws {
   }
 
   set(vertices: Mesh) {
-    // Spatial batching only: terrain resolution and visibility are unchanged.
+    // Spatial batching only: mesh resolution and visibility are unchanged.
     const next = new TerrainPartition(vertices);
     try {
       this.mesh.set(next.vertices() as Mesh);

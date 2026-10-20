@@ -287,3 +287,42 @@ fn cancellation_at_gpu_clip_boundary_keeps_the_triangle() {
         triangle
     );
 }
+
+#[test]
+fn remote_water_and_boundary_growth_preserves_local_triangle_bytes_and_bounded_queries() {
+    use presentation::static_world::ground::partition::CELL_M;
+    let boundary = |x| mesh::skirt(&[x, 0., 0., x + 4., 0., 0., x + 4., 4., 0., x, 4., 0.]);
+    let water = |x| mesh::water(&[x, 0., 0., 4.]);
+    let matrices = [
+        camera([2., -4., 10.], [2., 0., 0.]),
+        camera([1026., -4., 10.], [1026., 0., 0.]),
+        camera([5002., -4., 10.], [5002., 0., 0.]),
+    ];
+    for make_mesh in [boundary, water] {
+        let mut local = make_mesh(0.);
+        local.extend(make_mesh(1024.));
+        let baseline = TerrainPartition::new(&local, CELL_M);
+        for remote_count in [64_usize, 1024, 16384] {
+            // Append exact existing geometry: regenerating a bigger map changes
+            // the boundary itself and would not be a matched local comparison.
+            let mut extended = local.clone();
+            for i in 0..remote_count {
+                extended.extend(make_mesh(10_000. + i as f32 * 512.));
+            }
+            let partition = TerrainPartition::new(&extended, CELL_M);
+            for matrix in &matrices {
+                let (drawn, visited) = selected(&partition, matrix);
+                let expected = selected(&baseline, matrix).0;
+                assert_eq!(
+                    bytemuck::cast_slice::<_, u8>(&drawn),
+                    bytemuck::cast_slice::<_, u8>(&expected)
+                );
+                let height = (remote_count + 2).next_power_of_two().ilog2() as usize;
+                assert!(
+                    visited <= 4 * height + 3,
+                    "{remote_count}: visited {visited}"
+                );
+            }
+        }
+    }
+}

@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { initSync } from "@wasm/presentation/presentation_wasm.js";
-import { TerrainDraws } from "@packages/battle-renderer/src/frame/terrainDraws";
+import { SpatialMeshDraws } from "@packages/battle-renderer/src/frame/spatialMeshDraws";
 import { MeshSlot } from "@packages/battle-renderer/src/frame/geometry";
 import { CAMERA_WORDS, CameraAt } from "@packages/battle-renderer/src/records.gen";
 import { submittedDraws } from "@packages/battle-renderer/src/frame/submitted";
@@ -31,7 +31,7 @@ test("shared Wasm selection submits camera and independent cascade ranges with e
       };
     },
   };
-  const draws = new TerrainDraws(new MeshSlot(root as never, registry, {} as never), registry);
+  const draws = new SpatialMeshDraws(new MeshSlot(root as never, registry, {} as never), registry);
   // Two separated tiles, distinct attribute IDs, supplied in reverse spatial order.
   const triangle = (x: number, id: number) => [
     x,
