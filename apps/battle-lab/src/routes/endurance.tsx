@@ -238,6 +238,18 @@ export default function Endurance() {
                   pitch: rig.pitchAt(distance),
                 });
               },
+              transitionView: (
+                target: readonly [number, number],
+                distance: number,
+                yaw: number,
+                durationMs: number,
+              ) => {
+                const rig = new CameraController(cameraConfig);
+                viewMeasurement.transition(
+                  { target, distance, yaw, pitch: rig.pitchAt(distance) },
+                  durationMs,
+                );
+              },
               viewReady: () => releaseWarmup.current !== null,
               releaseViewWarmup: () => {
                 releaseWarmup.current?.();
@@ -246,6 +258,7 @@ export default function Endurance() {
               viewWarmed: () => warmedScenario.current === built.scenario,
               beginViewMeasurement: viewMeasurement.begin,
               viewMeasurement: viewMeasurement.read,
+              viewFrame: viewMeasurement.current,
             }
           : {}),
       })}

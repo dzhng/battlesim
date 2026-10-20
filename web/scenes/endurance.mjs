@@ -5,6 +5,7 @@
 // ENDURANCE_GENERATED=1 uses the current Metro XL seed-4 world and
 // city-arena-2 contact recipe; the default remains the saved 3 × 2 km field.
 // VIEW_COST=1 with ENDURANCE_GENERATED=1 measures close/tactical/wide holds.
+// VIEW_TRANSITIONS=1 adds separately timed moving windows and untimed picture replays.
 // VIEW_COST=paused stops after pinned tick-90 holds; VIEW_COST_REPEATS repeats them.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
 // and with the late state's 800 fallen (run it alone,
@@ -14,7 +15,7 @@
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu } from "./_lab.mjs";
 import { installResetRafFence, restartPresentedOpening } from "./_reset.mjs";
-import { freshGpuWindow, measureViews, pauseView } from "./_viewCost.mjs";
+import { freshGpuWindow, measureViews, measureTransitions, pauseView } from "./_viewCost.mjs";
 import { game } from "./_units.mjs";
 
 const CORPSE_CAP = game.presentation.pose.corpses.max;
@@ -349,12 +350,16 @@ async function measureViewCost(ctx) {
     const repeats = Number(process.env.VIEW_COST_REPEATS ?? 1);
     if (!Number.isInteger(repeats) || repeats < 1 || repeats > 10)
       throw new Error("VIEW_COST_REPEATS must be an integer from 1 to 10");
-    for (let repeat = 0; repeat < repeats; repeat++)
-      await measureViews(ctx, page, repeats === 1 ? "paused" : `paused-${repeat + 1}`, target);
+    for (let repeat = 0; repeat < repeats; repeat++) {
+      const state = repeats === 1 ? "paused" : `paused-${repeat + 1}`;
+      await measureViews(ctx, page, state, target);
+      if (process.env.VIEW_TRANSITIONS === "1") await measureTransitions(ctx, page, state, target);
+    }
     if (process.env.VIEW_COST === "paused") return;
     await lab(page, () => window.__lab.route.releaseViewWarmup());
     await page.waitForFunction(() => window.__lab.route.viewWarmed());
     await measureViews(ctx, page, "live", target);
+    if (process.env.VIEW_TRANSITIONS === "1") await measureTransitions(ctx, page, "live", target);
     await openMenu(page);
     await page.getByLabel(/Late state/).click();
     await page.waitForFunction(
@@ -368,6 +373,7 @@ async function measureViewCost(ctx) {
     await lab(page, () => window.__lab.route.releaseViewWarmup());
     await page.waitForFunction(() => window.__lab.route.viewWarmed());
     await measureViews(ctx, page, "late", target);
+    if (process.env.VIEW_TRANSITIONS === "1") await measureTransitions(ctx, page, "late", target);
   } finally {
     await page.close();
   }

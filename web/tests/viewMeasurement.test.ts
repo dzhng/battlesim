@@ -51,3 +51,90 @@ test("an unattached or undrawn measurement cannot look complete", () => {
   expect(() => probe.begin()).toThrow(/ready/);
   expect(probe.read()).toBeNull();
 });
+
+test("a transition freezes moving samples before endpoint holds and starts a fresh epoch", () => {
+  const probe = createViewMeasurement();
+  let gpuFrames = 999;
+  probe.pilot.attach!({
+    adapter: "test",
+    stats: () => ({ gpu: { frames: gpuFrames }, memory: {} }),
+    resetGpuTiming: () => {
+      gpuFrames = 0;
+    },
+  } as never);
+  const start = { target: [0, 0] as const, distance: 50, yaw: 0, pitch: 0.5 };
+  const end = { target: [100, 200] as const, distance: 500, yaw: 1, pitch: 1 };
+  const draw = (now: number) => {
+    const pose = probe.pilot.pose(now)!;
+    probe.pilot.frame!({
+      now,
+      cpuMs: 2,
+      camera: { ...pose, target: [...pose.target, 3] },
+      simTime: 3,
+      canvas: [960, 600],
+    } as never);
+    return pose;
+  };
+  probe.place(start);
+  probe.transition(end, 1000);
+  expect(draw(100)).toEqual(start);
+  expect(gpuFrames).toBe(0);
+  gpuFrames = 12;
+  const middle = draw(600);
+  expect(middle.target).toEqual([50, 100]);
+  expect(middle.distance).toBe(275);
+  expect(middle.yaw).toBe(0.5);
+  expect(draw(1100)).toEqual(end);
+  const result = probe.read();
+  expect(result?.complete).toBe(true);
+  expect(result?.measurement.phases[0].name).toBe("transition");
+  expect(result?.stats.gpu?.frames).toBe(12);
+  gpuFrames = 100;
+  draw(2000);
+  expect(probe.read()).toEqual(result);
+  probe.place(end);
+  probe.begin();
+  draw(3000);
+  draw(3020);
+  expect(probe.read()?.measurement.phases[0].name).toBe("hold");
+  expect(probe.read()?.measurement.frameMs?.mean).toBe(20);
+});
+
+test("a terminal stall remains in frame timing and GPU windows cover the earlier path", () => {
+  const probe = createViewMeasurement();
+  let frames = 500;
+  probe.pilot.attach!({
+    adapter: "test",
+    stats: () => ({ gpu: { frames, meanMs: 4, p95Ms: 6 }, memory: {} }),
+    resetGpuTiming: () => {
+      frames = 0;
+    },
+  } as never);
+  const pose = { target: [0, 0] as const, distance: 65, yaw: 0, pitch: 1 };
+  const draw = (now: number) => {
+    const camera = probe.pilot.pose(now)!;
+    probe.pilot.frame!({
+      now,
+      cpuMs: 2,
+      camera: { ...camera, target: [...camera.target, 0] },
+      simTime: 3,
+      canvas: [960, 600],
+    } as never);
+  };
+  probe.place(pose);
+  probe.transition({ ...pose, distance: 260 }, 3000);
+  draw(100);
+  frames = 10;
+  draw(1100);
+  frames = 20;
+  draw(2100);
+  frames = 30;
+  draw(5100);
+  const result = probe.read()!;
+  expect(result.measurement.frameMs).toMatchObject({ count: 3, max: 3000 });
+  expect(result.validGpuSamples).toBe(60);
+  expect(result.gpuWindows.map((s) => s.gpu?.frames)).toEqual([10, 20, 30]);
+  expect(result.measurement.frameRate?.average).toBe(result.measurement.averageFps);
+  expect(probe.current()?.camera.distance).toBe(260);
+  expect(result.camera.distance).toBeLessThan(260);
+});

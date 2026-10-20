@@ -70,3 +70,33 @@ share digest `60ede87ba60aab0b`; GPU medians are 5.49/6.65/35.03 ms. Frozen
 reports and images: `throwaway/three-view/control-pinned/`; immutable production
 build: `throwaway/three-view/control-build/`. This supersedes the first capture
 as the timing control; the full-state capture still proves live/late coverage.
+
+## Moving-window instrumentation (execution pending)
+
+The endurance scene's opt-in `VIEW_TRANSITIONS=1` flies close→tactical→wide→close
+through the existing benchmark sampler and viewport pilot. Each leg changes pan,
+yaw and zoom continuously; pitch endpoints come from the production rig and every
+frame still resolves production clearance. Its requested keyframes and actual
+per-frame poses are retained, so a clearance detour cannot masquerade as the
+intended tour. The scene header owns invocation settings.
+
+Each fixed-duration leg starts a fresh GPU epoch on its first moving frame and
+collects disjoint one-second windows, keeping the timer's rolling retention from
+reducing a fast run to its tail. Pending readbacks at each reset are excluded.
+The report states the total valid count and fails an incomplete sample target
+rather than padding it with destination holds. It freezes before the stationary
+endpoint is drawn, retaining the preceding frame's full interval even if a stall
+crosses the endpoint. CPU/frame intervals, worker ticks and periodic submission/
+resource snapshots remain separate from the disjoint `gpuWindows`. The recorder
+reports their sample-weighted mean and worst-window p95, not a whole-leg p95;
+`stats.gpu` is only the last window. Overlapping diagnostic snapshots in `samples`
+must not be added together.
+Reports are written before a sample-count failure. Slow or absent frames have a
+bounded deadline.
+
+Pictures replay the path separately, with HUD and clean variants, so readback
+cannot distort timing. They retain camera/time brackets around each screenshot;
+live replay pictures are later battle states, not exact frames from the timed
+run. These are review inputs, not visual acceptance. No GPU run or screenshot
+review has been performed for this instrumentation pass; baseline freezing and
+moving-view acceptance above remain open.

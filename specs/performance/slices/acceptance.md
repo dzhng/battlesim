@@ -27,3 +27,9 @@ The final report includes per-zoom baseline/candidate milliseconds, sample scope
 CPU/GPU interpretation, remaining limits, the consolidated decision ledger and
 production/test/documentation change sizes. Internal report formatting is delegated;
 acceptance criteria and battle density are not.
+
+Moving-view instrumentation is available through the endurance scene's
+`VIEW_TRANSITIONS=1` option (see [measurement](measurement.md#moving-window-instrumentation-execution-pending)).
+Run it under the parent's exclusive GPU lock on both builds; inspect each leg's
+valid sample count, resolved camera path, periodic counters and separate picture
+replay. Instrumentation alone does not satisfy the moving-view acceptance item.
