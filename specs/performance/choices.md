@@ -121,10 +121,10 @@ above zero. Static selection must use the same fitted light-space volume that
 the shadow pass renders, including offscreen casters, rather than inventing a
 second receiver approximation.
 
-- **When:** independent prop caster candidate, `75489f4a8`; correction pending.
+- **When:** independent prop caster candidate, `75489f4a8`; replaced by fitted volumes in `2c6e202d7`.
 - **Gap:** the plan required independent selection without specifying its query.
 - **Reach:** props, buildings and scenery share the corrected query.
-- **Verdict:** unsound approximation; replace it with fitted caster volumes.
+- **Verdict:** original approximation unsound; the implemented replacement uses fitted caster volumes.
 - **Confidence:** high; translating the existing offscreen-caster case below zero
   exposes a missed caster. Camera lists must remain independent.
 
@@ -147,3 +147,22 @@ their own ordering and visibility rules.
 - **Verdict:** sound candidate; bounded traversal and exact geometry conservation
   justify testing it, while GPU, image and whole-frame acceptance remain required.
 - **Confidence:** medium until the all-view production comparisons finish.
+
+
+### Keep caster membership for each shadow cascade
+
+A nearby tree may affect only one shadow image. Combining all selected trees
+into one list and drawing that list into every shadow image repeats geometry
+that the GPU will later discard. The next pass keeps four independent lists and
+publishes which cascade each list belongs to. Browser and native draw the same
+membership. Objects spanning multiple cascades appear in each required list.
+
+- **When:** per-cascade pass, implementation in progress.
+- **Gap:** independent camera/shadow selection did not specify cascade batching.
+- **Reach:** the existing batch record uses a padding word for membership without
+  increasing its size; both clients and batch-cache keys change together.
+- **Verdict:** sound candidate; fixes measured repeated submission using existing
+  fitted bounds. Four lists are simpler than grouping every combination of
+  cascades, at the cost of duplicate records for overlapping casters.
+- **Confidence:** medium pending measured GPU savings, upload/resource cost and
+  shadow continuity across moving views. The corrected fit remains mandatory.
