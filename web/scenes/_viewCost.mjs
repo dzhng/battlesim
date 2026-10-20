@@ -37,8 +37,12 @@ export async function measureViews(ctx, page, state, target) {
       timeout: 60000,
       polling: 250,
     });
-    results[name] = await lab(page, () => window.__lab.route.viewMeasurement());
-    if (state === "paused")
+    results[name] = await lab(page, () => ({
+      ...window.__lab.route.viewMeasurement(),
+      digest: window.__lab.route.digest(),
+      tick: window.__lab.route.tick(),
+    }));
+    if (state.startsWith("paused"))
       ctx.check(
         `${name} hold preserves paused simulation time`,
         results[name].startSimTime === results[name].simTime,

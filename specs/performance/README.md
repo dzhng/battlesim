@@ -103,10 +103,10 @@ Full closeout checks run once after implementation, with narrower checks per pas
 
 Continue slice 1. Timer epochs (`79cdb00cf`) and actual draw counters
 (`e58683e98`) are integrated. The three-view capture passed paused/live/late;
-30 focused tests and typecheck pass. Frozen first baseline lives in
-`throwaway/three-view/baseline/`; it is an initial single run, not an optimization
-verdict. The paused holds preserve simulation time 3.1 s and resolve exactly to
-65/260/2400 m. Independent image review accepts the clean views as geometry baselines; HUD
+30 focused tests and typecheck pass. The full-state first capture lives in `throwaway/three-view/baseline/`.
+Repeatable control lives in `throwaway/three-view/control-pinned/`: three rounds
+at exactly tick 90, digest `60ede87ba60aab0b`, resolving to 65/260/2400 m.
+Its median GPU times are 5.49/6.65/35.03 ms; no optimization verdict yet. Independent image review accepts the clean views as geometry baselines; HUD
 overflow and wide overlay crowding are recorded limitations, not approved UI.
 
 Finish moving-view measurements and matched-local-view growth controls. Then

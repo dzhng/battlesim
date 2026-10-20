@@ -63,6 +63,7 @@ export default function Endurance() {
   const measureViews = new URLSearchParams(window.location.search).get("views") === "1";
   const [viewMeasurement] = useState(createViewMeasurement);
   const warmedScenario = useRef<string | null>(null);
+  const releaseWarmup = useRef<(() => void) | null>(null);
   const generated = new URLSearchParams(window.location.search).get("generated") === "1";
   const [late, setLate] = useState(
     () => new URLSearchParams(window.location.search).get("late") === "1",
@@ -201,6 +202,10 @@ export default function Endurance() {
         measureViews
           ? {
               warmTo: 90,
+              hold: () =>
+                new Promise<void>((resolve) => {
+                  releaseWarmup.current = resolve;
+                }),
               onWarm: () => {
                 warmedScenario.current = built.scenario;
               },
@@ -232,6 +237,11 @@ export default function Endurance() {
                   yaw: -1.57,
                   pitch: rig.pitchAt(distance),
                 });
+              },
+              viewReady: () => releaseWarmup.current !== null,
+              releaseViewWarmup: () => {
+                releaseWarmup.current?.();
+                releaseWarmup.current = null;
               },
               viewWarmed: () => warmedScenario.current === built.scenario,
               beginViewMeasurement: viewMeasurement.begin,

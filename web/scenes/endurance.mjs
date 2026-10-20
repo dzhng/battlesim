@@ -5,6 +5,7 @@
 // ENDURANCE_GENERATED=1 uses the current Metro XL seed-4 world and
 // city-arena-2 contact recipe; the default remains the saved 3 × 2 km field.
 // VIEW_COST=1 with ENDURANCE_GENERATED=1 measures close/tactical/wide holds.
+// VIEW_COST=paused stops after pinned tick-90 holds; VIEW_COST_REPEATS repeats them.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
 // and with the late state's 800 fallen (run it alone,
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
@@ -46,7 +47,7 @@ async function openStressLab(ctx, page) {
     return null;
   }
   const stressUrl = new URL(
-    ctx.urlFor({ generated: 1, ...(process.env.VIEW_COST === "1" ? { views: 1 } : {}) }),
+    ctx.urlFor({ generated: 1, ...(process.env.VIEW_COST ? { views: 1 } : {}) }),
   );
   await ctx.openLab(page, stressUrl.href, PREPARE_TIMEOUT);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
@@ -339,25 +340,33 @@ async function measureViewCost(ctx) {
   try {
     await openStressLab(ctx, page);
     await page.waitForFunction(
-      () => window.__lab.route.tick() >= 90 && window.__lab.route.viewWarmed(),
+      () => window.__lab.route.tick() === 90 && window.__lab.route.viewReady(),
       undefined,
       { timeout: PREPARE_TIMEOUT },
     );
     await pauseView(page);
     const target = await densest(page);
-    await measureViews(ctx, page, "paused", target);
-    await lab(page, () => window.__lab.route.resume());
+    const repeats = Number(process.env.VIEW_COST_REPEATS ?? 1);
+    if (!Number.isInteger(repeats) || repeats < 1 || repeats > 10)
+      throw new Error("VIEW_COST_REPEATS must be an integer from 1 to 10");
+    for (let repeat = 0; repeat < repeats; repeat++)
+      await measureViews(ctx, page, repeats === 1 ? "paused" : `paused-${repeat + 1}`, target);
+    if (process.env.VIEW_COST === "paused") return;
+    await lab(page, () => window.__lab.route.releaseViewWarmup());
+    await page.waitForFunction(() => window.__lab.route.viewWarmed());
     await measureViews(ctx, page, "live", target);
     await openMenu(page);
     await page.getByLabel(/Late state/).click();
     await page.waitForFunction(
       () =>
         window.__lab?.route?.late?.() &&
-        window.__lab.route.tick() >= 90 &&
-        window.__lab.route.viewWarmed(),
+        window.__lab.route.tick() === 90 &&
+        window.__lab.route.viewReady(),
       undefined,
       { timeout: PREPARE_TIMEOUT },
     );
+    await lab(page, () => window.__lab.route.releaseViewWarmup());
+    await page.waitForFunction(() => window.__lab.route.viewWarmed());
     await measureViews(ctx, page, "late", target);
   } finally {
     await page.close();
@@ -365,7 +374,11 @@ async function measureViewCost(ctx) {
 }
 
 export async function run(ctx) {
-  if (process.env.VIEW_COST === "1") return measureViewCost(ctx);
+  if (process.env.VIEW_COST) {
+    if (!["1", "paused"].includes(process.env.VIEW_COST))
+      throw new Error("VIEW_COST must be 1 or paused");
+    return measureViewCost(ctx);
+  }
   if (process.env.MODEL_COST === "1") return measureModelCost(ctx);
   if (process.env.EFFECT_COST === "1") return measureEffectCost(ctx);
   const page = await ctx.newPage();

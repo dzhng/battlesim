@@ -63,3 +63,10 @@ The HUD counterparts obscure the battlefield with army cards and overlapping
 labels; wide ground overlays dominate readability. Preserve both capture sets,
 keep the HUD present during timing, and use clean shots only to inspect geometry.
 These existing presentation limitations are not claimed fixed by this pass.
+
+For paired comparisons the scripted session now holds its existing warm-up
+promise at exactly tick 90 until the harness releases it. Three control rounds
+share digest `60ede87ba60aab0b`; GPU medians are 5.49/6.65/35.03 ms. Frozen
+reports and images: `throwaway/three-view/control-pinned/`; immutable production
+build: `throwaway/three-view/control-build/`. This supersedes the first capture
+as the timing control; the full-state capture still proves live/late coverage.
