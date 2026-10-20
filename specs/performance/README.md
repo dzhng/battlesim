@@ -101,36 +101,36 @@ Full closeout checks run once after implementation, with narrower checks per pas
 
 ## Next Agent Prompt
 
-Correct static caster selection against the fitted shadow volumes first. The
-integrated prop candidate preserves camera lists but its approximate height
-sweep fails a translated-below-zero caster regression. The saved failing test
-and log are in `throwaway/three-view/caster-height-regression.patch` and
-`caster-height-test.log`. Share conservative clip math with terrain selection;
-do not make local work depend on unrelated remote terrain elevation.
+Integrate the local shadow-receiver fit and shared offline/native car-card passes,
+then run the production acceptance matrix. Fitted static caster volumes are in
+`2c6e202d7`; terrain and static populations now share bounded spatial queries
+(`b828593e3`, `5c08e4065`). Their focused tests, independent reviews and hooks pass.
+Static population traversal diagnostics are public. Felled-tree selection remains
+unchanged and needs explicit audit. The receiver-fit work fixes a demonstrated
+remaining gap: remote elevated ground changes cascades through the global map box.
 
-Timer epochs, actual submission counters and fixed-tick three-view captures are
-integrated. The terrain partition candidate (`5dc40aebd`) is also integrated;
-its browser/native shared selection has focused tests, but GPU/image acceptance
-is still open. Public traversal stats and rebuilt WASM pass focused integration checks. The
-car-card pilot and moving-window instrumentation are integrated; their GPU/image
-gates remain open. Shared offline card assets and native consumption are in progress.
-The terrain hierarchy is extracted into one allocation-free bounds index for
-reuse by static populations; port those queries after the fitted-caster correction.
+Three-view holds and separate moving windows are implemented. The browser
+matched-local-world harness is in progress. Preserve local exports and append
+remote geometry: independently resizing/recompiling a map changes local triangles
+and cannot serve as the matched control. Recompute receiver inputs in each arm.
 
-Evidence lives in `throwaway/three-view/`. `control-pinned`, `caster-candidate`
-and `control-return` match tick 90, digest `60ede87ba60aab0b`, camera and render
-size. Wide model shadow submissions fall from 53,139,840 to 34,821,352 triangles;
-camera geometry is unchanged. Paired paused images show no visible regression.
-Timing drift in the return control prevents claiming a speedup: the
-`interleaved.mjs` comparison alternates control/candidate pages at each zoom.
-Freezing one page during the other's renderer initialization stalled startup;
-the current terrain comparison initializes both before freezing inactive pages.
-The initial paused/live/late capture remains in `baseline/`; its clean views are
-geometry references, with HUD crowding recorded as an unresolved limitation.
+Evidence lives in `throwaway/three-view/`. Numbered paused captures match tick 90,
+digest `60ede87ba60aab0b`, camera and render size. Terrain camera submissions fall
+from 194,458 triangles to 4/4/10 at close/tactical/wide. Terrain candidate median GPU
+is 4.73/5.46/30.70 ms; returned pre-terrain control is 5.10/6.23/30.98 ms. These
+sequential results are provisional, with no universal speedup claim. Two-world
+interleaving stalled renderer initialization; disk pressure was also present.
+Completed child build output was cleaned, retaining source and evidence.
 
-After caster correctness, validate terrain and prop candidates across all three
-views, then finish moving-view and matched-local-world scaling measurements.
-Bound static object traversal as well as terrain traversal. Complete shared
-far assets and actual native card consumption, with explicit wall/vegetation
-choices. Live/late/moving/resource/digest acceptance, whole-spec review and full
-checks remain open. No slice is closed and the current candidates are not pushed.
+The browser car pilot (`7034eb25c`) reuses existing two-channel cards at an
+asset-owned two-pixel full-bounds threshold. Paused wide GPU A/B/A medians are
+30.70/25.81/29.96 ms; model/prop color triangles fall from 13.28M to 8.38M.
+Close timings are essentially unchanged. `terrain-paused`, `car-paused` and
+`car-control-return` hold the paired evidence. No native parity claim yet.
+
+Terrain image review finds no missing/displaced geometry, with a tiny local
+infantry shading difference still to resolve. Car visual review is active.
+Existing HUD crowding and hatching noise remain recorded limitations. Complete
+headings/pitches/transitions, live/late, matched growth, native and resource gates;
+resolve wall/vegetation representations explicitly. Then run whole-spec review,
+full checks and push. No slice is closed and these candidates are not pushed.
