@@ -23,7 +23,7 @@ native individual-car parity and GPU acceptance remain open.
   camera-facing card into shadow passes or accidentally drop an existing shadow.
 - [ ] Implement real native asset/card consumption and parity; a coarsest-mesh
   fallback is not the same representation or its performance proof.
-- [ ] Explicitly resolve walls, vegetation/cutouts and other measured heavy prop
+- [x] Explicitly resolve walls, vegetation/cutouts and other measured heavy prop
   classes. Implement cards where footprint/work and visuals justify them; retain
   documented meshes for unsupported or visually harmful cases, never missing props.
 
@@ -90,3 +90,30 @@ adds footprint-filtered coverage coherently with color, normal and depth through
 the existing card/asset owners. Keep the threshold, geometry and independent
 casters. It requires renewed visual and GPU acceptance, not an assumed mip win.
 Detailed evidence is in the centroid delegate's `throwaway/car-cards/handoff.md`.
+
+
+## Other appearance classes: retain existing representations
+
+Courtyard walls retain their authored meshes. The earlier simplified far mesh
+lost visible upright contrast and failed independent visual review
+([research](../research.md#distant-wall-simplification-rejected)). The pinned
+three-view capture submits no courtyard walls close, 501 tactical and 58,430
+wide. Their high wide count warrants future asset work, but does not validate a
+card: elongated bounds and wall continuity must survive. No unsupported wall
+sprite or invisible cutoff is introduced in this pass.
+
+Hedges, other cutout props and scenery retain their existing authored mesh/card
+policy. The same capture selects 38/178/4,794 hedge instances across the three
+views. Earlier cutout-shadow omission and equivalent-discard experiments were
+near noise; neither establishes a simple measurable GPU win. New coverage or
+shadow approximations are unjustified while the opaque-car pilot itself remains
+unaccepted. Existing spatial selection applies to these populations.
+
+Planters and remaining props keep their coarse meshes. Their prior attribution
+was smaller and noisier than cars; there is no validated replacement with both
+an image-quality pass and a repeatable time saving. This is an explicit scope
+choice under the user's simple-wins rule, not a claim that their rendering is
+free or optimal. The car pilot remains the only new far representation under
+acceptance. Revisit other classes only with new per-class cost and footprint
+evidence. Counts above come from `cascade-paused/views-paused-1.json`; they are
+camera selections, not all-pass triangle totals or final-build timings.

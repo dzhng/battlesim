@@ -177,10 +177,12 @@ existing size threshold and geometry instead of enlarging the car.
 - **Gap:** the plan required visible continuity without prescribing raster sampling.
 - **Reach:** the existing shared card shader in browser and native; it can increase
   fragment work for all users of that shader, not only parked cars.
-- **Verdict:** sound candidate to repair demonstrated coverage loss; retention
-  still requires motion quality and GPU cost acceptance.
-- **Confidence:** medium. Static contribution is proven; perceptual equivalence
-  and performance are not.
+- **Verdict:** unsound for shipping: measured wide GPU cost rises from about
+  31 to 72 ms. Preserve visible coverage with a cheaper footprint-aware method;
+  centroid alone also fails because some eligible cars disappear. The current
+  per-sample implementation remains pending replacement, not accepted.
+- **Confidence:** high in rejection; the replacement needs independent image
+  and GPU evidence.
 
 ### Reuse an unchanged shadow receiver fit
 
@@ -217,3 +219,20 @@ to known falls; this is not a constant-cost publication protocol.
   mutation rebuilds without changing side knowledge or fall animation.
 - **Confidence:** medium; the residency and conservative-query tradeoff is explicit,
   while final moving/live production measurements remain required.
+
+
+### Retain non-car appearance policies without a validated replacement
+
+A wide camera still sees many walls and hedges after culling. Keep their current
+meshes and existing scenery detail rules while validating the car pilot. The
+wall simplification already lost visible contrast; cutout experiments did not
+show a repeatable gain. Adding more atlas types now would add coverage and shadow
+risks without a demonstrated benefit. No objects or shadow contributors disappear.
+
+- **When:** appearance-class disposition during combined acceptance.
+- **Gap:** the plan required an explicit decision per heavy class, not a card for all.
+- **Reach:** walls, vegetation and other props keep existing asset ownership; future
+  replacements need class-specific cost, footprint and visual evidence.
+- **Verdict:** sound under the user's simple measurable wins preference; preserve
+  quality where the proposed replacement has not earned its complexity.
+- **Confidence:** medium; this leaves known wide-view geometry cost in place.
