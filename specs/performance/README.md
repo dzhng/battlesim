@@ -101,58 +101,47 @@ Full closeout checks run once after implementation, with narrower checks per pas
 
 ## Next Agent Prompt
 
-Core terrain/static bounds, local receiver fitting and per-cascade caster lists
-are integrated. The far-car pilot was rejected and its production machinery
-removed in `8ce8d4d96`; retain the shipped simplified car mesh and existing body cards. No slice is closed and nothing
-from this reopened run is pushed. Keep final acceptance separate from focused
-contract tests.
+Implementation and whole-spec source review are complete; finish verification,
+repair its failures, then archive and push. Nothing from this reopened run is
+pushed. The final retained shape uses spatial terrain/static selection, local
+receiver fits and per-cascade caster lists. Car cards and the unmeasured building
+member refinement were removed; keep the shipped simplified car mesh.
 
-Water/boundary ranges (`3a1fd9988`), receiver caching/counters (`e3eb9629e`)
-and felled/stump selection (`6d8b40389`) are integrated. Focused integration
-checks pass; final rendered acceptance remains. Immutable forest membership
-(`51118fac1`) removes spatial/geometry rebuilds when a new fall is learned.
-Standing geometry remains resident; conservative fall envelopes can admit more
-candidates. Full known-snapshot reconciliation remains O(F), including equality
-and replacement work. Public diagnostics separate cumulative envelope setup and
-snapshot rows from last-selection membership checks, alongside water/boundary
-visits and executed receiver work. Snapshot-row counters exclude equality and
-replacement costs; they are not whole-frame timings. The updated terrain-growth
-run passes 30 windows and shows zero receiver work on unchanged holds; fresh
-fit growth and invalidation have separate Rust coverage. Moving-camera CPU
-cost still needs the final production run.
-Browser draw/fit terrain partitions also duplicate immutable storage; resolve
-ownership if the measured maintenance/memory benefit warrants the change.
+The complete final three-view matrix passed, including candidate live, late and
+moving windows. Repeated paused control/candidate medians show **no net GPU
+speedup**: close 5.03/5.63 ms, tactical 5.50/5.74 ms, wide 32.64/34.41 ms.
+Wide correct caster coverage adds a net 3.07 million shadow triangles and
+53.47 MiB of allocated buffers versus the old approximation. Do not trade away
+legitimate offscreen casters to recover the old timing. Terrain-only remote-growth
+measurements demonstrate bounded selection and receiver work; they are not a
+whole-frame speedup claim. [Research](research.md) records the scope and evidence.
 
-The far-car trials failed the acceptance tradeoff: per-sample shading costs about
-72 ms wide GPU versus 31 ms for the previous control; centroid erases 7 eligible
-states. Initial filtered-atlas failure evidence was invalidated by a capture
-decoder bug; the corrected candidate retained pixels but its final visual
-verdict left softness and motion uncertainty unresolved. It remains unqualified.
-Pilot-only code/assets are removed from the mesh control; general resource/cache
-fixes are retained. Keep the mesh fallback; preserve the unqualified experiment
-only in scratch. The small building-member caster check also lacked a clear
-timing gain and was removed. Complete final checks on this retained shape. Other appearance classes
-retain their authored meshes or existing scenery policy as documented in
-[the representation decision](slices/impostors.md).
+Full Rust tests passed. The full web unit run's two fixture failures were repaired
+and focused checks passed. Full browser verification is running; remaining work:
 
-Then measure the final Low production build at all three zooms: paused, live,
-late and separate moving windows, with matched controls and resource resets.
-Confirm retained walls/vegetation visually. Review the
-whole spec, consolidate choices, run full closeout checks once, and push only
-after the acceptance gates pass.
+1. Resolve every browser failure with focused reruns. Current findings include
+   render-scale assumptions in frame/camera tests, an upscaled-pixel overlay
+   compositing check, faint distant contact stems, camera-path visibility,
+   facade occlusion, grass trampling, and missing city template LFS files (now
+   fetched). Do not lower thresholds or repin pictures to make these pass.
+2. Finish final mesh resource-reset and native rendered-parity runs and review
+   their images. Older resource evidence used rejected card machinery.
+3. Complete the matched moving-control comparison and bounded continuous visual
+   review; the candidate's completed measurements and sampled still reviews do
+   not establish relative moving performance or every intervening frame.
+4. Refresh acceptance statuses and the consolidated choices against final code,
+   complete archival claim review, run hooks, and push the reviewed result.
 
-Evidence is retained in `throwaway/three-view/`; detailed continuity is in
-`SESSION-HANDOFF.md`. Pinned paused comparisons use tick 90, time 3 and digest
-`60ede87ba60aab0b`. Same-world terrain full/selected images are identical; median
-GPU full/selected is 5.457/5.493 ms close, 6.463/5.897 tactical and 35.390/35.169
-wide. These isolate draw cost, not selector CPU. Earlier car gains used the old
-caster approximation and are not final combined results. Correct per-cascade
-submission reduces wide caster triangles, but its repeated GPU timings do not
-yet establish a gain and allocated buffers increased about 39 MB.
+Full known-fall snapshot reconciliation remains O(F), while immutable membership
+avoids geometry/index rebuilds on learned falls. Conservative chunks and fall
+envelopes can over-admit. Browser draw/receiver terrain partitions remain separate
+allocations. These limitations stay explicit in the final rationale.
 
-The terrain-only growth harness passed 30 windows at explicit Low after its
-original default-profile run. It preserves local geometry and appends flat or
-elevated remote extensions. Population/water/felled growth and complete receiver
-accounting remain separate gates. Existing moving/growth image reviews found no
-convincing missing geometry; they precede the pending changes and do not certify
-sprite motion or new draw-range selection.
+The filtered car experiment retained pixels in the corrected boundary captures,
+but appearance and motion remained uncertain; it was not qualified. The earlier
+filtered disappearance report was invalidated by a capture decoder bug. Do not
+repeat it as evidence against cards generally.
+
+Evidence and detailed continuity live in ignored `throwaway/three-view/`, with
+`SESSION-HANDOFF.md` and `final-contract-reconciliation.md` as the current pickup.
+Pinned paused comparisons use tick 90, time 3 and digest `60ede87ba60aab0b`.
