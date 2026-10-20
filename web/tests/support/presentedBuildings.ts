@@ -86,9 +86,16 @@ export function presentBuildings(
         sun_elevation: sun.elevation,
         cascades: { ...gameLight.cascades, max_far_m: sun.farM },
       },
-      new Float32Array([
-        -100000, -100000, 0, 0, 0, 0, 0, 0, 0, 0, 100000, 100000, 0, 0, 0, 0, 0, 0, 0, 0,
-      ]),
+      new Float32Array(
+        [
+          [-100000, -100000],
+          [100000, -100000],
+          [100000, 100000],
+          [-100000, -100000],
+          [100000, 100000],
+          [-100000, 100000],
+        ].flatMap(([x, y]) => [x, y, 0, 0, 0, 1, 0, 0, 0, 1]),
+      ),
     );
   }
   let known = knowledge?.known ?? [];

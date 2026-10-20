@@ -35,6 +35,7 @@ use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::grass::{frame_params, metres_per_pixel, Window};
 use crate::static_world::ground::kinds;
+use crate::static_world::ground::partition::TerrainPartition;
 use crate::static_world::ground::walk::{
     Cleared, Draws, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, DRAWS,
 };
@@ -249,9 +250,8 @@ pub struct Presentation {
     frame: Frame,
     /// The camera the last frame was asked for.
     camera: Option<Camera>,
-    /// The light the sun's cascades are fitted under, and the map's box
-    /// they fit over (`set_shadow`).
-    shadow: Option<(LightSettings, Option<[f64; 6]>)>,
+    /// Immutable terrain and light for receiver fitting.
+    shadow: Option<(LightSettings, Arc<TerrainPartition>)>,
     /// The side's learned ground (none without a layout), and its scars as
     /// the renderer holds them.
     learned: Option<LearnedGround>,
@@ -1113,9 +1113,8 @@ impl Presentation {
         frame_params(words, view_proj, c.eye, metres_per_px, window);
     }
 
-    /// Fits the sun's cascades under `light` over the map's box (none: just
-    /// past the near plane) from the next frame on; none fits none.
-    pub fn set_shadow(&mut self, shadow: Option<(LightSettings, Option<[f64; 6]>)>) {
+    /// Install local receiver terrain and light; none disables shadows.
+    pub fn set_shadow(&mut self, shadow: Option<(LightSettings, Arc<TerrainPartition>)>) {
         self.shadow = shadow;
         self.statics.rewalk();
     }
@@ -1345,7 +1344,7 @@ impl Presentation {
         f.shadow = self
             .shadow
             .as_ref()
-            .map(|(light, map_box)| sun_shadow(light, camera, map_box.as_ref()));
+            .map(|(light, terrain)| sun_shadow(light, camera, Some(terrain)));
         self.follow_felled(time);
         self.follow_cleared();
         // A wreck the cook-off draws moving is left out of the props until

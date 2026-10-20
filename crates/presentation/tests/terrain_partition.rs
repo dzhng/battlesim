@@ -44,7 +44,11 @@ fn matched_local_views_preserve_triangles_and_ids_as_remote_extent_grows() {
         size: [800, 800],
     };
     // Receiver fit is held fixed: extending storage must not change admitted light/view.
-    let shadows = sun_shadow(&light, &camera, Some(&[-8., -8., -1., 8., 8., 2.]));
+    let shadows = sun_shadow(
+        &light,
+        &camera,
+        Some(&TerrainPartition::new(&patch(0., 0.), 8.)),
+    );
     let matrices: Vec<_> = std::iter::once(View::new(&camera).camera(&camera, 0.).view_proj)
         .chain(shadows.casters.iter().map(|c| c.view_proj))
         .collect();
@@ -136,7 +140,20 @@ fn a_fitted_cascade_retains_an_off_camera_caster_above_its_visible_receiver() {
     )
     .0
     .is_empty());
-    let shadows = sun_shadow(&light, &camera, Some(&[-100., -100., -1., 100., 100., 60.]));
+    let shadows = sun_shadow(
+        &light,
+        &camera,
+        Some(&TerrainPartition::new(
+            &mesh::terrain(
+                &[
+                    -100., -100., 0., 100., -100., 0., 100., 100., 0., -100., 100., 0.,
+                ],
+                &[0, 1, 2, 0, 2, 3],
+                None,
+            ),
+            8.,
+        )),
+    );
     assert!(shadows
         .casters
         .iter()

@@ -86,6 +86,46 @@ impl TerrainPartition {
         &self.vertices
     }
 
+    /// Visit local receiver bounds using the draw hierarchy. Padding is vertical
+    /// headroom for objects standing on terrain, applied to each triangle rather
+    /// than to the global elevation envelope. Tile bounds only reject branches;
+    /// an unrelated triangle in a selected tile cannot enlarge the fit.
+    pub(crate) fn receiver_bounds(
+        &self,
+        planes: &[crate::clip::ClipPlane; 6],
+        below: f64,
+        above: f64,
+        mut visit: impl FnMut(&Bounds),
+    ) -> usize {
+        let padded = |mut bounds: Bounds| {
+            bounds[2] -= below;
+            bounds[5] += above;
+            bounds
+        };
+        self.index.query(
+            |bounds| intersects(&padded(*bounds), planes),
+            |id| {
+                let range = &self.tiles[id];
+                let vertices = &self.vertices
+                    [range.start as usize * VERTEX_FLOATS..range.end as usize * VERTEX_FLOATS];
+                for triangle in vertices.as_chunks::<TRIANGLE_FLOATS>().0 {
+                    let mut bounds = [f64::INFINITY; 6];
+                    bounds[3..].fill(f64::NEG_INFINITY);
+                    for vertex in triangle.as_chunks::<VERTEX_FLOATS>().0 {
+                        for axis in 0..3 {
+                            bounds[axis] = bounds[axis].min(f64::from(vertex[axis]));
+                            bounds[axis + 3] = bounds[axis + 3].max(f64::from(vertex[axis]));
+                        }
+                    }
+                    let bounds = padded(bounds);
+                    if intersects(&bounds, planes) {
+                        visit(&bounds);
+                    }
+                }
+            },
+        )
+    }
+
     /// Replace `ranges` with visible vertex ranges in buffer order. Returns
     /// bounds tested, so callers can distinguish spatial selection from a
     /// complete-map scan. Retain the caller-owned vector across frames.

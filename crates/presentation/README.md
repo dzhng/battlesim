@@ -61,8 +61,13 @@ native.
   uploads as it is. A prop the side has not learned never reaches it. The
   unseen look is [`fog`](src/fog/mod.rs)'s `FogLook`.
 - [The sun's shadow](src/shadow.rs): each frame's cascades fitted over where the
-  map is in view depth, as the receiver block and each cascade's caster camera
-  (`Frame.shadow`, once `set_shadow` gives the light and the map's box).
+  terrain is in view depth, as the receiver block and each cascade's caster camera
+  (`Frame.shadow`, once `set_shadow` gives the light and immutable terrain).
+  Receiver fitting queries the terrain's draw hierarchy, then clips individual
+  triangle bounds with standing-object headroom to the camera. Offscreen remote
+  elevations cannot stretch a local fit through a map-wide height envelope.
+  This is conservative geometry, not occlusion: horizon-visible terrain still
+  contributes, and the light's configured shadow reach still applies.
 - [The static world](src/static_world/): the buildings resolved from their
   template art, and the ground from the map's exports under the biome: its
   tables, its meshes (terrain, skirt, water, backdrop), the grass field's
@@ -147,8 +152,9 @@ Rust is the only owner of everything here, so the recorded vectors are its
 own output: first recorded from the TypeScript each module replaced, and
 re-recorded from Rust when a change moves them on purpose. `tests/poses.rs` and
 `tests/effects.rs` hold it to vectors from native's fixture capture and fixed
-effect causes, `tests/light.rs`, `shadow.rs`, `camera.rs`, `ground_meshes.rs`,
+effect causes, `tests/light.rs`, `camera.rs`, `ground_meshes.rs`,
 `grass_field.rs`, `fog_sight.rs`, `sound.rs`, `voices.rs` and `music.rs` to
 recorded vectors bit for bit, and `tests/scars.rs` holds every scar upload to
-recorded cache words. The behaviour tests beside them say what the game does,
+recorded cache words. `tests/shadow.rs` holds receiver coverage and locality
+through the production fit. The behaviour tests beside them say what the game does,
 and hold through any re-recording.

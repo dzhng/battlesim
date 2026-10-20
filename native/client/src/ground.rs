@@ -104,7 +104,7 @@ pub struct Ground {
     /// The box the map's ground and what stands on it fill (`mapBox`).
     pub map_box: Option<[f64; 6]>,
     terrain: Mesh,
-    terrain_partition: TerrainPartition,
+    pub terrain_partition: std::sync::Arc<TerrainPartition>,
     terrain_view: Vec<Range<u32>>,
     terrain_cascades: [Vec<Range<u32>>; CASCADES],
     skirt: Mesh,
@@ -173,7 +173,7 @@ impl Ground {
         let map_box = map_box(&terrain);
         // Coarse spatial batches avoid one draw per terrain cell while allowing
         // the camera and each shadow cascade to exclude distant ground.
-        let terrain_partition = TerrainPartition::new(&terrain, CELL_M);
+        let terrain_partition = std::sync::Arc::new(TerrainPartition::new(&terrain, CELL_M));
         let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
         let skirt = Mesh::new(device, "skirt", &mesh::skirt(positions));
         let water = Mesh::new(device, "water", &mesh::water(&ground.water_cells()));

@@ -68,8 +68,8 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   walk lists as casters, the cascades. The presentation clears shrubs and
   dressing off the ground the side has learned cleared by itself.
 - **The camera and sun shadows** come with each frame: its `View`, its
-  camera uniform, and four cascades fitted over the map's box
-  (`presentation::shadow`, given the light and the box once, `set_shadow`),
+  camera uniform, and four cascades fitted over local terrain receivers
+  (`presentation::shadow`, given the light and shared terrain partition, `set_shadow`),
   the receiver block and each cascade's caster camera, all uploaded as they
   are. Each batch names the tier it casts with and the fog group it binds
   (`Batch.caster`, `Batch.fog`); the client routes by them.

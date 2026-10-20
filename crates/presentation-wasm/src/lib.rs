@@ -20,6 +20,7 @@ use presentation::sound::voices::{self, Request};
 use presentation::sound::{music, synth};
 use presentation::static_world::buildings::{Placed, PlacedBuildings};
 use presentation::static_world::fallen::Known;
+use presentation::static_world::ground::partition::{TerrainPartition, CELL_M};
 use presentation::static_world::library::{Bounds, Library};
 use presentation::units::drawn::ClipTables;
 use presentation::view::Camera;
@@ -317,14 +318,12 @@ impl Presentation {
             .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
     }
 
-    /// Fits the sun's cascades under the battle's light (`presentation.light`,
-    /// JSON, as the renderer's quality sets it) over the box round the
-    /// map's ground mesh (empty: none) from the next frame on.
+    /// Fit local receivers under the quality-resolved light; terrain is immutable.
     pub fn set_shadow(&mut self, light: &str, terrain: &[f32]) -> Result<(), JsError> {
         let light: presentation::light::LightSettings = serde_json::from_str(light)
             .map_err(|e| JsError::new(&format!("presentation.light: {e}")))?;
-        let map_box = presentation::shadow::map_box(terrain);
-        self.inner.set_shadow(Some((light, map_box)));
+        let terrain = Arc::new(TerrainPartition::new(terrain, CELL_M));
+        self.inner.set_shadow(Some((light, terrain)));
         Ok(())
     }
 

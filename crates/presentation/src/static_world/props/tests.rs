@@ -591,6 +591,10 @@ fn card_footprint_projects_full_scaled_rotated_bounds_and_refuses_eye_crossings(
 }
 
 fn fitted_shadow(camera: &Camera, base_z: f64) -> CasterVolumes {
+    use crate::static_world::ground::{
+        mesh,
+        partition::{TerrainPartition, CELL_M},
+    };
     let fixture: serde_json::Value =
         serde_json::from_str(include_str!("../../../tests/fixtures/shadow-vectors.json")).unwrap();
     let mut light: crate::light::LightSettings =
@@ -598,11 +602,18 @@ fn fitted_shadow(camera: &Camera, base_z: f64) -> CasterVolumes {
     light.sun_azimuth = std::f64::consts::PI;
     light.sun_elevation = (0.1_f64).atan();
     light.cascades.max_far_m = 100.;
-    let fit = crate::shadow::sun_shadow(
-        &light,
-        camera,
-        Some(&[-100., -100., base_z - 1., 100., 100., base_z + 10.]),
+    let z = base_z as f32;
+    let terrain = TerrainPartition::new(
+        &mesh::terrain(
+            &[
+                -100., -100., z, 100., -100., z, 100., 100., z, -100., 100., z,
+            ],
+            &[0, 1, 2, 0, 2, 3],
+            None,
+        ),
+        CELL_M,
     );
+    let fit = crate::shadow::sun_shadow(&light, camera, Some(&terrain));
     CasterVolumes::new(&fit.casters)
 }
 

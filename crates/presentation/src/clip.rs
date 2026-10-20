@@ -45,3 +45,84 @@ pub(crate) fn intersects(bounds: &[f64; 6], planes: &[ClipPlane; 6]) -> bool {
         distance >= -rounding
     })
 }
+
+/// Depth extrema of the box/frustum intersection, not of the whole box.
+/// Every vertex is on a box face or is one of the frustum's near corners;
+/// the camera frustum has no finite far corners. Scratch stays on the stack.
+pub(crate) fn depth_range(
+    bounds: &[f64; 6],
+    planes: &[ClipPlane; 6],
+    near_corners: &[[f64; 3]; 4],
+    view: &[f32; 16],
+) -> Option<(f64, f64)> {
+    let mut range = (f64::INFINITY, f64::NEG_INFINITY);
+    let mut include = |p: [f64; 3]| {
+        let depth = -(0..3)
+            .map(|a| f64::from(view[a * 4 + 2]) * p[a])
+            .sum::<f64>()
+            - f64::from(view[14]);
+        range.0 = range.0.min(depth);
+        range.1 = range.1.max(depth);
+    };
+    for &p in near_corners {
+        if (0..3).all(|a| p[a] >= bounds[a] && p[a] <= bounds[a + 3]) {
+            include(p);
+        }
+    }
+    let corners: [[f64; 3]; 8] = std::array::from_fn(|i| {
+        std::array::from_fn(|a| bounds[a + if i & (1 << a) == 0 { 0 } else { 3 }])
+    });
+    for face in [
+        [0, 2, 6, 4],
+        [1, 5, 7, 3],
+        [0, 4, 5, 1],
+        [2, 3, 7, 6],
+        [0, 1, 3, 2],
+        [4, 6, 7, 5],
+    ] {
+        let mut polygon = [[0.; 3]; 16];
+        for (out, i) in polygon.iter_mut().zip(face) {
+            *out = corners[i];
+        }
+        let mut count = 4;
+        for plane in planes {
+            if count == 0 {
+                break;
+            }
+            // Use the same GPU roundoff bound as broad-phase selection.
+            let rounding = plane.rounding[3]
+                + (0..3)
+                    .map(|a| plane.rounding[a] * bounds[a].abs().max(bounds[a + 3].abs()))
+                    .sum::<f64>();
+            let distance = |p: [f64; 3]| {
+                plane.coefficients[3]
+                    + rounding
+                    + (0..3).map(|a| plane.coefficients[a] * p[a]).sum::<f64>()
+            };
+            let input = polygon;
+            let n = count;
+            count = 0;
+            let mut previous = input[n - 1];
+            let mut before = distance(previous);
+            for &point in &input[..n] {
+                let after = distance(point);
+                if (before >= 0.) != (after >= 0.) {
+                    let t = before / (before - after);
+                    polygon[count] =
+                        std::array::from_fn(|a| previous[a] + t * (point[a] - previous[a]));
+                    count += 1;
+                }
+                if after >= 0. {
+                    polygon[count] = point;
+                    count += 1;
+                }
+                previous = point;
+                before = after;
+            }
+        }
+        for &p in &polygon[..count] {
+            include(p);
+        }
+    }
+    range.0.is_finite().then_some(range)
+}

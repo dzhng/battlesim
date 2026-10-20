@@ -104,24 +104,19 @@ moving-view acceptance above remain open.
 ## Matched-local control: construction gate
 
 The focused `remote_ground_growth_preserves_actual_fitted_cascade_records` test
-in `crates/presentation/tests/shadow.rs` appends flat, offscreen triangles at three
-horizontal extents. Local vertex words stay identical. Every arm recomputes
-`map_box` from its complete mesh and calls production `sun_shadow`; it compares
-all receiver and caster record words at the three view distances. This proves
-horizontal growth for that controlled mesh, not the browser scaling contract.
+in `crates/presentation/tests/shadow.rs` appends offscreen triangles at three horizontal extents, both flat and elevated.
+Local vertex words stay identical. Every arm installs its complete mesh into the
+terrain partition and calls production `sun_shadow`; it compares all receiver and
+caster record words at the three view distances. This proves fitting locality
+for that controlled mesh, not the browser scaling contract.
 
-Two construction hazards remain before the browser control can be accepted:
+A construction hazard remains before the browser control can be accepted:
 
 - Resizing and recompiling the saved endurance map changes local terrain
   triangulation. A CPU probe doubling its width found 10,212 versus 10,288
   triangles touching the fixed local region (x < 2500, y < 1800), with the first
   sorted triangle already different. Preserve admitted exports and append remote
   geometry; do not call independently recompiled worlds matched.
-- Appending ground at 100 m elevation, outside the camera at x >= 8192, changes
-  the actual cascade receiver record even at the 65 m view. The global terrain
-  box raises the receiver envelope over unchanged local ground. Horizontal-only
-  success cannot close the unrelated-bounds cascade-fit contract. This needs a
-  decision/fix in the shadow-fit owner, not a frozen old box in the harness.
 
 The existing geometry lab owns saved-world exports and production viewport
 composition; the endurance scene owns production timing execution, and its
@@ -132,3 +127,29 @@ comparing actual `submitted` and `terrainVisitedNodes`. Residency and startup
 must remain separate. No browser extension or GPU run is claimed by the CPU
 construction gate. Population traversal, three-extent submission/timing results,
 local screenshot preservation and visual review remain open.
+
+## Local receiver fitting
+
+The production fit now takes immutable terrain rather than its global box. It
+queries the existing terrain hierarchy, clips each candidate triangle's bounds
+(with the existing standing-object headroom) to the camera, and reduces only
+those local depth intervals. Tile bounds reject branches but never become the
+receiver envelope. The ray-sampling grid is gone, so thin edge and horizon
+receivers are not dependent on landing under a sample. Native shares its draw
+partition with presentation; WASM constructs the same Rust owner at installation.
+The browser still installs separate draw and fit partitions; that duplicate
+startup/residency cost is not per-frame work.
+
+The original horizontal-growth test also covers elevated extensions and compares
+all production receiver/caster words. Local elevation changes the fit; empty,
+near-plane-contained, thin distant and same-tile remote inputs have focused
+coverage, alongside off-camera caster retention. The prior box-fit golden vectors
+are deliberately superseded by the terrain coverage contract, not re-recorded
+as an unexplained baseline change.
+
+This remains conservative triangle-box fitting, not occlusion. Its query cost
+is hierarchy traversal plus triangles in intersecting tiles; horizon-visible
+terrain can legitimately increase that work. Existing standing headroom, caster
+margin and configured shadow reach remain. GPU timing, browser matched-growth
+construction and visual acceptance are still open; these CPU tests do not close
+those gates.
