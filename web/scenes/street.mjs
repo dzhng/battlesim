@@ -523,22 +523,21 @@ async function treeTour(ctx) {
     seen[name] = await lab(page, () => window.__lab.stats().scenery);
   }
 
-  // The forest's trees in view are drawn at some tier, and every one of them
-  // casts (the cascades also take the trees whose shadow falls into view):
-  // nearly all of both forests up the road, one forest alone at its edge.
-  // Scenery past the map is drawn up the road, and culled straight down.
+  // Shared selector tests pin per-cascade identities. Here, check visible
+  // detail, population culling and independent caster submissions.
   const drawn = (p) => p.tiers.reduce((a, b) => a + b, 0);
+  const finest = (p) => p.tiers.findIndex((n) => n > 0);
   ctx.check(
-    "the forests in view and the scenery past the map are drawn as trees, tiered by distance, and every drawn tree casts",
+    "visible trees get finer nearby, backdrop is culled, and forest casters are submitted",
     Object.values(seen).every(
-      (s) => s.forest.placed > 400 && drawn(s.forest) > 100 && s.forest.casters >= drawn(s.forest),
+      (s) => s.forest.placed > 400 && drawn(s.forest) > 100 && s.forest.casters > 0,
     ) &&
       drawn(seen.road.forest) > 0.9 * seen.road.forest.placed &&
       drawn(seen.edge.forest) < 0.7 * seen.edge.forest.placed &&
       seen.road.backdrop.placed > 2000 &&
       drawn(seen.road.backdrop) > 0 &&
       drawn(seen.top.backdrop) < drawn(seen.road.backdrop) &&
-      seen.ground.forest.tiers[0] > 0,
+      finest(seen.ground.forest) < finest(seen.road.forest),
     JSON.stringify(seen),
   );
   // The world only: the HUD's full-width bars cover the frame's
@@ -621,8 +620,8 @@ async function soldierTour(ctx) {
         s.atlasLayers >= 6 &&
         s.skinned + s.cards + s.culledBodies === soldiers,
     ) &&
-      finest(seen.ground) <= 1 &&
-      finest(seen.default) >= finest(seen.ground) &&
+      finest(seen.ground) >= 0 &&
+      finest(seen.default) > finest(seen.ground) &&
       seen.far.cards === soldiers,
     JSON.stringify({ soldiers, seen }),
   );

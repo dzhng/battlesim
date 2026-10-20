@@ -8,6 +8,10 @@ import { writeFile } from "node:fs/promises";
 import { lab } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 import { eyeOf, gap } from "./_cameraClearance.mjs";
+import {
+  graphicsProfiles,
+  sceneMinimumProfile,
+} from "../../apps/battle-lab/src/graphicsSettings.ts";
 
 /** Cuts each trajectory is allowed: one past each tower it crosses (too tall
  *  to go over), one per framing the placement trajectory cuts to. */
@@ -340,9 +344,10 @@ export async function run(ctx) {
   });
   await page.close();
 
-  // A high-density (Retina) display: the battle is drawn at the window's own
-  // size, one pixel per CSS pixel, and the screen scales it up. The HUD is
-  // the page's, drawn at the display's density.
+  // The 3D target follows graphics scale, independent of display density;
+  // the page keeps its CSS viewport and the HUD renders at display density.
+  const quality = ctx.graphicsQuality ?? "minimum";
+  const { renderScale } = quality === "minimum" ? sceneMinimumProfile : graphicsProfiles[quality];
   const dense = await ctx.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
   await ctx.openLab(dense);
   await dense.evaluate(() => window.__lab.frame());
@@ -354,8 +359,11 @@ export async function run(ctx) {
     };
   });
   ctx.check(
-    "on a 2x display the battle draws one pixel per CSS pixel",
-    drawn.pixels.join() === drawn.css.join(),
+    "on a 2x display graphics scale affects only the 3D render target",
+    drawn.css[0] === 1280 &&
+      drawn.css[1] === 800 &&
+      drawn.pixels[0] === Math.round(1280 * renderScale) &&
+      drawn.pixels[1] === Math.round(800 * renderScale),
     JSON.stringify(drawn),
   );
   await dense.close();

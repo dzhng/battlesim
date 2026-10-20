@@ -227,8 +227,8 @@ async function scarFramings(ctx) {
     JSON.stringify(stats),
   );
 
-  // The grass answers the scars: sparse in the crater field, laid over where
-  // the squad walked, against clean meadow at the same range.
+  // Sample crater density separately: the path farther north can fall past
+  // the grass's pixel-footprint fade at reduced render scale.
   await cameraAt(page, { target: [300, 170], distance: 110, pitch: 0.9 });
   await page.evaluate(() => window.__lab.frame());
   const clumps = await lab(page, () => window.__lab.grass().clumps());
@@ -237,28 +237,42 @@ async function scarFramings(ctx) {
   const density = (test, area) => clumps.filter(test).length / area;
   const field = density(inBox(260, 340, 100, 120), 80 * 20);
   const clean = density(inBox(260, 340, 190, 210), 80 * 20);
+  ctx.check(
+    "grass thins in the crater field against clean meadow",
+    clean > 0 && field < clean * 0.35,
+    JSON.stringify({ field, clean }),
+  );
+  // Look down over the path and nearby untouched meadow at comparable range,
+  // safely inside the grass fade, rather than counting absent distant clumps.
+  await cameraAt(page, { target: [300, 220], distance: 65, pitch: 1.4 });
+  await page.evaluate(() => window.__lab.frame());
+  const pathClumps = await lab(page, () => window.__lab.grass().clumps());
   const key = (x, y) => `${x},${y}`;
   const trodden = new Set(
     blue.cells.filter((c) => c.marks.trampled >= 6 && !c.marks.crater).map((c) => key(c.x, c.y)),
   );
-  const onPath = clumps.filter((c) =>
-    trodden.has(key(Math.floor(c.root[0]), Math.floor(c.root[1]))),
+  const onPath = pathClumps.filter(
+    (c) =>
+      inBox(260, 340, 220, 250)(c) &&
+      trodden.has(key(Math.floor(c.root[0]), Math.floor(c.root[1]))),
   );
-  const offPath = clumps.filter(inBox(260, 340, 190, 210));
+  const offPath = pathClumps.filter(inBox(260, 340, 190, 210));
+  await snapshot(ctx, page, "grass-trampled-path-1920x1080.png");
+  await ctx.writeEvidence("grass-scar-probes.json", {
+    onPath: onPath.map(({ root, laid }) => ({ root, laid })),
+    offPath: offPath.map(({ root, laid }) => ({ root, laid })),
+  });
   const meanLaid = (list) => list.reduce((s, c) => s + c.laid, 0) / Math.max(1, list.length);
   ctx.check(
-    "grass thins in the crater field and lies over on the trampled path",
-    clean > 0 &&
-      field < clean * 0.35 &&
-      onPath.length > 20 &&
-      meanLaid(onPath) > 0.3 &&
-      meanLaid(offPath) < 0.02,
+    "grass lies over on the trampled path but stands in nearby clean meadow",
+    onPath.length > 20 && offPath.length > 20 && meanLaid(onPath) > 0.3 && meanLaid(offPath) < 0.02,
     JSON.stringify({
       field,
       clean,
       trodden: trodden.size,
       trampledMax: Math.max(...blue.cells.map((c) => c.marks.trampled)),
       onPath: onPath.length,
+      offPath: offPath.length,
       laidOn: meanLaid(onPath),
       laidOff: meanLaid(offPath),
     }),
