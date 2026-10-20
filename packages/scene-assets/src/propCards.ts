@@ -1,4 +1,4 @@
-// Appearance-owned admission for the browser far-card pilot. Other surface
+// Appearance-owned admission for prepared static cards. Other surface
 // kinds retain meshes; the two runtime atlases cannot represent their materials.
 import type { InstalledAppearance } from "./loader";
 

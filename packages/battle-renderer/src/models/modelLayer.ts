@@ -115,7 +115,7 @@ import {
 } from "../records.gen";
 import { batch_caster, model_fog, model_tiers } from "@wasm/presentation/presentation_wasm.js";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
-import type { ImpostorAtlas } from "./impostor";
+import type { CardAtlas } from "./impostorCards";
 import { createBuildingLayer, type BuildingStats, type BuildingWalkStats } from "./buildingLayer";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -700,13 +700,6 @@ export interface ModelStats {
   appearanceTextureBytes: Record<string, number>;
 }
 
-/** An impostor atlas the battle draws cards from, and which pose it shows. */
-export interface CardAtlas {
-  /** The pose it shows: the far pose, or a way of lying dead. */
-  pose: ModelPose;
-  atlas: ImpostorAtlas;
-}
-
 export async function createModelLayer(
   root: Root,
   registry: GpuRegistry,
@@ -1194,6 +1187,17 @@ export async function createModelLayer(
   /** Each lab model's tier by Rust's rule for the frame's `View` record
    *  (`CULLED`, a mesh tier or `IMPOSTOR`), in `units`' order. A model whose
    *  appearance is not installed is sized nothing; its tier goes unread. */
+  function cardLayer(gpu: GpuAppearance, inst: ModelInstance): number {
+    if (inst.ghost) return -1;
+    const pose = inst.pose;
+    if (
+      pose.kind === "static" &&
+      (pose.motion || gpu.bundle.kind !== "static" || pose.state !== gpu.bundle.states[0]?.name)
+    )
+      return -1;
+    return pose.kind === "corpse" ? (gpu.corpses[pose.lies]?.card ?? -1) : gpu.farCard;
+  }
+
   function labTiers(view: Float32Array): Int32Array {
     if (tierInput.length < units.length * TIER_INPUT)
       tierInput = new Float64Array(units.length * TIER_INPUT * 2);
@@ -1204,26 +1208,17 @@ export async function createModelLayer(
       tierInput.fill(0, o, o + TIER_INPUT);
       if (!gpu) continue;
       const lying = inst.pose.kind === "corpse" ? (gpu.corpses[inst.pose.lies] ?? null) : null;
-      const card = lying ? lying.card : gpu.farCard;
       // A fitted prop's reach grows with its largest scale, and a moving
       // piece's by how far it has moved.
       const grow = inst.scale ? Math.max(inst.scale[0], inst.scale[1], inst.scale[2]) : 1;
       const motion = inst.pose.kind === "static" ? inst.pose.motion : undefined;
       const moved = motion ? grow * Math.hypot(motion[12], motion[13], motion[14]) : 0;
-      // A card shows its bundle's first state, at rest: a piece of it, or a
-      // model in motion, is drawn as a mesh however far.
-      const carded =
-        !inst.ghost &&
-        card >= 0 &&
-        !motion &&
-        (inst.pose.kind !== "static" ||
-          (gpu.bundle.kind === "static" && inst.pose.state === gpu.bundle.states[0]?.name));
       tierInput[o] = inst.x;
       tierInput[o + 1] = inst.y;
       tierInput[o + 2] = inst.z;
       tierInput[o + 3] = (lying ?? gpu).size * grow;
       tierInput[o + 4] = (lying ?? gpu).radius * grow + moved;
-      tierInput[o + 5] = carded ? 1 : 0;
+      tierInput[o + 5] = cardLayer(gpu, inst) >= 0 ? 1 : 0;
     }
     return model_tiers(view, detail, tierInput.subarray(0, units.length * TIER_INPUT));
   }
@@ -1241,6 +1236,7 @@ export async function createModelLayer(
     bucketCount.fill(0, 0, buckets);
     let culled = 0;
     let unitCards = 0;
+    cardRunCount = 0;
     const chosen = view ? labTiers(view) : null;
 
     // A mesh bucket, a card, or nothing.
@@ -1250,9 +1246,11 @@ export async function createModelLayer(
       unitChoice[i] = CULLED;
       if (!gpu) continue;
       const tier =
-        inst.tier !== undefined || !chosen
-          ? Math.min(tierCount(gpu.bundle) - 1, Math.max(0, inst.tier ?? 0))
-          : chosen[i];
+        inst.tier === IMPOSTOR && cardLayer(gpu, inst) >= 0
+          ? IMPOSTOR
+          : inst.tier !== undefined || !chosen
+            ? Math.min(tierCount(gpu.bundle) - 1, Math.max(0, inst.tier ?? 0))
+            : chosen[i];
       if (tier === CULLED) {
         culled++;
         continue;
@@ -1295,6 +1293,7 @@ export async function createModelLayer(
       const inst = modelAt(i);
       const gpu = appearances.get(inst.appearance)!;
       if (choice === -2) {
+        pushCardRun(false, fogOf(inst.pose), card, 1);
         writeRecord(
           cardStaging,
           card++,
@@ -1358,9 +1357,6 @@ export async function createModelLayer(
       stats.tiers[drawable.tier] += n;
       if (drawable.body) stats.bodyTiers[drawable.tier] += n;
     }
-    cardRunCount = 0;
-    // Only skinned bodies carry atlases, so a lab's card is a standing soldier.
-    if (unitCards) pushCardRun(false, FOG_UNITS, 0, unitCards);
     cardStaging.set(frameCards.subarray(0, frameCardCount * RECORD_FLOATS), card * RECORD_FLOATS);
     for (const r of frameCardRuns) pushCardRun(false, r.fog, card + r.first, r.count);
     card += frameCardCount;
@@ -1555,6 +1551,16 @@ export async function createModelLayer(
   }
 
   function pushCardRun(fixed: boolean, fog: number, firstInstance: number, instances: number) {
+    const last = cardRuns[cardRunCount - 1];
+    if (
+      last &&
+      last.fixed === fixed &&
+      last.fog === fog &&
+      last.firstInstance + last.instances === firstInstance
+    ) {
+      last.instances += instances;
+      return;
+    }
     let run = cardRuns[cardRunCount];
     if (!run) cardRuns[cardRunCount] = run = { fixed, fog, firstInstance, instances };
     run.fixed = fixed;
@@ -1656,7 +1662,7 @@ export async function createModelLayer(
     },
     /** The pose an impostor of `name` shows, and its bounds in that pose. */
     farPose,
-    /** Body poses and asset-opted opaque static poses baked by the frame. */
+    /** Supported poses for card installation. */
     cardPoses(): { appearance: string; pose: ModelPose; bounds: Bounds }[] {
       const out: { appearance: string; pose: ModelPose; bounds: Bounds }[] = [];
       for (const gpu of appearances.values()) {

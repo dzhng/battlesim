@@ -47,7 +47,13 @@ impl Statics {
     /// names unchanged, and drops those it no longer lists. A batch named
     /// unchanged that is not held is refused: the frame's batches were
     /// written for a renderer that took the frames between.
-    pub fn prepare(&mut self, device: &Device, queue: &Queue, frame: &Frame) -> Result<(), String> {
+    pub fn prepare(
+        &mut self,
+        device: &Device,
+        queue: &Queue,
+        frame: &Frame,
+        card_layers: &[Option<u32>],
+    ) -> Result<(), String> {
         self.listed.clear();
         for b in &frame.batches {
             if !self.holds(b.appearance) {
@@ -82,7 +88,8 @@ impl Statics {
                     );
                 }
                 let records = &frame.instances[b.first as usize..(b.first + b.count) as usize];
-                queue.write_buffer(&self.held[&b.key].buffer, 0, bytemuck::cast_slice(records));
+                let records = crate::models_cards::card_records(records, b, card_layers);
+                queue.write_buffer(&self.held[&b.key].buffer, 0, bytemuck::cast_slice(&records));
             }
             let Some(h) = self.held.get_mut(&b.key) else {
                 return Err(format!(

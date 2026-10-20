@@ -7,6 +7,8 @@
 //! A container is a 16-byte header (magic, version, header and body lengths,
 //! little-endian), canonical JSON whose typed arrays are `{"$view": i}`, then
 //! the arrays. Each view is its type, byte offset into the body and length.
+pub mod cards;
+
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::io::Read;
@@ -99,7 +101,10 @@ impl<'a, T> Container<'a, T> {
     /// The bytes of `view`, of type `ty` (`size` bytes an element).
     pub fn bytes(&self, view: View, ty: &str, size: usize) -> Result<&'a [u8], String> {
         match self.views.get(view.at) {
-            Some((t, offset, len)) if t == ty => self.body.get(*offset..offset + len * size),
+            Some((t, offset, len)) if t == ty => len
+                .checked_mul(size)
+                .and_then(|bytes| offset.checked_add(bytes))
+                .and_then(|end| self.body.get(*offset..end)),
             _ => None,
         }
         .ok_or(format!("view {} is not {ty} within the body", view.at))

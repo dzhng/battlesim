@@ -700,6 +700,8 @@ export interface Catalog {
 
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
 export interface RuntimeCatalog {
+  /** Source bundle identity to prepared two-channel static card content. */
+  cards?: Record<string, string>;
   sides: SideTints;
   /** Every bundle, texture and the template library travels as gzip (`gzip.ts`).
    * Keys are their original content hashes, the art identity; encoded hashes

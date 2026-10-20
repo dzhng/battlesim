@@ -105,6 +105,28 @@ The per-kit validator still limits the raw bundle's full geometry and texture mi
 
 Gzip is an explicit file transport, not an assumed hosting optimization. The browser uses its own `DecompressionStream`; no HTTP `Content-Encoding` header is required for these files. Every source GLB, physical descriptor, template row, texture pixel and raw art identity survives unchanged.
 
+## Prepared static cards
+
+Far-card eligibility belongs to the appearance; it does not replace full-bounds
+screen-size selection or the independent mesh caster. Unsupported materials and
+absent prepared cards keep their meshes. A declared card that is missing,
+malformed or belongs to different source art fails loading, preserving the
+browser's installed generation.
+
+[`cards.ts`](src/cards.ts) owns the shared offline format: the existing
+albedo/coverage and model-normal/tint atlases, with their model-space frame and
+source bundle identity. Both clients consume those exact prepared pixels. The
+asset CLI's `cards` command bakes through the production workbench renderer;
+like every GPU job, it needs the repository GPU lock. Ordinary mesh `bake` and
+`check` retain and validate cards only while their source identity matches.
+Changed source art needs a new explicit card bake. Changes to bake semantics
+must invalidate the card format rather than silently reuse old pixels.
+
+Decoded atlas residency and compressed download cost are separate: cards count
+in the existing download gates, and the bake command reports both. The format
+preserves the existing card material approximation; accepting that approximation
+requires browser/native pictures and performance evidence, not a successful load.
+
 ## Sides
 
 Both sides draw the same meshes; what differs is the army, not the side. A card

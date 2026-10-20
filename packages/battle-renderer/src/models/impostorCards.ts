@@ -21,19 +21,20 @@ import { fogCoverage } from "../frame/fogTerm";
 import { WORLD_OUT } from "../frame/targets";
 import { modelSeen } from "./modelFog";
 import type { GpuRegistry } from "../frame/registry";
-import type { ImpostorAtlas, ImpostorSpec } from "./impostor";
+import type { ImpostorAtlas } from "./impostor";
+
+/** An installed atlas and the pose it depicts. */
+export interface CardAtlas {
+  pose: import("./modelInstances").ModelPose;
+  atlas: ImpostorAtlas | PreparedCard;
+}
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
 /** The runtime atlases' views: eight headings at the camera's far pitch
  *  (the pitch curve's 0.85 rad plateau, where cards are drawn) and a lower
  *  one, at 64 px a cell (a card is drawn under `impostor_px`, a few pixels). */
-export const CARD_SPEC: ImpostorSpec = {
-  yaws: 8,
-  pitches: [0.85, 0.5],
-  cell: 64,
-  supersample: 2,
-};
+import { CARD_SPEC, type PreparedCard } from "@packages/scene-assets/src/cards";
 const YAWS = CARD_SPEC.yaws;
 const CELL_YAW = (2 * Math.PI) / YAWS;
 const PITCH_HIGH = CARD_SPEC.pitches[0];
@@ -181,7 +182,7 @@ export function createCardFragment(environment: EnvironmentFrame) {
 export function uploadCardAtlases(
   root: Root,
   scope: GpuRegistry,
-  atlases: readonly ImpostorAtlas[],
+  atlases: readonly (ImpostorAtlas | PreparedCard)[],
 ) {
   const owned = scope.scope();
   try {
@@ -202,7 +203,7 @@ export function uploadCardAtlases(
         throw new Error(`card atlas ${atlas.appearance} is ${atlas.width}×${atlas.height}`);
       // The normal layer's alpha is the tint mask; coverage stays in albedo's.
       const packed = new Uint8Array(atlas.normal);
-      for (let i = 3; i < packed.length; i += 4) packed[i] = atlas.mask[i - 3];
+      if ("mask" in atlas) for (let i = 3; i < packed.length; i += 4) packed[i] = atlas.mask[i - 3];
       for (const [target, bytes] of [
         [albedo, atlas.albedo],
         [normal, packed],
