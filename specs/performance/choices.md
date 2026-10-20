@@ -309,3 +309,23 @@ The same scale is now the production Low profile; Medium and High remain at 1×.
 - **Verdict:** sound after the low-quality graphics reel completed at 90.9 FPS
   average and 51.2 FPS 1% low on the measured adapter.
 - **Confidence:** high for the measured adapter, medium across hardware.
+
+
+### Make terrain and shadow culling the XL performance target — 2026-10-20
+
+The XL GPU floor is not entirely camera-bounded. Post-processing is tied to the
+render target, but the terrain mesh is submitted as one full-map draw and each
+shadow cascade submits the terrain caster plus its selected casters. A camera
+frustum clips the result after submission; it does not make a huge terrain
+mesh or an off-view shadow caster free. Props and scenery already use chunked
+presentation walks, so they are a secondary target.
+
+- **Gap:** the prior handoff called the entire backbone camera-bounded and could
+  have led us to optimize the wrong owner.
+- **Reach:** browser and native world/shadow passes, with identical presentation
+  records and visual output.
+- **Verdict:** make terrain tiling/culling and shadow-caster bounding the active
+  next slice; measure each separately first. Preserve post as a screen-size
+  baseline.
+- **Confidence:** high for the submission path, medium for the eventual split
+  until pass-specific probes run.

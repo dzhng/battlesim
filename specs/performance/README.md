@@ -1,7 +1,7 @@
 # Performance
 
-**Status:** Performance slice complete: Rust presentation allocation-reuse passes retained, browser reel accepted, and XL 5v5 stress evidence recorded. The XL stress workload remains diagnostic for future scale work.
-**Updated:** 2026-10-19.
+**Status:** XL 5v5 stress rendering is now the active performance limit. The Rust presentation allocation-reuse passes and browser reel remain green; the next work bounds terrain and shadow work by the camera rather than the whole generated map.
+**Updated:** 2026-10-20.
 
 The current renderer research ledger is [research.md](research.md). It records
 the fixed benchmark contract, measured candidates and the next experiment; this
@@ -23,6 +23,9 @@ renderer or shader changes. Update this section before you end each pass.
 - [x] Profile the next loaded-frame owner before selecting another optimization.
 - [x] Reuse `BuildingWalk::select` list and count storage after native A/B.
 - [x] Measure the XL 5v5-scale stress workload with a realistic full-roster late state.
+- [x] Establish whether the XL GPU cost is screen-bounded or map-bounded.
+- [ ] Separate terrain, shadow-caster, and post-processing GPU cost on the XL workload.
+- [ ] Reduce map-scaled terrain/shadow cost without changing presentation output.
 
 ## Current handoff
 
@@ -64,10 +67,19 @@ player-facing symptom.
 The separate scale workload uses the generated Metro XL world and 100 units per
 side, matching the planned 5v5 force size. Its 30-second browser sample reached
 about 20 FPS median live cadence (frame p95 66.6 ms) and about 17 FPS with the
-full roster's 800 fallen soldiers and 100 wrecks (frame p95 74.9 ms). This is a
-diagnostic scale bound, not the player-facing reel gate; it identifies the
-large-battle workload as a future optimization target if 5v5 performance needs
-to improve.
+full roster's 800 fallen soldiers and 100 wrecks (frame p95 74.9 ms). This is
+now the active scale target: the extra GPU time is the main remaining limit for
+large battles.
+
+The first cost floor explains why map size can matter. Post-processing is
+screen-size bounded, but the terrain is currently submitted as the full
+exported map mesh, and each directional-shadow cascade submits the terrain
+caster plus its selected shadow casters. Raster clipping limits visible
+fragments; it does not remove those vertices from the draw. Static props and
+scenery are chunk-walked and mostly camera-bounded, so they are not the whole
+XL increase. The next slice must measure and then cull or tile terrain and
+shadow inputs. A huge map should not make a fixed camera pay for terrain
+vertices or shadow casters outside its fitted view.
 
 ## Where the frame stands
 

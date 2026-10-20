@@ -219,3 +219,27 @@ with GPU texture memory dropping from about 610 MiB to 548 MiB. This is roughly
 change. The scale is used by the production Low profile and the test-only minimum
 profile; Medium and High remain at 1×. The low-quality graphics reel completed
 without render errors.
+
+
+## XL GPU backbone is map-scaled — 2026-10-20
+
+The XL GPU cost was initially described as a camera-view backbone. That was too
+broad. Post-processing is tied to the render target, but the world pass submits
+the exported terrain mesh as a whole, and the shadow pass submits the terrain
+caster once per active cascade. Raster clipping limits visible fragments; it
+does not avoid vertex work for terrain outside the camera or casters outside the
+fitted shadow receiver. A larger map can therefore increase terrain and shadow
+work even when the camera sees the same small patch.
+
+The existing XL probes establish priority but do not isolate these owners. With
+the low profile and the simulation paused, suppressing all optional layers
+together measured about 44 ms GPU mean; an earlier combined floor probe on the
+same adapter measured about 27 ms under a different run and resolution.
+Individual optional-layer deltas were generally below 1 ms and are not
+additive on the Apple tile GPU. These runs justify a bounded terrain/shadow
+probe, not a claim that 27 ms is one pass or that post is map-scaled.
+
+**Active invariant:** fixed camera and render size should make post cost
+constant; terrain and shadow work must be bounded by the camera and fitted
+shadow regions, not by total map extent. The next experiment exposes terrain-
+caster and shadow-cascade cost separately before changing production rendering.
