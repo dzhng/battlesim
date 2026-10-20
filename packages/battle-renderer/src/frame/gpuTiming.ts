@@ -32,6 +32,7 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     }),
     busy: false,
+    generation: 0,
   }));
   const marker = registry
     .texture({
@@ -42,6 +43,8 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
     })
     .createView();
   const samples: number[] = [];
+  let generation = 0;
+  let frameGeneration = 0;
   let pending: (typeof readbacks)[number] | undefined;
 
   // The frame opens where the first marker's vertex stage starts, and closes
@@ -62,6 +65,7 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
 
   return {
     begin(encoder: GPUCommandEncoder) {
+      frameGeneration = generation;
       mark(encoder, 0);
     },
     /** Close the frame and queue its readback, if one is free. */
@@ -69,7 +73,10 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
       mark(encoder, 1);
       pending = readbacks.find((r) => !r.busy);
       encoder.resolveQuerySet(querySet, 0, 2, resolve, 0);
-      if (pending) encoder.copyBufferToBuffer(resolve, 0, pending.buffer, 0, 16);
+      if (pending) {
+        pending.generation = frameGeneration;
+        encoder.copyBufferToBuffer(resolve, 0, pending.buffer, 0, 16);
+      }
     },
     /** After submit: read the queued frame's time back. */
     collect() {
@@ -82,7 +89,7 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
         .then(() => {
           const [t0, t1] = new BigUint64Array(readback.buffer.getMappedRange().slice(0));
           readback.buffer.unmap();
-          if (t0 !== 0n && t1 > t0) {
+          if (readback.generation === generation && t0 !== 0n && t1 > t0) {
             samples.push(Number(t1 - t0) / 1e6);
             if (samples.length > WINDOW) samples.shift();
           }
@@ -97,7 +104,10 @@ export function createFrameTimer(device: GPUDevice, registry: GpuRegistry) {
       const p95 = sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * 0.95))] ?? 0;
       return { frames: sorted.length, meanMs: mean, p95Ms: p95 };
     },
+    /** Start a window containing only frames begun after this call. Old
+     *  readbacks retain their slots until mapping finishes, but cannot publish. */
     reset() {
+      generation++;
       samples.length = 0;
     },
   };

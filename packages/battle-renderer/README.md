@@ -127,3 +127,6 @@ same camera, tick and installed state, plus a picture proving the intended subje
 was drawn. [Browser verification](../../web/README.md#checks-and-evidence) owns
 scene execution, while [the benchmark](../../web/src/battle/benchmark/README.md)
 owns rendered cost. Healthy counters alone do not prove a correct image.
+GPU measurement windows start at the scene's timing reset: only frames begun
+after it may contribute, even when older readbacks finish later. Settle a camera
+or workload change before resetting; reset neither waits for nor warms that state.

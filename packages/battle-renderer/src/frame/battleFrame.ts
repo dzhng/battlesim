@@ -404,6 +404,9 @@ export async function createBattleFrame(
           timer?.reset();
         },
         settled: () => targets.settled(),
+        resetGpuTiming() {
+          timer?.reset();
+        },
         fogProbes: world.fog,
         grassProbes: world.grassProbes,
         drawnInstances: () => ({

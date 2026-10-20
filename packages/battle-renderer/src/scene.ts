@@ -294,6 +294,9 @@ export interface BattleFrame {
   /** Resolves once no target rebuild is pending; true if one was. */
   settled(): Promise<boolean>;
   stats(): FrameStats;
+  /** Clear GPU timing samples and exclude frames begun before this call.
+   *  Does not wait for readbacks or reset the lifetime frame count. */
+  resetGpuTiming(): void;
   /** Frees every allocation. Calls after dispose are ignored, since the
    *  viewport may still draw while it awaits a rebuilt frame. */
   dispose(): void;
