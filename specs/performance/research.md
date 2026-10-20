@@ -366,3 +366,47 @@ is claimed. Scratch evidence: `throwaway/xl-audit/wall-source-before`,
 `wall-after`, and the paired `wall-*-distant.png` crops. Both raw-source previews
 lack catalog-kind metadata, so they are image comparisons, not asset-validation
 proof. The original wall remains in production.
+
+### Native consumer confirmation
+
+After hydrating the newly committed car bundle from the local LFS cache,
+`cargo test -p native-client --test props` passes both placement/appearance
+checks. `cargo test -p native-client --test counts` also passes: the committed
+browser replay's frame counts match native at tick boundaries and between.
+These prove shared asset consumption and presentation-count parity, not native
+GPU speedup. Logs: `throwaway/xl-audit/car-native-props-hydrated.log` and
+`car-native-counts.log`.
+
+### Remaining terrain work bound
+
+Both clients currently submit the complete terrain triangle list to depth,
+colour and each shadow cascade. A future correction should partition immutable
+triangles into spatial draw ranges once, then select them in Rust presentation
+for the camera and each actual cascade matrix. Browser and native must consume
+the same ranges. Selection itself must use a spatial query rather than scan all
+chunks, and partitioning must preserve vertex positions, normals and tint.
+
+The current view projection intentionally has no far plane. A horizon-facing
+view can therefore admit more local content as a map grows. Strict map-size
+independence at every pitch needs an explicit finite visibility/fade policy;
+chunk selection alone cannot promise it. A downward fixed-view comparison can
+hold local content constant without changing that policy.
+
+Before adding this cross-client contract, measure the whole-terrain omission
+ceiling on the production Low XL opening. The earlier terrain-shadow omission
+saved only about 0.4 ms. Omission changes the picture and is never an acceptable
+shipping optimization; its result only ranks the possible work. Required gates
+for a real chunk implementation are equal selected triangles when distant map
+content grows, retention of crossing triangles and off-camera casters affecting
+visible ground, bounded selection visits, browser/native range parity, and
+matched image/GPU comparisons.
+
+The post-car omission probe completed at 960×600, paused tick35, with the
+same 100,370 model instances and 10,443,810 model triangles in every arm.
+Interleaved normal GPU means were 25.29, 28.19, 23.20, 26.69 ms; omitted means
+were 23.01, 19.43, 22.08 ms (group means 25.84 and 21.51 ms). Variation is large.
+This is a rough total-terrain cost indication, not a predicted 4.33 ms culling
+gain: the omission also removes visible shading and changes depth/occlusion.
+The actual selection candidate must preserve those pixels. All omission hooks
+and the shortened timing window were removed. Evidence is under
+`throwaway/xl-audit/terrain-ceiling/` (`results.json`, `run.log`, saved probes).

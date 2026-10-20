@@ -30,8 +30,8 @@ evidence lives in [research.md](research.md).
 - [x] Confirm the production live/late-state run and review the car pass.
 - [x] Finish asset validation (empty stale bundle directory removed).
 - [x] Commit the car pass with formatting, lint and file-size hook checks.
-- [ ] Verify images, batch updates, resource reset, browser/native consumers,
-  and steady-state performance before accepting the candidate.
+- [x] Verify car images, production reset/resource stability and native prop/count
+  consumers; native GPU performance remains unmeasured.
 - [ ] Reassess the remaining GPU limit, review, and complete closeout checks.
 
 ## Current handoff
@@ -52,8 +52,12 @@ keeping near tiers and wreck generation unchanged. Matched visual sheets pass;
 the controlled same-scene A/B saves about 3.9 ms (12%) with equal instance counts.
 Production live/late-state confirmation and asset validation pass, including
 deterministic resets and stable GPU allocations. The car pass is committed.
-Next, reassess the remaining GPU cost and native consumer verification; the
-whole-spec frame-time target and closeout checks remain open.
+Next, prototype spatial terrain draw selection shared by both clients, with
+exact triangle preservation and a fixed downward-view work-bound test. The
+whole-terrain omission probe suggests a noisy ~4.3 ms total opportunity, which
+includes visible shading that culling cannot remove; measure the real candidate
+before accepting cross-client machinery. The whole-spec frame-time target and
+closeout checks remain open.
 The three-band courtyard-wall candidate was rejected in visual review: its
 far silhouette lost contrast and definition. Near meshes were unchanged, but
 that is insufficient acceptance evidence. No wall change is retained.
