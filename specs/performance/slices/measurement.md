@@ -100,3 +100,35 @@ live replay pictures are later battle states, not exact frames from the timed
 run. These are review inputs, not visual acceptance. No GPU run or screenshot
 review has been performed for this instrumentation pass; baseline freezing and
 moving-view acceptance above remain open.
+
+## Matched-local control: construction gate
+
+The focused `remote_ground_growth_preserves_actual_fitted_cascade_records` test
+in `crates/presentation/tests/shadow.rs` appends flat, offscreen triangles at three
+horizontal extents. Local vertex words stay identical. Every arm recomputes
+`map_box` from its complete mesh and calls production `sun_shadow`; it compares
+all receiver and caster record words at the three view distances. This proves
+horizontal growth for that controlled mesh, not the browser scaling contract.
+
+Two construction hazards remain before the browser control can be accepted:
+
+- Resizing and recompiling the saved endurance map changes local terrain
+  triangulation. A CPU probe doubling its width found 10,212 versus 10,288
+  triangles touching the fixed local region (x < 2500, y < 1800), with the first
+  sorted triangle already different. Preserve admitted exports and append remote
+  geometry; do not call independently recompiled worlds matched.
+- Appending ground at 100 m elevation, outside the camera at x >= 8192, changes
+  the actual cascade receiver record even at the 65 m view. The global terrain
+  box raises the receiver envelope over unchanged local ground. Horizontal-only
+  success cannot close the unrelated-bounds cascade-fit contract. This needs a
+  decision/fix in the shadow-fit owner, not a frozen old box in the harness.
+
+The existing geometry lab owns saved-world exports and production viewport
+composition; the endurance scene owns production timing execution, and its
+view-measurement helper already records CPU, GPU and resource samples. A minimal
+browser extension should reuse those boundaries, retaining the same local static
+identities and publications and checking resolved camera/light/dimensions before
+comparing actual `submitted` and `terrainVisitedNodes`. Residency and startup
+must remain separate. No browser extension or GPU run is claimed by the CPU
+construction gate. Population traversal, three-extent submission/timing results,
+local screenshot preservation and visual review remain open.

@@ -355,3 +355,57 @@ fn a_cold_frame_shades_nothing_and_casts_nothing() {
         assert_eq!(c.interval, [1.0, 1.0]);
     }
 }
+
+#[test]
+fn remote_ground_growth_preserves_actual_fitted_cascade_records() {
+    let light = game_light();
+    // Append triangles to one fixed local mesh, not a resized/recompiled
+    // map: that can retessellate local ground and is a different workload.
+    let ground = |east: f32| {
+        let mut mesh = Vec::new();
+        let mut quad = |west, east| {
+            for [x, y] in [
+                [west, 0.0],
+                [east, 0.0],
+                [east, 8192.0],
+                [west, 0.0],
+                [east, 8192.0],
+                [west, 8192.0],
+            ] {
+                mesh.extend_from_slice(&[x, y, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]);
+            }
+        };
+        quad(0.0, 8192.0);
+        if east > 8192.0 {
+            quad(8192.0, east);
+        }
+        mesh
+    };
+    let local_mesh = ground(8192.0);
+    let local_box = map_box(&local_mesh).unwrap();
+    for (distance, pitch) in [(65.0, 0.85), (260.0, 0.85), (2400.0, 0.95)] {
+        let camera = orbit([4096.0, 4096.0, 0.0], distance, pitch, -1.57);
+        let local = sun_shadow(&light, &camera, Some(&local_box));
+        assert!(!local.casters.is_empty());
+        for east in [16384.0, 32768.0] {
+            let mesh = ground(east);
+            assert_eq!(&mesh[..local_mesh.len()], local_mesh.as_slice());
+            let grown_box = map_box(&mesh).unwrap();
+            assert!(grown_box[3] > local_box[3]);
+            assert!(
+                !View::new(&camera).sees_box(&[8192.0, 0.0, 0.0, east as f64, 8192.0, 0.0]),
+                "added terrain must be outside the camera"
+            );
+            let grown = sun_shadow(&light, &camera, Some(&grown_box));
+            assert_eq!(
+                bits(&local.receiver),
+                bits(&grown.receiver),
+                "receiver at {distance} m, east {east}"
+            );
+            assert_eq!(local.casters.len(), grown.casters.len());
+            for (i, (a, b)) in local.casters.iter().zip(&grown.casters).enumerate() {
+                assert_eq!(bits(a), bits(b), "caster {i} at {distance} m, east {east}");
+            }
+        }
+    }
+}
