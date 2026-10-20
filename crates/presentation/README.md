@@ -72,6 +72,9 @@ native.
   (rubble, wrecks, shoved bodies). Buildings, scenery and props are walked
   per view into the frame's static batches, written only when a list
   changes; the scenery leaves the ground the side has learned cleared.
+  Props publish independent camera and caster lists: shadow reach cannot
+  remove a camera mesh, and leaving the camera cannot remove a shadow
+  that reaches visible receivers. Both lists use the same side knowledge.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;

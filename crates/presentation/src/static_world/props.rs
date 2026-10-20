@@ -35,11 +35,11 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
-use crate::records::VIEW_PASS;
+use crate::records::{CAST_PASS, VIEW_PASS};
 use crate::seed::Key;
 use crate::static_world::batches::{List, Population};
 use crate::static_world::fallen::Known;
-use crate::static_world::walk::{Record, Shadow};
+use crate::static_world::walk::{casts_into, Record, Shadow};
 use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MARGIN_M, TIERS};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
@@ -637,7 +637,7 @@ impl PropPopulation {
             }
             chunk.models.push(i);
         }
-        let lists = vec![Vec::new(); looks.list.len() * TIERS];
+        let lists = vec![Vec::new(); looks.list.len() * TIERS * 2];
         PropPopulation {
             hidden: vec![false; map.len()],
             prints: vec![0; lists.len()],
@@ -756,17 +756,34 @@ impl PropPopulation {
 }
 
 impl Population for PropPopulation {
-    fn select(&mut self, view: &View, _shadow: Option<&Shadow>) -> bool {
+    fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
         let mut lists = vec![Vec::new(); self.lists.len()];
         let this = &*self;
+        let n = self.looks.list.len() * TIERS;
         let mut take = |m: &Model| {
             let at = [m.record[0], m.record[1], m.record[2]].map(f64::from);
             let tier = model_detail(&this.art.detail, view, at, m.size, m.radius, false, None);
             if tier != CULLED {
                 lists[m.look * TIERS + tier as usize].push(m.record);
             }
+            // Camera detail and shadow membership are independent. Reuse the
+            // static world's receiver sweep, including its existing reach.
+            let [x, y, z] = at;
+            let center_z = z + m.size / 2.0;
+            let r = m.radius;
+            let bounds = [x - r, y - r, center_z - r, x + r, y + r, center_z + r];
+            if casts_into(view, shadow, &bounds, bounds[5].max(0.0)) {
+                let cast = if tier == CULLED {
+                    TIERS - 1
+                } else {
+                    caster_tier(tier as usize)
+                };
+                lists[n + m.look * TIERS + cast].push(m.record);
+            }
         };
-        for chunk in this.chunks.iter().filter(|c| view.sees_box(&c.bounds)) {
+        for chunk in this.chunks.iter().filter(|c| {
+            view.sees_box(&c.bounds) || casts_into(view, shadow, &c.bounds, c.bounds[5].max(0.0))
+        }) {
             for &i in chunk.models.iter().filter(|&&i| !this.hidden[i]) {
                 take(&this.map[i]);
             }
@@ -786,21 +803,23 @@ impl Population for PropPopulation {
     }
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
-        for (k, list) in self.lists.iter().enumerate() {
+        let n = self.looks.list.len() * TIERS;
+        for (index, list) in self.lists.iter().enumerate() {
+            let k = index % n;
             let tier = k % TIERS;
+            let pass = if index < n { VIEW_PASS } else { CAST_PASS };
             visit(List {
                 row: self.rows[k / TIERS],
                 tier: tier as u32,
-                pass: VIEW_PASS,
-                // A prop casts as a unit does: no caster lists of its own.
-                caster: caster_tier(tier) as u32,
+                pass,
+                caster: List::own_caster(pass, tier as u32),
                 fog: model_fog(
                     false,
                     true,
                     self.looks.list[k / TIERS].2 == DRAWS_PROP_GROUND,
                 ),
                 records: list,
-                print: self.prints[k],
+                print: self.prints[index],
             });
         }
     }

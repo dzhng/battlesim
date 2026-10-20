@@ -81,8 +81,9 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   scene's units installs (`files::prop_art`: the catalog's footprints,
   paints and wrecks, each look's bounds read from its bundle's header), and
   the presentation fits them and adds what the side knows. Their rows
-  (`Appearance.draws` 7 and 8) draw through the model pipelines and cast as
-  a unit casts, a tier coarser.
+  (`Appearance.draws` 7 and 8) draw through the model pipelines. Independent caster batches preserve
+  offscreen shadows and exclude props beyond receiver reach; camera batches
+  never cast a second copy.
 - **The static batches are held between frames** (`statics.rs`), as the
   browser holds them: one buffer per batch key, rewritten only when the
   frame writes it, dropped when the frame stops listing it. The models and

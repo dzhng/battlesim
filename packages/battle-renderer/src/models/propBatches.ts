@@ -1,7 +1,14 @@
 // Held static prop records: publication keys own buffers until no longer listed.
 import type { GpuRegistry } from "../frame/registry";
 import type { WorldAppearance } from "./modelLayer";
-import { BATCH_WORDS, Batch, NONE, INSTANCE_WORDS, type frameViews } from "../records.gen";
+import {
+  BATCH_WORDS,
+  Batch,
+  CAST_PASS,
+  NONE,
+  INSTANCE_WORDS,
+  type frameViews,
+} from "../records.gen";
 
 const RECORD_FLOATS = INSTANCE_WORDS;
 const VERTEX_USAGE = 0x20 | 0x08; // VERTEX | COPY_DST
@@ -21,6 +28,7 @@ export interface HeldProps {
   buffer: GPUBuffer | null;
   row: number;
   tier: number;
+  pass: number;
   caster: number;
   fog: number;
   count: number;
@@ -67,12 +75,13 @@ export function setPropBatches(
     if (!h)
       state.held.set(
         key,
-        (h = { scope: null, buffer: null, row, tier: 0, caster: NONE, fog: 0, count: 0 }),
+        (h = { scope: null, buffer: null, row, tier: 0, pass: 0, caster: NONE, fog: 0, count: 0 }),
       );
     const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
-    [h.row, h.tier, h.caster, h.fog, h.count] = [
+    [h.row, h.tier, h.pass, h.caster, h.fog, h.count] = [
       row,
       words![o + Batch.tier],
+      words![o + Batch.pass],
       words![o + Batch.caster],
       words![o + Batch.fog],
       count,
@@ -103,4 +112,20 @@ export function setPropBatches(
     }
   state.listed = next;
   return changed;
+}
+
+/** Camera prop counts exclude independent caster submissions. */
+export function drawnProps(state: PropBatches, worldRows: readonly WorldAppearance[]) {
+  const drawn = new Map<string, number[]>();
+  for (const h of state.listed) {
+    if (h.pass === CAST_PASS) continue;
+    const name = worldRows[h.row]?.name;
+    if (!name) continue;
+    let levels = drawn.get(name);
+    if (!levels) drawn.set(name, (levels = [0, 0, 0, 0]));
+    levels[h.tier] += h.count;
+  }
+  return [...drawn]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([appearance, levels]) => ({ appearance, levels }));
 }

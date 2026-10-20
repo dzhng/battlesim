@@ -372,3 +372,121 @@ fn a_view_draws_what_it_sees_by_its_projected_height() {
     assert!(drawn(&p).is_empty());
     assert!(!p.select(&camera([-8.0, 0.0, 2.0], [-20.0, 0.0, 0.0]), None));
 }
+
+#[test]
+fn caster_lists_keep_offscreen_shadows_without_changing_camera_meshes() {
+    use crate::records::{CAST_PASS, NONE};
+    let mut input = input();
+    input.appearances = vec![Art {
+        bounds: Corners {
+            min: [-1.0, -1.0, 0.0],
+            max: [1.0, 1.0, 10.0],
+        },
+        ..art("test_caster", "car", None, [1.0, 1.0, 5.0])
+    }];
+    let props = [-80.0, 0.0, -1000.0]
+        .into_iter()
+        .enumerate()
+        .map(|(id, x)| MapProp {
+            id: id as f64,
+            body: PropBox {
+                center: [x, 0.0],
+                base_z: 0.0,
+                yaw: 0.0,
+                ..body("car", [1.0, 1.0, 5.0])
+            },
+        })
+        .collect();
+    let mut p = PropPopulation::new(PropArt::new(layout(), input).unwrap(), props);
+    p.rows = (0..p.looks.list.len() as u32).collect();
+    let view = View::new(&Camera {
+        eye: [0.0, -30.0, 10.0],
+        target: [0.0, 100.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 0.8,
+        near: 1.0,
+        size: [1280, 720],
+    });
+    let lists = |p: &PropPopulation, pass| {
+        let mut out = Vec::new();
+        p.each_list(&mut |l| {
+            if l.pass == pass {
+                for r in l.records {
+                    out.push((l.row, l.tier, *r));
+                }
+            }
+        });
+        out
+    };
+    p.select(&view, None);
+    let camera = lists(&p, VIEW_PASS);
+    assert_eq!(
+        camera.iter().map(|(_, _, r)| r[0]).collect::<Vec<_>>(),
+        [0.0]
+    );
+    // The offscreen tower's shadow reaches x=0, in the same visible ground as the centre tower.
+    assert!(view.sees_sphere([0.0, 0.0, 0.0], 1.0));
+    let shadow = Shadow {
+        fall: [10.0, 0.0],
+        reach: 100.0,
+    };
+    assert!(p.select(&view, Some(&shadow)));
+    assert_eq!(lists(&p, VIEW_PASS), camera);
+    let mut casters = lists(&p, CAST_PASS);
+    casters.sort_by(|a, b| a.2[0].total_cmp(&b.2[0]));
+    assert_eq!(
+        casters.iter().map(|(_, _, r)| r[0]).collect::<Vec<_>>(),
+        [-80.0, 0.0]
+    );
+    p.each_list(&mut |l| {
+        assert_eq!(l.caster, if l.pass == CAST_PASS { l.tier } else { NONE });
+    });
+    assert!(
+        !p.select(&view, Some(&shadow)),
+        "unchanged lists retain their publication"
+    );
+    p.select(&view, None);
+    assert!(lists(&p, CAST_PASS).is_empty());
+    assert_eq!(lists(&p, VIEW_PASS), camera);
+}
+
+#[test]
+fn visible_props_outside_receiver_reach_keep_their_camera_mesh_only() {
+    use crate::records::CAST_PASS;
+    let mut p = town();
+    p.set_known(vec![known(None, "car", 1000.0, false)]);
+    let view = View::new(&Camera {
+        eye: [-30.0, 0.0, 10.0],
+        target: [100.0, 0.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 0.8,
+        near: 1.0,
+        size: [1280, 720],
+    });
+    let selected = |p: &PropPopulation, pass| {
+        let mut out = Vec::new();
+        p.each_list(&mut |l| {
+            if l.pass == pass {
+                out.extend(l.records.iter().map(|r| (l.row, l.tier, *r)));
+            }
+        });
+        out
+    };
+    p.select(&view, None);
+    let camera = selected(&p, VIEW_PASS);
+    assert!(camera.iter().any(|(_, _, r)| r[0] == 1000.0));
+    p.select(
+        &view,
+        Some(&Shadow {
+            fall: [1.0, 0.0],
+            reach: 100.0,
+        }),
+    );
+    assert_eq!(selected(&p, VIEW_PASS), camera);
+    let mut xs: Vec<_> = selected(&p, CAST_PASS)
+        .iter()
+        .map(|(_, _, r)| r[0])
+        .collect();
+    xs.sort_by(f32::total_cmp);
+    assert_eq!(xs, [0.0, 20.0, 40.0]);
+}

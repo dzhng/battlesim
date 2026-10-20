@@ -39,7 +39,7 @@
 // (`buildingLayer.ts`): the same meshes, records, material and pipelines as
 // any static model, with their own record buffers and draw ranges.
 
-import { createPropBatches, clearPropBatches, setPropBatches } from "./propBatches";
+import { createPropBatches, clearPropBatches, setPropBatches, drawnProps } from "./propBatches";
 import { recordDraw, type SubmittedDraws } from "../frame/submitted";
 import type { Drawable3, CardDrawable } from "./modelDraw";
 import { tgpu, d, std } from "typegpu";
@@ -83,6 +83,7 @@ import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import { restingModelPose, type ModelInstance, type ModelPose } from "./modelInstances";
 import {
   BATCH_WORDS,
+  CAST_PASS,
   Batch,
   CULLED,
   Counts,
@@ -805,7 +806,7 @@ export async function createModelLayer(
   /** The props' static batches by key, each its records as the frame last
    *  wrote them; those the last frame listed, and their runs. */
   const propBatches = createPropBatches();
-  const propRuns: { run: DrawRun; buffer: GPUBuffer }[] = [];
+  const propRuns: { run: DrawRun; buffer: GPUBuffer; pass: number }[] = [];
   /** Something changed since the last pack (models, appearances, a bake). */
   let dirty = true;
   // Grow-once scratch: each unit's choice (bucket, or −1 culled, −2 card).
@@ -1147,6 +1148,7 @@ export async function createModelLayer(
       const drawable = tiers?.[h.tier];
       if (!drawable || !h.buffer || !h.count) continue;
       propRuns.push({
+        pass: h.pass,
         run: {
           drawable,
           ghost: false,
@@ -1368,14 +1370,17 @@ export async function createModelLayer(
         card * RECORD_FLOATS * 4,
       );
     let props = 0;
-    for (const { run } of propRuns) {
+    let propDraws = 0;
+    for (const { run, pass } of propRuns) {
+      if (pass === CAST_PASS) continue;
+      propDraws++;
       props += run.instances;
       triangles += (run.instances * run.drawable.count) / 3;
       stats.tiers[run.drawable.tier] += run.instances;
     }
     stats.instances = drawn + props + frameStats.instances;
     stats.triangles = triangles;
-    stats.draws = runCount + propRuns.length + frameRunCount + cardRunCount;
+    stats.draws = runCount + propDraws + frameRunCount + cardRunCount;
     stats.paletteMatrices = cursor > 1 ? cursor : frameStats.palette;
     stats.skinned = frameStats.skinned;
     stats.cards = card;
@@ -1572,9 +1577,10 @@ export async function createModelLayer(
 
   /** Every mesh run with the record buffer it draws from: the packed lab
    *  models', the props', then the presentation frame's. */
-  function eachRun(visit: (run: DrawRun, source: GPUBuffer) => void) {
+  function eachRun(visit: (run: DrawRun, source: GPUBuffer) => void, casting = false) {
     if (records.current) for (let i = 0; i < runCount; i++) visit(runs[i], records.current);
-    for (const { run, buffer } of propRuns) visit(run, buffer);
+    for (const { run, buffer, pass } of propRuns)
+      if (casting || pass !== CAST_PASS) visit(run, buffer);
     if (frameRecords.current)
       for (let i = 0; i < frameRunCount; i++) visit(frameRuns[i], frameRecords.current);
   }
@@ -1678,7 +1684,7 @@ export async function createModelLayer(
           .withIndexBuffer(caster.mesh.indices, "uint32")
           .drawIndexed(part.count, run.instances, part.first, 0, run.firstInstance);
         recordDraw(submitted, part.count, run.instances);
-      });
+      }, true);
     },
     /** Whether the high-air models draw on their own plane this frame
      *  (`draw` with `high`), not with the world. */
@@ -1807,19 +1813,7 @@ export async function createModelLayer(
     drawnBuildings: () => buildings.drawn(),
     /** The props the last frame drew, by appearance in name order, each per
      *  tier 0–3. */
-    drawnProps: () => {
-      const drawn = new Map<string, number[]>();
-      for (const h of propBatches.listed) {
-        const name = worldRows[h.row]?.name;
-        if (!name) continue;
-        let levels = drawn.get(name);
-        if (!levels) drawn.set(name, (levels = [0, 0, 0, 0]));
-        levels[h.tier] += h.count;
-      }
-      return [...drawn]
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([appearance, levels]) => ({ appearance, levels }));
-    },
+    drawnProps: () => drawnProps(propBatches, worldRows),
     stats: (): ModelStats => ({
       ...stats,
       appearanceTextureBytes: { ...stats.appearanceTextureBytes },
