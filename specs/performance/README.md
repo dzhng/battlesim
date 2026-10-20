@@ -101,18 +101,31 @@ Full closeout checks run once after implementation, with narrower checks per pas
 
 ## Next Agent Prompt
 
-Continue slice 1. Timer epochs (`79cdb00cf`) and actual draw counters
-(`e58683e98`) are integrated. The three-view capture passed paused/live/late;
-30 focused tests and typecheck pass. The full-state first capture lives in `throwaway/three-view/baseline/`.
-Repeatable control lives in `throwaway/three-view/control-pinned/`: three rounds
-at exactly tick 90, digest `60ede87ba60aab0b`, resolving to 65/260/2400 m.
-Its median GPU times are 5.49/6.65/35.03 ms; no optimization verdict yet. Independent image review accepts the clean views as geometry baselines; HUD
-overflow and wide overlay crowding are recorded limitations, not approved UI.
+Correct static caster selection against the fitted shadow volumes first. The
+integrated prop candidate preserves camera lists but its approximate height
+sweep fails a translated-below-zero caster regression. The saved failing test
+and log are in `throwaway/three-view/caster-height-regression.patch` and
+`caster-height-test.log`. Share conservative clip math with terrain selection;
+do not make local work depend on unrelated remote terrain elevation.
 
-Finish moving-view measurements and matched-local-view growth controls. Then
-measure the independent prop caster candidate being developed in an isolated
-worktree. Wide currently submits 13.25 million model/prop triangles to every
-cascade. Preserve camera geometry while testing caster reach. Existing prop
-selection disables impostors; native currently substitutes meshes for body
-impostors, so shared far-asset support remains open. Update this handoff after
-every committed pass; no slice is closed by the first baseline.
+Timer epochs, actual submission counters and fixed-tick three-view captures are
+integrated. The terrain partition candidate (`5dc40aebd`) is also integrated;
+its browser/native shared selection has focused tests, but GPU/image acceptance
+is still open. Public traversal-stat forwarding and rebuilt WASM are the current
+integration pass. The car-card pilot continues in an isolated worktree.
+
+Evidence lives in `throwaway/three-view/`. `control-pinned`, `caster-candidate`
+and `control-return` match tick 90, digest `60ede87ba60aab0b`, camera and render
+size. Wide model shadow submissions fall from 53,139,840 to 34,821,352 triangles;
+camera geometry is unchanged. Paired paused images show no visible regression.
+Timing drift in the return control prevents claiming a speedup: the active
+`interleaved.mjs` run alternates frozen control/candidate pages at each zoom.
+The initial paused/live/late capture remains in `baseline/`; its clean views are
+geometry references, with HUD crowding recorded as an unresolved limitation.
+
+After caster correctness, validate terrain and prop candidates across all three
+views, then finish moving-view and matched-local-world scaling measurements.
+Bound static object traversal as well as terrain traversal. Complete shared
+far assets and actual native card consumption, with explicit wall/vegetation
+choices. Live/late/moving/resource/digest acceptance, whole-spec review and full
+checks remain open. No slice is closed and the current candidates are not pushed.

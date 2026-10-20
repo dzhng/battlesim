@@ -135,6 +135,8 @@ export interface FrameStats {
   buildings: BuildingStats;
   /** Actual partial-world submissions, split by pass and cascade. */
   submitted: import("./frame/submitted").SubmittedFrame;
+  /** Terrain bounds tested across the camera and active shadow cascades. */
+  terrainVisitedNodes: number;
   /** Installed world mesh vertices, not submitted geometry. */
   worldVertices: number;
   depth: InstalledDepthState;
