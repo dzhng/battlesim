@@ -23,7 +23,7 @@ model/effect diagnostic views.
   the visibility pass.
 - [ ] Freeze paused Metro XL seed-4 baseline at close/normal/wide, plus live/late
   states and separately recorded transitions. Reuse the production scene harness.
-- [ ] Build a matched-local-view control with three remote extents: extend one
+- [x] Build a matched-local-view control with three remote extents: extend one
   admitted world's remote geometry without regenerating its local content or IDs.
   Keep camera, light, render dimensions and local publications identical; check
   both traversed candidates and submitted work. Record residency/startup separately.
@@ -153,7 +153,7 @@ terrain can legitimately increase that work. Existing standing headroom, caster
 margin and configured shadow reach remain. GPU timing, browser matched-growth
 construction and visual acceptance are still open; these CPU tests do not close
 those gates.
-## Matched-local browser harness (execution pending)
+## Matched-local browser harness
 
 The production `geometry-scaling` scene reuses the geometry lab's admitted saved
 endurance world, `LabViewport`, and the existing view-measurement pilot/recorder.
@@ -197,3 +197,24 @@ The construction test is falsified by perturbing a local vertex, then restored
 green. No GPU run, screenshot acceptance, population scaling proof, or receiver
 fix is claimed here. Run compare-screenshots, unprimed screenshot-critique and
 preview-shots on the produced pictures before accepting the scaling control.
+
+
+### Executed terrain-growth evidence
+
+`throwaway/evidence/geometry-scaling/scaling.json` records all 30 matched windows:
+local control, 1/4/16 remote copies, then returned control, for flat and elevated
+extensions at every zoom. Submitted geometry is identical in every arm. GPU
+means remain roughly 4–5 ms; close/tactical CPU means remain around 0.5 ms and
+wide around 5.4 ms. With 17 times the terrain storage, combined terrain camera/
+cascade bounds tests grow from 163 to 225 close, 191 to 243 tactical, and 355 to
+405 wide. These are work-bound evidence, not a GPU speedup claim.
+
+Tactical and wide pictures are byte-identical. Sparse close-view ground speckles
+also vary in returned local controls; independent image review finds no missing
+terrain/buildings, shifted ground, or changed occlusion. It records an existing
+horizontal shadow-tone seam shared across the arms. Reports and receipt-backed
+crops live in `throwaway/three-view/growth-visual-review.md`. The result accepts
+this terrain-growth control, not population-growth/browser or temporal parity.
+Shared Rust population growth tests cover complete ordered camera/caster lists
+and traversal through knowledge changes; the final report must keep these proof
+scopes explicit.
