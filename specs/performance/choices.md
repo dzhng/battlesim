@@ -1,228 +1,276 @@
 # Performance choices
 
-These decisions describe the reactive presentation and Metro XL work. Earlier
-shipped grass and shadow-filter experiments are historical baseline behavior;
-their uncertain marginal gains remain explicit in [research.md](research.md).
-The user’s final rule for further work is to keep only simple, clearly measurable
-wins, superseding the earlier percentage target.
+This ledger describes the retained feature, including the earlier shipped Low
+resolution, car mesh and Rust storage changes. The user's stopping rule is simple,
+clearly measurable wins; there is no arbitrary percentage target. Verdicts judge
+architectural choices, not completion of the remaining acceptance checks.
 
-## Sound
+Review these first: retaining per-cascade lists despite no clear wide-view GPU
+gain; keeping conservative forest motion bounds and standing storage; leaving
+wide-view walls and vegetation on their existing representations. All three are
+sound with medium confidence in the tradeoff the user would choose. No unresolved
+user-only decision or unsound retained choice is identified.
+
+## Sound — medium confidence
+
+### Keep separate lists for the four shadow images
+
+When a tree shadows only nearby ground, it belongs in the nearby shadow image,
+not every image used for farther ground. These images are called cascades. Keep
+one caster list per cascade and let browser and native draw the named list. A
+tree that affects several cascades has a copy of its record in each. The simpler
+union-list alternative repeats every selected tree in all cascades; grouping
+all possible overlap combinations would add a more complicated batching scheme.
+
+- **When:** reopened performance work, per-cascade integration.
+- **Gap:** independent camera/shadow selection did not specify cascade batching.
+- **Reach:** both clients, batch-cache keys and the shared batch record. A former
+  padding word carries the mask; the record stays the same size. Overlap duplicates
+  instance storage and can increase buffer residency substantially.
+- **Verdict:** sound for avoiding irrelevant cascade submissions while preserving
+  offscreen shadows. Retention does not imply a clear wide-view GPU speedup.
+- **Confidence:** medium; correctness and bounded submission justify the structure,
+  but its memory cost is a meaningful tradeoff under the simple-wins preference.
+
+### Keep forest geometry after learning that a tree fell
+
+When a distant tree falls, retain its installed geometry and update which trees
+this side knows have fallen. Search boxes already enclose possible falling poses;
+selected chunks choose standing trees, falling trees and stumps from that
+knowledge. Original upright bounds still control standing visibility and detail.
+The alternative rebuilds the forest after each new fall, or maintains another
+index and geometry copy just for fallen trees.
+
+- **When:** immutable forest pass `51118fac1`.
+- **Gap:** bounded mutation work was required, but storage ownership was unspecified.
+- **Reach:** both clients retain standing storage even after trees fall. Wider
+  conservative boxes may admit extra candidates. Full incoming known-fall snapshots
+  still require linear equality/reconciliation work; selection is not a promise
+  that every publication costs the same regardless of history.
+- **Verdict:** sound; one geometry/index owner avoids whole-forest rebuilds without
+  changing side knowledge or animation.
+- **Confidence:** medium; extra residency and conservative selection are deliberate.
+
+### Retain existing walls, vegetation and other prop representations
+
+A wide camera still sees many tiny walls and hedges after culling. Keep their
+existing meshes and scenery detail rules. A wall must remain a continuous visible
+barrier, and a hedge must retain its coverage and shadow. Adding new image-based
+representations would create more appearance and transition policies to maintain.
+The same stopping rule rejects the new car representation; these classes are not
+waiting for it to ship.
+
+- **When:** final appearance-class disposition.
+- **Gap:** the plan required a decision for heavy classes, not sprites for all.
+- **Reach:** walls, vegetation, planters and remaining props keep existing asset
+  ownership. Wide-view geometry cost remains; future changes need their own
+  quality and cost justification.
+- **Verdict:** sound; preserve appearance when a replacement has not earned its cost.
+- **Confidence:** medium; this deliberately leaves optimization opportunities open.
+
+### Retain simple spatial batches and conservative selection
+
+When the player looks at one street, search a hierarchy of enclosing boxes and
+skip branches outside the camera or shadow volume. Terrain, water and boundary
+meshes group whole triangles into spatial cells; adjacent selected ranges share
+a draw. Static populations restore their original ordering after the search.
+The alternative scans every item or submits the entire map each frame. More
+precise selection inside every admitted chunk would add work of its own.
+
+- **When:** reopened terrain and shared static-bounds passes.
+- **Gap:** the plan left the hierarchy layout, cell size and range policy open.
+- **Reach:** Rust owns the hierarchy and clip rules for both clients. Installed
+  geometry and index storage grow with the world; local selection skips remote
+  branches. Horizon-visible terrain can legitimately increase the selected work.
+  Crossing triangles keep their exact corners and attributes.
+- **Verdict:** sound; repair world-sized traversal/submission without introducing
+  geometry simplification or an invisible distance cutoff. Keep coarse batches
+  where finer selection has not earned its extra work.
+- **Confidence:** medium; batching balances fewer draws against conservative excess
+  geometry, and does not guarantee a win at every camera distance.
+
+### Leave duplicate terrain storage and selected-list allocation alone for now
+
+The browser installs terrain for drawing and also gives terrain to the shared
+shadow fitter. Both use the same Rust partition algorithm, but retain separate
+immutable copies. Some selected record lists also allocate again when selection
+changes. Sharing storage or recycling every list could reduce these costs, but
+would change ownership and invalidation paths beyond the needed repair.
+
+- **When:** final complexity review.
+- **Gap:** the plan did not specify one shared browser allocation or universal reuse.
+- **Reach:** extra browser CPU/WASM residency and selection allocation remain;
+  native already shares its terrain partition. No new allocator or cross-boundary
+  lifetime API is introduced merely to remove the duplication.
+- **Verdict:** sound to defer additional machinery without a demonstrated payoff.
+- **Confidence:** medium; reconsider if residency or allocation becomes limiting.
+
+## Sound — high confidence
 
 ### Spend resolution on the world separately from the interface
 
-On Low, the 3D world renders at three quarters of the canvas width and height;
-HTML controls retain their ordinary resolution. The alternative spends full
-pixel work on the world even on the lowest quality setting. This deliberately
-trades some distant world sharpness for lower GPU work and target memory.
+On Low, render the 3D world at three quarters of the canvas width and height.
+HTML controls keep their ordinary resolution. The alternative spends full pixel
+work on the world even at the lowest setting. This intentionally trades some
+world sharpness for less GPU work and smaller render targets.
 
+- **When:** earlier shipped Low-quality pass.
 - **Gap:** Low had no quality-controlled resolution lever.
-- **Reach:** the production Low profile; Medium and High retain full scale.
-- **Verdict:** sound, backed by the measured quality comparison and visual gate.
-- **Confidence:** high on the measured adapter; gains elsewhere are unmeasured.
+- **Reach:** production Low only; Medium and High retain full scale.
+- **Verdict:** sound; use the player's explicit quality preference for this tradeoff.
+- **Confidence:** high; performance magnitude still depends on the adapter/workload.
 
-### Reuse temporary storage without caching answers
+### Reuse temporary Rust storage without caching changing answers
 
-Each frame rebuilds caster membership lists, but keeps their allocated
-storage. A camera change likewise alternates two building-list buffers, keeping
-the previous records available for comparison. Recreating those containers
-would allocate repeatedly; caching their answers would risk stale visibility.
-Reuse preserves record order and freshness while reducing measured CPU cost.
+When another frame needs temporary lists, reuse their allocated storage where
+existing owners support it. When a building selection changes, alternate scratch
+lists so the previous answer remains available for comparison. Recreating these
+containers wastes allocations; reusing an old visibility answer would risk stale
+objects. Recompute changing answers while retaining suitable storage.
 
-- **Gap:** the presentation slice specified equivalent output, not allocation ownership.
-- **Reach:** browser and native consume the same unchanged presentation records.
-- **Verdict:** sound; native measurements and replay parity support retention.
-- **Confidence:** high. Building-list tail latency did not improve in every run.
-
-### Give benchmark failure a terminal result
-
-When a graphics reel stalls, the page publishes an incomplete result. Its
-deadline follows the selected shots’ durations plus setup margin, so valid new
-shots do not cause a fixed-duration timeout. The runner keeps a larger diagnostic
-ceiling. The alternative leaves the caller waiting without a usable verdict.
-
-- **Gap:** the original harness did not own a bounded completion outcome.
-- **Reach:** graphics-reel success, failure and future shot additions.
-- **Verdict:** sound; incomplete results must never count as performance passes.
+- **When:** earlier shipped presentation-reuse pass.
+- **Gap:** equivalent presentation output did not prescribe allocation ownership.
+- **Reach:** shared browser/native presentation; this is selective reuse, not a
+  claim that every static selector allocates nothing.
+- **Verdict:** sound; preserves order and freshness with less temporary churn.
 - **Confidence:** high.
 
-### Measure the player’s actual quality preference
+### Keep distant car detail in the existing asset owner
 
-When endurance requests Low, it writes the same saved preference a player uses.
-Unsupported names fail. The former development-only URL parameter could be
-ignored in production and silently benchmark the wrong profile.
+When a car is a few pixels across, use its already-shipped simplified distant
+mesh. Nearer cars, wreck identity and physical bodies keep their own geometry.
+Both clients load the same asset. The alternative adds rendering machinery to
+process details too small to read.
 
-- **Gap:** the harness’s quality flag lacked a reliable production mechanism.
-- **Reach:** reproducibility of endurance measurements; no new renderer setting.
-- **Verdict:** sound.
+- **When:** earlier shipped car-mesh pass.
+- **Gap:** renderer machinery versus authored detail was unspecified.
+- **Reach:** distant car appearance and the mesh tier used for its shadows.
+- **Verdict:** sound; a small asset change keeps runtime ownership simple.
 - **Confidence:** high.
 
-### Keep distant detail in the existing asset owner
+### Ship no new far-car image representation
 
-Thousands of visible cars occupy only a few pixels each. Their far mesh omits
-unreadable details while nearer meshes, wrecks and physical geometry stay intact.
-Both clients load the same baked asset. The alternative adds renderer lists or
-shader variants to process excessive detail more cheaply.
+A tiny car could be drawn as a textured rectangle, called an impostor. The new
+pilot required surface reconstruction to sit on the ground correctly. Shading
+each antialiasing sample made that path expensive; cheaper sampling could lose
+cars. The final filtered candidate no longer disappeared in its expanded camera
+states, but softness and shimmer still left it unqualified. Keep the simplified
+mesh instead of shipping an unresolved appearance policy and new asset format.
 
-- **Gap:** the spec did not choose between renderer machinery and authored detail.
-- **Reach:** distant car appearance and shadows, including shadows cast by the
-  next-nearer visible tier.
-- **Verdict:** sound; controlled GPU improvement and reviewed images justify it.
-- **Confidence:** high for measured views; not a claim about every framing.
+- **When:** final pilot removal `8ce8d4d96` and disposition.
+- **Gap:** the sprite suggestion did not require accepting a visually or
+  computationally costly method.
+- **Reach:** no prepared prop atlas, native prop-card path, depth channel or
+  sample-frequency shader ships. Existing unit/corpse cards remain. A future
+  approach can be reconsidered without inheriting this rejected machinery.
+- **Verdict:** sound under the user's simple-wins preference. Filtering's earlier
+  disappearance verdict was invalidated by byte decoding; the final disposition
+  is unqualified appearance, not a claim that filtered sprites cannot work.
+- **Confidence:** high in retaining meshes until a simpler replacement qualifies.
 
-### Evaluate visibility across gameplay views
+### Preserve general card transforms, replacement lifetime and asset identity
 
-When the camera sees most of a map, culling has little to reject. The earlier
-terrain experiment measured only that wide view; it cannot settle the value of
-culling when the player zooms into a street. The reopened plan measures close,
-tactical and wide views separately, and holds local content fixed while remote
-world grows. The rejected wall still lacks visual approval.
+When an existing card represents a scaled model, transform its position and
+lighting consistently with that scale. When new card textures replace old ones,
+finish creating the replacement before releasing the working set; failure frees
+only the unfinished replacement. When two appearances share asset bytes, keep
+their logical names separate rather than returning the first name for both.
+Malformed byte ranges are rejected by the existing asset reader.
 
-- **When:** reopened three-view plan.
-- **Gap:** the user requested three levels without prescribing distances.
-- **Reach:** use production default 65 m, existing tactical scale 260 m and prior
-  stress scale 2,400 m, resolved through the player's camera rig.
-- **Verdict:** sound; these cover distinct workloads without changing world density.
-- **Confidence:** medium until baseline images confirm useful contact framing.
+- **When:** retained corrections from the card work and byte-decoding cleanup.
+- **Gap:** these existing-owner failure cases were exposed during the pilot.
+- **Reach:** current unit/corpse cards, workbench models and appearance loading;
+  no prop-card policy or new container format is required.
+- **Verdict:** sound; preserve general correctness fixes without the rejected pilot.
+- **Confidence:** high.
 
-### Reject the far-car pilot when neither quality nor GPU cost passes
+### Select static casters using the shadow cameras actually rendered
 
-At wide zoom a car can occupy only a few pixels. We tried a baked image with
-surface depth so those pixels could replace its distant mesh. Evaluating every
-antialiasing sample preserved cars but added about 41 ms GPU time. Cheaper
-centroid sampling still made some eligible cars vanish. Initial filtered-trial
-failures were invalidated by a capture-decoder bug; corrected filtering remains
-unqualified, with visual/timing gates open. Keep the shipped simplified car mesh and remove the pilot's asset
-format, native path and shaders. Existing unit/corpse cards remain; their generic
-resource cleanup and appearance-identity fixes survive independently.
+A car outside the player's view can still cast a shadow onto visible ground.
+Select it against the fitted light-camera volumes, independently of camera
+visibility. A car below sea level follows the same rule as one above it. The
+alternative derives a second approximate shadow reach from absolute world height,
+which can omit shadows or admit unrelated objects.
 
-- **When:** three-view pilot rejection and removal.
-- **Gap:** the user suggested sprites; the plan allowed meshes when a card could
-  not preserve appearance and earn its complexity.
-- **Reach:** no new prop-atlas format or maintenance surface ships. Future work
-  must demonstrate coherent subpixel coverage/depth before adding it again.
-- **Verdict:** sound; reject both visible loss and the measured large regression
-  under the user's simple measurable wins rule.
-- **Confidence:** high in rejecting tested candidates; no claim that every
-  possible sprite method would fail.
+- **When:** fitted caster-volume replacement and per-cascade integration.
+- **Gap:** independent caster selection did not specify the query geometry.
+- **Reach:** props, buildings and scenery share fitted-volume selection. Correct
+  offscreen inclusion may increase work relative to the old incomplete lists.
+- **Verdict:** sound; one shadow-volume authority for selection and rendering.
+- **Confidence:** high.
 
-### Invalidate old timing results without waiting for the GPU
+### Fit shadows from local terrain receivers and reuse unchanged fits
 
-After moving the camera, a readback from the previous view can finish late.
-Reset now marks a new measurement generation: the old readback still releases
-its buffer normally but cannot enter the new view's statistics. Blocking until
-every old readback completes would unnecessarily stall the rendering thread.
+When a remote mountain is added outside the camera, it should not stretch the
+shadow depth range over the street the player sees. Query local terrain and clip
+conservative triangle boxes to the camera. Retain the existing object headroom
+and shadow reach. If camera, terrain and light stay unchanged, reuse the fit;
+changing installed inputs or loading a world invalidates it. Animated caster
+membership remains separate.
 
-- **When:** timer reset pass, `79cdb00cf`.
-- **Gap:** the plan required clean windows without prescribing synchronization.
-- **Reach:** explicit measurement resets and existing renderer reset paths.
-- **Verdict:** sound; generation is captured when a frame begins, covering resets
-  between begin, submission and collection as well as delayed promises.
-- **Confidence:** high; delayed and rejected readbacks are regression tested.
+- **When:** local receiver fitting and receiver-cache passes.
+- **Gap:** the plan required local fitting without specifying clipping or reuse.
+- **Reach:** shared browser/native fitting. Visible horizon terrain still counts;
+  fixed headroom/reach remain the existing renderer policy. Camera motion reruns
+  local clipping rather than using a stale fit.
+- **Verdict:** sound; eliminate remote elevation dependence and repeated identical work.
+- **Confidence:** high.
 
-### Reuse the fitted shadow volume for static casters
+### Keep the browser building buffer's all-or-unchanged publication contract
 
-When a car stands below sea level, its shadow still depends on its height above
-nearby receivers. The first candidate instead extended its box by its absolute
-world elevation. That can omit a shadow below zero and over-admit geometry high
-above zero. Static selection must use the same fitted light-space volume that
-the shadow pass renders, including offscreen casters, rather than inventing a
-second receiver approximation.
+When one building or cascade list changes, publish the complete current building
+record set into the browser's packed buffer. Its offsets then describe one
+consistent publication. Sending only changed lists would require another scheme
+to preserve offsets and old contents across replacements.
 
-- **When:** independent prop caster candidate, `75489f4a8`; replaced by fitted volumes in `2c6e202d7`.
-- **Gap:** the plan required independent selection without specifying its query.
-- **Reach:** props, buildings and scenery share the corrected query.
-- **Verdict:** original approximation unsound; the implemented replacement uses fitted caster volumes.
-- **Confidence:** high; translating the existing offscreen-caster case below zero
-  exposes a missed caster. Camera lists must remain independent.
+- **When:** per-cascade building publication integration.
+- **Gap:** more caster lists raised the question of partial uploads.
+- **Reach:** one population generation invalidates all its packed building records;
+  the broader upload trades bandwidth for a simpler existing buffer contract.
+- **Verdict:** sound; preserve the current ownership model rather than adding a
+  partial-update allocator.
+- **Confidence:** high.
 
-### Group terrain triangles without changing their shape
+### Use three production camera scales and distinguish kinds of work
 
-When the camera looks at one street, the renderer can draw only nearby terrain
-batches. The candidate groups whole triangles into spatial cells and stores a
-binary tree of their enclosing boxes. A query skips a whole branch when its box
-cannot meet the camera or a shadow volume. Crossing triangles keep all their
-original corners and attributes; the cells never cut or simplify the surface.
-Adjacent selected ranges combine into one draw to reduce call overhead. The
-shared bounds index stores where each branch ends, allowing a query to jump
-past rejected regions without allocating a traversal stack. Populations retain
-their own ordering and visibility rules.
+When a street view and a whole-town view behave differently, report them
+separately. Use the production camera at 65, 260 and 2,400 metres, with its normal
+clearance rules. Keep moving windows separate from stationary holds. Count actual
+submitted triangle-list draws, not allocated capacity; label omitted passes.
+Report receiver work separately from cached fits and snapshot processing.
 
-- **When:** terrain candidate, `5dc40aebd`.
-- **Gap:** the spec delegated the index layout and range-coalescing policy.
-- **Reach:** one Rust partition drives both clients; it retains reordered CPU
-  vertices and the tree alongside the uploaded GPU mesh.
-- **Verdict:** sound candidate; bounded traversal and exact geometry conservation
-  justify testing it, while GPU, image and whole-frame acceptance remain required.
-- **Confidence:** medium until the all-view production comparisons finish.
+- **When:** reopened measurement contract.
+- **Gap:** the user requested three zoom levels without exact distances or counter
+  boundaries; the earlier wide-only framing could not settle local-view behavior.
+- **Reach:** future comparisons must preserve camera, render size and local content.
+  Partial submission counters are not a complete GPU workload or unique-object count.
+- **Verdict:** sound; exposes different bottlenecks without averaging away regressions.
+- **Confidence:** high.
 
+### Reset timing windows without waiting for old GPU readbacks
 
-### Keep caster membership for each shadow cascade
+After the camera moves, an old timing result can arrive late. Starting a new
+window increments a generation number; a result is accepted only if its frame
+began in that generation. Old reads still finish and release their buffers.
+Waiting for them before rendering would create an unnecessary stall.
 
-A nearby tree may affect only one shadow image. Combining all selected trees
-into one list and drawing that list into every shadow image repeats geometry
-that the GPU will later discard. The next pass keeps four independent lists and
-publishes which cascade each list belongs to. Browser and native draw the same
-membership. Objects spanning multiple cascades appear in each required list.
+- **When:** timing-epoch pass `79cdb00cf`.
+- **Gap:** clean windows were required without prescribing synchronization.
+- **Reach:** asynchronous timing collection and renderer measurement resets.
+- **Verdict:** sound; excludes prior-view work without blocking forward progress.
+- **Confidence:** high.
 
-- **When:** per-cascade pass, integrated; performance acceptance open.
-- **Gap:** independent camera/shadow selection did not specify cascade batching.
-- **Reach:** the existing batch record uses a padding word for membership without
-  increasing its size; both clients and batch-cache keys change together.
-- **Verdict:** sound candidate; fixes measured repeated submission using existing
-  fitted bounds. Four lists are simpler than grouping every combination of
-  cascades, at the cost of duplicate records for overlapping casters.
-- **Confidence:** medium pending measured GPU savings, upload/resource cost and
-  shadow continuity across moving views. The corrected fit remains mandatory.
+### Give measurements a truthful quality setting and terminal failure
 
-### Reuse an unchanged shadow receiver fit
+When endurance asks for Low, set the same saved preference a player uses; reject
+unknown quality names. When a graphics reel stalls, publish an incomplete result
+within a deadline derived from its shots and setup allowance. An ignored debug
+parameter or an indefinitely waiting runner would leave the caller interpreting
+the wrong workload or waiting without an outcome.
 
-While the camera holds still, immutable terrain and light produce the same
-shadow fit. Reuse that fit until the camera changes or its inputs are replaced;
-world reload also invalidates it. The alternative repeats terrain clipping every
-frame for an identical answer. This does not cache animated membership lists.
-
-- **Gap:** the plan required bounded receiver work, without prescribing reuse.
-- **Reach:** the shared presentation owner; both clients receive the same fit.
-- **Verdict:** sound. Invalidation and exact output checks pass, and browser
-  diagnostics report zero executed receiver work during holds.
-- **Confidence:** high for unchanged views; moving views still recompute and
-  require their own performance measurement.
-
-
-### Keep forest geometry when a tree is learned fallen
-
-When a distant tree falls, rebuilding every standing tree makes a local view pay
-for the whole forest. Keep the installed geometry and widen its spatial search
-boxes once to include possible falling poses. Selected chunks check the side's
-known-fall membership to choose standing or fallen records. Original standing
-bounds still decide visibility and detail. This keeps dead trees' standing storage
-resident and may visit extra candidates, but avoids a second geometry copy and a
-separate fallen-tree index. Full incoming snapshots still require work proportional
-to known falls; this is not a constant-cost publication protocol.
-
-- **When:** immutable forest pass `51118fac1` and diagnostic forwarding.
-- **Gap:** the spec required bounded mutation work without choosing storage ownership.
-- **Reach:** both clients share the Rust selection; public diagnostics distinguish
-  cumulative setup/reconciliation rows from last-selection membership checks.
-  Those counters exclude snapshot equality/replacement work.
-- **Verdict:** sound; a single immutable geometry/index owner avoids world-sized
-  mutation rebuilds without changing side knowledge or fall animation.
-- **Confidence:** medium; the residency and conservative-query tradeoff is explicit,
-  while final moving/live production measurements remain required.
-
-
-### Retain non-car appearance policies without a validated replacement
-
-A wide camera still sees many walls and hedges after culling. Keep their current
-meshes and existing scenery detail rules while validating the car pilot. The
-wall simplification already lost visible contrast; cutout experiments did not
-show a repeatable gain. Adding more atlas types now would add coverage and shadow
-risks without a demonstrated benefit. No objects or shadow contributors disappear.
-
-- **When:** appearance-class disposition during combined acceptance.
-- **Gap:** the plan required an explicit decision per heavy class, not a card for all.
-- **Reach:** walls, vegetation and other props keep existing asset ownership; future
-  replacements need class-specific cost, footprint and visual evidence.
-- **Verdict:** sound under the user's simple measurable wins preference; preserve
-  quality where the proposed replacement has not earned its complexity.
-- **Confidence:** medium; this leaves known wide-view geometry cost in place.
+- **When:** earlier production-quality and reel-completion corrections.
+- **Gap:** quality selection and bounded failure outcomes were not reliable contracts.
+- **Reach:** production measurement setup and future reel additions. Incomplete
+  results cannot count as successful measurements.
+- **Verdict:** sound; the instrument must state what it ran and whether it finished.
+- **Confidence:** high.
