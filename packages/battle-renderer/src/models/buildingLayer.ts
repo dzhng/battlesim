@@ -81,6 +81,8 @@ export interface BuildingWalkStats {
   chunks: number;
   coarse: number;
   residentChunks: number;
+  /** Bounds tested by the last spatial query, including hierarchy branches. */
+  visitedBounds: number;
   /** The pool: the rows it can hold, and holds now. */
   pool: { capacity: number; used: number };
   /** The fallen buildings' rows (a ruin's or a gutted shell's), and those
@@ -120,6 +122,7 @@ export const emptyBuildingWalkStats = (): BuildingWalkStats => ({
   chunks: 0,
   coarse: 0,
   residentChunks: 0,
+  visitedBounds: 0,
   pool: { capacity: 0, used: 0 },
   ruins: 0,
   ruinTiers: Array.from({ length: TIER_COUNT }, () => 0),

@@ -275,7 +275,7 @@ fn a_side_draws_the_map_less_what_it_knows_replaced_plus_what_it_knows() {
     assert_eq!(appearances(&p), ["car_a", "deck_a"]);
     let car = p.models().find(|(l, _)| l.0 == "car_a").unwrap().1;
     assert_eq!(car[0], 5.0);
-    assert_eq!(p.stats(), [2, 0, 0, 2, 1]);
+    assert_eq!(&p.stats()[..5], &[2, 0, 0, 2, 1]);
     // Knowing it again changes nothing; forgetting stands the map again.
     assert!(!p.set_known(p.known.clone()));
     assert!(p.set_known(vec![]));
@@ -604,4 +604,94 @@ fn fitted_shadow(camera: &Camera, base_z: f64) -> CasterVolumes {
         Some(&[-100., -100., base_z - 1., 100., 100., base_z + 10.]),
     );
     CasterVolumes::new(&fit.casters)
+}
+
+#[test]
+fn spatial_query_preserves_complete_lists_through_remote_growth_and_knowledge() {
+    let camera = Camera {
+        eye: [0., -30., 10.],
+        target: [0., 100., 0.],
+        up: [0., 0., 1.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [1280, 720],
+    };
+    let shadow = fitted_shadow(&camera, 0.);
+    let mut baseline = Vec::new();
+    for remote in [64, 1024, 4096] {
+        let mut sample = 0;
+        let props: Vec<_> = (0..remote + 4)
+            .map(|i| MapProp {
+                id: i as f64,
+                body: PropBox {
+                    center: [
+                        if i < 4 {
+                            i as f64 * 15. - 80.
+                        } else {
+                            10000. + i as f64 * 128.
+                        },
+                        0.,
+                    ],
+                    ..body("car", [2., 1., 5.])
+                },
+            })
+            .collect();
+        let make = || PropPopulation::new(PropArt::new(layout(), input()).unwrap(), props.clone());
+        let (mut indexed, mut brute) = (make(), make());
+        for state in 0..4 {
+            let knowledge = match state {
+                1 => vec![
+                    known(Some(0.), "car", 0., false),
+                    known(Some(1.), "car", -80., true),
+                ],
+                2 => (0..remote)
+                    .map(|i| {
+                        known(
+                            None,
+                            "car",
+                            if i == 0 { 5. } else { 20000. + i as f64 * 128. },
+                            false,
+                        )
+                    })
+                    .collect(),
+                _ => vec![],
+            };
+            indexed.set_known(knowledge.clone());
+            brute.set_known(knowledge);
+            // Admit every original candidate, retaining the production leaf tests
+            // and ordering: the brute-force walk before spatial selection.
+            brute.chunk_index = crate::static_world::index::BoundsIndex::new(
+                brute
+                    .chunks
+                    .iter()
+                    .map(|_| [-1e12, -1e12, -1e12, 1e12, 1e12, 1e12]),
+            );
+            brute.known_index = crate::static_world::index::BoundsIndex::new(
+                brute
+                    .known_models
+                    .iter()
+                    .map(|_| [-1e12, -1e12, -1e12, 1e12, 1e12, 1e12]),
+            );
+            for shadow in [None, Some(&shadow)] {
+                indexed.select(&View::new(&camera), shadow);
+                brute.select(&View::new(&camera), shadow);
+                assert_eq!(indexed.lists, brute.lists, "remote={remote} state={state}");
+                assert_eq!(indexed.prints, brute.prints);
+                if remote == 64 {
+                    baseline.push(indexed.lists.clone());
+                } else {
+                    assert_eq!(
+                        indexed.lists, baseline[sample],
+                        "remote growth changed local output"
+                    );
+                }
+                sample += 1;
+                assert!(
+                    indexed.stats()[5] < 100,
+                    "local traversal grew with remote world: {:?}",
+                    indexed.stats()
+                );
+            }
+        }
+    }
 }

@@ -16,6 +16,7 @@ use crate::records::{CAST_PASS, FOG_FACES, VIEW_PASS};
 use crate::shadow::CasterVolumes;
 use crate::static_world::batches::{List, Population};
 use crate::static_world::buildings::{BuildingModule, Buildings};
+use crate::static_world::index::BoundsIndex;
 use crate::view::{building_tier, caster_tier, View, TIERS};
 use std::collections::{BTreeMap, HashMap};
 
@@ -69,6 +70,10 @@ pub struct BuildingWalk {
     pool: usize,
     chunk_m: f64,
     chunks: Vec<Chunk>,
+    chunk_index: BoundsIndex,
+    ruin_index: BoundsIndex,
+    candidates: Vec<usize>,
+    ruin_candidates: Vec<usize>,
     /// Per building: the state the side knows it fell in.
     fallen: Vec<Option<usize>>,
     ruins: Vec<Chunk>,
@@ -80,8 +85,8 @@ pub struct BuildingWalk {
     /// The chunks and their coarse rows, then the last walk's chunks
     /// resident, rows resident, rows expanded (not resident before) and near
     /// chunks drawn coarse for want of room, the fallen buildings' rows, and
-    /// those drawn at each tier.
-    pub stats: [usize; 11],
+    /// those drawn at each tier, then bounds visited by the last query.
+    pub stats: [usize; 12],
 }
 
 impl BuildingWalk {
@@ -117,7 +122,11 @@ impl BuildingWalk {
             lod,
             pool,
             chunk_m,
+            chunk_index: BoundsIndex::new(chunks.iter().map(|c| c.bounds)),
             chunks,
+            ruin_index: BoundsIndex::default(),
+            candidates: Vec::new(),
+            ruin_candidates: Vec::new(),
             ruins: vec![],
             resident: HashMap::new(),
             lists: Lists {
@@ -129,7 +138,7 @@ impl BuildingWalk {
                 cast: vec![vec![]; keys],
             },
             counts: vec![0; keys],
-            stats: [chunk_count, coarse_rows, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            stats: [chunk_count, coarse_rows, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         }
     }
 
@@ -158,6 +167,8 @@ impl BuildingWalk {
             self.buildings.rows(b, s, None, &mut chunk.rows);
         }
         self.ruins = cells.into_values().collect();
+        self.ruin_index = BoundsIndex::new(self.ruins.iter().map(|c| c.bounds));
+        self.stats[6] = self.ruins.iter().map(|c| c.rows.len()).sum();
         self.resident.clear();
         vec![]
     }
@@ -165,6 +176,17 @@ impl BuildingWalk {
     /// Walks `view`; returns the keys (`module · TIERS + tier`) whose drawn
     /// or cast instances changed since the last walk.
     pub fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>) -> Vec<usize> {
+        self.candidates.clear();
+        self.ruin_candidates.clear();
+        let intersects = |b: &[f64; 6]| view.sees_box(b) || shadow.is_some_and(|s| s.intersects(b));
+        self.stats[11] = self
+            .chunk_index
+            .query(intersects, |i| self.candidates.push(i))
+            + self
+                .ruin_index
+                .query(intersects, |i| self.ruin_candidates.push(i));
+        self.candidates.sort_unstable();
+        self.ruin_candidates.sort_unstable();
         let keys = self.counts.len();
         let mut lists = std::mem::take(&mut self.scratch);
         for lists in [&mut lists.view, &mut lists.cast] {
@@ -186,7 +208,8 @@ impl BuildingWalk {
             }
         };
         let (mut near, mut coarse) = (vec![], vec![]);
-        for (c, chunk) in self.chunks.iter().enumerate() {
+        for &c in &self.candidates {
+            let chunk = &self.chunks[c];
             if !view.sees_box(&chunk.bounds) {
                 if shadow.is_some_and(|s| s.intersects(&chunk.bounds)) {
                     for r in self.coarse_rows(c) {
@@ -233,8 +256,7 @@ impl BuildingWalk {
             kept.insert((c, t), rows);
         }
         self.stats[2..6].copy_from_slice(&[kept.len(), used, expanded, refused]);
-        self.stats[6] = self.ruins.iter().map(|c| c.rows.len()).sum();
-        self.stats[7..].fill(0);
+        self.stats[7..11].fill(0);
         self.resident = kept;
         for (c, casts) in coarse {
             for r in self.coarse_rows(c) {
@@ -247,7 +269,8 @@ impl BuildingWalk {
                 );
             }
         }
-        for chunk in &self.ruins {
+        for &c in &self.ruin_candidates {
+            let chunk = &self.ruins[c];
             let has = |r: &BuildingModule, t: usize| r.tiers & (1 << t) != 0;
             if view.sees_box(&chunk.bounds) {
                 let d = view.distance_to_box(&chunk.bounds);
@@ -331,3 +354,6 @@ impl Population for BuildingPopulation {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

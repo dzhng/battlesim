@@ -1045,7 +1045,7 @@ impl Presentation {
     }
 
     /// The props' bodies and models (`PropPopulation::stats`); none without props.
-    pub fn prop_stats(&self) -> Option<[usize; 5]> {
+    pub fn prop_stats(&self) -> Option<[usize; 6]> {
         self.props.as_ref().map(PropPopulation::stats)
     }
 
@@ -1132,7 +1132,7 @@ impl Presentation {
     }
 
     /// Instances placed per scenery population and dressing cells drawn.
-    pub fn scenery_stats(&self) -> Option<[usize; 4]> {
+    pub fn scenery_stats(&self) -> Option<[usize; 5]> {
         self.scenery.as_ref().map(SceneryWalk::stats)
     }
 

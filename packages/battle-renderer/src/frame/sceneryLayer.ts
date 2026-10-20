@@ -81,6 +81,8 @@ export interface SceneryPopulationStats {
   casters: number;
 }
 export interface SceneryStats {
+  /** Bounds tested by the standing populations, including hierarchy branches. */
+  visitedBounds: number;
   /** Appearances installed. */
   kinds: number;
   forest: SceneryPopulationStats;
@@ -101,6 +103,7 @@ export interface SceneryStats {
 /** What the presentation says of the scenery it placed and walked
  *  (`scenery_stats`). */
 export interface SceneryWalkStats {
+  visitedBounds: number;
   /** Instances placed: the forest's, the tree lines' shrubs', the backdrop's. */
   placed: [number, number, number];
   /** Dressing cells the last walk drew, and whether more are wanted. */
@@ -110,6 +113,7 @@ export interface SceneryWalkStats {
 }
 
 export const NO_SCENERY_WALK: SceneryWalkStats = {
+  visitedBounds: 0,
   placed: [0, 0, 0],
   cells: 0,
   pending: false,
@@ -803,6 +807,7 @@ export async function createSceneryLayer(
       const stumps = population(STUMP, 0);
       return {
         kinds: kinds.length,
+        visitedBounds: walk.visitedBounds,
         forest: population(FOREST, walk.placed[0]),
         understorey: population(UNDERSTOREY, walk.placed[1]),
         backdrop: population(BACKDROP, walk.placed[2]),

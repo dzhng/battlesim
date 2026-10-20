@@ -6,6 +6,7 @@ import {
   loadPresentation,
   ScenePresentation,
   type PropStats,
+  NO_PROP_STATS,
   type PresentedUi,
 } from "@web/battle/sim/presentation";
 import { useCursorAction, type CursorAction } from "@web/battle/present/gameCursor";
@@ -716,14 +717,7 @@ export function LabViewport({
           if (!own && moduleLoaded) own = new ScenePresentation();
           return own;
         };
-        const propStats = (): PropStats =>
-          scenePresentation()?.propStats() ?? {
-            bodies: 0,
-            parts: 0,
-            unmodelled: 0,
-            models: 0,
-            known: 0,
-          };
+        const propStats = (): PropStats => scenePresentation()?.propStats() ?? NO_PROP_STATS;
         /** The buildings' style and sun, and the light the cascades are
          *  fitted under, taken when the frame is built. */
         let staticStyle = gameBuildingStyle;

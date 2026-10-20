@@ -272,7 +272,18 @@ export interface PropStats {
   unmodelled: number;
   models: number;
   known: number;
+  /** Bounds tested by the last spatial query, including hierarchy branches. */
+  visitedBounds: number;
 }
+
+export const NO_PROP_STATS: PropStats = {
+  bodies: 0,
+  parts: 0,
+  unmodelled: 0,
+  models: 0,
+  known: 0,
+  visitedBounds: 0,
+};
 
 /** A prop model the presentation placed. */
 export interface PropModel {
@@ -599,10 +610,11 @@ export class ScenePresentation {
 
   /** What the presentation says of the scenery it placed and walked. */
   sceneryWalk(): SceneryWalkStats {
-    const [forest, understorey, backdrop, cells] = this.rust.scenery_stats();
+    const [forest, understorey, backdrop, cells, visitedBounds] = this.rust.scenery_stats();
     if (forest === undefined) return NO_SCENERY_WALK;
     return {
       placed: [forest, understorey, backdrop],
+      visitedBounds,
       cells,
       pending: this.rust.scenery_pending(),
       falling: this.rust.scenery_falling(),
@@ -688,8 +700,9 @@ export class ScenePresentation {
    *  those a building draws, those no model draws, the models placed and
    *  those drawing what the side knows. */
   propStats(): PropStats {
-    const [bodies = 0, parts = 0, unmodelled = 0, models = 0, known = 0] = this.rust.prop_stats();
-    return { bodies, parts, unmodelled, models, known };
+    const [bodies = 0, parts = 0, unmodelled = 0, models = 0, known = 0, visitedBounds = 0] =
+      this.rust.prop_stats();
+    return { bodies, parts, unmodelled, models, known, visitedBounds };
   }
 
   /** Every prop model placed: appearance, state, position, yaw and scale. */
@@ -709,8 +722,20 @@ export class ScenePresentation {
   /** The buildings' walk as the last frame left it. Calls into the module:
    *  take the frame's views again after it (`lastFrame`). */
   buildingWalk(): BuildingWalkStats {
-    const [chunks, coarse, resident, used, expanded, refused, ruins, ...ruinTiers] =
-      this.rust.building_stats();
+    const [
+      chunks,
+      coarse,
+      resident,
+      used,
+      expanded,
+      refused,
+      ruins,
+      t0,
+      t1,
+      t2,
+      t3,
+      visitedBounds,
+    ] = this.rust.building_stats();
     const walk = this.walk;
     Object.assign(walk, {
       chunks: chunks ?? 0,
@@ -719,7 +744,8 @@ export class ScenePresentation {
       expandedRows: expanded ?? 0,
       refused: refused ?? 0,
       ruins: ruins ?? 0,
-      ruinTiers: ruinTiers.length ? ruinTiers : walk.ruinTiers.map(() => 0),
+      ruinTiers: [t0 ?? 0, t1 ?? 0, t2 ?? 0, t3 ?? 0],
+      visitedBounds: visitedBounds ?? 0,
       fallen: this.rust.fallen_buildings().length / 2,
     });
     walk.pool.used = used ?? 0;

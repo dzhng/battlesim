@@ -27,6 +27,7 @@ use super::Ground;
 use crate::records::{CAST_PASS, FOG_FACES, NONE, VIEW_PASS};
 use crate::shadow::CasterVolumes;
 use crate::static_world::batches::{print, List, Population, PRINT_BASIS};
+use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
 use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};
@@ -112,6 +113,9 @@ struct Pop {
     sorted: Vec<Vec<Record>>,
     heights: Vec<Vec<f32>>,
     chunks: Vec<Chunk>,
+    chunk_index: BoundsIndex,
+    candidates: Vec<usize>,
+    visited: usize,
     casts: bool,
     view: Vec<Vec<Record>>,
     cast: Vec<Vec<Record>>,
@@ -139,7 +143,7 @@ impl Pop {
         let mut ids: Vec<i64> = cells.keys().copied().collect();
         ids.sort();
         let (mut sorted, mut heights) = (vec![vec![]; kinds], vec![vec![]; kinds]);
-        let chunks = ids
+        let chunks: Vec<Chunk> = ids
             .iter()
             .map(|id| {
                 let start: Vec<usize> = sorted.iter().map(Vec::len).collect();
@@ -179,7 +183,10 @@ impl Pop {
             kinds,
             sorted,
             heights,
+            chunk_index: BoundsIndex::new(chunks.iter().map(|c| c.bounds)),
             chunks,
+            candidates: Vec::new(),
+            visited: 0,
             casts,
             view: vec![vec![]; kinds * TIERS],
             cast: vec![vec![]; kinds * TIERS],
@@ -195,7 +202,14 @@ impl Pop {
             .chain(&mut self.cast)
             .for_each(Vec::clear);
         self.prints.fill(print(PRINT_BASIS, self.generation));
-        for (c, chunk) in self.chunks.iter().enumerate() {
+        self.candidates.clear();
+        self.visited = self.chunk_index.query(
+            |b| view.sees_box(b) || (self.casts && shadow.is_some_and(|s| s.intersects(b))),
+            |i| self.candidates.push(i),
+        );
+        self.candidates.sort_unstable();
+        for &c in &self.candidates {
+            let chunk = &self.chunks[c];
             let casts = self.casts && shadow.is_some_and(|s| s.intersects(&chunk.bounds));
             let whole = |out: &mut Vec<Vec<Record>>, prints: &mut [u64], at: usize| {
                 for k in 0..self.kinds {
@@ -526,6 +540,8 @@ impl SceneryWalk {
         self.forest.pop.select(view, shadow, &lod);
         if self.quality.understorey {
             self.understorey.pop.select(view, shadow, &lod);
+        } else {
+            self.understorey.pop.visited = 0;
         }
         self.backdrop.select(view, None, &lod);
         self.select_dressing(ground, view);
@@ -737,13 +753,14 @@ impl SceneryWalk {
     }
 
     /// Instances placed per population (forest, understorey, backdrop) and
-    /// dressing cells drawn by the last walk.
-    pub fn stats(&self) -> [usize; 4] {
+    /// dressing cells drawn, then standing-population bounds visited by the last walk.
+    pub fn stats(&self) -> [usize; 5] {
         [
             self.forest.pop.placed(),
             self.understorey.pop.placed(),
             self.backdrop.placed(),
             self.drawn.len(),
+            self.forest.pop.visited + self.understorey.pop.visited + self.backdrop.visited,
         ]
     }
 }
@@ -816,3 +833,6 @@ impl Population for SceneryPopulation<'_> {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod spatial_tests;

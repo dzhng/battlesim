@@ -44,6 +44,7 @@ use crate::records::{CAST_PASS, VIEW_PASS};
 use crate::seed::Key;
 use crate::shadow::CasterVolumes;
 use crate::static_world::batches::{List, Population};
+use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
 use crate::view::{
     caster_tier, model_detail, model_fog, View, CULLED, IMPOSTOR, SHADOW_MARGIN_M, TIERS,
@@ -496,6 +497,14 @@ impl Looks {
     }
 }
 
+// Enclose the padded visibility sphere, including the camera's edge margin.
+fn model_bounds(m: &Model) -> [f64; 6] {
+    let [x, y, z] = [m.record[0], m.record[1], m.record[2]].map(f64::from);
+    let z = z + m.size / 2.0;
+    let r = m.radius + SHADOW_MARGIN_M;
+    [x - r, y - r, z - r, x + r, y + r, z + r]
+}
+
 /// Map props bucketed by ground: each chunk's box holds its models' spheres
 /// as the tier rule tests them, so a chunk out of view holds none in it.
 struct Chunk {
@@ -513,6 +522,11 @@ pub struct PropPopulation {
     by_id: HashMap<u64, usize>,
     map: Vec<Model>,
     chunks: Vec<Chunk>,
+    chunk_index: BoundsIndex,
+    known_index: BoundsIndex,
+    candidates: Vec<usize>,
+    known_candidates: Vec<usize>,
+    visited: usize,
     /// Per map model, whether a known prop replaced its prop.
     hidden: Vec<bool>,
     /// What the side knows, as given, and the known wrecks drawn moving.
@@ -553,9 +567,7 @@ impl PropPopulation {
         for (i, m) in map.iter().enumerate() {
             let [x, y] = [m.record[0], m.record[1]].map(f64::from);
             let cell = ((y / CHUNK_M).floor() as i64, (x / CHUNK_M).floor() as i64);
-            let r = m.radius + SHADOW_MARGIN_M;
-            let z = f64::from(m.record[2]) + m.size / 2.0;
-            let b = [x - r, y - r, z - r, x + r, y + r, z + r];
+            let b = model_bounds(m);
             let chunk = cells.entry(cell).or_insert(Chunk {
                 bounds: b,
                 models: Vec::new(),
@@ -566,12 +578,18 @@ impl PropPopulation {
             }
             chunk.models.push(i);
         }
+        let chunks: Vec<_> = cells.into_values().collect();
         let lists = vec![Vec::new(); looks.list.len() * PROP_TIERS * 2];
         PropPopulation {
             hidden: vec![false; map.len()],
             prints: vec![0; lists.len()],
             lists,
-            chunks: cells.into_values().collect(),
+            chunk_index: BoundsIndex::new(chunks.iter().map(|c| c.bounds)),
+            chunks,
+            known_index: BoundsIndex::default(),
+            candidates: Vec::new(),
+            known_candidates: Vec::new(),
+            visited: 0,
             map,
             by_id,
             bodies,
@@ -633,6 +651,7 @@ impl PropPopulation {
                 }
             }
         }
+        self.known_index = BoundsIndex::new(self.known_models.iter().map(model_bounds));
         self.looks = looks;
     }
 
@@ -644,8 +663,8 @@ impl PropPopulation {
 
     /// The bodies drawn (the map's not replaced, then the known standing),
     /// those a building draws, those no model draws, every model placed,
-    /// and the models drawing what the side knows.
-    pub fn stats(&self) -> [usize; 5] {
+    /// the models drawing what the side knows, and bounds visited by the last query.
+    pub fn stats(&self) -> [usize; 6] {
         let replaced: HashSet<u64> = self
             .known
             .iter()
@@ -675,6 +694,7 @@ impl PropPopulation {
             unmodelled,
             self.placed().count(),
             self.known_models.len(),
+            self.visited,
         ]
     }
 
@@ -686,6 +706,18 @@ impl PropPopulation {
 
 impl Population for PropPopulation {
     fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>) -> bool {
+        self.candidates.clear();
+        self.known_candidates.clear();
+        let intersects = |b: &[f64; 6]| view.sees_box(b) || shadow.is_some_and(|s| s.intersects(b));
+        self.visited = self
+            .chunk_index
+            .query(intersects, |i| self.candidates.push(i))
+            + self
+                .known_index
+                .query(intersects, |i| self.known_candidates.push(i));
+        // Spatial traversal order must not alter instance order or list prints.
+        self.candidates.sort_unstable();
+        self.known_candidates.sort_unstable();
         let mut lists = vec![Vec::new(); self.lists.len()];
         let this = &*self;
         let n = self.looks.list.len() * PROP_TIERS;
@@ -716,17 +748,14 @@ impl Population for PropPopulation {
                 lists[n + m.look * PROP_TIERS + cast].push(m.record);
             }
         };
-        for chunk in this
-            .chunks
-            .iter()
-            .filter(|c| view.sees_box(&c.bounds) || shadow.is_some_and(|s| s.intersects(&c.bounds)))
-        {
+        for &c in &this.candidates {
+            let chunk = &this.chunks[c];
             for &i in chunk.models.iter().filter(|&&i| !this.hidden[i]) {
                 take(&this.map[i]);
             }
         }
-        for m in &this.known_models {
-            take(m);
+        for &i in &this.known_candidates {
+            take(&this.known_models[i]);
         }
         let mut changed = false;
         for (k, list) in lists.into_iter().enumerate() {

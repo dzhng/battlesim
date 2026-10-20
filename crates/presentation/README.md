@@ -77,6 +77,13 @@ native.
   camera and caster lists: shadow selection cannot
   remove a camera mesh, and leaving the camera cannot remove a shadow
   that reaches visible receivers. Both lists use the same side knowledge.
+  Static populations query the same bounds index as terrain, then restore source
+  order before emitting records so list identity and detail decisions stay stable.
+  Known props and ruins rebuild their index when knowledge changes. Traversal
+  stats count tested hierarchy bounds, separately from emitted instances.
+  Felled trees and stumps still emit every known instance; their caster lists
+  follow their camera lists. Indexing standing scenery does not change that
+  visibility policy.
 - [Sound](src/sound/): what a battle hears, when, where and how loud, from the
   same publication the effects read, the frame's emitters and the side's
   hearing cues, as commands a player carries out (start, glide, stop a voice;
