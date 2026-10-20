@@ -151,7 +151,11 @@ export async function run(ctx) {
   }
   ctx.check(
     "watched from outside, the eye path asked for (amber, red inside a building's clearance) and the eye path drawn (cyan) are both on screen",
-    Object.values(colours).every((c) => c.amber > 500 && c.red > 100 && c.cyan > 2000),
+    // Amber and red are portions of the same requested path. Clearance can
+    // leave most of it red, while coincident clear sections sit under cyan.
+    Object.values(colours).every(
+      (c) => c.amber > 0 && c.red > 100 && c.amber + c.red > 500 && c.cyan > 2000,
+    ),
     JSON.stringify(colours),
   );
 
