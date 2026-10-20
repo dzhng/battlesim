@@ -3,6 +3,10 @@
 // crate and soldiers proxies; picking reads the simulation's boxes.
 import { writeFile } from "node:fs/promises";
 import { decode, pixel, writeCrop } from "./_png.mjs";
+import {
+  graphicsProfiles,
+  sceneMinimumProfile,
+} from "../../apps/battle-lab/src/graphicsSettings.ts";
 
 // The crate is a pale warm proxy (r > b); the tank's camouflage is dark
 // (retuned when the tank was a blue proxy, told apart by hue).
@@ -151,6 +155,8 @@ export async function run(ctx) {
 
   // Lifecycle: resize and rebuild cycles return owned GPU resources to baseline.
   const baseline = await page.evaluate(() => window.__lab.allocations());
+  const quality = ctx.graphicsQuality ?? "low";
+  const { renderScale } = quality === "minimum" ? sceneMinimumProfile : graphicsProfiles[quality];
   for (const [w, h] of [
     [900, 600],
     [1600, 1000],
@@ -159,6 +165,19 @@ export async function run(ctx) {
   ]) {
     await page.setViewportSize({ width: w, height: h });
     await page.evaluate(() => window.__lab.frame());
+    const resized = await page.evaluate(() => {
+      const canvas = document.querySelector("canvas");
+      const { width, height } = window.__lab.stats();
+      return { css: [canvas.clientWidth, canvas.clientHeight], target: [width, height] };
+    });
+    ctx.check(
+      `resize to ${w}×${h} keeps CSS size and scales only the render target`,
+      resized.css[0] === w &&
+        resized.css[1] === h &&
+        resized.target[0] === Math.round(w * renderScale) &&
+        resized.target[1] === Math.round(h * renderScale),
+      JSON.stringify({ ...resized, renderScale }),
+    );
   }
   for (let i = 0; i < 3; i++) await page.evaluate(() => window.__lab.rebuild());
   const after = await page.evaluate(() => window.__lab.allocations());
@@ -172,8 +191,8 @@ export async function run(ctx) {
   );
   const size = await page.evaluate(() => window.__lab.stats());
   ctx.check(
-    "render target follows the viewport",
-    size.width === 1280 && size.height === 800,
+    "rebuilt render target retains the viewport's graphics scale",
+    size.width === Math.round(1280 * renderScale) && size.height === Math.round(800 * renderScale),
     `${size.width}×${size.height}`,
   );
 
@@ -191,7 +210,6 @@ export async function run(ctx) {
 
   // The frame fixture also owns the player-low picture gates for the shared
   // renderer compositions; keep these captures in the same browser run.
-  const quality = ctx.graphicsQuality ?? "low";
   const origin = new URL(ctx.url).origin;
   await ctx.openLab(page, ctx.url);
   await ctx.matchBaseline(page, "foundation");
