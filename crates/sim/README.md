@@ -9,7 +9,9 @@ and units belong to [contract](../contract/README.md), with WebAssembly exposed 
 ## Determinism and evidence
 
 Battle state belongs in [the digest](src/digest.rs). Equal digests mean equal
-battles; replays must reproduce outcomes as well as presentation evidence. An
+battles; replays must reproduce outcomes as well as presentation evidence. Seeded
+choices use explicit integer widths before converting to platform-sized indices,
+so native and WebAssembly make the same decisions. An
 optimization that changes a digest has changed behavior, even if a picture looks
 the same. Seeded randomness and iteration order are part of that contract. A body
 still where the map authored it is held by one digest of the authored props, taken

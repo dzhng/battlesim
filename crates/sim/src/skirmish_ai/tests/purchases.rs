@@ -189,3 +189,47 @@ fn affordable_armour_is_bought_in_the_opening_and_the_reinforcements() {
     assert!(armour(&opening), "the opening fields armour");
     assert!(armour(&bought), "reinforcements field armour");
 }
+
+#[test]
+fn seeded_reinforcements_keep_the_wasm_choice_on_native() {
+    let (rules, mut frame, entry) = empty_match();
+    frame.skirmish.as_mut().unwrap().phase = Phase::Active;
+    me(&mut frame).unit_count = 1;
+    me(&mut frame).credits = 10_000.0;
+    // Existing logistics avoids the urgent supply purchase; no squad or
+    // carrier demand hides the seeded reinforcement choice.
+    me(&mut frame)
+        .pending
+        .push(contract::skirmish::PendingPurchase {
+            id: contract::skirmish::PurchaseId(1),
+            kind: rules.catalog.index("test_supply").unwrap(),
+            entry: 0,
+            destination: entry.center,
+            confirmed_tick: 0,
+            blocked: false,
+            arrival_tick: None,
+        });
+    // These policy streams start with armour on wasm32. Casting the full
+    // hash to a platform-sized index changes them to infantry or AT on 64-bit hosts.
+    for seed in [12_225_630_750_127_142_817, 18_190_410_158_482_095_592] {
+        let orders = BalancedDoctrine::new(seed).decide(
+            DecisionInput {
+                side: Side::Red,
+                faction: Faction::Us,
+                entry: &entry,
+                assignment: None,
+            },
+            &frame,
+            &rules,
+            |_, _| Some(1.0),
+        );
+        let bought: Vec<_> = orders
+            .iter()
+            .filter_map(|order| match order {
+                Order::ConfirmPurchase { variant, .. } => Some(variant.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(bought, ["test_tank"], "policy seed {seed}");
+    }
+}

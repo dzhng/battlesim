@@ -4,6 +4,7 @@ use contract::command::{Order, TargetRef};
 use contract::encounter::EntrySite;
 use contract::ids::{Side, Tick, UnitId};
 use contract::observation::{ObservationFrame, ObservedTargetId};
+use contract::random::{mix, Rng};
 use contract::scenario::Rules;
 use contract::skirmish::Phase;
 use std::collections::BTreeMap;
@@ -151,7 +152,7 @@ pub struct BalancedDoctrine {
     last_own_count: Option<usize>,
     last_air_evidence: Option<Tick>,
     response_delay_ticks: Option<Tick>,
-    random: contract::random::Rng,
+    random: Rng,
     sightings: BTreeMap<ObservedTargetId, ArtillerySighting>,
     /// Own units their weapons' own cover holds (`BlockedTrajectory`).
     held: BTreeMap<UnitId, Held>,
@@ -210,7 +211,7 @@ impl Default for BalancedDoctrine {
             last_own_count: None,
             last_air_evidence: None,
             response_delay_ticks: None,
-            random: contract::random::Rng::new(0),
+            random: Rng::new(0),
             sightings: BTreeMap::new(),
             held: BTreeMap::new(),
             purchase_plan: None,
@@ -223,8 +224,8 @@ impl Default for BalancedDoctrine {
 impl BalancedDoctrine {
     pub fn new(seed: u64) -> Self {
         Self {
-            reinforcement: (contract::random::mix(seed) as usize) % 5,
-            random: contract::random::Rng::new(contract::random::mix(seed ^ 0x534b_4952_4d49_5348)),
+            reinforcement: (mix(seed) as u32 % 5) as usize,
+            random: Rng::new(mix(seed ^ 0x534b_4952_4d49_5348)),
             response_delay_ticks: None,
             ..Self::default()
         }
