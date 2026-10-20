@@ -53,10 +53,17 @@ test("generated endurance adopts its prepared authority instead of starting a se
   authority.onmessage?.({
     data: {
       type: "prepared",
-      battle: { scenario, report: { size: [10_000, 10_000] } } as Extract<
-        PrepareReply,
-        { type: "prepared" }
-      >["battle"],
+      battle: {
+        scenario,
+        report: {
+          size: [10_000, 10_000],
+          extents: {
+            playable: [0, 0, 10_000, 10_000],
+            physical: [0, 0, 10_000, 10_000],
+            rendered: [0, 0, 10_000, 10_000],
+          },
+        },
+      } as Extract<PrepareReply, { type: "prepared" }>["battle"],
     },
   });
   await waitFor(() => {
