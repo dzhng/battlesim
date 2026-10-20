@@ -25,13 +25,15 @@ use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
 use crate::records::{CAST_PASS, FOG_FACES, NONE, VIEW_PASS};
-use crate::shadow::{CasterVolumes, ALL_CASCADES, CASCADES};
+use crate::shadow::{CasterVolumes, CASCADES};
 use crate::static_world::batches::{print, List, Population, PRINT_BASIS};
 use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
 use crate::view::{caster_tier, View, TIERS};
 use std::collections::{HashMap, HashSet};
+
 mod felled;
+use felled::FelledSpatial;
 pub use felled::FelledTree;
 
 const LAST: usize = TIERS - 1;
@@ -429,6 +431,7 @@ pub struct SceneryWalk {
     /// Wanted cells are still to be laid: walk again.
     pub pending: bool,
     felled: Vec<FelledTree>,
+    felled_spatial: FelledSpatial,
     felled_lists: Vec<Vec<Record>>,
     stumps: Vec<Vec<Record>>,
     felled_print: u64,
@@ -490,8 +493,9 @@ impl SceneryWalk {
             dressing_generation: 0,
             pending: false,
             felled: vec![],
-            felled_lists: vec![vec![]; kinds * TIERS * 2],
-            stumps: vec![vec![]; kinds],
+            felled_spatial: FelledSpatial::default(),
+            felled_lists: vec![vec![]; kinds * TIERS * (1 + CASCADES)],
+            stumps: vec![vec![]; kinds * (1 + CASCADES)],
             felled_print: 0,
             falling: false,
             clock: 0.0,
@@ -532,6 +536,7 @@ impl SceneryWalk {
         self.forest
             .restand(&self.sizes, |i, _| ids.contains(&forest_ids[i]));
         self.felled = felled;
+        self.felled_spatial.dirty = true;
         true
     }
 
@@ -556,7 +561,7 @@ impl SceneryWalk {
         }
         self.backdrop.select(view, None, &lod);
         self.select_dressing(ground, view);
-        self.select_felled(ground, view, &lod);
+        self.select_felled(ground, view, shadow, &lod);
     }
 
     fn select_dressing(&mut self, ground: &Ground, view: &View) {
@@ -685,26 +690,40 @@ impl SceneryWalk {
             };
             let tier = (key % TIERS) as u32;
             visit(List {
-                row: row(Draws::Felled)[key / TIERS],
+                row: row(Draws::Felled)[(key / TIERS) % kinds],
                 tier,
                 pass,
                 caster: List::own_caster(pass, tier),
-                cascade_mask: if pass == CAST_PASS { ALL_CASCADES } else { 0 },
+                cascade_mask: if pass == CAST_PASS {
+                    1 << (key / (kinds * TIERS))
+                } else {
+                    0
+                },
                 fog: FOG_FACES,
                 records,
                 print: self.felled_print,
             });
         }
-        for (kind, records) in self.stumps.iter().enumerate() {
-            for pass in [VIEW_PASS, CAST_PASS] {
+        for kind in 0..kinds {
+            visit(List {
+                row: row(Draws::Stump)[kind],
+                tier: 0,
+                pass: VIEW_PASS,
+                caster: NONE,
+                cascade_mask: 0,
+                fog: FOG_FACES,
+                records: &self.stumps[kind],
+                print: self.felled_print,
+            });
+            for cascade in 0..CASCADES {
                 visit(List {
                     row: row(Draws::Stump)[kind],
                     tier: 0,
-                    pass,
-                    caster: List::own_caster(pass, 0),
-                    cascade_mask: if pass == CAST_PASS { ALL_CASCADES } else { 0 },
+                    pass: CAST_PASS,
+                    caster: List::own_caster(CAST_PASS, 0),
+                    cascade_mask: 1 << cascade,
                     fog: FOG_FACES,
-                    records,
+                    records: &self.stumps[(cascade + 1) * kinds + kind],
                     print: self.felled_print,
                 });
             }
@@ -712,14 +731,17 @@ impl SceneryWalk {
     }
 
     /// Instances placed per population (forest, understorey, backdrop) and
-    /// dressing cells drawn, then standing-population bounds visited by the last walk.
+    /// dressing cells drawn, then standing and felled bounds visited by the last walk.
     pub fn stats(&self) -> [usize; 5] {
         [
             self.forest.pop.placed(),
             self.understorey.pop.placed(),
             self.backdrop.placed(),
             self.drawn.len(),
-            self.forest.pop.visited + self.understorey.pop.visited + self.backdrop.visited,
+            self.forest.pop.visited
+                + self.understorey.pop.visited
+                + self.backdrop.visited
+                + self.felled_spatial.visited,
         ]
     }
 }

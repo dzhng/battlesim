@@ -1,9 +1,8 @@
-//! Falling-tree records and animation shared by both renderers.
+//! Known falling trees: immutable motion envelopes and independent pass selection.
 use super::*;
 use std::f64::consts::FRAC_PI_2;
 
-/// A tree the side saw fall: its trunk's prop, the way it fell, and the
-/// presentation second it began to.
+/// A tree the side saw fall, its direction and presentation start time.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct FelledTree {
     pub prop: u32,
@@ -11,58 +10,134 @@ pub struct FelledTree {
     pub fell_at: f64,
 }
 
+#[derive(Default)]
+pub(super) struct FelledSpatial {
+    pub(super) dirty: bool,
+    index: BoundsIndex,
+    ids: Vec<usize>,
+    latest: Option<f64>,
+    candidates: Vec<usize>,
+    pub(super) visited: usize,
+}
+
 impl SceneryWalk {
-    pub(super) fn select_felled(&mut self, ground: &Ground, view: &View, lod: &[f64; 3]) {
-        // What the last walk listed: a view that moves a tree to another
-        // tier writes its lists anew.
-        let before = std::mem::take(&mut self.felled_lists);
-        self.felled_lists = vec![vec![]; before.len()];
-        self.stumps.iter_mut().for_each(Vec::clear);
-        self.falling = false;
-        let rules = &ground.biome.trees.felled;
+    fn rebuild_felled(&mut self, rules: &FelledRules) {
+        let spatial = &mut self.felled_spatial;
+        spatial.ids.clear();
+        spatial.latest = None;
         let forest = self.scenery.forest.as_chunks::<FLOATS>().0;
-        for f in &self.felled {
+        let mut bounds = Vec::new();
+        for (id, f) in self.felled.iter().enumerate() {
             let Some(&i) = self.index.get(&f.prop) else {
                 continue;
             };
             let p = &forest[i];
-            let (tree, kind, h, reach) = instance(p, &self.sizes);
-            let (sxy, sz) = (p[4] as f64, p[5] as f64);
-            let age = self.clock - f.fell_at;
-            self.falling |= age < rules.fall_s + rules.settle_s;
-            let t = &self.trunks[kind];
-            let pose = fell_pose(
-                rules,
-                age,
-                h as f64,
-                reach as f64,
-                t.radius * sxy,
-                t.crown * sz,
-            );
-            let mut fall = tree;
-            fall[4..8]
-                .copy_from_slice(&[f.toward[0], f.toward[1], pose[0], pose[1]].map(|v| v as f32));
-            let mut rest = [0.0; 16];
-            for (r, v) in rest.iter_mut().zip(&pose[2..]) {
-                *r = *v as f32;
-            }
-            let d = crate::world::length([0, 1, 2].map(|a| tree[a] as f64 - view.eye[a]));
-            let list = &mut self.felled_lists[kind * TIERS + tier_for(h as f64, d, view, lod)];
-            list.extend([fall, rest]);
-            let mut stump = tree;
-            stump[11] = 0.0;
-            stump[14..16].copy_from_slice(&[1.0, (0.5 * rules.stump_height_m) as f32]);
-            self.stumps[kind].push(stump);
+            let (_, kind, h, reach) = instance(p, &self.sizes);
+            let trunk = self.trunks[kind].radius * p[4] as f64;
+            let hinge = rules.stump_height_m;
+            // The shader rotates the height above the hinge, compresses radial
+            // components (never expands them), and kicks the trunk two radii.
+            // Sum the two radial components rather than assuming compression is
+            // a rigid rotation. This also encloses the unscaled-height stump.
+            let span = (h as f64 - hinge).max(0.) + 2. * reach as f64;
+            let xy = span + 2. * trunk;
+            let z = span + hinge.max(trunk);
+            let [x, y, base] = [p[0], p[1], p[2]].map(f64::from);
+            bounds.push([x - xy, y - xy, base - z, x + xy, y + xy, base + z]);
+            spatial.ids.push(id);
+            spatial.latest = Some(spatial.latest.map_or(f.fell_at, |v| v.max(f.fell_at)));
         }
-        // Casters draw a tier coarser.
+        spatial.index = BoundsIndex::new(bounds);
+        spatial.dirty = false;
+    }
+
+    pub(super) fn select_felled(
+        &mut self,
+        ground: &Ground,
+        view: &View,
+        shadow: Option<&CasterVolumes>,
+        lod: &[f64; 3],
+    ) {
+        let rules = &ground.biome.trees.felled;
+        if self.felled_spatial.dirty {
+            self.rebuild_felled(rules);
+        }
+        // Offscreen animation advances from the clock without walking its trees.
+        self.falling = self
+            .felled_spatial
+            .latest
+            .is_some_and(|at| self.clock - at < rules.fall_s + rules.settle_s);
+        let before = std::mem::replace(
+            &mut self.felled_lists,
+            vec![vec![]; self.scenery.kinds.len() * TIERS * (1 + CASCADES)],
+        );
+        let before_stumps = std::mem::replace(
+            &mut self.stumps,
+            vec![vec![]; self.scenery.kinds.len() * (1 + CASCADES)],
+        );
         let kinds = self.scenery.kinds.len();
-        for k in 0..kinds {
-            for t in 0..TIERS {
-                let view_list = self.felled_lists[k * TIERS + t].clone();
-                self.felled_lists[kinds * TIERS + k * TIERS + caster_tier(t)].extend(view_list);
+        let forest = self.scenery.forest.as_chunks::<FLOATS>().0;
+        let spatial = &mut self.felled_spatial;
+        spatial.visited = 0;
+        for pass in 0..=CASCADES {
+            spatial.candidates.clear();
+            spatial.visited += spatial.index.query(
+                |b| {
+                    if pass == 0 {
+                        view.sees_box(b)
+                    } else {
+                        shadow.is_some_and(|s| s.mask(b) & (1 << (pass - 1)) != 0)
+                    }
+                },
+                |i| spatial.candidates.push(i),
+            );
+            spatial.candidates.sort_unstable();
+            for &id in &spatial.candidates {
+                let f = &self.felled[spatial.ids[id]];
+                let p = &forest[self.index[&f.prop]];
+                let (mut stump, kind, _, _) = instance(p, &self.sizes);
+                stump[11] = 0.;
+                stump[14..16].copy_from_slice(&[1., (0.5 * rules.stump_height_m) as f32]);
+                self.stumps[pass * kinds + kind].push(stump);
+            }
+            // Casters merge source tiers into coarser tiers in source-tier order.
+            // Preserve that order, including the two tiers that share LAST.
+            let tier = |id: usize| {
+                let f = &self.felled[spatial.ids[id]];
+                let p = &forest[self.index[&f.prop]];
+                let (_, _, h, _) = instance(p, &self.sizes);
+                let d = crate::world::length([0, 1, 2].map(|a| p[a] as f64 - view.eye[a]));
+                tier_for(h as f64, d, view, lod)
+            };
+            if pass != 0 {
+                spatial.candidates.sort_by_cached_key(|&id| (tier(id), id));
+            }
+            for &id in &spatial.candidates {
+                let f = &self.felled[spatial.ids[id]];
+                let p = &forest[self.index[&f.prop]];
+                let (mut fall, kind, h, reach) = instance(p, &self.sizes);
+                let t = &self.trunks[kind];
+                let pose = fell_pose(
+                    rules,
+                    self.clock - f.fell_at,
+                    h as f64,
+                    reach as f64,
+                    t.radius * p[4] as f64,
+                    t.crown * p[5] as f64,
+                );
+                fall[4..8].copy_from_slice(
+                    &[f.toward[0], f.toward[1], pose[0], pose[1]].map(|v| v as f32),
+                );
+                let mut rest = [0.; 16];
+                for (r, v) in rest.iter_mut().zip(&pose[2..]) {
+                    *r = *v as f32;
+                }
+                let t = tier(id);
+                let t = if pass == 0 { t } else { caster_tier(t) };
+                self.felled_lists[pass * kinds * TIERS + kind * TIERS + t].extend([fall, rest]);
             }
         }
-        if self.felled_lists != before {
+        if self.felled_lists != before || self.stumps != before_stumps {
             self.felled_print += 1;
         }
     }

@@ -52,7 +52,7 @@ fn a_list_named_by_the_same_print_holds_the_same_records() {
     }
 }
 
-fn rules() -> FelledRules {
+pub(super) fn rules() -> FelledRules {
     serde_json::from_value(serde_json::json!({
         "fall_s": 2, "settle_s": 0.5, "settle_deg": 5, "rest_height_m": 1,
         "rest_spread": 0.6, "stump_height_m": 0.4, "cut": [0.4, 0.3, 0.2]
