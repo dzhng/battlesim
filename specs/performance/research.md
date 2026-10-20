@@ -39,10 +39,12 @@ llvmpipe adapter and are therefore directional for hardware GPU performance.
 
 ## Handoff
 
-The incumbent is the skeleton-scoped loader. The first clean baseline after
-fetching the reel's LFS assets confirmed a repeatable `market-town` 1% low below
-the agreed 50 FPS trigger. The browser is not GPU-saturated in those runs, so
-the next experiment is a CPU/frame-pacing profile before changing a shared pass.
+The active target is now the production Metro XL stress case, at 100 units per
+side. Earlier market-town frame pacing was accepted by the user at roughly
+39 FPS 1% low. The XL findings below supersede the earlier CPU-first priority.
+The controlled distant-car change saves about 12% GPU time; this does not prove
+the original 25% browser/native frame-time target. Native hardware performance
+and the remaining XL frame-time gap are still open.
 
 ## Reactive baseline — 2026-10-19
 
@@ -206,7 +208,7 @@ this evidence.
 
 ## XL render-scale experiment — 2026-10-19
 
-The XL stress workload is GPU-bound at 1920×1080: the minimum-quality run measured
+The XL stress workload is GPU-bound in the endurance runner’s default 1280×800 CSS viewport: the minimum-quality run measured
 about 41.2 ms GPU mean live and 48.8 ms late. The frame uses several full-size
 4× multisampled targets; a 1× experiment was rejected by WebGPU because the
 renderer’s depth bindings and shader contracts require multisampled depth.
@@ -221,25 +223,146 @@ profile; Medium and High remain at 1×. The low-quality graphics reel completed
 without render errors.
 
 
-## XL GPU backbone is map-scaled — 2026-10-20
+## Corrected XL GPU attribution — 2026-10-20
 
-The XL GPU cost was initially described as a camera-view backbone. That was too
-broad. Post-processing is tied to the render target, but the world pass submits
-the exported terrain mesh as a whole, and the shadow pass submits the terrain
-caster once per active cascade. Raster clipping limits visible fragments; it
-does not avoid vertex work for terrain outside the camera or casters outside the
-fitted shadow receiver. A larger map can therefore increase terrain and shadow
-work even when the camera sees the same small patch.
+The previous 27 ms “backbone” and short optional-layer toggles are invalid
+attribution: GPU statistics averaged 240 frames while toggles waited only
+1.8 seconds, mixing arms. Later production runs using `test-quality=low` did
+not select Low after the development-only override was guarded. Do not use
+those runs to assign CPU/GPU percentages or compare resolutions. CPU/GPU time
+can overlap; different-run GPU means and frame medians are not an additive
+per-frame breakdown.
 
-The existing XL probes establish priority but do not isolate these owners. With
-the low profile and the simulation paused, suppressing all optional layers
-together measured about 44 ms GPU mean; an earlier combined floor probe on the
-same adapter measured about 27 ms under a different run and resolution.
-Individual optional-layer deltas were generally below 1 ms and are not
-additive on the Apple tile GPU. These runs justify a bounded terrain/shadow
-probe, not a claim that 27 ms is one pass or that post is map-scaled.
+The corrected probe persists the real Low preference before loading production,
+confirms the 960×600 target at 1280×800 CSS, pauses the generated Metro XL seed-4
+opening with 100 units per side, reduces the diagnostic GPU window to 30
+samples, and waits 90 newly drawn frames after every toggle. Full baselines
+interleave each omission. On the same adapter:
 
-**Active invariant:** fixed camera and render size should make post cost
-constant; terrain and shadow work must be bounded by the camera and fitted
-shadow regions, not by total map extent. The next experiment exposes terrain-
-caster and shadow-cascade cost separately before changing production rendering.
+| Omitted work | GPU mean | Interpretation |
+| --- | --- | --- |
+| Nothing | about 32.2 ms | Paused opening baseline |
+| Terrain shadow draws | about 31.9 ms | About 0.4 ms; low priority |
+| All shadow encoding | 22.4–23.5 ms | About 9 ms total marginal cost |
+| Model-layer shadows | 25.33 ms | About 6–7 ms versus adjacent baselines |
+| Building/scenery shadows | about 31 ms | Near the baseline noise floor |
+
+These omissions diagnose cost; they are not output-preserving candidates.
+Deltas are not additive on a tile GPU. The sampled opening has only two sparse
+scar pages, so this does not characterize a large late-state scar footprint.
+Scratch evidence is in `throwaway/xl-audit/` (not versioned).
+
+Full-map terrain submission remains structurally unbounded (643,044 vertices in
+this world), but it does not explain most of the measured shadow overhead.
+Prioritize conservative model/prop caster filtering against actual fitted
+cascade volumes. Configured shadow reach alone is insufficient because cascade
+fitting can extend farther. A fixed-view map-size invariant requires matching
+local visible content and a finite view distance; an infinite-horizon camera
+may legitimately admit more geometry on a larger map.
+
+## XL candidate ledger — 2026-10-20
+
+All comparisons use the settled protocol above. Means below are milliseconds;
+A is the adjacent/full baseline, B the candidate or diagnostic omission. Omission
+probes identify marginal cost, not shippable changes. Scratch code, logs and
+screenshots remain under `throwaway/xl-audit/` and are not product hooks.
+
+| Experiment | A | B | Decision |
+| --- | --- | --- | --- |
+| Prop casters filtered against cascade union | 30.93 / 30.89 / 30.19 | 30.32 / 32.03 / 32.27 | Reject extra lists/storage; no repeatable gain |
+| Omit prop shadows | 32.26 / 32.54 | 25.54 | Props dominate model-shadow cost |
+| Omit unit/remains shadows | 32.54 / 32.09 | 32.08 | Near noise in this opening, not a late-state verdict |
+| Single-joint vertex fast path | 31.60 / 32.42 / 31.70 | 31.67 / 30.57 / 31.82 | Reject; no consistent benefit |
+| Separate prop list per cascade | 31.72 / 31.71 / 32.15 | 32.04 / 31.84 / 31.55 | Reject expanded batch contract/storage |
+| Omit solid model shadows | 30.37 / 30.18 | 21.85 | Solid geometry dominates |
+| Omit cutout model shadows | 30.18 / 30.19 | 30.23 | Near noise |
+| Equivalent cutout discard | 30.19 / 30.31 | 30.16 / 30.23 | Reject as a performance candidate |
+| Position-only solid depth vertex stage | about 30.2 | about 30.2 | Reject additional shader ownership |
+
+The solid/cutout and depth-stage probes opened the pause-menu overlay in both
+arms; use their paired deltas, not absolute comparisons to other runs. None of
+the renderer experiments is retained. Filtering was conservative, but selected
+work alone did not establish a measurable GPU saving.
+
+## Dominant prop appearances
+
+The opening submits about 100,000 visible props and 13.5 million model triangles
+at the coarsest tier. Parked cars dominate: 23,991 × 300 = 7,197,300 triangles.
+Courtyard walls contribute 43,386 × 88 = 3,817,968; planters contribute 481,936.
+Paired shadow omission puts parked cars around 3 ms marginal cost; wall and
+planter deltas are smaller and noisier. The next practical owner is authored
+distant meshes. Non-impostor props continue drawing their coarsest mesh at any
+distance, so unnecessary detail multiplies across large visible populations.
+
+The parked-car candidate removes buried window slab faces, subpixel wheel-arch
+clearance and small bumper geometry only from its distant tier: 172 triangles
+versus 300. Exported mesh attributes, indices and material indices for tiers
+0–2 match exactly. The source excludes wreck generation from all changes.
+The loader’s existing per-tier budget mechanism bounds future distant complexity.
+
+The full catalog bake passes. Matched car sheets exercise the changed tier
+(the final frame reports 172 triangles in tier 3); their image differences are
+minute and an unprimed visual review found no visible regression. Tier-2 cars
+also cast using tier 3, so the mid view’s shadow comparison matters. The corrected production XL comparison switches both baked meshes in one paused
+battle and asserts equal instance counts (100,370) and exactly 3,070,848 fewer
+triangles in each candidate arm. Baseline GPU means are 32.57 / 32.81 / 31.94 ms;
+candidate means are 27.44 / 29.58 / 28.63 ms: about 3.9 ms (12%) lower on average.
+No cars are omitted. Live/late-state confirmation and closeout checks remain
+pending. This is GPU duration, not a claim about achieved frame cadence.
+
+## Direct culling audit
+
+To distinguish selected from actually in-frustum geometry, a throwaway probe
+copied each held prop record and transformed all eight corners of its authored
+state bounds (including instance scale and yaw) through the actual GPU camera
+matrix. It tested all six WebGPU clip inequalities, independently of Rust’s
+sphere/chunk selection. The original assets and production Low were restored
+for this audit.
+
+Of 100,340 selected props, 99,580 bounds lie wholly inside, 315 intersect a
+boundary, and 445 lie wholly outside near the screen edges. No records or
+appearances were missing. Thus 99.6% intersect the view: frustum culling is
+working for this sample. The selected world positions span roughly x=2882–6695,
+y=4035–6801 within the 10 km square map. This camera is 2400 m from its target,
+with pitch 0.95, vertical FOV 0.8 and aspect 1.6.
+
+There are 23,991 parked cars; their projected bounding boxes span only 0.8–2.2
+rendered pixels. Coarsest-mesh complexity therefore remains relevant even with
+correct frustum culling. This is not an occlusion audit: geometry hidden behind
+other geometry still submits vertices before GPU depth rejection.
+
+Per-cascade bounds exclude 12,403 / 3,205 / 216 / 0 props respectively: only
+about 4% of total repeated prop submissions. The union excludes none. This
+explains why the earlier conservative selection candidates did not help; their
+failure alone was not evidence that culling was correct. Full terrain submission
+remains a separate unbounded path, with small measured shadow cost here.
+
+The first old/new car-mesh timing comparison is invalid: the temporary baseline
+alias was excluded by the application’s appearance-selection filter, so that arm
+omitted parked cars. No timing claim is accepted from it. A valid comparison must
+assert equal instance counts and the expected different triangle counts first.
+
+### Production confirmation of the distant-car change
+
+The generated Metro XL seed4 endurance run on production Low passed 30 seconds
+of live contact and 30 seconds of late-state contact. GPU frame mean/p95 was
+31.9/35.3 ms live and 34.1/36.3 ms late. Worst ten-second-window frame p95/p99
+was 58.3/75.0 ms live and 99.9/209.2 ms late. These absolute results are not a
+paired speedup estimate; the controlled opening A/B above owns that claim.
+
+Three resets reproduced digest `60ede87ba60aab0b`, camera and corpse identities,
+and identical GPU allocation counts and bytes. Both contact arms involved
+50 own units firing. Evidence: `throwaway/xl-audit/car-production-endurance.log`
+and `car-production-telemetry.json`. The run confirms production integration
+and reset stability, not achievement of the whole performance target.
+
+### Distant-wall simplification rejected
+
+A three-band courtyard-wall mesh reduced the far tier from 88 to 40 triangles
+and preserved the near tiers' exported mesh bytes. Matched source preview
+sheets and an unprimed review showed less contrast and a less distinct upright
+wall at the farthest view. It was rejected before GPU benchmarking; no speedup
+is claimed. Scratch evidence: `throwaway/xl-audit/wall-source-before`,
+`wall-after`, and the paired `wall-*-distant.png` crops. Both raw-source previews
+lack catalog-kind metadata, so they are image comparisons, not asset-validation
+proof. The original wall remains in production.

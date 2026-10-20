@@ -88,6 +88,15 @@ def slab(name, pts, normal, mat, lods=TIERS, thick=0.03):
     n = Vector(normal).normalized() * (thick / 2)
 
     def build(bm, lod):
+        # Below the distant tier's screen budget, the surface carries the
+        # window; its buried back and thin edges add no readable detail.
+        if lod == 3 and not WRECK:
+            hi = [bm.verts.new(Vector(p) + n) for p in pts]
+            face = bm.faces.new(hi)
+            face.normal_update()
+            if face.normal.dot(n) < 0:
+                face.normal_flip()
+            return
         lo = [bm.verts.new(Vector(p) - n) for p in pts]
         hi = [bm.verts.new(Vector(p) + n) for p in pts]
         bm.faces.new(lo[::-1])
@@ -106,7 +115,11 @@ def along(a, b, t):
 
 # ------------------------------------------------------------------ body and greenhouse
 for lod, seg in zip(TIERS, (12, 8, 5, 3)):
-    prism("body", body_profile(seg), 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=(lod,))
+    profile = body_profile(seg)
+    if lod == 3 and not WRECK:
+        # Keep the hull silhouette; the wheel-arch clearance is subpixel here.
+        profile = profile[:2] + [(-2.1, SILL_Z), (2.1, SILL_Z)] + profile[-7:]
+    prism("body", profile, 2 * BODY_Y, (0, 0, 0), paint, car, bevel=0.04, lods=(lod,))
 box("floor_pan", (4.1, 1.36, 0.5), (0, 0, 0.5), under, car)
 prism("cabin", CABIN, 2 * CABIN_Y, (0, 0, 0), paint, car, bevel=0.03, taper_y=lean)
 
@@ -129,7 +142,8 @@ for s, sn in ((1, "L"), (-1, "R")):
 
 # ------------------------------------------------------------------ trim, lamps, mirrors
 for name, x in (("front", 2.145), ("rear", -2.145)):
-    box(f"bumper_{name}", (0.11, 2 * BODY_Y - 0.02, 0.17), (x, 0, 0.38), trim, car, bevel=0.03)
+    box(f"bumper_{name}", (0.11, 2 * BODY_Y - 0.02, 0.17), (x, 0, 0.38), trim, car, bevel=0.03,
+        lods=TIERS if WRECK else (0, 1, 2))
 # a dark band across the nose carries the grille and sets the lamps off from the paint
 box("grille", (0.04, 2 * BODY_Y - 0.1, 0.15), (2.165, 0, 0.63), trim, car, lods=(0, 1, 2))
 for s, sn in ((1, "L"), (-1, "R")):

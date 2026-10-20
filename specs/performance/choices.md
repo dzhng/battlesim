@@ -311,21 +311,41 @@ The same scale is now the production Low profile; Medium and High remain at 1×.
 - **Confidence:** high for the measured adapter, medium across hardware.
 
 
-### Make terrain and shadow culling the XL performance target — 2026-10-20
+### Bound rendering by both visibility and projected detail — 2026-10-20
 
-The XL GPU floor is not entirely camera-bounded. Post-processing is tied to the
-render target, but the terrain mesh is submitted as one full-map draw and each
-shadow cascade submits the terrain caster plus its selected casters. A camera
-frustum clips the result after submission; it does not make a huge terrain
-mesh or an off-view shadow caster free. Props and scenery already use chunked
-presentation walks, so they are a secondary target.
+A full-map terrain draw is structurally unbounded, but that fact alone does not
+make it the dominant performance owner. Use settled GPU attribution and direct
+selected-bound checks before choosing culling work. Correct frustum selection
+can still admit a dense population of tiny, over-detailed models; assess both
+instance count and per-instance geometry. Frustum and occlusion culling are
+different contracts.
 
-- **Gap:** the prior handoff called the entire backbone camera-bounded and could
-  have led us to optimize the wrong owner.
-- **Reach:** browser and native world/shadow passes, with identical presentation
-  records and visual output.
-- **Verdict:** make terrain tiling/culling and shadow-caster bounding the active
-  next slice; measure each separately first. Preserve post as a screen-size
-  baseline.
-- **Confidence:** high for the submission path, medium for the eventual split
-  until pass-specific probes run.
+- **Gap:** the initial terrain-first priority inferred cost from structure.
+- **Reach:** future renderer diagnosis and asset detail budgets.
+- **Verdict:** sound; supersedes the premature terrain-first priority.
+- **Confidence:** high.
+
+### Keep distant prop detail in the asset owner
+
+Simplify the parked car’s existing far mesh and enforce its budget through the
+existing asset validator. Keep near meshes, physical geometry, simulation
+behavior and renderer interfaces intact. Reject additional caster lists and
+shader variants without a repeatable gain; do not retain experiment machinery.
+
+- **Gap:** the spec did not choose between renderer machinery and authored detail.
+- **Reach:** distant car appearance and its shadows, including shadows cast by
+  the next-nearer visible tier; both clients consume the same baked mesh.
+- **Verdict:** sound; production live/late-state contact and reset checks pass.
+- **Confidence:** high for the ownership choice; visual acceptance is limited to
+  the reviewed views, not every possible framing.
+
+### Select production benchmark quality through the real preference
+
+The endurance runner must use the same saved Low/Medium/High setting as a player.
+A development-only URL override is not a production quality selector. Refuse
+unsupported tier names instead of silently benchmarking a different profile.
+
+- **Gap:** the harness flag’s former mechanism stopped applying in production.
+- **Reach:** reproducibility of endurance measurements; no production behavior change.
+- **Verdict:** sound.
+- **Confidence:** high.

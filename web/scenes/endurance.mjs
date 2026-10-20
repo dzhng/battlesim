@@ -26,13 +26,24 @@ const telemetry = (page) => lab(page, () => window.__lab.route.telemetry());
 
 /** Choose the bounded full-world arm without changing the saved default. */
 async function openStressLab(ctx, page) {
+  const quality = process.env.ENDURANCE_QUALITY;
+  if (quality) {
+    if (!["low", "medium", "high"].includes(quality))
+      throw new Error("ENDURANCE_QUALITY must name a production tier: low, medium, or high");
+    await page.addInitScript(
+      (mode) =>
+        localStorage.setItem(
+          "battle.graphics",
+          JSON.stringify({ mode, detectedMode: null, lastResult: null }),
+        ),
+      quality,
+    );
+  }
   if (!GENERATED) {
     await ctx.openLab(page);
     return null;
   }
   const stressUrl = new URL(ctx.urlFor({ generated: 1 }));
-  if (process.env.ENDURANCE_QUALITY)
-    stressUrl.searchParams.set("test-quality", process.env.ENDURANCE_QUALITY);
   await ctx.openLab(page, stressUrl.href, PREPARE_TIMEOUT);
   await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
     timeout: PREPARE_TIMEOUT,

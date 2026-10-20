@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** XL 5v5 stress rendering is now the active performance limit. The Rust presentation allocation-reuse passes and browser reel remain green; the next work bounds terrain and shadow work by the camera rather than the whole generated map.
+**Status:** XL 5v5 stress rendering is now the active performance limit. The Rust presentation allocation-reuse passes and browser reel remain green; the culling audit confirms dense in-view props; the distant-car mesh has a measured GPU gain and passes production endurance.
 **Updated:** 2026-10-20.
 
 The current renderer research ledger is [research.md](research.md). It records
@@ -9,82 +9,72 @@ README owns the active handoff and acceptance state.
 
 ## Next Agent Prompt
 
-You are picking up a measured browser frame-time problem. The agreed policy is
-reactive and browser-led: choose the smallest candidate that explains the
-reported symptom, allow a small secondary regression only when the primary gain
-is substantial and recorded, and keep native as a parity check for shared
-renderer or shader changes. Update this section before you end each pass.
+Production Metro XL at 100 units per side is the active target. Keep the
+simulation unchanged and accept renderer complexity only for a measured gain
+with preserved images. The earlier market-town CPU passes are accepted; their
+evidence lives in [research.md](research.md).
 
-- [x] A repeatable 1% low regression is measured on the graphics-fps reel.
-- [x] Choose and slice the Rust presentation-frame candidate with the user.
-- [x] Reuse loaded-frame scratch vectors without changing `Frame` output.
-- [x] Compare the pass against the immediate pre-pass source on the native replay bench.
-- [x] Diagnose the browser graphics-test completion failure and rerun a bounded reel.
-- [x] Profile the next loaded-frame owner before selecting another optimization.
-- [x] Reuse `BuildingWalk::select` list and count storage after native A/B.
-- [x] Measure the XL 5v5-scale stress workload with a realistic full-roster late state.
-- [x] Establish whether the XL GPU cost is screen-bounded or map-bounded.
-- [ ] Separate terrain, shadow-caster, and post-processing GPU cost on the XL workload.
-- [ ] Reduce map-scaled terrain/shadow cost without changing presentation output.
+- [x] Establish the XL stress workload and reproduce expensive GPU frames.
+- [x] Separate terrain-caster, model-caster, and other shadow costs with settled,
+  interleaved samples at the actual production Low resolution.
+- [x] Test and reject union-of-cascades prop filtering: no repeatable GPU gain.
+- [x] Separate prop and unit/remains shadow cost: props dominate this opening.
+- [x] Measure and reject the single-joint shader branch: no consistent gain.
+- [x] Reject per-cascade prop lists: no consistent GPU gain.
+- [x] Isolate solid/cutout cost: solid geometry dominates. Reject discard and
+  position-only depth shader variants; neither yields a consistent gain.
+- [x] Rank prop appearances: parked cars dominate (7.2 million triangles).
+- [x] Audit actual selected bounds against the GPU camera: 99.6% intersect
+  the view; parked cars cover only 0.8–2.2 rendered pixels each.
+- [x] Verify near/far car appearance and measure a controlled 12% GPU saving.
+- [x] Confirm the production live/late-state run and review the car pass.
+- [x] Finish asset validation (empty stale bundle directory removed).
+- [x] Commit the car pass with formatting, lint and file-size hook checks.
+- [ ] Verify images, batch updates, resource reset, browser/native consumers,
+  and steady-state performance before accepting the candidate.
+- [ ] Reassess the remaining GPU limit, review, and complete closeout checks.
 
 ## Current handoff
 
-The canonical production reel was run twice on an uncontended browser at
-1280×720. `market-town` averaged 75.9 and 82.2 FPS, but its 1% low was 35.9
-and 38.9 FPS; `paris-corner` averaged 107.8 and 110.5 FPS, with 1% lows of
-57.2 and 54.9 FPS. The trigger is therefore confirmed for `market-town`.
+The corrected paused-opening probe uses a 1280×800 CSS viewport, persisted
+production Low, and a confirmed 960×600 target. Baseline GPU cost is about
+32 ms. Omitting terrain shadows saves only about 0.4 ms; omitting model-layer
+shadows saves about 6–7 ms; omitting all shadow encoding saves about 9 ms.
+These are diagnostic omissions, not acceptable optimizations, and their deltas
+are not additive. Building/scenery shadow deltas were near noise in this view.
 
-The frame is not GPU-saturated in these runs: `market-town` GPU means were
-11.92 and 10.93 ms, while CPU p99 was 21.16 and 18.47 ms. A focused steady-state
-CPU profile found no single dominant JavaScript function: active samples split
-between WASM presentation work, GPU buffer writes and garbage collection. The
-next pass therefore needs to explain the long task before changing the renderer.
-Static-model caching remains a candidate, not a diagnosis.
+All renderer candidates tested so far were rejected for inconsistent gains:
+union/per-cascade caster lists, single-joint blending, position-only depth stages,
+and cutout discard. None is retained. The opening submits about 100,000 visible
+prop instances; parked cars alone account for 7.2 million triangles at tier 3.
+The active candidate reduces their distant mesh from 300 to 172 triangles,
+keeping near tiers and wreck generation unchanged. Matched visual sheets pass;
+the controlled same-scene A/B saves about 3.9 ms (12%) with equal instance counts.
+Production live/late-state confirmation and asset validation pass, including
+deterministic resets and stable GPU allocations. The car pass is committed.
+Next, reassess the remaining GPU cost and native consumer verification; the
+whole-spec frame-time target and closeout checks remain open.
+The three-band courtyard-wall candidate was rejected in visual review: its
+far silhouette lost contrast and definition. Near meshes were unchanged, but
+that is insufficient acceptance evidence. No wall change is retained.
 
-The instrumented reel now records browser long tasks and heap snapshots. A clean
-run found six long tasks, including one 943 ms task during `market-town`, and no
-GC entries. The full diagnostic run matched a 997 ms task to a 1,050 ms frame
-interval. Chromium's attribution was an unattributed window task, so the next
-pass must identify the owner with targeted renderer or frame-loop counters
-before selecting an optimization. The boundary pass found a 949 ms
-`viewport-frame` with about 0.9 ms of model preparation and 3.9 ms of renderer
-draw; the remaining `ScenePresentation.frame` call is the current suspect.
+Asset validation completed catalog rebaking, runtime byte comparison, icons,
+references and transport budgets. Its sole error was the empty directory of the
+replaced car bundle; removing that directory and checking all 905 runtime hash
+directories against catalog addresses resolves it. Source LFS bytes came from
+the local cache through a temporary reader; the asset CLI is unchanged.
 
-The accepted first pass is deliberately small: `Loaded::frame` now reuses
-owned scratch vectors for high-air shadows and x-ray membership lists instead
-of allocating them on every frame. The output order and values are unchanged;
-the focused presentation suite is green. The native captured replay improved
-total CPU p50 from 1.31 ms to 1.14 ms and p95 from 1.62 ms to 1.48 ms, while
-GPU means stayed effectively unchanged (8.05 ms to 7.99 ms). The browser reel
-completed after rebuilding the ignored presentation WASM artifacts:
-`market-town` averaged 83.1 FPS with a 39.0 FPS 1% low and 10.73 ms GPU mean;
-`paris-corner` averaged 110.5 FPS with a 58.8 FPS 1% low and 7.44 ms GPU mean.
-The second pass reuses the static building walk's double-buffered lists and
-counts; native A/B shows a CPU benefit. The browser result is accepted for the
-current target, and no further optimization is selected without a new measured
-player-facing symptom.
-
-The separate scale workload uses the generated Metro XL world and 100 units per
-side, matching the planned 5v5 force size. Its 30-second browser sample reached
-about 20 FPS median live cadence (frame p95 66.6 ms) and about 17 FPS with the
-full roster's 800 fallen soldiers and 100 wrecks (frame p95 74.9 ms). This is
-now the active scale target: the extra GPU time is the main remaining limit for
-large battles.
-
-The first cost floor explains why map size can matter. Post-processing is
-screen-size bounded, but the terrain is currently submitted as the full
-exported map mesh, and each directional-shadow cascade submits the terrain
-caster plus its selected shadow casters. Raster clipping limits visible
-fragments; it does not remove those vertices from the draw. Static props and
-scenery are chunk-walked and mostly camera-bounded, so they are not the whole
-XL increase. The next slice must measure and then cull or tile terrain and
-shadow inputs. A huge map should not make a fixed camera pay for terrain
-vertices or shadow casters outside its fitted view.
+The earlier 27 ms “backbone” attribution is withdrawn: its rolling timing window
+mixed probe states. Full-map terrain submission is a real architectural issue,
+but the corrected measurements do not support prioritizing terrain shadow
+chunking for this symptom. Post cost is pixel-bound. Fixed-view comparisons must
+also hold local content and view distance constant: seeing farther across a
+larger map legitimately admits more geometry.
 
 ## Where the frame stands
 
-The battle draws one pixel per CSS pixel on any display, and the system draws the
-cursor, so neither a high-density screen nor a slow frame shows up as input lag.
+The battle sizes its render target from CSS dimensions and the selected quality
+scale, and the system draws the cursor, so neither a high-density screen nor a slow frame shows up as input lag.
 Measured on 2026-10-10 (M-series Mac, headless Chromium, medium generated battle,
 1600×1000): about 60 fps at 1× and 2×, GPU 7.8 ms a frame on average. In a
 production build the main thread is idle about three quarters of the time;
@@ -114,16 +104,12 @@ Options, cheapest first, each with its cost:
 No problem has been seen on the development machine. The risk is a smaller
 machine's GPU memory.
 
-### Static models repack whenever a unit moves
+### Static batch updates
 
-The model layer packs units and statics (buildings' props, scenery) in one counting
-sort that makes one instanced draw per mesh. During a battle units move every
-frame, so every frame repacks every static in view too, though statics change only
-with the camera: about 4 ms of main-thread time a frame. Packing statics only on a
-view change needs two record regions, two runs per mesh, separate card ranges and a
-staleness rule covering the view, the static list, hidden props, newly installed art
-and per-frame extra statics: an estimated 150–250 lines in a hot path, where a stale
-record draws a prop in the wrong place. The main thread is not the limit today.
+Presentation and both renderers already retain unchanged static batches. Camera
+and world changes invalidate those batches through the existing publication
+contract. Do not add another cache on the assumption that every moving unit
+forces all props to be repacked; profile the actual invalidation first.
 
 ### Asset loading holds the main thread
 
