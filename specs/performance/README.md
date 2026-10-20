@@ -116,8 +116,9 @@ ownership if the measured maintenance/memory benefit warrants the change.
 The car depth/coverage correction is integrated as `fc485aaf4`. Its shared shader
 uses a third, RG8 depth atlas and per-sample coverage. All 96 tested threshold
 cases contribute pixels against empty controls retaining mesh casters. This
-proves contribution, not perceptual equivalence. Motion contrast, native
-individual-car parity and the sample-shading GPU cost remain open. The candidate
+proves contribution, not perceptual equivalence. Motion contrast and native
+individual-car parity remain open. The corrected shader regresses wide GPU cost
+to about 72 ms in three rounds; diagnose and resolve this before acceptance. The candidate
 adds 128 KiB GPU texture memory. Focused integration and shader-export tests pass.
 
 Then measure the final Low production build at all three zooms: paused, live,

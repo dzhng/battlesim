@@ -53,3 +53,12 @@ the shared pipeline; crowded native diagnostic plates are not individual-car
 parity. Final visual critique found no obvious ground cut but left transition
 appearance uncertain. Root must measure the fragment cost before acceptance.
 Detailed captures and reports remain in the card delegate's scratch handoff.
+
+The first corrected production run exposes a blocking cost regression: three
+paused Low wide-view rounds measure 72.43/72.01/72.72 ms GPU versus the prior
+frozen cascade build's 32.98/29.73/33.79 ms. Cameras, time, digest and submitted
+triangles match. Close/tactical are 4.65/5.99 ms medians. A fresh return control
+and a scratch centroid-interpolation diagnostic are underway to separate
+sampling cost from depth output. This candidate is **not accepted**. Cheaper
+sampling must still pass the empty controls and motion gate; restoring known
+disappearance is not an acceptable optimization.
