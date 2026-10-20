@@ -66,8 +66,8 @@ across paused, live and late states, with at least 120 valid GPU samples per leg
 Candidate timings vary by leg: close paused 5.23 ms versus control 5.53 ms, but
 late tactical-wide 23.02 versus 27.75 ms and wide-close 22.91 versus 27.81 ms;
 CPU and frame time also vary. These are bounded per-leg observations, not a
-universal moving-view speedup. Separate video captures exist for visual review. The unprimed review found a hard
-city streaming/representation boundary and a dark DEPLOYING overlay in the moving
-recordings; because the same capture path may affect both arms, this is a visual
-gate failure requiring control-versus-candidate comparison before acceptance.
-Sampled stills cannot prove that no transient pop occurs between frames.
+universal moving-view speedup. Separate video captures exist for visual review. The unprimed review found a hard city streaming/representation boundary and a
+dark DEPLOYING overlay in the moving recordings. Control recordings show the same
+seam and framing artifact, so they are harness/baseline behavior rather than a
+candidate regression. Candidate-specific continuous no-pop claims remain unproven;
+sampled stills cannot prove that no transient pop occurs between frames.
