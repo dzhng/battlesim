@@ -12,23 +12,6 @@ sound with medium confidence in the tradeoff the user would choose. No unresolve
 user-only decision or unsound retained choice is identified.
 
 ## Sound — medium confidence
-### Preserve seeded AI choices across native and WASM word sizes
-
-A seeded policy chose a different reinforcement on 64-bit native than on 32-bit
-WASM because the hash was reduced after casting to the platform's `usize`. The
-shared contract now truncates to the WASM-width `u32` before taking the bounded
-role index, so native replays the browser's existing decisions. The alternative
-would preserve a platform-dependent battle stream and make parity failures look
-like renderer differences.
-
-- **When:** ally-help parity diagnosis.
-- **Gap:** the rendering spec assumes simulation parity but did not define integer
-  width at this AI seed seam.
-- **Reach:** seeded skirmish policy construction and native/browser replay probes;
-  this is a simulation portability correction separate from renderer outcomes.
-- **Verdict:** sound; keep the established WASM decision stream on every target.
-- **Confidence:** high.
-
 
 ### Keep separate lists for the four shadow images
 
@@ -124,6 +107,25 @@ would change ownership and invalidation paths beyond the needed repair.
 
 ## Sound — high confidence
 
+### Preserve seeded AI choices across native and WASM word sizes
+
+A seeded policy chose a different reinforcement on 64-bit native than on 32-bit
+WASM because the hash was reduced after casting to the platform's `usize`. The
+shared contract now truncates to the WASM-width `u32` before taking the bounded
+role index, so native replays the browser's existing decisions. The alternative
+would preserve a platform-dependent battle stream and make parity failures look
+like renderer differences.
+
+- **When:** ally-help parity diagnosis.
+- **Gap:** the rendering spec assumes simulation parity but did not define integer
+  width at this AI seed seam.
+- **Reach:** seeded skirmish policy construction and native/browser replay probes;
+  this is a simulation portability correction separate from renderer outcomes.
+- **Verdict:** sound; keep the established WASM decision stream on every target.
+- **Confidence:** high.
+
+
+
 ### Spend resolution on the world separately from the interface
 
 On Low, render the 3D world at three quarters of the canvas width and height.
@@ -136,6 +138,26 @@ world sharpness for less GPU work and smaller render targets.
 - **Reach:** production Low only; Medium and High retain full scale.
 - **Verdict:** sound; use the player's explicit quality preference for this tradeoff.
 - **Confidence:** high; performance magnitude still depends on the adapter/workload.
+
+### Let a blocked rolling turn use the existing reverse recovery
+
+A tank beginning a turn beside a wall can collide with the wall even when its
+planned forward movement is tiny. The same crew should back up to make turning
+room whether the rejected move was stationary or rolling. Keep the existing
+checks that reversing can free the turn and that the actual reverse step clears
+obstacles and traffic; remove the distinction based on zero forward displacement.
+The alternative leaves the tank repeatedly trying the same blocked move.
+
+- **When:** separate movement correction exposed by closeout verification.
+- **Gap:** the performance spec did not prescribe repairing unrelated movement;
+  repository closeout requires observed failures to be addressed.
+- **Reach:** tracked vehicle turns against static obstacles, with ordinary
+  acceleration and collision rules unchanged. Battle outcomes may change when
+  a previously stuck unit reaches combat; renderer-only digest guarantees do not
+  include this explicitly separate correctness change.
+- **Verdict:** sound; reuse recovery rather than adding a special unit, side,
+  speed override or new movement state.
+- **Confidence:** high.
 
 ### Keep minimum stroke coverage in actual render pixels
 
