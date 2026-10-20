@@ -2,8 +2,6 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { publishCard, decodeCard, cardSourceCatalog } from "../packages/scene-assets/src/cards.ts";
-import { runtimeCatalogText } from "../packages/scene-assets/src/bake.ts";
 import { lfsPointerOid, lfsPullCommand } from "../packages/scene-assets/src/glb.ts";
 import { sheetReferences } from "../packages/scene-assets/src/references.ts";
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
@@ -12,68 +10,6 @@ const REFERENCES = join(ROOT, "assets/references");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(join(ROOT, "assets/catalog.json"));
 const repoPath = (path) => relative(ROOT, resolve(path));
-
-export async function cards(args) {
-  const [name] = args;
-  const runtime = readJson(join(RUNTIME, "catalog.json"));
-  const entry = runtime.appearances[name];
-  if (!entry?.far_card_px) throw new Error(`cards <appearance>: ${name} has no asset opt-in`);
-  const { startServer } = await import("./scene.mjs");
-  const { launchBrowser } = await import("./browser.mjs");
-  const server = await startServer();
-  let browser;
-  try {
-    browser = await launchBrowser();
-    const page = await browser.newPage();
-    page.on("pageerror", (error) => console.error(`page: ${error.message}`));
-    page.on("console", (message) => {
-      if (message.type() === "error") console.error(message.text());
-    });
-    await page.route("**/catalog.json", (route) =>
-      route.fulfill({
-        contentType: "application/json",
-        body: runtimeCatalogText(cardSourceCatalog(runtime, name)),
-      }),
-    );
-    await page.goto(`${server.url}/labs/workbench?bundle=${encodeURIComponent(name)}`);
-    await page
-      .waitForFunction(
-        () => (window.__lab?.ready && window.__workbench) || document.querySelector("[role=alert]"),
-        undefined,
-        {
-          timeout: 60000,
-        },
-      )
-      .catch(async (error) => {
-        console.error(await page.locator("body").textContent());
-        throw error;
-      });
-    if (await page.locator("[role=alert]").count()) {
-      const details = page.getByRole("button", { name: "Details", exact: true });
-      if (await details.count()) await details.click();
-      throw new Error(await page.locator("body").textContent());
-    }
-    await page.evaluate((n) => window.__workbench.select(n), name);
-    const bytes = new Uint8Array(await page.evaluate(() => window.__workbench.prepareCard()));
-    const card = decodeCard(bytes, name, entry.bundle);
-    const out = { runtime, files: new Map() };
-    const removed = await publishCard(out, card);
-    for (const [path, data] of out.files) {
-      mkdirSync(dirname(join(RUNTIME, path)), { recursive: true });
-      writeFileSync(join(RUNTIME, path), data);
-    }
-    writeFileSync(join(RUNTIME, "catalog.json"), runtimeCatalogText(runtime));
-    if (removed) rmSync(dirname(join(RUNTIME, removed)), { recursive: true, force: true });
-    const transport = runtime.gzip[runtime.cards[entry.bundle]];
-    console.log(
-      `${name}: ${transport.bytes} wire bytes, ${transport.raw_bytes} decoded bytes, ${card.albedo.byteLength + card.normal.byteLength + card.depth.byteLength + 16} GPU bytes`,
-    );
-    return 0;
-  } finally {
-    await browser?.close();
-    await server.close();
-  }
-}
 
 export async function sheet(args) {
   const { values, positionals } = parseArgs({

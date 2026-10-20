@@ -5,7 +5,6 @@
 //                          a vehicle fitted to unit type T, or to every type that draws it)
 //   bake                   bake the catalog into assets/runtime/<hash>/{bundle,texture,templates}.bin
 //                          and assets/runtime/catalog.json
-//   cards <appearance>     GPU bake a prepared two-channel static card (run under GPU lock)
 //   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned,
 //                          or a reference library (assets/references/<family>/) breaks its contract;
 //                          print the catalog load's wire bytes and each texture array's layers
@@ -55,7 +54,6 @@ registerHooks({
     return next(specifier, context);
   },
 });
-const { retainCards, readCard } = await import("../packages/scene-assets/src/cards.ts");
 const { bakeCatalog, runtimeCatalogText } = await import("../packages/scene-assets/src/bake.ts");
 const { contentSha256, lfsPointerOid, lfsPullCommand } =
   await import("../packages/scene-assets/src/glb.ts");
@@ -86,7 +84,7 @@ const { disabledLookup, runtimeLookup, unitSolids } =
   await import("../packages/scene-assets/src/silhouette.ts");
 const { checkReferences } = await import("../packages/scene-assets/src/references.ts");
 
-const { cards, sheet } = await import("./asset-render.mjs");
+const { sheet } = await import("./asset-render.mjs");
 
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
@@ -231,12 +229,6 @@ async function bakeAll() {
     templates,
     regionalFamilies: readJson(PRESETS).parcels.regional_families,
   });
-  if (result.ok && existsSync(join(RUNTIME, "catalog.json")))
-    await retainCards(
-      result,
-      readJson(join(RUNTIME, "catalog.json")),
-      async (p) => new Uint8Array(readFileSync(join(RUNTIME, p))),
-    );
   return result;
 }
 
@@ -417,7 +409,6 @@ async function download(args) {
   const bytes = downloadBytes(runtime, [...kits, ...looks], await gameWearing());
   if (bytes <= MAP_DOWNLOAD_MAX_BYTES)
     for (const name of [...kits, ...looks]) {
-      await readCard(runtime, name, read);
       await readBundle(
         runtime,
         runtime.appearances[name].bundle,
@@ -676,7 +667,6 @@ const commands = {
   pull,
   blender,
   sheet,
-  cards,
   icons,
   grass,
   "stand-in": standIn,

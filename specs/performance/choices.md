@@ -84,19 +84,25 @@ world grows. The rejected wall still lacks visual approval.
 - **Verdict:** sound; these cover distinct workloads without changing world density.
 - **Confidence:** medium until baseline images confirm useful contact framing.
 
-### Share far prop assets with both clients
+### Reject the far-car pilot when neither quality nor GPU cost passes
 
-At wide zoom a car may cover only two pixels. A textured card can represent it
-cheaply, but the current browser body cards do not support all prop transforms
-and native substitutes meshes. The plan extends shared asset data and both
-consumers so a browser-only shortcut cannot masquerade as an engine improvement.
+At wide zoom a car can occupy only a few pixels. We tried a baked image with
+surface depth so those pixels could replace its distant mesh. Evaluating every
+antialiasing sample preserved cars but added about 41 ms GPU time. Cheaper
+sampling and then filtered surface reconstruction still made some eligible cars
+vanish. Keep the shipped simplified car mesh and remove the pilot's asset
+format, native path and shaders. Existing unit/corpse cards remain; their generic
+resource cleanup and appearance-identity fixes survive independently.
 
-- **When:** reopened three-view plan.
-- **Gap:** the user suggested sprites without prescribing storage or client scope.
-- **Reach:** asset validation, browser/native rendering and independent shadows.
-- **Verdict:** sound; prototype opaque cars first and retain meshes where cards
-  cannot preserve appearance, rather than committing every class to sprites.
-- **Confidence:** medium; required material/depth channels await the visual pilot.
+- **When:** three-view pilot rejection and removal.
+- **Gap:** the user suggested sprites; the plan allowed meshes when a card could
+  not preserve appearance and earn its complexity.
+- **Reach:** no new prop-atlas format or maintenance surface ships. Future work
+  must demonstrate coherent subpixel coverage/depth before adding it again.
+- **Verdict:** sound; reject both visible loss and the measured large regression
+  under the user's simple measurable wins rule.
+- **Confidence:** high in rejecting tested candidates; no claim that every
+  possible sprite method would fail.
 
 ### Invalidate old timing results without waiting for the GPU
 
@@ -166,23 +172,6 @@ membership. Objects spanning multiple cascades appear in each required list.
   cascades, at the cost of duplicate records for overlapping casters.
 - **Confidence:** medium pending measured GPU savings, upload/resource cost and
   shadow continuity across moving views. The corrected fit remains mandatory.
-
-### Evaluate tiny-card coverage at each MSAA sample
-
-A two-pixel car can cover samples away from the pixel center. Testing only the
-center made some cars disappear even while their meshes contributed visible
-pixels. The candidate evaluates card coordinates per sample, preserving the
-existing size threshold and geometry instead of enlarging the car.
-
-- **Gap:** the plan required visible continuity without prescribing raster sampling.
-- **Reach:** the existing shared card shader in browser and native; it can increase
-  fragment work for all users of that shader, not only parked cars.
-- **Verdict:** unsound for shipping: measured wide GPU cost rises from about
-  31 to 72 ms. Preserve visible coverage with a cheaper footprint-aware method;
-  centroid alone also fails because some eligible cars disappear. The current
-  per-sample implementation remains pending replacement, not accepted.
-- **Confidence:** high in rejection; the replacement needs independent image
-  and GPU evidence.
 
 ### Reuse an unchanged shadow receiver fit
 

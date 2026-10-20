@@ -1,43 +1,34 @@
 # 3. Projected-size prop representations
 
-Status: shared browser/native candidate integrated; depth/coverage correction integrated; acceptance open. Unlock cheap far props
-in production while close geometry retains its appearance.
+Status: car pilot rejected; retain authored distant meshes. Final combined
+rendering acceptance remains in [acceptance](acceptance.md).
 
-Scene assets owns representation data. Shared Rust presentation selects from
-projected bounds; both clients consume the same identity and tier. Extend the
-existing atlas/card owners instead of inventing a second sprite renderer. The candidate extends body cards with full fitted bounds, nonuniform transforms,
-shared prepared assets and actual native atlas consumption. The shared depth/coverage correction restores surface depth and evaluates coverage
-at MSAA sample positions. Boundary contribution checks pass; moving appearance,
-native individual-car parity and GPU acceptance remain open.
+The car pilot did not earn its complexity. Surface-depth reconstruction repaired
+the flat-card ground cut, but sample-frequency shading cost roughly 41 ms extra
+GPU time. Cheaper centroid sampling erased eligible cars. A bounded filtered
+atlas experiment, including coverage-weighted surface position, still lost two
+eligible camera phases. More rendering machinery is not a simple proven win.
 
-## Passes
+Remove the new prop-card opt-in, prepared atlas format/bake path, native car-card
+consumer, depth atlas and sample shading. Keep the already shipped simplified
+car mesh and existing unit/corpse cards. Keep generic allocation cleanup and
+appearance-cache fixes that protect those existing consumers. Independent camera
+and cascade selection remains shared in Rust; removing car cards cannot remove
+car shadows or alter simulation bodies.
 
-- [ ] Pilot opaque parked cars using shared, content-addressed baked impostor
-  assets. Measure two-triangle cards against the existing far mesh at frozen poses.
-- [x] Extend selection and card transforms for rotated/nonuniformly scaled bounds.
-  Use screen footprint, not height alone; a long wall is not a tiny object.
-- [ ] Preserve tint, fog, material response, damage identity and depth/occlusion.
-  Test pitch/headings and continuous mesh/card transitions. Resolve required atlas
-  channels from the visual pilot, keeping only channels that earn their cost.
-- [x] Keep independent cheap mesh casters where required. Never substitute the
-  camera-facing card into shadow passes or accidentally drop an existing shadow.
-- [ ] Implement real native asset/card consumption and parity; a coarsest-mesh
-  fallback is not the same representation or its performance proof.
-- [x] Explicitly resolve walls, vegetation/cutouts and other measured heavy prop
-  classes. Implement cards where footprint/work and visuals justify them; retain
-  documented meshes for unsupported or visually harmful cases, never missing props.
+- [x] Trial the opaque parked-car pilot against real selection and empty controls.
+- [x] Reject candidates that lose visible cars or fail the GPU cost gate.
+- [x] Resolve walls, vegetation and other measured heavy classes explicitly.
+- [ ] Remove pilot-only code/assets/tests and verify existing representations in
+  both clients, including production visual and performance acceptance.
 
-Thresholds, atlas resolution/view count and material channels are delegated to
-measured visual trials. Preserve existing near tiers and simulation bodies.
-Tests cover scale/identity/tier transitions, unsupported fallback, asset validation,
-resource rebuild/failure disposal and offscreen casters. Compare silhouette,
-lighting and occlusion crops against full meshes at all three zooms and along
-transitions with compare-screenshots; run unprimed screenshot-critique last.
-Show preview-shots for a non-blocking review window while working independently.
-No card implementation is accepted from triangle counts alone: pair GPU/frame
-measurements and images, reporting regressions at each view separately.
+This resolves the spec's supported/unsupported representation policy through
+measured rejection, not a claim that cards cannot work. A future pilot needs a
+simpler coherent reconstruction with demonstrated coverage, depth, motion and
+GPU savings. Do not revive the rejected implementation merely because its
+triangle count is lower.
 
-## Depth and coverage evidence
+## Rejected pilot evidence
 
 The integrated correction (`fc485aaf4`) retains the appearance atlas bytes and
 adds one coverage-weighted RG8 depth atlas. Surface reconstruction drives depth,
@@ -51,7 +42,7 @@ The prepared asset costs 90,570 compressed bytes and 655,376 GPU bytes, an
 additional 31,109 compressed and 131,072 GPU bytes. The native smoke validates
 the shared pipeline; crowded native diagnostic plates are not individual-car
 parity. Final visual critique found no obvious ground cut but left transition
-appearance uncertain. Root must measure the fragment cost before acceptance.
+appearance uncertain. The subsequent measurements below reject its fragment cost.
 Detailed captures and reports remain in the card delegate's scratch handoff.
 
 The first corrected production run exposes a blocking cost regression: three
@@ -117,3 +108,14 @@ free or optimal. The car pilot remains the only new far representation under
 acceptance. Revisit other classes only with new per-class cost and footprint
 evidence. Counts above come from `cascade-paused/views-paused-1.json`; they are
 camera selections, not all-pass triangle totals or final-build timings.
+
+
+### Filtered footprint trial: rejected
+
+Filtering coverage, color, normals and depth together removed most disappearing
+states. Adding coverage-weighted position within the card plane repaired one
+reproduced depth failure, but two eligible phases still failed in the expanded
+370+240-state set. Mesh controls remained visible. The candidate also grew its
+atlas to about 1.05 MB GPU and 165 KB compressed. It was not integrated or timed:
+visual correctness failed first. Preserve its scratch evidence for future work,
+not its unaccepted format and shaders in production.

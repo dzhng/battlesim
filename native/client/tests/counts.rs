@@ -67,7 +67,7 @@ fn every_frame_the_browser_counted_shows_the_same_counts_natively() {
             between += 1;
         }
         let at = format!("frame {index} at {t:?} s");
-        mismatches.extend(Counted::of(replay.presentation(), &[]).mismatches(
+        mismatches.extend(Counted::of(replay.presentation()).mismatches(
             &at,
             &row["models"],
             &row["effects"],

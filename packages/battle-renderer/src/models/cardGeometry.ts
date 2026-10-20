@@ -33,14 +33,3 @@ export const cardNormal = tgpu.fn(
   "use gpu";
   return std.normalize(cardPoint(std.div(normal, scale), d.vec3f(1), yaw, d.vec3f(0)));
 });
-
-/** Restore the baked surface along its view ray. RG stores a coverage-weighted
- * little-endian UNORM16 depth; linear filtering commutes with this decoding. */
-export const cardSurface = tgpu.fn(
-  [d.vec3f, d.vec3f, d.vec2f, d.f32, d.f32],
-  d.vec3f,
-)((plane, toward, packed, coverage, radius) => {
-  "use gpu";
-  const depth = (packed.x + 256 * packed.y) / (257 * coverage);
-  return std.add(plane, std.mul(toward, (2 * depth - 1) * radius));
-});

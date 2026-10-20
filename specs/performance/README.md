@@ -1,7 +1,7 @@
 # Performance across gameplay views
 
 **Status:** reopened; implementing three-view measurement, spatial selection and
-far prop representations. **Updated:** 2026-10-20.
+evaluating far prop representations. **Updated:** 2026-10-20.
 
 Make production gameplay faster at close, normal and wide zoom. A benchmark is
 an instrument, not the objective. The earlier wide-only experiment cannot rule
@@ -101,8 +101,9 @@ Full closeout checks run once after implementation, with narrower checks per pas
 
 ## Next Agent Prompt
 
-Core terrain/static bounds, local receiver fitting, per-cascade caster lists and
-shared browser/native car cards are integrated. No slice is closed and nothing
+Core terrain/static bounds, local receiver fitting and per-cascade caster lists
+are integrated. The far-car pilot is rejected and its production machinery is
+being removed; retain the shipped simplified car mesh and existing body cards. No slice is closed and nothing
 from this reopened run is pushed. Keep final acceptance separate from focused
 contract tests.
 
@@ -122,17 +123,16 @@ cost still needs the final production run.
 Browser draw/fit terrain partitions also duplicate immutable storage; resolve
 ownership if the measured maintenance/memory benefit warrants the change.
 
-The car depth correction is integrated as `fc485aaf4`, but its per-sample shader
-is too expensive: about 72 ms wide GPU versus a fresh previous-build control
-near 31 ms. Centroid interpolation restores speed but fails visual acceptance:
-7 of 306 eligible states disappear in the expanded, render-size-matched probe.
-Neither candidate is accepted. A bounded filtered-atlas coverage experiment is
-in progress through the existing shared card owner, with native agreement and
-renewed image/timing gates. Preserve depth, the threshold and independent casters.
+The far-car trials failed the acceptance tradeoff: per-sample shading costs about
+72 ms wide GPU versus 31 ms for the previous control; centroid erases 7 eligible
+states; bounded footprint filtering still loses two phases. Remove pilot-only
+code/assets and keep general resource/cache fixes. Other appearance classes
+retain their authored meshes or existing scenery policy as documented in
+[the representation decision](slices/impostors.md).
 
 Then measure the final Low production build at all three zooms: paused, live,
 late and separate moving windows, with matched controls and resource resets.
-Explicitly resolve walls/vegetation from footprint, cost and images. Review the
+Confirm retained walls/vegetation visually. Review the
 whole spec, consolidate choices, run full closeout checks once, and push only
 after the acceptance gates pass.
 

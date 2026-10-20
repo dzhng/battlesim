@@ -5,15 +5,7 @@
 // Surface coverage belongs to surfaceParts/surfaceFragments; buildings share
 // these pipelines through buildingLayer's packed instance buffer.
 
-import { staticCardPose } from "@packages/scene-assets/src/propCards";
-import {
-  createPropBatches,
-  clearPropBatches,
-  setPropBatches,
-  drawnProps,
-  setPropCardLayer,
-  type HeldProps,
-} from "./propBatches";
+import { createPropBatches, clearPropBatches, setPropBatches, drawnProps } from "./propBatches";
 import { recordDraw, type SubmittedDraws } from "../frame/submitted";
 import type { Drawable3, CardDrawable } from "./modelDraw";
 import { tgpu, d, std } from "typegpu";
@@ -55,12 +47,13 @@ import {
 import { FOG_CLASSES, FOG_INDEX, modelSeen, type ModelFog } from "./modelFog";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import {
+  restingModelPose,
   writeJoint,
   writeRecord,
-  restingModelPose,
   type ModelInstance,
   type ModelPose,
 } from "./modelInstances";
+export { packXray } from "./modelInstances";
 import {
   BATCH_WORDS,
   SUN_CASCADES,
@@ -82,7 +75,7 @@ import {
 } from "../records.gen";
 import { batch_caster, model_fog, model_tiers } from "@wasm/presentation/presentation_wasm.js";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
-import type { CardAtlas } from "./impostorCards";
+import type { ImpostorAtlas } from "./impostor";
 import { createBuildingLayer, type BuildingStats, type BuildingWalkStats } from "./buildingLayer";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -526,7 +519,6 @@ interface GpuAppearance {
   radius: number;
   /** Impostor atlas layer, or -1 without one. */
   farCard: number;
-  staticCard: ReturnType<typeof staticCardPose>;
 }
 
 /** One way a body lies dead: its posed tiers, length and reach, bounds (for
@@ -666,6 +658,13 @@ export interface ModelStats {
   textureLayers: number;
   textureBytes: number;
   appearanceTextureBytes: Record<string, number>;
+}
+
+/** An impostor atlas the battle draws cards from, and which pose it shows. */
+export interface CardAtlas {
+  /** The pose it shows: the far pose, or a way of lying dead. */
+  pose: ModelPose;
+  atlas: ImpostorAtlas;
 }
 
 export async function createModelLayer(
@@ -863,8 +862,7 @@ export async function createModelLayer(
     const rows: number[] = [];
     const layers = new TextureLayers();
     const appearanceTextureBytes: Record<string, number> = {};
-    for (const [name, appearance] of installed?.appearances ?? []) {
-      const { bundle } = appearance;
+    for (const [name, { bundle }] of installed?.appearances ?? []) {
       const materialBase = rows.length / (MATERIAL_ROWS * 4);
       for (const m of bundle.materials) {
         const layer = (channel: TextureChannel) => {
@@ -887,7 +885,6 @@ export async function createModelLayer(
         size: far.size,
         radius: far.radius,
         farCard: -1,
-        staticCard: staticCardPose(appearance),
       };
       /** One tier's buffers from parts; returns a drawable per part key. */
       const tierMesh = (
@@ -1091,7 +1088,6 @@ export async function createModelLayer(
         else if (gpu.corpses[pose.lies]) gpu.corpses[pose.lies].card = layer;
       });
     }
-    relistProps();
     stats.atlasLayers = atlasLayers;
     stats.atlasBakeMs = bakeMs;
     dirty = true;
@@ -1110,24 +1106,13 @@ export async function createModelLayer(
 
   /** The props' runs: each listed batch's drawable at its tier, against
    *  the meshes installed now. */
-  const propCards: HeldProps[] = [];
   function relistProps() {
     propRuns.length = 0;
-    propCards.length = 0;
     for (const h of propBatches.listed) {
       const row = worldRows[h.row];
       const gpu = row && appearances.get(row.name);
       const tiers = gpu?.states.get(row.state);
-      const layer =
-        h.pass !== CAST_PASS && h.tier === IMPOSTOR && gpu?.staticCard?.pose.state === row.state
-          ? gpu.farCard
-          : -1;
-      setPropCardLayer(h, layer, device);
-      if (layer >= 0 && h.buffer && h.count) {
-        propCards.push(h);
-        continue;
-      }
-      const drawable = tiers?.[Math.min(h.tier, 3)];
+      const drawable = tiers?.[h.tier];
       if (!drawable || !h.buffer || !h.count) continue;
       propRuns.push({
         pass: h.pass,
@@ -1371,11 +1356,7 @@ export async function createModelLayer(
     stats.draws = runCount + propDraws + frameRunCount + cardRunCount;
     stats.paletteMatrices = cursor > 1 ? cursor : frameStats.palette;
     stats.skinned = frameStats.skinned;
-    const propCardCount = propCards.reduce((n, h) => n + h.count, 0);
-    stats.cards = card + propCardCount;
-    stats.instances += propCardCount;
-    stats.triangles += 2 * propCardCount;
-    stats.draws += propCards.length;
+    stats.cards = card;
     stats.culled = culled + frameStats.culled;
     stats.culledBodies = frameStats.culled;
     stats.corpses = frameStats.corpses;
@@ -1516,7 +1497,6 @@ export async function createModelLayer(
     if (world !== worldRows) {
       clearPropBatches(propBatches);
       propRuns.length = 0;
-      propCards.length = 0;
     }
     worldRows = world;
     buildings.setWorld(world);
@@ -1635,11 +1615,11 @@ export async function createModelLayer(
     },
     /** The pose an impostor of `name` shows, and its bounds in that pose. */
     farPose,
-    /** Supported poses for card installation. */
+    /** The impostor atlases the battle carries: every skinned appearance's
+     *  far pose and each way it lies dead. */
     cardPoses(): { appearance: string; pose: ModelPose; bounds: Bounds }[] {
       const out: { appearance: string; pose: ModelPose; bounds: Bounds }[] = [];
       for (const gpu of appearances.values()) {
-        if (gpu.staticCard) out.push({ appearance: gpu.name, ...gpu.staticCard });
         if (gpu.bundle.kind !== "skinned" || !gpu.corpses.length) continue;
         out.push({ appearance: gpu.name, ...farPose(gpu.name)! });
         gpu.corpses.forEach(({ bounds }, lies) =>
@@ -1777,14 +1757,9 @@ export async function createModelLayer(
     },
     /** Draw one fog class's impostor cards. */
     drawCards(bound: CardDrawable, fog: ModelFog, submitted?: SubmittedDraws) {
-      if (!cards) return;
+      if (!cardRunCount || !cards) return;
       const only = fogIndex(fog);
       const b = bound.with(cards);
-      for (const h of propCards) {
-        if (h.fog !== only || !h.buffer) continue;
-        b.with(modelRecordLayout, h.buffer).draw(6, h.count, 0, 0);
-        recordDraw(submitted, 6, h.count);
-      }
       for (let i = 0; i < cardRunCount; i++) {
         const run = cardRuns[i];
         if (run.fog !== only) continue;

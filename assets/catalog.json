@@ -704,7 +704,6 @@
       ]
     },
     "parked_car": {
-      "far_card_px": 2,
       "unit": "scenery",
       "scenery": "parked_car",
       "states": {

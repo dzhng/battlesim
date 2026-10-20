@@ -105,29 +105,6 @@ The per-kit validator still limits the raw bundle's full geometry and texture mi
 
 Gzip is an explicit file transport, not an assumed hosting optimization. The browser uses its own `DecompressionStream`; no HTTP `Content-Encoding` header is required for these files. Every source GLB, physical descriptor, template row, texture pixel and raw art identity survives unchanged.
 
-## Prepared static cards
-
-Far-card eligibility belongs to the appearance; it does not replace full-bounds
-screen-size selection or the independent mesh caster. Unsupported materials and
-absent prepared cards keep their meshes. A declared card that is missing,
-malformed or belongs to different source art fails loading, preserving the
-browser's installed generation.
-
-[`cards.ts`](src/cards.ts) owns the shared offline format: the existing
-albedo/coverage and model-normal/tint atlases, plus a coverage-weighted surface-depth
-atlas, with their model-space frame and
-source bundle identity. Both clients consume those exact prepared pixels. The
-asset CLI's `cards` command bakes through the production workbench renderer;
-like every GPU job, it needs the repository GPU lock. Ordinary mesh `bake` and
-`check` retain and validate cards only while their source identity matches.
-Changed source art needs a new explicit card bake. Changes to bake semantics
-must invalidate the card format rather than silently reuse old pixels.
-
-Decoded atlas residency and compressed download cost are separate: cards count
-in the existing download gates, and the bake command reports both. The format
-preserves the existing card material approximation; accepting that approximation
-requires browser/native pictures and performance evidence, not a successful load.
-
 ## Sides
 
 Both sides draw the same meshes; what differs is the army, not the side. A card
@@ -196,27 +173,3 @@ The validator's `material.*` findings (`material.ts`) refuse what would be drawn
 ## Where things are
 
 [Schema](src/schema.ts) holds types and constants, [validation](src/validate.ts) the rules and finding codes, and [codec](src/codec.ts) the binary layout. `loose.ts` judges one GLB on its own, for `asset validate` and the model workbench's drop zone. Every validation also returns a `preview`, the bundle as built even when it has errors; the workbench installs previews through the same loader (`previewRuntime` plus `memoryFetch`), and the bake never writes them.
-
-## Browser far-card pilot
-
-An appearance can opt its opaque default state into a far card with
-`far_card_px` in its catalog entry. This is a maximum projected **full bounds**
-extent in render pixels, capped by the shared model detail threshold. The
-browser checks admission in [propCards](src/propCards.ts); unsupported surfaces
-and absent atlases retain meshes. Damage and wrecks keep their own identities.
-
-The ordinary appearance loader installs [prepared static cards](#prepared-static-cards).
-Per-axis scale applies before heading and placement; view choice uses the inverse
-transform, and normals use its inverse transpose. Independent prop batches keep
-mesh shadow casters. The card reconstructs the baked surface for depth, lighting
-and fog, rather than testing its billboard plane against the ground. Its depth
-texture carries coverage-weighted UNORM16 in RG8, so filtering at silhouette edges
-does not pull a surface toward empty texels. Coverage and surface position are
-evaluated at MSAA sample positions: testing only the pixel centre can erase a
-subpixel car whose mesh still covers other samples. Bake-format changes require
-rebaking.
-
-The card still approximates material response with rough, nonmetallic shading and
-baked occlusion. Quantized views and coarse coverage also remain visual-review
-gates at the production transition; a forced close diagnostic is not an accepted
-replacement for a close mesh.

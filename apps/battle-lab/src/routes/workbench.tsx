@@ -1,5 +1,5 @@
 import { AtlasView } from "../workbench/AtlasView";
-import { prepareCard, atlasPixels } from "../workbench/cards";
+import { atlasPixels } from "../workbench/cards";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
@@ -87,7 +87,6 @@ interface WorkbenchHandle {
   show(options: { figure?: boolean; hitBox?: boolean; sockets?: boolean }): Promise<void>;
   /** Which army's tint the model wears (its tint-masked surfaces). */
   setSide(side: Side): Promise<void>;
-  prepareCard(): Promise<number[]>;
   bakeImpostor(): Promise<{
     hash: string;
     width: number;
@@ -532,7 +531,6 @@ export default function Workbench() {
         await new Promise((r) => setTimeout(r, 0));
         await drawn();
       },
-      prepareCard: () => prepareCard(latest.current.model, gpu.current?.frame()),
       bakeImpostor: () => atlasPixels(latest.current.bake),
       async sheet() {
         const result = await latest.current.sheet();
@@ -804,9 +802,6 @@ export default function Workbench() {
                       LOD{t}
                     </option>
                   ))}
-                  {model?.installed.appearances.get(model.name)?.card && (
-                    <option value={4}>Prepared card (diagnostic)</option>
-                  )}
                 </select>
               </label>
             </div>

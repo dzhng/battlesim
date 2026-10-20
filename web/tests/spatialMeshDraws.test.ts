@@ -106,7 +106,7 @@ test("shared Wasm selection submits camera and independent cascade ranges with e
   expect(uploads).toHaveLength(1);
   expect(draws.vertices).toBe(6);
   expect(draws.visited).toBeGreaterThan(0);
-  // Replacement and destruction free the Wasm owner alongside GPU resources.
+  // Replacement must not leave stale draw ranges; exercise disposal afterward.
   draws.set(new Float32Array());
   draws.prepare(camera(0), casters, 4);
   calls.length = 0;

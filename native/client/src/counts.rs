@@ -25,7 +25,7 @@ pub struct Counted {
     /// The building modules in view, `row · TIERS + tier`.
     pub buildings: Vec<u32>,
     /// The props in view, by appearance, per tier.
-    pub props: BTreeMap<String, [u32; TIERS + 1]>,
+    pub props: BTreeMap<String, [u32; TIERS]>,
     /// The scenery in view per population, `kind · TIERS + tier`, the kind
     /// being the ground's `scenery_kinds` index.
     pub scenery: [Vec<u32>; 5],
@@ -37,7 +37,7 @@ impl Counted {
     /// What the last frame `presentation` framed shows. Its batches list
     /// every static batch in view, written or named unchanged, with its
     /// instances.
-    pub fn of(presentation: &Presentation, card_layers: &[Option<u32>]) -> Self {
+    pub fn of(presentation: &Presentation) -> Self {
         let frame = presentation.last_frame();
         let world = presentation.world();
         let kinds = presentation
@@ -64,17 +64,6 @@ impl Counted {
             let name = &world.strings[a.name as usize..(a.name + a.name_len) as usize];
             let tier = (b.tier as usize).min(TIERS - 1);
             if a.draws == DRAWS_PROP || a.draws == DRAWS_PROP_GROUND {
-                let tier = if b.tier == presentation::view::IMPOSTOR as u32
-                    && card_layers
-                        .get(b.appearance as usize)
-                        .copied()
-                        .flatten()
-                        .is_some()
-                {
-                    TIERS
-                } else {
-                    tier
-                };
                 out.props.entry(name.to_owned()).or_default()[tier] += b.count;
             } else if a.draws == 0 {
                 if a.placed != 0 {
@@ -180,24 +169,19 @@ impl Counted {
     }
 
     fn prop_mismatches(&self, at: &str, want: &Value) -> Vec<String> {
-        let want: BTreeMap<String, [u32; TIERS + 1]> = want
+        let want: BTreeMap<String, [u32; TIERS]> = want
             .as_array()
             .into_iter()
             .flatten()
             .map(|p| {
                 let levels = list(&p["levels"]);
-                let level = |t: usize| {
-                    levels
-                        .get(t)
-                        .copied()
-                        .unwrap_or(if t == TIERS { 0 } else { u32::MAX })
-                };
+                let level = |t: usize| levels.get(t).copied().unwrap_or(u32::MAX);
                 let name = p["appearance"].as_str().unwrap_or("").to_owned();
                 (name, std::array::from_fn(level))
             })
             .collect();
         let got = &self.props;
-        let total = |m: &BTreeMap<String, [u32; TIERS + 1]>| -> u32 { m.values().flatten().sum() };
+        let total = |m: &BTreeMap<String, [u32; TIERS]>| -> u32 { m.values().flatten().sum() };
         let names: BTreeSet<&String> = want.keys().chain(got.keys()).collect();
         names
             .into_iter()
@@ -242,40 +226,4 @@ fn list(v: &Value) -> Vec<u32> {
                 .collect()
         })
         .unwrap_or_default()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn prop_card_slot_cannot_be_reported_as_fallback_mesh() {
-        let mut counted = Counted {
-            frame: Counts::default(),
-            shapes: [0; SHAPE_NAMES.len()],
-            buildings: vec![],
-            props: BTreeMap::new(),
-            scenery: Default::default(),
-            stumps: vec![],
-        };
-        counted.props.insert("test".into(), [0, 0, 0, 0, 3]);
-        assert!(counted
-            .prop_mismatches(
-                "plate",
-                &serde_json::json!([{"appearance":"test", "levels":[0,0,0,0,3]}])
-            )
-            .is_empty());
-        assert!(!counted
-            .prop_mismatches(
-                "plate",
-                &serde_json::json!([{"appearance":"test", "levels":[0,0,0,3]}])
-            )
-            .is_empty());
-        counted.props.insert("test".into(), [0, 0, 0, 3, 0]);
-        assert!(counted
-            .prop_mismatches(
-                "plate",
-                &serde_json::json!([{"appearance":"test", "levels":[0,0,0,3]}])
-            )
-            .is_empty());
-    }
 }

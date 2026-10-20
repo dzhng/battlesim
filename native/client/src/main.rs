@@ -498,8 +498,7 @@ impl Run {
         bench.submitted(&self.gpu.device, index)?;
         // What the frame drew, tallied outside its timed phases.
         let d = self.passes.models.drawn();
-        let scenery =
-            Counted::of(self.replay.presentation(), self.passes.models.card_layers()).scenery;
+        let scenery = Counted::of(self.replay.presentation()).scenery;
         let trees: u32 = scenery.iter().flatten().sum();
         let bytes = std::mem::size_of_val(&self.replay.last_frame().instances[..]);
         let frame = [
@@ -554,14 +553,13 @@ impl Run {
                     .cloned()
                     .unwrap_or_default()
             };
-            self.count_mismatches.extend(
-                Counted::of(presentation, self.passes.models.card_layers()).mismatches(
+            self.count_mismatches
+                .extend(Counted::of(presentation).mismatches(
                     &plate,
                     &row(&self.replay.model_counts),
                     &row(&self.replay.effect_counts),
                     &row(&self.replay.instance_counts),
-                ),
-            );
+                ));
             // What the models and effects draw of what the frame lists: a
             // soldier off screen is counted, not drawn.
             let drawn = self.passes.models.drawn();

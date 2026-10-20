@@ -49,13 +49,7 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   `World.appearances` row is loaded once into the browser's vertex layout, and
   each `Frame` batch is one run of instances over one row's tier. A corpse is
   its body posed once by the presentation crate's rest palette; so is a body
-  at the impostor tier (its far pose) when no prepared card supports it.
-  Supported static props consume the shared [prepared cards](../../packages/scene-assets/README.md#prepared-static-cards)
-  through the exported model-card pipeline. Their view records retain per-axis
-  scale and paint, while independent caster batches still draw meshes.
-  The shared fragment shader reconstructs baked surface depth for occlusion,
-  lighting and fog; the flat card plane is not its depth surface. Native
-  diagnostics distinguish card draws from mesh fallback.
+  at the impostor tier (its far pose), since impostor cards are not baked yet.
 - **The ground** is the presentation's (`Presentation::set_ground`), from
   the saved map as the simulation's own world code exports it
   (`static_world::files::ground`, what the page reads from `WorldView`): the

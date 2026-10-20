@@ -7,7 +7,6 @@ import {
   CAST_PASS,
   NONE,
   INSTANCE_WORDS,
-  IMPOSTOR,
   type frameViews,
 } from "../records.gen";
 
@@ -34,8 +33,6 @@ export interface HeldProps {
   cascadeMask: number;
   fog: number;
   count: number;
-  records: Float32Array;
-  cardLayer: number;
 }
 
 export function createPropBatches() {
@@ -89,8 +86,6 @@ export function setPropBatches(
           cascadeMask: 0,
           fog: 0,
           count: 0,
-          records: new Float32Array(),
-          cardLayer: -1,
         }),
       );
     const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
@@ -115,11 +110,6 @@ export function setPropBatches(
         first * RECORD_FLOATS,
         (first + count) * RECORD_FLOATS,
       );
-      h.records =
-        h.tier === IMPOSTOR && h.pass !== CAST_PASS
-          ? new Float32Array(records)
-          : new Float32Array();
-      h.cardLayer = -1;
       device.queue.writeBuffer(h.buffer!, 0, records as Float32Array<ArrayBuffer>);
       changed = true;
     }
@@ -145,19 +135,9 @@ export function drawnProps(state: PropBatches, worldRows: readonly WorldAppearan
     if (!name) continue;
     let levels = drawn.get(name);
     if (!levels) drawn.set(name, (levels = [0, 0, 0, 0]));
-    levels[h.cardLayer >= 0 ? 4 : Math.min(h.tier, 3)] =
-      (levels[h.cardLayer >= 0 ? 4 : Math.min(h.tier, 3)] ?? 0) + h.count;
+    levels[h.tier] += h.count;
   }
   return [...drawn]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([appearance, levels]) => ({ appearance, levels }));
-}
-
-/** Card installation changes only the renderer-owned atlas index. Retained
- * records allow a late atlas replacement without asking Rust to republish. */
-export function setPropCardLayer(h: HeldProps, layer: number, device: GPUDevice) {
-  if (h.cardLayer === layer || !h.buffer) return;
-  h.cardLayer = layer;
-  for (let i = 0; i < h.count; i++) h.records[i * RECORD_FLOATS + 11] = layer;
-  device.queue.writeBuffer(h.buffer, 0, h.records as Float32Array<ArrayBuffer>);
 }

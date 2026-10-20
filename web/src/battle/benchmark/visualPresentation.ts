@@ -175,8 +175,7 @@ function isDrawn(value: unknown): boolean {
       (p) =>
         hasKeys(p, ["appearance", "levels"]) &&
         text(p.appearance) &&
-        // Four mesh tiers, plus the card count when that representation is installed.
-        (numbers(p.levels, TIERS, count) || numbers(p.levels, TIERS + 1, count)),
+        numbers(p.levels, TIERS, count),
     ) &&
     distinct(props.map((p) => p.appearance)) &&
     Array.isArray(value.buildings) &&
