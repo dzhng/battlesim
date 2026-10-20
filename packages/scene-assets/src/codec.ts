@@ -128,7 +128,8 @@ export function decodeContainer(
     if (!Ctor) throw new Error(`unknown view type ${type}`);
     const byteLength = length * Ctor.BYTES_PER_ELEMENT;
     if (offset + byteLength > bodyLength) throw new Error(`${what} view runs past the body`);
-    const copy = bytes.slice(body + offset, body + offset + byteLength);
+    // Buffer.slice is a view, unlike Uint8Array.slice; own aligned bytes either way.
+    const copy = new Uint8Array(bytes.subarray(body + offset, body + offset + byteLength));
     return new Ctor(copy.buffer, 0, length);
   });
   const revive = (value: unknown): unknown => {
