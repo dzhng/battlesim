@@ -1,6 +1,6 @@
 # 3. Projected-size prop representations
 
-Status: car pilot rejected; retain authored distant meshes. Final combined
+Status: car pilot not qualified; retain authored distant meshes. Final combined
 rendering acceptance remains in [acceptance](acceptance.md).
 
 The car pilot did not earn its complexity. Surface-depth reconstruction repaired
@@ -8,7 +8,9 @@ the flat-card ground cut, but sample-frequency shading cost roughly 41 ms extra
 GPU time. Cheaper centroid sampling erased eligible cars. A filtered-atlas experiment is still unqualified. Its initial disappearing-state
 results were invalidated by a Buffer-decoding bug in capture preparation. Valid
 filtered captures contributed pixels but appeared softer/fainter; the corrected
-shader still needs final visual and GPU acceptance.
+shader retained all eligible contributions but its final fresh visual verdict
+left threshold softness and motion shimmer unresolved. It was not committed
+or timed. Keep the mesh fallback; no representation-quality claim is made.
 
 The new prop-card opt-in, prepared atlas format/bake path, native car-card
 consumer, depth atlas and sample shading were removed in `8ce8d4d96`. Keep the already shipped simplified
@@ -37,7 +39,7 @@ triangle count is lower.
 | Flat card | Ground cut from plane depth; pixel-center alpha erased 44 of 96 cases against caster-retaining empty controls. | Reject. |
 | Surface depth + sample interpolation | All 96 boundary cases contributed pixels, but repeated Low wide GPU was 72.43/72.01/72.72 ms versus fresh previous-build control 30.82/30.84/30.24. Matched camera, time, digest and triangles. | Reject fragment cost. |
 | Surface depth + centroid | Wide GPU 31.57/31.76/31.51 ms. Expanded render-size-matched probe erased 7 of 306 eligible states; mesh/sample controls erased none and 804 shared controls were byte-identical. Critic found contrast jumps. | Reject coverage loss. |
-| Footprint filtering | Initial failure/depth diagnoses invalid: capture preparation misread Buffer-backed channels. Valid 610-state trial had no missing contributions but softer/fainter appearance; mask remapping and mip clamp needed correction. | Corrected candidate unqualified; final visual/timing pending. |
+| Footprint filtering | Initial failure/depth diagnoses invalid: capture preparation misread Buffer-backed channels. Valid 610-state trial had no missing contributions but softer/fainter appearance; mask remapping and mip clamp needed correction. | Final visual verdict unresolved; preserve mesh, no candidate commit or timing. |
 
 The depth correction added one coverage-weighted channel and restored ground
 contact, but that alone did not establish correct subpixel appearance. Centroid
@@ -45,7 +47,7 @@ sampling isolated the sample-shading cost; simply using the existing cutout mask
 or bypassing depth did not recover its transparent atlas samples. The initial filtered-depth and plane-position diagnoses were invalidated by
 incorrect source-channel decoding; do not use those images or costs for a
 verdict. The corrected candidate has no plane-position extension and remains
-outside production while it finishes its gates. The mesh-retaining build is a
+outside production because its final visual gate did not qualify it. The mesh-retaining build is a
 verified fallback and timing control, not proof that corrected filtering fails.
 
 Narrow stationary visibility was not enough: horizontal/vertical raster phase,

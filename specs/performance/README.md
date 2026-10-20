@@ -126,9 +126,12 @@ ownership if the measured maintenance/memory benefit warrants the change.
 The far-car trials failed the acceptance tradeoff: per-sample shading costs about
 72 ms wide GPU versus 31 ms for the previous control; centroid erases 7 eligible
 states. Initial filtered-atlas failure evidence was invalidated by a capture
-decoder bug; a corrected candidate remains unqualified pending images/timing.
+decoder bug; the corrected candidate retained pixels but its final visual
+verdict left softness and motion uncertainty unresolved. It remains unqualified.
 Pilot-only code/assets are removed from the mesh control; general resource/cache
-fixes are retained. Assess the corrected candidate before final disposition. Other appearance classes
+fixes are retained. Keep the mesh fallback; preserve the unqualified experiment
+only in scratch. The small building-member caster check also lacked a clear
+timing gain and was removed. Complete final checks on this retained shape. Other appearance classes
 retain their authored meshes or existing scenery policy as documented in
 [the representation decision](slices/impostors.md).
 

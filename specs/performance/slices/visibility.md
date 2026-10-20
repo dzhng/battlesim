@@ -87,3 +87,12 @@ Keep independent offscreen casters, camera output, detail and source order fixed
 First establish rejectable work; then require images and paired timings for any
 refinement. These counters identify a plausible cost, not causal milliseconds.
 Evidence: `throwaway/three-view/mesh-counter-comparison.{md,json}`.
+
+
+The bounded intact-building member check was tested and rejected. It reused
+art-derived bounds in ten production lines, retained ruins and camera lists,
+and passed a failing-before regression plus 73 static tests. It saved about
+16,700/52,700/82,900 caster triangles across the views; repeated wide GPU remained
+33.50–34.48 ms, without a clear benefit over the mesh candidate. Avoid the extra
+per-row cascade checks under the user's simple-wins preference. The patch and
+paired images/timings remain in `throwaway/three-view/building-refine-*`.
