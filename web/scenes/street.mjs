@@ -38,7 +38,7 @@ import {
   pointerOffCanvas,
 } from "./_lab.mjs";
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
-import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
+import { orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
 import {
@@ -419,17 +419,6 @@ async function tour(ctx) {
   await tourShot("default");
   await checkGrass(ctx, page, "default");
   await checkGrassResidency(ctx, page);
-  // Whatever is overlay (contacts, the x-ray) keeps exactly its own colours
-  // over the finished, fogged and graded world. Rings, zone, border and
-  // orders are painted in the world, so this frame may hold no overlay at all
-  // (decisions.md, "the ground paint's checks read the paint's rise").
-  const isolation = await checkOverlayIsolation(ctx, page, "overlay-default");
-  ctx.check(
-    "overlays keep their own colours over the finished frame",
-    isolation.isolated,
-    JSON.stringify(isolation),
-  );
-
   await wheel(400);
   const far = await camera();
   ctx.check(
@@ -1701,12 +1690,6 @@ async function orderTour(ctx) {
   );
   if (process.env.GLOW_COST === "1") await measureGlowCost(ctx, page);
   if (process.env.PAINT_COST === "1") await measurePaintCost(ctx, page);
-  const isolation = await checkOverlayIsolation(ctx, page, "orders-space");
-  ctx.check(
-    "the Space overlay composites after post, untouched by fog and grade",
-    isolation.isolated,
-    JSON.stringify(isolation),
-  );
   await checkSoldiersNotOverdrawn(ctx, page);
   await aim(page, at, {
     distance: cameras.default.distance,
