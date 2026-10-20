@@ -71,44 +71,51 @@ fn a_new_obstacle_is_learned_on_contact_and_routed_around() {
 
 #[test]
 fn a_tank_nosed_up_to_a_wall_backs_off_to_turn_and_drives_round_it() {
-    // Its nose a hand's breadth from the wall's face: a pivot swings the
-    // hull's front corners into the wall, so the crew reverses until the
-    // turn clears, then drives round the wall's end to the far side.
-    let units = serde_json::json!([
-        { "side": "blue", "kind": "test_tank", "position": [255.9, 120], "yaw": 0 },
-    ]);
-    let events = serde_json::json!([{ "tick": 1, "add_prop":
+    // Exercise both stationary pivots and rolling turns against the same wall.
+    for rolling_turn in [false, true] {
+        // Its nose a hand's breadth from the wall's face: a pivot swings the
+        // hull's front corners into the wall, so the crew reverses until the
+        // turn clears, then drives round the wall's end to the far side.
+        let units = serde_json::json!([
+            { "side": "blue", "kind": "test_tank", "position": [255.9, 120], "yaw": 0 },
+        ]);
+        let events = serde_json::json!([{ "tick": 1, "add_prop":
         { "kind": "wall", "center": [260, 120], "yaw": 0, "half_extents": [0.5, 15, 2] } }]);
-    let mut b = Battle::new(&scenario(units, events), 1);
-    for _ in 0..3 {
-        b.step();
-    }
-    let mut o = Orders { seq: 0 };
-    o.go(
-        &mut b,
-        &[0],
-        [280.0, 120.0],
-        1,
-        RoutePolicy::Shortest,
-        false,
-    );
-    let limit = 60 * b.rules().tick_hz;
-    let ticks = run(&mut b, &[0], limit, |b| {
-        let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
-        assert!(
-            !b.world()
-                .props()
-                .filter(|p| p.blocks(MoverClass::Vehicle))
-                .any(|p| hull.overlaps(&p.footprint())),
-            "the hull is in a body at {:?}",
-            hull.center
+        let mut setup = scenario(units, events);
+        if rolling_turn {
+            setup.rules.movement.drive.turn_in_place_deg = 89.0;
+        }
+        let mut b = Battle::new(&setup, 1);
+        for _ in 0..3 {
+            b.step();
+        }
+        let mut o = Orders { seq: 0 };
+        o.go(
+            &mut b,
+            &[0],
+            [280.0, 120.0],
+            1,
+            RoutePolicy::Shortest,
+            false,
         );
-    });
-    let end = own(&b, 0);
-    assert!(
-        ticks < limit && dist(xy(&end), [280.0, 120.0]) < 1.0,
-        "it never got round the wall: {:?} {:?}",
-        end.position,
-        end.state
-    );
+        let limit = 60 * b.rules().tick_hz;
+        let ticks = run(&mut b, &[0], limit, |b| {
+            let hull = b.unit(UnitId(0)).unwrap().ground_footprint().unwrap();
+            assert!(
+                !b.world()
+                    .props()
+                    .filter(|p| p.blocks(MoverClass::Vehicle))
+                    .any(|p| hull.overlaps(&p.footprint())),
+                "the hull is in a body at {:?}",
+                hull.center
+            );
+        });
+        let end = own(&b, 0);
+        assert!(
+            ticks < limit && dist(xy(&end), [280.0, 120.0]) < 1.0,
+            "it never got round the wall: {:?} {:?}",
+            end.position,
+            end.state
+        );
+    }
 }
