@@ -35,22 +35,21 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
+mod bodies;
 mod detail;
+pub use bodies::{map_props, KnownBody, MapProp};
 use detail::{card_bounds, projected_bounds_px};
 
 use crate::records::{CAST_PASS, VIEW_PASS};
 use crate::seed::Key;
 use crate::shadow::CasterVolumes;
 use crate::static_world::batches::{List, Population};
-use crate::static_world::fallen::Known;
 use crate::static_world::walk::Record;
 use crate::view::{
     caster_tier, model_detail, model_fog, View, CULLED, IMPOSTOR, SHADOW_MARGIN_M, TIERS,
 };
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
-use sim::publication::reader::KnownProp;
-use sim::world::export::PROP_STRIDE;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::f64::consts::FRAC_PI_2;
 
@@ -494,88 +493,6 @@ impl Looks {
         self.list.push(key.clone());
         self.index.insert(key, self.list.len() - 1);
         self.list.len() - 1
-    }
-}
-
-/// A prop authored in the static map: its id and box.
-#[derive(Clone, Debug)]
-pub struct MapProp {
-    pub id: f64,
-    pub body: PropBox,
-}
-
-/// The map's props, from the world's exported records (`prop_record`).
-pub fn map_props(records: &[f32], layout: &PropLayout) -> Vec<MapProp> {
-    records
-        .as_chunks::<PROP_STRIDE>()
-        .0
-        .iter()
-        .map(|p| {
-            let f = |i: usize| f64::from(p[i]);
-            let wreck = p[10];
-            MapProp {
-                id: f(0) + f(1) * 65536.0,
-                body: PropBox {
-                    kind: layout.prop_kinds[p[2] as usize].clone(),
-                    center: [f(3), f(4)],
-                    yaw: f(5),
-                    half: [f(6), f(7), f(8)],
-                    base_z: f(9),
-                    wreck_of: (wreck >= 0.0).then(|| layout.unit_kinds[wreck as usize].clone()),
-                },
-            }
-        })
-        .collect()
-}
-
-/// A prop a side knows: the map prop whose place it took (none for a prop
-/// that is no map prop's, a wreck), whether it was destroyed with nothing
-/// left, its id (the cook-off names a wreck by it), and its box where it
-/// stands (none: a lab's stand-in that names only what the buildings read).
-#[derive(Clone, Debug, PartialEq)]
-pub struct KnownBody {
-    pub authored: Option<f64>,
-    pub id: Option<f64>,
-    pub kind: String,
-    pub destroyed: bool,
-    pub body: Option<PropBox>,
-}
-
-impl KnownBody {
-    /// The publication's known prop.
-    pub fn published(k: &KnownProp) -> Self {
-        KnownBody {
-            authored: k.authored_prop,
-            id: k.id,
-            kind: k.kind.to_string(),
-            destroyed: k.destroyed,
-            body: Some(PropBox {
-                kind: k.kind.to_string(),
-                center: k.center,
-                yaw: k.yaw,
-                half: k.half,
-                base_z: k.base_z,
-                wreck_of: k.wreck_of.as_deref().map(str::to_owned),
-            }),
-        }
-    }
-
-    /// A lab's stand-in for one.
-    pub fn lab(k: &Known) -> Self {
-        KnownBody {
-            authored: k.authored_prop,
-            id: k.id,
-            kind: k.kind.clone(),
-            destroyed: k.destroyed,
-            body: k.center.map(|center| PropBox {
-                kind: k.kind.clone(),
-                center,
-                yaw: k.yaw,
-                half: k.half,
-                base_z: k.base_z,
-                wreck_of: k.wreck_of.clone(),
-            }),
-        }
     }
 }
 
