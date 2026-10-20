@@ -106,11 +106,13 @@ shared browser/native car cards are integrated. No slice is closed and nothing
 from this reopened run is pushed. Keep final acceptance separate from focused
 contract tests.
 
-Water/boundary draw ranges are integrated (`3a1fd9988`); their focused browser
-routing checks pass, with rendered acceptance pending. Finish the remaining
-repairs in progress: bound felled trees/stumps and cache unchanged receiver fits
-while counting their actual traversal/triangle work. The current terrain-growth
-counters omit receiver fitting; do not claim complete bounded CPU work yet.
+Water/boundary ranges (`3a1fd9988`), receiver caching/counters (`e3eb9629e`)
+and felled/stump selection (`6d8b40389`) are integrated. Focused integration
+checks pass; final rendered acceptance remains. Public diagnostics include
+water/boundary visits and executed receiver work. The updated terrain-growth
+run passes 30 windows and shows zero receiver work on unchanged holds; fresh
+fit growth and invalidation have separate Rust coverage. Moving-camera CPU
+cost still needs the final production run.
 Browser draw/fit terrain partitions also duplicate immutable storage; resolve
 ownership if the measured maintenance/memory benefit warrants the change.
 

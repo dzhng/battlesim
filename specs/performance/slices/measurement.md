@@ -218,3 +218,19 @@ this terrain-growth control, not population-growth/browser or temporal parity.
 Shared Rust population growth tests cover complete ordered camera/caster lists
 and traversal through knowledge changes; the final report must keep these proof
 scopes explicit.
+
+## Executed receiver work
+
+The integrated fit cache publishes actual bounds visits, triangle tests, exact
+clips and reuse per frame through the existing measurement path. The Low
+terrain-growth rerun passes all 30 windows with unchanged submissions; hold
+frames report zero receiver work and `reused=true`. At 16 remote copies, wide
+main-thread means are 0.34–0.64 ms, versus 4.76–4.90 ms before caching in this
+fixture. This is fixed-camera evidence, not moving-view or Metro XL timing.
+Fresh-fit invalidation/growth is covered separately by Rust tests.
+
+Public frame statistics now include terrain, water and boundary traversal.
+Before/after tactical and wide growth images are pixel-identical; close images
+retain the sparse variation seen in returning controls. Evidence is preserved
+in `throwaway/three-view/growth-receiver-water/`. The fixture extends terrain,
+not static populations or water; their structural growth proofs remain distinct.

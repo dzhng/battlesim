@@ -22,7 +22,7 @@ trades some distant world sharpness for lower GPU work and target memory.
 
 ### Reuse temporary storage without caching answers
 
-Each frame rebuilds shadow and membership lists, but keeps their allocated
+Each frame rebuilds caster membership lists, but keeps their allocated
 storage. A camera change likewise alternates two building-list buffers, keeping
 the previous records available for comparison. Recreating those containers
 would allocate repeatedly; caching their answers would risk stale visibility.
@@ -181,3 +181,17 @@ existing size threshold and geometry instead of enlarging the car.
   still requires motion quality and GPU cost acceptance.
 - **Confidence:** medium. Static contribution is proven; perceptual equivalence
   and performance are not.
+
+### Reuse an unchanged shadow receiver fit
+
+While the camera holds still, immutable terrain and light produce the same
+shadow fit. Reuse that fit until the camera changes or its inputs are replaced;
+world reload also invalidates it. The alternative repeats terrain clipping every
+frame for an identical answer. This does not cache animated membership lists.
+
+- **Gap:** the plan required bounded receiver work, without prescribing reuse.
+- **Reach:** the shared presentation owner; both clients receive the same fit.
+- **Verdict:** sound. Invalidation and exact output checks pass, and browser
+  diagnostics report zero executed receiver work during holds.
+- **Confidence:** high for unchanged views; moving views still recompute and
+  require their own performance measurement.

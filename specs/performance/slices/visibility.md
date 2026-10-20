@@ -14,9 +14,9 @@ they shadow visible receivers. Preserve the shared depth/camera convention.
 - [ ] Measure each owner's visited candidates and emitted geometry at all zooms.
 - [x] Test spatial selection against a brute-force geometric oracle, including
   near-plane boundaries, long/scaled props, camera movement and remote extension.
-- [ ] Complete bounded queries for every audited owner. Terrain, buildings,
-  standing scenery, props and water/boundary ranges are integrated; felled
-  trees/stumps and complete receiver accounting remain in progress.
+- [x] Implement bounded queries for audited terrain, buildings, standing and
+  felled scenery, props, water and boundary meshes, plus receiver accounting.
+  This closes implementation, not the global measured acceptance gate.
 - [x] Independently select shadow casters; test an offscreen object shadowing
   visible ground and unrelated map extension leaving cascade fit unchanged.
 - [x] Reassess the prior terrain selector at all views. Scratch code is an
@@ -44,5 +44,14 @@ as terrain (`3a1fd9988`). Water queries camera ranges; boundary/debug geometry
 also queries independent cascades. The constant-size backdrop retains direct
 draws. GPU capacities and material settings are unchanged; retained CPU vertices
 cost 120 bytes per triangle plus hierarchy/range metadata. Focused actual browser
-draw-routing tests pass after integration. Rendered parity, public traversal
-diagnostics and performance acceptance remain open.
+draw-routing tests pass after integration. Public traversal diagnostics are wired; rendered parity and performance
+acceptance remain open.
+
+Receiver fitting reuses identical camera/light/terrain inputs and invalidates on
+replacement or world reload. Counters report executed work, including zero
+traversal on reuse. With 64/1,024/16,384 off-axis remote tiles, fresh fits visit
+13/21/29 bounds and test/clip two triangles; this does not bound terrain genuinely
+visible at the horizon. Felled-tree queries use fixed conservative motion envelopes
+and rebuild on knowledge changes; offscreen time still advances. Their growth
+test retains local records while visiting 59/91/107 bounds for 64/1,024/4,096
+remote trees. The integrated static-world suite passes 72 tests.
