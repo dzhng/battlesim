@@ -23,7 +23,7 @@ use crate::records::{
     Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
-use crate::shadow::{sun_shadow, SunShadowFrame};
+use crate::shadow::{ReceiverStats, ShadowFit, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
 use crate::static_world::batches::{Population, StaticBatches};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
@@ -246,8 +246,8 @@ pub struct Presentation {
     frame: Frame,
     /// The camera the last frame was asked for.
     camera: Option<Camera>,
-    /// Immutable terrain and light for receiver fitting.
-    shadow: Option<(LightSettings, Arc<TerrainPartition>)>,
+    /// Immutable receiver inputs and cached fit.
+    shadow: Option<ShadowFit>,
     /// The side's learned ground (none without a layout), and its scars as
     /// the renderer holds them.
     learned: Option<LearnedGround>,
@@ -463,8 +463,9 @@ impl Presentation {
         tables: ClipTables,
         buildings: Option<PlacedBuildings>,
     ) -> Result<(), String> {
-        // Every drawable a frame may name, so the renderer loads them once;
-        // the buildings' first, a row per walked module.
+        if let Some(fit) = &mut self.shadow {
+            fit.invalidate();
+        }
         self.world = World::default();
         self.fallen.clear();
         self.known_from = KnownFrom::Unread;
@@ -1109,9 +1110,13 @@ impl Presentation {
         frame_params(words, view_proj, c.eye, metres_per_px, window);
     }
 
+    pub fn shadow_stats(&self) -> ReceiverStats {
+        self.shadow.as_ref().map_or_default(|fit| fit.stats)
+    }
+
     /// Install local receiver terrain and light; none disables shadows.
     pub fn set_shadow(&mut self, shadow: Option<(LightSettings, Arc<TerrainPartition>)>) {
-        self.shadow = shadow;
+        self.shadow = shadow.map(ShadowFit::new);
         self.statics.rewalk();
     }
 
@@ -1337,10 +1342,7 @@ impl Presentation {
         let view = View::new(camera);
         f.view = view.record(camera);
         f.camera = view.camera(camera, time);
-        f.shadow = self
-            .shadow
-            .as_ref()
-            .map(|(light, terrain)| sun_shadow(light, camera, Some(terrain)));
+        f.shadow = self.shadow.as_mut().map(|fit| fit.frame(camera));
         self.follow_felled(time);
         self.follow_cleared();
         // A wreck the cook-off draws moving is left out of the props until

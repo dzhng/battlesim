@@ -68,6 +68,10 @@ native.
   elevations cannot stretch a local fit through a map-wide height envelope.
   This is conservative geometry, not occlusion: horizon-visible terrain still
   contributes, and the light's configured shadow reach still applies.
+  Unchanged cameras reuse the installed light/terrain fit; replacing those inputs
+  or loading a world invalidates it. Receiver diagnostics count work executed in
+  the latest frame, with zero traversal and clipping on reuse. They remain
+  separate from terrain draw selection and flow into viewport measurements.
 - [The static world](src/static_world/): the buildings resolved from their
   template art, and the ground from the map's exports under the biome: its
   tables, its meshes (terrain, skirt, water, backdrop), the grass field's

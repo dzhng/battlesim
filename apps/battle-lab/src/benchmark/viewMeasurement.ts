@@ -47,6 +47,7 @@ export function createViewMeasurement() {
     recording!.frame({
       now,
       cpuMs: frame.cpuMs,
+      receiverFit: frame.receiverFit,
       phase: phase(),
       camera: { ...frame.camera, target: [frame.camera.target[0], frame.camera.target[1]] },
       intended: requested!,

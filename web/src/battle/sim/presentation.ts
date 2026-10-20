@@ -1,9 +1,5 @@
-/** The page's presentation module (`crates/presentation-wasm`), its
- * browser binding: one side's publications in; the game UI's observation,
- * and each drawn frame's records (`records.gen.ts`), out. Rust decodes,
- * interpolates, poses and makes the effects, and walks the static world;
- * the page hands the frame's views straight to the renderer and reads the
- * UI's facts from them. */
+/** Browser binding of Rust presentation: side publications in, observations
+ * and frame views out. Rust owns decoding, poses, effects and static walks. */
 import init, {
   Presentation,
   fog_look,
@@ -66,6 +62,14 @@ import type { GroundLayout, ObservationLayout, ObservationView } from "./observa
 
 let loaded: Promise<{ memory: WebAssembly.Memory }> | null = null;
 let memory: WebAssembly.Memory | null = null;
+
+/** Receiver traversal work, separate from terrain draw selection. */
+export interface ReceiverFitStats {
+  bounds_visited: number;
+  triangle_tests: number;
+  clip_tests: number;
+  reused: boolean;
+}
 
 /** Initialises the module once per realm; decoders need it first. */
 export function loadPresentation(): Promise<unknown> {
@@ -592,13 +596,16 @@ export class ScenePresentation {
     return this.presented;
   }
 
-  /** Fit the sun's cascades under `light` (as the renderer's quality sets
-   *  them) over the map's ground `mesh` (null: none): every frame carries
-   *  them. Cheap when neither changed: call every frame. */
+  /** Install immutable receiver inputs. Same identities preserve the fit cache. */
   setShadow(light: LightPresentation, mesh: Float32Array | null) {
     if (light === this.shadow[0] && mesh === this.shadow[1]) return;
     this.shadow = [light, mesh];
     this.rust.set_shadow(JSON.stringify(light), mesh ?? new Float32Array(0));
+  }
+
+  /** Latest frame's executed receiver work. */
+  shadowStats(): ReceiverFitStats {
+    return JSON.parse(this.rust.shadow_stats()) as ReceiverFitStats;
   }
 
   /** The player's scenery settings: the trees' tier thresholds over the

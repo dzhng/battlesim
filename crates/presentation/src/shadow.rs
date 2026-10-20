@@ -1,4 +1,4 @@
-//! The sun's shadow cascades, fitted once a frame for both clients: where
+//! The sun's shadow cascades, fitted when the camera changes for both clients: where
 //! shadow receivers are in view depth (local terrain bounds clipped to the camera), the practical splits over that range, each cascade's light fitted
 //! to its slice and snapped to its own texels, its biases and PCF radius, and
 //! the records a renderer uploads as they are ([`SunShadowFrame`]).
@@ -11,6 +11,55 @@ use crate::light::{CascadeSettings, LightSettings};
 use crate::records::{Camera as CameraRecord, SunCascade, SunShadow};
 use crate::static_world::ground::partition::TerrainPartition;
 use crate::view::{look_at, perspective_reverse_z, Camera};
+
+/// Executed receiver work in the latest frame, never the cached fit's old cost.
+#[derive(Clone, Copy, Debug, Default, serde::Serialize)]
+pub struct ReceiverStats {
+    /// Hierarchy and leaf bounds tested by the spatial query.
+    pub bounds_visited: usize,
+    /// Individual triangle bounds tested against the camera.
+    pub triangle_tests: usize,
+    /// Surviving bounds passed to exact depth clipping.
+    pub clip_tests: usize,
+    pub reused: bool,
+}
+
+/// Installed immutable receiver inputs and their last camera fit.
+pub(crate) struct ShadowFit {
+    light: LightSettings,
+    terrain: std::sync::Arc<TerrainPartition>,
+    cached: Option<(Camera, SunShadowFrame)>,
+    pub stats: ReceiverStats,
+}
+
+impl ShadowFit {
+    pub fn new((light, terrain): (LightSettings, std::sync::Arc<TerrainPartition>)) -> Self {
+        Self {
+            light,
+            terrain,
+            cached: None,
+            stats: ReceiverStats::default(),
+        }
+    }
+
+    pub fn invalidate(&mut self) {
+        self.cached = None;
+        self.stats = ReceiverStats::default();
+    }
+
+    pub fn frame(&mut self, camera: &Camera) -> SunShadowFrame {
+        self.stats = ReceiverStats::default();
+        if let Some((previous, fit)) = &self.cached {
+            if previous == camera {
+                self.stats.reused = true;
+                return fit.clone();
+            }
+        }
+        let fit = fit_shadow(&self.light, camera, Some(&self.terrain), &mut self.stats);
+        self.cached = Some((*camera, fit.clone()));
+        fit
+    }
+}
 
 /// The receiver layout's cascade slots: `SunShadow` and the depth array
 /// hold this many, so `presentation.light.cascades.count` must equal it.
@@ -92,11 +141,20 @@ pub fn sun_shadow(
     camera: &Camera,
     terrain: Option<&TerrainPartition>,
 ) -> SunShadowFrame {
+    fit_shadow(light, camera, terrain, &mut ReceiverStats::default())
+}
+
+fn fit_shadow(
+    light: &LightSettings,
+    camera: &Camera,
+    terrain: Option<&TerrainPartition>,
+    stats: &mut ReceiverStats,
+) -> SunShadowFrame {
     let settings = &light.cascades;
     let [w, h] = camera.size.map(|s| f64::from(s.max(1)));
     let aspect = w / h;
     let view = look_at(camera.eye, camera.target, camera.up);
-    let (near, far) = receiver_range(camera, &view, aspect, terrain);
+    let (near, far) = receiver_range(camera, &view, aspect, terrain, stats);
 
     let count = (settings.count.max(1) as usize).min(CASCADES);
     let map_size = settings.map_size.max(16);
@@ -248,6 +306,7 @@ fn receiver_range(
     view: &M4,
     aspect: f64,
     terrain: Option<&TerrainPartition>,
+    stats: &mut ReceiverStats,
 ) -> (f64, f64) {
     let empty = (camera.near, camera.near * 2.0);
     let Some(terrain) = terrain else { return empty };
@@ -258,12 +317,15 @@ fn receiver_range(
     let corners = [[-1., -1., 1.], [1., -1., 1.], [1., 1., 1.], [-1., 1., 1.]]
         .map(|p| transform(&p, &inverse));
     let (mut near, mut far) = (f64::INFINITY, 0.0f64);
-    terrain.receiver_bounds(&planes, 1.0, STANDING_M, |bounds| {
+    let (visited, triangles) = terrain.receiver_bounds(&planes, 1.0, STANDING_M, |bounds| {
+        stats.clip_tests += 1;
         if let Some((lo, hi)) = crate::clip::depth_range(bounds, &planes, &corners, view) {
             near = near.min(lo);
             far = far.max(hi);
         }
     });
+    stats.bounds_visited = visited;
+    stats.triangle_tests = triangles;
     if near.is_finite() {
         (camera.near.max(near), far)
     } else {

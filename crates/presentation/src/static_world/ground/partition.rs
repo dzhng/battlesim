@@ -90,25 +90,28 @@ impl TerrainPartition {
     /// headroom for objects standing on terrain, applied to each triangle rather
     /// than to the global elevation envelope. Tile bounds only reject branches;
     /// an unrelated triangle in a selected tile cannot enlarge the fit.
+    /// Returns hierarchy bounds visited and individual triangle bounds tested.
     pub(crate) fn receiver_bounds(
         &self,
         planes: &[crate::clip::ClipPlane; 6],
         below: f64,
         above: f64,
         mut visit: impl FnMut(&Bounds),
-    ) -> usize {
+    ) -> (usize, usize) {
         let padded = |mut bounds: Bounds| {
             bounds[2] -= below;
             bounds[5] += above;
             bounds
         };
-        self.index.query(
+        let mut triangles = 0;
+        let visited = self.index.query(
             |bounds| intersects(&padded(*bounds), planes),
             |id| {
                 let range = &self.tiles[id];
                 let vertices = &self.vertices
                     [range.start as usize * VERTEX_FLOATS..range.end as usize * VERTEX_FLOATS];
                 for triangle in vertices.as_chunks::<TRIANGLE_FLOATS>().0 {
+                    triangles += 1;
                     let mut bounds = [f64::INFINITY; 6];
                     bounds[3..].fill(f64::NEG_INFINITY);
                     for vertex in triangle.as_chunks::<VERTEX_FLOATS>().0 {
@@ -123,7 +126,8 @@ impl TerrainPartition {
                     }
                 }
             },
-        )
+        );
+        (visited, triangles)
     }
 
     /// Replace `ranges` with visible vertex ranges in buffer order. Returns

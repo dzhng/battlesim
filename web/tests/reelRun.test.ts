@@ -35,6 +35,7 @@ const countsOf = (now: number): FrameCounts => ({
 const drawn = (now: number, simTime = 2, plate?: () => FramePlate) => ({
   now,
   cpuMs: 1,
+  receiverFit: null,
   camera,
   simTime,
   canvas: [1280, 720] as const,

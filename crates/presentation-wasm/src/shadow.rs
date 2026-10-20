@@ -6,6 +6,11 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 impl Presentation {
+    /// Executed receiver work for the latest frame, including cache reuse.
+    pub fn shadow_stats(&self) -> String {
+        serde_json::to_string(&self.inner.shadow_stats()).expect("receiver stats serialize")
+    }
+
     /// Fit local receivers under the quality-resolved light; terrain is immutable.
     pub fn set_shadow(&mut self, light: &str, terrain: &[f32]) -> Result<(), JsError> {
         let light: presentation::light::LightSettings = serde_json::from_str(light)

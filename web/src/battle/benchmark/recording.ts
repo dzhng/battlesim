@@ -75,6 +75,8 @@ export function frameTimeSummary(intervals: readonly number[]) {
 }
 
 export interface FrameSample {
+  /** Actual receiver fitting work for this frame; absent when not instrumented. */
+  receiverFit?: import("../sim/presentation").ReceiverFitStats | null;
   /** End of the frame, from the start of timing. */
   elapsedMs: number;
   /** Since the previous frame (the first: since timing started). */
@@ -154,6 +156,7 @@ export class BenchmarkRecording {
   }
 
   frame(f: {
+    receiverFit?: FrameSample["receiverFit"];
     now: number;
     cpuMs: number;
     phase: string;
@@ -167,6 +170,7 @@ export class BenchmarkRecording {
       elapsedMs: f.now - this.startedAt,
       intervalMs: f.now - this.previousAt,
       cpuMs: f.cpuMs,
+      receiverFit: f.receiverFit,
       phase: f.phase,
       camera: f.camera,
       intended: f.intended,

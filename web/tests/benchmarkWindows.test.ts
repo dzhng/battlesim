@@ -40,6 +40,7 @@ test("benchmark samples reset GPU windows and attribute the outgoing window befo
       run.scripted.pilot.frame!({
         now,
         cpuMs: 1,
+        receiverFit: null,
         camera,
         simTime: 3,
         canvas: [960, 600],

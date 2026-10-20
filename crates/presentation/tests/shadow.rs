@@ -456,6 +456,19 @@ fn an_offscreen_triangle_in_the_same_tile_cannot_expand_local_receivers() {
         sun_shadow(&light, &camera, Some(&local)),
         sun_shadow(&light, &camera, Some(&TerrainPartition::new(&mesh, CELL_M))),
     );
+    // Both triangles of the offscreen patch share the local tile. They incur
+    // triangle-bound tests but are rejected before exact depth clipping.
+    let mut p = presentation::presentation::Presentation::new(None, 30.).unwrap();
+    p.set_shadow(Some((
+        light,
+        std::sync::Arc::new(TerrainPartition::new(&mesh, CELL_M)),
+    )));
+    p.frame(0., &camera, &Default::default(), 0).unwrap();
+    let stats = p.shadow_stats();
+    assert_eq!(
+        (stats.bounds_visited, stats.triangle_tests, stats.clip_tests),
+        (1, 4, 2)
+    );
 }
 
 #[test]
@@ -483,4 +496,159 @@ fn caster_mask_keeps_disjoint_overlap_and_boundary_membership() {
         assert_eq!(volumes.intersects(&bounds), expected != 0);
     }
     assert_eq!(CasterVolumes::new(&[]).mask(&[0.; 6]), 0);
+}
+
+#[test]
+fn production_shadow_hold_reuses_fit_and_camera_changes_refit() {
+    use presentation::presentation::{Presentation, Ui};
+    use std::sync::Arc;
+    let light = game_light();
+    let terrain = Arc::new(street());
+    let mut p = Presentation::new(None, 30.).unwrap();
+    p.set_shadow(Some((light.clone(), terrain.clone())));
+    let mut camera = cameras()[1].1;
+    for change in 0..8 {
+        match change {
+            1 => camera.eye[0] += 1.,
+            2 => camera.target[1] += 1.,
+            3 => camera.up[0] += 0.01,
+            4 => camera.fov_y += 0.01,
+            5 => camera.near += 0.1,
+            6 => camera.size[0] += 10,
+            7 => camera.size[1] += 10,
+            _ => (),
+        }
+        let expected = sun_shadow(&light, &camera, Some(&terrain));
+        assert_eq!(
+            p.frame(0., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        let work = p.shadow_stats();
+        assert!(!work.reused);
+        assert!(work.bounds_visited > 0 && work.triangle_tests > 0 && work.clip_tests > 0);
+        assert_eq!(
+            p.frame(1., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        let hold = p.shadow_stats();
+        assert!(hold.reused);
+        assert_eq!(
+            (hold.bounds_visited, hold.triangle_tests, hold.clip_tests),
+            (0, 0, 0)
+        );
+    }
+}
+
+#[test]
+fn installed_shadow_inputs_and_world_reload_invalidate_the_fit() {
+    use presentation::presentation::{Presentation, Ui};
+    use presentation::world::WorldInput;
+    use std::sync::Arc;
+    let mut p = Presentation::new(None, 30.).unwrap();
+    let mut light = game_light();
+    let camera = cameras()[1].1;
+    let mut terrain = Arc::new(street());
+    for change in 0..5 {
+        match change {
+            1 => light.cascades.depth_bias *= 2.,
+            2 => terrain = Arc::new(slab(0., 0., 1600., 1600., 100.)),
+            3 => {
+                p.set_shadow(None);
+                assert!(p
+                    .frame(0., &camera, &Ui::default(), 0)
+                    .unwrap()
+                    .shadow
+                    .is_none());
+                let stats = p.shadow_stats();
+                assert!(!stats.reused);
+                assert_eq!(
+                    (stats.bounds_visited, stats.triangle_tests, stats.clip_tests),
+                    (0, 0, 0)
+                );
+            }
+            _ => (),
+        }
+        if change == 4 {
+            p.load_world(
+                WorldInput {
+                    battle: None,
+                    buildings: None,
+                    sun_azimuth: 0.,
+                    sun_elevation: 0.5,
+                },
+                Default::default(),
+                None,
+            )
+            .unwrap();
+        } else {
+            p.set_shadow(Some((light.clone(), terrain.clone())));
+        }
+        let expected = sun_shadow(&light, &camera, Some(&terrain));
+        assert_eq!(
+            p.frame(0., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        assert!(!p.shadow_stats().reused);
+        assert!(p.shadow_stats().triangle_tests > 0);
+        p.frame(0., &camera, &Ui::default(), 0).unwrap();
+        assert!(p.shadow_stats().reused);
+    }
+}
+
+#[test]
+fn receiver_work_stays_local_as_remote_triangle_population_grows() {
+    use presentation::presentation::{Presentation, Ui};
+    use std::sync::Arc;
+    let light = game_light();
+    let camera = Camera {
+        eye: [2., 2., 60.],
+        target: [2., 2., 0.],
+        up: [0., 1., 0.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [1000, 1000],
+    };
+    let local = slab(1., 1., 3., 3., 0.);
+    let expected = sun_shadow(&light, &camera, Some(&local));
+    for count in [64_usize, 1024, 16384] {
+        let mut mesh = local.vertices().to_vec();
+        for i in 0..count {
+            let x = 1024. + i as f32 * 256.;
+            mesh.extend_from_slice(slab(x, 0., x + 1., 1., 100.).vertices());
+        }
+        let mut p = Presentation::new(None, 30.).unwrap();
+        p.set_shadow(Some((
+            light.clone(),
+            Arc::new(TerrainPartition::new(&mesh, CELL_M)),
+        )));
+        assert_eq!(
+            p.frame(0., &camera, &Ui::default(), 0)
+                .unwrap()
+                .shadow
+                .as_ref(),
+            Some(&expected)
+        );
+        let work = p.shadow_stats();
+        // One local leaf: a balanced search may test both children at each level,
+        // but no remote triangle needs either narrow-phase test.
+        assert!(work.bounds_visited <= 2 * (count + 1).next_power_of_two().ilog2() as usize + 1);
+        assert_eq!((work.triangle_tests, work.clip_tests), (2, 2));
+        p.frame(1., &camera, &Ui::default(), 0).unwrap();
+        let hold = p.shadow_stats();
+        assert!(hold.reused);
+        assert_eq!(
+            (hold.bounds_visited, hold.triangle_tests, hold.clip_tests),
+            (0, 0, 0)
+        );
+        println!("remote tiles={count}: fit={work:?}, hold={hold:?}");
+    }
 }

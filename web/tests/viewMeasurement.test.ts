@@ -21,6 +21,10 @@ test("each hold records only its own drawn intervals and resolved camera", () =>
     probe.pilot.frame!({
       now,
       cpuMs,
+      receiverFit:
+        cpuMs === 4
+          ? { bounds_visited: 13, triangle_tests: 2, clip_tests: 2, reused: false }
+          : { bounds_visited: 0, triangle_tests: 0, clip_tests: 0, reused: true },
       camera,
       simTime: 3,
       canvas: [960, 600],
@@ -33,6 +37,10 @@ test("each hold records only its own drawn intervals and resolved camera", () =>
   draw(1020, 4);
   draw(1050, 6);
   const first = probe.read();
+  expect(first?.frames.map((f) => f.receiverFit)).toEqual([
+    { bounds_visited: 13, triangle_tests: 2, clip_tests: 2, reused: false },
+    { bounds_visited: 0, triangle_tests: 0, clip_tests: 0, reused: true },
+  ]);
   expect(first?.measurement.frameMs?.mean).toBe(25);
   expect(first?.measurement.cpuMs?.mean).toBe(5);
   expect(first?.camera).toEqual(camera);

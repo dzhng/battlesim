@@ -246,7 +246,9 @@ export interface ViewportPilot {
   /** Renderer diagnostics and a fresh GPU measurement boundary. */
   attach?(frame: {
     adapter: string;
-    stats: () => ReturnType<BattleFrame["stats"]>;
+    stats: () => ReturnType<BattleFrame["stats"]> & {
+      receiverFit: ReturnType<ScenePresentation["shadowStats"]> | null;
+    };
     resetGpuTiming: () => void;
   }): void;
   /** The framing for the frame at `now`; the rig places it
@@ -257,6 +259,7 @@ export interface ViewportPilot {
   frame?(f: {
     now: number;
     cpuMs: number;
+    receiverFit: ReturnType<ScenePresentation["shadowStats"]> | null;
     camera: Camera3DParams;
     simTime: number;
     canvas: readonly [number, number];
@@ -704,8 +707,7 @@ export function LabViewport({
         let clock = 0;
         // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
         const light = () => lightRef.current ?? gameLightFor(window.location.search);
-        /** The presentation the viewport makes for a scene with no battle,
-         *  once the module is loaded and there are buildings to draw. */
+        /** Presentation for a scene without a battle. */
         let own: ScenePresentation | null = null;
         let moduleLoaded = false;
         void loadPresentation().then(() => (moduleLoaded = true));
@@ -726,6 +728,8 @@ export function LabViewport({
         /** A presentation that frames the camera alone, while the battle's
          *  is not there yet. */
         let bare: ScenePresentation | null = null;
+        let receiverPresentation: ScenePresentation | null = null;
+        const receiverStats = () => receiverPresentation?.shadowStats() ?? null;
         signal.addEventListener("abort", () => bare?.free());
         /** The presentation and quality the detail scale was last given to. */
         let detailed: [
@@ -791,7 +795,7 @@ export function LabViewport({
         const adapter = info.description || `${info.vendor} ${info.architecture}`.trim();
         pilot?.attach?.({
           adapter,
-          stats: () => scene.stats(),
+          stats: () => ({ ...scene.stats(), receiverFit: receiverStats() }),
           resetGpuTiming: () => scene.resetGpuTiming(),
         });
         // What the battle draws, for a player's diagnostics report.
@@ -812,9 +816,7 @@ export function LabViewport({
         };
         /** Whether the lab took the grass away (`suppressGrass`). */
         let grassSuppressed = false;
-        /** The frame just drawn again without its grass, into a texture of
-         *  the canvas's size and format, read back; the grass is put back,
-         *  so the canvas and the next frame are as they were. */
+        /** Read back without grass, then restore the scene's grass setting. */
         const readPlain = () => {
           const texture = device!.createTexture({
             label: "plate-readback",
@@ -948,11 +950,8 @@ export function LabViewport({
             if (animated.effectCounts) effectCountsRef.current = animated.effectCounts;
             dirty = true;
           }
-          // The camera drawn and the static world for it: walked in Rust,
-          // its batches written only when what it draws changed. A battle's
-          // frame carries them; a scene without one (or before its first
-          // publication) is framed here for them alone, and before the
-          // battle's presentation is there, the camera alone.
+          // Rust walks the static world. Without a battle publication, frame
+          // the static scene here; before presentation loads, frame only the camera.
           try {
             let views: PresentedFrame | null = null;
             let walk = NO_WALK;
@@ -982,6 +981,7 @@ export function LabViewport({
               scenery = decoder.sceneryWalk();
               views = decoder.lastFrame();
             }
+            receiverPresentation = decoder ?? bare;
             if (views) scene.setCamera(views);
             if (scene.setStaticFrame(decoder ? views : null, { buildings: walk, scenery }))
               dirty = true;
@@ -1021,6 +1021,7 @@ export function LabViewport({
           pilot?.frame?.({
             now,
             cpuMs: performance.now() - started,
+            receiverFit: receiverStats(),
             camera,
             simTime: clock,
             canvas: [canvas.width, canvas.height],
@@ -1031,8 +1032,7 @@ export function LabViewport({
         };
         raf = requestAnimationFrame(loop);
 
-        /** World → page projection for the current camera and canvas box,
-         *  read once so a whole frame of anchors costs one layout read. */
+        /** Project anchors with one canvas-layout read per frame. */
         const projector = (): Project => {
           const viewProj = viewProjMatrix(createGpuMat4(), liveCamera(snapshot()));
           const rect = canvas.getBoundingClientRect();
@@ -1056,8 +1056,7 @@ export function LabViewport({
             dirty = true;
             requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
           });
-        /** A frame drawn at the current size: a resize's targets build
-         *  asynchronously, so wait for them and draw again. */
+        /** Redraw after asynchronous resize targets settle. */
         const nextFrame = async () => {
           await drawn();
           if (await scene.settled()) await drawn();
@@ -1070,7 +1069,7 @@ export function LabViewport({
             description: info.description,
             format: info.format,
           },
-          stats: () => ({ ...scene.stats(), props: propStats() }),
+          stats: () => ({ ...scene.stats(), props: propStats(), receiverFit: receiverStats() }),
           resetGpuTiming: () => scene.resetGpuTiming(),
           allocations,
           camera: () => camera,
