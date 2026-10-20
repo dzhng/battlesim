@@ -39,6 +39,8 @@
 // (`buildingLayer.ts`): the same meshes, records, material and pipelines as
 // any static model, with their own record buffers and draw ranges.
 
+import { recordDraw, type SubmittedDraws } from "../frame/submitted";
+import type { Drawable3, CardDrawable } from "./modelDraw";
 import { tgpu, d, std } from "typegpu";
 import type {
   Bounds,
@@ -684,9 +686,10 @@ export interface ModelStats {
   /** Appearance names installed on the GPU. */
   installed: string[];
   appearances: number;
-  /** Models drawn as meshes (posed units and near corpses). */
+  /** Prepared mesh population; actual pass submissions live in SubmittedFrame. */
   instances: number;
   triangles: number;
+  /** Prepared runs, before surface/pass filtering. */
   draws: number;
   paletteMatrices: number;
   /** Bodies drawn posed by their palettes this frame. */
@@ -1653,31 +1656,6 @@ export async function createModelLayer(
       for (let i = 0; i < frameRunCount; i++) visit(frameRuns[i], frameRecords.current);
   }
 
-  /** Anything a bound pipeline can draw models through. */
-  interface Drawable3 {
-    with(layout: typeof modelVertexLayout, buffer: GPUBuffer): Drawable3;
-    with(layout: typeof modelRecordLayout, buffer: GPUBuffer): Drawable3;
-    with(layout: typeof modelLayout, group: GPUBindGroup): Drawable3;
-    withIndexBuffer(
-      buffer: GPUBuffer,
-      format: GPUIndexFormat,
-    ): {
-      drawIndexed(
-        count: number,
-        instances: number,
-        first: number,
-        baseVertex: number,
-        firstInstance: number,
-      ): void;
-    };
-  }
-  /** Anything a bound card pipeline can draw through. */
-  interface CardDrawable {
-    with(layout: typeof modelRecordLayout, buffer: GPUBuffer): CardDrawable;
-    with(group: CardGroup): CardDrawable;
-    draw(vertices: number, instances: number, firstVertex: number, firstInstance: number): void;
-  }
-
   const fogIndex = (fog?: ModelFog) => (fog === undefined ? -1 : FOG_INDEX[fog]);
   /** Whether a pipeline's part of the installed meshes has anything to draw
    *  that is not switched off. */
@@ -1764,7 +1742,7 @@ export async function createModelLayer(
     setCards,
     /** One surface class of every mesh run into one of the sun's cascades,
      *  each at the tier its batch casts with. */
-    drawCasters(bound: Drawable3, surface: SurfacePart) {
+    drawCasters(bound: Drawable3, surface: SurfacePart, submitted?: SubmittedDraws) {
       if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       eachRun((run, source) => {
@@ -1776,6 +1754,7 @@ export async function createModelLayer(
           .with(modelRecordLayout, source)
           .withIndexBuffer(caster.mesh.indices, "uint32")
           .drawIndexed(part.count, run.instances, part.first, 0, run.firstInstance);
+        recordDraw(submitted, part.count, run.instances);
       });
     },
     /** Whether the high-air models draw on their own plane this frame
@@ -1791,7 +1770,13 @@ export async function createModelLayer(
     },
     /** Draw one surface class of the mesh runs, all of them or one fog
      *  class's: the world's, or with `high` the high-air plane's. */
-    draw(bound: Drawable3, surface: SurfacePart, fog?: ModelFog, high = false) {
+    draw(
+      bound: Drawable3,
+      surface: SurfacePart,
+      fog?: ModelFog,
+      high = false,
+      submitted?: SubmittedDraws,
+    ) {
       if (!renderGroup || !drawn(surface)) return;
       const only = fogIndex(fog);
       const b = bound.with(modelLayout, renderGroup);
@@ -1804,6 +1789,7 @@ export async function createModelLayer(
           .with(modelRecordLayout, source)
           .withIndexBuffer(run.drawable.mesh.indices, "uint32")
           .drawIndexed(part.count, run.instances, part.first, 0, run.firstInstance);
+        recordDraw(submitted, part.count, run.instances);
       });
     },
     /** Whether the current mesh runs contain a placement preview. */
@@ -1832,7 +1818,12 @@ export async function createModelLayer(
     },
     /** One surface class of every building's modules into the view: the
      *  world's faces. `raw` is the pass `bound` draws into. */
-    drawBuildings(bound: Drawable3, raw: GPURenderPassEncoder, surface: SurfacePart) {
+    drawBuildings(
+      bound: Drawable3,
+      raw: GPURenderPassEncoder,
+      surface: SurfacePart,
+      submitted?: SubmittedDraws,
+    ) {
       if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       buildings.draw(
@@ -1844,10 +1835,16 @@ export async function createModelLayer(
         raw,
         surface,
         hiddenSurfaces,
+        submitted,
       );
     },
     /** One surface class of the buildings that cast, into one of the sun's cascades. */
-    drawBuildingCasters(bound: Drawable3, raw: GPURenderPassEncoder, surface: SurfacePart) {
+    drawBuildingCasters(
+      bound: Drawable3,
+      raw: GPURenderPassEncoder,
+      surface: SurfacePart,
+      submitted?: SubmittedDraws,
+    ) {
       if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       buildings.drawCasters(
@@ -1859,10 +1856,11 @@ export async function createModelLayer(
         raw,
         surface,
         hiddenSurfaces,
+        submitted,
       );
     },
     /** Draw one fog class's impostor cards. */
-    drawCards(bound: CardDrawable, fog: ModelFog) {
+    drawCards(bound: CardDrawable, fog: ModelFog, submitted?: SubmittedDraws) {
       if (!cardRunCount || !cards) return;
       const only = fogIndex(fog);
       const b = bound.with(cards);
@@ -1871,6 +1869,7 @@ export async function createModelLayer(
         if (run.fog !== only) continue;
         if (!cardRecords.current) continue;
         b.with(modelRecordLayout, cardRecords.current).draw(6, run.instances, 0, run.firstInstance);
+        recordDraw(submitted, 6, run.instances);
       }
     },
     /** Switch texture channels on or off for every material (the workbench's

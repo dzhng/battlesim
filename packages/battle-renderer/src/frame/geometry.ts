@@ -1,5 +1,6 @@
 // The one vertex shape every world and overlay mesh uses, the instance record
 // that places a proxy, and the vertex stage both passes share.
+import { recordDraw, type SubmittedDraws } from "./submitted";
 import { tgpu, d, std, type TgpuBindGroup } from "typegpu";
 import { VERTEX_FLOATS, type Mesh } from "../mesh";
 import { PROXY_MESHES, type DrawnProxyKind } from "../proxies";
@@ -124,10 +125,11 @@ export class MeshSlot {
     if (this.count > 0) this.slot.current!.write(floats.buffer, { endOffset: floats.byteLength });
   }
 
-  draw(bound: Drawable) {
+  draw(bound: Drawable, submitted?: SubmittedDraws) {
     const buffer = this.slot.current;
     if (!buffer || this.count === 0) return;
     bound.with(vertexLayout, buffer).with(instanceLayout, this.identity).draw(this.count, 1);
+    recordDraw(submitted, this.count, 1);
   }
 }
 

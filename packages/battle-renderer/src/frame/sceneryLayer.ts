@@ -25,6 +25,7 @@
 // Foliage adds leaf clumps per pixel (3D value noise bending the normal and
 // darkening the gaps, in the tree's own space so it never swims), fading to
 // the plain crown as a pixel grows past a clump.
+import { recordDraw, type SubmittedDraws } from "./submitted";
 import { tgpu, d, std, type TgpuRenderPass } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
 import { VERTEX_FLOATS, type Mesh } from "../mesh";
@@ -600,7 +601,11 @@ export async function createSceneryLayer(
 
   /** Draw the listed batches of `pass` that `which` takes, each through
    *  `bound(draws)` (null: not drawn). */
-  function drawListed(pass: number, bound: (draws: number) => Drawable | null) {
+  function drawListed(
+    pass: number,
+    bound: (draws: number) => Drawable | null,
+    submitted?: SubmittedDraws,
+  ) {
     for (const h of listed) {
       const row = meshes[h.row];
       if (h.pass !== pass || !row || !h.buffer) continue;
@@ -612,6 +617,7 @@ export async function createSceneryLayer(
       const records = row.draws === FELLED ? h.count * 2 : h.count;
       if (records > h.capacity) continue;
       pipeline.with(vertexLayout, mesh.buffer).with(layout, h.buffer).draw(mesh.vertices, h.count);
+      recordDraw(submitted, mesh.vertices, h.count);
       draws++;
     }
   }
@@ -703,23 +709,26 @@ export async function createSceneryLayer(
       treesShown = on;
     },
     /** The standing scenery and the felled into one cascade. */
-    encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
+    encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup, submitted?: SubmittedDraws) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
       const felled = felledCaster.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawListed(CAST_PASS, (draws) => (draws === FELLED ? felled : bound));
+      drawListed(CAST_PASS, (draws) => (draws === FELLED ? felled : bound), submitted);
     },
-    encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
+    encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup, submitted?: SubmittedDraws) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
       const felled = felledPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
       const dressing = dressingPrepass.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawListed(VIEW_PASS, (draws) =>
-        draws === FELLED ? felled : draws === DRESSING ? dressing : bound,
+      drawListed(
+        VIEW_PASS,
+        (draws) => (draws === FELLED ? felled : draws === DRESSING ? dressing : bound),
+        submitted,
       );
     },
     encode(
       pass: TgpuRenderPass,
       cameraGroup: CameraGroup,
       fogFaces: ReturnType<FogVisibility["groups"]>["faces"],
+      submitted?: SubmittedDraws,
     ) {
       const colour = (pipeline: typeof forestColour) =>
         pipeline
@@ -733,14 +742,17 @@ export async function createSceneryLayer(
         colour(felledColour as unknown as typeof forestColour),
         colour(dressingColour),
       ];
-      drawListed(VIEW_PASS, (draws) =>
-        draws === BACKDROP
-          ? backdrop
-          : draws === FELLED
-            ? felled
-            : draws === DRESSING
-              ? dressing
-              : forest,
+      drawListed(
+        VIEW_PASS,
+        (draws) =>
+          draws === BACKDROP
+            ? backdrop
+            : draws === FELLED
+              ? felled
+              : draws === DRESSING
+                ? dressing
+                : forest,
+        submitted,
       );
     },
     /** The instances the last view drew, per population, kind and tier

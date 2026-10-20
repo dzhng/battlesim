@@ -17,6 +17,7 @@
 // so consecutive draws usually change only the range: those go straight to
 // the raw pass, and the pipeline's whole state is set again only when a
 // buffer changes.
+import { recordDraw, type SubmittedDraws } from "../frame/submitted";
 import { TIER_COUNT } from "@packages/scene-assets/src/schema";
 import type { GpuRegistry } from "../frame/registry";
 import {
@@ -209,6 +210,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
     raw: GPURenderPassEncoder,
     surface: SurfacePart,
     hidden: Readonly<SurfaceFlags>,
+    submitted?: SubmittedDraws,
   ) {
     const has = list.surfaces;
     if (!buffer || (surface === "solid" ? !has.opaque && !has.room : !has[surface])) return;
@@ -224,6 +226,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
         vertices = mesh.vertices;
         bind(mesh.vertices, buffer, mesh.indices).drawIndexed(indices, count, firstIndex, 0, first);
       } else raw.drawIndexed(indices, count, firstIndex, 0, first);
+      recordDraw(submitted, indices, count);
     }
   }
 
@@ -303,8 +306,9 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
+      submitted?: SubmittedDraws,
     ) {
-      if (shown) drawList(lists[VIEW_PASS], bind, raw, surface, hidden);
+      if (shown) drawList(lists[VIEW_PASS], bind, raw, surface, hidden, submitted);
     },
     /** One kind of surface of every casting building into one of the sun's cascades. */
     drawCasters(
@@ -312,8 +316,9 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
+      submitted?: SubmittedDraws,
     ) {
-      if (shown) drawList(lists[CAST_PASS], bind, raw, surface, hidden);
+      if (shown) drawList(lists[CAST_PASS], bind, raw, surface, hidden, submitted);
     },
     /** The module instances the last view drew, per row (a walked module)
      *  and tier (`row · 4 + tier`); none while they are hidden. */

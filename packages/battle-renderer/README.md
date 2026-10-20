@@ -122,6 +122,16 @@ knowledge, view changes or frame animation. The static world's Rust walks
 changing authoritative populations. Streaming work reports when it remains
 pending; a camera cut cannot be captured merely after an arbitrary number of frames.
 
+[Submitted geometry](src/frame/submitted.ts) counts issued draw calls, before
+clipping, scissor rejection or fragment discard. Its instances are per draw,
+not distinct objects: repeated surfaces and terrain scar regions repeat work.
+Depth, color, separate high-air passes and individual cascades stay separate.
+Models include props and impostor cards; water and backdrop ground have their
+own counters, while backdrop scenery belongs to scenery. The map skirt shares
+a mesh and counter with traversal-view debug boxes. This is partial world
+accounting, excluding effects, grass, sky, paint, proxies, x-ray and overlays.
+Installed mesh sizes and presentation selection statistics remain distinct.
+
 Diagnostics describe the last drawn frame. Cost and resource comparisons need the
 same camera, tick and installed state, plus a picture proving the intended subject
 was drawn. [Browser verification](../../web/README.md#checks-and-evidence) owns

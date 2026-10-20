@@ -53,3 +53,36 @@ test("a mesh slot keeps its buffer while the mesh fits, uploading only the mesh"
   registry.release();
   expect(made[1].destroyed).toBe(true);
 });
+
+test("submission counts follow repeated mesh draws, not retained capacity", () => {
+  const { root } = fakeRoot();
+  const registry = new GpuRegistry(fakeGpuDevice().device);
+  const slot = new MeshSlot(root as never, registry, {} as never);
+  const submitted = { triangles: 0, instances: 0, draws: 0 };
+  const calls: number[][] = [];
+  const encoder = {
+    with() {
+      return this;
+    },
+    draw(...args: number[]) {
+      calls.push(args);
+    },
+  };
+  slot.draw(encoder as never, submitted);
+  slot.set(mesh(300));
+  slot.set(mesh(18));
+  slot.draw(encoder as never, submitted);
+  slot.draw(encoder as never, submitted);
+  slot.set(mesh(0));
+  slot.draw(encoder as never, submitted);
+  expect(calls).toEqual([
+    [18, 1],
+    [18, 1],
+  ]);
+  expect(submitted).toEqual({
+    triangles: calls.reduce((n, [v, i]) => n + (v / 3) * i, 0),
+    instances: 2,
+    draws: calls.length,
+  });
+  registry.release();
+});
