@@ -471,3 +471,53 @@ floor or native hardware GPU speedup is claimed. The rejected wall and terrain
 experiments, temporary profiling hooks, and candidate resources are absent from
 production. Both requested renderer skill copies carry the same architectural
 principles.
+
+## Retained implementation: final measurement boundary
+
+The car-card pilot is absent from the retained production build. Its original
+sample-frequency shader was too expensive; cheaper centroid sampling lost cars.
+The final filtered experiment fixed disappearance in its expanded controls but
+remained visually unqualified for threshold softness/motion. Earlier filtered
+failures were invalidated by a Buffer-decoding defect, which was fixed separately.
+No result from those malformed captures supports rejection or acceptance.
+
+Matched paused Metro XL seed 4, 100 per side, production Low, tick 90 and digest
+`60ede87ba60aab0b`:
+
+| View | Fresh old control GPU median | Retained candidate GPU median | Candidate return GPU |
+| --- | ---: | ---: | ---: |
+| Close | 5.03 ms | 5.63 ms | 4.93 ms |
+| Tactical | 5.50 ms | 5.74 ms | 7.29 ms |
+| Wide | 32.64 ms | 34.41 ms | 34.29 ms |
+
+Medians use three holds; the return is one hold per view in the complete matrix.
+These establish **no net GPU speedup** for this camera set. Correct offscreen
+shadow selection admits work the old control omitted: wide building/scenery
+casters add about 5.02 million triangles, partly offset by fewer prop and terrain
+submissions. The retained candidate's GPU buffer residency is about 53.47 MiB
+higher at wide; textures are unchanged. This is a real cost of the repair, not a
+speedup to average away. A ten-line building-member refinement reduced counts
+but did not establish a timing benefit and was removed.
+
+The complete retained-candidate paused/live/late/moving matrix passed in 704 s.
+Live GPU means were 12.94/10.84/40.57 ms and late 12.66/11.57/43.11 ms. The
+corresponding main-thread means were 21.18/18.36/43.35 ms live and
+21.25/19.24/41.82 ms late. These are sequential active states, not frozen paired
+speedup estimates. CPU/GPU overlap and cannot be added. Frame means in the wide
+active states were about 77 ms, so GPU duration alone is not gameplay FPS.
+
+The bounded-work result is separate: the matched terrain-growth fixture retained
+local geometry and submissions while the largest remote extension's main-thread
+windows fell from 4.76–4.90 ms to 0.34–0.64 ms after local receiver/caching work.
+It does not grow all populations or establish a universal whole-frame bound.
+Rust population/mutation tests cover their structural selection contracts; full
+known-fall snapshot work remains linear in known history. Installed world memory
+and horizon-visible content can still grow.
+
+Complete frame captures and paired metrics support sampled geometry/shadow
+retention. They do not prove the absence of every transient between stills.
+Shared HUD obstruction, dominant fog hatching and low-contrast infantry are
+unchanged. The first oversized matrix hit its 900-second scene deadline after
+collecting measurements; only the shorter completed matrix is a full run pass.
+Evidence: `throwaway/three-view/mesh-final-{control,views,matrix}`, the
+`mesh-counter-comparison` report and `mesh-final-visual-review.md`.
