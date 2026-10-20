@@ -62,3 +62,13 @@ and a scratch centroid-interpolation diagnostic are underway to separate
 sampling cost from depth output. This candidate is **not accepted**. Cheaper
 sampling must still pass the empty controls and motion gate; restoring known
 disappearance is not an acceptable optimization.
+
+The fresh previous-build control returns to 30.82/30.84/30.24 ms wide. Changing
+only interpolation to centroid in a scratch build retains surface depth and
+measures 31.57/31.76/31.51 ms, isolating per-sample shading as the large cost.
+The migrated current-cascade probe produces 96 exact automatic mesh/card matches;
+all eligible below-threshold cards contribute pixels against caster-retaining
+empty controls. Seven forced-card cases above the eligibility threshold do not;
+automatic selection correctly retains meshes there. Broader subpixel positions,
+continuous motion and independent visual review remain required. No production
+shader change is accepted from these stationary results alone.

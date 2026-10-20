@@ -14,7 +14,9 @@ they shadow visible receivers. Preserve the shared depth/camera convention.
 - [ ] Measure each owner's visited candidates and emitted geometry at all zooms.
 - [x] Test spatial selection against a brute-force geometric oracle, including
   near-plane boundaries, long/scaled props, camera movement and remote extension.
-- [x] Implement bounded queries where the audit finds map-wide traversal.
+- [ ] Complete bounded queries for every audited owner. Terrain, buildings,
+  standing scenery, props and water/boundary ranges are integrated; felled
+  trees/stumps and complete receiver accounting remain in progress.
 - [x] Independently select shadow casters; test an offscreen object shadowing
   visible ground and unrelated map extension leaving cascade fit unchanged.
 - [x] Reassess the prior terrain selector at all views. Scratch code is an
@@ -36,3 +38,11 @@ browser selection parity and resource lifetime stay green. Compare frozen
 before/after frames and offscreen-shadow crops using compare-screenshots; inspect
 transitions for holes/popping, run screenshot-critique last, and show preview-shots.
 The user can redirect the visual tradeoff while independent work continues.
+
+Water and boundary meshes reuse the same spatial partition and range coalescing
+as terrain (`3a1fd9988`). Water queries camera ranges; boundary/debug geometry
+also queries independent cascades. The constant-size backdrop retains direct
+draws. GPU capacities and material settings are unchanged; retained CPU vertices
+cost 120 bytes per triangle plus hierarchy/range metadata. Focused actual browser
+draw-routing tests pass after integration. Rendered parity, public traversal
+diagnostics and performance acceptance remain open.
