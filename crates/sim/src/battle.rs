@@ -26,6 +26,7 @@ use crate::arrangement;
 
 mod controllers;
 mod dispatch;
+mod replay_identity;
 mod skirmish_turn;
 mod spawn;
 mod state_digest;
@@ -55,6 +56,7 @@ use crate::visibility::OcclusionGrid;
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 use contract::random::Rng;
+use replay_identity::{config_digest, scenario_digest};
 use spawn::spawn_unit;
 
 /// Ticks between ground-visibility sweeps for each side ([`fog_phase`]).
@@ -503,43 +505,6 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
             }
         }
     }
-}
-
-fn scenario_digest(setup: &ScenarioDefinition) -> u64 {
-    let map = serde_json::to_string(&setup.map).expect("map serializes");
-    let units = serde_json::to_string(&setup.units).expect("units serialize");
-    let events = serde_json::to_string(&setup.events).expect("events serialize");
-    let scripts = serde_json::to_string(&setup.scripts).expect("scripts serialize");
-    let authored_scripts =
-        serde_json::to_string(&setup.authored_scripts).expect("authored scripts serialize");
-    let victory = serde_json::to_string(&setup.victory).expect("victory serializes");
-    // The opponent's policy and the encounter's rules change what a replay's
-    // commands mean, so a replay is pinned to them too.
-    let opponent = serde_json::to_string(&setup.opponent).expect("opponent serializes");
-    let encounter = serde_json::to_string(&setup.encounter).expect("encounter serializes");
-    let skirmish_identity = setup
-        .skirmish
-        .as_ref()
-        .map(|_| {
-            serde_json::to_string(&setup.players).expect("players serialize")
-                + &serde_json::to_string(&setup.skirmish).expect("skirmish serializes")
-        })
-        .unwrap_or_default();
-    digest::of_str(
-        &(map
-            + &units
-            + &events
-            + &scripts
-            + &authored_scripts
-            + &victory
-            + &opponent
-            + &encounter
-            + &skirmish_identity),
-    )
-}
-
-fn config_digest(setup: &ScenarioDefinition) -> u64 {
-    digest::of_str(&serde_json::to_string(&setup.rules).expect("rules serialize"))
 }
 
 impl Battle {
