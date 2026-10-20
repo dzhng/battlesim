@@ -3,7 +3,7 @@
 This ledger describes the retained feature, including the earlier shipped Low
 resolution, car mesh and Rust storage changes. The user's stopping rule is simple,
 clearly measurable wins; there is no arbitrary percentage target. Verdicts judge
-architectural choices, not completion of the remaining acceptance checks.
+architectural tradeoffs; the rationale records verification scope and limitations.
 
 Review these first: retaining per-cascade lists despite no clear wide-view GPU
 gain; keeping conservative forest motion bounds and standing storage; leaving
@@ -212,7 +212,7 @@ A tiny car could be drawn as a textured rectangle, called an impostor. The new
 pilot required surface reconstruction to sit on the ground correctly. Shading
 each antialiasing sample made that path expensive; cheaper sampling could lose
 cars. The final filtered candidate no longer disappeared in its expanded camera
-states, but softness and shimmer still left it unqualified. Keep the simplified
+states, but softness and temporal appearance remained uncertain; it was not qualified. Keep the simplified
 mesh instead of shipping an unresolved appearance policy and new asset format.
 
 - **When:** final pilot removal `8ce8d4d96` and disposition.

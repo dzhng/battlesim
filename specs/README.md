@@ -38,9 +38,10 @@ for the known limitations native shipped with.
 
 [Capture](done/capture/README.md) (shipped) turns a JSON capture file (camera and scenes over saved encounters) into MP4s for marketing videos, through the same scene player the main-menu backdrop uses.
 
-[Performance](performance/README.md) is active: three gameplay zoom levels,
-view-bounded camera/shadow work, and projected-size distant prop impostors.
-Earlier shipped gains remain documented alongside the new plan.
+[Performance](done/performance/README.md) records shared spatial selection and
+local shadow fitting across three gameplay zoom levels. It retains the measured
+bounded-work improvement, GPU/memory costs, and rejected distant-car pilot; no
+net fixed-view GPU speedup is claimed.
 
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,
