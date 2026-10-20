@@ -52,11 +52,18 @@ fn spatial_query_keeps_complete_scenery_lists_and_prints_after_restanding() {
                     let mut light: crate::light::LightSettings =
                         serde_json::from_value(fixture["lights"]["game"].clone()).unwrap();
                     light.cascades.max_far_m = 100.;
-                    let fit = crate::shadow::sun_shadow(
-                        &light,
-                        &camera,
-                        Some(&[-300., -100., -11., 300., 100., 10.]),
+                    let terrain = crate::static_world::ground::partition::TerrainPartition::new(
+                        &crate::static_world::ground::mesh::terrain(
+                            &[
+                                -300., -100., -10., 300., -100., -10., 300., 100., -10., -300.,
+                                100., -10.,
+                            ],
+                            &[0, 1, 2, 0, 2, 3],
+                            None,
+                        ),
+                        crate::static_world::ground::partition::CELL_M,
                     );
+                    let fit = crate::shadow::sun_shadow(&light, &camera, Some(&terrain));
                     let shadow = CasterVolumes::new(&fit.casters);
                     for shadow in [None, Some(&shadow)] {
                         let view = View::new(&camera);
