@@ -119,16 +119,13 @@ cost still needs the final production run.
 Browser draw/fit terrain partitions also duplicate immutable storage; resolve
 ownership if the measured maintenance/memory benefit warrants the change.
 
-The car depth/coverage correction is integrated as `fc485aaf4`. Its shared shader
-uses a third, RG8 depth atlas and per-sample coverage. All 96 tested threshold
-cases contribute pixels against empty controls retaining mesh casters. This
-proves contribution, not perceptual equivalence. Motion contrast and native
-individual-car parity remain open. The corrected shader regresses wide GPU cost
-to about 72 ms in three rounds. A scratch centroid-interpolation variant retains
-surface depth at 31.5–31.8 ms versus fresh control 30.2–30.8 ms. Its automatic
-boundary cases retain car pixels; broader subpixel/motion checks are delegated.
-The tracked shader remains unaccepted until that pass completes. The candidate
-adds 128 KiB GPU texture memory. Focused integration and shader-export tests pass.
+The car depth correction is integrated as `fc485aaf4`, but its per-sample shader
+is too expensive: about 72 ms wide GPU versus a fresh previous-build control
+near 31 ms. Centroid interpolation restores speed but fails visual acceptance:
+7 of 306 eligible states disappear in the expanded, render-size-matched probe.
+Neither candidate is accepted. A bounded filtered-atlas coverage experiment is
+in progress through the existing shared card owner, with native agreement and
+renewed image/timing gates. Preserve depth, the threshold and independent casters.
 
 Then measure the final Low production build at all three zooms: paused, live,
 late and separate moving windows, with matched controls and resource resets.

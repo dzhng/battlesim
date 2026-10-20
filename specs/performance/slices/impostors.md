@@ -72,3 +72,21 @@ empty controls. Seven forced-card cases above the eligibility threshold do not;
 automatic selection correctly retains meshes there. Broader subpixel positions,
 continuous motion and independent visual review remain required. No production
 shader change is accepted from these stationary results alone.
+
+### Expanded centroid trial: rejected
+
+A render-size-matched probe expands to 370 states: 306 eligible automatic cards
+and 64 automatic meshes, with horizontal subpixel translations and consecutive
+orbit/zoom states. Seven eligible centroid states vanish against empty controls;
+mesh and sample-frequency cards vanish in none. All 804 shared control images
+are byte-identical. A fresh critic also finds contrast jumps. The cheaper
+centroid candidate therefore does not qualify. Earlier narrower stationary
+results must not be generalized to motion or other raster phases.
+
+Feeding centroid alpha to the existing cutout sample mask does not recover a
+reproduced failure; a depth-bypass diagnostic also remains empty. Diagnostic
+alpha output identifies transparent atlas sampling. The next bounded experiment
+adds footprint-filtered coverage coherently with color, normal and depth through
+the existing card/asset owners. Keep the threshold, geometry and independent
+casters. It requires renewed visual and GPU acceptance, not an assumed mip win.
+Detailed evidence is in the centroid delegate's `throwaway/car-cards/handoff.md`.

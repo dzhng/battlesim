@@ -40,3 +40,15 @@ successful collection is not acceptance: review traversal versus resident growth
 local pictures and receiver records for both horizontal and elevated extensions.
 Static population growth and offscreen caster coverage still need their own
 proof; this terrain-only fixture does not close those contracts.
+
+## Integrated resource checkpoint
+
+The Low Metro XL live/late scene completed with 100 units per side, three
+repeated tick-90 resets and 60-second live/late segments. Each reset returns
+exactly 5,983 buffers, 42 textures, 3,300,514,276 buffer bytes and 613,259,441
+texture bytes, with the same digest, corpse IDs, clock and camera. This build
+includes water/felled selection and receiver caching but still uses the rejected
+per-sample card shader. Treat its successful lifetime checks separately from
+performance acceptance; changes to resource construction require affected checks
+to run again. Evidence: `throwaway/three-view/combined-resources/` and its sibling
+`combined-resource-run.log`.
