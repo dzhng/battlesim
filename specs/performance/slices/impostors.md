@@ -1,14 +1,14 @@
 # 3. Projected-size prop representations
 
-Status: shared browser/native candidate integrated; depth clipping fix and acceptance open. Unlock cheap far props
+Status: shared browser/native candidate integrated; depth/coverage correction integrated; acceptance open. Unlock cheap far props
 in production while close geometry retains its appearance.
 
 Scene assets owns representation data. Shared Rust presentation selects from
 projected bounds; both clients consume the same identity and tier. Extend the
 existing atlas/card owners instead of inventing a second sprite renderer. The candidate extends body cards with full fitted bounds, nonuniform transforms,
-shared prepared assets and actual native atlas consumption. Focused images show
-flat-plane depth clipping the lower car silhouette; that correction is required
-before acceptance.
+shared prepared assets and actual native atlas consumption. The shared depth/coverage correction restores surface depth and evaluates coverage
+at MSAA sample positions. Boundary contribution checks pass; moving appearance,
+native individual-car parity and GPU acceptance remain open.
 
 ## Passes
 
@@ -36,3 +36,20 @@ transitions with compare-screenshots; run unprimed screenshot-critique last.
 Show preview-shots for a non-blocking review window while working independently.
 No card implementation is accepted from triangle counts alone: pair GPU/frame
 measurements and images, reporting regressions at each view separately.
+
+## Depth and coverage evidence
+
+The integrated correction (`fc485aaf4`) retains the appearance atlas bytes and
+adds one coverage-weighted RG8 depth atlas. Surface reconstruction drives depth,
+lighting and fog in the shared shader. Pixel-center alpha testing erased 44 of
+96 tested cards against an empty-view control retaining their mesh casters;
+sample-position interpolation reduced that count to zero. Automatic selection
+matches mesh above and card below the boundary in all 96 cases. Nonzero pixels
+do not establish matching contrast or motion stability.
+
+The prepared asset costs 90,570 compressed bytes and 655,376 GPU bytes, an
+additional 31,109 compressed and 131,072 GPU bytes. The native smoke validates
+the shared pipeline; crowded native diagnostic plates are not individual-car
+parity. Final visual critique found no obvious ground cut but left transition
+appearance uncertain. Root must measure the fragment cost before acceptance.
+Detailed captures and reports remain in the card delegate's scratch handoff.

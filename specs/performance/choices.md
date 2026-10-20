@@ -157,7 +157,7 @@ that the GPU will later discard. The next pass keeps four independent lists and
 publishes which cascade each list belongs to. Browser and native draw the same
 membership. Objects spanning multiple cascades appear in each required list.
 
-- **When:** per-cascade pass, implementation in progress.
+- **When:** per-cascade pass, integrated; performance acceptance open.
 - **Gap:** independent camera/shadow selection did not specify cascade batching.
 - **Reach:** the existing batch record uses a padding word for membership without
   increasing its size; both clients and batch-cache keys change together.
@@ -166,3 +166,18 @@ membership. Objects spanning multiple cascades appear in each required list.
   cascades, at the cost of duplicate records for overlapping casters.
 - **Confidence:** medium pending measured GPU savings, upload/resource cost and
   shadow continuity across moving views. The corrected fit remains mandatory.
+
+### Evaluate tiny-card coverage at each MSAA sample
+
+A two-pixel car can cover samples away from the pixel center. Testing only the
+center made some cars disappear even while their meshes contributed visible
+pixels. The candidate evaluates card coordinates per sample, preserving the
+existing size threshold and geometry instead of enlarging the car.
+
+- **Gap:** the plan required visible continuity without prescribing raster sampling.
+- **Reach:** the existing shared card shader in browser and native; it can increase
+  fragment work for all users of that shader, not only parked cars.
+- **Verdict:** sound candidate to repair demonstrated coverage loss; retention
+  still requires motion quality and GPU cost acceptance.
+- **Confidence:** medium. Static contribution is proven; perceptual equivalence
+  and performance are not.

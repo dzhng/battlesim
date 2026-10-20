@@ -101,43 +101,43 @@ Full closeout checks run once after implementation, with narrower checks per pas
 
 ## Next Agent Prompt
 
-The local shadow-receiver fit is integrated (`a52a53029`), with all 64 static
-population tests passing after fixture migration. Shared offline/native car cards and per-cascade static submission are integrated;
-finish the card-depth correction, then run the production acceptance matrix. Fitted static caster volumes are in
-`2c6e202d7`; terrain and static populations now share bounded spatial queries
-(`b828593e3`, `5c08e4065`). Their focused tests, independent reviews and hooks pass.
-Static population traversal diagnostics are public. Felled-tree selection remains
-unchanged and needs explicit audit. The receiver fit now queries local terrain through the hierarchy; remote elevated
-ground no longer changes the tested cascades. Production visual/timing gates remain.
+Core terrain/static bounds, local receiver fitting, per-cascade caster lists and
+shared browser/native car cards are integrated. No slice is closed and nothing
+from this reopened run is pushed. Keep final acceptance separate from focused
+contract tests.
 
-Three-view holds and separate moving windows are implemented. The browser terrain-growth harness passed its 30 windows with unchanged submitted
-geometry across flat/elevated remote extensions; independent image review is pending. Preserve local exports and append
-remote geometry: independently resizing/recompiling a map changes local triangles
-and cannot serve as the matched control. Recompute receiver inputs in each arm.
+Finish three independent architectural repairs in progress: bound felled trees
+and stumps, select water/boundary draw ranges, and cache unchanged receiver fits
+while counting their actual traversal/triangle work. The current terrain-growth
+counters omit receiver fitting; do not claim complete bounded CPU work yet.
+Browser draw/fit terrain partitions also duplicate immutable storage; resolve
+ownership if the measured maintenance/memory benefit warrants the change.
 
-Evidence lives in `throwaway/three-view/`. Numbered paused captures match tick 90,
-digest `60ede87ba60aab0b`, camera and render size. Terrain camera submissions fall
-from 194,458 triangles to 4/4/10 at close/tactical/wide. A same-world full/culled-draw diagnostic gives median GPU 5.457/5.493 ms close,
-6.463/5.897 ms tactical, and 35.390/35.169 ms wide. Clean images are pixel-identical
-in each pair. This isolates submission cost: no close gain, about 0.57 ms tactical
-and 0.22 ms wide; it does not measure selector CPU overhead. Two-world
-interleaving stalled renderer initialization; disk pressure was also present.
-Completed child build output was cleaned, retaining source and evidence.
+The car depth/coverage correction is integrated as `fc485aaf4`. Its shared shader
+uses a third, RG8 depth atlas and per-sample coverage. All 96 tested threshold
+cases contribute pixels against empty controls retaining mesh casters. This
+proves contribution, not perceptual equivalence. Motion contrast, native
+individual-car parity and the sample-shading GPU cost remain open. The candidate
+adds 128 KiB GPU texture memory. Focused integration and shader-export tests pass.
 
-The browser car pilot (`7034eb25c`) reuses existing two-channel cards at an
-asset-owned two-pixel full-bounds threshold. Paused wide GPU A/B/A medians are
-30.70/25.81/29.96 ms; model/prop color triangles fall from 13.28M to 8.38M.
-Close timings are essentially unchanged. These pre-correction timings are not
-the final combined result: fitted caster volumes increased wide model shadow
-work from 8.7M to 15.9M triangles per cascade. Remeasure after local receiver fitting
-and resolve excessive union submissions before acceptance. `terrain-paused`, `car-paused` and
-`car-control-return` hold the paired evidence. No native parity claim yet.
+Then measure the final Low production build at all three zooms: paused, live,
+late and separate moving windows, with matched controls and resource resets.
+Explicitly resolve walls/vegetation from footprint, cost and images. Review the
+whole spec, consolidate choices, run full closeout checks once, and push only
+after the acceptance gates pass.
 
-Terrain image review finds no missing/displaced geometry. The tiny infantry
-shading difference between builds does not occur in the same-world full/culled
-comparison. Car review accepts close/tactical preservation but cannot certify
-individual wide cars amid hatching; focused uncluttered card/mesh views remain.
-Existing HUD crowding and hatching noise remain recorded limitations. Complete
-headings/pitches/transitions, live/late, matched growth, native and resource gates;
-resolve wall/vegetation representations explicitly. Then run whole-spec review,
-full checks and push. No slice is closed and these candidates are not pushed.
+Evidence is retained in `throwaway/three-view/`; detailed continuity is in
+`SESSION-HANDOFF.md`. Pinned paused comparisons use tick 90, time 3 and digest
+`60ede87ba60aab0b`. Same-world terrain full/selected images are identical; median
+GPU full/selected is 5.457/5.493 ms close, 6.463/5.897 tactical and 35.390/35.169
+wide. These isolate draw cost, not selector CPU. Earlier car gains used the old
+caster approximation and are not final combined results. Correct per-cascade
+submission reduces wide caster triangles, but its repeated GPU timings do not
+yet establish a gain and allocated buffers increased about 39 MB.
+
+The terrain-only growth harness passed 30 windows at explicit Low after its
+original default-profile run. It preserves local geometry and appends flat or
+elevated remote extensions. Population/water/felled growth and complete receiver
+accounting remain separate gates. Existing moving/growth image reviews found no
+convincing missing geometry; they precede the pending changes and do not certify
+sprite motion or new draw-range selection.
