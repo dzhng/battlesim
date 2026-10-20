@@ -477,3 +477,156 @@ fn fixed_fall_envelope_keeps_tipped_compressed_and_stump_extremes() {
         }
     }
 }
+
+#[test]
+fn one_remote_fall_does_not_rebuild_standing_geometry() {
+    let mut local_work = None;
+    for remote in [64, 1024, 4096] {
+        let (ground, mut walk) = felled_fixture(remote);
+        let mut known = walk.felled.clone();
+        known.retain(|f| f.prop != 0 && f.prop != remote as u32 + 2);
+        walk.set_felled(known.clone());
+        walk.set_clock(10.);
+        walk.select(&ground, &felled_camera(0.), Some(&felled_shadows()));
+        let sources_bytes: usize = [&walk.forest, &walk.understorey.pop, &walk.backdrop]
+            .iter()
+            .map(|p| {
+                p.sources.capacity() * std::mem::size_of::<Vec<usize>>()
+                    + p.sources
+                        .iter()
+                        .map(|s| s.capacity() * std::mem::size_of::<usize>())
+                        .sum::<usize>()
+            })
+            .sum();
+        eprintln!("N={} source_vectors_bytes={sources_bytes} removed_placed_bytes={} known_usable_capacity={} chunks={}", remote+3, walk.scenery.forest.len()*4, walk.felled_spatial.known.capacity(), walk.forest.chunks.len());
+        let p = &walk.forest;
+        let geometry_bytes = p.sorted.capacity() * std::mem::size_of::<Vec<Record>>()
+            + p.heights.capacity() * std::mem::size_of::<Vec<f32>>()
+            + p.sources.capacity() * std::mem::size_of::<Vec<usize>>()
+            + p.sorted
+                .iter()
+                .map(|v| v.capacity() * std::mem::size_of::<Record>())
+                .sum::<usize>()
+            + p.heights.iter().map(|v| v.capacity() * 4).sum::<usize>()
+            + p.sources
+                .iter()
+                .map(|v| v.capacity() * std::mem::size_of::<usize>())
+                .sum::<usize>()
+            + p.chunks.capacity() * std::mem::size_of::<Chunk>()
+            + p.chunks
+                .iter()
+                .map(|c| (c.start.capacity() + c.end.capacity()) * std::mem::size_of::<usize>())
+                .sum::<usize>();
+        eprintln!("retained_forest_geometry_bytes={geometry_bytes} (vectors/chunks only; excludes index, snapshot and hash table)");
+        let before = walk.forest.generation;
+        let work = walk.felled_work();
+        let mut records = vec![];
+        walk.each_list(&mut |l| {
+            if !l.records.is_empty() {
+                records.push((
+                    l.row,
+                    l.tier,
+                    l.pass,
+                    l.cascade_mask,
+                    l.print,
+                    l.records.to_vec(),
+                ));
+            }
+        });
+        let start = std::time::Instant::now();
+        known.push(FelledTree {
+            prop: remote as u32 + 2,
+            toward: [0., 1.],
+            fell_at: 10.,
+        });
+        let snapshot_rows = known.len();
+        walk.set_felled(known);
+        let reconcile = start.elapsed();
+        walk.select(&ground, &felled_camera(0.), Some(&felled_shadows()));
+        eprintln!(
+            "remote={remote} reconcile={reconcile:?} total={:?} work={:?} snapshot_delta={}",
+            start.elapsed(),
+            walk.felled_work(),
+            walk.felled_work()[1] - work[1]
+        );
+        assert_eq!(
+            work[0],
+            remote + 3,
+            "initialize each immutable tree envelope once"
+        );
+        assert_eq!(walk.felled_work()[1] - work[1], snapshot_rows);
+        assert_eq!(work[2], *local_work.get_or_insert(work[2]));
+        assert_eq!(
+            walk.felled_work()[0],
+            work[0],
+            "remote fall rebuilt motion envelopes"
+        );
+        assert_eq!(
+            walk.felled_work()[2],
+            work[2],
+            "remote fall increased local membership work"
+        );
+        assert_eq!(
+            walk.forest.generation, before,
+            "a remote fall rebuilt the forest"
+        );
+        let mut after = vec![];
+        walk.each_list(&mut |l| {
+            if !l.records.is_empty() {
+                after.push((
+                    l.row,
+                    l.tier,
+                    l.pass,
+                    l.cascade_mask,
+                    l.print,
+                    l.records.to_vec(),
+                ));
+            }
+        });
+        assert_eq!(
+            records, after,
+            "remote knowledge changed local lists or prints"
+        );
+    }
+}
+
+#[test]
+fn local_fall_filters_standing_records_and_restoring_knowledge_restores_prints() {
+    let (ground, mut walk) = felled_fixture(64);
+    walk.set_felled(vec![]);
+    let shadow = felled_shadows();
+    for x in [0., -150., 100.] {
+        let view = felled_camera(x);
+        walk.select(&ground, &view, Some(&shadow));
+        let before = (
+            walk.forest.view.clone(),
+            walk.forest.cast.clone(),
+            walk.forest.prints.clone(),
+        );
+        walk.set_felled(vec![FelledTree {
+            prop: 2,
+            toward: [1., 0.],
+            fell_at: 0.,
+        }]);
+        walk.select(&ground, &view, Some(&shadow));
+        for (expected, actual) in before
+            .0
+            .iter()
+            .chain(&before.1)
+            .zip(walk.forest.view.iter().chain(&walk.forest.cast))
+        {
+            let kept: Vec<_> = expected.iter().copied().filter(|r| r[0] != 10.).collect();
+            assert_eq!(*actual, kept, "standing survivor records/order");
+        }
+        walk.set_felled(vec![]);
+        walk.select(&ground, &view, Some(&shadow));
+        assert_eq!(
+            before,
+            (
+                walk.forest.view.clone(),
+                walk.forest.cast.clone(),
+                walk.forest.prints.clone()
+            )
+        );
+    }
+}

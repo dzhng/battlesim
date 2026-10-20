@@ -38,8 +38,7 @@ pub use felled::FelledTree;
 
 const LAST: usize = TIERS - 1;
 const CHUNK_M: f64 = 128.0;
-/// Marks a whole chunk in a list's print apart from any one instance's
-/// (`chunk << 32 | index`).
+/// A whole unfiltered chunk has an identity distinct from an instance.
 const WHOLE: u64 = 1 << 63;
 /// A crown's heart, where a whole tree probes fog, as a share of its height.
 const HEART: f64 = 0.62;
@@ -115,6 +114,9 @@ struct Pop {
     kinds: usize,
     sorted: Vec<Vec<Record>>,
     heights: Vec<Vec<f32>>,
+    /// Original placement indices, in the same immutable order as sorted.
+    sources: Vec<Vec<usize>>,
+    examined: usize,
     chunks: Vec<Chunk>,
     chunk_index: BoundsIndex,
     candidates: Vec<usize>,
@@ -146,6 +148,7 @@ impl Pop {
         let mut ids: Vec<i64> = cells.keys().copied().collect();
         ids.sort();
         let (mut sorted, mut heights) = (vec![vec![]; kinds], vec![vec![]; kinds]);
+        let mut sources = vec![vec![]; kinds];
         let chunks: Vec<Chunk> = ids
             .iter()
             .map(|id| {
@@ -172,6 +175,7 @@ impl Pop {
                     }
                     size = size.max(h_);
                     sorted[kind].push(r);
+                    sources[kind].push(i);
                     heights[kind].push(h);
                 }
                 Chunk {
@@ -186,6 +190,8 @@ impl Pop {
             kinds,
             sorted,
             heights,
+            sources,
+            examined: 0,
             chunk_index: BoundsIndex::new(chunks.iter().map(|c| c.bounds)),
             chunks,
             candidates: Vec::new(),
@@ -199,6 +205,24 @@ impl Pop {
     }
 
     fn select(&mut self, view: &View, shadow: Option<&CasterVolumes>, lod: &[f64; 3]) {
+        self.select_kept(view, shadow, lod, None::<fn(usize) -> bool>);
+    }
+
+    fn select_kept(
+        &mut self,
+        view: &View,
+        shadow: Option<&CasterVolumes>,
+        lod: &[f64; 3],
+        keep: Option<impl Fn(usize) -> bool>,
+    ) {
+        let examined = std::cell::Cell::new(0);
+        let filtered = keep.is_some();
+        let keep = |id| {
+            keep.as_ref().is_none_or(|keep| {
+                examined.set(examined.get() + 1);
+                keep(id)
+            })
+        };
         let n = self.kinds * TIERS;
         self.view
             .iter_mut()
@@ -221,8 +245,18 @@ impl Pop {
             let whole = |out: &mut [Vec<Record>], prints: &mut [u64], at: usize| {
                 for k in 0..self.kinds {
                     let list = k * TIERS + LAST;
-                    out[list].extend_from_slice(&self.sorted[k][chunk.start[k]..chunk.end[k]]);
-                    prints[at + list] = print(prints[at + list], WHOLE | c as u64);
+                    if !filtered {
+                        out[list].extend_from_slice(&self.sorted[k][chunk.start[k]..chunk.end[k]]);
+                        prints[at + list] = print(prints[at + list], WHOLE | c as u64);
+                        continue;
+                    }
+                    for i in chunk.start[k]..chunk.end[k] {
+                        if keep(self.sources[k][i]) {
+                            out[list].push(self.sorted[k][i]);
+                            prints[at + list] =
+                                print(prints[at + list], ((c as u64) << 32) | i as u64);
+                        }
+                    }
                 }
             };
             if !view.sees_box(&chunk.bounds) {
@@ -253,6 +287,9 @@ impl Pop {
             }
             for k in 0..self.kinds {
                 for i in chunk.start[k]..chunk.end[k] {
+                    if !keep(self.sources[k][i]) {
+                        continue;
+                    }
                     let r = &self.sorted[k][i];
                     let size = self.heights[k][i] as f64;
                     let centre = [r[0] as f64, r[1] as f64, r[2] as f64 + size / 2.0];
@@ -274,6 +311,7 @@ impl Pop {
                 }
             }
         }
+        self.examined = examined.get();
     }
 
     fn each_list(&self, rows: &[u32], visit: &mut dyn FnMut(List)) {
@@ -301,7 +339,7 @@ impl Pop {
 }
 
 /// A population on the simulation's ground, rebuilt when what stands of it
-/// changes (a tree the side saw fall, a shrub on ground it saw cleared).
+/// changes (a shrub on ground it saw cleared).
 struct Standing {
     placed: Vec<f32>,
     kept: Option<Vec<usize>>,
@@ -417,7 +455,7 @@ pub struct SceneryWalk {
     trunks: Vec<Trunk>,
     /// Per placed forest tree: its trunk's prop id.
     index: HashMap<u32, usize>,
-    forest: Standing,
+    forest: Pop,
     understorey: Standing,
     backdrop: Pop,
     cells: Vec<Cell>,
@@ -482,7 +520,7 @@ impl SceneryWalk {
                 .enumerate()
                 .map(|(i, &id)| (id, i))
                 .collect(),
-            forest: Standing::new(&scenery.forest, &sizes, kinds),
+            forest: Pop::new(&scenery.forest, &sizes, kinds, true, 0),
             understorey: Standing::new(&scenery.understorey, &sizes, kinds),
             backdrop,
             cell_index: cells.iter().enumerate().map(|(n, c)| (c.at, n)).collect(),
@@ -526,17 +564,24 @@ impl SceneryWalk {
         self.dressing_generation += 1;
     }
 
-    /// Follows the trees the side saw fall; true when that changed.
+    /// Reconcile the side's full snapshot (one fall per prop), O(F), including
+    /// equality/replacement. Geometry and hierarchy are independent of knowledge.
     pub fn set_felled(&mut self, felled: Vec<FelledTree>) -> bool {
         if felled == self.felled {
             return false;
         }
-        let ids: HashSet<u32> = felled.iter().map(|f| f.prop).collect();
-        let forest_ids = &self.scenery.forest_ids;
-        self.forest
-            .restand(&self.sizes, |i, _| ids.contains(&forest_ids[i]));
+        let spatial = &mut self.felled_spatial;
+        spatial.known.clear();
+        spatial.latest = None;
+        for (id, f) in felled.iter().enumerate() {
+            spatial.reconciled += 1;
+            let Some(&source) = self.index.get(&f.prop) else {
+                continue;
+            };
+            spatial.known.insert(source, id);
+            spatial.latest = Some(spatial.latest.map_or(f.fell_at, |v| v.max(f.fell_at)));
+        }
         self.felled = felled;
-        self.felled_spatial.dirty = true;
         true
     }
 
@@ -553,7 +598,10 @@ impl SceneryWalk {
             .trees
             .lod_px
             .map(|v| v * self.quality.tree_lod_scale);
-        self.forest.pop.select(view, shadow, &lod);
+        self.prepare_felled(&ground.biome.trees.felled);
+        let known = &self.felled_spatial.known;
+        self.forest
+            .select_kept(view, shadow, &lod, Some(|id| !known.contains_key(&id)));
         if self.quality.understorey {
             self.understorey.pop.select(view, shadow, &lod);
         } else {
@@ -660,7 +708,7 @@ impl SceneryWalk {
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
         let row = |d: Draws| &self.rows[d as usize - 1];
-        self.forest.pop.each_list(row(Draws::Forest), visit);
+        self.forest.each_list(row(Draws::Forest), visit);
         if self.quality.understorey {
             self.understorey
                 .pop
@@ -734,11 +782,11 @@ impl SceneryWalk {
     /// dressing cells drawn, then standing and felled bounds visited by the last walk.
     pub fn stats(&self) -> [usize; 5] {
         [
-            self.forest.pop.placed(),
+            self.forest.placed() - self.felled_spatial.known.len(),
             self.understorey.pop.placed(),
             self.backdrop.placed(),
             self.drawn.len(),
-            self.forest.pop.visited
+            self.forest.visited
                 + self.understorey.pop.visited
                 + self.backdrop.visited
                 + self.felled_spatial.visited,
