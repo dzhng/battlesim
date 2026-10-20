@@ -102,16 +102,16 @@ Full closeout checks run once after implementation, with narrower checks per pas
 ## Next Agent Prompt
 
 The local shadow-receiver fit is integrated (`a52a53029`), with all 64 static
-population tests passing after fixture migration. Integrate shared offline/native
-car cards, then run the production acceptance matrix. Fitted static caster volumes are in
+population tests passing after fixture migration. Shared offline/native car cards and per-cascade static submission are integrated;
+finish the card-depth correction, then run the production acceptance matrix. Fitted static caster volumes are in
 `2c6e202d7`; terrain and static populations now share bounded spatial queries
 (`b828593e3`, `5c08e4065`). Their focused tests, independent reviews and hooks pass.
 Static population traversal diagnostics are public. Felled-tree selection remains
 unchanged and needs explicit audit. The receiver fit now queries local terrain through the hierarchy; remote elevated
 ground no longer changes the tested cascades. Production visual/timing gates remain.
 
-Three-view holds and separate moving windows are implemented. The browser
-matched-local-world harness is in progress. Preserve local exports and append
+Three-view holds and separate moving windows are implemented. The browser terrain-growth harness passed its 30 windows with unchanged submitted
+geometry across flat/elevated remote extensions; independent image review is pending. Preserve local exports and append
 remote geometry: independently resizing/recompiling a map changes local triangles
 and cannot serve as the matched control. Recompute receiver inputs in each arm.
 
