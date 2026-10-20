@@ -35,12 +35,17 @@
 //! Each drawn model takes the units' tier rule (`view::model_detail`) by its
 //! appearance's size grown by its largest scale, and is listed by look (its
 //! appearance, state, and whether movers stand on it) and tier.
+mod detail;
+use detail::{card_bounds, projected_bounds_px};
+
 use crate::records::{CAST_PASS, VIEW_PASS};
 use crate::seed::Key;
 use crate::static_world::batches::{List, Population};
 use crate::static_world::fallen::Known;
 use crate::static_world::walk::{casts_into, Record, Shadow};
-use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, SHADOW_MARGIN_M, TIERS};
+use crate::view::{
+    caster_tier, model_detail, model_fog, View, CULLED, IMPOSTOR, SHADOW_MARGIN_M, TIERS,
+};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use sim::publication::reader::KnownProp;
@@ -63,6 +68,7 @@ const STATE: &str = "default";
 const WRECK: &str = "wreck";
 /// Square chunks the map's props are bucketed in, metres.
 const CHUNK_M: f64 = 64.0;
+const PROP_TIERS: usize = TIERS + 1;
 
 /// A prop kind's binding in the world layout (`propAppearance`).
 #[derive(Clone, Debug, Deserialize)]
@@ -107,6 +113,9 @@ pub struct Art {
     #[serde(default)]
     pub paints: Option<Vec<[f64; 3]>>,
     pub bounds: Corners,
+    /// Asset-owned opt-in; clients without an installed atlas keep the mesh.
+    #[serde(default)]
+    pub far_card_px: Option<f64>,
 }
 
 /// What the props are drawn from: the installed appearances a prop may be
@@ -146,6 +155,8 @@ struct Candidate {
     /// Linear tints its paintable surfaces take.
     paints: Option<Vec<[f32; 3]>>,
     size: Bounds,
+    corners: Corners,
+    far_card_px: Option<f64>,
 }
 
 /// The fit: each bound kind's candidates in choosing order, each unit
@@ -185,6 +196,7 @@ pub struct Model {
     pub record: Record,
     size: f64,
     radius: f64,
+    card_bounds: Option<([f64; 6], f64)>,
 }
 
 impl PropArt {
@@ -248,6 +260,8 @@ impl PropArt {
                     .as_ref()
                     .map(|p| p.iter().map(|&c| linear(c)).collect()),
                 size: a.bounds.bounds(),
+                corners: a.bounds,
+                far_card_px: a.far_card_px,
             });
         }
         for (unit, model) in &art.layout.unit_appearance {
@@ -394,15 +408,11 @@ impl PropArt {
                 .paints
                 .as_ref()
                 .map_or([1.0; 3], |p| paint_of(p, b, authored));
-            out.push(placed(
-                look,
-                b,
-                0.0,
-                [hx / fx, hy / fy, hz / fz],
-                0.0,
-                tint,
-                size,
-            ));
+            let mut model = placed(look, b, 0.0, [hx / fx, hy / fy, hz / fz], 0.0, tint, size);
+            if let Some(px) = cand.far_card_px.filter(|px| px.is_finite() && *px > 0.0) {
+                model.card_bounds = Some((card_bounds(&cand.corners, &model.record), px));
+            }
+            out.push(model);
             return;
         }
         // A module runs along its own long axis; turn it to the box's long side.
@@ -463,6 +473,7 @@ fn placed(
         record,
         size: size.size * grow,
         radius: size.radius * grow,
+        card_bounds: None,
     }
 }
 
@@ -637,7 +648,7 @@ impl PropPopulation {
             }
             chunk.models.push(i);
         }
-        let lists = vec![Vec::new(); looks.list.len() * TIERS * 2];
+        let lists = vec![Vec::new(); looks.list.len() * PROP_TIERS * 2];
         PropPopulation {
             hidden: vec![false; map.len()],
             prints: vec![0; lists.len()],
@@ -759,12 +770,19 @@ impl Population for PropPopulation {
     fn select(&mut self, view: &View, shadow: Option<&Shadow>) -> bool {
         let mut lists = vec![Vec::new(); self.lists.len()];
         let this = &*self;
-        let n = self.looks.list.len() * TIERS;
+        let n = self.looks.list.len() * PROP_TIERS;
         let mut take = |m: &Model| {
             let at = [m.record[0], m.record[1], m.record[2]].map(f64::from);
-            let tier = model_detail(&this.art.detail, view, at, m.size, m.radius, false, None);
+            let mut tier = model_detail(&this.art.detail, view, at, m.size, m.radius, false, None);
+            if tier == 3
+                && m.card_bounds.as_ref().is_some_and(|(b, px)| {
+                    projected_bounds_px(view, b) < px.min(this.art.detail.impostor_px)
+                })
+            {
+                tier = IMPOSTOR;
+            }
             if tier != CULLED {
-                lists[m.look * TIERS + tier as usize].push(m.record);
+                lists[m.look * PROP_TIERS + tier as usize].push(m.record);
             }
             // Camera detail and shadow membership are independent. Reuse the
             // static world's receiver sweep, including its existing reach.
@@ -778,7 +796,7 @@ impl Population for PropPopulation {
                 } else {
                     caster_tier(tier as usize)
                 };
-                lists[n + m.look * TIERS + cast].push(m.record);
+                lists[n + m.look * PROP_TIERS + cast].push(m.record);
             }
         };
         for chunk in this.chunks.iter().filter(|c| {
@@ -803,20 +821,20 @@ impl Population for PropPopulation {
     }
 
     fn each_list(&self, visit: &mut dyn FnMut(List)) {
-        let n = self.looks.list.len() * TIERS;
+        let n = self.looks.list.len() * PROP_TIERS;
         for (index, list) in self.lists.iter().enumerate() {
             let k = index % n;
-            let tier = k % TIERS;
+            let tier = k % PROP_TIERS;
             let pass = if index < n { VIEW_PASS } else { CAST_PASS };
             visit(List {
-                row: self.rows[k / TIERS],
+                row: self.rows[k / PROP_TIERS],
                 tier: tier as u32,
                 pass,
                 caster: List::own_caster(pass, tier as u32),
                 fog: model_fog(
                     false,
                     true,
-                    self.looks.list[k / TIERS].2 == DRAWS_PROP_GROUND,
+                    self.looks.list[k / PROP_TIERS].2 == DRAWS_PROP_GROUND,
                 ),
                 records: list,
                 print: self.prints[index],

@@ -206,7 +206,7 @@ test("instance counts hold one row per plate, a count per module and tier and th
   expect(reject({ scenery: unfelled })).toThrow(/instance/);
   expect(reject({ tier: 0 })).toThrow(/instance/);
   const [wreck] = row.props;
-  expect(reject({ props: [{ ...wreck, levels: [0, 1, 0, 0, 2] }] })).toThrow(/instance/);
+  expect(reject({ props: [{ ...wreck, levels: [0, 1, 0, 0, 2, 0] }] })).toThrow(/instance/);
   expect(reject({ props: [wreck, wreck] })).toThrow(/instance/);
   const { props: _props, ...unknowing } = row;
   expect(() => validateVisualPresentation({ ...manifest, instanceCounts: [unknowing] })).toThrow(
@@ -249,4 +249,13 @@ test("a counted run's frame counts ride along in frame order, each naming a fram
   await expect(write([{ ...counted(0), models: { ...models, fading: -1 } }])).rejects.toThrow(
     /frame counts/,
   );
+});
+
+test("a prop card is recorded separately from the four mesh tiers", async () => {
+  const rows = instanceCounts.map((row) => ({
+    ...row,
+    props: [{ appearance: "test_prop", levels: [0, 0, 0, 0, 2] }],
+  }));
+  const { manifest } = await written(platedCapture(), grassCounts, rows);
+  expect(manifest.instanceCounts).toEqual(rows);
 });

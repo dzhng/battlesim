@@ -1,5 +1,12 @@
 @group(1) @binding(3) var<storage, read> frames: array<vec4f>;
 
+fn cardPoint(point: vec3f, scale: vec3f, yaw: f32, at: vec3f) -> vec3f {
+  let p = (point * scale);
+  let c = cos(yaw);
+  let s = sin(yaw);
+  return (at + vec3f(((p.x * c) - (p.y * s)), ((p.x * s) + (p.y * c)), p.z));
+}
+
 struct Camera {
   viewProj: mat4x4f,
   invViewProj: mat4x4f,
@@ -12,25 +19,30 @@ struct Camera {
 
 @group(0) @binding(0) var<uniform> cam: Camera;
 
+fn cardDirection(direction: vec3f, scale: vec3f, yaw: f32) -> vec3f {
+  let c = cos(yaw);
+  let s = sin(yaw);
+  return (vec3f(((direction.x * c) + (direction.y * s)), ((-(direction.x) * s) + (direction.y * c)), direction.z) / scale);
+}
+
 struct cardVertex_Output {
   @builtin(position) clip: vec4f,
   @location(0) world: vec3f,
   @location(1) uv: vec2f,
   @location(2) @interpolate(flat) layer: u32,
   @location(3) @interpolate(flat) yaw: f32,
-  @location(4) tint: vec3f,
-  @location(5) anchor: vec3f,
+  @location(4) @interpolate(flat) scale: vec3f,
+  @location(5) tint: vec3f,
+  @location(6) anchor: vec3f,
 }
 
-@vertex fn cardVertex(@builtin(vertex_index) vertex: u32, @location(0) placement: vec4f, @location(2) tint: vec4f) -> cardVertex_Output {
+@vertex fn cardVertex(@builtin(vertex_index) vertex: u32, @location(0) placement: vec4f, @location(2) tint: vec4f, @location(3) scale: vec4f) -> cardVertex_Output {
   let layer = u32(tint.w);
   let frame = (&frames[layer]);
   let yaw = placement.w;
-  let c = cos(yaw);
-  let s = sin(yaw);
-  let center = vec3f(((placement.x + ((*frame).x * c)) - ((*frame).y * s)), ((placement.y + ((*frame).x * s)) + ((*frame).y * c)), (placement.z + (*frame).z));
-  let toEye = (cam.eye - center);
-  let heading = (atan2(toEye.y, toEye.x) - yaw);
+  let center = cardPoint((*frame).xyz, scale.xyz, yaw, placement.xyz);
+  let toEye = cardDirection((cam.eye - center), scale.xyz, yaw);
+  let heading = atan2(toEye.y, toEye.x);
   var column = round((heading / 0.7853981633974483f));
   column = (column - (8f * floor((column / 8f))));
   let elevation = atan2(toEye.z, length(vec2f(toEye.x, toEye.y)));
@@ -40,7 +52,7 @@ struct cardVertex_Output {
     row = 0f;
     pitch = 0.85f;
   }
-  let cellYaw = ((column * 0.7853981633974483f) + yaw);
+  let cellYaw = (column * 0.7853981633974483f);
   let cp = cos(pitch);
   let toward = vec3f((cp * cos(cellYaw)), (cp * sin(cellYaw)), sin(pitch));
   let right = normalize(cross(vec3f(0, 0, 1), toward));
@@ -60,8 +72,9 @@ struct cardVertex_Output {
   if ((k >= 2u)) {
     w = 1f;
   }
-  let world = (center + (((right * u) + (up * w)) * (*frame).w));
-  return cardVertex_Output((cam.viewProj * vec4f(world, 1f)), world, vec2f((((column + 0.5f) + (0.5f * u)) / 8f), (((row + 0.5f) - (0.5f * w)) / 2f)), layer, yaw, tint.xyz, placement.xyz);
+  let local = ((*frame).xyz + (((right * u) + (up * w)) * (*frame).w));
+  let world = cardPoint(local, scale.xyz, yaw, placement.xyz);
+  return cardVertex_Output((cam.viewProj * vec4f(world, 1f)), world, vec2f((((column + 0.5f) + (0.5f * u)) / 8f), (((row + 0.5f) - (0.5f * w)) / 2f)), layer, yaw, scale.xyz, tint.xyz, placement.xyz);
 }
 
 @group(1) @binding(0) var albedo: texture_2d_array<f32>;
@@ -69,6 +82,10 @@ struct cardVertex_Output {
 @group(1) @binding(2) var linear: sampler;
 
 @group(1) @binding(1) var normal: texture_2d_array<f32>;
+
+fn cardNormal(normal_1: vec3f, scale: vec3f, yaw: f32) -> vec3f {
+  return normalize(cardPoint((normal_1 / scale), vec3f(1), yaw, vec3f()));
+}
 
 struct Aerial {
   extinction: vec3f,
@@ -634,8 +651,9 @@ struct _Input {
   @location(1) uv: vec2f,
   @location(2) @interpolate(flat) layer: u32,
   @location(3) @interpolate(flat) yaw: f32,
-  @location(4) tint: vec3f,
-  @location(5) anchor: vec3f,
+  @location(4) @interpolate(flat) scale: vec3f,
+  @location(5) tint: vec3f,
+  @location(6) anchor: vec3f,
 }
 
 @fragment fn item(_arg_0: _Input, @builtin(position) clip: vec4f) -> item_1 {
@@ -645,9 +663,7 @@ struct _Input {
     discard;;
   }
   let local = ((packed.xyz * 2f) - vec3f(1));
-  let c = cos(_arg_0.yaw);
-  let s = sin(_arg_0.yaw);
-  var n = normalize(vec3f(((local.x * c) - (local.y * s)), ((local.x * s) + (local.y * c)), local.z));
+  var n = cardNormal(local, _arg_0.scale, _arg_0.yaw);
   let eye = (&cam.eye);
   if ((dot(n, ((*eye) - _arg_0.world)) < 0f)) {
     n = -(n);

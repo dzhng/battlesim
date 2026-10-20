@@ -2824,6 +2824,7 @@
     },
     "parked_car": {
       "bundle": "b60a4e514567c5c07ce6b95665a4e482a8643c2bb10b3b4183085373044e272d",
+      "far_card_px": 2,
       "footprint_half_m": [
         2.2,
         0.9,

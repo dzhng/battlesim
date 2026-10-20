@@ -13,6 +13,7 @@
 // A card is alpha-tested, not blended: it writes depth in the colour pass
 // (at the size a card is drawn, a missing prepass entry never moves a fog
 // tile's eyes) and casts no sun shadow.
+import { cardPoint, cardDirection, cardNormal } from "./cardGeometry";
 import { tgpu, d, std } from "typegpu";
 import { typegpuCameraLayout } from "../world/camera";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
@@ -55,8 +56,7 @@ export const cardLayout = tgpu.bindGroupLayout({
 
 /** Cards read the models' 64-byte record: placement, data (x-ray rgb in w,
  *  unused: cards are never x-rayed),
- *  tint (the atlas layer in w) and a fitted prop's scale (cards are bodies'
- *  and corpses', always unit scale). */
+ *  tint (the atlas layer in w) and local per-axis scale. */
 export const cardVertex = tgpu.vertexFn({
   in: {
     vertex: d.builtin.vertexIndex,
@@ -71,6 +71,7 @@ export const cardVertex = tgpu.vertexFn({
     uv: d.vec2f,
     layer: d.interpolate("flat", d.u32),
     yaw: d.interpolate("flat", d.f32),
+    scale: d.interpolate("flat", d.vec3f),
     tint: d.vec3f,
     anchor: d.vec3f,
   },
@@ -79,16 +80,10 @@ export const cardVertex = tgpu.vertexFn({
   const layer = d.u32(v.tint.w);
   const frame = cardLayout.$.frames[layer];
   const yaw = v.placement.w;
-  const c = std.cos(yaw);
-  const s = std.sin(yaw);
-  const center = d.vec3f(
-    v.placement.x + frame.x * c - frame.y * s,
-    v.placement.y + frame.x * s + frame.y * c,
-    v.placement.z + frame.z,
-  );
-  const toEye = std.sub(typegpuCameraLayout.$.cam.eye, center);
+  const center = cardPoint(frame.xyz, v.scale.xyz, yaw, v.placement.xyz);
+  const toEye = cardDirection(std.sub(typegpuCameraLayout.$.cam.eye, center), v.scale.xyz, yaw);
   // The baked view nearest the eye's direction, in the model's own frame.
-  const heading = std.atan2(toEye.y, toEye.x) - yaw;
+  const heading = std.atan2(toEye.y, toEye.x);
   let column = std.round(heading / CELL_YAW);
   column = column - YAWS * std.floor(column / YAWS);
   const elevation = std.atan2(toEye.z, std.length(d.vec2f(toEye.x, toEye.y)));
@@ -98,7 +93,7 @@ export const cardVertex = tgpu.vertexFn({
     row = 0;
     pitch = PITCH_HIGH;
   }
-  const cellYaw = column * CELL_YAW + yaw;
+  const cellYaw = column * CELL_YAW;
   const cp = std.cos(pitch);
   const toward = d.vec3f(cp * std.cos(cellYaw), cp * std.sin(cellYaw), std.sin(pitch));
   // The bake's look-at basis: right = up × toward, up' = toward × right.
@@ -120,13 +115,15 @@ export const cardVertex = tgpu.vertexFn({
   if (k >= 2) {
     w = 1;
   }
-  const world = std.add(center, std.mul(std.add(std.mul(right, u), std.mul(up, w)), frame.w));
+  const local = std.add(frame.xyz, std.mul(std.add(std.mul(right, u), std.mul(up, w)), frame.w));
+  const world = cardPoint(local, v.scale.xyz, yaw, v.placement.xyz);
   return {
     clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
     world,
     uv: d.vec2f((column + 0.5 + 0.5 * u) / YAWS, (row + 0.5 - 0.5 * w) / 2),
     layer,
     yaw,
+    scale: v.scale.xyz,
     tint: v.tint.xyz,
     anchor: v.placement.xyz,
   };
@@ -138,6 +135,7 @@ const cardVaryings = {
   uv: d.vec2f,
   layer: d.interpolate("flat", d.u32),
   yaw: d.interpolate("flat", d.f32),
+  scale: d.interpolate("flat", d.vec3f),
   tint: d.vec3f,
   anchor: d.vec3f,
 };
@@ -152,9 +150,7 @@ export function createCardFragment(environment: EnvironmentFrame) {
       std.discard();
     }
     const local = std.sub(std.mul(packed.xyz, 2), d.vec3f(1));
-    const c = std.cos(v.yaw);
-    const s = std.sin(v.yaw);
-    let n = std.normalize(d.vec3f(local.x * c - local.y * s, local.x * s + local.y * c, local.z));
+    let n = cardNormal(local, v.scale, v.yaw);
     const eye = typegpuCameraLayout.$.cam.eye;
     if (std.dot(n, std.sub(eye, v.world)) < 0) {
       n = std.neg(n);
@@ -187,51 +183,59 @@ export function uploadCardAtlases(
   scope: GpuRegistry,
   atlases: readonly ImpostorAtlas[],
 ) {
-  const width = CARD_SPEC.yaws * CARD_SPEC.cell;
-  const height = CARD_SPEC.pitches.length * CARD_SPEC.cell;
-  const layers = Math.max(1, atlases.length);
-  const texture = () =>
-    scope.own(
-      root.createTexture({ size: [width, height, layers], format: "rgba8unorm" }).$usage("sampled"),
-    );
-  const albedo = texture();
-  const normal = texture();
-  const device = root.device;
-  atlases.forEach((atlas, layer) => {
-    if (atlas.width !== width || atlas.height !== height)
-      throw new Error(`card atlas ${atlas.appearance} is ${atlas.width}×${atlas.height}`);
-    // The normal layer's alpha is the tint mask; coverage stays in albedo's.
-    const packed = new Uint8Array(atlas.normal);
-    for (let i = 3; i < packed.length; i += 4) packed[i] = atlas.mask[i - 3];
-    for (const [target, bytes] of [
-      [albedo, atlas.albedo],
-      [normal, packed],
-    ] as const)
-      device.queue.writeTexture(
-        { texture: root.unwrap(target), origin: [0, 0, layer] },
-        bytes,
-        { bytesPerRow: width * 4, rowsPerImage: height },
-        [width, height, 1],
+  const owned = scope.scope();
+  try {
+    const width = CARD_SPEC.yaws * CARD_SPEC.cell;
+    const height = CARD_SPEC.pitches.length * CARD_SPEC.cell;
+    const layers = Math.max(1, atlases.length);
+    const texture = () =>
+      owned.own(
+        root
+          .createTexture({ size: [width, height, layers], format: "rgba8unorm" })
+          .$usage("sampled"),
       );
-  });
-  const frames = scope.own(root.createBuffer(d.arrayOf(d.vec4f, layers)).$usage("storage"));
-  frames.write(
-    Array.from({ length: layers }, (_, i) => {
-      const a = atlases[i];
-      return a ? d.vec4f(a.center[0], a.center[1], a.center[2], a.radius) : d.vec4f(0, 0, 0, 1);
-    }),
-  );
-  const linear = root.createSampler({
-    minFilter: "linear",
-    magFilter: "linear",
-    addressModeU: "clamp-to-edge",
-    addressModeV: "clamp-to-edge",
-  });
-  return root.createBindGroup(cardLayout, {
-    albedo: albedo.createView(d.texture2dArray()),
-    normal: normal.createView(d.texture2dArray()),
-    linear,
-    frames,
-  });
+    const albedo = texture();
+    const normal = texture();
+    const device = root.device;
+    atlases.forEach((atlas, layer) => {
+      if (atlas.width !== width || atlas.height !== height)
+        throw new Error(`card atlas ${atlas.appearance} is ${atlas.width}×${atlas.height}`);
+      // The normal layer's alpha is the tint mask; coverage stays in albedo's.
+      const packed = new Uint8Array(atlas.normal);
+      for (let i = 3; i < packed.length; i += 4) packed[i] = atlas.mask[i - 3];
+      for (const [target, bytes] of [
+        [albedo, atlas.albedo],
+        [normal, packed],
+      ] as const)
+        device.queue.writeTexture(
+          { texture: root.unwrap(target), origin: [0, 0, layer] },
+          bytes,
+          { bytesPerRow: width * 4, rowsPerImage: height },
+          [width, height, 1],
+        );
+    });
+    const frames = owned.own(root.createBuffer(d.arrayOf(d.vec4f, layers)).$usage("storage"));
+    frames.write(
+      Array.from({ length: layers }, (_, i) => {
+        const a = atlases[i];
+        return a ? d.vec4f(a.center[0], a.center[1], a.center[2], a.radius) : d.vec4f(0, 0, 0, 1);
+      }),
+    );
+    const linear = root.createSampler({
+      minFilter: "linear",
+      magFilter: "linear",
+      addressModeU: "clamp-to-edge",
+      addressModeV: "clamp-to-edge",
+    });
+    return root.createBindGroup(cardLayout, {
+      albedo: albedo.createView(d.texture2dArray()),
+      normal: normal.createView(d.texture2dArray()),
+      linear,
+      frames,
+    });
+  } catch (error) {
+    owned.release();
+    throw error;
+  }
 }
 export type CardGroup = ReturnType<typeof uploadCardAtlases>;

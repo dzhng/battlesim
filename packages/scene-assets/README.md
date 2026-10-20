@@ -173,3 +173,26 @@ The validator's `material.*` findings (`material.ts`) refuse what would be drawn
 ## Where things are
 
 [Schema](src/schema.ts) holds types and constants, [validation](src/validate.ts) the rules and finding codes, and [codec](src/codec.ts) the binary layout. `loose.ts` judges one GLB on its own, for `asset validate` and the model workbench's drop zone. Every validation also returns a `preview`, the bundle as built even when it has errors; the workbench installs previews through the same loader (`previewRuntime` plus `memoryFetch`), and the bake never writes them.
+
+## Browser far-card pilot
+
+An appearance can opt its opaque default state into a far card with
+`far_card_px` in its catalog entry. This is a maximum projected **full bounds**
+extent in render pixels, capped by the shared model detail threshold. The
+browser checks admission in [propCards](src/propCards.ts); unsupported surfaces
+and absent atlases retain meshes. Damage and wrecks keep their own identities.
+
+The battle's ordinary appearance installation bakes admitted poses through its
+existing [impostor baker](../battle-renderer/src/models/impostor.ts) and installs
+them alongside body cards. No additional load call or offline atlas file is
+needed for this pilot. The source catalog's opt-in is copied by `asset bake`;
+the runtime catalog carries the same metadata without changing bundle hashes.
+
+The two runtime textures carry albedo/coverage and normal/tint. Per-axis scale
+applies before heading and placement; view choice uses the inverse transform,
+and normals use its inverse transpose. Independent prop batches keep mesh
+shadow casters. The card still approximates material response with the body's
+rough, nonmetallic shading, baked occlusion and a flat depth plane. These are
+visual-review gates, not accepted parity. Content-addressed offline atlases and
+native card consumption remain outside this browser pilot; native mesh fallback
+is neither visual nor performance parity.

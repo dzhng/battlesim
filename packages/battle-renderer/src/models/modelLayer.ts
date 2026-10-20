@@ -39,7 +39,15 @@
 // (`buildingLayer.ts`): the same meshes, records, material and pipelines as
 // any static model, with their own record buffers and draw ranges.
 
-import { createPropBatches, clearPropBatches, setPropBatches, drawnProps } from "./propBatches";
+import { staticCardPose } from "@packages/scene-assets/src/propCards";
+import {
+  createPropBatches,
+  clearPropBatches,
+  setPropBatches,
+  drawnProps,
+  setPropCardLayer,
+  type HeldProps,
+} from "./propBatches";
 import { recordDraw, type SubmittedDraws } from "../frame/submitted";
 import type { Drawable3, CardDrawable } from "./modelDraw";
 import { tgpu, d, std } from "typegpu";
@@ -80,7 +88,13 @@ import {
 } from "./surfaceParts";
 import { FOG_CLASSES, FOG_INDEX, modelSeen, type ModelFog } from "./modelFog";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
-import { restingModelPose, type ModelInstance, type ModelPose } from "./modelInstances";
+import {
+  writeJoint,
+  writeRecord,
+  restingModelPose,
+  type ModelInstance,
+  type ModelPose,
+} from "./modelInstances";
 import {
   BATCH_WORDS,
   CAST_PASS,
@@ -209,21 +223,6 @@ export interface WorldAppearance {
 /** A posed body's or vehicle's drawable and fog class. */
 const POSED: ModelPose = { kind: "posed", palette: new Float32Array(0) };
 
-/** A column-major model matrix into palette joint `at`, as its 3×4 rows. */
-function writeJoint(into: Float32Array, at: number, m: ArrayLike<number>) {
-  const o = at * JOINT_WORDS;
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) into[o + r * 4 + c] = m[c * 4 + r];
-}
-const NO_XRAY = [0, 0, 0, 0] as const;
-/** An x-ray colour's rgb as one integer under 2^24, which f32 holds exactly
- *  (the vertex stage unpacks it). */
-export function packXray(c: readonly number[]): number {
-  const byte = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 255);
-  return byte(c[0]) * 65536 + byte(c[1]) * 256 + byte(c[2]);
-}
-/** A model drawn without a side keeps its authored colours. */
-const NO_TINT = [1, 1, 1] as const;
-const UNIT_SCALE = [1, 1, 1] as const;
 /** Track links: the dark half of each link's pitch. */
 const TRACK_LINK_SHADE = 0.55;
 
@@ -560,6 +559,7 @@ interface GpuAppearance {
   radius: number;
   /** Impostor atlas layer, or -1 without one. */
   farCard: number;
+  staticCard: ReturnType<typeof staticCardPose>;
 }
 
 /** One way a body lies dead: its posed tiers, length and reach, bounds (for
@@ -902,7 +902,8 @@ export async function createModelLayer(
     const rows: number[] = [];
     const layers = new TextureLayers();
     const appearanceTextureBytes: Record<string, number> = {};
-    for (const [name, { bundle }] of installed?.appearances ?? []) {
+    for (const [name, appearance] of installed?.appearances ?? []) {
+      const { bundle } = appearance;
       const materialBase = rows.length / (MATERIAL_ROWS * 4);
       for (const m of bundle.materials) {
         const layer = (channel: TextureChannel) => {
@@ -925,6 +926,7 @@ export async function createModelLayer(
         size: far.size,
         radius: far.radius,
         farCard: -1,
+        staticCard: staticCardPose(appearance),
       };
       /** One tier's buffers from parts; returns a drawable per part key. */
       const tierMesh = (
@@ -1097,23 +1099,30 @@ export async function createModelLayer(
     old?.release();
   }
 
-  /** Install impostor atlases: each skinned appearance's far pose and corpse. */
+  /** Swap a complete atlas generation; failure preserves the installed one. */
   function setCards(atlases: readonly CardAtlas[], bakeMs = 0) {
+    const next = registry.scope();
+    let group: CardGroup | null = null;
+    try {
+      if (atlases.length)
+        group = uploadCardAtlases(
+          root,
+          next,
+          atlases.map((a) => a.atlas),
+        );
+    } catch (error) {
+      next.release();
+      throw error;
+    }
     cardScope?.release();
-    cardScope = null;
-    cards = null;
+    cardScope = next;
+    cards = group;
     for (const gpu of appearances.values()) {
       gpu.farCard = -1;
       for (const c of gpu.corpses) c.card = -1;
     }
     atlasLayers = atlases.length;
     if (atlases.length) {
-      cardScope = registry.scope();
-      cards = uploadCardAtlases(
-        root,
-        cardScope,
-        atlases.map((a) => a.atlas),
-      );
       atlases.forEach(({ pose, atlas }, layer) => {
         const gpu = appearances.get(atlas.appearance);
         if (!gpu) return;
@@ -1121,6 +1130,7 @@ export async function createModelLayer(
         else if (gpu.corpses[pose.lies]) gpu.corpses[pose.lies].card = layer;
       });
     }
+    relistProps();
     stats.atlasLayers = atlasLayers;
     stats.atlasBakeMs = bakeMs;
     dirty = true;
@@ -1139,13 +1149,24 @@ export async function createModelLayer(
 
   /** The props' runs: each listed batch's drawable at its tier, against
    *  the meshes installed now. */
+  const propCards: HeldProps[] = [];
   function relistProps() {
     propRuns.length = 0;
+    propCards.length = 0;
     for (const h of propBatches.listed) {
       const row = worldRows[h.row];
       const gpu = row && appearances.get(row.name);
       const tiers = gpu?.states.get(row.state);
-      const drawable = tiers?.[h.tier];
+      const layer =
+        h.pass !== CAST_PASS && h.tier === IMPOSTOR && gpu?.staticCard?.pose.state === row.state
+          ? gpu.farCard
+          : -1;
+      setPropCardLayer(h, layer, device);
+      if (layer >= 0 && h.buffer && h.count) {
+        propCards.push(h);
+        continue;
+      }
+      const drawable = tiers?.[Math.min(h.tier, 3)];
       if (!drawable || !h.buffer || !h.count) continue;
       propRuns.push({
         pass: h.pass,
@@ -1383,7 +1404,11 @@ export async function createModelLayer(
     stats.draws = runCount + propDraws + frameRunCount + cardRunCount;
     stats.paletteMatrices = cursor > 1 ? cursor : frameStats.palette;
     stats.skinned = frameStats.skinned;
-    stats.cards = card;
+    const propCardCount = propCards.reduce((n, h) => n + h.count, 0);
+    stats.cards = card + propCardCount;
+    stats.instances += propCardCount;
+    stats.triangles += 2 * propCardCount;
+    stats.draws += propCards.length;
     stats.culled = culled + frameStats.culled;
     stats.culledBodies = frameStats.culled;
     stats.corpses = frameStats.corpses;
@@ -1522,6 +1547,7 @@ export async function createModelLayer(
     if (world !== worldRows) {
       clearPropBatches(propBatches);
       propRuns.length = 0;
+      propCards.length = 0;
     }
     worldRows = world;
     buildings.setWorld(world);
@@ -1536,31 +1562,6 @@ export async function createModelLayer(
     run.firstInstance = firstInstance;
     run.instances = instances;
     cardRunCount++;
-  }
-
-  function writeRecord(
-    into: Float32Array,
-    at: number,
-    inst: ModelInstance,
-    base: number,
-    scrollL: number,
-    scrollR: number,
-    layer: number,
-  ) {
-    const r = at * RECORD_FLOATS;
-    into[r] = inst.x;
-    into[r + 1] = inst.y;
-    into[r + 2] = inst.z;
-    into[r + 3] = inst.yaw;
-    into[r + 4] = base;
-    into[r + 5] = scrollL - Math.floor(scrollL);
-    into[r + 6] = scrollR - Math.floor(scrollR);
-    const presentation = inst.ghost ?? inst.xray ?? NO_XRAY;
-    into[r + 7] = packXray(presentation);
-    into.set(inst.tint ?? NO_TINT, r + 8);
-    into[r + 11] = layer;
-    into.set(inst.scale ?? UNIT_SCALE, r + 12);
-    into[r + 15] = presentation[3];
   }
 
   /** The pose an impostor of `name` shows, and its bounds in that pose. */
@@ -1655,11 +1656,11 @@ export async function createModelLayer(
     },
     /** The pose an impostor of `name` shows, and its bounds in that pose. */
     farPose,
-    /** The impostor atlases the battle carries: every skinned appearance's
-     *  far pose and each way it lies dead. */
+    /** Body poses and asset-opted opaque static poses baked by the frame. */
     cardPoses(): { appearance: string; pose: ModelPose; bounds: Bounds }[] {
       const out: { appearance: string; pose: ModelPose; bounds: Bounds }[] = [];
       for (const gpu of appearances.values()) {
+        if (gpu.staticCard) out.push({ appearance: gpu.name, ...gpu.staticCard });
         if (gpu.bundle.kind !== "skinned" || !gpu.corpses.length) continue;
         out.push({ appearance: gpu.name, ...farPose(gpu.name)! });
         gpu.corpses.forEach(({ bounds }, lies) =>
@@ -1790,9 +1791,14 @@ export async function createModelLayer(
     },
     /** Draw one fog class's impostor cards. */
     drawCards(bound: CardDrawable, fog: ModelFog, submitted?: SubmittedDraws) {
-      if (!cardRunCount || !cards) return;
+      if (!cards) return;
       const only = fogIndex(fog);
       const b = bound.with(cards);
+      for (const h of propCards) {
+        if (h.fog !== only || !h.buffer) continue;
+        b.with(modelRecordLayout, h.buffer).draw(6, h.count, 0, 0);
+        recordDraw(submitted, 6, h.count);
+      }
       for (let i = 0; i < cardRunCount; i++) {
         const run = cardRuns[i];
         if (run.fog !== only) continue;

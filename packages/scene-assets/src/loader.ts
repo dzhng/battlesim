@@ -60,6 +60,7 @@ export interface InstalledAppearance {
   /** The sRGB tints its paintable surfaces take, one per body (catalog
    *  `paints`); null for an appearance drawn as authored. */
   paints: Vec3[] | null;
+  farCardPx?: number;
   /** A vehicle's own wreck appearance (catalog `wreck`); null for anything else. */
   wreck: string | null;
   /** A soldier's look on a faction's side (catalog `factions`); null for one look. */
@@ -375,6 +376,7 @@ export class AppearanceLibrary {
       mounts: entry.mounts ?? null,
       regionalFamily: entry.regional_family ?? null,
       paints: entry.paints ?? null,
+      farCardPx: entry.far_card_px ?? 0,
       wreck: entry.wreck ?? null,
       factions: entry.factions ?? null,
       bundle,

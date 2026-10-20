@@ -124,6 +124,7 @@ function runtimeAppearance(
     ...(entry.mounts ? { mounts: entry.mounts } : {}),
     ...(entry.regional_family ? { regional_family: entry.regional_family } : {}),
     ...(entry.paints ? { paints: entry.paints } : {}),
+    ...(entry.far_card_px ? { far_card_px: entry.far_card_px } : {}),
     ...(entry.wreck ? { wreck: entry.wreck } : {}),
     ...(entry.factions ? { factions: entry.factions } : {}),
   };

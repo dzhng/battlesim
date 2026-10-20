@@ -33,6 +33,7 @@ fn art(name: &str, scenery: &str, family: Option<&str>, footprint: [f64; 3]) -> 
         family: family.map(Into::into),
         footprint,
         paints: None,
+        far_card_px: None,
         // Drawn 2 m long, reaching 1 m from its foot.
         bounds: Corners {
             min: [-1.0, 0.0, 0.0],
@@ -489,4 +490,111 @@ fn visible_props_outside_receiver_reach_keep_their_camera_mesh_only() {
         .collect();
     xs.sort_by(f32::total_cmp);
     assert_eq!(xs, [0.0, 20.0, 40.0]);
+}
+
+#[test]
+fn opted_in_far_props_keep_identity_and_mesh_casters() {
+    let mut input = input();
+    // Deserialize through the public asset input: unknown opt-ins used to be ignored.
+    input.appearances[2] = serde_json::from_value(serde_json::json!({
+        "name": "car_a", "scenery": "car", "footprint": [2, 1, 0.8],
+        "bounds": {"min": [-2, -1, 0], "max": [2, 1, 1.6]},
+        "far_card_px": 2, "paints": [[0.2, 0.4, 0.6]]
+    }))
+    .unwrap();
+    let mut p = PropPopulation::new(
+        PropArt::new(layout(), input).unwrap(),
+        vec![MapProp {
+            id: 1.0,
+            body: body("car", [2.2, 0.7, 0.6]),
+        }],
+    );
+    p.rows = (0..p.looks.list.len() as u32).collect();
+    let expected = *p.models().next().unwrap().1;
+    let view = View::new(&Camera {
+        eye: [10.0, -2000.0, 1500.0],
+        target: [10.0, 20.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 0.8,
+        near: 1.0,
+        size: [1280, 720],
+    });
+    p.select(
+        &view,
+        Some(&Shadow {
+            fall: [1.0, 0.0],
+            reach: 5000.0,
+        }),
+    );
+    let mut camera = Vec::new();
+    let mut casts = Vec::new();
+    p.each_list(&mut |l| {
+        if l.records.is_empty() {
+            return;
+        }
+        if l.pass == VIEW_PASS {
+            camera.push((l.tier, l.records[0]));
+        } else {
+            casts.push((l.tier, l.records[0]));
+        }
+    });
+    assert_eq!(camera, vec![(crate::view::IMPOSTOR as u32, expected)]);
+    assert_eq!(casts, vec![(3, expected)]);
+    let near = View::new(&Camera {
+        eye: [10.0, -8.0, 10.0],
+        target: [10.0, 20.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 0.8,
+        near: 1.0,
+        size: [1280, 720],
+    });
+    p.select(&near, None);
+    let mut near_count = 0;
+    p.each_list(&mut |l| {
+        if l.pass == VIEW_PASS && !l.records.is_empty() {
+            near_count += l.records.len();
+            assert!(l.tier < 4);
+            assert_eq!(l.records, &[expected]);
+        }
+    });
+    assert_eq!(near_count, 1);
+    // Replacement takes its own appearance, never the standing body's atlas.
+    let mut wreck = known(Some(1.0), "heavy_wreck", 10.0, false);
+    wreck.body.as_mut().unwrap().wreck_of = Some("tank".into());
+    p.set_known(vec![wreck]);
+    p.select(&view, None);
+    p.each_list(&mut |l| {
+        if l.pass == VIEW_PASS && !l.records.is_empty() {
+            assert_eq!(p.looks.list[l.row as usize].0, "tank_wreck");
+            assert_eq!(l.tier, 3);
+        }
+    });
+    assert_eq!(appearances(&p), ["tank_wreck"]);
+}
+
+#[test]
+fn card_footprint_projects_full_scaled_rotated_bounds_and_refuses_eye_crossings() {
+    let view = View::new(&Camera {
+        eye: [0.0, -100.0, 0.0],
+        target: [0.0, 0.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: std::f64::consts::FRAC_PI_2,
+        near: 1.0,
+        size: [1000, 1000],
+    });
+    let corners = Corners {
+        min: [-5.0, -1.0, 0.0],
+        max: [5.0, 1.0, 0.2],
+    };
+    let mut record = [0.0; 16];
+    record[12..15].copy_from_slice(&[2.0, 3.0, 0.5]);
+    let bounds = card_bounds(&corners, &record);
+    assert_eq!(bounds, [-10.0, -3.0, 0.0, 10.0, 3.0, 0.1]);
+    // Twenty metres of width cannot become a one-pixel card just because it is flat.
+    assert!((projected_bounds_px(&view, &bounds) - 10000.0 / 97.0).abs() < 1e-5);
+    record[3] = std::f32::consts::FRAC_PI_2;
+    let turned = card_bounds(&corners, &record);
+    assert!((projected_bounds_px(&view, &turned) - 3000.0 / 90.0).abs() < 1e-4);
+    record[1] = -100.0;
+    assert!(projected_bounds_px(&view, &card_bounds(&corners, &record)).is_infinite());
 }
