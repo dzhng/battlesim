@@ -125,8 +125,10 @@ ownership if the measured maintenance/memory benefit warrants the change.
 
 The far-car trials failed the acceptance tradeoff: per-sample shading costs about
 72 ms wide GPU versus 31 ms for the previous control; centroid erases 7 eligible
-states; bounded footprint filtering still loses two phases. Pilot-only
-code/assets are removed; general resource/cache fixes are retained. Other appearance classes
+states. Initial filtered-atlas failure evidence was invalidated by a capture
+decoder bug; a corrected candidate remains unqualified pending images/timing.
+Pilot-only code/assets are removed from the mesh control; general resource/cache
+fixes are retained. Assess the corrected candidate before final disposition. Other appearance classes
 retain their authored meshes or existing scenery policy as documented in
 [the representation decision](slices/impostors.md).
 

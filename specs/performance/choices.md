@@ -89,8 +89,9 @@ world grows. The rejected wall still lacks visual approval.
 At wide zoom a car can occupy only a few pixels. We tried a baked image with
 surface depth so those pixels could replace its distant mesh. Evaluating every
 antialiasing sample preserved cars but added about 41 ms GPU time. Cheaper
-sampling and then filtered surface reconstruction still made some eligible cars
-vanish. Keep the shipped simplified car mesh and remove the pilot's asset
+centroid sampling still made some eligible cars vanish. Initial filtered-trial
+failures were invalidated by a capture-decoder bug; corrected filtering remains
+unqualified, with visual/timing gates open. Keep the shipped simplified car mesh and remove the pilot's asset
 format, native path and shaders. Existing unit/corpse cards remain; their generic
 resource cleanup and appearance-identity fixes survive independently.
 
