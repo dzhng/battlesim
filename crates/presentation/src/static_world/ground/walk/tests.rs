@@ -1,4 +1,5 @@
-use super::{fell_pose, FelledRules, Pop, Record, Size, FLOATS};
+use super::felled::fell_pose;
+use super::{FelledRules, Pop, Record, Size, FLOATS};
 use crate::view::{Camera, View};
 use std::collections::HashMap;
 
