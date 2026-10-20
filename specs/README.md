@@ -38,8 +38,9 @@ for the known limitations native shipped with.
 
 [Capture](done/capture/README.md) (shipped) turns a JSON capture file (camera and scenes over saved encounters) into MP4s for marketing videos, through the same scene player the main-menu backdrop uses.
 
-[Performance](done/performance/README.md) records the shipped presentation and
-distant-art improvements, their measured limits, and rejected experiments.
+[Performance](performance/README.md) is active: three gameplay zoom levels,
+view-bounded camera/shadow work, and projected-size distant prop impostors.
+Earlier shipped gains remain documented alongside the new plan.
 
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,

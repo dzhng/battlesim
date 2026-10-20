@@ -1,4 +1,9 @@
-# Reactive frame performance
+# Prior reactive frame performance
+
+Historical result, reopened after the user identified missing zoom coverage.
+The terrain/caster conclusions below apply only to the measured wide view;
+they do not reject culling at close or normal zoom. [The active plan](README.md)
+supersedes the earlier completion boundary.
 
 The browser and native client share presentation output and baked art. This
 work reduces repeated presentation allocations and excessive detail in dense
@@ -56,11 +61,11 @@ explicit visibility contract as well as spatial selection.
 
 ## Owners and evidence
 
-[Presentation](../../../crates/presentation/README.md) owns frame-local storage
-and static building selection. [Scene assets](../../../packages/scene-assets/README.md)
+[Presentation](../../crates/presentation/README.md) owns frame-local storage
+and static building selection. [Scene assets](../../packages/scene-assets/README.md)
 owns distant meshes, validation and baking.
-[Graphics settings](../../../apps/battle-lab/src/graphicsSettings.ts) owns quality
-profiles; [browser verification](../../../web/README.md) owns the graphics reel
+[Graphics settings](../../apps/battle-lab/src/graphicsSettings.ts) owns quality
+profiles; [browser verification](../../web/README.md) owns the graphics reel
 and production endurance runner.
 
 [Research](research.md) preserves workload-specific measurements, rejected

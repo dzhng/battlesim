@@ -69,15 +69,31 @@ shader variants to process excessive detail more cheaply.
 - **Verdict:** sound; controlled GPU improvement and reviewed images justify it.
 - **Confidence:** high for measured views; not a claim about every framing.
 
-### Reject complexity without a visible and measurable payoff
+### Evaluate visibility across gameplay views
 
-The simplified wall lost definition, so it was rejected before timing. Spatial
-terrain selection preserved geometry but showed only a noise-level GPU change
-while adding ownership across clients, so it was removed. The alternative
-retains machinery because its counters look better even when the frame does not.
+When the camera sees most of a map, culling has little to reject. The earlier
+terrain experiment measured only that wide view; it cannot settle the value of
+culling when the player zooms into a street. The reopened plan measures close,
+tactical and wide views separately, and holds local content fixed while remote
+world grows. The rejected wall still lacks visual approval.
 
-- **Gap:** an architectural concern alone did not establish optimization priority.
-- **Reach:** future work must check both image quality and actual frame cost.
-- **Verdict:** sound under the user’s revised acceptance rule. Full terrain
-  submission remains a known bound, not a claim that it is universally cheap.
-- **Confidence:** high.
+- **When:** reopened three-view plan.
+- **Gap:** the user requested three levels without prescribing distances.
+- **Reach:** use production default 65 m, existing tactical scale 260 m and prior
+  stress scale 2,400 m, resolved through the player's camera rig.
+- **Verdict:** sound; these cover distinct workloads without changing world density.
+- **Confidence:** medium until baseline images confirm useful contact framing.
+
+### Share far prop assets with both clients
+
+At wide zoom a car may cover only two pixels. A textured card can represent it
+cheaply, but the current browser body cards do not support all prop transforms
+and native substitutes meshes. The plan extends shared asset data and both
+consumers so a browser-only shortcut cannot masquerade as an engine improvement.
+
+- **When:** reopened three-view plan.
+- **Gap:** the user suggested sprites without prescribing storage or client scope.
+- **Reach:** asset validation, browser/native rendering and independent shadows.
+- **Verdict:** sound; prototype opaque cars first and retain meshes where cards
+  cannot preserve appearance, rather than committing every class to sprites.
+- **Confidence:** medium; required material/depth channels await the visual pilot.
