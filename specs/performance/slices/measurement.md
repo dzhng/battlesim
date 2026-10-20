@@ -71,7 +71,9 @@ reports and images: `throwaway/three-view/control-pinned/`; immutable production
 build: `throwaway/three-view/control-build/`. This supersedes the first capture
 as the timing control; the full-state capture still proves live/late coverage.
 
-## Moving-window instrumentation (completed for the retained three-view harness; continuous visual claims remain qualified)
+## Moving-window instrumentation
+
+Collection completed for both frozen builds; visual acceptance is tracked separately.
 
 The endurance scene's opt-in `VIEW_TRANSITIONS=1` flies close→tactical→wide→close
 through the existing benchmark sampler and viewport pilot. Each leg changes pan,

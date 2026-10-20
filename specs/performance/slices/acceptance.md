@@ -29,12 +29,12 @@ production/test/documentation change sizes. Internal report formatting is delega
 acceptance criteria and battle density are not.
 
 Moving-view instrumentation is available through the endurance scene's
-`VIEW_TRANSITIONS=1` option (see [measurement](measurement.md#moving-window-instrumentation-execution-pending)).
+`VIEW_TRANSITIONS=1` option (see [measurement](measurement.md#moving-window-instrumentation)).
 Run it under the parent's exclusive GPU lock on both builds; inspect each leg's
 valid sample count, resolved camera path, periodic counters and separate picture
 replay. Instrumentation alone does not satisfy the moving-view acceptance item.
 
-The [matched-local browser harness](measurement.md#matched-local-browser-harness-execution-pending)
+The [matched-local browser harness](measurement.md#matched-local-browser-harness)
 collects terrain-growth controls through production scene composition. Its
 successful collection is not acceptance: review traversal versus resident growth,
 local pictures and receiver records for both horizontal and elevated extensions.
@@ -63,11 +63,23 @@ of those differences. Evidence: `final-native-plates/`, `final-native-diff/` and
 
 The frozen production input adapter completed all nine control and candidate legs
 across paused, live and late states, with at least 120 valid GPU samples per leg.
-Candidate timings vary by leg: close paused 5.23 ms versus control 5.53 ms, but
-late tactical-wide 23.02 versus 27.75 ms and wide-close 22.91 versus 27.81 ms;
-CPU and frame time also vary. These are bounded per-leg observations, not a
-universal moving-view speedup. Separate video captures exist for visual review. The unprimed review found a hard city streaming/representation boundary and a
-dark DEPLOYING overlay in the moving recordings. Control recordings show the same
-seam and framing artifact, so they are harness/baseline behavior rather than a
-candidate regression. Candidate-specific continuous no-pop claims remain unproven;
-sampled stills cannot prove that no transient pop occurs between frames.
+The moving measurements do not establish a general speedup. Paused close-to-tactical
+GPU means were 5.53/5.23 ms control/candidate, tactical-to-wide 15.11/15.65 ms,
+and wide-to-close 12.67/13.82 ms. Live main-thread means increased from
+17.61/19.90/21.80 ms to 20.84/28.49/29.70 ms across those legs. Live and late
+runs advance different tick counts in equal wall time, so their workloads are
+not identical state-by-state and their differences are not causal speedup estimates.
+CPU diagnostic jobs were also not consistently excluded from the candidate run;
+its CPU/frame comparisons are observations under that load, not isolated renderer
+regression measurements. A causal moving-performance claim requires a quiet repeat.
+
+Separate recordings include deployment setup before the actual camera tour. The
+first review mixed those phases and incorrectly treated striped ground as a
+streaming fallback; those claims are withdrawn. A new review of all six trimmed
+control/candidate tours, matched by path phase, found no candidate-only missing
+geometry, model-detail, shadow-continuity or framing defect. The striped treatment
+retains building silhouettes and roads in both builds; its wide-view readability
+cost and abrupt boundary remain shared presentation limitations. This is bounded
+visual evidence for the recorded paths, not pixel identity or a universal no-pop
+claim. Reports and trimmed tours are under ignored `throwaway/three-view/moving-trimmed/`
+and `throwaway/perf/native-scratch/moving-trimmed-visual-critique.md`.

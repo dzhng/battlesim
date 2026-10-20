@@ -124,8 +124,10 @@ the full suites without an invalidating change. Remaining work:
 
 1. Diagnose the ally-help stall from the captured battle. Native and WASM now
    match the original 578-command prefix after the explicit u32 seed parity fix.
-   The remaining stall is a physical tracked-vehicle pivot blocked by nearby allied
-   hulls without a reported blocker; a narrow general recovery is being tested.
+   The trace identifies static prop 13879, a nonzero rejected forward step, and
+   a clear backing prediction. Recovery currently requires a zero forward step;
+   that eligibility condition is under test. Earlier allied-traffic and acceleration
+   diagnoses were contradicted by the trace.
 2. The contact-stroke correction is committed with hooks: minimum coverage uses
    actual raster resolution while authored widths and body radius remain CSS-sized.
    Focused visual/behavior checks passed; a type-only viewport extraction keeps
