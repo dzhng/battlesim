@@ -13,7 +13,7 @@ import type { RuntimeCatalog } from "./schema.ts";
 
 export const CARD_SPEC = { yaws: 8, pitches: [0.85, 0.5], cell: 64, supersample: 2 } as const;
 const MAGIC = 0x43494742; // BGIC
-const VERSION = 1;
+const VERSION = 2;
 export const CARD_BYTES = 512 * 128 * 4;
 export const cardPath = (hash: string) => `${hash}/card.bin`;
 export interface PreparedCard {
@@ -28,6 +28,8 @@ export interface PreparedCard {
   /** Display albedo / coverage and model-space normal / tint, RGBA8. */
   albedo: Uint8Array;
   normal: Uint8Array;
+  /** RG8, coverage-weighted reverse-Z UNORM16 depth in the bake frame. */
+  depth: Uint8Array;
 }
 
 export function validateCard(card: PreparedCard, appearance: string, bundle: string): void {
@@ -46,6 +48,7 @@ export function validateCard(card: PreparedCard, appearance: string, bundle: str
     "radius",
     "albedo",
     "normal",
+    "depth",
   ];
   if (Object.keys(card).some((k) => !keys.includes(k))) fail("unknown channel or metadata");
   if (card.appearance !== appearance || card.bundle !== bundle || !/^[a-f0-9]{64}$/.test(bundle))
@@ -73,9 +76,11 @@ export function validateCard(card: PreparedCard, appearance: string, bundle: str
     !(card.albedo instanceof Uint8Array) ||
     card.albedo.length !== CARD_BYTES ||
     !(card.normal instanceof Uint8Array) ||
-    card.normal.length !== CARD_BYTES
+    card.normal.length !== CARD_BYTES ||
+    !(card.depth instanceof Uint8Array) ||
+    card.depth.length !== CARD_BYTES / 2
   )
-    fail("invalid two-channel pixels");
+    fail("invalid card pixels");
 }
 
 export function encodeCard(card: PreparedCard): Uint8Array {
@@ -126,7 +131,7 @@ export async function readCard(
   if (hash === undefined) return undefined;
   if (typeof hash !== "string" || !/^[a-f0-9]{64}$/.test(hash))
     throw new Error(`card ${appearance}: invalid content address`);
-  gzipTransport(catalog, hash, CARD_BYTES * 2 + 4096);
+  gzipTransport(catalog, hash, CARD_BYTES * 2.5 + 4096);
   const bytes = await readGzip(catalog, "card", hash, cardPath, read);
   if ((await sha256Hex(bytes)) !== hash)
     throw new Error(`card ${appearance}: content hash differs`);

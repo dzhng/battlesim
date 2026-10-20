@@ -52,7 +52,9 @@ adaptation preserves the cutout test and leaves the browser export unchanged.
   at the impostor tier (its far pose) when no prepared card supports it.
   Supported static props consume the shared [prepared cards](../../packages/scene-assets/README.md#prepared-static-cards)
   through the exported model-card pipeline. Their view records retain per-axis
-  scale and paint, while independent caster batches still draw meshes. Native
+  scale and paint, while independent caster batches still draw meshes.
+  The shared fragment shader reconstructs baked surface depth for occlusion,
+  lighting and fog; the flat card plane is not its depth surface. Native
   diagnostics distinguish card draws from mesh fallback.
 - **The ground** is the presentation's (`Presentation::set_ground`), from
   the saved map as the simulation's own world code exports it

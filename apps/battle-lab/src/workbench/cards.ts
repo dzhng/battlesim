@@ -26,6 +26,7 @@ export async function prepareCard(model: LoadedModel | null, frame?: BattleFrame
       radius: atlas.radius,
       albedo: atlas.albedo,
       normal,
+      depth: atlas.depth,
     }),
   );
 }

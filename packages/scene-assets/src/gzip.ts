@@ -174,7 +174,7 @@ function wireBytes(
     once(hash, maxRaw);
     for (const id of catalog.textures?.[hash] ?? []) once(id);
     const card = catalog.cards?.[hash];
-    if (card) once(card, 512 * 128 * 8 + 4096);
+    if (card) once(card, 512 * 128 * 10 + 4096);
   }
   return bytes;
 }

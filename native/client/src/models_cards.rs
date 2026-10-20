@@ -4,7 +4,7 @@ use presentation::assets::cards::{Card, HEIGHT, WIDTH};
 use wgpu::*;
 
 pub fn upload(device: &Device, queue: &Queue, pipelines: &Pipelines, cards: &[Card]) -> BindGroup {
-    let texture = |normal: bool| {
+    let texture = |channel: usize| {
         let texture = device.create_texture(&TextureDescriptor {
             label: Some("model-card-atlas"),
             size: Extent3d {
@@ -15,7 +15,11 @@ pub fn upload(device: &Device, queue: &Queue, pipelines: &Pipelines, cards: &[Ca
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Unorm,
+            format: if channel == 2 {
+                TextureFormat::Rg8Unorm
+            } else {
+                TextureFormat::Rgba8Unorm
+            },
             usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -31,10 +35,14 @@ pub fn upload(device: &Device, queue: &Queue, pipelines: &Pipelines, cards: &[Ca
                     },
                     aspect: TextureAspect::All,
                 },
-                if normal { &card.normal } else { &card.albedo },
+                match channel {
+                    0 => &card.albedo,
+                    1 => &card.normal,
+                    _ => &card.depth,
+                },
                 TexelCopyBufferLayout {
                     offset: 0,
-                    bytes_per_row: Some(WIDTH * 4),
+                    bytes_per_row: Some(WIDTH * if channel == 2 { 2 } else { 4 }),
                     rows_per_image: Some(HEIGHT),
                 },
                 Extent3d {
@@ -49,8 +57,9 @@ pub fn upload(device: &Device, queue: &Queue, pipelines: &Pipelines, cards: &[Ca
             ..Default::default()
         })
     };
-    let albedo = texture(false);
-    let normal = texture(true);
+    let albedo = texture(0);
+    let normal = texture(1);
+    let depth = texture(2);
     let frames: Vec<[f32; 4]> = if cards.is_empty() {
         vec![[0.0, 0.0, 0.0, 1.0]]
     } else {
@@ -74,6 +83,7 @@ pub fn upload(device: &Device, queue: &Queue, pipelines: &Pipelines, cards: &[Ca
         &[
             BindingResource::TextureView(&albedo),
             BindingResource::TextureView(&normal),
+            BindingResource::TextureView(&depth),
             BindingResource::Sampler(&sampler),
             frames.as_entire_binding(),
         ],

@@ -114,7 +114,8 @@ malformed or belongs to different source art fails loading, preserving the
 browser's installed generation.
 
 [`cards.ts`](src/cards.ts) owns the shared offline format: the existing
-albedo/coverage and model-normal/tint atlases, with their model-space frame and
+albedo/coverage and model-normal/tint atlases, plus a coverage-weighted surface-depth
+atlas, with their model-space frame and
 source bundle identity. Both clients consume those exact prepared pixels. The
 asset CLI's `cards` command bakes through the production workbench renderer;
 like every GPU job, it needs the repository GPU lock. Ordinary mesh `bake` and
@@ -204,17 +205,18 @@ extent in render pixels, capped by the shared model detail threshold. The
 browser checks admission in [propCards](src/propCards.ts); unsupported surfaces
 and absent atlases retain meshes. Damage and wrecks keep their own identities.
 
-The battle's ordinary appearance installation bakes admitted poses through its
-existing [impostor baker](../battle-renderer/src/models/impostor.ts) and installs
-them alongside body cards. No additional load call or offline atlas file is
-needed for this pilot. The source catalog's opt-in is copied by `asset bake`;
-the runtime catalog carries the same metadata without changing bundle hashes.
+The ordinary appearance loader installs [prepared static cards](#prepared-static-cards).
+Per-axis scale applies before heading and placement; view choice uses the inverse
+transform, and normals use its inverse transpose. Independent prop batches keep
+mesh shadow casters. The card reconstructs the baked surface for depth, lighting
+and fog, rather than testing its billboard plane against the ground. Its depth
+texture carries coverage-weighted UNORM16 in RG8, so filtering at silhouette edges
+does not pull a surface toward empty texels. Coverage and surface position are
+evaluated at MSAA sample positions: testing only the pixel centre can erase a
+subpixel car whose mesh still covers other samples. Bake-format changes require
+rebaking.
 
-The two runtime textures carry albedo/coverage and normal/tint. Per-axis scale
-applies before heading and placement; view choice uses the inverse transform,
-and normals use its inverse transpose. Independent prop batches keep mesh
-shadow casters. The card still approximates material response with the body's
-rough, nonmetallic shading, baked occlusion and a flat depth plane. These are
-visual-review gates, not accepted parity. Content-addressed offline atlases and
-native card consumption remain outside this browser pilot; native mesh fallback
-is neither visual nor performance parity.
+The card still approximates material response with rough, nonmetallic shading and
+baked occlusion. Quantized views and coarse coverage also remain visual-review
+gates at the production transition; a forced close diagnostic is not an accepted
+replacement for a close mesh.

@@ -535,6 +535,17 @@
       },
       {
         "binding": 2,
+        "texture": {
+          "sampleType": "float",
+          "viewDimension": "2d-array",
+          "multisampled": false
+        },
+        "visibility": [
+          "fragment"
+        ]
+      },
+      {
+        "binding": 3,
         "sampler": {
           "type": "filtering"
         },
@@ -543,7 +554,7 @@
         ]
       },
       {
-        "binding": 3,
+        "binding": 4,
         "buffer": {
           "type": "read-only-storage"
         },

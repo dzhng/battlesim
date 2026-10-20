@@ -66,7 +66,7 @@ export async function cards(args) {
     if (removed) rmSync(dirname(join(RUNTIME, removed)), { recursive: true, force: true });
     const transport = runtime.gzip[runtime.cards[entry.bundle]];
     console.log(
-      `${name}: ${transport.bytes} wire bytes, ${transport.raw_bytes} decoded bytes, 524304 GPU bytes`,
+      `${name}: ${transport.bytes} wire bytes, ${transport.raw_bytes} decoded bytes, ${card.albedo.byteLength + card.normal.byteLength + card.depth.byteLength + 16} GPU bytes`,
     );
     return 0;
   } finally {

@@ -5,7 +5,7 @@ import { bakeCatalog } from "@packages/scene-assets/src/bake";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader";
 import { AUTHORITY, testCatalog, testSources } from "./synthetic";
 
-test("prepared two-channel pixels survive publication and the ordinary appearance load", async () => {
+test("prepared appearance and depth pixels survive publication and the ordinary appearance load", async () => {
   const catalog = testCatalog();
   catalog.appearances.crate.far_card_px = 2;
   const sources = testSources();
@@ -22,6 +22,7 @@ test("prepared two-channel pixels survive publication and the ordinary appearanc
     center: [0, 0, 1] as [number, number, number],
     radius: 2,
     albedo: new Uint8Array(512 * 128 * 4).fill(127),
+    depth: new Uint8Array(512 * 128 * 2),
     normal: new Uint8Array(512 * 128 * 4).fill(63),
   };
   await publishCard(out, card);
@@ -66,13 +67,15 @@ test("malformed and stale declared cards fail atomically, while an absent card k
     center: [0, 0, 1] as [number, number, number],
     radius: 2,
     albedo: new Uint8Array(512 * 128 * 4),
+    depth: new Uint8Array(512 * 128 * 2),
     normal: new Uint8Array(512 * 128 * 4),
   };
   for (const bad of [
     { ...card, radius: 0 },
+    { ...card, depth: new Uint8Array(0) },
     { ...card, center: [NaN, 0, 0] },
     { ...card, spec: { ...CARD_SPEC, yaws: 4 } },
-    { ...card, normal: new Uint8Array(4) },
+    { ...card, depth: new Uint8Array(512 * 128 * 2), normal: new Uint8Array(4) },
     { ...card, bundle: "b".repeat(64) },
   ])
     await expect(publishCard(out, bad as typeof card)).rejects.toThrow(/card crate/);
@@ -107,6 +110,7 @@ test("mesh rebakes retain identical-source cards and drop changed-source cards w
     center: [0, 0, 1],
     radius: 2,
     albedo: new Uint8Array(512 * 128 * 4),
+    depth: new Uint8Array(512 * 128 * 2),
     normal: new Uint8Array(512 * 128 * 4),
   });
   const hash = out.runtime.cards![out.runtime.appearances.crate.bundle];
@@ -147,6 +151,7 @@ test("appearances sharing source bytes load the shared card under their own name
     center: [0, 0, 1],
     radius: 2,
     albedo: new Uint8Array(512 * 128 * 4).fill(17),
+    depth: new Uint8Array(512 * 128 * 2),
     normal: new Uint8Array(512 * 128 * 4).fill(29),
   });
   out.files.set("catalog.json", new TextEncoder().encode(JSON.stringify(out.runtime)));
@@ -192,6 +197,7 @@ test("replacement publication removes superseded card transport and remains chec
     center: [0, 0, 1] as [number, number, number],
     radius: 2,
     albedo: new Uint8Array(512 * 128 * 4),
+    depth: new Uint8Array(512 * 128 * 2),
     normal: new Uint8Array(512 * 128 * 4),
   };
   await publishCard(out, card);
@@ -228,6 +234,7 @@ test("deferred aliases retain their own card names and appearance metadata", asy
     center: [0, 0, 1],
     radius: 2,
     albedo: new Uint8Array(512 * 128 * 4),
+    depth: new Uint8Array(512 * 128 * 2),
     normal: new Uint8Array(512 * 128 * 4),
   });
   out.runtime.appearances.crate.regional_family = "region";

@@ -12,6 +12,7 @@
 // CPU, which keeps the edge antialiasing deterministic: same inputs, same
 // bytes, same hash.
 
+import { filterCardDepth } from "./cardDepth";
 import { tgpu } from "typegpu";
 import { mat4, vec3, type Mat4, type Vec3 } from "math";
 import { orthographicReverseZ } from "@packages/renderer-core/src/camera3d";
@@ -115,6 +116,8 @@ export interface ImpostorAtlas {
   /** RGBA8, red = the side-tint mask (how much of a side's tint the surface
    *  takes), alpha = coverage. Albedo is baked untinted. */
   mask: Uint8Array;
+  /** RG8, coverage-weighted reverse-Z UNORM16 depth in the bake frame. */
+  depth: Uint8Array;
   /** sha256 of the metadata and every atlas. */
   hash: string;
 }
@@ -217,7 +220,7 @@ export function createImpostorBaker(
           label: "impostor-depth",
           size: [width, height],
           format: GPU_DEPTH_FORMAT,
-          usage: 0x10,
+          usage,
         });
         const cameras = frame.views.map((view) => {
           const data = new Float32Array(CAMERA_WORDS);
@@ -262,7 +265,7 @@ export function createImpostorBaker(
             view: depth.createView(),
             depthClearValue: GPU_DEPTH_CLEAR,
             depthLoadOp: "clear",
-            depthStoreOp: "discard",
+            depthStoreOp: "store",
           },
         });
         frame.views.forEach((view, i) => {
@@ -276,37 +279,56 @@ export function createImpostorBaker(
         });
         pass.end();
         const rowBytes = width * 4;
-        const reads = [albedo, normal, mask].map((texture) => {
+        const reads = [albedo, normal, mask, depth].map((texture) => {
           const read = scope.buffer({
             label: "impostor-read",
             size: rowBytes * height,
             usage: 0x01 | 0x08,
           });
-          encoder.copyTextureToBuffer({ texture }, { buffer: read, bytesPerRow: rowBytes }, [
-            width,
-            height,
-          ]);
+          encoder.copyTextureToBuffer(
+            { texture, aspect: texture === depth ? "depth-only" : "all" },
+            { buffer: read, bytesPerRow: rowBytes },
+            [width, height],
+          );
           return read;
         });
         device.queue.submit([encoder.finish()]);
-        const [albedoBytes, normalBytes, maskBytes] = await Promise.all(
+        const raw = await Promise.all(
           reads.map(async (read) => {
             await read.mapAsync(1);
             const bytes = new Uint8Array(read.getMappedRange().slice(0));
             read.unmap();
-            return boxFilter(bytes, width, height, spec.supersample);
+            return bytes;
           }),
+        );
+        const [albedoBytes, normalBytes, maskBytes] = raw
+          .slice(0, 3)
+          .map((bytes) => boxFilter(bytes, width, height, spec.supersample));
+        const depthBytes = filterCardDepth(
+          new Float32Array(raw[3].buffer),
+          raw[0],
+          width,
+          height,
+          spec.supersample,
         );
         const meta = new TextEncoder().encode(
           JSON.stringify({ appearance, spec, center: frame.center, radius: frame.radius }),
         );
         const hashed = new Uint8Array(
-          meta.length + albedoBytes.length + normalBytes.length + maskBytes.length,
+          meta.length +
+            albedoBytes.length +
+            normalBytes.length +
+            maskBytes.length +
+            depthBytes.length,
         );
         hashed.set(meta, 0);
         hashed.set(albedoBytes, meta.length);
         hashed.set(normalBytes, meta.length + albedoBytes.length);
         hashed.set(maskBytes, meta.length + albedoBytes.length + normalBytes.length);
+        hashed.set(
+          depthBytes,
+          meta.length + albedoBytes.length + normalBytes.length + maskBytes.length,
+        );
         const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", hashed));
         return {
           appearance,
@@ -318,6 +340,7 @@ export function createImpostorBaker(
           albedo: albedoBytes,
           normal: normalBytes,
           mask: maskBytes,
+          depth: depthBytes,
           hash: Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join(""),
         };
       } finally {

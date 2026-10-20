@@ -4199,7 +4199,7 @@
     }
   },
   "cards": {
-    "b60a4e514567c5c07ce6b95665a4e482a8643c2bb10b3b4183085373044e272d": "99c4598380bff877bddb5c85236bc3446d58198fb4c39622a9da0f0bca8ffc34"
+    "b60a4e514567c5c07ce6b95665a4e482a8643c2bb10b3b4183085373044e272d": "4f8ab96dacf31bb64bacb0d6b50e09191fa6138c1d901d514992b9957ab324bc"
   },
   "gzip": {
     "004eaddf3787be73da389570a7e09d313414080cff03833f83da93f6dcd80f89": {
@@ -5487,6 +5487,11 @@
       "hash": "258f3e80653b4602f71d6cb34adb4e520e604db3dd0726a5e4f866af78ba7ce0",
       "raw_bytes": 349543
     },
+    "4f8ab96dacf31bb64bacb0d6b50e09191fa6138c1d901d514992b9957ab324bc": {
+      "bytes": 90570,
+      "hash": "21fd6c46d947560f9007cba5b2253ecb75dc12a30695a209bf368cb7f7b3234e",
+      "raw_bytes": 655800
+    },
     "500f87778e1bc521ce0c2e21f5ac9d686e5819bfa7cc757c2e686e98bb3f8df0": {
       "bytes": 198192,
       "hash": "e7529fba8ab5b8e76b90e74e985ab79200e52c37dba3da4d1ddac1faa95ca40b",
@@ -6771,11 +6776,6 @@
       "bytes": 3513245,
       "hash": "0320ac343751fe4ecb93560f7aa3602c673e7714c5b55fc65e47b2d462b3b3db",
       "raw_bytes": 10321008
-    },
-    "99c4598380bff877bddb5c85236bc3446d58198fb4c39622a9da0f0bca8ffc34": {
-      "bytes": 59461,
-      "hash": "dd7684271d7a78a966ef0da08ee3973d335b94cf7c6e34a601c2097c908c5b8c",
-      "raw_bytes": 524688
     },
     "99e72fa5e816eeba222cef10032b608c9601750bfbb671cdd5e87ba507678df2": {
       "bytes": 166252,

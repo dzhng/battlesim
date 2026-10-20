@@ -192,7 +192,7 @@ impl Library {
         let raw = self.runtime.catalog["gzip"][hash]["raw_bytes"]
             .as_u64()
             .unwrap_or(u64::MAX);
-        if raw > (presentation::assets::cards::PIXEL_BYTES * 2 + 4096) as u64 {
+        if raw > (presentation::assets::cards::PIXEL_BYTES / 2 * 5 + 4096) as u64 {
             return Err(format!("card {name}: invalid decoded size"));
         }
         use std::io::Read;

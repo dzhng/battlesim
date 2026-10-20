@@ -446,6 +446,7 @@ test("explicit lab card tier draws the prepared quad, and missing cards retain t
         center: [0, 0, 0],
         radius: 1,
         albedo: new Uint8Array(512 * 128 * 4),
+        depth: new Uint8Array(512 * 128 * 2),
         normal: new Uint8Array(512 * 128 * 4),
       },
     },

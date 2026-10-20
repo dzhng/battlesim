@@ -1,11 +1,11 @@
-//! Prepared two-channel static cards (`scene-assets/cards.ts`).
+//! Prepared surface-depth static cards (`scene-assets/cards.ts`).
 use super::{Container, Kind, View};
 use serde::Deserialize;
 
 pub const WIDTH: u32 = 512;
 pub const HEIGHT: u32 = 128;
 pub const PIXEL_BYTES: usize = (WIDTH * HEIGHT * 4) as usize;
-const CARD: Kind = Kind(0x4349_4742, 1, "card");
+const CARD: Kind = Kind(0x4349_4742, 2, "card");
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -27,12 +27,14 @@ struct Header {
     radius: f32,
     albedo: View,
     normal: View,
+    depth: View,
 }
 
 pub struct Card {
     pub frame: [f32; 4],
     pub albedo: Vec<u8>,
     pub normal: Vec<u8>,
+    pub depth: Vec<u8>,
 }
 
 impl Card {
@@ -59,13 +61,18 @@ impl Card {
         }
         let albedo = c.u8s(h.albedo)?;
         let normal = c.u8s(h.normal)?;
-        if albedo.len() != PIXEL_BYTES || normal.len() != PIXEL_BYTES {
-            return Err(format!("{what}: invalid two-channel pixels; re-bake"));
+        let depth = c.u8s(h.depth)?;
+        if depth.len() != PIXEL_BYTES / 2
+            || albedo.len() != PIXEL_BYTES
+            || normal.len() != PIXEL_BYTES
+        {
+            return Err(format!("{what}: invalid card pixels; re-bake"));
         }
         Ok(Self {
             frame: [h.center[0], h.center[1], h.center[2], h.radius],
             albedo,
             normal,
+            depth,
         })
     }
 }
@@ -78,16 +85,22 @@ mod tests {
             "bundle": "a".repeat(64), "state": "default",
             "spec": {"yaws":8,"pitches":[0.85,0.5],"cell":64,"supersample":2},
             "width":512,"height":128,"center":[0,0,1],"radius":2,
-            "albedo":{"$view":0},"normal":{"$view":1}},
-            "views":[["u8",offset,PIXEL_BYTES],["u8",PIXEL_BYTES,PIXEL_BYTES]]});
+            "albedo":{"$view":0},"normal":{"$view":1},"depth":{"$view":2}},
+            "views":[["u8",offset,PIXEL_BYTES],["u8",PIXEL_BYTES,PIXEL_BYTES],["u8",PIXEL_BYTES*2,PIXEL_BYTES/2]]});
         let json = serde_json::to_vec(&header).unwrap();
         let mut out = Vec::new();
-        for n in [CARD.0, CARD.1, json.len() as u32, (PIXEL_BYTES * 2) as u32] {
+        for n in [
+            CARD.0,
+            CARD.1,
+            json.len() as u32,
+            (PIXEL_BYTES / 2 * 5) as u32,
+        ] {
             out.extend(n.to_le_bytes());
         }
         out.extend(json);
         out.resize(out.len() + PIXEL_BYTES, 127);
         out.resize(out.len() + PIXEL_BYTES, 63);
+        out.resize(out.len() + PIXEL_BYTES / 2, 31);
         out
     }
     #[test]
@@ -100,7 +113,7 @@ mod tests {
         assert!(Card::decode(&bytes, "test", &"b".repeat(64)).is_err());
         assert!(Card::decode(&bytes[..bytes.len() - 1], "test", &"a".repeat(64)).is_err());
         let mut bad = bytes;
-        bad[4] = 2;
+        bad[4] = 1;
         assert!(Card::decode(&bad, "test", &"a".repeat(64)).is_err());
     }
     #[test]
