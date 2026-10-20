@@ -4,8 +4,12 @@
 //! the depth prepass, the sun's cascades and the lit world. The terrain's
 //! group (`terrainLayout`) is the grass build's too, and holds the side's
 //! scars (`scars.rs`).
-use presentation::shadow::map_box;
+use std::ops::Range;
+
+use presentation::records::Camera;
+use presentation::shadow::{map_box, SunShadowFrame, CASCADES};
 use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};
+use presentation::static_world::ground::partition::{TerrainPartition, CELL_M};
 use presentation::static_world::ground::Ground as Resolved;
 use wgpu::*;
 
@@ -43,10 +47,16 @@ impl Mesh {
     }
 
     fn draw(&self, pass: &mut RenderPass, identity: &Buffer) {
+        self.draw_ranges(pass, identity, std::slice::from_ref(&(0..self.vertices)));
+    }
+
+    fn draw_ranges(&self, pass: &mut RenderPass, identity: &Buffer, ranges: &[Range<u32>]) {
         let Some(buffer) = &self.buffer else { return };
         pass.set_vertex_buffer(0, buffer.slice(..));
         pass.set_vertex_buffer(1, identity.slice(..));
-        pass.draw(0..self.vertices, 0..1);
+        for range in ranges {
+            pass.draw(range.clone(), 0..1);
+        }
     }
 }
 
@@ -94,6 +104,9 @@ pub struct Ground {
     /// The box the map's ground and what stands on it fill (`mapBox`).
     pub map_box: Option<[f64; 6]>,
     terrain: Mesh,
+    terrain_partition: TerrainPartition,
+    terrain_view: Vec<Range<u32>>,
+    terrain_cascades: [Vec<Range<u32>>; CASCADES],
     skirt: Mesh,
     backdrop: Mesh,
     water: Mesh,
@@ -158,6 +171,9 @@ impl Ground {
         );
         let terrain = mesh::terrain(positions, indices, None);
         let map_box = map_box(&terrain);
+        // Coarse spatial batches avoid one draw per terrain cell while allowing
+        // the camera and each shadow cascade to exclude distant ground.
+        let terrain_partition = TerrainPartition::new(&terrain, CELL_M);
         let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
         let skirt = Mesh::new(device, "skirt", &mesh::skirt(positions));
         let water = Mesh::new(device, "water", &mesh::water(&ground.water_cells()));
@@ -168,7 +184,10 @@ impl Ground {
             scars,
             heights,
             map_box,
-            terrain: Mesh::new(device, "terrain", &terrain),
+            terrain: Mesh::new(device, "terrain", terrain_partition.vertices()),
+            terrain_partition,
+            terrain_view: Vec::new(),
+            terrain_cascades: std::array::from_fn(|_| Vec::new()),
             skirt,
             backdrop: Mesh::new(device, "backdrop", &backdrop),
             water,
@@ -185,6 +204,19 @@ impl Ground {
             lit_backdrop: pipelines.bound("worldBackdrop"),
             lit_water: pipelines.bound("worldWater"),
         })
+    }
+
+    /// Select from the same camera records uploaded for the colour and shadow passes.
+    pub fn prepare(&mut self, camera: &Camera, shadow: Option<&SunShadowFrame>) {
+        self.terrain_partition
+            .select(&camera.view_proj, &mut self.terrain_view);
+        for (index, ranges) in self.terrain_cascades.iter_mut().enumerate() {
+            if let Some(caster) = shadow.and_then(|fit| fit.casters.get(index)) {
+                self.terrain_partition.select(&caster.view_proj, ranges);
+            } else {
+                ranges.clear();
+            }
+        }
     }
 
     /// Takes this frame's scar uploads from `presentation` for a `size`
@@ -212,17 +244,19 @@ impl Ground {
     /// The ground, the skirt and the backdrop into the depth prepass.
     pub fn draw_depth(&self, pass: &mut RenderPass, camera: (&str, &BindGroup)) {
         self.prepass.set(pass, &[camera]);
-        for mesh in [&self.terrain, &self.skirt, &self.backdrop] {
+        self.terrain
+            .draw_ranges(pass, &self.identity, &self.terrain_view);
+        for mesh in [&self.skirt, &self.backdrop] {
             mesh.draw(pass, &self.identity);
         }
     }
 
     /// The ground and the skirt into one cascade (the backdrop casts nothing).
-    pub fn draw_casters(&self, pass: &mut RenderPass, camera: (&str, &BindGroup)) {
+    pub fn draw_casters(&self, pass: &mut RenderPass, camera: (&str, &BindGroup), cascade: usize) {
         self.caster.set(pass, &[camera]);
-        for mesh in [&self.terrain, &self.skirt] {
-            mesh.draw(pass, &self.identity);
-        }
+        self.terrain
+            .draw_ranges(pass, &self.identity, &self.terrain_cascades[cascade]);
+        self.skirt.draw(pass, &self.identity);
     }
 
     /// The lit terrain, `groups` the frame's (camera, environment, fog).
@@ -230,7 +264,8 @@ impl Ground {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
         self.lit_terrain.set(pass, &all);
-        self.terrain.draw(pass, &self.identity);
+        self.terrain
+            .draw_ranges(pass, &self.identity, &self.terrain_view);
     }
 
     /// The map's skirt, lit as the world's faces.

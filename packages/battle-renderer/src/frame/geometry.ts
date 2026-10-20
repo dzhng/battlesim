@@ -87,10 +87,10 @@ function instanceBuffer(root: Root, capacity: number) {
 }
 
 /** Anything a bound pipeline can draw a mesh through. */
-interface Drawable {
+export interface Drawable {
   with(layout: typeof vertexLayout, buffer: VertexBuffer): Drawable;
   with(layout: typeof instanceLayout, buffer: InstanceBuffer): Drawable;
-  draw(vertices: number, instances: number): void;
+  draw(vertices: number, instances: number, firstVertex?: number): void;
 }
 
 /** One replaceable mesh, drawn once through the identity instance. A mesh
@@ -125,11 +125,19 @@ export class MeshSlot {
     if (this.count > 0) this.slot.current!.write(floats.buffer, { endOffset: floats.byteLength });
   }
 
-  draw(bound: Drawable, submitted?: SubmittedDraws) {
+  draw(bound: Drawable, submitted?: SubmittedDraws, ranges?: Uint32Array) {
     const buffer = this.slot.current;
     if (!buffer || this.count === 0) return;
-    bound.with(vertexLayout, buffer).with(instanceLayout, this.identity).draw(this.count, 1);
-    recordDraw(submitted, this.count, 1);
+    const mesh = bound.with(vertexLayout, buffer).with(instanceLayout, this.identity);
+    if (ranges) {
+      for (let i = 0; i < ranges.length; i += 2) {
+        mesh.draw(ranges[i + 1], 1, ranges[i]);
+        recordDraw(submitted, ranges[i + 1], 1);
+      }
+    } else {
+      mesh.draw(this.count, 1);
+      recordDraw(submitted, this.count, 1);
+    }
   }
 }
 

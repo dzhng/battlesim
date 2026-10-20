@@ -4,6 +4,7 @@
 // Material, visibility and resource contracts live in the renderer README and
 // the individual layer owners below.
 import { createSubmittedFrame, type SubmittedDraws } from "./submitted";
+import { TerrainDraws } from "./terrainDraws";
 import { drawTerrainRegions } from "./terrainRegions";
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { SceneInstance, WorldLayers } from "../scene";
@@ -552,7 +553,7 @@ export async function createWorldPass(
   fog.setPaintStyle(validatePaintStyle(paintStyle));
   const identity = identityInstance(root, registry);
   const world = {
-    ground: new MeshSlot(root, registry, identity),
+    ground: new TerrainDraws(new MeshSlot(root, registry, identity), registry),
     props: new MeshSlot(root, registry, identity),
     water: new MeshSlot(root, registry, identity),
   };
@@ -668,12 +669,8 @@ export async function createWorldPass(
     },
     fog,
     grassProbes: grass.probes,
-    /** The scenery instances the last view drew (`sceneryLayer.ts`). */
     drawnScenery: () => scenery.drawn(),
-    /** Pose the environment for the presentation frame's camera (its
-     *  `Camera` uniform and `View` record), upload the sun's cascades it
-     *  fitted (its `SunShadow` and `count` caster cameras) and fit the
-     *  grass. */
+    /** Selection and GPU uploads consume the same presentation camera records. */
     prepare(
       camera: Float32Array,
       view: Float32Array,
@@ -683,6 +680,7 @@ export async function createWorldPass(
     ) {
       frameProjection = camera.subarray(CameraAt.view_proj, CameraAt.view_proj + 16);
       environment.prepare(view, sunShadow, casters, count);
+      world.ground.prepare(camera, casters, count);
       grass.prepare(frameProjection as unknown as Mat4);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
@@ -691,7 +689,7 @@ export async function createWorldPass(
       environment.encodeShadows(encoder, (pass, cameraGroup, cascade) => {
         const counts = submitted.cascade(cascade);
         const bound = caster.with(pass).with(cameraGroup);
-        world.ground.draw(bound, counts.terrain);
+        world.ground.draw(bound, counts.terrain, cascade);
         world.props.draw(bound, counts.skirtAndDebugProps);
         proxies.draw(bound);
         const raw = root.unwrap(pass);
@@ -1141,6 +1139,7 @@ export async function createWorldPass(
     stats() {
       return {
         submitted: submitted.snapshot(),
+        terrainVisitedNodes: world.ground.visited,
         worldVertices: world.ground.vertices + world.props.vertices + world.water.vertices,
         instances: proxies.count,
         shadow: environment.stats(),

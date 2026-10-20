@@ -34,7 +34,12 @@ resolves for every client from the map's compiled shapes and the biome
 plots, roads as drawn, surface fields, water cells, the terrain's and grass's GPU
 tables, and the scenery's walk: what trees, shrubs and dressing a view draws and
 casts at which tier, as the frame's static batches); the renderer uploads the
-tables and batches as given and draws admitted appearances. Physical bounds and
+tables and batches as given and draws admitted appearances. The shared [terrain partition](../../crates/presentation/src/static_world/ground/partition.rs)
+reorders whole triangles once, preserving their vertex words. Both clients query
+its hierarchy with the actual GPU camera and each caster matrix independently;
+selection adds no far cutoff. Camera ranges serve depth and color, including each
+scar-region submission. Traversal work is distinct from issued draw counts.
+Physical bounds and
 visual-only landscape remain
 separate. Cosmetic geometry must not invent a physical obstruction or imply cover
 that the simulation does not provide: a tree the side has seen felled falls on the

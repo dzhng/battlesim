@@ -2,6 +2,9 @@
 //! resolved from the map's exports under the biome into the terrain's and
 //! grass's GPU tables and the water's cells, and its scenery placed for the
 //! frames' static batches.
+#[path = "terrain_partition.rs"]
+mod terrain_partition;
+
 use crate::{error, Presentation};
 use presentation::presentation::Presentation as Inner;
 use presentation::shadow;

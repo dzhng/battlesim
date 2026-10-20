@@ -182,14 +182,20 @@ test("terrain regions count every issued mesh, skip offscreen regions and submit
     (region) => (region[0] === 1 ? null : [0, 0, 40, 30]),
     () => events.push("prepare"),
     () => {
-      mesh.draw(f.encoder as never, submitted);
+      mesh.draw(f.encoder as never, submitted, Uint32Array.of(3, 6, 15, 3));
       events.push("draw");
     },
   );
   expect(first).toBe(false);
   expect(events).toEqual(["prepare", "draw", "end", "submit", "prepare", "draw", "end", "submit"]);
   expect(submitted).toEqual(f.sum());
-  expect(submitted.triangles).toBe(14);
+  expect(f.calls).toEqual([
+    [6, 1, 3],
+    [3, 1, 15],
+    [6, 1, 3],
+    [3, 1, 15],
+  ]);
+  expect(submitted.triangles).toBe(6);
   f.registry.release();
 });
 
