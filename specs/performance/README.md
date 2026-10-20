@@ -51,8 +51,9 @@ between these same three levels; do not mix transition samples into hold metrics
    browser/native consumption. Terrain, props, buildings and scenery are audited.
 4. **Detail follows projected footprint.** Close meshes, simplified middle
    meshes and far sprite/impostor representations form one asset-owned policy.
-   At roughly 1–2 render pixels, a supported prop should use a cheap card rather
-   than hundreds of triangles. Use projected bounds, including elongated walls
+   At roughly 1–2 render pixels, evaluate a cheap card against the existing mesh;
+   retain the mesh when the replacement has not earned its visual/runtime cost.
+   Use projected bounds, including elongated walls
    and nonuniformly scaled props; height or distance alone is insufficient.
 5. **Impostors are production representations.** Reuse the existing atlas/card
    owners, extending shared assets and both clients. Preserve scale, tint,
@@ -117,18 +118,23 @@ measurements demonstrate bounded selection and receiver work; they are not a
 whole-frame speedup claim. [Research](research.md) records the scope and evidence.
 
 Full Rust tests passed. The full web unit run's two fixture failures were repaired
-and focused checks passed. Full browser verification is running; remaining work:
+and focused checks passed. Full browser verification completed; affected reruns
+resolved the rendering/fixture failures except the ally-help stall. Do not repeat
+the full suites without an invalidating change. Remaining work:
 
-1. Resolve every browser failure with focused reruns. Current findings include
-   render-scale assumptions in frame/camera tests, an upscaled-pixel overlay
-   compositing check, faint distant contact stems, camera-path visibility,
-   facade occlusion, grass trampling, and missing city template LFS files (now
-   fetched). Do not lower thresholds or repin pictures to make these pass.
-2. Finish final mesh resource-reset and native rendered-parity runs and review
-   their images. Older resource evidence used rejected card machinery.
-3. Complete the matched moving-control comparison and bounded continuous visual
-   review; the candidate's completed measurements and sampled still reviews do
-   not establish relative moving performance or every intervening frame.
+1. Diagnose the ally-help stall from the captured battle. Native and WASM now
+   match the original 578-command prefix after the explicit u32 seed parity fix.
+   The remaining stall is a physical tracked-vehicle pivot blocked by nearby allied
+   hulls without a reported blocker; a narrow general recovery is being tested.
+2. The contact-stroke correction is committed with hooks: minimum coverage uses
+   actual raster resolution while authored widths and body radius remain CSS-sized.
+   Focused visual/behavior checks passed; a type-only viewport extraction keeps
+   the existing oversized file shrinking. Preserve this contract in final docs.
+3. Complete the matched moving-control comparison and continuous visual review.
+   Final mesh resource-reset checks passed. Native replay matches all submitted
+   counts across 18 plates; image review found no broad geometry/shadow defect,
+   but tiny distant infantry differ between native meshes and browser cards.
+   Do not claim pixel-identical parity or proven historical attribution.
 4. Refresh acceptance statuses and the consolidated choices against final code,
    complete archival claim review, run hooks, and push the reviewed result.
 

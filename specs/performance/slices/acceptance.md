@@ -1,6 +1,6 @@
 # 4. Production acceptance and closeout
 
-Status: pending visibility and distant representations.
+Status: implementation settled; moving comparison and closeout repairs remain.
 
 - [ ] Run interleaved matched A/B at all three frozen views, with fresh GPU
   windows, actual submission/traversal counters and CPU/frame distributions.
@@ -41,14 +41,33 @@ local pictures and receiver records for both horizontal and elevated extensions.
 Static population growth and offscreen caster coverage still need their own
 proof; this terrain-only fixture does not close those contracts.
 
-## Integrated resource checkpoint
+## Final retained resource and native checkpoint
 
-The Low Metro XL live/late scene completed with 100 units per side, three
-repeated tick-90 resets and 60-second live/late segments. Each reset returns
-exactly 5,983 buffers, 42 textures, 3,300,514,276 buffer bytes and 613,259,441
-texture bytes, with the same digest, corpse IDs, clock and camera. This build
-includes water/felled selection and receiver caching but still uses the rejected
-per-sample card shader. Treat its successful lifetime checks separately from
-performance acceptance; changes to resource construction require affected checks
-to run again. Evidence: `throwaway/three-view/combined-resources/` and its sibling
-`combined-resource-run.log`.
+The final mesh-only Low Metro XL lifetime run passed repeated resets and live/late
+segments. Resets reproduced battle identity, clock, corpse IDs, camera and exact
+resource totals: 5,982 buffers, 41 textures, 3,300,445,908 buffer bytes and
+560,699,569 texture bytes. This establishes reset stability, not low residency.
+Live/late simulation throughput was approximately 20 Hz, below nominal 30 Hz;
+this run does not establish a real-time simulation performance budget. Evidence:
+`throwaway/three-view/final-resource.log` and `final-resources/`.
+
+Native replay matched submitted model/building/prop/scenery/effect counts on all
+18 market-town plates. Independent image review found no broad missing geometry,
+shadow displacement or depth inversion. Tiny distant infantry silhouettes differ;
+native uses posed coarse meshes while browser uses an image atlas. This supports
+close rendered agreement, not pixel identity or conclusive historical attribution
+of those differences. Evidence: `final-native-plates/`, `final-native-diff/` and
+`final-native-visual-review.md` in the same scratch directory.
+
+## Matched moving evidence
+
+The frozen production input adapter completed all nine control and candidate legs
+across paused, live and late states, with at least 120 valid GPU samples per leg.
+Candidate timings vary by leg: close paused 5.23 ms versus control 5.53 ms, but
+late tactical-wide 23.02 versus 27.75 ms and wide-close 22.91 versus 27.81 ms;
+CPU and frame time also vary. These are bounded per-leg observations, not a
+universal moving-view speedup. Separate video captures exist for visual review. The unprimed review found a hard
+city streaming/representation boundary and a dark DEPLOYING overlay in the moving
+recordings; because the same capture path may affect both arms, this is a visual
+gate failure requiring control-versus-candidate comparison before acceptance.
+Sampled stills cannot prove that no transient pop occurs between frames.

@@ -1,6 +1,6 @@
 # 2. Bound camera and caster work
 
-Status: shared implementation integrated; combined GPU/visual acceptance pending. Unlock spatially bounded production work
+Status: implementation integrated; see acceptance and research for measured limits. Unlock spatially bounded production work
 without losing visible objects or their shadows.
 
 Shared Rust presentation owns static selection; browser and native draw its

@@ -12,6 +12,23 @@ sound with medium confidence in the tradeoff the user would choose. No unresolve
 user-only decision or unsound retained choice is identified.
 
 ## Sound — medium confidence
+### Preserve seeded AI choices across native and WASM word sizes
+
+A seeded policy chose a different reinforcement on 64-bit native than on 32-bit
+WASM because the hash was reduced after casting to the platform's `usize`. The
+shared contract now truncates to the WASM-width `u32` before taking the bounded
+role index, so native replays the browser's existing decisions. The alternative
+would preserve a platform-dependent battle stream and make parity failures look
+like renderer differences.
+
+- **When:** ally-help parity diagnosis.
+- **Gap:** the rendering spec assumes simulation parity but did not define integer
+  width at this AI seed seam.
+- **Reach:** seeded skirmish policy construction and native/browser replay probes;
+  this is a simulation portability correction separate from renderer outcomes.
+- **Verdict:** sound; keep the established WASM decision stream on every target.
+- **Confidence:** high.
+
 
 ### Keep separate lists for the four shadow images
 
@@ -119,6 +136,25 @@ world sharpness for less GPU work and smaller render targets.
 - **Reach:** production Low only; Medium and High retain full scale.
 - **Verdict:** sound; use the player's explicit quality preference for this tradeoff.
 - **Confidence:** high; performance magnitude still depends on the adapter/workload.
+
+### Keep minimum stroke coverage in actual render pixels
+
+When Low draws the world at reduced resolution, a line authored to cover one
+screen pixel can land on less than one rendered pixel and become faint. Keep
+ordinary line widths and unit body sizes in screen coordinates, but enforce the
+minimum line coverage using the canvas's actual resolution. Pass that ratio
+through the existing viewport callbacks instead of giving each overlay its own
+quality-setting lookup. The alternative makes every mark larger or adds a
+special case for one distant aircraft stem.
+
+- **When:** closeout contact-stroke correction.
+- **Gap:** the earlier resolution change did not define the minimum coverage unit.
+- **Reach:** world-rendered contact and order marks share one width rule. Thin rims
+  and keylines can cover more pixels; the unit body radius stays unchanged. HTML
+  controls are unaffected. Existing pointer caches invalidate when the ratio changes.
+- **Verdict:** sound; repair the coordinate contract across consumers without a
+  new quality owner or additional draws.
+- **Confidence:** high.
 
 ### Reuse temporary Rust storage without caching changing answers
 
