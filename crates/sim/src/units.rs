@@ -277,6 +277,9 @@ pub struct Unit {
     /// ([`MoveState::RouteBlocked`]).
     pub stalls: (f64, u64),
     pub engagement: Engagement,
+    /// While a passive AI holds the unit at return fire, the engagement it
+    /// goes back to when that controller leaves: its authored or ordered one.
+    pub held_engagement: Option<Engagement>,
     pub mounts: Vec<Mount>,
     /// Enemies that attacked this unit, whom Return fire only may answer while
     /// the side still knows them (W13).
@@ -726,6 +729,11 @@ impl Unit {
         d.u64(self.engagement as u64)
             .u64(self.reach.can_engage as u64)
             .u64(self.reach.needs_closer as u64);
+        // Only a passive AI's unit that returns fire by choice folds this in,
+        // so other units keep their digests.
+        if self.held_engagement == Some(Engagement::ReturnFireOnly) {
+            d.u64(u64::MAX);
+        }
         // Only a gun fixed in a hull sets it, so other units keep their digests.
         if let Some(face) = self.reach.face {
             d.f64(face);

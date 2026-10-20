@@ -3,20 +3,43 @@
 
 use super::*;
 
-/// The engagement a unit fights with: neutral's units and a passive AI's
-/// only return fire, whatever they author (neutral is a passive world actor:
-/// it answers an attacker through the normal return-fire path but never
-/// acquires a target on its own). Anyone else's keep `authored`, firing at
-/// will by default.
-pub(super) fn engagement(
-    side: Side,
-    controller: Option<&ControllerKind>,
-    authored: Option<Engagement>,
-) -> Engagement {
-    if side == Side::Neutral || controller == Some(&ControllerKind::PassiveAi) {
+/// The engagement a unit chooses for itself, before any controller's say:
+/// neutral's units only return fire, whatever they author (neutral is a
+/// passive world actor: it answers an attacker through the normal
+/// return-fire path but never acquires a target on its own). Anyone else's
+/// keep `authored`, firing at will by default.
+pub(super) fn own_engagement(side: Side, authored: Option<Engagement>) -> Engagement {
+    if side == Side::Neutral {
         Engagement::ReturnFireOnly
     } else {
         authored.unwrap_or(Engagement::FireAtWill)
+    }
+}
+
+/// Put `unit` under `controller`. A passive AI holds it at return fire and
+/// keeps its own engagement to give back; any other controller leaves it
+/// with its own.
+pub(super) fn put_under(unit: &mut Unit, controller: &ControllerKind) {
+    let own = unit.held_engagement.take().unwrap_or(unit.engagement);
+    if *controller == ControllerKind::PassiveAi {
+        unit.held_engagement = Some(own);
+        unit.engagement = Engagement::ReturnFireOnly;
+    } else {
+        unit.engagement = own;
+    }
+}
+
+/// An attack or attack-move order chooses fire at will (W14).
+pub(super) fn fire_at_will(unit: &mut Unit) {
+    order_engagement(unit, Engagement::FireAtWill);
+}
+
+/// An order chooses the unit's own engagement; a passive AI holding it at
+/// return fire keeps holding it there.
+pub(super) fn order_engagement(unit: &mut Unit, policy: Engagement) {
+    match unit.held_engagement.as_mut() {
+        Some(held) => *held = policy,
+        None => unit.engagement = policy,
     }
 }
 
@@ -78,12 +101,9 @@ impl Battle {
                     .insert(transition.player.clone(), transition.controller.clone());
             }
         }
-        // A player's units take its new controller's engagement; leaving a
-        // passive AI, they fire at will again unless they hold another.
         for unit in &mut self.units {
-            if unit.side == Side::Neutral || unit.owner.as_deref() == Some(&transition.player) {
-                let held = Some(unit.engagement).filter(|e| *e != Engagement::ReturnFireOnly);
-                unit.engagement = engagement(unit.side, Some(&transition.controller), held);
+            if unit.owner.as_deref() == Some(&transition.player) {
+                put_under(unit, &transition.controller);
             }
         }
     }

@@ -365,3 +365,46 @@ fn only_a_human_controlled_slot_takes_outside_orders() {
     }
     assert_eq!(restored.digest(), battle.digest());
 }
+
+/// A controller decides who orders a player's units, and a passive AI also
+/// holds them at return fire. No controller change overwrites the engagement
+/// a unit was authored with: installing one at admission keeps it, and a
+/// passive AI's leaving returns each unit to it.
+#[test]
+fn a_controller_change_keeps_each_units_own_engagement() {
+    use contract::command::Engagement::{FireAtWill, ReturnFireOnly};
+    let setup = scenario(serde_json::json!([
+        { "side": "blue", "owner": "blue-1", "kind": "test_rifle", "position": [80.0, 100.0],
+          "engagement": "return_fire_only" },
+        { "side": "blue", "owner": "blue-1", "kind": "test_rifle", "position": [80.0, 140.0] },
+        { "side": "red", "owner": "red-1", "kind": "test_rifle", "position": [360.0, 100.0] }
+    ]));
+    let mut battle = Battle::new(&setup, 44);
+    // Mid-battle, so the replay applies the changes at their tick.
+    battle.step();
+    let engagements = |battle: &Battle| [0, 1].map(|i| battle.unit(UnitId(i)).unwrap().engagement);
+    // An order may change an engagement (an attack sets fire at will), so
+    // no one orders between the changes.
+    for controller in [
+        ControllerKind::Human,
+        ControllerKind::ActiveAi,
+        ControllerKind::PassiveAi,
+        ControllerKind::Human,
+        ControllerKind::PassiveAi,
+        ControllerKind::ActiveAi,
+    ] {
+        battle.set_controllers(vec![("blue-1".into(), controller.clone())]);
+        let want = if controller == ControllerKind::PassiveAi {
+            [ReturnFireOnly, ReturnFireOnly]
+        } else {
+            [ReturnFireOnly, FireAtWill]
+        };
+        assert_eq!(engagements(&battle), want, "under {controller:?}");
+    }
+    battle.step();
+    let mut restored = Battle::from_replay(&setup, &battle.replay()).expect("replay loads");
+    restored.step();
+    restored.step();
+    assert_eq!(engagements(&restored), engagements(&battle));
+    assert_eq!(restored.digest(), battle.digest());
+}

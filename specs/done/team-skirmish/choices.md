@@ -132,8 +132,8 @@ None. Every entry an audit found unsound was corrected in the closing passes; ea
 - **Confidence:** medium.
 
 ### I55 · Who only returns fire is decided in one place
-- **When:** dispatch lane; collapsed in the held-items pass. **Who:** agent.
-- **The choice:** One function, `controllers::engagement` (`battle/controllers.rs`), decides a unit's engagement from its owner: neutral units and a passive AI's units only return fire; everyone else fires at will. Tick-0 spawning, a controller change, and an arriving purchase all call it, so a passive AI's reinforcements behave like its starting units. A *passive* AI is used in labs, for example so a test's anti-air doesn't shoot a timed jet. Test `a_purchase_arriving_for_a_passive_ai_player_only_returns_fire`.
+- **When:** dispatch lane; collapsed in the held-items pass; corrected in review. **Who:** agent. Corrected: a controller change reset every unit to fire at will, so a unit authored to return fire only fired at will once the browser installed its Human or active-AI controller at admission.
+- **The choice:** A unit keeps its own engagement: authored, else fire at will (neutral's units only return fire), and changed by orders. `controllers::put_under` (`battle/controllers.rs`) is the one place a controller acts on it: a passive AI holds the unit at return fire and keeps its own engagement to give back; any other controller leaves it with its own. A controller change and an arriving purchase both call it, so a passive AI's reinforcements behave like its starting units, and installing a controller never overwrites an authored engagement. A *passive* AI is used in labs, for example so a test's anti-air doesn't shoot a timed jet. Tests `a_purchase_arriving_for_a_passive_ai_player_only_returns_fire` and `a_controller_change_keeps_each_units_own_engagement`.
 - **Confidence:** high.
 
 

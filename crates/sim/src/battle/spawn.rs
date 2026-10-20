@@ -74,7 +74,8 @@ pub(super) fn spawn_unit(
         stalls: (f64::INFINITY, 0),
         pursuit: None,
         planned_goal: None,
-        engagement: controllers::engagement(u.side, None, u.engagement),
+        engagement: controllers::own_engagement(u.side, u.engagement),
+        held_engagement: None,
         air: airborne.then(|| {
             let fuel_s = t
                 .capabilities

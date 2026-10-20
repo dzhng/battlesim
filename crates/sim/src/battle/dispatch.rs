@@ -185,17 +185,14 @@ impl Battle {
                         selected_site.yaw,
                     )
                 };
+                let controller = skirmish.players[player_index].controller.clone();
                 let setup = contract::scenario::UnitSetup {
                     side,
                     owner: Some(skirmish.players[player_index].id.clone()),
                     kind: self.rules.catalog.id(reservation.data.kind).to_string(),
                     position: [at.x, at.y],
                     yaw,
-                    engagement: Some(super::controllers::engagement(
-                        side,
-                        Some(&skirmish.players[player_index].controller),
-                        None,
-                    )),
+                    engagement: None,
                     condition: None,
                     stock: None,
                 };
@@ -212,6 +209,7 @@ impl Battle {
                     let speed = flight.cruise_mps;
                     air.velocity = v3(libm::cos(yaw) * speed, libm::sin(yaw) * speed, 0.0);
                 }
+                super::controllers::put_under(&mut unit, &controller);
                 unit.settle();
                 unit.orders.push_back(UnitOrder::Move(MoveOrder {
                     destination,

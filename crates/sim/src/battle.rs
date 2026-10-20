@@ -3894,7 +3894,7 @@ impl Battle {
                         continue;
                     }
                     let destination = v2(slot.goal[0], slot.goal[1]);
-                    unit.engagement = Engagement::FireAtWill; // W14
+                    controllers::fire_at_will(unit);
                     let order = UnitOrder::AttackMove(MoveOrder {
                         destination,
                         policy: contract::command::RoutePolicy::Shortest,
@@ -3924,7 +3924,7 @@ impl Battle {
                         _ => None,
                     };
                     let unit = &mut movers[id.0 as usize];
-                    unit.engagement = Engagement::FireAtWill; // W14
+                    controllers::fire_at_will(unit);
                     push(
                         unit,
                         UnitOrder::Attack {
@@ -4043,7 +4043,7 @@ impl Battle {
             }
             Order::SetEngagement { units, policy } => {
                 for id in units {
-                    movers[id.0 as usize].engagement = policy;
+                    controllers::order_engagement(&mut movers[id.0 as usize], policy);
                 }
             }
             Order::SetAfterburner { units, enabled } => {
