@@ -42,7 +42,7 @@ use detail::{card_bounds, projected_bounds_px};
 
 use crate::records::{CAST_PASS, VIEW_PASS};
 use crate::seed::Key;
-use crate::shadow::CasterVolumes;
+use crate::shadow::{CasterVolumes, CASCADES};
 use crate::static_world::batches::{List, Population};
 use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
@@ -579,7 +579,7 @@ impl PropPopulation {
             chunk.models.push(i);
         }
         let chunks: Vec<_> = cells.into_values().collect();
-        let lists = vec![Vec::new(); looks.list.len() * PROP_TIERS * 2];
+        let lists = vec![Vec::new(); looks.list.len() * PROP_TIERS * (1 + CASCADES)];
         PropPopulation {
             hidden: vec![false; map.len()],
             prints: vec![0; lists.len()],
@@ -739,13 +739,18 @@ impl Population for PropPopulation {
             let center_z = z + m.size / 2.0;
             let r = m.radius;
             let bounds = [x - r, y - r, center_z - r, x + r, y + r, center_z + r];
-            if shadow.is_some_and(|s| s.intersects(&bounds)) {
+            let mask = shadow.map_or(0, |s| s.mask(&bounds));
+            if mask != 0 {
                 let cast = if tier == CULLED {
                     TIERS - 1
                 } else {
                     caster_tier(tier as usize)
                 };
-                lists[n + m.look * PROP_TIERS + cast].push(m.record);
+                for cascade in 0..CASCADES {
+                    if mask & (1 << cascade) != 0 {
+                        lists[(1 + cascade) * n + m.look * PROP_TIERS + cast].push(m.record);
+                    }
+                }
             }
         };
         for &c in &this.candidates {
@@ -779,6 +784,7 @@ impl Population for PropPopulation {
                 tier: tier as u32,
                 pass,
                 caster: List::own_caster(pass, tier as u32),
+                cascade_mask: if index < n { 0 } else { 1 << (index / n - 1) },
                 fog: model_fog(
                     false,
                     true,

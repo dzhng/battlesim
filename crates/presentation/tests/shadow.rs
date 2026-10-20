@@ -457,3 +457,30 @@ fn an_offscreen_triangle_in_the_same_tile_cannot_expand_local_receivers() {
         sun_shadow(&light, &camera, Some(&TerrainPartition::new(&mesh, CELL_M))),
     );
 }
+
+#[test]
+fn caster_mask_keeps_disjoint_overlap_and_boundary_membership() {
+    use presentation::shadow::{camera_record, CasterVolumes};
+    let camera = |x: f32| {
+        let mut m = [0.; 16];
+        for i in [0, 5, 10, 15] {
+            m[i] = 1.;
+        }
+        m[12] = -x;
+        camera_record(&m, [0.; 3], 0.1, [64.; 2], 0.)
+    };
+    let volumes = CasterVolumes::new(&[camera(0.), camera(2.), camera(10.), camera(20.)]);
+    for (bounds, expected) in [
+        ([-0.5, -0.5, 0.2, 0.5, 0.5, 0.8], 1),
+        ([1.5, -0.5, 0.2, 2.5, 0.5, 0.8], 2),
+        ([0.5, -0.5, 0.2, 1.5, 0.5, 0.8], 3),
+        ([1., 0., 0., 1., 0., 1.], 3),
+        ([9.5, -0.5, 0.2, 10.5, 0.5, 0.8], 4),
+        ([19.5, -0.5, 0.2, 20.5, 0.5, 0.8], 8),
+        ([30., 0., 0., 31., 1., 1.], 0),
+    ] {
+        assert_eq!(volumes.mask(&bounds), expected);
+        assert_eq!(volumes.intersects(&bounds), expected != 0);
+    }
+    assert_eq!(CasterVolumes::new(&[]).mask(&[0.; 6]), 0);
+}

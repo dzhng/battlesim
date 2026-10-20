@@ -93,3 +93,48 @@ fn spatial_query_keeps_complete_scenery_lists_and_prints_after_restanding() {
         }
     }
 }
+
+#[test]
+fn standing_caster_lists_keep_only_each_cascades_chunks() {
+    let sizes = [Size {
+        height: 10.,
+        radius: 2.,
+    }];
+    let placed: Vec<f32> = [-200., 0., 200., 1000.]
+        .into_iter()
+        .flat_map(|x| [x, 0., 0., 0., 1., 1., 0., 0.7, 0.8, 0.9])
+        .collect();
+    let mut standing = Standing::new(&placed, &sizes, 1);
+    let camera = Camera {
+        eye: [0., -30., 10.],
+        target: [0., 100., 0.],
+        up: [0., 0., 1.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [640, 480],
+    };
+    let view = View::new(&camera);
+    let casters = [-200., 0., -100., 5000.].map(|x| {
+        let mut m = crate::shadow::IDENTITY;
+        m[0] = 1. / 110.;
+        m[5] = 1. / 110.;
+        m[10] = 1. / 100.;
+        m[12] = -x / 110.;
+        crate::shadow::camera_record(&m, [0.; 3], 0.1, [64.; 2], 0.)
+    });
+    standing.pop.select(
+        &view,
+        Some(&CasterVolumes::new(&casters)),
+        &[100., 30., 10.],
+    );
+    let mut xs: [Vec<f32>; 4] = Default::default();
+    standing.pop.each_list(&[0], &mut |l| {
+        if l.pass == CAST_PASS {
+            xs[l.cascade_mask.trailing_zeros() as usize].extend(l.records.iter().map(|r| r[0]));
+        }
+    });
+    for list in &mut xs {
+        list.sort_by(f32::total_cmp);
+    }
+    assert_eq!(xs, [vec![-200.], vec![0.], vec![-200., 0.], vec![]]);
+}

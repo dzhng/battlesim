@@ -46,7 +46,7 @@ function fixture() {
   return { device, registry, encoder, calls, sum };
 }
 
-function batches(rows: { pass: number; count: number; appearance?: number }[]) {
+function batches(rows: { pass: number; count: number; appearance?: number; mask?: number }[]) {
   const u32 = new Uint32Array(rows.length * BATCH_WORDS);
   let first = 0;
   rows.forEach((row, i) => {
@@ -54,6 +54,7 @@ function batches(rows: { pass: number; count: number; appearance?: number }[]) {
     u32[at + Batch.appearance] = row.appearance ?? 0;
     u32[at + Batch.key] = i;
     u32[at + Batch.pass] = row.pass;
+    u32[at + Batch.cascade_mask] = row.mask ?? (row.pass === CAST_PASS ? 15 : 0);
     u32[at + Batch.count] = row.count;
     u32[at + Batch.first] = first;
     first += row.count;
@@ -85,7 +86,8 @@ test("building submissions include raw consecutive draws and only enabled surfac
     batches([
       { pass: VIEW_PASS, count: 2 },
       { pass: VIEW_PASS, count: 5 },
-      { pass: CAST_PASS, count: 3 },
+      { pass: CAST_PASS, count: 3, mask: 1 },
+      { pass: CAST_PASS, count: 7, mask: 2 },
     ]) as never,
     emptyBuildingWalkStats(),
   );
@@ -110,10 +112,10 @@ test("building submissions include raw consecutive draws and only enabled surfac
   for (const index of [0, 1]) {
     f.calls.length = 0;
     const counter = frame.cascade(index).buildings;
-    layer.drawCasters(bind, f.encoder as never, "solid", hidden, counter);
-    layer.drawCasters(bind, f.encoder as never, "cutout", hidden, counter);
+    layer.drawCasters(bind, f.encoder as never, "solid", hidden, index, counter);
+    layer.drawCasters(bind, f.encoder as never, "cutout", hidden, index, counter);
     expect(counter).toEqual(f.sum());
-    expect(counter.triangles).toBe(15);
+    expect(counter.triangles).toBe(index === 0 ? 15 : 35);
   }
   const prior = frame.snapshot();
   frame.reset();
@@ -305,7 +307,8 @@ test("models inclusive of props count actual filtered surfaces and independent h
   ]);
   [FOG_UNITS, FOG_UNITS, FOG_UNITS, FOG_FACES].forEach((fog, i) => {
     frame.batches.u32[i * BATCH_WORDS + Batch.fog] = fog;
-    frame.batches.u32[i * BATCH_WORDS + Batch.caster] = i === 2 ? NONE : 0;
+    frame.batches.u32[i * BATCH_WORDS + Batch.caster] = i === 1 || i === 2 ? NONE : 0;
+    frame.batches.u32[i * BATCH_WORDS + Batch.cascade_mask] = i === 0 ? 15 : i === 3 ? 4 : 0;
   });
   models.setStaticFrame(frame as never, emptyBuildingWalkStats());
   models.setFrame({
@@ -328,10 +331,13 @@ test("models inclusive of props count actual filtered surfaces and independent h
   expect(counters.highColor.modelsIncludingProps.triangles).toBe(9);
   f.calls.length = 0;
   const cascade = counters.cascade(2).modelsIncludingProps;
-  models.drawCasters(f.bound as never, "solid", cascade);
-  models.drawCasters(f.bound as never, "cutout", cascade);
+  models.drawCasters(f.bound as never, "solid", 2, cascade);
+  models.drawCasters(f.bound as never, "cutout", 2, cascade);
   expect(cascade).toEqual(f.sum());
-  expect(cascade.triangles).toBe(30);
+  expect(cascade.triangles).toBe(21);
+  f.calls.length = 0;
+  models.drawCasters(f.bound as never, "solid", 0, counters.cascade(0).modelsIncludingProps);
+  expect(f.sum()).toEqual({ triangles: 6, instances: 2, draws: 1 });
   f.registry.release();
 });
 
@@ -353,7 +359,8 @@ test("scenery counts retained batches, felled pairs, backdrop and hidden trees a
     { pass: VIEW_PASS, count: 3, appearance: 1 },
     { pass: VIEW_PASS, count: 4, appearance: 2 },
     { pass: VIEW_PASS, count: 6, appearance: 3 },
-    { pass: CAST_PASS, count: 5 },
+    { pass: CAST_PASS, count: 5, mask: 1 },
+    { pass: CAST_PASS, count: 7, mask: 2 },
   ]);
   scenery.setFrame(frame as never, {} as never);
   const counters = createSubmittedFrame();
@@ -371,9 +378,13 @@ test("scenery counts retained batches, felled pairs, backdrop and hidden trees a
   expect(counters.color.scenery).toEqual(f.sum());
   expect(counters.color.scenery).toEqual(counters.depth.scenery);
   f.calls.length = 0;
-  scenery.encodeShadows({} as never, {} as never, counters.cascade(0).scenery);
+  scenery.encodeShadows({} as never, {} as never, 0, counters.cascade(0).scenery);
   expect(counters.cascade(0).scenery).toEqual(f.sum());
   expect(counters.cascade(0).scenery.triangles).toBe(20);
+  f.calls.length = 0;
+  scenery.encodeShadows({} as never, {} as never, 1, counters.cascade(1).scenery);
+  expect(f.sum()).toEqual({ triangles: 28, instances: 7, draws: 1 });
+  expect(counters.cascade(1).scenery).toEqual(f.sum());
   counters.reset();
   scenery.setTreesShown(false);
   f.calls.length = 0;

@@ -82,9 +82,20 @@ struct Run {
     row: usize,
     tier: usize,
     pass: u32,
+    cascade_mask: u32,
     key: u32,
     count: u32,
 }
+
+impl Run {
+    fn draws_in(&self, pass: u32, cascade: Option<usize>) -> bool {
+        self.pass == pass && cascade.is_none_or(|c| self.cascade_mask & (1 << c) != 0)
+    }
+}
+
+#[cfg(test)]
+#[path = "scenery_cascade_tests.rs"]
+mod cascade_tests;
 
 pub struct Scenery {
     rows: Vec<Option<Row>>,
@@ -183,6 +194,7 @@ impl Scenery {
                     b.tier as usize
                 },
                 pass: b.pass,
+                cascade_mask: b.cascade_mask,
                 key: b.key,
                 count: b.count,
             });
@@ -204,11 +216,12 @@ impl Scenery {
         &'a self,
         pass: &mut RenderPass,
         which: u32,
+        cascade: Option<usize>,
         bound: impl Fn(Draws) -> &'a Bound,
         groups: &[(&str, &BindGroup)],
         statics: &Statics,
     ) {
-        for run in self.runs.iter().filter(|r| r.pass == which) {
+        for run in self.runs.iter().filter(|r| r.draws_in(which, cascade)) {
             let row = self.rows[run.row].as_ref().expect("a scenery row");
             let draws = DRAWS[row.draws as usize - 1];
             bound(draws).set(pass, groups);
@@ -228,12 +241,13 @@ impl Scenery {
         pass: &mut RenderPass,
         camera: (&str, &BindGroup),
         statics: &Statics,
+        cascade: usize,
     ) {
         let bound = |d| match d {
             Draws::Felled => &self.felled_caster,
             _ => &self.caster,
         };
-        self.draw_runs(pass, CAST_PASS, bound, &[camera], statics);
+        self.draw_runs(pass, CAST_PASS, Some(cascade), bound, &[camera], statics);
     }
 
     /// The scenery in view into the depth prepass.
@@ -243,7 +257,7 @@ impl Scenery {
             Draws::Dressing => &self.dressing_prepass,
             _ => &self.prepass,
         };
-        self.draw_runs(pass, VIEW_PASS, bound, &[camera], statics);
+        self.draw_runs(pass, VIEW_PASS, None, bound, &[camera], statics);
     }
 
     /// The scenery in view, lit; `groups` the frame's (camera, environment,
@@ -255,6 +269,6 @@ impl Scenery {
             Draws::Dressing => &self.dressing,
             _ => &self.forest,
         };
-        self.draw_runs(pass, VIEW_PASS, bound, groups, statics);
+        self.draw_runs(pass, VIEW_PASS, None, bound, groups, statics);
     }
 }

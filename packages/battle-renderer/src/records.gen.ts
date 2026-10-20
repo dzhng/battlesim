@@ -127,7 +127,7 @@ export const Batch = {
   tier: 2,
   /** `VIEW_PASS`, `CAST_PASS`, `GHOST_PASS` or `HIGH_PASS`. (u32) */
   pass: 3,
-  /** The tier its instances cast into the sun's cascades with: a model in view one tier coarser, a caster batch its own, `NONE` for none (an impostor card, a ghost, a high-air model, a static world's view batch, which casts by its own caster batch). (u32) */
+  /** Caster tier, or `NONE`. Static view batches cast through separate caster batches; dynamic models use `view::batch_caster`. (u32) */
   caster: 4,
   /** How fog of war takes it (`FOG_UNITS` and the rest). (u32) */
   fog: 5,
@@ -137,8 +137,10 @@ export const Batch = {
   first: 7,
   /**  (u32) */
   count: 8,
-  /**  (u32 × 3) */
-  pad: 9,
+  /** Bit i admits this batch to cascade i; zero never casts. (u32) */
+  cascade_mask: 9,
+  /**  (u32 × 2) */
+  pad: 10,
 } as const;
 export const BATCH_WORDS = 12;
 

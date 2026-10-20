@@ -13,7 +13,7 @@
 //!   template's rows for that state, chunked by where it stands, at the tier
 //!   its chunk takes.
 use crate::records::{CAST_PASS, FOG_FACES, VIEW_PASS};
-use crate::shadow::CasterVolumes;
+use crate::shadow::{CasterVolumes, CASCADES};
 use crate::static_world::batches::{List, Population};
 use crate::static_world::buildings::{BuildingModule, Buildings};
 use crate::static_world::index::BoundsIndex;
@@ -55,7 +55,7 @@ impl Chunk {
 }
 
 /// Every module and tier's instances a walk draws and casts (`module · TIERS
-/// + tier`), and how many it drew.
+/// + tier`); caster lists have one such block per cascade.
 #[derive(Default)]
 pub struct Lists {
     pub view: Vec<Vec<Record>>,
@@ -131,11 +131,11 @@ impl BuildingWalk {
             resident: HashMap::new(),
             lists: Lists {
                 view: vec![vec![]; keys],
-                cast: vec![vec![]; keys],
+                cast: vec![vec![]; keys * CASCADES],
             },
             scratch: Lists {
                 view: vec![vec![]; keys],
-                cast: vec![vec![]; keys],
+                cast: vec![vec![]; keys * CASCADES],
             },
             counts: vec![0; keys],
             stats: [chunk_count, coarse_rows, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -196,31 +196,40 @@ impl BuildingWalk {
         }
         let mut counts = std::mem::take(&mut self.counts);
         counts.fill(0);
+        let cast = |lists: &mut Lists, r: &BuildingModule, tier: usize, mask: u32| {
+            for cascade in 0..CASCADES {
+                if mask & (1 << cascade) != 0 {
+                    lists.cast[cascade * keys + r.kit_module * TIERS + tier].push(r.record);
+                }
+            }
+        };
         let draw = |lists: &mut Lists,
                     counts: &mut [u32],
                     r: &BuildingModule,
                     tier: usize,
-                    cast: Option<usize>| {
+                    caster: Option<usize>,
+                    mask: u32| {
             lists.view[r.kit_module * TIERS + tier].push(r.record);
             counts[r.kit_module * TIERS + tier] += 1;
-            if let Some(t) = cast {
-                lists.cast[r.kit_module * TIERS + t].push(r.record);
+            if let Some(t) = caster {
+                cast(lists, r, t, mask);
             }
         };
         let (mut near, mut coarse) = (vec![], vec![]);
         for &c in &self.candidates {
             let chunk = &self.chunks[c];
+            let mask = shadow.map_or(0, |s| s.mask(&chunk.bounds));
             if !view.sees_box(&chunk.bounds) {
-                if shadow.is_some_and(|s| s.intersects(&chunk.bounds)) {
+                if mask != 0 {
                     for r in self.coarse_rows(c) {
-                        lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
+                        cast(&mut lists, r, COARSEST, mask);
                     }
                 }
                 continue;
             }
             let d = view.distance_to_box(&chunk.bounds);
             match building_tier(view, d, &self.lod) {
-                COARSEST => coarse.push((c, shadow.is_some_and(|s| s.intersects(&chunk.bounds)))),
+                COARSEST => coarse.push((c, mask)),
                 t => near.push((d, c, t)),
             }
         }
@@ -228,7 +237,7 @@ impl BuildingWalk {
         let (mut used, mut full, mut expanded, mut refused) = (0, false, 0, 0);
         let mut kept = HashMap::new();
         for (_, c, t) in near {
-            let casts = shadow.is_some_and(|s| s.intersects(&self.chunks[c].bounds));
+            let casts = shadow.map_or(0, |s| s.mask(&self.chunks[c].bounds));
             let rows = match self.resident.remove(&(c, t)) {
                 Some(rows) => rows,
                 None => {
@@ -245,13 +254,7 @@ impl BuildingWalk {
             }
             used += rows.len();
             for r in &rows {
-                draw(
-                    &mut lists,
-                    &mut counts,
-                    r,
-                    t,
-                    casts.then_some(caster_tier(t)),
-                );
+                draw(&mut lists, &mut counts, r, t, Some(caster_tier(t)), casts);
             }
             kept.insert((c, t), rows);
         }
@@ -260,39 +263,38 @@ impl BuildingWalk {
         self.resident = kept;
         for (c, casts) in coarse {
             for r in self.coarse_rows(c) {
-                draw(
-                    &mut lists,
-                    &mut counts,
-                    r,
-                    COARSEST,
-                    casts.then_some(COARSEST),
-                );
+                draw(&mut lists, &mut counts, r, COARSEST, Some(COARSEST), casts);
             }
         }
         for &c in &self.ruin_candidates {
             let chunk = &self.ruins[c];
+            let mask = shadow.map_or(0, |s| s.mask(&chunk.bounds));
             let has = |r: &BuildingModule, t: usize| r.tiers & (1 << t) != 0;
             if view.sees_box(&chunk.bounds) {
                 let d = view.distance_to_box(&chunk.bounds);
                 let t = building_tier(view, d, &self.lod);
                 for r in chunk.rows.iter() {
                     if has(r, t) {
-                        draw(&mut lists, &mut counts, r, t, None);
+                        draw(&mut lists, &mut counts, r, t, None, 0);
                         self.stats[7 + t] += 1;
                     }
-                    if shadow.is_some_and(|s| s.intersects(&chunk.bounds)) && has(r, COARSEST) {
-                        lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
+                    if mask != 0 && has(r, COARSEST) {
+                        cast(&mut lists, r, COARSEST, mask);
                     }
                 }
-            } else if shadow.is_some_and(|s| s.intersects(&chunk.bounds)) {
+            } else if mask != 0 {
                 for r in chunk.rows.iter().filter(|r| has(r, COARSEST)) {
-                    lists.cast[r.kit_module * TIERS + COARSEST].push(r.record);
+                    cast(&mut lists, r, COARSEST, mask);
                 }
             }
         }
         self.counts = counts;
         let changed = (0..keys)
-            .filter(|&k| lists.view[k] != self.lists.view[k] || lists.cast[k] != self.lists.cast[k])
+            .filter(|&k| {
+                lists.view[k] != self.lists.view[k]
+                    || (0..CASCADES)
+                        .any(|c| lists.cast[c * keys + k] != self.lists.cast[c * keys + k])
+            })
             .collect();
         self.scratch = std::mem::replace(&mut self.lists, lists);
         changed
@@ -340,12 +342,15 @@ impl Population for BuildingPopulation {
         let lists = &self.walk.lists;
         for (pass, lists) in [(VIEW_PASS, &lists.view), (CAST_PASS, &lists.cast)] {
             for (key, list) in lists.iter().enumerate() {
+                let cascade = key / self.walk.lists.view.len();
+                let key = key % self.walk.lists.view.len();
                 let tier = (key % TIERS) as u32;
                 visit(List {
                     row: self.rows[key / TIERS],
                     tier,
                     pass,
                     caster: List::own_caster(pass, tier),
+                    cascade_mask: if pass == CAST_PASS { 1 << cascade } else { 0 },
                     fog: FOG_FACES,
                     records: list,
                     print: self.changes,

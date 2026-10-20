@@ -79,9 +79,11 @@ native.
   changes; the scenery leaves the ground the side has learned cleared.
   Buildings, standing scenery and props select casters against fitted cascade cameras, using
   the same conservative clip bounds as terrain. They publish independent
-  camera and caster lists: shadow selection cannot
+  camera and per-cascade caster lists: shadow selection cannot
   remove a camera mesh, and leaving the camera cannot remove a shadow
-  that reaches visible receivers. Both lists use the same side knowledge.
+  that reaches visible receivers. Each caster list is submitted only to its named
+  cascade; overlapping volumes duplicate records to avoid vertex work in unrelated
+  cascades. Camera and caster lists use the same side knowledge.
   Static populations query the same bounds index as terrain, then restore source
   order before emitting records so list identity and detail decisions stay stable.
   Known props and ruins rebuild their index when knowledge changes. Traversal

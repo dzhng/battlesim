@@ -25,7 +25,7 @@ use super::biome::Felled as FelledRules;
 use super::scenery::{Scenery, Size, DRESSING_CELL_M, FLOATS};
 use super::Ground;
 use crate::records::{CAST_PASS, FOG_FACES, NONE, VIEW_PASS};
-use crate::shadow::CasterVolumes;
+use crate::shadow::{CasterVolumes, ALL_CASCADES, CASCADES};
 use crate::static_world::batches::{print, List, Population, PRINT_BASIS};
 use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
@@ -189,8 +189,8 @@ impl Pop {
             visited: 0,
             casts,
             view: vec![vec![]; kinds * TIERS],
-            cast: vec![vec![]; kinds * TIERS],
-            prints: vec![0; kinds * TIERS * 2],
+            cast: vec![vec![]; kinds * TIERS * CASCADES],
+            prints: vec![0; kinds * TIERS * (1 + CASCADES)],
             generation,
         }
     }
@@ -210,8 +210,12 @@ impl Pop {
         self.candidates.sort_unstable();
         for &c in &self.candidates {
             let chunk = &self.chunks[c];
-            let casts = self.casts && shadow.is_some_and(|s| s.intersects(&chunk.bounds));
-            let whole = |out: &mut Vec<Vec<Record>>, prints: &mut [u64], at: usize| {
+            let mask = if self.casts {
+                shadow.map_or(0, |s| s.mask(&chunk.bounds))
+            } else {
+                0
+            };
+            let whole = |out: &mut [Vec<Record>], prints: &mut [u64], at: usize| {
                 for k in 0..self.kinds {
                     let list = k * TIERS + LAST;
                     out[list].extend_from_slice(&self.sorted[k][chunk.start[k]..chunk.end[k]]);
@@ -219,16 +223,28 @@ impl Pop {
                 }
             };
             if !view.sees_box(&chunk.bounds) {
-                if casts {
-                    whole(&mut self.cast, &mut self.prints, n);
+                for cascade in 0..CASCADES {
+                    if mask & (1 << cascade) != 0 {
+                        whole(
+                            &mut self.cast[cascade * n..(cascade + 1) * n],
+                            &mut self.prints,
+                            (cascade + 1) * n,
+                        );
+                    }
                 }
                 continue;
             }
             let distance = view.distance_to_box(&chunk.bounds);
             if tier_for(chunk.size, distance, view, lod) == LAST {
                 whole(&mut self.view, &mut self.prints, 0);
-                if casts {
-                    whole(&mut self.cast, &mut self.prints, n);
+                for cascade in 0..CASCADES {
+                    if mask & (1 << cascade) != 0 {
+                        whole(
+                            &mut self.cast[cascade * n..(cascade + 1) * n],
+                            &mut self.prints,
+                            (cascade + 1) * n,
+                        );
+                    }
                 }
                 continue;
             }
@@ -245,10 +261,12 @@ impl Pop {
                     let mark = ((c as u64) << 32) | i as u64;
                     self.view[k * TIERS + t].push(*r);
                     self.prints[k * TIERS + t] = print(self.prints[k * TIERS + t], mark);
-                    if casts {
-                        let m = k * TIERS + caster_tier(t);
-                        self.cast[m].push(*r);
-                        self.prints[n + m] = print(self.prints[n + m], mark);
+                    for cascade in 0..CASCADES {
+                        if mask & (1 << cascade) != 0 {
+                            let m = cascade * n + k * TIERS + caster_tier(t);
+                            self.cast[m].push(*r);
+                            self.prints[n + m] = print(self.prints[n + m], mark);
+                        }
                     }
                 }
             }
@@ -259,12 +277,13 @@ impl Pop {
         let n = self.kinds * TIERS;
         for (pass, lists, at) in [(VIEW_PASS, &self.view, 0), (CAST_PASS, &self.cast, n)] {
             for (key, records) in lists.iter().enumerate() {
-                let (row, tier) = (rows[key / TIERS], (key % TIERS) as u32);
+                let (row, tier) = (rows[(key % n) / TIERS], (key % TIERS) as u32);
                 visit(List {
                     row,
                     tier,
                     pass,
                     caster: List::own_caster(pass, tier),
+                    cascade_mask: if pass == CAST_PASS { 1 << (key / n) } else { 0 },
                     fog: FOG_FACES,
                     records,
                     print: self.prints[at + key],
@@ -715,6 +734,7 @@ impl SceneryWalk {
                 tier: (key % TIERS) as u32,
                 pass: VIEW_PASS,
                 caster: NONE,
+                cascade_mask: 0,
                 fog: FOG_FACES,
                 records,
                 print,
@@ -732,6 +752,7 @@ impl SceneryWalk {
                 tier,
                 pass,
                 caster: List::own_caster(pass, tier),
+                cascade_mask: if pass == CAST_PASS { ALL_CASCADES } else { 0 },
                 fog: FOG_FACES,
                 records,
                 print: self.felled_print,
@@ -744,6 +765,7 @@ impl SceneryWalk {
                     tier: 0,
                     pass,
                     caster: List::own_caster(pass, 0),
+                    cascade_mask: if pass == CAST_PASS { ALL_CASCADES } else { 0 },
                     fog: FOG_FACES,
                     records,
                     print: self.felled_print,

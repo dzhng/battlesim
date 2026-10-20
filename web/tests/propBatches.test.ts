@@ -45,6 +45,7 @@ test("held props preserve independent camera and caster batches through reuse an
     frame.batches.u32[o + Batch.tier] = 2;
     frame.batches.u32[o + Batch.pass] = pass;
     frame.batches.u32[o + Batch.caster] = caster;
+    frame.batches.u32[o + Batch.cascade_mask] = pass === CAST_PASS ? 2 : 0;
     frame.batches.u32[o + Batch.first] = i;
     frame.batches.u32[o + Batch.count] = 1;
     frame.instances.f32[i * INSTANCE_WORDS] = x;
@@ -52,7 +53,7 @@ test("held props preserve independent camera and caster batches through reuse an
   expect(setPropBatches(state, frame, world, registry, device)).toBe(true);
   expect(state.listed).toMatchObject([
     { pass: VIEW_PASS, caster: NONE },
-    { pass: CAST_PASS, caster: 2 },
+    { pass: CAST_PASS, caster: 2, cascadeMask: 2 },
   ]);
   expect(drawnProps(state, world)).toEqual([{ appearance: "test_prop", levels: [0, 0, 1, 0] }]);
   const buffers = state.listed.map((h) => h.buffer!);

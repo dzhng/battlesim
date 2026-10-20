@@ -1,8 +1,4 @@
-//! The `Presentation`: one side's publications in, a [`Frame`] of records
-//! out per drawn frame. It runs the browser's per-frame chain in one place:
-//! interpolation, the pose feed and driver, the drawn models' parts, the
-//! effects and the cook-offs, then chooses by the camera what is drawn and
-//! at which tier, and writes the batches, instances and palettes.
+//! One side's publications into a frame of poses, effects, batches and palettes.
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -1876,17 +1872,24 @@ fn batches(models: &mut [Model], f: &mut Frame) {
     models.sort_by_key(run_of);
     for run in models.chunk_by(|a, b| run_of(a) == run_of(b)) {
         let m = &run[0];
+        let caster = batch_caster(m.tier, m.pass);
+        let cascade_mask = if caster == NONE {
+            0
+        } else {
+            crate::shadow::ALL_CASCADES
+        };
         f.batches.push(Batch {
-            key: (m.row << 8) | (m.tier << 4) | m.pass,
+            key: crate::view::batch_key(m.row, m.tier, m.pass, cascade_mask),
             appearance: m.row,
             tier: m.tier,
             pass: m.pass,
-            caster: batch_caster(m.tier, m.pass),
+            caster,
+            cascade_mask,
             fog: m.fog,
             version: f.index,
             first: f.instances.len() as u32,
             count: run.len() as u32,
-            pad: [0; 3],
+            pad: [0; 2],
         });
         let fract = |v: f64| (v - v.floor()) as f32;
         f.instances.extend(run.iter().map(|m| Instance {

@@ -670,7 +670,6 @@ export async function createWorldPass(
     fog,
     grassProbes: grass.probes,
     drawnScenery: () => scenery.drawn(),
-    /** Selection and GPU uploads consume the same presentation camera records. */
     prepare(
       camera: Float32Array,
       view: Float32Array,
@@ -694,12 +693,12 @@ export async function createWorldPass(
         proxies.draw(bound);
         const raw = root.unwrap(pass);
         const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Bound;
-        models.drawCasters(modelCasters, "solid", counts.modelsIncludingProps);
-        models.drawBuildingCasters(modelCasters, raw, "solid", counts.buildings);
+        models.drawCasters(modelCasters, "solid", cascade, counts.modelsIncludingProps);
+        models.drawBuildingCasters(modelCasters, raw, "solid", cascade, counts.buildings);
         const cutoutCasters = modelCasterCutout.with(pass).with(cameraGroup) as unknown as Bound;
-        models.drawCasters(cutoutCasters, "cutout", counts.modelsIncludingProps);
-        models.drawBuildingCasters(cutoutCasters, raw, "cutout", counts.buildings);
-        scenery.encodeShadows(pass, cameraGroup, counts.scenery);
+        models.drawCasters(cutoutCasters, "cutout", cascade, counts.modelsIncludingProps);
+        models.drawBuildingCasters(cutoutCasters, raw, "cutout", cascade, counts.buildings);
+        scenery.encodeShadows(pass, cameraGroup, cascade, counts.scenery);
       });
     },
     /** The frame's depth: every opaque layer, before any colour. Between the

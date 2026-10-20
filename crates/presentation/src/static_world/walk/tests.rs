@@ -150,3 +150,75 @@ fn spatial_query_preserves_building_lists_residency_and_known_ruins() {
         }
     }
 }
+
+#[test]
+fn cascade_membership_changes_preserve_building_batch_identity() {
+    use crate::presentation::Frame;
+    use crate::records::{SunShadow, NONE};
+    use crate::shadow::{camera_record, SunShadowFrame, IDENTITY};
+    use crate::static_world::batches::StaticBatches;
+    let camera = Camera {
+        eye: [0., -300., 100.],
+        target: [0.; 3],
+        up: [0., 0., 1.],
+        fov_y: 0.8,
+        near: 0.5,
+        size: [640, 480],
+    };
+    let view = View::new(&camera);
+    let mut pop = BuildingPopulation {
+        walk: town(0),
+        rows: vec![3],
+        changes: 0,
+    };
+    let mut batches = StaticBatches::default();
+    let mut frame = |centres: [f32; 4]| {
+        let casters = centres.map(|x| {
+            let mut m = IDENTITY;
+            m[0] = 1. / 40.;
+            m[5] = 1. / 40.;
+            m[10] = 1. / 100.;
+            m[12] = -x / 40.;
+            m[14] = 0.5;
+            camera_record(&m, [0.; 3], 0.1, [64.; 2], 0.)
+        });
+        let mut f = Frame {
+            shadow: Some(SunShadowFrame {
+                receiver: SunShadow::default(),
+                casters: casters.to_vec(),
+            }),
+            ..Frame::default()
+        };
+        batches.rewalk();
+        batches.write(&mut [&mut pop], &camera, &view, 1, &mut f);
+        f
+    };
+    let first = frame([-200., -136., -72., 10000.]);
+    let casts: Vec<_> = first
+        .batches
+        .iter()
+        .filter(|b| b.pass == CAST_PASS)
+        .collect();
+    for (i, x) in [-200., -136., -72.].into_iter().enumerate() {
+        let b = casts.iter().find(|b| b.cascade_mask == 1 << i).unwrap();
+        let records = &first.instances[b.first as usize..(b.first + b.count) as usize];
+        assert_eq!(
+            records.iter().map(|r| r.placement[0]).collect::<Vec<_>>(),
+            [x]
+        );
+    }
+    assert!(casts.iter().all(|b| b.cascade_mask != 8));
+    let held = frame([-200., -136., -72., 10000.]);
+    assert!(held.batches.iter().all(|b| b.first == NONE));
+    let moved = frame([-136., -200., -72., 10000.]);
+    assert_eq!(
+        first.batches.iter().map(|b| b.key).collect::<Vec<_>>(),
+        moved.batches.iter().map(|b| b.key).collect::<Vec<_>>()
+    );
+    assert!(
+        moved.batches.iter().all(|b| b.first != NONE),
+        "packed building buffer invalidates every list"
+    );
+    let b = moved.batches.iter().find(|b| b.cascade_mask == 1).unwrap();
+    assert_eq!(moved.instances[b.first as usize].placement[0], -136.);
+}

@@ -20,6 +20,7 @@ pub struct List<'a> {
     pub tier: u32,
     pub pass: u32,
     pub caster: u32,
+    pub cascade_mask: u32,
     pub fog: u32,
     pub records: &'a [Record],
     pub print: u64,
@@ -111,6 +112,7 @@ impl StaticBatches {
                     tier,
                     pass,
                     caster,
+                    cascade_mask,
                     fog,
                     records,
                     print: listed,
@@ -118,7 +120,7 @@ impl StaticBatches {
                 if records.is_empty() {
                     return;
                 }
-                let key = (row << 8) | (tier << 4) | pass;
+                let key = crate::view::batch_key(row, tier, pass, cascade_mask);
                 // A list named unchanged is exactly what was last written:
                 // never one of another length under a colliding print. The
                 // population's print is mixed first, so a small counter and
@@ -132,6 +134,7 @@ impl StaticBatches {
                     tier,
                     pass,
                     caster,
+                    cascade_mask,
                     fog,
                     version,
                     first: if held.is_some() {
@@ -140,7 +143,7 @@ impl StaticBatches {
                         f.instances.len() as u32
                     },
                     count: records.len() as u32,
-                    pad: [0; 3],
+                    pad: [0; 2],
                 });
                 if held.is_none() {
                     f.instances.extend_from_slice(bytemuck::cast_slice(records));
@@ -172,6 +175,7 @@ mod tests {
                 tier: 0,
                 pass: VIEW_PASS,
                 caster: NONE,
+                cascade_mask: 0,
                 fog: FOG_FACES,
                 records: &self.0,
                 print: 7,
@@ -238,6 +242,7 @@ mod tests {
                     tier: tier as u32,
                     pass: VIEW_PASS,
                     caster: NONE,
+                    cascade_mask: 0,
                     fog: FOG_FACES,
                     records,
                     print: self.changes,
@@ -280,5 +285,19 @@ mod tests {
             [true, true],
             "every list of the change is written"
         );
+    }
+
+    #[test]
+    fn cascade_keys_do_not_alias_other_tiers_passes_or_appearance_rows() {
+        let mut keys = std::collections::HashSet::new();
+        for row in [0, 1, 2, (1 << 20) - 1] {
+            for tier in 0..5 {
+                for pass in 0..4 {
+                    for mask in [0, 1, 2, 4, 8, crate::shadow::ALL_CASCADES] {
+                        assert!(keys.insert(crate::view::batch_key(row, tier, pass, mask)));
+                    }
+                }
+            }
+        }
     }
 }

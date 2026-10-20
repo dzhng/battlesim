@@ -55,7 +55,7 @@ scenery its region's appearances.
 [Renderer core](../renderer-core/README.md) owns the live camera and depth convention.
 The frame draws with what the presentation made of that camera (`setCamera`):
 its view, its uniform and the sun's cascades, uploaded as they are; each batch
-names the tier it casts with and the fog group it binds, so the renderer routes
+names the tier and cascade mask it casts with and the fog group it binds, so the renderer routes
 rather than decides.
 [Light](src/light/sceneLight.ts) shares one fixture-owned sun and environment;
 [world shading](src/world/) and [shader functions](src/shaders/) reuse it.

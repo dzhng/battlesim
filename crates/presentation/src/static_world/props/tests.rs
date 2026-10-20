@@ -435,6 +435,7 @@ fn caster_lists_keep_offscreen_shadows_without_changing_camera_meshes() {
         assert_eq!(lists(&p, VIEW_PASS), camera);
         let mut casters = lists(&p, CAST_PASS);
         casters.sort_by(|a, b| a.2[0].total_cmp(&b.2[0]));
+        casters.dedup();
         assert_eq!(
             casters.iter().map(|(_, _, r)| r[0]).collect::<Vec<_>>(),
             [offscreen_x as f32, 0.0]
@@ -485,6 +486,7 @@ fn visible_props_outside_receiver_reach_keep_their_camera_mesh_only() {
         .map(|(_, _, r)| r[0])
         .collect();
     xs.sort_by(f32::total_cmp);
+    xs.dedup();
     assert_eq!(xs, [0.0, 20.0, 40.0]);
 }
 
@@ -530,6 +532,7 @@ fn opted_in_far_props_keep_identity_and_mesh_casters() {
         }
     });
     assert_eq!(camera, vec![(crate::view::IMPOSTOR as u32, expected)]);
+    casts.dedup();
     assert_eq!(casts, vec![(3, expected)]);
     let near = View::new(&Camera {
         eye: [10.0, -8.0, 10.0],
@@ -705,4 +708,57 @@ fn spatial_query_preserves_complete_lists_through_remote_growth_and_knowledge() 
             }
         }
     }
+}
+
+#[test]
+fn prop_caster_lists_route_disjoint_and_overlapping_offscreen_models() {
+    let mut input = input();
+    input.appearances = vec![art("one_car", "car", None, [2., 2., 2.])];
+    let props = [-200., 0., 200., 1000.]
+        .into_iter()
+        .enumerate()
+        .map(|(id, x)| MapProp {
+            id: id as f64,
+            body: PropBox {
+                center: [x, 0.],
+                base_z: 0.,
+                yaw: 0.,
+                ..body("car", [2., 2., 2.])
+            },
+        })
+        .collect();
+    let mut p = PropPopulation::new(PropArt::new(layout(), input).unwrap(), props);
+    p.rows = (0..p.looks.list.len() as u32).collect();
+    let camera = Camera {
+        eye: [0., -30., 10.],
+        target: [0., 100., 0.],
+        up: [0., 0., 1.],
+        fov_y: 0.8,
+        near: 1.,
+        size: [640, 480],
+    };
+    let view = View::new(&camera);
+    let casters = [-200., 0., -100., 5000.].map(|x| {
+        let mut m = crate::shadow::IDENTITY;
+        m[0] = 1. / 110.;
+        m[5] = 1. / 110.;
+        m[10] = 1. / 100.;
+        m[12] = -x / 110.;
+        crate::shadow::camera_record(&m, [0.; 3], 0.1, [64.; 2], 0.)
+    });
+    p.select(&view, Some(&CasterVolumes::new(&casters)));
+    let mut xs: [Vec<f32>; 4] = Default::default();
+    let mut visible = Vec::new();
+    p.each_list(&mut |l| {
+        if l.pass == CAST_PASS {
+            xs[l.cascade_mask.trailing_zeros() as usize].extend(l.records.iter().map(|r| r[0]));
+        } else {
+            visible.extend(l.records.iter().map(|r| r[0]));
+        }
+    });
+    for list in &mut xs {
+        list.sort_by(f32::total_cmp);
+    }
+    assert_eq!(xs, [vec![-200.], vec![0.], vec![-200., 0.], vec![]]);
+    assert_eq!(visible, [0.]);
 }

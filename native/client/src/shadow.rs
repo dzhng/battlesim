@@ -169,11 +169,11 @@ impl Pass for ShadowPass {
                 (&self.cutout, Surface::Cutout),
             ] {
                 bound.set(&mut pass, &[camera, models.group()]);
-                models.draw_casters(&mut pass, surface);
+                models.draw_casters(&mut pass, surface, cascade);
             }
             inputs
                 .scenery
-                .draw_casters(&mut pass, camera, models.statics());
+                .draw_casters(&mut pass, camera, models.statics(), cascade);
         }
     }
 }

@@ -15,6 +15,7 @@ use crate::view::{look_at, perspective_reverse_z, Camera};
 /// The receiver layout's cascade slots: `SunShadow` and the depth array
 /// hold this many, so `presentation.light.cascades.count` must equal it.
 pub const CASCADES: usize = 4;
+pub const ALL_CASCADES: u32 = (1 << CASCADES) - 1;
 /// How far above its slice's highest corner each cascade's light sits, so
 /// casters just off screen still land in its depth range.
 const LIGHT_MARGIN: f64 = 300.0;
@@ -44,6 +45,13 @@ impl CasterVolumes {
                 .map(|c| crate::clip::clip_planes(&c.view_proj))
                 .collect(),
         }
+    }
+
+    /// Bit i is set when bounds meet cascade i, including boundary contact.
+    pub fn mask(&self, bounds: &[f64; 6]) -> u32 {
+        self.planes.iter().enumerate().fold(0, |mask, (i, planes)| {
+            mask | (u32::from(crate::clip::intersects(bounds, planes)) << i)
+        })
     }
 
     pub fn intersects(&self, bounds: &[f64; 6]) -> bool {

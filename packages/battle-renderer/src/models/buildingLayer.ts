@@ -23,7 +23,7 @@ import type { GpuRegistry } from "../frame/registry";
 import {
   Batch,
   BATCH_WORDS,
-  CAST_PASS,
+  SUN_CASCADES,
   INSTANCE_WORDS,
   NONE,
   VIEW_PASS,
@@ -162,7 +162,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
   let scope: GpuRegistry | null = null;
   let buffer: GPUBuffer | null = null;
   let shown = true;
-  const lists = [createDrawList(), createDrawList()];
+  const lists = Array.from({ length: 1 + SUN_CASCADES }, createDrawList);
   const tiers = Array.from({ length: TIER_COUNT }, () => 0);
   const triangles = Array.from({ length: TIER_COUNT }, () => 0);
   let casterTriangles = 0;
@@ -187,7 +187,12 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       if (!mesh) continue;
       const count = batches[o + Batch.count];
       const view = batches[o + Batch.pass] === VIEW_PASS;
-      push(lists[view ? VIEW_PASS : CAST_PASS], mesh, batches[o + Batch.first], count);
+      if (view) push(lists[VIEW_PASS], mesh, batches[o + Batch.first], count);
+      else
+        for (let cascade = 0; cascade < SUN_CASCADES; cascade++) {
+          if (batches[o + Batch.cascade_mask] & (1 << cascade))
+            push(lists[1 + cascade], mesh, batches[o + Batch.first], count);
+        }
       if (view) {
         tiers[tier] += count;
         triangles[tier] += (count * mesh.count) / 3;
@@ -319,9 +324,10 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
+      cascade: number,
       submitted?: SubmittedDraws,
     ) {
-      if (shown) drawList(lists[CAST_PASS], bind, raw, surface, hidden, submitted);
+      if (shown) drawList(lists[1 + cascade], bind, raw, surface, hidden, submitted);
     },
     /** The module instances the last view drew, per row (a walked module)
      *  and tier (`row · 4 + tier`); none while they are hidden. */
@@ -345,7 +351,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
         tiers: [...tiers],
         triangles: [...triangles],
         draws: lists[VIEW_PASS].count,
-        casterDraws: lists[CAST_PASS].count,
+        casterDraws: lists.slice(1).reduce((n, list) => n + list.count, 0),
         casterTriangles,
         uploadBytes,
         totalUploadBytes,

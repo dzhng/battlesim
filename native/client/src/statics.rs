@@ -19,6 +19,7 @@ pub struct Held {
     pub tier: u32,
     pub pass: u32,
     pub caster: u32,
+    pub cascade_mask: u32,
     pub fog: u32,
     pub count: u32,
     pub buffer: Buffer,
@@ -81,6 +82,7 @@ impl Statics {
                             tier: b.tier,
                             pass: b.pass,
                             caster: b.caster,
+                            cascade_mask: b.cascade_mask,
                             fog: b.fog,
                             count: b.count,
                             buffer,
@@ -97,8 +99,23 @@ impl Statics {
                     b.key, b.appearance
                 ));
             };
-            (h.row, h.tier, h.pass, h.caster, h.fog, h.count) =
-                (b.appearance, b.tier, b.pass, b.caster, b.fog, b.count);
+            (
+                h.row,
+                h.tier,
+                h.pass,
+                h.caster,
+                h.cascade_mask,
+                h.fog,
+                h.count,
+            ) = (
+                b.appearance,
+                b.tier,
+                b.pass,
+                b.caster,
+                b.cascade_mask,
+                b.fog,
+                b.count,
+            );
             self.listed.push(b.key);
         }
         let listed: HashSet<u32> = self.listed.iter().copied().collect();

@@ -56,6 +56,13 @@ pub const TIERS: usize = 4;
 pub fn caster_tier(tier: usize) -> usize {
     (tier + 1).min(TIERS - 1)
 }
+/// Stable identity reserves four bits each for pass, tier and cascade mask.
+/// Dynamic and static appearances use the same row stride.
+pub fn batch_key(row: u32, tier: u32, pass: u32, cascade_mask: u32) -> u32 {
+    assert!(row < (1 << 20) && tier < 16 && pass < 16 && cascade_mask < 16);
+    (row << 12) | (cascade_mask << 8) | (tier << 4) | pass
+}
+
 /// What a batch of models at `tier` drawn for `pass` casts with
 /// (`Batch.caster`): in view, [`caster_tier`]; an impostor card, a ghost and
 /// a high-air model (`HIGH_PASS`) nothing (`NONE`). A battle's models and a lab's own take it alike.

@@ -559,6 +559,7 @@ export async function createSceneryLayer(
     row: number;
     tier: number;
     pass: number;
+    cascadeMask: number;
   }
   let scope: GpuRegistry | null = null;
   let given: WorldScenery | null = null;
@@ -609,10 +610,12 @@ export async function createSceneryLayer(
     pass: number,
     bound: (draws: number) => Drawable | null,
     submitted?: SubmittedDraws,
+    cascade?: number,
   ) {
     for (const h of listed) {
       const row = meshes[h.row];
       if (h.pass !== pass || !row || !h.buffer) continue;
+      if (cascade !== undefined && !(h.cascadeMask & (1 << cascade))) continue;
       if (!treesShown && row.draws !== DRESSING) continue;
       const pipeline = bound(row.draws);
       if (!pipeline) continue;
@@ -658,12 +661,22 @@ export async function createSceneryLayer(
         const key = words![o + Batch.key];
         let h = held.get(key);
         if (!h) {
-          h = { scope: null, buffer: null, capacity: 0, count: 0, row, tier: 0, pass: 0 };
+          h = {
+            scope: null,
+            buffer: null,
+            capacity: 0,
+            count: 0,
+            row,
+            tier: 0,
+            pass: 0,
+            cascadeMask: 0,
+          };
           held.set(key, h);
         }
         h.row = row;
         h.tier = words![o + Batch.tier];
         h.pass = words![o + Batch.pass];
+        h.cascadeMask = words![o + Batch.cascade_mask];
         const first = words![o + Batch.first];
         const records = words![o + Batch.count];
         const pairs = meshes[row]!.draws === FELLED;
@@ -713,10 +726,15 @@ export async function createSceneryLayer(
       treesShown = on;
     },
     /** The standing scenery and the felled into one cascade. */
-    encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup, submitted?: SubmittedDraws) {
+    encodeShadows(
+      pass: TgpuRenderPass,
+      cameraGroup: CameraGroup,
+      cascade: number,
+      submitted?: SubmittedDraws,
+    ) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
       const felled = felledCaster.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawListed(CAST_PASS, (draws) => (draws === FELLED ? felled : bound), submitted);
+      drawListed(CAST_PASS, (draws) => (draws === FELLED ? felled : bound), submitted, cascade);
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup, submitted?: SubmittedDraws) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
