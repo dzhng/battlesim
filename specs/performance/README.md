@@ -108,7 +108,10 @@ contract tests.
 
 Water/boundary ranges (`3a1fd9988`), receiver caching/counters (`e3eb9629e`)
 and felled/stump selection (`6d8b40389`) are integrated. Focused integration
-checks pass; final rendered acceptance remains. Public diagnostics include
+checks pass; final rendered acceptance remains. A fresh review found that new
+fallen-tree knowledge still rebuilds standing/fallen populations inside a frame;
+a follow-up is replacing those spatial rebuilds with immutable membership
+filtering. Full snapshot reconciliation remains a separate cost. Public diagnostics include
 water/boundary visits and executed receiver work. The updated terrain-growth
 run passes 30 windows and shows zero receiver work on unchanged holds; fresh
 fit growth and invalidation have separate Rust coverage. Moving-camera CPU

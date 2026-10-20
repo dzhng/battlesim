@@ -14,9 +14,11 @@ they shadow visible receivers. Preserve the shared depth/camera convention.
 - [ ] Measure each owner's visited candidates and emitted geometry at all zooms.
 - [x] Test spatial selection against a brute-force geometric oracle, including
   near-plane boundaries, long/scaled props, camera movement and remote extension.
-- [x] Implement bounded queries for audited terrain, buildings, standing and
+- [x] Implement bounded steady selection for terrain, buildings, standing and
   felled scenery, props, water and boundary meshes, plus receiver accounting.
-  This closes implementation, not the global measured acceptance gate.
+- [ ] Remove population-sized spatial rebuilds when a new fall is learned.
+  Account separately for full publication-snapshot reconciliation; stationary
+  query bounds do not prove live mutation bounds.
 - [x] Independently select shadow casters; test an offscreen object shadowing
   visible ground and unrelated map extension leaving cascade fit unchanged.
 - [x] Reassess the prior terrain selector at all views. Scratch code is an
