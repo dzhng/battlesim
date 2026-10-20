@@ -47,7 +47,6 @@ import {
   type PointerIntent,
   type PointerPick,
 } from "@web/battle/input/pointerIntent";
-import type { CursorAction } from "@web/battle/present/gameCursor";
 import {
   PointerPaint,
   attackGroundSpread,
@@ -64,7 +63,14 @@ import type { RulerRules } from "@web/battle/present/rangeRuler";
 import type { KnownPropView, ObservationView } from "@web/battle/sim/observationView";
 import type { Order, SideName } from "@web/battle/sim/protocol";
 import type { Player } from "@web/battle/prepare/protocol";
-import type { LabBox, LabPick, ViewportFrame, ViewportGpu, ViewportPointer } from "./LabViewport";
+import type {
+  LabBox,
+  LabPick,
+  ViewportFrame,
+  ViewportGpu,
+  ViewportPointer,
+  ViewportCursor,
+} from "./LabViewport";
 import {
   drawnUnits,
   pickedUnit,
@@ -775,7 +781,7 @@ export function useBattleSession({
     };
   }
   // eslint-disable-next-line complexity -- debt: purchase placement, held-drag intent, pending-order marks and ruler all read the same closure refs; the purchase-ghost branch could leave first, but the rest needs a pure intent resolver that returns marks instead of writing refs.
-  const onCursor = (pointer: ViewportPointer, camera: Camera3DParams): CursorAction | null => {
+  const onCursor: ViewportCursor = (pointer, camera, _project, renderScale) => {
     // The battle as the last frame drew it: the picks and drawn positions
     // below are that frame's, so its units and tick are too. Nothing drawn
     // yet, nothing to point at.
@@ -812,6 +818,7 @@ export function useBattleSession({
         surfaceZ,
         metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
         null,
+        renderScale,
       );
       return active ? (purchaseGhost.current?.valid === false ? "blocked" : "default") : null;
     }
@@ -930,6 +937,7 @@ export function useBattleSession({
       surfaceZ,
       metresPerPxAt(camera.distance, camera.fovY, window.innerHeight),
       attackGround,
+      renderScale,
     );
     if (!active) return null;
     // Over an own unit the arrow is plain, unless the click would board it.

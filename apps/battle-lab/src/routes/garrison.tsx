@@ -1,6 +1,7 @@
+import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
 import { BattleView } from "../BattleView";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import { inBuilding, type ObservationView } from "@web/battle/sim/observationView";
@@ -120,6 +121,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
   const { observation } = sim;
   useEffect(() => memory.current.clear(), [sim.client]);
 
+  const [renderScale, setRenderScale] = useState(1);
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
     const tracers = tracerLayer(observation);
@@ -131,10 +133,19 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
+      gameStroke(OPENING_METRES_PER_PX, renderScale),
     );
     const parts = [tracers, remains, garrisons, orders];
     return combineWorldMeshes(parts);
-  }, [world, observation, surfaceZ, control.selected, session.revealed, session.units]);
+  }, [
+    renderScale,
+    world,
+    observation,
+    surfaceZ,
+    control.selected,
+    session.revealed,
+    session.units,
+  ]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
@@ -173,7 +184,10 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
         {...session.viewport}
         initialCamera={GARRISON_CAMERA}
         {...session.input}
-        onFrame={session.placePanels}
+        onFrame={(project, camera, pointer, scale) => {
+          setRenderScale(scale);
+          session.placePanels(project, camera, pointer);
+        }}
         diagnostics={diagnostics}
       />
       <ReadoutLayer

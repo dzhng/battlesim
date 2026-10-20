@@ -146,7 +146,8 @@ export function BattleView({
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));
   const zoomRef = useRef(zoom);
   const metresPerPx = metresPerPxAt(ZOOM_BASE ** zoom, camera.fovY, window.innerHeight);
-  const contactFacing = useContactFacing(camera, metresPerPx);
+  const [renderScale, setRenderScale] = useState(1);
+  const contactFacing = useContactFacing(camera, metresPerPx, renderScale);
   const cues = useCaptions();
   const { note: noteCues } = cues;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -203,11 +204,11 @@ export function BattleView({
         ? buildMapBorder(
             parsed.size,
             gameMapBorder,
-            borderWidthM(gameMapBorder, gameStroke(metresPerPx)),
+            borderWidthM(gameMapBorder, gameStroke(metresPerPx, renderScale)),
             surfaceZ,
           )
         : null,
-    [world, parsed.size, metresPerPx, surfaceZ],
+    [world, parsed.size, metresPerPx, renderScale, surfaceZ],
   );
   const overlay = useMemo(
     () =>
@@ -226,7 +227,7 @@ export function BattleView({
               allies: session.allies,
             },
             border,
-            metresPerPx,
+            gameStroke(metresPerPx, renderScale),
           )
         : undefined,
     [
@@ -243,6 +244,7 @@ export function BattleView({
       session.revealed,
       border,
       metresPerPx,
+      renderScale,
     ],
   );
   const overlayFeed = useFeed(overlay);
@@ -289,8 +291,8 @@ export function BattleView({
           onPick={input ? session.input.onPick : undefined}
           leftDragAction={input && !!session.purchase?.placing}
           onRightPress={session.input.onRightPress}
-          onCursor={(pointer, view, project) => {
-            const action = session.input.onCursor(pointer, view);
+          onCursor={(pointer, view, project, scale) => {
+            const action = session.input.onCursor(pointer, view, project, scale);
             rulerLabels.current?.place(project, pointerPaint.shown);
             return action;
           }}
@@ -300,7 +302,8 @@ export function BattleView({
             setViewportReady(true);
           }}
           pilot={scripted?.pilot}
-          onFrame={(project, view, pointer) => {
+          onFrame={(project, view, pointer, scale) => {
+            setRenderScale(scale);
             session.hear();
             contactFacing.follow(view);
             const step = zoomStep(view.distance);

@@ -20,7 +20,11 @@ const stepOf = (v: Orbit): Orbit => ({
 /** The facing of signs seen through a camera opening at `initial`, drawn
  *  where a pixel spans `metresPerPx`. Call `follow` with the camera each
  *  frame. */
-export function useContactFacing(initial: Camera3DParams, metresPerPx: number) {
+export function useContactFacing(
+  initial: Camera3DParams,
+  metresPerPx: number,
+  renderScale: number,
+) {
   const [orbit, setOrbit] = useState(() => stepOf(initial));
   const shown = useRef(orbit);
   const follow = useCallback((camera: Camera3DParams) => {
@@ -30,8 +34,12 @@ export function useContactFacing(initial: Camera3DParams, metresPerPx: number) {
     setOrbit(next);
   }, []);
   const facing = useMemo<ContactFacing>(
-    () => ({ ...screenAxes(orbit), stroke: gameStroke(metresPerPx) }),
-    [orbit, metresPerPx],
+    () => ({
+      ...screenAxes(orbit),
+      stroke: gameStroke(metresPerPx, renderScale),
+      size: gameStroke(metresPerPx),
+    }),
+    [orbit, metresPerPx, renderScale],
   );
   return { facing, follow };
 }

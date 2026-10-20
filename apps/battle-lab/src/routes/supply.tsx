@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
+import { useCallback, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
@@ -45,6 +46,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
+  const [renderScale, setRenderScale] = useState(1);
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
     const supply = supplyLayer(
@@ -52,7 +54,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
       rules.service.radius_m,
       surfaceZ,
       control.selected,
-      undefined,
+      gameStroke(OPENING_METRES_PER_PX, renderScale),
       control.showOrders,
     );
     const orders = orderLayer(
@@ -61,10 +63,12 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
       control.selected,
       session.revealed,
       surfaceZ,
+      gameStroke(OPENING_METRES_PER_PX, renderScale),
     );
     const tracers = tracerLayer(observation);
     return combineWorldMeshes([supply, orders, tracers]);
   }, [
+    renderScale,
     world,
     observation,
     surfaceZ,
@@ -115,7 +119,10 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
         {...session.viewport}
         initialCamera={SUPPLY_CAMERA}
         {...session.input}
-        onFrame={session.placePanels}
+        onFrame={(project, camera, pointer, scale) => {
+          setRenderScale(scale);
+          session.placePanels(project, camera, pointer);
+        }}
         diagnostics={diagnostics}
       />
       <ReadoutLayer

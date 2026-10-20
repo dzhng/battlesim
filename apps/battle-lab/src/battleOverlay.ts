@@ -170,7 +170,7 @@ export function supplyLayer(
   radius: number,
   z: SurfaceHeight,
   selected: readonly number[],
-  metresPerPx = OPENING_METRES_PER_PX,
+  stroke = gameStroke(OPENING_METRES_PER_PX),
   all = false,
 ): WorldMeshes {
   return buildSupplyOverlay(
@@ -178,7 +178,7 @@ export function supplyLayer(
       .filter((u) => (all || selected.includes(u.id)) && u.stock !== null && u.stock > 0)
       .map((u) => ({ center: [u.position[0], u.position[1]], radius })),
     z,
-    gameStroke(metresPerPx)(gameOrderStyle.line_px),
+    stroke(gameOrderStyle.line_px),
     gameSupplyStyle,
   );
 }
@@ -217,7 +217,7 @@ export function orderView(
  *  line; a unit in `allies` (an ally's) takes the ally's marker. With
  *  `ghosts` (Space held: each revealed unit's ghost stands where its orders
  *  end) an aircraft's ghost is joined to that end's marker by its drop
- *  line too. Lines are the style's pixel widths at `metresPerPx` by the
+ *  line too. Lines are the style's pixel widths resolved by the
  *  stroke rule (the opening camera's scale for a view that doesn't follow
  *  its camera). */
 export function orderLayer(
@@ -226,7 +226,7 @@ export function orderLayer(
   selected: readonly number[],
   reveal: RevealedOrders,
   z: SurfaceHeight,
-  metresPerPx = OPENING_METRES_PER_PX,
+  stroke = gameStroke(OPENING_METRES_PER_PX),
   ghosts = false,
   allies: ReadonlyMap<number, unknown> = new Map(),
 ): WorldMeshes {
@@ -242,7 +242,7 @@ export function orderLayer(
       })),
     z,
     gameOrderStyle,
-    { stroke: gameStroke(metresPerPx) },
+    { stroke },
   );
 }
 
@@ -265,14 +265,14 @@ export function aircraftLayer(
   units: UnitCatalog,
   o: ObservationView,
   z: SurfaceHeight,
-  metresPerPx = OPENING_METRES_PER_PX,
+  stroke = gameStroke(OPENING_METRES_PER_PX),
 ): WorldMeshes {
   return buildAircraftMarks(
     o.identified.filter((u) => airborne(units.type(u.kind))).map((u) => aircraftView(units, u)),
     [...gameHud.enemy, 1],
     z,
     gameOrderStyle,
-    { stroke: gameStroke(metresPerPx) },
+    { stroke },
   );
 }
 
@@ -297,12 +297,12 @@ export function buildBattleOverlay(
     allies?: ReadonlyMap<number, unknown>;
   },
   border: Mesh | null = null,
-  metresPerPx = OPENING_METRES_PER_PX,
+  stroke = gameStroke(OPENING_METRES_PER_PX),
 ): WorldMeshes {
   const contactMarks = contactLayer(contacts, z, facing);
-  const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
-  const orders = orderLayer(units, o, selected, reveal, z, metresPerPx, showOrders, allies);
-  const aircraft = aircraftLayer(units, o, z, metresPerPx);
+  const supply = supplyLayer(o, scenario.supplyRadius, z, selected, stroke, showOrders);
+  const orders = orderLayer(units, o, selected, reveal, z, stroke, showOrders, allies);
+  const aircraft = aircraftLayer(units, o, z, stroke);
   const deployment = scenario.deployment
     ? buildDeploymentMarker(
         scenario.deployment.center,
@@ -310,12 +310,12 @@ export function buildBattleOverlay(
         z,
         gameOrderStyle,
         gameHud.accent,
-        { stroke: gameStroke(metresPerPx) },
+        { stroke },
       )
     : null;
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
-  const line = gameStroke(metresPerPx)(gameOrderStyle.line_px);
+  const line = stroke(gameOrderStyle.line_px);
   const zone = scenario.zone
     ? buildZoneRing(
         scenario.zone.center,

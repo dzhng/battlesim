@@ -1,3 +1,5 @@
+import type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
+export type { ViewportPointer, LabPick, LabBox } from "./viewportInput";
 import type { ClearanceReading, LabHandle } from "./labDiagnostics";
 import { FrameRate, type FrameRateHandle } from "@web/battle/present/frameRate";
 import { useLabLoading } from "./LabLoading";
@@ -157,6 +159,7 @@ interface LabViewportProps {
     pointer: ViewportPointer,
     camera: Camera3DParams,
     project: Project,
+    renderScale: number,
   ) => CursorAction | null;
   /** Left-drag rectangle in page CSS pixels, with the projection to test against it. */
   onBox?: (box: LabBox) => void;
@@ -170,8 +173,14 @@ interface LabViewportProps {
   /** Called every animation frame with the live world → page projection and
    *  camera, for DOM readouts anchored to world points and panned sound, and
    *  a shared pointer snapshot: position, camera ray (null over UI), and the
-   *  captured world ray of a held right press. */
-  onFrame?: (project: Project, camera: Camera3DParams, pointer: ViewportPointer) => void;
+   *  captured world ray of a held right press. The final argument is the actual
+   *  canvas render-pixel/CSS-pixel ratio, for minimum stroke coverage. */
+  onFrame?: (
+    project: Project,
+    camera: Camera3DParams,
+    pointer: ViewportPointer,
+    renderScale: number,
+  ) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
   /** A scripted driver (the benchmark, a lab's trajectory), fixed for the
@@ -190,6 +199,9 @@ interface LabViewportProps {
   /** The camera rig's numbers; the game's by default. */
   cameraConfig?: CameraPresentation;
 }
+
+/** The viewport owns the live projection and render resolution passed to pointer paint. */
+export type ViewportCursor = NonNullable<LabViewportProps["onCursor"]>;
 
 /** One animation frame's drawn units. Anything omitted keeps its last value. */
 export interface ViewportFrame {
@@ -280,43 +292,6 @@ export interface ViewportGpu {
 
 const _projector_world = vec3.create();
 const _projector_point = createProjectedPoint();
-
-/** One snapshot shared by hover, the ruler and the held facing preview. */
-export interface ViewportPointer {
-  position: { x: number; y: number } | null;
-  ray: WorldRay | null;
-  rightPress: WorldRay | null;
-  /** Where a held left drag began, while it is an action (`leftDragAction`). */
-  leftPress: WorldRay | null;
-  ctrl: boolean;
-  shift: boolean;
-  cameraDragging: boolean;
-  rightDragging: boolean;
-}
-
-export interface LabPick {
-  instance: number;
-  ray: WorldRay;
-  button: "left" | "right";
-  shift: boolean;
-  ctrl: boolean;
-  /** CSS pixel position and event time, for gesture recognition. */
-  x: number;
-  y: number;
-  time: number;
-  /** A right-drag's release ray (Q9 facing): the press is the pick, the
-   *  release the point the units face. Absent for a plain right-click. */
-  release?: WorldRay;
-}
-
-export interface LabBox {
-  x0: number;
-  y0: number;
-  x1: number;
-  y1: number;
-  shift: boolean;
-  project: (x: number, y: number, z: number) => [number, number] | null;
-}
 
 /** Pixels a left press may travel and still count as a click. */
 const CLICK_SLOP_PX = 5;
@@ -1013,8 +988,9 @@ export function LabViewport({
             ),
           };
           const project = projector();
-          onFrameRef.current?.(project, camera, pointerState);
-          const action = onCursorRef.current?.(pointerState, camera, project) ?? null;
+          const renderScale = canvas.height / Math.max(1, canvas.clientHeight);
+          onFrameRef.current?.(project, camera, pointerState, renderScale);
+          const action = onCursorRef.current?.(pointerState, camera, project, renderScale) ?? null;
           // The app cursor always shows; the battle only chooses its action.
           const active = surface && !orbit && !pilot;
           setCursorAction((active && action) || "default");

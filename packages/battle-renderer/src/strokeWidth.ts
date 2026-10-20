@@ -4,7 +4,7 @@
 // pixels, drawn in full at the default camera and closer; as the camera
 // pulls out it thins smoothly (in the log of the zoom) to `thin_scale` of
 // that at `thin_m_per_px`, so a marker's border doesn't swamp a scene that
-// has shrunk under it, and never below `min_px` on screen (legible) nor
+// has shrunk under it, and never below `min_px` in render pixels (legible) nor
 // `min_m` on the ground.
 import { fade, lerp, remapClamp } from "math";
 
@@ -16,7 +16,7 @@ export interface StrokeRule {
   /** At this zoom and farther, every stroke is `thin_scale` of it. */
   thin_m_per_px: number;
   thin_scale: number;
-  /** No stroke thins below this on screen (nor below its full width). */
+  /** Minimum render-pixel width, capped by the authored width at full resolution. */
   min_px: number;
   /** Nor below this on the ground. */
   min_m: number;
@@ -41,8 +41,9 @@ export function validateStrokeRule(s: StrokeRule): StrokeRule {
 export type StrokeWidth = (px: number) => number;
 
 /** The stroke widths where one pixel spans `metresPerPx` at the camera's
- *  target: the one function every mark builder sizes its strokes with. */
-export function strokeWidth(rule: StrokeRule, metresPerPx: number): StrokeWidth {
+ *  target, in CSS pixels. `renderScale` is actual render pixels per CSS pixel;
+ *  only the readability floor follows it, not the authored width or zoom curve. */
+export function strokeWidth(rule: StrokeRule, metresPerPx: number, renderScale = 1): StrokeWidth {
   const t = fade(
     remapClamp(
       Math.log(metresPerPx),
@@ -54,5 +55,8 @@ export function strokeWidth(rule: StrokeRule, metresPerPx: number): StrokeWidth 
   );
   const scale = lerp(1, rule.thin_scale, t);
   return (px) =>
-    Math.max(rule.min_m, Math.max(Math.min(px, rule.min_px), px * scale) * metresPerPx);
+    Math.max(
+      rule.min_m,
+      Math.max(Math.min(px, rule.min_px) / renderScale, px * scale) * metresPerPx,
+    );
 }

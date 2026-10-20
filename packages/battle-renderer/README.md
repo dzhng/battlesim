@@ -82,6 +82,10 @@ marching stops at that boundary because the margin carries no gameplay sight.
 
 World paint belongs to the lit ground. Display overlays compose after the world's
 postprocessing, so grading and fog cannot change their information colors.
+Their [stroke sizing](src/strokeWidth.ts) keeps authored widths and glyph bodies
+in CSS space, but the readability floor in actual render pixels: lowering render
+resolution must not erase a thin information mark. The viewport supplies its
+actual canvas-to-CSS ratio, so resizing and quality changes share this rule.
 High-air models (`HIGH_PASS` batches) can be drawn apart: given a second
 target, the frame draws them there alone after the world, lit by the same
 pipelines and graded by the same look, premultiplied for the page to lay
