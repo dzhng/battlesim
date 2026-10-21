@@ -249,7 +249,6 @@ function PreparedBattleView({
       replay={replay?.replay}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
-      spawn={prepared.report.start.at}
       cover={cover}
       onFailure={(error) =>
         setFailure(

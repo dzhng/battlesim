@@ -13,6 +13,7 @@
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
 import { gameHud } from "@web/battle/present/hudTheme";
+import type { SideName } from "@web/battle/sim/protocol";
 import game from "@fixtures/game.json";
 import { airborne, fixedWing, type UnitCatalog } from "@packages/scene-assets/src/units";
 import { buildContactGlyphs, type ContactFacing } from "@packages/battle-renderer/src/contactGlyph";
@@ -62,7 +63,34 @@ const IMPACT = [1.0, 0.86, 0.35, 1] as const;
 export interface BattleOverlayScenario {
   supplyRadius: number;
   zone: { center: readonly [number, number]; radius: number } | null;
-  deployment: { center: readonly [number, number]; facing: number } | null;
+  /** The viewer's side's roads in, each pointing into the map. */
+  deployments: { center: readonly [number, number]; facing: number }[];
+}
+
+/** The scenario's own marks as `side` sees them. A side's players share
+ *  its roads in, and a purchase may arrive by any of them, so each one
+ *  carries the reinforcement cue. */
+export function battleOverlayScenario(scenario: string, side: SideName): BattleOverlayScenario {
+  const s = JSON.parse(scenario) as {
+    map: { size: [number, number] };
+    rules: { service: { radius_m: number } };
+    /** Absent or null when the scenario has no completion rule. */
+    encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
+    skirmish?: { sites: { entries: { side: SideName; center: [number, number] }[] } } | null;
+  };
+  const [w, d] = s.map.size;
+  return {
+    supplyRadius: s.rules.service.radius_m,
+    zone: s.encounter
+      ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
+      : null,
+    deployments: (s.skirmish?.sites.entries ?? [])
+      .filter((entry) => entry.side === side)
+      .map(({ center }) => ({
+        center,
+        facing: Math.atan2(d / 2 - center[1], w / 2 - center[0]),
+      })),
+  };
 }
 
 /** What the view remembers between frames: recent strikes and missile paths. */
@@ -303,16 +331,9 @@ export function buildBattleOverlay(
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, stroke, showOrders);
   const orders = orderLayer(units, o, selected, reveal, z, stroke, showOrders, allies);
   const aircraft = aircraftLayer(units, o, z, stroke);
-  const deployment = scenario.deployment
-    ? buildDeploymentMarker(
-        scenario.deployment.center,
-        scenario.deployment.facing,
-        z,
-        gameOrderStyle,
-        gameHud.accent,
-        { stroke },
-      )
-    : null;
+  const deployments = scenario.deployments.map(({ center, facing }) =>
+    buildDeploymentMarker(center, facing, z, gameOrderStyle, gameHud.accent, { stroke }),
+  );
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
   const line = stroke(gameOrderStyle.line_px);
@@ -351,12 +372,6 @@ export function buildBattleOverlay(
     supply,
     orders,
     aircraft,
-    ...(deployment
-      ? [
-          {
-            paintedMarching: deployment,
-          },
-        ]
-      : []),
+    ...deployments.map((paintedMarching) => ({ paintedMarching })),
   ]);
 }

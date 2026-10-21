@@ -36,6 +36,10 @@ whether the browser moves onto native's Rust `wgpu` renderer, so the game has on
 renderer instead of two. [Native gaps](native-gaps/README.md) is a placeholder
 for the known limitations native shipped with.
 
+[Launcher follow-ups](launcher-followups/README.md) is a placeholder for what
+was left when the five long and medium-range air-defence launchers got their own
+models: their armour, stale model receipts and shared truck parts.
+
 [Capture](done/capture/README.md) (shipped) turns a JSON capture file (camera and scenes over saved encounters) into MP4s for marketing videos, through the same scene player the main-menu backdrop uses.
 
 [Performance](done/performance/README.md) records shared spatial selection and

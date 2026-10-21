@@ -173,3 +173,31 @@ test("a ghost over blocked ground stands where the authority will send it, and c
     destination: [16, 20],
   });
 });
+
+test("a ghost stays placeable while the side's knowledge changes faster than previews answer", async () => {
+  // In a team battle the side's knowledge changes every tick or two, so the
+  // revision moves on before each preview answers.
+  const replies: ((placement: PurchasePlacement) => void)[] = [];
+  const client = {
+    previewPurchase: vi.fn(() => new Promise<PurchasePlacement>((r) => replies.push(r))),
+  } as unknown as SimClient;
+  const control = new PurchasePlacementControl();
+  control.choose("test_scout");
+  for (let revision = 1; revision <= 4; revision++) {
+    control.at([10, 20], client, `${revision}`);
+    replies.at(-1)!({ Ok: { kind: 1, destination: [12, 20], spots: [] } });
+    await settle();
+  }
+  const ghost = control.at([10, 20], client, "5");
+  expect(ghost?.valid).toBe(true);
+  expect(ghost?.destination).toEqual([12, 20]);
+  // The newer knowledge is still asked about.
+  expect(client.previewPurchase).toHaveBeenCalledTimes(5);
+  const send = vi.fn(async () => ({ seq: 1, applied_tick: 2, error: null, refused: [] }));
+  expect(await control.confirm(send)).toBeTruthy();
+  expect(send).toHaveBeenCalledExactlyOnceWith({
+    kind: "confirm_purchase",
+    variant: "test_scout",
+    destination: [12, 20],
+  });
+});
