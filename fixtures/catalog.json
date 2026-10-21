@@ -9114,7 +9114,7 @@
           }
         },
         "eastern_s300_long": {
-          "appearance": "us_stryker_m1296_dragoon",
+          "appearance": "eastern_s300_long",
           "body": {
             "hull": {
               "armor": {
@@ -9131,9 +9131,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.475,
-                1.36,
-                1.32
+                6.2,
+                1.575,
+                1.9
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -9162,18 +9162,18 @@
           },
           "mounts": [
             {
-              "id": "autocannon",
+              "id": "launcher",
               "muzzle_m": [
-                2.919,
+                6.9,
                 0.0,
-                0.475
+                1.21
               ],
               "name": "S-300V4",
               "on": null,
               "pivot_m": [
-                -1.05,
+                -5.6,
                 0.0,
-                1.716
+                1.75
               ],
               "special": false,
               "squad": false,
@@ -9210,7 +9210,7 @@
           }
         },
         "eastern_s350_long": {
-          "appearance": "us_stryker_m1296_dragoon",
+          "appearance": "eastern_s350_long",
           "body": {
             "hull": {
               "armor": {
@@ -9227,9 +9227,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.475,
-                1.36,
-                1.32
+                5.65,
+                1.375,
+                1.8
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -9258,18 +9258,18 @@
           },
           "mounts": [
             {
-              "id": "autocannon",
+              "id": "launcher",
               "muzzle_m": [
-                2.919,
+                5.35,
                 0.0,
-                0.475
+                1.0
               ],
               "name": "S-350",
               "on": null,
               "pivot_m": [
-                -1.05,
+                -4.9,
                 0.0,
-                1.716
+                1.85
               ],
               "special": false,
               "squad": false,
@@ -13765,7 +13765,7 @@
           }
         },
         "europe_iris_t_medium": {
-          "appearance": "us_stryker_m1296_dragoon",
+          "appearance": "europe_iris_t_medium",
           "body": {
             "hull": {
               "armor": {
@@ -13782,9 +13782,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.475,
-                1.36,
-                1.32
+                5.26,
+                1.275,
+                1.96
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -13813,18 +13813,18 @@
           },
           "mounts": [
             {
-              "id": "autocannon",
+              "id": "launcher",
               "muzzle_m": [
-                2.919,
+                1.9,
                 0.0,
-                0.475
+                0.51
               ],
               "name": "IRIS-T SLM",
               "on": null,
               "pivot_m": [
-                -1.05,
+                -3.3,
                 0.0,
-                1.716
+                1.85
               ],
               "special": false,
               "squad": false,
@@ -20249,7 +20249,7 @@
           }
         },
         "us_nasams_medium": {
-          "appearance": "us_stryker_m1296_dragoon",
+          "appearance": "us_nasams_medium",
           "body": {
             "hull": {
               "armor": {
@@ -20266,9 +20266,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.475,
-                1.36,
-                1.32
+                3.28,
+                1.21,
+                1.43
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -20297,18 +20297,18 @@
           },
           "mounts": [
             {
-              "id": "autocannon",
+              "id": "launcher",
               "muzzle_m": [
-                2.919,
+                1.75,
                 0.0,
-                0.475
+                0.56
               ],
               "name": "NASAMS 3",
               "on": null,
               "pivot_m": [
-                -1.05,
+                -0.3,
                 0.0,
-                1.716
+                1.68
               ],
               "special": false,
               "squad": false,
@@ -20345,7 +20345,7 @@
           }
         },
         "us_patriot_long": {
-          "appearance": "us_stryker_m1296_dragoon",
+          "appearance": "us_patriot_long",
           "body": {
             "hull": {
               "armor": {
@@ -20362,9 +20362,9 @@
               },
               "eye_m": 2.4,
               "half_extents_m": [
-                3.475,
-                1.36,
-                1.32
+                5.2,
+                1.45,
+                1.98
               ],
               "hp": 120.0,
               "push_class": "medium",
@@ -20393,18 +20393,18 @@
           },
           "mounts": [
             {
-              "id": "autocannon",
+              "id": "launcher",
               "muzzle_m": [
-                2.919,
+                0.6,
                 0.0,
-                0.475
+                1.4
               ],
               "name": "Patriot PAC-3",
               "on": null,
               "pivot_m": [
-                -1.05,
+                -4.3,
                 0.0,
-                1.716
+                2.05
               ],
               "special": false,
               "squad": false,
@@ -28347,7 +28347,7 @@
       "vehicle_class": null
     },
     {
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "eastern_s300_long",
       "body": {
         "hull": {
           "armor": {
@@ -28364,9 +28364,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            6.2,
+            1.575,
+            1.9
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -28397,18 +28397,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "autocannon",
+          "id": "launcher",
           "muzzle_m": [
-            2.919,
+            6.9,
             0.0,
-            0.475
+            1.21
           ],
           "name": "S-300V4",
           "on": null,
           "pivot_m": [
-            -1.05,
+            -5.6,
             0.0,
-            1.716
+            1.75
           ],
           "special": false,
           "squad": false,
@@ -28446,7 +28446,7 @@
       "vehicle_class": "wheeled_medium"
     },
     {
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "eastern_s350_long",
       "body": {
         "hull": {
           "armor": {
@@ -28463,9 +28463,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            5.65,
+            1.375,
+            1.8
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -28496,18 +28496,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "autocannon",
+          "id": "launcher",
           "muzzle_m": [
-            2.919,
+            5.35,
             0.0,
-            0.475
+            1.0
           ],
           "name": "S-350",
           "on": null,
           "pivot_m": [
-            -1.05,
+            -4.9,
             0.0,
-            1.716
+            1.85
           ],
           "special": false,
           "squad": false,
@@ -33301,7 +33301,7 @@
       "vehicle_class": "tracked_heavy"
     },
     {
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "europe_iris_t_medium",
       "body": {
         "hull": {
           "armor": {
@@ -33318,9 +33318,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            5.26,
+            1.275,
+            1.96
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -33351,18 +33351,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "autocannon",
+          "id": "launcher",
           "muzzle_m": [
-            2.919,
+            1.9,
             0.0,
-            0.475
+            0.51
           ],
           "name": "IRIS-T SLM",
           "on": null,
           "pivot_m": [
-            -1.05,
+            -3.3,
             0.0,
-            1.716
+            1.85
           ],
           "special": false,
           "squad": false,
@@ -40726,7 +40726,7 @@
       "vehicle_class": null
     },
     {
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "us_nasams_medium",
       "body": {
         "hull": {
           "armor": {
@@ -40743,9 +40743,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            3.28,
+            1.21,
+            1.43
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -40776,18 +40776,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "autocannon",
+          "id": "launcher",
           "muzzle_m": [
-            2.919,
+            1.75,
             0.0,
-            0.475
+            0.56
           ],
           "name": "NASAMS 3",
           "on": null,
           "pivot_m": [
-            -1.05,
+            -0.3,
             0.0,
-            1.716
+            1.68
           ],
           "special": false,
           "squad": false,
@@ -40825,7 +40825,7 @@
       "vehicle_class": "wheeled_medium"
     },
     {
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "us_patriot_long",
       "body": {
         "hull": {
           "armor": {
@@ -40842,9 +40842,9 @@
           },
           "eye_m": 2.4,
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            5.2,
+            1.45,
+            1.98
           ],
           "hp": 120.0,
           "push_class": "medium",
@@ -40875,18 +40875,18 @@
       "mounts": [
         {
           "carriers": [],
-          "id": "autocannon",
+          "id": "launcher",
           "muzzle_m": [
-            2.919,
+            0.6,
             0.0,
-            0.475
+            1.4
           ],
           "name": "Patriot PAC-3",
           "on": null,
           "pivot_m": [
-            -1.05,
+            -4.3,
             0.0,
-            1.716
+            2.05
           ],
           "special": false,
           "squad": false,

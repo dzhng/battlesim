@@ -265,7 +265,7 @@ def wreck(variant, v):
     shell = parts("canister_", "module_body", "cab_body", "launcher_beam")
     densify(shell, scale=2.0)
     warp(shell, heat(0.03, 0.9, seed=27.0), dent((-2.5, -0.9, 3.7), 0.9, 0.18, (0, 1, -0.4)))
-    v.root.rotation_euler = (0.035, -0.02, 0)
+    v.root.rotation_euler = (0.012, -0.02, 0)
     v.root.location.z -= 0.06
     rest_on_ground(0.004)
 
