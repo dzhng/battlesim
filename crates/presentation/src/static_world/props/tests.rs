@@ -380,6 +380,7 @@ fn caster_lists_keep_offscreen_shadows_without_changing_camera_meshes() {
         let offscreen_x = -80.0 - uphill * 10.0;
         use crate::records::{CAST_PASS, NONE};
         let mut input = input();
+        input.detail.shadow_caster_px = 2.0;
         input.appearances = vec![Art {
             bounds: Corners {
                 min: [-1.0, -1.0, 0.0],
@@ -662,8 +663,6 @@ fn prop_caster_lists_route_disjoint_and_overlapping_offscreen_models() {
 
 #[test]
 fn tiny_visible_prop_skips_shadow_only_when_control_is_enabled() {
-    let mut prop_input = input();
-    prop_input.detail.shadow_caster_px = 1_000.0;
     let props = vec![MapProp {
         id: 1.0,
         body: PropBox {
@@ -673,10 +672,8 @@ fn tiny_visible_prop_skips_shadow_only_when_control_is_enabled() {
             ..body("car", [1.0, 1.0, 1.0])
         },
     }];
-    let mut p = PropPopulation::new(PropArt::new(layout(), prop_input).unwrap(), props);
-    p.rows = (0..p.looks.list.len() as u32).collect();
     let camera = Camera {
-        eye: [0.0, -20.0, 10.0],
+        eye: [0.0, -4_000.0, 2_000.0],
         target: [0.0, 0.0, 0.0],
         up: [0.0, 0.0, 1.0],
         fov_y: 0.8,
@@ -687,16 +684,17 @@ fn tiny_visible_prop_skips_shadow_only_when_control_is_enabled() {
     let mut identity = crate::shadow::IDENTITY;
     identity[10] = 1.0;
     let caster = crate::shadow::camera_record(&identity, [0.0; 3], 0.1, [64.0; 2], 0.0);
-    p.select(&view, Some(&CasterVolumes::new(&[caster])));
-    let mut casts = 0;
-    let mut visible = 0;
-    p.each_list(&mut |list| {
-        if list.pass == CAST_PASS {
-            casts += list.records.len();
-        } else {
-            visible += list.records.len();
-        }
-    });
-    assert!(visible > 0);
-    assert_eq!(casts, 0);
+    let selected = |shadow_caster_px| {
+        let mut prop_input = input();
+        prop_input.detail.shadow_caster_px = shadow_caster_px;
+        let mut p = PropPopulation::new(PropArt::new(layout(), prop_input).unwrap(), props.clone());
+        p.rows = (0..p.looks.list.len() as u32).collect();
+        p.select(&view, Some(&CasterVolumes::new(&[caster])));
+        let mut counts = [0, 0];
+        p.each_list(&mut |list| counts[usize::from(list.pass == CAST_PASS)] += list.records.len());
+        counts
+    };
+    assert!(selected(0.0)[1] > 0);
+    assert_eq!(selected(2.0), [1, 0]);
+    assert_eq!(selected(1e9), [1, 0]);
 }

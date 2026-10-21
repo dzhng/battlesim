@@ -65,6 +65,9 @@ const STATE: &str = "default";
 const WRECK: &str = "wreck";
 /// Square chunks the map's props are bucketed in, metres.
 const CHUNK_M: f64 = 64.0;
+/// The authored sun can stretch a small caster's ground shadow beyond its
+/// own silhouette. Keep twice the projected diameter before omitting it.
+const SHADOW_FOOTPRINT_MARGIN: f64 = 2.0;
 
 /// A prop kind's binding in the world layout (`propAppearance`).
 #[derive(Clone, Debug, Deserialize)]
@@ -725,7 +728,8 @@ impl Population for PropPopulation {
             // Offscreen models remain eligible: their shadow may still land in
             // the visible ground. Only a visible model with an imperceptible
             // conservative projected footprint may skip its caster pass.
-            let tiny_visible = tier != CULLED
+            let visible = view.sees_sphere([x, y, center_z], r);
+            let tiny_visible = visible
                 && this.art.detail.shadow_caster_px > 0.0
                 && projected_footprint_px(view, at, r) < this.art.detail.shadow_caster_px;
             let mask = shadow.map_or(0, |s| if tiny_visible { 0 } else { s.mask(&bounds) });
@@ -789,13 +793,16 @@ impl Population for PropPopulation {
 /// Conservative screen footprint of a model's horizontal bound. This is used
 /// only for visible models; offscreen casters are retained for long shadows.
 fn projected_footprint_px(view: &View, at: [f64; 3], radius: f64) -> f64 {
-    let d = [
-        at[0] - view.eye[0],
-        at[1] - view.eye[1],
-        at[2] - view.eye[2],
-    ];
-    let distance = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt().max(1e-3);
-    2.0 * radius * view.pixels_per_metre / distance
+    // Camera-forward depth, rather than Euclidean eye distance, stays
+    // conservative for a visible model near a frustum edge. Subtracting the
+    // sphere radius uses the nearest point of the bound.
+    let depth = (-(view.view[2] as f64 * at[0]
+        + view.view[6] as f64 * at[1]
+        + view.view[10] as f64 * at[2]
+        + view.view[14] as f64)
+        - radius)
+        .max(1e-3);
+    SHADOW_FOOTPRINT_MARGIN * 2.0 * radius * view.pixels_per_metre / depth
 }
 
 /// The appearances drawing the map's props (`records` under `layout`) from
