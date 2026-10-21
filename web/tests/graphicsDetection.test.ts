@@ -1,13 +1,15 @@
 import { describe, expect, test, vi } from "vitest";
 import {
-  chooseTier,
   judgeIntervals,
   cancelAutoDetect,
   registerGraphicsDetectionRunner,
   runAutoDetect,
   graphicsDetectionState,
 } from "@apps/battle-lab/src/graphicsDetection";
-import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
+import {
+  graphicsSettings,
+  graphicsSettingsStorageKey,
+} from "@apps/battle-lab/src/graphicsSettings";
 
 describe("graphics auto-detect", () => {
   test("computes average and one-percent-low from frame intervals", () => {
@@ -18,33 +20,6 @@ describe("graphics auto-detect", () => {
   test("accepts a slow but valid frame stream as evidence", () => {
     const result = judgeIntervals(Array(15).fill(66.666), "low");
     expect(result.averageFps).toBeCloseTo(15);
-  });
-  test("chooses the highest passing tier", () => {
-    expect(
-      chooseTier({
-        high: { averageFps: 44, onePercentLowFps: 40 },
-        medium: { averageFps: 50, onePercentLowFps: 35 },
-        low: { averageFps: 60, onePercentLowFps: 50 },
-      }),
-    ).toBe("medium");
-  });
-  test("rejects an adapter whose average misses the target on every preset", () => {
-    expect(() =>
-      chooseTier({
-        high: { averageFps: 20, onePercentLowFps: 10 },
-        medium: { averageFps: 30, onePercentLowFps: 20 },
-        low: { averageFps: 40, onePercentLowFps: 25 },
-      }),
-    ).toThrow("could not meet the 45 FPS target");
-  });
-  test("ignores a jagged one-percent low when average FPS meets the target", () => {
-    expect(
-      chooseTier({
-        high: { averageFps: 46, onePercentLowFps: 10 },
-        medium: { averageFps: 55, onePercentLowFps: 10 },
-        low: { averageFps: 60, onePercentLowFps: 10 },
-      }),
-    ).toBe("high");
   });
 });
 
@@ -87,6 +62,51 @@ describe("graphics detection runner boundary", () => {
     } finally {
       dispose();
     }
+  });
+
+  test("an adapter that misses the target on every preset plays on the lowest", async () => {
+    Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
+    const dispose = registerGraphicsDetectionRunner(async () => ({
+      averageFps: 18,
+      onePercentLowFps: 9,
+    }));
+    try {
+      await expect(runAutoDetect()).resolves.toBe("low");
+      expect(graphicsDetectionState()).toMatchObject({ status: "complete", tier: "low" });
+      expect(graphicsSettings.get()).toMatchObject({
+        detectedMode: "low",
+        lastResult: { averageFps: 18, selectedMode: "low" },
+      });
+    } finally {
+      dispose();
+    }
+  });
+
+  test("a measurement that breaks lets the player in on the best proven preset, retried next launch", async () => {
+    Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
+    localStorage.removeItem(graphicsSettingsStorageKey);
+    graphicsSettings.set(
+      { mode: "auto", detectedMode: null, lastResult: null },
+      { persist: false },
+    );
+    const dispose = registerGraphicsDetectionRunner(async (tier) => {
+      if (tier === "medium") throw new Error("timed out");
+      return { averageFps: 60, onePercentLowFps: 40 };
+    });
+    try {
+      await expect(runAutoDetect()).resolves.toBe("low");
+      expect(graphicsDetectionState()).toMatchObject({ status: "complete", tier: "low" });
+      expect(graphicsSettings.get().detectedMode).toBe("low");
+      expect(localStorage.getItem(graphicsSettingsStorageKey)).toBeNull();
+    } finally {
+      dispose();
+    }
+  });
+
+  test("detection without a menu scene to measure still completes on the lowest preset", async () => {
+    Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
+    await expect(runAutoDetect()).resolves.toBe("low");
+    expect(graphicsDetectionState()).toMatchObject({ status: "complete", tier: "low" });
   });
 
   test("does not persist a failed or cancelled canonical run", async () => {

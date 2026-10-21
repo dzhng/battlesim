@@ -69,22 +69,13 @@ describe("auto-detect resolver", () => {
         medium: { averageFps: 45, onePercentLowFps: 30 },
         high: { averageFps: 45, onePercentLowFps: 29.99 },
       }),
-    ).toEqual({ mode: "high", result: { averageFps: 45, onePercentLowFps: 29.99 } });
+    ).toBe("high");
   });
 
-  test("returns unusable when results are incomplete or non-finite", async () => {
+  test("falls back to the lowest preset when no preset meets the target", async () => {
     const { resolveAutoDetect } = await loadStore();
-    expect(
-      resolveAutoDetect({
-        low: { averageFps: 44, onePercentLowFps: 29 },
-        medium: null,
-        high: null,
-      }),
-    ).toEqual({
-      mode: null,
-      result: null,
-      unusable: true,
-    });
+    expect(resolveAutoDetect({ low: { averageFps: 18, onePercentLowFps: 9 } })).toBe("low");
+    expect(resolveAutoDetect({})).toBe("low");
   });
 });
 

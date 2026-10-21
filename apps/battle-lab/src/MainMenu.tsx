@@ -31,7 +31,11 @@ import { LoadingScreen } from "./LoadingScreen";
 import { Wordmark } from "./Wordmark";
 import { APP_COMMIT, simFingerprint } from "./buildIdentity";
 import { GraphicsDetectionHost } from "./GraphicsDetectionHost";
-import { graphicsDetectionState, subscribeGraphicsDetection } from "./graphicsDetection";
+import {
+  graphicsDetectionState,
+  runAutoDetect,
+  subscribeGraphicsDetection,
+} from "./graphicsDetection";
 import { GRAPHICS_TIERS, graphicsSettings } from "./graphicsSettings";
 import { allowRuntimePrefetch } from "./gameAppearances";
 
@@ -211,10 +215,6 @@ export function MainMenu() {
         : detection.status === "idle" && detectionStageVisible
           ? "Preparing graphics test…"
           : undefined;
-  const detectionFailure =
-    detection.status === "failed" && showDetection
-      ? { message: "Graphics detection failed.", details: [detection.error ?? "Unknown error"] }
-      : null;
   const [shown] = useState(() => {
     let resolve = () => {};
     const promise = new Promise<void>((r) => (resolve = r));
@@ -271,7 +271,7 @@ export function MainMenu() {
         {page === "tutorial" && <Tutorial />}
         {page === "settings" && (
           <>
-            <GraphicsSettingsControls />
+            <GraphicsSettingsControls onRunAutoDetect={runAutoDetect} />
             <SoundControls />
             <DiagnosticsControls />
           </>
@@ -303,18 +303,6 @@ export function MainMenu() {
           stages={stages}
           current={detectionCurrent}
           stageDetail={detectionDetail}
-          failure={detectionFailure}
-          recovery={
-            detectionFailure ? (
-              <button
-                type="button"
-                className="hud-menu-item"
-                onClick={() => window.location.reload()}
-              >
-                Reload
-              </button>
-            ) : undefined
-          }
           back={null}
         />
       )}
