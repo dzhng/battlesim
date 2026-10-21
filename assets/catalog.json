@@ -6273,6 +6273,29 @@
         1.43
       ]
     },
+    "eastern_s300_long": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/s300/eastern_s300_long.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "launcher": "hull"
+      },
+      "wreck": "eastern_s300_long_wreck"
+    },
+    "eastern_s300_long_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/s300/eastern_s300_long_wreck.glb",
+        "debris": "assets/source/roster/s300/eastern_s300_long_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        6.2,
+        1.575,
+        1.9
+      ]
+    },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb",

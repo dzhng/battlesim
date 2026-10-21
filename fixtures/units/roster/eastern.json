@@ -3270,31 +3270,31 @@
       },
       "mounts": [
         {
-          "id": "autocannon",
+          "id": "launcher",
           "name": "S-300V4",
           "weapons": [
             "aa_long"
           ],
           "turret": true,
           "pivot_m": [
-            -1.05,
+            -5.6,
             0.0,
-            1.716
+            1.75
           ],
           "muzzle_m": [
-            2.919,
+            6.9,
             0.0,
-            0.475
+            1.21
           ]
         }
       ],
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "eastern_s300_long",
       "body": {
         "hull": {
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            6.2,
+            1.575,
+            1.9
           ],
           "eye_m": 2.4,
           "hp": 120,
