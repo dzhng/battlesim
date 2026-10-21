@@ -255,13 +255,15 @@ def bm21(v):
 MAZ_543M_LENGTH = 12.10
 MAZ_543M_AXLES = [4.05, 1.85, -1.45, -3.65]
 MAZ_543M_CAB = (3.45, 2.65)  # its cabs' rear face and roof height
+# How far the split cabs' front tow hooks reach past that length.
+MAZ_543M_TOW_REACH = 0.205
 
 
 def maz_543m(v):
     """The MAZ-543M 8x8 (`truck_chassis.chassis`), `v` `MAZ_543M_LENGTH`
     long: four axles in two pairs, 1500 mm tyres, the split cabs either side
-    of the engine. Another family's launcher on it (the S-300's) builds it
-    on a stand-in `v` of that length. Returns the deck's height."""
+    of the engine. A launcher on a longer frame builds it on
+    `truck_chassis.on(v, dx, MAZ_543M_LENGTH)`. Returns the deck's height."""
     cab_x, cab_h = MAZ_543M_CAB
     return chassis(v, MAZ_543M_AXLES, 0.76, 0.55, 1.20, 1.25, "maz_split", cab_x, 2.55, cab_h)
 

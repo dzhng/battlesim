@@ -33,11 +33,6 @@ from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
-# Each appearance's family (its source folder and reference library) and scheme.
-CARDS = {
-    "eastern_s350_long": ("s350", "russian_green"),
-}
-
 # The canister box, in the hull frame: its mouths' face, its tail, the two
 # tiers' centres and the canisters' spacing across.
 BOX_FRONT, BOX_TAIL = 0.45, -5.58
@@ -47,6 +42,8 @@ PITCH = 0.42
 FRAME_X = -1.50
 TAIL_FRAME = -4.65
 CAN_R = 0.19
+# The cab: its rear face and length.
+CAB_X, CAB_LEN = 3.55, 1.95
 
 
 def canister_mats(v):
@@ -63,9 +60,8 @@ def baz(v):
     """The BAZ-6909 under the launcher: chassis, cab and the housings behind
     it. Returns the deck's height."""
     m, h = v.mats, v.hull
-    deck = chassis(v, [3.45, 1.35, -2.45, -4.0], 0.62, 0.50, 1.10, 1.10, "cabover", 3.55, 1.95, 2.85)
     # The tail carries the rear outriggers where a truck's tow hook would be.
-    remove("rear_tow")
+    deck = chassis(v, [3.45, 1.35, -2.45, -4.0], 0.62, 0.50, 1.10, 1.10, "cabover", CAB_X, CAB_LEN, 2.85, tow=False)
     # The tall housing right behind the cab: louvred sides, a ladder up its back.
     box("housing_front", (1.10, 2.50, 1.62), (2.95, 0, deck + 0.81), m["paint"], h, bevel=0.04)
     for side in (-1, 1):
@@ -88,8 +84,8 @@ def baz(v):
             lods=MID)
     # The hangers the cab's steps hang from, down from its floor.
     for side, s in ((1, "L"), (-1, "R")):
-        box(f"step_hanger_{s}", (0.06, 0.06, 0.80), (5.5 - 0.70 - 0.32, side * 1.20, 0.80), m["dark"], h, lods=MID)
-        box(f"step_hanger_rear_{s}", (0.06, 0.06, 0.80), (5.5 - 0.70 + 0.12, side * 1.20, 0.80), m["dark"], h,
+        box(f"step_hanger_{s}", (0.06, 0.06, 0.80), (CAB_X + CAB_LEN - 0.70 - 0.32, side * 1.20, 0.80), m["dark"], h, lods=MID)
+        box(f"step_hanger_rear_{s}", (0.06, 0.06, 0.80), (CAB_X + CAB_LEN - 0.70 + 0.12, side * 1.20, 0.80), m["dark"], h,
             lods=MID)
     for k in range(4):
         box(f"ladder_rung_{k}", (0.04, 0.50, 0.04), (2.38, 0.55, deck + 0.30 + k * 0.32), m["steel"], h, lods=FINE)
@@ -204,7 +200,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("s350", {c: scheme for c, (_, scheme) in CARDS.items()}, build, wreck,
-        appearances=list(CARDS), script="s350.py",
-        receipt_file="assets/source/roster/s350/s350.source-receipt.json",
-        references=[f"assets/references/{family}/references.json" for family, _ in CARDS.values()], chip=1.0)
+    run("s350", "russian_green", build, wreck, chip=1.0)

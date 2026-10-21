@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, loft  # noqa: E402
-from truck_chassis import chassis, spare_wheel  # noqa: E402
+from truck_chassis import chassis, on, spare_wheel  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
@@ -54,9 +54,7 @@ def build(variant, v):
     half = v.length / 2
     # The chassis 0.1 m shorter than the frame: its rear tow hook reaches
     # past the bumper, and the launcher's rear frame is the vehicle's tail.
-    v.length -= 0.10
-    deck = chassis(v, AXLES, WHEEL_R, WHEEL_W, TRACK, 1.18, None, 3.02, 1.98, 2.90)
-    v.length += 0.10
+    deck = chassis(on(v, length=v.length - 0.10), AXLES, WHEEL_R, WHEEL_W, TRACK, 1.18, None, 3.02, 1.98, 2.90)
     kat1_cab(v, 3.02, 5.00, 1.28, 2.90)
     box("deck_plate", (5.9, 2.30, 0.10), (-2.00, 0, deck + 0.05), m["paint"], h, bevel=0.01)
     module(v, deck)
@@ -217,9 +215,8 @@ def launcher(v, deck):
 
 
 def canister(v, name, mid, y, z, length):
-    """One canister: a box with deep stiffening frames round it at intervals
-    its rear mouth behind a cover in a
-    raised rim and its front breech plate."""
+    """One canister: a box ringed by deep stiffening frames, its rear mouth
+    closed by a cover inside a raised rim, a breech plate on its front."""
     m, h = v.mats, v.hull
     box(name, (length, CAN_W, CAN_H), (mid, y, z), m["paint"], h, bevel=0.03)
     for k in range(6):

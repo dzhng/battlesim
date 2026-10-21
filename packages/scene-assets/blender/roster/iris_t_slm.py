@@ -1,6 +1,6 @@
 """IRIS-T SLM launcher on the MAN HX 8x8, from assets/references/iris_t_slm/.
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/iris_t.py -- [--wreck]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/iris_t_slm.py -- [--wreck]
 
 What the photos settle (German three-tone, as the Luftwaffe's launcher at
 Laage): the HX's tilt cab and its eight wheels (the MAN HX script's own,
@@ -29,13 +29,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, stencil, textured  # noqa: E402
+from truck_chassis import on  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 hx = importlib.import_module("man-hx")
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
-
-CARDS = {"europe_iris_t_medium": ("iris_t_slm", "german_three_tone")}
 
 DECK = 1.45  # top of the subframe the shelter and launcher stand on
 SHELTER = (-1.25, 1.20)  # rear and front of the equipment shelter
@@ -46,17 +45,9 @@ CAN_Y = (-0.84, -0.28, 0.28, 0.84)
 COLLARS = (PACK_REAR + 0.55, PACK_FRONT - 1.20)  # the two latch collars round the pack
 
 
-class _Shifted:
-    """The parts of `v` the MAN HX helpers read, on a node moved forward so
-    the HX's bumper (`hx.NOSE`) meets this frame's nose."""
-
-    def __init__(self, v):
-        self.mats, self.width = v.mats, v.width
-        self.hull = empty("hx_chassis", (v.length / 2 - hx.NOSE, 0, 0), parent=v.hull)
-
-
 def build(variant, v):
-    truck = _Shifted(v)
+    # The HX moved forward so its bumper (`hx.NOSE`) meets this frame's nose.
+    truck = on(v, v.length / 2 - hx.NOSE, name="hx_chassis")
     hx.running_gear(truck)
     hx.cab(truck)
     m, h = v.mats, v.hull
@@ -223,7 +214,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("iris_t_slm", {c: scheme for c, (_, scheme) in CARDS.items()}, build, wreck,
-        appearances=list(CARDS), script="iris_t.py",
-        receipt_file="assets/source/roster/iris_t_slm/iris_t.source-receipt.json",
-        references=[f"assets/references/{family}/references.json" for family, _ in CARDS.values()], chip=0.6)
+    run("iris_t_slm", "german_three_tone", build, wreck, chip=0.6)

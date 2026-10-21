@@ -1,4 +1,4 @@
-"""S-300: the S-300PMU-2's 5P85SE2 self-propelled launcher, from
+"""S-300PMU2 Favorit: its 5P85SE2 self-propelled launcher, from
 assets/references/s300/.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/roster/s300.py -- [--wreck]
@@ -21,7 +21,7 @@ What the photos settle:
 The frame is the travelling launcher's length, width and height. The
 published 13.11 m (5P85S, karopka.ru's figures for the MAZ-543M launcher:
 13.11 x 3.15 x 3.8 m) runs past the simulation's longest wheeled hull
-(`hull_limits`, 12.4 m), so the card is 12.4 m and the containers' overhang
+(`hull_limits`), so the card is that limit's length and the containers' overhang
 past the chassis is that much shorter. The launcher is a fixed mount drawn
 stowed: its catalog pivot is the erector's hinge (`HINGE`), its muzzle the
 containers' tops.
@@ -29,21 +29,16 @@ containers' tops.
 import math
 import os
 import sys
-from types import SimpleNamespace
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import vehicle_parts as VP  # noqa: E402
 from parts import box, cyl, empty, textured  # noqa: E402
 import rocket_artillery as RA  # noqa: E402
+from truck_chassis import on  # noqa: E402
 from vehicle_export import run  # noqa: E402
 
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
-
-# Appearance -> (reference family, scheme).
-CARDS = {
-    "eastern_s300_long": ("s300", "russian_green"),
-}
 
 # The containers: two columns either side of the erector beam, two rows.
 TUBE_R, TUBE_LEN = 0.40, 7.5
@@ -53,18 +48,14 @@ HINGE = (-5.6, 1.75)
 # The containers' paint: a pale grey-green, paler than the truck's, as every photo
 # shows them.
 CONTAINER_GREEN = (0.30, 0.32, 0.27)
-TOW_REACH = 0.205
 
 
 def maz(v):
-    """The MAZ-543M under an empty set back so its front tow hooks (which
-    stand `TOW_REACH` proud of its length) are the frame's front: the
-    launcher's containers overhang its rear. Returns (the chassis' offset
-    along x, the deck's height)."""
-    dx = v.length / 2 - RA.MAZ_543M_LENGTH / 2 - TOW_REACH
-    node = empty("chassis", loc=(dx, 0, 0), parent=v.hull)
-    truck = SimpleNamespace(mats=v.mats, hull=node, length=RA.MAZ_543M_LENGTH, width=v.width)
-    return dx, RA.maz_543m(truck)
+    """The MAZ-543M set back so its front tow hooks are the frame's front:
+    the launcher's containers overhang its rear. Returns (the chassis'
+    offset along x, the deck's height)."""
+    dx = v.length / 2 - RA.MAZ_543M_LENGTH / 2 - RA.MAZ_543M_TOW_REACH
+    return dx, RA.maz_543m(on(v, dx, RA.MAZ_543M_LENGTH))
 
 
 def enclosures(v, cab_rear, roof, deck):
@@ -240,7 +231,4 @@ def wreck(variant, v):
 
 
 if __name__ == "__main__":
-    run("s300", {card: scheme for card, (_, scheme) in CARDS.items()}, build, wreck,
-        appearances=list(CARDS), script="s300.py",
-        receipt_file="assets/source/roster/s300/s300.source-receipt.json",
-        references=[f"assets/references/{family}/references.json" for family, _ in CARDS.values()], chip=1.0)
+    run("s300", "russian_green", build, wreck, chip=1.0)
