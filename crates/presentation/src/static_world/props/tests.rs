@@ -81,26 +81,17 @@ fn input() -> PropInput {
 #[test]
 fn card_bounds_keep_rotated_scale_and_reject_eye_crossing() {
     let view = View::new(&Camera {
-        eye: [0.0, -100.0, 0.0],
-        target: [0.0, 0.0, 0.0],
-        up: [0.0, 0.0, 1.0],
-        fov_y: 0.8,
-        near: 1.0,
-        size: [1280, 720],
+        eye: [0.0, -100.0, 0.0], target: [0.0, 0.0, 0.0], up: [0.0, 0.0, 1.0],
+        fov_y: 0.8, near: 1.0, size: [1280, 720],
     });
-    let corners = Corners {
-        min: [-5.0, -1.0, 0.0],
-        max: [5.0, 1.0, 0.2],
-    };
+    let corners = Corners { min: [-5.0, -1.0, 0.0], max: [5.0, 1.0, 0.2] };
     let mut record = [0.0; 16];
     record[12..15].copy_from_slice(&[2.0, 3.0, 0.5]);
     let bounds = detail::card_bounds(&corners, &record);
     assert_eq!(bounds, [-10.0, -3.0, 0.0, 10.0, 3.0, 0.1]);
     assert!(detail::projected_bounds_px(&view, &bounds) > 100.0);
     record[1] = -100.0;
-    assert!(
-        detail::projected_bounds_px(&view, &detail::card_bounds(&corners, &record)).is_infinite()
-    );
+    assert!(detail::projected_bounds_px(&view, &detail::card_bounds(&corners, &record)).is_infinite());
 }
 
 fn body(kind: &str, half: [f64; 3]) -> PropBox {

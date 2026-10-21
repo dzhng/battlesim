@@ -31,7 +31,6 @@ export interface HeldProps {
   tier: number;
   pass: number;
   caster: number;
-  cascadeMask: number;
   fog: number;
   count: number;
   records: Float32Array;
@@ -86,7 +85,6 @@ export function setPropBatches(
           tier: 0,
           pass: 0,
           caster: NONE,
-          cascadeMask: 0,
           fog: 0,
           count: 0,
           records: new Float32Array(),
@@ -94,12 +92,11 @@ export function setPropBatches(
         }),
       );
     const [first, count] = [words![o + Batch.first], words![o + Batch.count]];
-    [h.row, h.tier, h.pass, h.caster, h.cascadeMask, h.fog, h.count] = [
+    [h.row, h.tier, h.pass, h.caster, h.fog, h.count] = [
       row,
       words![o + Batch.tier],
       words![o + Batch.pass],
       words![o + Batch.caster],
-      words![o + Batch.cascade_mask],
       words![o + Batch.fog],
       count,
     ];
