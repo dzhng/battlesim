@@ -463,19 +463,19 @@
     },
     {
       "cost": 360,
-      "description": "S-300V4 long-range air defence.",
+      "description": "S-300PMU2 Favorit long-range air defence.",
       "disabled_reason": null,
       "family": "air_defense",
       "id": "eastern_s300_long",
-      "name": "S-300V4",
+      "name": "S-300PMU2 Favorit",
       "planned_weapons": [],
       "roster": {
         "category": "sup",
         "factions": [
           "eastern"
         ],
-        "family_name": "S-300V4",
-        "variant": "S-300V4"
+        "family_name": "S-300PMU2 Favorit",
+        "variant": "S-300PMU2 Favorit"
       }
     },
     {
@@ -9148,7 +9148,7 @@
             }
           },
           "cost": 360,
-          "description": "S-300V4 long-range air defence.",
+          "description": "S-300PMU2 Favorit long-range air defence.",
           "faction": "eastern",
           "family": "air_defense",
           "mobility": {
@@ -9168,7 +9168,7 @@
                 0.0,
                 1.21
               ],
-              "name": "S-300V4",
+              "name": "S-300PMU2 Favorit",
               "on": null,
               "pivot_m": [
                 -5.6,
@@ -9183,7 +9183,7 @@
               ]
             }
           ],
-          "name": "S-300V4",
+          "name": "S-300PMU2 Favorit",
           "roles": [
             "air_defense"
           ],
@@ -9192,8 +9192,8 @@
             "factions": [
               "eastern"
             ],
-            "family_name": "S-300V4",
-            "variant": "S-300V4"
+            "family_name": "S-300PMU2 Favorit",
+            "variant": "S-300PMU2 Favorit"
           },
           "sensors": {
             "ground_m": 550.0,
@@ -28381,7 +28381,7 @@
         }
       },
       "cost": 360,
-      "description": "S-300V4 long-range air defence.",
+      "description": "S-300PMU2 Favorit long-range air defence.",
       "faction": "eastern",
       "family": "air_defense",
       "id": "eastern_s300_long",
@@ -28403,7 +28403,7 @@
             0.0,
             1.21
           ],
-          "name": "S-300V4",
+          "name": "S-300PMU2 Favorit",
           "on": null,
           "pivot_m": [
             -5.6,
@@ -28418,7 +28418,7 @@
           ]
         }
       ],
-      "name": "S-300V4",
+      "name": "S-300PMU2 Favorit",
       "roles": [
         "air_defense"
       ],
@@ -28427,8 +28427,8 @@
         "factions": [
           "eastern"
         ],
-        "family_name": "S-300V4",
-        "variant": "S-300V4"
+        "family_name": "S-300PMU2 Favorit",
+        "variant": "S-300PMU2 Favorit"
       },
       "sensors": {
         "ground_m": 550.0,

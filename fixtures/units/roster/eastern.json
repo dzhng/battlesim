@@ -3242,8 +3242,8 @@
       }
     },
     "eastern_s300_long": {
-      "name": "S-300V4",
-      "description": "S-300V4 long-range air defence.",
+      "name": "S-300PMU2 Favorit",
+      "description": "S-300PMU2 Favorit long-range air defence.",
       "faction": "eastern",
       "family": "air_defense",
       "roles": [
@@ -3255,8 +3255,8 @@
           "eastern"
         ],
         "category": "sup",
-        "variant": "S-300V4",
-        "family_name": "S-300V4"
+        "variant": "S-300PMU2 Favorit",
+        "family_name": "S-300PMU2 Favorit"
       },
       "extends": "roster_profile_wheeled_ifv",
       "sensors": {
@@ -3271,7 +3271,7 @@
       "mounts": [
         {
           "id": "launcher",
-          "name": "S-300V4",
+          "name": "S-300PMU2 Favorit",
           "weapons": [
             "aa_long"
           ],
