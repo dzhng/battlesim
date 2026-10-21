@@ -29,7 +29,8 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
     """The truck under a load: `axles` (x of each), wheels of radius
     `wheel_r` and width `wheel_w` at ±`track`, frame rails at `rail_z`, a
     `cab` of its shape ahead of `cab_x` (its rear face) `cab_len` long and
-    `cab_h` tall, with `doors` doors a side (an armoured crew cab's two).
+    `cab_h` tall, with `doors` doors a side (an armoured crew cab's two);
+    `cab` None leaves the cab to the family (the Patriot's KAT1).
     Returns the deck's height (the rails' top, or `deck_z`)."""
     m, h = v.mats, v.hull
     half = v.length / 2
@@ -55,7 +56,8 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
     gap = (cab_x + axles[1]) / 2 if len(axles) > 1 else cab_x - 0.6
     VP.fuel_tank("fuel_tank", (gap, 0.85, rail_z - 0.05), 0.95, 0.24, m, h)
     VP.stowage_box("battery_box", (gap, -0.85, rail_z - 0.30), (0.60, 0.30, 0.40), m, h, rot=(0, 0, math.pi))
-    cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r, doors)
+    if cab is not None:
+        cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r, doors)
     return deck_z if deck_z is not None else rail_z + 0.15
 
 
