@@ -274,6 +274,7 @@ impl Arsenal {
                 lock: None,
                 support: None,
                 bearing: yaw,
+                last_enemy_lock_tick: None,
                 elevation: 0.0,
                 shots: 0,
                 reason: ActionReason::NoCompatibleTarget,
@@ -355,8 +356,8 @@ pub struct Mount {
     pub lock: Option<Lock>,
     /// The missile this mount is guiding, if any (one at a time).
     pub support: Option<Support>,
-    /// World heading of a turret (or the last aim of a hand weapon).
     pub bearing: f64,
+    pub last_enemy_lock_tick: Option<Tick>,
     /// Elevation of the last round this mount launched (radians); 0 before.
     pub elevation: f64,
     /// Rounds launched since the battle began, wrapping at 2³².
@@ -382,6 +383,7 @@ impl Mount {
         }
         d.u64(self.operator.map_or(u64::MAX, u64::from));
         d.f64(self.bearing)
+            .u64(self.last_enemy_lock_tick.unwrap_or(u64::MAX))
             .f64(self.elevation)
             .u64(self.shots as u64)
             .u64(self.reason as u64)
@@ -695,17 +697,21 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
     libm::atan2(to.y, to.x)
 }
 
+fn turned_mount(mount: &Mount, spec: &MountSpec, yaw: f64, desired: f64, step: f64) -> f64 {
+    if let Some(arc) = spec.arc {
+        let at = arc.off(yaw, mount.bearing).clamp(-arc.half, arc.half);
+        let to = arc.off(yaw, desired).clamp(-arc.half, arc.half);
+        yaw + arc.centre + at + (to - at).clamp(-step, step)
+    } else {
+        let err = wrap_angle(desired - mount.bearing);
+        mount.bearing + err.clamp(-step, step)
+    }
+}
+
 fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turret_step: f64) {
     let desired = bearing_from(unit, point);
-    mount.bearing = if let Some(arc) = spec.arc {
-        // Within its arc, it turns the way that stays inside it, never
-        // round through the cabin; outside, it waits at the arc's edge.
-        let at = arc.off(unit.yaw, mount.bearing).clamp(-arc.half, arc.half);
-        let to = arc.off(unit.yaw, desired).clamp(-arc.half, arc.half);
-        unit.yaw + arc.centre + at + (to - at).clamp(-turret_step, turret_step)
-    } else if spec.turret {
-        let err = wrap_angle(desired - mount.bearing);
-        mount.bearing + err.clamp(-turret_step, turret_step)
+    mount.bearing = if spec.arc.is_some() || spec.turret {
+        turned_mount(mount, spec, unit.yaw, desired, turret_step)
     } else if hull_fixed(unit, spec) {
         unit.yaw
     } else {
@@ -713,9 +719,7 @@ fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turr
     };
 }
 
-/// A gun fixed in its hull (D8): it bears where the body faces, so the body
-/// turns to aim it. A soldier's weapon turns with him, and a mount on a
-/// turret with its turret.
+/// Whether a vehicle mount must turn its hull to aim.
 fn hull_fixed(unit: &Unit, spec: &MountSpec) -> bool {
     unit.is_vehicle() && !spec.turret && spec.on.is_none()
 }

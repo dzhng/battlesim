@@ -80,6 +80,7 @@ mod supply;
 mod suppression;
 mod top_attack;
 mod transport;
+mod turret_reset;
 mod weapons;
 mod world_geometry;
 

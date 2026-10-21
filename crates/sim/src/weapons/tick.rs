@@ -3,6 +3,10 @@
 
 use super::*;
 
+/// A turret returns to the hull's front after this long without a currently
+/// observed enemy to hold its attention.
+const IDLE_TURRET_RESET_S: f64 = 15.0;
+
 fn select_active(
     unit: &mut Unit,
     specs: &[MountSpec],
@@ -170,12 +174,39 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut R
                     ActionReason::OutOfRange | ActionReason::BlockedTrajectory
                 ))
             );
-            let resolved = mount
+            let mut resolved = mount
                 .lock
                 .as_ref()
                 .and_then(|l| resolve_for(ctx, unit, &mount, spec, l.target, units));
             if resolved.is_none() {
                 mount.lock = None;
+            }
+            let current_enemy =
+                mount
+                    .lock
+                    .as_ref()
+                    .zip(resolved.as_ref())
+                    .is_some_and(|(lock, r)| {
+                        r.current && matches!(lock.target, Target::Unit(_) | Target::Contact(_))
+                    });
+            if current_enemy {
+                mount.last_enemy_lock_tick = Some(ctx.tick);
+            }
+            let reset_ticks = (IDLE_TURRET_RESET_S * ctx.rules.tick_hz as f64).round() as Tick;
+            let idle_turret = spec.turret
+                && mount.support.is_none()
+                && !current_enemy
+                && !mount
+                    .lock
+                    .as_ref()
+                    .is_some_and(|lock| matches!(lock.target, Target::Round(_)))
+                && mount
+                    .last_enemy_lock_tick
+                    .is_some_and(|last| ctx.tick.saturating_sub(last) >= reset_ticks);
+            if idle_turret {
+                mount.lock = None;
+                resolved = None;
+                mount.bearing = turned_mount(&mount, spec, unit.yaw, unit.yaw, turret_rate);
             }
             // Could shoot now, from here, and to effect?
             let assessment = mount.lock.as_ref().zip(resolved.as_ref()).map(|(l, r)| {
