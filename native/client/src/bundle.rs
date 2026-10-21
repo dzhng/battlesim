@@ -169,6 +169,48 @@ impl Library {
         Runtime::open(dir).map(|runtime| Self { runtime })
     }
 
+    /// A declared prepared card is mandatory and validated; no declaration keeps meshes.
+    pub fn card(&self, name: &str) -> Result<Option<presentation::assets::cards::Card>> {
+        use sha2::{Digest, Sha256};
+        let bundle = self.runtime.bundle_hash(name)?;
+        let Some(value) = self
+            .runtime
+            .catalog
+            .get("cards")
+            .and_then(|c| c.get(bundle))
+        else {
+            return Ok(None);
+        };
+        let hash = value
+            .as_str()
+            .filter(|h| {
+                h.len() == 64
+                    && h.bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            })
+            .ok_or(format!("card {name}: invalid content address"))?;
+        let raw = self.runtime.catalog["gzip"][hash]["raw_bytes"]
+            .as_u64()
+            .unwrap_or(u64::MAX);
+        if raw > (presentation::assets::cards::PIXEL_BYTES / 2 * 5 + 4096) as u64 {
+            return Err(format!("card {name}: invalid decoded size"));
+        }
+        use std::io::Read;
+        let mut bytes = Vec::with_capacity(raw as usize);
+        self.runtime
+            .reader(hash, "card.bin")?
+            .take(raw + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|e| format!("card {name}: {e}"))?;
+        if bytes.len() as u64 != raw {
+            return Err(format!("card {name}: decoded length differs"));
+        }
+        if format!("{:x}", Sha256::digest(&bytes)) != hash {
+            return Err(format!("card {name}: content hash differs"));
+        }
+        presentation::assets::cards::Card::decode(&bytes, name, bundle).map(Some)
+    }
+
     fn texture(&self, id: &str) -> Result<Texture> {
         let bytes = self.runtime.read(id, "texture.bin")?;
         let end = bytes.iter().take(64).position(|&b| b == b'\n');

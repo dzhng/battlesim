@@ -14,6 +14,7 @@ pub mod gpu;
 pub mod grass;
 pub mod ground;
 pub mod models;
+pub mod models_cards;
 pub mod pipelines;
 pub mod post;
 pub mod scars;

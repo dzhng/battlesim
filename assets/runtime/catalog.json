@@ -2824,6 +2824,7 @@
     },
     "parked_car": {
       "bundle": "b60a4e514567c5c07ce6b95665a4e482a8643c2bb10b3b4183085373044e272d",
+      "far_card_px": 2,
       "footprint_half_m": [
         2.2,
         0.9,
@@ -4197,6 +4198,9 @@
       "unit": "scenery"
     }
   },
+  "cards": {
+    "b60a4e514567c5c07ce6b95665a4e482a8643c2bb10b3b4183085373044e272d": "4f8ab96dacf31bb64bacb0d6b50e09191fa6138c1d901d514992b9957ab324bc"
+  },
   "gzip": {
     "004eaddf3787be73da389570a7e09d313414080cff03833f83da93f6dcd80f89": {
       "bytes": 2687,
@@ -5482,6 +5486,11 @@
       "bytes": 84888,
       "hash": "258f3e80653b4602f71d6cb34adb4e520e604db3dd0726a5e4f866af78ba7ce0",
       "raw_bytes": 349543
+    },
+    "4f8ab96dacf31bb64bacb0d6b50e09191fa6138c1d901d514992b9957ab324bc": {
+      "bytes": 90570,
+      "hash": "21fd6c46d947560f9007cba5b2253ecb75dc12a30695a209bf368cb7f7b3234e",
+      "raw_bytes": 655800
     },
     "500f87778e1bc521ce0c2e21f5ac9d686e5819bfa7cc757c2e686e98bb3f8df0": {
       "bytes": 198192,
