@@ -171,8 +171,7 @@ export function resolveAutoDetect(results: AutoDetectResults): GraphicsTier {
   let selected = GRAPHICS_TIERS[0];
   for (const mode of GRAPHICS_TIERS) {
     const result = results[mode];
-    if (!result || !isFiniteFps(result.averageFps) || !isFiniteFps(result.onePercentLowFps)) break;
-    if (result.averageFps < GRAPHICS_TARGET_FPS) break;
+    if (!result || result.averageFps < GRAPHICS_TARGET_FPS) break;
     selected = mode;
   }
   return selected;

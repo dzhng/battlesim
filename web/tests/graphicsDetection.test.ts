@@ -13,12 +13,12 @@ import {
 
 describe("graphics auto-detect", () => {
   test("computes average and one-percent-low from frame intervals", () => {
-    const result = judgeIntervals(Array(100).fill(16.666), "high");
+    const result = judgeIntervals(Array(100).fill(16.666));
     expect(result.averageFps).toBeCloseTo(60);
     expect(result.onePercentLowFps).toBeCloseTo(60);
   });
   test("accepts a slow but valid frame stream as evidence", () => {
-    const result = judgeIntervals(Array(15).fill(66.666), "low");
+    const result = judgeIntervals(Array(15).fill(66.666));
     expect(result.averageFps).toBeCloseTo(15);
   });
 });

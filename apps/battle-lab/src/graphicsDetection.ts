@@ -11,10 +11,7 @@ import {
 // Safari can deliver a valid but slow stream while the menu scene is under
 // memory pressure; reject only streams too short to estimate at all.
 const MIN_FRAME_SAMPLES = 15;
-export function judgeIntervals(
-  intervalsMs: readonly number[],
-  _tier?: GraphicsTier,
-): TierBenchmarkInput {
+export function judgeIntervals(intervalsMs: readonly number[]): TierBenchmarkInput {
   if (
     intervalsMs.length < MIN_FRAME_SAMPLES ||
     intervalsMs.some((v) => !Number.isFinite(v) || v <= 0)
@@ -73,7 +70,7 @@ export function createCanonicalFrameRunner({
         if (error) reject(error);
         else {
           try {
-            resolve(judgeIntervals(intervals, tier));
+            resolve(judgeIntervals(intervals));
           } catch (reason) {
             reject(reason);
           }
@@ -183,8 +180,6 @@ export function runAutoDetect(): Promise<GraphicsTier> {
         publish({ status: "running", tier: null, currentTier: tier, completed: index });
         const result = await runner(tier, controller.signal);
         cancelled();
-        if (!result || !Number.isFinite(result.averageFps) || result.averageFps < 0)
-          throw new Error(`Graphics auto-detect returned unusable ${tier} FPS evidence.`);
         results[tier] = result;
         publish({ status: "running", tier: null, currentTier: tier, completed: index + 1 });
         if (result.averageFps < GRAPHICS_TARGET_FPS) break;
