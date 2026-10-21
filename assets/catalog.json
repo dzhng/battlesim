@@ -6273,6 +6273,29 @@
         1.43
       ]
     },
+    "europe_iris_t_medium": {
+      "unit": "vehicle",
+      "source": "assets/source/roster/iris_t_slm/europe_iris_t_medium.glb",
+      "basis_yaw_deg": 0,
+      "mounts": {
+        "launcher": "hull"
+      },
+      "wreck": "europe_iris_t_medium_wreck"
+    },
+    "europe_iris_t_medium_wreck": {
+      "unit": "scenery",
+      "scenery": "wreck",
+      "states": {
+        "default": "assets/source/roster/iris_t_slm/europe_iris_t_medium_wreck.glb",
+        "debris": "assets/source/roster/iris_t_slm/europe_iris_t_medium_wreck_debris.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        5.26,
+        1.275,
+        1.96
+      ]
+    },
     "us_stryker_m_shorad_gun_and_missile_air_defense_vehicle": {
       "unit": "vehicle",
       "source": "assets/source/roster/stryker_m_shorad/us_stryker_m_shorad_gun_and_missile_air_defense_vehicle.glb",
