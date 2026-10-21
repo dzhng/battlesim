@@ -38,8 +38,7 @@ for the known limitations native shipped with.
 
 [Launcher follow-ups](launcher-followups/README.md) is a placeholder for what
 was left when the five long and medium-range air-defence launchers got their own
-models: their armour, stale model receipts, the S-300's length and shared truck
-parts.
+models: their armour, stale model receipts and shared truck parts.
 
 [Capture](done/capture/README.md) (shipped) turns a JSON capture file (camera and scenes over saved encounters) into MP4s for marketing videos, through the same scene player the main-menu backdrop uses.
 
