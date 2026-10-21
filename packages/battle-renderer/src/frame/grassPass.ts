@@ -75,7 +75,6 @@ import {
   forestVergeInside,
   groundLineBand,
   groundColour,
-  groundScars,
   groundCell,
   groundPaved,
   groundShore,
@@ -86,11 +85,11 @@ import {
   groundVerge,
   groundWheeling,
   groundWater,
-  scarredSurface,
   terrainLayout,
+  type TerrainSource,
   valueNoise,
 } from "./terrainMaterial";
-import type { TerrainSource } from "./terrainMaterial";
+import { groundScars, scarredSurface } from "./groundScars";
 import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";
 import type { EnvironmentFrame } from "./environmentFrame";

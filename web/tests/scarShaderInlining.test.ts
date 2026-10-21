@@ -1,10 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import tgpu from "typegpu";
-import {
-  groundScars,
-  groundScarsSeen,
-} from "../../packages/battle-renderer/src/frame/terrainMaterial";
+import { groundScars, groundScarsSeen } from "../../packages/battle-renderer/src/frame/groundScars";
 
 /** How many copies of each function holding a data-dependent loop (`loop`,
  *  `while`: a probe or a search, whose trip count no compiler knows) a
