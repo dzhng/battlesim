@@ -38,6 +38,10 @@ sooner only when the next piece of work can't be trusted without it.
 Every expensive run must answer a question a cheaper one can't. Reuse a result
 that is still valid, and rerun only what a change could have invalidated.
 
+Default to end-to-end or system-level tests for regression coverage; use a
+unit test only for specific, complex business logic when fast feedback will
+materially speed development.
+
 Write the test first for behavior changes and regressions. Use
 [`write-tests`](.agents/skills/write-tests/SKILL.md) and test what the game does
 and how it fails, not how the code is shaped. The tests test mechanics not
