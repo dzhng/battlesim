@@ -477,6 +477,44 @@ struct ScarParams {
 
 @group(1) @binding(5) var<uniform> scarParams: ScarParams;
 
+struct ScarTiles {
+  lo: vec2u,
+  e00: vec2u,
+  e10: vec2u,
+  e01: vec2u,
+  e11: vec2u,
+}
+
+@group(1) @binding(6) var scarPages: texture_2d<u32>;
+
+fn scarEntry(tile: vec2u) -> vec2u {
+ let P=scarParams;
+ if(any(tile<P.cacheBounds.xy)||any(tile>P.cacheBounds.zw)){return vec2u(0u);}
+ let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
+ var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
+ loop {let dim=textureDimensions(scarPages);let e=textureLoad(scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
+  if(e.x==0u){break;}
+  if((e.x&536870911u)==key+1u){return e;}at=(at+1u)&P.pages.z;}
+ return vec2u(2147483648u,P.defaultWord.x);
+}
+
+fn scarTiles(lo: vec2u, hi: vec2u) -> ScarTiles {
+ let a=lo/16u;let span=hi/16u-a;var e=array<vec2u,4>();
+ // One probe site in a loop, as for the corners in `scarLinear`; a tile
+ // that repeats where the cells span one is copied, not probed again.
+ for(var k=0u;k<4u;k++){
+  let o=min(vec2u(k&1u,k>>1u),span);let j=o.x+o.y*2u;
+  if(j<k){e[k]=e[j];}else{e[k]=scarEntry(a+o);}
+ }
+ return ScarTiles(a,e[0],e[1],e[2],e[3]);
+}
+
+fn scarTilesBlank(t: ScarTiles) -> bool {
+ let x=vec4u(t.e00.x,t.e10.x,t.e01.x,t.e11.x);let y=vec4u(t.e00.y,t.e10.y,t.e01.y,t.e11.y);
+ let single=(x&vec4u(2147483648u))!=vec4u(0u);
+ return all((x==vec4u(0u))|(single&(y==vec4u(0u))));
+}
+
 struct GroundCubic {
   taps: vec4f,
   weights: vec4f,
@@ -525,17 +563,9 @@ fn scarFilterPosition(uv: vec2f, size: vec2f) -> vec2f {
  return clamp((q-128.0)/256.0,vec2f(0.0),size-1.0);
 }
 
-@group(1) @binding(6) var scarPages: texture_2d<u32>;
-
-fn scarEntry(tile: vec2u) -> vec2u {
- let P=scarParams;
- if(any(tile<P.cacheBounds.xy)||any(tile>P.cacheBounds.zw)){return vec2u(0u);}
- let tilesX=(P.pages.x+15u)/16u;let key=tile.y*tilesX+tile.x;
- var at=((key*0x9e3779b1u)^(key>>16u))&P.pages.z;
- loop {let dim=textureDimensions(scarPages);let e=textureLoad(scarPages,vec2i(i32(at%dim.x),i32(at/dim.x)),0).xy;
-  if(e.x==0u){break;}
-  if((e.x&536870911u)==key+1u){return e;}at=(at+1u)&P.pages.z;}
- return vec2u(2147483648u,P.defaultWord.x);
+fn scarTileEntry(t: ScarTiles, tile: vec2u) -> vec2u {
+ let o=tile-t.lo;
+ return select(select(t.e00,t.e10,o.x==1u),select(t.e01,t.e11,o.x==1u),o.y==1u);
 }
 
 @group(1) @binding(7) var scars: texture_2d_array<f32>;
@@ -568,11 +598,11 @@ fn scarFilterQuanta(a: vec4u, b: vec4u, c: vec4u, other: vec4u, f: vec2f) -> vec
  return (total+vec4u(2048u))/vec4u(4096u);
 }
 
-fn sampleGroundLinear(uv: vec2f) -> vec4f {
+fn scarLinear(uv: vec2f, tiles: ScarTiles) -> vec4f {
  let P=scarParams;let size=vec2f(P.pages.xy);let p=scarFilterPosition(uv,size);
  let cell=vec2i(floor(p));let f=fract(p);var q=array<vec4u,4>();
  for(var k=0u;k<4u;k++){
-  let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.pages.xy)-1));let e=scarEntry(c/16u);
+  let c=vec2u(clamp(cell+vec2i(i32(k&1u),i32(k>>1u)),vec2i(0),vec2i(P.pages.xy)-1));let e=scarTileEntry(tiles,c/16u);
   // The cell's own tile, one word throughout, with all four corners in it.
   if(k==0u&&(e.x==0u||(e.x&2147483648u)!=0u)&&all(c%16u<vec2u(15u))){return scarWord(e.y);}
   q[k]=vec4u(round(scarCell(c,e)*255.0));
@@ -595,6 +625,14 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
   let uv = xy * P.grid.xy;
   if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0))) { return out; }
   let texel = P.grid.xy * cell;
+  // Every cell the taps below read is in these tiles: where none is marked,
+  // every tap is zero, and the cheap reject would return the same.
+  let centre = uv * vec2f(P.pages.xy) - 0.5;
+  let last = vec2i(P.pages.xy) - 1;
+  let tiles = scarTiles(
+    vec2u(clamp(vec2i(floor(centre - 3.0)), vec2i(0), last)),
+    vec2u(clamp(vec2i(floor(centre + 3.0)) + 1, vec2i(0), last)));
+  if (scarTilesBlank(tiles)) { return out; }
   // Twelve bilinear taps through one call, as a shader compiler inlines each
   // call: the rim's four diagonals (a, b, c, e), the cubic's four, then
   // either side of `uv` along x and y for the slopes (xp, xm, yp, ym).
@@ -620,7 +658,7 @@ fn groundScars(xy: vec2f, footprint: f32) -> ScarSample {
       let side = texel * select(vec2f(0.0, h), vec2f(h, 0.0), t < 10u);
       at = select(uv - side, uv + side, (t & 1u) == 0u);
     }
-    taps[t] = sampleGroundLinear(at);
+    taps[t] = scarLinear(at, tiles);
   }
   let a = taps[0];
   let b = taps[1];
