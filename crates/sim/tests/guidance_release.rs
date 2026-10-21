@@ -57,17 +57,30 @@ fn a_screen_breaks_guidance_even_while_the_scout_keeps_the_target_identified() {
 fn moving_releases_at_once_and_frees_the_crew() {
     let mut b = ambush(3);
     until_launch(&mut b);
-    let before = missile(&b).unwrap();
+    let gunner = |b: &Battle| {
+        let unit = b.unit(UnitId(0)).unwrap();
+        let id = unit.mounts.iter().find_map(|m| m.operator).unwrap();
+        unit.members.iter().find(|s| s.id == id).unwrap().position
+    };
     let mut o = Commander::new();
     o.ok(&mut b, Side::Blue, move_to(0, [100.0, 200.0]));
-    b.step();
+    // The squad sets off staggered: support holds while the gunner stands,
+    // and ends on the tick he steps off.
+    let mut before = missile(&b).unwrap();
+    for _ in 0..common::tick_hz() {
+        let stood = gunner(&b);
+        b.step();
+        if gunner(&b) != stood {
+            break;
+        }
+        before = missile(&b).expect("still flying");
+        assert!(before.supported, "guided while the gunner stands");
+    }
     let after = missile(&b).expect("still flying");
-    assert!(!after.supported, "movement releases support");
-    // The point is a coast straight ahead, on the ground: the tank 500 m off
-    // no longer draws it.
-    let speed = common::game()["weapons"]["atgm"]["speed_mps"]
-        .as_f64()
-        .unwrap();
+    assert!(!after.supported, "his movement releases support");
+    // The point is a coast straight ahead at its speed, on the ground: the
+    // tank 500 m off no longer draws it.
+    let speed = horizontal(after.position, before.position) * common::tick_hz() as f64;
     let coast = speed * coast_s();
     let ahead = horizontal(after.point, before.position);
     assert!(

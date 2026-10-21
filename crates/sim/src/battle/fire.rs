@@ -4,6 +4,46 @@
 use super::*;
 
 impl Battle {
+    /// Where each soldier stands, not where he leans out to: leaning is not
+    /// moving.
+    pub(super) fn standing(&self) -> BTreeMap<u32, V2> {
+        self.units
+            .iter()
+            .flat_map(|u| u.members.iter().map(|s| (s.id, s.position.xy())))
+            .collect()
+    }
+
+    /// What changed place on the map this tick, units by their base and
+    /// soldiers by where they stand. Moving is changing place on the map: an
+    /// aircraft climbing or sinking over one spot stands still, and a ground
+    /// unit cannot change height without changing place.
+    pub(super) fn moved(
+        &self,
+        before: &Poses,
+        after: &Poses,
+        stood: &BTreeMap<u32, V2>,
+    ) -> weapons::tick::Moved {
+        weapons::tick::Moved {
+            units: before
+                .units
+                .iter()
+                .zip(&after.units)
+                .map(|(a, b)| (a.base - b.base).xy().length() > 1e-9)
+                .collect(),
+            soldiers: self
+                .units
+                .iter()
+                .flat_map(|u| &u.members)
+                .filter(|s| {
+                    stood
+                        .get(&s.id)
+                        .is_some_and(|p| (*p - s.position.xy()).length() > 1e-9)
+                })
+                .map(|s| s.id)
+                .collect(),
+        }
+    }
+
     /// Guided missiles (P05, P06): a launcher supports its missile while it
     /// stands still, has a living operator (including a survivor who takes
     /// over the launcher), its side identifies the target (a round: while it
@@ -13,7 +53,7 @@ impl Battle {
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
     /// to ground, so a far one misses a target it can no longer see.
     /// Flares are dispensed first, so a spoofed round is steered no more.
-    pub(super) fn guide(&mut self, moved: &[bool]) {
+    pub(super) fn guide(&mut self, moved: &weapons::tick::Moved) {
         self.dispense_flares();
         let mut supported = BTreeSet::new();
         let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();
@@ -77,7 +117,7 @@ impl Battle {
                     self.arsenal.weapons[r.weapon].def.ballistics.guidance
                         == Some(contract::ballistics::Guidance::OnTheMove)
                 });
-                let keep = (!moved[i] || on_the_move)
+                let keep = (!moved.carrier(i, unit, mount) || on_the_move)
                     && alive[i]
                     && settled
                     && (unit.hull.is_some() || mount.operator.is_some())
@@ -139,7 +179,7 @@ impl Battle {
 
     /// Every mount acts; shots become rounds in flight and firing evidence.
     /// Returns the units that launched this tick.
-    pub(super) fn fire(&mut self, moved: &[bool]) -> BTreeSet<UnitId> {
+    pub(super) fn fire(&mut self, moved: &weapons::tick::Moved) -> BTreeSet<UnitId> {
         // Flight may have killed an operator after this tick's guidance.
         for unit in &mut self.units {
             weapons::assign_operators(&self.arsenal, unit);
@@ -239,5 +279,61 @@ impl Battle {
             self.record_fire(shot.unit, heard);
         }
         fired
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An AT team's rifleman walks to a new post mid-aim: the gunner, who
+    /// stands still, keeps aiming and launches, though the squad's centre
+    /// moves. A stationary weapon reads the body that carries it.
+    #[test]
+    fn a_gunner_standing_still_fires_while_a_teammate_moves() {
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [1000, 1000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+            "rules": crate::fixtures::test_game(),
+            "units": [
+                { "side": "blue", "kind": "test_at", "position": [100, 300] },
+                { "side": "red", "kind": "test_tank", "position": [600, 300] }
+            ],
+            "events": [], "scripts": []
+        }))
+        .unwrap();
+        let mut battle = Battle::new(&setup, 3);
+        for _ in 0..battle.rules.tick_hz {
+            battle.step();
+        }
+        let launcher = battle.units[0]
+            .mounts
+            .iter()
+            .position(|m| m.operator.is_some())
+            .expect("the gunner works the launcher");
+        let gunner = battle.units[0].mounts[launcher].operator.unwrap();
+        let rifleman = battle.units[0]
+            .members
+            .iter()
+            .position(|s| s.id != gunner)
+            .unwrap();
+        let start = battle.units[0].members[rifleman].position.xy();
+        let mut launched = false;
+        for _ in 0..8 * battle.rules.tick_hz {
+            battle.units[0].members[rifleman].post = Some(v2(100.0, 260.0));
+            battle.step();
+            assert_ne!(
+                battle.units[0].mounts[launcher].reason,
+                contract::observation::ActionReason::MovingStationaryWeapon,
+                "tick {}: the gunner stands still",
+                battle.tick
+            );
+            launched |= battle
+                .rounds
+                .values()
+                .any(|r| r.unit == UnitId(0) && battle.arsenal.weapons[r.weapon].id == "atgm");
+        }
+        let walked = (battle.units[0].members[rifleman].position.xy() - start).length();
+        assert!(walked > 5.0, "the rifleman walked {walked:.1} m");
+        assert!(launched, "the missile left while he walked");
     }
 }

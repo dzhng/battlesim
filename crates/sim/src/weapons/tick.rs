@@ -9,7 +9,7 @@ fn select_active(
     weapons: &[Weapon],
     rules: &Rules,
     plans: &[Option<MountPlan>],
-    moving: bool,
+    moving: &[bool],
 ) {
     if unit.hull.is_some() {
         return;
@@ -25,7 +25,7 @@ fn select_active(
         }
         return;
     }
-    for member in 0..unit.members.len() {
+    for (member, &moving) in moving.iter().enumerate() {
         if !unit.members[member].alive() {
             unit.members[member].active_mount = None;
             continue;
@@ -48,8 +48,36 @@ fn select_active(
     }
 }
 
+/// What changed place on the map this tick: each unit (a squad by its
+/// centre), and each soldier by his id.
+pub struct Moved {
+    pub units: Vec<bool>,
+    pub soldiers: std::collections::BTreeSet<u32>,
+}
+
+impl Moved {
+    /// The body a weapon on `unit` (index `i`) rides moved: the soldier
+    /// working it, for a squad weapon one soldier works; the unit itself
+    /// otherwise. A gunner standing still fires from rest while a teammate
+    /// crawls to cover.
+    pub fn carrier(&self, i: usize, unit: &Unit, mount: &Mount) -> bool {
+        match mount.operator {
+            Some(id) if unit.hull.is_none() => self.soldiers.contains(&id),
+            _ => self.units[i],
+        }
+    }
+
+    /// The soldier moved, or for a vehicle the hull.
+    pub fn member(&self, i: usize, unit: &Unit, member: usize) -> bool {
+        match unit.hull {
+            None => self.soldiers.contains(&unit.members[member].id),
+            Some(_) => self.units[i],
+        }
+    }
+}
+
 /// Advance every mount one tick; returns the shots fired.
-pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut Rng) -> Vec<Shot> {
+pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &Moved, rng: &mut Rng) -> Vec<Shot> {
     let dt = 1.0 / ctx.rules.tick_hz as f64;
     let turret_rate = ctx.rules.movement.turret_turn_deg_s.to_radians() * dt;
     let tolerance = ctx.rules.movement.bearing_tolerance_deg.to_radians();
@@ -110,7 +138,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             if unit.hull.is_none() && candidates(unit, &mount, spec).next().is_none() {
                 // A recoverable spare keeps its magazine and reload progress.
                 // Moving a stationary gun still interrupts its reload.
-                if spec.special && !(stationary && moved[i]) {
+                if spec.special && !(stationary && moved.units[i]) {
                     mount.lock = None;
                     mount.support = None;
                     for c in &mut mount.cycles {
@@ -173,7 +201,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 .and_then(|r| preferred_kind(ctx, &mount, spec, r));
             // A child mount's muzzle is assessed on its parent's current
             // bearing, as vehicle mounts act independently in mount order.
-            if unit.hull.is_some() && !(stationary && moved[i]) {
+            if unit.hull.is_some() && !(stationary && moved.units[i]) {
                 if let Some(r) = &resolved {
                     point_mount(unit, &mut mount, spec, r.point, turret_rate);
                 }
@@ -187,13 +215,16 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             }));
             units[i].mounts[m] = mount;
         }
+        let moving: Vec<bool> = (0..units[i].members.len())
+            .map(|k| moved.member(i, &units[i], k))
+            .collect();
         select_active(
             &mut units[i],
             specs,
             &ctx.arsenal.weapons,
             ctx.rules,
             &plans,
-            moved[i],
+            &moving,
         );
         for (m, plan) in plans.into_iter().enumerate() {
             let Some(MountPlan {
@@ -211,7 +242,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             let mut mount = unit.mounts[m].clone();
 
             // Movement clears a stationary weapon's aim and unfinished reload (W03).
-            if stationary && moved[i] {
+            if stationary && moved.carrier(i, unit, &mount) {
                 if let Some(lock) = mount.lock.as_mut() {
                     lock.engaging = false;
                 }
@@ -322,7 +353,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                             ActionReason::NoFacingSlot
                         }
                     } else {
-                        let moving = moved[i];
+                        let moving = moved.carrier(i, unit, &mount);
                         shots.extend(fire(
                             ctx,
                             unit,

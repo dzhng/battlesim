@@ -1717,6 +1717,7 @@ impl Battle {
         // Progress moves before movement, so the gate opens on the tick packing completes.
         deployment::advance_all(&mut self.units);
         let before = self.poses();
+        let stood = self.standing();
         let treads = self.treads();
         // Every prop the world changed since last tick, for each side's
         // planning grid to look at again.
@@ -1750,15 +1751,7 @@ impl Battle {
         }
         let after = self.poses();
         self.trigger_fuel_withdrawals();
-        // Moving is changing place on the map: an aircraft climbing or sinking
-        // over one spot stands still, and a ground unit cannot change height
-        // without changing place.
-        let moved: Vec<bool> = before
-            .units
-            .iter()
-            .zip(&after.units)
-            .map(|(a, b)| (a.base - b.base).xy().length() > 1e-9)
-            .collect();
+        let moved = self.moved(&before, &after, &stood);
         completed(TickPhase::Movement);
         self.guide(&moved);
         self.fly(&before, &after);
@@ -1782,7 +1775,7 @@ impl Battle {
             &mut self.units,
             &self.arsenal,
             &self.rules,
-            &moved,
+            &moved.units,
             &fired,
             &mut self.last_soldier,
         );
