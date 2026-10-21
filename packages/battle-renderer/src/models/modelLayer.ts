@@ -1,44 +1,9 @@
-// The models layer: real appearance bundles in the battle frame. One vertex
-// path draws all three bundle kinds, because each is a palette-skinned mesh:
-//
-// - skinned bodies and articulated vehicles take the joint palettes the
-//   presentation crate builds (`crates/presentation`), one per soldier and
-//   one matrix per vehicle node;
-// - static models (a prop, a kit's module), and every corpse, use the
-//   palette's identity slot; a static piece in motion (a wreck's, cooking
-//   off) takes a slot of its own. A corpse is its body posed once at one of the
-//   bundle's `corpse_poses` at install (`posedMesh`), so the fallen (up to their
-//   presentation cap) are never skinned.
-//
-// Rewritten from reading ~/dev/game battle-renderer/src/world/crowd.ts:
-// per-appearance, per-tier vertex and index
-// buffers, instances packed per draw, a palette storage buffer read by the
-// vertex stage, and a caster variant for the sun's cascades. The layer is lit,
-// shadowed and fogged exactly like the rest of the world (environment `shade`,
-// `sampleSunShadow`, `FogTerm`) and draws in the frame's own passes.
-//
-// The battle's units, corpses, ghosts and cook-off pieces arrive as the
-// presentation frame's batches (`setFrame`), already culled and tiered: each
-// batch is one drawable at one tier, or its impostor card, and draws as one
-// run of the frame's instance records. The map's props and what the side
-// knows of them arrive as its static batches (`setStaticFrame`), each held
-// in a buffer of its own until the frame writes it again. A lab's models
-// are tiered each frame by Rust's rule for the frame's camera
-// (`view::model_detail`, through `model_tiers`): models off screen are
-// skipped, the rest take a mesh tier by projected height or, below
-// `impostor_px`, their impostor card (`impostorCards.ts`). Each draw's fog
-// group and the tier it casts with are Rust's too, a lab's as a batch's
-// (`view::model_fog`, `view::batch_caster`).
-//
-// A mesh's surfaces are not all drawn alike: a material may be a cutout,
-// glass or a room behind a window. Its indices are ordered by kind at install
-// (`surfaceParts.ts`), every draw takes the kind it draws, and the stages of
-// the kinds that are not plain opaque are `surfaceFragments.ts`.
-//
-// A town's buildings are drawn here too, as instances of their kits' modules
-// (`buildingLayer.ts`): the same meshes, records, material and pipelines as
-// any static model, with their own record buffers and draw ranges.
-
+// Models consume presentation batches, including their caster tier and cascade mask.
+// Skinned bodies and articulated vehicles use presentation palettes; static
+// meshes, corpses and prepared distant cards use the identity slot. Static
+// batches retain their buffers until rewritten; lab models use Rust's tier and
+// fog rules. Surface coverage belongs to surfaceParts/surfaceFragments;
+// buildings share these pipelines through buildingLayer's packed instance buffer.
 import { staticCardPose } from "@packages/scene-assets/src/propCards";
 import {
   createPropBatches,
@@ -105,6 +70,7 @@ import {
   GHOST_PASS,
   HIGH_PASS,
   IMPOSTOR,
+  SUN_CASCADES,
   INSTANCE_WORDS,
   Instance,
   JOINT_WORDS,
@@ -651,6 +617,7 @@ interface DrawRun {
   drawable: Drawable;
   /** What it casts into the sun's cascades in its place, if anything. */
   caster: Drawable | null;
+  cascadeMask: number;
   fog: number;
   firstInstance: number;
   instances: number;
@@ -1168,6 +1135,7 @@ export async function createModelLayer(
           ghost: false,
           high: false,
           caster: casterOf(drawable, h.caster),
+          cascadeMask: h.cascadeMask,
           fog: h.fog,
           firstInstance: 0,
           instances: h.count,
@@ -1338,6 +1306,7 @@ export async function createModelLayer(
           ghost: false,
           high: false,
           caster: null,
+          cascadeMask: 0,
           fog: 0,
           firstInstance: 0,
           instances: 0,
@@ -1349,6 +1318,7 @@ export async function createModelLayer(
         drawable,
         batch_caster(drawable.tier, run.ghost ? GHOST_PASS : VIEW_PASS),
       );
+      run.cascadeMask = (1 << SUN_CASCADES) - 1;
       run.firstInstance = first;
       run.instances = n;
       runCount++;
@@ -1513,6 +1483,7 @@ export async function createModelLayer(
           ghost,
           high,
           caster,
+          cascadeMask: 0,
           fog,
           firstInstance: 0,
           instances: 0,
@@ -1521,6 +1492,7 @@ export async function createModelLayer(
       run.ghost = ghost;
       run.high = high;
       run.caster = caster;
+      run.cascadeMask = words[o + Batch.cascade_mask];
       run.fog = fog;
       run.firstInstance = first - base;
       run.instances = count;
@@ -1678,12 +1650,17 @@ export async function createModelLayer(
     setCards,
     /** One surface class of every mesh run into one of the sun's cascades,
      *  each at the tier its batch casts with. */
-    drawCasters(bound: Drawable3, surface: SurfacePart, submitted?: SubmittedDraws) {
+    drawCasters(
+      bound: Drawable3,
+      surface: SurfacePart,
+      cascade: number,
+      submitted?: SubmittedDraws,
+    ) {
       if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       eachRun((run, source) => {
         const caster = run.caster;
-        if (!caster) return;
+        if (!caster || !(run.cascadeMask & (1 << cascade))) return;
         const part = partRange(caster.parts, surface, hiddenSurfaces);
         if (!part.count) return;
         b.with(modelVertexLayout, caster.mesh.vertices)
@@ -1779,6 +1756,7 @@ export async function createModelLayer(
       bound: Drawable3,
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
+      cascade: number,
       submitted?: SubmittedDraws,
     ) {
       if (!renderGroup || !drawn(surface)) return;
@@ -1792,6 +1770,7 @@ export async function createModelLayer(
         raw,
         surface,
         hiddenSurfaces,
+        cascade,
         submitted,
       );
     },

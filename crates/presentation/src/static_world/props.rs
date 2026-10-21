@@ -37,8 +37,8 @@
 //! appearance, state, and whether movers stand on it) and tier.
 mod bodies;
 mod detail;
-use detail::projected_bounds_px;
 pub use bodies::{map_props, KnownBody, MapProp};
+use detail::projected_bounds_px;
 
 use crate::records::{CAST_PASS, VIEW_PASS};
 use crate::seed::Key;
@@ -46,7 +46,9 @@ use crate::shadow::{CasterVolumes, CASCADES};
 use crate::static_world::batches::{List, Population};
 use crate::static_world::index::BoundsIndex;
 use crate::static_world::walk::Record;
-use crate::view::{caster_tier, model_detail, model_fog, View, CULLED, IMPOSTOR, SHADOW_MARGIN_M, TIERS};
+use crate::view::{
+    caster_tier, model_detail, model_fog, View, CULLED, IMPOSTOR, SHADOW_MARGIN_M, TIERS,
+};
 use crate::world::{Bounds, Corners, Detail};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -407,17 +409,12 @@ impl PropArt {
                 .paints
                 .as_ref()
                 .map_or([1.0; 3], |p| paint_of(p, b, authored));
-            let mut model = placed(
-                look,
-                b,
-                0.0,
-                [hx / fx, hy / fy, hz / fz],
-                0.0,
-                tint,
-                size,
-            );
+            let mut model = placed(look, b, 0.0, [hx / fx, hy / fy, hz / fz], 0.0, tint, size);
             if let Some(px) = cand.far_card_px.filter(|px| px.is_finite() && *px > 0.0) {
-                model.card_bounds = Some((crate::static_world::props::detail::card_bounds(&cand.corners, &model.record), px));
+                model.card_bounds = Some((
+                    crate::static_world::props::detail::card_bounds(&cand.corners, &model.record),
+                    px,
+                ));
             }
             out.push(model);
             return;
@@ -730,8 +727,11 @@ impl Population for PropPopulation {
         let mut take = |m: &Model| {
             let at = [m.record[0], m.record[1], m.record[2]].map(f64::from);
             let mut tier = model_detail(&this.art.detail, view, at, m.size, m.radius, false, None);
-            if tier == 3 && m.card_bounds.as_ref().is_some_and(|(b, px)|
-                projected_bounds_px(view, b) < px.min(this.art.detail.impostor_px)) {
+            if tier == 3
+                && m.card_bounds.as_ref().is_some_and(|(b, px)| {
+                    projected_bounds_px(view, b) < px.min(this.art.detail.impostor_px)
+                })
+            {
                 tier = IMPOSTOR;
             }
             if tier != CULLED {

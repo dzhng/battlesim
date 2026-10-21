@@ -432,6 +432,8 @@ export async function createBattleFrame(
             buildings: models.buildingStats(),
             submitted: passes.submitted,
             terrainVisitedNodes: passes.terrainVisitedNodes,
+            skirtVisitedNodes: passes.skirtVisitedNodes,
+            waterVisitedNodes: passes.waterVisitedNodes,
             worldVertices: passes.worldVertices,
             depth: {
               format: GPU_DEPTH_FORMAT,
