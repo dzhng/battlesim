@@ -722,7 +722,13 @@ impl Population for PropPopulation {
             let center_z = z + m.size / 2.0;
             let r = m.radius;
             let bounds = [x - r, y - r, center_z - r, x + r, y + r, center_z + r];
-            let mask = shadow.map_or(0, |s| s.mask(&bounds));
+            // Offscreen models remain eligible: their shadow may still land in
+            // the visible ground. Only a visible model with an imperceptible
+            // conservative projected footprint may skip its caster pass.
+            let tiny_visible = tier != CULLED
+                && this.art.detail.shadow_caster_px > 0.0
+                && projected_footprint_px(view, at, r) < this.art.detail.shadow_caster_px;
+            let mask = shadow.map_or(0, |s| if tiny_visible { 0 } else { s.mask(&bounds) });
             if mask != 0 {
                 let cast = if tier == CULLED {
                     TIERS - 1
@@ -778,6 +784,18 @@ impl Population for PropPopulation {
             });
         }
     }
+}
+
+/// Conservative screen footprint of a model's horizontal bound. This is used
+/// only for visible models; offscreen casters are retained for long shadows.
+fn projected_footprint_px(view: &View, at: [f64; 3], radius: f64) -> f64 {
+    let d = [
+        at[0] - view.eye[0],
+        at[1] - view.eye[1],
+        at[2] - view.eye[2],
+    ];
+    let distance = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt().max(1e-3);
+    2.0 * radius * view.pixels_per_metre / distance
 }
 
 /// The appearances drawing the map's props (`records` under `layout`) from

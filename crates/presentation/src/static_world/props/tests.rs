@@ -71,6 +71,7 @@ fn input() -> PropInput {
         detail: Detail {
             lod_px: [200.0, 80.0, 30.0],
             impostor_px: 10.0,
+            shadow_caster_px: 0.0,
         },
         dynamic: true,
     }
@@ -657,4 +658,45 @@ fn prop_caster_lists_route_disjoint_and_overlapping_offscreen_models() {
     }
     assert_eq!(xs, [vec![-200.], vec![0.], vec![-200., 0.], vec![]]);
     assert_eq!(visible, [0.]);
+}
+
+#[test]
+fn tiny_visible_prop_skips_shadow_only_when_control_is_enabled() {
+    let mut prop_input = input();
+    prop_input.detail.shadow_caster_px = 1_000.0;
+    let props = vec![MapProp {
+        id: 1.0,
+        body: PropBox {
+            center: [0.0, 0.0],
+            base_z: 0.0,
+            yaw: 0.0,
+            ..body("car", [1.0, 1.0, 1.0])
+        },
+    }];
+    let mut p = PropPopulation::new(PropArt::new(layout(), prop_input).unwrap(), props);
+    p.rows = (0..p.looks.list.len() as u32).collect();
+    let camera = Camera {
+        eye: [0.0, -20.0, 10.0],
+        target: [0.0, 0.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 0.8,
+        near: 1.0,
+        size: [640, 480],
+    };
+    let view = View::new(&camera);
+    let mut identity = crate::shadow::IDENTITY;
+    identity[10] = 1.0;
+    let caster = crate::shadow::camera_record(&identity, [0.0; 3], 0.1, [64.0; 2], 0.0);
+    p.select(&view, Some(&CasterVolumes::new(&[caster])));
+    let mut casts = 0;
+    let mut visible = 0;
+    p.each_list(&mut |list| {
+        if list.pass == CAST_PASS {
+            casts += list.records.len();
+        } else {
+            visible += list.records.len();
+        }
+    });
+    assert!(visible > 0);
+    assert_eq!(casts, 0);
 }
