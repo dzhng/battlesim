@@ -603,8 +603,6 @@ export interface AppearanceEntry {
    *  surfaces (materials marked `tint`), chosen by which body it is. Absent:
    *  every body as authored. */
   paints?: Vec3[];
-  /** Browser pilot: maximum full-bounds pixel extent for an opaque default-state card. */
-  far_card_px?: number;
   /** A vehicle's own wreck: a scenery appearance of kind `wreck` built from
    *  its own hull, footprint its unit's hull, with `hull` and `turret` pieces
    *  where it has a turret to throw. Every vehicle names one (`fit.wreck`). */
@@ -700,8 +698,6 @@ export interface Catalog {
 
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
 export interface RuntimeCatalog {
-  /** Source bundle identity to prepared two-channel static card content. */
-  cards?: Record<string, string>;
   sides: SideTints;
   /** Every bundle, texture and the template library travels as gzip (`gzip.ts`).
    * Keys are their original content hashes, the art identity; encoded hashes
@@ -726,8 +722,6 @@ export interface RuntimeCatalog {
       mounts?: MountDraws;
       regional_family?: string;
       paints?: Vec3[];
-      /** Browser pilot: maximum full-bounds pixel extent for an opaque default-state card. */
-      far_card_px?: number;
       wreck?: string;
       factions?: FactionLooks;
     }

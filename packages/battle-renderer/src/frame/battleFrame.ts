@@ -34,11 +34,10 @@ import { createOverlayPass, type OverlayGlowStyle } from "./overlayPass";
 import type { PaintStyle } from "./paintedMarks";
 import { createFrameTimer } from "./gpuTiming";
 import { createEffectPass } from "../effects/effectPass";
-import { createModelLayer } from "../models/modelLayer";
+import { createModelLayer, type CardAtlas } from "../models/modelLayer";
 import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
-import type { CardAtlas } from "../models/impostorCards";
-import { CARD_SPEC } from "@packages/scene-assets/src/cards";
+import { CARD_SPEC } from "../models/impostorCards";
 import { Camera, CAMERA_WORDS, CameraAt, FrameHeader, VIEW_WORDS } from "../records.gen";
 import { EMPTY_MESH } from "../mesh";
 
@@ -347,11 +346,6 @@ export async function createBattleFrame(
             const started = performance.now();
             for (const card of models.cardPoses()) {
               if (disposed) return;
-              if (card.pose.kind === "static") {
-                const prepared = next?.appearances.get(card.appearance)?.card;
-                if (prepared) atlases.push({ pose: card.pose, atlas: prepared });
-                continue;
-              }
               atlases.push({
                 pose: card.pose,
                 atlas: await impostors.bake(card.appearance, card.pose, card.bounds, CARD_SPEC),
@@ -432,6 +426,8 @@ export async function createBattleFrame(
             buildings: models.buildingStats(),
             submitted: passes.submitted,
             terrainVisitedNodes: passes.terrainVisitedNodes,
+            skirtVisitedNodes: passes.skirtVisitedNodes,
+            waterVisitedNodes: passes.waterVisitedNodes,
             worldVertices: passes.worldVertices,
             depth: {
               format: GPU_DEPTH_FORMAT,

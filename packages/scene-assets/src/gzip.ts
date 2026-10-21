@@ -149,9 +149,6 @@ export async function readBundle(
 export function bundleFiles(catalog: RuntimeCatalog, hash: string): string[] {
   return [
     bundlePath(gzipTransport(catalog, hash).hash),
-    ...(catalog.cards?.[hash]
-      ? [`${gzipTransport(catalog, catalog.cards[hash]).hash}/card.bin`]
-      : []),
     ...(catalog.textures?.[hash] ?? []).map((id) => texturePath(gzipTransport(catalog, id).hash)),
   ];
 }
@@ -173,8 +170,6 @@ function wireBytes(
   for (const hash of hashes) {
     once(hash, maxRaw);
     for (const id of catalog.textures?.[hash] ?? []) once(id);
-    const card = catalog.cards?.[hash];
-    if (card) once(card, 512 * 128 * 8 + 4096);
   }
   return bytes;
 }

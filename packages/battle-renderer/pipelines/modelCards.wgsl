@@ -1,4 +1,4 @@
-@group(1) @binding(4) var<storage, read> frames: array<vec4f>;
+@group(1) @binding(3) var<storage, read> frames: array<vec4f>;
 
 fn cardPoint(point: vec3f, scale: vec3f, yaw: f32, at: vec3f) -> vec3f {
   let p = (point * scale);
@@ -27,15 +27,13 @@ fn cardDirection(direction: vec3f, scale: vec3f, yaw: f32) -> vec3f {
 
 struct cardVertex_Output {
   @builtin(position) clip: vec4f,
-  @location(0) @interpolate(perspective, sample) world: vec3f,
-  @location(1) @interpolate(perspective, sample) uv: vec2f,
+  @location(0) world: vec3f,
+  @location(1) uv: vec2f,
   @location(2) @interpolate(flat) layer: u32,
   @location(3) @interpolate(flat) yaw: f32,
   @location(4) @interpolate(flat) scale: vec3f,
   @location(5) tint: vec3f,
   @location(6) anchor: vec3f,
-  @location(7) @interpolate(flat) toward: vec3f,
-  @location(8) @interpolate(flat) radius: f32,
 }
 
 @vertex fn cardVertex(@builtin(vertex_index) vertex: u32, @location(0) placement: vec4f, @location(2) tint: vec4f, @location(3) scale: vec4f) -> cardVertex_Output {
@@ -76,21 +74,14 @@ struct cardVertex_Output {
   }
   let local = ((*frame).xyz + (((right * u) + (up * w)) * (*frame).w));
   let world = cardPoint(local, scale.xyz, yaw, placement.xyz);
-  return cardVertex_Output((cam.viewProj * vec4f(world, 1f)), world, vec2f((((column + 0.5f) + (0.5f * u)) / 8f), (((row + 0.5f) - (0.5f * w)) / 2f)), layer, yaw, scale.xyz, tint.xyz, placement.xyz, cardPoint(toward, scale.xyz, yaw, vec3f()), (*frame).w);
+  return cardVertex_Output((cam.viewProj * vec4f(world, 1f)), world, vec2f((((column + 0.5f) + (0.5f * u)) / 8f), (((row + 0.5f) - (0.5f * w)) / 2f)), layer, yaw, scale.xyz, tint.xyz, placement.xyz);
 }
 
 @group(1) @binding(0) var albedo: texture_2d_array<f32>;
 
-@group(1) @binding(3) var linear: sampler;
+@group(1) @binding(2) var linear: sampler;
 
 @group(1) @binding(1) var normal: texture_2d_array<f32>;
-
-@group(1) @binding(2) var depth: texture_2d_array<f32>;
-
-fn cardSurface(plane: vec3f, toward: vec3f, packed: vec2f, coverage: f32, radius: f32) -> vec3f {
-  let depth_1 = ((packed.x + (256f * packed.y)) / (257f * coverage));
-  return (plane + (toward * (((2f * depth_1) - 1f) * radius)));
-}
 
 fn cardNormal(normal_1: vec3f, scale: vec3f, yaw: f32) -> vec3f {
   return normalize(cardPoint((normal_1 / scale), vec3f(1), yaw, vec3f()));
@@ -653,40 +644,34 @@ fn fogCoverage(seen: f32, alpha: f32) -> vec4f {
 struct item_1 {
   @location(0) color: vec4f,
   @location(1) fog: vec4f,
-  @builtin(frag_depth) depth: f32,
 }
 
 struct _Input {
-  @location(0) @interpolate(perspective, sample) world: vec3f,
-  @location(1) @interpolate(perspective, sample) uv: vec2f,
+  @location(0) world: vec3f,
+  @location(1) uv: vec2f,
   @location(2) @interpolate(flat) layer: u32,
   @location(3) @interpolate(flat) yaw: f32,
   @location(4) @interpolate(flat) scale: vec3f,
   @location(5) tint: vec3f,
   @location(6) anchor: vec3f,
-  @location(7) @interpolate(flat) toward: vec3f,
-  @location(8) @interpolate(flat) radius: f32,
 }
 
 @fragment fn item(_arg_0: _Input, @builtin(position) clip: vec4f) -> item_1 {
   let albedo_1 = textureSample(albedo, linear, _arg_0.uv, _arg_0.layer);
   let packed = textureSample(normal, linear, _arg_0.uv, _arg_0.layer);
-  let depth_1 = textureSample(depth, linear, _arg_0.uv, _arg_0.layer);
   if ((albedo_1.w < 0.5f)) {
     discard;;
   }
-  let world = cardSurface(_arg_0.world, _arg_0.toward, depth_1.xy, albedo_1.w, _arg_0.radius);
-  let clip_1 = (cam.viewProj * vec4f(world, 1f));
   let local = ((packed.xyz * 2f) - vec3f(1));
   var n = cardNormal(local, _arg_0.scale, _arg_0.yaw);
   let eye = (&cam.eye);
-  if ((dot(n, ((*eye) - world)) < 0f)) {
+  if ((dot(n, ((*eye) - _arg_0.world)) < 0f)) {
     n = -(n);
   }
   let linear_1 = pow(max(albedo_1.xyz, vec3f()), vec3f(2.200000047683716));
   let tinted = (linear_1 * mix(vec3f(1), _arg_0.tint, packed.w));
-  let sun_1 = sampleSunShadow(world, n, clip.xy);
-  let shaded = shade(tinted, vec3f(), 0.85f, 0f, 0f, 1f, n, world, sun_1, (*eye));
-  let seen = modelSeen(world, n, _arg_0.anchor, clip.xy);
-  return item_1(vec4f(shaded.xyz, 1f), fogCoverage(seen, 1f), (clip_1.z / clip_1.w));
+  let sun_1 = sampleSunShadow(_arg_0.world, n, clip.xy);
+  let shaded = shade(tinted, vec3f(), 0.85f, 0f, 0f, 1f, n, _arg_0.world, sun_1, (*eye));
+  let seen = modelSeen(_arg_0.world, n, _arg_0.anchor, clip.xy);
+  return item_1(vec4f(shaded.xyz, 1f), fogCoverage(seen, 1f));
 }

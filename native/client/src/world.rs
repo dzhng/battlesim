@@ -78,7 +78,6 @@ pub struct WorldColour {
     sky: Sky,
     surfaces: Vec<(Bound, Surface)>,
     glass: Bound,
-    cards: Bound,
 }
 
 impl WorldColour {
@@ -95,7 +94,6 @@ impl WorldColour {
                 .map(|(name, surface)| (pipelines.bound(name), surface))
                 .collect(),
             glass: pipelines.bound("modelBlended"),
-            cards: pipelines.bound("modelCards"),
         }
     }
 }
@@ -165,12 +163,6 @@ impl Pass for WorldColour {
             for (bound, surface) in &self.surfaces {
                 bound.set(&mut pass, &groups);
                 models.draw_fogged(&mut pass, *surface, layer);
-            }
-            if let Some(cards) = models.card_group() {
-                let mut groups = fogged(layer);
-                groups.push(cards);
-                self.cards.set(&mut pass, &groups);
-                models.draw_cards(&mut pass, layer);
             }
         }
         inputs.scenery.draw(&mut pass, &faces, models.statics());

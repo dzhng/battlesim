@@ -1,4 +1,3 @@
-import { staticCardPose } from "@packages/scene-assets/src/propCards";
 // Props as the page holds them: the map's prop boxes and what a side knows of
 // them, read for what only the page does with them (the camera's obstacles,
 // fog's occluders), and what the page reports of the installed art a prop may
@@ -105,7 +104,6 @@ export function propArt(
       family: a.regionalFamily,
       footprint: a.footprint,
       paints: a.paints,
-      far_card_px: staticCardPose(a) ? a.farCardPx : null,
       bounds: a.bundle.states[0].bounds,
     });
   }

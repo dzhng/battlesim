@@ -7,7 +7,6 @@
 //! A container is a 16-byte header (magic, version, header and body lengths,
 //! little-endian), canonical JSON whose typed arrays are `{"$view": i}`, then
 //! the arrays. Each view is its type, byte offset into the body and length.
-pub mod cards;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;

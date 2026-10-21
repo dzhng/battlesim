@@ -169,7 +169,6 @@ pub fn prop_art(root: &Path, family: Option<&str>, wearing: &[&str]) -> Result<P
             paints: serde_json::from_value(e["paints"].clone())
                 .map_err(|e| format!("{name}: paints: {e}"))?,
             bounds,
-            far_card_px: e["far_card_px"].as_f64(),
         });
     }
     let stand_in = match entries.get(STAND_IN_KIT) {
