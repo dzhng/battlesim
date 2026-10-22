@@ -1,9 +1,11 @@
 # Distant detail
 
-This slice tested two ways to reduce GPU work in the Metro XL 100-versus-100
-stress scene: replacing distant parked-car meshes with 2D cards, and omitting
-shadows from visible props whose conservative projected footprint is below a
-small screen-space threshold.
+**Status:** closed; the shadow cutoff shipped, and the parked-car card pilot
+was rejected. **Closed:** 2026-10-22.
+
+This record captures two distant-detail decisions from the Metro XL
+100-versus-100 stress scene: a conservative shadow-caster cutoff shipped, while
+the first parked-car 2D-card representation did not qualify for production.
 
 ## Shipped contract
 
@@ -20,6 +22,11 @@ The implementation is a small extension to `Detail` and the existing prop
 selection path. The focused presentation test covers the enabled and disabled
 contracts. The renderer still receives ordinary camera and caster lists; no
 new GPU resource or client-specific path was added.
+
+The owners are [`Detail` and prop selection](../../../crates/presentation/src/static_world/props.rs),
+with the cutoff contract pinned by the focused tests in
+[`props/tests.rs`](../../../crates/presentation/src/static_world/props/tests.rs).
+The production fixture lives in [`fixtures/game.json`](../../../fixtures/game.json).
 
 ## Rejected card candidate
 
@@ -68,3 +75,9 @@ lights, and it does not remove offscreen shadow contributors. Any future
 screen-space representation must prove both GPU timing and native-scale visual
 readability on the same three-view stress workload before it becomes production
 behavior.
+
+The follow-up investigation is tracked separately in
+[`specs/distant-impostors/README.md`](../../distant-impostors/README.md). This
+closed record does not make a general claim that 2D impostors are unsuitable;
+it records only that this first card candidate failed its measured workload and
+visual bar.

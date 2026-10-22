@@ -47,8 +47,10 @@ local shadow fitting across three gameplay zoom levels. It retains the measured
 bounded-work improvement, GPU/memory costs, and rejected distant-car pilot; no
 net fixed-view GPU speedup is claimed.
 
-[Distant detail](distant-detail/README.md) records the shipped tiny-prop shadow
-cutoff and the measured, rejected parked-car card experiment.
+[Distant detail](done/distant-detail/README.md) records the shipped tiny-prop
+shadow cutoff and the measured, rejected parked-car card experiment.
+[Distant impostors](distant-impostors/README.md) is a placeholder for a future
+far-zoom 2D-impostor investigation.
 
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,
