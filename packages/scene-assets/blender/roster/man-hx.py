@@ -41,6 +41,13 @@ ROOF = 3.05
 
 
 def build(variant, v):
+    running_gear(v)
+    cab(v)
+    body(v)
+
+
+def running_gear(v):
+    """The eight wheels on their axles, the chassis rails and the rear mudflaps."""
     m, hull = v.mats, v.hull
     for side, s in ((1, "L"), (-1, "R")):
         for k, x in enumerate(AXLES):
@@ -50,8 +57,6 @@ def build(variant, v):
         box(f"chassis_rail_{s}", (9.60, 0.14, 0.26), (-0.10, side * 0.45, RAIL_Z), m["dark"], hull, bevel=0.01,
             lods=MID)
         VP.mudflap(f"mudflap_{s}", (-4.80, side * WHEEL_Y, BED_FLOOR - 0.15), (0.42, 0.55), m, hull)
-    cab(v)
-    body(v)
 
 
 def cab(v):
@@ -141,4 +146,5 @@ def wreck(variant, v):
     rest_on_ground(0.004)
 
 
-run("man-hx", "german_three_tone", build, wreck, chip=0.6)
+if __name__ == "__main__":
+    run("man-hx", "german_three_tone", build, wreck, chip=0.6)

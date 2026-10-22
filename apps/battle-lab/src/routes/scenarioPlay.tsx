@@ -240,7 +240,6 @@ function ScenarioBattle({
         side={report.active_human_side ?? "blue"}
         camera={camera}
         cameraConfig={gameCamera.forMap(report.size, report.extents.rendered)}
-        spawn={report.start.at}
         cover={
           <LoadingScreen
             title="Deploying"

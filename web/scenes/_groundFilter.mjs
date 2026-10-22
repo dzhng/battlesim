@@ -43,6 +43,7 @@ export async function groundFilterExact(ctx) {
         { tgpu, d },
         { GpuRegistry },
         terrain,
+        scars,
         surface,
         { ScenePresentation },
         { groundRecords },
@@ -50,6 +51,7 @@ export async function groundFilterExact(ctx) {
         import(gpuUrl),
         import(file("packages/battle-renderer/src/frame/registry.ts")),
         import(terrainPath),
+        import(file("packages/battle-renderer/src/frame/groundScars.ts")),
         import(file("packages/battle-renderer/src/terrain/terrainSurface.ts")),
         import(file("web/src/battle/sim/presentation.ts")),
         import(file("web/tests/groundRuns.ts")),
@@ -186,8 +188,8 @@ export async function groundFilterExact(ctx) {
           return g0.y*(g0.x*a+g1.x*b)+g1.y*(g0.x*c+g1.x*other);
         }`)
           .$uses({ layout });
-        const sampleGroundCubic = terrain.sampleGroundCubic,
-          sampleGroundLinear = terrain.sampleGroundLinear;
+        const sampleGroundCubic = scars.sampleGroundCubic,
+          sampleGroundLinear = scars.sampleGroundLinear;
         const kernel = tgpu
           .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
           let uv=layout.$.points[gid.x];layout.$.output[gid.x*4u]=sampleGroundCubic(uv);layout.$.output[gid.x*4u+1u]=original(uv);layout.$.output[gid.x*4u+2u]=sampleGroundLinear(uv);layout.$.output[gid.x*4u+3u]=textureSampleLevel(layout.$.reference,layout.$.sampler,uv,0.0);

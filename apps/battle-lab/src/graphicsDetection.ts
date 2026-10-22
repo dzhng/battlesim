@@ -1,19 +1,17 @@
 import {
+  GRAPHICS_TARGET_FPS,
   GRAPHICS_TIERS,
   graphicsSettings,
   resolveAutoDetect,
+  type AutoDetectResults,
   type GraphicsTier,
   type TierBenchmarkInput,
 } from "./graphicsSettings";
 
-export const GRAPHICS_TARGET = { averageFps: 45 } as const;
 // Safari can deliver a valid but slow stream while the menu scene is under
 // memory pressure; reject only streams too short to estimate at all.
 const MIN_FRAME_SAMPLES = 15;
-export function judgeIntervals(
-  intervalsMs: readonly number[],
-  _tier?: GraphicsTier,
-): TierBenchmarkInput {
+export function judgeIntervals(intervalsMs: readonly number[]): TierBenchmarkInput {
   if (
     intervalsMs.length < MIN_FRAME_SAMPLES ||
     intervalsMs.some((v) => !Number.isFinite(v) || v <= 0)
@@ -24,21 +22,6 @@ export function judgeIntervals(
   const averageFps = 1000 / (intervalsMs.reduce((a, b) => a + b, 0) / intervalsMs.length);
   const onePercentLowFps = 1000 / (sorted.slice(0, lowCount).reduce((a, b) => a + b, 0) / lowCount);
   return { averageFps, onePercentLowFps };
-}
-
-export function chooseTier(
-  samples: Partial<Record<GraphicsTier, TierBenchmarkInput>>,
-): GraphicsTier {
-  const result = resolveAutoDetect({
-    low: samples.low ?? null,
-    medium: samples.medium ?? null,
-    high: samples.high ?? null,
-  });
-  if ("unusable" in result || !result.mode)
-    throw new Error(
-      `Graphics auto-detect could not meet the ${GRAPHICS_TARGET.averageFps} FPS target on any preset. Reload after closing other GPU-heavy applications.`,
-    );
-  return result.mode;
 }
 
 /** A runner owns the actual canonical menu-reel workload. It must exclude
@@ -87,7 +70,7 @@ export function createCanonicalFrameRunner({
         if (error) reject(error);
         else {
           try {
-            resolve(judgeIntervals(intervals, tier));
+            resolve(judgeIntervals(intervals));
           } catch (reason) {
             reject(reason);
           }
@@ -140,19 +123,18 @@ let runner: GraphicsDetectionRunner | null = null;
 let active: { promise: Promise<GraphicsTier>; controller: AbortController } | null = null;
 const listeners = new Set<() => void>();
 export interface GraphicsDetectionState {
-  status: "idle" | "running" | "complete" | "failed";
+  status: "idle" | "running" | "complete";
   tier: GraphicsTier | null;
   currentTier: GraphicsTier | null;
   completed: number;
-  error: string | null;
 }
-let state: GraphicsDetectionState = {
+const IDLE: GraphicsDetectionState = {
   status: "idle",
   tier: null,
   currentTier: null,
   completed: 0,
-  error: null,
 };
+let state = IDLE;
 
 function publish(next: typeof state): void {
   state = next;
@@ -176,61 +158,58 @@ export function subscribeGraphicsDetection(listener: () => void): () => void {
   return () => void listeners.delete(listener);
 }
 
-/** Run the bounded canonical workload once. Concurrent callers share one run;
- * only a complete run changes persisted settings. */
+/** Run the bounded canonical workload once. Concurrent callers share one run.
+ * Every run ends on a tier: a measurement that breaks falls back to the best
+ * tier proven so far, for this page only, so the next launch measures again.
+ * Only cancellation rejects, and it leaves the settings untouched. */
 export function runAutoDetect(): Promise<GraphicsTier> {
   if (active) return active.promise;
-  if (!navigator.gpu) return fail("WebGPU is unavailable. Reload in a WebGPU-capable browser.");
-  if (!runner)
-    return fail("Graphics auto-detect is not ready. Keep the menu open and reload to try again.");
-
   const controller = new AbortController();
-  publish({ status: "running", tier: null, currentTier: null, completed: 0, error: null });
+  const cancelled = () => {
+    if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
+  };
+  publish({ status: "running", tier: null, currentTier: null, completed: 0 });
   const promise = (async () => {
-    const results: Partial<Record<GraphicsTier, TierBenchmarkInput>> = {};
-    for (const [index, tier] of GRAPHICS_TIERS.entries()) {
-      if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
-      publish({
-        status: "running",
-        tier: null,
-        currentTier: tier,
-        completed: index,
-        error: null,
-      });
-      const result = await runner!(tier, controller.signal);
-      if (controller.signal.aborted) throw new DOMException("Detection cancelled", "AbortError");
-      if (!result || !Number.isFinite(result.averageFps) || result.averageFps < 0)
-        throw new Error(`Graphics auto-detect returned unusable ${tier} FPS evidence.`);
-      results[tier] = result;
-      publish({
-        status: "running",
-        tier: null,
-        currentTier: tier,
-        completed: index + 1,
-        error: null,
-      });
-      if (result.averageFps < GRAPHICS_TARGET.averageFps) break;
+    const results: AutoDetectResults = {};
+    let measured = true;
+    try {
+      if (!navigator.gpu) throw new Error("WebGPU is unavailable.");
+      if (!runner) throw new Error("No menu scene is mounted to measure.");
+      for (const [index, tier] of GRAPHICS_TIERS.entries()) {
+        cancelled();
+        publish({ status: "running", tier: null, currentTier: tier, completed: index });
+        const result = await runner(tier, controller.signal);
+        cancelled();
+        results[tier] = result;
+        publish({ status: "running", tier: null, currentTier: tier, completed: index + 1 });
+        if (result.averageFps < GRAPHICS_TARGET_FPS) break;
+      }
+    } catch (error) {
+      cancelled();
+      measured = false;
+      console.warn("Graphics auto-detect fell back to the best proven tier:", error);
     }
-    const selectedMode = chooseTier(results);
-    const result = results[selectedMode]!;
-    graphicsSettings.set({
-      mode: "auto",
-      detectedMode: selectedMode,
-      lastResult: { ...result, selectedMode },
-    });
+    const selectedMode = resolveAutoDetect(results);
+    const result = results[selectedMode];
+    graphicsSettings.set(
+      {
+        mode: "auto",
+        detectedMode: selectedMode,
+        lastResult: result ? { ...result, selectedMode } : null,
+      },
+      { persist: measured },
+    );
     publish({
       status: "complete",
       tier: selectedMode,
       currentTier: null,
       completed: Object.keys(results).length,
-      error: null,
     });
     return selectedMode;
   })()
     .catch((error: unknown) => {
-      const reason = error instanceof Error ? error.message : String(error);
-      publish({ status: "failed", tier: null, currentTier: null, completed: 0, error: reason });
-      throw error instanceof Error ? error : new Error(reason);
+      publish(IDLE);
+      throw error;
     })
     .finally(() => {
       active = null;
@@ -241,9 +220,4 @@ export function runAutoDetect(): Promise<GraphicsTier> {
 
 export function cancelAutoDetect(): void {
   active?.controller.abort();
-}
-
-function fail(message: string): Promise<never> {
-  publish({ status: "failed", tier: null, currentTier: null, completed: 0, error: message });
-  return Promise.reject(new Error(message));
 }
