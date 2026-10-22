@@ -47,6 +47,9 @@ local shadow fitting across three gameplay zoom levels. It retains the measured
 bounded-work improvement, GPU/memory costs, and rejected distant-car pilot; no
 net fixed-view GPU speedup is claimed.
 
+[Distant detail](distant-detail/README.md) records the shipped tiny-prop shadow
+cutoff and the measured, rejected parked-car card experiment.
+
 [Finished features](done/) retain the rationale and accepted scope after shipping.
 Their README explains why the design works and points to current owners. Choices,
 measurements, references and rejected experiments beneath each feature retain their
