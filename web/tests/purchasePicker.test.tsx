@@ -384,7 +384,10 @@ test("V opens the shop and stays a search character in the field", () => {
   );
   const toggle = view.getByRole("button", { name: "Reinforcements" });
   expect(toggle.getAttribute("aria-keyshortcuts")).toBe("V");
-  expect(toggle.textContent).toContain("(V)");
+  // The visible label stays the name; the tooltip carries the key, as the
+  // menu button's does, so no standalone control spells its shortcut.
+  expect(toggle.textContent?.trim()).toBe("Reinforcements");
+  expect(toggle.getAttribute("title")).toBe("Reinforcements (V)");
   fireEvent.keyDown(window, { code: "KeyV" });
   const field = view.getByRole("textbox", { name: "Search units" });
   // The field owns its typing: the press is not consumed and the shop stays open.

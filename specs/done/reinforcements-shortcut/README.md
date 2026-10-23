@@ -1,13 +1,12 @@
 # Reinforcements shortcut
 
-**Status:** shipped. **Updated:** 2026-10-17.
+**Status:** shipped. **Updated:** 2026-10-22.
 
 ## Why
 
 The shop is a click target in the HUD, so a player buying mid-fight has to
 leave the battlefield with the pointer and find the button. `V` opens it from
-the keyboard, and the button shows the key. Presentational only: no
-observation, rule or digest changes.
+the keyboard. Presentational only: no observation, rule or digest changes.
 
 ## Why V
 
@@ -18,6 +17,15 @@ in this genre (and pause to some players), `Enter` is the browser's activation
 key for every focused control, and `` ` `` opens a developer console in the
 games players come from. `V` is free, sits in the cluster, and names one thing
 here.
+
+## Why the button keeps its name
+
+A standalone HUD control is read by its name alone; the menu button is the
+precedent, `aria-label="Menu"` with `title="Menu (Esc)"`. The button therefore
+reads `Reinforcements`, while `aria-keyshortcuts="V"` and its tooltip carry
+the key, and "Buying units" teaches it. An inline `(V)` would be the one
+button that spells its key, and it would re-render every approved shot that
+shows the deck for a hint the tooltip already gives.
 
 ## Invariants
 
@@ -34,13 +42,14 @@ here.
   `!pause.open && !matchFinished && loadStage === "playable"` expression that
   `LabViewport` receives as `inputEnabled`, so `V` cannot open the shop behind
   the pause veil or the result overlay.
-- **The hint is not the name.** The button keeps `aria-label="Reinforcements"`,
-  so tests, the scene and assistive tech still find it; the visible `(V)` is
-  `aria-hidden` and `aria-keyshortcuts` carries the shortcut.
+- **The name is the button.** `aria-label="Reinforcements"` and the visible
+  text are exactly `Reinforcements`; `aria-keyshortcuts` carries the shortcut
+  and `title` names it on hover, as `MenuButton` does. Tests find the button by
+  its name, not by a hint.
 
 ## Pointers
 
-- Key, toggle, hint: `REINFORCEMENTS_KEY`, `enabled` in
+- Key, toggle, tooltip: `REINFORCEMENTS_KEY`, `enabled` in
   `web/src/battle/present/purchasePicker.tsx`.
 - Gate: `battleInput` in `apps/battle-lab/src/BattleView.tsx`.
 - Teach: "Buying units" in `apps/battle-lab/src/Tutorial.tsx`.
@@ -62,9 +71,10 @@ here.
 
 ## Visual provenance
 
-The `(V)` hint follows the command bar's inline `(T)` convention, but is
-dimmed to `--hud-dim` so it reads as a key rather than part of the title. It
-widens the deck's reinforcements row, so every approved shot that shows the
-deck changed. `assets/reinforcements-shortcut.gif` shows the production picker
-in the UI gallery: `V` opens, typing filters to the Tank family, `Esc` clears
-and closes, `V` reopens.
+The feature changes no approved shot: the picker and the deck row render as
+they did before it, so every baseline is the upstream one. An earlier inline
+`(V)` hint widened the row and re-blessed every shot that shows the deck; it
+was removed for that cost and because no other standalone control spells its
+key. `assets/reinforcements-shortcut.gif` shows the production picker in the
+UI gallery: `V` opens, typing filters to the Tank family, `Esc` clears and
+closes, `V` reopens.

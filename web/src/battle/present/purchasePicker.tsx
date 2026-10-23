@@ -67,10 +67,6 @@ export function PurchasePicker({ match, player, enabled = true, ...menu }: Picke
           onClick={() => setOpen(!open)}
         >
           Reinforcements
-          <span className="hud-key-hint" aria-hidden="true">
-            {" "}
-            ({REINFORCEMENTS_KEY.label})
-          </span>
         </button>
         <span className="hud-credits" aria-label="Credits">
           {Math.floor(viewingPlayer.credits)} CR
