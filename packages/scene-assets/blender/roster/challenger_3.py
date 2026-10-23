@@ -37,6 +37,12 @@ SKIRT_Y = 2.02
 TRUNNION = 1.05
 
 
+def glacis_z(x, half):
+    """The upper glacis's height at `x`: from the deck at its head down to
+    1.12 m at the nose."""
+    return DECK - (x - (half - 1.30)) * (DECK - 1.12) / 1.30
+
+
 def hull(v):
     m, h = v.mats, v.hull
     half = v.length / 2
@@ -54,13 +60,31 @@ def hull(v):
         VP.tow_hook(f"front_tow_{s}", (half - 0.18, side * 0.75, 0.85), m, h, size=0.14)
         VP.tow_hook(f"rear_tow_{s}", (-half + 0.02, side * 0.85, 0.85), m, h, size=0.08, rot=(0, 0, math.pi))
         # Deep skirts of bolted appliqué panels.
-        for k in range(6):
+        for k in range(1, 6):
             length = (v.length - 0.5) / 6
             x = half - 0.30 - length * (k + 0.5)
             VP.bolted_panel(f"skirt_{s}_{k}", (x, side * (SKIRT_Y - 0.07), 0.70), (length - 0.04, 0.14, 0.86), m, h,
                             bolts=(2, 2), bevel=0.03, lods=VP.ALL)
-        box(f"skirt_rail_{s}", (v.length - 0.3, 0.10, 0.06), (0, side * (SKIRT_Y - 0.12), DECK - 0.02), m["paint"], h,
-            bevel=0.02, lods=MID)
+        # The front panel's top follows the glacis down from its head, as the
+        # photos' front skirt sits along the nose rather than standing over it.
+        length = (v.length - 0.5) / 6
+        back, front = half - 0.30 - length + 0.02, half - 0.32
+        head = half - 1.30
+        lift = 1.56 - DECK
+        nose_top = glacis_z(front, half) + lift
+        prism(f"skirt_{s}_0_plate", [(back, 0.70), (front, 0.70), (front, nose_top), (head, 1.56), (back, 1.56)],
+              0.14, loc=(0, side * (SKIRT_Y - 0.07), 0), mat=m["paint"], parent=h, bevel=0.03, lods=VP.ALL)
+        for k, bx in enumerate((back + 0.07, front - 0.07)):
+            bz = (1.56 if bx <= head else glacis_z(bx, half) + lift) + 0.012
+            cyl(f"skirt_{s}_0_bolt_{k}", 0.026, 0.03, (bx, side * (SKIRT_Y - 0.07), bz), "Z", m["steel"], h, seg=6,
+                bevel=0.006, rot=(0, 0 if bx <= head else slope, 0), lods=FINE)
+        # The rail along the skirts' top ends at the glacis head; a sloped
+        # strip carries it down the glacis to the front panel's nose.
+        box(f"skirt_rail_{s}", (half - 0.15 + head, 0.10, 0.06), ((head - half + 0.15) / 2, side * (SKIRT_Y - 0.12),
+            DECK - 0.02), m["paint"], h, bevel=0.02, lods=MID)
+        prism(f"skirt_rail_nose_{s}", [(head - 0.05, DECK + 0.01), (front, glacis_z(front, half) + 0.035),
+                                       (front, glacis_z(front, half) - 0.03), (head - 0.05, DECK - 0.05)],
+              0.23, loc=(0, side * (SKIRT_Y - 0.185), 0), mat=m["paint"], parent=h, bevel=0.015, lods=MID)
         VP.stowage_box(f"fender_box_{s}", (-2.6, side * 1.70, DECK), (1.20, 0.40, 0.35), m, h,
                        rot=(0, 0, 0 if side > 0 else math.pi))
         VP.cable(f"tow_cable_{s}", [(-half + 0.4, side * 1.62, DECK + 0.02), (-1.2, side * 1.66, DECK + 0.02),
@@ -74,13 +98,27 @@ def hull(v):
     # sections' extra armour blocks, spare track links across the nose,
     # jerrycans in their rack at the rear.
     for side, s in ((1, "L"), (-1, "R")):
-        VP.armour_tiles(f"skirt_armour_{s}", (half - 1.75, side * SKIRT_Y, 0.78), (2.70, 0.62), (4, 2), 0.07, m, h,
+        # Kept within the skirt: bottom 0.03 m above its lower edge, top
+        # under the front panel's sloped top.
+        VP.armour_tiles(f"skirt_armour_{s}", (half - 1.75, side * SKIRT_Y, 1.01), (2.70, 0.56), (4, 2), 0.07, m, h,
                         rot=(-side * math.pi / 2, 0, 0))
+        # The fender boxes over the tracks' front, standing proud of the nose
+        # beside the headlights: a steel box on the glacis corner, its top on
+        # the skirts' line, and a rubber cowl over its front.
+        lift = 1.56 - DECK
+        back, mid, nose = half - 0.75, half - 0.20, half + 0.03
+        y = side * (TRACK_Y + 0.0)
+        prism(f"nose_box_{s}", [(back, 1.08), (mid, 1.08), (mid, glacis_z(mid, half) + lift),
+                                (back, glacis_z(back, half) + lift)], 0.64, loc=(0, y, 0), mat=m["paint"], parent=h,
+              bevel=0.03, lods=VP.ALL)
+        prism(f"nose_cowl_{s}", [(mid - 0.02, 0.92), (nose, 0.92), (nose, 1.13), (mid - 0.02,
+                                 glacis_z(mid - 0.02, half) + lift + 0.01)], 0.68, loc=(0, y, 0), mat=m["black"],
+              parent=h, bevel=0.03, lods=VP.ALL)
         for k in range(2):
             VP.jerrycan(f"jerrycan_{s}_{k}", (-half + 0.40, side * (0.95 + k * 0.38), DECK), dict(m, paint=m["dark"]), h,
                         rot=(0, 0, math.pi / 2))
-    for k in range(5):
-        cyl(f"spare_link_{k}", 0.05, 0.55, (half - 0.20, -1.20 + k * 0.60, 1.02), "Y", m["track"], h, seg=8,
+    for k in range(4):
+        cyl(f"spare_link_{k}", 0.05, 0.55, (half - 0.20, -0.90 + k * 0.60, 1.02), "Y", m["track"], h, seg=8,
             lods=NEAR)
     # The rear: its tail lights in their guards.
     for side, sd in ((1, "L"), (-1, "R")):
