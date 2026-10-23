@@ -48,11 +48,16 @@ shows them. Its map is a real admitted preparation, started again only when a
 map input changes, and Deploy opens only on a ready map and names the seed that
 was admitted, so the battle is the map the player saw. The preview may try
 bounded fresh seeds; when generation is exhausted the lobby shows no map and
-Deploy stays shut, and no fixed map is ever substituted. A battle address names
-exact preparation inputs on the same build: the map, both sides' players and
-factions. One without them, or with a parameter the battle does not read, is
-refused by name; nothing is defaulted or ignored, and a refused seed never
-silently becomes another battle.
+Deploy stays shut, and no fixed map is ever substituted. The lobby's players are
+always the battle's players, numbered by place on their side, and its preview
+and its Deploy link build one request ([skirmish setup](src/skirmishSetup.ts)),
+so the battle is the one previewed. A battle address names exact preparation
+inputs on the same build. It must name both sides' players and factions; the
+map type, size, map seed and battle seed default when left out, the size to the
+smallest map that fits the players. A link with humans has exactly one, on
+Blue. An old-shape link (its `faction` or `enemy`, or no players), a wrong
+value, or a parameter the battle does not read is refused by name, never
+ignored, and a refused seed never silently becomes another battle.
 
 [The menu backdrop](src/MenuBackdrop.tsx) is real battles, not recordings: scenes
 played in order and then over again, each a saved encounter on its own `capture` map
@@ -146,3 +151,10 @@ retains the state, tier and transition-picture checks while keeping the shared
 kit download within the same map budget. Use the line-up route's `?set=` selector
 for development: its unrestricted all-set view currently exceeds that budget and
 is refused; the scene's complete coverage does not imply that view is admitted.
+
+The [geometry scaling control](src/benchmark/geometryScaling.ts) appends distant
+terrain to one admitted export without recompiling the local patch. It uses the
+production viewport and measurement pilot; material domains and static identities
+stay local while the full mesh reaches receiver fitting. Its registered scene is
+an explicit measurement tool. The [performance measurement plan](../../specs/performance/slices/measurement.md)
+records its scope and outstanding acceptance gates.

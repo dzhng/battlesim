@@ -1,52 +1,11 @@
-// The HDR world: the sun's cascades, a depth prepass, then the sky and the lit
-// world into the multisampled rgba16float target. Every world material shades
-// with the ported environment (PBR, PMREM, sun shadow, aerial haze) and writes
-// FogTerm's answer into the fog mask beside its colour; the fog mask pass
-// (`fogMaskPass.ts`) then gives unseen pixels the frame's FogStyle, so fog
-// still lands before post like any other light. Units are drawn by
-// identification and never fogged: their mask is empty.
-//
-// The depth prepass writes the frame's 4× MSAA depth before any colour, so
-// FogVisibility's tile cull reads the scene's depth (sample 0) ahead of the
-// colour pass (spike 02, landmine 6). The colour pass then shades each opaque
-// surface at the depth the prepass left. The prepass runs in two halves: the
-// world without its units first, against which the own units' hidden parts
-// are drawn into the overlay target (the x-ray), then the units; its depth is
-// copied for the overlays before the grass adds its blades.
-//
-// Six kinds of world geometry, all lit, fogged, graded and shadow-casting:
-// - the terrain: the simulation's ground triangles under the biome's
-//   material and the observing side's learned scars (`scarTexture.ts`:
-//   crater bowls and rims as shading only, scorch, tracks, trampling), and
-//   the one layer FogTerm treats as ground;
-// - the map's skirt (and, in the traversal view, the props' boxes);
-// - the proxies (lab markers);
-// - the models layer: appearance bundles, skinned, articulated and static
-//   (`models/modelLayer.ts`), with their own vertex stage, and far models as
-//   impostor cards (`models/impostorCards.ts`). Its static props are what
-//   the side knows stands of the map's props (walls, their rubble, wrecks),
-//   fitted to their boxes by the presentation and handed over as its static
-//   batches. Each draw binds the fog group its class names (`view::model_fog`). A
-//   model's surfaces are drawn by kind (`models/surfaceParts.ts`): opaque as
-//   the rest of the world; a cutout cut in the prepass and the cascades; a
-//   room behind a window as solid as a wall and shown unlit; glass last,
-//   over everything, in no prepass and casting nothing;
-// - a town's buildings, as instances of their kits' modules
-//   (`models/buildingLayer.ts`): static models in every respect, drawn by the
-//   models layer's pipelines as the world's faces, and in the prepass's world
-//   half, so a unit behind one is x-rayed;
-// - the forest's trees (`sceneryLayer.ts`), which draw the simulation's trunks.
-// Plus the backdrop past the map edge and the hedgerows and copses on it:
-// the same ground material (the patchwork runs on past the map), lit, hazed
-// and fogged like the world, but unshadowed and casting nothing. Nothing is
-// ever seen past the playable area (`fogSeenBy`), so it is always drawn as
-// unseen.
-// Grass grows on the terrain (`grassPass.ts`): regrown by compute before the
-// colour pass whenever the view moves, drawn after the opaque world, and
-// marked as ground in the fog mask. The ground paint (`paintedMarks.ts`:
-// orders, rings, the border) is drawn after the prepass's ground-only half,
-// and the painted ground layers (terrain, grass, backdrop: fog's
-// `paintedGround`) take it as their own surface.
+// World orchestration: cascades, depth, x-ray, lit surfaces and separate high air.
+// Terrain scar regions submit before rewriting the shared atlas. Ground-only
+// depth precedes x-ray, then unit depth precedes color; fog and post compose later.
+// Material, visibility and resource contracts live in the renderer README and
+// the individual layer owners below.
+import { createSubmittedFrame, type SubmittedDraws } from "./submitted";
+import { SpatialMeshDraws } from "./spatialMeshDraws";
+import { drawTerrainRegions } from "./terrainRegions";
 import { tgpu, d, std, type TgpuCommandEncoder } from "typegpu";
 import type { SceneInstance, WorldLayers } from "../scene";
 import type { Mesh } from "../mesh";
@@ -86,20 +45,16 @@ import {
   GroundPaved,
   groundPaved,
   groundRoadRelief,
-  groundScarsSeen,
   groundSite,
   groundBank,
   groundWater,
-  scarRegionContains,
-  scarredNormal,
-  scarredSurface,
   waterNormal,
   waterSurface,
 } from "./terrainMaterial";
+import { groundScarsSeen, scarredNormal, scarredSurface, scarRegionContains } from "./groundScars";
 import game from "@fixtures/game.json";
-import { createSceneryLayer } from "./sceneryLayer";
+import { createSceneryLayer, type SceneryWalkStats } from "./sceneryLayer";
 import type { PresentedGround } from "../terrain/terrainSurface";
-import type { SceneryWalkStats } from "./sceneryLayer";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { Mat4 } from "math";
@@ -560,6 +515,7 @@ export async function createWorldPass(
       modelCards,
     ].map((pipeline) => pipeline.initAsync()),
   );
+  const submitted = createSubmittedFrame();
   /** The models layer's draws take the pipelines' binding methods as they are. */
   type Bound = Parameters<ModelLayer["draw"]>[0];
   const drawModels = (
@@ -567,9 +523,14 @@ export async function createWorldPass(
     surface: Parameters<ModelLayer["draw"]>[1],
     fog?: Parameters<ModelLayer["draw"]>[2],
     high?: boolean,
-  ) => models.draw(bound as Bound, surface, fog, high);
+    counter?: SubmittedDraws,
+  ) => models.draw(bound as Bound, surface, fog, high, counter);
   const drawCards = (bound: unknown, fog: Parameters<ModelLayer["drawCards"]>[1]) =>
-    models.drawCards(bound as Parameters<ModelLayer["drawCards"]>[0], fog);
+    models.drawCards(
+      bound as Parameters<ModelLayer["drawCards"]>[0],
+      fog,
+      submitted.color.modelsIncludingProps,
+    );
 
   const terrainHeights = createTerrainHeights(registry);
   const fog = await createFogVisibility(root, registry, fogGeometry, terrainHeights);
@@ -587,11 +548,8 @@ export async function createWorldPass(
   await paint.ready();
   fog.setPaintStyle(validatePaintStyle(paintStyle));
   const identity = identityInstance(root, registry);
-  const world = {
-    ground: new MeshSlot(root, registry, identity),
-    props: new MeshSlot(root, registry, identity),
-    water: new MeshSlot(root, registry, identity),
-  };
+  const spatialMesh = () => new SpatialMeshDraws(new MeshSlot(root, registry, identity), registry);
+  const world = { ground: spatialMesh(), props: spatialMesh(), water: spatialMesh() };
   const backdrop = new MeshSlot(root, registry, identity);
   const proxies = new ProxyInstances(root, registry);
   /** The map's box (`map_box`): what a scar's scissor projects. */
@@ -610,8 +568,7 @@ export async function createWorldPass(
 
   let classView = false;
   const NO_WATER = new Float32Array(0);
-  /** The world's layers, and the ground the scene's presentation resolved
-   *  for them: the material, the grass and the water draw from both. */
+  // Material, grass and water consume both layers and presented ground.
   let layers: WorldLayers | null = null;
   let presented: PresentedGround | null = null;
   function setGround() {
@@ -636,7 +593,9 @@ export async function createWorldPass(
       scenery.set(next.scenery);
       setGround();
       box = map_box(next.terrain.mesh);
-      if (box) backdrop.set(backdrop_mesh(box, environment.light.backdrop.reach_m) as Mesh);
+      const surround = next.backdropTerrain ? map_box(next.backdropTerrain) : box;
+      if (surround)
+        backdrop.set(backdrop_mesh(surround, environment.light.backdrop.reach_m) as Mesh);
     },
     /** The ground the scene's presentation resolved: its tables, its grass
      *  and its water. */
@@ -645,8 +604,7 @@ export async function createWorldPass(
       presented = next;
       setGround();
     },
-    /** Follow the side's learned ground: uploads what changed, and regrows
-     *  the grass when anything did. */
+    /** Upload learned ground changes and regrow grass. */
     setGround(next: GroundMarks | null): boolean {
       const changed = terrain.setGround(next);
       if (changed) grass.regrow();
@@ -704,12 +662,7 @@ export async function createWorldPass(
     },
     fog,
     grassProbes: grass.probes,
-    /** The scenery instances the last view drew (`sceneryLayer.ts`). */
     drawnScenery: () => scenery.drawn(),
-    /** Pose the environment for the presentation frame's camera (its
-     *  `Camera` uniform and `View` record), upload the sun's cascades it
-     *  fitted (its `SunShadow` and `count` caster cameras) and fit the
-     *  grass. */
     prepare(
       camera: Float32Array,
       view: Float32Array,
@@ -719,23 +672,28 @@ export async function createWorldPass(
     ) {
       frameProjection = camera.subarray(CameraAt.view_proj, CameraAt.view_proj + 16);
       environment.prepare(view, sunShadow, casters, count);
+      world.ground.prepare(camera, casters, count);
+      world.props.prepare(camera, casters, count);
+      world.water.prepare(camera, casters, 0);
       grass.prepare(frameProjection as unknown as Mat4);
     },
     encodeShadows(encoder: TgpuCommandEncoder) {
+      submitted.reset();
       scenery.beginFrame();
-      environment.encodeShadows(encoder, (pass, cameraGroup) => {
+      environment.encodeShadows(encoder, (pass, cameraGroup, cascade) => {
+        const counts = submitted.cascade(cascade);
         const bound = caster.with(pass).with(cameraGroup);
-        world.ground.draw(bound);
-        world.props.draw(bound);
+        world.ground.draw(bound, counts.terrain, cascade);
+        world.props.draw(bound, counts.skirtAndDebugProps, cascade);
         proxies.draw(bound);
         const raw = root.unwrap(pass);
         const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Bound;
-        models.drawCasters(modelCasters, "solid");
-        models.drawBuildingCasters(modelCasters, raw, "solid");
+        models.drawCasters(modelCasters, "solid", cascade, counts.modelsIncludingProps);
+        models.drawBuildingCasters(modelCasters, raw, "solid", cascade, counts.buildings);
         const cutoutCasters = modelCasterCutout.with(pass).with(cameraGroup) as unknown as Bound;
-        models.drawCasters(cutoutCasters, "cutout");
-        models.drawBuildingCasters(cutoutCasters, raw, "cutout");
-        scenery.encodeShadows(pass, cameraGroup);
+        models.drawCasters(cutoutCasters, "cutout", cascade, counts.modelsIncludingProps);
+        models.drawBuildingCasters(cutoutCasters, raw, "cutout", cascade, counts.buildings);
+        scenery.encodeShadows(pass, cameraGroup, cascade, counts.scenery);
       });
     },
     /** The frame's depth: every opaque layer, before any colour. Between the
@@ -760,19 +718,21 @@ export async function createWorldPass(
         },
       });
       const bound = prepass.with(scene).with(cameraGroup);
-      world.ground.draw(bound);
-      world.props.draw(bound);
-      backdrop.draw(bound);
-      scenery.encodeDepth(scene, cameraGroup);
+      world.ground.draw(bound, submitted.depth.terrain);
+      world.props.draw(bound, submitted.depth.skirtAndDebugProps);
+      backdrop.draw(bound, submitted.depth.backdrop);
+      scenery.encodeDepth(scene, cameraGroup, submitted.depth.scenery);
       models.drawBuildings(
         modelPrepass.with(scene).with(cameraGroup) as unknown as Bound,
         root.unwrap(scene),
         "solid",
+        submitted.depth.buildings,
       );
       models.drawBuildings(
         modelPrepassCutout.with(scene).with(cameraGroup) as unknown as Bound,
         root.unwrap(scene),
         "cutout",
+        submitted.depth.buildings,
       );
       scene.end();
 
@@ -857,17 +817,27 @@ export async function createWorldPass(
         depthStencilAttachment: { view: depthView, depthLoadOp: "load", depthStoreOp: "store" },
       });
       proxies.draw(prepass.with(units).with(cameraGroup));
-      drawModels(modelPrepass.with(units).with(cameraGroup), "solid");
-      drawModels(modelPrepassCutout.with(units).with(cameraGroup), "cutout");
+      drawModels(
+        modelPrepass.with(units).with(cameraGroup),
+        "solid",
+        undefined,
+        false,
+        submitted.depth.modelsIncludingProps,
+      );
+      drawModels(
+        modelPrepassCutout.with(units).with(cameraGroup),
+        "cutout",
+        undefined,
+        false,
+        submitted.depth.modelsIncludingProps,
+      );
       units.end();
       raw.copyTextureToTexture({ texture: targets.depth }, { texture: targets.overlayDepth }, [
         targets.width,
         targets.height,
       ]);
     },
-    /** The sky, then the terrain, props, proxies and models at the
-     *  prepass's depth, then the water: lit into `lit`, with the
-     *  fog mask beside it in `fogMask` (the sky's pixels empty: never fogged). */
+    /** Lit world and blended water, with their fog coverage alongside. */
     encode(
       encoder: TgpuCommandEncoder,
       raw: GPUCommandEncoder,
@@ -887,45 +857,25 @@ export async function createWorldPass(
       let first = true;
       const fogGroups = fog.groups();
       if (regions.length) {
-        // Queue writes to the shared cache must follow submission of its last
-        // consumer. The same atlas is reused, never one resource per region.
+        // The shared scar atlas cannot change before its last consumer submits.
         encoder.submit();
-        for (const region of regions) {
-          const rect = scissor(region, targets.width, targets.height);
-          if (!rect) continue;
-          terrain.prepareScars(region, true);
-          const batch = root["~unstable"].createCommandEncoder({ label: "ground-region" });
-          const groundPass = batch.beginRenderPass({
-            label: "ground-region",
-            colorAttachments: [
-              { view: colorView, resolveTarget: litView, loadOp: "load", storeOp: "store" },
-              {
-                view: targets.fogMaskMsaa.createView(),
-                resolveTarget: targets.fogMask.createView(),
-                loadOp: first ? "clear" : "load",
-                storeOp: "store",
-                clearValue: [0, 0, 0, 0],
-              },
-            ],
-            depthStencilAttachment: {
-              view: targets.depth.createView(),
-              depthLoadOp: "load",
-              depthStoreOp: "store",
-            },
-          });
-          groundPass.setScissorRect(...rect);
-          world.ground.draw(
-            terrainPipeline
-              .with(groundPass)
-              .with(cameraGroup)
-              .with(environment.group)
-              .with(fogGroups.paintedGround)
-              .with(terrain.group),
-          );
-          groundPass.end();
-          batch.submit();
-          first = false;
-        }
+        first = drawTerrainRegions(
+          root,
+          targets,
+          regions,
+          scissor,
+          (region) => terrain.prepareScars(region, true),
+          (groundPass) =>
+            world.ground.draw(
+              terrainPipeline
+                .with(groundPass)
+                .with(cameraGroup)
+                .with(environment.group)
+                .with(fogGroups.paintedGround)
+                .with(terrain.group),
+              submitted.color.terrain,
+            ),
+        );
         encoder = root["~unstable"].createCommandEncoder({ label: "world-rest" });
         raw = root.unwrap(encoder);
       } else terrain.prepareScars();
@@ -961,28 +911,44 @@ export async function createWorldPass(
             .with(environment.group)
             .with(fogGroups.paintedGround)
             .with(terrain.group),
+          submitted.color.terrain,
         );
       const faces = opaque
         .with(pass)
         .with(cameraGroup)
         .with(environment.group)
         .with(fogGroups.faces);
-      world.props.draw(faces);
+      world.props.draw(faces, submitted.color.skirtAndDebugProps);
       proxies.draw(
         opaque.with(pass).with(cameraGroup).with(environment.group).with(fogGroups.units),
       );
-      // Each model draws through the fog group its class names (`view::model_fog`):
-      // posed units never fogged, props face by face (an occluding
-      // structure whole, in FogTerm), corpses as the
-      // ground under them.
+      // The shared model_fog rule routes each appearance to its fog group.
       const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
       const cutoutsLit = modelCutout.with(pass).with(cameraGroup).with(environment.group);
       const roomsShown = modelRooms.with(pass).with(cameraGroup).with(environment.group);
       const cardsLit = modelCards.with(pass).with(cameraGroup).with(environment.group);
       for (const fog of ["units", "faces", "ground", "paintedFaces"] as const) {
-        drawModels(modelsLit.with(fogGroups[fog]), "opaque", fog);
-        drawModels(cutoutsLit.with(fogGroups[fog]), "cutout", fog);
-        drawModels(roomsShown.with(fogGroups[fog]), "room", fog);
+        drawModels(
+          modelsLit.with(fogGroups[fog]),
+          "opaque",
+          fog,
+          false,
+          submitted.color.modelsIncludingProps,
+        );
+        drawModels(
+          cutoutsLit.with(fogGroups[fog]),
+          "cutout",
+          fog,
+          false,
+          submitted.color.modelsIncludingProps,
+        );
+        drawModels(
+          roomsShown.with(fogGroups[fog]),
+          "room",
+          fog,
+          false,
+          submitted.color.modelsIncludingProps,
+        );
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
       // Buildings are faces: an occluding structure takes fog whole.
@@ -990,18 +956,21 @@ export async function createWorldPass(
         modelsLit.with(fogGroups.faces) as unknown as Bound,
         root.unwrap(pass),
         "opaque",
+        submitted.color.buildings,
       );
       models.drawBuildings(
         cutoutsLit.with(fogGroups.faces) as unknown as Bound,
         root.unwrap(pass),
         "cutout",
+        submitted.color.buildings,
       );
       models.drawBuildings(
         roomsShown.with(fogGroups.faces) as unknown as Bound,
         root.unwrap(pass),
         "room",
+        submitted.color.buildings,
       );
-      scenery.encode(pass, cameraGroup, fogGroups.faces);
+      scenery.encode(pass, cameraGroup, fogGroups.faces, submitted.color.scenery);
       // The class view reads the ground itself: nothing that grows on it or
       // lies blended over it.
       if (!classView) grass.draw(pass, cameraGroup, fogGroups.paintedGround);
@@ -1012,6 +981,7 @@ export async function createWorldPass(
           .with(environment.group)
           .with(fogGroups.paintedGround)
           .with(terrain.group),
+        submitted.color.backdrop,
       );
       if (!classView)
         world.water.draw(
@@ -1021,17 +991,25 @@ export async function createWorldPass(
             .with(environment.group)
             .with(fogGroups.paintedFaces)
             .with(terrain.group),
+          submitted.color.water,
         );
       // Glass last, over everything: in the order the layer packs it, not by
       // depth (two panes of one glass blend nearly the same either way round).
       if (!classView) {
         const glassLit = modelBlended.with(pass).with(cameraGroup).with(environment.group);
         for (const fog of ["units", "faces", "ground", "paintedFaces"] as const)
-          drawModels(glassLit.with(fogGroups[fog]), "blended", fog);
+          drawModels(
+            glassLit.with(fogGroups[fog]),
+            "blended",
+            fog,
+            false,
+            submitted.color.modelsIncludingProps,
+          );
         models.drawBuildings(
           glassLit.with(fogGroups.faces) as unknown as Bound,
           root.unwrap(pass),
           "blended",
+          submitted.color.buildings,
         );
       }
       pass.end();
@@ -1055,8 +1033,20 @@ export async function createWorldPass(
           depthStoreOp: "store",
         },
       });
-      drawModels(modelPrepass.with(depth).with(cameraGroup), "solid", undefined, true);
-      drawModels(modelPrepassCutout.with(depth).with(cameraGroup), "cutout", undefined, true);
+      drawModels(
+        modelPrepass.with(depth).with(cameraGroup),
+        "solid",
+        undefined,
+        true,
+        submitted.highDepth.modelsIncludingProps,
+      );
+      drawModels(
+        modelPrepassCutout.with(depth).with(cameraGroup),
+        "cutout",
+        undefined,
+        true,
+        submitted.highDepth.modelsIncludingProps,
+      );
       depth.end();
       const pass = encoder.beginRenderPass({
         label: "high-air",
@@ -1083,12 +1073,36 @@ export async function createWorldPass(
       const roomsShown = modelRooms.with(pass).with(cameraGroup).with(environment.group);
       const glassLit = modelBlended.with(pass).with(cameraGroup).with(environment.group);
       for (const fog of ["units", "faces", "ground", "paintedFaces"] as const) {
-        drawModels(modelsLit.with(fogGroups[fog]), "opaque", fog, true);
-        drawModels(cutoutsLit.with(fogGroups[fog]), "cutout", fog, true);
-        drawModels(roomsShown.with(fogGroups[fog]), "room", fog, true);
+        drawModels(
+          modelsLit.with(fogGroups[fog]),
+          "opaque",
+          fog,
+          true,
+          submitted.highColor.modelsIncludingProps,
+        );
+        drawModels(
+          cutoutsLit.with(fogGroups[fog]),
+          "cutout",
+          fog,
+          true,
+          submitted.highColor.modelsIncludingProps,
+        );
+        drawModels(
+          roomsShown.with(fogGroups[fog]),
+          "room",
+          fog,
+          true,
+          submitted.highColor.modelsIncludingProps,
+        );
       }
       for (const fog of ["units", "faces", "ground", "paintedFaces"] as const)
-        drawModels(glassLit.with(fogGroups[fog]), "blended", fog, true);
+        drawModels(
+          glassLit.with(fogGroups[fog]),
+          "blended",
+          fog,
+          true,
+          submitted.highColor.modelsIncludingProps,
+        );
       pass.end();
     },
     /** Placement meshes over the fog-treated world, without changing its mask or depth. */
@@ -1113,6 +1127,10 @@ export async function createWorldPass(
     },
     stats() {
       return {
+        submitted: submitted.snapshot(),
+        terrainVisitedNodes: world.ground.visited,
+        skirtVisitedNodes: world.props.visited,
+        waterVisitedNodes: world.water.visited,
         worldVertices: world.ground.vertices + world.props.vertices + world.water.vertices,
         instances: proxies.count,
         shadow: environment.stats(),

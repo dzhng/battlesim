@@ -19,11 +19,18 @@ export class PurchasePlacementControl {
   private ghost: PurchaseGhost | null = null;
   private intent: {
     client: SimClient;
-    key: string;
+    /** The authority, variant and spot asked about. */
+    spot: string;
+    /** The side's knowledge the question was asked of. */
+    revision: string;
     cursor: [number, number];
     ghost: PurchaseGhost;
   } | null = null;
-  private resolved: { key: string; placement: PurchasePlacement } | null = null;
+  /** The latest answer for a spot. It stands while the side's knowledge moves
+   *  on (in a team battle it does every tick or two, faster than an answer
+   *  comes back): a fresh preview is asked meanwhile, and the authority checks
+   *  the purchase again when it is confirmed. */
+  private resolved: { spot: string; revision: string; placement: PurchasePlacement } | null = null;
   /** The chosen squad's soldiers about its destination, as the last preview
    *  spread them: the ghost keeps this shape while the next one is pending. */
   private shape: [number, number][] = [];
@@ -61,8 +68,8 @@ export class PurchasePlacementControl {
       this.resolved = null;
     }
     // Admission depends on where the ghost stands, never on how it is turned.
-    const key = JSON.stringify([this.generation, this.variant, destination, revision]);
-    const placement = this.resolved?.key === key ? this.resolved.placement : null;
+    const spot = JSON.stringify([this.generation, this.variant, destination]);
+    const placement = this.resolved?.spot === spot ? this.resolved.placement : null;
     const at = placement && "Ok" in placement ? placement.Ok.destination : destination;
     const ghost = {
       variant: this.variant,
@@ -71,30 +78,36 @@ export class PurchasePlacementControl {
       valid: placement ? "Ok" in placement : null,
       spots: this.shape.map(([dx, dy]): [number, number] => [at[0] + dx, at[1] + dy]),
     };
-    this.intent = { client, key, cursor: destination, ghost };
+    this.intent = { client, spot, revision, cursor: destination, ghost };
     this.ghost = ghost;
     this.resolve();
     return ghost;
   }
   private resolve() {
     const intent = this.intent;
-    if (!intent || this.inFlight || this.resolved?.key === intent.key) return;
+    if (
+      !intent ||
+      this.inFlight ||
+      (this.resolved?.spot === intent.spot && this.resolved.revision === intent.revision)
+    )
+      return;
     this.inFlight = true;
     void intent.client
       .previewPurchase(intent.ghost.variant, intent.cursor)
       .then(
         (placement) => {
-          if (this.intent?.key !== intent.key) return;
-          this.resolved = { key: intent.key, placement };
+          if (this.intent?.spot !== intent.spot) return;
+          this.resolved = { spot: intent.spot, revision: intent.revision, placement };
           if ("Ok" in placement) {
             const [x, y] = placement.Ok.destination;
             this.shape = placement.Ok.spots.map(([sx, sy]) => [sx - x, sy - y]);
           }
         },
         () => {
-          if (this.intent?.key === intent.key)
+          if (this.intent?.spot === intent.spot)
             this.resolved = {
-              key: intent.key,
+              spot: intent.spot,
+              revision: intent.revision,
               placement: { Err: { reason: "preview_unavailable" } },
             };
         },
@@ -111,7 +124,7 @@ export class PurchasePlacementControl {
     const ghost = this.ghost;
     if (
       !ghost ||
-      this.resolved?.key !== this.intent?.key ||
+      this.resolved?.spot !== this.intent?.spot ||
       !this.resolved ||
       !("Ok" in this.resolved.placement) ||
       this.confirming

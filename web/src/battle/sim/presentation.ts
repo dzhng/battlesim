@@ -1,9 +1,5 @@
-/** The page's presentation module (`crates/presentation-wasm`), its
- * browser binding: one side's publications in; the game UI's observation,
- * and each drawn frame's records (`records.gen.ts`), out. Rust decodes,
- * interpolates, poses and makes the effects, and walks the static world;
- * the page hands the frame's views straight to the renderer and reads the
- * UI's facts from them. */
+/** Browser binding of Rust presentation: side publications in, observations
+ * and frame views out. Rust owns decoding, poses, effects and static walks. */
 import init, {
   Presentation,
   fog_look,
@@ -66,6 +62,14 @@ import type { GroundLayout, ObservationLayout, ObservationView } from "./observa
 
 let loaded: Promise<{ memory: WebAssembly.Memory }> | null = null;
 let memory: WebAssembly.Memory | null = null;
+
+/** Receiver traversal work, separate from terrain draw selection. */
+export interface ReceiverFitStats {
+  bounds_visited: number;
+  triangle_tests: number;
+  clip_tests: number;
+  reused: boolean;
+}
 
 /** Initialises the module once per realm; decoders need it first. */
 export function loadPresentation(): Promise<unknown> {
@@ -272,7 +276,18 @@ export interface PropStats {
   unmodelled: number;
   models: number;
   known: number;
+  /** Bounds tested by the last spatial query, including hierarchy branches. */
+  visitedBounds: number;
 }
+
+export const NO_PROP_STATS: PropStats = {
+  bodies: 0,
+  parts: 0,
+  unmodelled: 0,
+  models: 0,
+  known: 0,
+  visitedBounds: 0,
+};
 
 /** A prop model the presentation placed. */
 export interface PropModel {
@@ -581,13 +596,16 @@ export class ScenePresentation {
     return this.presented;
   }
 
-  /** Fit the sun's cascades under `light` (as the renderer's quality sets
-   *  them) over the map's ground `mesh` (null: none): every frame carries
-   *  them. Cheap when neither changed: call every frame. */
+  /** Install immutable receiver inputs. Same identities preserve the fit cache. */
   setShadow(light: LightPresentation, mesh: Float32Array | null) {
     if (light === this.shadow[0] && mesh === this.shadow[1]) return;
     this.shadow = [light, mesh];
     this.rust.set_shadow(JSON.stringify(light), mesh ?? new Float32Array(0));
+  }
+
+  /** Latest frame's executed receiver work. */
+  shadowStats(): ReceiverFitStats {
+    return JSON.parse(this.rust.shadow_stats()) as ReceiverFitStats;
   }
 
   /** The player's scenery settings: the trees' tier thresholds over the
@@ -599,10 +617,21 @@ export class ScenePresentation {
 
   /** What the presentation says of the scenery it placed and walked. */
   sceneryWalk(): SceneryWalkStats {
-    const [forest, understorey, backdrop, cells] = this.rust.scenery_stats();
+    const [
+      forest,
+      understorey,
+      backdrop,
+      cells,
+      visitedBounds,
+      envelopeRowsTotal,
+      snapshotRowsTotal,
+      membershipChecks,
+    ] = this.rust.scenery_stats();
     if (forest === undefined) return NO_SCENERY_WALK;
     return {
       placed: [forest, understorey, backdrop],
+      visitedBounds,
+      felledWork: { envelopeRowsTotal, snapshotRowsTotal, membershipChecks },
       cells,
       pending: this.rust.scenery_pending(),
       falling: this.rust.scenery_falling(),
@@ -658,7 +687,6 @@ export class ScenePresentation {
     const lit = sun && {
       sun_azimuth: sun.azimuth,
       sun_elevation: sun.elevation,
-      cascade_far_m: sun.farM,
     };
     this.loaded = this.loadWorld(
       { ...battle?.world, ...lit, buildings: drawn ? style : undefined },
@@ -689,8 +717,9 @@ export class ScenePresentation {
    *  those a building draws, those no model draws, the models placed and
    *  those drawing what the side knows. */
   propStats(): PropStats {
-    const [bodies = 0, parts = 0, unmodelled = 0, models = 0, known = 0] = this.rust.prop_stats();
-    return { bodies, parts, unmodelled, models, known };
+    const [bodies = 0, parts = 0, unmodelled = 0, models = 0, known = 0, visitedBounds = 0] =
+      this.rust.prop_stats();
+    return { bodies, parts, unmodelled, models, known, visitedBounds };
   }
 
   /** Every prop model placed: appearance, state, position, yaw and scale. */
@@ -710,8 +739,20 @@ export class ScenePresentation {
   /** The buildings' walk as the last frame left it. Calls into the module:
    *  take the frame's views again after it (`lastFrame`). */
   buildingWalk(): BuildingWalkStats {
-    const [chunks, coarse, resident, used, expanded, refused, ruins, ...ruinTiers] =
-      this.rust.building_stats();
+    const [
+      chunks,
+      coarse,
+      resident,
+      used,
+      expanded,
+      refused,
+      ruins,
+      t0,
+      t1,
+      t2,
+      t3,
+      visitedBounds,
+    ] = this.rust.building_stats();
     const walk = this.walk;
     Object.assign(walk, {
       chunks: chunks ?? 0,
@@ -720,7 +761,8 @@ export class ScenePresentation {
       expandedRows: expanded ?? 0,
       refused: refused ?? 0,
       ruins: ruins ?? 0,
-      ruinTiers: ruinTiers.length ? ruinTiers : walk.ruinTiers.map(() => 0),
+      ruinTiers: [t0 ?? 0, t1 ?? 0, t2 ?? 0, t3 ?? 0],
+      visitedBounds: visitedBounds ?? 0,
       fallen: this.rust.fallen_buildings().length / 2,
     });
     walk.pool.used = used ?? 0;

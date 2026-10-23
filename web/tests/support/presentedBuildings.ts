@@ -3,6 +3,7 @@
 // camera, its side knowing what the lab says it knows (`ui.known`); what each
 // frame's static batches hold, as the renderer keeps them (a frame naming its
 // batches unchanged leaves the last ones drawn).
+import { gameLight } from "@apps/battle-lab/src/gameLight";
 import { readFileSync } from "node:fs";
 import { ScenePresentation, type PresentedSun } from "@web/battle/sim/presentation";
 import { templateLibraryPath, type RuntimeCatalog } from "@packages/scene-assets/src/schema";
@@ -49,6 +50,7 @@ export interface DrawnModule {
   module: number;
   tier: number;
   pass: number;
+  cascadeMask: number;
   /** x, y, z, yaw, then the scale. */
   transform: number[];
   tint: number[];
@@ -70,12 +72,41 @@ export function presentBuildings(
     {
       sun_azimuth: sun?.azimuth ?? 0,
       sun_elevation: sun?.elevation ?? 1,
-      cascade_far_m: sun?.farM,
       buildings: style,
     },
     new Map(),
     { placed, art, partBuilding: knowledge?.partBuilding, shells: knowledge?.shells },
   );
+  if (sun) {
+    // Flat receiver ground extends past the test buildings; they may cast onto
+    // it from outside the camera, just as on terrain in a battle.
+    presentation.setShadow(
+      {
+        ...gameLight,
+        sun_azimuth: sun.azimuth,
+        sun_elevation: sun.elevation,
+        // Pin the receiver partitions: these fixtures test membership, not
+        // the current game's shadow-quality tuning.
+        cascades: {
+          ...gameLight.cascades,
+          count: 4,
+          map_size: 2048,
+          split_lambda: 0.5,
+          max_far_m: sun.farM,
+        },
+      },
+      new Float32Array(
+        [
+          [-100000, -100000],
+          [100000, -100000],
+          [100000, 100000],
+          [-100000, -100000],
+          [100000, 100000],
+          [-100000, 100000],
+        ].flatMap(([x, y]) => [x, y, 0, 0, 0, 1, 0, 0, 0, 1]),
+      ),
+    );
+  }
   let known = knowledge?.known ?? [];
   const { kits, modules } = art.library;
   const moduleOf = world.map(({ name, state }) =>
@@ -108,6 +139,7 @@ export function presentBuildings(
             module: moduleOf[words[o + Batch.appearance]],
             tier: words[o + Batch.tier],
             pass: words[o + Batch.pass],
+            cascadeMask: words[o + Batch.cascade_mask],
             transform: [...r.slice(0, 4), ...r.slice(12, 15)],
             tint: r.slice(8, 11),
           });

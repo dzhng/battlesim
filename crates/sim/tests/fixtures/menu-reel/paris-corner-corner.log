@@ -216,11 +216,11 @@
 366 hit 4 rifle soldier of 0
 366 hit 3 rifle prop
 366 hit 3 rifle ground
-366 hit 4 grenade ground
 366 fire 3 rifle
 366 fire 3 rifle
 366 fire 4 rifle
 367 hit 3 rifle soldier of 0
+367 hit 4 grenade ground
 367 fire 0 rifle
 367 fire 3 rifle
 367 fire 3 rifle
@@ -675,1217 +675,1345 @@
 563 hit 3 rifle soldier of 0
 564 hit 0 rifle prop
 564 fire 3 rifle
-565 hit 3 rifle soldier of 0
-565 hit 3 rifle soldier of 0
+565 hit 3 rifle prop
+565 hit 3 rifle ground
 565 fire 3 rifle
 565 fire 3 rifle
 565 fire 4 rifle
-566 hit 3 rifle prop
-566 fire 1 rifle
 566 fire 3 rifle
 566 fire 3 rifle
-568 hit 4 rifle prop
+567 hit 3 rifle prop
+567 hit 4 rifle soldier of 0
 568 fire 3 rifle
-569 hit 3 rifle prop
+569 hit 3 rifle soldier of 0
+569 hit 3 rifle soldier of 0
 569 hit 3 rifle prop
 569 fire 3 rifle
 570 hit 3 rifle soldier of 0
-570 hit 3 rifle soldier of 0
-570 hit 1 rifle soldier of 3
 570 hit 3 rifle prop
-570 fire 1 rifle
 570 fire 3 rifle
 570 fire 3 rifle
 571 fire 4 rifle
-572 hit 1 rifle soldier of 4
 572 fire 3 rifle
-573 hit 3 rifle soldier of 0
-573 hit 4 rifle soldier of 0
+573 hit 3 rifle ground
+573 fire 1 rifle
 574 hit 3 rifle soldier of 0
+574 hit 4 rifle ground
 574 hit 3 rifle ground
-574 fire 1 rifle
 574 fire 3 rifle
 574 fire 3 rifle
-575 fire 3 rifle
 575 fire 3 rifle
 576 hit 3 rifle soldier of 0
 576 fire 3 rifle
-577 hit 3 rifle prop
+577 hit 1 rifle prop
+577 fire 1 rifle
 578 hit 3 rifle soldier of 0
-578 hit 3 rifle soldier of 0
-578 hit 1 rifle prop
-578 fire 3 rifle
-579 hit 3 rifle soldier of 0
+578 hit 3 rifle prop
+579 hit 1 rifle soldier of 4
 579 fire 0 rifle
 579 fire 3 rifle
 579 fire 3 rifle
-580 hit 3 rifle prop
+580 hit 3 rifle soldier of 0
 580 fire 3 rifle
-581 hit 0 rifle prop
-581 hit 3 rifle prop
-582 hit 3 rifle soldier of 0
-582 fire 3 rifle
+581 hit 3 rifle ground
+581 fire 1 rifle
+582 hit 0 rifle prop
+582 fire 1 rifle
 583 hit 3 rifle soldier of 0
+583 hit 3 rifle prop
 583 fire 0 rifle
 583 fire 3 rifle
 583 fire 3 rifle
 584 hit 3 rifle soldier of 1
-584 fire 3 rifle
 584 fire 4 rifle
-585 hit 3 rifle prop
 585 hit 0 rifle ground
-585 fire 1 rifle
-586 hit 3 rifle prop
-586 hit 4 rifle prop
+585 hit 1 rifle prop
+586 hit 1 rifle soldier of 3
+586 hit 4 rifle ground
+586 fire 1 rifle
 586 fire 3 rifle
+587 hit 3 rifle soldier of 0
 587 hit 3 rifle ground
-588 hit 3 rifle soldier of 0
-588 fire 3 rifle
-588 fire 3 rifle
-589 hit 1 rifle prop
-589 fire 1 rifle
-590 hit 3 rifle ground
-591 fire 3 rifle
-592 hit 3 rifle soldier of 0
-592 hit 3 rifle soldier of 0
+587 fire 3 rifle
+590 hit 3 rifle prop
+590 hit 1 rifle prop
+590 fire 1 rifle
+590 fire 3 rifle
+591 hit 3 rifle soldier of 0
 592 fire 0 rifle
 592 fire 1 rifle
 592 fire 3 rifle
-592 fire 3 rifle
-593 hit 1 rifle soldier of 0
-593 hit 1 rifle soldier of 3
-594 hit 0 rifle ground
-594 fire 1 rifle
-595 hit 3 rifle ground
+594 hit 1 rifle prop
+594 hit 3 rifle soldier of 0
+594 hit 1 rifle prop
+594 fire 3 rifle
 595 fire 0 rifle
-595 fire 3 rifle
+595 fire 1 rifle
 595 fire 3 rifle
 596 hit 3 rifle soldier of 0
-596 hit 3 rifle prop
+596 hit 0 rifle prop
 596 fire 0 rifle
+596 fire 1 rifle
 596 fire 3 rifle
+596 fire 3 rifle
+597 hit 0 rifle prop
 597 hit 3 rifle prop
 597 fire 1 rifle
-597 fire 1 grenade
-598 hit 1 rifle soldier of 0
-598 hit 1 rifle prop
-598 hit 0 rifle ground
-599 hit 3 rifle soldier of 0
-599 hit 0 rifle prop
+598 hit 3 rifle soldier of 1
+598 fire 1 grenade
+598 fire 3 rifle
+598 fire 3 rifle
+599 hit 0 rifle ground
+599 hit 1 rifle prop
 599 fire 1 rifle
 599 fire 3 rifle
 599 fire 3 rifle
 600 hit 3 rifle soldier of 0
-601 hit 3 rifle prop
-602 hit 1 rifle prop
+600 hit 1 rifle prop
+600 hit 3 rifle ground
+600 fire 3 rifle
+600 fire 3 rifle
+600 fire 3 rifle
+601 hit 1 rifle soldier of 3
+601 fire 1 rifle
+602 hit 3 rifle prop
+602 hit 3 rifle soldier of 0
+602 hit 3 rifle soldier of 0
 602 fire 1 rifle
-603 hit 3 rifle soldier of 1
+602 fire 3 rifle
+602 fire 3 rifle
+603 hit 3 rifle soldier of 0
+603 hit 1 rifle prop
+603 hit 3 rifle prop
 603 fire 3 rifle
+603 fire 3 rifle
+604 hit 3 rifle soldier of 0
+604 hit 3 rifle ground
 604 fire 1 rifle
-604 fire 1 rifle
+604 fire 3 rifle
+604 fire 3 rifle
+605 hit 1 rifle prop
 605 hit 3 rifle prop
 605 fire 0 rifle
+606 hit 3 rifle soldier of 0
+606 hit 3 rifle ground
 606 hit 1 rifle prop
+606 fire 3 rifle
+606 fire 3 rifle
+607 hit 3 rifle ground
 607 hit 0 rifle prop
+607 fire 1 rifle
+607 fire 3 rifle
+608 hit 3 rifle soldier of 0
 608 hit 1 rifle prop
-608 hit 1 rifle prop
+608 hit 3 rifle ground
 608 fire 0 rifle
 608 fire 1 rifle
 608 fire 3 rifle
-608 fire 3 rifle
-608 fire 3 rifle
 609 hit 1 rifle soldier of 0
-609 hit 0 rifle prop
 609 fire 0 rifle
-609 fire 1 rifle
-609 fire 1 rifle
-609 fire 3 rifle
+610 hit 3 rifle soldier of 0
+610 hit 3 rifle soldier of 0
+610 hit 0 rifle soldier of 4
+610 fire 1 rifle
+610 fire 3 rifle
+611 hit 3 rifle prop
+611 hit 1 rifle prop
+611 hit 0 rifle ground
+611 fire 1 rifle
 612 hit 3 rifle soldier of 0
-612 hit 3 rifle soldier of 0
-612 hit 3 rifle soldier of 0
-612 hit 0 rifle prop
-612 fire 3 rifle
-612 fire 3 rifle
-612 fire 3 rifle
-613 hit 1 rifle prop
-613 hit 1 rifle prop
-613 hit 3 rifle ground
+612 hit 1 rifle ground
 613 fire 1 rifle
-613 fire 3 rifle
+614 hit 3 rifle soldier of 0
 614 hit 1 rifle soldier of 0
-614 fire 1 rifle
-615 hit 1 rifle soldier of 0
-616 hit 3 rifle soldier of 0
-616 hit 3 rifle soldier of 0
-616 hit 3 rifle soldier of 0
-616 fire 3 rifle
-616 fire 3 rifle
-616 fire 3 rifle
-617 hit 3 rifle soldier of 0
-617 fire 3 rifle
-618 hit 3 rifle soldier of 4
+614 hit 1 grenade ground
+615 hit 1 rifle prop
+615 fire 1 rifle
+615 fire 3 rifle
+615 fire 3 rifle
+616 fire 1 rifle
+618 hit 3 rifle prop
+618 hit 3 rifle prop
 618 fire 1 rifle
 619 hit 1 rifle soldier of 0
-620 hit 3 rifle soldier of 0
-620 hit 3 rifle soldier of 1
+619 hit 1 rifle prop
+619 fire 3 rifle
+620 hit 1 rifle prop
 620 fire 1 rifle
-621 hit 3 rifle soldier of 0
+620 fire 3 rifle
+620 fire 3 rifle
+621 hit 1 rifle prop
 621 fire 0 rifle
-622 fire 1 rifle
-622 fire 3 rifle
-623 hit 1 rifle soldier of 0
+621 fire 1 rifle
+622 hit 1 rifle soldier of 0
+622 fire 0 rifle
+623 hit 3 rifle prop
 623 hit 0 rifle prop
-623 hit 1 rifle prop
-623 fire 3 rifle
-625 hit 1 grenade prop
+623 hit 3 rifle ground
+624 hit 3 rifle soldier of 0
+624 hit 0 rifle soldier of 4
+624 fire 3 rifle
 625 fire 1 rifle
+625 fire 3 rifle
+625 fire 3 rifle
 625 fire 4 rifle
-626 hit 3 rifle soldier of 0
-626 fire 1 rifle
-627 hit 3 rifle ground
-627 hit 4 rifle soldier of 1
-627 fire 1 rifle
-627 fire 3 rifle
+628 hit 3 rifle ground
 628 fire 3 rifle
+629 hit 3 rifle soldier of 0
+629 hit 4 rifle ground
+629 hit 3 rifle prop
 629 hit 1 rifle prop
-630 hit 1 rifle prop
-630 hit 3 rifle ground
+629 fire 3 rifle
+629 fire 3 rifle
 630 fire 1 rifle
 630 fire 3 rifle
-630 fire 3 rifle
-631 hit 1 rifle prop
-631 fire 1 rifle
+631 hit 1 rifle soldier of 0
 632 hit 3 rifle soldier of 0
-632 fire 1 rifle
-632 fire 3 rifle
-632 fire 3 rifle
-633 fire 1 rifle
+633 hit 3 rifle soldier of 1
+633 hit 3 rifle ground
+633 hit 3 rifle ground
 633 fire 3 rifle
-634 hit 3 rifle soldier of 0
-634 hit 3 rifle soldier of 0
-634 hit 1 rifle prop
-634 fire 0 rifle
-635 hit 1 rifle prop
+634 fire 3 rifle
+635 fire 0 rifle
 635 fire 1 rifle
 635 fire 3 rifle
-635 fire 3 rifle
-636 hit 3 rifle soldier of 0
-636 hit 3 rifle soldier of 1
-636 hit 1 rifle prop
-636 hit 0 rifle soldier of 4
-636 hit 3 rifle ground
-636 fire 1 rifle
-636 fire 3 rifle
-637 hit 1 rifle prop
-637 hit 1 rifle prop
+637 hit 3 rifle soldier of 0
+637 hit 0 rifle prop
 637 fire 3 rifle
-638 hit 3 rifle prop
-638 fire 1 rifle
+638 hit 3 rifle ground
+638 fire 3 rifle
+638 fire 3 rifle
 638 fire 4 rifle
 639 hit 3 rifle soldier of 0
-639 hit 3 rifle soldier of 0
-639 hit 1 rifle soldier of 3
+639 hit 1 rifle prop
+639 fire 1 rifle
 639 fire 3 rifle
-640 hit 4 rifle soldier of 0
-640 fire 1 rifle
-640 fire 3 rifle
-640 fire 3 rifle
-641 hit 3 rifle soldier of 1
-641 fire 3 rifle
-642 hit 1 rifle prop
-642 hit 3 rifle prop
-642 fire 1 rifle
+640 hit 1 rifle soldier of 0
+640 hit 4 rifle soldier of 1
+640 hit 3 rifle prop
+641 hit 3 rifle soldier of 0
+642 hit 3 rifle soldier of 0
 642 fire 3 rifle
-643 hit 3 rifle prop
+643 hit 3 rifle ground
 643 fire 1 rifle
-644 hit 3 rifle soldier of 0
-644 hit 1 rifle prop
-644 hit 3 rifle ground
+643 fire 3 rifle
+643 fire 3 rifle
+644 fire 1 rifle
+644 fire 1 rifle
 644 fire 3 rifle
-645 hit 3 rifle ground
-645 fire 1 rifle
-646 hit 1 rifle prop
-646 fire 3 rifle
+645 hit 1 rifle soldier of 0
+645 hit 3 rifle prop
+646 hit 3 rifle soldier of 0
+646 fire 4 rifle
+647 hit 3 rifle prop
 647 hit 1 rifle prop
-647 fire 0 rifle
+647 hit 1 rifle prop
 647 fire 1 rifle
-648 hit 3 rifle soldier of 0
-648 hit 3 rifle prop
+647 fire 3 rifle
+648 hit 3 rifle ground
+648 hit 4 rifle soldier of 0
+648 fire 0 rifle
+648 fire 1 rifle
 648 fire 3 rifle
-649 hit 1 rifle prop
-649 hit 0 rifle soldier of 4
-649 hit 1 rifle ground
+648 fire 3 rifle
+649 fire 1 rifle
+649 fire 1 rifle
 649 fire 3 rifle
-649 fire 3 rifle
-651 fire 1 rifle
+650 hit 1 rifle soldier of 0
+650 hit 0 rifle prop
+650 hit 3 rifle prop
+651 hit 3 rifle soldier of 0
+651 hit 1 rifle prop
 651 fire 4 rifle
-652 hit 3 rifle soldier of 0
-652 hit 1 rifle soldier of 0
 652 hit 3 rifle prop
+652 hit 1 rifle prop
 652 fire 1 rifle
-652 fire 1 rifle
-653 hit 3 rifle soldier of 0
-653 hit 4 rifle prop
-653 fire 0 rifle
+652 fire 3 rifle
+653 hit 3 rifle ground
+653 hit 1 rifle prop
+653 hit 4 rifle soldier of 0
+653 fire 1 rifle
 653 fire 3 rifle
-653 fire 3 rifle
-653 fire 4 rifle
-654 hit 1 rifle soldier of 4
+654 fire 1 rifle
 654 fire 3 rifle
-655 hit 4 rifle soldier of 0
+655 hit 1 rifle soldier of 0
 656 hit 1 rifle prop
-656 hit 3 rifle ground
-656 hit 3 rifle soldier of 0
-656 fire 1 rifle
-657 hit 0 rifle prop
-657 hit 1 rifle soldier of 0
-657 hit 3 rifle ground
+657 hit 3 rifle prop
+657 hit 1 rifle soldier of 3
 657 fire 1 rifle
-658 hit 1 rifle prop
+657 fire 3 rifle
+658 hit 3 rifle soldier of 0
+658 hit 3 rifle ground
 658 fire 0 rifle
-658 fire 3 rifle
-658 fire 3 rifle
-658 fire 3 rifle
-659 fire 1 rifle
-659 fire 3 rifle
-660 hit 0 rifle soldier of 4
-660 fire 0 rifle
-660 fire 1 rifle
-661 fire 1 rifle
-662 hit 3 rifle soldier of 0
-662 hit 3 rifle soldier of 0
-662 hit 1 rifle soldier of 0
+658 fire 1 rifle
+659 fire 4 rifle
+660 fire 3 rifle
+661 hit 1 rifle prop
 662 hit 3 rifle ground
-662 fire 1 rifle
-663 hit 3 rifle soldier of 0
-663 hit 1 rifle soldier of 3
-663 fire 3 rifle
-663 fire 3 rifle
-664 hit 0 rifle prop
-664 hit 1 rifle prop
-664 fire 1 rifle
+662 hit 0 rifle prop
+662 hit 1 rifle soldier of 3
+662 hit 4 rifle prop
+662 hit 3 rifle prop
+662 fire 0 rifle
+662 fire 3 rifle
+663 fire 1 rifle
+664 hit 0 rifle ground
 664 fire 4 rifle
-665 fire 1 rifle
-666 hit 1 rifle prop
-666 hit 4 rifle soldier of 0
-666 fire 0 rifle
-666 fire 4 rifle
-667 hit 3 rifle soldier of 0
-667 hit 3 rifle soldier of 1
-667 fire 1 rifle
-668 hit 1 rifle prop
-668 hit 1 rifle soldier of 0
-668 hit 0 rifle soldier of 4
-668 hit 4 rifle prop
-668 fire 3 rifle
-668 fire 3 rifle
-669 hit 1 rifle prop
-669 fire 1 rifle
-669 fire 1 rifle
-669 fire 4 rifle
-670 hit 3 rifle prop
-670 fire 1 rifle
-671 hit 3 rifle prop
+665 hit 3 rifle ground
+665 hit 1 rifle prop
+665 fire 3 rifle
+667 hit 4 rifle soldier of 1
+667 hit 3 rifle prop
+668 fire 1 rifle
+670 fire 3 rifle
 671 fire 0 rifle
-672 fire 1 rifle
+672 hit 1 rifle prop
+672 hit 3 rifle prop
 672 fire 3 rifle
-673 hit 4 rifle prop
-673 hit 1 rifle prop
-673 hit 1 rifle prop
+672 fire 4 rifle
 673 fire 3 rifle
-674 hit 1 rifle prop
-674 fire 1 rifle
+674 hit 4 rifle soldier of 1
 675 hit 0 rifle prop
-675 fire 3 rifle
-676 hit 3 rifle prop
-676 hit 3 rifle prop
-676 hit 1 rifle prop
-676 fire 3 grenade
-677 hit 3 rifle soldier of 4
-677 fire 1 rifle
+675 fire 0 rifle
+676 hit 3 rifle ground
+677 hit 3 rifle soldier of 0
+677 hit 0 rifle soldier of 4
 677 fire 3 rifle
 677 fire 4 rifle
-678 hit 1 rifle prop
+678 fire 1 rifle
 678 fire 3 rifle
-679 hit 4 rifle ground
-679 fire 0 rifle
-679 fire 1 rifle
+679 hit 1 rifle soldier of 0
+679 hit 4 rifle soldier of 0
 679 fire 3 rifle
-679 fire 4 rifle
-680 hit 0 rifle prop
-680 fire 3 rifle
-681 hit 3 rifle prop
-681 hit 3 rifle prop
-681 hit 1 rifle prop
-681 hit 4 rifle prop
-682 fire 1 rifle
+680 fire 1 rifle
+681 hit 3 rifle soldier of 1
+681 fire 3 rifle
+682 hit 3 rifle soldier of 0
 682 fire 3 rifle
-682 fire 4 rifle
+682 fire 3 rifle
 683 hit 3 rifle ground
-683 hit 1 rifle soldier of 0
-683 hit 3 rifle ground
-683 hit 1 rifle prop
-683 fire 1 rifle
-683 fire 4 rifle
+683 fire 3 rifle
+683 fire 3 grenade
+684 hit 1 rifle prop
 684 fire 0 rifle
 684 fire 1 rifle
 684 fire 3 rifle
-685 hit 4 rifle soldier of 0
-685 hit 4 rifle prop
-685 fire 3 rifle
-685 fire 3 rifle
-686 hit 3 rifle ground
-686 hit 0 rifle soldier of 4
-686 fire 1 rifle
-687 hit 1 rifle soldier of 3
-687 hit 1 rifle soldier of 0
+685 hit 1 rifle soldier of 0
+685 hit 3 rifle prop
+686 hit 3 rifle soldier of 0
+686 hit 3 rifle soldier of 1
+686 fire 3 rifle
+687 hit 3 rifle ground
+687 hit 3 rifle soldier of 0
 687 fire 1 rifle
-688 hit 3 rifle soldier of 0
-688 hit 1 rifle prop
-688 fire 1 rifle
-689 hit 3 rifle soldier of 0
-689 hit 3 rifle soldier of 1
-689 hit 1 rifle soldier of 0
-689 fire 1 rifle
-689 fire 4 rifle
+687 fire 3 rifle
+687 fire 3 rifle
+688 hit 0 rifle prop
+688 hit 1 rifle soldier of 0
+688 fire 0 rifle
+689 fire 3 rifle
+690 hit 3 rifle prop
+690 hit 0 rifle soldier of 4
+690 hit 3 rifle soldier of 0
 690 fire 4 rifle
-691 hit 4 rifle soldier of 0
-691 hit 1 rifle prop
-691 fire 1 rifle
-692 hit 1 rifle ground
+691 hit 3 rifle soldier of 0
+691 fire 3 rifle
 692 hit 4 rifle soldier of 0
-692 fire 1 rifle
-692 fire 1 rifle
-693 hit 1 rifle prop
+692 fire 3 rifle
+692 fire 3 rifle
+693 hit 3 rifle ground
 693 fire 1 rifle
-693 fire 3 rifle
-693 fire 3 rifle
-694 fire 1 rifle
-694 fire 1 rifle
-695 fire 4 rifle
-696 hit 1 rifle prop
-696 hit 1 rifle prop
-696 fire 1 rifle
-696 fire 3 rifle
-696 fire 3 rifle
-696 fire 4 rifle
-697 hit 3 rifle prop
-697 hit 1 rifle soldier of 3
-697 hit 1 rifle prop
-697 hit 4 rifle soldier of 0
-697 hit 3 rifle ground
+694 hit 1 rifle prop
+694 hit 3 rifle prop
+695 fire 3 rifle
+696 hit 3 rifle soldier of 0
+696 hit 3 rifle ground
 697 fire 1 rifle
-698 hit 1 rifle prop
-698 hit 1 rifle prop
-699 hit 4 rifle ground
+697 fire 3 rifle
+697 fire 4 rifle
+698 hit 1 rifle soldier of 0
+698 hit 3 rifle soldier of 0
+699 hit 4 rifle soldier of 0
 699 fire 1 rifle
-700 hit 3 rifle prop
-700 hit 3 rifle soldier of 1
-701 hit 1 rifle prop
-702 fire 4 rifle
-703 hit 3 grenade ground
-703 hit 1 rifle prop
-704 hit 4 rifle soldier of 1
-704 fire 0 rifle
+700 hit 1 rifle prop
+700 fire 1 rifle
+700 fire 3 rifle
+701 hit 1 rifle soldier of 0
+701 hit 3 rifle ground
+703 fire 3 rifle
+704 hit 3 rifle soldier of 1
+705 fire 3 rifle
+706 hit 3 rifle ground
 706 fire 1 rifle
-706 fire 3 rifle
-707 hit 0 rifle ground
 707 fire 3 rifle
-708 hit 1 rifle soldier of 4
-708 fire 1 rifle
-709 hit 1 rifle soldier of 0
-709 fire 3 rifle
-709 fire 3 rifle
-709 fire 4 rifle
-710 hit 3 rifle soldier of 1
-710 hit 3 rifle prop
-712 hit 3 rifle prop
+708 hit 3 grenade soldier of 0
+708 fire 3 rifle
+709 hit 3 rifle soldier of 1
+710 hit 1 rifle soldier of 3
+710 fire 1 rifle
+710 fire 4 rifle
+711 hit 1 rifle soldier of 0
+711 hit 3 rifle prop
+712 hit 3 rifle soldier of 1
 712 fire 1 rifle
-713 hit 3 rifle soldier of 0
-713 hit 4 rifle ground
-715 fire 4 rifle
-716 hit 1 rifle prop
-717 hit 4 rifle soldier of 1
-717 fire 0 rifle
+712 fire 3 rifle
+712 fire 4 rifle
+713 hit 4 rifle prop
+713 hit 1 rifle prop
+713 fire 3 rifle
+714 hit 4 rifle prop
+716 hit 3 rifle soldier of 0
+716 fire 3 rifle
+717 hit 3 rifle prop
+717 fire 3 rifle
+718 hit 3 rifle prop
 719 fire 3 rifle
-720 fire 3 rifle
-721 hit 0 rifle prop
-721 fire 1 rifle
-722 hit 1 rifle prop
-722 fire 3 rifle
-723 hit 3 rifle ground
-724 hit 3 rifle prop
+720 hit 3 rifle ground
+720 fire 4 rifle
+721 hit 4 rifle ground
+721 fire 3 rifle
+722 hit 3 rifle soldier of 0
+723 hit 3 rifle prop
+723 fire 0 rifle
+723 fire 4 rifle
+724 fire 0 rifle
+724 fire 3 rifle
+725 hit 0 rifle soldier of 4
 725 fire 1 rifle
-726 hit 3 rifle soldier of 1
-726 hit 1 rifle ground
-730 fire 0 rifle
-732 hit 0 rifle ground
+725 fire 1 rifle
+725 fire 4 rifle
+726 hit 1 rifle prop
+726 hit 4 rifle prop
+726 hit 0 rifle soldier of 4
+726 fire 3 rifle
+727 hit 4 rifle soldier of 0
+728 hit 3 rifle soldier of 0
+728 hit 3 rifle prop
+729 hit 1 rifle prop
+729 fire 3 rifle
 732 fire 3 rifle
-733 fire 0 rifle
-733 fire 3 rifle
-734 hit 3 rifle prop
-734 hit 0 rifle prop
-734 fire 1 rifle
-735 hit 1 rifle prop
-735 fire 3 rifle
-736 hit 3 rifle prop
+733 hit 3 rifle soldier of 1
+733 fire 4 rifle
+733 fire 4 rifle
+734 fire 4 rifle
+735 hit 4 rifle soldier of 1
+736 hit 4 rifle soldier of 0
+736 hit 3 rifle soldier of 1
+736 fire 0 rifle
+737 hit 4 rifle ground
+737 fire 0 rifle
+737 fire 3 rifle
+737 fire 3 rifle
+737 fire 3 rifle
+738 hit 0 rifle soldier of 4
 738 fire 1 rifle
-739 hit 3 rifle ground
-742 hit 1 rifle prop
-744 fire 3 rifle
+738 fire 1 rifle
+738 fire 4 rifle
+739 hit 1 rifle soldier of 0
+739 hit 1 rifle ground
+740 hit 4 rifle soldier of 0
+741 hit 3 rifle soldier of 0
+741 hit 3 rifle soldier of 0
+741 hit 0 rifle prop
+741 hit 3 rifle soldier of 1
+742 fire 3 rifle
+742 fire 3 rifle
+742 fire 3 rifle
 745 fire 3 rifle
-746 fire 0 rifle
-746 fire 1 rifle
-747 hit 3 rifle prop
-748 hit 0 rifle soldier of 4
-748 hit 3 rifle soldier of 1
-748 hit 1 rifle ground
-748 fire 3 rifle
+746 hit 3 rifle prop
+746 hit 3 rifle ground
+746 fire 4 rifle
+746 fire 4 rifle
+747 fire 3 rifle
+747 fire 3 rifle
+747 fire 4 rifle
+748 hit 4 rifle ground
+748 hit 4 rifle ground
+748 hit 3 rifle ground
+748 fire 1 rifle
+749 hit 1 rifle prop
+749 hit 3 rifle soldier of 1
+749 hit 4 rifle ground
 749 fire 0 rifle
-750 hit 0 rifle ground
-750 fire 4 rifle
+750 hit 3 rifle soldier of 0
+750 hit 3 rifle ground
+750 fire 0 rifle
+750 fire 3 rifle
 751 fire 1 rifle
-752 hit 3 rifle soldier of 1
-752 hit 4 rifle soldier of 0
-753 hit 1 rifle prop
-756 fire 4 rifle
+751 fire 1 rifle
+752 hit 1 rifle soldier of 0
+752 hit 0 rifle ground
+752 hit 0 rifle prop
+752 fire 3 rifle
+753 fire 3 rifle
+754 hit 3 rifle ground
+755 hit 1 rifle prop
+755 fire 3 rifle
+756 hit 3 rifle soldier of 1
+757 hit 3 rifle soldier of 0
 757 fire 3 rifle
-758 hit 4 rifle ground
 758 fire 3 rifle
-759 fire 0 rifle
-759 fire 1 rifle
-760 hit 3 rifle prop
+758 fire 3 rifle
+759 hit 3 rifle ground
+759 fire 3 rifle
+759 fire 4 rifle
+760 hit 3 rifle soldier of 0
+760 fire 4 rifle
+761 hit 4 rifle soldier of 0
 761 hit 3 rifle prop
-761 hit 0 rifle ground
-761 fire 3 rifle
-762 fire 0 rifle
-763 hit 1 rifle prop
-763 fire 4 rifle
-764 hit 0 rifle soldier of 4
-765 hit 3 rifle soldier of 0
-765 hit 4 rifle prop
-767 fire 3 rifle
-769 hit 3 rifle soldier of 4
-769 fire 4 rifle
-770 fire 3 rifle
-771 hit 4 rifle soldier of 0
-771 fire 0 rifle
-772 fire 1 rifle
-772 fire 3 rifle
-773 hit 1 rifle soldier of 0
-773 hit 3 rifle prop
-774 hit 0 rifle prop
-775 fire 0 rifle
-776 hit 3 rifle prop
-776 fire 4 rifle
-777 hit 0 rifle soldier of 4
-778 hit 4 rifle soldier of 1
-778 fire 3 rifle
-780 hit 3 rifle ground
-780 fire 3 rifle
-782 fire 4 rifle
-784 hit 3 rifle ground
-784 hit 4 rifle soldier of 0
-784 fire 0 rifle
-785 fire 3 rifle
-786 hit 0 rifle ground
-788 hit 3 rifle prop
-788 fire 0 rifle
-789 fire 1 rifle
-790 hit 1 rifle prop
-791 hit 0 rifle prop
-791 fire 1 rifle
-791 fire 3 rifle
-792 hit 1 rifle prop
-792 fire 0 rifle
-793 hit 3 rifle ground
-793 fire 1 rifle
-793 fire 1 rifle
+761 hit 3 rifle soldier of 0
+761 hit 3 rifle soldier of 0
+761 fire 1 rifle
+762 hit 1 rifle prop
+762 hit 4 rifle soldier of 1
+762 fire 3 rifle
+762 fire 4 rifle
+763 fire 3 rifle
+763 fire 3 rifle
+763 fire 3 rifle
+764 hit 4 rifle soldier of 1
+764 fire 1 rifle
+764 fire 3 rifle
+764 fire 3 rifle
+765 hit 1 rifle ground
+765 fire 0 rifle
+766 hit 3 rifle ground
+766 hit 3 rifle prop
+767 hit 3 rifle ground
+767 hit 3 rifle soldier of 0
+767 hit 3 rifle ground
+768 hit 0 rifle ground
+768 hit 3 rifle ground
+768 fire 0 rifle
+768 fire 3 rifle
+768 fire 3 rifle
+769 fire 3 rifle
+769 fire 3 rifle
+770 fire 0 rifle
+771 hit 3 rifle prop
+771 hit 3 rifle prop
+771 hit 3 rifle prop
+771 fire 1 rifle
+772 hit 1 rifle soldier of 0
+772 hit 0 rifle soldier of 4
+772 hit 0 rifle prop
+772 fire 4 rifle
+773 hit 3 rifle soldier of 1
+773 fire 3 rifle
+774 hit 4 rifle soldier of 0
+774 fire 1 rifle
+774 fire 3 rifle
+774 fire 4 rifle
+775 fire 1 rifle
+775 fire 4 rifle
+776 hit 1 rifle soldier of 0
+776 hit 4 rifle prop
+776 hit 3 rifle ground
+778 hit 3 rifle soldier of 0
+778 hit 1 rifle prop
+778 hit 4 rifle prop
+778 fire 0 rifle
+779 fire 1 rifle
+780 hit 1 rifle prop
+780 hit 0 rifle ground
+781 fire 0 rifle
+782 fire 3 rifle
+783 hit 0 rifle ground
+783 fire 0 rifle
+783 fire 4 rifle
+784 fire 1 rifle
+785 hit 1 rifle soldier of 0
+785 hit 0 rifle soldier of 4
+785 hit 4 rifle ground
+785 fire 4 rifle
+786 hit 3 rifle soldier of 0
+786 fire 0 rifle
+787 hit 4 rifle soldier of 1
+787 fire 3 rifle
+787 fire 4 rifle
+788 hit 0 rifle soldier of 4
+788 fire 1 rifle
+788 fire 3 rifle
+788 fire 4 rifle
+789 hit 1 rifle soldier of 0
+789 hit 4 rifle prop
+790 hit 3 rifle prop
+791 hit 3 rifle soldier of 0
+791 hit 4 rifle prop
+791 fire 0 rifle
+792 fire 1 rifle
+792 fire 3 rifle
+793 hit 1 rifle soldier of 0
+793 hit 0 rifle soldier of 4
 793 fire 3 rifle
-794 hit 0 rifle soldier of 4
-794 hit 1 rifle soldier of 0
-795 hit 1 rifle prop
-797 hit 3 rifle soldier of 1
-797 fire 0 rifle
+794 fire 0 rifle
+795 hit 3 rifle ground
+795 fire 3 rifle
+796 hit 0 rifle ground
+796 hit 3 rifle ground
+796 fire 0 rifle
+796 fire 3 rifle
+796 fire 4 rifle
+797 hit 4 rifle prop
+797 fire 1 rifle
+798 hit 0 rifle prop
+798 hit 3 rifle soldier of 0
 798 fire 3 rifle
-800 hit 0 rifle prop
-800 fire 1 rifle
-801 fire 0 rifle
-801 fire 4 rifle
-802 hit 3 rifle prop
-802 hit 0 rifle ground
-802 fire 1 rifle
-802 fire 1 rifle
-803 hit 1 rifle soldier of 0
-803 hit 4 rifle soldier of 0
-804 hit 1 rifle prop
-804 fire 1 rifle
-804 fire 3 rifle
-805 hit 1 rifle soldier of 0
-805 fire 0 rifle
-806 hit 1 rifle prop
-806 fire 1 rifle
-806 fire 1 rifle
-806 fire 4 rifle
-807 hit 1 rifle soldier of 0
-807 hit 3 rifle ground
-807 hit 0 rifle ground
-808 hit 4 rifle ground
+798 fire 4 rifle
+799 fire 0 rifle
+800 hit 4 rifle soldier of 0
+800 hit 3 rifle prop
+800 hit 3 rifle ground
+800 fire 3 rifle
+800 fire 4 rifle
+801 hit 0 rifle prop
+801 hit 1 rifle prop
+801 fire 1 rifle
+801 fire 3 rifle
+801 fire 3 rifle
+802 hit 4 rifle soldier of 0
+803 hit 3 rifle prop
+803 fire 3 rifle
+805 hit 3 rifle soldier of 1
+805 hit 1 rifle prop
+805 hit 3 rifle ground
+805 hit 3 rifle prop
+805 fire 1 rifle
+805 fire 3 rifle
+805 fire 3 rifle
+806 fire 3 rifle
+806 fire 3 rifle
+807 hit 3 rifle soldier of 4
+808 hit 3 rifle prop
 808 fire 3 rifle
-810 hit 1 rifle prop
-812 hit 3 rifle soldier of 1
-813 fire 1 rifle
-814 fire 0 rifle
-814 fire 4 rifle
-815 fire 1 rifle
-815 fire 1 rifle
+809 hit 1 rifle prop
+809 fire 4 rifle
+810 hit 3 rifle soldier of 1
+810 hit 3 rifle ground
+810 hit 3 rifle prop
+810 fire 3 rifle
+811 hit 4 rifle soldier of 0
+811 fire 3 rifle
+812 hit 3 rifle soldier of 4
+812 fell 4 soldier 2
+812 fire 0 rifle
+813 fire 3 rifle
+814 hit 0 rifle soldier of 4
+815 hit 3 rifle soldier of 1
+815 hit 3 rifle prop
 815 fire 3 rifle
-816 hit 1 rifle soldier of 0
-816 hit 4 rifle soldier of 0
-816 hit 0 rifle soldier of 4
-817 hit 1 rifle prop
-817 fire 1 rifle
-818 hit 3 rifle prop
-818 hit 1 rifle soldier of 0
-818 fire 0 rifle
-819 hit 1 rifle prop
-819 fire 1 rifle
-819 fire 1 rifle
-819 fire 4 rifle
-820 hit 1 rifle soldier of 0
-820 hit 0 rifle ground
-820 hit 1 rifle soldier of 0
-821 fire 3 rifle
-822 hit 4 rifle prop
-823 hit 3 rifle prop
-826 fire 1 rifle
+817 hit 3 rifle soldier of 4
+817 fire 3 rifle
+817 fire 3 rifle
+818 fire 1 rifle
+821 hit 3 rifle ground
+821 hit 3 rifle prop
+822 hit 1 rifle prop
+822 fire 3 rifle
+822 fire 3 rifle
+825 hit 3 rifle soldier of 0
+825 fire 1 rifle
+825 fire 3 rifle
+826 hit 3 rifle soldier of 0
+826 fire 0 rifle
+826 fire 3 rifle
+827 hit 3 rifle prop
 827 fire 0 rifle
-827 fire 4 rifle
-828 hit 1 rifle prop
-828 fire 1 rifle
-828 fire 3 rifle
-829 hit 4 rifle prop
-831 hit 0 rifle prop
+827 fire 3 rifle
+827 fire 3 rifle
+828 hit 0 rifle soldier of 4
+829 hit 1 rifle prop
+830 hit 3 rifle soldier of 0
+830 hit 3 rifle ground
+830 hit 0 rifle soldier of 3
+830 fire 3 rifle
+831 hit 3 rifle prop
+831 fire 1 rifle
 831 fire 3 rifle
-832 hit 3 rifle soldier of 1
-832 hit 1 rifle prop
-832 fire 1 rifle
-832 fire 4 rifle
-833 hit 1 rifle soldier of 0
-834 hit 4 rifle soldier of 1
-834 fire 3 rifle
-835 hit 3 rifle prop
-838 hit 3 rifle soldier of 0
+831 fire 3 rifle
+832 hit 3 rifle prop
+832 hit 1 rifle ground
+833 hit 3 rifle ground
+835 hit 3 rifle soldier of 1
+835 fire 1 rifle
+835 fire 3 rifle
+835 fire 3 rifle
+836 hit 1 rifle soldier of 0
+836 fire 3 rifle
+836 fire 3 rifle
+837 hit 3 rifle prop
+838 fire 1 rifle
+839 hit 3 rifle ground
+839 hit 3 rifle soldier of 0
 839 fire 0 rifle
+840 hit 3 rifle soldier of 1
 840 fire 0 rifle
-841 hit 0 rifle prop
+840 fire 3 rifle
 841 fire 1 rifle
 841 fire 3 rifle
+842 hit 1 rifle prop
 842 hit 1 rifle soldier of 0
-844 hit 0 rifle prop
+842 hit 0 rifle ground
+843 hit 0 rifle prop
+843 fire 3 rifle
 844 hit 3 rifle ground
-844 fire 3 rifle
-845 fire 1 rifle
-846 hit 1 rifle soldier of 0
-848 hit 3 rifle ground
+844 hit 3 rifle soldier of 0
+844 fire 1 rifle
+845 hit 1 rifle prop
+845 fire 3 rifle
+847 hit 3 rifle soldier of 0
+848 fire 1 rifle
+848 fire 3 rifle
+848 fire 3 rifle
+849 hit 3 rifle soldier of 1
+850 hit 1 rifle prop
+850 fire 1 rifle
+851 hit 3 rifle soldier of 0
+851 fire 1 rifle
+851 fire 3 rifle
+852 hit 3 rifle soldier of 0
 852 fire 0 rifle
+853 hit 1 rifle prop
 853 fire 0 rifle
-854 hit 0 rifle soldier of 4
+853 fire 0 rifle
+853 fire 1 rifle
+853 fire 3 rifle
+853 fire 3 rifle
+853 fire 3 rifle
+854 hit 1 rifle soldier of 0
+854 hit 3 rifle ground
 854 fire 1 rifle
-855 hit 1 rifle soldier of 0
-855 hit 0 rifle ground
+855 hit 1 rifle soldier of 3
+855 hit 0 rifle soldier of 4
+855 hit 0 rifle prop
+856 hit 0 rifle ground
+856 fire 3 rifle
+857 hit 3 rifle prop
+857 hit 3 rifle soldier of 0
+857 hit 3 rifle ground
 857 fire 3 rifle
-858 fire 1 rifle
-861 hit 3 rifle prop
-861 hit 1 rifle prop
-864 fire 3 rifle
-865 fire 0 rifle
-866 hit 3 rifle prop
-866 fire 3 rifle
-867 hit 0 rifle prop
+857 fire 3 rifle
+858 hit 1 rifle prop
+858 hit 3 rifle ground
+858 fire 3 rifle
+858 fire 3 rifle
+860 hit 3 rifle ground
+861 hit 3 rifle ground
+861 fire 1 rifle
+861 fire 3 rifle
+862 hit 3 rifle soldier of 1
+862 hit 1 rifle ground
+862 hit 3 rifle ground
+862 fire 3 rifle
+862 fire 3 rifle
+863 fire 1 rifle
+863 fire 3 rifle
+865 hit 1 rifle ground
+866 hit 3 rifle soldier of 1
+866 hit 3 rifle ground
+866 fire 0 rifle
+866 fire 1 rifle
+867 hit 3 rifle ground
+867 hit 3 rifle ground
 867 fire 1 rifle
-868 hit 1 rifle soldier of 0
-869 hit 3 rifle prop
-871 fire 3 rifle
-875 hit 3 rifle soldier of 0
-877 fire 3 rifle
-879 hit 3 rifle prop
-879 fire 3 rifle
+867 fire 3 rifle
+867 fire 3 rifle
+868 hit 1 rifle ground
+868 hit 0 rifle ground
+868 fire 3 rifle
+869 hit 1 rifle prop
+871 hit 3 rifle prop
+871 hit 3 rifle prop
+871 hit 3 rifle soldier of 1
+873 fire 3 rifle
+875 hit 3 rifle prop
+876 fire 1 rifle
+878 fire 3 rifle
+879 fire 0 rifle
+879 fire 1 rifle
+880 hit 1 rifle prop
+880 hit 1 rifle prop
+880 hit 3 rifle prop
 880 fire 3 rifle
-882 fire 4 rifle
-883 hit 3 rifle ground
+881 hit 0 rifle ground
+882 fire 0 rifle
+883 fire 3 rifle
 883 fire 4 rifle
 884 hit 3 rifle soldier of 1
-884 hit 4 rifle soldier of 0
-884 fire 3 rifle
-885 hit 4 rifle soldier of 1
-887 fire 1 rifle
-888 hit 1 rifle soldier of 0
-888 hit 3 rifle ground
-890 fire 1 rifle
+884 hit 0 rifle ground
+885 hit 4 rifle ground
+885 fire 3 rifle
+887 hit 3 rifle prop
+888 hit 3 rifle soldier of 0
+888 fire 3 rifle
+889 fire 1 rifle
+889 fire 3 rifle
 890 fire 3 rifle
-891 hit 1 rifle soldier of 0
+890 fire 3 rifle
+890 fire 4 rifle
+891 fire 3 rifle
 892 hit 3 rifle prop
-892 fire 3 rifle
-893 fire 1 rifle
+892 hit 4 rifle soldier of 1
+892 hit 3 rifle prop
+893 hit 1 rifle prop
+893 hit 3 rifle ground
+893 hit 3 rifle ground
 893 fire 3 rifle
+893 fire 3 rifle
+894 hit 3 rifle ground
 894 fire 3 rifle
-895 fire 1 rifle
-895 fire 4 rifle
+894 fire 3 rifle
+895 fire 0 rifle
+895 fire 3 rifle
 896 hit 3 rifle prop
-896 hit 3 rifle soldier of 0
+896 fire 3 rifle
+896 fire 3 rifle
 896 fire 4 rifle
-897 hit 4 rifle soldier of 0
-897 hit 1 rifle prop
+897 hit 3 rifle soldier of 1
 897 hit 3 rifle ground
-897 fire 3 rifle
-898 hit 4 rifle soldier of 0
-898 fire 4 rifle
-899 hit 1 rifle prop
-900 fire 1 rifle
-901 hit 4 rifle prop
-901 hit 1 rifle soldier of 0
-901 hit 3 rifle ground
-903 fire 1 rifle
-904 hit 1 rifle soldier of 0
-905 fire 0 rifle
-906 fire 1 rifle
+897 hit 3 rifle prop
+898 hit 3 rifle soldier of 1
+898 hit 0 rifle ground
+898 fire 3 rifle
+899 hit 4 rifle soldier of 1
+899 hit 3 rifle prop
+899 fire 3 rifle
+899 fire 3 rifle
+900 hit 3 rifle ground
+900 fire 3 rifle
+901 fire 3 rifle
+901 fire 3 rifle
+902 hit 3 rifle soldier of 0
+902 hit 3 rifle prop
+902 hit 3 rifle soldier of 0
+902 fire 1 rifle
+903 hit 3 rifle soldier of 1
+903 hit 1 rifle prop
+903 fire 3 rifle
+903 fire 4 rifle
+904 hit 3 rifle soldier of 0
+904 fire 3 rifle
+905 hit 3 rifle soldier of 1
+906 hit 4 rifle prop
 906 fire 3 rifle
-907 hit 0 rifle prop
-907 fire 3 rifle
-908 fire 1 rifle
-908 fire 4 rifle
-909 fire 1 rifle
+907 hit 3 rifle ground
+907 hit 3 rifle ground
+908 fire 0 rifle
+909 hit 3 rifle soldier of 0
+909 fire 0 rifle
 909 fire 4 rifle
-910 hit 1 rifle soldier of 0
-910 hit 1 rifle prop
-910 hit 3 rifle prop
-911 fire 4 rifle
+910 hit 0 rifle soldier of 4
+910 hit 0 rifle ground
 912 hit 4 rifle ground
-912 hit 1 rifle prop
-912 hit 3 rifle ground
-912 hit 4 rifle ground
-913 fire 1 rifle
-914 hit 4 rifle ground
-914 hit 1 rifle soldier of 0
-914 fire 0 rifle
-915 fire 0 rifle
-915 fire 4 rifle
-916 fire 1 rifle
-917 hit 1 rifle soldier of 0
-917 hit 0 rifle soldier of 4
-917 hit 4 rifle soldier of 0
-917 hit 0 rifle prop
-917 fire 3 rifle
-918 fire 0 rifle
-919 fire 1 rifle
+914 fire 3 rifle
+914 fire 3 grenade
+915 fire 1 rifle
+916 fire 4 rifle
+917 hit 1 rifle prop
+917 hit 3 rifle ground
+917 fire 1 rifle
+918 hit 4 rifle soldier of 0
+918 fire 3 rifle
+919 hit 1 rifle prop
+919 fire 3 rifle
 920 hit 3 rifle prop
-920 hit 0 rifle soldier of 4
-920 fire 3 rifle
-921 fire 1 rifle
-922 fire 1 rifle
-923 hit 1 rifle soldier of 0
-923 hit 1 rifle soldier of 3
-924 hit 3 rifle soldier of 0
-924 fire 4 rifle
-925 hit 1 rifle prop
-926 hit 4 rifle ground
-927 fire 0 rifle
-928 fire 0 rifle
-928 fire 4 rifle
-929 hit 0 rifle soldier of 4
+922 hit 3 rifle prop
+922 fire 0 rifle
+923 fire 3 rifle
+924 fire 3 rifle
+925 hit 3 rifle prop
+925 hit 0 rifle prop
+928 hit 3 rifle ground
+928 fire 3 rifle
 929 fire 4 rifle
-930 hit 0 rifle soldier of 4
-930 hit 4 rifle prop
-930 fire 3 rifle
-930 fire 4 rifle
-931 fire 0 rifle
-932 hit 0 rifle ground
-932 hit 4 rifle soldier of 1
-932 fire 1 rifle
-933 hit 3 rifle ground
-933 hit 4 rifle ground
-933 fire 3 rifle
-935 fire 1 rifle
-935 fire 3 rifle
-936 hit 1 rifle soldier of 0
-936 hit 1 rifle soldier of 3
-937 hit 3 rifle soldier of 0
-939 hit 3 rifle ground
+930 hit 3 rifle prop
+930 fire 1 rifle
+931 fire 3 rifle
+932 hit 4 rifle prop
+934 hit 1 rifle prop
+934 fire 0 rifle
+935 hit 0 rifle soldier of 1
+935 hit 3 rifle soldier of 1
+935 fire 0 rifle
+938 hit 0 rifle prop
+939 hit 3 grenade ground
 939 fire 4 grenade
-940 fire 0 rifle
 940 fire 3 rifle
-941 fire 0 rifle
-941 fire 4 rifle
-942 hit 0 rifle ground
 942 fire 4 rifle
-943 hit 4 rifle prop
-943 hit 0 rifle soldier of 4
-943 fire 3 rifle
-943 fire 4 rifle
-944 hit 4 rifle soldier of 1
+943 fire 1 rifle
 944 hit 3 rifle ground
-944 fire 0 rifle
-944 fire 4 rifle
-945 hit 4 rifle soldier of 0
-945 fire 1 rifle
-946 hit 0 rifle soldier of 4
-946 hit 3 rifle ground
-946 hit 4 rifle ground
-946 fire 3 rifle
-948 hit 4 grenade ground
+945 hit 4 rifle prop
+946 fire 4 rifle
+947 hit 1 rifle prop
+947 fire 0 rifle
+947 fire 3 rifle
+948 hit 0 rifle soldier of 1
+948 hit 4 rifle ground
 948 fire 3 rifle
-949 hit 1 rifle prop
-950 hit 3 rifle soldier of 1
-951 hit 3 rifle prop
+949 fire 1 rifle
+949 fire 1 rifle
+950 hit 1 rifle prop
+950 hit 1 rifle ground
+950 fire 3 rifle
+951 hit 3 rifle ground
+951 hit 4 grenade ground
+952 hit 3 rifle ground
 953 fire 3 rifle
+954 hit 3 rifle soldier of 1
+954 fire 3 rifle
+955 hit 3 rifle prop
 955 fire 4 rifle
+956 hit 3 rifle soldier of 4
 956 fire 4 rifle
-957 hit 4 rifle soldier of 0
-957 hit 3 rifle ground
-957 fire 0 rifle
-957 fire 0 rifle
-957 fire 4 rifle
-958 hit 4 rifle soldier of 0
-958 hit 0 rifle prop
-958 fire 1 rifle
-959 hit 4 rifle soldier of 0
-959 hit 0 rifle soldier of 4
-959 fire 3 rifle
-960 fire 1 rifle
-961 hit 1 rifle soldier of 0
-961 fire 1 rifle
+957 hit 4 rifle soldier of 1
+958 hit 4 rifle soldier of 1
+959 fire 4 rifle
+960 fire 0 rifle
+960 fire 3 rifle
+961 hit 0 rifle soldier of 1
+961 hit 4 rifle soldier of 0
 961 fire 3 rifle
-962 hit 1 rifle prop
-962 hit 1 rifle prop
-963 hit 3 rifle soldier of 0
-963 hit 3 rifle soldier of 4
-963 fell 4 soldier 4
-966 fire 3 rifle
+962 fire 1 rifle
+962 fire 1 rifle
+963 hit 1 rifle prop
+963 hit 1 rifle prop
+963 fire 3 rifle
+964 hit 3 rifle ground
+965 hit 3 rifle ground
+966 hit 3 rifle ground
 967 fire 3 rifle
-969 hit 3 rifle prop
-969 hit 3 rifle ground
-970 fire 0 rifle
-970 fire 0 rifle
-970 fire 4 rifle
-971 hit 0 rifle prop
-972 hit 0 rifle soldier of 4
-972 hit 4 rifle soldier of 1
-973 fire 1 rifle
+967 fire 3 rifle
+968 fire 0 rifle
+968 fire 4 rifle
+969 hit 3 rifle soldier of 4
+969 fire 4 rifle
+970 hit 0 rifle prop
+970 hit 4 rifle soldier of 0
+971 hit 3 rifle soldier of 1
+971 hit 4 rifle prop
+972 fire 4 rifle
 973 fire 3 rifle
-974 hit 1 rifle prop
-974 fire 1 rifle
-975 hit 1 rifle prop
-975 fire 3 rifle
-976 fire 4 rifle
-977 hit 3 rifle ground
-977 fire 4 rifle
-978 hit 4 rifle soldier of 1
-979 hit 4 rifle soldier of 0
-979 hit 3 rifle soldier of 0
+974 hit 4 rifle soldier of 1
+974 fire 0 rifle
+974 fire 3 rifle
+975 hit 0 rifle prop
+975 fire 0 rifle
+975 fire 1 rifle
+975 fire 1 rifle
+975 fire 1 rifle
+976 hit 1 rifle prop
+976 hit 1 rifle prop
+976 fire 3 rifle
+977 hit 3 rifle soldier of 1
+977 hit 0 rifle ground
+978 hit 3 rifle ground
+979 hit 1 rifle prop
+980 hit 3 rifle soldier of 1
 980 fire 3 rifle
-982 hit 3 rifle prop
-983 fire 0 rifle
-985 hit 0 rifle soldier of 4
-985 fell 4 soldier 0
-986 fire 1 rifle
+980 fire 3 rifle
+981 fire 0 rifle
+981 fire 4 rifle
+982 hit 3 rifle ground
+982 fire 4 rifle
+983 hit 3 rifle prop
+983 hit 4 rifle soldier of 0
+984 hit 4 rifle prop
+984 hit 0 rifle prop
 986 fire 3 rifle
-987 hit 1 rifle soldier of 0
-987 fire 1 rifle
-987 fire 1 rifle
-988 hit 1 rifle prop
-988 fire 3 rifle
-989 hit 3 rifle ground
-989 fire 4 rifle
-990 hit 4 rifle soldier of 0
-990 fire 3 rifle
-990 fire 4 rifle
-991 hit 1 rifle prop
-992 hit 3 rifle soldier of 1
-992 hit 4 rifle prop
-992 hit 3 rifle ground
+987 fire 0 rifle
+988 fire 0 rifle
+988 fire 1 rifle
+989 hit 0 rifle prop
+989 hit 1 rifle prop
+989 hit 3 rifle soldier of 0
+990 hit 0 rifle soldier of 4
+990 fell 4 soldier 0
+990 fire 0 rifle
+990 fire 1 rifle
+991 hit 0 rifle soldier of 1
+993 hit 1 rifle prop
 993 fire 3 rifle
-995 hit 3 rifle prop
-996 fire 0 rifle
+994 fire 0 rifle
+994 fire 4 rifle
+995 hit 4 rifle prop
+997 hit 3 rifle soldier of 1
 997 hit 0 rifle prop
 999 fire 3 rifle
-1000 fire 1 rifle
-1000 fire 4 rifle
-1001 fire 3 rifle
-1002 hit 3 rifle prop
-1002 fire 4 rifle
-1003 hit 4 rifle prop
-1003 hit 4 rifle soldier of 0
-1003 fire 3 rifle
-1003 fire 4 rifle
-1004 hit 1 rifle prop
-1004 hit 3 rifle prop
-1005 hit 3 rifle soldier of 4
-1005 hit 4 rifle soldier of 1
-1005 fire 0 rifle
-1008 hit 0 rifle prop
-1009 fire 0 rifle
-1011 hit 0 rifle soldier of 4
+1000 fire 0 rifle
+1001 hit 0 rifle prop
+1001 fire 0 rifle
+1001 fire 1 rifle
+1002 hit 1 rifle soldier of 0
+1002 hit 3 rifle soldier of 0
+1002 hit 0 rifle soldier of 4
+1003 fire 0 rifle
+1003 fire 1 rifle
+1004 hit 0 rifle soldier of 1
+1007 hit 1 rifle prop
+1007 fire 4 rifle
+1009 hit 4 rifle soldier of 1
 1012 fire 3 rifle
-1013 fire 1 rifle
-1013 fire 4 rifle
-1015 hit 4 rifle soldier of 0
-1016 hit 3 rifle soldier of 1
-1016 fire 3 rifle
-1017 hit 1 rifle prop
-1018 fire 0 rifle
-1019 hit 3 rifle prop
-1019 fire 1 rifle
-1020 hit 0 rifle ground
-1022 fire 0 rifle
-1023 hit 1 rifle prop
-1024 hit 0 rifle ground
-1025 fire 3 rifle
-1026 fire 1 rifle
-1026 fire 4 rifle
-1028 hit 4 rifle soldier of 0
-1028 fire 4 rifle
-1029 hit 3 rifle soldier of 1
-1029 fire 3 rifle
-1029 fire 3 rifle
-1030 hit 1 rifle prop
-1030 hit 4 rifle soldier of 1
-1031 hit 3 rifle soldier of 4
-1031 fire 0 rifle
-1032 fire 1 rifle
-1032 fire 1 rifle
-1033 hit 1 rifle soldier of 0
-1033 hit 3 rifle soldier of 1
-1033 hit 0 rifle soldier of 4
-1033 fire 3 rifle
+1014 fire 1 rifle
+1015 hit 3 rifle prop
+1015 hit 1 rifle prop
+1015 fire 0 rifle
+1016 fire 0 rifle
+1016 fire 1 rifle
+1017 hit 0 rifle soldier of 1
+1017 hit 0 rifle prop
+1017 hit 1 rifle ground
+1017 fire 3 rifle
+1020 fire 4 rifle
+1021 hit 3 rifle soldier of 0
+1021 hit 4 rifle prop
+1023 fire 1 rifle
+1025 fire 0 rifle
+1026 hit 1 rifle prop
+1026 hit 0 rifle soldier of 4
+1027 fire 0 rifle
+1027 fire 1 rifle
+1028 hit 0 rifle prop
+1028 hit 1 rifle ground
+1028 fire 0 rifle
+1029 hit 0 rifle soldier of 1
+1030 fire 3 rifle
+1033 fire 4 rifle
 1034 hit 3 rifle ground
-1034 fire 1 rifle
-1034 fire 1 grenade
-1035 hit 1 rifle soldier of 0
-1035 hit 1 grenade soldier of 0
-1035 fire 0 rifle
-1036 hit 1 rifle prop
-1037 hit 0 rifle ground
-1037 fire 1 rifle
-1038 hit 1 rifle soldier of 0
-1038 fire 3 rifle
+1034 hit 4 rifle prop
+1034 fire 3 rifle
+1035 fire 3 rifle
+1036 fire 1 rifle
+1037 hit 3 rifle prop
+1038 hit 3 rifle soldier of 1
+1038 hit 1 rifle prop
+1038 fire 0 rifle
+1038 fire 1 rifle
+1039 hit 1 rifle soldier of 0
+1039 hit 0 rifle prop
 1039 fire 1 rifle
-1041 hit 1 rifle ground
-1041 fire 4 rifle
-1042 hit 3 rifle soldier of 0
-1042 fire 3 rifle
-1042 fire 3 rifle
-1043 hit 4 rifle soldier of 1
-1045 hit 3 rifle soldier of 0
-1045 fire 1 rifle
-1045 fire 1 rifle
-1046 hit 1 rifle soldier of 0
-1046 hit 3 rifle soldier of 1
-1046 fire 3 rifle
-1047 fire 1 rifle
-1048 hit 3 rifle prop
-1048 hit 1 rifle ground
-1048 fire 0 rifle
-1049 hit 1 rifle prop
-1050 fire 1 rifle
-1050 fire 4 rifle
+1040 fire 0 rifle
+1040 fire 1 rifle
+1041 hit 0 rifle prop
+1041 fire 0 rifle
+1042 hit 0 rifle ground
+1043 hit 1 rifle prop
+1043 fire 1 rifle
+1043 fire 3 rifle
+1044 hit 1 rifle soldier of 3
+1047 hit 1 rifle prop
+1047 hit 3 rifle ground
+1047 fire 3 rifle
+1048 fire 3 rifle
+1049 fire 1 rifle
+1050 hit 3 rifle prop
+1051 hit 3 rifle ground
+1051 fire 0 rifle
+1051 fire 1 rifle
+1052 hit 1 rifle soldier of 0
 1052 hit 0 rifle prop
-1052 hit 1 rifle soldier of 4
 1052 fire 1 rifle
-1053 hit 4 rifle soldier of 1
-1054 fire 4 rifle
-1055 fire 3 rifle
-1055 fire 3 rifle
-1056 hit 1 rifle prop
-1056 hit 4 rifle soldier of 0
-1057 hit 3 rifle soldier of 4
-1058 hit 3 rifle ground
-1058 fire 1 rifle
-1058 fire 1 rifle
-1058 fire 3 rifle
-1059 hit 1 rifle soldier of 0
-1059 hit 1 rifle soldier of 0
-1059 fire 3 rifle
-1059 fire 3 rifle
-1060 fire 1 rifle
-1061 hit 1 rifle prop
-1061 hit 3 rifle prop
-1061 hit 3 rifle prop
-1061 fire 0 rifle
+1052 fire 3 rifle
+1053 hit 1 rifle prop
+1053 hit 1 rifle prop
+1053 fire 0 rifle
+1054 hit 0 rifle prop
+1055 hit 3 rifle soldier of 0
+1056 fire 1 rifle
+1059 hit 1 rifle prop
+1060 fire 3 rifle
+1061 fire 3 rifle
+1062 fire 3 rifle
 1063 hit 3 rifle prop
-1063 hit 0 rifle soldier of 4
-1063 fire 1 rifle
-1063 fire 4 rifle
-1065 hit 4 rifle ground
+1064 hit 3 rifle ground
+1064 fire 1 rifle
+1065 hit 1 rifle soldier of 0
+1065 hit 3 rifle prop
+1065 fire 1 rifle
+1065 fire 3 rifle
+1065 fire 3 rifle
 1066 hit 1 rifle prop
-1068 fire 1 rifle
-1071 fire 1 rifle
-1071 fire 3 rifle
-1072 hit 1 rifle soldier of 0
-1072 hit 1 rifle soldier of 3
-1072 fire 3 rifle
-1074 hit 3 rifle ground
-1076 hit 3 rifle soldier of 0
-1076 fire 1 rifle
-1076 fire 4 rifle
-1078 hit 4 rifle soldier of 0
+1067 hit 3 rifle ground
+1067 fire 1 grenade
+1069 hit 3 rifle ground
+1069 fire 1 rifle
+1070 fire 0 rifle
+1072 hit 0 rifle soldier of 4
+1073 hit 1 rifle prop
+1075 fire 3 rifle
+1078 hit 3 rifle soldier of 0
 1078 fire 3 rifle
-1079 hit 1 rifle prop
-1079 fire 3 rifle
-1081 fire 1 rifle
-1082 hit 3 rifle prop
-1083 hit 3 rifle soldier of 1
-1084 fire 0 rifle
+1078 fire 3 rifle
+1081 hit 3 rifle prop
+1081 hit 1 grenade ground
+1081 hit 3 rifle ground
+1083 fire 0 rifle
 1084 fire 1 rifle
-1084 fire 3 rifle
 1085 hit 1 rifle soldier of 0
-1085 hit 1 rifle prop
-1085 fire 3 rifle
-1086 hit 0 rifle soldier of 4
-1086 fell 4 soldier 2
-1087 hit 3 rifle prop
-1089 hit 3 rifle ground
-1089 fire 1 rifle
-1090 hit 1 rifle soldier of 0
-1090 fire 0 rifle
+1085 hit 0 rifle ground
+1087 fire 1 rifle
+1088 hit 1 rifle prop
+1088 fire 3 rifle
+1090 fire 3 rifle
+1091 hit 3 rifle prop
 1091 fire 3 rifle
-1092 hit 0 rifle prop
-1092 fire 3 rifle
+1092 fire 1 rifle
+1093 hit 1 rifle prop
+1093 hit 3 rifle ground
 1094 hit 3 rifle prop
-1094 fire 1 rifle
-1096 hit 3 rifle ground
-1097 fire 0 rifle
+1096 fire 0 rifle
 1097 fire 1 rifle
 1098 hit 1 rifle soldier of 0
-1098 hit 1 rifle prop
-1099 hit 0 rifle soldier of 4
-1101 fire 3 rifle
-1101 fire 4 rifle
-1102 fire 1 rifle
-1103 hit 1 rifle soldier of 0
-1103 hit 4 rifle ground
-1103 fire 0 rifle
-1103 fire 4 rifle
-1104 hit 3 rifle prop
-1104 hit 0 rifle soldier of 4
-1104 fire 3 rifle
-1105 fire 3 rifle
-1106 hit 4 rifle prop
-1108 hit 3 rifle ground
-1108 hit 3 rifle prop
-1110 fire 0 rifle
+1098 hit 0 rifle soldier of 4
+1099 fire 0 rifle
+1100 hit 0 rifle soldier of 1
+1100 fire 1 rifle
+1101 hit 1 rifle ground
+1103 fire 3 rifle
+1105 fire 0 rifle
+1105 fire 1 rifle
+1106 hit 3 rifle prop
+1107 hit 0 rifle prop
+1109 hit 1 rifle prop
 1110 fire 1 rifle
 1111 hit 1 rifle soldier of 0
-1111 hit 0 rifle prop
-1114 fire 3 rifle
-1114 fire 4 rifle
-1115 hit 4 rifle prop
-1115 fire 3 rifle
-1116 hit 3 rifle prop
-1116 fire 0 rifle
-1116 fire 4 rifle
-1117 hit 3 rifle prop
-1117 hit 0 rifle soldier of 4
+1112 fire 0 rifle
+1113 hit 0 rifle soldier of 1
+1113 fire 1 rifle
+1115 hit 1 rifle prop
+1116 fire 3 rifle
 1118 fire 0 rifle
-1119 hit 4 rifle prop
-1120 hit 0 rifle prop
-1120 fire 3 rifle
-1122 hit 3 rifle prop
-1123 fire 1 rifle
-1124 hit 1 rifle soldier of 0
-1127 fire 3 rifle
-1127 fire 4 rifle
-1128 fire 3 rifle
-1129 hit 4 rifle soldier of 1
-1129 hit 3 rifle prop
-1129 fire 4 rifle
-1130 hit 4 rifle prop
-1131 hit 3 rifle soldier of 0
+1118 fire 1 rifle
+1119 hit 1 rifle soldier of 0
+1119 hit 3 rifle ground
+1119 hit 0 rifle prop
+1121 fire 4 rifle
+1123 hit 4 rifle soldier of 0
+1123 fire 3 rifle
+1125 fire 0 rifle
+1126 hit 3 rifle ground
+1127 hit 0 rifle prop
+1127 fire 1 rifle
+1131 hit 1 rifle prop
 1131 fire 0 rifle
-1131 fire 0 rifle
-1132 fire 3 rifle
-1133 hit 0 rifle prop
-1133 fire 3 rifle
-1134 hit 0 rifle ground
-1135 hit 3 rifle prop
-1135 hit 3 rifle ground
+1133 hit 0 rifle ground
+1134 fire 4 rifle
+1136 hit 4 rifle ground
+1136 fire 3 rifle
+1138 hit 3 rifle prop
 1140 fire 1 rifle
-1140 fire 3 rifle
-1141 hit 1 rifle ground
-1141 fire 3 rifle
-1142 fire 4 rifle
-1143 hit 4 rifle prop
-1143 hit 3 rifle soldier of 4
-1144 hit 3 rifle ground
-1144 fire 0 rifle
-1144 fire 0 rifle
-1145 fire 3 rifle
-1146 fire 3 rifle
-1147 hit 0 rifle prop
-1147 hit 0 rifle prop
-1148 hit 3 rifle prop
-1149 hit 3 rifle soldier of 1
-1150 fire 3 rifle
+1144 hit 1 rifle prop
+1146 fire 4 rifle
+1147 fire 4 rifle
+1148 fire 0 rifle
+1149 hit 4 rifle prop
+1149 hit 4 rifle soldier of 1
+1149 fire 3 rifle
+1150 hit 0 rifle ground
+1151 hit 3 rifle prop
 1153 fire 1 rifle
 1153 fire 3 rifle
-1154 hit 3 rifle prop
-1154 hit 1 rifle soldier of 0
-1155 fire 4 rifle
-1157 hit 3 rifle ground
-1157 hit 4 rifle soldier of 1
+1154 hit 1 rifle ground
+1154 fire 3 rifle
+1155 fire 3 rifle
+1156 hit 3 rifle prop
+1157 hit 3 rifle prop
 1157 fire 0 rifle
-1158 fire 3 rifle
-1160 hit 0 rifle prop
-1161 hit 3 rifle ground
-1162 fire 0 rifle
-1163 hit 0 rifle soldier of 4
-1163 fell 4 soldier 6
-1163 fire 3 rifle
-1165 fire 1 rifle
-1166 hit 1 rifle soldier of 0
-1166 fire 1 rifle
+1158 fire 1 rifle
+1159 hit 0 rifle soldier of 4
+1159 hit 3 rifle ground
+1159 fire 4 rifle
+1161 fire 0 rifle
+1162 hit 1 rifle prop
+1163 hit 4 rifle ground
+1163 hit 0 rifle ground
 1166 fire 3 rifle
-1167 hit 1 rifle prop
-1167 hit 3 rifle soldier of 1
-1168 hit 3 rifle prop
+1167 fire 3 rifle
 1168 fire 1 rifle
-1168 fire 4 rifle
-1170 hit 4 rifle soldier of 0
-1172 hit 1 rifle prop
-1175 fire 0 rifle
-1176 fire 3 rifle
-1177 hit 0 rifle prop
-1178 fire 1 rifle
-1179 hit 1 rifle soldier of 0
-1180 hit 3 rifle soldier of 1
+1168 fire 3 rifle
+1169 hit 1 rifle prop
+1170 hit 3 rifle prop
+1170 hit 3 rifle ground
+1170 fire 0 rifle
+1171 fire 1 rifle
+1172 hit 0 rifle prop
+1172 hit 3 rifle soldier of 1
+1172 fire 1 rifle
+1172 fire 4 rifle
+1173 hit 1 rifle soldier of 0
+1173 fire 0 rifle
+1173 fire 1 rifle
+1174 hit 1 rifle prop
+1174 hit 4 rifle ground
+1174 fire 0 rifle
+1174 fire 1 rifle
+1175 hit 1 rifle prop
+1175 hit 1 rifle ground
+1175 hit 0 rifle ground
+1176 hit 0 rifle ground
+1178 fire 4 rifle
+1179 fire 3 rifle
+1179 fire 3 rifle
+1180 hit 4 rifle soldier of 0
+1180 fire 3 rifle
 1181 fire 1 rifle
-1183 fire 1 rifle
-1184 hit 1 rifle prop
+1181 fire 3 rifle
+1183 hit 3 rifle prop
+1183 hit 3 rifle ground
+1183 hit 3 rifle soldier of 1
+1183 fire 0 rifle
+1184 hit 0 rifle prop
+1184 fire 1 rifle
 1185 hit 1 rifle prop
-1187 fire 0 rifle
-1188 fire 0 rifle
-1188 fire 3 rifle
-1189 hit 0 rifle soldier of 4
-1189 fire 3 rifle
-1190 hit 0 rifle prop
-1191 hit 3 rifle ground
-1191 fire 1 rifle
-1192 hit 3 rifle ground
-1192 hit 1 rifle soldier of 0
+1185 hit 3 rifle ground
+1185 fire 1 rifle
+1185 fire 3 rifle
+1186 hit 1 rifle ground
+1186 fire 0 rifle
+1186 fire 1 rifle
+1186 fire 3 rifle
+1187 hit 3 rifle ground
+1187 hit 0 rifle prop
+1187 fire 1 rifle
+1188 hit 1 rifle soldier of 3
+1189 hit 3 rifle prop
+1190 hit 1 rifle prop
+1191 hit 1 rifle prop
+1191 fire 4 rifle
+1192 fire 3 rifle
+1193 hit 4 rifle prop
 1194 fire 1 rifle
-1194 fire 3 rifle
-1196 fire 1 rifle
-1196 fire 1 rifle
-1197 hit 1 rifle soldier of 0
-1197 hit 1 rifle soldier of 0
-1197 hit 3 rifle ground
-1197 fire 1 rifle
-1198 hit 1 rifle prop
-1200 fire 0 rifle
-1201 hit 1 rifle soldier of 3
+1195 hit 1 rifle soldier of 0
+1195 hit 3 rifle soldier of 0
+1198 fire 1 rifle
+1198 fire 3 rifle
+1198 fire 3 rifle
+1199 hit 1 rifle ground
+1199 fire 0 rifle
+1199 fire 1 rifle
+1199 fire 3 rifle
+1200 hit 3 rifle prop
+1200 fire 1 rifle
+1201 hit 1 rifle ground
+1201 hit 3 rifle soldier of 0
+1201 hit 1 rifle prop
 1201 hit 0 rifle prop
-1201 fire 3 rifle
-1202 fire 3 rifle
-1205 hit 3 rifle ground
-1205 hit 3 rifle prop
-1207 fire 3 rifle
-1209 fire 1 rifle
-1209 fire 1 rifle
-1210 hit 1 rifle soldier of 0
-1210 hit 1 rifle soldier of 0
-1210 fire 1 rifle
-1211 hit 3 rifle ground
-1213 fire 0 rifle
-1214 hit 1 rifle prop
-1214 hit 0 rifle prop
-1214 fire 3 rifle
-1215 fire 3 rifle
-1218 hit 3 rifle ground
-1219 hit 3 rifle soldier of 0
-1220 fire 3 rifle
-1222 fire 0 rifle
-1222 fire 1 rifle
-1223 hit 1 rifle soldier of 0
-1223 hit 0 rifle prop
-1223 fire 1 rifle
-1224 hit 3 rifle soldier of 1
-1225 fire 1 rifle
-1226 hit 1 rifle soldier of 0
-1227 hit 1 rifle prop
-1228 fire 3 rifle
+1203 hit 3 rifle ground
+1204 fire 3 rifle
+1204 fire 4 rifle
+1205 fire 3 rifle
+1206 hit 4 rifle ground
+1206 hit 3 rifle ground
+1208 hit 3 rifle prop
+1209 fire 4 rifle
+1211 hit 4 rifle prop
+1211 fire 3 rifle
+1211 fire 3 rifle
+1212 fire 3 rifle
+1213 hit 3 rifle prop
+1213 fire 1 rifle
+1214 hit 3 rifle soldier of 0
+1215 hit 3 rifle soldier of 0
+1215 fire 4 rifle
+1216 fire 0 rifle
+1217 hit 1 rifle prop
+1217 fire 3 rifle
+1217 fire 4 rifle
+1218 hit 0 rifle soldier of 4
+1218 hit 4 rifle soldier of 0
+1219 hit 3 rifle soldier of 4
+1219 hit 4 rifle ground
+1222 fire 4 rifle
+1223 hit 4 rifle ground
+1224 fire 3 rifle
+1224 fire 3 rifle
+1225 fire 3 rifle
+1226 hit 3 rifle prop
+1226 hit 3 rifle prop
+1226 fire 1 rifle
+1228 hit 3 rifle soldier of 1
 1228 fire 4 rifle
-1229 hit 4 rifle prop
-1231 fire 3 rifle
-1232 hit 3 rifle soldier of 1
-1234 hit 3 rifle soldier of 0
-1234 fire 0 rifle
-1235 fire 0 rifle
-1237 hit 0 rifle prop
-1238 hit 0 rifle prop
-1238 fire 1 rifle
+1229 fire 0 rifle
+1230 hit 1 rifle prop
+1230 fire 3 rifle
+1230 fire 4 rifle
+1231 hit 4 rifle ground
+1231 hit 0 rifle soldier of 4
+1232 hit 4 rifle soldier of 0
+1234 hit 3 rifle prop
+1234 fire 1 rifle
+1235 hit 1 rifle soldier of 0
+1235 fire 4 rifle
+1237 hit 4 rifle prop
+1237 fire 0 rifle
+1237 fire 3 rifle
 1238 fire 3 rifle
-1239 hit 1 rifle soldier of 0
-1240 hit 3 rifle prop
-1240 fire 3 rifle
-1241 fire 3 rifle
+1239 hit 0 rifle soldier of 4
+1239 hit 3 rifle prop
+1239 fire 1 rifle
+1241 hit 3 rifle prop
 1241 fire 4 rifle
-1242 hit 4 rifle prop
-1244 hit 3 rifle ground
-1244 fire 3 rifle
-1244 fire 3 rifle
-1245 hit 3 rifle ground
-1246 fire 0 rifle
-1247 hit 3 rifle prop
-1247 fire 0 rifle
-1248 hit 3 rifle soldier of 1
-1248 fire 0 rifle
-1249 hit 0 rifle prop
-1249 hit 0 rifle soldier of 4
-1250 hit 0 rifle prop
-1251 fire 1 rifle
+1242 fire 0 rifle
+1242 fire 3 rifle
+1243 hit 1 rifle prop
+1243 fire 4 rifle
+1244 hit 4 rifle soldier of 0
+1245 hit 4 rifle ground
+1245 fire 1 rifle
+1245 fire 3 rifle
+1246 hit 1 rifle soldier of 0
+1246 hit 0 rifle prop
+1246 hit 3 rifle ground
+1247 fire 1 rifle
+1248 hit 3 rifle ground
+1250 fire 0 rifle
+1250 fire 3 rifle
 1251 fire 3 rifle
+1252 hit 3 rifle ground
 1253 hit 1 rifle prop
-1253 hit 3 rifle prop
-1253 fire 3 rifle
-1254 fire 3 rifle
-1254 fire 4 rifle
-1255 hit 4 rifle prop
-1257 hit 3 rifle soldier of 1
-1257 fire 1 rifle
-1257 fire 3 rifle
-1257 fire 3 rifle
-1257 fire 4 rifle
-1258 hit 1 rifle soldier of 0
-1258 hit 3 rifle soldier of 1
-1259 hit 4 rifle prop
-1259 fire 0 rifle
-1260 hit 3 rifle prop
-1260 hit 3 rifle prop
-1260 fire 0 rifle
-1260 fire 3 grenade
-1262 hit 0 rifle soldier of 4
-1262 fell 4 soldier 7
-1263 hit 0 rifle ground
-1264 fire 3 rifle
-1266 hit 3 rifle prop
-1266 fire 1 rifle
-1266 fire 3 rifle
-1266 fire 3 rifle
-1268 hit 1 rifle prop
-1269 hit 3 rifle soldier of 0
-1270 hit 3 rifle soldier of 1
-1270 fire 1 rifle
-1270 fire 3 rifle
-1271 hit 1 rifle prop
-1272 fire 0 rifle
-1273 hit 3 rifle ground
-1275 hit 0 rifle prop
-1279 fire 1 rifle
-1279 fire 3 rifle
-1283 hit 1 rifle prop
-1283 hit 3 rifle ground
-1283 fire 1 rifle
-1284 hit 1 rifle soldier of 0
-1285 hit 3 grenade ground
+1253 hit 0 rifle ground
+1254 hit 3 rifle prop
+1255 fire 3 rifle
+1256 fire 0 rifle
+1257 hit 0 rifle soldier of 4
+1258 fire 1 rifle
+1258 fire 3 rifle
+1259 hit 1 rifle soldier of 0
+1259 hit 3 rifle ground
+1260 fire 1 rifle
+1261 hit 1 rifle soldier of 0
+1262 hit 3 rifle soldier of 1
+1263 fire 0 rifle
+1265 hit 0 rifle soldier of 4
+1265 fell 4 soldier 6
+1268 fire 3 rifle
+1269 fire 0 rifle
+1269 fire 1 rifle
+1270 hit 1 rifle soldier of 0
+1271 hit 0 rifle prop
+1271 fire 1 rifle
+1271 fire 3 rifle
+1272 hit 1 rifle soldier of 0
+1272 hit 3 rifle soldier of 1
+1274 fire 0 rifle
+1274 fire 1 rifle
+1275 hit 3 rifle soldier of 1
+1275 hit 1 rifle ground
+1276 fire 0 rifle
+1277 hit 0 rifle ground
+1277 hit 0 rifle ground
+1277 fire 3 rifle
+1279 hit 3 rifle prop
+1280 fire 1 rifle
+1281 hit 1 rifle soldier of 0
+1282 fire 0 rifle
+1282 fire 1 rifle
+1283 hit 1 rifle soldier of 0
+1283 hit 0 rifle prop
 1287 fire 0 rifle
-1288 hit 0 rifle prop
+1287 fire 1 rifle
+1288 hit 1 rifle prop
+1289 hit 0 rifle soldier of 4
+1289 fire 0 rifle
+1289 fire 3 rifle
+1290 hit 0 rifle prop
+1290 fire 3 rifle

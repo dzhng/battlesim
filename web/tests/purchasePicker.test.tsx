@@ -122,7 +122,7 @@ test("resting the pointer on a category tab switches to it, without a click", ()
   expect(view.getByRole("group", { name: "M1 Abrams variants" })).toBeTruthy();
 });
 
-test("purchase availability follows observed credits and reserved slots", () => {
+test("purchase availability follows observed credits and the unit cap's reserved room", () => {
   const choose = vi.fn();
   const props = {
     cards: [card("base", "SEP v2")],
@@ -131,7 +131,7 @@ test("purchase availability follows observed credits and reserved slots", () => 
     rules: RULES,
   };
   // A one-variant family is bought by clicking it, once it is affordable
-  // and a slot is free.
+  // and the unit cap has room.
   const view = render(
     <PurchasePicker
       {...props}

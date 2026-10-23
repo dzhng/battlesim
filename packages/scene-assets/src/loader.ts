@@ -133,8 +133,7 @@ export class AppearanceLibrary {
   private current: InstalledAppearances | null = null;
   /** What the installed generation was loaded from: where its kits are. */
   private source: Source | null = null;
-  /** Appearances on their way after the load, by bundle hash: two askers
-   *  share one fetch. */
+  /** Repeated requests for the same appearance and source share one load. */
   private readonly arriving = new Map<string, Promise<InstalledAppearance>>();
 
   constructor(fetcher: Fetch = (url) => fetch(url)) {
@@ -403,12 +402,12 @@ export class AppearanceLibrary {
     name: string,
     fetch: () => Promise<InstalledAppearance>,
   ): Promise<InstalledAppearance> {
-    const bundle = source.catalog.appearances[name].bundle;
-    let arriving = this.arriving.get(bundle);
+    const key = `${name}:${source.catalog.appearances[name].bundle}`;
+    let arriving = this.arriving.get(key);
     if (!arriving) {
       arriving = fetch();
-      const settled = () => this.arriving.delete(bundle);
-      this.arriving.set(bundle, arriving);
+      const settled = () => this.arriving.delete(key);
+      this.arriving.set(key, arriving);
       arriving.then(settled, settled);
     }
     return arriving;

@@ -125,6 +125,8 @@ export interface ContactFacing {
   right: readonly [number, number, number];
   up: readonly [number, number, number];
   stroke: StrokeWidth;
+  /** Body size follows CSS zoom, independently of the render-pixel stroke floor. */
+  size: StrokeWidth;
 }
 
 type P2 = readonly [number, number];
@@ -279,8 +281,8 @@ function aloft(
   facing: ContactFacing,
 ) {
   const { air } = s;
-  const { stroke } = facing;
-  const radius = Math.min(Math.max(c.radius, stroke(air.min_radius_px)), stroke(air.max_radius_px));
+  const { size } = facing;
+  const radius = Math.min(Math.max(c.radius, size(air.min_radius_px)), size(air.max_radius_px));
   const at: P3 = [c.center[0], c.center[1], c.center[2] ?? 0];
   draw(
     facingPen(mesh, at, facing),

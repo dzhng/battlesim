@@ -32,7 +32,8 @@ export function outcome(result: NonNullable<SkirmishView["result"]>, viewer: Sid
 
 /** Match authority publishes both teams' progress; territory funds victory
  *  only. `viewer` is the side of the human the client plays, null when it
- *  watches. */
+ *  watches; a watching client reads the match as Blue, whose observation it
+ *  sees. Scores are published Blue then Red. */
 export function SkirmishStatus({
   match,
   viewer,
@@ -40,6 +41,8 @@ export function SkirmishStatus({
   match: NonNullable<ObservationView["skirmish"]>;
   viewer: SideName | null;
 }) {
+  const ours: SideName = viewer ?? "blue";
+  const [own, enemy] = ours === "blue" ? match.scores : [match.scores[1], match.scores[0]];
   return (
     <>
       {match.phase === "preparation" ? (
@@ -49,10 +52,10 @@ export function SkirmishStatus({
       ) : (
         <>
           <span className="hud-score" aria-label="Your victory score">
-            {Math.floor(match.scores[0])} / 1,000
+            {Math.floor(own)} / 1,000
           </span>
           <span className="hud-score hud-score-enemy" aria-label="Enemy victory score">
-            {Math.floor(match.scores[1])} / 1,000
+            {Math.floor(enemy)} / 1,000
           </span>
         </>
       )}
@@ -67,7 +70,7 @@ export function SkirmishStatus({
             key={objective.id}
             data-owner={objective.owner ?? "neutral"}
             data-contested={objective.contested}
-            aria-label={`Objective ${index + 1}: ${objective.contested ? "contested" : objective.owner === "blue" ? "yours" : objective.owner === "red" ? "enemy" : "neutral"}`}
+            aria-label={`Objective ${index + 1}: ${objective.contested ? "contested" : objective.owner === ours ? "yours" : objective.owner ? "enemy" : "neutral"}`}
           >
             <Icon path={hudIcon("objective")} />
             {index + 1}

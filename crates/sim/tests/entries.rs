@@ -66,3 +66,27 @@ fn retire_at_accepts_any_entry_on_the_side() {
     assert!(entries::retire_at(&sites, Side::Blue, [80.0, 30.0], 2.0));
     assert!(!entries::retire_at(&sites, Side::Blue, [50.0, 30.0], 2.0));
 }
+
+#[test]
+fn every_synthetic_side_lists_its_centre_road_first_then_flanks_left_to_right() {
+    let width = 900.0;
+    for roads in 1..=3 {
+        let sites = sim::skirmish::synthetic_sites([width, 600.0], roads);
+        for side in Side::COMBATANTS {
+            let xs: Vec<f64> = sites
+                .entries
+                .iter()
+                .filter(|entry| entry.side == side)
+                .map(|entry| entry.center[0])
+                .collect();
+            assert_eq!(xs.len(), roads, "{side:?}");
+            let centre = entries::site(&sites, entries::centre(&sites, side)).center[0];
+            assert_eq!(xs[0], width / 2.0, "{roads} roads, {side:?} first entry");
+            assert_eq!(centre, width / 2.0, "{roads} roads, {side:?} centre entry");
+            assert!(
+                xs[1..].windows(2).all(|pair| pair[0] < pair[1]),
+                "{roads} roads, {side:?} flanks left to right: {xs:?}"
+            );
+        }
+    }
+}

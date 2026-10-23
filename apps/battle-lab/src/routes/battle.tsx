@@ -3,7 +3,6 @@ import { usePageVisitActive } from "../navigation";
 // /battle: a prepared battle, in the battle view every battle plays in. Its
 // address names one exact battle, prepared as asked or refused.
 import { useEffect, useMemo, useRef, useState } from "react";
-import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
 import { prepareBattle, PreparationFailed, type PreparedSession } from "@web/battle/prepare/client";
@@ -12,7 +11,7 @@ import type {
   PrepareStage,
   RefusalStage,
 } from "@web/battle/prepare/protocol";
-import { generationRequest, type MapChoice } from "@web/maps/source";
+import type { MapChoice } from "@web/maps/source";
 import { askedBattle, menuHref, spoken, type AskedBattle } from "../battleLinks";
 import { BattleClock } from "../battleStatus";
 import { BattleView, type BattleLoadStage } from "../BattleView";
@@ -29,9 +28,7 @@ import { useSessionCatalog } from "@web/battle/catalog/context";
 import { gameCamera } from "../gameCamera";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
-import { entryCountForPlayers } from "../skirmishSetup";
-
-const GENERATOR = { presets, templates };
+import { skirmishRequest } from "../skirmishSetup";
 
 /** The generated map a request asks for. */
 const generatedChoice = (request: PrepareBattleRequest): MapChoice => request.map_source.request;
@@ -121,27 +118,7 @@ export default function Battle() {
 /** The request for what the address asks, pinned to this build's generator,
  *  presets and catalogue. */
 function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "replay" }> }) {
-  const request = useBuiltScenario(
-    asked,
-    (wasm, a): PrepareBattleRequest => ({
-      map_source: {
-        kind: "generated",
-        request: generationRequest(
-          wasm,
-          {
-            ...a.map,
-            profile: "skirmish",
-            seed: a.map.seed,
-            entries_per_side: entryCountForPlayers(a.players),
-          },
-          GENERATOR,
-          config.limits,
-        ),
-      },
-      players: a.players,
-      battle_seed: a.battleSeed,
-    }),
-  );
+  const request = useBuiltScenario(asked, skirmishRequest);
   if (!request) return null;
   if (buildFailed(request))
     return (
@@ -272,7 +249,6 @@ function PreparedBattleView({
       replay={replay?.replay}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
-      spawn={prepared.report.start.at}
       cover={cover}
       onFailure={(error) =>
         setFailure(

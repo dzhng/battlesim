@@ -20,8 +20,7 @@ import type { PreparationReport } from "@web/battle/prepare/protocol";
 
 export type RunStage = "preparing" | "running" | "finishing";
 
-/** The battle frame's GPU time is a rolling window of its last 240 frames:
- *  about 2 s at 120 Hz, so readings this far apart barely overlap. */
+/** Read and reset disjoint GPU windows; phase changes also end a window. */
 const STATS_EVERY_MS = 2000;
 
 const poseOf = (c: Camera3DParams): CameraPose => ({
@@ -50,6 +49,8 @@ export function createBenchmarkRun(
   let warm = false;
   let identity: BenchmarkIdentity | null = null;
   let stats: FrameStats | null = null;
+  let resetGpuTiming: (() => void) | null = null;
+  let gpuPhase = sampleTour(scenario.tour, 0, durationMs).phase;
   let lastTick = scenario.startTick;
   let lastStatsAt = 0;
   let elapsedMs = 0;
@@ -65,6 +66,7 @@ export function createBenchmarkRun(
       memory: s.memory,
       heapBytes: heapBytes(),
     });
+    resetGpuTiming?.();
   };
 
   const finish = (outcome: BenchmarkOutcome) => {
@@ -89,6 +91,7 @@ export function createBenchmarkRun(
   const pilot: ViewportPilot = {
     attach(frame) {
       stats = frame.stats;
+      resetGpuTiming = frame.resetGpuTiming;
       identity = {
         userAgent: navigator.userAgent,
         adapter: frame.adapter,
@@ -97,14 +100,20 @@ export function createBenchmarkRun(
         dpr: window.devicePixelRatio,
       };
     },
-    pose: (now) => sampleTour(scenario.tour, recording.elapsed(now), durationMs).pose,
+    pose(now) {
+      const sample = sampleTour(scenario.tour, recording.elapsed(now), durationMs);
+      if (stage === "running" && sample.phase !== gpuPhase) {
+        sampleStats(now, gpuPhase);
+        gpuPhase = sample.phase;
+      }
+      return sample.pose;
+    },
     frame({ now, cpuMs, camera }) {
       if (stage === "preparing") {
         if (!warm) return;
-        // This frame opens the window; the next one is the first interval.
-        // The frame's GPU window still holds warm-up frames: first reading
-        // is one window later.
+        // The next drawn frame begins both CPU intervals and the GPU window.
         recording.start(now);
+        resetGpuTiming?.();
         stage = "running";
         lastStatsAt = now;
         return;

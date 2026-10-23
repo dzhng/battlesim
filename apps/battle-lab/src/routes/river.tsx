@@ -1,3 +1,4 @@
+import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
 import { useCallback, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
@@ -91,10 +92,26 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
   const worldFeed = useFeed(drawn);
   const { observation } = sim;
 
+  const [renderScale, setRenderScale] = useState(1);
   const orders = useMemo(() => {
     if (!world || !observation) return undefined;
-    return orderLayer(session.units, observation, control.selected, session.revealed, surfaceZ);
-  }, [world, observation, control.selected, session.revealed, surfaceZ, session.units]);
+    return orderLayer(
+      session.units,
+      observation,
+      control.selected,
+      session.revealed,
+      surfaceZ,
+      gameStroke(OPENING_METRES_PER_PX, renderScale),
+    );
+  }, [
+    renderScale,
+    world,
+    observation,
+    control.selected,
+    session.revealed,
+    surfaceZ,
+    session.units,
+  ]);
   const overlayFeed = useFeed(orders);
 
   const runDemo = useCallback(
@@ -136,6 +153,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
         {...session.viewport}
         initialCamera={RIVER_CAMERA}
         {...session.input}
+        onFrame={(_project, _camera, _pointer, scale) => setRenderScale(scale)}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="river-panel">

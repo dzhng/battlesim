@@ -1,8 +1,4 @@
-//! The `Presentation`: one side's publications in, a [`Frame`] of records
-//! out per drawn frame. It runs the browser's per-frame chain in one place:
-//! interpolation, the pose feed and driver, the drawn models' parts, the
-//! effects and the cook-offs, then chooses by the camera what is drawn and
-//! at which tier, and writes the batches, instances and palettes.
+//! One side's publications into a frame of poses, effects, batches and palettes.
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -27,14 +23,15 @@ use crate::records::{
     Joint, Pick, View as ViewRecord, GHOST_PASS, HIGH_PASS, NONE, VIEW_PASS,
 };
 use crate::scars::{LearnedGround, ScarCache, ScarStats, ScarUpload, MAX_AXIS};
-use crate::shadow::{sun_shadow, SunShadowFrame};
+use crate::shadow::{ReceiverStats, ShadowFit, SunShadowFrame};
 use crate::sound::frame::{Cue, Heard, Listener, Motion, Shout};
-use crate::static_world::batches::{Population, StaticBatches, Sun};
+use crate::static_world::batches::{Population, StaticBatches};
 use crate::static_world::buildings::{Buildings, PlacedBuildings};
 use crate::static_world::fallen::{Knowledge, Known};
 use crate::static_world::ground::biome::Biome;
 use crate::static_world::ground::grass::{frame_params, metres_per_pixel, Window};
 use crate::static_world::ground::kinds;
+use crate::static_world::ground::partition::TerrainPartition;
 use crate::static_world::ground::walk::{
     Cleared, Draws, FelledTree, Quality as SceneryQuality, SceneryPopulation, SceneryWalk, DRAWS,
 };
@@ -204,7 +201,9 @@ struct Loaded {
     cook_offs: CookOffs,
     transits: TransitHistory,
     pieces: Vec<PlacedModel>,
-    /// The last publication as sound reads it.
+    shadows: Vec<GroundShadow>,
+    indoor: Vec<f64>,
+    allied: Vec<f64>,
     sound: Option<(EffectPublication, Vec<Launch>)>,
     shadow_fall: [f64; 2],
     locals: Vec<Trs>,
@@ -227,7 +226,6 @@ pub struct Presentation {
     knowledge: Knowledge,
     fallen: Vec<(usize, usize)>,
     known_from: KnownFrom,
-    sun: Option<Sun>,
     statics: StaticBatches,
     /// The map's ground (`set_ground`), and its scenery's walk once placed.
     ground: Option<Ground>,
@@ -248,9 +246,8 @@ pub struct Presentation {
     frame: Frame,
     /// The camera the last frame was asked for.
     camera: Option<Camera>,
-    /// The light the sun's cascades are fitted under, and the map's box
-    /// they fit over (`set_shadow`).
-    shadow: Option<(LightSettings, Option<[f64; 6]>)>,
+    /// Immutable receiver inputs and cached fit.
+    shadow: Option<ShadowFit>,
     /// The side's learned ground (none without a layout), and its scars as
     /// the renderer holds them.
     learned: Option<LearnedGround>,
@@ -354,7 +351,6 @@ impl Presentation {
             knowledge: Knowledge::default(),
             fallen: Vec::new(),
             known_from: KnownFrom::Unread,
-            sun: None,
             statics: StaticBatches::default(),
             ground: None,
             scenery: None,
@@ -467,8 +463,9 @@ impl Presentation {
         tables: ClipTables,
         buildings: Option<PlacedBuildings>,
     ) -> Result<(), String> {
-        // Every drawable a frame may name, so the renderer loads them once;
-        // the buildings' first, a row per walked module.
+        if let Some(fit) = &mut self.shadow {
+            fit.invalidate();
+        }
         self.world = World::default();
         self.fallen.clear();
         self.known_from = KnownFrom::Unread;
@@ -525,11 +522,6 @@ impl Presentation {
                 .map(|(name, state, draws)| world.drawn_row(name, state, NONE, 0, true, *draws))
                 .collect();
         }
-        self.sun = input.cascade_far_m.map(|far_m| Sun {
-            azimuth: input.sun_azimuth,
-            elevation: input.sun_elevation,
-            far_m,
-        });
         self.statics.invalidate();
         self.loaded = None;
         let (azimuth, elevation) = (input.sun_azimuth, input.sun_elevation);
@@ -588,6 +580,9 @@ impl Presentation {
             cook_offs: CookOffs::new(self.tick_hz),
             transits: TransitHistory::default(),
             pieces: Vec::new(),
+            shadows: Vec::new(),
+            indoor: Vec::new(),
+            allied: Vec::new(),
             sound: None,
             shadow_fall,
             locals: Vec::new(),
@@ -1047,7 +1042,7 @@ impl Presentation {
     }
 
     /// The props' bodies and models (`PropPopulation::stats`); none without props.
-    pub fn prop_stats(&self) -> Option<[usize; 5]> {
+    pub fn prop_stats(&self) -> Option<[usize; 6]> {
         self.props.as_ref().map(PropPopulation::stats)
     }
 
@@ -1115,10 +1110,14 @@ impl Presentation {
         frame_params(words, view_proj, c.eye, metres_per_px, window);
     }
 
-    /// Fits the sun's cascades under `light` over the map's box (none: just
-    /// past the near plane) from the next frame on; none fits none.
-    pub fn set_shadow(&mut self, shadow: Option<(LightSettings, Option<[f64; 6]>)>) {
-        self.shadow = shadow;
+    pub fn shadow_stats(&self) -> ReceiverStats {
+        self.shadow.as_ref().map_or_default(|fit| fit.stats)
+    }
+
+    /// Install local receiver terrain and light; none disables shadows.
+    pub fn set_shadow(&mut self, shadow: Option<(LightSettings, Arc<TerrainPartition>)>) {
+        self.shadow = shadow.map(ShadowFit::new);
+        self.statics.rewalk();
     }
 
     /// Wanted dressing cells are still to be laid: frame again before
@@ -1132,8 +1131,8 @@ impl Presentation {
         self.scenery.as_ref().is_some_and(|w| w.falling)
     }
 
-    /// Instances placed per scenery population and dressing cells drawn.
-    pub fn scenery_stats(&self) -> Option<[usize; 4]> {
+    /// Scenery populations, query visits and known-fall work.
+    pub fn scenery_stats(&self) -> Option<[usize; 8]> {
         self.scenery.as_ref().map(SceneryWalk::stats)
     }
 
@@ -1343,10 +1342,7 @@ impl Presentation {
         let view = View::new(camera);
         f.view = view.record(camera);
         f.camera = view.camera(camera, time);
-        f.shadow = self
-            .shadow
-            .as_ref()
-            .map(|(light, map_box)| sun_shadow(light, camera, map_box.as_ref()));
+        f.shadow = self.shadow.as_mut().map(|fit| fit.frame(camera));
         self.follow_felled(time);
         self.follow_cleared();
         // A wreck the cook-off draws moving is left out of the props until
@@ -1373,14 +1369,8 @@ impl Presentation {
             populations.push(p);
         }
         let f = &mut self.frame;
-        self.statics.write(
-            &mut populations,
-            camera,
-            &view,
-            self.sun.as_ref(),
-            generation,
-            f,
-        );
+        self.statics
+            .write(&mut populations, camera, &view, generation, f);
         let (Some(loaded), Some(sample)) = (self.loaded.as_mut(), self.interpolator.frame(time))
         else {
             return Ok(&self.frame);
@@ -1446,6 +1436,9 @@ impl Loaded {
             cook_offs,
             transits,
             pieces,
+            shadows,
+            indoor,
+            allied,
             shadow_fall,
             worlds,
             locals,
@@ -1471,19 +1464,21 @@ impl Loaded {
                     .iter()
                     .map(|t| (&*t.kind, side, 0.0, t.position, t.heading)),
             );
-        // A high-air aircraft's shadow lies on the ground beneath it.
         let style = effects.presentation().high_air_shadow;
-        let shadows: Vec<GroundShadow> = flying
-            .filter(|(kind, ..)| units.types.get(*kind).is_some_and(|t| t.high_air()))
-            .filter_map(|(kind, on, unit, at, yaw)| {
-                let name = units.resolve(kind, on, unit, 0, None, None)?;
-                let Some(Appearance::Articulated { plan, .. }) = units.appearances.get(name) else {
-                    return None;
-                };
-                Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
-            })
-            .collect();
-        effects.build(time, batch, Some(drawn), &rotors, &shadows);
+        shadows.clear();
+        shadows.extend(
+            flying
+                .filter(|(kind, ..)| units.types.get(*kind).is_some_and(|t| t.high_air()))
+                .filter_map(|(kind, on, unit, at, yaw)| {
+                    let name = units.resolve(kind, on, unit, 0, None, None)?;
+                    let Some(Appearance::Articulated { plan, .. }) = units.appearances.get(name)
+                    else {
+                        return None;
+                    };
+                    Some(high_air_ground_shadow(at, yaw, *plan, height, &style))
+                }),
+        );
+        effects.build(time, batch, Some(drawn), &rotors, shadows);
         let counts = effects.counts(time, batch);
         f.light_wrap = batch.lights.wrap as f32;
         lights.pack(&batch.lights, view);
@@ -1495,24 +1490,22 @@ impl Loaded {
         detail.lod_px = detail.lod_px.map(|v| v * unit_scale);
         let xray = input.xray;
         let o = &sample.observation;
-        let indoor: Vec<f64> = o
-            .own
-            .iter()
-            .filter(|u| u.hold.as_ref().is_some_and(|h| &*h.phase != "entering"))
-            .map(|u| u.id)
-            .collect();
-        // The side's units another player owns: its allies'.
-        let allied: Vec<f64> = match ui.player {
-            Some(player) => o
-                .own
+        indoor.clear();
+        indoor.extend(
+            o.own
                 .iter()
-                .filter(|u| u.owner.is_some_and(|owner| owner != f64::from(player)))
-                .map(|u| u.id)
-                .collect(),
-            None => Vec::new(),
-        };
-        // Own units the world hides draw through it, the selection in its
-        // colour and an ally's in the ally's.
+                .filter(|u| u.hold.as_ref().is_some_and(|h| &*h.phase != "entering"))
+                .map(|u| u.id),
+        );
+        allied.clear();
+        if let Some(player) = ui.player {
+            allied.extend(
+                o.own
+                    .iter()
+                    .filter(|u| u.owner.is_some_and(|owner| owner != f64::from(player)))
+                    .map(|u| u.id),
+            );
+        }
         let colour_of = |unit_side: &str, unit: f64| -> [f64; 4] {
             if !ui.xray || unit_side != side || indoor.contains(&unit) {
                 [0.0; 4]
@@ -1881,17 +1874,24 @@ fn batches(models: &mut [Model], f: &mut Frame) {
     models.sort_by_key(run_of);
     for run in models.chunk_by(|a, b| run_of(a) == run_of(b)) {
         let m = &run[0];
+        let caster = batch_caster(m.tier, m.pass);
+        let cascade_mask = if caster == NONE {
+            0
+        } else {
+            crate::shadow::ALL_CASCADES
+        };
         f.batches.push(Batch {
-            key: (m.row << 8) | (m.tier << 4) | m.pass,
+            key: crate::view::batch_key(m.row, m.tier, m.pass, cascade_mask),
             appearance: m.row,
             tier: m.tier,
             pass: m.pass,
-            caster: batch_caster(m.tier, m.pass),
+            caster,
+            cascade_mask,
             fog: m.fog,
             version: f.index,
             first: f.instances.len() as u32,
             count: run.len() as u32,
-            pad: [0; 3],
+            pad: [0; 2],
         });
         let fract = |v: f64| (v - v.floor()) as f32;
         f.instances.extend(run.iter().map(|m| Instance {

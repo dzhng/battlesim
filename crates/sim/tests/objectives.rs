@@ -58,7 +58,10 @@ fn an_uncontested_ground_unit_captures_after_twenty_seconds_and_scores_without_c
     let status = battle.observe(Side::Blue).skirmish.as_ref().unwrap();
     assert!((status.scores[0] - 10.0).abs() < 1e-9);
     assert_eq!(status.scores[1], 0.0);
-    assert!((status.credits - (800.0 + (56.0 - 1.0 / hz as f64) * 200.0 / 60.0)).abs() < 1e-6);
+    assert!(
+        (status.players[0].credits - (800.0 + (56.0 - 1.0 / hz as f64) * 200.0 / 60.0)).abs()
+            < 1e-6
+    );
 }
 
 #[test]
@@ -145,6 +148,7 @@ fn objective_transitions_replay_and_have_a_paired_browser_record() {
         command(Side::Red, 1, Order::Ready),
     ];
     let mut battle = Battle::new(&setup, 1);
+    crate::common::hand_red_to_human(&mut battle);
     for c in &commands {
         assert!(battle.accept(c.clone()).error.is_none());
     }

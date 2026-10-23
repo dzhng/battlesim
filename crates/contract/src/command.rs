@@ -258,8 +258,8 @@ pub enum OrderError {
     },
     /// A player-owned scenario command omitted its player.
     MissingPlayer,
-    /// The player's slot is under AI control, so only its controller orders
-    /// its units: a client keeps no seat in an AI-only or taken-over slot.
+    /// The player is under AI control, so only its controller orders its
+    /// units: a client commands no AI player, nor one the AI took over.
     AiControlled,
     OutOfBounds,
     /// No unit has a place to stand there that it can reach.
@@ -301,6 +301,45 @@ pub enum OrderError {
 }
 
 impl OrderError {
+    /// The order broke the command contract: its sender could have seen the
+    /// refusal coming from what it was shown (its own units, its contacts,
+    /// the map, its sequence). Any other refusal is the world's state at the
+    /// tick the order is judged (credits, the order rate, room to stand or
+    /// enter), which a sender with a correct view still meets.
+    pub const fn is_malformed(&self) -> bool {
+        match self {
+            Self::PassiveSide
+            | Self::NotSkirmish
+            | Self::WrongFaction
+            | Self::OutOfSequence { .. }
+            | Self::NoUnits
+            | Self::UnknownUnit { .. }
+            | Self::NotOwnUnit { .. }
+            | Self::WrongPlayer { .. }
+            | Self::MissingPlayer
+            | Self::AiControlled
+            | Self::OutOfBounds
+            | Self::ReplayInProgress
+            | Self::UnknownTarget
+            | Self::AirContact
+            | Self::Destroyed { .. }
+            | Self::NotInfantry { .. }
+            | Self::NotABuilding
+            | Self::OneSquadPerBuilding
+            | Self::Aboard { .. }
+            | Self::NotACarrier => true,
+            Self::MatchFinished
+            | Self::UnitUnavailable
+            | Self::InsufficientCredits
+            | Self::UnitLimitReached
+            | Self::NoValidDestination
+            | Self::RateLimited
+            | Self::CapacityFull
+            | Self::BuildingOccupied
+            | Self::NoRoomToUnload => false,
+        }
+    }
+
     /// The stable wire name used by refusal publications.
     pub const fn reason_name(&self) -> &'static str {
         match self {

@@ -75,7 +75,6 @@ import {
   forestVergeInside,
   groundLineBand,
   groundColour,
-  groundScars,
   groundCell,
   groundPaved,
   groundShore,
@@ -86,17 +85,19 @@ import {
   groundVerge,
   groundWheeling,
   groundWater,
-  scarredSurface,
   terrainLayout,
+  type TerrainSource,
   valueNoise,
 } from "./terrainMaterial";
-import type { TerrainSource } from "./terrainMaterial";
+import { groundScars, scarredSurface } from "./groundScars";
 import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";
 import type { EnvironmentFrame } from "./environmentFrame";
 import type { CameraGroup } from "./geometry";
 import { FRAME_MSAA, WORLD_OUT, worldTargets } from "./targets";
 import type { GpuRegistry, GpuSlot } from "./registry";
+import { Clump, GRASS_CLUMP_BYTES, clumpRows, type GrassClumpRow } from "./grassClump";
+export type { GrassClumpRow } from "./grassClump";
 const tuning = game.presentation.grass;
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -152,23 +153,6 @@ export const GrassParams = d
     bases: d.arrayOf(d.vec4u, GRASS_MAX_KINDS),
   })
   .$name("GrassParams");
-
-/** One clump as the build leaves it for the draw. */
-const Clump = d
-  .struct({
-    root: d.vec3f,
-    height: d.f32,
-    /** The ground's albedo under it, sqrt-encoded rgb8. */
-    colour: d.u32,
-    kind: d.u32,
-    /** Precomputed yaw sine and cosine, shared by every vertex in the clump. */
-    yawSin: d.f32,
-    yawCos: d.f32,
-    /** Blade width multiplier: far blades are held to a least pixel width. */
-    width: d.f32,
-  })
-  .$name("GrassClump");
-const CLUMP_BYTES = 40;
 
 export const ShapeVertex = d
   .struct({ spine: d.vec4f, side: d.vec4f, normal: d.vec4f, tint: d.vec4f })
@@ -645,18 +629,6 @@ export interface GrassCounts {
   farFound: number;
 }
 
-/** One clump as the probe reads it back. */
-export interface GrassClumpRow {
-  root: [number, number, number];
-  height: number;
-  kind: string;
-  /** Its colour, linear rgb: the ground's under it, dried where it is dry. */
-  colour: [number, number, number];
-  tier: 0 | 1;
-  /** How far tracks or trampling laid it over, 0 upright to 1 flat. */
-  laid: number;
-}
-
 export async function createGrassPass(
   root: Root,
   registry: GpuRegistry,
@@ -823,7 +795,9 @@ export async function createGrassPass(
     slots.props.set(storage("grass-props", props.byteLength));
     device.queue.writeBuffer(slots.props.current!, 0, props);
     capacity = [rules.capacity[0], rules.capacity[1]];
-    slots.clumps.set(storage("grass-clumps", (capacity[0] + capacity[1]) * CLUMP_BYTES, COPY_SRC));
+    slots.clumps.set(
+      storage("grass-clumps", (capacity[0] + capacity[1]) * GRASS_CLUMP_BYTES, COPY_SRC),
+    );
     slots.shapes.set(storage("grass-shapes", shapes.byteLength));
     device.queue.writeBuffer(slots.shapes.current!, 0, shapes);
     tierSegments.forEach((segments, t) => {
@@ -930,7 +904,7 @@ export async function createGrassPass(
         enabled: ready,
         tiles,
         capacity,
-        clumpBytes: ready ? (capacity[0] + capacity[1]) * CLUMP_BYTES : 0,
+        clumpBytes: ready ? (capacity[0] + capacity[1]) * GRASS_CLUMP_BYTES : 0,
         kinds: kindNames,
       };
     },
@@ -962,32 +936,14 @@ export async function createGrassPass(
         const names = kindNames;
         const [countBytes, bytes] = await Promise.all([
           readback(args, ARGS_WORDS * 4),
-          readback(slots.clumps.current, (capacity[0] + capacity[1]) * CLUMP_BYTES),
+          readback(slots.clumps.current, (capacity[0] + capacity[1]) * GRASS_CLUMP_BYTES),
         ]);
         const counts = new Uint32Array(countBytes);
-        const f = new Float32Array(bytes);
-        const u = new Uint32Array(bytes);
-        const rows: GrassClumpRow[] = [];
-        for (const [tier, start, count] of [
+        const tiers = [
           [0, 0, counts[1]],
           [1, near, counts[6]],
-        ] as const)
-          for (let i = 0; i < count; i++) {
-            const o = ((start + i) * CLUMP_BYTES) / 4;
-            rows.push({
-              root: [f[o], f[o + 1], f[o + 2]],
-              height: f[o + 3],
-              kind: names[u[o + 5]] ?? "?",
-              colour: [0, 8, 16].map((shift) => (((u[o + 4] >>> shift) & 255) / 255) ** 2) as [
-                number,
-                number,
-                number,
-              ],
-              tier,
-              laid: 1 - (u[o + 4] >>> 24) / 255,
-            });
-          }
-        return rows;
+        ] as const;
+        return clumpRows(bytes, tiers, names);
       },
     },
   };

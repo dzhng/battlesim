@@ -1,4 +1,4 @@
-// An AI ally answers your lane under pressure (team skirmish slice 13).
+// An AI ally answers your lane under pressure (team skirmish).
 // You and one AI ally against two AI: you send a lone squad to the
 // objective nearest the enemy and hold it. As the enemy closes in, your
 // ally sends a detachment, not its army, toward your objective, while the

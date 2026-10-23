@@ -35,44 +35,19 @@ pub struct OpeningPurchase {
 #[serde(transparent)]
 pub struct PlayerIndex(pub u16);
 
-#[derive(Deserialize)]
-struct SkirmishSizeTier {
-    min_players: usize,
-    #[serde(default)]
-    max_players: Option<usize>,
-    entry_count: usize,
+/// Which seating a player list must satisfy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Seating {
+    /// An authored scenario: a Neutral player may hold the world's props and
+    /// civilians, with no faction and no human (D54).
+    Authored,
+    /// A skirmish: only combatants, at least one a side, one faction a side.
+    Skirmish,
 }
 
-fn skirmish_size_data() -> &'static [SkirmishSizeTier] {
-    static DATA: std::sync::OnceLock<Vec<SkirmishSizeTier>> = std::sync::OnceLock::new();
-    DATA.get_or_init(|| {
-        #[derive(Deserialize)]
-        struct Fixture {
-            tiers: Vec<SkirmishSizeTier>,
-        }
-        serde_json::from_str::<Fixture>(include_str!("../../../fixtures/skirmish-sizes.json"))
-            .expect("valid skirmish-sizes fixture")
-            .tiers
-    })
-}
-
-/// Number of shared entry arms for a side with this many players. The
-/// authored size fixture is the single owner shared with the lobby.
-pub fn entry_count(players: usize) -> usize {
-    if players == 0 {
-        return 0;
-    }
-    skirmish_size_data()
-        .iter()
-        .find(|tier| {
-            tier.min_players <= players && tier.max_players.is_none_or(|max| players <= max)
-        })
-        .map(|tier| tier.entry_count)
-        .expect("skirmish size fixture covers every player count")
-}
-
-/// Validate the topology shared by authored bundles and skirmish requests.
-pub fn validate_players(players: &[Player]) -> Result<(), String> {
+/// The one validator of a player list, for authored bundles, skirmish
+/// scenarios and preparation requests alike.
+pub fn validate_players(players: &[Player], seating: Seating) -> Result<(), String> {
     if players.is_empty() {
         return Err("player list must not be empty".into());
     }
@@ -84,27 +59,44 @@ pub fn validate_players(players: &[Player]) -> Result<(), String> {
         if !ids.insert(player.id.as_str()) {
             return Err(format!("duplicate player id {}", player.id));
         }
-        if player.side == Side::Neutral {
-            return Err("skirmish players cannot be neutral".into());
-        }
-        if player.faction.is_none() {
-            return Err(format!(
-                "side {:?} player {} needs a faction",
-                player.side, player.id
-            ));
-        }
         if player.controller == ControllerKind::Human && !player.human_capable {
             return Err(format!("human player {} must be human_capable", player.id));
         }
-    }
-    for side in Side::COMBATANTS {
-        let side_players: Vec<_> = players.iter().filter(|p| p.side == side).collect();
-        if side_players.is_empty() {
-            return Err(format!("side {side:?} must have at least one player"));
+        match (player.side, player.faction) {
+            (Side::Neutral, _) if seating == Seating::Skirmish => {
+                return Err("skirmish players cannot be neutral".into())
+            }
+            (Side::Neutral, Some(_)) => {
+                return Err(format!(
+                    "neutral player {} cannot carry a faction",
+                    player.id
+                ))
+            }
+            (Side::Neutral, None) if player.human_capable => {
+                return Err(format!(
+                    "neutral player {} cannot be human-capable",
+                    player.id
+                ))
+            }
+            (Side::Blue | Side::Red, None) => {
+                return Err(format!(
+                    "side {:?} player {} needs a faction",
+                    player.side, player.id
+                ))
+            }
+            _ => {}
         }
-        let faction = side_players[0].faction;
-        if side_players.iter().any(|p| p.faction != faction) {
-            return Err(format!("side {side:?} must use one faction"));
+    }
+    if seating == Seating::Skirmish {
+        for side in Side::COMBATANTS {
+            let side_players: Vec<_> = players.iter().filter(|p| p.side == side).collect();
+            if side_players.is_empty() {
+                return Err(format!("side {side:?} must have at least one player"));
+            }
+            let faction = side_players[0].faction;
+            if side_players.iter().any(|p| p.faction != faction) {
+                return Err(format!("side {side:?} must use one faction"));
+            }
         }
     }
     Ok(())
@@ -126,22 +118,18 @@ pub fn validate_players_per_side(
     Ok(())
 }
 
-/// Resolve the faction assigned to a combatant side.
-pub fn side_faction(players: &[Player], side: Side) -> Option<Faction> {
-    players
-        .iter()
-        .find(|player| player.side == side)
-        .and_then(|player| player.faction)
-}
-
 /// Entry arms per side: both sides get the larger side's count, so every
 /// map stays mirror-fair however unevenly the players are split.
 pub fn entries_per_side(players: &[Player]) -> usize {
-    Side::COMBATANTS
+    let larger = Side::COMBATANTS
         .into_iter()
-        .map(|side| entry_count(players.iter().filter(|p| p.side == side).count()))
+        .map(|side| players.iter().filter(|p| p.side == side).count())
         .max()
-        .unwrap_or(0)
+        .unwrap_or(0);
+    if larger == 0 {
+        return 0;
+    }
+    crate::skirmish_sizes::tier(larger).entry_count
 }
 
 /// Validate that each side's map arms number `entries_per_side`.
@@ -159,4 +147,37 @@ pub fn validate_entry_counts(
         }
     }
     Ok(())
+}
+
+impl crate::scenario::ScenarioDefinition {
+    /// A skirmish's contract: who may play, that its players buy every force
+    /// (nothing is authored), that each opening names a player, and that the
+    /// map has the roads the players need.
+    pub fn validate_player_contract(&self) -> Result<(), String> {
+        let Some(skirmish) = &self.skirmish else {
+            return Ok(());
+        };
+        validate_players(&self.players, Seating::Skirmish)?;
+        validate_players_per_side(&self.players, skirmish.rules.max_players_per_side as usize)?;
+        if !self.units.is_empty()
+            || !self.events.is_empty()
+            || !self.scripts.is_empty()
+            || self.opponent.is_some()
+            || self.encounter.is_some()
+        {
+            return Err(
+                "a skirmish carries no authored forces, events, scripts, opponent or \
+                 encounter: its players buy what it fields"
+                    .into(),
+            );
+        }
+        for player_id in skirmish.openings.keys() {
+            if !self.players.iter().any(|player| player.id == *player_id) {
+                return Err(format!(
+                    "opening {player_id} does not name a skirmish player"
+                ));
+            }
+        }
+        validate_entry_counts(&self.players, &skirmish.sites.entries)
+    }
 }

@@ -19,6 +19,7 @@
 // grass, as the street draws), each fixture style side by side, fog off, and
 // the seen/unseen and ground masks.
 import { decode } from "./_png.mjs";
+import { snapshotCanvas } from "./_canvas.mjs";
 import { advance, lab, snapshot } from "./_lab.mjs";
 import { game, streetMap } from "./_units.mjs";
 
@@ -375,21 +376,20 @@ export async function run(ctx) {
     await view(page, "final");
   }
   await grass(page, false);
-  // The rim: the world with the style's rim against the same style without
-  // one. What differs is the rim, and each such pixel is seen and within the
-  // rim's width (plus the MSAA edge pixel) of an unseen one.
+  // Compare the rim against its rimless control in render pixels, where the
+  // shader's width and mask distance live; keep CSS evidence separately.
   const rimless = { ...fixtureStyle, rim: { ...fixtureStyle.rim, alpha: 0 } };
   const rims = {};
   for (const name of ["default-shadow-edge", "default-wedge", "ground-hill"]) {
     await setCamera(page, FRAMINGS[name]);
     await page.evaluate(() => window.__lab.frame());
     await view(page, "mask");
-    const mask = decode(await snapshot(ctx, page, `${name}-mask-1920x1080.png`));
+    const mask = await snapshotCanvas(ctx, page, `${name}-mask-1920x1080.png`);
     await view(page, "world");
-    const withRim = decode(await snapshot(ctx, page, `${name}-world-1920x1080.png`));
+    const withRim = await snapshotCanvas(ctx, page, `${name}-world-1920x1080.png`);
     await lab(page, (s) => window.__lab.route.setStyle(s), rimless);
     await page.evaluate(() => window.__lab.frame());
-    const without = decode(await snapshot(ctx, page, `${name}-world-rimless-1920x1080.png`));
+    const without = await snapshotCanvas(ctx, page, `${name}-world-rimless-1920x1080.png`);
     await lab(page, (s) => window.__lab.route.setStyle(s), fixtureStyle);
     rims[name] = rimPixels(mask, withRim, without, fixtureStyle.rim.width_px + 1.5);
   }
@@ -397,12 +397,12 @@ export async function run(ctx) {
   await setCamera(page, ALL_SEEN);
   await page.evaluate(() => window.__lab.frame());
   await view(page, "mask");
-  const allMask = decode(await snapshot(ctx, page, "all-seen-mask-1920x1080.png"));
+  const allMask = await snapshotCanvas(ctx, page, "all-seen-mask-1920x1080.png");
   await view(page, "world");
-  const allRim = decode(await snapshot(ctx, page, "all-seen-world-1920x1080.png"));
+  const allRim = await snapshotCanvas(ctx, page, "all-seen-world-1920x1080.png");
   await lab(page, (s) => window.__lab.route.setStyle(s), rimless);
   await page.evaluate(() => window.__lab.frame());
-  const allBare = decode(await snapshot(ctx, page, "all-seen-world-rimless-1920x1080.png"));
+  const allBare = await snapshotCanvas(ctx, page, "all-seen-world-rimless-1920x1080.png");
   await lab(page, (s) => window.__lab.route.setStyle(s), fixtureStyle);
   rims["all-seen"] = rimPixels(allMask, allRim, allBare, 0);
   await view(page, "final");

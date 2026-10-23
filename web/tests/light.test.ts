@@ -63,8 +63,10 @@ test("a frame's cascades are the structs the renderer binds: a receiver block an
     // Before the light, a frame fits none.
     expect(presentation.frame(0, camera, ui, 0).sun_shadow.count).toBe(0);
     // The street map's ground: one flat slab, 1600 m square.
-    const slab = new Float32Array(40);
-    [0, 0, 1600, 0, 1600, 1600, 0, 1600].forEach((v, i) => (slab[(i >> 1) * 10 + (i & 1)] = v));
+    const slab = new Float32Array(60);
+    [0, 0, 1600, 0, 1600, 1600, 0, 0, 1600, 1600, 0, 1600].forEach(
+      (v, i) => (slab[(i >> 1) * 10 + (i & 1)] = v),
+    );
     presentation.setShadow(LIGHT, slab);
     const frame = presentation.frame(0, camera, ui, 0);
     expect(frame.sun_shadow.f32.byteLength).toBe(d.sizeOf(SunShadow));

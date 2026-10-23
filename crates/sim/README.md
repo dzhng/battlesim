@@ -9,7 +9,9 @@ and units belong to [contract](../contract/README.md), with WebAssembly exposed 
 ## Determinism and evidence
 
 Battle state belongs in [the digest](src/digest.rs). Equal digests mean equal
-battles; replays must reproduce outcomes as well as presentation evidence. An
+battles; replays must reproduce outcomes as well as presentation evidence. Seeded
+choices use explicit integer widths before converting to platform-sized indices,
+so native and WebAssembly make the same decisions. An
 optimization that changes a digest has changed behavior, even if a picture looks
 the same. Seeded randomness and iteration order are part of that contract. A body
 still where the map authored it is held by one digest of the authored props, taken
@@ -39,12 +41,21 @@ Rules follow physical components, with the game's [first-principles policy](../.
 explaining where deliberate cinematic exceptions belong.
 
 [Skirmish authority](src/skirmish.rs) owns player wallets, preparation and pending
-reinforcements. A confirmed purchase reserves both its cost and a slot; physical
-entry converts that reservation to a living unit only when the road-edge footprint
+reinforcements; [the player list](../contract/src/players.rs) says who plays.
+A confirmed purchase reserves both its cost and a place under the player's unit
+cap; physical entry converts that reservation to a living unit only when the road-edge footprint
 is clear. Browser previews use side knowledge, while actual entry checks physical
 bodies. These are different questions and must not expose private occupancy through
 a free preview. [Match contracts](../contract/src/skirmish.rs) carry setup and the
 side's observation through the existing publication owner.
+[Entries](src/entries.rs) is the one owner of which of a side's roads a
+reinforcement takes and where a unit leaves the map; the roads are the side's,
+shared by its players.
+
+[The skirmish AI](src/skirmish_ai/) plays one player from its side's
+observation, and everything it decides is an ordinary command.
+[Team planning](src/skirmish_ai/team/) is the side's level of it: it spreads
+the side's AI players over lanes and objectives and sends help between them.
 
 [Active protection](src/protection.rs) owns finite defensive charges and cooldowns.
 Flight offers it only an imminent swept hull collision at the authored standoff;

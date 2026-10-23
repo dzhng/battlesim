@@ -63,7 +63,7 @@ impl PrepareBattleRequest {
                 format!("the battle seed must be a whole number from 0 to {BATTLE_SEED_MAX}"),
             ));
         }
-        crate::players::validate_players(&request.players)
+        crate::players::validate_players(&request.players, crate::players::Seating::Skirmish)
             .map_err(|error| refused("$.players", error))?;
         Ok(request)
     }

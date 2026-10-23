@@ -2,21 +2,22 @@
 import { describe, expect, test } from "vitest";
 import {
   add,
-  fromUrl,
   isMapInputChange,
+  lobbyCandidate,
   preset,
   remove,
   reroll,
   seatHuman,
-  setController,
   setFaction,
   setRegion,
   setSize,
   setType,
-  toRequest,
   toUrl,
   type LobbyState,
 } from "../../apps/battle-lab/src/lobby/model";
+import { askedBattle } from "../../apps/battle-lab/src/battleLinks";
+import { skirmishRequest } from "../../apps/battle-lab/src/skirmishSetup";
+import { loadWasm } from "../src/battle/sim/module";
 
 const ids = (state: LobbyState) => state.players.map((player) => player.id);
 
@@ -30,10 +31,11 @@ describe("lobby model", () => {
     state = add(state, "blue");
     state = add(state, "blue");
     expect(() => add(state, "blue")).toThrow("maximum");
+    // Players are numbered by place, as a link names them: removing one
+    // closes the gap.
     state = remove(state, "blue-3");
-    state = remove(state, "blue-2");
-    state = remove(state, "blue-4");
-    state = remove(state, "blue-5");
+    expect(ids(state)).toEqual(["blue-1", "blue-2", "blue-3", "blue-4", "red-1", "red-2"]);
+    for (let n = 0; n < 3; n++) state = remove(state, "blue-2");
     expect(ids(state)).toEqual(["blue-1", "red-1", "red-2"]);
     expect(() => remove(state, "blue-1")).toThrow("Human");
   });
@@ -54,9 +56,7 @@ describe("lobby model", () => {
       let state = preset(kind);
       if (kind === "1v1") state = add(state, "blue");
       const red = state.players.find((player) => player.side === "red")!;
-      expect(() => setController(state, red, "human")).toThrow("Blue");
       expect(() => seatHuman(state, red)).toThrow("Blue");
-      expect(() => setController(state, "blue-1", "active_ai")).toThrow("Human");
       const target = state.players.find(
         (player) => player.side === "blue" && player.controller !== "human",
       )!;
@@ -118,7 +118,8 @@ describe("lobby model", () => {
 
   test("controller and faction changes do not change map inputs", () => {
     const state = preset("1v1");
-    expect(isMapInputChange(state, setController(state, "red-1", "passive_ai"))).toBe(false);
+    const three = preset("3v3");
+    expect(isMapInputChange(three, seatHuman(three, "blue-2"))).toBe(false);
     expect(isMapInputChange(state, setFaction(state, "blue", "europe"))).toBe(false);
     expect(isMapInputChange(state, add(state, "blue"))).toBe(true);
   });
@@ -133,15 +134,33 @@ describe("lobby model", () => {
   });
 
   test.each(["1v1", "3v3", "5v5"] as const)("URL round trips %s", (kind) => {
-    const state = preset(kind);
-    const roundTrip = fromUrl(toUrl(state));
-    expect(roundTrip).toEqual(state);
+    const state = reroll(preset(kind), "42");
+    expect(askedBattle(toUrl(state))).toEqual({
+      kind: "generated",
+      players: state.players,
+      map: { type: state.map.type, size: state.map.size, seed: "42" },
+      battleSeed: state.battleSeed,
+    });
   });
 
-  test("request carries the shared entry count and ordered players", () => {
-    const request = toRequest(preset("1v1"));
-    expect(request.players).toHaveLength(2);
-    expect(request.battle_seed).toBeTypeOf("number");
-    expect(request.map_source.request.entries_per_side).toBe(1);
+  test("an added player fields its side's faction", () => {
+    const state = add(setFaction(preset("1v1"), "red", "europe"), "red");
+    expect(state.players.filter((p) => p.side === "red").map((p) => p.faction)).toEqual([
+      "europe",
+      "europe",
+    ]);
   });
+});
+
+test("Deploy's link prepares the very request the lobby previews, after removing and re-seating", async () => {
+  const wasm = await loadWasm();
+  let state = remove(preset("3v3"), "blue-2");
+  const last = state.players.filter((player) => player.side === "blue").at(-1)!;
+  state = seatHuman(state, last);
+  const previewed = lobbyCandidate(wasm, state)(state.map.seed);
+  const asked = askedBattle(toUrl(state));
+  if ("error" in asked || asked.kind !== "generated") throw new Error(JSON.stringify(asked));
+  // The battle route builds its request from what the link asks.
+  expect(skirmishRequest(wasm, asked)).toEqual(previewed);
+  expect(previewed.map_source.request.entries_per_side).toBe(3);
 });

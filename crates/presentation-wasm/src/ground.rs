@@ -2,6 +2,9 @@
 //! resolved from the map's exports under the biome into the terrain's and
 //! grass's GPU tables and the water's cells, and its scenery placed for the
 //! frames' static batches.
+#[path = "terrain_partition.rs"]
+mod terrain_partition;
+
 use crate::{error, Presentation};
 use presentation::presentation::Presentation as Inner;
 use presentation::shadow;
@@ -291,12 +294,12 @@ impl Presentation {
         self.inner.scenery_falling()
     }
 
-    /// The scenery placed per population (forest, tree-line shrubs,
-    /// backdrop) and the dressing cells the last frame drew; empty with none.
-    pub fn scenery_stats(&self) -> Vec<u32> {
+    /// Scenery populations, query visits and known-fall work; empty with none.
+    /// Doubles retain cumulative row counts beyond the u32 range.
+    pub fn scenery_stats(&self) -> Vec<f64> {
         self.inner
             .scenery_stats()
-            .map_or_else(Vec::new, |s| s.iter().map(|&n| n as u32).collect())
+            .map_or_else(Vec::new, |s| s.iter().map(|&n| n as f64).collect())
     }
 
     // Lab probes: the ground scenes read the ground as the material draws

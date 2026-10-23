@@ -142,7 +142,13 @@ impl Pass for ShadowPass {
 
     fn encode(&self, inputs: &Inputs, encoder: &mut CommandEncoder) {
         let shadow = inputs.shadow;
-        for (layer, camera) in shadow.layers.iter().zip(&shadow.groups).take(shadow.active) {
+        for (cascade, (layer, camera)) in shadow
+            .layers
+            .iter()
+            .zip(&shadow.groups)
+            .take(shadow.active)
+            .enumerate()
+        {
             let mut pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("sun-cascade"),
                 depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
@@ -156,18 +162,18 @@ impl Pass for ShadowPass {
                 ..Default::default()
             });
             let camera = ("typegpuCameraLayout", camera);
-            inputs.ground.draw_casters(&mut pass, camera);
+            inputs.ground.draw_casters(&mut pass, camera, cascade);
             let models = inputs.models;
             for (bound, surface) in [
                 (&self.solid, Surface::Solid),
                 (&self.cutout, Surface::Cutout),
             ] {
                 bound.set(&mut pass, &[camera, models.group()]);
-                models.draw_casters(&mut pass, surface);
+                models.draw_casters(&mut pass, surface, cascade);
             }
             inputs
                 .scenery
-                .draw_casters(&mut pass, camera, models.statics());
+                .draw_casters(&mut pass, camera, models.statics(), cascade);
         }
     }
 }

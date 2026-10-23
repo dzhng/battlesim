@@ -49,6 +49,31 @@ test("a static appearance arrives with the simulation box its art is authored to
   expect(installed.appearances.get("tank")?.footprint).toBeNull();
 });
 
+test.each(["eager", "deferred"] as const)(
+  "%s appearances sharing a bundle retain their own metadata",
+  async (mode) => {
+    const { library, files, result } = await served();
+    const crate = result.runtime.appearances.crate;
+    if (mode === "deferred") crate.regional_family = "test-region";
+    result.runtime.appearances.alias = {
+      ...crate,
+      paints: [[0.2, 0.4, 0.6]],
+    };
+    files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
+    let installed = await library.load("/assets/");
+    if (mode === "deferred") {
+      expect(installed.appearances.has("crate")).toBe(false);
+      expect(installed.appearances.has("alias")).toBe(false);
+      installed = await library.withAppearances(["crate", "alias"]);
+    }
+    const original = installed.appearances.get("crate")!;
+    const alias = installed.appearances.get("alias")!;
+    expect(alias.bundle).toEqual(original.bundle);
+    expect(original.paints).toBeNull();
+    expect(alias.paints).toEqual([[0.2, 0.4, 0.6]]);
+  },
+);
+
 test("a corrupted bundle fails the load and keeps the installed generation", async () => {
   const { library, files, result } = await served();
   const first = await library.load("/assets/");

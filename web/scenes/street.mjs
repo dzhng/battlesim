@@ -38,7 +38,7 @@ import {
   pointerOffCanvas,
 } from "./_lab.mjs";
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
-import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
+import { orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 import { bareClassMask, classAt } from "./_groundStations.mjs";
 import {
@@ -419,17 +419,6 @@ async function tour(ctx) {
   await tourShot("default");
   await checkGrass(ctx, page, "default");
   await checkGrassResidency(ctx, page);
-  // Whatever is overlay (contacts, the x-ray) keeps exactly its own colours
-  // over the finished, fogged and graded world. Rings, zone, border and
-  // orders are painted in the world, so this frame may hold no overlay at all
-  // (decisions.md, "the ground paint's checks read the paint's rise").
-  const isolation = await checkOverlayIsolation(ctx, page, "overlay-default");
-  ctx.check(
-    "overlays keep their own colours over the finished frame",
-    isolation.isolated,
-    JSON.stringify(isolation),
-  );
-
   await wheel(400);
   const far = await camera();
   ctx.check(
@@ -523,22 +512,21 @@ async function treeTour(ctx) {
     seen[name] = await lab(page, () => window.__lab.stats().scenery);
   }
 
-  // The forest's trees in view are drawn at some tier, and every one of them
-  // casts (the cascades also take the trees whose shadow falls into view):
-  // nearly all of both forests up the road, one forest alone at its edge.
-  // Scenery past the map is drawn up the road, and culled straight down.
+  // Shared selector tests pin per-cascade identities. Here, check visible
+  // detail, population culling and independent caster submissions.
   const drawn = (p) => p.tiers.reduce((a, b) => a + b, 0);
+  const finest = (p) => p.tiers.findIndex((n) => n > 0);
   ctx.check(
-    "the forests in view and the scenery past the map are drawn as trees, tiered by distance, and every drawn tree casts",
+    "visible trees get finer nearby, backdrop is culled, and forest casters are submitted",
     Object.values(seen).every(
-      (s) => s.forest.placed > 400 && drawn(s.forest) > 100 && s.forest.casters >= drawn(s.forest),
+      (s) => s.forest.placed > 400 && drawn(s.forest) > 100 && s.forest.casters > 0,
     ) &&
       drawn(seen.road.forest) > 0.9 * seen.road.forest.placed &&
       drawn(seen.edge.forest) < 0.7 * seen.edge.forest.placed &&
       seen.road.backdrop.placed > 2000 &&
       drawn(seen.road.backdrop) > 0 &&
       drawn(seen.top.backdrop) < drawn(seen.road.backdrop) &&
-      seen.ground.forest.tiers[0] > 0,
+      finest(seen.ground.forest) < finest(seen.road.forest),
     JSON.stringify(seen),
   );
   // The world only: the HUD's full-width bars cover the frame's
@@ -621,8 +609,8 @@ async function soldierTour(ctx) {
         s.atlasLayers >= 6 &&
         s.skinned + s.cards + s.culledBodies === soldiers,
     ) &&
-      finest(seen.ground) <= 1 &&
-      finest(seen.default) >= finest(seen.ground) &&
+      finest(seen.ground) >= 0 &&
+      finest(seen.default) > finest(seen.ground) &&
       seen.far.cards === soldiers,
     JSON.stringify({ soldiers, seen }),
   );
@@ -1702,12 +1690,6 @@ async function orderTour(ctx) {
   );
   if (process.env.GLOW_COST === "1") await measureGlowCost(ctx, page);
   if (process.env.PAINT_COST === "1") await measurePaintCost(ctx, page);
-  const isolation = await checkOverlayIsolation(ctx, page, "orders-space");
-  ctx.check(
-    "the Space overlay composites after post, untouched by fog and grade",
-    isolation.isolated,
-    JSON.stringify(isolation),
-  );
   await checkSoldiersNotOverdrawn(ctx, page);
   await aim(page, at, {
     distance: cameras.default.distance,

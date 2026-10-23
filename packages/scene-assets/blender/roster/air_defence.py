@@ -22,7 +22,8 @@ What the photos settle:
   panels round its top and a missile launcher box on its side.
 - NASAMS 3 (Norway's, NATO green): the canister launcher on its two-axle
   trailer, six AMRAAM canisters in two rows on the turntable, stowed flat,
-  levelling legs at the corners.
+  levelling legs at the corners. The US Army's is the same launcher in its
+  own tan.
 
 Turrets, guns and launchers are drawn stowed and do not articulate yet.
 """
@@ -47,6 +48,7 @@ CARDS = {
     "eastern_pantsir_pantsir_sm": ("pantsir", "russian_green"),
     "europe_boxer_skyranger_30_gun_and_missile_air_defense": ("boxer_skyranger_30", "german_three_tone"),
     "europe_nasams_nasams_3": ("nasams", "german_three_tone"),
+    "us_nasams_medium": ("nasams", "us_desert_tan"),
 }
 
 
@@ -372,7 +374,7 @@ def nasams(v):
 def build(variant, v):
     {"europe_gepard_1a2": gepard, "eastern_buk_buk_m3_medium_range_air_defense": buk,
      "eastern_pantsir_pantsir_sm": pantsir, "europe_boxer_skyranger_30_gun_and_missile_air_defense": skyranger,
-     "europe_nasams_nasams_3": nasams}[variant["id"]](v)
+     "europe_nasams_nasams_3": nasams, "us_nasams_medium": nasams}[variant["id"]](v)
 
 
 def wreck(variant, v):

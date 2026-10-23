@@ -22,6 +22,7 @@ import { median, rec709 as luminance } from "./_colour.mjs";
 import { gpuMs, gpuWarnings, lab } from "./_lab.mjs";
 import { PNG } from "pngjs";
 import { decode, pixel, around, writeCrop } from "./_png.mjs";
+import { captureCanvas } from "./_canvas.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 const HIDE_PANEL = "[data-testid=facade-panel] { display: none !important; }";
@@ -286,6 +287,12 @@ async function glass(ctx) {
   }
   await stand(page, "glass", "close");
   const { drawn, without } = await withAndWithout(ctx, page, "blended", null);
+  const nativeDrawn = await captureCanvas(page);
+  await lab(page, () => window.__lab.suppressSurface("blended", true));
+  const nativeWithout = await captureCanvas(page);
+  await lab(page, () => window.__lab.suppressSurface("blended", false));
+  await writeFile(ctx.evidencePath("glass-close-native.png"), nativeDrawn.bytes);
+  await writeFile(ctx.evidencePath("glass-close-bare-native.png"), nativeWithout.bytes);
   const at = {};
   for (const [name, p] of Object.entries(PANES)) {
     const [world] = await lab(
@@ -294,7 +301,18 @@ async function glass(ctx) {
       [[p.at], p.pane],
     );
     const px = await project(page, world);
-    const [with_, bare] = [mean(drawn, px, p.within ?? 2), mean(without, px, p.within ?? 2)];
+    // An opaque frame's render pixel must not include neighbouring glass
+    // introduced by the browser's CSS reconstruction filter.
+    const sample = (capture) =>
+      pixel(
+        capture.png,
+        ((px[0] - capture.rect.x) * capture.png.width) / capture.rect.width,
+        ((px[1] - capture.rect.y) * capture.png.height) / capture.rect.height,
+      );
+    const [with_, bare] =
+      name === "frame"
+        ? [sample(nativeDrawn), sample(nativeWithout)]
+        : [mean(drawn, px, p.within ?? 2), mean(without, px, p.within ?? 2)];
     at[name] = { kept: luminance(with_) / luminance(bare), changed: sum(with_, bare) };
   }
   await writeCrop(drawn, ctx.evidencePath("glass-close-crop.png"), 960, 560, 300, 160, 3);
@@ -309,7 +327,7 @@ async function glass(ctx) {
   );
   ctx.check(
     "an opaque frame in front of glass is drawn as it is without the glass",
-    at.frame.changed <= 3,
+    at.frame.changed <= 3 && Number.isFinite(at.frame.kept),
     JSON.stringify(at.frame),
   );
   const cameras = { "glass-close": await lab(page, () => window.__lab.camera()) };

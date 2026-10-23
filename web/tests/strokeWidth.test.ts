@@ -51,3 +51,15 @@ test("the fixture's rule is valid and a backwards zoom range is refused", () => 
   expect(() => validateStrokeRule({ ...RULE, thin_m_per_px: 0.01 })).toThrow(/stroke/);
   expect(() => validateStrokeRule({ ...RULE, thin_scale: 1.5 })).toThrow(/stroke/);
 });
+
+test("reduced render resolution preserves the minimum in render pixels without enlarging CSS-sized bodies", () => {
+  const metresPerCssPixel = 2;
+  for (const renderScale of [0.75, 1]) {
+    const stroke = strokeWidth(RULE, metresPerCssPixel, renderScale);
+    expect((stroke(1.5) / metresPerCssPixel) * renderScale).toBeCloseTo(RULE.min_px, 9);
+    // A body/radius keeps the CSS zoom rule; raster resolution only controls strokes.
+    const size = strokeWidth(RULE, metresPerCssPixel);
+    expect(size(40) / metresPerCssPixel).toBe(40 * RULE.thin_scale);
+    expect(stroke(40)).toBe(size(40));
+  }
+});

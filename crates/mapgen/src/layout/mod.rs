@@ -81,12 +81,8 @@ pub fn generate_layout(
         }]);
     }
     if request.profile == contract::generation::GenerationProfile::Skirmish {
-        let minimum = match request.entries_per_side {
-            1 => MapSize::Small,
-            2 => MapSize::Medium,
-            _ => MapSize::Large,
-        };
-        if request.size < minimum {
+        let minimum = contract::skirmish_sizes::floor_for_entries(request.entries_per_side);
+        if minimum.is_none_or(|minimum| request.size < minimum) {
             return Err(vec![Diagnostic {
                 code: DiagnosticCode::InvalidRequest,
                 feature: Some("skirmish_sites".into()),
@@ -95,7 +91,7 @@ pub fn generate_layout(
                     "skirmish size {} is below the {}-entry floor {}",
                     request.size.name(),
                     request.entries_per_side,
-                    minimum.name()
+                    minimum.map_or("missing from the size rule", MapSize::name)
                 ),
             }]);
         }

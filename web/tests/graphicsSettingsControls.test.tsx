@@ -29,7 +29,7 @@ test("shared graphics controls expose exactly the four preset choices and persis
 test("rerun action is shared and selecting a tier waits for the rebuild", async () => {
   let resolve!: () => void;
   const apply = vi.fn(() => new Promise<void>((r) => (resolve = r)));
-  const rerun = vi.fn();
+  const rerun = vi.fn(() => Promise.resolve());
   const view = render(<GraphicsSettingsControls onApply={apply} onRunAutoDetect={rerun} />);
   fireEvent.click(view.getByRole("button", { name: "Run auto-detect again" }));
   expect(rerun).toHaveBeenCalledOnce();
@@ -38,20 +38,6 @@ test("rerun action is shared and selecting a tier waits for the rebuild", async 
   expect(view.getByText("Applying settings…")).toBeTruthy();
   await act(async () => resolve());
   expect(view.getByRole("radio", { name: "Low" }).hasAttribute("disabled")).toBe(false);
-  view.unmount();
-});
-
-test("rerun failures stay actionable in the settings surface", async () => {
-  const view = render(
-    <GraphicsSettingsControls
-      onRunAutoDetect={() => Promise.reject(new Error("no preset met the target"))}
-    />,
-  );
-  await act(async () =>
-    fireEvent.click(view.getByRole("button", { name: "Run auto-detect again" })),
-  );
-  expect(view.getByRole("alert").textContent).toContain("no preset met the target");
-  expect(view.getByRole("button", { name: "Reload" })).toBeTruthy();
   view.unmount();
 });
 

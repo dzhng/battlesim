@@ -230,6 +230,14 @@ function placedRow(
 /** What is drawn as "module@tier", sorted. */
 const tally = (list: Drawn[]) => list.map((d) => `${d.module}@${d.tier}`).sort();
 
+/** Decode the same mask the renderer uses, retaining every record in each
+ *  cascade so missing casters and duplicate submissions both fail. */
+const casterLists = (walk: Walk) =>
+  [0, 1, 2, 3].map((cascade) =>
+    walk.drawn(true).filter((d) => (d.cascadeMask & (1 << cascade)) !== 0),
+  );
+const everyCascade = <T>(rows: T[]) => [rows, rows, rows, rows];
+
 test("a row is drawn where the placed frame puts it: a turned building's records are the resolver's", () => {
   const frame = { translation: [1000, 2000, 3] as [number, number, number], yaw: 0.7 };
   const walk = walkOf(placedOf([["house", [...frame.translation, frame.yaw]]]));
@@ -259,24 +267,24 @@ test("a row draws at a tier only if its mask has it, whether the masks nest or n
   const walk = walkOf(placedOf([["house", [1000, 2000, 0, 0]]]));
   const at = (distance: number) => {
     select(walk, view(1000, 2000, distance));
-    return { view: tally(walk.drawn()), cast: tally(walk.drawn(true)) };
+    return { view: tally(walk.drawn()), cast: casterLists(walk).map(tally) };
   };
   // Tier 0: all four rows, from the pool; they cast a tier coarser.
   expect(at(60)).toEqual({
     view: [`${ROOF}@0`, `${SHELL}@0`, `${WINDOW}@0`, `${WINDOW}@0`].sort(),
-    cast: [`${ROOF}@1`, `${SHELL}@1`, `${WINDOW}@1`, `${WINDOW}@1`].sort(),
+    cast: everyCascade([`${ROOF}@1`, `${SHELL}@1`, `${WINDOW}@1`, `${WINDOW}@1`].sort()),
   });
   // Tier 1: the roof's mask skips it.
   expect(at(200)).toEqual({
     view: [`${SHELL}@1`, `${WINDOW}@1`],
-    cast: [`${SHELL}@2`, `${WINDOW}@2`],
+    cast: everyCascade([`${SHELL}@2`, `${WINDOW}@2`]),
   });
   // Tier 2: the shell alone, casting at the coarsest mesh.
-  expect(at(500)).toEqual({ view: [`${SHELL}@2`], cast: [`${SHELL}@3`] });
+  expect(at(500)).toEqual({ view: [`${SHELL}@2`], cast: everyCascade([`${SHELL}@3`]) });
   // Tier 3: the coarse rows, the roof back among them.
   expect(at(2000)).toEqual({
     view: [`${ROOF}@3`, `${SHELL}@3`].sort(),
-    cast: [`${ROOF}@3`, `${SHELL}@3`].sort(),
+    cast: everyCascade([`${ROOF}@3`, `${SHELL}@3`].sort()),
   });
   expect(walk.stats().resident).toBe(0);
 });
@@ -333,7 +341,9 @@ test("a chunk is expanded once when it comes near, and leaves the pool when it l
   // Yet its shadow still lands in view from just outside it.
   select(walk, view(1055, 2000, 60));
   expect(tally(walk.drawn())).toEqual([]);
-  expect(tally(walk.drawn(true))).toEqual([`${ROOF}@3`, `${SHELL}@3`].sort());
+  // The nearest receiver partition excludes it; the other three retain it.
+  const coarse = [`${ROOF}@3`, `${SHELL}@3`].sort();
+  expect(casterLists(walk).map(tally)).toEqual([[], coarse, coarse, coarse]);
 });
 
 test("a building is in one chunk whole, however its rows straddle a chunk's edge", () => {
@@ -518,7 +528,7 @@ test("a building seen to collapse changes only its own records: it leaves the in
     `first ruin ${SHELL}@3`,
   ].sort();
   expect(kinds(walk.drawn())).toEqual(farDrawn);
-  expect(kinds(walk.drawn(true))).toEqual(farDrawn);
+  expect(casterLists(walk).map(kinds)).toEqual(everyCascade(farDrawn));
 
   // The building is known intact again (another side's view): restored.
   walk.know([]);
@@ -572,7 +582,9 @@ test("a building known gutted is its template's gutted rows at every tier, and n
       windows.map((d) => ({ tier: d.tier, burnt: Math.abs(d.tint[0] - burntWindow[0]) < 1e-5 })),
     ).toEqual(tier < 2 ? [{ tier, burnt: true }] : []);
     // What casts for it is its own coarse gutted shell.
-    expect(tower(walk.drawn(true))).toEqual([{ tier: 3, burnt: true, height: 5 }]);
+    expect(casterLists(walk).map(tower)).toEqual(
+      everyCascade([{ tier: 3, burnt: true, height: 5 }]),
+    );
   }
   // Its neighbour is untouched at every one of those.
   select(walk, view(1000, 2000, 60));

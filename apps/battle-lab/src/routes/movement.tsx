@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { gameStroke, OPENING_METRES_PER_PX } from "../gameOverlay";
+import { useCallback, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { OwnUnitView } from "@web/battle/sim/observationView";
 import type { Order } from "@web/battle/sim/protocol";
@@ -96,10 +97,26 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
 
+  const [renderScale, setRenderScale] = useState(1);
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    return orderLayer(session.units, observation, control.selected, session.revealed, surfaceZ);
-  }, [world, observation, control.selected, session.revealed, surfaceZ, session.units]);
+    return orderLayer(
+      session.units,
+      observation,
+      control.selected,
+      session.revealed,
+      surfaceZ,
+      gameStroke(OPENING_METRES_PER_PX, renderScale),
+    );
+  }, [
+    renderScale,
+    world,
+    observation,
+    control.selected,
+    session.revealed,
+    surfaceZ,
+    session.units,
+  ]);
   const overlayFeed = useFeed(overlay);
   // Obstacles blue has learned since setup (the tick-150 wall once met).
 
@@ -130,6 +147,7 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
         {...session.viewport}
         initialCamera={MOVEMENT_CAMERA}
         {...session.input}
+        onFrame={(_project, _camera, _pointer, scale) => setRenderScale(scale)}
         diagnostics={diagnostics}
       />
       <aside className="hud-panel lab-panel" data-testid="movement-panel">

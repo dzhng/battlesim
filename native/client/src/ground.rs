@@ -4,8 +4,12 @@
 //! the depth prepass, the sun's cascades and the lit world. The terrain's
 //! group (`terrainLayout`) is the grass build's too, and holds the side's
 //! scars (`scars.rs`).
-use presentation::shadow::map_box;
+use std::ops::Range;
+
+use presentation::records::Camera;
+use presentation::shadow::{map_box, SunShadowFrame, CASCADES};
 use presentation::static_world::ground::mesh::{self, VERTEX_FLOATS};
+use presentation::static_world::ground::partition::{TerrainPartition, CELL_M};
 use presentation::static_world::ground::Ground as Resolved;
 use wgpu::*;
 
@@ -24,7 +28,9 @@ const IDENTITY: [f32; 8] = [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0];
 /// A mesh of world vertices (`mesh.ts`).
 struct Mesh {
     buffer: Option<Buffer>,
-    vertices: u32,
+    partition: Option<std::sync::Arc<TerrainPartition>>,
+    view: Vec<Range<u32>>,
+    cascades: [Vec<Range<u32>>; CASCADES],
 }
 
 impl Mesh {
@@ -38,15 +44,45 @@ impl Mesh {
                     bytemuck::cast_slice(words),
                 )
             }),
-            vertices: (words.len() / VERTEX_FLOATS) as u32,
+            partition: None,
+            view: std::iter::once(0..(words.len() / VERTEX_FLOATS) as u32).collect(),
+            cascades: std::array::from_fn(|_| Vec::new()),
         }
     }
 
-    fn draw(&self, pass: &mut RenderPass, identity: &Buffer) {
+    fn partitioned(device: &Device, label: &str, words: &[f32]) -> Self {
+        let partition = std::sync::Arc::new(TerrainPartition::new(words, CELL_M));
+        let mut mesh = Self::new(device, label, partition.vertices());
+        mesh.partition = Some(partition);
+        mesh.view.clear();
+        mesh
+    }
+
+    fn prepare(&mut self, camera: &Camera, casters: &[Camera]) {
+        let Some(partition) = &self.partition else {
+            return;
+        };
+        partition.select(&camera.view_proj, &mut self.view);
+        for (i, ranges) in self.cascades.iter_mut().enumerate() {
+            if let Some(caster) = casters.get(i) {
+                partition.select(&caster.view_proj, ranges);
+            } else {
+                ranges.clear();
+            }
+        }
+    }
+
+    fn ranges(&self, cascade: Option<usize>) -> &[Range<u32>] {
+        cascade.map_or(&self.view, |i| &self.cascades[i])
+    }
+
+    fn draw(&self, pass: &mut RenderPass, identity: &Buffer, cascade: Option<usize>) {
         let Some(buffer) = &self.buffer else { return };
         pass.set_vertex_buffer(0, buffer.slice(..));
         pass.set_vertex_buffer(1, identity.slice(..));
-        pass.draw(0..self.vertices, 0..1);
+        for range in self.ranges(cascade) {
+            pass.draw(range.clone(), 0..1);
+        }
     }
 }
 
@@ -94,6 +130,7 @@ pub struct Ground {
     /// The box the map's ground and what stands on it fill (`mapBox`).
     pub map_box: Option<[f64; 6]>,
     terrain: Mesh,
+    pub terrain_partition: std::sync::Arc<TerrainPartition>,
     skirt: Mesh,
     backdrop: Mesh,
     water: Mesh,
@@ -158,9 +195,13 @@ impl Ground {
         );
         let terrain = mesh::terrain(positions, indices, None);
         let map_box = map_box(&terrain);
+        // Coarse spatial batches avoid one draw per terrain cell while allowing
+        // the camera and each shadow cascade to exclude distant ground.
+        let terrain = Mesh::partitioned(device, "terrain", &terrain);
+        let terrain_partition = terrain.partition.as_ref().unwrap().clone();
         let backdrop = map_box.map_or_else(Vec::new, |b| mesh::backdrop(&b, backdrop_m));
-        let skirt = Mesh::new(device, "skirt", &mesh::skirt(positions));
-        let water = Mesh::new(device, "water", &mesh::water(&ground.water_cells()));
+        let skirt = Mesh::partitioned(device, "skirt", &mesh::skirt(positions));
+        let water = Mesh::partitioned(device, "water", &mesh::water(&ground.water_cells()));
         Ok(Self {
             group,
             layout,
@@ -168,7 +209,8 @@ impl Ground {
             scars,
             heights,
             map_box,
-            terrain: Mesh::new(device, "terrain", &terrain),
+            terrain,
+            terrain_partition,
             skirt,
             backdrop: Mesh::new(device, "backdrop", &backdrop),
             water,
@@ -185,6 +227,14 @@ impl Ground {
             lit_backdrop: pipelines.bound("worldBackdrop"),
             lit_water: pipelines.bound("worldWater"),
         })
+    }
+
+    /// Select from the same camera records uploaded for the colour and shadow passes.
+    pub fn prepare(&mut self, camera: &Camera, shadow: Option<&SunShadowFrame>) {
+        let casters = shadow.map_or(&[][..], |fit| fit.casters.as_slice());
+        self.terrain.prepare(camera, casters);
+        self.skirt.prepare(camera, casters);
+        self.water.prepare(camera, &[]);
     }
 
     /// Takes this frame's scar uploads from `presentation` for a `size`
@@ -212,17 +262,17 @@ impl Ground {
     /// The ground, the skirt and the backdrop into the depth prepass.
     pub fn draw_depth(&self, pass: &mut RenderPass, camera: (&str, &BindGroup)) {
         self.prepass.set(pass, &[camera]);
-        for mesh in [&self.terrain, &self.skirt, &self.backdrop] {
-            mesh.draw(pass, &self.identity);
+        self.terrain.draw(pass, &self.identity, None);
+        for mesh in [&self.skirt, &self.backdrop] {
+            mesh.draw(pass, &self.identity, None);
         }
     }
 
     /// The ground and the skirt into one cascade (the backdrop casts nothing).
-    pub fn draw_casters(&self, pass: &mut RenderPass, camera: (&str, &BindGroup)) {
+    pub fn draw_casters(&self, pass: &mut RenderPass, camera: (&str, &BindGroup), cascade: usize) {
         self.caster.set(pass, &[camera]);
-        for mesh in [&self.terrain, &self.skirt] {
-            mesh.draw(pass, &self.identity);
-        }
+        self.terrain.draw(pass, &self.identity, Some(cascade));
+        self.skirt.draw(pass, &self.identity, Some(cascade));
     }
 
     /// The lit terrain, `groups` the frame's (camera, environment, fog).
@@ -230,13 +280,13 @@ impl Ground {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
         self.lit_terrain.set(pass, &all);
-        self.terrain.draw(pass, &self.identity);
+        self.terrain.draw(pass, &self.identity, None);
     }
 
     /// The map's skirt, lit as the world's faces.
     pub fn draw_skirt(&self, pass: &mut RenderPass, groups: &[(&str, &BindGroup)]) {
         self.lit_skirt.set(pass, groups);
-        self.skirt.draw(pass, &self.identity);
+        self.skirt.draw(pass, &self.identity, None);
     }
 
     /// The backdrop: the ground's material past the map, never shadowed.
@@ -244,7 +294,7 @@ impl Ground {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
         self.lit_backdrop.set(pass, &all);
-        self.backdrop.draw(pass, &self.identity);
+        self.backdrop.draw(pass, &self.identity, None);
     }
 
     /// The water's surface over the rivers' cells: blended over everything
@@ -253,6 +303,10 @@ impl Ground {
         let mut all = groups.to_vec();
         all.push(self.layout_group());
         self.lit_water.set(pass, &all);
-        self.water.draw(pass, &self.identity);
+        self.water.draw(pass, &self.identity, None);
     }
 }
+
+#[cfg(test)]
+#[path = "ground_range_tests.rs"]
+mod range_tests;

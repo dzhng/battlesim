@@ -3132,31 +3132,31 @@
       },
       "mounts": [
         {
-          "id": "autocannon",
+          "id": "launcher",
           "name": "Patriot PAC-3",
           "weapons": [
             "patriot_pac3"
           ],
           "turret": true,
           "pivot_m": [
-            -1.05,
-            0.0,
-            1.716
+            -4.3,
+            0,
+            2.05
           ],
           "muzzle_m": [
-            2.919,
-            0.0,
-            0.475
+            0.6,
+            0,
+            1.4
           ]
         }
       ],
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "us_patriot_long",
       "body": {
         "hull": {
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            5.2,
+            1.45,
+            1.98
           ],
           "eye_m": 2.4,
           "hp": 120,
@@ -3216,31 +3216,31 @@
       },
       "mounts": [
         {
-          "id": "autocannon",
+          "id": "launcher",
           "name": "NASAMS 3",
           "weapons": [
             "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
-            -1.05,
-            0.0,
-            1.716
+            -0.3,
+            0,
+            1.68
           ],
           "muzzle_m": [
-            2.919,
-            0.0,
-            0.475
+            1.75,
+            0,
+            0.56
           ]
         }
       ],
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "us_nasams_medium",
       "body": {
         "hull": {
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            3.28,
+            1.21,
+            1.43
           ],
           "eye_m": 2.4,
           "hp": 120,

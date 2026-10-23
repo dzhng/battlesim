@@ -1040,8 +1040,7 @@ fn step_vehicle(
     if unit.ground().drive.is_some_and(|d| d.tracked)
         && motion.yaw != unit.yaw
         && (blocker.is_some()
-            || (motion.step == 0.0
-                && met.solid.is_some()
+            || (met.solid.is_some()
                 && backing_frees_pivot(ctx.world, unit, back.heading, motion.yaw)))
         && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw
     {

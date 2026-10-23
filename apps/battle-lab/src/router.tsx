@@ -17,6 +17,7 @@ const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "graphics-test": lazy(() => import("./routes/graphicsTest")),
   cursor: lazy(() => import("./routes/cursor")),
   frame: lazy(() => import("./routes/frame")),
+  "geometry-scaling": lazy(() => import("./routes/geometry")),
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),
   movement: lazy(() => import("./routes/movement")),

@@ -1,22 +1,33 @@
 import game from "@fixtures/game.json";
-import skirmishSizes from "@fixtures/skirmish-sizes.json";
-import type { Player, PrepareBattleRequest, ControllerKind } from "@web/battle/prepare/protocol";
+import type { Player, PrepareBattleRequest } from "@web/battle/prepare/protocol";
 import {
   MAP_SIZES,
   MAP_TYPES,
   newSeed,
-  type GenerationRequest,
   type MapChoice,
+  type MapGenerator,
   type MapSize,
   type MapType,
 } from "@web/maps/source";
 import type { Faction } from "@packages/scene-assets/src/units";
-import { entryCountForPlayers } from "../skirmishSetup";
-import { askedBattle, battleHref } from "../battleLinks";
+import {
+  DEFAULT_FACTION,
+  entryCountForPlayers,
+  MAX_PLAYERS_PER_SIDE,
+  playersFor,
+  sizeTier,
+  skirmishPlayers,
+  skirmishRequest,
+  type SkirmishSeat,
+  type SkirmishSide,
+} from "../skirmishSetup";
+import { battleHref } from "../battleLinks";
 
-export type LobbySide = "blue" | "red";
+export type LobbySide = SkirmishSide;
 export type LobbyPreset = "1v1" | "3v3" | "5v5";
 
+/** The lobby's match. Its players are always the battle's players
+ *  (`skirmishPlayers`), so what it shows, previews and links agree. */
 export interface LobbyState {
   players: Player[];
   map: MapChoice;
@@ -24,25 +35,9 @@ export interface LobbyState {
   sizeFloor: MapSize;
 }
 
-export const MAX_PLAYERS_PER_SIDE = 5;
-const SIDES: readonly LobbySide[] = ["blue", "red"];
 const DEFAULT_MAP: MapChoice = { type: "mixed", size: "small", profile: "skirmish", seed: "1" };
 
 const countForPreset: Record<LobbyPreset, number> = { "1v1": 1, "3v3": 3, "5v5": 5 };
-
-function factionFor(side: LobbySide): Faction {
-  return side === "blue" ? "us" : "eastern";
-}
-
-function makePlayer(side: LobbySide, index: number, human = false): Player {
-  return {
-    id: `${side}-${index}`,
-    side,
-    faction: factionFor(side),
-    controller: human ? "human" : "active_ai",
-    human_capable: human,
-  };
-}
 
 function playerTarget(target: Player | string): string {
   return typeof target === "string" ? target : target.id;
@@ -52,38 +47,23 @@ function sideCount(players: readonly Player[], side: LobbySide): number {
   return players.filter((player) => player.side === side).length;
 }
 
-function enforceHumanInvariant(players: Player[]): Player[] {
-  const blue =
-    players.find((player) => player.side === "blue" && player.controller === "human") ??
-    players.find((player) => player.side === "blue");
-  if (!blue) throw new Error("lobby must have a Blue player");
-  return players.map((player) =>
-    player.id === blue.id
-      ? { ...player, controller: "human", human_capable: true }
-      : player.controller === "human"
-        ? { ...player, controller: "active_ai" }
-        : player,
+/** `seats` with exactly one human, on Blue: the first Blue human, else the
+ *  first Blue player. */
+function oneBlueHuman<T extends SkirmishSeat>(seats: readonly T[]): T[] {
+  const human =
+    seats.find((seat) => seat.side === "blue" && seat.controller === "human") ??
+    seats.find((seat) => seat.side === "blue");
+  if (!human) throw new Error("lobby must have a Blue player");
+  return seats.map((seat) =>
+    seat === human
+      ? { ...seat, controller: "human" }
+      : seat.controller === "human"
+        ? { ...seat, controller: "active_ai" }
+        : seat,
   );
 }
 
-function orderedPlayers(players: Player[]): Player[] {
-  const sideOrder: Record<Player["side"], number> = { blue: 0, red: 1, neutral: 2 };
-  return [...players].sort((a, b) => {
-    const side = sideOrder[a.side] - sideOrder[b.side];
-    return side || a.id.localeCompare(b.id, undefined, { numeric: true });
-  });
-}
-
-function minimumSize(players: readonly Player[]): MapSize {
-  const largestSide = Math.max(sideCount(players, "blue"), sideCount(players, "red"));
-  const tier = skirmishSizes.tiers.find(
-    (candidate) =>
-      largestSide >= candidate.min_players &&
-      (candidate.max_players === undefined || largestSide <= candidate.max_players),
-  );
-  if (!tier) throw new Error(`no skirmish size tier for ${largestSide} players`);
-  return tier.size as MapSize;
-}
+const minimumSize = (players: readonly Player[]) => sizeTier(players).size as MapSize;
 
 function sizeRank(size: MapSize): number {
   return MAP_SIZES.indexOf(size);
@@ -94,14 +74,14 @@ function ratchetSize(players: readonly Player[], size: MapSize): MapSize {
   return sizeRank(size) >= sizeRank(floor) ? size : floor;
 }
 
-/** The lobby with `players`: the floor follows them both ways (D18), and the
- *  size rises to it but never falls with it. */
-function withPlayers(state: LobbyState, players: Player[]): LobbyState {
-  const floor = minimumSize(players);
+/** The lobby with `seats` as its players: the floor follows them both ways
+ *  (D18), and the size rises to it but never falls with it. */
+function withPlayers(state: LobbyState, seats: readonly SkirmishSeat[]): LobbyState {
+  const players = skirmishPlayers(oneBlueHuman(seats));
   return {
     ...state,
-    players: orderedPlayers(enforceHumanInvariant(players)),
-    sizeFloor: floor,
+    players,
+    sizeFloor: minimumSize(players),
     map: { ...state.map, size: ratchetSize(players, state.map.size) },
   };
 }
@@ -111,11 +91,8 @@ function withPlayers(state: LobbyState, players: Player[]): LobbyState {
  *  preset's floor. */
 export function preset(kind: LobbyPreset, from?: LobbyState): LobbyState {
   const count = countForPreset[kind];
-  const players = SIDES.flatMap((side) =>
-    Array.from({ length: count }, (_, index) => ({
-      ...makePlayer(side, index + 1, side === "blue" && index === 0),
-      ...(from && { faction: sideFaction(from, side) }),
-    })),
+  const players = playersFor(count, count).map((player) =>
+    from ? { ...player, faction: sideFaction(from, player.side as LobbySide) } : player,
   );
   const floor = minimumSize(players);
   return {
@@ -128,20 +105,16 @@ export function preset(kind: LobbyPreset, from?: LobbyState): LobbyState {
 
 /** The faction `side` fields in `state` (one per side). */
 export function sideFaction(state: LobbyState, side: LobbySide): Faction {
-  return state.players.find((player) => player.side === side)?.faction ?? factionFor(side);
+  return state.players.find((player) => player.side === side)?.faction ?? DEFAULT_FACTION[side];
 }
 
 export function add(state: LobbyState, side: LobbySide): LobbyState {
   if (sideCount(state.players, side) >= MAX_PLAYERS_PER_SIDE)
-    throw new Error("maximum of five players per side");
-  const used = new Set(
-    state.players
-      .filter((player) => player.side === side)
-      .map((player) => Number(player.id.split("-").at(-1))),
-  );
-  let nextIndex = 1;
-  while (used.has(nextIndex)) nextIndex++;
-  return withPlayers(state, [...state.players, makePlayer(side, nextIndex)]);
+    throw new Error(`maximum of ${MAX_PLAYERS_PER_SIDE} players per side`);
+  return withPlayers(state, [
+    ...state.players,
+    { side, faction: sideFaction(state, side), controller: "active_ai" },
+  ]);
 }
 
 export function remove(state: LobbyState, target: Player | string): LobbyState {
@@ -157,27 +130,6 @@ export function remove(state: LobbyState, target: Player | string): LobbyState {
   );
 }
 
-export function setController(
-  state: LobbyState,
-  target: Player | string,
-  controller: ControllerKind,
-): LobbyState {
-  const id = playerTarget(target);
-  const player = state.players.find((candidate) => candidate.id === id);
-  if (!player) return state;
-  if (controller === "human") {
-    if (player.side !== "blue") throw new Error("the Human player must be on Blue");
-    return seatHuman(state, id);
-  }
-  if (player.controller === "human") throw new Error("lobby must retain a Human player");
-  return withPlayers(
-    state,
-    state.players.map((player) =>
-      player.id === id ? { ...player, controller, human_capable: player.human_capable } : player,
-    ),
-  );
-}
-
 export function seatHuman(state: LobbyState, target: Player | string): LobbyState {
   const id = playerTarget(target);
   const selected = state.players.find((player) => player.id === id);
@@ -188,7 +140,7 @@ export function seatHuman(state: LobbyState, target: Player | string): LobbyStat
     state,
     state.players.map((player) =>
       player.id === humanId
-        ? { ...player, controller: "human", human_capable: true }
+        ? { ...player, controller: "human" }
         : player.controller === "human"
           ? { ...player, controller: "active_ai" }
           : player,
@@ -259,49 +211,18 @@ export function isMapInputChange(before: LobbyState, after: LobbyState): boolean
   );
 }
 
-export function toRequest(state: LobbyState): PrepareBattleRequest {
-  const request = {
-    ...state.map,
-    profile: "skirmish" as const,
-    generator_version: "",
-    preset_revision: "",
-    template_catalog_hash: "",
-    entries_per_side: entryCountForPlayers(state.players),
-    limits: { max_authored_parts: 0, max_bay_positions: 0, max_ground_points: 0 },
-  } satisfies GenerationRequest;
-  return {
-    map_source: { kind: "generated", request },
-    players: structuredClone(state.players),
-    battle_seed: state.battleSeed,
-  };
+/** The request the lobby previews and Deploy prepares, at each candidate
+ *  map seed the preview's admission draws, pinned to `generator`'s build. */
+export function lobbyCandidate(generator: MapGenerator, state: LobbyState) {
+  return (seed: string): PrepareBattleRequest =>
+    skirmishRequest(generator, {
+      players: state.players,
+      map: reroll(state, seed).map,
+      battleSeed: state.battleSeed,
+    });
 }
 
+/** The address of the battle the lobby sets up, without its `/battle` path. */
 export function toUrl(state: LobbyState): string {
-  const blue = state.players.find((player) => player.side === "blue");
-  return battleHref(
-    { ...state.map, faction: blue?.faction ?? "us" },
-    state.players,
-    state.battleSeed,
-  ).replace(/^\/battle/, "");
-}
-
-export function fromUrl(url: string): LobbyState {
-  const asked = askedBattle(new URL(url, "https://lobby.invalid").search);
-  if ("error" in asked) throw new Error(asked.error);
-  if (asked.kind === "replay") throw new Error("a replay link has no lobby players");
-  const normalizedPlayers = orderedPlayers(asked.players);
-  const minimum = minimumSize(normalizedPlayers);
-  const sizeFloor = minimum;
-  return {
-    players: normalizedPlayers,
-    map: {
-      type: asked.map.type,
-      size: sizeRank(asked.map.size) >= sizeRank(sizeFloor) ? asked.map.size : sizeFloor,
-      seed: "seed" in asked.map ? asked.map.seed : "1",
-      profile: "skirmish",
-      ...(asked.map.region === undefined ? {} : { region: asked.map.region }),
-    },
-    battleSeed: asked.battleSeed,
-    sizeFloor,
-  };
+  return battleHref(state.map, state.players, state.battleSeed).replace(/^\/battle/, "");
 }

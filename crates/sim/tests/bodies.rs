@@ -135,6 +135,66 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
     }
 }
 
+/// A fence line is panels laid end to end, each touching the next by a few
+/// millimetres. A truck that can shove a panel, striking one a little off
+/// square, slides it along its neighbour's end rather than into it: that is
+/// no chain shove, and the truck drives through the line.
+#[test]
+fn a_vehicle_shoves_a_panel_that_only_touches_its_neighbour() {
+    let mut rules = common::game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "test_supply",
+        json!({ "body": { "hull": { "push_class": "medium" } } }),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "props",
+        "fence",
+        json!({ "body": { "weight_class": "light" } }),
+    );
+    // The line closes a gate in a thin wall, a few degrees off square to the
+    // truck, so the slide that clears the hull edges each panel along the
+    // line toward its neighbour; the joint overlaps by 5 mm. Past the gate,
+    // a shoved panel is clear of the wall.
+    let tilt: f64 = -0.04;
+    let along = v2(-tilt.sin(), tilt.cos());
+    let half_len = 2.75;
+    let first = v2(55.0, 30.0) - along * (half_len - 0.0025);
+    let second = first + along * (2.0 * half_len - 0.005);
+    let panel = |at: V2| {
+        json!({ "kind": "fence", "center": [at.x, at.y], "yaw": tilt,
+                "half_extents": [0.05, half_len, 0.6] })
+    };
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [140, 60], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "props": [
+                { "kind": "wall", "center": [55, 12.0], "yaw": 0, "half_extents": [0.5, 12.0, 1.5] },
+                { "kind": "wall", "center": [55, 48.0], "yaw": 0, "half_extents": [0.5, 12.0, 1.5] },
+                panel(first),
+                panel(second),
+            ] },
+        "rules": rules,
+        "units": [vehicle("blue", "test_supply", [15.0, 28.0])],
+        "events": [],
+        "scripts": [drive("blue", 0, [125.0, 28.0])],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    run(&mut b, 30.0);
+
+    let unit = b.unit(UnitId(0)).unwrap();
+    assert!(
+        unit.position.x > 65.0,
+        "it drives through the fence line: at {:?}, {:?}",
+        unit.position.xy(),
+        unit.state
+    );
+    let moved = (b.world().prop(BODY).unwrap().center - first).length();
+    assert!(moved > 1.0, "the panel it struck was shoved {moved:.2} m");
+}
+
 /// A truck shoves a crate along a ridge while red watches from `red_at`.
 fn shove_setup(red_at: [f64; 2]) -> ScenarioDefinition {
     let mut map: Value = serde_json::from_str(&lane(

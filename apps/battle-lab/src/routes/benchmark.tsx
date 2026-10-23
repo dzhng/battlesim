@@ -84,7 +84,7 @@ export default function BenchmarkPage() {
         <p className="bench-eyebrow">Battle</p>
         <h1>Benchmark</h1>
         <p className="menu-lede">
-          Local-contact stress on the complete generated world: Metro Large seed 4, with 100 units a
+          Local-contact stress on the complete generated world: Metro XL seed 4, with 100 units a
           side in the simulation&apos;s central city arena and both sides on its seeded orders.
           Player transit is a separate workload. Timing starts at tick{" "}
           {scenario.startTick.toLocaleString("en-US")}. The camera then flies a fixed tour:

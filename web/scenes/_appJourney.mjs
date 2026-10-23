@@ -173,7 +173,10 @@ export async function appJourney(ctx) {
   // Positive controls: the same keys must work outside the menu.
   await page.keyboard.press("KeyF");
   await advance(page, 1);
-  await page.waitForFunction(() => window.__lab.route.acks().length > 0);
+  // The purchase and ready are acknowledged already: wait for the policy's.
+  await page.waitForFunction(() =>
+    window.__lab.route.acks().some((entry) => entry.order.kind === "set_engagement"),
+  );
   const activeLog = await page.evaluate(() => window.__lab.route.acks());
   ctx.check(
     "uncovered fire-policy shortcut reaches the authority",

@@ -1,0 +1,64 @@
+{
+ "entries": [
+  {
+   "file": "europe_iris_t_medium-side.jpg",
+   "variant": "europe_iris_t_medium",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AIRIS-T_SLM_TEL_GAF_SAM_Grp_61_at_Laage_2026.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "17701566ab976a449432894cfa4d7e23724b2631709493ccc5011aa9559ba793",
+   "note": "A German Air Force launcher on the RMMV HX 8x8 in German three-tone, side on: the HX cab, the equipment shelter behind it with its two masts, the lower boxes and outrigger legs, the eight canisters raised to vertical on their frame at the rear."
+  },
+  {
+   "file": "europe_iris_t_medium-three_quarter_front.jpg",
+   "variant": "europe_iris_t_medium",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AIRIS-T_SLM_launcher_left_side_at_ILA-2024.JPG",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "91ff567ec0fd74cbfd2c8d9b31b35da227a1ef385cd93144f25cd6b1eece3e95",
+   "note": "Left side from slightly ahead, green: the HX cab with its ladder and grilled intake, the shelter with the masts up, the canister frame's elevating ram at the rear."
+  },
+  {
+   "file": "europe_iris_t_medium-three_quarter_rear.jpg",
+   "variant": "europe_iris_t_medium",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AIRIS-T_SLM_launcher_at_ILA-2024.JPG",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "2ca9a943d655a332886ea4adee9af72e48c17374f24b197850e601afb9623b46",
+   "note": "Right rear quarter: the canisters in two rows of four, their latch collars, the hinge frame across the rear, the tail lights under it."
+  },
+  {
+   "file": "europe_iris_t_medium-rear.jpg",
+   "variant": "europe_iris_t_medium",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AIRIS-T_SLM_launcher_back_side_at_ILA-2022.jpg",
+   "author": "Boevaya mashina",
+   "licence": "CC-BY-SA-3.0",
+   "sha256": "fe4cabca8bdfb2ed2ccc9ef7c99e6979a068f17bc8605fe757e39bea68499458",
+   "note": "From behind, in desert paint: the canister pack's base, four across and two deep over the whole width, the hinge beam and the rear jacks."
+  },
+  {
+   "file": "europe_iris_t_medium-detail.jpg",
+   "variant": "europe_iris_t_medium",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AUkrainian_IRIS-T_SLM_reload.jpg",
+   "author": "Air Command West, Ukrainian Air Force (Повітряне командування \"Захід\" Повітряних Сил ЗС України)",
+   "licence": "CC-BY-4.0",
+   "sha256": "2803392664de9e8c8bb53773fa81128d7670f1d17fd4d6a4ebbd229681657010",
+   "note": "Ukrainian launchers being reloaded: the canister frame lowered flat over the rear deck, canisters craned in lying flat; the shelter and boxes behind the cab."
+  }
+ ],
+ "gaps": [
+  "europe_iris_t_medium: every photo shows the canisters raised or being reloaded; the stowed pack, folded forward flat over the rear deck with the masts down, is drawn from the reload photo's lowered frame",
+  "europe_iris_t_medium: no front photo; the HX cab's front is the MAN HX library's (assets/references/man-hx/)",
+  "europe_iris_t_medium: the photos mix the HX 8x8 (German) and the SX45 (show vehicles, Ukraine); the model draws the HX cab on the SX45's published length"
+ ]
+}

@@ -28,6 +28,10 @@ fn three_ai_players_get_distinct_lanes_and_objectives() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 3);
@@ -54,13 +58,14 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
     let mut players = players();
     players.truncate(3);
     for index in 3..10 {
-        players.push(Player {
+        let player = Player {
             id: format!("blue-{}", index + 1),
             side: Side::Blue,
             faction: Some(contract::catalog::Faction::Us),
             controller: ControllerKind::ActiveAi,
             human_capable: false,
-        });
+        };
+        players.push(PlayerState::new(&player, 0));
     }
     let mut sites = sites();
     for index in 3..7 {
@@ -93,6 +98,10 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 7);
@@ -104,7 +113,7 @@ fn a_large_team_plan_uses_bounded_assignment_work() {
 }
 
 #[test]
-fn three_ai_players_reuse_two_lane_slots() {
+fn three_ai_players_reuse_two_lanes() {
     let players = players();
     let mut sites = sites();
     sites.entries.retain(|entry| {
@@ -135,6 +144,10 @@ fn three_ai_players_reuse_two_lane_slots() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 3);
@@ -175,6 +188,10 @@ fn a_lone_ai_takes_the_lane_nearest_its_objective_not_the_first() {
             stance_push_influence: 0.5,
             stance_dwell_s: 20.0,
             push_timeout_s: 30.0,
+            open_objective_bonus: 100.0,
+            party_budget_share: 0.25,
+            claim_party_size: 2,
+            hold_party_size: 2,
         },
     );
     assert_eq!(plan.players.len(), 1);
@@ -208,6 +225,10 @@ fn planning_is_repeatable_and_incumbency_survives_a_marginal_score_change() {
         stance_push_influence: 0.5,
         stance_dwell_s: 20.0,
         push_timeout_s: 30.0,
+        open_objective_bonus: 100.0,
+        party_budget_share: 0.25,
+        claim_party_size: 2,
+        hold_party_size: 2,
     };
     let first = plan(
         Side::Blue,
@@ -254,6 +275,10 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
         stance_push_influence: 0.5,
         stance_dwell_s: 20.0,
         push_timeout_s: 30.0,
+        open_objective_bonus: 100.0,
+        party_budget_share: 0.25,
+        claim_party_size: 2,
+        hold_party_size: 2,
     };
     let mut frame = ObservationFrame::default();
     frame.skirmish = Some(contract::skirmish::SkirmishView {
@@ -268,12 +293,7 @@ fn a_held_objective_replans_to_one_the_side_does_not_hold_immediately() {
             cap: 30,
             pending: vec![],
         }],
-        ready: [true, false],
         preparation_remaining_s: 0.0,
-        credits: 0.0,
-        unit_count: 0,
-        max_units: 30,
-        pending: vec![],
         objectives: sites
             .objectives
             .iter()

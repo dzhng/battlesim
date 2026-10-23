@@ -15,6 +15,7 @@
 // pixels are allowed; a grade or fog on the overlay path would move thousands.
 import { writeFile } from "node:fs/promises";
 import { decode } from "./_png.mjs";
+import { captureCanvas } from "./_canvas.mjs";
 import { lab, snapshot } from "./_lab.mjs";
 
 /** The largest rounding the four 8-bit captures can add up to. */
@@ -23,8 +24,10 @@ const ROUNDING = 2;
 const STRAY_MAX = 16;
 
 async function capture(page, view) {
+  // Compositing algebra holds at render pixels. CSS upscaling filters products
+  // of coverage and world colour differently from their separately read factors.
   await page.evaluate((v) => window.__lab.setFrameView(v), view);
-  return page.screenshot();
+  return (await captureCanvas(page)).bytes;
 }
 
 /** Check one frame's overlay isolation; `name` prefixes the evidence files. */
@@ -36,6 +39,7 @@ export async function checkOverlayIsolation(ctx, page, name) {
   const shots = {};
   for (const view of ["final", "world", "overlays-on-black", "overlays-on-white"]) {
     shots[view] = await capture(page, view);
+    await writeFile(ctx.evidencePath(`${name}-${view}-css.png`), await page.screenshot());
   }
   await page.evaluate(() => window.__lab.setFrameView("final"));
   await hide.evaluate((el) => el.remove());
@@ -57,6 +61,9 @@ export async function checkOverlayIsolation(ctx, page, name) {
   let covered = 0;
   let worst = 0;
   let stray = 0;
+  let worldVaries = false;
+  let overlayContributes = false;
+  let backgroundResponds = false;
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       const i = (y * width + x) * 4;
@@ -65,6 +72,9 @@ export async function checkOverlayIsolation(ctx, page, name) {
       for (let c = 0; c < 3; c++) {
         const b = black.data[i + c];
         const w = white.data[i + c];
+        worldVaries ||= world.data[i + c] !== world.data[c];
+        overlayContributes ||= b > 0 && w - b < 255;
+        backgroundResponds ||= w > b;
         const predicted = b + ((w - b) / 255) * world.data[i + c];
         err = Math.max(err, Math.abs(final.data[i + c] - predicted));
         if (w - b < 255) {
@@ -89,13 +99,21 @@ export async function checkOverlayIsolation(ctx, page, name) {
       }
     }
   }
+  // A discarded WebGPU canvas can otherwise make the algebra vacuously pass.
+  // Thin overlays need no fully opaque interior, but must contribute colour.
+  const captured = worldVaries && overlayContributes && backgroundResponds;
+  ctx.check(
+    `${name}: native captures contain the world and a composited overlay`,
+    captured,
+    JSON.stringify({ worldVaries, overlayContributes, backgroundResponds }),
+  );
   const result = { opaque, opaqueDiffering, coveredChannels: covered, worst, stray };
   await ctx.writeEvidence(`${name}-isolation.json`, result);
   return {
     ...result,
     /** Opaque interiors exactly the overlay's colour; every covered pixel
      *  within rounding; at most a few stray world pixels. */
-    isolated: opaqueDiffering === 0 && worst <= ROUNDING && stray <= STRAY_MAX,
+    isolated: captured && opaqueDiffering === 0 && worst <= ROUNDING && stray <= STRAY_MAX,
   };
 }
 

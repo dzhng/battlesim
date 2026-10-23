@@ -19,6 +19,8 @@ export interface GraphicsQualityProfile {
   buildingLodScale: number;
   treeLodScale: number;
   grassDensity: number;
+  /** Internal render resolution multiplier for bounded fill cost. */
+  renderScale: number;
   forestDressing: boolean;
   understorey: boolean;
   shadowMapSize: 512 | 1024 | 2048;
@@ -30,10 +32,10 @@ export interface GraphicsQualityProfile {
 }
 
 export type TierBenchmarkInput = Omit<GraphicsBenchmarkResult, "selectedMode">;
-export type AutoDetectResults = Record<GraphicsTier, TierBenchmarkInput | null>;
-export type AutoDetectResolution =
-  | { mode: GraphicsTier; result: TierBenchmarkInput }
-  | { mode: null; result: null; unusable: true };
+export type AutoDetectResults = Partial<Record<GraphicsTier, TierBenchmarkInput>>;
+
+/** The RTS frame-rate target auto-detect picks a tier against. */
+export const GRAPHICS_TARGET_FPS = 45;
 
 const STORAGE_KEY = "battle.graphics";
 const DEFAULTS: GraphicsSettings = { mode: "auto", detectedMode: null, lastResult: null };
@@ -46,6 +48,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     buildingLodScale: 1.6,
     treeLodScale: 1.6,
     grassDensity: 0.55,
+    renderScale: 0.75,
     forestDressing: false,
     understorey: false,
     shadowMapSize: 1024,
@@ -60,6 +63,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     buildingLodScale: 1.25,
     treeLodScale: 1.25,
     grassDensity: 0.75,
+    renderScale: 1,
     forestDressing: true,
     understorey: true,
     shadowMapSize: 1024,
@@ -74,6 +78,7 @@ export const graphicsProfiles: Readonly<Record<GraphicsTier, GraphicsQualityProf
     buildingLodScale: 1,
     treeLodScale: 1,
     grassDensity: 1,
+    renderScale: 1,
     forestDressing: true,
     understorey: true,
     shadowMapSize: 2048,
@@ -91,6 +96,7 @@ export const sceneMinimumProfile: GraphicsQualityProfile = {
   buildingLodScale: 2.2,
   treeLodScale: 2.2,
   grassDensity: 0.2,
+  renderScale: 0.75,
   forestDressing: false,
   understorey: false,
   shadowMapSize: 512,
@@ -158,18 +164,17 @@ export function resolveEffectiveTier(
   return mode === "auto" ? (detectedMode ?? "high") : mode;
 }
 
-/** Pick the best tier that meets the RTS target (45 average FPS). */
-export function resolveAutoDetect(results: AutoDetectResults): AutoDetectResolution {
-  let selected: GraphicsTier | null = null;
+/** The best tier that meets the target average. A machine that meets it on
+ *  none, or left no evidence, plays on the lowest: detection never turns a
+ *  player away. */
+export function resolveAutoDetect(results: AutoDetectResults): GraphicsTier {
+  let selected = GRAPHICS_TIERS[0];
   for (const mode of GRAPHICS_TIERS) {
     const result = results[mode];
-    if (!result || !isFiniteFps(result.averageFps) || !isFiniteFps(result.onePercentLowFps)) break;
-    if (result.averageFps < 45) break;
+    if (!result || result.averageFps < GRAPHICS_TARGET_FPS) break;
     selected = mode;
   }
-  return selected
-    ? { mode: selected, result: results[selected]! }
-    : { mode: null, result: null, unusable: true };
+  return selected;
 }
 
 export const graphicsSettings = {

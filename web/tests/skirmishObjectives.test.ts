@@ -14,6 +14,7 @@ test("objective capture and both scores publish exactly the native timeline", ()
   }).memory;
   const battle = new Battle(JSON.stringify(record.scenario), record.seed);
   try {
+    battle.set_controllers(JSON.stringify([["red-1", "human"]]));
     const decoder = new ScenePresentation(
       JSON.parse(battle.observation_layout()) as ObservationLayout,
     );

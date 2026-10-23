@@ -7,6 +7,8 @@ import { createElement } from "react";
 import { cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { askedBattle, battleHref } from "@apps/battle-lab/src/battleLinks";
+import { skirmishPlayers } from "@apps/battle-lab/src/skirmishSetup";
+import type { Faction } from "@packages/scene-assets/src/units";
 import { MainMenu } from "@apps/battle-lab/src/MainMenu";
 import { admitBattle } from "../src/battle/prepare/admission";
 import { PreparationFailed, prepareBattle } from "../src/battle/prepare/client";
@@ -25,6 +27,12 @@ afterEach(() => {
 });
 
 const U64_MAX = "18446744073709551615";
+/** A 1v1: you, fielding `faction`, against an Eastern AI. */
+const versus = (faction: Faction) =>
+  skirmishPlayers([
+    { side: "blue", faction, controller: "human" },
+    { side: "red", faction: "eastern", controller: "active_ai" },
+  ]);
 /** 2^53 + 1: the first whole number a JS number cannot hold. */
 const ABOVE_NUMBER = "9007199254740993";
 
@@ -44,9 +52,7 @@ test("a seed is canonical u64 decimal text, exact above what a number holds", ()
 
 test("a battle address round-trips the menu's choice, and names a parameter it gets wrong", () => {
   const map = { type: "metro", size: "large", seed: ABOVE_NUMBER } as const;
-  const asked = askedBattle(
-    new URL(battleHref({ ...map, faction: "europe" }), "http://game").search,
-  );
+  const asked = askedBattle(new URL(battleHref(map, versus("europe")), "http://game").search);
   expect(asked).toEqual({
     kind: "generated",
     players: [
@@ -64,9 +70,9 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   });
   // A chosen region rides along; without one the address names none.
   const paris = { ...map, region: "paris" };
-  expect(
-    askedBattle(new URL(battleHref({ ...paris, faction: "us" }), "http://game").search),
-  ).toMatchObject({ map: paris });
+  expect(askedBattle(new URL(battleHref(paris, versus("us")), "http://game").search)).toMatchObject(
+    { map: paris },
+  );
   expect("map" in asked && asked.map).not.toHaveProperty("region");
   expect(askedBattle("?replay=saved")).toEqual({ kind: "replay" });
   // A wrong, missing or unknown parameter is refused by name: nothing is
@@ -283,12 +289,7 @@ test("repeated preparation diagnostics appear once in loading details", async ()
 });
 
 test("faction choice round-trips with an admitted exact skirmish address", () => {
-  const href = battleHref({
-    type: "open",
-    size: "small",
-    seed: "17",
-    faction: "europe",
-  });
+  const href = battleHref({ type: "open", size: "small", seed: "17" }, versus("europe"));
   const asked = askedBattle(new URL(href, "http://game").search);
   expect(asked).toMatchObject({
     map: { seed: "17" },

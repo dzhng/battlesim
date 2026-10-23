@@ -6,14 +6,19 @@ use contract::command::{Engagement, MoveDirection, RoutePolicy};
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
 use contract::observation::MoveState;
-use contract::scenario::{Armor, Face, Rules};
+use contract::scenario::{Armor, Rules};
 
 use crate::digest::Digest;
 use crate::hold::{Hold, Phase};
-use crate::math::{Obb2, Rotation, V2, V3};
+use crate::math::{Obb2, V2, V3};
 use crate::navigation::Mobility;
 use crate::weapons::{Mount, Target};
 use crate::world::PropId;
+
+mod hull;
+mod motion;
+pub use hull::{face_toward, hull_face_at, HullFrame};
+pub use motion::{ground_mobility, motion, validate_drive, Flight, Motion};
 
 /// An aircraft smokes below this share of its health (D34).
 const SMOKING_HP_SHARE: f64 = 0.5;
@@ -237,8 +242,7 @@ impl UnitOrder {
 pub struct Unit {
     pub id: UnitId,
     pub side: Side,
-    /// Player slot that may issue commands for this unit, when the scenario
-    /// is a portable player-owned bundle.
+    /// The id of the player who commands this unit, when a player owns it.
     pub owner: Option<String>,
     /// Its unit type, the catalog's index.
     pub kind: TypeIndex,
@@ -273,6 +277,9 @@ pub struct Unit {
     /// ([`MoveState::RouteBlocked`]).
     pub stalls: (f64, u64),
     pub engagement: Engagement,
+    /// While a passive AI holds the unit at return fire, the engagement it
+    /// goes back to when that controller leaves: its authored or ordered one.
+    pub held_engagement: Option<Engagement>,
     pub mounts: Vec<Mount>,
     /// Enemies that attacked this unit, whom Return fire only may answer while
     /// the side still knows them (W13).
@@ -362,132 +369,6 @@ pub struct Settle {
     pub goal: V2,
     pub aim: V2,
     pub back: bool,
-}
-
-/// How a unit moves: over the ground, planned on the navigation grid, or
-/// through the air, where no ground rule reaches it.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Motion {
-    Ground(Mobility),
-    Air(Flight),
-}
-
-/// An aircraft's own numbers; its heights are the rules' `air` section.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Flight {
-    pub cruise_mps: f64,
-    pub turn_rad_s: f64,
-    pub climb_mps: f64,
-    /// Authored altitude band copied into runtime state at spawn.
-    pub layer: AltitudeLayer,
-    /// How it flies: on rotors (`movement::air`) or wings (`air`).
-    pub model: FlightModel,
-    /// Its cruise height over the ground (`AirRules::cruise_agl_m`).
-    pub cruise_agl_m: f64,
-}
-
-/// How a unit of type `t` moves.
-pub fn motion(t: &UnitType, rules: &Rules) -> Motion {
-    match t.mobility {
-        Moves::Air {
-            cruise_kmh,
-            turn_deg_s,
-            climb_mps,
-            layer,
-            flight,
-            ..
-        } => Motion::Air(Flight {
-            cruise_mps: cruise_kmh / 3.6,
-            turn_rad_s: turn_deg_s.to_radians(),
-            climb_mps,
-            layer,
-            model: flight,
-            cruise_agl_m: rules.air.cruise_agl_m(&t.mobility),
-        }),
-        _ => Motion::Ground(ground_mobility(t, rules).expect("a ground mover")),
-    }
-}
-
-/// How a ground unit of type `t` moves: on foot, or by its drive (Q29, Q30);
-/// `None` for an aircraft, which never touches ground navigation.
-pub fn ground_mobility(t: &UnitType, rules: &Rules) -> Option<Mobility> {
-    let m = &rules.movement;
-    let (off_road_mps, road_mps) = t.mobility.speeds_mps();
-    let vehicle = |drive| Mobility {
-        off_road_mps,
-        road_mps,
-        forest_multiplier: m.forest_vehicle_multiplier,
-        half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1],
-        class: MoverClass::Vehicle,
-        push: t.hull().expect("a vehicle has a hull").push_class,
-        drive: Some(drive),
-    };
-    Some(match t.mobility {
-        Moves::Air { .. } => return None,
-        Moves::Foot { .. } => Mobility {
-            off_road_mps,
-            road_mps,
-            forest_multiplier: m.forest_infantry_multiplier,
-            half_width_m: rules.infantry_movement.path_clearance_m,
-            class: MoverClass::Infantry,
-            push: contract::scenario::PushClass::None,
-            drive: None,
-        },
-        Moves::Tracked {
-            turn_deg_s,
-            reverse_fraction,
-            ..
-        } => vehicle(crate::navigation::Drive {
-            tracked: true,
-            turn_rad_s: turn_deg_s.to_radians(),
-            radius_m: 0.0,
-            reverse_fraction,
-            feel: m.drive,
-        }),
-        Moves::Wheeled {
-            turn_deg_s,
-            turning_radius_m,
-            reverse_fraction,
-            ..
-        } => vehicle(crate::navigation::Drive {
-            tracked: false,
-            turn_rad_s: turn_deg_s.to_radians(),
-            radius_m: turning_radius_m,
-            reverse_fraction,
-            feel: m.drive,
-        }),
-    })
-}
-
-/// Driving rules the vehicle motion model divides and eases by. (Each unit
-/// type's own numbers are the catalog's checks, at load.)
-pub fn validate_drive(rules: &Rules) {
-    let d = &rules.movement.drive;
-    assert!(
-        d.acceleration_s.is_finite()
-            && d.acceleration_s > 0.0
-            && d.braking_s.is_finite()
-            && d.braking_s > 0.0
-            && d.wreck_stop_s.is_finite()
-            && d.wreck_stop_s > 0.0,
-        "movement.drive acceleration, braking and wreck stop times must be finite and positive"
-    );
-    for (name, v) in [
-        ("turn_in_place_deg", d.turn_in_place_deg),
-        ("abeam_m", d.abeam_m),
-        ("abeam_deg", d.abeam_deg),
-        ("turning_deg", d.turning_deg),
-    ] {
-        assert!(v > 0.0, "movement.drive.{name} must be positive");
-    }
-    assert!(
-        d.min_leg_m >= 0.0 && d.circle_margin_m >= 0.0,
-        "movement.drive.min_leg_m and circle_margin_m must not be negative"
-    );
-    assert!(
-        d.turn_slow > 0.0 && d.turn_slow <= 1.0,
-        "movement.drive.turn_slow must be in (0, 1]: a turning vehicle never stops"
-    );
 }
 
 impl Unit {
@@ -659,11 +540,11 @@ impl Unit {
         self.unit_type(rules).hull().map(|h| &h.armor)
     }
 
-    /// Fold the unit's complete carried state into `d`.
-    pub fn digest(&self, d: &mut Digest) {
+    /// Fold the unit's carried state and its owner's `PlayerIndex` into `d`.
+    pub fn digest(&self, d: &mut Digest, owner: Option<usize>) {
         d.u64(self.id.0 as u64);
-        if let Some(owner) = &self.owner {
-            d.u64(crate::digest::of_str(owner));
+        if let Some(owner) = owner {
+            d.u64(owner as u64);
         }
         d.f64(self.position.x)
             .f64(self.position.y)
@@ -848,6 +729,11 @@ impl Unit {
         d.u64(self.engagement as u64)
             .u64(self.reach.can_engage as u64)
             .u64(self.reach.needs_closer as u64);
+        // Only a passive AI's unit that returns fire by choice folds this in,
+        // so other units keep their digests.
+        if self.held_engagement == Some(Engagement::ReturnFireOnly) {
+            d.u64(u64::MAX);
+        }
         // Only a gun fixed in a hull sets it, so other units keep their digests.
         if let Some(face) = self.reach.face {
             d.f64(face);
@@ -880,27 +766,6 @@ impl Unit {
             yaw: self.yaw,
             half: h.xy(),
         })
-    }
-
-    /// Distance from a point to the hull box (0 inside).
-    pub fn hull_distance(&self, p: V3) -> f64 {
-        self.hull_frame().distance(p)
-    }
-
-    /// The hull box at the unit's pose, for measuring many points against it.
-    pub fn hull_frame(&self) -> HullFrame {
-        let half = self.hull.expect("vehicle");
-        HullFrame {
-            center: self.position.xy(),
-            mid_z: self.position.z + half.z,
-            half,
-            to_local: Rotation::new(-self.yaw),
-        }
-    }
-
-    /// The hull face facing `p` (see [`face_toward`]) at the unit's pose.
-    pub fn hull_face(&self, p: V3) -> Face {
-        hull_face_at(self.position, self.yaw, self.hull.expect("vehicle"), p)
     }
 
     /// Radius of the unit's ground footprint, for traffic spacing and sensing
@@ -983,73 +848,5 @@ impl Unit {
             UnitOrder::Attack { target, .. } => Some(*target),
             _ => None,
         }
-    }
-}
-
-/// A vehicle's hull box at one pose with its rotation worked out once, so a
-/// caller measuring many points (the friendly-fire check samples a whole
-/// trajectory against each friendly hull) pays one sine and cosine, not one
-/// per point. The hoist is explicit because, left to the optimiser, an
-/// unrelated change once tipped an inlining decision and cost the endurance
-/// battle 40% of its instructions.
-pub struct HullFrame {
-    center: V2,
-    /// Height of the box's middle.
-    mid_z: f64,
-    half: V3,
-    to_local: Rotation,
-}
-
-impl HullFrame {
-    /// Distance from `p` to the box (0 inside).
-    pub fn distance(&self, p: V3) -> f64 {
-        let d = self.to_local.apply(p.xy() - self.center);
-        let dz = p.z - self.mid_z;
-        let ex = (d.x.abs() - self.half.x).max(0.0);
-        let ey = (d.y.abs() - self.half.y).max(0.0);
-        let ez = (dz.abs() - self.half.z).max(0.0);
-        (ex * ex + ey * ey + ez * ez).sqrt()
-    }
-
-    /// Whether some point of the segment `a`→`b` might lie within `margin`
-    /// of the box: `false` only when every point is certainly farther. A
-    /// conservative bound (the box's circumscribed sphere, with a millimetre
-    /// of slack for rounding), so a caller that skips the segment on `false`
-    /// gets the answer it would have measured point by point.
-    pub fn may_come_within(&self, a: V3, b: V3, margin: f64) -> bool {
-        let c = self.center.with_z(self.mid_z);
-        let ab = b - a;
-        let len2 = ab.dot(ab);
-        let t = if len2 > 0.0 {
-            ((c - a).dot(ab) / len2).clamp(0.0, 1.0)
-        } else {
-            0.0
-        };
-        (a + ab * t - c).length() <= margin + self.half.length() + 1e-3
-    }
-}
-
-/// The face of a hull with half extents `half`, standing on `base` and
-/// heading `yaw`, that `p` lies beyond.
-pub fn hull_face_at(base: V3, yaw: f64, half: V3, p: V3) -> Face {
-    let d = (p.xy() - base.xy()).rotated(-yaw);
-    face_toward(d.with_z(p.z - (base.z + half.z)), half)
-}
-
-/// The face of a box with half extents `half` (x forward) that a point at
-/// `local` (box frame, from its centre) lies beyond: the roof when above more
-/// than beside, otherwise front, rear or side by the dominant scaled axis (P10).
-pub fn face_toward(local: V3, half: V3) -> Face {
-    let (sx, sy, sz) = (local.x / half.x, local.y / half.y, local.z / half.z);
-    if sz > sx.abs() && sz > sy.abs() {
-        Face::Roof
-    } else if sx.abs() >= sy.abs() {
-        if sx > 0.0 {
-            Face::Front
-        } else {
-            Face::Rear
-        }
-    } else {
-        Face::Side
     }
 }

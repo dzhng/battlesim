@@ -1,30 +1,27 @@
 //! Help requests and detachments between allied skirmish lanes.
 
+use super::party::{recruit, refill, reserved, Ask, PartyKey};
+use super::value::{force, on_duty, Measure};
 use super::*;
 
+/// A call for help at `objective`, and who answers it. The detachment is
+/// the answering help party's (`TeamPlan::help_party`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct HelpRequest {
     pub requester: PlayerIndex,
     pub lane: EntryIndex,
     pub objective: ObjectiveSite,
+    /// The owner of the help party answering the call, if any.
     pub answered_by: Option<PlayerIndex>,
-    pub detachment: Vec<contract::ids::UnitId>,
+    /// When the call was raised: its help party's raising, while answered.
     pub raised_tick: Tick,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct HelpLock {
-    pub(crate) answered_by: PlayerIndex,
-    pub(crate) detachment: Vec<contract::ids::UnitId>,
-    pub(crate) clear_since: Option<Tick>,
-    pub(crate) raised_tick: Tick,
 }
 
 type LaneContext = (PlayerIndex, EntryIndex, ObjectiveSite, [f64; 2]);
 
-pub(super) fn lane_contexts<P: TeamPlayer>(
+pub(super) fn lane_contexts(
     side: Side,
-    players: &[P],
+    players: &[PlayerState],
     sites: &SkirmishSites,
     plans: &[PlayerPlan],
     covered_by_player: &BTreeMap<PlayerIndex, ObjectiveSite>,
@@ -43,7 +40,7 @@ pub(super) fn lane_contexts<P: TeamPlayer>(
     players
         .iter()
         .enumerate()
-        .filter(|(_, player)| player.side() == side)
+        .filter(|(_, player)| player.side == side)
         .enumerate()
         .filter_map(|(local_index, (index, _))| {
             let player = PlayerIndex(index as u16);
@@ -55,15 +52,13 @@ pub(super) fn lane_contexts<P: TeamPlayer>(
                     plan.staging_point,
                 ));
             }
-            let is_human = players[index].controller() == &ControllerKind::Human;
-            if is_human && !covered_by_player.contains_key(&player) {
+            // A human teammate asks for help where it fights. An AI player
+            // the plan left unassigned has no lane to ask for.
+            if players[index].controller != ControllerKind::Human {
                 return None;
             }
             let lane = lanes[local_index % lanes.len()];
-            let objective = covered_by_player
-                .get(&player)
-                .cloned()
-                .unwrap_or_else(|| sites.objectives[local_index % sites.objectives.len()].clone());
+            let objective = covered_by_player.get(&player)?.clone();
             let staging_point = staging(
                 sites.entries[lane.0].center,
                 objective.center,
@@ -72,19 +67,6 @@ pub(super) fn lane_contexts<P: TeamPlayer>(
             Some((player, lane, objective, staging_point))
         })
         .collect()
-}
-
-fn player_force(frame: &ObservationFrame, player: PlayerIndex) -> usize {
-    let observed = frame
-        .own
-        .iter()
-        .filter(|unit| unit.owner == Some(player))
-        .count();
-    frame
-        .skirmish
-        .as_ref()
-        .and_then(|view| view.players.iter().find(|p| p.index == player))
-        .map_or(observed, |p| observed.max(p.unit_count as usize))
 }
 
 fn player_anchor(frame: &ObservationFrame, player: PlayerIndex) -> Option<[f64; 2]> {
@@ -103,128 +85,102 @@ fn player_anchor(frame: &ObservationFrame, player: PlayerIndex) -> Option<[f64; 
     ])
 }
 
-fn lane_threats(frame: &ObservationFrame, objective: &ObjectiveSite) -> Vec<TypeIndex> {
-    frame
-        .identified
+/// Where help may be asked for: each lane's objective, and each side
+/// objective a hold party keeps (D55: a side objective under pressure raises
+/// help exactly as a main lane does), asked by the party's owner. Each
+/// requester asks once for an objective, though its lane and a hold share it.
+fn help_sites(lanes: &[LaneContext], memory: &TeamMemory) -> Vec<LaneContext> {
+    let holds = memory
+        .parties
+        .values()
+        .filter(|party| party.kind == PartyKind::Hold)
+        .filter_map(|party| {
+            let (_, lane, _, staging) = lanes.iter().find(|lane| lane.0 == party.owner)?;
+            Some((party.owner, *lane, party.objective.clone(), *staging))
+        });
+    let mut seen = BTreeSet::new();
+    lanes
         .iter()
-        .filter(|target| {
-            distance([target.position[0], target.position[1]], objective.center)
-                <= objective.radius_m * 3.0
-        })
-        .map(|target| target.kind)
+        .cloned()
+        .chain(holds)
+        .filter(|(requester, _, objective, _)| seen.insert((*requester, objective.id.clone())))
         .collect()
 }
 
-pub(super) fn capable_detachment(
-    rules: &Rules,
+/// What `helper` can lend, in strength (D56): its force beyond what its own
+/// lane needs (the enemy pressure there, times `help_force_margin`), less its
+/// units already on party duty. The side-party budget bounds claims and
+/// holds, not help: a helper with surplus answers however many objectives it
+/// holds.
+fn surplus(
+    measure: &Measure,
     frame: &ObservationFrame,
+    lanes: &[LaneContext],
+    memory: &TeamMemory,
     helper: PlayerIndex,
-    objective: &ObjectiveSite,
-    excluded: &BTreeSet<contract::ids::UnitId>,
-) -> Vec<(f64, contract::ids::UnitId)> {
-    let threats = lane_threats(frame, objective);
-    let can_answer = |unit: &OwnUnit| {
-        if threats.is_empty() {
-            super::super::unit_can_engage_ground(rules, unit.kind)
-        } else {
-            threats
-                .iter()
-                .any(|target| super::super::unit_can_engage_target(rules, unit.kind, *target))
-        }
-    };
-    let mut candidates: Vec<_> = frame
-        .own
+    tuning: TeamTuning,
+) -> f64 {
+    let need = lanes
         .iter()
-        .filter(|unit| {
-            unit.owner == Some(helper) && !excluded.contains(&unit.id) && can_answer(unit)
-        })
-        .map(|unit| {
-            (
-                distance([unit.position[0], unit.position[1]], objective.center),
-                unit.id,
-            )
-        })
-        .collect();
-    candidates.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
-    candidates
+        .find(|(player, _, _, _)| *player == helper)
+        .map_or(1.0, |(_, _, objective, _)| {
+            memory
+                .influence
+                .as_ref()
+                .map_or(1.0, |grid| (-grid.at(objective.center)).max(1.0))
+        });
+    force(measure, frame, helper)
+        - need * tuning.help_force_margin
+        - on_duty(measure, frame, memory, helper)
 }
 
-/// The `count` nearest of `capable` (nearest first), holding at least one
-/// unit that can hold an objective: help for a lane must be able to stand on
-/// it, so an aircraft never answers alone.
-pub(super) fn detachment(
-    rules: &Rules,
-    frame: &ObservationFrame,
-    capable: Vec<(f64, contract::ids::UnitId)>,
-    count: usize,
-) -> Vec<contract::ids::UnitId> {
-    let holds = |id: contract::ids::UnitId| {
-        frame
-            .own
-            .iter()
-            .find(|unit| unit.id == id)
-            .is_some_and(|unit| crate::objectives::can_hold(rules.catalog.get(unit.kind)))
-    };
-    let mut chosen: Vec<_> = capable.iter().take(count).map(|(_, id)| *id).collect();
-    if !chosen.iter().any(|id| holds(*id)) {
-        if let Some((_, holder)) = capable.iter().find(|(_, id)| holds(*id)) {
-            chosen.pop();
-            chosen.push(*holder);
-        }
-    }
-    chosen
-}
-
-pub(super) fn update_help<P: TeamPlayer>(
+/// One plan step of help: keep, replace or release each help party, and
+/// answer each new call from the nearest ally with surplus.
+/// The help party itself (its units, lock, budget and refill) is the one
+/// party concept in `party.rs`.
+pub(super) fn update_help(
     side: Side,
     frame: &ObservationFrame,
-    players: &[P],
+    players: &[PlayerState],
     lanes: &[LaneContext],
     memory: &mut TeamMemory,
     tuning: TeamTuning,
     rules: &Rules,
 ) -> Vec<HelpRequest> {
-    let tick_hz = rules.tick_hz;
     if frame.skirmish.is_none() {
         return Vec::new();
     }
-    let dwell = (tuning.help_dwell_s * f64::from(tick_hz)) as Tick;
+    let dwell = (tuning.help_dwell_s * f64::from(rules.tick_hz)) as Tick;
+    let sites = help_sites(lanes, memory);
+    let measure = Measure::new(rules, frame);
     let mut requests = Vec::new();
-    let mut used_surplus: BTreeMap<PlayerIndex, usize> = memory
-        .help_locks
-        .values()
-        .map(|lock| (lock.answered_by, lock.detachment.len()))
-        .fold(BTreeMap::new(), |mut used, (player, count)| {
-            *used.entry(player).or_default() += count;
-            used
-        });
-    let mut assigned_units = BTreeSet::new();
-    for (requester, lane, objective, _) in lanes {
+    for (requester, lane, objective, _) in &sites {
         let current = memory
             .influence
             .as_ref()
             .map_or(0.0, |grid| grid.at(objective.center));
         let previous = memory.previous_influence.get(&objective.id).copied();
         let trend = previous.map_or(0.0, |old| current - old);
-        let raised = previous.is_some_and(|_| trend <= -tuning.help_trend_threshold);
-        let need = ((-current).ceil() as usize).max(1);
-        // A detachment lost on the way is no help on its way: the lock goes,
-        // and a lane still outgunned asks again.
+        // An outgunned lane asks however steady its reading; one only
+        // pressed asks when its reading falls.
+        let falling = previous.is_some_and(|_| trend <= -tuning.help_trend_threshold);
+        let raised = falling || current < tuning.stance_fallback_influence;
+        let need = (-current).max(1.0);
+        let key = PartyKey::Help(*requester, objective.id.clone());
+        // Losses are replaced from the helper while it can spare them. A
+        // detachment lost on the way with nobody to replace it is no help on
+        // its way: the lock goes, and a lane still outgunned asks again.
         let mut lost = false;
-        if let Some(lock) = memory.help_locks.get_mut(requester) {
-            let sent = lock.detachment.len();
-            lock.detachment
-                .retain(|id| frame.own.iter().any(|unit| unit.id == *id));
-            let remaining = lock.detachment.len();
-            used_surplus
-                .entry(lock.answered_by)
-                .and_modify(|used| *used = used.saturating_sub(sent - remaining));
-            if sent > 0 && remaining == 0 {
-                memory.help_locks.remove(requester).expect("lock present");
+        if memory.parties.contains_key(&key) {
+            refill(rules, frame, memory, &key, &|memory, helper| {
+                surplus(&measure, frame, lanes, memory, helper, tuning)
+            });
+            if memory.parties[&key].units.is_empty() {
+                memory.parties.remove(&key);
                 lost = true;
             }
         }
-        if let Some(lock) = memory.help_locks.get_mut(requester) {
+        if let Some(lock) = memory.parties.get_mut(&key) {
             // A rising threat raises help early; only relief clears it. A
             // lane still outgunned keeps its help on the way, or a
             // detachment is called back before it ever arrives.
@@ -233,102 +189,102 @@ pub(super) fn update_help<P: TeamPlayer>(
             } else {
                 lock.clear_since = None;
             }
-            let engaged = detachment_engaged(frame, &lock.detachment);
             let held = lock
                 .clear_since
                 .is_none_or(|since| frame.tick.saturating_sub(since) < dwell)
-                || engaged;
+                || lock.engaged(frame);
             if held {
                 requests.push(HelpRequest {
                     requester: *requester,
                     lane: *lane,
                     objective: objective.clone(),
-                    answered_by: Some(lock.answered_by),
-                    detachment: lock.detachment.clone(),
+                    answered_by: Some(lock.owner),
                     raised_tick: lock.raised_tick,
                 });
                 continue;
             }
-            let released = memory.help_locks.remove(requester).expect("lock present");
-            used_surplus
-                .entry(released.answered_by)
-                .and_modify(|used| *used = used.saturating_sub(released.detachment.len()));
+            memory.parties.remove(&key);
         }
         if !(raised || lost && current < 0.0) {
             continue;
         }
-        let candidates = players
+        let reserved = reserved(memory);
+        let answer = players
             .iter()
             .enumerate()
             .filter(|(index, player)| {
-                player.side() == side
+                player.side == side
                     && PlayerIndex(*index as u16) != *requester
-                    && *player.controller() == ControllerKind::ActiveAi
+                    && player.controller == ControllerKind::ActiveAi
             })
             .filter_map(|(index, _)| {
                 let helper = PlayerIndex(index as u16);
-                let force = player_force(frame, helper);
-                let helper_need = lanes
-                    .iter()
-                    .find(|(player, _, _, _)| *player == helper)
-                    .map_or(1.0, |(_, _, helper_objective, _)| {
-                        memory.influence.as_ref().map_or(1.0, |grid| {
-                            (-grid.at(helper_objective.center)).ceil().max(1.0)
-                        })
-                    });
-                let used = used_surplus.get(&helper).copied().unwrap_or_default();
-                let surplus = force as f64 - helper_need * tuning.help_force_margin - used as f64;
-                let mut excluded = assigned_units.clone();
-                excluded.extend(
-                    memory
-                        .help_locks
-                        .values()
-                        .flat_map(|lock| lock.detachment.iter().copied()),
+                let surplus = surplus(&measure, frame, lanes, memory, helper, tuning);
+                let units = recruit(
+                    rules,
+                    frame,
+                    helper,
+                    objective,
+                    &reserved,
+                    Ask {
+                        units: usize::MAX,
+                        strength: surplus.min(need),
+                    },
+                    PartyKind::Help,
                 );
-                let capable = capable_detachment(rules, frame, helper, objective, &excluded);
-                (surplus > 0.0 && !capable.is_empty()).then(|| {
+                (!units.is_empty()).then(|| {
                     let distance = player_anchor(frame, helper)
                         .map_or(f64::INFINITY, |at| distance(at, objective.center));
-                    (distance, helper, helper_need, surplus, capable)
+                    (distance, helper, units)
                 })
-            });
-        let Some((_, helper, _helper_need, surplus, capable)) =
-            candidates.min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)))
-        else {
+            })
+            .min_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+        let Some((_, helper, units)) = answer else {
             requests.push(HelpRequest {
                 requester: *requester,
                 lane: *lane,
                 objective: objective.clone(),
                 answered_by: None,
-                detachment: Vec::new(),
                 raised_tick: frame.tick,
             });
             continue;
         };
-        let count = surplus.min(need as f64).floor().max(1.0) as usize;
-        let detachment = detachment(rules, frame, capable, count);
-        assigned_units.extend(detachment.iter().copied());
-        memory.help_locks.insert(
-            *requester,
-            HelpLock {
-                answered_by: helper,
-                detachment: detachment.clone(),
-                clear_since: None,
+        memory.parties.insert(
+            key,
+            Party {
+                kind: PartyKind::Help,
+                owner: helper,
+                objective: objective.clone(),
+                size: units.len(),
+                units,
                 raised_tick: frame.tick,
+                clear_since: None,
             },
         );
-        *used_surplus.entry(helper).or_default() += detachment.len();
         requests.push(HelpRequest {
             requester: *requester,
             lane: *lane,
             objective: objective.clone(),
             answered_by: Some(helper),
-            detachment,
             raised_tick: frame.tick,
         });
     }
+    // Help for a call no longer made (its requester moved on, or the hold
+    // it answered went home) goes home too, unless it is fighting.
+    let asked: BTreeSet<_> = sites
+        .iter()
+        .map(|(requester, _, objective, _)| PartyKey::Help(*requester, objective.id.clone()))
+        .collect();
+    memory.parties.retain(|key, party| {
+        !matches!(key, PartyKey::Help(..)) || asked.contains(key) || party.engaged(frame)
+    });
+    // Only this step's sites keep a reading: a site that comes back measures
+    // its trend from its return, not from a reading minutes old.
+    memory
+        .previous_influence
+        .retain(|id, _| sites.iter().any(|(_, _, objective, _)| objective.id == *id));
     let influence = memory.influence.clone();
-    for (_, _, objective, _) in lanes {
+    for (_, _, objective, _) in &sites {
         if let Some(current) = influence.as_ref().map(|grid| grid.at(objective.center)) {
             memory
                 .previous_influence
@@ -338,14 +294,34 @@ pub(super) fn update_help<P: TeamPlayer>(
     requests
 }
 
-fn detachment_engaged(frame: &ObservationFrame, detachment: &[contract::ids::UnitId]) -> bool {
-    frame.own.iter().any(|unit| {
-        detachment.contains(&unit.id)
-            && ((unit.engagement == contract::command::Engagement::FireAtWill
-                && !unit.sees.is_empty())
-                || unit
-                    .mounts
-                    .iter()
-                    .any(|mount| mount.reason == contract::observation::ActionReason::Firing))
-    })
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_requester_asks_once_where_its_lane_and_hold_share_an_objective() {
+        let objective = ObjectiveSite {
+            id: "held".into(),
+            center: [100.0, 100.0],
+            radius_m: 30.0,
+            kind: contract::encounter::ObjectiveSiteKind::Field,
+            counterpart: None,
+        };
+        let player = PlayerIndex(0);
+        let lanes = vec![(player, EntryIndex(0), objective.clone(), [100.0, 0.0])];
+        let mut memory = TeamMemory::default();
+        memory.parties.insert(
+            PartyKey::Side(objective.id.clone()),
+            Party {
+                kind: PartyKind::Hold,
+                owner: player,
+                objective,
+                units: vec![],
+                size: 2,
+                raised_tick: 0,
+                clear_since: None,
+            },
+        );
+        assert_eq!(help_sites(&lanes, &memory).len(), 1);
+    }
 }

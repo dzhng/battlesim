@@ -3282,31 +3282,31 @@
       },
       "mounts": [
         {
-          "id": "autocannon",
+          "id": "launcher",
           "name": "IRIS-T SLM",
           "weapons": [
             "aa_medium"
           ],
           "turret": true,
           "pivot_m": [
-            -1.05,
+            -3.3,
             0.0,
-            1.716
+            1.85
           ],
           "muzzle_m": [
-            2.919,
+            1.9,
             0.0,
-            0.475
+            0.51
           ]
         }
       ],
-      "appearance": "us_stryker_m1296_dragoon",
+      "appearance": "europe_iris_t_medium",
       "body": {
         "hull": {
           "half_extents_m": [
-            3.475,
-            1.36,
-            1.32
+            5.26,
+            1.275,
+            1.96
           ],
           "eye_m": 2.4,
           "hp": 120,

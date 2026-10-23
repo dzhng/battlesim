@@ -13,18 +13,18 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
-import { FACTIONS, type Faction } from "@packages/scene-assets/src/units";
+import { FACTIONS } from "@packages/scene-assets/src/units";
 import { catalogSet } from "@web/battle/catalog/sets";
 import { mapPreviews, type MapPreviews, type PreviewState } from "@web/battle/prepare/preview";
 import type { Player } from "@web/battle/prepare/protocol";
 import { loadWasm } from "@web/battle/sim/module";
-import { MAP_SIZES, MAP_TYPES, newSeed, type MapChoice, type MapSize } from "@web/maps/source";
-import { REGIONS, spoken } from "../battleLinks";
-import { lobbyCandidate } from "./candidate";
+import { MAP_SIZES, MAP_TYPES, newSeed, type MapSize } from "@web/maps/source";
+import { REGIONS, spoken, type AskedLobby } from "../battleLinks";
+import { MAX_PLAYERS_PER_SIDE } from "../skirmishSetup";
 import {
   add,
   isMapInputChange,
-  MAX_PLAYERS_PER_SIDE,
+  lobbyCandidate,
   preset,
   remove,
   reroll,
@@ -42,9 +42,6 @@ import {
 
 const RANDOM = "random";
 const PRESETS: readonly LobbyPreset[] = ["1v1", "3v3", "5v5"];
-
-/** What a menu address asks the lobby to open on (`askedChoice`). */
-export type AskedLobby = Partial<MapChoice & { faction: Faction }>;
 
 /** A 1v1 on the asked map, at the asked seed or a fresh one. */
 function opening(asked: AskedLobby): LobbyState {

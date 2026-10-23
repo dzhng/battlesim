@@ -119,7 +119,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
   const { meshes, sim, surfaceZ } = session;
   const specimenShapes = useMemo(() => specimensOf(session.units), [session.units]);
   const { observation } = sim;
-  const contactFacing = useContactFacing(STREET_CAMERA, OPENING_METRES_PER_PX);
+  const [renderScale, setRenderScale] = useState(1);
+  const contactFacing = useContactFacing(STREET_CAMERA, OPENING_METRES_PER_PX, renderScale);
   const { facing } = contactFacing;
   const [styles, setStyles] = useState<FogPresentation["styles"]>(() =>
     structuredClone(gameFogPresentation.styles),
@@ -239,7 +240,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
         {...session.viewport}
         initialCamera={STREET_CAMERA}
         groundAt={surfaceZ}
-        onFrame={(project, view, pointer) => {
+        onFrame={(project, view, pointer, scale) => {
+          setRenderScale(scale);
           session.placePanels(project, view, pointer);
           contactFacing.follow(view);
         }}

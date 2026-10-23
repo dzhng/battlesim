@@ -4,9 +4,10 @@ This record preserves the original combined-arms foundation plan and the
 village checkpoint it delivered. The plan is closed because its umbrella
 continuation no longer owns the remaining work: transport, helicopters,
 air-war, skirmish AI, and team skirmish each have their own current owner.
-The 5v5 team-skirmish closeout now owns the stress and pacing evidence that the
-old full-battle continuation was going to collect; that closeout remains an
-active team-skirmish task.
+The closed [team-skirmish](../team-skirmish/README.md) record holds the 5v5
+pacing evidence the old full-battle continuation was going to collect (AI
+matches that finish on their own). The stress and frame-time work at the unit
+cap moved to a future performance spec (user, 2026-10-19).
 
 ## Why the plan had this shape
 
@@ -44,11 +45,11 @@ continuation slices without a compatibility layer.
 - The late-remains workload and generic publication delivery are implemented,
   but the broader optimization options proposed after the old endurance
   verdict were not completed here. Their measured failure remains useful
-  evidence; the active 5v5 team-skirmish closeout now owns the decision about
-  the workload worth supporting, and that evidence is not yet complete.
+  evidence; the decision about the workload worth supporting belongs to the
+  future performance spec.
 - The old `/battle/combined-arms` continuation fixture was never created. A
-  5v5 integrated stress run is the planned acceptance surface instead of a
-  second umbrella scenario; the team-skirmish spec still records it as open.
+  5v5 all-AI battle is the acceptance surface instead of a second umbrella
+  scenario; its frame-time measure belongs to the future performance spec.
 
 ## Invariants that survive the archive
 
@@ -68,9 +69,8 @@ continuation slices without a compatibility layer.
 Focused Rust tests and the registered browser checkpoints under
 `crates/sim/tests/`, `web/tests/`, and `web/scenes/` are the executable proof
 for the shipped foundation. Lab-only scenes remain diagnostic surfaces. The
-[team-skirmish](../../team-skirmish/README.md) spec is the intended owner of
-the remaining multi-player stress and closeout evidence; its closeout is still
-open.
+[team-skirmish](../team-skirmish/README.md) record holds the multi-player
+closeout evidence; stress at the unit cap is the future performance spec's.
 
 ## Rejected or superseded paths
 

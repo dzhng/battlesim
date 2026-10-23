@@ -14,6 +14,7 @@ Ural's own, `ural.cab`):
 
 Every part reads the roles `vehicle_parts` documents.
 """
+import copy
 import math
 import os
 import sys
@@ -25,12 +26,27 @@ from parts import box, cyl, empty, loft  # noqa: E402
 FINE, NEAR, MID = VP.FINE, VP.NEAR, VP.MID
 
 
-def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_h, deck_z=None, doors=1):
+def on(v, dx=0.0, length=None, name="chassis"):
+    """`v` as a shared chassis helper should see it when the chassis is only
+    part of the frame: its parts under a node `name` moved `dx` along x, and
+    `length` long where given. Nothing moves without a `dx`."""
+    view = copy.copy(v)
+    if dx:
+        view.hull = empty(name, (dx, 0, 0), parent=v.hull)
+    if length is not None:
+        view.length = length
+    return view
+
+
+def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_h, deck_z=None, doors=1,
+            tow=True):
     """The truck under a load: `axles` (x of each), wheels of radius
     `wheel_r` and width `wheel_w` at ±`track`, frame rails at `rail_z`, a
     `cab` of its shape ahead of `cab_x` (its rear face) `cab_len` long and
-    `cab_h` tall, with `doors` doors a side (an armoured crew cab's two).
-    Returns the deck's height (the rails' top, or `deck_z`)."""
+    `cab_h` tall, with `doors` doors a side (an armoured crew cab's two);
+    `cab` None leaves the cab to the family, and `tow` False leaves the tail
+    without its tow hook. Returns the deck's height (the rails' top, or
+    `deck_z`)."""
     m, h = v.mats, v.hull
     half = v.length / 2
     for side, s in ((1, "L"), (-1, "R")):
@@ -50,12 +66,14 @@ def chassis(v, axles, wheel_r, wheel_w, track, rail_z, cab, cab_x, cab_len, cab_
         VP.light_with_guard(f"tail_light_{s}", (-half + 0.05, side * (track - 0.05), rail_z + 0.05), 0.05,
                             dict(m, lamp=m["tail"]), h, rot=(0, 0, math.pi))
     box("rear_bumper", (0.12, track * 2 - 0.2, 0.14), (-half + 0.06, 0, rail_z - 0.05), m["dark"], h, bevel=0.01)
-    VP.tow_hook("rear_tow", (-half + 0.02, 0, rail_z - 0.05), m, h, size=0.13, rot=(0, 0, math.pi))
+    if tow:
+        VP.tow_hook("rear_tow", (-half + 0.02, 0, rail_z - 0.05), m, h, size=0.13, rot=(0, 0, math.pi))
     # Fuel tank and battery box between the cab and the first rear axle.
     gap = (cab_x + axles[1]) / 2 if len(axles) > 1 else cab_x - 0.6
     VP.fuel_tank("fuel_tank", (gap, 0.85, rail_z - 0.05), 0.95, 0.24, m, h)
     VP.stowage_box("battery_box", (gap, -0.85, rail_z - 0.30), (0.60, 0.30, 0.40), m, h, rot=(0, 0, math.pi))
-    cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r, doors)
+    if cab is not None:
+        cab_shape(v, cab, cab_x, cab_len, cab_h, track, rail_z, wheel_r, doors)
     return deck_z if deck_z is not None else rail_z + 0.15
 
 

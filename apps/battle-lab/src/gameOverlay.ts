@@ -99,8 +99,8 @@ export const gameXray: XrayStyle = (() => {
 const gameStrokeRule: StrokeRule = validateStrokeRule(game.presentation.overlay.stroke);
 
 /** The marks' stroke widths where one pixel spans `metresPerPx`. */
-export function gameStroke(metresPerPx: number): StrokeWidth {
-  return strokeWidth(gameStrokeRule, metresPerPx);
+export function gameStroke(metresPerPx: number, renderScale = 1): StrokeWidth {
+  return strokeWidth(gameStrokeRule, metresPerPx, renderScale);
 }
 
 /** The line scale for routes that don't follow the camera (the labs): the

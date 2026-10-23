@@ -1,4 +1,5 @@
 use crate::common::air_field::wing_limits;
+use crate::common::Seat;
 use contract::command::{CommandEnvelope, Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::random::Rng;
@@ -410,7 +411,7 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
     let setup = serde_json::from_value(json!({
         "map": { "size": [3000, 3000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
         "rules": rules, "units": [],
-        "players":[{"id":"blue-1","side":"blue","faction":"us","controller":"human","human_capable":true},{"id":"red-1","side":"red","faction":"eastern","controller":"passive_ai"}], "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 20, "preparation_s": 60, "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
+        "players": crate::common::human_duel(), "skirmish": {"rules": { "credits_per_minute": 200, "starting_minutes": 20, "preparation_s": 60, "max_units": 30, "max_players_per_side": 10, "dispatch_interval_s": 1, "capture_s": 20, "majority_s": 1800, "victory_score": 1000 },
             "sites": { "entries": [
                 { "side": "blue", "center": [1500, 10], "yaw": std::f64::consts::FRAC_PI_2 },
                 { "side": "red", "center": [1500, 2990], "yaw": -std::f64::consts::FRAC_PI_2 }
@@ -453,8 +454,7 @@ fn bought_jet_arrives_and_withdraws_on_low_fuel(row: &str) {
         player: Some("red-1".into()),
         ..envelope(1, Order::Ready)
     });
-    let credits =
-        |b: &sim::battle::Battle| b.observe(Side::Blue).skirmish.as_ref().unwrap().credits;
+    let credits = |b: &sim::battle::Battle| b.observe(Side::Blue).seat().credits;
     let (mut arrived, mut withdrew, mut left, mut refund) = (None, None, false, 0.0);
     let mut before = credits(&battle);
     let limit = (wait_s + fuel_s + 120.0) as u32 * hz;

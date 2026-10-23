@@ -71,6 +71,8 @@ pub(crate) struct Report {
     pub(crate) result: Option<contract::skirmish::MatchResult>,
     pub(crate) objective_first_owner_ticks: std::collections::BTreeMap<String, u64>,
     pub(crate) objective_owned_ticks: [std::collections::BTreeMap<String, u64>; 2],
+    /// Ticks each objective had a hold party (D55), per side.
+    pub(crate) hold_party_ticks: [std::collections::BTreeMap<String, u64>; 2],
     pub(crate) peak_objectives_held: [u64; 2],
     pub(crate) peak_simultaneous_lanes: [u64; 2],
     pub(crate) cohesion: std::collections::BTreeMap<String, [u64; 2]>,
@@ -95,6 +97,10 @@ pub(crate) struct Report {
     pub(crate) help_requests_answered: u32,
     pub(crate) detachment_sizes: Vec<u32>,
     pub(crate) detachment_kinds: Vec<Vec<String>>,
+    /// Parties raised, by kind, then by their size when first seen; a claim
+    /// that becomes a hold counts once as each.
+    pub(crate) parties_by_kind:
+        std::collections::BTreeMap<String, std::collections::BTreeMap<u32, u32>>,
     pub(crate) pushes_started: u32,
     pub(crate) pushes_synchronized: u32,
     pub(crate) push_lanes_falling_back: u32,

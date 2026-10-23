@@ -8,7 +8,7 @@ import { cleanup, fireEvent, waitFor, within, type RenderResult } from "@testing
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { MainMenu } from "@apps/battle-lab/src/MainMenu";
 import { graphicsSettings } from "@apps/battle-lab/src/graphicsSettings";
-import { fromUrl } from "@apps/battle-lab/src/lobby/model";
+import { askedBattle } from "@apps/battle-lab/src/battleLinks";
 import { PreviewWorker } from "./support/previewWorker";
 import { visitInRouter as visit } from "./support/router";
 
@@ -53,10 +53,13 @@ const banners = (menu: RenderResult, name: "Blue" | "Red") =>
     .getAllByRole("listitem")
     .map((li) => li.textContent);
 const deploy = (menu: RenderResult) => menu.getByTestId("menu-deploy");
-/** The lobby state Deploy's link names, or null while Deploy waits. */
+/** The battle Deploy's link names, or null while Deploy waits. */
 const deployed = (menu: RenderResult) => {
   const href = deploy(menu).getAttribute("href");
-  return href === null ? null : fromUrl(href.replace(/^\/battle/, ""));
+  if (href === null) return null;
+  const asked = askedBattle(new URL(href, "http://game").search);
+  if ("error" in asked || asked.kind !== "generated") throw new Error(JSON.stringify(asked));
+  return asked;
 };
 
 test("the lobby opens on a 1v1 of the asked map, and Deploy waits for that map", async () => {

@@ -56,6 +56,16 @@
     "map": "geometry"
   },
   {
+    "id": "geometry-scaling",
+    "route": "/labs/geometry-scaling",
+    "describe": "Matched local terrain scaling at three zooms, with horizontal and elevated remote geometry; production frame measurements and pictures.",
+    "map": "endurance",
+    "tool": true,
+    "build": "production",
+    "serial": true,
+    "timeout_s": 1800
+  },
+  {
     "id": "authority",
     "route": "/labs/authority",
     "describe": "One authority in a worker: real tick commands with an ordered ack log, pause/step/reset, withheld consumer credit and an in-thread replay/parity check.",
@@ -269,16 +279,17 @@
   },
   {
     "id": "ally-help",
-    "route": "/battle?type=mixed&size=medium&seed=1&blue=h,a&blue_faction=us&red=a,a&red_faction=eastern",
+    "route": "/battle?type=mixed&size=medium&seed=1&battle=20260925&blue=h,a&blue_faction=us&red=a,a&red_faction=eastern",
     "describe": "A 2v2 team battle: you hold the far objective with one squad, and under pressure your AI ally sends a detachment, not its whole force, toward your objective.",
     "map": null,
     "catalog": "game",
-    "loading": false
+    "loading": false,
+    "timeout_s": 1500
   },
   {
     "id": "benchmark",
     "route": "/labs/benchmark",
-    "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro Large seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
+    "describe": "The benchmark (the one frame-cost measure), reached from the menu: city contact, the simulation's central city-arena-2 stress on Metro XL seed 4, warm-started to contact, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
     "build": "production",
     "map": null,
     "serial": true,
@@ -287,7 +298,7 @@
   {
     "id": "endurance",
     "route": "/labs/endurance",
-    "describe": "Synthetic stress battle for the scale verdict: 100 units a side, waves, reserves, a speculative-fire burst, an optional late state of 20,000 fallen and 2,000 wrecks, with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
+    "describe": "Synthetic stress battle for the scale verdict: 100 units a side, waves, reserves, a speculative-fire burst, an optional late state with the full roster fallen (800 soldiers and 100 wrecks), with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
     "build": "production",
     "map": "endurance",
     "serial": true

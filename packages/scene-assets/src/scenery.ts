@@ -91,7 +91,8 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   tooth: prop,
   // The street's bodies (fixtures/props/city/street.json), one kind per row.
   // A parked car's destroyed state is the wreck's own row.
-  parked_car: prop,
+  // Dense parking repeats this mesh across thousands of distant instances.
+  parked_car: { ...prop, tier_triangles: [8000, 3000, 800, 200] },
   car_wreck: prop,
   jersey_barrier: prop,
   bollard: prop,

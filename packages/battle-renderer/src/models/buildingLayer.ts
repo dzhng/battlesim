@@ -17,12 +17,13 @@
 // so consecutive draws usually change only the range: those go straight to
 // the raw pass, and the pipeline's whole state is set again only when a
 // buffer changes.
+import { recordDraw, type SubmittedDraws } from "../frame/submitted";
 import { TIER_COUNT } from "@packages/scene-assets/src/schema";
 import type { GpuRegistry } from "../frame/registry";
 import {
   Batch,
   BATCH_WORDS,
-  CAST_PASS,
+  SUN_CASCADES,
   INSTANCE_WORDS,
   NONE,
   VIEW_PASS,
@@ -80,6 +81,8 @@ export interface BuildingWalkStats {
   chunks: number;
   coarse: number;
   residentChunks: number;
+  /** Bounds tested by the last spatial query, including hierarchy branches. */
+  visitedBounds: number;
   /** The pool: the rows it can hold, and holds now. */
   pool: { capacity: number; used: number };
   /** The fallen buildings' rows (a ruin's or a gutted shell's), and those
@@ -119,6 +122,7 @@ export const emptyBuildingWalkStats = (): BuildingWalkStats => ({
   chunks: 0,
   coarse: 0,
   residentChunks: 0,
+  visitedBounds: 0,
   pool: { capacity: 0, used: 0 },
   ruins: 0,
   ruinTiers: Array.from({ length: TIER_COUNT }, () => 0),
@@ -158,7 +162,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
   let scope: GpuRegistry | null = null;
   let buffer: GPUBuffer | null = null;
   let shown = true;
-  const lists = [createDrawList(), createDrawList()];
+  const lists = Array.from({ length: 1 + SUN_CASCADES }, createDrawList);
   const tiers = Array.from({ length: TIER_COUNT }, () => 0);
   const triangles = Array.from({ length: TIER_COUNT }, () => 0);
   let casterTriangles = 0;
@@ -183,7 +187,12 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       if (!mesh) continue;
       const count = batches[o + Batch.count];
       const view = batches[o + Batch.pass] === VIEW_PASS;
-      push(lists[view ? VIEW_PASS : CAST_PASS], mesh, batches[o + Batch.first], count);
+      if (view) push(lists[VIEW_PASS], mesh, batches[o + Batch.first], count);
+      else
+        for (let cascade = 0; cascade < SUN_CASCADES; cascade++) {
+          if (batches[o + Batch.cascade_mask] & (1 << cascade))
+            push(lists[1 + cascade], mesh, batches[o + Batch.first], count);
+        }
       if (view) {
         tiers[tier] += count;
         triangles[tier] += (count * mesh.count) / 3;
@@ -209,6 +218,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
     raw: GPURenderPassEncoder,
     surface: SurfacePart,
     hidden: Readonly<SurfaceFlags>,
+    submitted?: SubmittedDraws,
   ) {
     const has = list.surfaces;
     if (!buffer || (surface === "solid" ? !has.opaque && !has.room : !has[surface])) return;
@@ -224,6 +234,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
         vertices = mesh.vertices;
         bind(mesh.vertices, buffer, mesh.indices).drawIndexed(indices, count, firstIndex, 0, first);
       } else raw.drawIndexed(indices, count, firstIndex, 0, first);
+      recordDraw(submitted, indices, count);
     }
   }
 
@@ -303,8 +314,9 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
+      submitted?: SubmittedDraws,
     ) {
-      if (shown) drawList(lists[VIEW_PASS], bind, raw, surface, hidden);
+      if (shown) drawList(lists[VIEW_PASS], bind, raw, surface, hidden, submitted);
     },
     /** One kind of surface of every casting building into one of the sun's cascades. */
     drawCasters(
@@ -312,8 +324,10 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
       hidden: Readonly<SurfaceFlags>,
+      cascade: number,
+      submitted?: SubmittedDraws,
     ) {
-      if (shown) drawList(lists[CAST_PASS], bind, raw, surface, hidden);
+      if (shown) drawList(lists[1 + cascade], bind, raw, surface, hidden, submitted);
     },
     /** The module instances the last view drew, per row (a walked module)
      *  and tier (`row · 4 + tier`); none while they are hidden. */
@@ -337,7 +351,7 @@ export function createBuildingLayer(device: GPUDevice, registry: GpuRegistry) {
         tiers: [...tiers],
         triangles: [...triangles],
         draws: lists[VIEW_PASS].count,
-        casterDraws: lists[CAST_PASS].count,
+        casterDraws: lists.slice(1).reduce((n, list) => n + list.count, 0),
         casterTriangles,
         uploadBytes,
         totalUploadBytes,

@@ -48,7 +48,6 @@ fn world(root: &Path, game: &Value, side: Side) -> WorldInput {
         }),
         sun_azimuth: 0.0,
         sun_elevation: 0.5,
-        cascade_far_m: None,
         buildings: None,
     }
 }
