@@ -1,0 +1,63 @@
+{
+ "entries": [
+  {
+   "file": "eastern_s300_long-side.jpg",
+   "variant": "eastern_s300_long",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AParkPatriot2015part8-05.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "7eea07b2c20153ec1a84bd43d08a8c008d0118814ca4c279137539f79b0274e7",
+   "note": "5P85SE2 TEL at Park Patriot 2015, right side: the MAZ-543M's four axles in two pairs, the right cab with its two side windows, the equipment enclosures and the cab guard rail behind it, the flat rear deck with its side lockers, and the four containers raised on the erector at the rear, their bases on the ground behind the chassis."
+  },
+  {
+   "file": "eastern_s300_long-three_quarter_front.jpg",
+   "variant": "eastern_s300_long",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3AParkPatriot2015part8-04.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "ecee73b9d1f67ece4152ff93dbf572c248f6c6b3c19b4d45dde003da7eb52c7b",
+   "note": "The same TEL from the right front: the split cabs either side of the radiator grille, the beacon and searchlight on the cab roof, the boxed enclosures behind the cab, the erector's ram, the containers' hoop ribs."
+  },
+  {
+   "file": "eastern_s300_long-three_quarter_front-2.jpg",
+   "variant": "eastern_s300_long",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A5P85SE2_of_the_SAM_system_S-300_PMU-2.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "e227164462c2928831440379c7162ed03d4218a85e5a387f7889c1f0e755935c",
+   "note": "5P85SE2 at MAKS 2009, left front close up: the grille with its guard bars, the headlights and the front bumper, the tow cable, the left cab's door and step, the pipe guard rail over the left cab."
+  },
+  {
+   "file": "eastern_s300_long-three_quarter_front-3.jpg",
+   "variant": "eastern_s300_long",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3A5P85SE_TEL_at_MAKS-2007.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "a3a6f106c6af6cfe41ae04140adcb5446755e5534e612e2247eda8e3ac0fc9a3",
+   "note": "5P85SE at MAKS 2007 from the right front, in a camouflage finish: the right cab's side windows and door, the enclosures and the guard rail behind it, the containers raised at the rear."
+  },
+  {
+   "file": "eastern_s300_long-rear.jpg",
+   "variant": "eastern_s300_long",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File%3ALaunch_containers_5P85SE2_(S-300_PMU-2).jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "38bf3d4a01addf3fc8c73300b624722762b28509c468065c89921ea9296c12e5",
+   "note": "The raised containers from behind: two pairs either side of the erector's lattice beam, each container ringed by hoop ribs every half metre or so, a domed base on each."
+  }
+ ],
+ "gaps": [
+  "eastern_s300_long: every photo shows the containers raised; the stowed pack (the four lying in two rows of two either side of the erector, bases overhanging the rear) is drawn from the raised geometry and the 13.11 m travelling length",
+  "eastern_s300_long: the hydraulic outriggers' exact stations are hidden by the wheels and the show placards; they are placed between the axles and at the rear corners"
+ ]
+}

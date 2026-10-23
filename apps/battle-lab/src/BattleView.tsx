@@ -20,7 +20,7 @@ import { MatchResultOverlay } from "./MatchResultOverlay";
 import { PurchasePicker } from "@web/battle/present/purchasePicker";
 import { ArmyDeck } from "@web/battle/present/armyDeck";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
-import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
+import { battleOverlayScenario, buildBattleOverlay } from "./battleOverlay";
 import { useContactFacing } from "./contactFacing";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
@@ -76,7 +76,6 @@ export function BattleView({
   cover,
   onLoadStage,
   onFailure,
-  spawn,
   onDecoded,
 }: {
   fixture: string;
@@ -116,32 +115,16 @@ export function BattleView({
   /** The battle's authority refused or failed it: the route's cover shows the
    *  refusal, and nothing is drawn under it. Without one, the HUD says why. */
   onFailure?: (error: string) => void;
-  /** The authoritative entry for the selected side, used for the deployment cue. */
-  spawn?: [number, number] | null;
   /** Scenario/runtime audio may react to the first authoritative publication. */
   onDecoded?: (observation: ObservationView, digest: string) => void;
 }) {
-  const parsed = useMemo(() => {
-    const s = JSON.parse(scenario) as {
-      map: { size: [number, number] };
-      rules: { service: { radius_m: number } };
-      /** Absent or null when the scenario has no completion rule. */
-      encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
-    };
-    const drawn: BattleOverlayScenario = {
-      supplyRadius: s.rules.service.radius_m,
-      zone: s.encounter
-        ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
-        : null,
-      deployment: spawn
-        ? {
-            center: spawn,
-            facing: Math.atan2(s.map.size[1] / 2 - spawn[1], s.map.size[0] / 2 - spawn[0]),
-          }
-        : null,
-    };
-    return { map: s.map, size: s.map.size, drawn };
-  }, [scenario, spawn]);
+  const parsed = useMemo(
+    () => ({
+      size: (JSON.parse(scenario) as { map: { size: [number, number] } }).map.size,
+      drawn: battleOverlayScenario(scenario, side ?? "blue"),
+    }),
+    [scenario, side],
+  );
   // The border and the orders are rebuilt only when the zoom crosses a step
   // (×1.25), so their widths hold near their `_px` widths on screen.
   const [zoom, setZoom] = useState(() => zoomStep(camera.distance));

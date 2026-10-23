@@ -71,6 +71,7 @@ fn input() -> PropInput {
         detail: Detail {
             lod_px: [200.0, 80.0, 30.0],
             impostor_px: 10.0,
+            shadow_caster_px: 0.0,
         },
         dynamic: true,
     }
@@ -379,6 +380,7 @@ fn caster_lists_keep_offscreen_shadows_without_changing_camera_meshes() {
         let offscreen_x = -80.0 - uphill * 10.0;
         use crate::records::{CAST_PASS, NONE};
         let mut input = input();
+        input.detail.shadow_caster_px = 2.0;
         input.appearances = vec![Art {
             bounds: Corners {
                 min: [-1.0, -1.0, 0.0],
@@ -657,4 +659,42 @@ fn prop_caster_lists_route_disjoint_and_overlapping_offscreen_models() {
     }
     assert_eq!(xs, [vec![-200.], vec![0.], vec![-200., 0.], vec![]]);
     assert_eq!(visible, [0.]);
+}
+
+#[test]
+fn tiny_visible_prop_skips_shadow_only_when_control_is_enabled() {
+    let props = vec![MapProp {
+        id: 1.0,
+        body: PropBox {
+            center: [0.0, 0.0],
+            base_z: 0.0,
+            yaw: 0.0,
+            ..body("car", [1.0, 1.0, 1.0])
+        },
+    }];
+    let camera = Camera {
+        eye: [0.0, -4_000.0, 2_000.0],
+        target: [0.0, 0.0, 0.0],
+        up: [0.0, 0.0, 1.0],
+        fov_y: 0.8,
+        near: 1.0,
+        size: [640, 480],
+    };
+    let view = View::new(&camera);
+    let mut identity = crate::shadow::IDENTITY;
+    identity[10] = 1.0;
+    let caster = crate::shadow::camera_record(&identity, [0.0; 3], 0.1, [64.0; 2], 0.0);
+    let selected = |shadow_caster_px| {
+        let mut prop_input = input();
+        prop_input.detail.shadow_caster_px = shadow_caster_px;
+        let mut p = PropPopulation::new(PropArt::new(layout(), prop_input).unwrap(), props.clone());
+        p.rows = (0..p.looks.list.len() as u32).collect();
+        p.select(&view, Some(&CasterVolumes::new(&[caster])));
+        let mut counts = [0, 0];
+        p.each_list(&mut |list| counts[usize::from(list.pass == CAST_PASS)] += list.records.len());
+        counts
+    };
+    assert!(selected(0.0)[1] > 0);
+    assert_eq!(selected(2.0), [1, 0]);
+    assert_eq!(selected(1e9), [1, 0]);
 }

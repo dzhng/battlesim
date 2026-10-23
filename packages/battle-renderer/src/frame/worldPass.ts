@@ -45,20 +45,16 @@ import {
   GroundPaved,
   groundPaved,
   groundRoadRelief,
-  groundScarsSeen,
   groundSite,
   groundBank,
   groundWater,
-  scarRegionContains,
-  scarredNormal,
-  scarredSurface,
   waterNormal,
   waterSurface,
 } from "./terrainMaterial";
+import { groundScarsSeen, scarredNormal, scarredSurface, scarRegionContains } from "./groundScars";
 import game from "@fixtures/game.json";
-import { createSceneryLayer } from "./sceneryLayer";
+import { createSceneryLayer, type SceneryWalkStats } from "./sceneryLayer";
 import type { PresentedGround } from "../terrain/terrainSurface";
-import type { SceneryWalkStats } from "./sceneryLayer";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { Mat4 } from "math";

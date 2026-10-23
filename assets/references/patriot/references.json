@@ -1,0 +1,64 @@
+{
+ "entries": [
+  {
+   "file": "us_patriot_long-three_quarter_front.jpg",
+   "variant": "us_patriot_long",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:German_PATRIOT_SAM_-01.jpg",
+   "author": "yetdark",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "478d82b4a758733c6ba2168036a9754a34860ad9d18122ec92b1851c4f4070a6",
+   "note": "A Bundeswehr launching station on the MAN 15 t mil gl 8x8, front quarter, the pack stowed flat: the KAT1 cab with its two-pane windscreen and roof hatch, the tall louvred box behind it, the railings at the pack's front end."
+  },
+  {
+   "file": "us_patriot_long-three_quarter_rear.jpg",
+   "variant": "us_patriot_long",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:German_PATRIOT_SAM_-02.jpg",
+   "author": "yetdark",
+   "licence": "CC-BY-SA-2.0",
+   "sha256": "bb0756e5cd7bb24d11e63d784b8a4ec688659d8b467ab1f24e1805dbbae8afa9",
+   "note": "The same launcher from the left rear, stowed: four ribbed canisters in two rows of two, their covered mouths in the braced rear frame, the elevating ram under the pack, the raised rear jack, folded ladders and warning panels."
+  },
+  {
+   "file": "us_patriot_long-side.jpg",
+   "variant": "us_patriot_long",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Flugabwehrraketnsystem_PATRIOT_der_Bundeswehr.jpg",
+   "author": "Bundeswehr-Fotos",
+   "licence": "CC-BY-2.0",
+   "sha256": "848897f8643bc6f40366724103593332617616699fd77cb48f518a1d60c6bbe6",
+   "note": "Right side in firing position: the axle pairs' spacing, the module box behind the cab, the pack raised on its rear trunnion, all four jacks down, the mast up."
+  },
+  {
+   "file": "us_patriot_long-front.jpg",
+   "variant": "us_patriot_long",
+   "view": "front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Airday-Nordholz_2013_by-RaBoe_114.jpg",
+   "author": "Ra Boe / Wikipedia",
+   "licence": "CC-BY-SA-3.0-DE",
+   "sha256": "2b8bdad726859aa461b7e4e2309207b4a940494de86fa877d1f23e1d3c7c84ea",
+   "note": "Front on, the pack raised behind the cab: the cab's width against the wider wheel track."
+  },
+  {
+   "file": "us_patriot_long-rear.jpg",
+   "variant": "us_patriot_long",
+   "view": "rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:Patriot_System_2.jpg",
+   "author": "Darkone",
+   "licence": "CC-BY-SA-2.5",
+   "sha256": "f994a75f388ab279d085401edcbce6ab5dc3da6ba5802bfd17129100ba18a2bc",
+   "note": "From the right rear, the pack raised: the canister mouths, the rear frame and the module's railing."
+  }
+ ],
+ "gaps": [
+  "us_patriot_long: the photos are German Patriot launchers on the MAN 8x8 in German three-tone; the unit is the US's, painted in the roster's US tan",
+  "us_patriot_long: the photos show PAC-2 canisters (four a launcher); a PAC-3 MSE pack looks the same from outside",
+  "us_patriot_long: no top view; the deck between the module and the pack's front end is a guess"
+ ]
+}

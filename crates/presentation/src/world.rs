@@ -107,6 +107,10 @@ pub struct UnitsSection {
 pub struct Detail {
     pub lod_px: [f64; 3],
     pub impostor_px: f64,
+    /// Minimum projected footprint for a visible model to cast a sun shadow;
+    /// zero keeps every caster (the authored production control).
+    #[serde(default)]
+    pub shadow_caster_px: f64,
 }
 
 #[derive(Clone, Debug, Deserialize)]

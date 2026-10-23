@@ -1,0 +1,65 @@
+{
+ "entries": [
+  {
+   "file": "eastern_s350_long-three_quarter_front.jpg",
+   "variant": "eastern_s350_long",
+   "view": "three_quarter_front",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:S-350E_Vityaz_-_MAKS2013part4-23.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "a434136439cd92b2740bb8e118aa07657093cb5a29201050f25ff7ac72bc3c8f",
+   "note": "50P6E launcher in travel order, front quarter: the BAZ-6909's long flat-fronted cab-forward cab with its two windscreens, the twelve-canister box stowed flat over the rear, red caps forward."
+  },
+  {
+   "file": "eastern_s350_long-side.jpg",
+   "variant": "eastern_s350_long",
+   "view": "side",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:S-350E_Vityaz_-_MAKS2013part4-26.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "0d9c67d8c4b9f09a46eba7619901af3b855340e096756b295519076344cff242",
+   "note": "Right side in travel order: four axles in two pairs, the short cab and the equipment housings behind it, the canister box's two lattice rows flat over the rear axles; the frame's height was measured from this view."
+  },
+  {
+   "file": "eastern_s350_long-three_quarter_rear.jpg",
+   "variant": "eastern_s350_long",
+   "view": "three_quarter_rear",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:S-350E_Vityaz_-_MAKS2013part4-27.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "d565f90c58b6af76e57a4c958b54cad1eba0ac7447f3970acccfd6add6985f21",
+   "note": "Rear quarter: the canister box's heavy rear frame and its elevation hinge at the tail, the rear outriggers stowed, the lattice sides."
+  },
+  {
+   "file": "eastern_s350_long-detail.jpg",
+   "variant": "eastern_s350_long",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:S-350E_Vityaz_-_MAKS2013part4-28.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "36004b77e928fba87955f50aa2a39aaaaba45e92058366970178cdbedca9438f",
+   "note": "The canister box's rear: its frame posts and cross-members over the canister bases."
+  },
+  {
+   "file": "eastern_s350_long-detail-2.jpg",
+   "variant": "eastern_s350_long",
+   "view": "detail",
+   "source": "photo",
+   "page": "https://commons.wikimedia.org/wiki/File:S-350E_Vityaz_-_MAKS2013part4-29.jpg",
+   "author": "Vitaly V. Kuzmin",
+   "licence": "CC-BY-SA-4.0",
+   "sha256": "904388ebe1174992aa1f7ee892bfa9e29854e9693e4c5c86162383f9a848c79b",
+   "note": "The canister mouths forward: two rows of six light grey canisters in the olive lattice frame, red transport caps."
+  }
+ ],
+ "gaps": [
+  "eastern_s350_long: the photos are the export 50P6E shown at MAKS 2013; the Russian 50P6 is taken to share its layout",
+  "eastern_s350_long: no published length, width or height for the launcher; the frame is the BAZ-6909's length and width, its height measured from the side photo at that length",
+  "eastern_s350_long: no photo shows the left side or the cab's roof from above; both are taken as mirror images of what the photos show",
+  "eastern_s350_long: the outriggers are drawn stowed; their exact folded shape is a guess"
+ ]
+}

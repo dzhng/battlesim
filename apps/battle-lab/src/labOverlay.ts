@@ -46,7 +46,7 @@ export function useLabOverlay(
             observation,
             control.selected,
             surfaceZ,
-            { supplyRadius: 0, zone: null, deployment: null },
+            { supplyRadius: 0, zone: null, deployments: [] },
             {
               showOrders: control.showOrders,
               reveal: session.revealed,

@@ -1941,7 +1941,8 @@
     },
     "models": {
       "lod_px": [150, 60, 24],
-      "impostor_px": 10
+      "impostor_px": 10,
+      "shadow_caster_px": 2
     },
     "glass": { "turn": 0.5, "glint": 1 },
     "buildings": {
