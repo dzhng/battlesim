@@ -207,7 +207,8 @@ export function Tutorial() {
           </li>
           <li>
             Every unit you own also has a card in the army bar along the bottom: click it to select
-            that unit, <kbd>Shift</kbd>-click to add it, hover to see its details.
+            that unit, <kbd>Shift</kbd>-click to add it, hover to see its details. Click a selected
+            card again, or double-click any card, to centre the camera on that unit.
           </li>
         </ul>
       </Section>
